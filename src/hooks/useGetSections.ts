@@ -1,43 +1,20 @@
-import {
-  AncestryFeature,
-  Character,
-  CharacterExpertise,
-  CharacterFeat,
-  CharacterFeature,
-  CharacterModifier,
-  CharacterProficiency,
-  CharacterSense,
-  Feature,
-  FeatureExpertise,
-  FeatureFeat,
-  FeatureModifier,
-  FeatureOption,
-  FeatureProficiency,
-  FeatureSense,
-  Scores,
-  Spell,
-} from '../../amplify/gql/types'
-import { CharacterSectionData, DeepKeyOf, SectionDataType, SectionName } from '../types/form'
-import {
-  Attributes,
-  ModifierCategories,
-  ModifierSpellCategories,
-  ProficiencyCategories,
-  ModifierTypes,
-  ModifierMethods,
-} from '../types/enums'
-import { useListClassesQuery } from '../apis/classesApi'
-import { useListEquipmentQuery } from '../apis/equipmentApi'
-import { useListSpellsQuery } from '../apis/spellsApi'
-import { useGetSystemQuery } from '../apis/systemsApi'
-import { getKeyFromId, getModifierProperties } from '../utils/form'
-import { useListRacesQuery } from '../apis/racesApi'
-import { useListFeatsQuery } from '../apis/featsApi'
-import { useListBackgroundsQuery } from '../apis/backgroundsApi'
-import { sectionSteps } from '../types/form'
+import type { CharacterSectionData, DeepKeyOf, SectionDataType, SectionName, GQL, FeatureDataType } from '@/types'
+import { Enum } from '@/types'
+import { getKeyFromId, getModifierProperties } from '@/components/Form'
+import { sectionSteps } from '@/types'
 import { useCallback, useMemo } from 'react'
-import { typename, sectionIdKey, proficiencyKey } from '../utils/formatting'
-import useGetFeatures, { FactoryFeature } from './useGetFeatures'
+import { typename, sectionIdKey, proficiencyKey } from '@/utils'
+import {
+  useBackgroundData,
+  useClassData,
+  useEquipmentData,
+  useFeatData,
+  useGetFeatures,
+  useRaceData,
+  useSpellData,
+  useSystemData,
+  type FactoryFeature,
+} from '@/hooks'
 
 export interface GetSectionOptionsProps {
   section: SectionDataType
@@ -53,7 +30,7 @@ export interface GetSectionOptionsResult<T> {
 }
 
 export interface GetFeatureOptionsProps {
-  feature: CharacterFeature
+  feature: GQL.CharacterFeature
   optionIndex: string
 }
 
@@ -87,14 +64,14 @@ interface StateSections {
 
 export const sectionIds = ['classId', 'raceId', 'backgroundId', 'equipmentId', 'ancestryId', 'featId'] as const
 
-const useGetSections = ({ formData }: { formData: Character }) => {
-  const { data: classes } = useListClassesQuery()
-  const { data: system } = useGetSystemQuery()
-  const { data: spells } = useListSpellsQuery()
-  const { data: races } = useListRacesQuery()
-  const { data: feats } = useListFeatsQuery()
-  const { data: equipment } = useListEquipmentQuery()
-  const { data: backgrounds } = useListBackgroundsQuery()
+const useGetSections = ({ formData }: { formData: GQL.Character }) => {
+  const { classes } = useClassData()
+  const { system } = useSystemData()
+  const { spells } = useSpellData()
+  const { races } = useRaceData()
+  const { feats } = useFeatData()
+  const { equipment } = useEquipmentData()
+  const { backgrounds } = useBackgroundData()
 
   const { createFeatures, getFullFeature } = useGetFeatures({ data: formData })
 
@@ -109,10 +86,8 @@ const useGetSections = ({ formData }: { formData: Character }) => {
 
         const sections = formData[sectionStep]
         sections?.forEach((section, index) => {
-          let fullSections: Array<
-            FeatureProficiency | FeatureSense | FeatureModifier | FeatureFeat | FeatureExpertise
-          > = []
-          let fullFeature = {} as Feature | FeatureOption | AncestryFeature
+          let fullSections: Array<SectionDataType> = []
+          let fullFeature = {} as FeatureDataType
           const featureId = section.featureId
           const classId = section.classId
           const raceId = section.raceId
@@ -164,7 +139,7 @@ const useGetSections = ({ formData }: { formData: Character }) => {
           existing[sectionStep].push(existingSection)
 
           if (classId) {
-            const fullClass = classes?.find((uClass) => uClass.id === classId)
+            const fullClass = classes?.findClass(classId)
 
             if (!featureId && sectionStep === 'proficiencies' && fullClass?.proficiencies?.length) {
               fullSections = fullClass?.proficiencies
@@ -177,7 +152,7 @@ const useGetSections = ({ formData }: { formData: Character }) => {
             }
           }
           if (raceId) {
-            const fullRace = races?.find((race) => race.id === raceId)
+            const fullRace = races?.findRace(raceId)
 
             if (ancestryId) {
               const fullAncestry = fullRace?.ancestry?.options?.find((option) => option.id === ancestryId)
@@ -198,7 +173,7 @@ const useGetSections = ({ formData }: { formData: Character }) => {
             }
           }
           if (featId) {
-            const fullFeat = feats?.find((feat) => feat.id === featId)
+            const fullFeat = feats?.findFeat(featId)
 
             const featFeature = fullFeat?.features?.find((feature) => feature.id === featureId)
 
@@ -207,7 +182,7 @@ const useGetSections = ({ formData }: { formData: Character }) => {
             }
           }
           if (backgroundId) {
-            const fullBackground = backgrounds?.find((background) => background.id === backgroundId)
+            const fullBackground = backgrounds?.findBackground(backgroundId)
 
             const backgroundFeature = fullBackground?.features?.find((feature) => feature.id === featureId)
 
@@ -216,7 +191,7 @@ const useGetSections = ({ formData }: { formData: Character }) => {
             }
           }
           if (equipmentId) {
-            const fullEquipment = equipment?.find((equipment) => equipment.id === equipmentId)
+            const fullEquipment = equipment?.findEquipment(equipmentId)
 
             const equipmentFeature = fullEquipment?.features?.find((feature) => feature.id === featureId)
 
@@ -233,7 +208,7 @@ const useGetSections = ({ formData }: { formData: Character }) => {
               ?.find((f) => f.id === fullFeature?.id)
               ?.options?.find((o) => o.optionIndex === optionIndex)?.id
 
-            const sections = (fullFeature as Feature | AncestryFeature)?.options?.find(
+            const sections = (fullFeature as GQL.Feature | GQL.AncestryFeature)?.options?.find(
               (option) => option.id === optionId
             )?.[sectionStep]
 
@@ -257,14 +232,14 @@ const useGetSections = ({ formData }: { formData: Character }) => {
 
               if (!categoryId) return
 
-              const categoryName = getKeyFromId(categoryId, ProficiencyCategories)
+              const categoryName = getKeyFromId(categoryId, Enum.ProficiencyCategories)
 
               // If the sections do not provide options, pass the set ids from the category/subcategory
               // The ones that did provides options are already set in the above in if options condition
-              if (!fullSection?.attributes?.some((attribute) => attribute === Attributes.providesOptions)) {
+              if (!fullSection?.attributes?.some((attribute) => attribute === Enum.Attributes.providesOptions)) {
                 if (
-                  fullSection.id === (section as CharacterProficiency).proficiencyId ||
-                  fullSection.id === (section as CharacterExpertise).expertiseId
+                  fullSection.id === (section as GQL.CharacterProficiency).proficiencyId ||
+                  fullSection.id === (section as GQL.CharacterExpertise).expertiseId
                 ) {
                   if (categoryName && categoryName !== 'initiative') {
                     if (categoryName === 'equipment') {
@@ -293,7 +268,7 @@ const useGetSections = ({ formData }: { formData: Character }) => {
             } else {
               // If the sections do not provide options, pass the set ids from the category/subcategory
               // The ones that did provides options are already set in the above in if options condition
-              if (!fullSection?.attributes?.some((attribute) => attribute === Attributes.providesOptions)) {
+              if (!fullSection?.attributes?.some((attribute) => attribute === Enum.Attributes.providesOptions)) {
                 const sectionId = `${typename(sectionStep, 'id')}Id` as const
                 if (sectionId in section) {
                   if (fullSection.id === section[sectionId as keyof typeof section]) {
@@ -324,7 +299,7 @@ const useGetSections = ({ formData }: { formData: Character }) => {
             }
           // Get the category name based on the available enums and the id in the data
           const categoryId = section.category
-          const categoryName = getKeyFromId(categoryId, ProficiencyCategories)
+          const categoryName = getKeyFromId(categoryId, Enum.ProficiencyCategories)
 
           // If the Proficiency options are equipment or properties (equipment properties), these are handled differently due to potential filtering options
           if (categoryName === 'equipment' || categoryName === 'properties') {
@@ -335,14 +310,7 @@ const useGetSections = ({ formData }: { formData: Character }) => {
 
               if (categoryName === 'equipment') {
                 if (ids?.some((id) => id === 'all')) {
-                  options = equipment
-                    .filter((sEquipment) => sEquipment?.category === equipmentCategory)
-                    .filter((sEquipment) => {
-                      if (properties?.length) {
-                        return sEquipment?.properties?.some((property) => properties.includes(property))
-                      }
-                      return true
-                    })
+                  options = equipment.filterByCategory(equipmentCategory).filterByProperties(properties)
                 } else {
                   options = equipment.filter((equipment) => ids?.includes(equipment.id))
                 }
@@ -383,7 +351,7 @@ const useGetSections = ({ formData }: { formData: Character }) => {
             }
           // Get the category name based on the available enums and the id in the data
           const categoryId = section.category
-          const categoryName = getKeyFromId(categoryId, ProficiencyCategories)
+          const categoryName = getKeyFromId(categoryId, Enum.ProficiencyCategories)
 
           // If the Proficiency options are equipment or properties (equipment properties), these are handled differently due to potential filtering options
           if (categoryName === 'equipment' || categoryName === 'properties') {
@@ -394,14 +362,7 @@ const useGetSections = ({ formData }: { formData: Character }) => {
 
               if (categoryName === 'equipment') {
                 if (ids?.some((id) => id === 'all')) {
-                  options = equipment
-                    .filter((sEquipment) => sEquipment?.category === equipmentCategory)
-                    .filter((sEquipment) => {
-                      if (properties?.length) {
-                        return sEquipment?.properties?.some((property) => properties.includes(property))
-                      }
-                      return true
-                    })
+                  options = equipment.filterByCategory(equipmentCategory).filterByProperties(properties)
                 } else {
                   options = equipment.filter((equipment) => ids?.includes(equipment.id))
                 }
@@ -445,7 +406,7 @@ const useGetSections = ({ formData }: { formData: Character }) => {
 
           if (!categoryId) return returnObject
 
-          const categoryName = getKeyFromId(categoryId, { ...ModifierCategories, ...ModifierSpellCategories })
+          const categoryName = getKeyFromId(categoryId, { ...Enum.ModifierCategories, ...Enum.ModifierSpellCategories })
 
           // Match a property name to the category name
           const propertyName = getModifierProperties({ category: categoryName })
@@ -524,14 +485,16 @@ const useGetSections = ({ formData }: { formData: Character }) => {
           } else {
             options = spells.filter((spell) => section?.ids?.includes(spell.id))
           }
-          if (section.attributes?.some((attribute) => attribute === Attributes.classLimit)) {
-            options = (options as Array<Spell>).filter((option) =>
+          if (section.attributes?.some((attribute) => attribute === Enum.Attributes.classLimit)) {
+            options = (options as Array<GQL.Spell>).filter((option) =>
               option.classes?.some((oClass) => section.classLimit?.some((lClass) => lClass === oClass))
             )
           }
 
-          if (section.attributes?.some((attribute) => attribute === Attributes.levelLimit)) {
-            options = (options as Array<Spell>).filter((spell) => section?.levelLimit?.includes(String(spell.level)))
+          if (section.attributes?.some((attribute) => attribute === Enum.Attributes.levelLimit)) {
+            options = (options as Array<GQL.Spell>).filter((spell) =>
+              section?.levelLimit?.includes(String(spell.level))
+            )
           }
 
           return {
@@ -611,7 +574,12 @@ const useGetSections = ({ formData }: { formData: Character }) => {
   const createSections = useCallback(() => {
     // Initialize with existing data and validate against current formData// Common validation function for all section types
     const isValidSection = (
-      section: CharacterExpertise | CharacterFeat | CharacterSense | CharacterProficiency | CharacterModifier
+      section:
+        | GQL.CharacterExpertise
+        | GQL.CharacterFeat
+        | GQL.CharacterSense
+        | GQL.CharacterProficiency
+        | GQL.CharacterModifier
     ) => {
       const sourceValid =
         (section.classId && formData?.classes?.some((c) => c.id === section.classId)) ||
@@ -628,11 +596,11 @@ const useGetSections = ({ formData }: { formData: Character }) => {
 
     // Create sections object with explicit typing
     const sections = {
-      feats: [...(formData.feats || [])].filter(isValidSection) as CharacterFeat[],
-      modifiers: [...(formData.modifiers || [])].filter(isValidSection) as CharacterModifier[],
-      proficiencies: [...(formData.proficiencies || [])].filter(isValidSection) as CharacterProficiency[],
-      expertise: [...(formData.expertise || [])].filter(isValidSection) as CharacterExpertise[],
-      senses: [...(formData.senses || [])].filter(isValidSection) as CharacterSense[],
+      feats: [...(formData.feats || [])].filter(isValidSection) as GQL.CharacterFeat[],
+      modifiers: [...(formData.modifiers || [])].filter(isValidSection) as GQL.CharacterModifier[],
+      proficiencies: [...(formData.proficiencies || [])].filter(isValidSection) as GQL.CharacterProficiency[],
+      expertise: [...(formData.expertise || [])].filter(isValidSection) as GQL.CharacterExpertise[],
+      senses: [...(formData.senses || [])].filter(isValidSection) as GQL.CharacterSense[],
     }
 
     // Specific type guard that preserves the object type
@@ -672,13 +640,13 @@ const useGetSections = ({ formData }: { formData: Character }) => {
           // For proficiencies and expertise, also check the specific target identifier
           if (step === 'proficiencies' || step === 'expertise') {
             // Get all category identifiers from the typenameMap
-            const categoryIdentifiers = Object.keys(ProficiencyCategories)
+            const categoryIdentifiers = Object.keys(Enum.ProficiencyCategories)
               .filter((key) => {
-                const typedKey = key as keyof typeof ProficiencyCategories
+                const typedKey = key as keyof typeof Enum.ProficiencyCategories
                 return typedKey !== 'initiative'
               })
               .map((key) => {
-                const typedKey = key as keyof typeof ProficiencyCategories
+                const typedKey = key as keyof typeof Enum.ProficiencyCategories
                 return typedKey
               }) // Exclude initiative which doesn't have IDs
 
@@ -712,7 +680,7 @@ const useGetSections = ({ formData }: { formData: Character }) => {
     }
 
     // Process features...
-    const pushSections = (fullFeature: Feature | AncestryFeature | FeatureOption, feature: FactoryFeature) => {
+    const pushSections = (fullFeature: FeatureDataType, feature: FactoryFeature) => {
       // For each valid section type
       const featureObject: FactoryFeature & { __typename: 'CharacterFeature' } = {
         ...feature,
@@ -723,14 +691,14 @@ const useGetSections = ({ formData }: { formData: Character }) => {
         .forEach((sectionStep) => {
           if (fullFeature?.[sectionStep]?.length) {
             fullFeature[sectionStep].forEach((fSection) => {
-              if (!fSection?.attributes?.some((attribute) => attribute === Attributes.providesOptions)) {
+              if (!fSection?.attributes?.some((attribute) => attribute === Enum.Attributes.providesOptions)) {
                 // Special handling for proficiencies and expertise
                 if (
                   (fSection.__typename === 'FeatureProficiency' || fSection.__typename === 'FeatureExpertise') &&
                   fSection.category
                 ) {
                   const categoryId = fSection.category
-                  const categoryName = getKeyFromId(categoryId, ProficiencyCategories)
+                  const categoryName = getKeyFromId(categoryId, Enum.ProficiencyCategories)
 
                   // Handle different category types that contain arrays
                   if (categoryName && categoryName !== 'initiative') {
@@ -805,9 +773,9 @@ const useGetSections = ({ formData }: { formData: Character }) => {
     // Helper function to create the base section object
     function createBaseSectionObject<T extends keyof typeof sections>(
       sectionStep: T,
-      fSection: FeatureModifier | FeatureFeat | FeatureSense | FeatureProficiency | FeatureExpertise,
-      fullFeature: Feature | AncestryFeature | FeatureOption,
-      feature: CharacterFeature
+      fSection: SectionDataType,
+      fullFeature: FeatureDataType,
+      feature: GQL.CharacterFeature
     ): (typeof sections)[T][number] {
       // Use the specific return type based on the section type
       const typeName = typename(sectionStep, 'typename')
@@ -845,7 +813,7 @@ const useGetSections = ({ formData }: { formData: Character }) => {
     })
 
     formData?.classes?.forEach((fClass) => {
-      const fullClass = classes?.find((c) => c.id === fClass.id)
+      const fullClass = classes?.findClass(fClass.id)
 
       const proficiencies = fullClass?.proficiencies || []
 
@@ -868,8 +836,9 @@ const useGetSections = ({ formData }: { formData: Character }) => {
 
   const createAbilityScores = useCallback(() => {
     if (formData.__typename === 'Character') {
-      const abilityScores: Scores[] =
-        JSON.parse(JSON.stringify(formData?.abilities?.scores)) || ([] as NonNullable<Character['abilities']>['scores'])
+      const abilityScores: GQL.Scores[] =
+        JSON.parse(JSON.stringify(formData?.abilities?.scores)) ||
+        ([] as NonNullable<GQL.Character['abilities']>['scores'])
 
       const characterModifiers = [...(formData?.modifiers || [])]
 
@@ -884,10 +853,10 @@ const useGetSections = ({ formData }: { formData: Character }) => {
         // Set modifers on ability scores
 
         characterModifiers?.forEach((cModifier) => {
-          let featureMod: FeatureModifier | undefined
+          let featureMod: GQL.FeatureModifier | undefined
 
           if (cModifier.classId) {
-            const foundClass = classes?.find((sClass) => sClass.id === cModifier.classId)
+            const foundClass = classes?.findClass(cModifier.classId)
             if (foundClass) {
               const foundMod = foundClass?.features
                 ?.find(
@@ -904,7 +873,7 @@ const useGetSections = ({ formData }: { formData: Character }) => {
             }
           }
           if (cModifier.raceId) {
-            const foundRace = races.find((sRace) => sRace.id === cModifier.raceId)
+            const foundRace = races.findRace(cModifier.raceId)
             if (foundRace) {
               const foundMod = foundRace?.features
                 ?.find((feature) => feature.id === cModifier.featureId)
@@ -926,14 +895,14 @@ const useGetSections = ({ formData }: { formData: Character }) => {
             }
           }
 
-          let method: FeatureModifier['method']
-          let type: FeatureModifier['type']
-          if (featureMod && featureMod.category === ModifierCategories.abilityScores) {
+          let method: GQL.FeatureModifier['method']
+          let type: GQL.FeatureModifier['type']
+          if (featureMod && featureMod.category === Enum.ModifierCategories.abilityScores) {
             method = featureMod.method
             type = featureMod.type
 
-            if (type === ModifierTypes.bonus) {
-              if (method === ModifierMethods.setGlobally) {
+            if (type === Enum.ModifierTypes.bonus) {
+              if (method === Enum.ModifierMethods.setGlobally) {
                 if (featureMod?.abilities && featureMod?.abilities?.includes(score.ability) && featureMod.setAmount) {
                   if (cModifier.classId != null) {
                     classScore += featureMod.setAmount

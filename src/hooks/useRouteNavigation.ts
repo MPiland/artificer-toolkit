@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { FormType } from '../types/form'
+import type { FormType } from '@/types'
 import type { FileRoutesByFullPath } from '../routeTree.gen'
 import { ToOptions, NavigateOptions } from '@tanstack/react-router'
 

@@ -13,7 +13,7 @@ import Grid from '../../Grid/Grid'
 import useSystemData from '../../../hooks/useSystemData'
 import useClassData from '../../../hooks/useClassData'
 import useRaceData from '../../../hooks/useRaceData'
-import type { FormDataType, OnChange } from '../../../types/form'
+import type { FormDataType, OnChange } from '../../../types/types'
 
 const Details = () => {
   const { formStore } = use(FormContext)

@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import Dropdown from '../../../../Dropdown/Dropdown'
-import type { OnChange } from '../../../../../types/form'
+import type { OnChange } from '../../../../../types/types'
 import { Character } from '../../../../../../amplify/gql/types'
 import { AbilityGenerate } from '../../../../../types/enums'
 import { isEqual } from 'lodash'

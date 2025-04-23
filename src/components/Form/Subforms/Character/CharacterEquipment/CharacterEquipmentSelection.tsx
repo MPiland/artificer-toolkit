@@ -14,7 +14,7 @@ import { FormContext } from '../../../FormContext'
 import { Attributes } from '../../../../../types/enums'
 import useSystemData from '../../../../../hooks/useSystemData'
 import useEquipmentData from '../../../../../hooks/useEquipmentData'
-import type { OnChange } from '../../../../../types/form'
+import type { OnChange } from '../../../../../types/types'
 
 const CharacterEquipmentSelection = ({
   groupIndex,

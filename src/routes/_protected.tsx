@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
 import { Suspense } from 'react'
-import Loading from '../components/Loading/Loading'
+import Loading from '@/components/Loading/Loading'
 
 export const Route = createFileRoute('/_protected')({
   beforeLoad: async ({ context }) => {

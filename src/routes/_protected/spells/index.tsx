@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
-import Spells from '../../../pages/spells/Spells'
-import { fetchSpells } from '../../../apis/spellsApi'
-import Loading from '../../../components/Loading/Loading'
+import Spells from '@/pages/spells/Spells'
+import { fetchSpells } from '@/apis/spellsApi'
+import Loading from '@/components/Loading/Loading'
 
 export const Route = createFileRoute('/_protected/spells/')({
   beforeLoad: () => {

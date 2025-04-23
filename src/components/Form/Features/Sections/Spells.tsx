@@ -15,7 +15,7 @@ import useSystemData from '../../../../hooks/useSystemData'
 import useSpellData from '../../../../hooks/useSpellData'
 import useClassData from '../../../../hooks/useClassData'
 import type { SectionStore } from '../../../../store/sectionStore'
-import type { OnChange } from '../../../../types/form'
+import type { OnChange } from '../../../../types/types'
 
 const Spells = () => {
   const { formStore } = use(FormContext)

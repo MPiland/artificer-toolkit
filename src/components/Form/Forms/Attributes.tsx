@@ -24,7 +24,7 @@ import Button from '../../Button/Button'
 import { TbPlus, TbX } from 'react-icons/tb'
 import { row_button } from '../Form.css'
 import useSystemData from '../../../hooks/useSystemData'
-import type { FormDataType, OnChange } from '../../../types/form'
+import type { FormDataType, OnChange } from '../../../types/types'
 import type { FormStore } from '../../../store/formStore'
 
 const AttributeForm = () => {

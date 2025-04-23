@@ -1,15 +1,15 @@
 import { useState, useRef, useEffect } from 'react'
-import { validateForm } from '../../utils/form'
-import Input from '../../components/Input/Input'
-import Button from '../../components/Button/Button'
+import { validateForm } from '@/utils/form'
+import Input from '@/components/Input/Input'
+import Button from '@/components/Button/Button'
 import { TbEye, TbEyeOff } from 'react-icons/tb'
-import { sprinkles } from '../../css/sprinkles.css'
-import { useSignUp, useSignIn, useResetPassword } from '../../apis/authApi'
-import Group from '../../components/Group/Group'
-import Spinner from '../../components/Spinner/Spinner'
+import { sprinkles } from '@/css/sprinkles.css'
+import { useSignUp, useSignIn, useResetPassword } from '@/apis/authApi'
+import Group from '@/components/Group/Group'
+import Spinner from '@/components/Spinner/Spinner'
 import { auth_container, auth_link, error_message } from './Auth.css'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Route } from '../../routes/$auth'
+import { Route } from '@/routes/$auth'
 
 const Auth = () => {
   const { auth } = Route.useParams()
@@ -129,7 +129,7 @@ const Auth = () => {
   return (
     <div className={auth_container}>
       {errorMsg && <p className={error_message}>{errorMsg}</p>}
-      <Input
+      <Input<{ username: string }>
         className={sprinkles({ mb: 'space-4' })}
         validation='user'
         placeholder='john.doe@email.com'
@@ -138,14 +138,16 @@ const Auth = () => {
         label={'Email Address'}
         autoComplete='username'
         required={true}
-        onChange={(e) =>
-          setState((prevState) => ({ ...prevState, username: (e as { type: 'update'; value: string }).value }))
-        }
+        onChange={{
+          updateField: ({ value }) => {
+            return setState((prevState) => ({ ...prevState, username: value }))
+          },
+        }}
         value={state.username}
         errorMsg={!isSignIn ? 'Username must be a valid email address (example@domain.com).' : undefined}
         ref={usernameRef}
       />
-      <Input
+      <Input<{ password: string }>
         className={sprinkles({ mb: 'space-2' })}
         validation='pwd'
         placeholder='Enter password...'
@@ -155,9 +157,11 @@ const Auth = () => {
         autoComplete={isSignIn ? 'current-password' : 'new-password'}
         required={true}
         value={state.password}
-        onChange={(e) =>
-          setState((prevState) => ({ ...prevState, password: (e as { type: 'update'; value: string }).value }))
-        }
+        onChange={{
+          updateField: ({ value }) => {
+            return setState((prevState) => ({ ...prevState, password: value }))
+          },
+        }}
         endAdornment={
           <span
             onClick={(e: any) => {

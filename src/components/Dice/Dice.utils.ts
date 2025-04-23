@@ -1,5 +1,5 @@
 import { Vector3Tuple } from '@react-three/rapier'
-import { RollConfig, Point, DiceConfig } from '../types/components'
+import { RollConfig, Point, DiceConfig } from '@/components/Dice'
 
 export const generateRandomLinearVelocity = (width: number, height: number): Vector3Tuple => {
   const directionX = (Math.random() - 0.5) * width

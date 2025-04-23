@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import BackgroundForm from '../../../../pages/backgrounds/BackgroundForm'
-import { fetchBackground } from '../../../../apis/backgroundsApi'
+import BackgroundForm from '@/pages/backgrounds/BackgroundForm'
+import { fetchBackground } from '@/apis/backgroundsApi'
 
 export const Route = createFileRoute('/_protected/backgrounds/$action/$_backgroundId')({
   beforeLoad: () => {

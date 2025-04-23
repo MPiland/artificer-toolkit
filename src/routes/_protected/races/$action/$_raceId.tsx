@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import RaceForm from '../../../../pages/races/RaceForm'
-import { fetchRace } from '../../../../apis/racesApi'
+import RaceForm from '@/pages/races/RaceForm'
+import { fetchRace } from '@/apis/racesApi'
 
 export const Route = createFileRoute('/_protected/races/$action/$_raceId')({
   beforeLoad: () => {

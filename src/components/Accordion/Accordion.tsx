@@ -10,15 +10,15 @@ import {
   accordion_content,
   accordion_footer,
 } from './Accordion.css'
-import Group from '../Group/Group'
+import Group from '@/components/Group'
 import clsx from 'clsx'
-import { sprinkles } from '../../css/sprinkles.css'
-import Button from '../Button/Button'
+import { sprinkles } from '@/css/sprinkles.css'
+import Button from '@/components/Button'
 import { TbX } from 'react-icons/tb'
 import { closestCenter, DndContext, MouseSensor, TouchSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import type { DeepKeyOf, OnChange } from '../../types/form'
+import type { DeepKeyOf, OnChange } from '@/types'
 import AccordionProvider from './AccordionProvider'
 import { AccordionContext } from './AccordionContext'
 

@@ -15,7 +15,7 @@ import { use } from 'react'
 import { FormContext } from '../../../FormContext'
 import useSystemData from '../../../../../hooks/useSystemData'
 import useClassData from '../../../../../hooks/useClassData'
-import type { OnChange } from '../../../../../types/form'
+import type { OnChange } from '../../../../../types/types'
 
 const CharacterClass = ({
   uClass,

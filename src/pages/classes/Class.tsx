@@ -1,14 +1,14 @@
 import parse from 'html-react-parser'
 import { Fragment } from 'react'
-import Detail from '../../components/Detail/Detail'
-import { sprinkles } from '../../css/sprinkles.css'
-import { type Class as ClassState, type Feature, type FeatureOption } from '../../../amplify/gql/types'
-import { Attributes, Categories, Prerequisites } from '../../types/enums'
+import Detail from '@/components/Detail/Detail'
+import { sprinkles } from '@/css/sprinkles.css'
+import { type Class as ClassState, type Feature, type FeatureOption } from '@/types/types'
+import { Attributes, Categories, Prerequisites } from '@/types/enums'
 import { class_section_divider } from './Class.css'
-import { Route } from '../../routes/_protected/classes/$classId'
-import useSystemData from '../../hooks/useSystemData'
-import useSpellData from '../../hooks/useSpellData'
-import useClassData from '../../hooks/useClassData'
+import { Route } from '@/routes/_protected/classes/$classId'
+import useSystemData from '@/hooks/useSystemData'
+import useSpellData from '@/hooks/useSpellData'
+import useClassData from '@/hooks/useClassData'
 
 const Class = () => {
   const classId = Route.useParams({ select: (r) => r.classId })

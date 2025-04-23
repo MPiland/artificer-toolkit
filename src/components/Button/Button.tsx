@@ -9,9 +9,9 @@ import {
   button_width,
 } from './Button.css'
 import clsx from 'clsx'
-import { ButtonColor } from '../../css/theme.css'
-import { Height, Size } from '../../css/size.css'
-import { BorderRadius } from '../../css/border.css'
+import { ButtonColor } from '@/css/theme.css'
+import { Height, Size } from '@/css/size.css'
+import { BorderRadius } from '@/css/border.css'
 
 const Button = ({
   type,

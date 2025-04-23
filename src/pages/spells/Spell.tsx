@@ -1,9 +1,9 @@
 import parse from 'html-react-parser'
-import Detail from '../../components/Detail/Detail'
-import { Route } from '../../routes/_protected/spells/$spellId'
-import useSpellData from '../../hooks/useSpellData'
-import type { DetailConfig } from '../../types/components'
-import type { Spell } from '../../../amplify/gql/types'
+import Detail from '@/components/Detail/Detail'
+import { Route } from '@/routes/_protected/spells/$spellId'
+import useSpellData from '@/hooks/useSpellData'
+import type { DetailConfig } from '@/types/components'
+import type { Spell } from '@/types/types'
 
 const Spell = () => {
   const spellId = Route.useParams({ select: (r) => r.spellId })

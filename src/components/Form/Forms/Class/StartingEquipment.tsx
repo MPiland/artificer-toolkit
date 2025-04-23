@@ -6,7 +6,7 @@ import { use } from 'react'
 import { FormContext } from '../../FormContext'
 import Grid from '../../../Grid/Grid'
 import EquipmentGroup from '../../Subforms/StartingEquipment/EquipmentGroup'
-import { OnChange } from '../../../../types/form'
+import { OnChange } from '../../../../types/types'
 
 const StartingEquipment = () => {
   const {

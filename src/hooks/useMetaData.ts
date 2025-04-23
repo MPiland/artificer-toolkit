@@ -1,10 +1,10 @@
 import { get } from 'lodash'
 import { useCallback } from 'react'
-import type { DeepKeyOf, ListItemType, MetaDataType } from '../types/form'
-import type { FooterArray, FooterObject, FooterConfig, DropdownOption } from '../types/components'
-import useSystemData from './useSystemData'
-import useClassData from './useClassData'
-import { extractLookupData, getLabelFromId } from '../utils/data'
+import type { DeepKeyOf, ListItemType, MetaDataType } from '@/types'
+import type { FooterArray, FooterObject, FooterConfig } from '@/components/List'
+import type { DropdownOption } from '@/components/Dropdown'
+import { useSystemData, useClassData } from '@/hooks'
+import { extractLookupData, getLabelFromId } from '@/utils'
 
 export type MetaDataItem = {
   id: string
@@ -12,13 +12,15 @@ export type MetaDataItem = {
 }
 
 // Define a mapping between metadata types and their ID field names
-export const metaDataIdFieldMap: Record<MetaDataType['__typename'], 'spellIds' | 'classIds' | 'raceIds' | 'equipmentIds'> =
-  {
-    SpellMeta: 'spellIds',
-    EquipmentMeta: 'equipmentIds',
-    ClassMeta: 'classIds',
-    RaceMeta: 'raceIds',
-  } as const
+export const metaDataIdFieldMap: Record<
+  MetaDataType['__typename'],
+  'spellIds' | 'classIds' | 'raceIds' | 'equipmentIds'
+> = {
+  SpellMeta: 'spellIds',
+  EquipmentMeta: 'equipmentIds',
+  ClassMeta: 'classIds',
+  RaceMeta: 'raceIds',
+} as const
 
 const useMetaData = <T extends MetaDataType, K extends keyof T, U extends ListItemType>({
   metaData,

@@ -5,7 +5,7 @@ import Collapse from '../../../Collapse/Collapse'
 import { use } from 'react'
 import { FormContext } from '../../FormContext'
 import { FeatureContext } from '../FeatureContext'
-import { FormDataType } from '../../../../types/form'
+import { FormDataType } from '../../../../types/types'
 import {
   Character,
   Class,
@@ -32,7 +32,7 @@ import Grid from '../../../Grid/Grid'
 import useSystemData from '../../../../hooks/useSystemData'
 import useSpellData from '../../../../hooks/useSpellData'
 import type { SectionStore } from '../../../../store/sectionStore'
-import type { OnChange } from '../../../../types/form'
+import type { OnChange } from '../../../../types/types'
 
 const Modifiers = () => {
   const { formStore } = use(FormContext)

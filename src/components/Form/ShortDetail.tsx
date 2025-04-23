@@ -1,5 +1,5 @@
-import Button from '../Button/Button'
-import Modal from '../Modal/Modal'
+import Button from '@/components/Button'
+import Modal from '@/components/Modal'
 import ScrollArea from '../ScrollArea/ScrollArea'
 import { startCase } from 'lodash'
 import { ReactNode } from 'react'

@@ -11,7 +11,7 @@ import Prerequisites from '../../Subforms/Prerequisites'
 import Grid from '../../../Grid/Grid'
 import useSystemData from '../../../../hooks/useSystemData'
 import useEquipmentData from '../../../../hooks/useEquipmentData'
-import type { OnChange } from '../../../../types/form'
+import type { OnChange } from '../../../../types/types'
 import type { SectionStore } from '../../../../store/sectionStore'
 
 type CategoryType = 'skills' | 'equipment' | 'abilities' | 'saveAbilities' | 'properties' | 'languages'

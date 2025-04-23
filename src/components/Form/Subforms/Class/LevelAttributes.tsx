@@ -5,7 +5,7 @@ import { Attributes } from '../../../../types/enums'
 import Input from '../../../Input/Input'
 import { useEnumChecks } from '../../../../hooks/useEnumChecks'
 import Grid from '../../../Grid/Grid'
-import type { OnChange } from '../../../../types/form'
+import type { OnChange } from '../../../../types/types'
 
 const LevelAttributes = ({
   formStore: { data, updateField, addField },

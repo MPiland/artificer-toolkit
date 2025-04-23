@@ -6,7 +6,7 @@ import { AllEnum, type Feat, FeatureEnum, type FeatureSpell } from '../../../../
 import { ChargesLimits } from '../../../types/enums'
 import Grid from '../../Grid/Grid'
 import useSystemData from '../../../hooks/useSystemData'
-import type { FeatureDataType, OnChange } from '../../../types/form'
+import type { FeatureDataType, OnChange } from '../../../types/types'
 
 const LimitUse = ({
   formStore: { data, addField, removeField, updateField },

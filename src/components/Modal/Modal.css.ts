@@ -1,7 +1,7 @@
-import { theme } from '../../css/theme.css'
+import { theme } from '@/css/theme.css'
 import { style } from '@vanilla-extract/css'
-import { app } from '../../css/layers.css'
-import { size } from '../../css/size.css'
+import { app } from '@/css/layers.css'
+import { size } from '@/css/size.css'
 
 export const modal = style({
   '@layer': {

@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import CharacterForm from '../../../../pages/characters/CharacterForm'
-import { fetchCharacter } from '../../../../apis/charactersApi'
+import CharacterForm from '@/pages/characters/CharacterForm'
+import { fetchCharacter } from '@/apis/charactersApi'
 
 export const Route = createFileRoute('/_protected/characters/$action/$_characterId')({
   beforeLoad: async () => {

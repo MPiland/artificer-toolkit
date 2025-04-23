@@ -1,11 +1,11 @@
 import { useEffect, use } from 'react'
-import Form from '../../components/Form/Form'
-import { useAddNewFeatMutation, useUpdateFeatMutation } from '../../apis/featsApi'
-import { Step } from '../../types/form'
-import { FormContext } from '../../components/Form/FormContext'
+import Form from '@/components/Form/Form'
+import { useAddNewFeatMutation, useUpdateFeatMutation } from '@/apis/featsApi'
+import { Step } from '@/types/form'
+import { FormContext } from '@/components/Form/FormContext'
 import { isEqual } from 'lodash'
-import { Route } from '../../routes/_protected/feats/$action/$_featId'
-import useFeatData from '../../hooks/useFeatData'
+import { Route } from '@/routes/_protected/feats/$action/$_featId'
+import useFeatData from '@/hooks/useFeatData'
 
 const FeatForm = () => {
   const { _featId: featId, action } = Route.useParams()

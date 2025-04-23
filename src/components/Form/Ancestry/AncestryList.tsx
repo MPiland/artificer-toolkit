@@ -12,7 +12,7 @@ import parse from 'html-react-parser'
 import type { Race } from '../../../../amplify/gql/types'
 import { FeatureContext } from '../Features/FeatureContext'
 import Grid from '../../Grid/Grid'
-import type { OnChange } from '../../../types/form'
+import type { OnChange } from '../../../types/types'
 
 const AncestryList = () => {
   const {

@@ -8,7 +8,7 @@ import { routeTree } from './routeTree.gen'
 import AuthProvider from './pages/auth/AuthProvider'
 import ThemeProvider from './theme/ThemeProvider'
 import { AuthContext } from './pages/auth/AuthContext'
-import { FormDataType, type FormType } from './types/form'
+import { FormDataType, type FormType } from './types/types'
 import ErrorPage from './pages/auth/ErrorPage'
 import useSystemPref from './hooks/useSystemPref'
 

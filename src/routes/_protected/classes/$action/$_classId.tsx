@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import ClassForm from '../../../../pages/classes/ClassForm'
-import { fetchClass } from '../../../../apis/classesApi'
+import ClassForm from '@/pages/classes/ClassForm'
+import { fetchClass } from '@/apis/classesApi'
 
 export const Route = createFileRoute('/_protected/classes/$action/$_classId')({
   beforeLoad: () => {

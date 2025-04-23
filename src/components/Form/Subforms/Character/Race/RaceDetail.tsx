@@ -11,7 +11,7 @@ import ScrollArea from '../../../../ScrollArea/ScrollArea'
 import Button from '../../../../Button/Button'
 import useRaceData from '../../../../../hooks/useRaceData'
 import { FormStore } from '../../../../../store/formStore'
-import type { OnChange } from '../../../../../types/form'
+import type { OnChange } from '../../../../../types/types'
 
 const RaceDetail = ({ race, setRace }: { race: RaceListItem; setRace: () => void }) => {
   const {

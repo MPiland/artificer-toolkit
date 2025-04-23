@@ -1,5 +1,5 @@
-import { FormDataType, SectionName } from '../types/form'
-import { ProficiencyCategories } from '../types/enums'
+import { FormDataType, SectionName } from '@/types'
+import { Enum } from '@/types'
 
 export const numberToWords = (number: number) => {
   const units = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']
@@ -133,7 +133,7 @@ export function typename<T extends keyof typeof typenameMap, P extends keyof (ty
   return typenameMap[sectionStep][type]
 }
 
-export const proficiencyKey = (category: Exclude<keyof typeof ProficiencyCategories, 'initiative'>) => {
+export const proficiencyKey = (category: Exclude<keyof typeof Enum.ProficiencyCategories, 'initiative'>) => {
   switch (category) {
     case 'skills':
       return 'skill'

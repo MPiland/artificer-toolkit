@@ -13,7 +13,7 @@ import Grid from '../../../Grid/Grid'
 import useSystemData from '../../../../hooks/useSystemData'
 import useEquipmentData from '../../../../hooks/useEquipmentData'
 import type { SectionStore } from '../../../../store/sectionStore'
-import type { OnChange } from '../../../../types/form'
+import type { OnChange } from '../../../../types/types'
 
 const Proficiencies = () => {
   const { formStore } = use(FormContext)

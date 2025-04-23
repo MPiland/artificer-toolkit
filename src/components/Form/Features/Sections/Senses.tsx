@@ -8,7 +8,7 @@ import { Attributes, Categories } from '../../../../types/enums'
 import Grid from '../../../Grid/Grid'
 import useSystemData from '../../../../hooks/useSystemData'
 import { SectionStore } from '../../../../store/sectionStore'
-import type { OnChange } from '../../../../types/form'
+import type { OnChange } from '../../../../types/types'
 
 const Senses = () => {
   const { formStore } = use(FormContext)

@@ -12,7 +12,7 @@ import { AbilityGenerate } from '../../../../../types/enums'
 import type { Character, GenerateOption } from '../../../../../../amplify/gql/types'
 import Grid from '../../../../Grid/Grid'
 import useSystemData from '../../../../../hooks/useSystemData'
-import type { OnChange } from '../../../../../types/form'
+import type { OnChange } from '../../../../../types/types'
 
 const PointBuy = ({
   formStore: { data, updateField },

@@ -1,6 +1,23 @@
 import { useState, useMemo, useCallback } from 'react'
 import { PropertyPath, get, isObject, uniq } from 'lodash'
-import { SortConfig } from '../types/components'
+
+type SortConfig = {
+  key: {
+    orderKey?: string | PropertyPath
+    order?: any[]
+    sortOn: string | PropertyPath
+    subSort?: {
+      orderKey?: string | PropertyPath
+      order?: any[]
+      sortOn: string | PropertyPath | undefined
+    }
+    filter?: {
+      filterKey: string
+      filterOn: string | PropertyPath
+    }
+  }
+  direction?: 'ascending' | 'descending'
+}
 
 interface UseSortableDataProps {
   items: any[]
@@ -30,17 +47,15 @@ const useSortableData = (
       return direction === 'ascending' ? 1 : -1
     }
     if (typeof aValue === 'number' && typeof bValue === 'number') {
-      return direction === 'ascending'
-        ? aValue > bValue
-          ? 1
-          : aValue < bValue || !aValue
-          ? -1
+      return (
+        direction === 'ascending' ?
+          aValue > bValue ? 1
+          : aValue < bValue || !aValue ? -1
           : 0
-        : aValue < bValue
-        ? 1
-        : aValue > bValue || !aValue
-        ? -1
+        : aValue < bValue ? 1
+        : aValue > bValue || !aValue ? -1
         : 0
+      )
     }
     if (isObject(aValue) && isObject(bValue)) {
       if (Object.keys(aValue).length > 0 && !(Object.keys(bValue).length > 0)) {
@@ -61,8 +76,8 @@ const useSortableData = (
     if (aValue == null && bValue != null) {
       return direction === 'ascending' ? -1 : 1
     }
-    return direction === 'ascending'
-      ? String(aValue).localeCompare(String(bValue))
+    return direction === 'ascending' ?
+        String(aValue).localeCompare(String(bValue))
       : String(bValue).localeCompare(String(aValue))
   }, [])
 
@@ -222,25 +237,23 @@ const useSortableData = (
 
             if (Array.isArray(aValue) && Array.isArray(bValue)) {
               const sortedAValue =
-                aValue.length > 1
-                  ? aValue.slice().sort((x, y) => String(x.value).localeCompare(String(y.value)))
-                  : aValue
+                aValue.length > 1 ?
+                  aValue.slice().sort((x, y) => String(x.value).localeCompare(String(y.value)))
+                : aValue
               const sortedBValue =
-                bValue.length > 1
-                  ? bValue.slice().sort((x, y) => String(x.value).localeCompare(String(y.value)))
-                  : bValue
+                bValue.length > 1 ?
+                  bValue.slice().sort((x, y) => String(x.value).localeCompare(String(y.value)))
+                : bValue
 
               for (let i = 0; i < Math.min(sortedAValue.length, sortedBValue.length); i++) {
                 const comparisonResult =
-                  sortedAValue[i].value === sortedBValue[i].value
-                    ? 0
-                    : sortConfig.direction === 'ascending'
-                    ? sortedAValue[i].value > sortedBValue[i].value
-                      ? 1
-                      : -1
-                    : sortedBValue[i].value > sortedAValue[i].value
-                    ? 1
+                  sortedAValue[i].value === sortedBValue[i].value ? 0
+                  : sortConfig.direction === 'ascending' ?
+                    sortedAValue[i].value > sortedBValue[i].value ?
+                      1
                     : -1
+                  : sortedBValue[i].value > sortedAValue[i].value ? 1
+                  : -1
                 if (comparisonResult !== 0) {
                   return comparisonResult
                 }

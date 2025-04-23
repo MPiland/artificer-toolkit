@@ -1,7 +1,5 @@
-import { Class } from '../../amplify/gql/types'
-import { useListEquipmentQuery } from '../apis/equipmentApi'
-import { useGetSystemQuery } from '../apis/systemsApi'
-import { ProficiencyCategories } from '../types/enums'
+import { Enum, GQL } from '@/types'
+import { useEquipmentData, useSystemData } from '@/hooks'
 
 export type ClassProficiency = {
   [key: string]: {
@@ -12,16 +10,16 @@ export type ClassProficiency = {
   }
 }
 
-const useGetProficiencies = ({ fullClass }: { fullClass: Class }) => {
-  const { data: system } = useGetSystemQuery()
-  const { data: equipment } = useListEquipmentQuery()
+const useGetProficiencies = ({ fullClass }: { fullClass: GQL.Class }) => {
+  const { system } = useSystemData()
+  const { equipment } = useEquipmentData()
 
   const fullProficiencies = fullClass?.proficiencies
 
   const proficiencyObject = {} as ClassProficiency
 
   fullProficiencies?.forEach((proficiency) => {
-    if (proficiency?.category === ProficiencyCategories.properties) {
+    if (proficiency?.category === Enum.ProficiencyCategories.properties) {
       if (proficiency?.properties?.ids?.length) {
         const equipmentCategory = system.equipment.categories.find(
           (category) => category.id === proficiency?.properties?.category
@@ -62,7 +60,7 @@ const useGetProficiencies = ({ fullClass }: { fullClass: Class }) => {
         }
       }
     }
-    if (proficiency?.category === ProficiencyCategories.equipment) {
+    if (proficiency?.category === Enum.ProficiencyCategories.equipment) {
       const equipmentCategory = system.equipment.categories.find(
         (category) => category.id === proficiency?.equipment?.category
       )
@@ -77,17 +75,15 @@ const useGetProficiencies = ({ fullClass }: { fullClass: Class }) => {
           if (proficiency?.equipment?.properties?.length) {
             filteredEquipment.push(
               ...equipment
-                .filter((sEquipment) => sEquipment.category === proficiency?.equipment?.category)
-                .filter((sEquipment) =>
-                  sEquipment?.properties?.some((eProperty) => proficiency?.equipment?.properties?.includes(eProperty))
-                )
+                .filterByCategory(proficiency?.equipment?.category)
+                .filterByProperties(proficiency?.equipment?.properties)
                 .filter((sEquipment) => !existType.some((type) => type.id === sEquipment.id))
                 .map((sEquipment) => ({ id: sEquipment.id, label: sEquipment.label, value: sEquipment.value }))
             )
           } else {
             filteredEquipment.push(
               ...equipment
-                .filter((sEquipment) => sEquipment.category === proficiency?.equipment?.category)
+                .filterByCategory(proficiency?.equipment?.category)
                 .filter((sEquipment) => !existType.some((type) => type.id === sEquipment.id))
                 .map((sEquipment) => ({ id: sEquipment.id, label: sEquipment.label, value: sEquipment.value }))
             )
@@ -107,7 +103,7 @@ const useGetProficiencies = ({ fullClass }: { fullClass: Class }) => {
           selectionCount: proficiency?.selectionCount || 0,
         }
       }
-    } else if (proficiency?.category === ProficiencyCategories.skills) {
+    } else if (proficiency?.category === Enum.ProficiencyCategories.skills) {
       const existType: Array<{ id: string; label: string; value: string }> = [...(proficiencyObject?.skils?.type || [])]
 
       const filteredSkills = []
@@ -131,7 +127,7 @@ const useGetProficiencies = ({ fullClass }: { fullClass: Class }) => {
         type: [...existType, ...filteredSkills],
         selectionCount: proficiency?.selectionCount || 0,
       }
-    } else if (proficiency?.category === ProficiencyCategories.languages) {
+    } else if (proficiency?.category === Enum.ProficiencyCategories.languages) {
       const existType: Array<{ id: string; label: string; value: string }> = [
         ...(proficiencyObject?.languages?.type || []),
       ]
@@ -157,7 +153,7 @@ const useGetProficiencies = ({ fullClass }: { fullClass: Class }) => {
         type: [...existType, ...filteredLanguages],
         selectionCount: proficiency?.selectionCount || 0,
       }
-    } else if (proficiency?.category === ProficiencyCategories.saveAbilities) {
+    } else if (proficiency?.category === Enum.ProficiencyCategories.saveAbilities) {
       const existType: Array<{ id: string; label: string; value: string }> = [
         ...(proficiencyObject?.saveAbilities?.type || []),
       ]

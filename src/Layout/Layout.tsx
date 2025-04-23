@@ -1,14 +1,14 @@
 import { use, Suspense } from 'react'
-import Loading from '../components/Loading/Loading'
-import { AuthContext } from '../pages/auth/AuthContext'
+import Loading from '@/components/Loading/Loading'
+import { AuthContext } from '@/pages/auth/AuthContext'
 import LayoutProvider from './LayoutProvider'
 import Header from './Header'
 import Sidebar from './Sidebar'
 import { Outlet } from '@tanstack/react-router'
 import clsx from 'clsx'
 import { content, layout } from './Layout.css'
-import ThemeContext from '../theme/ThemeContext'
-import ModalProvider from '../components/Modal/ModalProvider'
+import ThemeContext from '@/theme/ThemeContext'
+import ModalProvider from '@/components/Modal/ModalProvider'
 import { ToOptions, NavigateOptions } from '@tanstack/react-router'
 
 export const noUserNavigation: { to: ToOptions['to']; params?: NavigateOptions['params']; title: string }[] = [

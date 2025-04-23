@@ -5,7 +5,7 @@ import Input from '../../../Input/Input'
 import Dropdown from '../../../Dropdown/Dropdown'
 import Grid from '../../../Grid/Grid'
 import useEquipmentData from '../../../../hooks/useEquipmentData'
-import { OnChange } from '../../../../types/form'
+import { OnChange } from '../../../../types/types'
 
 const ContainsForm = () => {
   const {

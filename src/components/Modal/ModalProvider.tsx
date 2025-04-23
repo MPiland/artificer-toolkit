@@ -4,7 +4,7 @@ import Alert from '../Alert/Alert'
 import Delete from '../Delete/Delete'
 import Copy from '../Copy/Copy'
 import Modal from './Modal'
-import { FormDataType, type ListItemType } from '../../types/form'
+import { FormDataType, type ListItemType } from '../../types/types'
 import {
   Feature,
   type BackgroundListItem,

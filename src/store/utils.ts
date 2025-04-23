@@ -1,4 +1,4 @@
-import type { FeatureDataType, FormDataType, SectionDataType } from '../types/form'
+import type { FeatureDataType, FormDataType, SectionDataType } from '../types/types'
 import { produce, type Draft } from 'immer'
 import { get, has, set as lSet, camelCase, PropertyPath } from 'lodash'
 import type { FormStore } from './formStore'
@@ -9,7 +9,7 @@ import type { OptionStore } from './optionStore'
 import type { AncestryOption } from '../../amplify/gql/types'
 
 export type States = FormDataType | FeatureDataType | SectionDataType | AncestryOption
-type Stores = FormStore<FormDataType> | FeatureStore | AncestryStore | SectionStore | OptionStore
+type Stores = FormStore<FormDataType> | FeatureStore | AncestryStore | SectionStore<SectionDataType> | OptionStore
 
 const isNumber = (str: string): boolean => {
   return !isNaN(parseFloat(str)) && isFinite(Number(str))

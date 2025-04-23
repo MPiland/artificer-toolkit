@@ -1,7 +1,7 @@
 import parse from 'html-react-parser'
-import Detail from '../../components/Detail/Detail'
-import { Route } from '../../routes/_protected/feats/$featId'
-import useFeatData from '../../hooks/useFeatData'
+import Detail from '@/components/Detail/Detail'
+import { Route } from '@/routes/_protected/feats/$featId'
+import useFeatData from '@/hooks/useFeatData'
 
 const Feat = () => {
   const featId = Route.useParams({ select: (r) => r.featId })

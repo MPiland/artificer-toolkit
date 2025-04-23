@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import Equipment from '../../../pages/equipment/Equipment'
+import Equipment from '@/pages/equipment/Equipment'
 
 export const Route = createFileRoute('/_protected/equipment/$equipmentId')({
   beforeLoad: () => {

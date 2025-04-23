@@ -1,8 +1,8 @@
 import parse from 'html-react-parser'
-import Detail from '../../components/Detail/Detail'
+import Detail from '@/components/Detail/Detail'
 import { Fragment } from 'react'
-import { Route } from '../../routes/_protected/backgrounds/$backgroundId'
-import useBackgroundData from '../../hooks/useBackgroundData'
+import { Route } from '@/routes/_protected/backgrounds/$backgroundId'
+import useBackgroundData from '@/hooks/useBackgroundData'
 
 const Background = () => {
   const backgroundId = Route.useParams({ select: (r) => r.backgroundId })

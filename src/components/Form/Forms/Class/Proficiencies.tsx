@@ -13,7 +13,7 @@ import { FormContext } from '../../FormContext'
 import Grid from '../../../Grid/Grid'
 import useSystemData from '../../../../hooks/useSystemData'
 import useEquipmentData from '../../../../hooks/useEquipmentData'
-import { OnChange } from '../../../../types/form'
+import { OnChange } from '../../../../types/types'
 
 const Proficiencies = () => {
   const {

@@ -1,9 +1,9 @@
 import { use, useState } from 'react'
 import Input from '../Input/Input'
-import Modal from '../Modal/Modal'
-import Button from '../Button/Button'
+import Modal from '@/components/Modal'
+import Button from '@/components/Button'
 import { sprinkles } from '../../css/sprinkles.css'
-import Group from '../Group/Group'
+import Group from '@/components/Group'
 import Grid from '../Grid/Grid'
 import { ModalContext } from '../Modal/ModalContext'
 

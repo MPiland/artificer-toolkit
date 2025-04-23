@@ -9,7 +9,7 @@ import { FormContext } from '../../../FormContext'
 import Grid from '../../../../Grid/Grid'
 import CharacterFeature from '../Features/CharacterFeature'
 import useRaceData from '../../../../../hooks/useRaceData'
-import type { OnChange } from '../../../../../types/form'
+import type { OnChange } from '../../../../../types/types'
 import type { FactoryFeature } from '../../../../../hooks/useGetFeatures'
 
 const RaceFeatures = ({

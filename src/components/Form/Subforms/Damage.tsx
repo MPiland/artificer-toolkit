@@ -8,11 +8,11 @@ import Button from '../../Button/Button'
 import { row_button } from '../Form.css'
 import { TbPlus, TbX } from 'react-icons/tb'
 import { useEnumChecks } from '../../../hooks/useEnumChecks'
-import type { FeatureDataType } from '../../../types/form'
+import type { FeatureDataType } from '../../../types/types'
 import { startCase } from 'lodash'
 import Grid from '../../Grid/Grid'
 import useSystemData from '../../../hooks/useSystemData'
-import type { OnChange } from '../../../types/form'
+import type { OnChange } from '../../../types/types'
 
 const Damage = ({
   formStore: { data, updateField, removeField, addField },

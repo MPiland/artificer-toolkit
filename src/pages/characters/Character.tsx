@@ -1,7 +1,7 @@
-import { Route } from '../../routes/_protected/characters/$characterId'
-import useCharacterData from '../../hooks/useCharacterData'
-import useRaceData from '../../hooks/useRaceData'
-import useClassData from '../../hooks/useClassData'
+import { Route } from '@/routes/_protected/characters/$characterId'
+import useCharacterData from '@/hooks/useCharacterData'
+import useRaceData from '@/hooks/useRaceData'
+import useClassData from '@/hooks/useClassData'
 
 const Character = () => {
   const characterId = Route.useParams({ select: (r) => r.characterId })

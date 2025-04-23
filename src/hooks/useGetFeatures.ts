@@ -1,29 +1,10 @@
-import {
-  Character,
-  Race,
-  Class,
-  Feature,
-  Equipment,
-  Background,
-  CharacterFeature,
-  AncestryFeature,
-  FeatureOption,
-  Feat,
-  CharacterFeatureOption,
-  type CharacterEquipmentObject,
-} from '../../amplify/gql/types'
-import { DeepKeyOf } from '../types/form'
+import type { DeepKeyOf, GQL } from '@/types'
+import { Enum } from '@/types'
 import { useCallback, useMemo } from 'react'
-import { Attributes, Prerequisites } from '../types/enums'
-import { getKeyFromId } from '../utils/form'
-import { sourcePropertyMap } from '../utils/form'
-import useClassData from './useClassData'
-import useRaceData from './useRaceData'
-import useFeatData from './useFeatData'
-import useEquipmentData from './useEquipmentData'
-import useBackgroundData from './useBackgroundData'
+import { getKeyFromId, sourcePropertyMap } from '@/components/Form'
+import { useClassData, useRaceData, useFeatData, useEquipmentData, useBackgroundData } from '@/hooks'
 
-export type FactoryFeature = Omit<Feature | AncestryFeature, 'options' | '__typename'> & {
+export type FactoryFeature = Omit<GQL.Feature | GQL.AncestryFeature, 'options' | '__typename'> & {
   level?: number
   classId?: string
   backgroundId?: string
@@ -31,7 +12,7 @@ export type FactoryFeature = Omit<Feature | AncestryFeature, 'options' | '__type
   raceId?: string
   featId?: string
   ancestryId?: string
-  options?: CharacterFeatureOption[] | null | undefined
+  options?: GQL.CharacterFeatureOption[] | null | undefined
 }
 
 export interface GetFeatureOptionsProps {
@@ -46,18 +27,22 @@ export interface GetFeatureOptionsResult<T> {
 }
 
 type PrerequisiteProcessor = {
-  [key in keyof typeof Prerequisites]?: ({
+  [key in keyof typeof Enum.Prerequisites]?: ({
     option,
     feature,
     optionIndex,
   }: {
-    option: FeatureOption
+    option: GQL.FeatureOption
     feature?: FactoryFeature
     optionIndex?: string
   }) => boolean
 }
 
-const useGetFeatures = ({ data }: { data: Character | Class | Race | Background | Equipment | Feat }) => {
+const useGetFeatures = ({
+  data,
+}: {
+  data: GQL.Character | GQL.Class | GQL.Race | GQL.Background | GQL.Equipment | GQL.Feat
+}) => {
   const { classes } = useClassData()
   const { races } = useRaceData()
   const { feats } = useFeatData()
@@ -139,7 +124,7 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
       if (!fullOption?.prerequisites || !fullOption?.prerequisites?.options?.length) return true
 
       return fullOption.prerequisites?.options?.every((prereqOption) => {
-        const prereq = getKeyFromId(prereqOption, Prerequisites)
+        const prereq = getKeyFromId(prereqOption, Enum.Prerequisites)
 
         if (!prereq || !prerequisiteProcessors[prereq]) {
           return true
@@ -151,7 +136,7 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
   }
 
   const getFullFeature = useCallback(
-    (feature: CharacterFeature | FactoryFeature) => {
+    (feature: GQL.CharacterFeature | FactoryFeature) => {
       if (data?.__typename !== 'Character') return null
 
       if (feature?.classId) {
@@ -181,7 +166,7 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
     [classes, races, backgrounds, feats, equipment, data]
   )
 
-  const getFeatureOptions = ({ feature, optionIndex }: GetFeatureOptionsProps): GetFeatureOptionsResult<Character> => {
+  const getFeatureOptions = ({ feature, optionIndex }: GetFeatureOptionsProps): GetFeatureOptionsResult<GQL.Character> => {
     if (data?.__typename === 'Character') {
       const featureIndex =
         data?.features?.findIndex((f) => {
@@ -196,7 +181,7 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
 
       const exist = existIndex && existIndex > -1 ? data?.features?.[featureIndex]?.options?.[existIndex] : null
 
-      const path: DeepKeyOf<Character> = `features.${featureIndex}.options.${featureOptionIndex}`
+      const path: DeepKeyOf<GQL.Character> = `features.${featureIndex}.options.${featureOptionIndex}`
 
       const fullFeature = getFullFeature(feature)
 
@@ -477,12 +462,12 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
 
         features.push(...existingFeatures)
 
-        const checkEquipment = (featureEquipment: CharacterEquipmentObject) => {
+        const checkEquipment = (featureEquipment: GQL.CharacterEquipmentObject) => {
           if (data?.equipment?.equipped?.includes(featureEquipment.id)) {
             const fullEquipment = equipment?.findEquipment(featureEquipment.id)
 
             const attunementRequired = fullEquipment?.attributes?.some(
-              (attribute) => attribute === Attributes.requireAttunement
+              (attribute) => attribute === Enum.Attributes.requireAttunement
             )
 
             if (

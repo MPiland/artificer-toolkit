@@ -18,7 +18,7 @@ import useEquipmentData from '../../../hooks/useEquipmentData'
 import useFeatData from '../../../hooks/useFeatData'
 import useBackgroundData from '../../../hooks/useBackgroundData'
 import type { FormStore } from '../../../store/formStore'
-import type { FormDataType, Step } from '../../../types/form'
+import type { FormDataType, Step } from '../../../types/types'
 
 const FeaturesList = () => {
   const { formStore, stepIndex, steps } = use(FormContext) as {

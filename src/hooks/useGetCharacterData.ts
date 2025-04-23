@@ -1,20 +1,19 @@
-import { Character, CharacterFeature, CharacterHitpoint } from '../../amplify/gql/types'
-import { useListClassesQuery } from '../apis/classesApi'
-import { calculateHitpoints, sourcePropertyMap, SourcePropertyMapReturn } from '../utils/form'
-import useGetSections from './useGetSectionState'
+import { GQL } from '@/types'
+import { calculateHitpoints, sourcePropertyMap, type SourcePropertyMapReturn } from '@/components/Form'
+import { useClassData, useGetSections } from '@/hooks'
 
-const useGetCharacterData = ({ formData }: { formData: Character }) => {
-  const { data: classes } = useListClassesQuery()
+const useGetCharacterData = ({ formData }: { formData: GQL.Character }) => {
+  const { classes } = useClassData()
 
   const { features, createSections, createAbilityScores } = useGetSections({ formData })
   const sections = createSections()
   const abilityScores = createAbilityScores()
 
-  let hitpoints = {} as CharacterHitpoint
+  let hitpoints = {} as GQL.CharacterHitpoint
 
-  const characterFeatures: CharacterFeature[] =
+  const characterFeatures: GQL.CharacterFeature[] =
     features?.map((feature) => {
-      const featureObj: CharacterFeature = {
+      const featureObj: GQL.CharacterFeature = {
         __typename: 'CharacterFeature',
         id: feature.id,
       }
@@ -34,7 +33,7 @@ const useGetCharacterData = ({ formData }: { formData: Character }) => {
     }) || []
 
   if (formData?.classes?.length) {
-    const primaryClass = classes?.find((c) => c.id === formData?.classes?.[0]?.id)
+    const primaryClass = classes?.findClass(formData?.classes?.[0]?.id)
     if (primaryClass) {
       hitpoints = calculateHitpoints(formData, primaryClass)
     }

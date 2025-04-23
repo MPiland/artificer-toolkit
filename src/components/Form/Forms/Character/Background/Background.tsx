@@ -10,7 +10,7 @@ import parse from 'html-react-parser'
 import CharacterEquipment from '../../../Subforms/Character/CharacterEquipment/CharacterEquipment'
 import CharacterFeature from '../../../Subforms/Character/Features/CharacterFeature'
 import useBackgroundData from '../../../../../hooks/useBackgroundData'
-import type { OnChange } from '../../../../../types/form'
+import type { OnChange } from '../../../../../types/types'
 
 const Background = () => {
   const { formStore, features } = use(FormContext)

@@ -11,7 +11,7 @@ import Prerequisites from '../../Subforms/Prerequisites'
 import Grid from '../../../Grid/Grid'
 import useSystemData from '../../../../hooks/useSystemData'
 import useFeatData from '../../../../hooks/useFeatData'
-import type { OnChange } from '../../../../types/form'
+import type { OnChange } from '../../../../types/types'
 import type { SectionStore } from '../../../../store/sectionStore'
 
 const Feats = () => {

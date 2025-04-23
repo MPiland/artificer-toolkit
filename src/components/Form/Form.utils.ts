@@ -1,26 +1,6 @@
-import {
-  Background,
-  Character,
-  CharacterHitpoint,
-  Class,
-  Equipment,
-  Feat,
-  HitpointFixed,
-  HitpointRoll,
-  HitpointRollValues,
-  Maybe,
-  Race,
-  Scores,
-  Spell,
-  System,
-  type CharacterEquipmentObject,
-} from '../../amplify/gql/types'
-import { RollConfig } from '../types/components'
-import { HitPointCalcMethod, ModifierCategories, ModifierSpellCategories } from '../types/enums'
-import { FormDataType } from '../types/form'
-import { parseDiceRoll } from './dice'
-import { ToOptions, NavigateOptions } from '@tanstack/react-router'
-import { FormType } from '../types/form'
+import type { FormDataType, GQL } from '@/types'
+import { Enum } from '@/types'
+import { parseDiceRoll, type RollConfig } from '@/components/Dice'
 
 const PWD_REGEX: RegExp = /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,20}$/
 const USER_REGEX: RegExp = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -30,46 +10,12 @@ const CUR_REGEX = /^\d*\.?\d*$/
 const DIE_REGEX = /^(\d+)d(4|6|8|10|12|20|100)?$/
 const ROLL_CONFIG_REGEX = /^(\d+)d(4|6|8|10|12|20|100)(?:(kh|kl)(\d+))?(dh|dl)?(\d+)?(?:(r|ro)([><=])?(\d+))?$/
 
-export const stepArrayOptions = {
-  id: [
-    'details',
-    'class',
-    'race',
-    'abilities',
-    'traits',
-    'attributes',
-    'features',
-    'contains',
-    'proficiencies',
-    'equipment',
-    'startingEquipment',
-    'ancestry',
-    'background',
-  ],
-  label: [
-    'Details',
-    'Class',
-    'Race',
-    'Abilities',
-    'Traits',
-    'Attributes',
-    'Features',
-    'FeaturesContent',
-    'Contains',
-    'Proficiencies',
-    'Equipment',
-    'Starting Equipment',
-    'Ancestry',
-    'Background',
-  ] as const,
-}
-
 function isNonNullable<T>(value: T): value is NonNullable<T> {
   return value !== null && value !== undefined
 }
 
 export function createFilterOptions<T>(
-  items: Array<Maybe<T>> | undefined,
+  items: Array<GQL.Maybe<T>> | undefined,
   getValue: (item: NonNullable<T>) => string,
   getLabel: (item: NonNullable<T>) => string,
   getId: (item: NonNullable<T>) => string
@@ -85,294 +31,19 @@ export function createFilterOptions<T>(
 }
 
 export const formSingularMap = {
-  spells: 'spell',
-  feats: 'feat',
-  equipment: 'equipment',
-  races: 'race',
-  classes: 'class',
-  backgrounds: 'background',
-  characters: 'character',
-}
-
-export const navigatePath = ({
-  form,
-  type,
-  action,
-  id,
-  label,
-}: {
-  form: FormType
-  type: 'form' | 'view'
-  action?: 'new' | 'edit'
-  id?: string
-  label?: string
-}): {
-  to: ToOptions['to']
-  params: NavigateOptions['params']
-  mask?: {
-    to: ToOptions['to']
-    params: NavigateOptions['params']
-  }
-} => {
-  switch (form) {
-    case 'spells': {
-      switch (type) {
-        case 'form': {
-          return {
-            to: `/${form}/$action/$_spellId`,
-            params: {
-              action: action,
-              _spellId: label || undefined,
-            },
-            mask: {
-              to: `/${form}/$action/$_spellId`,
-              params: {
-                action: action,
-                _spellId: id || undefined,
-              },
-            },
-          }
-        }
-        case 'view': {
-          return {
-            to: `/${form}/$spellId`,
-            params: {
-              spellId: label || undefined,
-            },
-            mask: {
-              to: `/${form}/$spellId`,
-              params: {
-                spellId: id || undefined,
-              },
-            },
-          }
-        }
-      }
-      break
-    }
-    case 'feats': {
-      switch (type) {
-        case 'form': {
-          return {
-            to: `/${form}/$action/$_featId`,
-            params: {
-              action: action,
-              _featId: label || undefined,
-            },
-            mask: {
-              to: `/${form}/$action/$_featId`,
-              params: {
-                action: action,
-                _featId: id || undefined,
-              },
-            },
-          }
-        }
-        case 'view': {
-          return {
-            to: `/${form}/$featId`,
-            params: {
-              featId: label || undefined,
-            },
-            mask: {
-              to: `/${form}/$featId`,
-              params: {
-                featId: id || undefined,
-              },
-            },
-          }
-        }
-      }
-      break
-    }
-    case 'equipment': {
-      switch (type) {
-        case 'form': {
-          return {
-            to: `/${form}/$action/$_equipmentId`,
-            params: {
-              action: action,
-              _equipmentId: label || undefined,
-            },
-            mask: {
-              to: `/${form}/$action/$_equipmentId`,
-              params: {
-                action: action,
-                _equipmentId: id || undefined,
-              },
-            },
-          }
-        }
-        case 'view': {
-          return {
-            to: `/${form}/$equipmentId`,
-            params: {
-              equipmentId: label || undefined,
-            },
-            mask: {
-              to: `/${form}/$equipmentId`,
-              params: {
-                equipmentId: id || undefined,
-              },
-            },
-          }
-        }
-      }
-      break
-    }
-    case 'races': {
-      switch (type) {
-        case 'form': {
-          return {
-            to: `/${form}/$action/$_raceId`,
-            params: {
-              action: action,
-              _raceId: label || undefined,
-            },
-            mask: {
-              to: `/${form}/$action/$_raceId`,
-              params: {
-                action: action,
-                _raceId: id || undefined,
-              },
-            },
-          }
-        }
-        case 'view': {
-          return {
-            to: `/${form}/$raceId`,
-            params: {
-              raceId: label || undefined,
-            },
-            mask: {
-              to: `/${form}/$raceId`,
-              params: {
-                raceId: id || undefined,
-              },
-            },
-          }
-        }
-      }
-      break
-    }
-    case 'classes': {
-      switch (type) {
-        case 'form': {
-          return {
-            to: `/${form}/$action/$_classId`,
-            params: {
-              action: action,
-              _classId: label || undefined,
-            },
-            mask: {
-              to: `/${form}/$action/$_classId`,
-              params: {
-                action: action,
-                _classId: id || undefined,
-              },
-            },
-          }
-        }
-        case 'view': {
-          return {
-            to: `/${form}/$classId`,
-            params: {
-              classId: label || undefined,
-            },
-            mask: {
-              to: `/${form}/$classId`,
-              params: {
-                _classId: id || undefined,
-              },
-            },
-          }
-        }
-      }
-      break
-    }
-    case 'backgrounds': {
-      switch (type) {
-        case 'form': {
-          return {
-            to: `/${form}/$action/$_backgroundId`,
-            params: {
-              action: action,
-              _backgroundId: id || undefined,
-            },
-            mask: {
-              to: `/${form}/$action/$_backgroundId`,
-              params: {
-                action: action,
-                _backgroundId: id || undefined,
-              },
-            },
-          }
-        }
-        case 'view': {
-          return {
-            to: `/${form}/$backgroundId`,
-            params: {
-              backgroundId: label || undefined,
-            },
-            mask: {
-              to: `/${form}/$backgroundId`,
-              params: {
-                backgroundId: id || undefined,
-              },
-            },
-          }
-        }
-      }
-      break
-    }
-    case 'characters': {
-      switch (type) {
-        case 'form': {
-          return {
-            to: `/${form}/$action/$_characterId`,
-            params: {
-              action: action,
-              _characterId: label || undefined,
-            },
-            mask: {
-              to: `/${form}/$action/$_characterId`,
-              params: {
-                action: action,
-                _characterId: id || undefined,
-              },
-            },
-          }
-        }
-        case 'view': {
-          return {
-            to: `/${form}/$characterId`,
-            params: {
-              characterId: label || undefined,
-            },
-            mask: {
-              to: `/${form}/$characterId`,
-              params: {
-                characterId: id || undefined,
-              },
-            },
-          }
-        }
-      }
-      break
-    }
-    default: {
-      return {
-        to: '/',
-        params: {},
-      }
-    }
-  }
+  spells: 'Spell',
+  feats: 'Feat',
+  equipment: 'Equipment',
+  races: 'Race',
+  classes: 'Class',
+  backgrounds: 'Background',
+  characters: 'Character',
 }
 
 export const getModifierProperties = ({
   category,
 }: {
-  category: keyof typeof ModifierCategories | keyof typeof ModifierSpellCategories
+  category: keyof typeof Enum.ModifierCategories | keyof typeof Enum.ModifierSpellCategories
 }) => {
   switch (category) {
     case 'conditionSave':
@@ -508,11 +179,11 @@ export const calculateModifier = (score: number, type: 'bonus' | 'modifier') => 
   return scoreString
 }
 
-export const calculateHitpoints = (formData: Character, primaryClass: Class) => {
+export const calculateHitpoints = (formData: GQL.Character, primaryClass: GQL.Class) => {
   const abilityScore = formData?.abilities?.scores?.find(
     (score) => score.ability === primaryClass.hitpoint?.ability
   )?.calculatedScore
-  // Set the character hitpoints
+  // Set the GQL.Character hitpoints
   const abilityModifierCalc = calculateModifier(abilityScore || 0, 'modifier')
 
   let abilityModifier: number = 0
@@ -521,10 +192,10 @@ export const calculateHitpoints = (formData: Character, primaryClass: Class) => 
     abilityModifier = Number(abilityModifierCalc)
   }
 
-  const hitpoint: CharacterHitpoint = {
+  const hitpoint: GQL.CharacterHitpoint = {
     __typename: 'CharacterHitpoint',
     maxOverride: formData?.hitpoint?.maxOverride || null,
-    method: formData?.hitpoint?.method || HitPointCalcMethod.manual,
+    method: formData?.hitpoint?.method || Enum.HitPointCalcMethod.manual,
     temp: formData?.hitpoint?.temp || null,
     bonus: formData?.hitpoint?.bonus || null,
     maxHitpoints: formData?.hitpoint?.maxHitpoints || null,
@@ -536,7 +207,7 @@ export const calculateHitpoints = (formData: Character, primaryClass: Class) => 
   if (classLevel && die) {
     let total: number = 0
     let maxHitpoints: number = 0
-    const values: HitpointRollValues[] = []
+    const values: GQL.HitpointRollValues[] = []
     for (let i = 1; i <= classLevel; i++) {
       let levelValue
       if (i === 1) {
@@ -556,14 +227,14 @@ export const calculateHitpoints = (formData: Character, primaryClass: Class) => 
       })
     }
 
-    const rolled: HitpointRoll = {
+    const rolled: GQL.HitpointRoll = {
       __typename: 'HitpointRoll',
       values: [...(formData?.hitpoint?.rolled?.values || [])],
       total: formData?.hitpoint?.rolled?.total || null,
       current: formData?.hitpoint?.rolled?.current || null,
     }
 
-    const fixed: HitpointFixed = {
+    const fixed: GQL.HitpointFixed = {
       __typename: 'HitpointFixed',
       current: formData?.hitpoint?.fixed?.current || null,
       total: formData?.hitpoint?.fixed?.total || null,
@@ -584,12 +255,12 @@ export const calculateHitpoints = (formData: Character, primaryClass: Class) => 
       }
     }
 
-    if (formData?.hitpoint?.method === HitPointCalcMethod.fixed) {
+    if (formData?.hitpoint?.method === Enum.HitPointCalcMethod.fixed) {
       maxHitpoints = total + Number(abilityModifier) * classLevel
       hitpoint.maxHitpoints = maxHitpoints + (formData?.hitpoint?.bonus || 0)
     }
 
-    if (formData?.hitpoint?.method === HitPointCalcMethod.manual) {
+    if (formData?.hitpoint?.method === Enum.HitPointCalcMethod.manual) {
       maxHitpoints = 0
       total = 0
       rolled.values?.forEach((value) => {
@@ -629,11 +300,11 @@ export const createFormObject = (
   userId: string,
   systemId: string,
   category?: string,
-  abilities?: System['abilities']
+  abilities?: GQL.System['abilities']
 ) => {
   switch (form) {
     case 'classes': {
-      const classObject: Class = {
+      const classObject: GQL.Class = {
         id: '',
         ownerId: userId,
         systemId: systemId,
@@ -646,7 +317,7 @@ export const createFormObject = (
       break
     }
     case 'spells': {
-      const spellObject: Spell = {
+      const spellObject: GQL.Spell = {
         id: '',
         ownerId: userId,
         systemId: systemId,
@@ -668,8 +339,8 @@ export const createFormObject = (
       return spellObject
       break
     }
-    case 'equipment': {
-      const equipmentObject: Equipment = {
+    case 'Equipment': {
+      const equipmentObject: GQL.Equipment = {
         id: '',
         ownerId: userId,
         systemId: systemId,
@@ -684,7 +355,7 @@ export const createFormObject = (
       break
     }
     case 'feats': {
-      const featObject: Feat = {
+      const featObject: GQL.Feat = {
         id: '',
         ownerId: userId,
         systemId: systemId,
@@ -697,7 +368,7 @@ export const createFormObject = (
       break
     }
     case 'backgrounds': {
-      const backgroundObject: Background = {
+      const backgroundObject: GQL.Background = {
         id: '',
         ownerId: userId,
         systemId: systemId,
@@ -709,7 +380,7 @@ export const createFormObject = (
       break
     }
     case 'characters': {
-      const abilityScores: Array<Scores> = []
+      const abilityScores: Array<GQL.Scores> = []
       abilities?.forEach((ability) => {
         if (ability) {
           abilityScores.push({
@@ -722,7 +393,7 @@ export const createFormObject = (
           })
         }
       })
-      const characterObject: Character = {
+      const characterObject: GQL.Character = {
         id: '',
         ownerId: userId,
         systemId: systemId,
@@ -763,7 +434,7 @@ export const createFormObject = (
       break
     }
     case 'races': {
-      const raceObject: Race = {
+      const raceObject: GQL.Race = {
         id: '',
         ownerId: userId,
         systemId: systemId,
@@ -781,10 +452,10 @@ export const createFormObject = (
   }
 }
 
-export const isEquipmentInInventory = (equipmentId: string, inventory: CharacterEquipmentObject[]): boolean => {
+export const isEquipmentInInventory = (equipmentId: string, inventory: GQL.CharacterEquipmentObject[]): boolean => {
   if (!inventory || inventory.length === 0) return false
 
-  // Check direct equipment IDs
+  // Check direct GQL.Equipment IDs
   if (inventory.some((item) => item.id === equipmentId)) return true
 
   return false
@@ -792,7 +463,7 @@ export const isEquipmentInInventory = (equipmentId: string, inventory: Character
 
 export type SourcePropertyMapReturn = ReturnType<typeof sourcePropertyMap>
 
-export const sourcePropertyMap = (data: Character) => ({
+export const sourcePropertyMap = (data: GQL.Character) => ({
   classId: (id: string) =>
     data?.__typename === 'Character' && data?.classes?.some((c) => c.id === id || c.subclass?.id === id),
   raceId: (id: string) => data?.__typename === 'Character' && id === data?.race,
@@ -803,7 +474,7 @@ export const sourcePropertyMap = (data: Character) => ({
   backgroundId: (id: string) => data?.__typename === 'Character' && data?.background === id,
 })
 
-// Helper function to recursively remove __typename fields from a Spell object
+// Helper function to recursively remove __typename fields from a GQL.Spell object
 export const removeTypename = <T extends FormDataType>(data: T): Omit<FormDataType, '__typename'> => {
   // Create a deep copy first
   const deepCopy = JSON.parse(JSON.stringify(data))

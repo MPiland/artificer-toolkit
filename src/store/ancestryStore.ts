@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { addField, removeField, updateField, reset } from './utils'
-import type { AncestryOption } from '../../amplify/gql/types'
-import type { DeepKeyOf } from '../types/form'
+import type { AncestryOption } from '@/types/types'
+import type { DeepKeyOf } from '@/types/form'
 import { produce } from 'immer'
 import { persist } from 'zustand/middleware'
 

@@ -14,7 +14,7 @@ import Grid from '../../../../Grid/Grid'
 import Input from '../../../../Input/Input'
 import Collapse from '../../../../Collapse/Collapse'
 import useSystemData from '../../../../../hooks/useSystemData'
-import { OnChange } from '../../../../../types/form'
+import { OnChange } from '../../../../../types/types'
 import type { FormStore } from '../../../../../store/formStore'
 
 const AbilitiesForm = () => {

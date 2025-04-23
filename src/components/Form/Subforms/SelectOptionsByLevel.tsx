@@ -5,7 +5,7 @@ import Collapse from '../../Collapse/Collapse'
 import { useEnumChecks } from '../../../hooks/useEnumChecks'
 import Input from '../../Input/Input'
 import type { AncestryFeature, Feature } from '../../../../amplify/gql/types'
-import type { OnChange } from '../../../types/form'
+import type { OnChange } from '../../../types/types'
 
 const SelectOptionsByLevel = () => {
   const {

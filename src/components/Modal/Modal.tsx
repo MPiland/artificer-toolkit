@@ -11,10 +11,10 @@ import {
   modal_background,
 } from './Modal.css'
 import { TbX } from 'react-icons/tb'
-import Button from '../Button/Button'
+import Button from '@/components/Button'
 import clsx from 'clsx'
-import { sprinkles } from '../../css/sprinkles.css'
-import Group from '../Group/Group'
+import { sprinkles } from '@/css/sprinkles.css'
+import Group from '@/components/Group'
 import { useEventListener } from 'usehooks-ts'
 import { ModalContext } from './ModalContext'
 

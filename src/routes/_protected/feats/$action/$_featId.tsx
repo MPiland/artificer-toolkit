@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import FeatForm from '../../../../pages/feats/FeatForm'
-import { fetchFeat } from '../../../../apis/featsApi'
+import FeatForm from '@/pages/feats/FeatForm'
+import { fetchFeat } from '@/apis/featsApi'
 
 export const Route = createFileRoute('/_protected/feats/$action/$_featId')({
   beforeLoad: () => {

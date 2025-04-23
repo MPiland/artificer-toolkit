@@ -6,7 +6,7 @@ import { Character } from '../../../../../../amplify/gql/types'
 import { HitPointCalcMethod } from '../../../../../types/enums'
 import { startCase } from 'lodash'
 import Input from '../../../../Input/Input'
-import type { OnChange } from '../../../../../types/form'
+import type { OnChange } from '../../../../../types/types'
 
 const Hitpoints = ({ onClose }: { onClose: () => void }) => {
   const {

@@ -1,12 +1,12 @@
 import { useEffect, use } from 'react'
-import Form from '../../components/Form/Form'
-import { useAddClass, useUpdateClass } from '../../apis/classesApi'
-import { Step } from '../../types/form'
-import { FormContext } from '../../components/Form/FormContext'
+import Form from '@/components/Form/Form'
+import { useAddClass, useUpdateClass } from '@/apis/classesApi'
+import { Step } from '@/types/form'
+import { FormContext } from '@/components/Form/FormContext'
 import { isEqual } from 'lodash'
-import { Categories } from '../../types/enums'
-import { Route } from '../../routes/_protected/classes/$action/$_classId'
-import useClassData from '../../hooks/useClassData'
+import { Categories } from '@/types/enums'
+import { Route } from '@/routes/_protected/classes/$action/$_classId'
+import useClassData from '@/hooks/useClassData'
 
 const ClassForm = () => {
   const { _classId: classId, action } = Route.useParams()

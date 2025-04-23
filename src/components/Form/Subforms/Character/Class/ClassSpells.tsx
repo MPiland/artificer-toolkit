@@ -17,7 +17,7 @@ import Grid from '../../../../Grid/Grid'
 import { FormContext } from '../../../FormContext'
 import { useEnumChecks } from '../../../../../hooks/useEnumChecks'
 import useSpellData from '../../../../../hooks/useSpellData'
-import type { OnChange } from '../../../../../types/form'
+import type { OnChange } from '../../../../../types/types'
 
 const ClassSpells = ({
   fullClass,

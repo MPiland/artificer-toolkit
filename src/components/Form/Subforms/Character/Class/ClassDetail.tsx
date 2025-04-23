@@ -16,7 +16,7 @@ import Button from '../../../../Button/Button'
 import useSystemData from '../../../../../hooks/useSystemData'
 import useClassData from '../../../../../hooks/useClassData'
 import type { FormStore } from '../../../../../store/formStore'
-import type { OnChange } from '../../../../../types/form'
+import type { OnChange } from '../../../../../types/types'
 
 const ClassDetail = ({ formClass, setFormClass }: { formClass: ClassListItem; setFormClass: () => void }) => {
   const {

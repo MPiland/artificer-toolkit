@@ -1,11 +1,11 @@
 import { useEffect, use } from 'react'
-import Form from '../../components/Form/Form'
-import { Step } from '../../types/form'
-import { useAddCharacter, useUpdateCharacter } from '../../apis/charactersApi'
-import { FormContext } from '../../components/Form/FormContext'
+import Form from '@/components/Form/Form'
+import { Step } from '@/types/form'
+import { useAddCharacter, useUpdateCharacter } from '@/apis/charactersApi'
+import { FormContext } from '@/components/Form/FormContext'
 import { isEqual } from 'lodash'
-import { Route } from '../../routes/_protected/characters/$action/$_characterId'
-import useCharacterData from '../../hooks/useCharacterData'
+import { Route } from '@/routes/_protected/characters/$action/$_characterId'
+import useCharacterData from '@/hooks/useCharacterData'
 
 const CharacterForm = () => {
   const { _characterId: characterId, action } = Route.useParams()

@@ -1,7 +1,7 @@
 import Input from '../../Input/Input'
 import Dropdown from '../../Dropdown/Dropdown'
 import RichTextEditor from '../../RichTextEditor/RichTextEditor'
-import { SectionName } from '../../../types/form'
+import { SectionName } from '../../../types/types'
 import Select from '../../Select/Select'
 import SectionsList from './Sections/SectionsList'
 import Requirements from '../Subforms/Prerequisites'

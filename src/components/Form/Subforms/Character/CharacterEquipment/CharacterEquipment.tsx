@@ -15,7 +15,7 @@ import CharacterEquipmentSelection from '../../../Subforms/Character/CharacterEq
 import { ModalContext } from '../../../../Modal/ModalContext'
 import { v4 as uuid } from 'uuid'
 import useEquipmentData from '../../../../../hooks/useEquipmentData'
-import type { OnChange } from '../../../../../types/form'
+import type { OnChange } from '../../../../../types/types'
 import type { FormStore } from '../../../../../store/formStore'
 
 const CharacterEquipment = ({ dataSource }: { dataSource: Class | Background }) => {

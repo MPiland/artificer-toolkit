@@ -5,7 +5,7 @@ import EquipmentOption from './EquipmentOption'
 import type { Background, Class, ClassEquipment, BackgroundEquipment } from '../../../../../amplify/gql/types'
 import { use } from 'react'
 import { FormContext } from '../../FormContext'
-import { OnChange } from '../../../../types/form'
+import { OnChange } from '../../../../types/types'
 
 type EquipmentGroupProps = {
   equipment: ((ClassEquipment | BackgroundEquipment)[] | null)[]

@@ -6,7 +6,7 @@ import { Attributes, Measurement } from '../../../../types/enums'
 import Grid from '../../../Grid/Grid'
 import { useEnumChecks } from '../../../../hooks/useEnumChecks'
 import useSystemData from '../../../../hooks/useSystemData'
-import type { OnChange } from '../../../../types/form'
+import type { OnChange } from '../../../../types/types'
 
 const Spellcasting = ({
   formStore: { data, updateField, removeField },

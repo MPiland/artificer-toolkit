@@ -5,7 +5,7 @@ import type { Class } from '../../../../../amplify/gql/types'
 import { Attributes } from '../../../../types/enums'
 import Grid from '../../../Grid/Grid'
 import useSystemData from '../../../../hooks/useSystemData'
-import { OnChange } from '../../../../types/form'
+import { OnChange } from '../../../../types/types'
 
 const Multiclass = ({
   formStore: { data, updateField, removeField },

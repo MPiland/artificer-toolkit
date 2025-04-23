@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { DeepKeyOf, FormDataType, Step } from '../types/form'
+import { DeepKeyOf, FormDataType, Step } from '@/types'
 import { addField, removeField, updateField, reset } from './utils'
 import { persist } from 'zustand/middleware'
 
@@ -41,10 +41,10 @@ export interface FormStore<T extends FormDataType> {
   reinitState: (value?: FormDataType) => void
 }
 
-export const useFormStore = create<FormStore>()(
+export const useFormStore = create<FormStore<FormDataType>>()(
   persist(
     (set) => {
-      const defaultState: Pick<FormStore, 'data' | 'initData' | 'ui' | 'character'> = {
+      const defaultState: Pick<FormStore<FormDataType>, 'data' | 'initData' | 'ui' | 'character'> = {
         data: {} as FormDataType,
         initData: {} as FormDataType,
         ui: {

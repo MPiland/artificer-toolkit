@@ -1,22 +1,11 @@
 import { useGLTF } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
-import { RapierRigidBody, RigidBody, Vector3Tuple } from '@react-three/rapier'
+import { RapierRigidBody, RigidBody, type Vector3Tuple } from '@react-three/rapier'
 import { useEffect, useMemo, useRef, useState, use } from 'react'
 import { Mesh, MeshStandardMaterial, Vector4Like } from 'three'
 import { Vector } from 'three/examples/jsm/Addons.js'
 import { DiceContext } from './DiceContext'
-import { DieType } from '../../types/components'
-
-export interface DiceProps {
-  die: DieType
-  position?: Vector3Tuple
-  linearVelocity?: Vector3Tuple
-  rotation?: Vector3Tuple
-  gravityScale?: number
-  friction?: number
-  restitution?: number
-  id: string
-}
+import type { DieType, DiceProps } from '@/components/Dice'
 
 const Dice = ({
   position = [0, 0, 0],

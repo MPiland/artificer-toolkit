@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import EquipmentForm from '../../../../pages/equipment/EquipmentForm'
-import { fetchSingleEquipment } from '../../../../apis/equipmentApi'
+import EquipmentForm from '@/pages/equipment/EquipmentForm'
+import { fetchSingleEquipment } from '@/apis/equipmentApi'
 
 export const Route = createFileRoute('/_protected/equipment/$action/$_equipmentId')({
   beforeLoad: () => {

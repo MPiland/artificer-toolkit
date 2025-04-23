@@ -1,7 +1,7 @@
 import { useSuspenseQueries, useSuspenseQuery } from '@tanstack/react-query'
-import { fetchFeat, fetchFeats } from '../apis/featsApi'
+import { fetchFeat, fetchFeats } from '@/apis/featsApi'
 import { useRouteContext } from '@tanstack/react-router'
-import { createArrayWithMethods } from '../utils/data'
+import { createArrayWithMethods } from '@/utils'
 
 const useFeatData = () => {
   const suspenseQuery = useSuspenseQuery

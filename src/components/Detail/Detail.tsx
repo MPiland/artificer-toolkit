@@ -1,5 +1,5 @@
 import { ReactNode, Suspense, use } from 'react'
-import Group from '../Group/Group'
+import Group from '@/components/Group'
 import {
   detail_body,
   detail_col_item,
@@ -9,18 +9,15 @@ import {
   detail_nav_section,
   detail_title,
 } from './Detail.css'
-import ScrollArea from '../ScrollArea/ScrollArea'
+import ScrollArea from '@/components/ScrollArea'
 import { MdArrowBackIos, MdEdit } from 'react-icons/md'
-import CopyIcon from '../../assets/Icons/ICopy'
-import type { FormDataType } from '../../types/form'
-import type { Character } from '../../../amplify/gql/types'
+import CopyIcon from '@/assets/Icons/ICopy'
 import Loading from '../Loading/Loading'
 import Grid from '../Grid/Grid'
 import { Link, useMatches } from '@tanstack/react-router'
-import { FormType } from '../../types/form'
-import useRouteNavigation from '../../hooks/useRouteNavigation'
-import type { DetailConfig } from '../../types/components'
-import useSourceData from '../../hooks/useSourceData'
+import type { FormType, FormDataType, GQL } from '@/types'
+import { useRouteNavigation, useSourceData } from '@/hooks'
+import type { DetailConfig } from '@/components/List'
 import { FormContext } from '../Form/FormContext'
 
 interface DetailProps<T extends FormDataType> {
@@ -66,7 +63,7 @@ const Detail = <T extends FormDataType>({
         >
           {<CopyIcon />} Copy
         </Link>
-        {(item as Exclude<FormDataType, Character>).masterId == null && (
+        {(item as Exclude<FormDataType, GQL.Character>).masterId == null && (
           <Link
             {...itemNav.edit}
             onClick={(e) => {

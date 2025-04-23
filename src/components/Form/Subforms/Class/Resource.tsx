@@ -7,7 +7,7 @@ import { type Class, ClassesEnum } from '../../../../../amplify/gql/types'
 import { Attributes } from '../../../../types/enums'
 import Grid from '../../../Grid/Grid'
 import useSystemData from '../../../../hooks/useSystemData'
-import type { OnChange } from '../../../../types/form'
+import type { OnChange } from '../../../../types/types'
 
 const Resource = ({
   formStore: { data, updateField, removeField },

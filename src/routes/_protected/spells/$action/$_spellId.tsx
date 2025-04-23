@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import SpellForm from '../../../../pages/spells/SpellForm'
-import { fetchSpell } from '../../../../apis/spellsApi'
+import SpellForm from '@/pages/spells/SpellForm'
+import { fetchSpell } from '@/apis/spellsApi'
 
 export const Route = createFileRoute('/_protected/spells/$action/$_spellId')({
   beforeLoad: () => {

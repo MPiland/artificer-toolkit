@@ -1,7 +1,7 @@
 import { useEffect, use } from 'react'
 import Form from '../../components/Form/Form'
 import { useAddNewEquipmentMutation, useUpdateEquipmentMutation } from '../../apis/equipmentApi'
-import { Step } from '../../types/form'
+import { Step } from '../../types/types'
 import { FormContext } from '../../components/Form/FormContext'
 import { isEqual } from 'lodash'
 import { Route } from '../../routes/_protected/equipment/$action/$_equipmentId'

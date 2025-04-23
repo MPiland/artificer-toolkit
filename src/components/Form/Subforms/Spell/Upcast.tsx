@@ -8,7 +8,7 @@ import { Attributes } from '../../../../types/enums'
 import Input from '../../../Input/Input'
 import Grid from '../../../Grid/Grid'
 import useSystemData from '../../../../hooks/useSystemData'
-import { OnChange } from '../../../../types/form'
+import { OnChange } from '../../../../types/types'
 
 const Upcast = ({
   formStore: { data, updateField, removeField, addField },

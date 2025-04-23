@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useState } from 'react'
-import { useSignOut } from '../../apis/authApi'
+import { useSignOut } from '@/apis/authApi'
 import { getCurrentUser, fetchAuthSession, AuthUser, AuthTokens } from 'aws-amplify/auth'
 import { Hub } from 'aws-amplify/utils'
 import { AuthContext } from './AuthContext'

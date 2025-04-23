@@ -9,7 +9,7 @@ import {
   collapse_header_group,
 } from './Collapse.css'
 import clsx from 'clsx'
-import Group from '../Group/Group'
+import Group from '@/components/Group'
 import { sprinkles } from '../../css/sprinkles.css'
 
 const Header = ({

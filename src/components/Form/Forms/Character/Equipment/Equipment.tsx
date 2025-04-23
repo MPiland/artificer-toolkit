@@ -18,7 +18,7 @@ import CharacterEquipment from '../../../Subforms/Character/CharacterEquipment/C
 import CharacterCurrency from '../../../Subforms/Character/CharacterEquipment/CharacterCurrency'
 import useSystemData from '../../../../../hooks/useSystemData'
 import useClassData from '../../../../../hooks/useClassData'
-import type { OnChange } from '../../../../../types/form'
+import type { OnChange } from '../../../../../types/types'
 
 const Equipment = () => {
   const [random, setRandom] = useState<boolean>(false)

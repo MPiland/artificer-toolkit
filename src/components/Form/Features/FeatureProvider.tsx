@@ -8,7 +8,7 @@ import {
   SectionName,
   FeatureTypes,
   featureTypes,
-} from '../../../types/form'
+} from '../../../types/types'
 import Feats from './Sections/Feats'
 import Spells from './Sections/Spells'
 import Modifiers from './Sections/Modifiers'

@@ -3,10 +3,10 @@ import Dropdown from '../Dropdown/Dropdown'
 import Input from '../Input/Input'
 import { get, startCase } from 'lodash'
 import { useFilterStore, type FilterState } from '../../store/filterStore'
-import Button from '../Button/Button'
+import Button from '@/components/Button'
 import type { FilterConfig, FilterDataType } from '../../types/components'
 import Grid from '../Grid/Grid'
-import type { MetaDataType, OnChange } from '../../types/form'
+import type { MetaDataType, OnChange } from '../../types/types'
 import useMetaData from '../../hooks/useMetaData'
 
 // This is a wrapper component that maintains the same API as before

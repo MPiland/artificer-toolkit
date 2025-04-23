@@ -1,8 +1,7 @@
 import { useMemo } from 'react'
 import { get } from 'lodash'
-import { type StoreFormType } from '../store/filterStore'
-import { type ListItemType } from '../types/form'
-import { useStore } from '../store/useStore'
+import { useFilterStore, type StoreFormType } from '@/store/filterStore'
+import type { ListItemType } from '@/types'
 
 interface UseFilteredListProps {
   data: ListItemType[] | null | undefined
@@ -15,15 +14,15 @@ interface UseFilteredListProps {
  */
 const useFilteredList = ({ data, context }: UseFilteredListProps): ListItemType[] => {
   // Get the filter state directly from the store
-  const { filterState } = useStore()
+  const { filters } = useFilterStore((state) => state)
 
   // Apply filters to data and return the result
   return useMemo(() => {
     // Early return conditions
     if (!data) return []
-    if (!context || !filterState || !filterState[context]) return data
+    if (!context || !filters || !filters[context]) return data
 
-    const currentFilters = filterState[context]
+    const currentFilters = filters[context]
 
     // If there are no filters, return all data
     if (Object.keys(currentFilters).length === 0) return data
@@ -75,7 +74,7 @@ const useFilteredList = ({ data, context }: UseFilteredListProps): ListItemType[
         return valuesMatch(itemValue, value)
       })
     })
-  }, [data, context, filterState])
+  }, [data, context, filters])
 }
 
 /**

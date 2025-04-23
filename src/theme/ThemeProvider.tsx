@@ -1,5 +1,5 @@
 import { useState, useLayoutEffect } from 'react'
-import { light, dark, theme } from '../css/theme.css'
+import { light, dark, theme } from '@/css/theme.css'
 import ThemeContext from './ThemeContext'
 
 const useThemeOptions = () => {

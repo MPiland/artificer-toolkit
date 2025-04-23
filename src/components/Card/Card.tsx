@@ -14,10 +14,9 @@ import {
 import { MdDelete, MdExpandMore } from 'react-icons/md'
 import clsx from 'clsx'
 import useMeasure from 'react-use-measure'
-import HTMLReactParser from '../../utils/reactParser/dom-to-react'
-import { Text, Element } from '../../utils/reactParser/dom-to-react'
+import { HTMLReactParser, type Text, type Element } from '@/utils'
 import { assignInlineVars } from '@vanilla-extract/dynamic'
-import Button from '../Button/Button'
+import Button from '@/components/Button'
 import { CardContext } from './CardContext'
 import CardProvider from './CardProvider'
 

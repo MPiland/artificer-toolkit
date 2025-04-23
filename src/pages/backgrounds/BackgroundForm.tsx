@@ -1,11 +1,11 @@
 import { useEffect, use } from 'react'
-import Form from '../../components/Form/Form'
-import { useAddBackground, useUpdateBackground } from '../../apis/backgroundsApi'
-import { Step } from '../../types/form'
-import { FormContext } from '../../components/Form/FormContext'
+import Form from '@/components/Form/Form'
+import { useAddBackground, useUpdateBackground } from '@/apis/backgroundsApi'
+import { Step } from '@/types/form'
+import { FormContext } from '@/components/Form/FormContext'
 import { isEqual } from 'lodash'
-import { Route } from '../../routes/_protected/backgrounds/$action/$_backgroundId'
-import useBackgroundData from '../../hooks/useBackgroundData'
+import { Route } from '@/routes/_protected/backgrounds/$action/$_backgroundId'
+import useBackgroundData from '@/hooks/useBackgroundData'
 
 const BackgroundForm = () => {
   const { _backgroundId: backgroundId, action } = Route.useParams()

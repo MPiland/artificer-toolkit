@@ -1,153 +1,152 @@
-import { Damage } from '../../amplify/gql/types'
-import {
-  Actions,
-  Attributes,
-  ChargesLimits,
-  ChargesResets,
-  EquipmentCategories,
-  EquipmentProperties,
-  Prerequisites,
-} from '../types/enums'
-import { FeatureDataType, FormDataType, SectionDataType } from '../types/form'
+import { FeatureDataType, FormDataType, SectionDataType, GQL, Enum } from '@/types'
 
-type EnumCheck = FormDataType | FeatureDataType | Damage | SectionDataType
+type EnumCheck = FormDataType | FeatureDataType | GQL.Damage | SectionDataType
 
-export const useEnumChecks = ({ data }: { data?: EnumCheck }) => {
+const useEnumChecks = ({ data }: { data?: EnumCheck }) => {
   if (!data) return {}
   // Attributes
-  const isSpellcaster = 'attributes' in data && data?.attributes?.some((attr) => attr === Attributes.spellcaster)
-  const doesDamage = 'attributes' in data && data?.attributes?.some((attr) => attr === Attributes.doesDamage)
-  const canUpcast = 'attributes' in data && data?.attributes?.some((attr) => attr === Attributes.canUpcast)
-  const hasPrerequisites = 'attributes' in data && data?.attributes?.some((attr) => attr === Attributes.prerequisites)
+  const isSpellcaster = 'attributes' in data && data?.attributes?.some((attr) => attr === Enum.Attributes.spellcaster)
+  const doesDamage = 'attributes' in data && data?.attributes?.some((attr) => attr === Enum.Attributes.doesDamage)
+  const canUpcast = 'attributes' in data && data?.attributes?.some((attr) => attr === Enum.Attributes.canUpcast)
+  const hasPrerequisites =
+    'attributes' in data && data?.attributes?.some((attr) => attr === Enum.Attributes.prerequisites)
   const hasResourcePoints =
-    'attributes' in data && data?.attributes?.some((attr) => attr === Attributes.hasResourcePoints)
-  const isAction = 'attributes' in data && data?.attributes?.some((attr) => attr === Attributes.isAction)
-  const requiresSave = 'attributes' in data && data?.attributes?.some((attr) => attr === Attributes.requiresSave)
-  const limitUse = 'attributes' in data && data?.attributes?.some((attr) => attr === Attributes.limitUse)
-  const primaryAbility = 'attributes' in data && data?.attributes?.some((attr) => attr === Attributes.primaryAbility)
+    'attributes' in data && data?.attributes?.some((attr) => attr === Enum.Attributes.hasResourcePoints)
+  const isAction = 'attributes' in data && data?.attributes?.some((attr) => attr === Enum.Attributes.isAction)
+  const requiresSave = 'attributes' in data && data?.attributes?.some((attr) => attr === Enum.Attributes.requiresSave)
+  const limitUse = 'attributes' in data && data?.attributes?.some((attr) => attr === Enum.Attributes.limitUse)
+  const primaryAbility =
+    'attributes' in data && data?.attributes?.some((attr) => attr === Enum.Attributes.primaryAbility)
   const secondaryAbility =
-    'attributes' in data && data?.attributes?.some((attr) => attr === Attributes.secondaryAbility)
-  const optionalAbility = 'attributes' in data && data?.attributes?.some((attr) => attr === Attributes.optionalAbility)
+    'attributes' in data && data?.attributes?.some((attr) => attr === Enum.Attributes.secondaryAbility)
+  const optionalAbility =
+    'attributes' in data && data?.attributes?.some((attr) => attr === Enum.Attributes.optionalAbility)
   const appliesCondition =
-    'attributes' in data && data?.attributes?.some((attr) => attr === Attributes.appliesCondition)
-  const stackable = 'attributes' in data && data?.attributes?.some((attr) => attr === Attributes.stackable)
-  const secondaryAction = 'attributes' in data && data?.attributes?.some((attr) => attr === Attributes.secondaryAction)
+    'attributes' in data && data?.attributes?.some((attr) => attr === Enum.Attributes.appliesCondition)
+  const stackable = 'attributes' in data && data?.attributes?.some((attr) => attr === Enum.Attributes.stackable)
+  const secondaryAction =
+    'attributes' in data && data?.attributes?.some((attr) => attr === Enum.Attributes.secondaryAction)
   const containsEquipment =
-    'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.containsEquipment)
-  const hasRange = 'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.hasRange)
+    'attributes' in data && data?.attributes?.some((attribute) => attribute === Enum.Attributes.containsEquipment)
+  const hasRange = 'attributes' in data && data?.attributes?.some((attribute) => attribute === Enum.Attributes.hasRange)
   const addAbilityModifier =
-    'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.addAbilityModifier)
+    'attributes' in data && data?.attributes?.some((attribute) => attribute === Enum.Attributes.addAbilityModifier)
   const limitTargets =
-    'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.limitTargets)
+    'attributes' in data && data?.attributes?.some((attribute) => attribute === Enum.Attributes.limitTargets)
   const secondaryDamage =
-    'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.secondaryDamage)
+    'attributes' in data && data?.attributes?.some((attribute) => attribute === Enum.Attributes.secondaryDamage)
   const bonusDamage =
-    'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.bonusDamage)
+    'attributes' in data && data?.attributes?.some((attribute) => attribute === Enum.Attributes.bonusDamage)
   const limitKnownSpells =
     'spellcasting' in data &&
     data.spellcasting != null &&
     'attributes' in data.spellcasting &&
-    data?.spellcasting?.attributes?.some((attribute) => attribute === Attributes.limitKnownSpells)
+    data?.spellcasting?.attributes?.some((attribute) => attribute === Enum.Attributes.limitKnownSpells)
   const magicName =
     'spellcasting' in data &&
     data.spellcasting != null &&
     'attributes' in data.spellcasting &&
-    data?.spellcasting?.attributes?.some((attribute) => attribute === Attributes.magicName)
+    data?.spellcasting?.attributes?.some((attribute) => attribute === Enum.Attributes.magicName)
   const preparesSpells =
     'spellcasting' in data &&
     data.spellcasting != null &&
     'attributes' in data.spellcasting &&
-    data?.spellcasting?.attributes?.some((attribute) => attribute === Attributes.preparesSpells)
+    data?.spellcasting?.attributes?.some((attribute) => attribute === Enum.Attributes.preparesSpells)
   const usesSpellbook =
     'spellcasting' in data &&
     data.spellcasting != null &&
     'attributes' in data.spellcasting &&
-    data?.spellcasting?.attributes?.some((attribute) => attribute === Attributes.usesSpellbook)
+    data?.spellcasting?.attributes?.some((attribute) => attribute === Enum.Attributes.usesSpellbook)
   const spellsByLevel =
-    'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.spellsByLevel)
-  const classLimit = 'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.classLimit)
-  const levelLimit = 'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.levelLimit)
+    'attributes' in data && data?.attributes?.some((attribute) => attribute === Enum.Attributes.spellsByLevel)
+  const classLimit =
+    'attributes' in data && data?.attributes?.some((attribute) => attribute === Enum.Attributes.classLimit)
+  const levelLimit =
+    'attributes' in data && data?.attributes?.some((attribute) => attribute === Enum.Attributes.levelLimit)
   const attributeLimit =
-    'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.attributeLimit)
+    'attributes' in data && data?.attributes?.some((attribute) => attribute === Enum.Attributes.attributeLimit)
   const castAtLevel =
-    'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.castAtLevel)
+    'attributes' in data && data?.attributes?.some((attribute) => attribute === Enum.Attributes.castAtLevel)
   const subtypeSpecific =
-    'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.subtypeSpecific)
+    'attributes' in data && data?.attributes?.some((attribute) => attribute === Enum.Attributes.subtypeSpecific)
   const providesOptions =
-    'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.providesOptions)
+    'attributes' in data && data?.attributes?.some((attribute) => attribute === Enum.Attributes.providesOptions)
   const selectCountByLevel =
-    'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.selectCountByLevel)
+    'attributes' in data && data?.attributes?.some((attribute) => attribute === Enum.Attributes.selectCountByLevel)
   const replaceAtLevel =
-    'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.replaceAtLevel)
+    'attributes' in data && data?.attributes?.some((attribute) => attribute === Enum.Attributes.replaceAtLevel)
 
   // Prerequisites
   const notEquipped =
-    'prerequisites' in data && data?.prerequisites?.options?.some((preq) => preq === Prerequisites.notEquipped)
+    'prerequisites' in data && data?.prerequisites?.options?.some((preq) => preq === Enum.Prerequisites.notEquipped)
   const equipped =
-    'prerequisites' in data && data?.prerequisites?.options?.some((preq) => preq === Prerequisites.equipped)
+    'prerequisites' in data && data?.prerequisites?.options?.some((preq) => preq === Enum.Prerequisites.equipped)
   const equipmentProficiency =
-    'prerequisites' in data && data?.prerequisites?.options?.some((preq) => preq === Prerequisites.equipmentProficiency)
+    'prerequisites' in data &&
+    data?.prerequisites?.options?.some((preq) => preq === Enum.Prerequisites.equipmentProficiency)
   const abilityScore =
-    'prerequisites' in data && data?.prerequisites?.options?.some((preq) => preq === Prerequisites.abilityScore)
+    'prerequisites' in data && data?.prerequisites?.options?.some((preq) => preq === Enum.Prerequisites.abilityScore)
   const skillProficiency =
-    'prerequisites' in data && data?.prerequisites?.options?.some((preq) => preq === Prerequisites.skillProficiency)
+    'prerequisites' in data &&
+    data?.prerequisites?.options?.some((preq) => preq === Enum.Prerequisites.skillProficiency)
   const notProficient =
-    'prerequisites' in data && data?.prerequisites?.options?.some((preq) => preq === Prerequisites.notProficient)
+    'prerequisites' in data && data?.prerequisites?.options?.some((preq) => preq === Enum.Prerequisites.notProficient)
   const spellsObtained =
-    'prerequisites' in data && data?.prerequisites?.options?.some((preq) => preq === Prerequisites.spellsObtained)
+    'prerequisites' in data && data?.prerequisites?.options?.some((preq) => preq === Enum.Prerequisites.spellsObtained)
   const optionsObtained =
-    'prerequisites' in data && data?.prerequisites?.options?.some((preq) => preq === Prerequisites.optionsObtained)
+    'prerequisites' in data && data?.prerequisites?.options?.some((preq) => preq === Enum.Prerequisites.optionsObtained)
   const featuresObtained =
-    'prerequisites' in data && data?.prerequisites?.options?.some((preq) => preq === Prerequisites.featuresObtained)
+    'prerequisites' in data &&
+    data?.prerequisites?.options?.some((preq) => preq === Enum.Prerequisites.featuresObtained)
   const characterSize =
-    'prerequisites' in data && data?.prerequisites?.options?.some((preq) => preq === Prerequisites.characterSize)
+    'prerequisites' in data && data?.prerequisites?.options?.some((preq) => preq === Enum.Prerequisites.characterSize)
 
   // Equipment Categories
-  const isWeapon = 'category' in data && data?.category === EquipmentCategories.weapon
-  const isArmor = 'category' in data && data?.category === EquipmentCategories.armor
-  const isShield = 'category' in data && data?.category === EquipmentCategories.shield
-  const isAdventuringGear = 'category' in data && data?.category === EquipmentCategories.adventuringGear
-  const isTool = 'category' in data && data?.category === EquipmentCategories.tool
+  const isWeapon = 'category' in data && data?.category === Enum.EquipmentCategories.weapon
+  const isArmor = 'category' in data && data?.category === Enum.EquipmentCategories.armor
+  const isShield = 'category' in data && data?.category === Enum.EquipmentCategories.shield
+  const isAdventuringGear = 'category' in data && data?.category === Enum.EquipmentCategories.adventuringGear
+  const isTool = 'category' in data && data?.category === Enum.EquipmentCategories.tool
 
   // Equipment Properties
   const isSpecial =
-    'properties' in data && (data.properties as string[])?.some((prop) => prop === EquipmentProperties.special)
+    'properties' in data && (data.properties as string[])?.some((prop) => prop === Enum.EquipmentProperties.special)
   const isHeavyArmor =
-    'properties' in data && (data.properties as string[])?.some((prop) => prop === EquipmentProperties.heavyArmor)
+    'properties' in data && (data.properties as string[])?.some((prop) => prop === Enum.EquipmentProperties.heavyArmor)
   const isMediumArmor =
-    'properties' in data && (data.properties as string[])?.some((prop) => prop === EquipmentProperties.mediumArmor)
+    'properties' in data && (data.properties as string[])?.some((prop) => prop === Enum.EquipmentProperties.mediumArmor)
   const isLightArmor =
-    'properties' in data && (data.properties as string[])?.some((prop) => prop === EquipmentProperties.lightArmor)
+    'properties' in data && (data.properties as string[])?.some((prop) => prop === Enum.EquipmentProperties.lightArmor)
   const isVersatile =
-    'properties' in data && (data.properties as string[])?.some((prop) => prop === EquipmentProperties.versatile)
+    'properties' in data && (data.properties as string[])?.some((prop) => prop === Enum.EquipmentProperties.versatile)
   const isTwoHanded =
-    'properties' in data && (data.properties as string[])?.some((prop) => prop === EquipmentProperties.twoHanded)
+    'properties' in data && (data.properties as string[])?.some((prop) => prop === Enum.EquipmentProperties.twoHanded)
   const isFinesse =
-    'properties' in data && (data.properties as string[])?.some((prop) => prop === EquipmentProperties.finesse)
+    'properties' in data && (data.properties as string[])?.some((prop) => prop === Enum.EquipmentProperties.finesse)
 
   // Charges Resets
-  const resetsOnLongRest = 'reset' in data && data?.reset === ChargesResets.longRest
-  const resetsOnShortRest = 'reset' in data && data?.reset === ChargesResets.shortRest
-  const resetsManually = 'reset' in data && data?.reset === ChargesResets.manual
+  const resetsOnLongRest = 'reset' in data && data?.reset === Enum.ChargesResets.longRest
+  const resetsOnShortRest = 'reset' in data && data?.reset === Enum.ChargesResets.shortRest
+  const resetsManually = 'reset' in data && data?.reset === Enum.ChargesResets.manual
 
   // Charges Limits
-  const limitByProficiency = 'limit' in data && data?.limit === ChargesLimits.proficiency
-  const limitBySkill = 'limit' in data && data?.limit === ChargesLimits.skill
-  const limitByAbilityMod = 'limit' in data && data?.limit === ChargesLimits.abilityScoreModifier
-  const limitBySetAmount = 'limit' in data && data?.limit === ChargesLimits.setAmount
-  const limitByPoolAmount = 'limit' in data && data?.limit === ChargesLimits.poolAmount
-  const limitByResourcePoints = 'limit' in data && data?.limit === ChargesLimits.resourcePoints
-  const limitBySetPerLevel = 'limit' in data && data?.limit === ChargesLimits.setPerLevel
-  const limitByUsesPerLevel = 'limit' in data && data?.limit === ChargesLimits.usesPerLevel
-  const limitByAbility = 'limit' in data && data?.limit === ChargesLimits.ability
+  const limitByProficiency = 'limit' in data && data?.limit === Enum.ChargesLimits.proficiency
+  const limitBySkill = 'limit' in data && data?.limit === Enum.ChargesLimits.skill
+  const limitByAbilityMod = 'limit' in data && data?.limit === Enum.ChargesLimits.abilityScoreModifier
+  const limitBySetAmount = 'limit' in data && data?.limit === Enum.ChargesLimits.setAmount
+  const limitByPoolAmount = 'limit' in data && data?.limit === Enum.ChargesLimits.poolAmount
+  const limitByResourcePoints = 'limit' in data && data?.limit === Enum.ChargesLimits.resourcePoints
+  const limitBySetPerLevel = 'limit' in data && data?.limit === Enum.ChargesLimits.setPerLevel
+  const limitByUsesPerLevel = 'limit' in data && data?.limit === Enum.ChargesLimits.usesPerLevel
+  const limitByAbility = 'limit' in data && data?.limit === Enum.ChargesLimits.ability
 
   // Resources
-  const resourceSetPerLevel = 'resource' in data && data?.resource?.method === Attributes.setPerLevel
+  const resourceSetPerLevel = 'resource' in data && data?.resource?.method === Enum.Attributes.setPerLevel
 
   // Actions
 
-  const specialPrimaryAction = 'actions' in data && data?.actions?.primary?.id === Actions.special
-  const specialSecondaryAction = 'actions' in data && data?.actions?.secondary?.id === Actions.special
+  const specialPrimaryAction = 'actions' in data && data?.actions?.primary?.id === Enum.Actions.special
+  const specialSecondaryAction = 'actions' in data && data?.actions?.secondary?.id === Enum.Actions.special
 
   return {
     // Attributes
@@ -235,3 +234,5 @@ export const useEnumChecks = ({ data }: { data?: EnumCheck }) => {
     specialSecondaryAction,
   }
 }
+
+export default useEnumChecks

@@ -1,14 +1,14 @@
 import { useSuspenseQueries, useSuspenseQuery } from '@tanstack/react-query'
-import { fetchSingleEquipment, fetchAllEquipment } from '../apis/equipmentApi'
+import { fetchSingleEquipment, fetchAllEquipment } from '@/apis/equipmentApi'
 import { useRouteContext } from '@tanstack/react-router'
-import { createArrayWithMethods } from '../utils/data'
-import type { Equipment, EquipmentListItem } from '../../amplify/gql/types'
+import { createArrayWithMethods } from '@/utils'
+import type { GQL } from '@/types'
 
-type FilteredEquipment = EquipmentListItem[] & EquipmentMethods
+type FilteredEquipment = GQL.EquipmentListItem[] & EquipmentMethods
 
 type EquipmentMethods = {
-  findEquipment: (id?: string | null) => Equipment | undefined | null
-  findEquipments: (ids?: string[] | null) => (Equipment | undefined | null)[] | null
+  findEquipment: (id?: string | null) => GQL.Equipment | undefined | null
+  findEquipments: (ids?: string[] | null) => (GQL.Equipment | undefined | null)[] | null
   filterByCategory: (categoryId?: string | null) => FilteredEquipment
   filterByProperties: (propertyIds?: string[] | null) => FilteredEquipment
   filterByEveryProperty: (propertyIds?: string[] | null) => FilteredEquipment
@@ -33,14 +33,14 @@ const useEquipmentData = () => {
         combine: (results) => results.map((result) => result.data),
       })
     },
-    filterByCategory(this: EquipmentListItem[], categoryId) {
+    filterByCategory(this: GQL.EquipmentListItem[], categoryId) {
       if (!categoryId) return createArrayWithMethods(this, methods)
       const filtered = this.filter((e) =>
         metaData.categories?.find((c) => c.id === categoryId)?.equipmentIds?.includes(e.id)
       )
       return createArrayWithMethods(filtered, methods)
     },
-    filterByProperties(this: EquipmentListItem[], propertyIds) {
+    filterByProperties(this: GQL.EquipmentListItem[], propertyIds) {
       if (!propertyIds || !propertyIds.length) return createArrayWithMethods(this, methods)
       const filtered = this.filter((e) => {
         // Check if the equipment has ANY of the specified properties
@@ -50,7 +50,7 @@ const useEquipmentData = () => {
       })
       return createArrayWithMethods(filtered, methods)
     },
-    filterByEveryProperty(this: EquipmentListItem[], propertyIds) {
+    filterByEveryProperty(this: GQL.EquipmentListItem[], propertyIds) {
       if (!propertyIds || !propertyIds.length) return createArrayWithMethods(this, methods)
       const filtered = this.filter((e) => {
         // Check if the equipment has EVERY specified property

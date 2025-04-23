@@ -4,7 +4,7 @@ import { Character } from '../../../../../../amplify/gql/types'
 import { use } from 'react'
 import { FormContext } from '../../../FormContext'
 import Grid from '../../../../Grid/Grid'
-import { OnChange } from '../../../../../types/form'
+import { OnChange } from '../../../../../types/types'
 
 const Classes = () => {
   const {

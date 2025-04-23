@@ -13,7 +13,7 @@ import { EquipmentEnum } from '../../../../../amplify/gql/types'
 import type { ClassEquipment, BackgroundEquipment } from '../../../../../amplify/gql/types'
 import useSystemData from '../../../../hooks/useSystemData'
 import useEquipmentData from '../../../../hooks/useEquipmentData'
-import type { OnChange } from '../../../../types/form'
+import type { OnChange } from '../../../../types/types'
 
 // Add more specific typing for the group object
 type EquipmentGroupItemProps = {

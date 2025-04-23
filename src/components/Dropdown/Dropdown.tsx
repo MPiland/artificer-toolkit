@@ -13,32 +13,11 @@ import {
 } from './Dropdown.css'
 import { isEqual, uniqBy } from 'lodash'
 import clsx from 'clsx'
-import { DropdownOption } from '../../types/components'
+import { DropdownOption } from './Dropdown.types'
 import { TbX, TbChevronDown } from 'react-icons/tb'
-import ScrollArea from '../ScrollArea/ScrollArea'
-import Floating from '../Floating/Floating'
-import type { DeepKeyOf, OnChange } from '../../types/form'
-
-export interface DropdownProps<T> {
-  label?: string | boolean
-  required?: boolean
-  value: string[] | string | null | undefined
-  onChange: {
-    updateField: OnChange<T>['updateField']
-    removeField: OnChange<T>['removeField']
-  }
-  className?: string | number | symbol | any
-  placeholder?: string
-  options: DropdownOption[]
-  multiSelect?: boolean
-  errorMsg?: string
-  id?: string
-  all?: boolean
-  height?: 'full' | 'auto' | 'default'
-  border?: 'none' | 'default'
-  name: DeepKeyOf<T>
-  boundary?: 'app' | 'form'
-}
+import ScrollArea from '@/components/ScrollArea'
+import Floating from '@/components/Floating'
+import { DropdownProps } from './Dropdown.types'
 
 const Dropdown = <T,>({
   label,

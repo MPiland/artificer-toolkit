@@ -94,7 +94,7 @@ const Confirm = () => {
         <>
           <p>Check the email used for registration for the confirmation code.</p>
           {resetPassword && (
-            <Input
+            <Input<{ password: string }>
               className={sprinkles({ mb: 'space-2' })}
               validation='pwd'
               placeholder='Enter password...'
@@ -104,12 +104,14 @@ const Confirm = () => {
               autoComplete={'new-password'}
               required={true}
               value={state.password}
-              onChange={(e) =>
-                setState((prevState) => ({
-                  ...prevState,
-                  password: (e as { type: 'update'; value: string }).value,
-                }))
-              }
+              onChange={{
+                updateField: ({ value }) => {
+                  return setState((prevState) => ({
+                    ...prevState,
+                    password: value,
+                  }))
+                },
+              }}
               endAdornment={
                 <span
                   onClick={(e: any) => {
@@ -129,19 +131,21 @@ const Confirm = () => {
               ref={passwordRef}
             />
           )}
-          <Input
+          <Input<{ confirmationCode: string }>
             className={sprinkles({ mb: 'space-2' })}
             placeholder='Confirmation code...'
             name='confirmationCode'
             label={'Confirmation Code'}
             required={true}
             value={state.confirmationCode}
-            onChange={(e) =>
-              setState((prevState) => ({
-                ...prevState,
-                confirmationCode: (e as { type: 'update'; value: string }).value,
-              }))
-            }
+            onChange={{
+              updateField: ({ value }) => {
+                return setState((prevState) => ({
+                  ...prevState,
+                  confirmationCode: value,
+                }))
+              },
+            }}
           />
           <Button
             color='primary'

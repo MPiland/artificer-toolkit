@@ -1,11 +1,11 @@
 import { useEffect, use } from 'react'
-import { useAddNewRaceMutation, useUpdateRaceMutation } from '../../apis/racesApi'
-import Form from '../../components/Form/Form'
-import { Step } from '../../types/form'
-import { FormContext } from '../../components/Form/FormContext'
+import { useAddNewRaceMutation, useUpdateRaceMutation } from '@/apis/racesApi'
+import Form from '@/components/Form/Form'
+import { Step } from '@/types/form'
+import { FormContext } from '@/components/Form/FormContext'
 import { isEqual } from 'lodash'
-import { Route } from '../../routes/_protected/races/$action/$_raceId'
-import useRaceData from '../../hooks/useRaceData'
+import { Route } from '@/routes/_protected/races/$action/$_raceId'
+import useRaceData from '@/hooks/useRaceData'
 
 const RaceForm = () => {
   const { _raceId: raceId, action } = Route.useParams()
@@ -36,7 +36,7 @@ const RaceForm = () => {
         formStore.reinitState(race)
       }
     }
-  }, [stepsArray, formStore, race, action])
+  }, [stepsArray, formStore, race, action, steps])
 
   return <Form useUpdateItemMutation={useUpdateRaceMutation} useAddNewItemMutation={useAddNewRaceMutation} />
 }

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { addField, removeField, updateField, reset } from './utils'
-import type { DeepKeyOf, SectionDataType, SectionName } from '../types/form'
+import type { DeepKeyOf, SectionDataType, SectionName } from '@/types'
 import { produce } from 'immer'
 import { persist } from 'zustand/middleware'
 

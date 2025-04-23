@@ -1,8 +1,7 @@
-import Modal from '../Modal/Modal'
-import Group from '../Group/Group'
-import Button from '../Button/Button'
+import Modal, { ModalContext } from '@/components/Modal'
+import Group from '@/components/Group'
+import Button from '@/components/Button'
 import { use } from 'react'
-import { ModalContext } from '../Modal/ModalContext'
 
 const Alert = () => {
   const { modalProps, hideModal } = use(ModalContext)

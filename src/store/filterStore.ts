@@ -1,8 +1,8 @@
 import { produce } from 'immer'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Class, Equipment, Spell } from '../../amplify/gql/types'
-import type { DeepKeyOf } from '../types/form'
+import type { Class, Equipment, Spell } from '@/types/types'
+import type { DeepKeyOf } from '@/types/form'
 import { get, set as lSet } from 'lodash'
 
 // Define the overall filter state

@@ -7,7 +7,7 @@ import { sprinkles } from '../../../../../css/sprinkles.css'
 import { useMediaQuery } from 'usehooks-ts'
 import Input from '../../../../Input/Input'
 import useSystemData from '../../../../../hooks/useSystemData'
-import type { OnChange } from '../../../../../types/form'
+import type { OnChange } from '../../../../../types/types'
 
 const CharacterCurrency = () => {
   const {
