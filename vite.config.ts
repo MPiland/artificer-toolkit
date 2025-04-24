@@ -3,6 +3,7 @@ import { vanillaExtractPlugin } from '@vanilla-extract/vite-plugin'
 import react from '@vitejs/plugin-react'
 import eslint from 'vite-plugin-eslint'
 import { TanStackRouterVite } from '@tanstack/router-plugin/vite'
+import tailwindcss from '@tailwindcss/vite'
 
 // https://vitejs.dev/config/
 export default defineConfig(() => {
@@ -12,6 +13,7 @@ export default defineConfig(() => {
       react(),
       vanillaExtractPlugin(),
       eslint(),
+      tailwindcss(),
     ],
     server: {
       port: 3000,
