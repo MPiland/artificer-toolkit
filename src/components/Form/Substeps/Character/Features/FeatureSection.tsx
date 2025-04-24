@@ -9,6 +9,7 @@ import { FormContext } from '../../../FormContext'
 import { proficiencyKey, sectionIdKey, typename } from '@/utils'
 import { getKeyFromId } from '@/components/Form'
 import { ProfCats } from '@/enums'
+import type { CamelCase } from 'type-fest'
 
 interface FeatureOptionProps {
   section: SectionDataType
@@ -99,7 +100,7 @@ const FeatureSection = ({
                 if (categoryName && categoryName !== 'initiative') {
                   // Use the proficiencyKey helper to get the correct property name
                   const propertyName = proficiencyKey(
-                    categoryName as Exclude<keyof typeof ProfCats, 'initiative'>
+                    categoryName as Exclude<CamelCase<keyof typeof ProfCats>, 'initiative'>
                   )
                   if (propertyName) {
                     // Set the property using the selected value

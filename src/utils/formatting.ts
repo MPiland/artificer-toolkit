@@ -16,6 +16,7 @@ export const numberToWords = (number: number) => {
     'eighteen',
     'nineteen',
   ]
+  
   const tens = ['', 'ten', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety']
 
   if (number === 0) return 'zero'
