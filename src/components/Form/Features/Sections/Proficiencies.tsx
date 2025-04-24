@@ -4,7 +4,7 @@ import { startCase } from 'lodash'
 import { use } from 'react'
 import { FormContext } from '../../FormContext'
 import { FeatureContext } from '../FeatureContext'
-import { Categories, ProfCats, ProfLevels, Section } from '@/enums'
+import { Categories, ProfCats, ProfLevels, Sections } from '@/enums'
 import { getKeyFromId } from '../../Form.utils'
 import { useEnumChecks } from '@/hooks'
 import Prerequisites from '../../Substeps/Prerequisites'
@@ -64,9 +64,9 @@ const Proficiencies = () => {
           name='attributes'
           options={attributes.filter(
             (attribute) =>
-              (attribute?.sections?.length && attribute?.sections?.includes(Section.ALL)) ||
+              (attribute?.sections?.length && attribute?.sections?.includes(Sections.ALL)) ||
               ((formStore.data as Class).category === Categories.SUBCLASS &&
-                attribute?.sections?.includes(Section.SUBCLASS))
+                attribute?.sections?.includes(Sections.SUBCLASS))
           )}
           label={`${startCase('proficiency')} Attributes`}
           value={data?.attributes}
