@@ -1,10 +1,25 @@
-import type { DeepKeyOf, GQL } from '@/types'
-import { Enum } from '@/types'
+import type {
+  DeepKeyOf,
+  Feature,
+  AncestryFeature,
+  CharacterFeatureOption,
+  Character,
+  Class,
+  Race,
+  Background,
+  Equipment,
+  Feat,
+  FeatureOption,
+  CharacterFeature,
+  CharacterEquipmentObject,
+} from '@/types'
 import { useCallback, useMemo } from 'react'
 import { getKeyFromId, sourcePropertyMap } from '@/components/Form'
 import { useClassData, useRaceData, useFeatData, useEquipmentData, useBackgroundData } from '@/hooks'
+import { Prerequisites, Attributes } from '@/enums'
+import { CamelCase } from 'type-fest'
 
-export type FactoryFeature = Omit<GQL.Feature | GQL.AncestryFeature, 'options' | '__typename'> & {
+export type FactoryFeature = Omit<Feature | AncestryFeature, 'options' | '__typename'> & {
   level?: number
   classId?: string
   backgroundId?: string
@@ -12,7 +27,7 @@ export type FactoryFeature = Omit<GQL.Feature | GQL.AncestryFeature, 'options' |
   raceId?: string
   featId?: string
   ancestryId?: string
-  options?: GQL.CharacterFeatureOption[] | null | undefined
+  options?: CharacterFeatureOption[] | null | undefined
 }
 
 export interface GetFeatureOptionsProps {
@@ -27,22 +42,18 @@ export interface GetFeatureOptionsResult<T> {
 }
 
 type PrerequisiteProcessor = {
-  [key in keyof typeof Enum.Prerequisites]?: ({
+  [key in CamelCase<keyof typeof Prerequisites>]?: ({
     option,
     feature,
     optionIndex,
   }: {
-    option: GQL.FeatureOption
+    option: FeatureOption
     feature?: FactoryFeature
     optionIndex?: string
   }) => boolean
 }
 
-const useGetFeatures = ({
-  data,
-}: {
-  data: GQL.Character | GQL.Class | GQL.Race | GQL.Background | GQL.Equipment | GQL.Feat
-}) => {
+const useGetFeatures = ({ data }: { data: Character | Class | Race | Background | Equipment | Feat }) => {
   const { classes } = useClassData()
   const { races } = useRaceData()
   const { feats } = useFeatData()
@@ -124,7 +135,7 @@ const useGetFeatures = ({
       if (!fullOption?.prerequisites || !fullOption?.prerequisites?.options?.length) return true
 
       return fullOption.prerequisites?.options?.every((prereqOption) => {
-        const prereq = getKeyFromId(prereqOption, Enum.Prerequisites)
+        const prereq = getKeyFromId(prereqOption, Prerequisites)
 
         if (!prereq || !prerequisiteProcessors[prereq]) {
           return true
@@ -136,7 +147,7 @@ const useGetFeatures = ({
   }
 
   const getFullFeature = useCallback(
-    (feature: GQL.CharacterFeature | FactoryFeature) => {
+    (feature: CharacterFeature | FactoryFeature) => {
       if (data?.__typename !== 'Character') return null
 
       if (feature?.classId) {
@@ -166,7 +177,7 @@ const useGetFeatures = ({
     [classes, races, backgrounds, feats, equipment, data]
   )
 
-  const getFeatureOptions = ({ feature, optionIndex }: GetFeatureOptionsProps): GetFeatureOptionsResult<GQL.Character> => {
+  const getFeatureOptions = ({ feature, optionIndex }: GetFeatureOptionsProps): GetFeatureOptionsResult<Character> => {
     if (data?.__typename === 'Character') {
       const featureIndex =
         data?.features?.findIndex((f) => {
@@ -181,7 +192,7 @@ const useGetFeatures = ({
 
       const exist = existIndex && existIndex > -1 ? data?.features?.[featureIndex]?.options?.[existIndex] : null
 
-      const path: DeepKeyOf<GQL.Character> = `features.${featureIndex}.options.${featureOptionIndex}`
+      const path: DeepKeyOf<Character> = `features.${featureIndex}.options.${featureOptionIndex}`
 
       const fullFeature = getFullFeature(feature)
 
@@ -462,12 +473,12 @@ const useGetFeatures = ({
 
         features.push(...existingFeatures)
 
-        const checkEquipment = (featureEquipment: GQL.CharacterEquipmentObject) => {
+        const checkEquipment = (featureEquipment: CharacterEquipmentObject) => {
           if (data?.equipment?.equipped?.includes(featureEquipment.id)) {
             const fullEquipment = equipment?.findEquipment(featureEquipment.id)
 
             const attunementRequired = fullEquipment?.attributes?.some(
-              (attribute) => attribute === Enum.Attributes.requireAttunement
+              (attribute) => attribute === Attributes.REQUIRE_ATTUNEMENT
             )
 
             if (

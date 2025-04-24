@@ -12,13 +12,13 @@ import {
 import ScrollArea from '@/components/ScrollArea'
 import { MdArrowBackIos, MdEdit } from 'react-icons/md'
 import CopyIcon from '@/assets/Icons/ICopy'
-import Loading from '../Loading/Loading'
-import Grid from '../Grid/Grid'
+import Loading from '@/components/Loading'
+import Grid from '@/components/Grid'
 import { Link, useMatches } from '@tanstack/react-router'
-import type { FormType, FormDataType, GQL } from '@/types'
+import type { FormType, FormDataType, Character } from '@/types'
 import { useRouteNavigation, useSourceData } from '@/hooks'
 import type { DetailConfig } from '@/components/List'
-import { FormContext } from '../Form/FormContext'
+import { FormContext } from '@/components/Form'
 
 interface DetailProps<T extends FormDataType> {
   detailConfigs?: DetailConfig<T>[]
@@ -63,7 +63,7 @@ const Detail = <T extends FormDataType>({
         >
           {<CopyIcon />} Copy
         </Link>
-        {(item as Exclude<FormDataType, GQL.Character>).masterId == null && (
+        {(item as Exclude<FormDataType, Character>).masterId == null && (
           <Link
             {...itemNav.edit}
             onClick={(e) => {

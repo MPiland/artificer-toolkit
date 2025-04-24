@@ -1,14 +1,58 @@
-import { GQL } from '@/types'
+import type {
+  SpellListItem,
+  ClassListItem,
+  RaceListItem,
+  EquipmentListItem,
+  FeatListItem,
+  BackgroundListItem,
+  Character,
+  SpellMeta,
+  ClassMeta,
+  RaceMeta,
+  EquipmentMeta,
+  Spell,
+  Race,
+  Class,
+  Feat,
+  Background,
+  Equipment,
+  Feature,
+  AncestryFeature,
+  FeatureOption,
+  FeatureModifier,
+  FeatureProficiency,
+  FeatureSense,
+  FeatureSpell,
+  FeatureFeat,
+  FeatureExpertise,
+  CharacterFeat,
+  CharacterSense,
+  CharacterProficiency,
+  CharacterExpertise,
+  CharacterModifier,
+  System,
+} from '@/types'
 import { Paths } from 'type-fest'
+import { sectionSteps, FEATURE_TYPES } from '@/components/Form'
+
+export type SourceTypeMap = {
+  spells: Spell
+  classes: Class
+  equipment: Equipment
+  system: System
+  races: Race
+  feats: Feat
+  backgrounds: Background
+}
 
 export type ListItemType =
-  | GQL.SpellListItem
-  | GQL.ClassListItem
-  | GQL.RaceListItem
-  | GQL.EquipmentListItem
-  | GQL.FeatListItem
-  | GQL.BackgroundListItem
-  | GQL.Character
+  | SpellListItem
+  | ClassListItem
+  | RaceListItem
+  | EquipmentListItem
+  | FeatListItem
+  | BackgroundListItem
+  | Character
 
 type UpdateField<T> = (arg: { path: Paths<T>; value: any }) => void
 type RemoveField<T> = (arg: { path: Paths<T> }) => void
@@ -20,50 +64,50 @@ export type OnChange<T> = {
   addField: AddField<T>
 }
 
-export type MetaDataType = GQL.SpellMeta | GQL.ClassMeta | GQL.RaceMeta | GQL.EquipmentMeta
+export type MetaDataType = SpellMeta | ClassMeta | RaceMeta | EquipmentMeta
 
-export type FormDataType = GQL.Spell | GQL.Race | GQL.Class | GQL.Feat | GQL.Background | GQL.Equipment | GQL.Character
+export type FormDataType = Spell | Race | Class | Feat | Background | Equipment | Character
 
-export type FeatureDataType = GQL.Feature | GQL.AncestryFeature | GQL.FeatureOption
+export type FeatureDataType = Feature | AncestryFeature | FeatureOption
 
 export type FormType = 'spells' | 'equipment' | 'characters' | 'classes' | 'races' | 'backgrounds' | 'feats'
 
 export type SectionDataType =
-  | GQL.FeatureModifier
-  | GQL.FeatureProficiency
-  | GQL.FeatureSense
-  | GQL.FeatureSpell
-  | GQL.FeatureFeat
-  | GQL.FeatureExpertise
+  | FeatureModifier
+  | FeatureProficiency
+  | FeatureSense
+  | FeatureSpell
+  | FeatureFeat
+  | FeatureExpertise
 
 export type CharacterSectionData =
-  | GQL.CharacterFeat
-  | GQL.CharacterSense
-  | GQL.CharacterProficiency
-  | GQL.CharacterExpertise
-  | GQL.CharacterModifier
+  | CharacterFeat
+  | CharacterSense
+  | CharacterProficiency
+  | CharacterExpertise
+  | CharacterModifier
 
 export type DeepKeyOf<T> = Extract<Paths<T>, string>
 
 export type Step = {
   id:
     | 'details'
-    | 'GQL.Class'
-    | 'gQL.Race'
+    | 'class'
+    | 'race'
     | 'abilities'
     | 'traits'
     | 'attributes'
     | 'features'
     | 'contains'
     | 'proficiencies'
-    | 'GQL.Equipment'
+    | 'equipment'
     | 'startingEquipment'
     | 'ancestry'
-    | 'GQL.Background'
+    | 'background'
   label:
     | 'Details'
-    | 'GQL.Class'
-    | 'GQL.Race'
+    | 'Class'
+    | 'Race'
     | 'Abilities'
     | 'Traits'
     | 'Attributes'
@@ -71,15 +115,12 @@ export type Step = {
     | 'FeaturesContent'
     | 'Contains'
     | 'Proficiencies'
-    | 'GQL.Equipment'
-    | 'Starting GQL.Equipment'
+    | 'Equipment'
+    | 'Starting Equipment'
     | 'Ancestry'
-    | 'GQL.Background'
+    | 'Background'
 }
 
-export const sectionSteps = ['modifiers', 'spells', 'proficiencies', 'expertise', 'senses', 'feats'] as const
-
 export type SectionName = (typeof sectionSteps)[number]
-export const featureTypes = ['feature', 'option', 'ancestry', 'ancestryOption'] as const
 
-export type FeatureTypes = (typeof featureTypes)[number]
+export type FeatureTypes = (typeof FEATURE_TYPES)[number]

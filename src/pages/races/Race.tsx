@@ -1,9 +1,9 @@
 import parse from 'html-react-parser'
-import Detail from '@/components/Detail/Detail'
+import Detail from '@/components/Detail'
 import { Fragment } from 'react'
 import { race_section_divider } from '@/pages/races/Race.css'
 import { Route } from '@/routes/_protected/races/$raceId'
-import useRaceData from '@/hooks/useRaceData'
+import { useRaceData } from '@/hooks'
 
 const Race = () => {
   const raceId = Route.useParams({ select: (r) => r.raceId })

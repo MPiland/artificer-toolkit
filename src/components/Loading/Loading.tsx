@@ -1,6 +1,6 @@
 import { useState, useEffect, use } from 'react'
 import Modal from '@/components/Modal'
-import Spinner from '../Spinner/Spinner'
+import Spinner from '@/components/Spinner'
 import { loading_message, loading_wrapper } from './Loading.css'
 import { LoadingContext } from './LoadingContext'
 

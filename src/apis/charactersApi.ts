@@ -2,8 +2,8 @@ import { useMutation, useQueryClient, queryOptions } from '@tanstack/react-query
 import { generateClient } from 'aws-amplify/data'
 import { getCharacter, listCharacters } from '../../amplify/gql/queries'
 import { createCharacter, deleteCharacter, updateCharacter } from '../../amplify/gql/mutations'
-import type { Character, QueryListCharactersArgs, CharacterInput } from '../../amplify/gql/types'
-import { removeTypename } from '../utils/form'
+import type { Character, QueryListCharactersArgs, CharacterInput } from '@/types'
+import { removeTypename } from '@/components/Form'
 
 const client = generateClient()
 

@@ -1,23 +1,20 @@
-import Input from '../../Input/Input'
-import Dropdown from '../../Dropdown/Dropdown'
-import RichTextEditor from '../../RichTextEditor/RichTextEditor'
-import { SectionName } from '../../../types/types'
-import Select from '../../Select/Select'
+import Input from '@/components/Input'
+import Dropdown from '@/components/Dropdown'
+import RichTextEditor from '@/components/RichTextEditor'
+import type { SectionName, OnChange, FeatureOption } from '@/types'
+import Select from '@/components/Select'
 import SectionsList from './Sections/SectionsList'
-import Requirements from '../Subforms/Prerequisites'
-import Damage from '../Subforms/Damage'
-import LimitUse from '../Subforms/LimitUse'
-import { FeatureEnum, FeatureOption } from '../../../../amplify/gql/types'
+import Requirements from '../Substeps/Prerequisites'
+import Damage from '../Substeps/Damage'
+import LimitUse from '../Substeps/LimitUse'
 import { use } from 'react'
 import { FormContext } from '../FormContext'
-import { Categories, Ranges, Shapes } from '../../../types/enums'
+import { Categories, Ranges, Shapes, Features } from '@/enums'
 import { FeatureContext } from './FeatureContext'
-import { useEnumChecks } from '../../../hooks/useEnumChecks'
-import Grid from '../../Grid/Grid'
-import SelectOptionsByLevel from '../Subforms/SelectOptionsByLevel'
-import useSystemData from '../../../hooks/useSystemData'
-import { FeatureStore } from '../../../store/featureStore'
-import { OptionStore } from '../../../store/optionStore'
+import { useEnumChecks, useSystemData } from '@/hooks'
+import type { FeatureStore, OptionStore } from '@/store'
+import Grid from '@/components/Grid'
+import SelectOptionsByLevel from '../Substeps/SelectOptionsByLevel'
 
 const Base = ({ featureStore, valueLabel }: { featureStore: FeatureStore | OptionStore; valueLabel: string }) => {
   const { formStore, steps, stepIndex } = use(FormContext)
@@ -38,10 +35,16 @@ const Base = ({ featureStore, valueLabel }: { featureStore: FeatureStore | Optio
     data: featureStore.data,
   })
 
+  const { updateField, removeField } = featureStore
+
   const { attributes, abilities, categories, spells, actions, rules } = useSystemData()
 
+  function isFeatureStore(store: FeatureStore | OptionStore): store is FeatureStore {
+    return store.data.__typename !== 'FeatureOption'
+  }
+
   const selectSection = (sectionStep: SectionName | 'options') => {
-    if (sectionStep === 'options' && featureStore.data.__typename !== 'FeatureOption') {
+    if (sectionStep === 'options' && featureStore.data.__typename !== 'FeatureOption' && isFeatureStore(featureStore)) {
       // Add Option content
       optionStore.reinitState()
       const optionIndex = featureStore.data?.options?.length || 0
@@ -76,22 +79,25 @@ const Base = ({ featureStore, valueLabel }: { featureStore: FeatureStore | Optio
             required={true}
             value={featureStore.data?.label}
             errorMsg='Name must not be blank'
-            onChange={featureStore}
+            onChange={{ updateField: updateField as OnChange<typeof featureStore.data>['updateField'] }}
           />
         </Grid.Item>
         {featureStore.data.__typename !== 'AncestryFeature' && featureStore.data.__typename !== 'FeatureOption' && (
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown
-              name={`category`}
+              name={'category'}
               options={categories.filter((category) => category.features)}
               label='Feature Category'
               value={featureStore.data?.category}
-              onChange={featureStore}
               required={true}
+              onChange={{
+                updateField: updateField as OnChange<typeof featureStore.data>['updateField'],
+                removeField: removeField as OnChange<typeof featureStore.data>['removeField'],
+              }}
             />
           </Grid.Item>
         )}
-        {(featureStore.data?.category === Categories.feature ||
+        {(featureStore.data?.category === Categories.FEATURE ||
           featureStore.data.__typename === 'AncestryFeature' ||
           featureStore.data.__typename === 'FeatureOption') && (
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
@@ -104,13 +110,15 @@ const Base = ({ featureStore, valueLabel }: { featureStore: FeatureStore | Optio
             />
           </Grid.Item>
         )}
-        {featureStore.data?.category === Categories.subclass && (
+        {featureStore.data?.category === Categories.SUBCLASS && (
           <Grid.Item>
             <RichTextEditor
               label='Feature detail'
               value={featureStore.data?.detail}
               name={`detail`}
-              onChange={featureStore}
+              onChange={{
+                updateField: updateField as OnChange<typeof featureStore.data>['updateField'],
+              }}
             />
           </Grid.Item>
         )}
@@ -119,7 +127,9 @@ const Base = ({ featureStore, valueLabel }: { featureStore: FeatureStore | Optio
             label='Feature description'
             value={featureStore.data?.desc}
             name={`desc`}
-            onChange={featureStore}
+            onChange={{
+              updateField: updateField as OnChange<typeof featureStore.data>['updateField'],
+            }}
           />
         </Grid.Item>
         <Grid.Item>
@@ -141,11 +151,13 @@ const Base = ({ featureStore, valueLabel }: { featureStore: FeatureStore | Optio
                     value={featureStore.data?.levelAvailable}
                     validation='num'
                     errorMsg='Must contain whole numbers and commas only'
-                    onChange={featureStore}
+                    onChange={{
+                      updateField: updateField as OnChange<typeof featureStore.data>['updateField'],
+                    }}
                   />
                 </Grid.Item>
               )}
-            {featureStore.data?.category !== Categories.subclass && (
+            {featureStore.data?.category !== Categories.SUBCLASS && (
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                 <Dropdown
                   multiSelect={true}
@@ -154,15 +166,18 @@ const Base = ({ featureStore, valueLabel }: { featureStore: FeatureStore | Optio
                     (attribute) =>
                       (attribute?.features?.length &&
                         ((formStore.data.__typename === 'Equipment' &&
-                          attribute?.features?.includes(FeatureEnum.equipment)) ||
+                          attribute?.features?.includes(Features.EQUIPMENT)) ||
                           ((featureStore.data.__typename === 'FeatureOption' ||
                             featureStore.data.__typename === 'AncestryFeature') &&
-                            attribute?.features?.includes(FeatureEnum.options)))) ||
-                      attribute?.features?.includes(FeatureEnum.all)
+                            attribute?.features?.includes(Features.OPTION)))) ||
+                      attribute?.features?.includes(Features.ALL)
                   )}
                   label='Feature Attribute'
                   value={featureStore.data?.attributes}
-                  onChange={featureStore}
+                  onChange={{
+                    updateField: updateField as OnChange<typeof featureStore.data>['updateField'],
+                    removeField: removeField as OnChange<typeof featureStore.data>['removeField'],
+                  }}
                 />
               </Grid.Item>
             )}
@@ -174,7 +189,10 @@ const Base = ({ featureStore, valueLabel }: { featureStore: FeatureStore | Optio
                   value={featureStore.data?.actions?.primary?.id}
                   options={actions}
                   required={true}
-                  onChange={featureStore}
+                  onChange={{
+                    updateField: updateField as OnChange<typeof featureStore.data>['updateField'],
+                    removeField: removeField as OnChange<typeof featureStore.data>['removeField'],
+                  }}
                 />
               </Grid.Item>
             )}
@@ -190,14 +208,17 @@ const Base = ({ featureStore, valueLabel }: { featureStore: FeatureStore | Optio
                   value={featureStore.data?.range?.id}
                   options={spells.ranges}
                   required={true}
-                  onChange={featureStore}
+                  onChange={{
+                    updateField: updateField as OnChange<typeof featureStore.data>['updateField'],
+                    removeField: removeField as OnChange<typeof featureStore.data>['removeField'],
+                  }}
                 />
               </Grid.Item>
-              {featureStore.data?.range?.id !== Ranges.touch &&
-                featureStore.data.range?.id !== Ranges.sight &&
-                featureStore.data.range?.id !== Ranges.unlimited && (
+              {featureStore.data?.range?.id !== Ranges.TOUCH &&
+                featureStore.data.range?.id !== Ranges.SIGHT &&
+                featureStore.data.range?.id !== Ranges.UNLIMITED && (
                   <>
-                    {featureStore.data?.range?.id !== Ranges.self && (
+                    {featureStore.data?.range?.id !== Ranges.SELF && (
                       <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                         <Input
                           validation='num'
@@ -205,9 +226,11 @@ const Base = ({ featureStore, valueLabel }: { featureStore: FeatureStore | Optio
                           errorMsg='Please enter a valid number greater than 0'
                           label='Min. Range'
                           autoComplete='off'
-                          required={featureStore.data?.range?.id === Ranges.distance || false}
+                          required={featureStore.data?.range?.id === Ranges.DISTANCE || false}
                           value={featureStore.data?.range?.minRange}
-                          onChange={featureStore}
+                          onChange={{
+                            updateField: updateField as OnChange<typeof featureStore.data>['updateField'],
+                          }}
                         />
                       </Grid.Item>
                     )}
@@ -218,9 +241,11 @@ const Base = ({ featureStore, valueLabel }: { featureStore: FeatureStore | Optio
                         errorMsg='Must contain only numbers'
                         label='Max Range'
                         autoComplete='off'
-                        required={featureStore.data?.range?.id === Ranges.distance || false}
+                        required={featureStore.data?.range?.id === Ranges.DISTANCE || false}
                         value={featureStore.data?.range?.maxRange}
-                        onChange={featureStore}
+                        onChange={{
+                          updateField: updateField as OnChange<typeof featureStore.data>['updateField'],
+                        }}
                       />
                     </Grid.Item>
                     <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
@@ -229,8 +254,11 @@ const Base = ({ featureStore, valueLabel }: { featureStore: FeatureStore | Optio
                         label='UoM'
                         value={featureStore.data?.range?.unit}
                         options={rules.measurements.imperial.length}
-                        required={featureStore.data?.range?.id === Ranges.distance || false}
-                        onChange={featureStore}
+                        required={featureStore.data?.range?.id === Ranges.DISTANCE || false}
+                        onChange={{
+                          updateField: updateField as OnChange<typeof featureStore.data>['updateField'],
+                          removeField: removeField as OnChange<typeof featureStore.data>['removeField'],
+                        }}
                       />
                     </Grid.Item>
                   </>
@@ -243,8 +271,10 @@ const Base = ({ featureStore, valueLabel }: { featureStore: FeatureStore | Optio
                     label='No. of Targets'
                     validation='num'
                     errorMsg='Must contain only numbers'
-                    onChange={featureStore}
                     placeholder='1'
+                    onChange={{
+                      updateField: updateField as OnChange<typeof featureStore.data>['updateField'],
+                    }}
                   />
                 </Grid.Item>
               )}
@@ -257,12 +287,15 @@ const Base = ({ featureStore, valueLabel }: { featureStore: FeatureStore | Optio
                   options={spells.shapes}
                   value={featureStore.data?.shape?.id}
                   required={true}
-                  onChange={featureStore}
+                  onChange={{
+                    updateField: updateField as OnChange<typeof featureStore.data>['updateField'],
+                    removeField: removeField as OnChange<typeof featureStore.data>['removeField'],
+                  }}
                 />
               </Grid.Item>
-              {featureStore.data?.shape?.id !== Shapes.none &&
-                featureStore.data.shape?.id !== Shapes.weapon &&
-                featureStore.data.shape?.id !== Shapes.cone && (
+              {featureStore.data?.shape?.id !== Shapes.NONE &&
+                featureStore.data.shape?.id !== Shapes.WEAPON &&
+                featureStore.data.shape?.id !== Shapes.CONE && (
                   <>
                     <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                       <Input
@@ -273,7 +306,9 @@ const Base = ({ featureStore, valueLabel }: { featureStore: FeatureStore | Optio
                         autoComplete='off'
                         required={true}
                         value={featureStore.data?.shape?.size}
-                        onChange={featureStore}
+                        onChange={{
+                          updateField: updateField as OnChange<typeof featureStore.data>['updateField'],
+                        }}
                       />
                     </Grid.Item>
                     <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
@@ -283,7 +318,10 @@ const Base = ({ featureStore, valueLabel }: { featureStore: FeatureStore | Optio
                         value={featureStore.data?.shape?.unit}
                         options={rules.measurements.imperial.length}
                         required={true}
-                        onChange={featureStore}
+                        onChange={{
+                          updateField: updateField as OnChange<typeof featureStore.data>['updateField'],
+                          removeField: removeField as OnChange<typeof featureStore.data>['removeField'],
+                        }}
                       />
                     </Grid.Item>
                   </>
@@ -301,10 +339,12 @@ const Base = ({ featureStore, valueLabel }: { featureStore: FeatureStore | Optio
                   label='Save Attribute'
                   value={featureStore.data?.saveAbility?.attributes}
                   options={attributes.filter(
-                    (attribute) =>
-                      attribute?.features?.length && attribute?.features?.includes(FeatureEnum.saveAbilities)
+                    (attribute) => attribute?.features?.length && attribute?.features?.includes(Features.SAVE_ABILITY)
                   )}
-                  onChange={featureStore}
+                  onChange={{
+                    updateField: updateField as OnChange<typeof featureStore.data>['updateField'],
+                    removeField: removeField as OnChange<typeof featureStore.data>['removeField'],
+                  }}
                 />
               </Grid.Item>
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
@@ -314,7 +354,10 @@ const Base = ({ featureStore, valueLabel }: { featureStore: FeatureStore | Optio
                   value={featureStore.data?.saveAbility?.id}
                   options={abilities}
                   required={true}
-                  onChange={featureStore}
+                  onChange={{
+                    updateField: updateField as OnChange<typeof featureStore.data>['updateField'],
+                    removeField: removeField as OnChange<typeof featureStore.data>['removeField'],
+                  }}
                 />
               </Grid.Item>
               {addAbilityModifier && (
@@ -325,7 +368,10 @@ const Base = ({ featureStore, valueLabel }: { featureStore: FeatureStore | Optio
                     value={featureStore.data?.saveAbility?.abilityModifier}
                     options={abilities}
                     required={true}
-                    onChange={featureStore}
+                    onChange={{
+                      updateField: updateField as OnChange<typeof featureStore.data>['updateField'],
+                      removeField: removeField as OnChange<typeof featureStore.data>['removeField'],
+                    }}
                   />
                 </Grid.Item>
               )}
@@ -338,7 +384,9 @@ const Base = ({ featureStore, valueLabel }: { featureStore: FeatureStore | Optio
                   required={formStore.data.__typename !== 'Class' && true}
                   errorMsg='Must contain only numbers'
                   value={featureStore.data?.saveAbility?.minAmount}
-                  onChange={featureStore}
+                  onChange={{
+                    updateField: updateField as OnChange<typeof featureStore.data>['updateField'],
+                  }}
                 />
               </Grid.Item>
             </Grid>

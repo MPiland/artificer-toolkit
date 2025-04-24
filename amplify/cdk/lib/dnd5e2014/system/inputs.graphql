@@ -1,55 +1,55 @@
 ## Enums
 
 enum FeatureEnumInput {
-  all
-  saveAbilities
-  options
-  equipment
-  features
+  ALL
+  SAVE_ABILITY
+  OPTION
+  EQUIPMENT
+  FEATURE
 }
 
 enum DamageEnumInput {
-  all
-  equipment
-  main
-  pool
-  bonus
+  ALL
+  EQUIPMENT
+  MAIN
+  POOL
+  BONUS
 }
 
 enum SpellEnumInput {
-  all
-  upcast
-  damage
+  ALL
+  UPCAST
+  DAMAGE
 }
 
-enum AllEnumInput {
-  all
+enum FeatEnumInput {
+  ALL
 }
 
 enum SectionEnumInput {
-  all
-  spells
-  subclasses
+  ALL
+  SPELL
+  SUBCLASS
 }
 
 enum EquipmentEnumInput {
-  all
-  classes
-  shields
-  adventuringGear
-  weapons
-  armors
-  tools
-  backgrounds
+  ALL
+  CLASS
+  SHIELD
+  ADVENTURING_GEAR
+  WEAPON
+  ARMOR
+  TOOL
+  BACKGROUND
 }
 
 enum ClassesEnumInput {
-  all
-  spellcaster
-  base
-  subclass
-  resources
-  prepareLimit
+  ALL
+  SPELLCASTER
+  BASE
+  SUBCLASS
+  RESOURCE
+  PREPARE_LIMIT
 }
 
 input GenericTypeInput {
@@ -193,7 +193,7 @@ input ChargeOptionInput {
   label: String!
   features: [FeatureEnumInput!]
   damage: [DamageEnumInput!]
-  feats: [AllEnumInput!]
+  feats: [FeatEnumInput!]
   sections: [SectionEnumInput!]
   spells: [SpellEnumInput!]
   equipment: [EquipmentEnumInput!]
@@ -235,7 +235,7 @@ input SystemAttributeInput {
   label: String!
   features: [FeatureEnumInput!]
   damage: [DamageEnumInput!]
-  feats: [AllEnumInput!]
+  feats: [FeatEnumInput!]
   sections: [SectionEnumInput!]
   spells: [SpellEnumInput!]
   equipment: [EquipmentEnumInput!]
@@ -274,7 +274,7 @@ input SystemPrerequisiteInput {
   label: String!
   features: [FeatureEnumInput!]
   damage: [DamageEnumInput!]
-  feats: [AllEnumInput!]
+  feats: [FeatEnumInput!]
   sections: [SectionEnumInput!]
   spells: [SpellEnumInput!]
   equipment: [EquipmentEnumInput!]

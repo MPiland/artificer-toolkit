@@ -1485,7 +1485,7 @@
             "name" : null,
             "ofType" : {
               "kind" : "ENUM",
-              "name" : "SectionEnum",
+              "name" : "Section",
               "ofType" : null
             }
           },
@@ -1620,7 +1620,7 @@
         "possibleTypes" : null
       }, {
         "kind" : "ENUM",
-        "name" : "SectionEnum",
+        "name" : "Section",
         "description" : null,
         "fields" : null,
         "inputFields" : null,
@@ -2054,7 +2054,7 @@
             "name" : null,
             "ofType" : {
               "kind" : "ENUM",
-              "name" : "SectionEnum",
+              "name" : "Section",
               "ofType" : null
             }
           },
@@ -2796,7 +2796,7 @@
             "name" : null,
             "ofType" : {
               "kind" : "ENUM",
-              "name" : "SectionEnum",
+              "name" : "Section",
               "ofType" : null
             }
           },

@@ -1,8 +1,7 @@
 import { produce } from 'immer'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Class, Equipment, Spell } from '@/types/types'
-import type { DeepKeyOf } from '@/types/form'
+import type { DeepKeyOf, Class, Equipment, Spell } from '@/types'
 import { get, set as lSet } from 'lodash'
 
 // Define the overall filter state

@@ -1,5 +1,6 @@
-import { Enum, GQL } from '@/types'
+import { Class } from '@/types'
 import { useEquipmentData, useSystemData } from '@/hooks'
+import { ProfCats } from '@/enums'
 
 export type ClassProficiency = {
   [key: string]: {
@@ -10,7 +11,7 @@ export type ClassProficiency = {
   }
 }
 
-const useGetProficiencies = ({ fullClass }: { fullClass: GQL.Class }) => {
+const useGetProficiencies = ({ fullClass }: { fullClass: Class }) => {
   const { system } = useSystemData()
   const { equipment } = useEquipmentData()
 
@@ -19,7 +20,7 @@ const useGetProficiencies = ({ fullClass }: { fullClass: GQL.Class }) => {
   const proficiencyObject = {} as ClassProficiency
 
   fullProficiencies?.forEach((proficiency) => {
-    if (proficiency?.category === Enum.ProficiencyCategories.properties) {
+    if (proficiency?.category === ProfCats.PROPERTIES) {
       if (proficiency?.properties?.ids?.length) {
         const equipmentCategory = system.equipment.categories.find(
           (category) => category.id === proficiency?.properties?.category
@@ -60,7 +61,7 @@ const useGetProficiencies = ({ fullClass }: { fullClass: GQL.Class }) => {
         }
       }
     }
-    if (proficiency?.category === Enum.ProficiencyCategories.equipment) {
+    if (proficiency?.category === ProfCats.EQUIPMENT) {
       const equipmentCategory = system.equipment.categories.find(
         (category) => category.id === proficiency?.equipment?.category
       )
@@ -103,7 +104,7 @@ const useGetProficiencies = ({ fullClass }: { fullClass: GQL.Class }) => {
           selectionCount: proficiency?.selectionCount || 0,
         }
       }
-    } else if (proficiency?.category === Enum.ProficiencyCategories.skills) {
+    } else if (proficiency?.category === ProfCats.SKILLS) {
       const existType: Array<{ id: string; label: string; value: string }> = [...(proficiencyObject?.skils?.type || [])]
 
       const filteredSkills = []
@@ -127,7 +128,7 @@ const useGetProficiencies = ({ fullClass }: { fullClass: GQL.Class }) => {
         type: [...existType, ...filteredSkills],
         selectionCount: proficiency?.selectionCount || 0,
       }
-    } else if (proficiency?.category === Enum.ProficiencyCategories.languages) {
+    } else if (proficiency?.category === ProfCats.LANGUAGES) {
       const existType: Array<{ id: string; label: string; value: string }> = [
         ...(proficiencyObject?.languages?.type || []),
       ]
@@ -153,7 +154,7 @@ const useGetProficiencies = ({ fullClass }: { fullClass: GQL.Class }) => {
         type: [...existType, ...filteredLanguages],
         selectionCount: proficiency?.selectionCount || 0,
       }
-    } else if (proficiency?.category === Enum.ProficiencyCategories.saveAbilities) {
+    } else if (proficiency?.category === ProfCats.SAVE_ABILITIES) {
       const existType: Array<{ id: string; label: string; value: string }> = [
         ...(proficiencyObject?.saveAbilities?.type || []),
       ]

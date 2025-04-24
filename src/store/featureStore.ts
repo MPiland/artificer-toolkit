@@ -1,34 +1,34 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { addField, removeField, updateField, reset } from './utils'
-import type { GQL, DeepKeyOf, FeatureTypes } from '@/types'
+import type { Feature, AncestryFeature, DeepKeyOf, FeatureTypes } from '@/types'
 import { produce } from 'immer'
 
 export interface FeatureStore {
-  // Core GQL.Feature data
-  data: GQL.Feature | GQL.AncestryFeature
-  initData: GQL.Feature | GQL.AncestryFeature
+  // Core Feature data
+  data: Feature | AncestryFeature
+  initData: Feature | AncestryFeature
 
-  // GQL.Feature UI state
+  // Feature UI state
   index: number
   step: FeatureTypes | null
 
-  updateField(arg: { path: DeepKeyOf<GQL.Feature | GQL.AncestryFeature>; value: any }): void
-  addField(arg: { path: DeepKeyOf<GQL.Feature | GQL.AncestryFeature>; value?: any }): void
-  removeField(arg: { path: DeepKeyOf<GQL.Feature | GQL.AncestryFeature> }): void
-  resetData: (arg: { value: GQL.Feature | GQL.AncestryFeature }) => void
-  resetInit: (arg: { value: GQL.Feature | GQL.AncestryFeature }) => void
+  updateField(arg: { path: DeepKeyOf<Feature | AncestryFeature>; value: any }): void
+  addField(arg: { path: DeepKeyOf<Feature | AncestryFeature>; value?: any }): void
+  removeField(arg: { path: DeepKeyOf<Feature | AncestryFeature> }): void
+  resetData: (arg: { value: Feature | AncestryFeature }) => void
+  resetInit: (arg: { value: Feature | AncestryFeature }) => void
   setIndex: (arg: { value: number }) => void
   setStep: (arg: FeatureTypes | null) => void
-  reinitState: (value?: GQL.Feature | GQL.AncestryFeature) => void
+  reinitState: (value?: Feature | AncestryFeature) => void
 }
 
 export const useFeatureStore = create<FeatureStore>()(
   persist(
     (set) => {
       const defaultState: Pick<FeatureStore, 'data' | 'initData' | 'index' | 'step'> = {
-        data: {} as GQL.Feature | GQL.AncestryFeature,
-        initData: {} as GQL.Feature | GQL.AncestryFeature,
+        data: {} as Feature | AncestryFeature,
+        initData: {} as Feature | AncestryFeature,
         step: null,
         index: 0,
       }
@@ -38,21 +38,17 @@ export const useFeatureStore = create<FeatureStore>()(
 
         addField: ({ path, value }) =>
           set((state: FeatureStore) =>
-            addField<FeatureStore, GQL.Feature | GQL.AncestryFeature>({ path, value, selector: (state) => state.data })(
-              state
-            )
+            addField<FeatureStore, Feature | AncestryFeature>({ path, value, selector: (state) => state.data })(state)
           ),
 
         removeField: ({ path }) =>
           set((state: FeatureStore) =>
-            removeField<FeatureStore, GQL.Feature | GQL.AncestryFeature>({ path, selector: (state) => state.data })(
-              state
-            )
+            removeField<FeatureStore, Feature | AncestryFeature>({ path, selector: (state) => state.data })(state)
           ),
 
         updateField: ({ path, value }) =>
           set((state: FeatureStore) =>
-            updateField<FeatureStore, GQL.Feature | GQL.AncestryFeature>({
+            updateField<FeatureStore, Feature | AncestryFeature>({
               path,
               value,
               selector: (state) => state.data,
@@ -61,14 +57,12 @@ export const useFeatureStore = create<FeatureStore>()(
 
         resetData: ({ value }) =>
           set((state: FeatureStore) =>
-            reset<FeatureStore, GQL.Feature | GQL.AncestryFeature>({ value, selector: (state) => state.data })(state)
+            reset<FeatureStore, Feature | AncestryFeature>({ value, selector: (state) => state.data })(state)
           ),
 
         resetInit: ({ value }) =>
           set((state: FeatureStore) =>
-            reset<FeatureStore, GQL.Feature | GQL.AncestryFeature>({ value, selector: (state) => state.initData })(
-              state
-            )
+            reset<FeatureStore, Feature | AncestryFeature>({ value, selector: (state) => state.initData })(state)
           ),
 
         setIndex: ({ value }) =>
@@ -85,7 +79,7 @@ export const useFeatureStore = create<FeatureStore>()(
             })
           ),
 
-        reinitState: (value?: GQL.Feature | GQL.AncestryFeature) => {
+        reinitState: (value?: Feature | AncestryFeature) => {
           if (value) {
             return set((state) => ({
               ...state,
@@ -108,7 +102,7 @@ export const useFeatureStore = create<FeatureStore>()(
       }
     },
     {
-      name: 'atapp-GQL.Feature-store',
+      name: 'atapp-Feature-store',
     }
   )
 )

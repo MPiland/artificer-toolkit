@@ -1,9 +1,8 @@
 import parse from 'html-react-parser'
-import Detail from '@/components/Detail/Detail'
+import Detail, { DetailConfig } from '@/components/Detail'
 import { Route } from '@/routes/_protected/spells/$spellId'
-import useSpellData from '@/hooks/useSpellData'
-import type { DetailConfig } from '@/types/components'
-import type { Spell } from '@/types/types'
+import { useSpellData } from '@/hooks'
+import type { Spell } from '@/types'
 
 const Spell = () => {
   const spellId = Route.useParams({ select: (r) => r.spellId })

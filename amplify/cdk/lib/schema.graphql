@@ -6,55 +6,55 @@ schema {
 ## Enums
 
 enum FeatureEnum {
-  all
-  saveAbilities
-  options
-  equipment
-  features
+  ALL
+  SAVE_ABILITY
+  OPTION
+  EQUIPMENT
+  FEATURE
 }
 
 enum DamageEnum {
-  all
-  equipment
-  main
-  pool
-  bonus
+  ALL
+  EQUIPMENT
+  MAIN
+  POOL
+  BONUS
 }
 
 enum SpellEnum {
-  all
-  upcast
-  damage
+  ALL
+  UPCAST
+  DAMAGE
 }
 
-enum AllEnum {
-  all
+enum FeatEnum {
+  ALL
 }
 
 enum SectionEnum {
-  all
-  spells
-  subclasses
+  ALL
+  SPELL
+  SUBCLASS
 }
 
 enum EquipmentEnum {
-  all
-  classes
-  shields
-  adventuringGear
-  weapons
-  armors
-  tools
-  backgrounds
+  ALL
+  CLASS
+  SHIELD
+  ADVENTURING_GEAR
+  WEAPON
+  ARMOR
+  TOOL
+  BACKGROUND
 }
 
 enum ClassesEnum {
-  all
-  spellcaster
-  base
-  subclass
-  resources
-  prepareLimit
+  ALL
+  SPELLCASTER
+  BASE
+  SUBCLASS
+  RESOURCE
+  PREPARE_LIMIT
 }
 
 type GenericType {
@@ -198,7 +198,7 @@ type ChargeOption {
   label: String!
   features: [FeatureEnum!]
   damage: [DamageEnum!]
-  feats: [AllEnum!]
+  feats: [FeatEnum!]
   sections: [SectionEnum!]
   spells: [SpellEnum!]
   equipment: [EquipmentEnum!]
@@ -240,7 +240,7 @@ type SystemAttribute {
   label: String!
   features: [FeatureEnum!]
   damage: [DamageEnum!]
-  feats: [AllEnum!]
+  feats: [FeatEnum!]
   sections: [SectionEnum!]
   spells: [SpellEnum!]
   equipment: [EquipmentEnum!]
@@ -279,7 +279,7 @@ type SystemPrerequisite {
   label: String!
   features: [FeatureEnum]
   damage: [DamageEnum]
-  feats: [AllEnum]
+  feats: [FeatEnum]
   sections: [SectionEnum]
   spells: [SpellEnum]
   equipment: [EquipmentEnum]
@@ -1627,55 +1627,55 @@ type BackgroundConnection {
 ## Enums
 
 enum FeatureEnumInput {
-  all
-  saveAbilities
-  options
-  equipment
-  features
+  ALL
+  SAVE_ABILITY
+  OPTION
+  EQUIPMENT
+  FEATURE
 }
 
 enum DamageEnumInput {
-  all
-  equipment
-  main
-  pool
-  bonus
+  ALL
+  EQUIPMENT
+  MAIN
+  POOL
+  BONUS
 }
 
 enum SpellEnumInput {
-  all
-  upcast
-  damage
+  ALL
+  UPCAST
+  DAMAGE
 }
 
-enum AllEnumInput {
-  all
+enum FeatEnumInput {
+  ALL
 }
 
 enum SectionEnumInput {
-  all
-  spells
-  subclasses
+  ALL
+  SPELL
+  SUBCLASS
 }
 
 enum EquipmentEnumInput {
-  all
-  classes
-  shields
-  adventuringGear
-  weapons
-  armors
-  tools
-  backgrounds
+  ALL
+  CLASS
+  SHIELD
+  ADVENTURING_GEAR
+  WEAPON
+  ARMOR
+  TOOL
+  BACKGROUND
 }
 
 enum ClassesEnumInput {
-  all
-  spellcaster
-  base
-  subclass
-  resources
-  prepareLimit
+  ALL
+  SPELLCASTER
+  BASE
+  SUBCLASS
+  RESOURCE
+  PREPARE_LIMIT
 }
 
 input GenericTypeInput {
@@ -1819,7 +1819,7 @@ input ChargeOptionInput {
   label: String!
   features: [FeatureEnumInput!]
   damage: [DamageEnumInput!]
-  feats: [AllEnumInput!]
+  feats: [FeatEnumInput!]
   sections: [SectionEnumInput!]
   spells: [SpellEnumInput!]
   equipment: [EquipmentEnumInput!]
@@ -1861,7 +1861,7 @@ input SystemAttributeInput {
   label: String!
   features: [FeatureEnumInput!]
   damage: [DamageEnumInput!]
-  feats: [AllEnumInput!]
+  feats: [FeatEnumInput!]
   sections: [SectionEnumInput!]
   spells: [SpellEnumInput!]
   equipment: [EquipmentEnumInput!]
@@ -1900,7 +1900,7 @@ input SystemPrerequisiteInput {
   label: String!
   features: [FeatureEnumInput!]
   damage: [DamageEnumInput!]
-  feats: [AllEnumInput!]
+  feats: [FeatEnumInput!]
   sections: [SectionEnumInput!]
   spells: [SpellEnumInput!]
   equipment: [EquipmentEnumInput!]
@@ -1943,6 +1943,7 @@ input BatchSystemsInput {
   tableName: String!
   data: SystemInput!
 }
+
 input UpcastFieldsInput {
   id: ID
   size: Float

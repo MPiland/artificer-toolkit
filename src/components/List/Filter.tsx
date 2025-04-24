@@ -1,13 +1,13 @@
 import { useCallback, useMemo } from 'react'
-import Dropdown from '../Dropdown/Dropdown'
-import Input from '../Input/Input'
+import Dropdown from '@/components/Dropdown'
+import Input from '@/components/Input'
 import { get, startCase } from 'lodash'
-import { useFilterStore, type FilterState } from '../../store/filterStore'
+import { useFilterStore, type FilterState } from '@/store'
 import Button from '@/components/Button'
-import type { FilterConfig, FilterDataType } from '../../types/components'
-import Grid from '../Grid/Grid'
-import type { MetaDataType, OnChange } from '../../types/types'
-import useMetaData from '../../hooks/useMetaData'
+import type { FilterConfig, FilterDataType } from '@/components/List'
+import Grid from '@/components/Grid'
+import type { MetaDataType, OnChange } from '@/types'
+import { useMetaData } from '@/hooks'
 
 // This is a wrapper component that maintains the same API as before
 function Filter<T extends FilterDataType, K extends MetaDataType>({

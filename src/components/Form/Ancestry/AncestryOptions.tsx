@@ -1,14 +1,14 @@
 import { use } from 'react'
-import Input from '../../Input/Input'
+import Input from '@/components/Input'
 import { FeatureContext } from '../Features/FeatureContext'
-import RichTextEditor from '../../RichTextEditor/RichTextEditor'
-import Collapse from '../../Collapse/Collapse'
-import Button from '../../Button/Button'
-import { AncestryFeature, type AncestryOption } from '../../../../amplify/gql/types'
-import Accordion from '../../Accordion/Accordion'
+import RichTextEditor from '@/components/RichTextEditor'
+import Collapse from '@/components/Collapse'
+import Button from '@/components/Button'
+import Accordion from '@/components/Accordion'
 import { feature_description } from '../Form.css'
 import parse from 'html-react-parser'
-import Grid from '../../Grid/Grid'
+import Grid from '@/components/Grid'
+import type { AncestryFeature, AncestryOption } from '@/types'
 
 const AncestryOptions = () => {
   const { ancestryStore, featureStore } = use(FeatureContext)

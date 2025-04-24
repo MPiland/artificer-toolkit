@@ -1,14 +1,12 @@
 import parse from 'html-react-parser'
 import { Fragment } from 'react'
-import Detail from '@/components/Detail/Detail'
+import Detail from '@/components/Detail'
 import { sprinkles } from '@/css/sprinkles.css'
-import { type Class as ClassState, type Feature, type FeatureOption } from '@/types/types'
-import { Attributes, Categories, Prerequisites } from '@/types/enums'
+import type { Class as ClassState, Feature, FeatureOption } from '@/types'
+import { Attributes, Categories, Prerequisites } from '@/enums'
 import { class_section_divider } from './Class.css'
 import { Route } from '@/routes/_protected/classes/$classId'
-import useSystemData from '@/hooks/useSystemData'
-import useSpellData from '@/hooks/useSpellData'
-import useClassData from '@/hooks/useClassData'
+import { useSystemData, useSpellData, useClassData } from '@/hooks'
 
 const Class = () => {
   const classId = Route.useParams({ select: (r) => r.classId })
@@ -30,7 +28,7 @@ const Class = () => {
   const handlePreReq = (parentItem: Feature, childItem: FeatureOption, classItem: ClassState) => {
     const parentLevel = parentItem?.levelAvailable?.split(', ')
     const childLevel = childItem.levelAvailable
-    const childReq = childItem.attributes?.some((attribute) => attribute === Attributes.prerequisites)
+    const childReq = childItem.attributes?.some((attribute) => attribute === Attributes.PREREQUISITES)
     const childReqsText = []
 
     if (childLevel !== parentLevel?.[0]) {
@@ -146,7 +144,7 @@ const Class = () => {
       <div id='quote'>
         <em>{uClass?.desc && parse(uClass?.desc)}</em>
       </div>
-      {uClass?.category === Categories.base ?
+      {uClass?.category === Categories.BASE ?
         <>
           {uClass?.details &&
             uClass?.details?.length > 0 &&
@@ -182,13 +180,13 @@ const Class = () => {
                             feature.options.map((option, oIndex) => (
                               <Fragment key={oIndex}>
                                 <h3>{option?.label}</h3>
-                                {feature.attributes?.some((attribute) => attribute === Attributes.prerequisites) &&
+                                {feature.attributes?.some((attribute) => attribute === Attributes.PREREQUISITES) &&
                                   feature?.prerequisites?.options?.some(
                                     (reqId) =>
-                                      reqId === Prerequisites.abilityScore ||
-                                      reqId === Prerequisites.skillProficiency ||
-                                      reqId === Prerequisites.spellsObtained ||
-                                      reqId === Prerequisites.featuresObtained
+                                      reqId === Prerequisites.ABILITY_SCORE ||
+                                      reqId === Prerequisites.SKILL_PROFICIENCY ||
+                                      reqId === Prerequisites.SPELLS_OBTAINED ||
+                                      reqId === Prerequisites.FEATURES_OBTAINED
                                   ) &&
                                   option && (
                                     <p>
@@ -207,11 +205,11 @@ const Class = () => {
               </Fragment>
             ))}
           {uClass?.features?.find((feature) => {
-            if (feature?.category === Categories.subclass) {
-              const detail = uClass?.features?.find((feature) => feature?.category === Categories.subclass)?.detail
+            if (feature?.category === Categories.SUBCLASS) {
+              const detail = uClass?.features?.find((feature) => feature?.category === Categories.SUBCLASS)?.detail
               return (
-                <div id={`${uClass?.features?.find((feature) => feature?.category === Categories.subclass)?.label}`}>
-                  <h1>{uClass?.features?.find((feature) => feature?.category === Categories.subclass)?.label}</h1>
+                <div id={`${uClass?.features?.find((feature) => feature?.category === Categories.SUBCLASS)?.label}`}>
+                  <h1>{uClass?.features?.find((feature) => feature?.category === Categories.SUBCLASS)?.label}</h1>
                   <hr className={class_section_divider} />
                   {detail && parse(detail)}
                 </div>
@@ -253,13 +251,13 @@ const Class = () => {
                                 feature.options.map((option, oIndex) => (
                                   <Fragment key={oIndex}>
                                     <h3>{option.value}</h3>
-                                    {feature.attributes?.some((attribute) => attribute === Attributes.prerequisites) &&
+                                    {feature.attributes?.some((attribute) => attribute === Attributes.PREREQUISITES) &&
                                       feature?.prerequisites?.options?.some(
                                         (reqId) =>
-                                          reqId === Prerequisites.abilityScore ||
-                                          reqId === Prerequisites.skillProficiency ||
-                                          reqId === Prerequisites.spellsObtained ||
-                                          reqId === Prerequisites.featuresObtained
+                                          reqId === Prerequisites.ABILITY_SCORE ||
+                                          reqId === Prerequisites.SKILL_PROFICIENCY ||
+                                          reqId === Prerequisites.SPELLS_OBTAINED ||
+                                          reqId === Prerequisites.FEATURES_OBTAINED
                                       ) && (
                                         <p>
                                           <em className={sprinkles({ mb: 'space-3' })}>
@@ -305,13 +303,13 @@ const Class = () => {
                       feature.options.map((option, oIndex) => (
                         <Fragment key={oIndex}>
                           <h3>{option.value}</h3>
-                          {feature.attributes?.some((attribute) => attribute === Attributes.prerequisites) &&
+                          {feature.attributes?.some((attribute) => attribute === Attributes.PREREQUISITES) &&
                             feature?.prerequisites?.options?.some(
                               (reqId) =>
-                                reqId === Prerequisites.abilityScore ||
-                                reqId === Prerequisites.skillProficiency ||
-                                reqId === Prerequisites.spellsObtained ||
-                                reqId === Prerequisites.featuresObtained
+                                reqId === Prerequisites.ABILITY_SCORE ||
+                                reqId === Prerequisites.SKILL_PROFICIENCY ||
+                                reqId === Prerequisites.SPELLS_OBTAINED ||
+                                reqId === Prerequisites.FEATURES_OBTAINED
                             ) && (
                               <p>
                                 <em className={sprinkles({ mb: 'space-3' })}>

@@ -1,4 +1,3 @@
-import List from '@/components/List/List'
 import { useDeleteEquipmentMutation } from '@/apis/equipmentApi'
 import IFlame from '@/assets/Icons/IFlame'
 import ICategory from '@/assets/Icons/ICategory'
@@ -8,9 +7,9 @@ import IWeight from '@/assets/Icons/IWeight'
 import IDollar from '@/assets/Icons/IDollar'
 import { Suspense } from 'react'
 import Loading from '@/components/Loading/Loading'
-import type { EquipmentMeta } from '@/types/types'
-import type { FooterConfig } from '@/types/components'
-import useEquipmentData from '@/hooks/useEquipmentData'
+import type { EquipmentMeta } from '@/types'
+import List, { type FooterConfig } from '@/components/List'
+import { useEquipmentData } from '@/hooks'
 
 const Equipments = () => {
   const { equipment, metaData } = useEquipmentData()

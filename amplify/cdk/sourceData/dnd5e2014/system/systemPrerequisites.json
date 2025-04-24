@@ -3,96 +3,96 @@
     "value": "hasEquipped",
     "label": "Has Equipped",
     "id": "ef32cce6-78ec-47e6-a9d2-9be64074a76b",
-    "features": ["all"],
-    "sections": ["all"],
-    "equipment": ["all"]
+    "features": ["ALL"],
+    "sections": ["ALL"],
+    "equipment": ["ALL"]
   },
   {
     "value": "notEquipped",
     "label": "Not Equipped",
     "id": "68fb064f-ea56-4fd0-b7cf-64cdbdeef95d",
-    "features": ["all"],
-    "sections": ["all"],
-    "equipment": ["all"]
+    "features": ["ALL"],
+    "sections": ["ALL"],
+    "equipment": ["ALL"]
   },
   {
     "value": "skillProficiency",
     "label": "Skill Proficiency",
     "id": "b7d0a3c3-7b6f-4c0d-9e9f-0d6d8c8c8c8c",
-    "features": ["all"],
-    "sections": ["all"],
-    "equipment": ["all"]
+    "features": ["ALL"],
+    "sections": ["ALL"],
+    "equipment": ["ALL"]
   },
   {
     "value": "equipmentProficiency",
     "label": "Equipment Proficiency",
     "id": "f603f26f-6cb6-4995-82f3-ba4cdefd4e55",
-    "features": ["all"],
-    "sections": ["all"],
-    "equipment": ["all"]
+    "features": ["ALL"],
+    "sections": ["ALL"],
+    "equipment": ["ALL"]
   },
   {
     "value": "abilityScore",
     "label": "Ability Score",
     "id": "096cf44a-60ec-4f6c-b42c-3c46e12530bb",
-    "features": ["all"],
-    "sections": ["all"],
-    "equipment": ["all"]
+    "features": ["ALL"],
+    "sections": ["ALL"],
+    "equipment": ["ALL"]
   },
   {
     "value": "notProficient",
     "label": "Not Proficient",
     "id": "3e8abd1f-614c-4b5e-9429-e5819a868c8d",
-    "sections": ["all"],
-    "features": ["all"]
+    "sections": ["ALL"],
+    "features": ["ALL"]
   },
   {
     "value": "proficient",
     "label": "Proficient",
     "id": "2da4575c-bac4-403e-bf66-1360fcdb28b3",
-    "sections": ["all"],
-    "features": ["all"]
+    "sections": ["ALL"],
+    "features": ["ALL"]
   },
   {
     "value": "spellsObtained",
     "label": "Spells Obtained",
     "id": "de774c82-b1d6-4f6c-b73c-84cf370c60ff",
-    "sections": ["spells"],
-    "features": ["all"]
+    "sections": ["SPELL"],
+    "features": ["ALL"]
   },
   {
     "value": "canCastLevel",
     "label": "Can Cast Level",
     "id": "2b2cac99-dfc5-45a0-b4a6-1970179ebcd9",
-    "sections": ["spells"]
+    "sections": ["SPELL"]
   },
   {
     "value": "optionNotObtained",
     "label": "Option Not Obtained",
     "id": "3fe944fc-a9d5-4afa-929a-c8b2805d70e3",
-    "sections": ["all"],
-    "features": ["options"]
+    "sections": ["ALL"],
+    "features": ["OPTION"]
   },
   {
     "id": "293010e4-fe1f-4982-8a80-6a232eafe19f",
     "value": "featuresObtained",
     "label": "Features Obtained",
-    "sections": ["all"],
-    "features": ["all"]
+    "sections": ["ALL"],
+    "features": ["ALL"]
   },
   {
     "id": "5d93f79b-230e-464e-bef3-50bcd68f4b9f",
     "value": "optionsObtained",
     "label": "Options Obtained",
-    "sections": ["all"],
-    "features": ["all"]
+    "sections": ["ALL"],
+    "features": ["ALL"]
   },
   {
     "value": "characterSize",
     "label": "Character Size",
     "id": "d5def5fd-4b6e-411b-994d-3e830912093e",
-    "sections": ["all"],
-    "features": ["equipment"],
-    "equipment": ["all"]
+    "sections": ["ALL"],
+    "features": ["EQUIPMENT"],
+    "equipment": ["ALL"]
   }
 ]

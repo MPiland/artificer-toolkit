@@ -1,4 +1,4 @@
-import type { FeatureDataType, FormDataType, SectionDataType } from '../types/types'
+import type { FeatureDataType, FormDataType, SectionDataType, AncestryOption } from '@/types'
 import { produce, type Draft } from 'immer'
 import { get, has, set as lSet, camelCase, PropertyPath } from 'lodash'
 import type { FormStore } from './formStore'
@@ -6,7 +6,6 @@ import type { FeatureStore } from './featureStore'
 import type { AncestryStore } from './ancestryStore'
 import type { SectionStore } from './sectionStore'
 import type { OptionStore } from './optionStore'
-import type { AncestryOption } from '../../amplify/gql/types'
 
 export type States = FormDataType | FeatureDataType | SectionDataType | AncestryOption
 type Stores = FormStore<FormDataType> | FeatureStore | AncestryStore | SectionStore<SectionDataType> | OptionStore

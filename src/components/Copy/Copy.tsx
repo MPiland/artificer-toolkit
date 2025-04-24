@@ -1,13 +1,11 @@
 import { use, useMemo, useState } from 'react'
-import Modal from '@/components/Modal'
 import { startCase } from 'lodash'
-import Dropdown from '../Dropdown/Dropdown'
+import Dropdown from '@/components/Dropdown'
 import Button from '@/components/Button'
-import { sprinkles } from '../../css/sprinkles.css'
-import { FeatureDataType, FormDataType, UpdateState } from '../../types/types'
-import Grid from '../Grid/Grid'
-import { ModalContext } from '../Modal/ModalContext'
-import { Class, Equipment, Race } from '../../../amplify/gql/types'
+import { sprinkles } from '@/css/sprinkles.css'
+import type { FeatureDataType, FormDataType, Equipment, Class, Race, DeepKeyOf } from '@/types'
+import Grid from '@/components/Grid'
+import Modal, { ModalContext } from '@/components/Modal'
 
 type Selection = {
   filter?: Race['id'] | Class['id'] | Equipment['id']
@@ -29,31 +27,13 @@ const Copy = () => {
   const data: FormDataType[] | FeatureDataType[] = modalProps.data
   const filters: Filters = modalProps.filters
 
-  const handleSelect = (target: UpdateState<FormDataType>) => {
-    if (target.type === 'update') {
-      setSelection((prev) => ({ ...prev, option: target.value }))
-    }
-    if (target.type === 'remove') {
-      setSelection((prev) => ({ ...prev, option: undefined }))
-    }
-  }
-
-  const handleFilterCategory = (target: UpdateState<FormDataType>) => {
-    if (target.type === 'update') {
-      setSelection((prev) => ({ ...prev, filterBy: target.value }))
-    }
-    if (target.type === 'remove') {
-      setSelection((prev) => ({ ...prev, filterBy: undefined }))
-    }
-  }
-
-  const handleFilterOption = (target: UpdateState<FormDataType>) => {
-    if (target.type === 'update') {
-      setSelection((prev) => ({ ...prev, filter: target.value }))
-    }
-    if (target.type === 'remove') {
-      setSelection((prev) => ({ ...prev, filter: undefined }))
-    }
+  const handleOnChange = {
+    updateField: ({ value, path }: { value: any; path: DeepKeyOf<typeof selection> }) => {
+      return setSelection((prev) => ({ ...prev, [path]: value }))
+    },
+    removeField: ({ path }: { path: DeepKeyOf<typeof selection> }) => {
+      return setSelection((prev) => ({ ...prev, [path]: undefined }))
+    },
   }
 
   const handleCopy = () => {
@@ -70,7 +50,9 @@ const Copy = () => {
     }
   }
 
-  const filterOptions: (keyof Filters)[] = Object.keys(filters) as (keyof Filters)[]
+  const filterByOptions: (keyof Filters)[] = Object.keys(filters) as (keyof Filters)[]
+
+  const filterOptions = filters[selection?.filterBy as keyof Filters] || []
 
   const filterData = useMemo(() => {
     const dataArray =
@@ -94,42 +76,42 @@ const Copy = () => {
           {filters && (
             <>
               <Grid.Item colSpan={6}>
-                <Dropdown
-                  options={filterOptions.map((key) => ({
+                <Dropdown<typeof selection>
+                  options={filterByOptions.map((key) => ({
                     label: key,
                     value: key,
                     id: key,
                   }))}
-                  onChange={handleFilterCategory}
-                  name='label'
-                  value={selection?.option}
+                  name='filterBy'
+                  value={selection?.filterBy}
                   errorMsg='Must choose an option to copy'
                   boundary='app'
+                  onChange={handleOnChange}
                 />
               </Grid.Item>
               {selection?.filterBy && (
                 <Grid.Item colSpan={6}>
-                  <Dropdown
-                    options={filterData}
-                    onChange={handleFilterOption}
-                    name='label'
-                    value={selection?.option}
+                  <Dropdown<typeof selection>
+                    options={filterOptions}
+                    name='filter'
+                    value={selection?.filter}
                     errorMsg='Must choose an option to copy'
                     boundary='app'
+                    onChange={handleOnChange}
                   />
                 </Grid.Item>
               )}
             </>
           )}
           <Grid.Item colSpan={8}>
-            <Dropdown
+            <Dropdown<typeof selection>
               options={filterData}
-              onChange={handleSelect}
-              name='label'
+              name='option'
               value={selection?.option}
               className={sprinkles({ flex: '1', me: 'space-3' })}
               errorMsg='Must choose an option to copy'
               boundary='app'
+              onChange={handleOnChange}
             />
           </Grid.Item>
           <Grid.Item colSpan={2}>

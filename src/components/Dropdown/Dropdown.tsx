@@ -35,6 +35,7 @@ const Dropdown = <T,>({
   height = 'default',
   border = 'default',
   boundary = 'form',
+  disableRemove = false,
 }: DropdownProps<T>) => {
   const [isOpen, setIsOpen] = useState<boolean>(false)
   const [error, setError] = useState<boolean>(false)
@@ -174,6 +175,7 @@ const Dropdown = <T,>({
   }
 
   const handleValueRemove = () => {
+    if (disableRemove) return
     setSettingOption(true)
     setSelectedOptions(null)
     onChange.removeField({ path: name })

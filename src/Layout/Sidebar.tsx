@@ -28,12 +28,12 @@ import ILightMode from '@/assets/Icons/ILightMode'
 import IUser from '@/assets/Icons/IUser'
 import ThemeContext from '@/theme/ThemeContext'
 import { useSignOut } from '@/apis/authApi'
-import useSystemPref from '@/hooks/useSystemPref'
+import { useSystemPref } from '@/hooks'
 import clsx from 'clsx'
 import { fetchSystems } from '@/apis/systemsApi'
 import { Hamburger } from './Hamburger'
 import { noUserNavigation } from './Layout'
-import type { FormType } from '@/types/form'
+import type { FormType } from '@/types'
 import { startCase } from 'lodash'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
@@ -72,11 +72,6 @@ const AuthSidebar = ({ lg }: { lg: boolean }) => {
       }
     }
   }, [systemPref, systems, setSystemPref])
-
-  const handleSystemChange = (e: { type: 'update'; value: string }) => {
-    localStorage.setItem('selectedSystem', e.value)
-    setSystemPref(e.value)
-  }
 
   const userNavigation: { icon?: ReactNode; to: ToOptions['to']; title: FormType }[] = [
     { icon: <CharactersIcon className={sidebar_icon} />, to: '/characters', title: 'characters' },
@@ -121,6 +116,24 @@ const AuthSidebar = ({ lg }: { lg: boolean }) => {
       console.error(error)
     }
   }
+
+  const SystemDropdown = () => (
+    <Dropdown<{ system: string }>
+      name='system'
+      options={systems}
+      className={sprinkles({ mb: 'space-2' })}
+      onChange={{
+        updateField: ({ value }) => {
+          {
+            localStorage.setItem('selectedSystem', value)
+            return setSystemPref(value)
+          }
+        },
+        removeField: () => null,
+      }}
+      value={systemPref}
+    />
+  )
 
   return (
     <nav className={clsx(sidebar, { ['collapsed']: collapsed })}>
@@ -174,15 +187,7 @@ const AuthSidebar = ({ lg }: { lg: boolean }) => {
             </div>
           </div>
           <div className={sidebar_item_group}>
-            {!collapsed && (
-              <Dropdown
-                name='system'
-                options={systems}
-                className={sprinkles({ mb: 'space-2' })}
-                onChange={(e) => handleSystemChange(e as { type: 'update'; value: string })}
-                value={systemPref}
-              />
-            )}
+            {!collapsed && <SystemDropdown />}
             <div className={sidebar_footer}>
               <Button style='unstyled' onClick={handleSignOut} className={clsx(sidebar_item)}>
                 <IUser /> {!collapsed && <span className={sprinkles({ mx: 'space-2' })}>Sign Out</span>}
@@ -207,13 +212,7 @@ const AuthSidebar = ({ lg }: { lg: boolean }) => {
             ))}
           </div>
           <div className={sidebar_item_group}>
-            <Dropdown
-              name='system'
-              options={systems}
-              className={sprinkles({ mb: 'space-2' })}
-              onChange={(e) => handleSystemChange(e as { type: 'update'; value: string })}
-              value={systemPref}
-            />
+            <SystemDropdown />
             <div className={sidebar_footer}>
               <Button style='unstyled' onClick={signOut} className={clsx(sidebar_item, sprinkles({ mx: 'space-2' }))}>
                 <IUser /> <span className={sprinkles({ mx: 'space-2' })}>Sign Out</span>

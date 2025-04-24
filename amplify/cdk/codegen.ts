@@ -7,7 +7,7 @@ const config: CodegenConfig = {
       plugins: ['typescript', 'typescript-operations'],
       config: {
         namingConvention: {
-          enumValues: 'change-case-all#camelCase',
+          enumValues: 'keep',
         },
         nonOptionalTypename: true,
       },

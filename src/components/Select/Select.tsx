@@ -14,7 +14,7 @@ import {
   FloatingFocusManager,
   flip,
 } from '@floating-ui/react'
-import ScrollArea from '../ScrollArea/ScrollArea'
+import ScrollArea from '@/components/ScrollArea'
 
 const Select = <T,>({
   label,

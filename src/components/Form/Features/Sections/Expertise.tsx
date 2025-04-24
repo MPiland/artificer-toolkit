@@ -1,18 +1,15 @@
-import Dropdown from '../../../Dropdown/Dropdown'
-import Input from '../../../Input/Input'
+import Dropdown from '@/components/Dropdown'
+import Input from '@/components/Input'
 import { startCase } from 'lodash'
 import { use, useEffect } from 'react'
 import { FormContext } from '../../FormContext'
 import { FeatureContext } from '../FeatureContext'
-import { Categories, ProficiencyCategories } from '../../../../types/enums'
-import { ClassesEnum, FeatureProficiency, SectionEnum } from '../../../../../amplify/gql/types'
-import { useEnumChecks } from '../../../../hooks/useEnumChecks'
-import Prerequisites from '../../Subforms/Prerequisites'
-import Grid from '../../../Grid/Grid'
-import useSystemData from '../../../../hooks/useSystemData'
-import useEquipmentData from '../../../../hooks/useEquipmentData'
-import type { OnChange } from '../../../../types/types'
-import type { SectionStore } from '../../../../store/sectionStore'
+import { Categories, ProfCats, Classes, Sections } from '@/enums'
+import Prerequisites from '../../Substeps/Prerequisites'
+import Grid from '@/components/Grid'
+import { useSystemData, useEquipmentData, useEnumChecks } from '@/hooks'
+import type { OnChange, FeatureProficiency } from '@/types'
+import type { SectionStore } from '@/store'
 
 type CategoryType = 'skills' | 'equipment' | 'abilities' | 'saveAbilities' | 'properties' | 'languages'
 
@@ -68,11 +65,11 @@ const Expertise = () => {
           name='attributes'
           options={attributes.filter(
             (attribute) =>
-              (attribute.sections?.length && attribute.sections.includes(SectionEnum.all)) ||
+              (attribute.sections?.length && attribute.sections.includes(Sections.ALL)) ||
               (formStore.data.__typename === 'Class' &&
-                formStore.data.category === Categories.subclass &&
+                formStore.data.category === Categories.SUBCLASS &&
                 attribute.classes?.length &&
-                attribute.classes.includes(ClassesEnum.subclass))
+                attribute.classes.includes(Classes.SUBCLASS))
           )}
           label={`${startCase('proficiency')} Attributes`}
           value={data?.attributes}
@@ -91,9 +88,9 @@ const Expertise = () => {
       </Grid.Item>
       {sectionCategory?.id &&
         ((
-          sectionCategory.id !== ProficiencyCategories.properties &&
-          sectionCategory.id !== ProficiencyCategories.equipment &&
-          sectionCategory.id !== ProficiencyCategories.initiative
+          sectionCategory.id !== ProfCats.PROPERTIES &&
+          sectionCategory.id !== ProfCats.EQUIPMENT &&
+          sectionCategory.id !== ProfCats.INITIATIVE
         ) ?
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown
@@ -112,8 +109,7 @@ const Expertise = () => {
             />
           </Grid.Item>
         : <>
-            {(data?.category === ProficiencyCategories.properties ||
-              data?.category !== ProficiencyCategories.equipment) && (
+            {(data?.category === ProfCats.PROPERTIES || data?.category !== ProfCats.EQUIPMENT) && (
               <>
                 <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                   <Dropdown
@@ -162,7 +158,7 @@ const Expertise = () => {
           </>)}
       {subtypeSpecific &&
         formStore.data.__typename === 'Class' &&
-        formStore.data.category === Categories.subclass &&
+        formStore.data.category === Categories.SUBCLASS &&
         formStore.data?.subtypes?.length && (
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown

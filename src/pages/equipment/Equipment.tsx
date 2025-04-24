@@ -1,9 +1,9 @@
 import parse from 'html-react-parser'
-import Detail from '@/components/Detail/Detail'
+import Detail from '@/components/Detail'
 import { Route } from '@/routes/_protected/equipment/$equipmentId'
-import useEquipmentData from '@/hooks/useEquipmentData'
-import type { DetailConfig } from '@/types/components'
-import type { Equipment } from '@types/types'
+import { useEquipmentData } from '@/hooks'
+import type { DetailConfig } from '@/components/List'
+import type { Equipment } from '@/types'
 
 const Equipment = () => {
   const equipmentId = Route.useParams({ select: (r) => r.equipmentId })

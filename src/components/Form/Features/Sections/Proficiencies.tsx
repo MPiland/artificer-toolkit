@@ -1,19 +1,17 @@
-import Dropdown from '../../../Dropdown/Dropdown'
-import Input from '../../../Input/Input'
+import Dropdown from '@/components/Dropdown'
+import Input from '@/components/Input'
 import { startCase } from 'lodash'
 import { use } from 'react'
 import { FormContext } from '../../FormContext'
 import { FeatureContext } from '../FeatureContext'
-import { Class, FeatureProficiency, SectionEnum } from '../../../../../amplify/gql/types'
-import { Categories, ProficiencyCategories, ProficiencyLevels } from '../../../../types/enums'
-import { getKeyFromId } from '../../../../utils/form'
-import { useEnumChecks } from '../../../../hooks/useEnumChecks'
-import Prerequisites from '../../Subforms/Prerequisites'
-import Grid from '../../../Grid/Grid'
-import useSystemData from '../../../../hooks/useSystemData'
-import useEquipmentData from '../../../../hooks/useEquipmentData'
-import type { SectionStore } from '../../../../store/sectionStore'
-import type { OnChange } from '../../../../types/types'
+import { Categories, ProfCats, ProfLevels, Section } from '@/enums'
+import { getKeyFromId } from '../../Form.utils'
+import { useEnumChecks } from '@/hooks'
+import Prerequisites from '../../Substeps/Prerequisites'
+import Grid from '@/components/Grid'
+import { useSystemData, useEquipmentData } from '@/hooks'
+import type { SectionStore } from '@/store'
+import type { OnChange, FeatureProficiency, Class } from '@/types'
 
 const Proficiencies = () => {
   const { formStore } = use(FormContext)
@@ -50,7 +48,7 @@ const Proficiencies = () => {
 
   const sectionCategory = modifiers.categories.findCategory(data?.category)
 
-  const path = getKeyFromId(data?.category, ProficiencyCategories)
+  const path = getKeyFromId(data?.category, ProfCats)
 
   const systemOptions = {
     saveAbilities: abilities,
@@ -66,9 +64,9 @@ const Proficiencies = () => {
           name='attributes'
           options={attributes.filter(
             (attribute) =>
-              (attribute?.sections?.length && attribute?.sections?.includes(SectionEnum.all)) ||
-              ((formStore.data as Class).category === Categories.subclass &&
-                attribute?.sections?.includes(SectionEnum.subclasses))
+              (attribute?.sections?.length && attribute?.sections?.includes(Section.ALL)) ||
+              ((formStore.data as Class).category === Categories.SUBCLASS &&
+                attribute?.sections?.includes(Section.SUBCLASS))
           )}
           label={`${startCase('proficiency')} Attributes`}
           value={data?.attributes}
@@ -99,8 +97,7 @@ const Proficiencies = () => {
             />
           </Grid.Item>
         : <>
-            {(sectionCategory.id === ProficiencyCategories.properties ||
-              sectionCategory.id === ProficiencyCategories.equipment) &&
+            {(sectionCategory.id === ProfCats.PROPERTIES || sectionCategory.id === ProfCats.EQUIPMENT) &&
               path !== 'initiative' && (
                 <>
                   <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
@@ -116,19 +113,17 @@ const Proficiencies = () => {
                   <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                     <Dropdown
                       name={`${path as 'properties' | 'equipment'}.${
-                        sectionCategory.id === ProficiencyCategories.equipment ? 'properties' : 'ids'
+                        sectionCategory.id === ProfCats.EQUIPMENT ? 'properties' : 'ids'
                       }`}
                       multiSelect={true}
                       label='Equipment Property'
-                      value={
-                        data[path]?.[sectionCategory.id === ProficiencyCategories.equipment ? 'properties' : 'ids']
-                      }
+                      value={data[path]?.[sectionCategory.id === ProfCats.EQUIPMENT ? 'properties' : 'ids']}
                       options={systemEquipment.properties.filterByCategory(data[path]?.category)}
                       onChange={{ updateField, removeField }}
-                      required={sectionCategory.id === ProficiencyCategories.equipment ? false : true}
+                      required={sectionCategory.id === ProfCats.EQUIPMENT ? false : true}
                     />
                   </Grid.Item>
-                  {sectionCategory.id === ProficiencyCategories.equipment && (
+                  {sectionCategory.id === ProfCats.EQUIPMENT && (
                     <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                       <Dropdown
                         name={`${path as 'equipment'}.ids`}
@@ -154,7 +149,7 @@ const Proficiencies = () => {
         required={true}
         onChange={{ updateField, removeField }}
       />
-      {data?.level === ProficiencyLevels.halfProficiency && (
+      {data?.level === ProfLevels.HALF_PROFICIENCY && (
         <Dropdown
           name='rounding'
           label='Rounding Type'

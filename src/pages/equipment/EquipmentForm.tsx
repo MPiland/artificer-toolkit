@@ -1,11 +1,10 @@
 import { useEffect, use } from 'react'
-import Form from '../../components/Form/Form'
-import { useAddNewEquipmentMutation, useUpdateEquipmentMutation } from '../../apis/equipmentApi'
-import { Step } from '../../types/types'
-import { FormContext } from '../../components/Form/FormContext'
+import { useAddNewEquipmentMutation, useUpdateEquipmentMutation } from '@/apis/equipmentApi'
+import { Step } from '@/types'
+import Form, { FormContext } from '@/components/Form'
 import { isEqual } from 'lodash'
-import { Route } from '../../routes/_protected/equipment/$action/$_equipmentId'
-import useEquipmentData from '../../hooks/useEquipmentData'
+import { Route } from '@/routes/_protected/equipment/$action/$_equipmentId'
+import { useEquipmentData } from '@/hooks'
 
 const EquipmentForm = () => {
   const { _equipmentId: equipmentId, action } = Route.useParams()

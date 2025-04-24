@@ -1,23 +1,21 @@
 import { use } from 'react'
 import { FormContext } from '../../FormContext'
-import Dropdown from '../../../Dropdown/Dropdown'
-import Input from '../../../Input/Input'
+import Dropdown from '@/components/Dropdown'
+import Input from '@/components/Input'
 import { startCase } from 'lodash'
 import { FeatureContext } from '../FeatureContext'
-import { Categories } from '../../../../types/enums'
-import { Class, FeatureFeat, SectionEnum } from '../../../../../amplify/gql/types'
-import { useEnumChecks } from '../../../../hooks/useEnumChecks'
-import Prerequisites from '../../Subforms/Prerequisites'
-import Grid from '../../../Grid/Grid'
-import useSystemData from '../../../../hooks/useSystemData'
-import useFeatData from '../../../../hooks/useFeatData'
-import type { OnChange } from '../../../../types/types'
-import type { SectionStore } from '../../../../store/sectionStore'
+import { Categories } from '@/enums'
+import { useEnumChecks } from '@/hooks'
+import Prerequisites from '../../Substeps/Prerequisites'
+import Grid from '@/components/Grid'
+import { useSystemData, useFeatData } from '@/hooks'
+import { type OnChange, GQL } from '@/types'
+import type { SectionStore } from '@/store'
 
 const Feats = () => {
   const { formStore } = use(FormContext)
   const { sectionStore } = use(FeatureContext) as {
-    sectionStore: SectionStore<FeatureFeat>
+    sectionStore: SectionStore<GQL.FeatureFeat>
   }
 
   const {
@@ -25,9 +23,9 @@ const Feats = () => {
     updateField,
     removeField,
   }: {
-    data: FeatureFeat
-    updateField: OnChange<FeatureFeat>['updateField']
-    removeField: OnChange<FeatureFeat>['removeField']
+    data: GQL.FeatureFeat
+    updateField: OnChange<GQL.FeatureFeat>['updateField']
+    removeField: OnChange<GQL.FeatureFeat>['removeField']
   } = sectionStore
 
   const { attributes } = useSystemData()
@@ -46,9 +44,9 @@ const Feats = () => {
           options={attributes.filter(
             (attribute) =>
               attribute.sections?.length &&
-              (attribute.sections.includes(SectionEnum.all) ||
-                ((formStore.data as Class).category === Categories.subclass &&
-                  attribute.sections.includes(SectionEnum.subclasses)))
+              (attribute.sections.includes(GQL.Section.ALL) ||
+                ((formStore.data as GQL.Class).category === Categories.SUBCLASS &&
+                  attribute.sections.includes(GQL.Section.SUBCLASS)))
           )}
           label={`${startCase('feat')} Attributes`}
           value={data?.attributes}
@@ -68,7 +66,7 @@ const Feats = () => {
       </Grid.Item>
       {subtypeSpecific &&
         formStore.data.__typename === 'Class' &&
-        formStore.data.category === Categories.subclass &&
+        formStore.data.category === Categories.SUBCLASS &&
         formStore.data?.subtypes?.length && (
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown

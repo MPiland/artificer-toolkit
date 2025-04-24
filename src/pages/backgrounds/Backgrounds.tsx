@@ -1,8 +1,8 @@
 import { Suspense } from 'react'
-import List from '@/components/List/List'
+import List from '@/components/List'
 import { useDeleteBackground } from '@/apis/backgroundsApi'
-import Loading from '@/components/Loading/Loading'
-import useBackgroundData from '@/hooks/useBackgroundData'
+import Loading from '@/components/Loading'
+import { useBackgroundData } from '@/hooks'
 
 const Backgrounds = () => {
   const { backgrounds } = useBackgroundData()

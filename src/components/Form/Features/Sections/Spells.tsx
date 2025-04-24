@@ -1,21 +1,16 @@
 import { useEffect, useState } from 'react'
-import Dropdown from '../../../Dropdown/Dropdown'
-import Input from '../../../Input/Input'
+import Dropdown from '@/components/Dropdown'
+import Input from '@/components/Input'
 import { use } from 'react'
 import { FormContext } from '../../FormContext'
 import { FeatureContext } from '../FeatureContext'
-import { Categories } from '../../../../types/enums'
-import type { Class, FeatureSpell, SpellListItem } from '../../../../../amplify/gql/types'
-import { SectionEnum } from '../../../../../amplify/gql/types'
-import { useEnumChecks } from '../../../../hooks/useEnumChecks'
-import Prerequisites from '../../Subforms/Prerequisites'
-import LimitUse from '../../Subforms/LimitUse'
-import Grid from '../../../Grid/Grid'
-import useSystemData from '../../../../hooks/useSystemData'
-import useSpellData from '../../../../hooks/useSpellData'
-import useClassData from '../../../../hooks/useClassData'
-import type { SectionStore } from '../../../../store/sectionStore'
-import type { OnChange } from '../../../../types/types'
+import { Categories, Sections } from '@/enums'
+import { useEnumChecks, useSystemData, useSpellData, useClassData } from '@/hooks'
+import Prerequisites from '../../Substeps/Prerequisites'
+import LimitUse from '../../Substeps/LimitUse'
+import Grid from '@/components/Grid'
+import type { SectionStore } from '@/store'
+import type { OnChange, Class, FeatureSpell, SpellListItem } from '@/types'
 
 const Spells = () => {
   const { formStore } = use(FormContext)
@@ -112,10 +107,10 @@ const Spells = () => {
           options={attributes.filter(
             (attribute) =>
               attribute?.sections?.length &&
-              (attribute.sections.includes(SectionEnum.spells) ||
-                attribute.sections.includes(SectionEnum.all) ||
-                ((formStore.data as Class)?.category === Categories.subclass &&
-                  attribute.sections.includes(SectionEnum.subclasses)))
+              (attribute.sections.includes(Sections.SPELL) ||
+                attribute.sections.includes(Sections.ALL) ||
+                ((formStore.data as Class)?.category === Categories.SUBCLASS &&
+                  attribute.sections.includes(Sections.SUBCLASS)))
           )}
           label='Spell Attributes'
           value={data?.attributes}
@@ -160,7 +155,7 @@ const Spells = () => {
             label='Attribute'
             value={data?.attributeLimit}
             options={attributes.filter(
-              (attribute) => attribute?.sections?.length && attribute.sections.includes(SectionEnum.spells)
+              (attribute) => attribute?.sections?.length && attribute.sections.includes(Sections.SPELL)
             )}
             required={true}
             onChange={{ updateField, removeField }}

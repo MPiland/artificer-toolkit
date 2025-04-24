@@ -10,33 +10,29 @@ import {
   list_wrapper,
   list_sub,
 } from './List.css'
-import { useEventListener, useMediaQuery } from 'usehooks-ts'
-import Scrollbar from '../Scrollbar/Scrollbar'
-import { type UseMutationResult } from '@tanstack/react-query'
-import Card from '../Card/Card'
-import { Outlet, useNavigate, Link, useMatches } from '@tanstack/react-router'
-import { FormDataType, type FormType, type ListItemType, type MetaDataType } from '@/types'
-import { useDebounceCallback } from 'usehooks-ts'
-import { startCase } from 'lodash'
-import Divider from '../Divider/Divider'
-import Button from '@/components/Button'
-import CopyIcon from '../../assets/Icons/ICopy'
-import CreateIcon from '../../assets/Icons/ICreate'
-import GridIcon from '../../assets/Icons/IGrid'
-import ListIcon from '../../assets/Icons/IList'
-import { Character, type Maybe } from '../../../amplify/gql/types'
-import { useVirtualizer } from '@tanstack/react-virtual'
-import { Categories } from '../../types/enums'
 import type { FilterConfig, FilterDataType, FooterConfig } from './List.types'
+import { useEventListener, useMediaQuery, useDebounceCallback } from 'usehooks-ts'
+import Scrollbar from '@/components/Scrollbar'
+import { type UseMutationResult } from '@tanstack/react-query'
+import Card from '@/components/Card'
+import { Outlet, useNavigate, Link, useMatches } from '@tanstack/react-router'
+import { startCase } from 'lodash'
+import Divider from '@/components/Divider'
+import Button from '@/components/Button'
+import CopyIcon from '@/assets/Icons/ICopy'
+import CreateIcon from '@/assets/Icons/ICreate'
+import GridIcon from '@/assets/Icons/IGrid'
+import ListIcon from '@/assets/Icons/IList'
+import type { Character, Maybe, FormDataType, FormType, ListItemType, MetaDataType } from '@/types'
+import { useVirtualizer } from '@tanstack/react-virtual'
+import { Categories } from '@/enums'
 import Filter from './Filter'
-import useFilteredList from '../../hooks/useFilteredList'
 import Group from '@/components/Group'
-import { sprinkles } from '../../css/sprinkles.css'
-import { ModalContext } from '../Modal/ModalContext'
-import { type FilterState } from '../../store/filterStore'
-import useMetaData from '../../hooks/useMetaData'
+import { sprinkles } from '@/css/sprinkles.css'
+import { ModalContext } from '@/components/Modal'
+import { type FilterState } from '@/store'
+import { useMetaData, useRouteNavigation, useFilteredList } from '@/hooks'
 import { MdEdit, MdLaunch } from 'react-icons/md'
-import useRouteNavigation from '../../hooks/useRouteNavigation'
 import { FormContext } from '../Form/FormContext'
 
 interface ListProps<T extends ListItemType, K extends MetaDataType, U extends FilterDataType> {
@@ -259,12 +255,12 @@ const List = <T extends ListItemType, K extends MetaDataType, U extends FilterDa
   const isSub = (item: ListItemType, defaultCase: 'true' | 'false') => {
     if (item.__typename === 'ClassListItem' && metaData?.__typename === 'ClassMeta') {
       return metaData.categories?.some(
-        (category) => category.id === Categories.subclass && category.classIds?.includes(item.id)
+        (category) => category.id === Categories.SUBCLASS && category.classIds?.includes(item.id)
       )
     }
     if (item.__typename === 'RaceListItem' && metaData?.__typename === 'RaceMeta') {
       return metaData.categories?.some(
-        (category) => category.id === Categories.subrace && category.raceIds?.includes(item.id)
+        (category) => category.id === Categories.SUBRACE && category.raceIds?.includes(item.id)
       )
     }
     return defaultCase === 'false' ? false : true

@@ -64,14 +64,6 @@ export type ActionPropertyInput = {
   id?: InputMaybe<Scalars['ID']['input']>;
 };
 
-export enum AllEnum {
-  all = 'all'
-}
-
-export enum AllEnumInput {
-  all = 'all'
-}
-
 export type Ancestry = {
   __typename: 'Ancestry';
   desc?: Maybe<Scalars['String']['output']>;
@@ -806,7 +798,7 @@ export type ChargeOption = {
   classes?: Maybe<Array<ClassesEnum>>;
   damage?: Maybe<Array<DamageEnum>>;
   equipment?: Maybe<Array<EquipmentEnum>>;
-  feats?: Maybe<Array<AllEnum>>;
+  feats?: Maybe<Array<FeatEnum>>;
   features?: Maybe<Array<FeatureEnum>>;
   id: Scalars['ID']['output'];
   label: Scalars['String']['output'];
@@ -819,7 +811,7 @@ export type ChargeOptionInput = {
   classes?: InputMaybe<Array<ClassesEnumInput>>;
   damage?: InputMaybe<Array<DamageEnumInput>>;
   equipment?: InputMaybe<Array<EquipmentEnumInput>>;
-  feats?: InputMaybe<Array<AllEnumInput>>;
+  feats?: InputMaybe<Array<FeatEnumInput>>;
   features?: InputMaybe<Array<FeatureEnumInput>>;
   id: Scalars['ID']['input'];
   label: Scalars['String']['input'];
@@ -1019,21 +1011,21 @@ export type ClassStartingEquipmentInput = {
 };
 
 export enum ClassesEnum {
-  all = 'all',
-  base = 'base',
-  prepareLimit = 'prepareLimit',
-  resources = 'resources',
-  spellcaster = 'spellcaster',
-  subclass = 'subclass'
+  ALL = 'ALL',
+  BASE = 'BASE',
+  PREPARE_LIMIT = 'PREPARE_LIMIT',
+  RESOURCE = 'RESOURCE',
+  SPELLCASTER = 'SPELLCASTER',
+  SUBCLASS = 'SUBCLASS'
 }
 
 export enum ClassesEnumInput {
-  all = 'all',
-  base = 'base',
-  prepareLimit = 'prepareLimit',
-  resources = 'resources',
-  spellcaster = 'spellcaster',
-  subclass = 'subclass'
+  ALL = 'ALL',
+  BASE = 'BASE',
+  PREPARE_LIMIT = 'PREPARE_LIMIT',
+  RESOURCE = 'RESOURCE',
+  SPELLCASTER = 'SPELLCASTER',
+  SUBCLASS = 'SUBCLASS'
 }
 
 export type Contains = {
@@ -1118,19 +1110,19 @@ export type Damage = {
 };
 
 export enum DamageEnum {
-  all = 'all',
-  bonus = 'bonus',
-  equipment = 'equipment',
-  main = 'main',
-  pool = 'pool'
+  ALL = 'ALL',
+  BONUS = 'BONUS',
+  EQUIPMENT = 'EQUIPMENT',
+  MAIN = 'MAIN',
+  POOL = 'POOL'
 }
 
 export enum DamageEnumInput {
-  all = 'all',
-  bonus = 'bonus',
-  equipment = 'equipment',
-  main = 'main',
-  pool = 'pool'
+  ALL = 'ALL',
+  BONUS = 'BONUS',
+  EQUIPMENT = 'EQUIPMENT',
+  MAIN = 'MAIN',
+  POOL = 'POOL'
 }
 
 export type DamageFields = {
@@ -1317,25 +1309,25 @@ export type EquipmentConnection = {
 };
 
 export enum EquipmentEnum {
-  adventuringGear = 'adventuringGear',
-  all = 'all',
-  armors = 'armors',
-  backgrounds = 'backgrounds',
-  classes = 'classes',
-  shields = 'shields',
-  tools = 'tools',
-  weapons = 'weapons'
+  ADVENTURING_GEAR = 'ADVENTURING_GEAR',
+  ALL = 'ALL',
+  ARMOR = 'ARMOR',
+  BACKGROUND = 'BACKGROUND',
+  CLASS = 'CLASS',
+  SHIELD = 'SHIELD',
+  TOOL = 'TOOL',
+  WEAPON = 'WEAPON'
 }
 
 export enum EquipmentEnumInput {
-  adventuringGear = 'adventuringGear',
-  all = 'all',
-  armors = 'armors',
-  backgrounds = 'backgrounds',
-  classes = 'classes',
-  shields = 'shields',
-  tools = 'tools',
-  weapons = 'weapons'
+  ADVENTURING_GEAR = 'ADVENTURING_GEAR',
+  ALL = 'ALL',
+  ARMOR = 'ARMOR',
+  BACKGROUND = 'BACKGROUND',
+  CLASS = 'CLASS',
+  SHIELD = 'SHIELD',
+  TOOL = 'TOOL',
+  WEAPON = 'WEAPON'
 }
 
 export type EquipmentFeatureMetaObject = {
@@ -1472,6 +1464,14 @@ export type FeatConnection = {
   nextToken?: Maybe<Scalars['String']['output']>;
 };
 
+export enum FeatEnum {
+  ALL = 'ALL'
+}
+
+export enum FeatEnumInput {
+  ALL = 'ALL'
+}
+
 export type FeatFeatureMetaObject = {
   __typename: 'FeatFeatureMetaObject';
   featIds?: Maybe<Array<Scalars['ID']['output']>>;
@@ -1558,19 +1558,19 @@ export type Feature = {
 };
 
 export enum FeatureEnum {
-  all = 'all',
-  equipment = 'equipment',
-  features = 'features',
-  options = 'options',
-  saveAbilities = 'saveAbilities'
+  ALL = 'ALL',
+  EQUIPMENT = 'EQUIPMENT',
+  FEATURE = 'FEATURE',
+  OPTION = 'OPTION',
+  SAVE_ABILITY = 'SAVE_ABILITY'
 }
 
 export enum FeatureEnumInput {
-  all = 'all',
-  equipment = 'equipment',
-  features = 'features',
-  options = 'options',
-  saveAbilities = 'saveAbilities'
+  ALL = 'ALL',
+  EQUIPMENT = 'EQUIPMENT',
+  FEATURE = 'FEATURE',
+  OPTION = 'OPTION',
+  SAVE_ABILITY = 'SAVE_ABILITY'
 }
 
 export type FeatureExpertise = {
@@ -2964,15 +2964,15 @@ export type ScoresInput = {
 };
 
 export enum SectionEnum {
-  all = 'all',
-  spells = 'spells',
-  subclasses = 'subclasses'
+  ALL = 'ALL',
+  SPELL = 'SPELL',
+  SUBCLASS = 'SUBCLASS'
 }
 
 export enum SectionEnumInput {
-  all = 'all',
-  spells = 'spells',
-  subclasses = 'subclasses'
+  ALL = 'ALL',
+  SPELL = 'SPELL',
+  SUBCLASS = 'SUBCLASS'
 }
 
 export type SetPerLevel = {
@@ -3055,15 +3055,15 @@ export type SpellDurationMetaObject = {
 };
 
 export enum SpellEnum {
-  all = 'all',
-  damage = 'damage',
-  upcast = 'upcast'
+  ALL = 'ALL',
+  DAMAGE = 'DAMAGE',
+  UPCAST = 'UPCAST'
 }
 
 export enum SpellEnumInput {
-  all = 'all',
-  damage = 'damage',
-  upcast = 'upcast'
+  ALL = 'ALL',
+  DAMAGE = 'DAMAGE',
+  UPCAST = 'UPCAST'
 }
 
 export type SpellInput = {
@@ -3333,7 +3333,7 @@ export type SystemAttribute = {
   classes?: Maybe<Array<ClassesEnum>>;
   damage?: Maybe<Array<DamageEnum>>;
   equipment?: Maybe<Array<EquipmentEnum>>;
-  feats?: Maybe<Array<AllEnum>>;
+  feats?: Maybe<Array<FeatEnum>>;
   features?: Maybe<Array<FeatureEnum>>;
   id: Scalars['ID']['output'];
   label: Scalars['String']['output'];
@@ -3346,7 +3346,7 @@ export type SystemAttributeInput = {
   classes?: InputMaybe<Array<ClassesEnumInput>>;
   damage?: InputMaybe<Array<DamageEnumInput>>;
   equipment?: InputMaybe<Array<EquipmentEnumInput>>;
-  feats?: InputMaybe<Array<AllEnumInput>>;
+  feats?: InputMaybe<Array<FeatEnumInput>>;
   features?: InputMaybe<Array<FeatureEnumInput>>;
   id: Scalars['ID']['input'];
   label: Scalars['String']['input'];
@@ -3487,7 +3487,7 @@ export type SystemPrerequisite = {
   classes?: Maybe<Array<Maybe<ClassesEnum>>>;
   damage?: Maybe<Array<Maybe<DamageEnum>>>;
   equipment?: Maybe<Array<Maybe<EquipmentEnum>>>;
-  feats?: Maybe<Array<Maybe<AllEnum>>>;
+  feats?: Maybe<Array<Maybe<FeatEnum>>>;
   features?: Maybe<Array<Maybe<FeatureEnum>>>;
   id: Scalars['ID']['output'];
   label: Scalars['String']['output'];
@@ -3500,7 +3500,7 @@ export type SystemPrerequisiteInput = {
   classes?: InputMaybe<Array<ClassesEnumInput>>;
   damage?: InputMaybe<Array<DamageEnumInput>>;
   equipment?: InputMaybe<Array<EquipmentEnumInput>>;
-  feats?: InputMaybe<Array<AllEnumInput>>;
+  feats?: InputMaybe<Array<FeatEnumInput>>;
   features?: InputMaybe<Array<FeatureEnumInput>>;
   id: Scalars['ID']['input'];
   label: Scalars['String']['input'];

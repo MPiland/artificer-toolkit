@@ -1,11 +1,10 @@
 import { useEffect, use } from 'react'
 import { useAddNewRaceMutation, useUpdateRaceMutation } from '@/apis/racesApi'
-import Form from '@/components/Form/Form'
-import { Step } from '@/types/form'
-import { FormContext } from '@/components/Form/FormContext'
+import Form, { FormContext } from '@/components/Form'
+import { Step } from '@/types'
 import { isEqual } from 'lodash'
 import { Route } from '@/routes/_protected/races/$action/$_raceId'
-import useRaceData from '@/hooks/useRaceData'
+import { useRaceData } from '@/hooks'
 
 const RaceForm = () => {
   const { _raceId: raceId, action } = Route.useParams()

@@ -1,19 +1,19 @@
-import { GQL } from '@/types'
+import { Character, CharacterHitpoint, CharacterFeature } from '@/types'
 import { calculateHitpoints, sourcePropertyMap, type SourcePropertyMapReturn } from '@/components/Form'
 import { useClassData, useGetSections } from '@/hooks'
 
-const useGetCharacterData = ({ formData }: { formData: GQL.Character }) => {
+const useGetCharacterData = ({ formData }: { formData: Character }) => {
   const { classes } = useClassData()
 
   const { features, createSections, createAbilityScores } = useGetSections({ formData })
   const sections = createSections()
   const abilityScores = createAbilityScores()
 
-  let hitpoints = {} as GQL.CharacterHitpoint
+  let hitpoints = {} as CharacterHitpoint
 
-  const characterFeatures: GQL.CharacterFeature[] =
+  const characterFeatures: CharacterFeature[] =
     features?.map((feature) => {
-      const featureObj: GQL.CharacterFeature = {
+      const featureObj: CharacterFeature = {
         __typename: 'CharacterFeature',
         id: feature.id,
       }

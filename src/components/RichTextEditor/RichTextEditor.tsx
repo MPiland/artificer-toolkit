@@ -21,7 +21,7 @@ import clsx from 'clsx'
 import ScrollArea from '../ScrollArea/ScrollArea'
 import { useDebounceCallback } from 'usehooks-ts'
 import { sprinkles } from '../../css/sprinkles.css'
-import type { DeepKeyOf, OnChange } from '../../types/types'
+import type { DeepKeyOf, OnChange } from '@/types'
 
 interface RichTextEditorProps<T> {
   onChange: {

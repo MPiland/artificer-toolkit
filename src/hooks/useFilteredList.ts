@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { get } from 'lodash'
-import { useFilterStore, type StoreFormType } from '@/store/filterStore'
+import { useFilterStore, type StoreFormType } from '@/store'
 import type { ListItemType } from '@/types'
 
 interface UseFilteredListProps {

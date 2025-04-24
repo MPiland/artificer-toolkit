@@ -1,17 +1,14 @@
 import { use } from 'react'
-import { FeatureDataType, SectionDataType, SectionName } from '../../../../types/types'
-import Accordion from '../../../Accordion/Accordion'
-import Group from '../../../Group/Group'
-import { sprinkles } from '../../../../css/sprinkles.css'
+import type { FeatureDataType, SectionDataType, SectionName, sectionSteps, FeatureOption } from '@/types'
+import Accordion from '@/components/Accordion'
+import Group from '@/components/Group'
+import { sprinkles } from '@/css/sprinkles.css'
 import { startCase } from 'lodash'
 import { feature_description } from '../../Form.css'
 import parse from 'html-react-parser'
 import { FeatureContext } from '../FeatureContext'
-import { sectionSteps } from '../../../../types/types'
-import { FeatureOption } from '../../../../../amplify/gql/types'
-import Grid from '../../../Grid/Grid'
-import type { OptionStore } from '../../../../store/optionStore'
-import type { FeatureStore } from '../../../../store/featureStore'
+import Grid from '@/components/Grid'
+import type { OptionStore, FeatureStore } from '@/store'
 
 const SectionsList = ({ featureStore }: { featureStore: FeatureStore | OptionStore }) => {
   const {

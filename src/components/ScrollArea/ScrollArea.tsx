@@ -13,8 +13,8 @@ import clsx from 'clsx'
 import { scroll_area, scroll_area_wrapper, scroll_arrow } from './ScrollArea.css'
 import { useDebounceCallback, useEventListener } from 'usehooks-ts'
 import { TbChevronLeft, TbChevronRight } from 'react-icons/tb'
-import Scrollbar from '../Scrollbar/Scrollbar'
-import { scrollReducer } from '../../reducers/scrollReducer'
+import Scrollbar from '@/components/Scrollbar'
+import { scrollReducer } from './scrollReducer'
 
 interface ScrollAreaProps extends ComponentPropsWithoutRef<'div'> {
   children?: ReactNode | ReactNode[]

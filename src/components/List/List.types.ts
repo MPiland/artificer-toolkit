@@ -1,39 +1,5 @@
-import type { DeepKeyOf, FormDataType, MetaDataType, GQL } from '@/types'
+import type { DeepKeyOf, MetaDataType, SourceTypeMap, Spell, Equipment, Class } from '@/types'
 import type { ReactElement } from 'react'
-
-type SourceTypeMap = {
-  spells: GQL.Spell
-  classes: GQL.Class
-  equipment: GQL.Equipment
-  system: GQL.System
-  races: GQL.Race
-  feats: GQL.Feat
-  backgrounds: GQL.Background
-}
-
-export type DetailObject<T extends FormDataType> = {
-  path: DeepKeyOf<T>
-  source?: {
-    [S in keyof SourceTypeMap]: {
-      type: S
-      path?: DeepKeyOf<SourceTypeMap[S]>
-      labelKey?: string
-    }
-  }[keyof SourceTypeMap]
-}
-
-// Can be either a DetailObject or an array of DetailObjects
-export type DetailItem<T extends FormDataType> = DetailObject<T> | DetailObject<T>[]
-
-// Array of DetailItems, which allows mixing objects and arrays
-export type DetailArray<T extends FormDataType> = DetailItem<T>[] | DetailArray<T>[]
-
-export type DetailConfig<T extends FormDataType> = {
-  header: string
-  text: DetailObject<T> | DetailArray<T>
-  truncate?: number
-  filter?: undefined | string[]
-}
 
 export type FooterObject<T extends MetaDataType> = {
   [K in keyof T]: {
@@ -77,4 +43,4 @@ export interface FilterConfig<T extends FilterDataType, K> {
   }
 }
 
-export type FilterDataType = Partial<GQL.Spell> | Partial<GQL.Equipment> | Partial<GQL.Class>
+export type FilterDataType = Partial<Spell> | Partial<Equipment> | Partial<Class>

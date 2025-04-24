@@ -1,11 +1,10 @@
 import { useEffect, use } from 'react'
 import { useAddNewSpellMutation, useUpdateSpellMutation } from '@/apis/spellsApi'
-import { Step } from '@/types/form'
-import Form from '@/components/Form/Form'
-import { FormContext } from '@/components/Form/FormContext'
+import { Step } from '@/types'
+import Form, { FormContext } from '@/components/Form'
 import { isEqual } from 'lodash'
 import { Route } from '@/routes/_protected/spells/$action/$_spellId'
-import useSpellData from '@/hooks/useSpellData'
+import { useSpellData } from '@/hooks'
 
 const SpellForm = () => {
   const { _spellId: spellId, action } = Route.useParams()

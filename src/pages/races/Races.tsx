@@ -1,11 +1,10 @@
 import { Suspense } from 'react'
-import List from '@/components/List/List'
+import List, { FooterConfig } from '@/components/List'
 import { useDeleteRaceMutation } from '@/apis/racesApi'
-import Loading from '@/components/Loading/Loading'
+import Loading from '@/components/Loading'
 import ICategory from '@/assets/Icons/ICategory'
-import type { FooterConfig } from '@/types/components'
-import type { RaceMeta } from '@/types/types'
-import useRaceData from '@/hooks/useRaceData'
+import type { RaceMeta } from '@/types'
+import { useRaceData } from '@/hooks'
 
 const Races = () => {
   const { races, metaData } = useRaceData()

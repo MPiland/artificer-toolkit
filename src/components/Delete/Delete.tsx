@@ -1,11 +1,10 @@
 import { use, useState } from 'react'
-import Input from '../Input/Input'
-import Modal from '@/components/Modal'
+import Input from '@/components/Input'
 import Button from '@/components/Button'
-import { sprinkles } from '../../css/sprinkles.css'
+import { sprinkles } from '@/css/sprinkles.css'
 import Group from '@/components/Group'
-import Grid from '../Grid/Grid'
-import { ModalContext } from '../Modal/ModalContext'
+import Grid from '@/components/Grid'
+import Modal, { ModalContext } from '@/components/Modal'
 
 const Delete = () => {
   const { modalProps, hideModal } = use(ModalContext)

@@ -17,9 +17,9 @@ import type {
   BackgroundConnection,
   BackgroundListItem,
   BackgroundMeta,
-} from '../../amplify/gql/types'
+} from '@/types'
 import { fetchAuthSession } from 'aws-amplify/auth'
-import { removeTypename } from '../utils/form'
+import { removeTypename } from '@/components/Form'
 
 const client = generateClient()
 

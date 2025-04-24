@@ -1,0 +1,166 @@
+import Collapse from '@/components/Collapse'
+import Dropdown from '@/components/Dropdown'
+import { get, startCase } from 'lodash'
+import { feature_card_header, option_dropdown } from '../../../Character.css'
+import { numberToWords } from '@/utils'
+import type { Character, CharacterProficiency, Class } from '@/types'
+import { useGetSections, useGetProficiencies } from '@/hooks'
+import Grid from '@/components/Grid'
+import { Fragment, use } from 'react'
+import { FormContext } from '../../../FormContext'
+
+const ClassProficiencies = ({ fullClass, classIndex }: { fullClass: Class; classIndex: number }) => {
+  const {
+    formStore: { data },
+  } = use(FormContext) as {
+    formStore: {
+      data: Character
+    }
+  }
+
+  const { getSectionOptions } = useGetSections({ formData: data })
+
+  // Memoize the proficiency array
+  const proficiencies = useGetProficiencies({ fullClass })
+
+  return (
+    <Grid.Item>
+      <Collapse>
+        <Collapse.Header title='Proficiencies' className={feature_card_header} />
+        <Collapse.Body>
+          <Grid>
+            {proficiencies &&
+              Object.entries(proficiencies).map(([key, value], pIndex) => {
+                const typeArray = value?.type
+                const selectionCount = value?.selectionCount || 1
+                const propertyArray = value?.property ?? []
+
+                const fullProficiency = fullClass?.proficiencies?.find(
+                  (proficiency) => proficiency.id === value.proficiencyId
+                )
+
+                if (fullProficiency) {
+                  const dropdowns = () =>
+                    Array.from({ length: selectionCount ?? 0 }, (_, index) => {
+                      const optionIndex = `${index}${pIndex}${classIndex}`
+
+                      const { options, path } = getSectionOptions({
+                        section: fullProficiency,
+                        sectionStep: 'proficiencies',
+                        optionIndex,
+                      })
+
+                      // Render the Dropdown component inside the loop
+                      return (
+                        <Grid.Item key={index} justify='center'>
+                          <Dropdown<Character>
+                            name={path}
+                            className={option_dropdown}
+                            label={`${startCase(key)} Option`}
+                            options={options}
+                            onChange={{
+                              updateField: ({ path, value }) => ({
+                                path,
+                                value: {
+                                  proficiencyId: value,
+                                  classId: fullClass.id,
+                                  optionIndex,
+                                  __typename: 'CharacterProficiency',
+                                },
+                              }),
+                              removeField: ({ path }) => ({ path }),
+                            }}
+                            value={(get(data, path) as CharacterProficiency)?.proficiencyId}
+                          />
+                        </Grid.Item>
+                      )
+                    })
+
+                  let typeText: string = ''
+
+                  if (propertyArray.length > 0) {
+                    if (selectionCount > 0) {
+                      typeText = `Choose ${numberToWords(selectionCount)} from `
+                    }
+                    propertyArray.forEach((iProperty, pIndex) => {
+                      if (selectionCount > 0) {
+                        typeText += `${iProperty.label}s`
+                      }
+
+                      if (propertyArray.length > 1 && propertyArray.length < 3) {
+                        if (pIndex !== propertyArray.length - 1) {
+                          if (selectionCount > 0) {
+                            typeText += ' or '
+                          } else {
+                            typeText += ', '
+                          }
+                        }
+                      }
+                      if (propertyArray.length > 2) {
+                        if (pIndex !== propertyArray?.length - 2) {
+                          typeText += ', '
+                        } else {
+                          if (selectionCount > 0) {
+                            typeText += ' or '
+                          } else {
+                            typeText += ' and '
+                          }
+                        }
+                      }
+                    })
+                  } else {
+                    if (typeArray?.some((type) => type.id === 'all')) {
+                      if (selectionCount > 0) {
+                        typeText = `Choose any ${numberToWords(selectionCount)}`
+                      }
+                    } else {
+                      if (selectionCount > 0) {
+                        typeText = `Choose ${numberToWords(selectionCount)} from `
+                      }
+                      typeArray?.map((type, tIndex) => {
+                        typeText += `${type.label}`
+
+                        if (typeArray.length > 1 && typeArray.length < 3) {
+                          if (tIndex !== typeArray.length - 1) {
+                            if (selectionCount > 0) {
+                              typeText += ' or '
+                            } else {
+                              typeText += ', '
+                            }
+                          }
+                        }
+                        if (typeArray.length > 2) {
+                          if (tIndex !== typeArray?.length - 1) {
+                            typeText += ', '
+                          }
+                          if (tIndex == typeArray?.length - 2) {
+                            if (selectionCount > 0) {
+                              typeText += ' or '
+                            } else {
+                              typeText += ' and '
+                            }
+                          }
+                        }
+                      })
+                    }
+                  }
+
+                  return (
+                    <Fragment key={key}>
+                      <Grid.Item key={key}>
+                        <strong>{`${startCase(key)}: `}</strong>
+                        {typeText}
+                      </Grid.Item>
+                      {selectionCount > 0 && dropdowns()}
+                    </Fragment>
+                  )
+                }
+              })}
+          </Grid>
+        </Collapse.Body>
+      </Collapse>
+    </Grid.Item>
+  )
+}
+
+export default ClassProficiencies

@@ -1,11 +1,10 @@
-import List from '@/components/List/List'
+import List, { type FooterConfig } from '@/components/List'
 import ICategory from '@/assets/Icons/ICategory'
 import { Suspense } from 'react'
 import { useDeleteClass } from '@/apis/classesApi'
-import Loading from '@/components/Loading/Loading'
-import type { FooterConfig } from '@/types/components'
-import type { ClassMeta } from '@/types/types'
-import useClassData from '@/hooks/useClassData'
+import Loading from '@/components/Loading'
+import type { ClassMeta } from '@/types'
+import { useClassData } from '@/hooks'
 
 const Classes = () => {
   const { classes, metaData } = useClassData()

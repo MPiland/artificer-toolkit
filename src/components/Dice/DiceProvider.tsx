@@ -1,15 +1,10 @@
 import { ReactElement, useCallback, ReactNode, useEffect, useRef } from 'react'
-import { DiceConfig, DiceResult, Point, RollConfig } from '../../types/components'
-import {
-  generateRandomLinearVelocity,
-  generateRandomRotation,
-  generateRandomPoints,
-  parseDiceRoll,
-} from '../../utils/dice'
-import Dice, { DiceProps } from './Dice'
+import type { DiceConfig, DiceResult, Point, RollConfig, DiceProps } from './Dice.types'
+import { generateRandomLinearVelocity, generateRandomRotation, generateRandomPoints, parseDiceRoll } from './Dice.utils'
+import Dice from './Dice'
 import { Vector3Tuple } from '@react-three/rapier'
 import { DiceContext } from './DiceContext'
-import { useDiceStore } from '../../store/diceStore'
+import { useDiceStore } from '@/store'
 
 const useDiceOptions = () => {
   const rollPromiseResolver = useRef<((result: { rolled: DiceResult[]; kept: DiceResult[] }) => void) | null>(null)

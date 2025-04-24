@@ -1,41 +1,37 @@
 import { ReactElement, use, ReactNode } from 'react'
-import {
+import type {
   DeepKeyOf,
   FormDataType,
   SectionDataType,
-  sectionSteps,
-  UpdateState,
   SectionName,
   FeatureTypes,
-  featureTypes,
-} from '../../../types/types'
-import Feats from './Sections/Feats'
-import Spells from './Sections/Spells'
-import Modifiers from './Sections/Modifiers'
-import Senses from './Sections/Senses'
-import Proficiencies from './Sections/Proficiencies'
+  FeatureDataType,
+  Class,
+  Feat,
+  Equipment,
+  Race,
+  Background,
+  Feature,
+  FeatureOption,
+  AncestryFeature,
+} from '@/types'
+import { Feats, Spells, Modifiers, Senses, Proficiencies, Expertise } from './Sections'
 import Options from './Options'
 import { set, toLower } from 'lodash'
 import Features from './Features'
-import {
-  FeatureOption,
-  Feature,
-  Feat,
-  AncestryFeature,
-  Class,
-  Race,
-  Equipment,
-  Background,
-} from '../../../../amplify/gql/types'
 import { FormContext } from '../FormContext'
-import Expertise from './Sections/Expertise'
-import AncestryFeatures from '../Ancestry/AncestryFeatures'
+import { sectionSteps } from '../Form.utils'
+import { AncestryFeatures, AncestryOptions } from '../Ancestry'
 import { FeatureContext } from './FeatureContext'
-import AncestryOptions from '../Ancestry/AncestryOptions'
-import { useAncestryStore } from '../../../store/ancestryStore'
-import { useOptionStore, type OptionStore } from '../../../store/optionStore'
-import { useFeatureStore, type FeatureStore } from '../../../store/featureStore'
-import { useSectionStore, type SectionStore } from '../../../store/sectionStore'
+import {
+  useOptionStore,
+  type OptionStore,
+  useFeatureStore,
+  type FeatureStore,
+  useSectionStore,
+  type SectionStore,
+  useAncestryStore,
+} from '@/store'
 
 const useFeatureOptions = () => {
   const { formStore, steps, stepIndex } = use(FormContext)
@@ -65,23 +61,14 @@ const useFeatureOptions = () => {
     ancestryOption: <AncestryOptions />,
   }
 
-  function isSectionName(key: string): key is SectionName {
-    return sectionSteps.includes(key as SectionName)
-  }
-
-  function isFeatureStep(key: string): key is FeatureTypes {
-    return featureTypes.includes(key as FeatureTypes)
-  }
-
-  const cloneAndSetStates = <T extends Feature | AncestryFeature | SectionDataType | FeatureOption>({
+  const cloneAndSetStates = <T extends FeatureDataType | SectionDataType>({
     state,
     updateData,
   }: {
     state: T
-    updateData: Pick<UpdateState<T>, 'resetInit' | 'resetData'>
+    updateData: (state: T) => void
   }) => {
-    updateData.resetInit({ value: state })
-    updateData.resetData({ value: state })
+    updateData(state)
   }
 
   const handleSaveFeatures = async ({ type, state }: { type: FeatureTypes; state: FormDataType }) => {
@@ -180,17 +167,14 @@ const useFeatureOptions = () => {
     type UpdateFunction =
       | { type: 'option'; fns: OptionStore }
       | { type: 'feature'; fns: FeatureStore }
-      | { type: 'section'; fns: SectionStore }
+      | { type: 'section'; fns: SectionStore<SectionDataType> }
 
     const setStates = ({ title }: { title: 'feats' | 'default' }) => {
       const lowerType = toLower(type) as 'option' | 'feature'
 
       const sectionStep = sectionStore.step
 
-      const stateMap: Record<
-        'option' | 'feature',
-        Array<FeatureOption | Feature | AncestryFeature | SectionDataType>
-      > = {
+      const stateMap: Record<'option' | 'feature', Array<FeatureDataType | SectionDataType>> = {
         option: [optionStore.data],
         feature: [featureStore.data],
       }
@@ -220,17 +204,17 @@ const useFeatureOptions = () => {
             if (index === 0 && lowerType === 'option') {
               cloneAndSetStates<FeatureOption>({
                 state: currentStates[index] as FeatureOption,
-                updateData: optionStore,
+                updateData: optionStore.reinitState,
               })
             } else if (index === 0 && lowerType === 'feature') {
               cloneAndSetStates<Feature | AncestryFeature>({
                 state: currentStates[index] as Feature | AncestryFeature,
-                updateData: featureStore,
+                updateData: featureStore.reinitState,
               })
             } else {
               cloneAndSetStates<SectionDataType>({
                 state: currentStates[index] as SectionDataType,
-                updateData: sectionStore,
+                updateData: sectionStore.reinitState,
               })
             }
           }
@@ -246,13 +230,11 @@ const useFeatureOptions = () => {
   const featureProps = {
     handleSaveFeatures,
     featureSteps,
-    isFeatureStep,
   }
 
   const sectionProps = {
     sectionSteps,
     sectionStepComponent,
-    isSectionName,
   }
 
   return {

@@ -1,7 +1,6 @@
 import { create } from 'zustand'
 import { addField, removeField, updateField, reset } from './utils'
-import type { AncestryOption } from '@/types/types'
-import type { DeepKeyOf } from '@/types/form'
+import type { DeepKeyOf, AncestryOption } from '@/types'
 import { produce } from 'immer'
 import { persist } from 'zustand/middleware'
 

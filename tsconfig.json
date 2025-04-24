@@ -11,6 +11,8 @@
       "@/components/*": ["components/*"],
       "@/pages/*": ["pages/*"],
       "@/types": ["types/index.ts"],
+      "@/types/*": ["types/*"],
+      "@/enums": ["enums/enums.ts"],
       "@/hooks": ["hooks/index.ts"],
       "@/utils": ["utils/index.ts"],
       "@/css/*": ["css/*"],
@@ -18,6 +20,7 @@
       "@/apis/*": ["apis/*"],
       "@/assets/*": ["assets/*"],
       "@/theme/*": ["theme/*"],
+      "@/store": ["store/index.ts"],
       "@/store/*": ["store/*"]
     },
 

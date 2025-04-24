@@ -1,5 +1,5 @@
 import { useDeleteSpellMutation } from '@/apis/spellsApi'
-import List from '@/components/List/List'
+import List, { type FilterConfig, type FooterConfig } from '@/components/List'
 import { Suspense } from 'react'
 import IFlame from '@/assets/Icons/IFlame'
 import IClass from '@/assets/Icons/IClass'
@@ -7,10 +7,9 @@ import IBook from '@/assets/Icons/IBook'
 import IClock from '@/assets/Icons/IClock'
 import IRange from '@/assets/Icons/IRange'
 import IMortPest from '@/assets/Icons/IMortPest'
-import Loading from '@/components/Loading/Loading'
-import type { FilterConfig, FooterConfig } from '@/types/components'
-import type { Spell, SpellMeta } from '@/types/types'
-import useSpellData from '@/hooks/useSpellData'
+import Loading from '@/components/Loading'
+import type { Spell, SpellMeta } from '@/types'
+import { useSpellData } from '@/hooks'
 
 const Spells = () => {
   const { spells, metaData } = useSpellData()

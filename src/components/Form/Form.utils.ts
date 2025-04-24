@@ -1,6 +1,25 @@
-import type { FormDataType, GQL } from '@/types'
-import { Enum } from '@/types'
+import type {
+  FormDataType,
+  Maybe,
+  Character,
+  Class,
+  CharacterHitpoint,
+  HitpointRollValues,
+  HitpointRoll,
+  HitpointFixed,
+  System,
+  Spell,
+  Background,
+  Race,
+  Feat,
+  Scores,
+  Equipment,
+  CharacterEquipmentObject,
+} from '@/types'
 import { parseDiceRoll, type RollConfig } from '@/components/Dice'
+import { ModCats, ModSpellCats, HPCalcMethods } from '@/enums'
+import { camelCase } from 'lodash'
+import { CamelCase } from 'type-fest'
 
 const PWD_REGEX: RegExp = /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,20}$/
 const USER_REGEX: RegExp = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -10,12 +29,16 @@ const CUR_REGEX = /^\d*\.?\d*$/
 const DIE_REGEX = /^(\d+)d(4|6|8|10|12|20|100)?$/
 const ROLL_CONFIG_REGEX = /^(\d+)d(4|6|8|10|12|20|100)(?:(kh|kl)(\d+))?(dh|dl)?(\d+)?(?:(r|ro)([><=])?(\d+))?$/
 
+export const sectionSteps = ['modifiers', 'spells', 'proficiencies', 'expertise', 'senses', 'feats'] as const
+
+export const FEATURE_TYPES = ['feature', 'option', 'ancestry', 'ancestryOption'] as const
+
 function isNonNullable<T>(value: T): value is NonNullable<T> {
   return value !== null && value !== undefined
 }
 
 export function createFilterOptions<T>(
-  items: Array<GQL.Maybe<T>> | undefined,
+  items: Array<Maybe<T>> | undefined,
   getValue: (item: NonNullable<T>) => string,
   getLabel: (item: NonNullable<T>) => string,
   getId: (item: NonNullable<T>) => string
@@ -43,9 +66,9 @@ export const formSingularMap = {
 export const getModifierProperties = ({
   category,
 }: {
-  category: keyof typeof Enum.ModifierCategories | keyof typeof Enum.ModifierSpellCategories
+  category: CamelCase<keyof typeof ModCats | keyof typeof ModSpellCats>
 }) => {
-  switch (category) {
+  switch (camelCase(category)) {
     case 'conditionSave':
     case 'conditions':
       return 'conditions'
@@ -73,9 +96,17 @@ export const getModifierProperties = ({
   }
 }
 
-export const getKeyFromId = <T extends { [K in string]: string }>(id: string, enumObject: T): keyof T => {
-  const name = Object.keys(enumObject).find((key) => enumObject[key] === id) as keyof T
-  return name
+// This function now returns the key transformed into camelCase at runtime, while preserving type safety
+export function getKeyFromId<T extends Record<string, string>, K extends keyof T & string>(
+  id: string,
+  enumObject: T
+): CamelCase<K> {
+  // Find the original key in snake_case
+  const original = (Object.keys(enumObject) as K[]).find((k) => enumObject[k] === id)
+
+  // Return the key transformed to camelCase (via runtime string replacement)
+  const camelCaseKey = camelCase(original)
+  return camelCaseKey as CamelCase<K>
 }
 
 export const validateForm = (resetValidation: boolean = false): { isValid: boolean; invalidFields: string[] } => {
@@ -179,11 +210,11 @@ export const calculateModifier = (score: number, type: 'bonus' | 'modifier') => 
   return scoreString
 }
 
-export const calculateHitpoints = (formData: GQL.Character, primaryClass: GQL.Class) => {
+export const calculateHitpoints = (formData: Character, primaryClass: Class) => {
   const abilityScore = formData?.abilities?.scores?.find(
     (score) => score.ability === primaryClass.hitpoint?.ability
   )?.calculatedScore
-  // Set the GQL.Character hitpoints
+  // Set the Character hitpoints
   const abilityModifierCalc = calculateModifier(abilityScore || 0, 'modifier')
 
   let abilityModifier: number = 0
@@ -192,10 +223,10 @@ export const calculateHitpoints = (formData: GQL.Character, primaryClass: GQL.Cl
     abilityModifier = Number(abilityModifierCalc)
   }
 
-  const hitpoint: GQL.CharacterHitpoint = {
+  const hitpoint: CharacterHitpoint = {
     __typename: 'CharacterHitpoint',
     maxOverride: formData?.hitpoint?.maxOverride || null,
-    method: formData?.hitpoint?.method || Enum.HitPointCalcMethod.manual,
+    method: formData?.hitpoint?.method || HPCalcMethods.MANUAL,
     temp: formData?.hitpoint?.temp || null,
     bonus: formData?.hitpoint?.bonus || null,
     maxHitpoints: formData?.hitpoint?.maxHitpoints || null,
@@ -207,7 +238,7 @@ export const calculateHitpoints = (formData: GQL.Character, primaryClass: GQL.Cl
   if (classLevel && die) {
     let total: number = 0
     let maxHitpoints: number = 0
-    const values: GQL.HitpointRollValues[] = []
+    const values: HitpointRollValues[] = []
     for (let i = 1; i <= classLevel; i++) {
       let levelValue
       if (i === 1) {
@@ -227,14 +258,14 @@ export const calculateHitpoints = (formData: GQL.Character, primaryClass: GQL.Cl
       })
     }
 
-    const rolled: GQL.HitpointRoll = {
+    const rolled: HitpointRoll = {
       __typename: 'HitpointRoll',
       values: [...(formData?.hitpoint?.rolled?.values || [])],
       total: formData?.hitpoint?.rolled?.total || null,
       current: formData?.hitpoint?.rolled?.current || null,
     }
 
-    const fixed: GQL.HitpointFixed = {
+    const fixed: HitpointFixed = {
       __typename: 'HitpointFixed',
       current: formData?.hitpoint?.fixed?.current || null,
       total: formData?.hitpoint?.fixed?.total || null,
@@ -255,12 +286,12 @@ export const calculateHitpoints = (formData: GQL.Character, primaryClass: GQL.Cl
       }
     }
 
-    if (formData?.hitpoint?.method === Enum.HitPointCalcMethod.fixed) {
+    if (formData?.hitpoint?.method === HPCalcMethods.FIXED) {
       maxHitpoints = total + Number(abilityModifier) * classLevel
       hitpoint.maxHitpoints = maxHitpoints + (formData?.hitpoint?.bonus || 0)
     }
 
-    if (formData?.hitpoint?.method === Enum.HitPointCalcMethod.manual) {
+    if (formData?.hitpoint?.method === HPCalcMethods.MANUAL) {
       maxHitpoints = 0
       total = 0
       rolled.values?.forEach((value) => {
@@ -300,11 +331,11 @@ export const createFormObject = (
   userId: string,
   systemId: string,
   category?: string,
-  abilities?: GQL.System['abilities']
+  abilities?: System['abilities']
 ) => {
   switch (form) {
     case 'classes': {
-      const classObject: GQL.Class = {
+      const classObject: Class = {
         id: '',
         ownerId: userId,
         systemId: systemId,
@@ -317,7 +348,7 @@ export const createFormObject = (
       break
     }
     case 'spells': {
-      const spellObject: GQL.Spell = {
+      const spellObject: Spell = {
         id: '',
         ownerId: userId,
         systemId: systemId,
@@ -340,7 +371,7 @@ export const createFormObject = (
       break
     }
     case 'Equipment': {
-      const equipmentObject: GQL.Equipment = {
+      const equipmentObject: Equipment = {
         id: '',
         ownerId: userId,
         systemId: systemId,
@@ -355,7 +386,7 @@ export const createFormObject = (
       break
     }
     case 'feats': {
-      const featObject: GQL.Feat = {
+      const featObject: Feat = {
         id: '',
         ownerId: userId,
         systemId: systemId,
@@ -368,7 +399,7 @@ export const createFormObject = (
       break
     }
     case 'backgrounds': {
-      const backgroundObject: GQL.Background = {
+      const backgroundObject: Background = {
         id: '',
         ownerId: userId,
         systemId: systemId,
@@ -380,7 +411,7 @@ export const createFormObject = (
       break
     }
     case 'characters': {
-      const abilityScores: Array<GQL.Scores> = []
+      const abilityScores: Array<Scores> = []
       abilities?.forEach((ability) => {
         if (ability) {
           abilityScores.push({
@@ -393,7 +424,7 @@ export const createFormObject = (
           })
         }
       })
-      const characterObject: GQL.Character = {
+      const characterObject: Character = {
         id: '',
         ownerId: userId,
         systemId: systemId,
@@ -434,7 +465,7 @@ export const createFormObject = (
       break
     }
     case 'races': {
-      const raceObject: GQL.Race = {
+      const raceObject: Race = {
         id: '',
         ownerId: userId,
         systemId: systemId,
@@ -452,10 +483,10 @@ export const createFormObject = (
   }
 }
 
-export const isEquipmentInInventory = (equipmentId: string, inventory: GQL.CharacterEquipmentObject[]): boolean => {
+export const isEquipmentInInventory = (equipmentId: string, inventory: CharacterEquipmentObject[]): boolean => {
   if (!inventory || inventory.length === 0) return false
 
-  // Check direct GQL.Equipment IDs
+  // Check direct Equipment IDs
   if (inventory.some((item) => item.id === equipmentId)) return true
 
   return false
@@ -463,7 +494,7 @@ export const isEquipmentInInventory = (equipmentId: string, inventory: GQL.Chara
 
 export type SourcePropertyMapReturn = ReturnType<typeof sourcePropertyMap>
 
-export const sourcePropertyMap = (data: GQL.Character) => ({
+export const sourcePropertyMap = (data: Character) => ({
   classId: (id: string) =>
     data?.__typename === 'Character' && data?.classes?.some((c) => c.id === id || c.subclass?.id === id),
   raceId: (id: string) => data?.__typename === 'Character' && id === data?.race,
@@ -474,7 +505,7 @@ export const sourcePropertyMap = (data: GQL.Character) => ({
   backgroundId: (id: string) => data?.__typename === 'Character' && data?.background === id,
 })
 
-// Helper function to recursively remove __typename fields from a GQL.Spell object
+// Helper function to recursively remove __typename fields from a Spell object
 export const removeTypename = <T extends FormDataType>(data: T): Omit<FormDataType, '__typename'> => {
   // Create a deep copy first
   const deepCopy = JSON.parse(JSON.stringify(data))

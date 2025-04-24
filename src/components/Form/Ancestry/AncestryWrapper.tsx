@@ -1,8 +1,8 @@
 import AncestryList from './AncestryList'
-import { sprinkles } from '../../../css/sprinkles.css'
-import { FeatureContext } from '../Features/FeatureContext'
+import { sprinkles } from '@/css/sprinkles.css'
+import { FeatureContext } from '../Features'
 import { use } from 'react'
-import Grid from '../../Grid/Grid'
+import Grid from '@/components/Grid'
 
 const AncestryWrapper = () => {
   const { featureStore, sectionStore, sectionStepComponent, featureSteps } = use(FeatureContext)

@@ -1,8 +1,8 @@
 import { use } from 'react'
 import FeaturesList from './FeaturesList'
-import { sprinkles } from '../../../css/sprinkles.css'
+import { sprinkles } from '@/css/sprinkles.css'
 import { FeatureContext } from './FeatureContext'
-import Grid from '../../Grid/Grid'
+import Grid from '@/components/Grid'
 
 const FeatureWrapper = () => {
   const { featureStore, optionStore, sectionStore, sectionStepComponent, featureSteps } = use(FeatureContext)

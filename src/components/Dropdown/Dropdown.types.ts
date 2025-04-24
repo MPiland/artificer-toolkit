@@ -28,4 +28,5 @@ export interface DropdownProps<T> {
   border?: 'none' | 'default'
   name: DeepKeyOf<T>
   boundary?: 'app' | 'form'
+  disableRemove?: boolean
 }

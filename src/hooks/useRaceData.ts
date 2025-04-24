@@ -1,8 +1,8 @@
 import { useSuspenseQueries, useSuspenseQuery } from '@tanstack/react-query'
 import { fetchRace, fetchRaces } from '@/apis/racesApi'
 import { useRouteContext } from '@tanstack/react-router'
-import { Enum } from '@/types'
 import { createArrayWithMethods } from '@/utils'
+import { Categories } from '@/enums'
 
 const useRaceData = () => {
   const suspenseQuery = useSuspenseQuery
@@ -11,10 +11,10 @@ const useRaceData = () => {
   const { data } = suspenseQuery(fetchRaces(systemPref))
   const { races, metaData } = data
   const subraces = data.races.filter((r) =>
-    metaData.categories?.find((cat) => cat.id === Enum.Categories.subrace)?.raceIds?.includes(r.id)
+    metaData.categories?.find((cat) => cat.id === Categories.SUBRACE)?.raceIds?.includes(r.id)
   )
   const baseRaces = races.filter(
-    (r) => !metaData.categories?.find((cat) => cat.id === Enum.Categories.subrace)?.raceIds?.includes(r.id)
+    (r) => !metaData.categories?.find((cat) => cat.id === Categories.SUBRACE)?.raceIds?.includes(r.id)
   )
 
   const raceMethods = createArrayWithMethods(races, {

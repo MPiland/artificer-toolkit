@@ -10,7 +10,7 @@ import {
 } from './Collapse.css'
 import clsx from 'clsx'
 import Group from '@/components/Group'
-import { sprinkles } from '../../css/sprinkles.css'
+import { sprinkles } from '@/css/sprinkles.css'
 
 const Header = ({
   startOpened,

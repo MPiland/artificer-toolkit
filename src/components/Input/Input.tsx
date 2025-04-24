@@ -12,7 +12,7 @@ import {
 import clsx from 'clsx'
 import { useDebounceCallback, useEventListener } from 'usehooks-ts'
 import Floating from '../Floating/Floating'
-import type { DeepKeyOf, OnChange } from '../../types/types'
+import type { DeepKeyOf, OnChange } from '@/types'
 
 const NUM_REGEX = /^(\d+)(, ?\d+)*(,)?$/
 const CUR_REGEX = /^\d*\.?\d*$/

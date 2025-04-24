@@ -1,6 +1,5 @@
-import Base from '../Features/Base'
 import { use } from 'react'
-import { FeatureContext } from '../Features/FeatureContext'
+import { FeatureContext, Base } from '../Features'
 
 const AncestryFeatures = () => {
   const { featureStore } = use(FeatureContext)

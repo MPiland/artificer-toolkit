@@ -3,8 +3,8 @@ import Modal from '@/components/Modal'
 import ScrollArea from '../ScrollArea/ScrollArea'
 import { startCase } from 'lodash'
 import { ReactNode } from 'react'
-import { Race, Class } from '../../../amplify/gql/types'
-import Grid from '../Grid/Grid'
+import { Race, Class } from '@/types'
+import Grid from '@/components/Grid'
 
 const ShortDetail = ({
   children,

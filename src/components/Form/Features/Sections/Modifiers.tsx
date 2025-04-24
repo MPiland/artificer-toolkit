@@ -1,38 +1,28 @@
 import { useEffect, useState } from 'react'
-import Dropdown from '../../../Dropdown/Dropdown'
-import Input from '../../../Input/Input'
-import Collapse from '../../../Collapse/Collapse'
+import Dropdown from '@/components/Dropdown'
+import Input from '@/components/Input'
+import Collapse from '@/components/Collapse'
 import { use } from 'react'
 import { FormContext } from '../../FormContext'
 import { FeatureContext } from '../FeatureContext'
-import { FormDataType } from '../../../../types/types'
-import {
-  Character,
-  Class,
+import { Attributes, Categories, ModCats, ModMethods, ModSpellCats, ModTypes, Ranges, Sections } from '@/enums'
+import { getKeyFromId, getModifierProperties } from '../../Form.utils'
+import { useEnumChecks } from '@/hooks'
+import Prerequisites from '../../Substeps/Prerequisites'
+import Grid from '@/components/Grid'
+import { useSystemData, useSpellData } from '@/hooks'
+import type { SectionStore } from '@/store'
+import type {
+  OnChange,
+  FormDataType,
   FeatureModifier,
+  GenericType,
+  SpellListItem,
+  Class,
   Resource,
-  SectionEnum,
   Spell,
-  type GenericType,
-  type SpellListItem,
-} from '../../../../../amplify/gql/types'
-import {
-  Attributes,
-  Categories,
-  ModifierCategories,
-  ModifierMethods,
-  ModifierSpellCategories,
-  ModifierTypes,
-  Ranges,
-} from '../../../../types/enums'
-import { getKeyFromId, getModifierProperties } from '../../../../utils/form'
-import { useEnumChecks } from '../../../../hooks/useEnumChecks'
-import Prerequisites from '../../Subforms/Prerequisites'
-import Grid from '../../../Grid/Grid'
-import useSystemData from '../../../../hooks/useSystemData'
-import useSpellData from '../../../../hooks/useSpellData'
-import type { SectionStore } from '../../../../store/sectionStore'
-import type { OnChange } from '../../../../types/types'
+  Character,
+} from '@/types'
 
 const Modifiers = () => {
   const { formStore } = use(FormContext)
@@ -78,8 +68,7 @@ const Modifiers = () => {
 
   const sectionCategory = modifiers.categories.findCategory(data?.category)
 
-  const categoryName =
-    data?.category ? getKeyFromId(data?.category, { ...ModifierCategories, ...ModifierSpellCategories }) : null
+  const categoryName = data?.category ? getKeyFromId(data?.category, { ...ModCats, ...ModSpellCats }) : null
 
   const path =
     categoryName ?
@@ -100,14 +89,14 @@ const Modifiers = () => {
   // Set if selected category has type options
   useEffect(() => {
     setTypeOptions(
-      data?.category === ModifierCategories.damageTypes ||
-        data?.category === ModifierCategories.abilityScores ||
-        data?.category === ModifierCategories.saveAbilities ||
-        data?.category === ModifierCategories.conditions ||
-        data?.category === ModifierCategories.conditionSave ||
-        data?.category === ModifierCategories.damageSave ||
-        data?.category === ModifierCategories.speeds ||
-        data?.category === ModifierCategories.spellDamage
+      data?.category === ModCats.DAMAGE_TYPES ||
+        data?.category === ModCats.ABILITY_SCORES ||
+        data?.category === ModCats.SAVE_ABILITY ||
+        data?.category === ModCats.CONDITIONS ||
+        data?.category === ModCats.CONDITION_SAVE ||
+        data?.category === ModCats.DAMAGE_SAVE ||
+        data?.category === ModCats.SPEEDS ||
+        data?.category === ModCats.SPELL_DAMAGE
     )
   }, [data?.category])
 
@@ -122,7 +111,7 @@ const Modifiers = () => {
   useEffect(() => {
     if (data != null) {
       let types: GenericType[] = []
-      if (data?.category === ModifierCategories.spell) {
+      if (data?.category === ModCats.SPELL) {
         types = modifiers.types.filterByCategory(data?.spellCategory) || []
       } else {
         types = modifiers.types.filterByCategory(data?.category) || []
@@ -133,7 +122,7 @@ const Modifiers = () => {
       }
     }
     if (modTypes?.length) {
-      if (data?.category === ModifierCategories.spell) {
+      if (data?.category === ModCats.SPELL) {
         const methods = modifiers.methods.filterByCategory(data?.spellCategory) || []
 
         setModMethods(methods)
@@ -148,25 +137,25 @@ const Modifiers = () => {
   // Filter spells array
   useEffect(() => {
     const filteredSpells = spells?.filter((spell) => {
-      if (data?.spellCategory === ModifierSpellCategories.spellDamage) {
+      if (data?.spellCategory === ModSpellCats.SPELL_DAMAGE) {
         return spellMetaData?.attributes
-          ?.find((attribute) => attribute.id === Attributes.doesDamage)
+          ?.find((attribute) => attribute.id === Attributes.DOES_DAMAGE)
           ?.spellIds?.includes(spell.id)
       }
       if (
-        data?.spellCategory === ModifierSpellCategories.spellRange &&
+        data?.spellCategory === ModSpellCats.SPELL_RANGE &&
         spellMetaData.ranges?.find((range) => range.spellIds?.includes(spell.id)) != null
       ) {
         return true
       }
       if (
-        data?.spellCategory === ModifierSpellCategories.spellShape &&
+        data?.spellCategory === ModSpellCats.SPELL_SHAPE &&
         spellMetaData.shapes?.find((shape) => shape.spellIds?.includes(spell.id)) != null
       ) {
         return true
       }
       if (
-        data?.spellCategory === ModifierSpellCategories.spellDuration &&
+        data?.spellCategory === ModSpellCats.SPELL_DURATION &&
         spellMetaData.durations?.find((duration) => duration.spellIds?.includes(spell.id)) != null
       ) {
         return true
@@ -179,21 +168,17 @@ const Modifiers = () => {
   // Add/Remove die per level Table
   useEffect(() => {
     if (
-      ((data?.type !== ModifierTypes.setDie &&
-        data?.type !== ModifierTypes.bonusDie &&
-        data?.type !== ModifierTypes.penaltyDie) ||
-        data?.method !== ModifierMethods.setPerLevel ||
-        !modMethods?.some((method) => method.id === ModifierMethods.setPerLevel)) &&
+      ((data?.type !== ModTypes.SET_DIE && data?.type !== ModTypes.BONUS_DIE && data?.type !== ModTypes.PENALTY_DIE) ||
+        data?.method !== ModMethods.SET_PER_LEVEL ||
+        !modMethods?.some((method) => method.id === ModMethods.SET_PER_LEVEL)) &&
       data?.diePerLevel?.length
     ) {
       removeField({ path: 'diePerLevel' })
     }
     if (
-      (data?.type === ModifierTypes.setDie ||
-        data?.type === ModifierTypes.bonusDie ||
-        data?.type === ModifierTypes.penaltyDie) &&
-      data?.method === ModifierMethods.setPerLevel &&
-      modMethods?.some((method) => method.id === ModifierMethods.setPerLevel) &&
+      (data?.type === ModTypes.SET_DIE || data?.type === ModTypes.BONUS_DIE || data?.type === ModTypes.PENALTY_DIE) &&
+      data?.method === ModMethods.SET_PER_LEVEL &&
+      modMethods?.some((method) => method.id === ModMethods.SET_PER_LEVEL) &&
       (!data?.diePerLevel || !data?.diePerLevel?.length)
     ) {
       addField({ path: 'diePerLevel' })
@@ -203,21 +188,17 @@ const Modifiers = () => {
   // Add/remove setPerLevel table
   useEffect(() => {
     if (
-      ((data?.type !== ModifierTypes.setAmount &&
-        data?.type !== ModifierTypes.bonus &&
-        data?.type !== ModifierTypes.penalty) ||
-        data?.method !== ModifierMethods.setPerLevel ||
-        !modMethods?.some((method) => method.id === ModifierMethods.setPerLevel)) &&
+      ((data?.type !== ModTypes.SET_AMOUNT && data?.type !== ModTypes.BONUS && data?.type !== ModTypes.PENALTY) ||
+        data?.method !== ModMethods.SET_PER_LEVEL ||
+        !modMethods?.some((method) => method.id === ModMethods.SET_PER_LEVEL)) &&
       data?.setPerLevel?.length
     ) {
       removeField({ path: 'setPerLevel' })
     }
     if (
-      (data?.type === ModifierTypes.setAmount ||
-        data?.type === ModifierTypes.bonus ||
-        data?.type === ModifierTypes.penalty) &&
-      data?.method === ModifierMethods.setPerLevel &&
-      modMethods?.some((method) => method.id === ModifierMethods.setPerLevel) &&
+      (data?.type === ModTypes.SET_AMOUNT || data?.type === ModTypes.BONUS || data?.type === ModTypes.PENALTY) &&
+      data?.method === ModMethods.SET_PER_LEVEL &&
+      modMethods?.some((method) => method.id === ModMethods.SET_PER_LEVEL) &&
       (!data?.setPerLevel || !data?.setPerLevel?.length)
     ) {
       addField({ path: 'setPerLevel' })
@@ -236,9 +217,9 @@ const Modifiers = () => {
             options={attributes.filter(
               (attribute) =>
                 attribute?.sections?.length &&
-                attribute?.sections?.includes(SectionEnum.all) &&
-                (formStore.data as Class).category === Categories.subclass &&
-                attribute?.sections?.includes(SectionEnum.subclasses)
+                attribute?.sections?.includes(Sections.ALL) &&
+                (formStore.data as Class).category === Categories.SUBCLASS &&
+                attribute?.sections?.includes(Sections.SUBCLASS)
             )}
             label='Attrbutes'
             value={data?.attributes}
@@ -255,7 +236,7 @@ const Modifiers = () => {
             onChange={{ updateField, removeField }}
           />
         </Grid.Item>
-        {data?.category === ModifierCategories.spell && (
+        {data?.category === ModCats.SPELL && (
           <>
             <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
               <Dropdown
@@ -303,7 +284,7 @@ const Modifiers = () => {
             />
           </Grid.Item>
         )}
-        {typeOptions && data?.category !== ModifierCategories.spell && data?.category != null && (
+        {typeOptions && data?.category !== ModCats.SPELL && data?.category != null && (
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown
               name={path}
@@ -311,10 +292,10 @@ const Modifiers = () => {
               label={sectionCategory?.label}
               value={data[path]}
               options={
-                data?.category === ModifierCategories.saveAbilities ? abilities
-                : data?.category === ModifierCategories.conditionSave ?
+                data?.category === ModCats.SAVE_ABILITY ? abilities
+                : data?.category === ModCats.CONDITION_SAVE ?
                   conditions
-                : data?.category === ModifierCategories.spellDC || data?.category === ModifierCategories.damageSave ?
+                : data?.category === ModCats.SPELL_DC || data?.category === ModCats.DAMAGE_SAVE ?
                   damageTypes
                 : options[path as 'damageTypes' | 'conditions' | 'abilities' | 'speeds']
               }
@@ -323,7 +304,7 @@ const Modifiers = () => {
             />
           </Grid.Item>
         )}
-        {data?.category === ModifierCategories.charge && data?.type === ModifierTypes.useReset && (
+        {data?.category === ModCats.CHARGE && data?.type === ModTypes.USE_RESET && (
           <>
             <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
               <Dropdown
@@ -354,8 +335,8 @@ const Modifiers = () => {
             </Grid.Item>
           </>
         )}
-        {data?.category === ModifierCategories.spell &&
-          (data?.spellCategory === ModifierSpellCategories.spellDuration ?
+        {data?.category === ModCats.SPELL &&
+          (data?.spellCategory === ModSpellCats.SPELL_DURATION ?
             <>
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                 <Dropdown
@@ -367,7 +348,7 @@ const Modifiers = () => {
                   onChange={{ updateField, removeField }}
                 />
               </Grid.Item>
-              {data?.type === ModifierTypes.setAmount && (
+              {data?.type === ModTypes.SET_AMOUNT && (
                 <>
                   <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                     <Input
@@ -383,7 +364,7 @@ const Modifiers = () => {
                 </>
               )}
             </>
-          : data?.spellCategory === ModifierSpellCategories.spellRange ?
+          : data?.spellCategory === ModSpellCats.SPELL_RANGE ?
             <>
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                 <Dropdown
@@ -395,7 +376,7 @@ const Modifiers = () => {
                   onChange={{ updateField, removeField }}
                 />
               </Grid.Item>
-              {data?.type === ModifierTypes.setAmount && (
+              {data?.type === ModTypes.SET_AMOUNT && (
                 <>
                   <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                     <Input
@@ -425,14 +406,14 @@ const Modifiers = () => {
                       label='UoM'
                       value={data?.unit}
                       options={rules.measurements.imperial.length}
-                      required={data?.range === Ranges.distance ? true : false}
+                      required={data?.range === Ranges.DISTANCE ? true : false}
                       onChange={{ updateField, removeField }}
                     />
                   </Grid.Item>
                 </>
               )}
             </>
-          : data?.spellCategory === ModifierSpellCategories.spellShape && (
+          : data?.spellCategory === ModSpellCats.SPELL_SHAPE && (
               <>
                 <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                   <Dropdown
@@ -444,7 +425,7 @@ const Modifiers = () => {
                     onChange={{ updateField, removeField }}
                   />
                 </Grid.Item>
-                {data?.type === ModifierTypes.setAmount && (
+                {data?.type === ModTypes.SET_AMOUNT && (
                   <>
                     <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                       <Input
@@ -471,11 +452,11 @@ const Modifiers = () => {
                 )}
               </>
             ))}
-        {data?.method != null && data?.method !== ModifierMethods.setPerLevel && (
+        {data?.method != null && data?.method !== ModMethods.SET_PER_LEVEL && (
           <>
-            {(data?.type === ModifierTypes.bonus || data?.type === ModifierTypes.setAmount) && (
+            {(data?.type === ModTypes.BONUS || data?.type === ModTypes.SET_AMOUNT) && (
               <>
-                {data?.method === ModifierMethods.setGlobally ?
+                {data?.method === ModMethods.SET_GLOBALLY ?
                   <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                     <Input
                       validation='num'
@@ -488,7 +469,7 @@ const Modifiers = () => {
                       onChange={{ updateField }}
                     />
                   </Grid.Item>
-                : data?.method === ModifierMethods.abilityScoreModifier ?
+                : data?.method === ModMethods.ABILITY_SCORE_MODIFIER ?
                   <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                     <Dropdown
                       name='methodAbility'
@@ -499,7 +480,7 @@ const Modifiers = () => {
                       onChange={{ updateField, removeField }}
                     />
                   </Grid.Item>
-                : data?.method === ModifierMethods.skillModifier && (
+                : data?.method === ModMethods.SKILL_MODIFIER && (
                     <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                       <Dropdown
                         name='methodSkill'
@@ -514,7 +495,7 @@ const Modifiers = () => {
                 }
               </>
             )}
-            {data?.method !== ModifierMethods.setGlobally && (
+            {data?.method !== ModMethods.SET_GLOBALLY && (
               <>
                 <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                   <Input
@@ -576,7 +557,7 @@ const Modifiers = () => {
             <Prerequisites formStore={sectionStore} />
           </Grid.Item>
         )}
-        {data?.method === ModifierMethods.setPerLevel && data?.diePerLevel?.length && (
+        {data?.method === ModMethods.SET_PER_LEVEL && data?.diePerLevel?.length && (
           <Grid.Item>
             <Collapse>
               <Collapse.Header title='Die Per Level' />
@@ -619,7 +600,7 @@ const Modifiers = () => {
             </Collapse>
           </Grid.Item>
         )}
-        {data?.method === ModifierMethods.setPerLevel && data?.setPerLevel?.length && (
+        {data?.method === ModMethods.SET_PER_LEVEL && data?.setPerLevel?.length && (
           <Grid.Item>
             <Collapse>
               <Collapse.Header title='Set Per Level' />

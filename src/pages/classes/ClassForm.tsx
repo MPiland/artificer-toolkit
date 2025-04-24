@@ -4,7 +4,7 @@ import { useAddClass, useUpdateClass } from '@/apis/classesApi'
 import { Step } from '@/types/form'
 import { FormContext } from '@/components/Form/FormContext'
 import { isEqual } from 'lodash'
-import { Categories } from '@/types/enums'
+import { Categories } from 'enums/enums'
 import { Route } from '@/routes/_protected/classes/$action/$_classId'
 import useClassData from '@/hooks/useClassData'
 
@@ -33,7 +33,7 @@ const ClassForm = () => {
 
   useEffect(() => {
     if (formStore.data.__typename === 'Class') {
-      if (formStore.data.category === Categories.subclass) {
+      if (formStore.data.category === Categories.SUBCLASS) {
         if (!isEqual(steps, subclassStepArray)) {
           return formStore.setSteps(subclassStepArray)
         }

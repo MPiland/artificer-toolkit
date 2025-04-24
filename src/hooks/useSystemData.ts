@@ -2,9 +2,9 @@ import { useRouteContext } from '@tanstack/react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { fetchSystem } from '@/apis/systemsApi'
 import { createArrayWithMethods } from '@/utils'
-import type { GQL } from '@/types'
+import type { System, GenericType } from '@/types'
 
-type ModifierMethod = GQL.System['modifiers']['methods'][number]
+type ModifierMethod = System['modifiers']['methods'][number]
 
 type ModMethodMethods = {
   findMethod: (id?: string | null) => ModifierMethod | undefined | null
@@ -14,13 +14,13 @@ type ModMethodMethods = {
 }
 
 type EquipmentCategoryMethods = {
-  findCategory: (id?: string | null) => GQL.System['modifiers']['categories'][number] | undefined | null
-  filterByProperties(ids: string[] | null | undefined): GQL.System['equipment']['categories']
+  findCategory: (id?: string | null) => System['modifiers']['categories'][number] | undefined | null
+  filterByProperties(ids: string[] | null | undefined): System['equipment']['categories']
 }
 
 type EquipmentPropertyMethods = {
-  findProperty: (id?: string | null) => GQL.System['equipment']['properties'][number] | undefined | null
-  filterByCategory(categoryId?: string | null | undefined): GQL.System['equipment']['properties']
+  findProperty: (id?: string | null) => System['equipment']['properties'][number] | undefined | null
+  filterByCategory(categoryId?: string | null | undefined): System['equipment']['properties']
 }
 
 type FilteredMethods = ModifierMethod[] & {
@@ -62,7 +62,7 @@ const useSystemData = () => {
     },
     filterByCategory(this: FilteredMethods, categoryId) {
       if (!categoryId) return createArrayWithMethods(this, modMethodMethods)
-      let filteredMethods: GQL.GenericType[] = []
+      let filteredMethods: GenericType[] = []
       if (this._typeId) {
         filteredMethods = system.modifiers.methods.filter((method) => {
           return system.modifiers.categoryMethods
@@ -102,7 +102,7 @@ const useSystemData = () => {
       if (!id) return null
       return system.equipment.categories.find((c) => c.id === id)
     },
-    filterByProperties(this: GQL.System['equipment']['categories'], ids?: string[] | null) {
+    filterByProperties(this: System['equipment']['categories'], ids?: string[] | null) {
       if (!ids || !ids.length) return system.equipment.categories
       return this.filter((c) =>
         system.equipment.categoryProperties.some(

@@ -1,14 +1,13 @@
-import Dropdown from '../../../Dropdown/Dropdown'
-import Input from '../../../Input/Input'
+import Dropdown from '@/components/Dropdown'
+import Input from '@/components/Input'
 import { use } from 'react'
 import { FormContext } from '../../FormContext'
 import { FeatureContext } from '../FeatureContext'
-import { Class, FeatureSense, SectionEnum } from '../../../../../amplify/gql/types'
-import { Attributes, Categories } from '../../../../types/enums'
-import Grid from '../../../Grid/Grid'
-import useSystemData from '../../../../hooks/useSystemData'
-import { SectionStore } from '../../../../store/sectionStore'
-import type { OnChange } from '../../../../types/types'
+import { Attributes, Categories, Sections } from '@/enums'
+import Grid from '@/components/Grid'
+import { useSystemData } from '@/hooks'
+import type { SectionStore } from '@/store'
+import type { OnChange, Class, FeatureSense } from '@/types'
 
 const Senses = () => {
   const { formStore } = use(FormContext)
@@ -28,7 +27,7 @@ const Senses = () => {
 
   const { senses, attributes } = useSystemData()
 
-  const providesOptions = data?.attributes?.some((attribute) => attribute === Attributes.providesOptions)
+  const providesOptions = data?.attributes?.some((attribute) => attribute === Attributes.PROVIDES_OPTIONS)
 
   return (
     <Grid>
@@ -39,9 +38,9 @@ const Senses = () => {
           options={attributes.filter(
             (attribute) =>
               attribute.sections &&
-              (attribute.sections.includes(SectionEnum.all) ||
-                ((formStore.data as Class).category === Categories.subclass &&
-                  attribute.sections.includes(SectionEnum.subclasses)))
+              (attribute.sections.includes(Sections.ALL) ||
+                ((formStore.data as Class).category === Categories.SUBCLASS &&
+                  attribute.sections.includes(Sections.SUBCLASS)))
           )}
           label='Sense Attributes'
           value={data?.attributes}
@@ -59,7 +58,7 @@ const Senses = () => {
           onChange={{ updateField, removeField }}
         />
       </Grid.Item>
-      {data?.attributes?.some((attribute) => attribute === Attributes.providesOptions) &&
+      {data?.attributes?.some((attribute) => attribute === Attributes.PROVIDES_OPTIONS) &&
         formStore.data.__typename === 'Class' &&
         formStore.data?.subtypes?.length && (
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>

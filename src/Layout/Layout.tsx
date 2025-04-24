@@ -1,5 +1,5 @@
 import { use, Suspense } from 'react'
-import Loading from '@/components/Loading/Loading'
+import Loading from '@/components/Loading'
 import { AuthContext } from '@/pages/auth/AuthContext'
 import LayoutProvider from './LayoutProvider'
 import Header from './Header'
@@ -8,7 +8,7 @@ import { Outlet } from '@tanstack/react-router'
 import clsx from 'clsx'
 import { content, layout } from './Layout.css'
 import ThemeContext from '@/theme/ThemeContext'
-import ModalProvider from '@/components/Modal/ModalProvider'
+import { ModalProvider } from '@/components/Modal'
 import { ToOptions, NavigateOptions } from '@tanstack/react-router'
 
 export const noUserNavigation: { to: ToOptions['to']; params?: NavigateOptions['params']; title: string }[] = [

@@ -1,7 +1,7 @@
 import { useSuspenseQueries, useSuspenseQuery } from '@tanstack/react-query'
 import { useRouteContext } from '@tanstack/react-router'
 import { fetchClass, fetchClasses } from '@/apis/classesApi'
-import { Enum } from '@/types'
+import { Categories } from '@/enums'
 import { createArrayWithMethods } from '@/utils'
 
 const useClassData = () => {
@@ -13,11 +13,11 @@ const useClassData = () => {
   const { classes, metaData } = data
 
   const subclasses = data.classes.filter((c) =>
-    metaData.categories?.find((cat) => cat.id === Enum.Categories.subclass)?.classIds?.includes(c.id)
+    metaData.categories?.find((cat) => cat.id === Categories.SUBCLASS)?.classIds?.includes(c.id)
   )
 
   const baseClasses = data.classes.filter((c) =>
-    metaData.categories?.find((cat) => cat.id === Enum.Categories.base)?.classIds?.includes(c.id)
+    metaData.categories?.find((cat) => cat.id === Categories.BASE)?.classIds?.includes(c.id)
   )
 
   return {

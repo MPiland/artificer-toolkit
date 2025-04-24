@@ -1,10 +1,10 @@
-import Group from '../../Group/Group'
-import Button from '../../Button/Button'
+import Group from '@/components/Group'
+import Button from '@/components/Button'
 import { use } from 'react'
 import { FormContext } from '../FormContext'
 import ProgressBar from './ProgressBar'
 import CharacterHeader from './CharacterHeader'
-import Grid from '../../Grid/Grid'
+import Grid from '@/components/Grid'
 import { sprinkles } from '../../../css/sprinkles.css'
 
 const Header = () => {
