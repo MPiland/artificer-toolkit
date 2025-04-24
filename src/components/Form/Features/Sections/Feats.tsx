@@ -4,18 +4,17 @@ import Dropdown from '@/components/Dropdown'
 import Input from '@/components/Input'
 import { startCase } from 'lodash'
 import { FeatureContext } from '../FeatureContext'
-import { Categories } from '@/enums'
-import { useEnumChecks } from '@/hooks'
+import { Categories, Sections } from '@/enums'
 import Prerequisites from '../../Substeps/Prerequisites'
 import Grid from '@/components/Grid'
-import { useSystemData, useFeatData } from '@/hooks'
-import { type OnChange, GQL } from '@/types'
+import { useSystemData, useFeatData, useEnumChecks } from '@/hooks'
+import { type OnChange, FeatureFeat, Class } from '@/types'
 import type { SectionStore } from '@/store'
 
 const Feats = () => {
   const { formStore } = use(FormContext)
   const { sectionStore } = use(FeatureContext) as {
-    sectionStore: SectionStore<GQL.FeatureFeat>
+    sectionStore: SectionStore<FeatureFeat>
   }
 
   const {
@@ -23,9 +22,9 @@ const Feats = () => {
     updateField,
     removeField,
   }: {
-    data: GQL.FeatureFeat
-    updateField: OnChange<GQL.FeatureFeat>['updateField']
-    removeField: OnChange<GQL.FeatureFeat>['removeField']
+    data: FeatureFeat
+    updateField: OnChange<FeatureFeat>['updateField']
+    removeField: OnChange<FeatureFeat>['removeField']
   } = sectionStore
 
   const { attributes } = useSystemData()
@@ -44,9 +43,9 @@ const Feats = () => {
           options={attributes.filter(
             (attribute) =>
               attribute.sections?.length &&
-              (attribute.sections.includes(GQL.Section.ALL) ||
-                ((formStore.data as GQL.Class).category === Categories.SUBCLASS &&
-                  attribute.sections.includes(GQL.Section.SUBCLASS)))
+              (attribute.sections.includes(Sections.ALL) ||
+                ((formStore.data as Class).category === Categories.SUBCLASS &&
+                  attribute.sections.includes(Sections.SUBCLASS)))
           )}
           label={`${startCase('feat')} Attributes`}
           value={data?.attributes}

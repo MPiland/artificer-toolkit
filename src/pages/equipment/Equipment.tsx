@@ -2,7 +2,7 @@ import parse from 'html-react-parser'
 import Detail from '@/components/Detail'
 import { Route } from '@/routes/_protected/equipment/$equipmentId'
 import { useEquipmentData } from '@/hooks'
-import type { DetailConfig } from '@/components/List'
+import type { DetailConfig } from '@/components/Detail'
 import type { Equipment } from '@/types'
 
 const Equipment = () => {
