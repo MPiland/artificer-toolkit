@@ -1,7 +1,7 @@
 import { get, truncate } from 'lodash'
 import { useSystemData, useClassData } from '@/hooks'
 import { useCallback } from 'react'
-import type { DetailConfig, DetailArray, DetailObject } from '@/components/List'
+import type { DetailConfig, DetailArray, DetailObject } from '@/components/Detail'
 import type { FormDataType } from '@/types'
 import { extractLookupData, processArrayValue, getLabelsFromIds, getLabelFromId } from '@/utils'
 

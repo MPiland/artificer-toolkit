@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { validateForm } from '@/utils/form'
+import { validateForm } from '@/components/Form'
 import Input from '@/components/Input/Input'
 import Button from '@/components/Button/Button'
 import { TbEye, TbEyeOff } from 'react-icons/tb'

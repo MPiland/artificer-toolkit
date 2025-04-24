@@ -17,7 +17,7 @@ import Grid from '@/components/Grid'
 import { Link, useMatches } from '@tanstack/react-router'
 import type { FormType, FormDataType, Character } from '@/types'
 import { useRouteNavigation, useSourceData } from '@/hooks'
-import type { DetailConfig } from '@/components/List'
+import type { DetailConfig } from './Detail.types'
 import { FormContext } from '@/components/Form'
 
 interface DetailProps<T extends FormDataType> {
