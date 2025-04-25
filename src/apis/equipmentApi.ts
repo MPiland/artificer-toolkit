@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
-import { generateClient, GraphQLQuery } from 'aws-amplify/data'
+import { generateClient, type GraphQLResult } from 'aws-amplify/data'
 import { getEquipment, getMasterEquipment, listEquipment, listMasterEquipment } from '../../amplify/gql/queries'
 import {
   createEquipment,
@@ -43,9 +43,16 @@ export const fetchAllEquipment = (systemPref: string) => {
       const groups = tokens?.accessToken?.payload?.['cognito:groups'] as string[]
       const master = groups?.includes('Admins') || false
 
+      // Create a union type for the variables
+      type ListVariables = QueryListMasterEquipmentArgs | QueryListEquipmentArgs
+
+      const isMaster = (data: any): data is { listMasterEquipment: any } => {
+        return 'listMasterEquipment' in data
+      }
+
       const operation = master ? listMasterEquipment : listEquipment
 
-      type ListVariables = QueryListMasterEquipmentArgs | QueryListEquipmentArgs
+      type QueryResponse = { listMasterEquipment: EquipmentConnection } | { listEquipment: EquipmentConnection }
 
       let variables: ListVariables = {
         limit: 1000,
@@ -61,13 +68,15 @@ export const fetchAllEquipment = (systemPref: string) => {
 
       try {
         do {
-          const { data } = await client.graphql<GraphQLQuery<EquipmentConnection>>({
+          const { data } = (await client.graphql({
             query: operation,
             variables: variables,
-          })
+          })) as GraphQLResult<QueryResponse>
 
-          allData = { equipment: [...allData.equipment, ...data.items], metaData: data.metaData }
-          nextToken = data.nextToken || null
+          const result = isMaster(data) ? data.listMasterEquipment : data.listEquipment
+
+          allData = { equipment: [...allData.equipment, ...result.items], metaData: result.metaData }
+          nextToken = result.nextToken || null
         } while (nextToken)
 
         if (allData.equipment.length) {

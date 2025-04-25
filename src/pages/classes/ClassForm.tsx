@@ -3,7 +3,7 @@ import Form, { FormContext } from '@/components/Form'
 import { useAddClass, useUpdateClass } from '@/apis/classesApi'
 import { Step } from '@/types'
 import { isEqual } from 'lodash'
-import { Categories } from 'enums/enums'
+import { Categories } from '@/enums'
 import { Route } from '@/routes/_protected/classes/$action/$_classId'
 import { useClassData } from '@/hooks'
 

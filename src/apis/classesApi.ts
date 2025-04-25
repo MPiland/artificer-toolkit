@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
-import { generateClient, GraphQLQuery } from 'aws-amplify/data'
+import { generateClient, type GraphQLResult } from 'aws-amplify/data'
 import { listClasses, getClass, listMasterClasses, getMasterClass } from '../../amplify/gql/queries'
 import {
   createClass,
@@ -43,9 +43,16 @@ export const fetchClasses = (systemPref: string) => {
       const groups = tokens?.accessToken?.payload?.['cognito:groups'] as string[]
       const master = groups?.includes('Admins') || false
 
+      // Create a union type for the variables
+      type ListVariables = QueryListMasterClassesArgs | QueryListClassesArgs
+
+      const isMaster = (data: any): data is { listMasterClasses: any } => {
+        return 'listMasterClasses' in data
+      }
+
       const operation = master ? listMasterClasses : listClasses
 
-      type ListVariables = QueryListMasterClassesArgs | QueryListClassesArgs
+      type QueryResponse = { listClasses: ClassConnection } | { listMasterClasses: ClassConnection }
 
       let variables: ListVariables = {
         limit: 1000,
@@ -61,12 +68,18 @@ export const fetchClasses = (systemPref: string) => {
 
       try {
         do {
-          const { data } = await client.graphql<GraphQLQuery<ClassConnection>>({
+          const { data } = (await client.graphql({
             query: operation,
             variables: variables,
-          })
-          allData = { classes: [...allData.classes, ...data.items], metaData: data.metaData }
-          nextToken = data?.nextToken || null
+          })) as GraphQLResult<QueryResponse>
+
+          const result = isMaster(data) ? data.listMasterClasses : data.listClasses
+
+          allData = {
+            classes: [...allData.classes, ...result.items],
+            metaData: result.metaData,
+          }
+          nextToken = result?.nextToken || null
         } while (nextToken)
 
         if (allData.classes.length) {

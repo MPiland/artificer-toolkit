@@ -1,5 +1,5 @@
 import { queryOptions } from '@tanstack/react-query'
-import { generateClient, GraphQLQuery } from 'aws-amplify/data'
+import { generateClient, type GraphQLResult } from 'aws-amplify/data'
 import { listSystems, getSystem, listMasterSystems, getMasterSystem } from '../../amplify/gql/queries'
 import { fetchAuthSession } from 'aws-amplify/auth'
 import { QueryListMasterSystemsArgs, QueryListSystemsArgs, SystemConnection, type SystemListItem } from '@/types'
@@ -23,9 +23,16 @@ export const fetchSystems = () => {
       const groups = tokens?.accessToken?.payload?.['cognito:groups'] as string[]
       const master = groups?.includes('Admins') || false
 
+      // Create a union type for the variables
+      type ListVariables = QueryListMasterSystemsArgs | QueryListSystemsArgs
+
+      const isMaster = (data: any): data is { listMasterSystems: any } => {
+        return 'listMasterSystems' in data
+      }
+
       const operation = master ? listMasterSystems : listSystems
 
-      type ListVariables = QueryListMasterSystemsArgs | QueryListSystemsArgs
+      type QueryResult = { listMasterSystems: SystemConnection } | { listSystems: SystemConnection }
 
       const variables: ListVariables = {
         limit: 100,
@@ -34,13 +41,15 @@ export const fetchSystems = () => {
 
       try {
         do {
-          const { data } = await client.graphql<GraphQLQuery<SystemConnection>>({
+          const { data } = (await client.graphql({
             query: operation,
             variables: variables,
-          })
+          })) as GraphQLResult<QueryResult>
 
-          allData = [...allData, ...(data.items || [])]
-          nextToken = data.nextToken
+          const result = isMaster(data) ? data.listMasterSystems : data.listSystems
+
+          allData = [...allData, ...result.items]
+          nextToken = result.nextToken
         } while (nextToken)
 
         if (allData && allData.length > 0) {

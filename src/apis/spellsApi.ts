@@ -1,5 +1,5 @@
 import { useMutation, queryOptions, useQueryClient } from '@tanstack/react-query'
-import { generateClient } from 'aws-amplify/data'
+import { generateClient, type GraphQLResult } from 'aws-amplify/data'
 import { listMasterSpells, listSpells, getMasterSpell, getSpell } from '../../amplify/gql/queries'
 import {
   createMasterSpell,
@@ -20,7 +20,6 @@ import type {
 } from '@/types'
 import { fetchAuthSession } from 'aws-amplify/auth'
 import { removeTypename } from '@/components/Form'
-import { GraphQLQuery } from 'aws-amplify/data'
 
 const client = generateClient()
 
@@ -44,9 +43,16 @@ export const fetchSpells = (systemPref: string) => {
       const groups = tokens?.accessToken?.payload?.['cognito:groups'] as string[]
       const master = groups?.includes('Admins') || false
 
+      // Create a union type for the variables
+      type ListVariables = QueryListMasterSpellsArgs | QueryListSpellsArgs
+
+      const isMaster = (data: any): data is { listMasterSpells: any } => {
+        return 'listMasterSpells' in data
+      }
+
       const operation = master ? listMasterSpells : listSpells
 
-      type ListVariables = QueryListMasterSpellsArgs | QueryListSpellsArgs
+      type QueryResponse = { listMasterSpells: SpellConnection } | { listSpells: SpellConnection }
 
       let variables: ListVariables = {
         limit: 1000,
@@ -62,13 +68,15 @@ export const fetchSpells = (systemPref: string) => {
 
       try {
         do {
-          const { data } = await client.graphql<GraphQLQuery<SpellConnection>>({
+          const { data } = (await client.graphql({
             query: operation,
             variables: variables,
-          })
+          })) as GraphQLResult<QueryResponse>
 
-          allData = { spells: [...allData.spells, ...data.items], metaData: data.metaData }
-          nextToken = data.nextToken || null
+          const result = isMaster(data) ? data.listMasterSpells : data.listSpells
+
+          allData = { spells: [...allData.spells, ...result.items], metaData: result.metaData }
+          nextToken = result.nextToken || null
         } while (nextToken)
 
         if (allData.spells.length) {

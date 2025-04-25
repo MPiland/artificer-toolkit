@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
-import { generateClient, GraphQLQuery } from 'aws-amplify/data'
+import { generateClient, type GraphQLResult } from 'aws-amplify/data'
 import { listMasterBackgrounds, listBackgrounds, getMasterBackground, getBackground } from '../../amplify/gql/queries'
 import {
   createMasterBackground,
@@ -43,9 +43,16 @@ export const fetchBackgrounds = (systemPref: string) => {
       const groups = tokens?.accessToken?.payload?.['cognito:groups'] as string[]
       const master = groups?.includes('Admins') || false
 
-      const operation = master ? listMasterBackgrounds : listBackgrounds // Create a union type for the variables
-
+      // Create a union type for the variables
       type ListVariables = QueryListMasterBackgroundsArgs | QueryListBackgroundsArgs
+
+      const isMaster = (data: any): data is { listMasterBackgrounds: any } => {
+        return 'listMasterBackgrounds' in data
+      }
+
+      const operation = master ? listMasterBackgrounds : listBackgrounds
+
+      type QueryResponse = { listBackgrounds: BackgroundConnection } | { listMasterBackgrounds: BackgroundConnection }
 
       let variables: ListVariables = {
         limit: 1000,
@@ -61,13 +68,15 @@ export const fetchBackgrounds = (systemPref: string) => {
 
       try {
         do {
-          const { data } = await client.graphql<GraphQLQuery<BackgroundConnection>>({
+          const { data } = (await client.graphql({
             query: operation,
             variables: variables,
-          })
+          })) as GraphQLResult<QueryResponse>
 
-          allData = { backgrounds: [...allData.backgrounds, ...data.items], metaData: data.metaData }
-          nextToken = data.nextToken || null
+          const result = isMaster(data) ? data.listMasterBackgrounds : data.listBackgrounds
+
+          allData = { backgrounds: [...allData.backgrounds, ...result.items], metaData: result.metaData }
+          nextToken = result.nextToken || null
         } while (nextToken)
 
         if (allData.backgrounds.length) {

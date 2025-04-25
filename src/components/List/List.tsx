@@ -30,7 +30,7 @@ import Filter from './Filter'
 import Group from '@/components/Group'
 import { sprinkles } from '@/css/sprinkles.css'
 import { ModalContext } from '@/components/Modal'
-import { type FilterState } from '@/store'
+import { useFormStore, type FilterState, type FormStore } from '@/store'
 import { useMetaData, useRouteNavigation, useFilteredList } from '@/hooks'
 import { MdEdit, MdLaunch } from 'react-icons/md'
 import { FormContext } from '../Form/FormContext'
@@ -61,9 +61,7 @@ const List = <T extends ListItemType, K extends MetaDataType, U extends FilterDa
   const { mutateAsync: deleteItem } = useDeleteItem()
   const { getSourceText } = useMetaData({ metaData })
   const { showModal } = use(ModalContext)
-  const {
-    formStore: { reinitState },
-  } = use(FormContext)
+  const { reinitState }: FormStore<FormDataType> = useFormStore((state) => state)
 
   const form = useMatches({ select: (m) => m[m.length - 1].context.form?.type }) as FormType
 
@@ -337,6 +335,7 @@ const List = <T extends ListItemType, K extends MetaDataType, U extends FilterDa
                 >
                   {itemsInRow.map((item) => {
                     const itemNav = routeNav.forItem(item.id, item.label)
+                    console.log({ item })
                     return (
                       <Fragment key={item.id}>
                         <Card ref={itemRef} itemId={item.id}>

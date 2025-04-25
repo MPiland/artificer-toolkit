@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
-import { generateClient, GraphQLQuery } from 'aws-amplify/data'
+import { generateClient, type GraphQLResult } from 'aws-amplify/data'
 import { getFeat, getMasterFeat, listFeats, listMasterFeats } from '../../amplify/gql/queries'
 import {
   createFeat,
@@ -43,9 +43,16 @@ export const fetchFeats = (systemPref: string) => {
       const groups = tokens?.accessToken?.payload?.['cognito:groups'] as string[]
       const master = groups?.includes('Admins') || false
 
-      const operation = master ? listMasterFeats : listFeats // Create a union type for the variables
-
+      // Create a union type for the variables
       type ListVariables = QueryListMasterFeatsArgs | QueryListFeatsArgs
+
+      const isMaster = (data: any): data is { listMasterFeats: any } => {
+        return 'listMasterFeats' in data
+      }
+
+      const operation = master ? listMasterFeats : listFeats
+
+      type QueryResponse = { listMasterFeats: FeatConnection } | { listFeats: FeatConnection }
 
       let variables: ListVariables = {
         limit: 1000,
@@ -61,13 +68,15 @@ export const fetchFeats = (systemPref: string) => {
 
       try {
         do {
-          const { data } = await client.graphql<GraphQLQuery<FeatConnection>>({
+          const { data } = (await client.graphql({
             query: operation,
             variables: variables,
-          })
+          })) as GraphQLResult<QueryResponse>
 
-          allData = { feats: [...allData.feats, ...data.items], metaData: data.metaData }
-          nextToken = data.nextToken || null
+          const result = isMaster(data) ? data.listMasterFeats : data.listFeats
+
+          allData = { feats: [...allData.feats, ...result.items], metaData: result.metaData }
+          nextToken = result.nextToken || null
         } while (nextToken)
 
         if (allData.feats.length) {

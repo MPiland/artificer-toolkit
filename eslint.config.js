@@ -23,6 +23,7 @@ export default defineConfig([
       'react/no-unknown-property': 'off',
       'react/react-in-jsx-scope': 'off',
       '@typescript-eslint/no-unused-vars': 'warn',
+      '@typescript-eslint/ban-ts-comment': 'off',
     },
   },
 ])
