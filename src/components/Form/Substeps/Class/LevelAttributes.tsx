@@ -1,9 +1,9 @@
 import { ReactNode, useEffect, useMemo } from 'react'
-import Collapse from '@/components/Collapse'
+import Collapsible from '@/components/Collapsible'
 import { Attributes } from '@/enums'
 import Input from '@/components/Input'
 import { useEnumChecks } from '@/hooks'
-import Grid from '@/components/Grid'
+import { Grid } from '@mantine/core'
 import type { OnChange, Class } from '@/types'
 
 const LevelAttributes = ({
@@ -33,9 +33,9 @@ const LevelAttributes = ({
     if (data?.spellcasting?.maxSpellLevel) {
       for (let i = 0; i < data?.spellcasting?.maxSpellLevel; i++) {
         spellLabels.push(
-          <Grid.Item key={`spell-label-${i}`} colSpan={'auto'}>
+          <Grid.Col key={`spell-label-${i}`} >
             <span>{i + 1}</span>
-          </Grid.Item>
+          </Grid.Col>
         )
       }
     }
@@ -54,7 +54,7 @@ const LevelAttributes = ({
       if (isSpellcaster && data?.spellcasting?.maxSpellLevel) {
         for (let i = 0; i < data.spellcasting.maxSpellLevel; i++) {
           spellSlotInputs.push(
-            <Grid.Item key={`spell-input-${index}-${i}`} colSpan={'auto'}>
+            <Grid.Col key={`spell-input-${index}-${i}`} >
               <Input
                 name={`levelAttributes.${index}.spellSlots.${i}.slotCount`}
                 value={data.levelAttributes?.[index]?.spellSlots?.[i]?.slotCount}
@@ -63,15 +63,15 @@ const LevelAttributes = ({
                 onChange={{ updateField }}
                 required={true}
               />
-            </Grid.Item>
+            </Grid.Col>
           )
         }
       }
 
       return (
-        <Grid.Item key={`level-row-${index}`}>
+        <Grid.Col key={`level-row-${index}`}>
           <Grid>
-            <Grid.Item colSpan={'auto'}>
+            <Grid.Col >
               <Input
                 name={`levelAttributes.${index}.level`}
                 value={setLevel.level}
@@ -80,9 +80,9 @@ const LevelAttributes = ({
                 onChange={{ updateField }}
                 required={true}
               />
-            </Grid.Item>
+            </Grid.Col>
             {hasResourcePoints && (
-              <Grid.Item colSpan={'auto'}>
+              <Grid.Col >
                 <Input
                   name={`levelAttributes.${index}.resourcePoints`}
                   value={setLevel.resourcePoints}
@@ -91,11 +91,11 @@ const LevelAttributes = ({
                   onChange={{ updateField }}
                   required={true}
                 />
-              </Grid.Item>
+              </Grid.Col>
             )}
             {isSpellcaster && (
               <>
-                <Grid.Item colSpan={'auto'}>
+                <Grid.Col >
                   <Input
                     name={`levelAttributes.${index}.cantripsKnownLimit`}
                     value={setLevel.cantripsKnownLimit}
@@ -104,9 +104,9 @@ const LevelAttributes = ({
                     onChange={{ updateField }}
                     required={true}
                   />
-                </Grid.Item>
+                </Grid.Col>
                 {limitKnownSpells && (
-                  <Grid.Item colSpan={'auto'}>
+                  <Grid.Col >
                     <Input
                       name={`levelAttributes.${index}.spellsKnownLimit`}
                       value={setLevel.spellsKnownLimit}
@@ -115,43 +115,43 @@ const LevelAttributes = ({
                       onChange={{ updateField }}
                       required={true}
                     />
-                  </Grid.Item>
+                  </Grid.Col>
                 )}
                 {spellSlotInputs}
               </>
             )}
           </Grid>
-        </Grid.Item>
+        </Grid.Col>
       )
     })
   }, [data, isSpellcaster, hasResourcePoints, limitKnownSpells, updateField])
 
   return (
-    <Grid.Item>
-      <Collapse>
-        <Collapse.Header title={'Level Attributes'} startOpened={data.id == null} />
-        <Collapse.Body>
+    <Grid.Col>
+      <Collapsible defaultOpen={data.id == null}>
+        <Collapsible.Trigger title={'Level Attributes'} />
+        <Collapsible.Content>
           <Grid>
-            <Grid.Item>
+            <Grid.Col>
               <Grid>
-                <Grid.Item colSpan={'auto'}>Level</Grid.Item>
+                <Grid.Col >Level</Grid.Col>
                 {hasResourcePoints && (
-                  <Grid.Item colSpan={'auto'}>{data.resource?.label ?? 'Resource'} Points</Grid.Item>
+                  <Grid.Col >{data.resource?.label ?? 'Resource'} Points</Grid.Col>
                 )}
                 {isSpellcaster && (
                   <>
-                    <Grid.Item colSpan={'auto'}>Cantrips Known</Grid.Item>
-                    {limitKnownSpells && <Grid.Item colSpan={'auto'}>Spells Known</Grid.Item>}
+                    <Grid.Col >Cantrips Known</Grid.Col>
+                    {limitKnownSpells && <Grid.Col >Spells Known</Grid.Col>}
                     {spellSlotLabels}
                   </>
                 )}
               </Grid>
-            </Grid.Item>
+            </Grid.Col>
             {levelAttributeRows}
           </Grid>
-        </Collapse.Body>
-      </Collapse>
-    </Grid.Item>
+        </Collapsible.Content>
+      </Collapsible>
+    </Grid.Col>
   )
 }
 

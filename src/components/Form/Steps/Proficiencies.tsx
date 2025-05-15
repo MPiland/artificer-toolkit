@@ -4,14 +4,13 @@ import Dropdown from '@/components/Dropdown'
 import Input from '@/components/Input'
 import Button from '@/components/Button'
 import { sprinkles } from '@/css/sprinkles.css'
-import Group from '@/components/Group'
 import { isEqual, set } from 'lodash'
 import { Attributes, Measurements, ProfCats, Sections } from '@/enums'
 import { use } from 'react'
 import { FormContext } from '../FormContext'
-import Grid from '@/components/Grid'
 import { useSystemData, useEquipmentData } from '@/hooks'
 import type { OnChange, Class } from '@/types'
+import { Grid, Group } from '@mantine/core'
 
 const ProficienciesStep = () => {
   const {
@@ -58,7 +57,7 @@ const ProficienciesStep = () => {
 
   return (
     <Grid>
-      <Grid.Item>
+      <Grid.Col>
         <Group>
           <Button
             color='primary'
@@ -71,23 +70,23 @@ const ProficienciesStep = () => {
             Add Proficiency
           </Button>
         </Group>
-      </Grid.Item>
+      </Grid.Col>
       {data.proficiencies && (
-        <Grid.Item>
-          <Accordion dataArray={data.proficiencies} name='proficiencies' onChange={{ updateField }}>
+        <Grid.Col>
+          <Accordion dataArray={data.proficiencies} name='proficiencies' updateFn={{ updateField }}>
             {data.proficiencies?.map((proficiency, index) => {
               const multipleOptions = proficiency.attributes?.some(
                 (attribute) => attribute === Attributes.PROVIDES_OPTIONS
               )
               const category = proficiencies.categories.find((category) => category.id === proficiency.category)
               return (
-                <Accordion.Wrapper key={index} itemId={String(index)}>
-                  <Accordion.Header handleRemove={() => removeField({ path: `proficiencies.${index}` })}>
+                <Accordion.Item key={index} itemId={String(index)} value={proficiency.id}>
+                  <Accordion.Trigger removeFn={() => removeField({ path: `proficiencies.${index}` })}>
                     {`Proficiency ${index + 1}`}
-                  </Accordion.Header>
+                  </Accordion.Trigger>
                   <Accordion.Content>
                     <Grid>
-                      <Grid.Item colSpan={{ sm: 6, md: 4, lg: 'auto' }}>
+                      <Grid.Col span={{ sm: 6, md: 4, lg: 'auto' }}>
                         <Dropdown
                           multiSelect={true}
                           name={`proficiencies.${index}.attributes`}
@@ -101,8 +100,8 @@ const ProficienciesStep = () => {
                           value={proficiency.attributes}
                           onChange={{ updateField, removeField }}
                         />
-                      </Grid.Item>
-                      <Grid.Item colSpan={{ sm: 6, md: 4, lg: 'auto' }}>
+                      </Grid.Col>
+                      <Grid.Col span={{ sm: 6, md: 4, lg: 'auto' }}>
                         <Dropdown
                           name={`proficiencies.${index}.category`}
                           label='Proficiency Category'
@@ -111,11 +110,11 @@ const ProficienciesStep = () => {
                           required={true}
                           onChange={{ updateField, removeField }}
                         />
-                      </Grid.Item>
+                      </Grid.Col>
                       {category && (
                         <>
                           {category.id === ProfCats.SAVE_ABILITIES && (
-                            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 'auto' }}>
+                            <Grid.Col span={{ sm: 6, md: 4, lg: 'auto' }}>
                               <Dropdown
                                 name={`proficiencies.${index}.saveAbilities`}
                                 multiSelect={true}
@@ -125,11 +124,11 @@ const ProficienciesStep = () => {
                                 required={true}
                                 onChange={{ updateField, removeField }}
                               />
-                            </Grid.Item>
+                            </Grid.Col>
                           )}
                           {(category.id === ProfCats.PROPERTIES || category.id === ProfCats.EQUIPMENT) && (
                             <>
-                              <Grid.Item colSpan={{ sm: 6, md: 4, lg: 'auto' }}>
+                              <Grid.Col span={{ sm: 6, md: 4, lg: 'auto' }}>
                                 <Dropdown
                                   name={`proficiencies.${index}.${category.value as 'properties' | 'equipment'}.category`}
                                   label='Item Category'
@@ -138,8 +137,8 @@ const ProficienciesStep = () => {
                                   required={true}
                                   onChange={{ updateField, removeField }}
                                 />
-                              </Grid.Item>
-                              <Grid.Item colSpan={{ sm: 6, md: 4, lg: 'auto' }}>
+                              </Grid.Col>
+                              <Grid.Col span={{ sm: 6, md: 4, lg: 'auto' }}>
                                 <Dropdown
                                   name={`proficiencies.${index}.${category.value as 'properties' | 'equipment'}.${
                                     category.id === ProfCats.EQUIPMENT ? 'properties' : 'ids'
@@ -159,10 +158,10 @@ const ProficienciesStep = () => {
                                   onChange={{ updateField, removeField }}
                                   required={category.id === ProfCats.EQUIPMENT ? false : true}
                                 />
-                              </Grid.Item>
+                              </Grid.Col>
                               {category.id === ProfCats.EQUIPMENT && (
                                 <>
-                                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 'auto' }}>
+                                  <Grid.Col span={{ sm: 6, md: 4, lg: 'auto' }}>
                                     <Dropdown
                                       name={`proficiencies.${index}.equipment.ids`}
                                       multiSelect={true}
@@ -175,13 +174,13 @@ const ProficienciesStep = () => {
                                       onChange={{ updateField, removeField }}
                                       required={true}
                                     />
-                                  </Grid.Item>
+                                  </Grid.Col>
                                 </>
                               )}
                             </>
                           )}
                           {category.id === ProfCats.SKILLS && (
-                            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 'auto' }}>
+                            <Grid.Col span={{ sm: 6, md: 4, lg: 'auto' }}>
                               <Dropdown
                                 name={`proficiencies.${index}.skills`}
                                 multiSelect={true}
@@ -191,13 +190,13 @@ const ProficienciesStep = () => {
                                 required={true}
                                 onChange={{ updateField, removeField }}
                               />
-                            </Grid.Item>
+                            </Grid.Col>
                           )}
                         </>
                       )}
                       {data.subtypes?.length &&
                         proficiency.attributes?.some((attribute) => attribute === Attributes.SUBTYPE_SPECIFIC) && (
-                          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 'auto' }}>
+                          <Grid.Col span={{ sm: 6, md: 4, lg: 'auto' }}>
                             <Dropdown
                               name={`proficiencies.${index}.subtype`}
                               label='Subtype'
@@ -206,10 +205,10 @@ const ProficienciesStep = () => {
                               required={true}
                               onChange={{ updateField, removeField }}
                             />
-                          </Grid.Item>
+                          </Grid.Col>
                         )}
                       {multipleOptions && (
-                        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 'auto' }}>
+                        <Grid.Col span={{ sm: 6, md: 4, lg: 'auto' }}>
                           <Input
                             validation='num'
                             name={`proficiencies.${index}.selectionCount`}
@@ -220,15 +219,15 @@ const ProficienciesStep = () => {
                             required={true}
                             onChange={{ updateField }}
                           />
-                        </Grid.Item>
+                        </Grid.Col>
                       )}
                     </Grid>
                   </Accordion.Content>
-                </Accordion.Wrapper>
+                </Accordion.Item>
               )
             })}
           </Accordion>
-        </Grid.Item>
+        </Grid.Col>
       )}
     </Grid>
   )

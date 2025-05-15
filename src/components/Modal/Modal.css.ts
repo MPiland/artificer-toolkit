@@ -1,4 +1,3 @@
-import { theme } from '@/css/theme.css'
 import { style } from '@vanilla-extract/css'
 import { app } from '@/css/layers.css'
 import { size } from '@/css/size.css'
@@ -26,7 +25,6 @@ export const modal_background = style({
       left: 0,
       width: '100dvw',
       height: '100dvh',
-      backgroundColor: theme.vars.component.modal.backgroundColor.overlay,
       zIndex: 200,
     },
   },
@@ -38,13 +36,11 @@ export const modal_dialogue = style({
       position: 'relative',
       display: 'flex',
       flexDirection: 'column',
-      backgroundColor: theme.vars.component.content.backgroundColor.main,
       width: '400px',
       zIndex: 500,
       borderRadius: '0.5rem',
       overflow: 'hidden',
       justifyContent: 'center',
-      border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
 
       selectors: {
         '&.xs': {
@@ -120,7 +116,6 @@ export const modal_content = style({
       'overflow': 'hidden',
       'zIndex': '10',
       'padding': `${size['size-7']} 0`,
-      'color': theme.vars.typography.color.main,
       'justifyContent': 'center',
 
       'selectors': {

@@ -1,9 +1,8 @@
 import { form_content, form_wrapper } from './Form.css'
-import { Suspense, useRef } from 'react'
-import { useEventListener } from 'usehooks-ts'
+import { Suspense } from 'react'
+import { useEventListener, mergeRefs } from '@mantine/hooks'
 import Footer from './Footer'
 import Header from './Header/Header'
-import ScrollArea from '@/components/ScrollArea'
 import { Outlet } from '@tanstack/react-router'
 import { UseMutationResult } from '@tanstack/react-query'
 import { FormDataType } from '@/types'
@@ -11,6 +10,7 @@ import { use } from 'react'
 import { FormContext } from './FormContext'
 import Loading from '@/components/Loading'
 import FeatureProvider from './Features/FeatureProvider'
+import { ScrollArea } from '@mantine/core'
 
 interface FormProps<T extends FormDataType> {
   useAddNewItemMutation: () => UseMutationResult<T, Error, T, unknown>
@@ -20,44 +20,33 @@ interface FormProps<T extends FormDataType> {
 const Form = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMutation }: FormProps<T>) => {
   const { stepIndex, successMessage, errorMessage, formSteps, steps, saving, formStore } = use(FormContext)
 
-  const documentRef = useRef(document)
+  const keypressRef = useEventListener('keypress', () => {
+    if (successMessage !== null) {
+      formStore.setSuccessMessage(null)
+    }
+    if (errorMessage) {
+      formStore.setErrorMessage(null)
+    }
+  })
+  const mouseUpRef = useEventListener('mouseup', () => {
+    if (successMessage !== null) {
+      formStore.setSuccessMessage(null)
+    }
+    if (errorMessage) {
+      formStore.setErrorMessage(null)
+    }
+  })
 
-  useEventListener(
-    'keypress',
-    () => {
-      if (successMessage !== null) {
-        formStore.setSuccessMessage(null)
-      }
-      if (errorMessage) {
-        formStore.setErrorMessage(null)
-      }
-    },
-    documentRef
-  )
-
-  useEventListener(
-    'mouseup',
-    () => {
-      if (successMessage !== null) {
-        formStore.setSuccessMessage(null)
-      }
-      if (errorMessage) {
-        formStore.setErrorMessage(null)
-      }
-    },
-    documentRef
-  )
+  const documentRef = mergeRefs(keypressRef, mouseUpRef)
 
   console.log({ data: formStore.data })
 
   return (
     <Suspense fallback={<Loading />}>
       <FeatureProvider>
-        <form className={form_wrapper} id='form-wrapper'>
+        <form className={form_wrapper} id='form-wrapper' ref={documentRef}>
           <Header />
-          <ScrollArea scrollDirection='vertical' className={form_content} wrapperId={'form-content'}>
-            {formSteps[`${steps[stepIndex]?.id}`]}
-          </ScrollArea>
+          <ScrollArea className={form_content}>{formSteps[`${steps[stepIndex]?.id}`]}</ScrollArea>
           <Footer useAddNewItemMutation={useAddNewItemMutation} useUpdateItemMutation={useUpdateItemMutation} />
         </form>
         <Outlet />

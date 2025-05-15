@@ -1,9 +1,9 @@
 import { useEffect } from 'react'
 import Dropdown from '@/components/Dropdown'
 import Input from '@/components/Input'
-import Collapse from '@/components/Collapse'
+import Collapsible from '@/components/Collapsible'
 import { ChargesLimits, Features, Feats } from '@/enums'
-import Grid from '@/components/Grid'
+import { Grid } from '@mantine/core'
 import { useSystemData } from '@/hooks'
 import type { FeatureDataType, OnChange, Feat, FeatureSpell } from '@/types'
 
@@ -31,9 +31,9 @@ const LimitUse = ({
 
   return (
     <>
-      <Grid.Item>
+      <Grid.Col>
         <Grid>
-          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+          <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown
               name='charges.limit'
               label='Limit Option'
@@ -47,9 +47,9 @@ const LimitUse = ({
               required={true}
               onChange={{ updateField, removeField }}
             />
-          </Grid.Item>
+          </Grid.Col>
           {data?.charges?.limit === ChargesLimits.ABILITY ?
-            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
               <Dropdown
                 name='charges.ability'
                 label='Ability'
@@ -58,9 +58,9 @@ const LimitUse = ({
                 required={true}
                 onChange={{ updateField, removeField }}
               />
-            </Grid.Item>
+            </Grid.Col>
           : data.charges?.limit === ChargesLimits.SKILL ?
-            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
               <Dropdown
                 name='charges.skill'
                 label='Skill'
@@ -69,9 +69,9 @@ const LimitUse = ({
                 required={true}
                 onChange={{ updateField, removeField }}
               />
-            </Grid.Item>
+            </Grid.Col>
           : data.charges?.limit === ChargesLimits.SET_AMOUNT ?
-            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
               <Input
                 validation='num'
                 type='text'
@@ -82,9 +82,9 @@ const LimitUse = ({
                 required={true}
                 onChange={{ updateField }}
               />
-            </Grid.Item>
+            </Grid.Col>
           : data.charges?.limit === ChargesLimits.RESOURCE_POINTS && (
-              <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+              <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                 <Input
                   validation='num'
                   type='text'
@@ -95,7 +95,7 @@ const LimitUse = ({
                   required={true}
                   onChange={{ updateField }}
                 />
-              </Grid.Item>
+              </Grid.Col>
             )
           }
           {data?.charges?.limit != null &&
@@ -103,7 +103,7 @@ const LimitUse = ({
             data.charges?.limit !== ChargesLimits.USES_PER_LEVEL &&
             data?.charges?.limit !== ChargesLimits.RESOURCE_POINTS && (
               <>
-                <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                   <Input
                     name='charges.multiplier'
                     autoComplete='off'
@@ -113,8 +113,8 @@ const LimitUse = ({
                     value={data?.charges?.multiplier}
                     onChange={{ updateField }}
                   />
-                </Grid.Item>
-                <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                </Grid.Col>
+                <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                   <Input
                     name='charges.addAmount'
                     autoComplete='off'
@@ -122,8 +122,8 @@ const LimitUse = ({
                     value={data?.charges?.addAmount}
                     onChange={{ updateField }}
                   />
-                </Grid.Item>
-                <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                </Grid.Col>
+                <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                   <Input
                     name='charges.minAmount'
                     autoComplete='off'
@@ -131,11 +131,11 @@ const LimitUse = ({
                     value={data?.charges?.minAmount}
                     onChange={{ updateField }}
                   />
-                </Grid.Item>
+                </Grid.Col>
               </>
             )}
           {data?.charges?.limit !== ChargesLimits.RESOURCE_POINTS && (
-            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
               <Dropdown
                 name='charges.reset'
                 label='Reset Option'
@@ -146,26 +146,26 @@ const LimitUse = ({
                 required={true}
                 onChange={{ updateField, removeField }}
               />
-            </Grid.Item>
+            </Grid.Col>
           )}
         </Grid>
-      </Grid.Item>
+      </Grid.Col>
       {data.charges?.limit === ChargesLimits.USES_PER_LEVEL && (
-        <Grid.Item>
-          <Collapse>
-            <Collapse.Header title={'Limit Use Table'} />
-            <Collapse.Body>
+        <Grid.Col>
+          <Collapsible>
+            <Collapsible.Trigger title={'Limit Use Table'} />
+            <Collapsible.Content>
               <Grid>
-                <Grid.Item>
+                <Grid.Col>
                   <Grid>
-                    <Grid.Item colSpan={'auto'}>Level</Grid.Item>
-                    <Grid.Item colSpan={'auto'}>Uses</Grid.Item>
+                    <Grid.Col >Level</Grid.Col>
+                    <Grid.Col >Uses</Grid.Col>
                   </Grid>
-                </Grid.Item>
+                </Grid.Col>
                 {data?.charges?.usesPerLevel?.map((setLevel, index) => (
-                  <Grid.Item key={index}>
+                  <Grid.Col key={index}>
                     <Grid>
-                      <Grid.Item colSpan={'auto'}>
+                      <Grid.Col >
                         <Input
                           name={`charges.usesPerLevel.${index}.level`}
                           value={setLevel.level}
@@ -174,8 +174,8 @@ const LimitUse = ({
                           onChange={{ updateField }}
                           required={true}
                         />
-                      </Grid.Item>
-                      <Grid.Item colSpan={'auto'}>
+                      </Grid.Col>
+                      <Grid.Col >
                         <Input
                           name={`charges.usesPerLevel.${index}.uses`}
                           value={setLevel.uses}
@@ -184,14 +184,14 @@ const LimitUse = ({
                           onChange={{ updateField }}
                           required={true}
                         />
-                      </Grid.Item>
+                      </Grid.Col>
                     </Grid>
-                  </Grid.Item>
+                  </Grid.Col>
                 ))}
               </Grid>
-            </Collapse.Body>
-          </Collapse>
-        </Grid.Item>
+            </Collapsible.Content>
+          </Collapsible>
+        </Grid.Col>
       )}
     </>
   )

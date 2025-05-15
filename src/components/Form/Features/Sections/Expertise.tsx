@@ -6,10 +6,10 @@ import { FormContext } from '../../FormContext'
 import { FeatureContext } from '../FeatureContext'
 import { Categories, ProfCats, Classes, Sections } from '@/enums'
 import Prerequisites from '../../Substeps/Prerequisites'
-import Grid from '@/components/Grid'
 import { useSystemData, useEquipmentData, useEnumChecks } from '@/hooks'
 import type { OnChange, FeatureProficiency } from '@/types'
 import type { SectionStore } from '@/store'
+import { Grid } from '@mantine/core'
 
 type CategoryType = 'skills' | 'equipment' | 'abilities' | 'saveAbilities' | 'properties' | 'languages'
 
@@ -59,7 +59,7 @@ const Expertise = () => {
 
   return (
     <Grid>
-      <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+      <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
         <Dropdown
           multiSelect={true}
           name='attributes'
@@ -75,8 +75,8 @@ const Expertise = () => {
           value={data?.attributes}
           onChange={{ updateField, removeField }}
         />
-      </Grid.Item>
-      <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+      </Grid.Col>
+      <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
         <Dropdown
           name={`category`}
           label='Proficiency Category'
@@ -85,14 +85,14 @@ const Expertise = () => {
           required={true}
           onChange={{ updateField, removeField }}
         />
-      </Grid.Item>
+      </Grid.Col>
       {sectionCategory?.id &&
         ((
           sectionCategory.id !== ProfCats.PROPERTIES &&
           sectionCategory.id !== ProfCats.EQUIPMENT &&
           sectionCategory.id !== ProfCats.INITIATIVE
         ) ?
-          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+          <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown
               name={`${categoryName as 'skills' | 'saveAbilities' | 'languages'}`}
               multiSelect={true}
@@ -107,11 +107,11 @@ const Expertise = () => {
               required={true}
               onChange={{ updateField, removeField }}
             />
-          </Grid.Item>
+          </Grid.Col>
         : <>
             {(data?.category === ProfCats.PROPERTIES || data?.category !== ProfCats.EQUIPMENT) && (
               <>
-                <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                   <Dropdown
                     name={`${categoryName as 'properties' | 'equipment'}.category`}
                     label='Equipment Category'
@@ -120,8 +120,8 @@ const Expertise = () => {
                     required={true}
                     onChange={{ updateField, removeField }}
                   />
-                </Grid.Item>
-                <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                </Grid.Col>
+                <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                   <Dropdown
                     name={`${categoryName as 'properties' | 'equipment'}.${
                       categoryName === 'equipment' ? 'properties' : 'ids'
@@ -135,10 +135,10 @@ const Expertise = () => {
                     onChange={{ updateField, removeField }}
                     required={categoryName === 'equipment' ? false : true}
                   />
-                </Grid.Item>
+                </Grid.Col>
                 {categoryName === 'equipment' && (
                   <>
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                       <Dropdown
                         name={`${categoryName}`}
                         multiSelect={true}
@@ -150,7 +150,7 @@ const Expertise = () => {
                         onChange={{ updateField, removeField }}
                         required={true}
                       />
-                    </Grid.Item>
+                    </Grid.Col>
                   </>
                 )}
               </>
@@ -160,7 +160,7 @@ const Expertise = () => {
         formStore.data.__typename === 'Class' &&
         formStore.data.category === Categories.SUBCLASS &&
         formStore.data?.subtypes?.length && (
-          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+          <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown
               name='subtype'
               label='Subclass Subtypes'
@@ -169,10 +169,10 @@ const Expertise = () => {
               required={true}
               onChange={{ updateField, removeField }}
             />
-          </Grid.Item>
+          </Grid.Col>
         )}
       {providesOptions && (
-        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+        <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
           <Input
             validation='num'
             name={`selectionCount`}
@@ -183,12 +183,12 @@ const Expertise = () => {
             required={true}
             onChange={{ updateField }}
           />
-        </Grid.Item>
+        </Grid.Col>
       )}
       {hasPrerequisites && (
-        <Grid.Item>
+        <Grid.Col>
           <Prerequisites formStore={sectionStore} />
-        </Grid.Item>
+        </Grid.Col>
       )}
     </Grid>
   )

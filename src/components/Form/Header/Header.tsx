@@ -1,11 +1,10 @@
-import Group from '@/components/Group'
 import Button from '@/components/Button'
 import { use } from 'react'
 import { FormContext } from '../FormContext'
 import ProgressBar from './ProgressBar'
 import CharacterHeader from './CharacterHeader'
-import Grid from '@/components/Grid'
-import { sprinkles } from '../../../css/sprinkles.css'
+import { sprinkles } from '@/css/sprinkles.css'
+import { Grid, Group } from '@mantine/core'
 
 const Header = () => {
   const { formStore, addClass, changeRace, stepIndex, errorMessage, successMessage, steps } = use(FormContext)
@@ -13,8 +12,8 @@ const Header = () => {
   return (
     <Grid className={sprinkles({ mb: 'space-4' })}>
       {steps.length > 1 && <ProgressBar />}
-      <Grid.Item>
-        <Group justifyContentVariant='spaceBetween'>
+      <Grid.Col>
+        <Group justify='space-between'>
           <h1>
             {`${formStore.data.id == null ? 'Create' : formStore.data.__typename} ${
               formStore.data.__typename === 'Character' ? ' An ' : ' A '
@@ -66,7 +65,7 @@ const Header = () => {
         </Group>
         {errorMessage && <span>{errorMessage}</span>}
         {successMessage && <span>{successMessage}</span>}
-      </Grid.Item>
+      </Grid.Col>
       {formStore.data.__typename === 'Character' && <CharacterHeader />}
     </Grid>
   )

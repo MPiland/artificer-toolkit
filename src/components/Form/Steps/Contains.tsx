@@ -2,9 +2,9 @@ import { useEffect, use } from 'react'
 import { FormContext } from '../FormContext'
 import Input from '@/components/Input'
 import Dropdown from '@/components/Dropdown'
-import Grid from '@/components/Grid'
-import {useEquipmentData} from '@/hooks'
+import { useEquipmentData } from '@/hooks'
 import type { OnChange, Equipment } from '@/types'
+import { Grid } from '@mantine/core'
 
 const ContainsStep = () => {
   const {
@@ -29,16 +29,16 @@ const ContainsStep = () => {
 
   return (
     <>
-      <Grid.Item>
+      <Grid.Col>
         <Grid>
-          <Grid.Item colSpan={'auto'}>Equipment</Grid.Item>
-          <Grid.Item colSpan={'auto'}>Quantity</Grid.Item>
+          <Grid.Col >Equipment</Grid.Col>
+          <Grid.Col >Quantity</Grid.Col>
         </Grid>
-      </Grid.Item>
+      </Grid.Col>
       {data.contains?.map((contain, index) => (
-        <Grid.Item key={index}>
+        <Grid.Col key={index}>
           <Grid>
-            <Grid.Item colSpan={'auto'}>
+            <Grid.Col >
               <Dropdown
                 name={`contains.${index}.id`}
                 value={contain.id}
@@ -47,8 +47,8 @@ const ContainsStep = () => {
                 errorMsg='Please enter a whole number'
                 onChange={{ updateField, removeField }}
               />
-            </Grid.Item>
-            <Grid.Item colSpan={'auto'}>
+            </Grid.Col>
+            <Grid.Col >
               <Input
                 name={`contains.${index}.quantity`}
                 value={contain.quantity}
@@ -57,9 +57,9 @@ const ContainsStep = () => {
                 required={true}
                 onChange={{ updateField }}
               />
-            </Grid.Item>
+            </Grid.Col>
           </Grid>
-        </Grid.Item>
+        </Grid.Col>
       ))}
     </>
   )

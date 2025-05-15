@@ -1,15 +1,24 @@
 import { globalStyle, style } from '@vanilla-extract/css'
-import { theme } from '../../css/theme.css'
-import { app } from '../../css/layers.css'
-import { size, space } from '../../css/size.css'
+import { app } from '@/css/layers.css'
+import { size, space } from '@/css/size.css'
 
-export const detail_nav_section = style({
+export const detail_link = style({
   '@layer': {
     [app]: {
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '0 .5rem',
+      gap: space['space-2'],
+      textDecoration: 'none',
+      padding: space['space-2'],
+    },
+  },
+})
+
+export const detail_link_icon = style({
+  '@layer': {
+    [app]: {
+      width: size['size-4'],
+      height: size['size-4'],
     },
   },
 })
@@ -58,7 +67,7 @@ export const detail_col_title = style({
   '@layer': {
     [app]: {
       fontWeight: 'bold',
-      marginBottom: '.5rem',
+      marginBottom: space['space-2'],
     },
   },
 })
@@ -69,14 +78,6 @@ export const detail_footer = style({
       display: 'flex',
       justifyContent: 'end',
       alignItems: 'center',
-    },
-  },
-})
-
-globalStyle(`${detail_body} tr`, {
-  '@layer': {
-    [app]: {
-      borderBottom: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
     },
   },
 })
@@ -109,8 +110,6 @@ globalStyle(`${detail_body} th`, {
 globalStyle(`${detail_body} blockquote`, {
   '@layer': {
     [app]: {
-      borderRadius: theme.border.radius,
-      border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
       marginLeft: size['size-3'],
       marginTop: size['size-2'],
       padding: size['size-1'],

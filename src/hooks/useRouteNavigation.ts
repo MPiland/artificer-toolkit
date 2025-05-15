@@ -81,7 +81,7 @@ type NavigationLink = {
 }
 
 // Define the return type of the hook
-type ListNavigationResult = {
+export type ListNavigationResult = {
   forItem: (
     id: string,
     label: string

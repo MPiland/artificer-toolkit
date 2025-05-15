@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
 import { generateClient, type GraphQLResult } from 'aws-amplify/data'
-import { getEquipment, getMasterEquipment, listEquipment, listMasterEquipment } from '../../amplify/gql/queries'
+import { getEquipment, getMasterEquipment, listEquipment, listMasterEquipment } from '@/queries'
 import {
   createEquipment,
   createMasterEquipment,
@@ -8,7 +8,7 @@ import {
   deleteMasterEquipment,
   updateEquipment,
   updateMasterEquipment,
-} from '../../amplify/gql/mutations'
+} from '@/mutations'
 import type {
   Equipment,
   QueryListMasterEquipmentArgs,

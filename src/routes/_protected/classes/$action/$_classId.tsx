@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import ClassForm from '@/pages/classes/ClassForm'
 import { fetchClass } from '@/apis/classesApi'
+import { FormProvider } from '@/components/Form'
 
 export const Route = createFileRoute('/_protected/classes/$action/$_classId')({
   beforeLoad: () => {
@@ -12,5 +13,9 @@ export const Route = createFileRoute('/_protected/classes/$action/$_classId')({
       return context.queryClient.ensureQueryData(fetchClass(classId_classId))
     }
   },
-  component: ClassForm,
+  component: () => (
+    <FormProvider>
+      <ClassForm />
+    </FormProvider>
+  ),
 })

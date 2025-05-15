@@ -3,8 +3,8 @@ import RaceSelection from '../Substeps/Character/Race/RaceSelection'
 import { use } from 'react'
 import { FormContext } from '../FormContext'
 import type { Character } from '@/types'
-import Grid from '@/components/Grid'
 import { useRaceData } from '@/hooks'
+import { Grid } from '@mantine/core'
 
 const RacesStep = () => {
   const {

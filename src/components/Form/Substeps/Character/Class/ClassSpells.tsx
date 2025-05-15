@@ -1,11 +1,10 @@
-import Collapse from '@/components/Collapse'
+import Collapsible from '@/components/Collapsible'
 import parse from 'html-react-parser'
 import Button from '@/components/Button'
 import { get, isEqual, set } from 'lodash'
 import { use, useCallback, useEffect, useMemo } from 'react'
-import Group from '@/components/Group'
 import { Attributes, Measurements, Rounding } from '@/enums'
-import Grid from '@/components/Grid'
+import { Grid, Group } from '@mantine/core'
 import { FormContext } from '../../../FormContext'
 import { useEnumChecks, useSpellData } from '@/hooks'
 import type { OnChange, Character, ClassSpellList, CharacterSpell, Class, CharacterClass, SpellListItem } from '@/types'
@@ -420,47 +419,51 @@ const ClassSpells = ({
 
   return (
     <>
-      <Grid.Item>
-        <Collapse>
-          <Collapse.Header title={`${preparesSpells ? 'Prepared' : 'Known'} Spells`} startOpened={false} />
-          <Collapse.Body>
+      <Grid.Col>
+        <Collapsible defaultOpen={false}>
+          <Collapsible.Trigger title={`${preparesSpells ? 'Prepared' : 'Known'} Spells`} />
+          <Collapsible.Content>
             <Grid>
               {data.spellcasting?.[casterType]?.length ?
                 data.spellcasting?.[casterType]?.map(
                   (listObject, lIndex) =>
                     listObject.spells?.length && (
-                      <Grid.Item key={lIndex}>
-                        <Collapse style='borderless'>
-                          <Collapse.Header title={listObject.level === 0 ? 'Cantrips' : `Level ${listObject.level}`} />
-                          <Collapse.Body>
+                      <Grid.Col key={lIndex}>
+                        <Collapsible>
+                          <Collapsible.Trigger
+                            title={listObject.level === 0 ? 'Cantrips' : `Level ${listObject.level}`}
+                          />
+                          <Collapsible.Content>
                             <Grid>
                               {listObject.spells.map((spell, sIndex) => {
                                 const stateSpell = spells.find((sSpell) => sSpell.id === spell.id)
                                 return (
-                                  <Grid.Item key={sIndex}>
-                                    <Collapse>
-                                      <Collapse.Header title={stateSpell?.label} />
-                                      <Collapse.Body>{stateSpell?.desc && parse(stateSpell?.desc)}</Collapse.Body>
-                                    </Collapse>
-                                  </Grid.Item>
+                                  <Grid.Col key={sIndex}>
+                                    <Collapsible>
+                                      <Collapsible.Trigger title={stateSpell?.label || ''} />
+                                      <Collapsible.Content>
+                                        {stateSpell?.desc && parse(stateSpell?.desc)}
+                                      </Collapsible.Content>
+                                    </Collapsible>
+                                  </Grid.Col>
                                 )
                               })}
                             </Grid>
-                          </Collapse.Body>
-                        </Collapse>
-                      </Grid.Item>
+                          </Collapsible.Content>
+                        </Collapsible>
+                      </Grid.Col>
                     )
                 )
               : <div>{`No ${preparesSpells ? 'prepared' : 'known'} spells`}</div>}
             </Grid>
-          </Collapse.Body>
-        </Collapse>
-      </Grid.Item>
+          </Collapsible.Content>
+        </Collapsible>
+      </Grid.Col>
       {usesSpellbook && (
-        <Grid.Item>
-          <Collapse>
-            <Collapse.Header title='Spellbook' startOpened={false} />
-            <Collapse.Body>
+        <Grid.Col>
+          <Collapsible defaultOpen={false}>
+            <Collapsible.Trigger title='Spellbook' />
+            <Collapsible.Content>
               <Grid>
                 <Group directionVariant='column' alignItemsVariant='start'>
                   <span>
@@ -472,10 +475,10 @@ const ClassSpells = ({
                     return (
                       listObject.level &&
                       listObject.level <= maxSpellLevel && (
-                        <Grid.Item key={lIndex}>
-                          <Collapse style='borderless'>
-                            <Collapse.Header title={`Level ${listObject.level}`} />
-                            <Collapse.Body>
+                        <Grid.Col key={lIndex}>
+                          <Collapsible>
+                            <Collapsible.Trigger title={`Level ${listObject.level}`} />
+                            <Collapsible.Content>
                               <Grid>
                                 {listObject.spells?.map((spell, sIndex) => {
                                   const fullSpell = spells.find((sSpell) => sSpell.id === spell.id)
@@ -488,9 +491,9 @@ const ClassSpells = ({
                                         preparedSpellCount >= maxPreparedSpells()
                                       : knownSpellCount >= maxSpellsKnown) && !spellFound
                                     return (
-                                      <Grid.Item key={sIndex}>
-                                        <Collapse>
-                                          <Collapse.Header title={fullSpell.label} startOpened={false}>
+                                      <Grid.Col key={sIndex}>
+                                        <Collapsible defaultOpen={false}>
+                                          <Collapsible.Trigger title={fullSpell.label}>
                                             <Button
                                               color={spellFound != null ? 'danger' : 'primary'}
                                               height='full'
@@ -510,31 +513,33 @@ const ClassSpells = ({
                                                 '---'
                                               : 'Add'}
                                             </Button>
-                                          </Collapse.Header>
-                                          <Collapse.Body>{fullSpell?.desc && parse(fullSpell?.desc)}</Collapse.Body>
-                                        </Collapse>
-                                      </Grid.Item>
+                                          </Collapsible.Trigger>
+                                          <Collapsible.Content>
+                                            {fullSpell?.desc && parse(fullSpell?.desc)}
+                                          </Collapsible.Content>
+                                        </Collapsible>
+                                      </Grid.Col>
                                     )
                                   }
                                 })}
                               </Grid>
-                            </Collapse.Body>
-                          </Collapse>
-                        </Grid.Item>
+                            </Collapsible.Content>
+                          </Collapsible>
+                        </Grid.Col>
                       )
                     )
                   })}
               </Grid>
-            </Collapse.Body>
-          </Collapse>
-        </Grid.Item>
+            </Collapsible.Content>
+          </Collapsible>
+        </Grid.Col>
       )}
-      <Grid.Item>
-        <Collapse>
-          <Collapse.Header title={`${preparesSpells && !usesSpellbook ? 'Known' : 'Add'} Spells`} startOpened={false} />
-          <Collapse.Body>
+      <Grid.Col>
+        <Collapsible defaultOpen={false}>
+          <Collapsible.Trigger title={`${preparesSpells && !usesSpellbook ? 'Known' : 'Add'} Spells`} />
+          <Collapsible.Content>
             <Grid>
-              <Grid.Item>
+              <Grid.Col>
                 <Group directionVariant='column' alignItemsVariant='start'>
                   <span>{`Cantrips: ${cantripsKnownCount}/${maxCantripsKnown}`}</span>
                   <span>
@@ -544,17 +549,16 @@ const ClassSpells = ({
                       }`}
                   </span>
                 </Group>
-              </Grid.Item>
+              </Grid.Col>
               {spellListArray?.map((group, lIndex) => {
                 return (
                   group.level <= maxSpellLevel && (
-                    <Grid.Item key={lIndex}>
-                      <Collapse style='borderless'>
-                        <Collapse.Header
+                    <Grid.Col key={lIndex}>
+                      <Collapsible defaultOpen={false}>
+                        <Collapsible.Trigger
                           title={group.level === 0 ? 'Cantrips' : `Level ${group.level}`}
-                          startOpened={false}
                         />
-                        <Collapse.Body>
+                        <Collapsible.Content>
                           <Grid>
                             {group.spells?.map((spell, sIndex) => {
                               const spellFound = spellList
@@ -573,9 +577,9 @@ const ClassSpells = ({
                                   !spellFound)
                               if (fullSpell) {
                                 return (
-                                  <Grid.Item key={sIndex}>
-                                    <Collapse>
-                                      <Collapse.Header title={fullSpell.label} startOpened={false}>
+                                  <Grid.Col key={sIndex}>
+                                    <Collapsible defaultOpen={false}>
+                                      <Collapsible.Trigger title={fullSpell.label}>
                                         {group.level === 0 ?
                                           <Button
                                             color={cantripFound != null ? 'danger' : 'primary'}
@@ -616,24 +620,26 @@ const ClassSpells = ({
                                             : 'Add'}
                                           </Button>
                                         }
-                                      </Collapse.Header>
-                                      <Collapse.Body>{fullSpell?.desc && parse(fullSpell?.desc)}</Collapse.Body>
-                                    </Collapse>
-                                  </Grid.Item>
+                                      </Collapsible.Trigger>
+                                      <Collapsible.Content>
+                                        {fullSpell?.desc && parse(fullSpell?.desc)}
+                                      </Collapsible.Content>
+                                    </Collapsible>
+                                  </Grid.Col>
                                 )
                               }
                             })}
                           </Grid>
-                        </Collapse.Body>
-                      </Collapse>
-                    </Grid.Item>
+                        </Collapsible.Content>
+                      </Collapsible>
+                    </Grid.Col>
                   )
                 )
               })}
             </Grid>
-          </Collapse.Body>
-        </Collapse>
-      </Grid.Item>
+          </Collapsible.Content>
+        </Collapsible>
+      </Grid.Col>
     </>
   )
 }

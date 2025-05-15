@@ -3,27 +3,10 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "target": "ESNext",
+    "module": "ESNext",
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "skipLibCheck": true,
     "incremental": true,
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["/src/*"],
-      "@/components/*": ["components/*"],
-      "@/pages/*": ["pages/*"],
-      "@/types": ["types/index.ts"],
-      "@/types/*": ["types/*"],
-      "@/enums": ["enums/index.ts"],
-      "@/hooks": ["hooks/index.ts"],
-      "@/utils": ["utils/index.ts"],
-      "@/css/*": ["css/*"],
-      "@/routes/*": ["routes/*"],
-      "@/apis/*": ["apis/*"],
-      "@/assets/*": ["assets/*"],
-      "@/theme/*": ["theme/*"],
-      "@/store": ["store/index.ts"],
-      "@/store/*": ["store/*"]
-    },
 
     /* Bundler mode */
     "moduleResolution": "bundler",

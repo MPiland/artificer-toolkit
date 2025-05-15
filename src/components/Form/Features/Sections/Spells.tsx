@@ -8,9 +8,9 @@ import { Categories, Sections } from '@/enums'
 import { useEnumChecks, useSystemData, useSpellData, useClassData } from '@/hooks'
 import Prerequisites from '../../Substeps/Prerequisites'
 import LimitUse from '../../Substeps/LimitUse'
-import Grid from '@/components/Grid'
 import type { SectionStore } from '@/store'
 import type { OnChange, Class, FeatureSpell, SpellListItem } from '@/types'
+import { Grid } from '@mantine/core'
 
 const Spells = () => {
   const { formStore } = use(FormContext)
@@ -100,7 +100,7 @@ const Spells = () => {
 
   return (
     <Grid>
-      <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+      <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
         <Dropdown
           multiSelect={true}
           name='attributes'
@@ -116,9 +116,9 @@ const Spells = () => {
           value={data?.attributes}
           onChange={{ updateField, removeField }}
         />
-      </Grid.Item>
+      </Grid.Col>
       {classLimit && (
-        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+        <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
           <Dropdown
             name='classLimit'
             multiSelect={true}
@@ -128,10 +128,10 @@ const Spells = () => {
             required={true}
             onChange={{ updateField, removeField }}
           />
-        </Grid.Item>
+        </Grid.Col>
       )}
       {levelLimit && (
-        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+        <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
           <Dropdown
             name='levelLimit'
             label='Level Limit'
@@ -145,10 +145,10 @@ const Spells = () => {
             required={true}
             onChange={{ updateField, removeField }}
           />
-        </Grid.Item>
+        </Grid.Col>
       )}
       {attributeLimit && (
-        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+        <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
           <Dropdown
             name='attributeLimit'
             multiSelect={true}
@@ -160,10 +160,10 @@ const Spells = () => {
             required={true}
             onChange={{ updateField, removeField }}
           />
-        </Grid.Item>
+        </Grid.Col>
       )}
       {subtypeSpecific && formStore.data.__typename === 'Class' && formStore.data?.subtypes?.length && (
-        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+        <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
           <Dropdown
             name='subtype'
             label='Subtype'
@@ -172,12 +172,12 @@ const Spells = () => {
             required={true}
             onChange={{ updateField, removeField }}
           />
-        </Grid.Item>
+        </Grid.Col>
       )}
       {!spellsByLevel && (
         <>
           {' '}
-          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+          <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown
               name='ids'
               multiSelect={true}
@@ -187,9 +187,9 @@ const Spells = () => {
               required={true}
               onChange={{ updateField, removeField }}
             />
-          </Grid.Item>
+          </Grid.Col>
           {castAtLevel && (
-            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
               <Input
                 validation='num'
                 name='spellLevel'
@@ -200,10 +200,10 @@ const Spells = () => {
                 required={true}
                 onChange={{ updateField }}
               />
-            </Grid.Item>
+            </Grid.Col>
           )}
           {optionalAbility && (
-            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
               <Dropdown
                 name='ability'
                 label='Ability'
@@ -212,10 +212,10 @@ const Spells = () => {
                 required={true}
                 onChange={{ updateField, removeField }}
               />
-            </Grid.Item>
+            </Grid.Col>
           )}
           {providesOptions && (
-            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
               <Input
                 validation='num'
                 name={`selectionCount`}
@@ -226,23 +226,23 @@ const Spells = () => {
                 required={true}
                 onChange={{ updateField }}
               />
-            </Grid.Item>
+            </Grid.Col>
           )}
         </>
       )}
       {spellsByLevel && (
         <>
-          <Grid.Item>
+          <Grid.Col>
             <Grid>
-              <Grid.Item colSpan={'auto'}>Level</Grid.Item>
-              <Grid.Item colSpan={'auto'}>Spell</Grid.Item>
-              {castAtLevel && <Grid.Item colSpan={'auto'}>Die Value</Grid.Item>}
+              <Grid.Col >Level</Grid.Col>
+              <Grid.Col >Spell</Grid.Col>
+              {castAtLevel && <Grid.Col >Die Value</Grid.Col>}
             </Grid>
-          </Grid.Item>
+          </Grid.Col>
           {data?.spellsByLevel?.map((setLevel, index) => (
-            <Grid.Item key={index}>
+            <Grid.Col key={index}>
               <Grid>
-                <Grid.Item colSpan={'auto'}>
+                <Grid.Col >
                   <Dropdown
                     name={`spellsByLevel.${index}.level`}
                     value={String(setLevel.level)}
@@ -251,8 +251,8 @@ const Spells = () => {
                     onChange={{ updateField, removeField }}
                     required={true}
                   />
-                </Grid.Item>
-                <Grid.Item colSpan={'auto'}>
+                </Grid.Col>
+                <Grid.Col >
                   <Dropdown
                     name={`spellsByLevel.${index}.spells`}
                     value={setLevel.spells}
@@ -262,9 +262,9 @@ const Spells = () => {
                     required={true}
                     multiSelect={true}
                   />
-                </Grid.Item>
+                </Grid.Col>
                 {castAtLevel && (
-                  <Grid.Item colSpan={'auto'}>
+                  <Grid.Col >
                     <Dropdown
                       name={`spellsByLevel.${index}.spellLevel`}
                       value={String(setLevel.spellLevel)}
@@ -273,22 +273,22 @@ const Spells = () => {
                       onChange={{ updateField, removeField }}
                       required={true}
                     />
-                  </Grid.Item>
+                  </Grid.Col>
                 )}
               </Grid>
-            </Grid.Item>
+            </Grid.Col>
           ))}
         </>
       )}
       {hasPrerequisites && (
-        <Grid.Item>
+        <Grid.Col>
           <Prerequisites formStore={sectionStore} />
-        </Grid.Item>
+        </Grid.Col>
       )}
       {limitUse && (
-        <Grid.Item>
+        <Grid.Col>
           <LimitUse formStore={sectionStore} />
-        </Grid.Item>
+        </Grid.Col>
       )}
     </Grid>
   )

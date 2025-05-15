@@ -1,11 +1,11 @@
-import Collapse from '@/components/Collapse'
+import Collapsible from '@/components/Collapsible'
 import Dropdown from '@/components/Dropdown'
 import { get, startCase } from 'lodash'
 import { feature_card_header, option_dropdown } from '../../../Character.css'
 import { numberToWords } from '@/utils'
 import type { Character, CharacterProficiency, Class } from '@/types'
 import { useGetSections, useGetProficiencies } from '@/hooks'
-import Grid from '@/components/Grid'
+import { Grid } from '@mantine/core'
 import { Fragment, use } from 'react'
 import { FormContext } from '../../../FormContext'
 
@@ -24,10 +24,10 @@ const ClassProficiencies = ({ fullClass, classIndex }: { fullClass: Class; class
   const proficiencies = useGetProficiencies({ fullClass })
 
   return (
-    <Grid.Item>
-      <Collapse>
-        <Collapse.Header title='Proficiencies' className={feature_card_header} />
-        <Collapse.Body>
+    <Grid.Col>
+      <Collapsible>
+        <Collapsible.Trigger title='Proficiencies' className={feature_card_header} />
+        <Collapsible.Content>
           <Grid>
             {proficiencies &&
               Object.entries(proficiencies).map(([key, value], pIndex) => {
@@ -52,7 +52,7 @@ const ClassProficiencies = ({ fullClass, classIndex }: { fullClass: Class; class
 
                       // Render the Dropdown component inside the loop
                       return (
-                        <Grid.Item key={index} justify='center'>
+                        <Grid.Col key={index}>
                           <Dropdown<Character>
                             name={path}
                             className={option_dropdown}
@@ -72,7 +72,7 @@ const ClassProficiencies = ({ fullClass, classIndex }: { fullClass: Class; class
                             }}
                             value={(get(data, path) as CharacterProficiency)?.proficiencyId}
                           />
-                        </Grid.Item>
+                        </Grid.Col>
                       )
                     })
 
@@ -147,19 +147,19 @@ const ClassProficiencies = ({ fullClass, classIndex }: { fullClass: Class; class
 
                   return (
                     <Fragment key={key}>
-                      <Grid.Item key={key}>
+                      <Grid.Col key={key}>
                         <strong>{`${startCase(key)}: `}</strong>
                         {typeText}
-                      </Grid.Item>
+                      </Grid.Col>
                       {selectionCount > 0 && dropdowns()}
                     </Fragment>
                   )
                 }
               })}
           </Grid>
-        </Collapse.Body>
-      </Collapse>
-    </Grid.Item>
+        </Collapsible.Content>
+      </Collapsible>
+    </Grid.Col>
   )
 }
 

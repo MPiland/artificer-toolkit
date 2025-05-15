@@ -14,7 +14,7 @@ const Background = () => {
   if (!background) return <div>Invalid or missing background data</div>
 
   return (
-    <Detail footerSpacing='end' item={background}>
+    <Detail footerSpacing='flex-end' item={background}>
       <div>{background?.desc && parse(background.desc)}</div>
       {background.features?.length &&
         background.features.map((features, index) => (

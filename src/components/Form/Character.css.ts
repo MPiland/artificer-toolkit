@@ -1,8 +1,7 @@
 import { style } from '@vanilla-extract/css'
-import { app } from '../../css/layers.css'
-import { size, space } from '../../css/size.css'
-import { fontSize } from '../../css/typography.css'
-import { theme } from '../../css/theme.css'
+import { app } from '@/css/layers.css'
+import { size, space } from '@/css/size.css'
+import { fontSize } from '@/css/typography.css'
 
 export const option_dropdown = style({
   '@layer': {
@@ -44,8 +43,6 @@ export const main_card = style({
       display: 'flex',
       alignItems: 'center',
       height: '3.5rem',
-      border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.card.border.color.main}`,
-      borderRadius: theme.border.radius,
       cursor: 'default',
 
       selectors: {
@@ -247,8 +244,6 @@ export const ability_card = style({
     [app]: {
       display: 'flex',
       flexDirection: 'column',
-      border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
-      borderRadius: theme.border.radius,
     },
   },
 })
@@ -261,7 +256,6 @@ export const ability_card_header = style({
       alignItems: 'center',
       fontWeight: 'bold',
       padding: `${size['size-2']} ${size['size-3']}`,
-      borderBottom: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
     },
   },
 })
@@ -322,7 +316,6 @@ export const roll_score = style({
       'display': 'flex',
       'alignItems': 'center',
       'justifyContent': 'center',
-      'color': theme.vars.typography.color.main,
       'borderRadius': '.25rem',
       'height': '100%',
       'width': '1.5rem',
@@ -398,8 +391,6 @@ export const point_buy_option_diff = style({
 export const starting_equipment_group_option = style({
   '@layer': {
     [app]: {
-      'border': `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
-      'borderRadius': theme.border.radius,
       'padding': size['size-4'],
       'width': '50%',
 

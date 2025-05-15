@@ -1,23 +1,15 @@
+import '@mantine/core/styles/Popover.layer.css'
+import '@mantine/core/styles/Combobox.layer.css'
 import { useEffect, useState, useRef, useMemo, useCallback, ReactNode } from 'react'
-import {
-  dropdown_container,
-  dropdown_input,
-  dropdown_label,
-  dropdown_active_option,
-  dropdown_right_section,
-  dropdown_wrapper,
-  dropdown_menu,
-  dropdown,
-  dropdown_height,
-  dropdown_border,
-} from './Dropdown.css'
+import { dropdown_option, dropdown_active_icon } from './Dropdown.css'
 import { isEqual, uniqBy } from 'lodash'
-import clsx from 'clsx'
-import { DropdownOption } from './Dropdown.types'
-import { TbX, TbChevronDown } from 'react-icons/tb'
-import ScrollArea from '@/components/ScrollArea'
-import Floating from '@/components/Floating'
-import { DropdownProps } from './Dropdown.types'
+import { DropdownOption, DropdownProps } from './Dropdown.types'
+import { Combobox, useCombobox } from '@mantine/core'
+import DropdownMultiple from './DropdownMultiple'
+import DropdownSingle from './DropdownSingle'
+import { Check } from 'lucide-react'
+import { useClickOutside } from '@mantine/hooks'
+import { ScrollArea } from '@mantine/core'
 
 const Dropdown = <T,>({
   label,
@@ -28,30 +20,32 @@ const Dropdown = <T,>({
   value,
   onChange,
   placeholder,
-  className,
-  errorMsg = 'Must select an option',
-  id,
   all = true,
   height = 'default',
   border = 'default',
-  boundary = 'form',
   disableRemove = false,
+  errorMsg,
 }: DropdownProps<T>) => {
-  const [isOpen, setIsOpen] = useState<boolean>(false)
-  const [error, setError] = useState<boolean>(false)
+  const [error, setError] = useState<string>()
   const [settingOption, setSettingOption] = useState<boolean>(false)
   const [selectedOptions, setSelectedOptions] = useState<string[] | string | null>(null)
 
+  const combobox = useCombobox({
+    onDropdownClose: () => combobox.resetSelectedOption(),
+    onDropdownOpen: () => combobox.updateSelectedOptionIndex('active'),
+  })
   const dropdownRef = useRef<HTMLDivElement | null>(null)
+
+  const ref = useClickOutside(() => combobox.closeDropdown())
 
   useEffect(() => {
     const dropdown = dropdownRef.current
     if (dropdown) {
-      dropdown.addEventListener('setErrorState', (e: any) => setError(e.detail))
+      dropdown.addEventListener('setErrorState', () => setError(errorMsg || 'Please make a selection'))
 
-      return () => dropdown.removeEventListener('setErrorState', (e: any) => setError(e.detail))
+      return () => dropdown.removeEventListener('setErrorState', () => setError(errorMsg || 'Please make a selection'))
     }
-  }, [])
+  }, [errorMsg])
 
   const filteredArray = useCallback(() => {
     if (!options) return []
@@ -130,7 +124,7 @@ const Dropdown = <T,>({
     return selectedOptions
   }, [filteredOptions, selectedOptions])
 
-  const selectedLabels: string | string[] | ReactNode = useMemo(() => {
+  const activeLabels: string | string[] | ReactNode | ReactNode[] = useMemo(() => {
     if (!activeOptions || !filteredOptions?.length) return null
     if (Array.isArray(activeOptions)) {
       return activeOptions.map((id) => {
@@ -144,21 +138,22 @@ const Dropdown = <T,>({
     return filteredOptions.find((opt) => opt.id === activeOptions)?.label
   }, [activeOptions, filteredOptions])
 
-  const handleValueSelect = (option: DropdownOption) => {
+  const handleValueSelect = (optionId: string) => {
+    console.log({ optionId })
     setSettingOption(true)
     if (multiSelect) {
-      let newOptions: string[] | null = [option.id]
-      if (option.id === 'clear') {
+      let newOptions: string[] | null = [optionId]
+      if (optionId === 'clear') {
         newOptions = null
-      } else if (option.id === 'all') {
+      } else if (optionId === 'all') {
         newOptions = ['all']
         const allOptions = filteredOptions.filter((opt) => opt.id !== 'all' && opt.id !== 'clear').map((opt) => opt.id)
         onChange.updateField({ path: name, value: newOptions })
         return setSelectedOptions(allOptions)
       }
       if (newOptions != null && Array.isArray(selectedOptions) && selectedOptions?.length) {
-        if (selectedOptions.includes(option.id)) {
-          newOptions = selectedOptions.filter((selectedOption) => selectedOption !== option.id)
+        if (selectedOptions.includes(optionId)) {
+          newOptions = selectedOptions.filter((selectedOption) => selectedOption !== optionId)
         } else {
           newOptions = [...selectedOptions, ...newOptions]
         }
@@ -167,9 +162,8 @@ const Dropdown = <T,>({
       setSelectedOptions(newOptions)
     } else {
       // If it's a single select, update selectedOptionsRef.current to match selectedOptions
-      setIsOpen(false)
-      setSelectedOptions(option.id)
-      onChange.updateField({ path: name, value: option.id })
+      setSelectedOptions(optionId)
+      onChange.updateField({ path: name, value: optionId })
     }
     setSettingOption(false)
   }
@@ -182,103 +176,65 @@ const Dropdown = <T,>({
     setSettingOption(false)
   }
 
-  const labels =
-    multiSelect && selectedLabels ?
-      (selectedLabels as string[])?.slice(0, 1)?.map((label, index) => {
-        return (
-          <span className={dropdown_active_option} key={index}>
-            {label}
-          </span>
-        )
-      })
-    : []
+  const comboOptions = filteredOptions.map((option, index) => (
+    <Combobox.Option
+      key={option.id}
+      value={option.id}
+      active={multiSelect ? value?.includes(option.id) : value === option.id}
+      className={dropdown_option}
+      onMouseOver={() => combobox.selectOption(index)}
+    >
+      {multiSelect ? value?.includes(option.id) : value === option.id && <Check className={dropdown_active_icon} />}
+      {option.label}
+    </Combobox.Option>
+  ))
 
   return (
-    <div className={clsx(dropdown, { [className]: className })}>
-      <Floating>
-        <div className={dropdown_wrapper}>
-          {label && (
-            <label className={clsx(dropdown_label, { ['required']: required })} htmlFor={id || name}>
-              {label}
-            </label>
-          )}
-          <Floating.Anchor
-            className={clsx(
-              dropdown_container,
-              'dropdown',
-              { ['invalid']: error },
-              dropdown_height[height],
-              dropdown_border[border]
-            )}
-            ref={dropdownRef}
-            tabIndex={0}
-            data-atapp-options={
-              multiSelect ? activeOptions?.length && 'true'
-              : (activeOptions as string[])?.length || activeOptions != null ?
-                'true'
-              : 'false'
-            }
-            id={id || name}
-            aria-required={required}
-          >
-            <span className={clsx(dropdown_input, { ['multiselect']: multiSelect })}>
-              {multiSelect && activeOptions?.length ?
-                <>
-                  {labels}
-                  {activeOptions?.length > 1 && (
-                    <span className={dropdown_active_option}>+{activeOptions?.length - 1} more</span>
-                  )}
-                </>
-              : (selectedLabels ?? placeholder)}
-            </span>
-            <span className={dropdown_right_section}>
-              {activeOptions && !multiSelect ?
-                <TbX
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleValueRemove()
-                  }}
-                />
-              : <TbChevronDown />}
-            </span>
-          </Floating.Anchor>
-        </div>
-        <Floating.Tooltip
-          className={'invalid'}
-          open={error}
-          onOpenChange={setError}
-          role='tooltip'
-          boundary='app'
-          showArrow={true}
-        >
-          {errorMsg}
-        </Floating.Tooltip>
-        <Floating.Menu className={dropdown_menu} boundary={boundary} open={isOpen} onOpenChange={setIsOpen}>
-          <ScrollArea scrollDirection='vertical'>
-            {filteredOptions.map((option: DropdownOption, optionIndex: number) => {
-              const selected =
-                multiSelect ?
-                  (activeOptions as string[])?.some((activeOption) => activeOption === option?.id)
-                : option?.id != null && activeOptions != null && activeOptions === option?.id
+    <Combobox
+      store={combobox}
+      onOptionSubmit={handleValueSelect}
+      position='bottom-start'
+      portalProps={{ target: '#app-shell' }}
+      width='target'
+      offset={8}
+    >
+      {multiSelect ?
+        <DropdownMultiple
+          value={(value as string[]) || []}
+          placeholder={placeholder}
+          handleValueSelect={handleValueSelect}
+          activeLabels={(activeLabels as (string | ReactNode)[]) || []}
+          label={label}
+          required={required}
+          toggleDropdown={() => combobox.toggleDropdown()}
+          closeDropdown={() => combobox.closeDropdown()}
+          height={height}
+          border={border}
+          error={error}
+        />
+      : <DropdownSingle
+          value={value as string}
+          placeholder={placeholder}
+          handleRemoveValue={handleValueRemove}
+          activeLabel={activeLabels as string | ReactNode}
+          label={label}
+          required={required}
+          toggleDropdown={() => combobox.toggleDropdown()}
+          closeDropdown={() => combobox.closeDropdown()}
+          height={height}
+          border={border}
+          error={error}
+        />
+      }
 
-              return (
-                <Floating.Option
-                  option={{
-                    id: option.id,
-                    label: option.label,
-                    value: String(option.value),
-                    renderedLabel: option?.renderedLabel,
-                  }}
-                  key={optionIndex}
-                  selected={selected}
-                  onSelect={(option: DropdownOption) => handleValueSelect(option)}
-                />
-              )
-            })}
-          </ScrollArea>
-        </Floating.Menu>
-      </Floating>
-    </div>
+      <Combobox.Dropdown ref={ref}>
+        <Combobox.Options>
+          <ScrollArea.Autosize mah={136} type='always'>
+            {comboOptions.length ? comboOptions : <Combobox.Empty>No options</Combobox.Empty>}
+          </ScrollArea.Autosize>
+        </Combobox.Options>
+      </Combobox.Dropdown>
+    </Combobox>
   )
 }
 

@@ -3,13 +3,17 @@ import { Suspense } from 'react'
 import Loading from '@/components/Loading'
 
 export const Route = createFileRoute('/_protected')({
-  beforeLoad: async ({ context }) => {
+  beforeLoad: async ({ context, location }) => {
     const { isAuthenticating, user, isLoading } = context.auth
+
+    console.log({ isAuthenticating, user, isLoading })
 
     if (!isAuthenticating && !user && !isLoading) {
       throw redirect({
-        to: '/$auth',
-        params: { auth: 'sign-in' },
+        to: '/login',
+        search: {
+          redirect: location.href,
+        },
       })
     }
   },

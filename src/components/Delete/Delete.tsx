@@ -2,32 +2,33 @@ import { use, useState } from 'react'
 import Input from '@/components/Input'
 import Button from '@/components/Button'
 import { sprinkles } from '@/css/sprinkles.css'
-import Group from '@/components/Group'
-import Grid from '@/components/Grid'
-import Modal, { ModalContext } from '@/components/Modal'
+import Modal, { ModalContext, type DeleteModalProps } from '@/components/Modal'
+import { Group, Grid } from '@mantine/core'
 
 const Delete = () => {
   const { modalProps, hideModal } = use(ModalContext)
   const [deleteState, setDeleteState] = useState<string>('')
 
+  const { label, onDelete } = modalProps as DeleteModalProps
+
   const handleSubmit = () => {
     if (deleteState === 'DELETE') {
-      modalProps.onDelete()
+      onDelete()
       hideModal()
     }
   }
 
   return (
     <Modal.Dialogue size='xs'>
-      <Modal.Header title={`Delete ${modalProps.item.label}`} onClose={hideModal} />
+      <Modal.Header title={`Delete ${label}`} onClose={hideModal} />
       <Modal.Content>
         <Grid>
-          <Grid.Item>
+          <Grid.Col>
             <p className={sprinkles({ mb: 'space-2' })}>
               {`Type`} <strong>{`DELETE`}</strong> {`and press 'Submit' to confirm`}
             </p>
-          </Grid.Item>
-          <Grid.Item>
+          </Grid.Col>
+          <Grid.Col>
             <Input<{ deleteItem: string }>
               name='deleteItem'
               onChange={{ updateField: ({ value }) => setDeleteState(value) }}
@@ -35,11 +36,11 @@ const Delete = () => {
               errorMsg='Must type DELETE exactly'
               id='delete_input'
             />
-          </Grid.Item>
+          </Grid.Col>
         </Grid>
       </Modal.Content>
       <Modal.Footer>
-        <Group directionVariant='row' justifyContentVariant='spaceBetween'>
+        <Group justify='space-between' grow>
           <Button color='main' type='button' onClick={hideModal}>
             Cancel
           </Button>

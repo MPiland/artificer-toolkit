@@ -11,7 +11,15 @@ const Classes = () => {
   const footerConfigs: FooterConfig<ClassMeta>[] = [
     {
       icon: <ICategory />,
-      text: [{ metaPath: 'categories', source: { type: 'system', sourcePath: 'categories' } }],
+      text: {
+        metaObject: 'categories',
+        paths: [
+          {
+            path: 'id',
+            source: { type: 'system', sourcePath: 'categories' },
+          },
+        ],
+      },
       value: 'Category',
     },
   ]

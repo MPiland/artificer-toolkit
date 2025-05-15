@@ -2,7 +2,7 @@ import { TbCaretDown, TbCaretUp, TbSquareMinus, TbSquarePlus } from 'react-icons
 import { useState, ReactNode, useRef, useEffect, cloneElement, Children, ReactElement } from 'react'
 import { tabs_tab, tabs_body, tabs_wrapper, tabs_tab_icon, tabs_content, tabs_header } from './Tabs.css'
 import { clsx } from 'clsx'
-import Group from '@/components/Group'
+import { Group } from '@mantine/core'
 
 interface HeaderProps {
   children?: ReactNode

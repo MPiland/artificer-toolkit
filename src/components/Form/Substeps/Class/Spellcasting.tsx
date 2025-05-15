@@ -1,8 +1,8 @@
-import Collapse from '@/components/Collapse'
+import Collapsible from '@/components/Collapsible'
 import Input from '@/components/Input'
 import Dropdown from '@/components/Dropdown'
 import { Attributes, Measurements, Classes } from '@/enums'
-import Grid from '@/components/Grid'
+import { Grid } from '@mantine/core'
 import { useEnumChecks, useSystemData } from '@/hooks'
 import type { OnChange, Class } from '@/types'
 
@@ -20,12 +20,12 @@ const Spellcasting = ({
   const { magicName, preparesSpells } = useEnumChecks({ data })
 
   return (
-    <Grid.Item>
-      <Collapse>
-        <Collapse.Header startOpened={data.id == null} title={'Spellcaster Attributes'} />
-        <Collapse.Body>
+    <Grid.Col>
+      <Collapsible defaultOpen={data.id == null}>
+        <Collapsible.Trigger title={'Spellcaster Attributes'} />
+        <Collapsible.Content>
           <Grid>
-            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
               <Dropdown
                 name='spellcasting.ability'
                 label='Spellcasting Ability'
@@ -34,8 +34,8 @@ const Spellcasting = ({
                 options={abilities}
                 onChange={{ updateField, removeField }}
               />
-            </Grid.Item>
-            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            </Grid.Col>
+            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
               <Dropdown
                 name='spellcasting.attributes'
                 label='Spell Casting Attributes'
@@ -44,9 +44,9 @@ const Spellcasting = ({
                 options={attributes.filter((attributes) => attributes?.classes?.includes(Classes.SPELLCASTER))}
                 onChange={{ updateField, removeField }}
               />
-            </Grid.Item>
+            </Grid.Col>
             {magicName && (
-              <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+              <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                 <Input
                   name='spellcasting.magicName'
                   autoComplete='off'
@@ -55,25 +55,26 @@ const Spellcasting = ({
                   value={data?.spellcasting?.magicName}
                   onChange={{ updateField }}
                 />
-              </Grid.Item>
+              </Grid.Col>
             )}
             {preparesSpells && (
               <>
-                <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                   <Dropdown
                     name='spellcasting.prepareLimit.methods'
                     label='Prepare Limit Method'
                     multiSelect={true}
                     value={data?.spellcasting?.prepareLimit?.methods}
                     options={attributes.filter(
-                      (attributes) => attributes?.classes?.length && attributes?.classes?.includes(Classes.PREPARE_LIMIT)
+                      (attributes) =>
+                        attributes?.classes?.length && attributes?.classes?.includes(Classes.PREPARE_LIMIT)
                     )}
                     onChange={{ updateField, removeField }}
                   />
-                </Grid.Item>
+                </Grid.Col>
                 {data?.spellcasting?.prepareLimit?.methods?.some((method) => method === Attributes.CLASS_LEVEL) && (
                   <>
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                       <Dropdown
                         name='spellcasting.prepareLimit.level.measurement'
                         label='Level Measurement'
@@ -81,9 +82,9 @@ const Spellcasting = ({
                         options={rules.measurements.amount}
                         onChange={{ updateField, removeField }}
                       />
-                    </Grid.Item>
+                    </Grid.Col>
                     {data?.spellcasting?.prepareLimit?.level?.measurement === Measurements.HALF && (
-                      <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                      <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                         <Dropdown
                           name='spellcasting.prepareLimit.level.rounding'
                           label='Level Rounding'
@@ -91,13 +92,13 @@ const Spellcasting = ({
                           options={rules.measurements.rounding}
                           onChange={{ updateField, removeField }}
                         />
-                      </Grid.Item>
+                      </Grid.Col>
                     )}
                   </>
                 )}
               </>
             )}
-            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
               <Input
                 name='spellcasting.maxSpellLevel'
                 autoComplete='off'
@@ -108,8 +109,8 @@ const Spellcasting = ({
                 errorMsg='Must contain whole numbers only'
                 onChange={{ updateField }}
               />
-            </Grid.Item>
-            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            </Grid.Col>
+            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
               <Dropdown
                 name='spellcasting.charges.reset'
                 label='Spellslot Reset Option'
@@ -120,11 +121,11 @@ const Spellcasting = ({
                 required={true}
                 onChange={{ updateField, removeField }}
               />
-            </Grid.Item>
+            </Grid.Col>
           </Grid>
-        </Collapse.Body>
-      </Collapse>
-    </Grid.Item>
+        </Collapsible.Content>
+      </Collapsible>
+    </Grid.Col>
   )
 }
 

@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { progress_tab, progress_step, progress_line, progress_step_container } from './ProgressBar.css'
 import clsx from 'clsx'
-import ScrollArea from '@/components/ScrollArea'
 import { validateForm } from '../Form.utils'
 import { isEqual } from 'lodash'
 import { use } from 'react'
@@ -10,9 +9,9 @@ import { FeatureContext } from '../Features'
 import { LoadingContext } from '@/components/Loading'
 import { useEnumChecks } from '@/hooks'
 import type { FormDataType } from '@/types'
-import Grid from '@/components/Grid'
 import { ModalContext } from '@/components/Modal'
 import { Navigate } from '@tanstack/react-router'
+import { Grid, ScrollArea } from '@mantine/core'
 
 const ProgressBar = () => {
   const { showModal } = use(ModalContext)
@@ -147,14 +146,8 @@ const ProgressBar = () => {
   }
 
   return (
-    <Grid.Item className={progress_tab} ref={containerRef}>
-      <ScrollArea
-        scrollDirection='horizontal'
-        visibility='hidden'
-        className={progress_step_container}
-        ref={stepsContainerRef}
-        arrows={true}
-      >
+    <Grid.Col className={progress_tab} ref={containerRef}>
+      <ScrollArea scrollbars='x' className={progress_step_container} ref={stepsContainerRef}>
         <div
           className={clsx(progress_line, {
             ['disabled']: isLoading,
@@ -183,7 +176,7 @@ const ProgressBar = () => {
           </div>
         ))}
       </ScrollArea>
-    </Grid.Item>
+    </Grid.Col>
   )
 }
 

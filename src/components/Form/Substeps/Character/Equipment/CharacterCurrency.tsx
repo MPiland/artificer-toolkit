@@ -1,6 +1,6 @@
 import { Fragment, use, useEffect } from 'react'
-import Collapse from '@/components/Collapse'
-import Grid from '@/components/Grid'
+import Collapsible from '@/components/Collapsible'
+import { Grid } from '@mantine/core'
 import { FormContext } from '../../../FormContext'
 import { sprinkles } from '@/css/sprinkles.css'
 import { useMediaQuery } from 'usehooks-ts'
@@ -80,21 +80,21 @@ const CharacterCurrency = () => {
   )
 
   return (
-    <Grid.Item>
-      <Collapse>
-        <Collapse.Header title='Currency' rightSide={!sm && currencyTotalsTitle} />
-        <Collapse.Body>
+    <Grid.Col>
+      <Collapsible>
+        <Collapsible.Trigger title='Currency' titleRight={!sm && currencyTotalsTitle} />
+        <Collapsible.Content>
           <Grid>
-            <Grid.Item colSpan={6}>
+            <Grid.Col span={6}>
               <h3>
                 <u>Currency</u>
               </h3>
-            </Grid.Item>
-            <Grid.Item colSpan={6}>
+            </Grid.Col>
+            <Grid.Col span={6}>
               <h3>
                 <u>Total</u>
               </h3>
-            </Grid.Item>
+            </Grid.Col>
             {data?.currencyGroups
               ?.filter((group) => group.container == null)
               .flatMap((group) => group.currencies)
@@ -102,22 +102,22 @@ const CharacterCurrency = () => {
                 const currencyLabel = currencies.findCurrency(currency?.id)?.label
                 return (
                   <Fragment key={index}>
-                    <Grid.Item colSpan={6}>{currencyLabel}</Grid.Item>
-                    <Grid.Item colSpan={6}>
+                    <Grid.Col span={6}>{currencyLabel}</Grid.Col>
+                    <Grid.Col span={6}>
                       <Input
                         name={`currencyGroups.${baglessIndex}.currencies.${index}.amount`}
                         value={currency?.amount}
                         onChange={{ updateField }}
                         type='cur'
                       />
-                    </Grid.Item>
+                    </Grid.Col>
                   </Fragment>
                 )
               })}
           </Grid>
-        </Collapse.Body>
-      </Collapse>
-    </Grid.Item>
+        </Collapsible.Content>
+      </Collapsible>
+    </Grid.Col>
   )
 }
 export default CharacterCurrency

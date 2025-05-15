@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
 import { generateClient, type GraphQLResult } from 'aws-amplify/data'
-import { getFeat, getMasterFeat, listFeats, listMasterFeats } from '../../amplify/gql/queries'
+import { getFeat, getMasterFeat, listFeats, listMasterFeats } from '../../gql/queries'
 import {
   createFeat,
   createMasterFeat,
@@ -8,7 +8,7 @@ import {
   deleteMasterFeat,
   updateFeat,
   updateMasterFeat,
-} from '../../amplify/gql/mutations'
+} from '../../gql/mutations'
 import type {
   Feat,
   QueryListMasterFeatsArgs,

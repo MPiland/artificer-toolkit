@@ -1,7 +1,7 @@
 import { get } from 'lodash'
 import { useCallback } from 'react'
-import type { DeepKeyOf, ListItemType, MetaDataType } from '@/types'
-import type { FooterArray, FooterObject, FooterConfig } from '@/components/List'
+import type { ListItemType, MetaDataType } from '@/types'
+import type { FooterObject, FooterConfig, FooterPathObject, FooterPath } from '@/components/List'
 import type { DropdownOption } from '@/components/Dropdown'
 import { useSystemData, useClassData } from '@/hooks'
 import { extractLookupData, getLabelFromId } from '@/utils'
@@ -36,7 +36,7 @@ const useMetaData = <T extends MetaDataType, K extends keyof T, U extends ListIt
         case 'system':
           return system
         case 'classes':
-          return classes
+          return classes.all
         default:
           return null
       }
@@ -104,113 +104,132 @@ const useMetaData = <T extends MetaDataType, K extends keyof T, U extends ListIt
     [metaData, getSourceData]
   )
 
-  const createItemLabel = ({
-    item,
-    stateId,
-    metaDataTypename,
-  }: {
-    item: FooterObject<T>
-    stateId: string
-    metaDataTypename: MetaDataType['__typename']
-  }) => {
-    const itemId = metaDataIdFieldMap[metaDataTypename]
-    // Get the path and subpath with proper typing
-    const metaPath = item.metaPath as K
-    const subMetaPath = item.subMetaPath as NonNullable<T[K]> extends Array<infer U> ? DeepKeyOf<NonNullable<U>> : never
+  const isPathObject = (pathObject: any): pathObject is FooterPathObject<T, K> => {
+    return pathObject && typeof pathObject === 'object' && 'subPaths' in pathObject
+  }
 
-    // Get the metadata for this path with proper typing
-    const metaItems = metaData && (metaData[metaPath] as MetaDataItem[])
+  const resolvePathLabel = ({
+    pathObject,
+    metaObject,
+    stateId,
+  }: {
+    pathObject: FooterPathObject<T, K> | FooterPath<T, K>
+    metaObject: keyof T
+    stateId: string
+  }): string | null => {
+    if (!metaData) return null
+    const itemId = metaDataIdFieldMap[metaData.__typename]
+    const metaItems = metaData[metaObject]
     if (!metaItems || !Array.isArray(metaItems)) return null
 
-    // Find metadata items that reference the current state item
-    const metaItem = metaItems.find((metaItem) => metaItem[itemId].length && metaItem[itemId].includes(stateId))
+    // Use filter to gather all relevant meta items for the given stateId
+    const relevantMetaItems = metaItems.filter((m) => m[itemId]?.includes?.(stateId))
+    if (relevantMetaItems.length === 0) return null
 
-    if (!metaItem) return null
+    let label: string = ''
+    const groupValues = relevantMetaItems.map((relevantMeta) => {
+      // Resolve the value for the primary path
+      const value = relevantMeta[pathObject.path]
 
-    if (item.source) {
-      // Otherwise, get source data and find labels
-      const sourceData = getSourceData(item.source.type)
-      if (!sourceData) return null
+      // If there's a source field, resolve it
+      if (pathObject.source) {
+        const sourceData = getSourceData(pathObject.source.type)
+        const rawData = pathObject.source.sourcePath ? get(sourceData, pathObject.source.sourcePath) : sourceData
 
-      // If we have a field or path, look in that specific field/path of the source data
-      const rawData = item.source.sourcePath ? get(sourceData, item.source.sourcePath) : sourceData
-      if (!rawData) return null
+        const lookupData = extractLookupData(rawData)
+        return getLabelFromId({ id: value, lookupData, labelKey: pathObject.source.labelKey })
+      }
+      return get(relevantMeta, pathObject.path)
+    })
 
-      const labelKey = item.source?.labelKey
+    const filteredValues = groupValues.filter(Boolean)
 
-      const lookupData = extractLookupData(rawData)
+    if (filteredValues.length && filteredValues.length > 1) {
+      label = filteredValues.join(', ')
+    } else if (filteredValues.length === 1) {
+      label = `${filteredValues.join('')} `
+    }
 
-      if (lookupData.length) {
-        const label = getLabelFromId(metaItem.id, lookupData, labelKey)
-        if (item.subMetaPath) {
-          const subLabel = metaItem[subMetaPath]
-          return `${subLabel} ${label}`
-        } else {
-          return label
+    // If there is a subPath array, process that next
+    let subGroupLabel: string = ''
+    if (isPathObject(pathObject)) {
+      if (pathObject?.subPaths && pathObject?.subPaths?.length) {
+        const subGroupValues = pathObject.subPaths.map((subPath) => {
+          // If subPath object is nested array
+          if (Array.isArray(subPath)) {
+            let subPathGroupIsInvalid = false
+            const subLabels: string[] = []
+            for (const subPathItem of subPath) {
+              const subLabel = resolvePathLabel({ pathObject: subPathItem, metaObject, stateId })
+              if (subPathItem.dependents && (!subLabel || subLabel === '')) {
+                subPathGroupIsInvalid = true
+                break
+              }
+              if (subLabel && subLabel !== '') {
+                subLabels.push(subLabel)
+              }
+            }
+            if (subLabels.length && !subPathGroupIsInvalid) {
+              return subLabels.join(' ')
+            }
+            return null
+          }
+          return resolvePathLabel({ pathObject: subPath, metaObject, stateId })
+        })
+
+        if (subGroupValues.length) {
+          subGroupLabel = subGroupValues.filter(Boolean).join(' / ')
+          label += subGroupLabel
         }
       }
     }
 
-    return null
+    // If we have multiple group values, join them with ", "
+    return label
+  }
+
+  type CreateItemLabelParams = {
+    metaObjects: FooterObject<T>[] | FooterObject<T>
+    stateId: string
+  }
+
+  const createItemLabel = ({ metaObjects, stateId }: CreateItemLabelParams): string => {
+    const items = Array.isArray(metaObjects) ? metaObjects : [metaObjects]
+
+    const itemLabels = items.map((item) => {
+      let groupIsInvalid = false
+      const pathLabels: string[] = []
+
+      for (const pathObject of item.paths) {
+        const label = resolvePathLabel({
+          pathObject,
+          metaObject: item.metaObject as keyof T,
+          stateId,
+        })
+
+        if (pathObject.dependents && (!label || label === '')) {
+          groupIsInvalid = true
+          break
+        }
+
+        if (label) pathLabels.push(label)
+      }
+
+      return groupIsInvalid ? '' : pathLabels.join(' ')
+    })
+
+    return itemLabels.filter(Boolean).join(' / ')
   }
 
   const getSourceText = ({ footer, state }: { footer: FooterConfig<T>; state: U }): string => {
-    // Process a single item or array of items
-    const processItem = ({
-      item,
-      state,
-    }: {
-      item: FooterObject<T> | FooterArray<T> | FooterArray<T>[]
-      state: U
-    }): string | null | undefined => {
-      if (!item || !state || !metaData) {
-        return null
-      }
-
-      // Handle array case
-      if (Array.isArray(item)) {
-        let label: string = ''
-        item.forEach((nestedItem, index) => {
-          if (Array.isArray(nestedItem)) {
-            let result = processItem({ item: nestedItem, state })
-            if (result && index !== item.length - 1) {
-              result += ' / '
-            }
-            label += result
-          } else {
-            let result = createItemLabel({
-              item: nestedItem,
-              stateId: state.id,
-              metaDataTypename: metaData.__typename,
-            })
-            if (result && index !== item.length - 1) {
-              result += ' '
-            }
-            label += result
-          }
-        })
-        if (label != null && label !== '') {
-          return label
-        }
-        return null
-      }
-      // Handle object case
-      else {
-        return createItemLabel({
-          item,
-          stateId: state.id,
-          metaDataTypename: metaData.__typename,
-        })
-      }
-    }
-
     // If there's a footer item to process, process the text
     if (footer && footer.text) {
-      const result = processItem({
-        item: footer.text,
-        state,
+      const result = createItemLabel({
+        metaObjects: footer.text,
+        stateId: state.id,
       })
-      if (result) {
+
+      if (result != null) {
         return result
       }
       return '---'

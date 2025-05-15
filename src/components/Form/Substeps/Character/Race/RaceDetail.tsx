@@ -1,12 +1,11 @@
 import parse from 'html-react-parser'
-import Collapse from '@/components/Collapse'
+import Collapsible from '@/components/Collapsible'
 import { Categories } from '@/enums'
-import Grid from '@/components/Grid'
 import { useGetFeatures, useRaceData } from '@/hooks'
 import { use } from 'react'
 import { FormContext } from '../../../FormContext'
 import Modal from '@/components/Modal'
-import ScrollArea from '@/components/ScrollArea'
+import { Grid, ScrollArea } from '@mantine/core'
 import Button from '@/components/Button'
 import type { FormStore } from '@/store'
 import type { OnChange, Character, RaceListItem } from '@/types'
@@ -45,27 +44,27 @@ const RaceDetail = ({ race, setRace }: { race: RaceListItem; setRace: () => void
         <Modal.Content>
           <ScrollArea>
             <Grid>
-              <Grid.Item>
+              <Grid.Col>
                 {fullRace?.details?.length && fullRace?.details[0].desc && parse(fullRace?.details[0].desc)}
-              </Grid.Item>
+              </Grid.Col>
               {raceLineages?.length &&
                 raceLineages?.map((race, index) => (
-                  <Grid.Item key={index}>
+                  <Grid.Col key={index}>
                     {race?.details?.length && race?.details[0].desc && parse(race?.details[0].desc)}
-                  </Grid.Item>
+                  </Grid.Col>
                 ))}
               {fullRace?.category === Categories.SUBRACE && (
-                <Grid.Item>{fullRace?.desc && parse(fullRace?.desc)}</Grid.Item>
+                <Grid.Col>{fullRace?.desc && parse(fullRace?.desc)}</Grid.Col>
               )}{' '}
               F
               {fullRace?.traits?.details?.length &&
                 fullRace.traits.details.map((detail, index) => (
-                  <Grid.Item key={index}>
-                    <Collapse key={index}>
-                      <Collapse.Header title={detail.label} startOpened={true} />
-                      <Collapse.Body>{detail.desc && parse(detail.desc)}</Collapse.Body>
-                    </Collapse>
-                  </Grid.Item>
+                  <Grid.Col key={index}>
+                    <Collapsible key={index}>
+                      <Collapsible.Trigger title={detail.label} />
+                      <Collapsible.Content>{detail.desc && parse(detail.desc)}</Collapsible.Content>
+                    </Collapsible>
+                  </Grid.Col>
                 ))}
               {raceLineages?.length &&
                 raceLineages?.map((r) => {
@@ -73,12 +72,12 @@ const RaceDetail = ({ race, setRace }: { race: RaceListItem; setRace: () => void
                   return (
                     race?.traits?.details?.length &&
                     race.traits.details.map((detail, index) => (
-                      <Grid.Item key={index}>
-                        <Collapse key={index}>
-                          <Collapse.Header title={detail.label} startOpened={true} />
-                          <Collapse.Body>{detail.desc && parse(detail.desc)}</Collapse.Body>
-                        </Collapse>
-                      </Grid.Item>
+                      <Grid.Col key={index}>
+                        <Collapsible key={index}>
+                          <Collapsible.Trigger title={detail.label} />
+                          <Collapsible.Content>{detail.desc && parse(detail.desc)}</Collapsible.Content>
+                        </Collapsible>
+                      </Grid.Col>
                     ))
                   )
                 })}
@@ -96,20 +95,20 @@ const RaceDetail = ({ race, setRace }: { race: RaceListItem; setRace: () => void
                     }
                   })
                   .map((feature, index) => (
-                    <Grid.Item key={index}>
-                      <Collapse key={index}>
-                        <Collapse.Header title={feature?.label || `Feature (${index})`} startOpened={true} />
-                        <Collapse.Body>{feature.desc && parse(feature.desc)}</Collapse.Body>
-                      </Collapse>
-                    </Grid.Item>
+                    <Grid.Col key={index}>
+                      <Collapsible key={index} defaultOpen={true}>
+                        <Collapsible.Trigger title={feature?.label || `Feature (${index})`} />
+                        <Collapsible.Content>{feature.desc && parse(feature.desc)}</Collapsible.Content>
+                      </Collapsible>
+                    </Grid.Col>
                   ))}
               {ancestry && (
-                <Grid.Item>
-                  <Collapse>
-                    <Collapse.Header title={ancestry.label} startOpened={true} />
-                    <Collapse.Body>{ancestry.desc && parse(ancestry.desc)}</Collapse.Body>
-                  </Collapse>
-                </Grid.Item>
+                <Grid.Col>
+                  <Collapsible defaultOpen={true}>
+                    <Collapsible.Trigger title={ancestry.label} />
+                    <Collapsible.Content>{ancestry.desc && parse(ancestry.desc)}</Collapsible.Content>
+                  </Collapsible>
+                </Grid.Col>
               )}
             </Grid>
           </ScrollArea>

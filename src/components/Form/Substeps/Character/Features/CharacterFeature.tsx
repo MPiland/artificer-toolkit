@@ -1,7 +1,7 @@
 import { use } from 'react'
 import { FormContext } from '../../../FormContext'
-import Grid from '@/components/Grid'
-import Collapse from '@/components/Collapse'
+import { Grid } from '@mantine/core'
+import Collapsible from '@/components/Collapsible'
 import { Attributes, Categories } from '@/enums'
 import { feature_card_header, option_dropdown } from '../../../Character.css'
 import parse from 'html-react-parser'
@@ -49,16 +49,16 @@ const CharacterFeature = ({ uClass, feature, classIndex, raceId, backgroundId }:
   const subclass = findClass(uClass?.subclass?.id)
 
   return (
-    <Grid.Item>
-      <Collapse>
-        <Collapse.Header title={headerTitle} className={feature_card_header} />
-        <Collapse.Body>
+    <Grid.Col>
+      <Collapsible>
+        <Collapsible.Trigger title={headerTitle} className={feature_card_header} />
+        <Collapsible.Content>
           <Grid>
             {feature.category === Categories.SUBCLASS && feature?.detail && parse(feature?.detail)}
             {feature.desc && parse(feature.desc)}
             {feature.category === Categories.SUBCLASS && uClass && classIndex && subclasses?.length && (
               <>
-                <Grid.Item justify='center'>
+                <Grid.Col>
                   <Dropdown
                     name={`classes.${classIndex}.subclass.id`}
                     className={option_dropdown}
@@ -67,9 +67,9 @@ const CharacterFeature = ({ uClass, feature, classIndex, raceId, backgroundId }:
                     onChange={{ updateField, removeField }}
                     value={uClass?.subclass?.id}
                   />
-                </Grid.Item>
+                </Grid.Col>
                 {subclass?.subtypes?.length && (
-                  <Grid.Item justify='center'>
+                  <Grid.Col>
                     <Dropdown
                       name={`classes.${classIndex}.subclass.subtype`}
                       className={option_dropdown}
@@ -78,7 +78,7 @@ const CharacterFeature = ({ uClass, feature, classIndex, raceId, backgroundId }:
                       onChange={{ updateField, removeField }}
                       value={uClass?.subclass?.subtype}
                     />
-                  </Grid.Item>
+                  </Grid.Col>
                 )}
               </>
             )}
@@ -114,7 +114,7 @@ const CharacterFeature = ({ uClass, feature, classIndex, raceId, backgroundId }:
                 if (option) {
                   return (
                     <>
-                      <Grid.Item justify='center'>{option?.desc && <div>{parse(option.desc)}</div>}</Grid.Item>
+                      <Grid.Col>{option?.desc && <div>{parse(option.desc)}</div>}</Grid.Col>
                       {sectionSteps.map(
                         (sectionStep) =>
                           option?.[sectionStep]?.length &&
@@ -141,9 +141,9 @@ const CharacterFeature = ({ uClass, feature, classIndex, raceId, backgroundId }:
               }
             })()}
           </Grid>
-        </Collapse.Body>
-      </Collapse>
-    </Grid.Item>
+        </Collapsible.Content>
+      </Collapsible>
+    </Grid.Col>
   )
 }
 export default CharacterFeature

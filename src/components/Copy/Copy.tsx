@@ -3,29 +3,48 @@ import { startCase } from 'lodash'
 import Dropdown from '@/components/Dropdown'
 import Button from '@/components/Button'
 import { sprinkles } from '@/css/sprinkles.css'
-import type { FeatureDataType, FormDataType, Equipment, Class, Race, DeepKeyOf } from '@/types'
-import Grid from '@/components/Grid'
-import Modal, { ModalContext } from '@/components/Modal'
+import type {
+  FeatureDataType,
+  FormDataType,
+  EquipmentListItem,
+  ClassListItem,
+  RaceListItem,
+  BackgroundListItem,
+  FeatListItem,
+  DeepKeyOf,
+} from '@/types'
+import Modal, { ModalContext, type CopyModalProps } from '@/components/Modal'
+import { Grid } from '@mantine/core'
 
-type Selection = {
-  filter?: Race['id'] | Class['id'] | Equipment['id']
-  filterBy?: keyof Filters
-  option?: FeatureDataType['id'] | FormDataType['id']
+type ValidFilterBy = 'races' | 'classes' | 'equipment' | 'backgrounds' | 'feats'
+
+type DataItem = {
+  id: string
+  label: string
+  value: string
+  raceIds?: string[]
+  classIds?: string[]
+  equipmentIds?: string[]
+  featIds?: string[]
+  backgroundIds?: string[]
 }
 
-type Filters = {
-  races?: Race[]
-  classes?: Class[]
-  equipment?: Equipment[]
+type Selection = {
+  filter?:
+    | RaceListItem['id']
+    | ClassListItem['id']
+    | EquipmentListItem['id']
+    | BackgroundListItem['id']
+    | FeatListItem['id']
+  filterBy?: ValidFilterBy
+  option?: FeatureDataType['id'] | FormDataType['id']
 }
 
 const Copy = () => {
   const { modalProps, hideModal } = use(ModalContext)
   const [selection, setSelection] = useState<Selection>()
 
-  const form = modalProps.form
-  const data: FormDataType[] | FeatureDataType[] = modalProps.data
-  const filters: Filters = modalProps.filters
+  const { form, data, filters, onCopy } = modalProps as CopyModalProps
 
   const handleOnChange = {
     updateField: ({ value, path }: { value: any; path: DeepKeyOf<typeof selection> }) => {
@@ -45,28 +64,47 @@ const Copy = () => {
         })
       )
     } else {
-      modalProps.onCopy(selection?.option)
+      onCopy(selection?.option)
       hideModal()
     }
   }
 
-  const filterByOptions: (keyof Filters)[] = Object.keys(filters) as (keyof Filters)[]
+  const filterBy = useMemo(() => selection?.filterBy, [selection])
+  const filterId = useMemo(() => selection?.filter, [selection])
 
-  const filterOptions = filters[selection?.filterBy as keyof Filters] || []
+  const filterByOptions = useMemo(() => {
+    return (filters ? Object.keys(filters) : []) as (keyof NonNullable<CopyModalProps['filters']>)[]
+  }, [filters])
 
-  const filterData = useMemo(() => {
-    const dataArray =
-      selection?.filterBy ?
-        filters[selection?.filterBy as keyof Filters]?.find((item) => item.id === selection?.filter)?.features || []
-      : data
-    return dataArray
-      ?.filter((item) => item.label != null && item.value != null)
-      ?.map((item) => ({
-        id: item.id,
-        label: item.label || String(item.id),
-        value: item.value || item.id,
-      }))
-  }, [data, filters, selection])
+  const filterOptions = useMemo(() => (filterBy && filters?.[filterBy]) || [], [filters, filterBy])
+
+  const filterMap: Record<
+    ValidFilterBy,
+    keyof Pick<DataItem, 'raceIds' | 'classIds' | 'equipmentIds' | 'backgroundIds' | 'featIds'>
+  > = useMemo(
+    () => ({
+      races: 'raceIds',
+      classes: 'classIds',
+      equipment: 'equipmentIds',
+      backgrounds: 'backgroundIds',
+      feats: 'featIds',
+    }),
+    []
+  )
+
+  const copyData = useMemo(
+    () =>
+      data?.length ?
+        data.filter((item) => {
+          if (!filterBy) return true
+          const key = filterMap[filterBy as ValidFilterBy] // filterBy is now strictly checked
+          const list = item[key]
+          if (!Array.isArray(list)) return false
+          return filterId ? list.includes(filterId) : list.length > 0
+        })
+      : [],
+    [data, filterBy, filterId, filterMap]
+  )
 
   return (
     <Modal.Dialogue size='sm'>
@@ -75,7 +113,7 @@ const Copy = () => {
         <Grid>
           {filters && (
             <>
-              <Grid.Item colSpan={6}>
+              <Grid.Col span={6}>
                 <Dropdown<typeof selection>
                   options={filterByOptions.map((key) => ({
                     label: key,
@@ -88,9 +126,9 @@ const Copy = () => {
                   boundary='app'
                   onChange={handleOnChange}
                 />
-              </Grid.Item>
+              </Grid.Col>
               {selection?.filterBy && (
-                <Grid.Item colSpan={6}>
+                <Grid.Col span={6}>
                   <Dropdown<typeof selection>
                     options={filterOptions}
                     name='filter'
@@ -99,13 +137,13 @@ const Copy = () => {
                     boundary='app'
                     onChange={handleOnChange}
                   />
-                </Grid.Item>
+                </Grid.Col>
               )}
             </>
           )}
-          <Grid.Item colSpan={8}>
+          <Grid.Col span={8}>
             <Dropdown<typeof selection>
-              options={filterData}
+              options={copyData}
               name='option'
               value={selection?.option}
               className={sprinkles({ flex: '1', me: 'space-3' })}
@@ -113,12 +151,12 @@ const Copy = () => {
               boundary='app'
               onChange={handleOnChange}
             />
-          </Grid.Item>
-          <Grid.Item colSpan={2}>
-            <Button color='primary' onClick={handleCopy}>
+          </Grid.Col>
+          <Grid.Col span={2}>
+            <Button onClick={handleCopy}>
               Copy
             </Button>
-          </Grid.Item>
+          </Grid.Col>
         </Grid>
       </Modal.Content>
     </Modal.Dialogue>

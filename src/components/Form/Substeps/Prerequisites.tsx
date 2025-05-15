@@ -1,15 +1,13 @@
 import { sprinkles } from '@/css/sprinkles.css'
 import Dropdown from '@/components/Dropdown'
-import Divider from '@/components/Divider'
 import Input from '@/components/Input'
-import Group from '@/components/Group'
 import Button from '@/components/Button'
 import { row_button } from '../Form.css'
 import { TbPlus, TbX } from 'react-icons/tb'
 import { use, useEffect, useMemo } from 'react'
-import Collapse from '@/components/Collapse'
+import Collapsible from '@/components/Collapsible'
 import type { FormDataType, FeatureDataType, SectionDataType, OnChange, Character, Feat, Spell } from '@/types'
-import Grid from '@/components/Grid'
+import { Grid, Group, Divider } from '@mantine/core'
 import { FormContext } from '../FormContext'
 import { useSystemData, useSpellData, useEquipmentData, useEnumChecks } from '@/hooks'
 import type { FormStore } from '@/store'
@@ -113,14 +111,14 @@ const Prerequisites = ({
   }, [featuresObtainedOptions, data?.prerequisites?.featuresObtained])
 
   return (
-    <Grid.Item>
-      <Collapse>
-        <Collapse.Header title='Prerequisites' />
-        <Collapse.Body>
+    <Grid.Col>
+      <Collapsible>
+        <Collapsible.Trigger title='Prerequisites' />
+        <Collapsible.Content>
           <Grid>
-            <Grid.Item>
+            <Grid.Col>
               <Grid>
-                <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                   <Dropdown
                     multiSelect={true}
                     name='prerequisites.options'
@@ -135,9 +133,9 @@ const Prerequisites = ({
                     required={true}
                     onChange={{ updateField, removeField }}
                   />
-                </Grid.Item>
+                </Grid.Col>
                 {spellsObtained && (
-                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                     <Dropdown
                       multiSelect={true}
                       name='prerequisites.spellsObtained'
@@ -146,10 +144,10 @@ const Prerequisites = ({
                       options={spells}
                       onChange={{ updateField, removeField }}
                     />
-                  </Grid.Item>
+                  </Grid.Col>
                 )}
                 {featuresObtained && (
-                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                     <Dropdown
                       multiSelect={true}
                       name='prerequisites.featuresObtained'
@@ -158,7 +156,7 @@ const Prerequisites = ({
                       options={featuresObtainedOptions}
                       onChange={{ updateField, removeField }}
                     />
-                  </Grid.Item>
+                  </Grid.Col>
                 )}
                 {optionsObtained &&
                   data?.prerequisites?.optionsObtained?.some(
@@ -166,7 +164,7 @@ const Prerequisites = ({
                       featuresObtainedOptions.filter(Boolean)?.find((sFeature) => sFeature?.id === feature)?.options
                         ?.length
                   ) && (
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                       <Dropdown
                         multiSelect={true}
                         name='prerequisites.optionsObtained'
@@ -175,10 +173,10 @@ const Prerequisites = ({
                         options={optionsObtainedOptions.filter(Boolean)}
                         onChange={{ updateField, removeField }}
                       />
-                    </Grid.Item>
+                    </Grid.Col>
                   )}
                 {skillProficiency && (
-                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                     <Dropdown
                       multiSelect={true}
                       name='prerequisites.skillProficiencies'
@@ -187,11 +185,11 @@ const Prerequisites = ({
                       options={skills}
                       onChange={{ updateField, removeField }}
                     />
-                  </Grid.Item>
+                  </Grid.Col>
                 )}
                 {abilityScore && (
                   <>
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                       <Dropdown
                         multiSelect={true}
                         name='prerequisites.abilityScore.abilities'
@@ -201,8 +199,8 @@ const Prerequisites = ({
                         required={true}
                         onChange={{ updateField, removeField }}
                       />
-                    </Grid.Item>
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    </Grid.Col>
+                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                       <Input
                         name='prerequisites.abilityScore.score'
                         value={data?.prerequisites?.abilityScore?.score}
@@ -212,17 +210,17 @@ const Prerequisites = ({
                         errorMsg='Must contain only numbers'
                         onChange={{ updateField }}
                       />
-                    </Grid.Item>
+                    </Grid.Col>
                   </>
                 )}
               </Grid>
-            </Grid.Item>
+            </Grid.Col>
             {equipmentProficiency && (
-              <Grid.Item>
+              <Grid.Col>
                 <Divider label='Equipment Proficiency' />
                 {data?.prerequisites?.equipmentProficiencies?.map((equipmentProficieny, index) => (
                   <Grid key={index}>
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                       <Dropdown
                         name={`prerequisites.equipmentProficiencies.${index}.category`}
                         value={equipmentProficieny.category}
@@ -230,8 +228,8 @@ const Prerequisites = ({
                         options={equipmentCategories.filterByProperties(equipmentProficieny?.properties)}
                         onChange={{ updateField, removeField }}
                       />
-                    </Grid.Item>
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    </Grid.Col>
+                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                       <Dropdown
                         multiSelect={true}
                         name={`prerequisites.equipmentProficiencies.${index}.properties`}
@@ -240,8 +238,8 @@ const Prerequisites = ({
                         options={equipmentProperties.filterByCategory(equipmentProficieny?.category)}
                         onChange={{ updateField, removeField }}
                       />
-                    </Grid.Item>
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    </Grid.Col>
+                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                       <Dropdown
                         multiSelect={true}
                         name={`prerequisites.equipmentProficiencies.${index}.equipment`}
@@ -252,8 +250,8 @@ const Prerequisites = ({
                           .filterByProperties(equipmentProficieny?.properties)}
                         onChange={{ updateField, removeField }}
                       />
-                    </Grid.Item>
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }} className={sprinkles({ alignContent: 'center' })}>
+                    </Grid.Col>
+                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }} className={sprinkles({ alignContent: 'center' })}>
                       <Group
                         className={sprinkles({ height: 'size-full' })}
                         alignItemsVariant='center'
@@ -284,17 +282,17 @@ const Prerequisites = ({
                           </Button>
                         )}
                       </Group>
-                    </Grid.Item>
+                    </Grid.Col>
                   </Grid>
                 ))}
-              </Grid.Item>
+              </Grid.Col>
             )}
             {equipped && (
-              <Grid.Item>
+              <Grid.Col>
                 <Divider label='Equipped' />
                 {data?.prerequisites?.equipped?.map((equipPrerequisite, index) => (
                   <Grid key={index}>
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                       <Dropdown
                         name={`prerequisites.equipped.${index}.category`}
                         value={equipPrerequisite.category}
@@ -302,8 +300,8 @@ const Prerequisites = ({
                         options={equipmentCategories.filterByProperties(equipPrerequisite?.properties)}
                         onChange={{ updateField, removeField }}
                       />
-                    </Grid.Item>
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    </Grid.Col>
+                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                       <Dropdown
                         multiSelect={true}
                         name={`prerequisites.equipped.${index}.properties`}
@@ -312,8 +310,8 @@ const Prerequisites = ({
                         options={equipmentProperties.filterByCategory(equipPrerequisite?.category)}
                         onChange={{ updateField, removeField }}
                       />
-                    </Grid.Item>
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    </Grid.Col>
+                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                       <Dropdown
                         multiSelect={true}
                         name={`prerequisites.equipped.${index}.equipment`}
@@ -324,16 +322,16 @@ const Prerequisites = ({
                           .filterByProperties(equipPrerequisite?.properties)}
                         onChange={{ updateField, removeField }}
                       />
-                    </Grid.Item>
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    </Grid.Col>
+                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                       <Input
                         name={`prerequisites.equipped.${index}.numberEquipped`}
                         label='Number Equipped'
                         value={equipPrerequisite.numberEquipped}
                         onChange={{ updateField }}
                       />
-                    </Grid.Item>
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }} className={sprinkles({ alignContent: 'center' })}>
+                    </Grid.Col>
+                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }} className={sprinkles({ alignContent: 'center' })}>
                       <Group
                         className={sprinkles({ height: 'size-full' })}
                         alignItemsVariant='center'
@@ -364,17 +362,17 @@ const Prerequisites = ({
                           </Button>
                         )}
                       </Group>
-                    </Grid.Item>
+                    </Grid.Col>
                   </Grid>
                 ))}
-              </Grid.Item>
+              </Grid.Col>
             )}
             {notEquipped && (
-              <Grid.Item>
+              <Grid.Col>
                 <Divider label={'Not Equipped'} />
                 {data?.prerequisites?.notEquipped?.map((notEquipPrerequisite, index) => (
                   <Grid key={index}>
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                       <Dropdown
                         name={`prerequisites.notEquipped.${index}.category`}
                         value={notEquipPrerequisite.category}
@@ -382,8 +380,8 @@ const Prerequisites = ({
                         options={equipmentCategories.filterByProperties(notEquipPrerequisite?.properties)}
                         onChange={{ updateField, removeField }}
                       />
-                    </Grid.Item>
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    </Grid.Col>
+                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                       <Dropdown
                         multiSelect={true}
                         name={`prerequisites.notEquipped.${index}.properties`}
@@ -392,8 +390,8 @@ const Prerequisites = ({
                         options={equipmentProperties.filterByCategory(notEquipPrerequisite?.category)}
                         onChange={{ updateField, removeField }}
                       />
-                    </Grid.Item>
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    </Grid.Col>
+                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                       <Dropdown
                         multiSelect={true}
                         name={`prerequisites.notEquipped.${index}.equipment`}
@@ -404,8 +402,8 @@ const Prerequisites = ({
                           .filterByProperties(notEquipPrerequisite?.properties)}
                         onChange={{ updateField, removeField }}
                       />
-                    </Grid.Item>
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }} className={sprinkles({ alignContent: 'center' })}>
+                    </Grid.Col>
+                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }} className={sprinkles({ alignContent: 'center' })}>
                       <Group
                         className={sprinkles({ height: 'size-full' })}
                         alignItemsVariant='center'
@@ -436,15 +434,15 @@ const Prerequisites = ({
                           </Button>
                         )}
                       </Group>
-                    </Grid.Item>
+                    </Grid.Col>
                   </Grid>
                 ))}
-              </Grid.Item>
+              </Grid.Col>
             )}
           </Grid>
-        </Collapse.Body>
-      </Collapse>
-    </Grid.Item>
+        </Collapsible.Content>
+      </Collapsible>
+    </Grid.Col>
   )
 }
 

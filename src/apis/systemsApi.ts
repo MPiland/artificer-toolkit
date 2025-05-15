@@ -1,6 +1,6 @@
 import { queryOptions } from '@tanstack/react-query'
 import { generateClient, type GraphQLResult } from 'aws-amplify/data'
-import { listSystems, getSystem, listMasterSystems, getMasterSystem } from '../../amplify/gql/queries'
+import { listSystems, getSystem, listMasterSystems, getMasterSystem } from '@/queries'
 import { fetchAuthSession } from 'aws-amplify/auth'
 import { QueryListMasterSystemsArgs, QueryListSystemsArgs, SystemConnection, type SystemListItem } from '@/types'
 

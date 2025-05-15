@@ -3,7 +3,7 @@ import { FormContext } from '../../../FormContext'
 import { Attributes, Currencies, StartingEquipOptions } from '@/enums'
 import Button from '@/components/Button'
 import { sprinkles } from '@/css/sprinkles.css'
-import Grid from '@/components/Grid'
+import { Grid } from '@mantine/core'
 import CharacterEquipmentSelection from './CharacterEquipmentSelection'
 import { ModalContext } from '@/components/Modal'
 import { v4 as uuid } from 'uuid'
@@ -243,7 +243,7 @@ const CharacterEquipment = ({ dataSource }: { dataSource: Class | Background }) 
             )
           }
         })}
-      <Grid.Item justify='center'>
+      <Grid.Col>
         <Button disabled={!isEquipmentSelectionComplete()} onClick={handleAddEquipment}>
           {`Add ${
             dataSource.__typename === 'Class' ?
@@ -256,7 +256,7 @@ const CharacterEquipment = ({ dataSource }: { dataSource: Class | Background }) 
             Reset Equipment
           </Button>
         )}
-      </Grid.Item>
+      </Grid.Col>
     </>
   )
 }

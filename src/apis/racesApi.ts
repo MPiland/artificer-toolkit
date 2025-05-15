@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
 import { generateClient, type GraphQLResult } from 'aws-amplify/data'
-import { listMasterRaces, listRaces, getRace, getMasterRace } from '../../amplify/gql/queries'
+import { listMasterRaces, listRaces, getRace, getMasterRace } from '@/queries'
 import {
   createMasterRace,
   createRace,
@@ -8,7 +8,7 @@ import {
   deleteRace,
   updateMasterRace,
   updateRace,
-} from '../../amplify/gql/mutations'
+} from '@/mutations'
 import type {
   RaceInput,
   Race,

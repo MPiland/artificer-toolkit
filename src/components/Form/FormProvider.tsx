@@ -13,7 +13,6 @@ import Equipment from './Steps/Equipment'
 import { AncestryWrapper } from './Ancestry'
 import { FormContext } from './FormContext'
 import { DiceProvider } from '@/components/Dice'
-import { Outlet } from '@tanstack/react-router'
 import { isEqual } from 'lodash'
 import { Suspense } from 'react'
 import Loading from '@/components/Loading'
@@ -104,14 +103,12 @@ const useFormOptions = () => {
   }
 }
 
-const FormProvider = () => {
+const FormProvider = ({ children }: { children: ReactElement }) => {
   const formOptions = useFormOptions()
 
   return (
     <Suspense fallback={<Loading />}>
-      <FormContext value={formOptions}>
-        <Outlet />
-      </FormContext>
+      <FormContext value={formOptions}>{children}</FormContext>
     </Suspense>
   )
 }

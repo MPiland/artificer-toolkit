@@ -1,5 +1,5 @@
 import Button from '@/components/Button'
-import Grid from '@/components/Grid'
+import { Grid } from '@mantine/core'
 import Accordion from '@/components/Accordion'
 import EquipmentOption from './EquipmentOption'
 import { use } from 'react'
@@ -23,13 +23,13 @@ const EquipmentGroup = ({ equipment, index }: EquipmentGroupProps) => {
   const optionIndex = equipment?.length
 
   return (
-    <Accordion.Wrapper itemId={String(index)}>
-      <Accordion.Header handleRemove={() => removeField({ path: `equipment.${index}` })}>
+    <Accordion.Item itemId={String(index)} value={String(index)}>
+      <Accordion.Trigger removeFn={() => removeField({ path: `equipment.${index}` })}>
         {`Equipment Group ${index + 1}`}
-      </Accordion.Header>
+      </Accordion.Trigger>
       <Accordion.Content>
         <Grid>
-          <Grid.Item colSpan={2}>
+          <Grid.Col span={2}>
             <Button
               color='primary'
               style='outline'
@@ -39,8 +39,8 @@ const EquipmentGroup = ({ equipment, index }: EquipmentGroupProps) => {
             >
               Add Option
             </Button>
-          </Grid.Item>
-          <Grid.Item>
+          </Grid.Col>
+          <Grid.Col>
             {equipment?.length > 0 &&
               equipment?.map((option, optIdx) => {
                 if (option?.length) {
@@ -55,10 +55,10 @@ const EquipmentGroup = ({ equipment, index }: EquipmentGroupProps) => {
                   )
                 }
               })}
-          </Grid.Item>
+          </Grid.Col>
         </Grid>
       </Accordion.Content>
-    </Accordion.Wrapper>
+    </Accordion.Item>
   )
 }
 

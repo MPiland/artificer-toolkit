@@ -1,13 +1,12 @@
 import parse from 'html-react-parser'
-import Collapse from '@/components/Collapse'
+import Collapsible from '@/components/Collapsible'
 import { startCase } from 'lodash'
 import { numberToWords } from '@/utils'
-import Grid from '@/components/Grid'
+import { Grid, ScrollArea } from '@mantine/core'
 import { useGetFeatures, useGetProficiencies, useSystemData, useClassData } from '@/hooks'
 import { use } from 'react'
 import { FormContext } from '../../../FormContext'
 import Modal from '@/components/Modal'
-import ScrollArea from '@/components/ScrollArea'
 import Button from '@/components/Button'
 import type { FormStore } from '@/store'
 import type { OnChange, Character, ClassListItem } from '@/types'
@@ -59,11 +58,11 @@ const ClassDetail = ({ formClass, setFormClass }: { formClass: ClassListItem; se
         <Modal.Content>
           <ScrollArea>
             <Grid>
-              <Grid.Item>{fullClass?.desc && <em>{parse(fullClass.desc)}</em>}</Grid.Item>
-              <Grid.Item>
-                <Collapse>
-                  <Collapse.Header title='Hit Points' startOpened={true} />
-                  <Collapse.Body>
+              <Grid.Col>{fullClass?.desc && <em>{parse(fullClass.desc)}</em>}</Grid.Col>
+              <Grid.Col>
+                <Collapsible defaultOpen={true}>
+                  <Collapsible.Trigger title='Hit Points' />
+                  <Collapsible.Content>
                     <div>
                       <strong>{'Hit Dice: '}</strong>
                       {`${fullClass.hitpoint?.dieConfig} per ${fullClass.label} level`}
@@ -78,14 +77,14 @@ const ClassDetail = ({ formClass, setFormClass }: { formClass: ClassListItem; se
                         hitpointAbility?.label
                       } modifier per ${fullClass.label} level after 1st`}
                     </div>
-                  </Collapse.Body>
-                </Collapse>
-              </Grid.Item>
+                  </Collapsible.Content>
+                </Collapsible>
+              </Grid.Col>
               {proficiencies && (
-                <Grid.Item>
-                  <Collapse>
-                    <Collapse.Header title='Proficiencies' startOpened={true} />
-                    <Collapse.Body>
+                <Grid.Col>
+                  <Collapsible defaultOpen={true}>
+                    <Collapsible.Trigger title='Proficiencies' />
+                    <Collapsible.Content>
                       {Object.keys(proficiencies).map((key) => {
                         const typeArray = proficiencies[key]?.type
                         const selectionCount = proficiencies[key]?.selectionCount ?? 0
@@ -128,9 +127,9 @@ const ClassDetail = ({ formClass, setFormClass }: { formClass: ClassListItem; se
                           </div>
                         )
                       })}
-                    </Collapse.Body>
-                  </Collapse>
-                </Grid.Item>
+                    </Collapsible.Content>
+                  </Collapsible>
+                </Grid.Col>
               )}
               {features
                 .sort((a, b) => {
@@ -144,12 +143,12 @@ const ClassDetail = ({ formClass, setFormClass }: { formClass: ClassListItem; se
                   const fullFeature = fullClass.features?.find((sFeature) => sFeature.id === feature.id)
                   if (fullFeature) {
                     return (
-                      <Grid.Item key={fIndex}>
-                        <Collapse>
-                          <Collapse.Header title={`(${feature.level}) ${fullFeature.label}`} startOpened={true} />
-                          <Collapse.Body>{fullFeature.desc && parse(fullFeature.desc)}</Collapse.Body>
-                        </Collapse>
-                      </Grid.Item>
+                      <Grid.Col key={fIndex}>
+                        <Collapsible defaultOpen={true}>
+                          <Collapsible.Trigger title={`(${feature.level}) ${fullFeature.label}`} />
+                          <Collapsible.Content>{fullFeature.desc && parse(fullFeature.desc)}</Collapsible.Content>
+                        </Collapsible>
+                      </Grid.Col>
                     )
                   }
                 })}

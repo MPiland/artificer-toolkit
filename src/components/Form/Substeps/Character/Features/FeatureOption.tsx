@@ -1,7 +1,7 @@
 import { use } from 'react'
 import type { Character } from '@/types'
 import Dropdown from '@/components/Dropdown'
-import Grid from '@/components/Grid'
+import { Grid } from '@mantine/core'
 import { option_dropdown } from '../../../Character.css'
 import { FormContext } from '../../../FormContext'
 import { useGetFeatures, type FactoryFeature } from '@/hooks'
@@ -41,7 +41,7 @@ const FeatureOption = ({ feature, featureIndex, classIndex }: FeatureOptionProps
 
     if (path) {
       return (
-        <Grid.Item key={path + optionIndex} align='center' justify='center' flexDirection='column'>
+        <Grid.Col key={path + optionIndex} >
           <Dropdown<Character>
             name={path}
             label={`${feature.label} Option`}
@@ -60,7 +60,7 @@ const FeatureOption = ({ feature, featureIndex, classIndex }: FeatureOptionProps
             }}
             value={exist}
           />
-        </Grid.Item>
+        </Grid.Col>
       )
     }
   })

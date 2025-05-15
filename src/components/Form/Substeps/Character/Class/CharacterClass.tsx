@@ -1,5 +1,5 @@
 import { sprinkles } from '@/css/sprinkles.css'
-import Collapse from '@/components/Collapse'
+import Collapsible from '@/components/Collapsible'
 import Input from '@/components/Input'
 import { class_title, feature_card_header } from '../../../Character.css'
 import Tabs from '@/components/Tabs'
@@ -8,7 +8,7 @@ import ClassSpells from './ClassSpells'
 import ClassProficiencies from './ClassProficiencies'
 import ClassFeatures from './ClassFeatures'
 import { type RollConfig, parseDiceRoll } from '@/components/Dice'
-import Grid from '@/components/Grid'
+import { Grid } from '@mantine/core'
 import { use } from 'react'
 import { FormContext } from '../../../FormContext'
 import { useSystemData, useClassData } from '@/hooks'
@@ -47,15 +47,15 @@ const CharacterClass = ({
   const { quantity, die } = parseDiceRoll(fullClass?.hitpoint?.dieConfig as RollConfig)
 
   return (
-    <Grid.Item>
+    <Grid.Col>
       <Grid className={sprinkles({ mb: 'space-4' })}>
-        <Grid.Item colSpan={'auto'} justify='start' align='end'>
+        <Grid.Col  justify='start' align='end'>
           <h1 className={class_title}>{fullClass?.label}</h1>
           <Button color='danger' style='outline' onClick={() => handleRemoveClass()}>
             Remove Class
           </Button>
-        </Grid.Item>
-        <Grid.Item colSpan={2}>
+        </Grid.Col>
+        <Grid.Col span={2}>
           <Input
             label='Level'
             name={`classes.${classIndex}.level`}
@@ -64,7 +64,7 @@ const CharacterClass = ({
             validation='num'
             onChange={{ updateField }}
           />
-        </Grid.Item>
+        </Grid.Col>
       </Grid>
       <Tabs style='borderless'>
         <Tabs.Header>
@@ -75,10 +75,10 @@ const CharacterClass = ({
         </Tabs.Header>
         <Tabs.Panel>
           <Grid>
-            <Grid.Item>
-              <Collapse>
-                <Collapse.Header title='Hit Points' className={feature_card_header} />
-                <Collapse.Body>
+            <Grid.Col>
+              <Collapsible>
+                <Collapsible.Trigger title='Hit Points' className={feature_card_header} />
+                <Collapsible.Content>
                   <div>
                     <strong>{'Hit Dice: '}</strong>
                     {`${fullClass?.hitpoint?.dieConfig} per ${fullClass?.label} level`}
@@ -93,9 +93,9 @@ const CharacterClass = ({
                       hitPointAbility?.label
                     } modifier per ${fullClass?.label} level after 1st`}
                   </div>
-                </Collapse.Body>
-              </Collapse>
-            </Grid.Item>
+                </Collapsible.Content>
+              </Collapsible>
+            </Grid.Col>
             {fullClass?.proficiencies?.length && <ClassProficiencies fullClass={fullClass} classIndex={classIndex} />}
             {fullClass?.features && fullClass?.features.length && (
               <ClassFeatures uClass={uClass} fullClass={fullClass} classIndex={classIndex} />
@@ -110,7 +110,7 @@ const CharacterClass = ({
           </Tabs.Panel>
         )}
       </Tabs>
-    </Grid.Item>
+    </Grid.Col>
   )
 }
 

@@ -1,8 +1,8 @@
-import Collapse from '@/components/Collapse'
+import Collapsible from '@/components/Collapsible'
 import Dropdown from '@/components/Dropdown'
 import Input from '@/components/Input'
 import { Attributes } from '@/enums'
-import Grid from '@/components/Grid'
+import { Grid } from '@mantine/core'
 import { useSystemData } from '@/hooks'
 import type { OnChange, Class } from '@/types'
 
@@ -18,14 +18,14 @@ const Multiclass = ({
   const { abilities } = useSystemData()
 
   return (
-    <Grid.Item>
-      <Collapse>
-        <Collapse.Header title={'Multiclass Ability Requirements'} startOpened={data.id == null} />
-        <Collapse.Body>
+    <Grid.Col>
+      <Collapsible defaultOpen={data.id == null}>
+        <Collapsible.Trigger title={'Multiclass Ability Requirements'} />
+        <Collapsible.Content>
           <Grid>
             {data?.attributes?.some((attribute) => attribute === Attributes.PRIMARY_ABILITY) && (
               <>
-                <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                   <Dropdown
                     name='multiclass.primaryAbility.id'
                     label='Primary Ability'
@@ -36,8 +36,8 @@ const Multiclass = ({
                     required={true}
                     onChange={{ updateField, removeField }}
                   />
-                </Grid.Item>
-                <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                </Grid.Col>
+                <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                   <Input
                     name='multiclass.primaryAbility.minAmount'
                     autoComplete='off'
@@ -48,12 +48,12 @@ const Multiclass = ({
                     errorMsg='Must contain whole numbers only'
                     onChange={{ updateField }}
                   />
-                </Grid.Item>
+                </Grid.Col>
               </>
             )}
             {data?.attributes?.some((attribute) => attribute === Attributes.SECONDARY_ABILITY) && (
               <>
-                <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                   <Dropdown
                     name='multiclass.secondaryAbility.id'
                     label='Secondary Ability'
@@ -64,8 +64,8 @@ const Multiclass = ({
                     required={true}
                     onChange={{ updateField, removeField }}
                   />
-                </Grid.Item>
-                <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                </Grid.Col>
+                <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                   <Input
                     name='multiclass.secondaryAbility.minAmount'
                     autoComplete='off'
@@ -76,12 +76,12 @@ const Multiclass = ({
                     errorMsg='Must contain whole numbers only'
                     onChange={{ updateField }}
                   />
-                </Grid.Item>
+                </Grid.Col>
               </>
             )}
             {data?.attributes?.some((attribute) => attribute === Attributes.OPTIONAL_ABILITY) && (
               <>
-                <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                   <Dropdown
                     name='multiclass.optionalAbility.id'
                     label='Optional Ability'
@@ -92,8 +92,8 @@ const Multiclass = ({
                     required={true}
                     onChange={{ updateField, removeField }}
                   />
-                </Grid.Item>
-                <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                </Grid.Col>
+                <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                   <Input
                     name='multiclass.optionalAbility.minAmount'
                     autoComplete='off'
@@ -104,13 +104,13 @@ const Multiclass = ({
                     errorMsg='Must contain whole numbers only'
                     onChange={{ updateField }}
                   />
-                </Grid.Item>
+                </Grid.Col>
               </>
             )}
           </Grid>
-        </Collapse.Body>
-      </Collapse>
-    </Grid.Item>
+        </Collapsible.Content>
+      </Collapsible>
+    </Grid.Col>
   )
 }
 

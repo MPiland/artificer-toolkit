@@ -1,6 +1,5 @@
 import { Fragment } from 'react'
-import Divider from '@/components/Divider'
-import Grid from '@/components/Grid'
+import { Grid, Divider } from '@mantine/core'
 import EquipmentGroupItem from './EquipmentGroupItem'
 import type { ClassEquipment, BackgroundEquipment } from '@/types'
 

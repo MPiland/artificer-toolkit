@@ -4,16 +4,15 @@ import { FormContext } from '../FormContext'
 import { StartingEquipOptions } from '@/enums'
 import { parseDiceRoll, type RollConfig, DiceContext, Scene } from '@/components/Dice'
 import Button from '@/components/Button'
-import Group from '@/components/Group'
 import { sprinkles } from '@/css/sprinkles.css'
 import { option_dropdown } from '../Character.css'
-import Collapse from '@/components/Collapse'
+import Collapsible from '@/components/Collapsible'
 import { createPortal } from 'react-dom'
-import Grid from '@/components/Grid'
 import CharacterEquipment from '../Substeps/Character/Equipment/CharacterEquipment'
 import CharacterCurrency from '../Substeps/Character/Equipment/CharacterCurrency'
 import { useSystemData, useClassData } from '@/hooks'
 import type { OnChange, Character, ClassStartingEquipment } from '@/types'
+import { Grid, Group } from '@mantine/core'
 
 const EquipmentStep = () => {
   const [random, setRandom] = useState<boolean>(false)
@@ -165,16 +164,16 @@ const EquipmentStep = () => {
       {form && createPortal(<Scene />, form)}
       <Grid>
         {!data?.classes?.length ?
-          <Grid.Item className={sprinkles({ alignContent: 'center' })}>
+          <Grid.Col className={sprinkles({ alignContent: 'center' })}>
             <div>Please select a class.</div>
-          </Grid.Item>
+          </Grid.Col>
         : <>
-            <Grid.Item>
-              <Collapse>
-                <Collapse.Header title='Starting EquipmentStep' />
-                <Collapse.Body>
+            <Grid.Col>
+              <Collapsible>
+                <Collapsible.Trigger title='Starting EquipmentStep' />
+                <Collapsible.Content>
                   <Grid>
-                    <Grid.Item justify='center'>
+                    <Grid.Col>
                       <Dropdown<Character>
                         name='classEquipment.option'
                         value={data?.classEquipment?.option}
@@ -213,10 +212,10 @@ const EquipmentStep = () => {
                         }}
                         options={characters.startingEquipmentOptions}
                       />
-                    </Grid.Item>
+                    </Grid.Col>
                     {data.classEquipment?.option === StartingEquipOptions.GOLD ?
                       <>
-                        <Grid.Item justify='center'>
+                        <Grid.Col>
                           <Dropdown
                             name='classEquipment.goldOption'
                             value={data?.classEquipment?.goldOption}
@@ -225,14 +224,14 @@ const EquipmentStep = () => {
                             options={combinationOptions}
                             onChange={{ updateField, removeField }}
                           />
-                        </Grid.Item>
-                        <Grid.Item>
+                        </Grid.Col>
+                        <Grid.Col>
                           <Grid>
-                            <Grid.Item justify='center'>
+                            <Grid.Col>
                               <span>Multipler: {multiplier}</span>
-                            </Grid.Item>
-                            <Grid.Item>
-                              <Group justifyContentVariant='center'>
+                            </Grid.Col>
+                            <Grid.Col>
+                              <Group justify='center'>
                                 {random && (
                                   <>
                                     <Button
@@ -252,20 +251,20 @@ const EquipmentStep = () => {
                                   </>
                                 )}
                               </Group>
-                            </Grid.Item>
+                            </Grid.Col>
                             {data?.classEquipment?.totalGold && (
-                              <Grid.Item justify='center'>
+                              <Grid.Col>
                                 <h3>Total Gold: {data?.classEquipment?.totalGold}</h3>
-                              </Grid.Item>
+                              </Grid.Col>
                             )}
                           </Grid>
-                        </Grid.Item>
+                        </Grid.Col>
                       </>
                     : primaryClass && <CharacterEquipment dataSource={primaryClass} />}
                   </Grid>
-                </Collapse.Body>
-              </Collapse>
-            </Grid.Item>
+                </Collapsible.Content>
+              </Collapsible>
+            </Grid.Col>
             <CharacterCurrency />
           </>
         }

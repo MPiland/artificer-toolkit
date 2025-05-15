@@ -9,3 +9,4 @@ export {
   getLabelsFromIds,
   getLabelFromId,
 } from './data'
+export { default as domToReact } from './reactParser/reactParser'

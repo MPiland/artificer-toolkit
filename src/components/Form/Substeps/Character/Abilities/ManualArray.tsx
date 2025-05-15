@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState, use, Fragment } from 'react'
 import Button from '@/components/Button'
 import Spinner from '@/components/Spinner'
 import Input from '@/components/Input'
-import Group from '@/components/Group'
 import { sprinkles } from '@/css/sprinkles.css'
 import {
   dice_roll_value,
@@ -14,12 +13,12 @@ import {
 } from '../../../Character.css'
 import Dropdown from '@/components/Dropdown'
 import { type DiceRolls, type RollConfig, parseDiceRoll, DiceContext } from '@/components/Dice'
-import Collapse from '@/components/Collapse'
+import Collapsible from '@/components/Collapsible'
 import { isEqual, set } from 'lodash'
 import clsx from 'clsx'
 import type { Character, Manual, DeepKeyOf, OnChange, RollType } from '@/types'
-import Grid from '@/components/Grid'
 import { useSystemData } from '@/hooks'
+import { Grid, Group } from '@mantine/core'
 
 const ManualArray = ({
   formStore: { data, updateField },
@@ -332,7 +331,7 @@ const ManualArray = ({
       {data.abilities?.manualRolled?.manual?.map((score, aIndex) => {
         const ability = abilities.findAbility(score.ability)
         return (
-          <Grid.Item key={aIndex} colSpan={{ sm: 6, md: 4, lg: 2 }}>
+          <Grid.Col key={aIndex} span={{ sm: 6, md: 4, lg: 2 }}>
             <Input<Character>
               key={aIndex}
               name={`abilities.scores.${aIndex}.baseScore`}
@@ -374,29 +373,29 @@ const ManualArray = ({
                 },
               }}
             />
-          </Grid.Item>
+          </Grid.Col>
         )
       })}
-      <Grid.Item>
-        <Collapse>
-          <Collapse.Header title='Dice Roll Groups' startOpened={true} />
-          <Collapse.Body>
+      <Grid.Col>
+        <Collapsible>
+          <Collapsible.Trigger title='Dice Roll Groups' />
+          <Collapsible.Content>
             <Grid>
               {data.abilities?.manualRolled?.rollGroups?.map((rollGroup, gIndex) => {
                 return (
                   <Fragment key={gIndex}>
-                    <Grid.Item>
+                    <Grid.Col>
                       <Grid>
                         {gIndex === 0 && (
-                          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                          <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                             <Button color='update' onClick={handleAddGroup} disabled={dice.isRolling}>
                               Add Group
                             </Button>
-                          </Grid.Item>
+                          </Grid.Col>
                         )}
                         {data.abilities?.manualRolled?.rollGroups?.length &&
                           data.abilities?.manualRolled?.rollGroups?.length !== 1 && (
-                            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                               <Button
                                 color='danger'
                                 style='outline'
@@ -405,21 +404,16 @@ const ManualArray = ({
                               >
                                 Delete Group
                               </Button>
-                            </Grid.Item>
+                            </Grid.Col>
                           )}
                       </Grid>
                       <Grid>
                         {rollGroup?.map((roll, rIndex) => {
                           const { quantity, die } = parseDiceRoll(rollConfiguration)
                           return (
-                            <Grid.Item key={rIndex} colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                              <Group directionVariant='column' justifyContentVariant='start' key={rIndex}>
-                                <Group
-                                  directionVariant='column'
-                                  alignItemsVariant='center'
-                                  flexWrapVariant='noWrap'
-                                  className={dice_roll_value_group}
-                                >
+                            <Grid.Col key={rIndex} span={{ sm: 6, md: 4, lg: 2 }}>
+                              <Group justify='flex-start' key={rIndex}>
+                                <Group justify='center' wrap='nowrap' className={dice_roll_value_group}>
                                   {roll?.rolling ?
                                     <Spinner className={dice_spinner} />
                                   : <>
@@ -483,12 +477,12 @@ const ManualArray = ({
                                   />
                                 }
                               </Group>
-                            </Grid.Item>
+                            </Grid.Col>
                           )
                         })}
                       </Grid>
-                    </Grid.Item>
-                    <Grid.Item colSpan={'auto'}>
+                    </Grid.Col>
+                    <Grid.Col >
                       <Button
                         color='danger'
                         style='outline'
@@ -497,17 +491,19 @@ const ManualArray = ({
                       >
                         Reset Group
                       </Button>
-                    </Grid.Item>
-                    <Grid.Item colSpan={'auto'} justify='end'>
-                      <Button
-                        color='update'
-                        style='outline'
-                        disabled={dice.isRolling || !rollGroup.every((roll) => roll.ability != null)}
-                        onClick={() => handleApplyRolls(gIndex)}
-                      >
-                        Apply Rolls
-                      </Button>
-                    </Grid.Item>
+                    </Grid.Col>
+                    <Grid.Col >
+                      <Group justify='flex-end'>
+                        <Button
+                          color='update'
+                          style='outline'
+                          disabled={dice.isRolling || !rollGroup.every((roll) => roll.ability != null)}
+                          onClick={() => handleApplyRolls(gIndex)}
+                        >
+                          Apply Rolls
+                        </Button>
+                      </Group>
+                    </Grid.Col>
                     {data.abilities?.manualRolled?.rollGroups?.length &&
                       data.abilities?.manualRolled?.rollGroups?.length > 1 &&
                       gIndex !== data.abilities.manualRolled.rollGroups.length - 1 && <hr />}
@@ -515,9 +511,9 @@ const ManualArray = ({
                 )
               })}
             </Grid>
-          </Collapse.Body>
-        </Collapse>
-      </Grid.Item>
+          </Collapsible.Content>
+        </Collapsible>
+      </Grid.Col>
     </>
   )
 }

@@ -1,8 +1,7 @@
 import { style, globalStyle } from '@vanilla-extract/css'
-import { app } from '../../css/layers.css'
-import { size, space } from '../../css/size.css'
-import { fontWeight } from '../../css/typography.css'
-import { theme } from '../../css/theme.css'
+import { app } from '@/css/layers.css'
+import { size, space } from '@/css/size.css'
+import { fontWeight } from '@/css/typography.css'
 
 export const form_wrapper = style({
   '@layer': {
@@ -48,7 +47,6 @@ export const form_footer = style({
       alignItems: 'center',
       paddingLeft: '.75rem',
       paddingRight: '.75rem',
-      borderTop: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
       left: 0,
       bottom: 0,
       width: '100%',

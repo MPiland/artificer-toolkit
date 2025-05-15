@@ -9,12 +9,12 @@ import ManualArray from '../Substeps/Character/Abilities/ManualArray'
 import { use } from 'react'
 import { FormContext } from '../FormContext'
 import AbilityCard from '../Substeps/Character/Abilities/AbilityCard'
-import Grid from '@/components/Grid'
 import Input from '@/components/Input'
-import Collapse from '@/components/Collapse'
+import Collapsible from '@/components/Collapsible'
 import { useSystemData } from '@/hooks'
 import type { OnChange, Character } from '@/types'
 import type { FormStore } from '@/store'
+import { Grid } from '@mantine/core'
 
 const AbilitiesStep = () => {
   const {
@@ -42,9 +42,9 @@ const AbilitiesStep = () => {
   return (
     <Grid>
       {form && createPortal(<Scene />, form)}
-      <Grid.Item>
+      <Grid.Col>
         <Grid>
-          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+          <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown
               name='abilities.selectedSystem'
               options={rules.abilityGenerateMethod}
@@ -52,9 +52,9 @@ const AbilitiesStep = () => {
               value={data.abilities?.selectedSystem}
               onChange={{ updateField, removeField }}
             />
-          </Grid.Item>
+          </Grid.Col>
           {pointSystem === AbilityGenMethods.MANUAL && (
-            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
               <Input
                 name='abilities.manualRolled.configuration'
                 value={data?.abilities?.manualRolled?.configuration}
@@ -62,17 +62,17 @@ const AbilitiesStep = () => {
                 type='roll'
                 onChange={{ updateField }}
               />
-            </Grid.Item>
+            </Grid.Col>
           )}
         </Grid>
-      </Grid.Item>
+      </Grid.Col>
       {pointSystem === AbilityGenMethods.POINT_BUY && <PointBuy formStore={formStore} />}
       {pointSystem === AbilityGenMethods.MANUAL && <ManualArray formStore={formStore} />}
       {pointSystem === AbilityGenMethods.STANDARD_ARRAY && <StandardArray formStore={formStore} />}
-      <Grid.Item>
-        <Collapse>
-          <Collapse.Header title='Abilities' startOpened={true} />
-          <Collapse.Body>
+      <Grid.Col>
+        <Collapsible defaultOpen={true}>
+          <Collapsible.Trigger title='Abilities' />
+          <Collapsible.Content>
             <Grid>
               {data.abilities?.scores?.map((score, index) => {
                 const ability = findAbility(score.ability)
@@ -81,9 +81,9 @@ const AbilitiesStep = () => {
                 }
               })}
             </Grid>
-          </Collapse.Body>
-        </Collapse>
-      </Grid.Item>
+          </Collapsible.Content>
+        </Collapsible>
+      </Grid.Col>
     </Grid>
   )
 }

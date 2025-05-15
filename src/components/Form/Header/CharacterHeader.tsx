@@ -1,12 +1,12 @@
 import { sprinkles } from '@/css/sprinkles.css'
 import { character_header_body, character_header_item, character_header_item_divider } from '../Character.css'
-import Collapse from '@/components/Collapse'
+import Collapsible from '@/components/Collapsible'
 import type { Character } from '@/types'
 import { use, useState } from 'react'
 import { FormContext } from '../FormContext'
 import { calculateModifier } from '../Form.utils'
 import { useMediaQuery } from 'usehooks-ts'
-import Grid from '@/components/Grid'
+import { Grid } from '@mantine/core'
 import Button from '@/components/Button'
 import Hitpoints from '../Substeps/Character/Hitpoints'
 import { useRaceData, useClassData, useSystemData } from '@/hooks'
@@ -35,12 +35,11 @@ const CharacterHeader = () => {
 
   return (
     <>
-      <Grid.Item>
-        <Collapse>
-          <Collapse.Header
+      <Grid.Col>
+        <Collapsible defaultOpen={true}>
+          <Collapsible.Trigger
             title='Character Details'
-            startOpened={true}
-            rightSide={
+            titleRight={
               <Button
                 style='filled'
                 color='primary'
@@ -54,25 +53,25 @@ const CharacterHeader = () => {
               </Button>
             }
           />
-          <Collapse.Body className={character_header_body}>
+          <Collapsible.Content className={character_header_body}>
             <Grid className={sprinkles({ mb: 'space-x' })}>
-              <Grid.Item colSpan={6}>
+              <Grid.Col span={6}>
                 <Grid>
-                  <Grid.Item colSpan={{ sm: 12, md: 4 }} className={character_header_item}>
+                  <Grid.Col span={{ sm: 12, md: 4 }} className={character_header_item}>
                     <span>
                       {'Name: '}
                       {formStore.data.label || <span className={sprinkles({ ws: 'nowrap' })}>---</span>}
                     </span>
                     {!sm && <hr className={character_header_item_divider} />}
-                  </Grid.Item>
-                  <Grid.Item colSpan={{ sm: 12, md: 4 }} className={character_header_item}>
+                  </Grid.Col>
+                  <Grid.Col span={{ sm: 12, md: 4 }} className={character_header_item}>
                     <span>
                       {'Race: '}
                       {race?.label || <span className={sprinkles({ ws: 'nowrap' })}>---</span>}
                     </span>
                     {!sm && <hr className={character_header_item_divider} />}
-                  </Grid.Item>
-                  <Grid.Item colSpan={{ sm: 12, md: 4 }} className={character_header_item}>
+                  </Grid.Col>
+                  <Grid.Col span={{ sm: 12, md: 4 }} className={character_header_item}>
                     <span>
                       {formStore.data.classes?.length && formStore.data.classes?.length < 2 ? 'Class: ' : 'Class(es): '}
                       {formStore.data.classes?.length ?
@@ -90,17 +89,17 @@ const CharacterHeader = () => {
                         })
                       : <span className={sprinkles({ ws: 'nowrap' })}>---</span>}
                     </span>
-                  </Grid.Item>
+                  </Grid.Col>
                 </Grid>
-              </Grid.Item>
-              <Grid.Item colSpan={6}>
+              </Grid.Col>
+              <Grid.Col span={6}>
                 <Grid className={sprinkles({ mb: 'space-x' })}>
                   {formStore.data?.abilities?.scores?.map((score, index) => {
                     const ability = findAbility(score.ability)
 
                     const modifier = calculateModifier(score?.calculatedScore || 0, 'modifier')
                     return (
-                      <Grid.Item colSpan={{ sm: 12, md: 4, lg: 'auto' }} className={character_header_item} key={index}>
+                      <Grid.Col span={{ sm: 12, md: 4, lg: 'auto' }} className={character_header_item} key={index}>
                         <span className={sprinkles({ me: 'space-4' })}>
                           {`${ability?.value.toUpperCase()}: `}
                           {score.calculatedScore ?
@@ -114,15 +113,15 @@ const CharacterHeader = () => {
                           index !== formStore.data.abilities?.scores?.length - 1 && (
                             <hr className={character_header_item_divider} />
                           )}
-                      </Grid.Item>
+                      </Grid.Col>
                     )
                   })}
                 </Grid>
-              </Grid.Item>
+              </Grid.Col>
             </Grid>
-          </Collapse.Body>
-        </Collapse>
-      </Grid.Item>
+          </Collapsible.Content>
+        </Collapsible>
+      </Grid.Col>
       {manageHitpoints && <Hitpoints onClose={() => setManageHitpoints(false)} />}
     </>
   )

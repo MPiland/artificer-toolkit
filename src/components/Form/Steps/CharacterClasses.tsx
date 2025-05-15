@@ -2,8 +2,8 @@ import CharacterClass from '../Substeps/Character/Class/CharacterClass'
 import ClassSelection from '../Substeps/Character/Class/ClassSelection'
 import { use } from 'react'
 import { FormContext } from '../FormContext'
-import Grid from '@/components/Grid'
 import type { OnChange, Character } from '@/types'
+import { Grid } from '@mantine/core'
 
 const ClassesStep = () => {
   const {

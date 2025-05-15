@@ -2,7 +2,7 @@ import { use } from 'react'
 import FeaturesList from './FeaturesList'
 import { sprinkles } from '@/css/sprinkles.css'
 import { FeatureContext } from './FeatureContext'
-import Grid from '@/components/Grid'
+import { Grid } from '@mantine/core'
 
 const FeatureWrapper = () => {
   const { featureStore, optionStore, sectionStore, sectionStepComponent, featureSteps } = use(FeatureContext)
@@ -17,9 +17,9 @@ const FeatureWrapper = () => {
       {featureStore.step == null ?
         <FeaturesList />
       : <>
-          <Grid.Item>
+          <Grid.Col>
             <h2 className={sprinkles({ mb: 'space-2' })}>{featureTitle}</h2>
-          </Grid.Item>
+          </Grid.Col>
           {sectionStore.step != null ? sectionStepComponent[sectionStore.step] : featureSteps[featureStore.step]}
         </>
       }

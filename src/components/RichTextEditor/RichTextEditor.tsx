@@ -18,10 +18,9 @@ import {
   editor_blockquote,
 } from './RichTextEditor.css'
 import clsx from 'clsx'
-import ScrollArea from '../ScrollArea/ScrollArea'
 import { useDebounceCallback } from 'usehooks-ts'
-import { sprinkles } from '../../css/sprinkles.css'
 import type { DeepKeyOf, OnChange } from '@/types'
+import { ScrollArea } from '@mantine/core'
 
 interface RichTextEditorProps<T> {
   onChange: {
@@ -117,7 +116,7 @@ const RichTextEditor = <T,>({ onChange, label, name, value, className }: RichTex
       {label && <span>{label}</span>}
       <div className={clsx(editor_container, { [className]: className })} tabIndex={-1}>
         <MenuBar editor={editor} />
-        <ScrollArea scrollDirection='vertical' wrapperClassName={sprinkles({ pb: 'space-3' })}>
+        <ScrollArea>
           <EditorContent editor={editor} className={editor_content_container} />
         </ScrollArea>
       </div>

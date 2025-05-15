@@ -3,7 +3,7 @@ import Dropdown from '@/components/Dropdown'
 import type { OnChange, Character } from '@/types'
 import { AbilityGenMethods } from '@/enums'
 import { isEqual } from 'lodash'
-import Grid from '@/components/Grid'
+import { Grid } from '@mantine/core'
 import { useSystemData } from '@/hooks'
 
 const StandardArray = ({
@@ -51,7 +51,7 @@ const StandardArray = ({
         if (currentIndex && currentIndex !== -1 && pointSystem?.options?.length) {
           const current = data.abilities?.standardArray?.[currentIndex]?.score
           return (
-            <Grid.Item key={index} colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            <Grid.Col key={index} span={{ sm: 6, md: 4, lg: 2 }}>
               <Dropdown<Character>
                 key={index}
                 name={'abilities'}
@@ -85,7 +85,7 @@ const StandardArray = ({
                     }),
                 }}
               />
-            </Grid.Item>
+            </Grid.Col>
           )
         }
       })}

@@ -18,33 +18,79 @@ const Spells = () => {
       icon: <IFlame />,
       value: 'Damage/Effect',
       text: [
-        [{ metaPath: 'primaryDamages', source: { type: 'system', sourcePath: 'damageTypes' } }],
-        [{ metaPath: 'secondaryDamages', source: { type: 'system', sourcePath: 'damageTypes' } }],
-        [{ metaPath: 'conditions', source: { type: 'system', sourcePath: 'conditions' } }],
+        {
+          metaObject: 'primaryDamages',
+          paths: [
+            {
+              path: 'id',
+              source: { type: 'system', sourcePath: 'damageTypes' },
+            },
+          ],
+        },
+        {
+          metaObject: 'secondaryDamages',
+          paths: [
+            {
+              path: 'id',
+              source: { type: 'system', sourcePath: 'damageTypes' },
+            },
+          ],
+        },
+        {
+          metaObject: 'conditions',
+          paths: [
+            {
+              path: 'id',
+              source: { type: 'system', sourcePath: 'conditions' },
+            },
+          ],
+        },
       ],
     },
     {
       icon: <IClass />,
       value: 'Classes',
-      text: [{ metaPath: 'classes', source: { type: 'classes' } }],
+      text: [{ metaObject: 'classes', paths: [{ path: 'id', source: { type: 'classes' } }] }],
     },
     {
       icon: <IBook />,
-      text: [{ metaPath: 'schools', source: { type: 'system', sourcePath: 'spells.schools' } }],
+      text: [
+        {
+          metaObject: 'schools',
+          paths: [{ path: 'id', source: { type: 'system', sourcePath: 'spells.schools' } }],
+        },
+      ],
       value: 'School',
     },
     {
       icon: <IClock />,
       value: 'Time',
       text: [
-        [
-          [{ metaPath: 'primaryActions', source: { type: 'system', sourcePath: 'actions' } }],
-          [{ metaPath: 'secondaryActions', source: { type: 'system', sourcePath: 'actions' } }],
-        ],
-        [
-          { metaPath: 'durations', source: { type: 'system', sourcePath: 'spells.durations' } },
-          { metaPath: 'durations', subMetaPath: 'amount' },
-        ],
+        {
+          metaObject: 'primaryActions',
+          paths: [
+            {
+              path: 'amount',
+            },
+            { path: 'id', source: { type: 'system', sourcePath: 'actions' }, dependents: true },
+          ],
+        },
+        {
+          metaObject: 'secondaryActions',
+          paths: [
+            {
+              path: 'amount',
+            },
+            { path: 'id', source: { type: 'system', sourcePath: 'actions' }, dependents: true },
+          ],
+        },
+        {
+          metaObject: 'durations',
+          paths: [
+            { path: 'amount' },
+            { path: 'id', source: { type: 'system', sourcePath: 'spells.durations' }, dependents: true },
+          ],
+        },
       ],
       display: 'list',
     },
@@ -52,49 +98,76 @@ const Spells = () => {
       icon: <IRange />,
       value: 'Range (ft)/Area (ft)',
       text: [
-        [
-          { metaPath: 'ranges', source: { type: 'system', sourcePath: 'spells.ranges' } },
-          [
-            { metaPath: 'ranges', subMetaPath: 'minRange' },
+        {
+          metaObject: 'ranges',
+          paths: [
             {
-              metaPath: 'ranges',
-              subMetaPath: 'unit',
+              path: 'id',
+              source: { type: 'system', sourcePath: 'spells.ranges' },
+              dependents: true,
+              subPaths: [
+                [
+                  {
+                    path: 'minRange',
+                    dependents: true,
+                  },
+                  {
+                    path: 'unit',
+                    source: { type: 'system', sourcePath: 'rules.measurements.imperial.length', labelKey: 'short' },
+                  },
+                ],
+                [
+                  {
+                    path: 'maxRange',
+                    dependents: true,
+                  },
+                  {
+                    path: 'unit',
+                    source: { type: 'system', sourcePath: 'rules.measurements.imperial.length', labelKey: 'short' },
+                  },
+                ],
+                [
+                  {
+                    path: 'distance',
+                    dependents: true,
+                  },
+                  {
+                    path: 'unit',
+                    source: { type: 'system', sourcePath: 'rules.measurements.imperial.length', labelKey: 'short' },
+                  },
+                ],
+              ],
+            },
+          ],
+        },
+        {
+          metaObject: 'shapes',
+          paths: [
+            { path: 'id', source: { type: 'system', sourcePath: 'spells.shapes' }, dependents: true },
+            {
+              path: 'size',
+            },
+            {
+              path: 'unit',
               source: { type: 'system', sourcePath: 'rules.measurements.imperial.length', labelKey: 'short' },
             },
           ],
-          [
-            { metaPath: 'ranges', subMetaPath: 'maxRange' },
-            {
-              metaPath: 'ranges',
-              subMetaPath: 'unit',
-              source: { type: 'system', sourcePath: 'rules.measurements.imperial.length', labelKey: 'short' },
-            },
-          ],
-          [
-            { metaPath: 'ranges', subMetaPath: 'distance' },
-            {
-              metaPath: 'ranges',
-              subMetaPath: 'unit',
-              source: { type: 'system', sourcePath: 'rules.measurements.imperial.length', labelKey: 'short' },
-            },
-          ],
-        ],
-        [
-          { metaPath: 'shapes', source: { type: 'system', sourcePath: 'spells.shapes' } },
-          { metaPath: 'shapes', subMetaPath: 'size' },
-          {
-            metaPath: 'shapes',
-            subMetaPath: 'unit',
-            source: { type: 'system', sourcePath: 'rules.measurements.imperial.length', labelKey: 'short' },
-          },
-        ],
+        },
       ],
       display: 'list',
     },
     {
       icon: <IMortPest />,
       value: 'Requirements',
-      text: { metaPath: 'requirements', source: { type: 'system', sourcePath: 'spells.requirements' } },
+      text: {
+        metaObject: 'requirements',
+        paths: [
+          {
+            path: 'id',
+            source: { type: 'system', sourcePath: 'spells.requirements' },
+          },
+        ],
+      },
       display: 'list',
     },
   ]
@@ -146,7 +219,7 @@ const Spells = () => {
       label: 'Condition',
       options: {
         metaPath: 'conditions',
-        source: { type: 'system', sourcePath: 'damageTypes' },
+        source: { type: 'system', sourcePath: 'conditions' },
       },
     },
   ]

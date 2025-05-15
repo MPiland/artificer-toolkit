@@ -1,20 +1,23 @@
 import { ReactElement, ReactNode, useState } from 'react'
 import { ModalContext } from './ModalContext'
-import Alert from '../Alert/Alert'
-import Delete from '../Delete/Delete'
-import Copy from '../Copy/Copy'
+import Alert from '@/components/Alert'
+import Delete from '@/components/Delete'
+import Copy from '@/components/Copy'
 import Modal from './Modal'
-import { FormDataType, type ListItemType } from '@/types'
-import {
+import type {
+  ListItemType,
   Feature,
-  type BackgroundListItem,
-  type ClassListItem,
-  type EquipmentListItem,
-  type FeatListItem,
-  type RaceListItem,
-} from '../../../amplify/gql/types'
+  BackgroundListItem,
+  ClassListItem,
+  EquipmentListItem,
+  FeatListItem,
+  RaceListItem,
+  AncestryFeature,
+  FeatureOption,
+} from '@/types'
+import { AddSection } from '@/components/Form/Features/Sections'
 
-type ModalType = 'alert' | 'delete' | 'copy'
+type ModalType = 'alert' | 'delete' | 'copy' | 'addSection'
 
 export interface AlertModalProps {
   title?: string
@@ -27,40 +30,63 @@ export interface AlertModalProps {
 
 export interface DeleteModalProps {
   label: ListItemType['label']
-  onDelete?: () => void
+  onDelete: () => void
 }
 
 export interface CopyModalProps {
   form: string
-  data: Pick<FormDataType, 'id' | 'label' | 'value'>[] | Feature[] | undefined
-  onCopy?: (() => void) | ((arg: any) => void)
+  data:
+    | {
+        id: string
+        label: string
+        value: string
+        raceIds?: string[]
+        classIds?: string[]
+        equipmentIds?:  string[]
+        featIds?:  string[]
+        backgroundIds?:  string[]
+      }[]
+    | undefined
+  onCopy: (() => void) | ((arg: any) => void)
   filters?: {
-    races?: RaceListItem[]
-    classes?: ClassListItem[]
-    equipment?: EquipmentListItem[]
-    backgrounds?: BackgroundListItem[]
-    feats?: FeatListItem[]
+    races: RaceListItem[]
+    classes: ClassListItem[]
+    equipment: EquipmentListItem[]
+    backgrounds: BackgroundListItem[]
+    feats: FeatListItem[]
   }
 }
 
-type ModalConfig =
+export interface AddSectionModalProps {
+  featureData: Feature | AncestryFeature | FeatureOption
+  onAddSection: (sectionName: string) => void
+}
+
+export type ModalConfig =
   | { type: 'alert'; props: AlertModalProps }
   | { type: 'delete'; props: DeleteModalProps }
   | { type: 'copy'; props: CopyModalProps }
+  | { type: 'addSection'; props: AddSectionModalProps }
+
+export type ShowModal<T> = {
+  type: T
+  props?: Extract<ModalConfig, { type: T }>['props']
+}
+
+export type ModalPropsByType = {
+  alert: AlertModalProps
+  delete: DeleteModalProps
+  copy: CopyModalProps
+  addSection: AddSectionModalProps
+}
 
 const useModalOptions = () => {
   const [modalType, setModalType] = useState<ModalType | null>(null)
-  const [modalProps, setModalProps] = useState<any>(null)
+  const [modalProps, setModalProps] = useState<ModalPropsByType[ModalType] | null>(null)
 
-  const showModal = <T extends ModalConfig['type']>({
-    type,
-    props,
-  }: {
-    type: T
-    props?: Extract<ModalConfig, { type: T }>['props']
-  }) => {
+  const showModal = <T extends ModalType>({ type, props }: ShowModal<T>) => {
     setModalType(type)
-    setModalProps(props)
+    setModalProps(props as ModalPropsByType[T])
   }
 
   const hideModal = () => {
@@ -72,6 +98,7 @@ const useModalOptions = () => {
     alert: <Alert />,
     delete: <Delete />,
     copy: <Copy />,
+    addSection: <AddSection />,
   }
 
   return {

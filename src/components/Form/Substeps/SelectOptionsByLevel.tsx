@@ -1,7 +1,7 @@
 import { use, useEffect } from 'react'
 import { FeatureContext } from '../Features/FeatureContext'
-import Grid from '@/components/Grid'
-import Collapse from '@/components/Collapse'
+import { Grid } from '@mantine/core'
+import Collapsible from '@/components/Collapsible'
 import { useEnumChecks } from '@/hooks'
 import Input from '@/components/Input'
 import type { OnChange, AncestryFeature, Feature } from '@/types'
@@ -27,22 +27,22 @@ const SelectOptionsByLevel = () => {
   }, [addField, data?.optionsByLevel])
 
   return (
-    <Grid.Item>
-      <Collapse>
-        <Collapse.Header title='Select Options By Level' />
-        <Collapse.Body>
+    <Grid.Col>
+      <Collapsible>
+        <Collapsible.Trigger title='Select Options By Level' />
+        <Collapsible.Content>
           <Grid>
-            <Grid.Item>
+            <Grid.Col>
               <Grid>
-                <Grid.Item colSpan={'auto'}>Level</Grid.Item>
-                <Grid.Item colSpan={'auto'}>Count</Grid.Item>
-                {replaceAtLevel && <Grid.Item colSpan={'auto'}>Replace Count</Grid.Item>}
+                <Grid.Col >Level</Grid.Col>
+                <Grid.Col >Count</Grid.Col>
+                {replaceAtLevel && <Grid.Col >Replace Count</Grid.Col>}
               </Grid>
-            </Grid.Item>
+            </Grid.Col>
             {data?.optionsByLevel?.map((option, index) => (
-              <Grid.Item key={index}>
+              <Grid.Col key={index}>
                 <Grid>
-                  <Grid.Item colSpan={'auto'}>
+                  <Grid.Col >
                     <Input
                       name={`optionsByLevel.${index}.level`}
                       value={option.level}
@@ -50,8 +50,8 @@ const SelectOptionsByLevel = () => {
                       required={true}
                       onChange={{ updateField }}
                     />
-                  </Grid.Item>
-                  <Grid.Item colSpan={'auto'}>
+                  </Grid.Col>
+                  <Grid.Col >
                     <Input
                       name={`optionsByLevel.${index}.count`}
                       value={option.count}
@@ -59,9 +59,9 @@ const SelectOptionsByLevel = () => {
                       required={true}
                       onChange={{ updateField }}
                     />
-                  </Grid.Item>
+                  </Grid.Col>
                   {replaceAtLevel && (
-                    <Grid.Item colSpan={'auto'}>
+                    <Grid.Col >
                       <Input
                         name={`optionsByLevel.${index}.replaceCount`}
                         value={option.replaceCount}
@@ -69,15 +69,15 @@ const SelectOptionsByLevel = () => {
                         required={true}
                         onChange={{ updateField }}
                       />
-                    </Grid.Item>
+                    </Grid.Col>
                   )}
                 </Grid>
-              </Grid.Item>
+              </Grid.Col>
             ))}
           </Grid>
-        </Collapse.Body>
-      </Collapse>
-    </Grid.Item>
+        </Collapsible.Content>
+      </Collapsible>
+    </Grid.Col>
   )
 }
 export default SelectOptionsByLevel

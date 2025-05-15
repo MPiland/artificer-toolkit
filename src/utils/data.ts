@@ -135,7 +135,15 @@ export const getLabelsFromIds = (ids: string[], lookupData: LookupItem[]): strin
 }
 
 // Get label for a single ID from lookup data
-export const getLabelFromId = (id: MetaDataItem['id'], lookupData: LookupItem[], labelKey?: string): string | null => {
+export const getLabelFromId = ({
+  id,
+  lookupData,
+  labelKey,
+}: {
+  id: MetaDataItem['id']
+  lookupData: LookupItem[]
+  labelKey?: string
+}): string | null => {
   const lookupItem = lookupData.find((item) => item.id === id)
   if (lookupItem) {
     if (labelKey) {

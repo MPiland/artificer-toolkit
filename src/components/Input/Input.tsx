@@ -5,12 +5,11 @@ import {
   input_container,
   input_endAdornment,
   input,
-  input_height,
   input_border,
   input_textAlign,
 } from './Input.css'
 import clsx from 'clsx'
-import { useDebounceCallback, useEventListener } from 'usehooks-ts'
+import { useDebounceCallback } from 'usehooks-ts'
 import Floating from '../Floating/Floating'
 import type { DeepKeyOf, OnChange } from '@/types'
 
@@ -61,7 +60,6 @@ const Input = <T,>({
   endAdornment,
   id,
   disabled = false,
-  height = 'default',
   border = 'default',
   textAlign,
   ref,
@@ -73,7 +71,6 @@ const Input = <T,>({
   const [open, setOpen] = useState<boolean>(false)
 
   const inputRef = useRef<HTMLInputElement | null>(null!)
-  const documentRef = useRef<Document>(document)
 
   useEffect(() => {
     const input = inputRef.current
@@ -100,8 +97,6 @@ const Input = <T,>({
       setInputValue(value)
     }
   }, [inputValue, value, debouncing])
-
-  useEventListener('click', () => setOpen(false), documentRef)
 
   const debounceSave = useDebounceCallback(
     useCallback(
@@ -188,7 +183,6 @@ const Input = <T,>({
         <div
           className={clsx(
             input_container,
-            input_height[height],
             input_border[border],
             {
               [input_textAlign[textAlign as 'center']]: textAlign != null,

@@ -1,5 +1,4 @@
 import { form_footer } from './Form.css'
-import Group from '@/components/Group'
 import Button from '@/components/Button'
 import { isEqual, startCase } from 'lodash'
 import { useEffect } from 'react'
@@ -12,6 +11,7 @@ import { ModalContext } from '@/components/Modal'
 import { Navigate, useNavigate } from '@tanstack/react-router'
 import type { FormDataType, FormType } from '@/types'
 import { useRouteNavigation } from '@/hooks'
+import { Group } from '@mantine/core'
 
 interface FooterProps<T extends FormDataType> {
   useAddNewItemMutation: () => UseMutationResult<T, Error, T, unknown>
@@ -351,7 +351,7 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
   }
 
   return (
-    <Group className={form_footer} justifyContentVariant={'spaceBetween'}>
+    <Group className={form_footer} justify='space-between'>
       <Group>
         <Button color='main' type='button' onClick={handleBack} className={sprinkles({ marginRight: 'space-2' })}>
           {backLabel}

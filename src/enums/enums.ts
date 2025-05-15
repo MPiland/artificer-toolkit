@@ -6,7 +6,7 @@ import {
   EquipmentEnum,
   ClassesEnum,
   FeatEnum,
-} from '../../amplify/gql/types'
+} from '../../gql/types'
 
 export const Abilities = {
   CON: '492f208f-6e7a-4a69-bbf2-047389576246',

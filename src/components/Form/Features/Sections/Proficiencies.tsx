@@ -8,10 +8,10 @@ import { Categories, ProfCats, ProfLevels, Sections } from '@/enums'
 import { getKeyFromId } from '../../Form.utils'
 import { useEnumChecks } from '@/hooks'
 import Prerequisites from '../../Substeps/Prerequisites'
-import Grid from '@/components/Grid'
 import { useSystemData, useEquipmentData } from '@/hooks'
 import type { SectionStore } from '@/store'
 import type { OnChange, FeatureProficiency, Class } from '@/types'
+import { Grid } from '@mantine/core'
 
 const Proficiencies = () => {
   const { formStore } = use(FormContext)
@@ -58,7 +58,7 @@ const Proficiencies = () => {
 
   return (
     <Grid>
-      <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+      <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
         <Dropdown
           multiSelect={true}
           name='attributes'
@@ -72,8 +72,8 @@ const Proficiencies = () => {
           value={data?.attributes}
           onChange={{ updateField, removeField }}
         />
-      </Grid.Item>
-      <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+      </Grid.Col>
+      <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
         <Dropdown
           name='category'
           label='Proficiency Category'
@@ -82,10 +82,10 @@ const Proficiencies = () => {
           required={true}
           onChange={{ updateField, removeField }}
         />
-      </Grid.Item>
+      </Grid.Col>
       {sectionCategory != null &&
         (path !== 'equipment' && path !== 'properties' && path !== 'initiative' ?
-          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+          <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown
               name={path}
               multiSelect={true}
@@ -95,12 +95,12 @@ const Proficiencies = () => {
               required={true}
               onChange={{ updateField, removeField }}
             />
-          </Grid.Item>
+          </Grid.Col>
         : <>
             {(sectionCategory.id === ProfCats.PROPERTIES || sectionCategory.id === ProfCats.EQUIPMENT) &&
               path !== 'initiative' && (
                 <>
-                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                     <Dropdown
                       name={path}
                       label='Equipment Category'
@@ -109,8 +109,8 @@ const Proficiencies = () => {
                       required={true}
                       onChange={{ updateField, removeField }}
                     />
-                  </Grid.Item>
-                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                  </Grid.Col>
+                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                     <Dropdown
                       name={`${path as 'properties' | 'equipment'}.${
                         sectionCategory.id === ProfCats.EQUIPMENT ? 'properties' : 'ids'
@@ -122,9 +122,9 @@ const Proficiencies = () => {
                       onChange={{ updateField, removeField }}
                       required={sectionCategory.id === ProfCats.EQUIPMENT ? false : true}
                     />
-                  </Grid.Item>
+                  </Grid.Col>
                   {sectionCategory.id === ProfCats.EQUIPMENT && (
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                       <Dropdown
                         name={`${path as 'equipment'}.ids`}
                         multiSelect={true}
@@ -136,7 +136,7 @@ const Proficiencies = () => {
                         onChange={{ updateField, removeField }}
                         required={true}
                       />
-                    </Grid.Item>
+                    </Grid.Col>
                   )}
                 </>
               )}
@@ -185,9 +185,9 @@ const Proficiencies = () => {
         />
       )}
       {hasPrerequisites && (
-        <Grid.Item>
+        <Grid.Col>
           <Prerequisites formStore={sectionStore} />
-        </Grid.Item>
+        </Grid.Col>
       )}
     </Grid>
   )

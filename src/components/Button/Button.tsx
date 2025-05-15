@@ -1,15 +1,6 @@
 import { MouseEvent as ReactMouseEvent, ReactNode } from 'react'
-import {
-  button,
-  button_color,
-  button_content,
-  button_height,
-  button_radius,
-  button_style,
-  button_width,
-} from './Button.css'
+import { button, button_content, button_style, button_width } from './Button.css'
 import clsx from 'clsx'
-import { ButtonColor } from '@/css/theme.css'
 import { Height, Size } from '@/css/size.css'
 import { BorderRadius } from '@/css/border.css'
 
@@ -20,10 +11,7 @@ const Button = ({
   disabled,
   className,
   name,
-  height = 'default',
-  borderRadius = 'default',
   style = 'filled',
-  color = 'primary',
   width = 'size-auto',
   ...props
 }: {
@@ -35,22 +23,13 @@ const Button = ({
   height?: Height | 'default'
   borderRadius?: BorderRadius | 'default'
   style?: 'filled' | 'outline' | 'unstyled'
-  color?: ButtonColor
   type?: 'button' | 'submit' | 'reset'
   width?: Size
 }) => {
   return (
     <button
       type={type || 'button'}
-      className={clsx(
-        button,
-        button_height[height],
-        button_radius[borderRadius],
-        button_color[disabled ? 'main' : color],
-        button_style[style],
-        button_width[width],
-        className
-      )}
+      className={clsx(button, button_style[style], button_width[width], className)}
       disabled={disabled}
       onClick={(e) => onClick && onClick(e)}
       name={name}

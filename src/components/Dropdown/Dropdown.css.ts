@@ -1,100 +1,36 @@
-import { app } from '../../css/layers.css'
-import { style, globalStyle, styleVariants } from '@vanilla-extract/css'
-import { size, space } from '../../css/size.css'
-import { theme } from '../../css/theme.css'
+import { app } from '@/css/layers.css'
+import {style, styleVariants } from '@vanilla-extract/css'
+import { size, space } from '@/css/size.css'
 
 export const dropdown = style({
   '@layer': {
     [app]: {
-      position: 'relative',
-
-      selectors: {
-        '&:has(:focus-within)': {
-          outline: 'none',
-        },
+      vars: {
+        '--input-asterisk-color': 'red',
       },
     },
   },
-  zIndex: 1000,
-})
-
-export const dropdown_wrapper = style({
-  '@layer': {
-    [app]: {
-      minWidth: 0,
-      position: 'relative',
-      width: '100%',
-      overflow: 'hidden',
-      textWrap: 'nowrap',
-      textOverflow: 'ellipsis',
-
-      selectors: {
-        '&:has(:focus-within)': {
-          outline: 'none',
-        },
-      },
-    },
-  },
+  'zIndex': 1000,
 })
 
 export const dropdown_label = style({
   '@layer': {
     [app]: {
-      display: 'inline-block',
       marginBottom: space['space-2'],
-
-      selectors: {
-        '&.required:after': {
-          content: '*',
-          color: 'red',
-          right: 0,
-        },
-      },
     },
   },
 })
 
-export const dropdown_container = style({
+export const dropdown_wrapper = style({
   '@layer': {
     [app]: {
-      position: 'relative',
       display: 'flex',
       flexDirection: 'row',
       alignItems: 'center',
-      paddingLeft: size['size-3'],
-      overflow: 'hidden',
-      cursor: 'pointer',
-      width: '100%',
-      minWidth: 0,
-      borderRadius: theme.border.radius,
-      backgroundColor: theme.vars.component.input.backgroundColor,
-      color: theme.vars.typography.color.main,
-
-      selectors: {
-        '&:focus-within': {
-          outline: 'none',
-          border: `${theme.border.size.emphasis} ${theme.border.style} ${theme.vars.component.input.border.color.focus}`,
-        },
-        '&.invalid': {
-          border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.input.border.color.error}`,
-        },
+      vars: {
+        '--input-asterisk-color': 'red',
       },
-    },
-  },
-})
-
-export const dropdown_right_section = style({
-  '@layer': {
-    [app]: {
-      zIndex: '1',
-      position: 'absolute',
-      top: '0',
-      right: '0',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: size['size-9'],
-      height: '100%',
+      cursor: 'pointer',
     },
   },
 })
@@ -102,50 +38,36 @@ export const dropdown_right_section = style({
 export const dropdown_input = style({
   '@layer': {
     [app]: {
-      position: 'relative',
+      width: '100%',
       border: 'none',
       backgroundColor: 'transparent',
-      width: '100%',
-      minWidth: 0,
       userSelect: 'none',
-      flexWrap: 'nowrap',
-      overflow: 'hidden',
-      whiteSpace: 'nowrap',
-      textOverflow: 'ellipsis',
-
-      selectors: {
-        [`${dropdown_container}:has(${dropdown_right_section}) > &`]: {
-          marginRight: '2rem',
-        },
-        '&.multiselect': {
-          display: 'flex',
-          flexDirection: 'row',
-        },
-      },
+      color: 'inherit',
+      textAlign: 'left',
+      paddingBlock: '1px',
+      paddingInline: '2px',
     },
   },
 })
 
-export const dropdown_menu = style({
+export const dropdown_icon = style({
   '@layer': {
     [app]: {
-      display: 'flex',
-      maxHeight: '10rem',
-      zIndex: 1000,
-      boxShadow: '0px 8px 16px 0px rgba(0,0,0,0.2)',
-      listStyle: 'none',
-      padding: `${size['size-0']} ${size['size-0']}`,
-      height: 'fit-content',
-      backgroundColor: theme.vars.component.input.backgroundColor,
-      border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.input.border.color.main}`,
-      borderRadius: theme.border.radius,
+      flexShrink: 0,
+      opacity: 0.6,
+      height: size['size-4'],
+      width: size['size-4'],
+      cursor: 'pointer',
+    },
+  },
+})
 
-      selectors: {
-        '&:focus-within': {
-          outline: 'none',
-          border: `${theme.border.size.emphasis} ${theme.border.style} ${theme.vars.component.input.border.color.focus}`,
-        },
-      },
+export const dropdown_active_icon = style({
+  '@layer': {
+    [app]: {
+      flexShrink: 0,
+      height: size['size-4'],
+      width: size['size-4'],
     },
   },
 })
@@ -153,58 +75,18 @@ export const dropdown_menu = style({
 export const dropdown_option = style({
   '@layer': {
     [app]: {
+      display: 'flex',
       cursor: 'default',
       padding: `${size['size-1']} ${size['size-3']}`,
-      display: 'flex',
-      justifyContent: 'space-between',
+      justifyContent: 'flex-start',
       alignItems: 'center',
 
       selectors: {
-        '&:focus': {
+        '&[aria-selected="true"]': {
           outline: 'none',
-          backgroundColor: 'rgb(118, 184, 255)',
-          borderRadius: theme.border.radius,
-        },
-        '&:hover': {
-          backgroundColor: 'rgb(118, 184, 255)',
-          borderRadius: theme.border.radius,
+          backgroundColor: 'rgb(118, 184, 255) !important',
         },
       },
-    },
-  },
-})
-
-export const dropdown_option_right_side = style({
-  '@layer': {
-    [app]: {
-      width: '1rem',
-      marginLeft: size['size-2'],
-      display: 'flex',
-      flexDirection: 'row',
-      alignItems: 'row',
-    },
-  },
-})
-
-export const dropdown_active_option = style({
-  '@layer': {
-    [app]: {
-      backgroundColor: theme.vars.component.dropdown.activeOption.backgroundColor,
-      borderRadius: '.75rem',
-      width: 'fit-content',
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      padding: `${size['size-0']} ${size['size-2']}`,
-      whiteSpace: 'nowrap',
-    },
-  },
-})
-
-globalStyle(`${dropdown_right_section} > span`, {
-  '@layer': {
-    [app]: {
-      display: 'inline-block',
-      maxHeight: 'fit-content',
     },
   },
 })
@@ -212,24 +94,4 @@ globalStyle(`${dropdown_right_section} > span`, {
 export const dropdown_height = styleVariants({
   auto: { '@layer': { [app]: { height: size['size-auto'] } } },
   full: { '@layer': { [app]: { height: size['size-full'] } } },
-  default: { '@layer': { [app]: { height: theme.component.input.height } } },
-})
-
-export const dropdown_border = styleVariants({
-  none: { '@layer': { [app]: { border: 'none' } } },
-  default: {
-    '@layer': {
-      [app]: {
-        border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.input.border.color.main}`,
-        selectors: {
-          '&:focus-within': {
-            border: `${theme.border.size.emphasis} ${theme.border.style} ${theme.vars.component.input.border.color.focus}`,
-          },
-          '&.invalid': {
-            border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.input.border.color.error}`,
-          },
-        },
-      },
-    },
-  },
 })

@@ -1,6 +1,6 @@
 import { useMutation, queryOptions, useQueryClient } from '@tanstack/react-query'
 import { generateClient, type GraphQLResult } from 'aws-amplify/data'
-import { listMasterSpells, listSpells, getMasterSpell, getSpell } from '../../amplify/gql/queries'
+import { listMasterSpells, listSpells, getMasterSpell, getSpell } from '@/queries'
 import {
   createMasterSpell,
   createSpell,
@@ -8,7 +8,7 @@ import {
   deleteSpell,
   updateMasterSpell,
   updateSpell,
-} from '../../amplify/gql/mutations'
+} from '@/mutations'
 import type {
   SpellInput,
   Spell,

@@ -4,10 +4,10 @@ import { use } from 'react'
 import { FormContext } from '../../FormContext'
 import { FeatureContext } from '../FeatureContext'
 import { Attributes, Categories, Sections } from '@/enums'
-import Grid from '@/components/Grid'
 import { useSystemData } from '@/hooks'
 import type { SectionStore } from '@/store'
 import type { OnChange, Class, FeatureSense } from '@/types'
+import { Grid } from '@mantine/core'
 
 const Senses = () => {
   const { formStore } = use(FormContext)
@@ -31,7 +31,7 @@ const Senses = () => {
 
   return (
     <Grid>
-      <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+      <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
         <Dropdown
           multiSelect={true}
           name='attributes'
@@ -46,8 +46,8 @@ const Senses = () => {
           value={data?.attributes}
           onChange={{ updateField, removeField }}
         />
-      </Grid.Item>
-      <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+      </Grid.Col>
+      <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
         <Dropdown
           name='ids'
           multiSelect={true}
@@ -57,11 +57,11 @@ const Senses = () => {
           required={true}
           onChange={{ updateField, removeField }}
         />
-      </Grid.Item>
+      </Grid.Col>
       {data?.attributes?.some((attribute) => attribute === Attributes.PROVIDES_OPTIONS) &&
         formStore.data.__typename === 'Class' &&
         formStore.data?.subtypes?.length && (
-          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+          <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown
               name={`subtype`}
               label='Subtype'
@@ -70,10 +70,10 @@ const Senses = () => {
               required={true}
               onChange={{ updateField, removeField }}
             />
-          </Grid.Item>
+          </Grid.Col>
         )}
       {providesOptions && (
-        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+        <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
           <Input
             validation='num'
             name={`selectionCount`}
@@ -84,7 +84,7 @@ const Senses = () => {
             required={true}
             onChange={{ updateField }}
           />
-        </Grid.Item>
+        </Grid.Col>
       )}
     </Grid>
   )

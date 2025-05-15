@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react'
-import { DeepKeyOf, OnChange } from '@/types'
+import type { DeepKeyOf, OnChange } from '@/types'
 
 export type DropdownOption = {
   label: string | number | null | undefined
@@ -9,16 +9,19 @@ export type DropdownOption = {
   renderedLabel?: string | number | null | undefined | ReactElement
 }
 
-export interface DropdownProps<T> {
-  label?: string | boolean
+export type DropdownCommonProps = {
+  placeholder?: string
+  label?: string
   required?: boolean
+}
+
+export type DropdownProps<T> = {
   value: string[] | string | null | undefined
   onChange: {
     updateField: OnChange<T>['updateField']
     removeField: OnChange<T>['removeField']
   }
   className?: string | number | symbol | any
-  placeholder?: string
   options: DropdownOption[]
   multiSelect?: boolean
   errorMsg?: string
@@ -29,4 +32,4 @@ export interface DropdownProps<T> {
   name: DeepKeyOf<T>
   boundary?: 'app' | 'form'
   disableRemove?: boolean
-}
+} & DropdownCommonProps

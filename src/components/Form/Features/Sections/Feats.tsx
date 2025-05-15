@@ -6,10 +6,10 @@ import { startCase } from 'lodash'
 import { FeatureContext } from '../FeatureContext'
 import { Categories, Sections } from '@/enums'
 import Prerequisites from '../../Substeps/Prerequisites'
-import Grid from '@/components/Grid'
 import { useSystemData, useFeatData, useEnumChecks } from '@/hooks'
 import { type OnChange, FeatureFeat, Class } from '@/types'
 import type { SectionStore } from '@/store'
+import { Grid } from '@mantine/core'
 
 const Feats = () => {
   const { formStore } = use(FormContext)
@@ -36,7 +36,7 @@ const Feats = () => {
 
   return (
     <Grid>
-      <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+      <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
         <Dropdown
           multiSelect={true}
           name='attributes'
@@ -51,8 +51,8 @@ const Feats = () => {
           value={data?.attributes}
           onChange={{ updateField, removeField }}
         />
-      </Grid.Item>
-      <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+      </Grid.Col>
+      <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
         <Dropdown
           name='feats'
           multiSelect={true}
@@ -62,12 +62,12 @@ const Feats = () => {
           required={true}
           onChange={{ updateField, removeField }}
         />
-      </Grid.Item>
+      </Grid.Col>
       {subtypeSpecific &&
         formStore.data.__typename === 'Class' &&
         formStore.data.category === Categories.SUBCLASS &&
         formStore.data?.subtypes?.length && (
-          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+          <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown
               name='subtype'
               label='Subtype'
@@ -76,10 +76,10 @@ const Feats = () => {
               required={true}
               onChange={{ updateField, removeField }}
             />
-          </Grid.Item>
+          </Grid.Col>
         )}
       {providesOptions && (
-        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+        <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
           <Input
             validation='num'
             name='selectionCount'
@@ -90,12 +90,12 @@ const Feats = () => {
             required={true}
             onChange={{ updateField }}
           />
-        </Grid.Item>
+        </Grid.Col>
       )}
       {hasPrerequisites && (
-        <Grid.Item>
+        <Grid.Col>
           <Prerequisites formStore={sectionStore} />
-        </Grid.Item>
+        </Grid.Col>
       )}
     </Grid>
   )

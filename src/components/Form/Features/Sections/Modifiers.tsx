@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import Dropdown from '@/components/Dropdown'
 import Input from '@/components/Input'
-import Collapse from '@/components/Collapse'
+import Collapsible from '@/components/Collapsible'
 import { use } from 'react'
 import { FormContext } from '../../FormContext'
 import { FeatureContext } from '../FeatureContext'
@@ -9,7 +9,6 @@ import { Attributes, Categories, ModCats, ModMethods, ModSpellCats, ModTypes, Ra
 import { getKeyFromId, getModifierProperties } from '../../Form.utils'
 import { useEnumChecks } from '@/hooks'
 import Prerequisites from '../../Substeps/Prerequisites'
-import Grid from '@/components/Grid'
 import { useSystemData, useSpellData } from '@/hooks'
 import type { SectionStore } from '@/store'
 import type {
@@ -23,6 +22,7 @@ import type {
   Spell,
   Character,
 } from '@/types'
+import { Grid } from '@mantine/core'
 
 const Modifiers = () => {
   const { formStore } = use(FormContext)
@@ -210,7 +210,7 @@ const Modifiers = () => {
   return (
     <>
       <Grid>
-        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+        <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
           <Dropdown
             multiSelect={true}
             name='attributes'
@@ -225,8 +225,8 @@ const Modifiers = () => {
             value={data?.attributes}
             onChange={{ updateField, removeField }}
           />
-        </Grid.Item>
-        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+        </Grid.Col>
+        <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
           <Dropdown
             name='category'
             label='Modifier Category'
@@ -235,10 +235,10 @@ const Modifiers = () => {
             required={true}
             onChange={{ updateField, removeField }}
           />
-        </Grid.Item>
+        </Grid.Col>
         {data?.category === ModCats.SPELL && (
           <>
-            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
               <Dropdown
                 name='spellCategory'
                 label='Spell Category'
@@ -247,8 +247,8 @@ const Modifiers = () => {
                 required={true}
                 onChange={{ updateField, removeField }}
               />
-            </Grid.Item>
-            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            </Grid.Col>
+            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
               <Dropdown
                 name='spell'
                 label='Spell'
@@ -257,11 +257,11 @@ const Modifiers = () => {
                 required={true}
                 onChange={{ updateField, removeField }}
               />
-            </Grid.Item>
+            </Grid.Col>
           </>
         )}
         {modTypes?.length && sectionCategory != null && (
-          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+          <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown
               name='type'
               label='Modifier Type'
@@ -270,10 +270,10 @@ const Modifiers = () => {
               required={true}
               onChange={{ updateField, removeField }}
             />
-          </Grid.Item>
+          </Grid.Col>
         )}
         {modMethods != null && modMethods?.length && (
-          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+          <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown
               name='method'
               label='Method'
@@ -282,10 +282,10 @@ const Modifiers = () => {
               required={true}
               onChange={{ updateField, removeField }}
             />
-          </Grid.Item>
+          </Grid.Col>
         )}
         {typeOptions && data?.category !== ModCats.SPELL && data?.category != null && (
-          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+          <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown
               name={path}
               multiSelect={true}
@@ -302,11 +302,11 @@ const Modifiers = () => {
               required={true}
               onChange={{ updateField, removeField }}
             />
-          </Grid.Item>
+          </Grid.Col>
         )}
         {data?.category === ModCats.CHARGE && data?.type === ModTypes.USE_RESET && (
           <>
-            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
               <Dropdown
                 name='charge.reset'
                 label='Reset Option'
@@ -315,8 +315,8 @@ const Modifiers = () => {
                 required={true}
                 onChange={{ updateField, removeField }}
               />
-            </Grid.Item>
-            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            </Grid.Col>
+            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
               <Dropdown
                 name='feature'
                 label='Feature'
@@ -332,13 +332,13 @@ const Modifiers = () => {
                 required={true}
                 onChange={{ updateField, removeField }}
               />
-            </Grid.Item>
+            </Grid.Col>
           </>
         )}
         {data?.category === ModCats.SPELL &&
           (data?.spellCategory === ModSpellCats.SPELL_DURATION ?
             <>
-              <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+              <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                 <Dropdown
                   name='duration'
                   label='Spell Duration Type'
@@ -347,10 +347,10 @@ const Modifiers = () => {
                   required={true}
                   onChange={{ updateField, removeField }}
                 />
-              </Grid.Item>
+              </Grid.Col>
               {data?.type === ModTypes.SET_AMOUNT && (
                 <>
-                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                     <Input
                       validation='num'
                       name='setAmount'
@@ -360,13 +360,13 @@ const Modifiers = () => {
                       value={data?.setAmount}
                       onChange={{ updateField }}
                     />
-                  </Grid.Item>
+                  </Grid.Col>
                 </>
               )}
             </>
           : data?.spellCategory === ModSpellCats.SPELL_RANGE ?
             <>
-              <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+              <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                 <Dropdown
                   name='range'
                   label='Spell Range Type'
@@ -375,10 +375,10 @@ const Modifiers = () => {
                   required={true}
                   onChange={{ updateField, removeField }}
                 />
-              </Grid.Item>
+              </Grid.Col>
               {data?.type === ModTypes.SET_AMOUNT && (
                 <>
-                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                     <Input
                       validation='num'
                       name='minAmount'
@@ -388,8 +388,8 @@ const Modifiers = () => {
                       value={data?.minAmount}
                       onChange={{ updateField }}
                     />
-                  </Grid.Item>
-                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                  </Grid.Col>
+                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                     <Input
                       validation='num'
                       name='maxAmount'
@@ -399,8 +399,8 @@ const Modifiers = () => {
                       value={data?.maxAmount}
                       onChange={{ updateField }}
                     />
-                  </Grid.Item>
-                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                  </Grid.Col>
+                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                     <Dropdown
                       name='unit'
                       label='UoM'
@@ -409,13 +409,13 @@ const Modifiers = () => {
                       required={data?.range === Ranges.DISTANCE ? true : false}
                       onChange={{ updateField, removeField }}
                     />
-                  </Grid.Item>
+                  </Grid.Col>
                 </>
               )}
             </>
           : data?.spellCategory === ModSpellCats.SPELL_SHAPE && (
               <>
-                <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                   <Dropdown
                     name='shape'
                     label='Spell Shape Type'
@@ -424,10 +424,10 @@ const Modifiers = () => {
                     required={true}
                     onChange={{ updateField, removeField }}
                   />
-                </Grid.Item>
+                </Grid.Col>
                 {data?.type === ModTypes.SET_AMOUNT && (
                   <>
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                       <Input
                         validation='num'
                         name='size'
@@ -437,8 +437,8 @@ const Modifiers = () => {
                         value={data?.size}
                         onChange={{ updateField }}
                       />
-                    </Grid.Item>
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    </Grid.Col>
+                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                       <Dropdown
                         name='unit'
                         label='UoM'
@@ -447,7 +447,7 @@ const Modifiers = () => {
                         required={true}
                         onChange={{ updateField, removeField }}
                       />
-                    </Grid.Item>
+                    </Grid.Col>
                   </>
                 )}
               </>
@@ -457,7 +457,7 @@ const Modifiers = () => {
             {(data?.type === ModTypes.BONUS || data?.type === ModTypes.SET_AMOUNT) && (
               <>
                 {data?.method === ModMethods.SET_GLOBALLY ?
-                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                     <Input
                       validation='num'
                       name='setAmount'
@@ -468,9 +468,9 @@ const Modifiers = () => {
                       required={true}
                       onChange={{ updateField }}
                     />
-                  </Grid.Item>
+                  </Grid.Col>
                 : data?.method === ModMethods.ABILITY_SCORE_MODIFIER ?
-                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                     <Dropdown
                       name='methodAbility'
                       label='Method Ability'
@@ -479,9 +479,9 @@ const Modifiers = () => {
                       required={true}
                       onChange={{ updateField, removeField }}
                     />
-                  </Grid.Item>
+                  </Grid.Col>
                 : data?.method === ModMethods.SKILL_MODIFIER && (
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                       <Dropdown
                         name='methodSkill'
                         label='Method Skill'
@@ -490,14 +490,14 @@ const Modifiers = () => {
                         required={true}
                         onChange={{ updateField, removeField }}
                       />
-                    </Grid.Item>
+                    </Grid.Col>
                   )
                 }
               </>
             )}
             {data?.method !== ModMethods.SET_GLOBALLY && (
               <>
-                <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                   <Input
                     validation='num'
                     name='multiplier'
@@ -507,8 +507,8 @@ const Modifiers = () => {
                     value={data?.multiplier}
                     onChange={{ updateField }}
                   />
-                </Grid.Item>
-                <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                </Grid.Col>
+                <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                   <Input
                     validation='num'
                     name='minAmount'
@@ -518,7 +518,7 @@ const Modifiers = () => {
                     value={data?.minAmount}
                     onChange={{ updateField }}
                   />
-                </Grid.Item>
+                </Grid.Col>
               </>
             )}
           </>
@@ -527,7 +527,7 @@ const Modifiers = () => {
           formStore.data.__typename === 'Class' &&
           data?.category != null &&
           formStore.data?.subtypes?.length && (
-            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
               <Dropdown
                 name='subtype'
                 label='Subclass Subtype'
@@ -536,10 +536,10 @@ const Modifiers = () => {
                 required={true}
                 onChange={{ updateField, removeField }}
               />
-            </Grid.Item>
+            </Grid.Col>
           )}
         {providesOptions && (
-          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+          <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
             <Input
               validation='num'
               name={`selectionCount`}
@@ -550,29 +550,29 @@ const Modifiers = () => {
               required={true}
               onChange={{ updateField }}
             />
-          </Grid.Item>
+          </Grid.Col>
         )}
         {hasPrerequisites && (
-          <Grid.Item>
+          <Grid.Col>
             <Prerequisites formStore={sectionStore} />
-          </Grid.Item>
+          </Grid.Col>
         )}
         {data?.method === ModMethods.SET_PER_LEVEL && data?.diePerLevel?.length && (
-          <Grid.Item>
-            <Collapse>
-              <Collapse.Header title='Die Per Level' />
-              <Collapse.Body>
+          <Grid.Col>
+            <Collapsible>
+              <Collapsible.Trigger title='Die Per Level' />
+              <Collapsible.Content>
                 <Grid>
-                  <Grid.Item>
+                  <Grid.Col>
                     <Grid>
-                      <Grid.Item colSpan={'auto'}>Level</Grid.Item>
-                      <Grid.Item colSpan={'auto'}>Die Config</Grid.Item>
+                      <Grid.Col >Level</Grid.Col>
+                      <Grid.Col >Die Config</Grid.Col>
                     </Grid>
-                  </Grid.Item>
+                  </Grid.Col>
                   {data?.diePerLevel?.map((setLevel, index) => (
-                    <Grid.Item key={index}>
+                    <Grid.Col key={index}>
                       <Grid>
-                        <Grid.Item colSpan={'auto'}>
+                        <Grid.Col >
                           <Input
                             name={`diePerLevel.${index}.level`}
                             value={setLevel.level}
@@ -581,8 +581,8 @@ const Modifiers = () => {
                             onChange={{ updateField }}
                             required={true}
                           />
-                        </Grid.Item>
-                        <Grid.Item colSpan={'auto'}>
+                        </Grid.Col>
+                        <Grid.Col >
                           <Input
                             name={`diePerLevel.${index}.dieConfig`}
                             value={setLevel.dieConfig}
@@ -591,31 +591,31 @@ const Modifiers = () => {
                             onChange={{ updateField }}
                             required={true}
                           />
-                        </Grid.Item>
+                        </Grid.Col>
                       </Grid>
-                    </Grid.Item>
+                    </Grid.Col>
                   ))}
                 </Grid>
-              </Collapse.Body>
-            </Collapse>
-          </Grid.Item>
+              </Collapsible.Content>
+            </Collapsible>
+          </Grid.Col>
         )}
         {data?.method === ModMethods.SET_PER_LEVEL && data?.setPerLevel?.length && (
-          <Grid.Item>
-            <Collapse>
-              <Collapse.Header title='Set Per Level' />
-              <Collapse.Body>
+          <Grid.Col>
+            <Collapsible>
+              <Collapsible.Trigger title='Set Per Level' />
+              <Collapsible.Content>
                 <Grid>
-                  <Grid.Item>
+                  <Grid.Col>
                     <Grid>
-                      <Grid.Item colSpan={'auto'}>Level</Grid.Item>
-                      <Grid.Item colSpan={'auto'}>Amount</Grid.Item>
+                      <Grid.Col >Level</Grid.Col>
+                      <Grid.Col >Amount</Grid.Col>
                     </Grid>
-                  </Grid.Item>
+                  </Grid.Col>
                   {data?.setPerLevel?.map((setLevel, index) => (
-                    <Grid.Item key={index}>
+                    <Grid.Col key={index}>
                       <Grid>
-                        <Grid.Item colSpan={'auto'}>
+                        <Grid.Col >
                           <Input
                             name={`setPerLevel.${index}.level`}
                             value={setLevel.level}
@@ -624,8 +624,8 @@ const Modifiers = () => {
                             onChange={{ updateField }}
                             required={true}
                           />
-                        </Grid.Item>
-                        <Grid.Item colSpan={'auto'}>
+                        </Grid.Col>
+                        <Grid.Col >
                           <Input
                             name={`setPerLevel.${index}.setAmount`}
                             value={setLevel.setAmount}
@@ -634,14 +634,14 @@ const Modifiers = () => {
                             onChange={{ updateField }}
                             required={true}
                           />
-                        </Grid.Item>
+                        </Grid.Col>
                       </Grid>
-                    </Grid.Item>
+                    </Grid.Col>
                   ))}
                 </Grid>
-              </Collapse.Body>
-            </Collapse>
-          </Grid.Item>
+              </Collapsible.Content>
+            </Collapsible>
+          </Grid.Col>
         )}
       </Grid>
     </>

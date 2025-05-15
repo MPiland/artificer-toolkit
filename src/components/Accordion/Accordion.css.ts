@@ -1,37 +1,19 @@
-import { createVar, globalStyle, style } from '@vanilla-extract/css'
-import { app } from '../../css/layers.css'
-import { size } from '../../css/size.css'
-import { theme } from '../../css/theme.css'
+import { globalStyle, style } from '@vanilla-extract/css'
+import { app } from '@/css/layers.css'
+import { size, space } from '@/css/size.css'
+import { vars } from 'src/css/theme'
 
-export const height = createVar()
-
-export const accordion = style({
-  '@layer': {
-    [app]: {
-      display: 'flex',
-      flexDirection: 'column',
-      height: 'auto',
-    },
-  },
-})
-
-export const accordion_wrapper = style({
+export const accordion_item = style({
   '@layer': {
     [app]: {
       position: 'relative',
-      boxShadow: '-2px 2px 4px 0px rgba(0,0,0,0.2)',
+      display: 'flex',
+      flexDirection: 'column',
+      width: '100%',
       zIndex: 2,
-      marginBottom: size['size-4'],
-      border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
-      borderRadius: theme.border.radius,
-      backgroundColor: theme.vars.component.collapse.backgroundColor.main,
-
-      selectors: {
-        '&.borderless': {
-          border: 'none',
-          borderRadius: '0',
-        },
-      },
+      backgroundColor: vars.colors.gray[8],
+      marginTop: '-1px',
+      transition: 'background-color 0.3s ease',
     },
   },
 })
@@ -39,27 +21,41 @@ export const accordion_wrapper = style({
 export const accordion_header = style({
   '@layer': {
     [app]: {
-      width: '100%',
-      fontWeight: 'bold',
+      position: 'relative',
       display: 'flex',
-      flexDirection: 'row',
+      flex: 1,
       alignItems: 'center',
       justifyContent: 'space-between',
+      padding: `${space['space-3']} ${space['space-4']}`,
+      fontSize: '14px',
+      fontWeight: '500',
       cursor: 'pointer',
-      padding: `${size['size-2']} ${size['size-3']}`,
-      height: '2.5rem',
-      flexWrap: 'nowrap',
-      borderBottomLeftRadius: '0',
-      borderBottomRightRadius: '0',
-      backgroundColor: theme.vars.component.collapse.backgroundColor.header,
-      borderBottom: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
+      backgroundColor: 'transparent',
+      border: 'none',
+      transition: 'all 0.3s ease',
 
       selectors: {
-        [`${accordion_wrapper}.collapsed &`]: {
-          border: 'none',
+        '&:focus-visible': {
+          outline: 'none',
         },
-        '&.not-expandable': {
-          cursor: 'default',
+      },
+    },
+  },
+})
+
+export const accordion_header_icon_collapse = style({
+  '@layer': {
+    [app]: {
+      position: 'absolute',
+      right: space['space-4'],
+      transitionProperty: 'transform, translate, scale, rotate',
+      transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)',
+      transitionDuration: '.2s',
+      transformOrigin: '50%',
+
+      selectors: {
+        [`${accordion_header}[aria-expanded="true"] > &`]: {
+          rotate: '180deg',
         },
       },
     },
@@ -69,11 +65,10 @@ export const accordion_header = style({
 export const accordion_header_icon = style({
   '@layer': {
     [app]: {
-      height: '100%',
-      width: 'auto',
-      alignItems: 'center',
-      display: 'flex',
-      marginLeft: size['size-3'],
+      flexShrink: 0,
+      opacity: 0.6,
+      height: size['size-4'],
+      width: size['size-4'],
     },
   },
 })
@@ -86,24 +81,7 @@ export const accordion_remove_button = style({
       borderRadius: '.5rem',
       alignItems: 'center',
       justifyContent: 'center',
-      marginRight: size['size-1'],
-    },
-  },
-})
-
-export const accordion_content_wrapper = style({
-  '@layer': {
-    [app]: {
-      display: 'grid',
-      borderSpacing: 0,
-      gridTemplateRows: '1fr',
-      transition: 'grid-template-rows 0.3s ease-in-out',
-
-      selectors: {
-        [`${accordion_wrapper}.collapsed &`]: {
-          gridTemplateRows: '0fr',
-        },
-      },
+      marginRight: space['space-1'],
     },
   },
 })
@@ -114,14 +92,8 @@ export const accordion_content = style({
       width: '100%',
       height: 'auto',
       overflow: 'hidden',
-      padding: `${size['size-3']} ${size['size-3']}`,
+      padding: `${space['space-3']} ${space['space-3']}`,
       transition: 'padding 0.3s ease-in-out',
-
-      selectors: {
-        [`${accordion_wrapper}.collapsed &`]: {
-          padding: `0 ${size['size-3']}`,
-        },
-      },
     },
   },
 })
@@ -131,17 +103,29 @@ export const accordion_footer = style({
     [app]: {
       display: 'flex',
       flexDirection: 'column',
-      padding: `${size['size-1']} ${size['size-2']}`,
-      borderTop: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
+      padding: `${space['space-1']} ${space['space-2']}`,
     },
   },
 })
 
-globalStyle(`${accordion_header_icon} svg`, {
+globalStyle(`${accordion_header}[aria-expanded="true"] > ${accordion_header_icon_collapse} > svg > path:last-child`, {
   '@layer': {
     [app]: {
-      height: '60%',
-      width: 'auto',
+      opacity: '0',
+      rotate: '90deg',
+    },
+  },
+})
+
+globalStyle(`${accordion_header_icon_collapse} > svg > path:last-child`, {
+  '@layer': {
+    [app]: {
+      flexShrink: 0,
+      transitionProperty: 'all',
+      transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)',
+      transitionDuration: '.2s',
+      pointerEvents: 'none',
+      transformOrigin: '50%',
     },
   },
 })

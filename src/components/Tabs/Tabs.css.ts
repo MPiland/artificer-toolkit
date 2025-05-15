@@ -1,7 +1,7 @@
 import { app } from '../../css/layers.css'
 import { globalStyle, style } from '@vanilla-extract/css'
 import { size } from '../../css/size.css'
-import { theme } from '../../css/theme.css'
+import { theme } from '../../css/theme'
 
 export const tabs_wrapper = style({
   '@layer': {
@@ -34,7 +34,7 @@ export const tabs_header = style({
 
 export const tabs_tab = style({
   '@layer': {
-    [app]: {  
+    [app]: {
       width: '100%',
       fontWeight: 'bold',
       display: 'flex',
@@ -45,7 +45,7 @@ export const tabs_tab = style({
       padding: `${size['size-2']} ${size['size-3']}`,
       height: '2.5rem',
       flexWrap: 'nowrap',
-      borderBottom: `${theme.border.size.emphasis} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
+      borderBottom: `${theme.other?.border.width.thin} ${theme.other?.border.style} ${theme.other?.border.color}`,
 
       selectors: {
         '&.inactive': {

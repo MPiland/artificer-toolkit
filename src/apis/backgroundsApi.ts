@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
 import { generateClient, type GraphQLResult } from 'aws-amplify/data'
-import { listMasterBackgrounds, listBackgrounds, getMasterBackground, getBackground } from '../../amplify/gql/queries'
+import { listMasterBackgrounds, listBackgrounds, getMasterBackground, getBackground } from '@/queries'
 import {
   createMasterBackground,
   createBackground,
@@ -8,7 +8,7 @@ import {
   deleteBackground,
   updateMasterBackground,
   updateBackground,
-} from '../../amplify/gql/mutations'
+} from '@/mutations'
 import type {
   BackgroundInput,
   Background,

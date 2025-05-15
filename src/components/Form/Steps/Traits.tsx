@@ -7,9 +7,9 @@ import Accordion from '@/components/Accordion'
 import { use } from 'react'
 import { FormContext } from '../FormContext'
 import { Categories } from '@/enums'
-import Grid from '@/components/Grid'
 import { useSystemData } from '@/hooks'
 import type { OnChange, Race } from '@/types'
+import { Grid } from '@mantine/core'
 
 const TraitsStep = () => {
   const {
@@ -38,7 +38,7 @@ const TraitsStep = () => {
   return (
     <>
       <Grid>
-        <Grid.Item>
+        <Grid.Col>
           <Button
             onClick={() => {
               addField({ path: 'traits.details' })
@@ -49,18 +49,18 @@ const TraitsStep = () => {
           >
             Add Trait
           </Button>
-        </Grid.Item>
+        </Grid.Col>
         {data?.traits?.details?.length && (
-          <Grid.Item>
-            <Accordion<Race> dataArray={data?.traits?.details} onChange={{ updateField }} name='traits.details'>
+          <Grid.Col>
+            <Accordion<Race> dataArray={data?.traits?.details} updateFn={{ updateField }} name='traits.details'>
               {data.traits.details.map((detail, index) => (
-                <Accordion.Wrapper key={index} itemId={String(index)}>
-                  <Accordion.Header handleRemove={() => handleRemove(index)}>
+                <Accordion.Item key={index} itemId={String(index)} value={String(index)}>
+                  <Accordion.Trigger removeFn={() => handleRemove(index)}>
                     {detail.label ?? `Trait ${index}`}
-                  </Accordion.Header>
+                  </Accordion.Trigger>
                   <Accordion.Content>
                     <Grid>
-                      <Grid.Item>
+                      <Grid.Col>
                         <Input
                           name={`traits.details.${index}.label`}
                           label='Trait Name'
@@ -69,8 +69,8 @@ const TraitsStep = () => {
                           onChange={{ updateField }}
                           className={sprinkles({ mb: 'space-3' })}
                         />
-                      </Grid.Item>
-                      <Grid.Item>
+                      </Grid.Col>
+                      <Grid.Col>
                         <RichTextEditor
                           name={`traits.details.${index}.desc`}
                           value={detail?.desc}
@@ -78,19 +78,19 @@ const TraitsStep = () => {
                           onChange={{ updateField }}
                           className={sprinkles({ mb: 'space-3' })}
                         />
-                      </Grid.Item>
+                      </Grid.Col>
                     </Grid>
                   </Accordion.Content>
-                </Accordion.Wrapper>
+                </Accordion.Item>
               ))}
             </Accordion>
-          </Grid.Item>
+          </Grid.Col>
         )}
       </Grid>
       <Grid>
         {data?.category === Categories.BASE && (
           <>
-            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
               <Dropdown
                 name='traits.size'
                 label='Size'
@@ -99,8 +99,8 @@ const TraitsStep = () => {
                 required={true}
                 onChange={{ updateField, removeField }}
               />
-            </Grid.Item>
-            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            </Grid.Col>
+            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
               <Input
                 validation='num'
                 name='traits.speeds.walking'
@@ -110,8 +110,8 @@ const TraitsStep = () => {
                 onChange={{ updateField }}
                 placeholder='0'
               />
-            </Grid.Item>
-            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            </Grid.Col>
+            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
               <Input
                 validation='num'
                 name='traits.speeds.climbing'
@@ -121,8 +121,8 @@ const TraitsStep = () => {
                 onChange={{ updateField }}
                 placeholder='0'
               />
-            </Grid.Item>
-            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            </Grid.Col>
+            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
               <Input
                 validation='num'
                 name='traits.speeds.swimming'
@@ -132,8 +132,8 @@ const TraitsStep = () => {
                 onChange={{ updateField }}
                 placeholder='0'
               />
-            </Grid.Item>
-            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            </Grid.Col>
+            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
               <Input
                 validation='num'
                 name='traits.speeds.flying'
@@ -143,7 +143,7 @@ const TraitsStep = () => {
                 onChange={{ updateField }}
                 placeholder='0'
               />
-            </Grid.Item>
+            </Grid.Col>
           </>
         )}
       </Grid>

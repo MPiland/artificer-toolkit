@@ -1,14 +1,14 @@
 import { useEffect, useMemo } from 'react'
 import Dropdown from '@/components/Dropdown'
 import Input from '@/components/Input'
-import Collapse from '@/components/Collapse'
+import Collapsible from '@/components/Collapsible'
 import { Attributes, Damages, Spells } from '@/enums'
 import Button from '@/components/Button'
 import { row_button } from '../Form.css'
 import { TbPlus, TbX } from 'react-icons/tb'
 import { useEnumChecks, useSystemData } from '@/hooks'
 import { startCase } from 'lodash'
-import Grid from '@/components/Grid'
+import { Grid } from '@mantine/core'
 import type { OnChange, Equipment, Spell, FeatureDataType } from '@/types'
 
 const Damage = ({
@@ -149,7 +149,7 @@ const Damage = ({
 
   return (
     <>
-      <Grid.Item colSpan={2}>
+      <Grid.Col span={2}>
         <Dropdown
           multiSelect={true}
           name={`damage.attributes`}
@@ -164,14 +164,14 @@ const Damage = ({
           )}
           onChange={{ updateField, removeField }}
         />
-      </Grid.Item>
+      </Grid.Col>
       {formDamageTypes.map((type, index) => {
         return (
-          <Grid.Item key={index}>
+          <Grid.Col key={index}>
             <Grid>
               {type !== 'versatile' && (
                 <>
-                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                     <Dropdown
                       name={`damage.${type}.attribute`}
                       label={`${
@@ -187,8 +187,8 @@ const Damage = ({
                       )}
                       onChange={{ updateField, removeField }}
                     />
-                  </Grid.Item>
-                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                  </Grid.Col>
+                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                     <Dropdown
                       name={`damage.${type}.id`}
                       label={`${
@@ -208,13 +208,13 @@ const Damage = ({
                       required={true}
                       onChange={{ updateField, removeField }}
                     />
-                  </Grid.Item>
+                  </Grid.Col>
                 </>
               )}
               {data?.damage?.[type]?.attribute !== Attributes.DIE_PER_LEVEL &&
                 data?.damage?.[type]?.attribute !== Attributes.SET_PER_LEVEL &&
                 (data?.damage?.[type]?.attribute === Attributes.SET_AMOUNT ?
-                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                     <Input
                       name={`damage.${type}.setAmount`}
                       value={data?.damage?.[type]?.setAmount}
@@ -228,7 +228,7 @@ const Damage = ({
                       errorMsg={'Must contain only numbers'}
                       onChange={{ updateField }}
                     />
-                  </Grid.Item>
+                  </Grid.Col>
                 : (
                   data?.damage?.[type]?.attribute === Attributes.ABILITY ||
                   data?.damage?.[type]?.attribute === Attributes.SPELLCASTING_ABILITY ||
@@ -236,7 +236,7 @@ const Damage = ({
                 ) ?
                   <>
                     {data?.damage?.[type]?.attribute === Attributes.ABILITY && (
-                      <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                      <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                         <Dropdown
                           name={`damage.${type}.ability`}
                           label={`${
@@ -249,9 +249,9 @@ const Damage = ({
                           required={true}
                           onChange={{ updateField, removeField }}
                         />
-                      </Grid.Item>
+                      </Grid.Col>
                     )}
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                       <Input
                         name={`damage.${type}.minAmount`}
                         value={data?.damage?.[type]?.minAmount}
@@ -264,8 +264,8 @@ const Damage = ({
                         errorMsg={'Must contain only numbers'}
                         onChange={{ updateField }}
                       />
-                    </Grid.Item>
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    </Grid.Col>
+                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                       <Input
                         name={`damage.${type}.maxAmount`}
                         value={data?.damage?.[type]?.maxAmount}
@@ -278,8 +278,8 @@ const Damage = ({
                         errorMsg={'Must contain only numbers'}
                         onChange={{ updateField }}
                       />
-                    </Grid.Item>
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    </Grid.Col>
+                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                       <Input
                         name={`damage.${type}.multiplier`}
                         value={data?.damage?.[type]?.multiplier}
@@ -292,11 +292,11 @@ const Damage = ({
                         errorMsg={'Must contain only numbers'}
                         onChange={{ updateField }}
                       />
-                    </Grid.Item>
+                    </Grid.Col>
                   </>
                 : data?.damage?.[type]?.attribute === Attributes.DAMAGE_POOL ?
                   <>
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                       <Dropdown
                         name={`damage.${type}.pool.attribute`}
                         label={`${
@@ -311,7 +311,7 @@ const Damage = ({
                         required={true}
                         onChange={{ updateField, removeField }}
                       />
-                    </Grid.Item>
+                    </Grid.Col>
                     {(
                       data?.damage?.[type]?.pool?.attribute === Attributes.LEVEL ||
                       data?.damage?.[type]?.pool?.attribute === Attributes.ABILITY ||
@@ -323,7 +323,7 @@ const Damage = ({
                           data?.damage?.[type]?.pool.attribute === Attributes.SPELLCASTING_ABILITY) && (
                           <>
                             {data?.damage?.[type]?.pool?.attribute === Attributes.ABILITY && (
-                              <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                              <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                                 <Dropdown
                                   name={`damage.${type}.pool.ability`}
                                   label='Pool Abilty'
@@ -332,9 +332,9 @@ const Damage = ({
                                   required={true}
                                   onChange={{ updateField, removeField }}
                                 />
-                              </Grid.Item>
+                              </Grid.Col>
                             )}
-                            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                               <Input
                                 name={`damage.${type}.pool.minAmount`}
                                 value={data?.damage?.[type]?.pool?.minAmount}
@@ -347,10 +347,10 @@ const Damage = ({
                                 validation='num'
                                 errorMsg={'Must contain only numbers'}
                               />
-                            </Grid.Item>
+                            </Grid.Col>
                           </>
                         )}
-                        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                        <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                           <Input
                             name={`damage.${type}.pool.maxAmount`}
                             value={data?.damage?.[type].pool?.maxAmount}
@@ -363,8 +363,8 @@ const Damage = ({
                             validation='num'
                             errorMsg={'Must contain only numbers'}
                           />
-                        </Grid.Item>
-                        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                        </Grid.Col>
+                        <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                           <Input
                             name={`damage.${type}.pool.multiplier`}
                             value={data?.damage?.[type]?.pool?.multiplier}
@@ -377,10 +377,10 @@ const Damage = ({
                             validation='num'
                             errorMsg={'Must contain only numbers'}
                           />
-                        </Grid.Item>
+                        </Grid.Col>
                       </>
                     : data?.damage?.[type]?.pool?.attribute === Attributes.SET_AMOUNT && (
-                        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                        <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                           <Input
                             name={`damage.${type}.pool.setAmount`}
                             value={data?.damage?.[type]?.pool?.setAmount}
@@ -390,12 +390,12 @@ const Damage = ({
                             required={true}
                             errorMsg={'Must contain only numbers'}
                           />
-                        </Grid.Item>
+                        </Grid.Col>
                       )
                     }
                   </>
                 : <>
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                       <Input
                         name={`damage.${type}.dieConfig`}
                         value={data?.damage?.[type]?.dieConfig}
@@ -409,36 +409,36 @@ const Damage = ({
                         validation='die'
                         errorMsg={'Must contain only numbers'}
                       />
-                    </Grid.Item>
+                    </Grid.Col>
                   </>)}
             </Grid>
-          </Grid.Item>
+          </Grid.Col>
         )
       })}
       {(data?.damage?.primary?.attribute === Attributes.DIE_PER_LEVEL ||
         data?.damage?.secondary?.attribute === Attributes.DIE_PER_LEVEL ||
         data?.damage?.bonus?.attribute === Attributes.DIE_PER_LEVEL) && (
-        <Grid.Item>
-          <Collapse>
-            <Collapse.Header title={`Damage Die By Level`} />
-            <Collapse.Body>
+        <Grid.Col>
+          <Collapsible>
+            <Collapsible.Trigger title={`Damage Die By Level`} />
+            <Collapsible.Content>
               <Grid>
-                <Grid.Item>
+                <Grid.Col>
                   <Grid>
-                    <Grid.Item colSpan={'auto'}>Level</Grid.Item>
+                    <Grid.Col >Level</Grid.Col>
                     {formDamageTypes.map((type) => {
                       if (data?.damage?.[type]?.attribute === Attributes.DIE_PER_LEVEL) {
-                        return <Grid.Item key={type} colSpan={'auto'}>{`${startCase(type)} Die Roll`}</Grid.Item>
+                        return <Grid.Col key={type} >{`${startCase(type)} Die Roll`}</Grid.Col>
                       }
                     })}
-                    <Grid.Item colSpan={'auto'}>Remove Row</Grid.Item>
-                    <Grid.Item colSpan={'auto'}>Add Row</Grid.Item>
+                    <Grid.Col >Remove Row</Grid.Col>
+                    <Grid.Col >Add Row</Grid.Col>
                   </Grid>
-                </Grid.Item>
+                </Grid.Col>
                 {data?.damage.diePerLevel?.map((setLevel, index) => (
-                  <Grid.Item key={index}>
+                  <Grid.Col key={index}>
                     <Grid>
-                      <Grid.Item colSpan={'auto'}>
+                      <Grid.Col >
                         <Input
                           name={`damage.diePerLevel.${index}.level`}
                           value={setLevel.level}
@@ -447,11 +447,11 @@ const Damage = ({
                           onChange={{ updateField }}
                           required={true}
                         />
-                      </Grid.Item>
+                      </Grid.Col>
                       {formDamageTypes.map((type) => {
                         if (type !== 'versatile' && data?.damage?.[type]?.attribute === Attributes.DIE_PER_LEVEL) {
                           return (
-                            <Grid.Item key={type} colSpan={'auto'}>
+                            <Grid.Col key={type} >
                               <Input
                                 name={`damage.diePerLevel.${index}.${type}.dieConfig`}
                                 value={setLevel?.[type]?.dieConfig}
@@ -460,11 +460,11 @@ const Damage = ({
                                 onChange={{ updateField }}
                                 required={true}
                               />
-                            </Grid.Item>
+                            </Grid.Col>
                           )
                         }
                       })}
-                      <Grid.Item colSpan={'auto'}>
+                      <Grid.Col >
                         <Button
                           style='unstyled'
                           className={row_button}
@@ -472,8 +472,8 @@ const Damage = ({
                         >
                           <TbX />
                         </Button>
-                      </Grid.Item>
-                      <Grid.Item colSpan={'auto'}>
+                      </Grid.Col>
+                      <Grid.Col >
                         <Button
                           style='unstyled'
                           className={row_button}
@@ -481,39 +481,39 @@ const Damage = ({
                         >
                           <TbPlus />
                         </Button>
-                      </Grid.Item>
+                      </Grid.Col>
                     </Grid>
-                  </Grid.Item>
+                  </Grid.Col>
                 ))}
               </Grid>
-            </Collapse.Body>
-          </Collapse>
-        </Grid.Item>
+            </Collapsible.Content>
+          </Collapsible>
+        </Grid.Col>
       )}
       {(data?.damage?.primary?.attribute === Attributes.SET_PER_LEVEL ||
         data?.damage?.secondary?.attribute === Attributes.SET_PER_LEVEL ||
         data?.damage?.bonus?.attribute === Attributes.SET_PER_LEVEL) && (
-        <Grid.Item>
-          <Collapse>
-            <Collapse.Header title={`Damage Die By Level`} />
-            <Collapse.Body>
+        <Grid.Col>
+          <Collapsible>
+            <Collapsible.Trigger title={`Damage Die By Level`} />
+            <Collapsible.Content>
               <Grid>
-                <Grid.Item>
+                <Grid.Col>
                   <Grid>
-                    <Grid.Item colSpan={'auto'}>Level</Grid.Item>
+                    <Grid.Col >Level</Grid.Col>
                     {formDamageTypes.map((type) => {
                       if (data?.damage?.[type]?.attribute === Attributes.SET_PER_LEVEL) {
-                        return <Grid.Item colSpan={'auto'} key={type}>{`${startCase(type)} Die Roll`}</Grid.Item>
+                        return <Grid.Col  key={type}>{`${startCase(type)} Die Roll`}</Grid.Col>
                       }
                     })}
-                    <Grid.Item colSpan={'auto'}>Remove Row</Grid.Item>
-                    <Grid.Item colSpan={'auto'}>Add Row</Grid.Item>
+                    <Grid.Col >Remove Row</Grid.Col>
+                    <Grid.Col >Add Row</Grid.Col>
                   </Grid>
-                </Grid.Item>
+                </Grid.Col>
                 {data?.damage.setPerLevel?.map((setLevel, index) => (
-                  <Grid.Item key={index}>
+                  <Grid.Col key={index}>
                     <Grid>
-                      <Grid.Item colSpan={'auto'}>
+                      <Grid.Col >
                         <Input
                           name={`damage.setPerLevel.${index}.level`}
                           value={setLevel.level}
@@ -522,11 +522,11 @@ const Damage = ({
                           onChange={{ updateField }}
                           required={true}
                         />
-                      </Grid.Item>
+                      </Grid.Col>
                       {formDamageTypes.map((type) => {
                         if (type !== 'versatile' && data?.damage?.[type]?.attribute === Attributes.SET_PER_LEVEL) {
                           return (
-                            <Grid.Item key={type} colSpan={'auto'}>
+                            <Grid.Col key={type} >
                               <Input
                                 name={`damage.setPerLevel.${index}.${type}`}
                                 value={setLevel?.[type]}
@@ -535,11 +535,11 @@ const Damage = ({
                                 onChange={{ updateField }}
                                 required={true}
                               />
-                            </Grid.Item>
+                            </Grid.Col>
                           )
                         }
                       })}
-                      <Grid.Item colSpan={'auto'}>
+                      <Grid.Col >
                         <Button
                           style='unstyled'
                           className={row_button}
@@ -547,8 +547,8 @@ const Damage = ({
                         >
                           <TbX />
                         </Button>
-                      </Grid.Item>
-                      <Grid.Item colSpan={'auto'}>
+                      </Grid.Col>
+                      <Grid.Col >
                         <Button
                           style='unstyled'
                           className={row_button}
@@ -556,14 +556,14 @@ const Damage = ({
                         >
                           <TbPlus />
                         </Button>
-                      </Grid.Item>
+                      </Grid.Col>
                     </Grid>
-                  </Grid.Item>
+                  </Grid.Col>
                 ))}
               </Grid>
-            </Collapse.Body>
-          </Collapse>
-        </Grid.Item>
+            </Collapsible.Content>
+          </Collapsible>
+        </Grid.Col>
       )}
     </>
   )

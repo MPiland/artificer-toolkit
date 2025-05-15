@@ -7,11 +7,10 @@ import Accordion from '@/components/Accordion'
 import { sprinkles } from '@/css/sprinkles.css'
 import { use } from 'react'
 import { FormContext } from '../FormContext'
-import Divider from '@/components/Divider'
 import { Categories, EquipCats, EquipProps, SpellReqs } from '@/enums'
-import Grid from '@/components/Grid'
 import { useSystemData, useClassData, useRaceData } from '@/hooks'
 import type { FormDataType, OnChange } from '@/types'
+import { Grid, Divider } from '@mantine/core'
 
 const DetailsStep = () => {
   const { formStore } = use(FormContext)
@@ -34,7 +33,7 @@ const DetailsStep = () => {
 
   return (
     <Grid>
-      <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+      <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
         <Input
           name='label'
           label='Name'
@@ -45,10 +44,10 @@ const DetailsStep = () => {
           autoFocus={true}
           errorMsg='Name must not be blank'
         />
-      </Grid.Item>
+      </Grid.Col>
       {data.__typename === 'Character' && (
         <>
-          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
             <Dropdown
               name='advancement'
               label='Advancement Type'
@@ -57,8 +56,8 @@ const DetailsStep = () => {
               required={true}
               onChange={{ updateField, removeField }}
             />
-          </Grid.Item>
-          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+          </Grid.Col>
+          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
             <Dropdown
               name='hitpoint.method'
               label='Hit Point Type'
@@ -67,12 +66,12 @@ const DetailsStep = () => {
               required={true}
               onChange={{ updateField, removeField }}
             />
-          </Grid.Item>
+          </Grid.Col>
         </>
       )}
       {(data.__typename === 'Race' || data.__typename === 'Class' || data.__typename === 'Equipment') && (
         <>
-          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
             <Dropdown
               name='category'
               label={`${startCase(data.__typename)} Category`}
@@ -89,9 +88,9 @@ const DetailsStep = () => {
               required={true}
               onChange={{ updateField, removeField }}
             />
-          </Grid.Item>
+          </Grid.Col>
           {data.__typename === 'Race' && data.category === Categories.BASE && (
-            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
               <Dropdown
                 name='playable'
                 label='Playable'
@@ -111,11 +110,11 @@ const DetailsStep = () => {
                 required={true}
                 onChange={{ updateField, removeField }}
               />
-            </Grid.Item>
+            </Grid.Col>
           )}
           {data.__typename === 'Equipment' && (
             <>
-              <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
                 <Dropdown
                   name='properties'
                   multiSelect={true}
@@ -124,8 +123,8 @@ const DetailsStep = () => {
                   options={equipment.properties.filterByCategory(data.category)}
                   onChange={{ updateField, removeField }}
                 />
-              </Grid.Item>
-              <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+              </Grid.Col>
+              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
                 <Dropdown
                   name='rarity'
                   label='Rarity'
@@ -134,8 +133,8 @@ const DetailsStep = () => {
                   required={true}
                   onChange={{ updateField, removeField }}
                 />
-              </Grid.Item>
-              <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+              </Grid.Col>
+              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
                 <Input
                   validation='cur'
                   name='cost.amount'
@@ -146,8 +145,8 @@ const DetailsStep = () => {
                   value={data?.cost?.amount}
                   onChange={{ updateField }}
                 />
-              </Grid.Item>
-              <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+              </Grid.Col>
+              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
                 <Dropdown
                   name='cost.currency'
                   label='Currency'
@@ -156,8 +155,8 @@ const DetailsStep = () => {
                   required={true}
                   onChange={{ updateField, removeField }}
                 />
-              </Grid.Item>
-              <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+              </Grid.Col>
+              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
                 <Input
                   validation='cur'
                   name='weight.amount'
@@ -167,8 +166,8 @@ const DetailsStep = () => {
                   value={data?.weight?.amount}
                   onChange={{ updateField }}
                 />
-              </Grid.Item>
-              <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+              </Grid.Col>
+              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
                 <Dropdown
                   name='weight.unit'
                   label='UoM'
@@ -176,7 +175,7 @@ const DetailsStep = () => {
                   options={rules.measurements.imperial.weight}
                   onChange={{ updateField, removeField }}
                 />
-              </Grid.Item>
+              </Grid.Col>
             </>
           )}
         </>
@@ -184,7 +183,7 @@ const DetailsStep = () => {
       {data.__typename === 'Class' && (
         <>
           {data.category === Categories.SUBCLASS ?
-            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
               <Dropdown
                 name='parentClass'
                 label='Parent Class'
@@ -193,9 +192,9 @@ const DetailsStep = () => {
                 required={true}
                 onChange={{ updateField, removeField }}
               />
-            </Grid.Item>
+            </Grid.Col>
           : <>
-              <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
                 <Input
                   name='hitpoint.dieConfig'
                   autoComplete='off'
@@ -206,8 +205,8 @@ const DetailsStep = () => {
                   errorMsg='Must contain whole numbers only'
                   onChange={{ updateField }}
                 />
-              </Grid.Item>
-              <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+              </Grid.Col>
+              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
                 <Dropdown
                   name='hitpoint.ability'
                   label='HP Modifier Ability'
@@ -216,13 +215,13 @@ const DetailsStep = () => {
                   required={true}
                   onChange={{ updateField, removeField }}
                 />
-              </Grid.Item>
+              </Grid.Col>
             </>
           }
         </>
       )}
       {data.__typename === 'Race' && (data.category === Categories.SUBRACE || data.category === Categories.VARIANT) && (
-        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+        <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
           <Dropdown
             multiSelect={true}
             name='lineages'
@@ -232,12 +231,12 @@ const DetailsStep = () => {
             required={true}
             onChange={{ updateField, removeField }}
           />
-        </Grid.Item>
+        </Grid.Col>
       )}
       {data.__typename === 'Equipment' &&
         (((data.category === EquipCats.WATER_VEHICLE || data.category === EquipCats.MOUNT ?
           <>
-            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
               <Input
                 validation={'cur'}
                 name='speed.amount'
@@ -248,8 +247,8 @@ const DetailsStep = () => {
                 value={data?.speed?.amount}
                 onChange={{ updateField }}
               />
-            </Grid.Item>
-            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            </Grid.Col>
+            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
               <Dropdown
                 name='speed.unit'
                 label='UoM'
@@ -257,10 +256,10 @@ const DetailsStep = () => {
                 options={rules.measurements.imperial.length}
                 onChange={{ updateField, removeField }}
               />
-            </Grid.Item>
+            </Grid.Col>
           </>
         : (data.category === EquipCats.WEAPON || data.category === EquipCats.ARMOR) && (
-            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
               <Input
                 validation={'num'}
                 name='rank'
@@ -270,12 +269,12 @@ const DetailsStep = () => {
                 value={data?.rank}
                 onChange={{ updateField }}
               />
-            </Grid.Item>
+            </Grid.Col>
           )) &&
           data.properties?.some((property) => property === EquipProps.CONTAINER)) ||
           (data.category === EquipCats.MOUNT && (
             <>
-              <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
                 <Input
                   validation={'cur'}
                   name='capacity.amount'
@@ -285,8 +284,8 @@ const DetailsStep = () => {
                   value={data?.capacity?.amount}
                   onChange={{ updateField }}
                 />
-              </Grid.Item>
-              <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+              </Grid.Col>
+              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
                 <Dropdown
                   name='capacity.unit'
                   label='UoM'
@@ -294,13 +293,13 @@ const DetailsStep = () => {
                   options={[...rules.measurements.imperial.volume, ...rules.measurements.imperial.weight]}
                   onChange={{ updateField, removeField }}
                 />
-              </Grid.Item>
+              </Grid.Col>
             </>
           )))}
       {data.__typename === 'Equipment' &&
         (data.category === EquipProps.THROWN || data.category === EquipProps.RANGED) && (
           <>
-            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
               <Input
                 validation='num'
                 name='range.minRange'
@@ -310,8 +309,8 @@ const DetailsStep = () => {
                 required={true}
                 onChange={{ updateField }}
               />
-            </Grid.Item>
-            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            </Grid.Col>
+            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
               <Input
                 validation='num'
                 name='range.maxRange'
@@ -321,11 +320,11 @@ const DetailsStep = () => {
                 required={true}
                 onChange={{ updateField }}
               />
-            </Grid.Item>
+            </Grid.Col>
           </>
         )}
       {data.__typename === 'Equipment' && (
-        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+        <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
           <Input
             validation='num'
             name='quantity'
@@ -335,11 +334,11 @@ const DetailsStep = () => {
             value={data?.quantity}
             onChange={{ updateField }}
           />
-        </Grid.Item>
+        </Grid.Col>
       )}
       {data.__typename === 'Spell' && (
         <>
-          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
             <Input
               validation='num'
               name='level'
@@ -349,8 +348,8 @@ const DetailsStep = () => {
               value={data?.level}
               onChange={{ updateField }}
             />
-          </Grid.Item>
-          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+          </Grid.Col>
+          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
             <Dropdown
               name='school'
               label='School'
@@ -359,8 +358,8 @@ const DetailsStep = () => {
               required={true}
               onChange={{ updateField, removeField }}
             />
-          </Grid.Item>
-          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+          </Grid.Col>
+          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
             <Dropdown
               name='requirements'
               multiSelect={true}
@@ -370,8 +369,8 @@ const DetailsStep = () => {
               required={true}
               onChange={{ updateField, removeField }}
             />
-          </Grid.Item>
-          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+          </Grid.Col>
+          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
             <Dropdown
               name='classes'
               multiSelect={true}
@@ -381,9 +380,9 @@ const DetailsStep = () => {
               required={true}
               onChange={{ updateField, removeField }}
             />
-          </Grid.Item>
+          </Grid.Col>
           {data?.requirements?.some((requirement) => requirement === SpellReqs.MATERIAL) && (
-            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
               <Input
                 name='materialDesc'
                 label='Material Desc.'
@@ -391,15 +390,15 @@ const DetailsStep = () => {
                 value={data?.materialDesc}
                 onChange={{ updateField }}
               />
-            </Grid.Item>
+            </Grid.Col>
           )}
         </>
       )}
       {data.__typename === 'Class' && data.category === Categories.BASE && (
-        <Grid.Item>
+        <Grid.Col>
           <Divider label='Starting Gold' />
-          <Grid className={sprinkles({ mb: 'space-3' })}>
-            <Grid.Item colSpan={'auto'}>
+          <Grid>
+            <Grid.Col >
               <Input
                 name='startingGold.dieConfig'
                 label='Dice Configuration'
@@ -409,8 +408,8 @@ const DetailsStep = () => {
                 value={data?.startingGold?.dieConfig}
                 onChange={{ updateField }}
               />
-            </Grid.Item>
-            <Grid.Item colSpan={'auto'}>
+            </Grid.Col>
+            <Grid.Col >
               <Input
                 name='startingGold.multiplier'
                 label='Multiplier'
@@ -420,8 +419,8 @@ const DetailsStep = () => {
                 value={data?.startingGold?.multiplier}
                 onChange={{ updateField }}
               />
-            </Grid.Item>
-            <Grid.Item colSpan={'auto'}>
+            </Grid.Col>
+            <Grid.Col >
               <Dropdown
                 name='startingGold.currency'
                 label='Currency'
@@ -430,12 +429,12 @@ const DetailsStep = () => {
                 required={true}
                 onChange={{ updateField, removeField }}
               />
-            </Grid.Item>
+            </Grid.Col>
           </Grid>
-        </Grid.Item>
+        </Grid.Col>
       )}
       {data.__typename === 'Equipment' && (
-        <Grid.Item>
+        <Grid.Col>
           <RichTextEditor
             name={'quote'}
             className={sprinkles({ mb: 'space-3' })}
@@ -443,10 +442,10 @@ const DetailsStep = () => {
             label={'Quote'}
             onChange={{ updateField }}
           />
-        </Grid.Item>
+        </Grid.Col>
       )}
       {(data.__typename === 'Character' || data.__typename === 'Spell' || data.__typename === 'Equipment') && (
-        <Grid.Item>
+        <Grid.Col>
           <RichTextEditor
             name='desc'
             className={sprinkles({ mb: 'space-3' })}
@@ -454,11 +453,11 @@ const DetailsStep = () => {
             label='Description'
             onChange={{ updateField }}
           />
-        </Grid.Item>
+        </Grid.Col>
       )}
       {(data.__typename === 'Race' || data.__typename === 'Class' || data.__typename === 'Background') && (
         <>
-          <Grid.Item colSpan={2} className={sprinkles({ alignContent: 'flex-end' })}>
+          <Grid.Col span={2} className={sprinkles({ alignContent: 'flex-end' })}>
             <Button
               type='button'
               color='main'
@@ -470,24 +469,24 @@ const DetailsStep = () => {
             >
               Add Detail
             </Button>
-          </Grid.Item>
+          </Grid.Col>
           {data?.details != null && (
-            <Grid.Item>
-              <Accordion dataArray={data.details} onChange={{ updateField }} name='details'>
+            <Grid.Col>
+              <Accordion dataArray={data.details} updateFn={{ updateField }} name='details'>
                 {data?.details.map((detail, index) => (
-                  <Accordion.Wrapper key={index} itemId={String(index)}>
-                    <Accordion.Header
-                      handleRemove={() =>
+                  <Accordion.Item key={index} itemId={String(index)} value={detail.label}>
+                    <Accordion.Trigger
+                      removeFn={() =>
                         removeField({
                           path: `details.${index}`,
                         })
                       }
                     >
                       {detail.label != null && detail.label !== '' ? detail.label : `Detail ${index + 1}`}
-                    </Accordion.Header>
+                    </Accordion.Trigger>
                     <Accordion.Content>
                       <Grid>
-                        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                        <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
                           <Input
                             name={`details.${index}.label`}
                             autoComplete='off'
@@ -495,21 +494,21 @@ const DetailsStep = () => {
                             value={detail.label}
                             onChange={{ updateField }}
                           />
-                        </Grid.Item>
-                        <Grid.Item>
+                        </Grid.Col>
+                        <Grid.Col>
                           <RichTextEditor
                             name={`details.${index}.desc`}
                             value={detail.desc}
                             label={'Section Description'}
                             onChange={{ updateField }}
                           />
-                        </Grid.Item>
+                        </Grid.Col>
                       </Grid>
                     </Accordion.Content>
-                  </Accordion.Wrapper>
+                  </Accordion.Item>
                 ))}
               </Accordion>
-            </Grid.Item>
+            </Grid.Col>
           )}
         </>
       )}

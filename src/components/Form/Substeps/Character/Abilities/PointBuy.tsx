@@ -9,9 +9,9 @@ import {
 import Dropdown from '@/components/Dropdown'
 import { isEqual } from 'lodash'
 import { AbilityGenMethods } from '@/enums'
-import Grid from '@/components/Grid'
 import { useSystemData } from '@/hooks'
 import type { OnChange, Character, GenerateOption } from '@/types'
+import { Grid } from '@mantine/core'
 
 const PointBuy = ({
   formStore: { data, updateField },
@@ -135,10 +135,10 @@ const PointBuy = ({
 
   return (
     <>
-      <Grid.Item className={point_counter}>
+      <Grid.Col className={point_counter}>
         <span className={point_counter_label}>{`${pointsLeft} / ${pointBuy.total}`}</span>
         <span>Points Remaining</span>
-      </Grid.Item>
+      </Grid.Col>
       {data.abilities?.scores?.map((score, index) => {
         const currentId = data.abilities?.pointBuy?.distributed?.[index]?.id
         const currentOption = currentId ? pointBuy.options?.find((opt) => opt.id === currentId) : null
@@ -146,7 +146,7 @@ const PointBuy = ({
         const abilityLabel = abilities.findAbility(score.ability)?.label || 'Ability'
 
         return (
-          <Grid.Item key={index} colSpan={{ sm: 6, md: 4, lg: 2 }}>
+          <Grid.Col key={index} span={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown<Character>
               name='label'
               label={abilityLabel}
@@ -188,7 +188,7 @@ const PointBuy = ({
               }}
             />
             handlePointApply(e, score.ability, index)
-          </Grid.Item>
+          </Grid.Col>
         )
       })}
     </>

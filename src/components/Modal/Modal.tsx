@@ -14,9 +14,9 @@ import { TbX } from 'react-icons/tb'
 import Button from '@/components/Button'
 import clsx from 'clsx'
 import { sprinkles } from '@/css/sprinkles.css'
-import Group from '@/components/Group'
 import { useEventListener } from 'usehooks-ts'
 import { ModalContext } from './ModalContext'
+import { Group } from '@mantine/core'
 
 export const Header = ({
   title,
@@ -39,7 +39,7 @@ export const Header = ({
   return (
     <>
       <div className={modal_header}>
-        <Group justifyContentVariant='spaceBetween'>
+        <Group justify='space-between'>
           <Group>
             {children && <div>{children}</div>}
             <h2 className={modal_title}>{title}</h2>

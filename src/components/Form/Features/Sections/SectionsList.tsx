@@ -1,15 +1,14 @@
 import { use } from 'react'
 import type { FeatureDataType, SectionDataType, SectionName, FeatureOption } from '@/types'
 import Accordion from '@/components/Accordion'
-import Group from '@/components/Group'
 import { sprinkles } from '@/css/sprinkles.css'
 import { startCase } from 'lodash'
 import { feature_description } from '../../Form.css'
 import { sectionSteps } from '../../Form.utils'
 import parse from 'html-react-parser'
 import { FeatureContext } from '../FeatureContext'
-import Grid from '@/components/Grid'
 import type { OptionStore, FeatureStore } from '@/store'
+import { Group, Grid } from '@mantine/core'
 
 const SectionsList = ({ featureStore }: { featureStore: FeatureStore | OptionStore }) => {
   const {
@@ -72,27 +71,46 @@ const SectionsList = ({ featureStore }: { featureStore: FeatureStore | OptionSto
         }
         return (
           sections?.length > 0 && (
-            <Grid.Item key={index}>
+            <Grid.Col key={index}>
               <Accordion<FeatureDataType>
                 key={index}
                 dataArray={sections}
-                onChange={featureStore}
+                updateFn={featureStore}
                 name={sectionStep}
                 disableSort={featureStep !== 'option'}
               >
                 {sections?.map((section, sIndex) => {
                   return (
-                    <Accordion.Wrapper key={sIndex} itemId={String(sIndex)}>
-                      <Accordion.Header
+                    <Accordion.Item key={sIndex} itemId={String(sIndex)} value={section.id}>
+                      <Accordion.Trigger
                         key={sIndex}
-                        handleRemove={() => handleRemove(sectionStep, sIndex)}
-                        handleEdit={() => handleEdit(sectionStep, sIndex, section)}
-                        expandable={section.__typename === 'FeatureOption'}
+                        removeFn={() => handleRemove(sectionStep, sIndex)}
+                        editFn={() => handleEdit(sectionStep, sIndex, section)}
                       >
                         {section.__typename === 'FeatureOption' && section?.value != null ?
                           section?.label
                         : `${startCase(sectionStep)} ${sIndex + 1}`}
-                      </Accordion.Header>
+                        {section.__typename === 'FeatureOption' && section.__typename === 'FeatureOption' && (
+                          <Group justify='flex-start'>
+                            {sectionSteps.map((fSectionStep, fSIndex) => {
+                              return (
+                                <span
+                                  key={fSIndex}
+                                  className={sprinkles({
+                                    me: 'space-3',
+                                  })}
+                                >
+                                  {section?.[fSectionStep]?.length ?
+                                    <strong key={fSIndex}>
+                                      {startCase(fSectionStep.charAt(0))}:{section[fSectionStep]?.length}
+                                    </strong>
+                                  : `${startCase(fSectionStep.charAt(0))}: 0`}
+                                </span>
+                              )
+                            })}
+                          </Group>
+                        )}
+                      </Accordion.Trigger>
                       {section.__typename === 'FeatureOption' && section.__typename === 'FeatureOption' && (
                         <>
                           <Accordion.Content>
@@ -100,34 +118,13 @@ const SectionsList = ({ featureStore }: { featureStore: FeatureStore | OptionSto
                               {section.__typename === 'FeatureOption' && section?.desc && parse(section?.desc)}
                             </div>
                           </Accordion.Content>
-
-                          <Accordion.Footer>
-                            <Group justifyContentVariant='start'>
-                              {sectionSteps.map((fSectionStep, fSIndex) => {
-                                return (
-                                  <span
-                                    key={fSIndex}
-                                    className={sprinkles({
-                                      me: 'space-3',
-                                    })}
-                                  >
-                                    {section?.[fSectionStep]?.length ?
-                                      <strong key={fSIndex}>
-                                        {startCase(fSectionStep.charAt(0))}:{section[fSectionStep]?.length}
-                                      </strong>
-                                    : `${startCase(fSectionStep.charAt(0))}: 0`}
-                                  </span>
-                                )
-                              })}
-                            </Group>
-                          </Accordion.Footer>
                         </>
                       )}
-                    </Accordion.Wrapper>
+                    </Accordion.Item>
                   )
                 })}
               </Accordion>
-            </Grid.Item>
+            </Grid.Col>
           )
         )
       })}

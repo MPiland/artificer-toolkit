@@ -140,14 +140,14 @@ const Class = () => {
   let resourceShown = false
 
   return (
-    <Detail footerSpacing='end' item={uClass}>
+    <Detail footerSpacing='flex-end' item={uClass}>
       <div id='quote'>
         <em>{uClass?.desc && parse(uClass?.desc)}</em>
       </div>
       {uClass?.category === Categories.BASE ?
         <>
           {uClass?.details &&
-            uClass?.details?.length > 0 &&
+            uClass?.details?.length &&
             uClass?.details.map((detail, index) => (
               <Fragment key={index}>
                 <h1>{detail?.label}</h1>
@@ -204,18 +204,18 @@ const Class = () => {
                   })}
               </Fragment>
             ))}
-          {uClass?.features?.find((feature) => {
-            if (feature?.category === Categories.SUBCLASS) {
-              const detail = uClass?.features?.find((feature) => feature?.category === Categories.SUBCLASS)?.detail
+          {uClass?.features
+            ?.filter((feature) => feature.category === Categories.SUBCLASS)
+            .map((feature, fIndex) => {
+              const detail = feature.detail
               return (
-                <div id={`${uClass?.features?.find((feature) => feature?.category === Categories.SUBCLASS)?.label}`}>
-                  <h1>{uClass?.features?.find((feature) => feature?.category === Categories.SUBCLASS)?.label}</h1>
+                <div key={`sub-feature-${fIndex}`} id={`${feature.label}`}>
+                  <h1>{feature?.label}</h1>
                   <hr className={class_section_divider} />
                   {detail && parse(detail)}
                 </div>
               )
-            }
-          })}
+            })}
           {subclasses?.length && (
             <>
               {subclasses.map((s, index) => {

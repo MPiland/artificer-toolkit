@@ -1,9 +1,8 @@
 import { use } from 'react'
 import type { Character, CharacterFeature, SectionDataType, SectionName } from '@/types'
 import { useGetSections } from '@/hooks'
-import {} from '@/types'
 import Dropdown from '@/components/Dropdown'
-import Grid from '@/components/Grid'
+import { Grid, Group } from '@mantine/core'
 import { option_dropdown } from '../../../Character.css'
 import { FormContext } from '../../../FormContext'
 import { proficiencyKey, sectionIdKey, typename } from '@/utils'
@@ -64,61 +63,63 @@ const FeatureSection = ({
     const type = sectionIdKey(sectionStep)
 
     return (
-      <Grid.Item key={path + optionIndex} justify='center'>
-        <Dropdown<Character>
-          key={index}
-          name={path}
-          className={option_dropdown}
-          label={`${label} Option`}
-          options={options}
-          onChange={{
-            updateField: ({ value }) => {
-              const valueObject = {
-                [`${type}`]: value,
-                optionIndex,
-                featureId: feature.id,
-                __typename: typename(sectionStep as Exclude<SectionName, 'spells'>, 'typename'),
-              }
+      <Grid.Col key={path + optionIndex}>
+        <Group justify='center'>
+          <Dropdown<Character>
+            key={index}
+            name={path}
+            className={option_dropdown}
+            label={`${label} Option`}
+            options={options}
+            onChange={{
+              updateField: ({ value }) => {
+                const valueObject = {
+                  [`${type}`]: value,
+                  optionIndex,
+                  featureId: feature.id,
+                  __typename: typename(sectionStep as Exclude<SectionName, 'spells'>, 'typename'),
+                }
 
-              // Add prop properties
-              if (feature.level) {
-                valueObject.featureLevel = feature.level
-              }
-              if (classId) valueObject.classId = classId
-              if (raceId) valueObject.raceId = raceId
-              if (backgroundId) valueObject.backgroundId = backgroundId
-              if (optionId) valueObject.optionId = optionId
-              if (featId) valueObject.featId = featId
-              if (equipmentId) valueObject.equipmentId = equipmentId
+                // Add prop properties
+                if (feature.level) {
+                  valueObject.featureLevel = feature.level
+                }
+                if (classId) valueObject.classId = classId
+                if (raceId) valueObject.raceId = raceId
+                if (backgroundId) valueObject.backgroundId = backgroundId
+                if (optionId) valueObject.optionId = optionId
+                if (featId) valueObject.featId = featId
+                if (equipmentId) valueObject.equipmentId = equipmentId
 
-              // Add category-specific properties for proficiencies and expertise
-              if (section.__typename === 'FeatureProficiency' || section.__typename === 'FeatureExpertise') {
-                const categoryId = section.category
-                const categoryName = getKeyFromId(categoryId, ProfCats)
+                // Add category-specific properties for proficiencies and expertise
+                if (section.__typename === 'FeatureProficiency' || section.__typename === 'FeatureExpertise') {
+                  const categoryId = section.category
+                  const categoryName = getKeyFromId(categoryId, ProfCats)
 
-                // If we have a valid category, add the appropriate property
-                if (categoryName && categoryName !== 'initiative') {
-                  // Use the proficiencyKey helper to get the correct property name
-                  const propertyName = proficiencyKey(
-                    categoryName as Exclude<CamelCase<keyof typeof ProfCats>, 'initiative'>
-                  )
-                  if (propertyName) {
-                    // Set the property using the selected value
-                    valueObject[propertyName] = value
+                  // If we have a valid category, add the appropriate property
+                  if (categoryName && categoryName !== 'initiative') {
+                    // Use the proficiencyKey helper to get the correct property name
+                    const propertyName = proficiencyKey(
+                      categoryName as Exclude<CamelCase<keyof typeof ProfCats>, 'initiative'>
+                    )
+                    if (propertyName) {
+                      // Set the property using the selected value
+                      valueObject[propertyName] = value
+                    }
                   }
                 }
-              }
 
-              return {
-                path,
-                value: valueObject,
-              }
-            },
-            removeField: () => ({ path }),
-          }}
-          value={exist}
-        />
-      </Grid.Item>
+                return {
+                  path,
+                  value: valueObject,
+                }
+              },
+              removeField: () => ({ path }),
+            }}
+            value={exist}
+          />
+        </Group>
+      </Grid.Col>
     )
   })
 }

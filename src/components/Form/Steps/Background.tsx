@@ -1,7 +1,6 @@
 import { use } from 'react'
 import { FormContext } from '../FormContext'
-import Collapse from '@/components/Collapse'
-import Grid from '@/components/Grid'
+import Collapsible from '@/components/Collapsible'
 import CharacterCurrency from '../Substeps/Character/Equipment/CharacterCurrency'
 import Dropdown from '@/components/Dropdown'
 import { option_dropdown } from '../Character.css'
@@ -10,6 +9,7 @@ import CharacterEquipment from '../Substeps/Character/Equipment/CharacterEquipme
 import CharacterFeature from '../Substeps/Character/Features/CharacterFeature'
 import { useBackgroundData } from '@/hooks'
 import type { OnChange, Character } from '@/types'
+import { Grid } from '@mantine/core'
 
 const BackgroundStep = () => {
   const { formStore, features } = use(FormContext)
@@ -27,7 +27,7 @@ const BackgroundStep = () => {
   return (
     <>
       <Grid>
-        <Grid.Item justify='center'>
+        <Grid.Col justify='center'>
           <Dropdown
             name='background'
             label='Background'
@@ -36,32 +36,32 @@ const BackgroundStep = () => {
             onChange={{ updateField, removeField }}
             value={data?.background}
           />
-        </Grid.Item>
+        </Grid.Col>
         {background && (
           <>
             {background?.desc && (
-              <Grid.Item>
-                <Collapse>
-                  <Collapse.Header title='Description' />
-                  <Collapse.Body>{background?.desc && parse(background?.desc)}</Collapse.Body>
-                </Collapse>
-              </Grid.Item>
+              <Grid.Col>
+                <Collapsible>
+                  <Collapsible.Trigger title='Description' />
+                  <Collapsible.Content>{background?.desc && parse(background?.desc)}</Collapsible.Content>
+                </Collapsible>
+              </Grid.Col>
             )}
             {features
               ?.filter((feature) => feature.backgroundId === background?.id)
               ?.map((feature, fIndex) => (
                 <CharacterFeature feature={feature} key={fIndex} backgroundId={background?.id} />
               ))}
-            <Grid.Item>
-              <Collapse>
-                <Collapse.Header title='Starting Equipment' />
-                <Collapse.Body>
+            <Grid.Col>
+              <Collapsible>
+                <Collapsible.Trigger title='Starting Equipment' />
+                <Collapsible.Content>
                   <Grid>
                     <CharacterEquipment dataSource={background} />
                   </Grid>
-                </Collapse.Body>
-              </Collapse>
-            </Grid.Item>
+                </Collapsible.Content>
+              </Collapsible>
+            </Grid.Col>
             <CharacterCurrency />
           </>
         )}

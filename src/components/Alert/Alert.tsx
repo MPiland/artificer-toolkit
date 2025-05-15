@@ -1,12 +1,12 @@
-import Modal, { ModalContext } from '@/components/Modal'
-import Group from '@/components/Group'
+import Modal, { ModalContext, type AlertModalProps } from '@/components/Modal'
 import Button from '@/components/Button'
 import { use } from 'react'
+import { Group } from '@mantine/core'
 
 const Alert = () => {
   const { modalProps, hideModal } = use(ModalContext)
 
-  const { title, message, confirmLabel, cancelLabel, onConfirm, onCancel } = modalProps
+  const { title, message, confirmLabel, cancelLabel, onConfirm, onCancel } = modalProps as AlertModalProps
 
   return (
     <Modal.Dialogue>
@@ -15,7 +15,7 @@ const Alert = () => {
         <span>{message}</span>
       </Modal.Content>
       <Modal.Footer>
-        <Group directionVariant='row' justifyContentVariant='spaceBetween'>
+        <Group justify='space-between'>
           <Button color='main' onClick={onCancel || hideModal}>
             {cancelLabel || 'Cancel'}
           </Button>

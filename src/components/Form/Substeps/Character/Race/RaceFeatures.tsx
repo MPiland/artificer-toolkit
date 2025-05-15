@@ -3,10 +3,10 @@ import { use } from 'react'
 import Dropdown from '@/components/Dropdown'
 import { feature_card_header } from '../../../Character.css'
 import { option_dropdown } from '../../../Character.css'
-import Collapse from '@/components/Collapse'
+import Collapsible from '@/components/Collapsible'
 import { AncestryOption, Character, Race, type RaceListItem } from '../../../../../../amplify/gql/types'
 import { FormContext } from '../../../FormContext'
-import Grid from '@/components/Grid'
+import { Grid } from '@mantine/core'
 import CharacterFeature from '../Features/CharacterFeature'
 import useRaceData from '../../../../../hooks/useRaceData'
 import type { OnChange } from '@/types'
@@ -47,13 +47,13 @@ const RaceFeatures = ({
           const lineage = findRace(l.id)
           return (
             lineage?.ancestry?.options?.length && (
-              <Grid.Item key={index}>
-                <Collapse>
-                  <Collapse.Header title={lineage?.ancestry.label} className={feature_card_header} />
-                  <Collapse.Body>
+              <Grid.Col key={index}>
+                <Collapsible>
+                  <Collapsible.Trigger title={lineage?.ancestry.label} className={feature_card_header} />
+                  <Collapsible.Content>
                     <Grid>
-                      <Grid.Item>{lineage?.ancestry.desc && parse(lineage?.ancestry.desc)}</Grid.Item>
-                      <Grid.Item justify='center'>
+                      <Grid.Col>{lineage?.ancestry.desc && parse(lineage?.ancestry.desc)}</Grid.Col>
+                      <Grid.Col justify='center'>
                         <Dropdown
                           name={`ancestry.id`}
                           label='Ancestry Option'
@@ -62,27 +62,27 @@ const RaceFeatures = ({
                           onChange={{ updateField, removeField }}
                           value={data?.ancestry?.id}
                         />
-                      </Grid.Item>
+                      </Grid.Col>
                       {fullAncestry && (
-                        <Grid.Item justify='center'>
+                        <Grid.Col justify='center'>
                           <strong>{fullAncestry.desc && parse(fullAncestry.desc)}</strong>
-                        </Grid.Item>
+                        </Grid.Col>
                       )}
                     </Grid>
-                  </Collapse.Body>
-                </Collapse>
-              </Grid.Item>
+                  </Collapsible.Content>
+                </Collapsible>
+              </Grid.Col>
             )
           )
         })}
       {fullRace.ancestry?.options?.length && (
-        <Grid.Item>
-          <Collapse>
-            <Collapse.Header title={fullRace.ancestry.label} className={feature_card_header} />
-            <Collapse.Body>
+        <Grid.Col>
+          <Collapsible>
+            <Collapsible.Trigger title={fullRace.ancestry.label} className={feature_card_header} />
+            <Collapsible.Content>
               <Grid>
-                <Grid.Item>{fullRace.ancestry.desc && parse(fullRace.ancestry.desc)}</Grid.Item>
-                <Grid.Item justify='center'>
+                <Grid.Col>{fullRace.ancestry.desc && parse(fullRace.ancestry.desc)}</Grid.Col>
+                <Grid.Col justify='center'>
                   <Dropdown
                     name='ancestry.id'
                     label='Ancestry Option'
@@ -109,16 +109,16 @@ const RaceFeatures = ({
                       }
                     }
                   />
-                </Grid.Item>
+                </Grid.Col>
                 {fullAncestry && (
-                  <Grid.Item justify='center'>
+                  <Grid.Col justify='center'>
                     <strong>{fullAncestry?.desc && parse(fullAncestry?.desc)}</strong>
-                  </Grid.Item>
+                  </Grid.Col>
                 )}
               </Grid>
-            </Collapse.Body>
-          </Collapse>
-        </Grid.Item>
+            </Collapsible.Content>
+          </Collapsible>
+        </Grid.Col>
       )}
       {features
         ?.filter((feature) => feature?.raceId === fullRace.id)

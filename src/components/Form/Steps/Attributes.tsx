@@ -3,8 +3,7 @@ import { sprinkles } from '@/css/sprinkles.css'
 import Dropdown from '@/components/Dropdown'
 import { startCase } from 'lodash'
 import Input from '@/components/Input'
-import Collapse from '@/components/Collapse'
-import Divider from '@/components/Divider'
+import Collapsible from '@/components/Collapsible'
 import { use } from 'react'
 import { FormContext } from '../FormContext'
 import Requirements from '../Substeps/Prerequisites'
@@ -27,13 +26,12 @@ import {
   Spells,
 } from '@/enums'
 import { useEnumChecks, useSystemData } from '@/hooks'
-import Grid from '@/components/Grid'
-import Group from '@/components/Group'
 import Button from '@/components/Button'
 import { TbPlus, TbX } from 'react-icons/tb'
 import { row_button } from '../Form.css'
 import type { FormDataType, OnChange } from '@/types'
 import type { FormStore } from '@/store'
+import { Grid, Group, Divider } from '@mantine/core'
 
 const AttributesStep = () => {
   const { formStore } = use(FormContext)
@@ -191,11 +189,11 @@ const AttributesStep = () => {
 
   return (
     <Grid>
-      <Grid.Item>
+      <Grid.Col>
         <Grid>
           {data.__typename !== 'Race' && data.__typename !== 'Background' && data.__typename !== 'Character' && (
             <>
-              <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+              <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                 <Dropdown
                   multiSelect={true}
                   name='attributes'
@@ -244,9 +242,9 @@ const AttributesStep = () => {
                     )}
                   onChange={{ updateField, removeField }}
                 />
-              </Grid.Item>
+              </Grid.Col>
               {data.__typename === 'Equipment' && stackable && (
-                <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                   <Input
                     validation={'num'}
                     type='text'
@@ -257,13 +255,13 @@ const AttributesStep = () => {
                     value={data?.maxStack}
                     onChange={{ updateField }}
                   />
-                </Grid.Item>
+                </Grid.Col>
               )}
             </>
           )}
           {(data.__typename === 'Spell' || data.__typename === 'Feat') && isAction && (
             <>
-              <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+              <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                 <Dropdown
                   name={'actions.primary.id'}
                   label={data.__typename === 'Spell' ? 'Casting Time' : 'Action Type'}
@@ -275,9 +273,9 @@ const AttributesStep = () => {
                     removeField,
                   }}
                 />
-              </Grid.Item>
+              </Grid.Col>
               {!specialPrimaryAction && (
-                <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                   <Input
                     validation='num'
                     name='actions.primary.amount'
@@ -286,7 +284,7 @@ const AttributesStep = () => {
                     required={true}
                     onChange={{ updateField }}
                   />
-                </Grid.Item>
+                </Grid.Col>
               )}
             </>
           )}
@@ -294,7 +292,7 @@ const AttributesStep = () => {
             <>
               {secondaryAction && (
                 <>
-                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                     <Dropdown
                       name='actions.secondary.id'
                       label='Sec. Action'
@@ -303,9 +301,9 @@ const AttributesStep = () => {
                       required={true}
                       onChange={{ updateField, removeField }}
                     />
-                  </Grid.Item>
+                  </Grid.Col>
                   {!specialSecondaryAction && (
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                       <Input
                         validation='num'
                         name='actions.secondary.amount'
@@ -314,11 +312,11 @@ const AttributesStep = () => {
                         required={true}
                         onChange={{ updateField }}
                       />
-                    </Grid.Item>
+                    </Grid.Col>
                   )}
                 </>
               )}
-              <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+              <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                 <Dropdown
                   name='duration'
                   label='Duration'
@@ -327,12 +325,12 @@ const AttributesStep = () => {
                   required={true}
                   onChange={{ updateField, removeField }}
                 />
-              </Grid.Item>
+              </Grid.Col>
               {data?.duration &&
                 data.duration?.id !== Durations.INSTANTANEOUS &&
                 data.duration?.id !== Durations.UNTIL_DISPELLED &&
                 data.duration?.id !== Durations.SPECIAL && (
-                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                     <Input
                       validation='num'
                       name='duration.amount'
@@ -343,9 +341,9 @@ const AttributesStep = () => {
                       value={data?.duration?.id}
                       onChange={{ updateField }}
                     />
-                  </Grid.Item>
+                  </Grid.Col>
                 )}
-              <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+              <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                 <Dropdown
                   name='range.id'
                   label='Range'
@@ -354,13 +352,13 @@ const AttributesStep = () => {
                   required={true}
                   onChange={{ updateField, removeField }}
                 />
-              </Grid.Item>
+              </Grid.Col>
               {data?.range?.id !== Ranges.TOUCH &&
                 data.range?.id !== Ranges.SIGHT &&
                 data.range?.id !== Ranges.UNLIMITED &&
                 data.range?.id !== Ranges.SELF && (
                   <>
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                       <Input
                         validation='num'
                         name='range.minRange'
@@ -371,8 +369,8 @@ const AttributesStep = () => {
                         value={data?.range?.minRange}
                         onChange={{ updateField }}
                       />
-                    </Grid.Item>
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    </Grid.Col>
+                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                       <Input
                         validation='num'
                         name='range.maxRange'
@@ -383,8 +381,8 @@ const AttributesStep = () => {
                         value={data?.range?.maxRange}
                         onChange={{ updateField }}
                       />
-                    </Grid.Item>
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    </Grid.Col>
+                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                       <Dropdown
                         name='range.unit'
                         label='UoM'
@@ -392,10 +390,10 @@ const AttributesStep = () => {
                         options={rules.measurements.imperial.length}
                         onChange={{ updateField, removeField }}
                       />
-                    </Grid.Item>
+                    </Grid.Col>
                   </>
                 )}
-              <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+              <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                 <Dropdown
                   name='shape.id'
                   label='Shape'
@@ -403,10 +401,10 @@ const AttributesStep = () => {
                   value={data?.shape?.id}
                   onChange={{ updateField, removeField }}
                 />
-              </Grid.Item>
+              </Grid.Col>
               {data?.shape?.id && data.shape?.id !== Shapes.NONE && data.shape?.id !== Shapes.WEAPON && (
                 <>
-                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                     <Input
                       validation='cur'
                       name='shape.size'
@@ -417,8 +415,8 @@ const AttributesStep = () => {
                       value={data?.shape?.size}
                       onChange={{ updateField }}
                     />
-                  </Grid.Item>
-                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                  </Grid.Col>
+                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                     <Dropdown
                       name='shape.unit'
                       label='UoM'
@@ -427,11 +425,11 @@ const AttributesStep = () => {
                       required={true}
                       onChange={{ updateField, removeField }}
                     />
-                  </Grid.Item>
+                  </Grid.Col>
                 </>
               )}
               {data.__typename === 'Spell' && (
-                <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                   <Input
                     name='targets'
                     label='# of Targets'
@@ -441,10 +439,10 @@ const AttributesStep = () => {
                     onChange={{ updateField }}
                     placeholder='1'
                   />
-                </Grid.Item>
+                </Grid.Col>
               )}
               {data?.attributes?.some((attribute) => attribute === AttributesEnum.APPLIES_CONDITION) && (
-                <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                   <Dropdown
                     name='conditions'
                     label='Condition'
@@ -454,7 +452,7 @@ const AttributesStep = () => {
                     required={true}
                     onChange={{ updateField, removeField }}
                   />
-                </Grid.Item>
+                </Grid.Col>
               )}
             </>
           )}
@@ -465,7 +463,7 @@ const AttributesStep = () => {
               <>
                 {data.__typename !== 'Class' && (
                   <>
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                       <Dropdown
                         name='saveAbility'
                         label='DC Ability'
@@ -474,11 +472,11 @@ const AttributesStep = () => {
                         required={true}
                         onChange={{ updateField, removeField }}
                       />
-                    </Grid.Item>
+                    </Grid.Col>
                     {data?.saveAbility?.attributes?.some(
                       (attribute) => attribute === AttributesEnum.ADD_ABILITY_MODIFIER
                     ) && (
-                      <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                      <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                         <Dropdown
                           name='saveAbility.abilityModifier'
                           label='Modifier Ability'
@@ -487,10 +485,10 @@ const AttributesStep = () => {
                           required={true}
                           onChange={{ updateField, removeField }}
                         />
-                      </Grid.Item>
+                      </Grid.Col>
                     )}
                     {data.__typename !== 'Spell' && (
-                      <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                      <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                         <Input
                           validation='num'
                           name={`saveAbility.minAmount`}
@@ -501,14 +499,14 @@ const AttributesStep = () => {
                           value={data?.saveAbility?.minAmount}
                           onChange={{ updateField }}
                         />
-                      </Grid.Item>
+                      </Grid.Col>
                     )}
                   </>
                 )}
               </>
             )}
         </Grid>
-      </Grid.Item>
+      </Grid.Col>
       {data.__typename === 'Class' && (
         <>
           {primaryAbility && <Multiclass formStore={formStore as FormStore<typeof data>} />}
@@ -518,22 +516,18 @@ const AttributesStep = () => {
             <LevelAttributes formStore={formStore as FormStore<typeof data>} />
           )}
           {data?.subtypes?.length && (
-            <Collapse>
-              <Collapse.Header title={'Subtypes'} startOpened={data.id == null} />
-              <Collapse.Body>
+            <Collapsible>
+              <Collapsible.Trigger title={'Subtypes'} startOpened={data.id == null} />
+              <Collapsible.Content>
                 <Grid>
-                  <Grid.Item>Name</Grid.Item>
+                  <Grid.Col>Name</Grid.Col>
                   {data.subtypes?.map((subtype, index) => (
                     <>
-                      <Grid.Item key={index} colSpan={6}>
+                      <Grid.Col key={index} span={6}>
                         <Input name={`subtypes.${index}.label`} value={subtype.label} onChange={{ updateField }} />
-                      </Grid.Item>
-                      <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }} className={sprinkles({ alignContent: 'center' })}>
-                        <Group
-                          className={sprinkles({ height: 'size-full' })}
-                          alignItemsVariant='center'
-                          justifyContentVariant='start'
-                        >
+                      </Grid.Col>
+                      <Grid.Col span={{ sm: 6, md: 4, lg: 2 }} className={sprinkles({ alignContent: 'center' })}>
+                        <Group justify='flex-start' grow>
                           <Button
                             style='unstyled'
                             className={row_button}
@@ -553,12 +547,12 @@ const AttributesStep = () => {
                             </Button>
                           )}
                         </Group>
-                      </Grid.Item>
+                      </Grid.Col>
                     </>
                   ))}
                 </Grid>
-              </Collapse.Body>
-            </Collapse>
+              </Collapsible.Content>
+            </Collapsible>
           )}
         </>
       )}
@@ -569,9 +563,9 @@ const AttributesStep = () => {
       {data.__typename === 'Equipment' && (isArmor || isShield) && (
         <>
           <Divider label='Armor Stats' />
-          <Grid.Item>
+          <Grid.Col>
             <Grid>
-              <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+              <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                 <Input
                   validation='num'
                   name='armorClass'
@@ -581,9 +575,9 @@ const AttributesStep = () => {
                   value={data?.armorClass}
                   onChange={{ updateField }}
                 />
-              </Grid.Item>
+              </Grid.Col>
               {isArmor && (
-                <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                   <Dropdown
                     name='primaryAbility'
                     label='Primary Ability'
@@ -591,10 +585,10 @@ const AttributesStep = () => {
                     options={abilities}
                     onChange={{ updateField, removeField }}
                   />
-                </Grid.Item>
+                </Grid.Col>
               )}
             </Grid>
-          </Grid.Item>
+          </Grid.Col>
         </>
       )}
       {data.__typename === 'Spell' && canUpcast && <Upcast formStore={formStore as FormStore<typeof data>} />}

@@ -1,0 +1,117 @@
+type Speed {
+  amount: Int
+  unit: ID!
+}
+
+type Weight {
+  amount: Float
+  unit: ID!
+}
+
+type Capacity {
+  amount: Float
+  unit: ID!
+}
+
+type Cost {
+  amount: Int
+  currency: ID!
+}
+
+type Contains {
+  id: ID!
+  quantity: Int!
+}
+
+type EquipmentRange {
+  minRange: Int
+  maxRange: Int
+  unit: ID!
+}
+
+type Equipment {
+  id: ID!
+  label: String!
+  value: String!
+  desc: String
+  quote: String
+  cost: Cost
+  weight: Weight
+  capacity: Capacity
+  maxStack: Int
+  quantity: Int!
+  properties: [ID!]
+  category: ID!
+  rarity: ID!
+  attributes: [ID!]
+  damage: Damage
+  saveAbility: SaveAbility
+  primaryAbility: ID
+  secondaryAbility: ID
+  optionalAbility: ID
+  maxBonus: Int
+  armorClass: Int
+  prerequisities: Prerequisite
+  speed: Speed
+  range: EquipmentRange
+  contains: [Contains!]
+  features: [Feature!]
+  ownerId: ID!
+  systemId: ID!
+  masterId: String
+  rank: Int
+}
+
+type EquipmentMetaObject {
+  equipmentIds: [ID!]
+  id: ID!
+}
+
+type EquipementCostMeta {
+  equipmentIds: [ID!]
+  amount: Int
+  id: ID!
+}
+
+type EquipmentWeightMeta {
+  equipmentIds: [ID!]
+  amount: Float
+  id: ID!
+}
+
+type EquipmentFeatureMetaObject {
+  id: ID!
+  label: String!
+  equipmentIds: [ID!]
+}
+
+type EquipmentMeta {
+  categories: [EquipmentMetaObject!]!
+  properties: [EquipmentMetaObject!]!
+  primaryDamages: [EquipmentMetaObject!]!
+  secondaryDamages: [EquipmentMetaObject!]!
+  versatileDamages: [EquipmentMetaObject!]!
+  armorClasses: [EquipmentMetaObject!]!
+  cost: [EquipementCostMeta!]!
+  weight: [EquipmentWeightMeta!]!
+  features: [EquipmentFeatureMetaObject]!
+}
+
+type EquipmentListItem {
+  id: ID!
+  label: String!
+  value: String!
+  desc: String
+  quote: String
+  cost: Cost
+  weight: Weight
+  systemId: ID!
+  masterId: String
+  rank: Int
+}
+
+type EquipmentConnection {
+  items: [EquipmentListItem!]!
+  metaData: EquipmentMeta!
+  nextToken: String
+}

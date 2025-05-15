@@ -1,11 +1,10 @@
 import { useMemo, useEffect, ReactNode } from 'react'
 import Dropdown from '@/components/Dropdown'
-import Collapse from '@/components/Collapse'
-import Divider from '@/components/Divider'
+import Collapsible from '@/components/Collapsible'
 import { startCase } from 'lodash'
 import { Attributes, Damages, Spells } from '@/enums'
 import Input from '@/components/Input'
-import Grid from '@/components/Grid'
+import { Grid, Divider } from '@mantine/core'
 import { useSystemData } from '@/hooks'
 import { OnChange, Spell } from '@/types'
 
@@ -431,7 +430,7 @@ const Upcast = ({
   return (
     <>
       <Divider label='Upcast Options' />
-      <Grid.Item colSpan={2}>
+      <Grid.Col span={2}>
         <Dropdown
           name='upcast.attributes'
           label='Upcast Attribute'
@@ -440,33 +439,33 @@ const Upcast = ({
           multiSelect={true}
           onChange={{ updateField, removeField }}
         />
-      </Grid.Item>
+      </Grid.Col>
       {data?.upcast?.attributes?.length && (
-        <Grid.Item>
-          <Collapse>
-            <Collapse.Header title='Upcast Table' startOpened={data.id == null} />
-            <Collapse.Body>
+        <Grid.Col>
+          <Collapsible defaultOpen={data.id == null}>
+            <Collapsible.Trigger title='Upcast Table' />
+            <Collapsible.Content>
               <Grid>
                 {upcastFields().headers.map((header, index) => (
-                  <Grid.Item key={index} colSpan={'auto'}>
+                  <Grid.Col key={index} >
                     {header}
-                  </Grid.Item>
+                  </Grid.Col>
                 ))}
                 {data.upcast?.levels?.map((_, index) => (
-                  <Grid.Item key={index}>
+                  <Grid.Col key={index}>
                     <Grid key={index}>
                       {upcastFields(index).inputs.map((input, fIndex) => (
-                        <Grid.Item key={fIndex} colSpan={'auto'}>
+                        <Grid.Col key={fIndex} >
                           {input}
-                        </Grid.Item>
+                        </Grid.Col>
                       ))}
                     </Grid>
-                  </Grid.Item>
+                  </Grid.Col>
                 ))}
               </Grid>
-            </Collapse.Body>
-          </Collapse>
-        </Grid.Item>
+            </Collapsible.Content>
+          </Collapsible>
+        </Grid.Col>
       )}
     </>
   )

@@ -5,9 +5,9 @@ import { get, startCase } from 'lodash'
 import { useFilterStore, type FilterState } from '@/store'
 import Button from '@/components/Button'
 import type { FilterConfig, FilterDataType } from '@/components/List'
-import Grid from '@/components/Grid'
 import type { MetaDataType, OnChange } from '@/types'
 import { useMetaData } from '@/hooks'
+import { Grid } from '@mantine/core'
 
 // This is a wrapper component that maintains the same API as before
 function Filter<T extends FilterDataType, K extends MetaDataType>({
@@ -55,14 +55,14 @@ function Filter<T extends FilterDataType, K extends MetaDataType>({
   }, [resetFilters, context])
 
   return (
-    <Grid spacing={{ col: 8 }}>
+    <Grid align='flex-end'>
       {filterConfigs.map((config) => {
         const value = get(currentFilters, config.path, '') as string | string[] | null | undefined
 
         switch (config.type) {
           case 'text':
             return (
-              <Grid.Item key={String(config.path)} colSpan={{ sm: 4, lg: 'auto' }}>
+              <Grid.Col key={String(config.path)} span={{ sm: 4, lg: 'auto' }}>
                 <Input<FilterState[typeof context]>
                   key={String(config.path)}
                   name={config.path}
@@ -79,7 +79,7 @@ function Filter<T extends FilterDataType, K extends MetaDataType>({
                     }
                   }
                 />
-              </Grid.Item>
+              </Grid.Col>
             )
 
           case 'dropdown':
@@ -88,7 +88,7 @@ function Filter<T extends FilterDataType, K extends MetaDataType>({
             const optionsForConfig = memoizedConfigs.find((c) => c.path === config.path)?.options || []
 
             return (
-              <Grid.Item key={String(config.path)} colSpan={{ sm: 4, lg: 'auto' }}>
+              <Grid.Col key={String(config.path)} span={{ sm: 4, lg: 'auto' }}>
                 <Dropdown<FilterState[typeof context]>
                   key={String(config.path)}
                   multiSelect={config.type === 'multiSelect'}
@@ -112,7 +112,7 @@ function Filter<T extends FilterDataType, K extends MetaDataType>({
                     }
                   }
                 />
-              </Grid.Item>
+              </Grid.Col>
             )
           }
 
@@ -121,11 +121,11 @@ function Filter<T extends FilterDataType, K extends MetaDataType>({
         }
       })}
 
-      <Grid.Item colSpan={'auto'} align='end'>
+      <Grid.Col>
         <Button width={'size-full'} color='main' style='outline' onClick={handleReset}>
           Reset
         </Button>
-      </Grid.Item>
+      </Grid.Col>
     </Grid>
   )
 }

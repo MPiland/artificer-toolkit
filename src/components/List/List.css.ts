@@ -1,7 +1,7 @@
 import { style, createVar, globalStyle } from '@vanilla-extract/css'
-import { app } from '../../css/layers.css'
-import { size } from '../../css/size.css'
-import { space } from '../../css/size.css'
+import { app } from '@/css/layers.css'
+import { size } from '@/css/size.css'
+import { space } from '@/css/size.css'
 
 export const thumb_height = createVar()
 
@@ -27,7 +27,6 @@ export const list_parent = style({
   '@layer': {
     [app]: {
       width: '100%',
-      height: '100%',
       overflow: 'auto',
       position: 'relative',
       scrollbarWidth: 'none',
@@ -83,6 +82,17 @@ export const list_title_button_container = style({
   },
 })
 
+export const list_item_link_icon = style({
+  '@layer': {
+    [app]: {
+      flexShrink: 0,
+      opacity: 0.6,
+      height: size['size-4'],
+      width: size['size-4'],
+    },
+  },
+})
+
 export const list_sub = style({
   '@layer': {
     [app]: {
@@ -124,7 +134,16 @@ export const list_footer_item = style({
       textAlign: 'center',
       flexWrap: 'wrap',
       verticalAlign: 'middle',
-      padding: `0 ${space['space-2']}`,
+    },
+  },
+})
+
+export const list_layout_icon = style({
+  '@layer': {
+    [app]: {
+      padding: space['space-2'],
+      width: size['size-6'],
+      height: size['size-6'],
     },
   },
 })

@@ -1,5 +1,5 @@
 import Dropdown from '@/components/Dropdown'
-import Grid from '@/components/Grid'
+import { Grid } from '@mantine/core'
 import { starting_equipment_group_option } from '../../../Character.css'
 import { Fragment, use, useCallback, useEffect } from 'react'
 import { FormContext } from '../../../FormContext'
@@ -166,7 +166,7 @@ const CharacterEquipmentSelection = ({
           const selectedEquipId = currentSelection?.id
 
           return (
-            <Grid.Item key={`equipment-option-${groupIndex}-${itemIndex}-${selIndex}`}>
+            <Grid.Col key={`equipment-option-${groupIndex}-${itemIndex}-${selIndex}`}>
               <Dropdown<Character>
                 name={`${path}.equipmentGroups.${groupIndex}.equipment.${itemIndex}`}
                 value={selectedEquipId || ''}
@@ -257,7 +257,7 @@ const CharacterEquipmentSelection = ({
                   label: equip.label,
                 }))}
               />
-            </Grid.Item>
+            </Grid.Col>
           )
         })}
       </Fragment>
@@ -376,15 +376,15 @@ const CharacterEquipmentSelection = ({
   ])
 
   return (
-    <Grid.Item justify='center'>
+    <Grid.Col>
       <Grid className={starting_equipment_group_option}>
-        <Grid.Item>
+        <Grid.Col>
           <h4>Equipment Group {groupIndex + 1}</h4>
-        </Grid.Item>
-        <Grid.Item>{renderEquipmentGroup()}</Grid.Item>
+        </Grid.Col>
+        <Grid.Col>{renderEquipmentGroup()}</Grid.Col>
         {group?.length && renderSelectedEquipment(group, groupIndex)}
       </Grid>
-    </Grid.Item>
+    </Grid.Col>
   )
 }
 export default CharacterEquipmentSelection

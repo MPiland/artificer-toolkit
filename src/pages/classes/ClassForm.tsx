@@ -29,7 +29,7 @@ const ClassForm = () => {
     { id: 'attributes', label: 'Attributes' },
     { id: 'features', label: 'Features' },
   ] satisfies Step[]
-
+  
   useEffect(() => {
     if (formStore.data.__typename === 'Class') {
       if (formStore.data.category === Categories.SUBCLASS) {

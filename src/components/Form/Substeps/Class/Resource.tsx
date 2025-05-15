@@ -1,9 +1,9 @@
-import Collapse from '@/components/Collapse'
+import Collapsible from '@/components/Collapsible'
 import Input from '@/components/Input'
 import Dropdown from '@/components/Dropdown'
 import RichTextEditor from '@/components/RichTextEditor'
 import { Attributes, Classes } from '@/enums'
-import Grid from '@/components/Grid'
+import { Grid } from '@mantine/core'
 import { useSystemData } from '@/hooks'
 import type { OnChange, Class } from '@/types'
 
@@ -19,14 +19,14 @@ const Resource = ({
   const { charges, abilities } = useSystemData()
 
   return (
-    <Grid.Item>
-      <Collapse>
-        <Collapse.Header startOpened={data.id == null} title='Resource Attributes' />
-        <Collapse.Body>
+    <Grid.Col>
+      <Collapsible defaultOpen={data.id == null} >
+        <Collapsible.Trigger title='Resource Attributes' />
+        <Collapsible.Content>
           <Grid>
-            <Grid.Item>
+            <Grid.Col>
               <Grid>
-                <Grid.Item>
+                <Grid.Col>
                   <Input
                     name='resource.label'
                     label='Resource Name'
@@ -35,8 +35,8 @@ const Resource = ({
                     required={true}
                     onChange={{ updateField }}
                   />
-                </Grid.Item>
-                <Grid.Item>
+                </Grid.Col>
+                <Grid.Col>
                   <Input
                     name='resource.levelAvailable'
                     label='Level Available'
@@ -47,8 +47,8 @@ const Resource = ({
                     errorMsg='Must contain whole numbers only'
                     onChange={{ updateField }}
                   />
-                </Grid.Item>
-                <Grid.Item>
+                </Grid.Col>
+                <Grid.Col>
                   <Dropdown
                     name='resource.charges.limit'
                     label='Resource Limit Method'
@@ -59,9 +59,9 @@ const Resource = ({
                     required={true}
                     onChange={{ updateField, removeField }}
                   />
-                </Grid.Item>
+                </Grid.Col>
                 {data?.resource?.charges?.limit === Attributes.ABILITY && (
-                  <Grid.Item>
+                  <Grid.Col>
                     <Dropdown
                       name='resource.charges.ability'
                       label='Ability'
@@ -70,10 +70,10 @@ const Resource = ({
                       required={true}
                       onChange={{ updateField, removeField }}
                     />
-                  </Grid.Item>
+                  </Grid.Col>
                 )}
                 {data?.resource?.method === Attributes.SET_AMOUNT && (
-                  <Grid.Item>
+                  <Grid.Col>
                     <Input
                       name='resource.charges.setAmount'
                       label='Set Value'
@@ -84,9 +84,9 @@ const Resource = ({
                       onChange={{ updateField }}
                       autoComplete='off'
                     />
-                  </Grid.Item>
+                  </Grid.Col>
                 )}
-                <Grid.Item>
+                <Grid.Col>
                   <Dropdown
                     name='resource.charges.reset'
                     label='Resource Reset Option'
@@ -95,21 +95,21 @@ const Resource = ({
                     required={true}
                     onChange={{ updateField, removeField }}
                   />
-                </Grid.Item>
+                </Grid.Col>
               </Grid>
-            </Grid.Item>
-            <Grid.Item>
+            </Grid.Col>
+            <Grid.Col>
               <RichTextEditor
                 name={'resource.desc'}
                 value={data?.resource?.desc}
                 label={'Description'}
                 onChange={{ updateField }}
               />
-            </Grid.Item>
+            </Grid.Col>
           </Grid>
-        </Collapse.Body>
-      </Collapse>
-    </Grid.Item>
+        </Collapsible.Content>
+      </Collapsible>
+    </Grid.Col>
   )
 }
 

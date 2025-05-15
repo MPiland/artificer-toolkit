@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
 import { generateClient, type GraphQLResult } from 'aws-amplify/data'
-import { listClasses, getClass, listMasterClasses, getMasterClass } from '../../amplify/gql/queries'
+import { listClasses, getClass, listMasterClasses, getMasterClass } from '@/queries'
 import {
   createClass,
   createMasterClass,
@@ -8,7 +8,7 @@ import {
   deleteMasterClass,
   updateClass,
   updateMasterClass,
-} from '../../amplify/gql/mutations'
+} from '@/mutations'
 import type {
   Class,
   QueryListClassesArgs,

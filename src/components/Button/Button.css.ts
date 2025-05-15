@@ -1,9 +1,6 @@
 import { createVar, globalStyle, style, styleVariants } from '@vanilla-extract/css'
-import { app } from '../../css/layers.css'
-import { theme } from '../../css/theme.css'
-import { height } from '../../css/size.css'
-import { borderRadius } from '../../css/border.css'
-import { space, size } from '../../css/size.css'
+import { app } from '@/css/layers.css'
+import { space, size } from '@/css/size.css'
 
 export const button_background_color = createVar('button-background-color')
 export const button_filled_hover = createVar('button-filled-hover')
@@ -27,36 +24,12 @@ export const button = style({
   },
 })
 
-const colors = {
-  primary: 'primary',
-  warning: 'warning',
-  danger: 'danger',
-  update: 'update',
-  main: 'main',
-} as const
-
-export const button_color = styleVariants(colors, (colorValue: keyof typeof colors) => [
-  button,
-  {
-    '@layer': {
-      [app]: {
-        vars: {
-          [button_background_color]: theme.vars.component.button.backgroundColor[colorValue].main,
-          [button_filled_hover]: theme.vars.component.button.backgroundColor[colorValue].hover,
-          [button_outline_hover]: theme.vars.component.button.backgroundColor[colorValue].outlineHover,
-        },
-      },
-    },
-  },
-])
-
 export const button_style = styleVariants({
   unstyled: {
     '@layer': {
       [app]: {
         padding: 0,
         backgroundColor: 'transparent',
-        color: theme.vars.typography.color.main,
         border: 'none',
 
         selectors: {
@@ -93,9 +66,7 @@ export const button_style = styleVariants({
   outline: {
     '@layer': {
       [app]: {
-        color: theme.vars.typography.color.main,
         backgroundColor: 'transparent',
-        border: `${theme.border.size.main} ${theme.border.style} ${button_background_color}`,
 
         selectors: {
           '&:not(:disabled):hover': {
@@ -109,54 +80,6 @@ export const button_style = styleVariants({
       },
     },
   },
-})
-
-const heightKeys = {
-  default: 'default',
-  ...height,
-} as const
-
-export const button_height = styleVariants(heightKeys, (heightValue: (typeof heightKeys)[keyof typeof heightKeys]) => {
-  if (heightValue === 'default') {
-    return [
-      button,
-      {
-        '@layer': {
-          [app]: {
-            height: theme.component.button.height,
-          },
-        },
-      },
-    ]
-  } else {
-    return [button, { '@layer': { [app]: { height: heightValue } } }]
-  }
-})
-
-const radiusKeys = {
-  default: 'default',
-  xs: 'xs',
-  sm: 'sm',
-  md: 'md',
-  lg: 'lg',
-  xl: 'xl',
-} as const
-
-export const button_radius = styleVariants(radiusKeys, (radiusValue: keyof typeof radiusKeys) => {
-  if (radiusValue === 'default') {
-    return [
-      button,
-      {
-        '@layer': {
-          [app]: {
-            borderRadius: theme.border.radius,
-          },
-        },
-      },
-    ]
-  } else {
-    return [button, { '@layer': { [app]: { borderRadius: borderRadius[radiusValue] } } }]
-  }
 })
 
 export const button_width = styleVariants(size, (sizeValue) => [button, { '@layer': { [app]: { width: sizeValue } } }])

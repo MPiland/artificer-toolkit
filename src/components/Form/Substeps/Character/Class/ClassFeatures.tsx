@@ -1,11 +1,11 @@
 import { use } from 'react'
-import Collapse from '@/components/Collapse'
+import Collapsible from '@/components/Collapsible'
 import { feature_card_header } from '../../../Character.css'
 import parse from 'html-react-parser'
 import { CharacterClass, Class } from '@/types'
 import { Categories } from '@/enums'
 import { FormContext } from '../../../FormContext'
-import Grid from '@/components/Grid'
+import { Grid } from '@mantine/core'
 import ClassFeature from '../Features/CharacterFeature'
 import { FactoryFeature } from '@/hooks'
 
@@ -24,7 +24,7 @@ const ClassFeatures = ({
 
   return (
     <>
-      <Grid.Item>
+      <Grid.Col>
         <Grid>
           {features
             .filter((feature) => Number(feature.level) <= Number(uClass.level) && feature.classId === uClass.id)
@@ -33,14 +33,14 @@ const ClassFeatures = ({
               return <ClassFeature uClass={uClass} classIndex={classIndex} feature={feature} key={fIndex} />
             })}
         </Grid>
-      </Grid.Item>
-      <Grid.Item>
+      </Grid.Col>
+      <Grid.Col>
         <hr />
-      </Grid.Item>
-      <Grid.Item>
-        <Collapse style='borderless'>
-          <Collapse.Header title='Features Available at Higher Levels' />
-          <Collapse.Body>
+      </Grid.Col>
+      <Grid.Col>
+        <Collapsible>
+          <Collapsible.Trigger title='Features Available at Higher Levels' />
+          <Collapsible.Content>
             <Grid>
               {features
                 .filter((feature) => feature?.level && feature?.level > uClass.level && feature.classId === uClass.id)
@@ -49,29 +49,29 @@ const ClassFeatures = ({
                   const fullFeature = fullClass?.features?.find((featureItem) => featureItem.id === feature.id)
                   if (fullFeature) {
                     return (
-                      <Grid.Item key={feature.id && fIndex}>
-                        <Collapse>
-                          <Collapse.Header
+                      <Grid.Col key={feature.id && fIndex}>
+                        <Collapsible>
+                          <Collapsible.Trigger
                             title={`(${feature.level}) ${fullFeature.label}`}
                             className={feature_card_header}
                           />
-                          <Collapse.Body>
+                          <Collapsible.Content>
                             <Grid>
                               {fullFeature.category === Categories.SUBCLASS &&
                                 fullFeature?.detail &&
                                 parse(fullFeature?.detail)}
                               {fullFeature.desc && parse(fullFeature.desc)}
                             </Grid>
-                          </Collapse.Body>
-                        </Collapse>
-                      </Grid.Item>
+                          </Collapsible.Content>
+                        </Collapsible>
+                      </Grid.Col>
                     )
                   }
                 })}
             </Grid>
-          </Collapse.Body>
-        </Collapse>
-      </Grid.Item>
+          </Collapsible.Content>
+        </Collapsible>
+      </Grid.Col>
     </>
   )
 }

@@ -1,5 +1,5 @@
 import { use } from 'react'
-import Grid from '@/components/Grid'
+import { Grid } from '@mantine/core'
 import Modal from '@/components/Modal'
 import { FormContext } from '../../FormContext'
 import { HPCalcMethods } from '@/enums'
@@ -27,19 +27,19 @@ const Hitpoints = ({ onClose }: { onClose: () => void }) => {
         <Modal.Header title='Manage Hitpoints' onClose={onClose} />
         <Modal.Content>
           <Grid>
-            <Grid.Item flexDirection='column' align='center' colSpan={12}>
+            <Grid.Col>
               <p>Maximum Hitpoints</p>
               <h1>{data?.hitpoint?.maxHitpoints}</h1>
-            </Grid.Item>
-            <Grid.Item flexDirection='column' align='center' colSpan={4}>
+            </Grid.Col>
+            <Grid.Col span={4}>
               <span>{startCase(method)} HP</span>
               <span>{hitpointObject?.total}</span>
-            </Grid.Item>
-            <Grid.Item flexDirection='column' align='center' colSpan={4}>
+            </Grid.Col>
+            <Grid.Col span={4}>
               <span>Bonus HP</span>
               <Input name='hitpoint.bonus' validation='num' value={data?.hitpoint?.bonus} onChange={{ updateField }} />
-            </Grid.Item>
-            <Grid.Item flexDirection='column' align='center' colSpan={4}>
+            </Grid.Col>
+            <Grid.Col span={4}>
               <span>Max Override</span>
               <Input
                 name='hitpoint.maxOverride'
@@ -47,7 +47,7 @@ const Hitpoints = ({ onClose }: { onClose: () => void }) => {
                 value={data?.hitpoint?.maxOverride}
                 onChange={{ updateField }}
               />
-            </Grid.Item>
+            </Grid.Col>
           </Grid>
         </Modal.Content>
       </Modal.Dialogue>

@@ -7,22 +7,6 @@ globalStyle('html, body', {
 })
 
 /**
- * Remove all the styles of the "User-Agent-Stylesheet", except for the
- * 'display' property
- *
- * - The "symbol *" part is to solve Firefox SVG sprite bug
- * - The "html" element is excluded, otherwise a bug in Chrome breaks the CSS
- *   hyphens property (https://github.com/elad2412/the-new-css-reset/issues/36)
- */
-globalStyle('*:where(:not(html, iframe, canvas, img, svg, video, audio):not(svg *, symbol *))', {
-  '@layer': {
-    [reset]: {
-      display: 'revert',
-    },
-  },
-})
-
-/**
  * Fix mobile Safari increase font-size on landscape mode
  */
 globalStyle('html', {
@@ -115,17 +99,6 @@ globalStyle(':where(pre)', {
     },
   },
 })
-
-/**
- * Reset default text opacity of input placeholder
- */
-// globalStyle('::placeholder', {
-//   '@layer': {
-//     [reset]: {
-//       color: 'unset',
-//     },
-//   },
-// })
 
 /**
  * Fix the feature of 'hidden' attribute. display:revert; revert to element

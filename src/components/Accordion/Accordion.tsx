@@ -1,42 +1,28 @@
-import { ReactNode, useCallback, useRef, use } from 'react'
-import { TbSquarePlus, TbSquareMinus, TbEdit } from 'react-icons/tb'
-import {
-  accordion,
-  accordion_remove_button,
-  accordion_wrapper,
-  accordion_content_wrapper,
-  accordion_header,
-  accordion_header_icon,
-  accordion_content,
-  accordion_footer,
-} from './Accordion.css'
-import Group from '@/components/Group'
-import clsx from 'clsx'
-import { sprinkles } from '@/css/sprinkles.css'
-import Button from '@/components/Button'
-import { TbX } from 'react-icons/tb'
+import type { ReactNode, ComponentProps } from 'react'
+import { PlusIcon, Pencil, Trash2 } from 'lucide-react'
 import { closestCenter, DndContext, MouseSensor, TouchSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { DeepKeyOf, OnChange } from '@/types'
-import AccordionProvider from './AccordionProvider'
-import { AccordionContext } from './AccordionContext'
+import clsx from 'clsx'
+import {
+  accordion_item,
+  accordion_header,
+  accordion_content,
+  accordion_header_icon,
+  accordion_header_icon_collapse,
+} from './Accordion.css'
+import { sprinkles } from '@/css/sprinkles.css'
+import { Accordion, Group } from '@mantine/core'
 
-interface FooterProps {
-  children: ReactNode
-}
+type AccordionItemProps = {
+  itemId: string
+  className?: string
+  children?: ReactNode
+  value: string
+} & ComponentProps<typeof Accordion.Item>
 
-interface AccordionProps<T> {
-  dataArray: any[]
-  children: ReactNode
-  onChange: {
-    updateField: OnChange<T>['updateField']
-  }
-  name?: DeepKeyOf<T>
-  disableSort?: boolean
-}
-
-const Wrapper = ({ children, itemId }: { children: ReactNode; itemId: string }) => {
+const AccordionItem = ({ className, itemId, children, value, ...props }: AccordionItemProps) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: itemId,
     disabled: !itemId,
@@ -49,153 +35,119 @@ const Wrapper = ({ children, itemId }: { children: ReactNode; itemId: string }) 
   }
 
   return (
-    <div
+    <Accordion.Item
       ref={setNodeRef}
       {...attributes}
       {...listeners}
       style={style}
-      className={clsx(accordion_wrapper, { ['dragging']: isDragging }, 'collapsed')}
+      value={value}
+      {...props}
+      className={clsx(accordion_item, className, { ['dragging']: isDragging }, 'item')}
     >
       {children}
-    </div>
+    </Accordion.Item>
   )
 }
 
-const Header = ({
-  children,
-  handleRemove,
-  handleEdit,
-  expandable = true,
-}: {
+type TriggerProps = {
   children: ReactNode
-  handleRemove?: () => void
-  handleEdit?: () => void
-  expandable?: boolean
-}) => {
-  const { activeHeader, setActiveHeader } = use(AccordionContext)
+  className?: string
+  removeFn?: () => void
+  editFn?: () => void
+} & ComponentProps<typeof Accordion.Control>
 
-  const headerRef = useRef<HTMLDivElement>(null)
-
-  const handleClick = useCallback(() => {
-    // Find all other headers and collapse them
-    const headers = Array.from(document.getElementsByClassName(`${accordion_header}`))
-    headers.forEach((headerOther) => {
-      if (headerOther !== headerRef.current) {
-        headerOther.parentElement?.classList.add('collapsed')
-      } else {
-        headerRef.current?.parentElement?.classList?.toggle('collapsed')
-        if (activeHeader === headerRef.current) {
-          setActiveHeader(null)
-        } else {
-          setActiveHeader(headerRef.current)
-        }
-      }
-    })
-  }, [activeHeader, setActiveHeader])
-
+const AccordionTrigger = ({ className, children, removeFn, editFn, ...props }: TriggerProps) => {
   return (
-    <div
-      className={clsx(accordion_header, {
-        'not-expandable': !expandable,
-      })}
-      ref={headerRef}
-      onClick={() => {
-        if (expandable) {
-          handleClick()
-        }
-      }}
-    >
-      <Group justifyContentVariant='spaceBetween' className={sprinkles({ width: 'size-full' })}>
+    <Accordion.Control className={clsx(accordion_header, className)} {...props}>
+      <Group justify='space -between' grow>
         <Group>
-          {handleRemove && (
-            <Button
-              style='unstyled'
-              type='button'
-              className={accordion_remove_button}
+          <h3 className={sprinkles({ me: 'space-2' })}>{children}</h3>
+          {editFn && (
+            <Pencil
+              className={accordion_header_icon}
               onClick={(e) => {
                 e.stopPropagation()
-                handleRemove()
+                editFn()
               }}
-            >
-              <TbX />
-            </Button>
+            />
           )}
-          {handleEdit && (
-            <Button
-              style='unstyled'
-              type='button'
-              className={accordion_remove_button}
-              onClick={(e) => {
-                e.stopPropagation()
-                handleEdit()
-              }}
-            >
-              <TbEdit />
-            </Button>
-          )}
-          <h3>{children}</h3>
         </Group>
-        {expandable && (
-          <span className={accordion_header_icon}>
-            {activeHeader === headerRef.current ?
-              <TbSquareMinus />
-            : <TbSquarePlus />}
-          </span>
+        {removeFn && (
+          <Trash2
+            className={accordion_header_icon}
+            onClick={(e) => {
+              e.stopPropagation()
+              removeFn()
+            }}
+          />
         )}
       </Group>
-    </div>
+    </Accordion.Control>
   )
 }
 
-const Content = ({ children }: { children: ReactNode }) => {
-  const wrapperRef = useRef<HTMLDivElement>(null)
+type AccordionContentProps = {
+  className?: string
+  children?: ReactNode
+} & ComponentProps<typeof Accordion.Panel>
 
+const AccordionContent = ({ className, children, ...props }: AccordionContentProps) => {
   return (
-    <div className={clsx(accordion_content_wrapper)} ref={wrapperRef}>
-      <div className={clsx(accordion_content)}>{children}</div>
-    </div>
+    <Accordion.Panel className={clsx(accordion_content, className)} {...props}>
+      {children}
+    </Accordion.Panel>
   )
 }
 
-const Footer = ({ children }: FooterProps) => {
-  return <div className={accordion_footer}>{children}</div>
-}
-
-const Accordion = <T,>({ children, dataArray, onChange, name, disableSort = false }: AccordionProps<T>) => {
-  const sensor = useSensors(
-    useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 300,
-        tolerance: 0,
-      },
-    }),
-    useSensor(MouseSensor, {
-      activationConstraint: {
-        delay: 300,
-        tolerance: 0,
-      },
-    })
-  )
-
-  const onDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
-    if (active.id === over?.id) {
-      return
-    }
-
-    const oldArray = JSON.parse(JSON.stringify(dataArray))
-
-    const oldIndex = Number(active.id)
-    const newIndex = Number(over?.id)
-    const newArray = arrayMove(oldArray, oldIndex, newIndex)
-    if (name) {
-      onChange.updateField({ path: name, value: newArray })
-    }
+type AccordionProps<T> = {
+  dataArray: any[]
+  updateFn: {
+    updateField: OnChange<T>['updateField']
   }
+  name?: DeepKeyOf<T>
+  disableSort?: boolean
+  children?: ReactNode
+} & ComponentProps<typeof Accordion>
 
-  return (
-    <AccordionProvider>
-      <div className={accordion}>
+const AccordionBase = Object.assign(
+  <T,>({ name, updateFn, disableSort, dataArray, children, ...props }: AccordionProps<T>) => {
+    const sensor = useSensors(
+      useSensor(TouchSensor, {
+        activationConstraint: {
+          delay: 300,
+          tolerance: 0,
+        },
+      }),
+      useSensor(MouseSensor, {
+        activationConstraint: {
+          delay: 300,
+          tolerance: 0,
+        },
+      })
+    )
+
+    const onDragEnd = (event: DragEndEvent) => {
+      const { active, over } = event
+      if (active.id === over?.id) {
+        return
+      }
+
+      const oldArray = JSON.parse(JSON.stringify(dataArray))
+
+      const oldIndex = Number(active.id)
+      const newIndex = Number(over?.id)
+      const newArray = arrayMove(oldArray, oldIndex, newIndex)
+      if (name) {
+        updateFn.updateField({ path: name, value: newArray })
+      }
+    }
+
+    return (
+      <Accordion
+        chevron={<PlusIcon className={clsx(accordion_header_icon)} />}
+        classNames={{ chevron: accordion_header_icon_collapse }}
+        {...props}
+      >
         <DndContext collisionDetection={closestCenter} sensors={sensor} onDragEnd={onDragEnd}>
           <SortableContext
             items={dataArray.map((_, dataIndex) => String(dataIndex))}
@@ -205,14 +157,14 @@ const Accordion = <T,>({ children, dataArray, onChange, name, disableSort = fals
             {children}
           </SortableContext>
         </DndContext>
-      </div>
-    </AccordionProvider>
-  )
-}
+      </Accordion>
+    )
+  },
+  {
+    Item: AccordionItem,
+    Trigger: AccordionTrigger,
+    Content: AccordionContent,
+  }
+)
 
-Accordion.Wrapper = Wrapper
-Accordion.Header = Header
-Accordion.Content = Content
-Accordion.Footer = Footer
-
-export default Accordion
+export default AccordionBase

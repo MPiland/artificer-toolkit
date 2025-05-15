@@ -7,11 +7,11 @@ import {
   ability_card_info,
 } from '../../../Character.css'
 import { calculateModifier } from '../../../Form.utils'
-import Grid from '@/components/Grid'
+import { Grid } from '@mantine/core'
 
 const AbilityCard = ({ ability, score }: { ability: GenericType; score: Scores }) => {
   return (
-    <Grid.Item colSpan={{ sm: 12, md: 4 }} className={ability_card}>
+    <Grid.Col span={{ sm: 12, md: 4 }} className={ability_card}>
       <div className={ability_card_header}>
         <h3>{ability.label}</h3>
       </div>
@@ -43,7 +43,7 @@ const AbilityCard = ({ ability, score }: { ability: GenericType; score: Scores }
         <div className={ability_card_info_label}>Ability Improvements</div>
         <div className={ability_card_info_value}>{calculateModifier(score?.classScore || 0, 'bonus')}</div>
       </div>
-    </Grid.Item>
+    </Grid.Col>
   )
 }
 export default AbilityCard

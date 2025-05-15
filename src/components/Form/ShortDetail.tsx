@@ -1,10 +1,9 @@
 import Button from '@/components/Button'
 import Modal from '@/components/Modal'
-import ScrollArea from '../ScrollArea/ScrollArea'
 import { startCase } from 'lodash'
 import { ReactNode } from 'react'
 import { Race, Class } from '@/types'
-import Grid from '@/components/Grid'
+import { Grid, ScrollArea } from '@mantine/core'
 
 const ShortDetail = ({
   children,

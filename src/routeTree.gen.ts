@@ -13,8 +13,7 @@
 import { Route as rootRoute } from './routes/__root'
 import { Route as ProtectedImport } from './routes/_protected'
 import { Route as IndexImport } from './routes/index'
-import { Route as AuthIndexImport } from './routes/$auth/index'
-import { Route as AuthActionImport } from './routes/$auth/$action'
+import { Route as AuthRegisterRouteImport } from './routes/_auth/register/route'
 import { Route as ProtectedSpellsIndexImport } from './routes/_protected/spells/index'
 import { Route as ProtectedRacesIndexImport } from './routes/_protected/races/index'
 import { Route as ProtectedHomeIndexImport } from './routes/_protected/home/index'
@@ -23,6 +22,8 @@ import { Route as ProtectedEquipmentIndexImport } from './routes/_protected/equi
 import { Route as ProtectedClassesIndexImport } from './routes/_protected/classes/index'
 import { Route as ProtectedCharactersIndexImport } from './routes/_protected/characters/index'
 import { Route as ProtectedBackgroundsIndexImport } from './routes/_protected/backgrounds/index'
+import { Route as AuthRegisterIndexImport } from './routes/_auth/register/index'
+import { Route as AuthLoginIndexImport } from './routes/_auth/login/index'
 import { Route as ProtectedSpellsSpellIdImport } from './routes/_protected/spells/$spellId'
 import { Route as ProtectedRacesRaceIdImport } from './routes/_protected/races/$raceId'
 import { Route as ProtectedFeatsFeatIdImport } from './routes/_protected/feats/$featId'
@@ -30,6 +31,9 @@ import { Route as ProtectedEquipmentEquipmentIdImport } from './routes/_protecte
 import { Route as ProtectedClassesClassIdImport } from './routes/_protected/classes/$classId'
 import { Route as ProtectedCharactersCharacterIdImport } from './routes/_protected/characters/$characterId'
 import { Route as ProtectedBackgroundsBackgroundIdImport } from './routes/_protected/backgrounds/$backgroundId'
+import { Route as AuthRegisterConfirmImport } from './routes/_auth/register/confirm'
+import { Route as AuthLoginForgotPasswordRouteImport } from './routes/_auth/login/forgot-password/route'
+import { Route as AuthLoginForgotPasswordIndexImport } from './routes/_auth/login/forgot-password/index'
 import { Route as ProtectedSpellsActionspellIdImport } from './routes/_protected/spells/$action/$_spellId'
 import { Route as ProtectedRacesActionraceIdImport } from './routes/_protected/races/$action/$_raceId'
 import { Route as ProtectedFeatsActionfeatIdImport } from './routes/_protected/feats/$action/$_featId'
@@ -37,6 +41,7 @@ import { Route as ProtectedEquipmentActionequipmentIdImport } from './routes/_pr
 import { Route as ProtectedClassesActionclassIdImport } from './routes/_protected/classes/$action/$_classId'
 import { Route as ProtectedCharactersActioncharacterIdImport } from './routes/_protected/characters/$action/$_characterId'
 import { Route as ProtectedBackgroundsActionbackgroundIdImport } from './routes/_protected/backgrounds/$action/$_backgroundId'
+import { Route as AuthLoginForgotPasswordConfirmImport } from './routes/_auth/login/forgot-password/confirm'
 
 // Create/Update Routes
 
@@ -51,15 +56,9 @@ const IndexRoute = IndexImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
-const AuthIndexRoute = AuthIndexImport.update({
-  id: '/$auth/',
-  path: '/$auth/',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const AuthActionRoute = AuthActionImport.update({
-  id: '/$auth/$action',
-  path: '/$auth/$action',
+const AuthRegisterRouteRoute = AuthRegisterRouteImport.update({
+  id: '/_auth/register',
+  path: '/register',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -111,6 +110,18 @@ const ProtectedBackgroundsIndexRoute = ProtectedBackgroundsIndexImport.update({
   getParentRoute: () => ProtectedRoute,
 } as any)
 
+const AuthRegisterIndexRoute = AuthRegisterIndexImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthRegisterRouteRoute,
+} as any)
+
+const AuthLoginIndexRoute = AuthLoginIndexImport.update({
+  id: '/_auth/login/',
+  path: '/login/',
+  getParentRoute: () => rootRoute,
+} as any)
+
 const ProtectedSpellsSpellIdRoute = ProtectedSpellsSpellIdImport.update({
   id: '/spells/$spellId',
   path: '/spells/$spellId',
@@ -154,6 +165,26 @@ const ProtectedBackgroundsBackgroundIdRoute =
     id: '/backgrounds/$backgroundId',
     path: '/backgrounds/$backgroundId',
     getParentRoute: () => ProtectedRoute,
+  } as any)
+
+const AuthRegisterConfirmRoute = AuthRegisterConfirmImport.update({
+  id: '/confirm',
+  path: '/confirm',
+  getParentRoute: () => AuthRegisterRouteRoute,
+} as any)
+
+const AuthLoginForgotPasswordRouteRoute =
+  AuthLoginForgotPasswordRouteImport.update({
+    id: '/_auth/login/forgot-password',
+    path: '/login/forgot-password',
+    getParentRoute: () => rootRoute,
+  } as any)
+
+const AuthLoginForgotPasswordIndexRoute =
+  AuthLoginForgotPasswordIndexImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthLoginForgotPasswordRouteRoute,
   } as any)
 
 const ProtectedSpellsActionspellIdRoute =
@@ -207,6 +238,13 @@ const ProtectedBackgroundsActionbackgroundIdRoute =
     getParentRoute: () => ProtectedRoute,
   } as any)
 
+const AuthLoginForgotPasswordConfirmRoute =
+  AuthLoginForgotPasswordConfirmImport.update({
+    id: '/confirm',
+    path: '/confirm',
+    getParentRoute: () => AuthLoginForgotPasswordRouteRoute,
+  } as any)
+
 // Populate the FileRoutesByPath interface
 
 declare module '@tanstack/react-router' {
@@ -225,19 +263,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedImport
       parentRoute: typeof rootRoute
     }
-    '/$auth/$action': {
-      id: '/$auth/$action'
-      path: '/$auth/$action'
-      fullPath: '/$auth/$action'
-      preLoaderRoute: typeof AuthActionImport
+    '/_auth/register': {
+      id: '/_auth/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof AuthRegisterRouteImport
       parentRoute: typeof rootRoute
     }
-    '/$auth/': {
-      id: '/$auth/'
-      path: '/$auth'
-      fullPath: '/$auth'
-      preLoaderRoute: typeof AuthIndexImport
+    '/_auth/login/forgot-password': {
+      id: '/_auth/login/forgot-password'
+      path: '/login/forgot-password'
+      fullPath: '/login/forgot-password'
+      preLoaderRoute: typeof AuthLoginForgotPasswordRouteImport
       parentRoute: typeof rootRoute
+    }
+    '/_auth/register/confirm': {
+      id: '/_auth/register/confirm'
+      path: '/confirm'
+      fullPath: '/register/confirm'
+      preLoaderRoute: typeof AuthRegisterConfirmImport
+      parentRoute: typeof AuthRegisterRouteImport
     }
     '/_protected/backgrounds/$backgroundId': {
       id: '/_protected/backgrounds/$backgroundId'
@@ -287,6 +332,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/spells/$spellId'
       preLoaderRoute: typeof ProtectedSpellsSpellIdImport
       parentRoute: typeof ProtectedImport
+    }
+    '/_auth/login/': {
+      id: '/_auth/login/'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof AuthLoginIndexImport
+      parentRoute: typeof rootRoute
+    }
+    '/_auth/register/': {
+      id: '/_auth/register/'
+      path: '/'
+      fullPath: '/register/'
+      preLoaderRoute: typeof AuthRegisterIndexImport
+      parentRoute: typeof AuthRegisterRouteImport
     }
     '/_protected/backgrounds/': {
       id: '/_protected/backgrounds/'
@@ -344,6 +403,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedSpellsIndexImport
       parentRoute: typeof ProtectedImport
     }
+    '/_auth/login/forgot-password/confirm': {
+      id: '/_auth/login/forgot-password/confirm'
+      path: '/confirm'
+      fullPath: '/login/forgot-password/confirm'
+      preLoaderRoute: typeof AuthLoginForgotPasswordConfirmImport
+      parentRoute: typeof AuthLoginForgotPasswordRouteImport
+    }
     '/_protected/backgrounds/$action/$_backgroundId': {
       id: '/_protected/backgrounds/$action/$_backgroundId'
       path: '/backgrounds/$action/$_backgroundId'
@@ -392,6 +458,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/spells/$action/$_spellId'
       preLoaderRoute: typeof ProtectedSpellsActionspellIdImport
       parentRoute: typeof ProtectedImport
+    }
+    '/_auth/login/forgot-password/': {
+      id: '/_auth/login/forgot-password/'
+      path: '/'
+      fullPath: '/login/forgot-password/'
+      preLoaderRoute: typeof AuthLoginForgotPasswordIndexImport
+      parentRoute: typeof AuthLoginForgotPasswordRouteImport
     }
   }
 }
@@ -455,11 +528,41 @@ const ProtectedRouteWithChildren = ProtectedRoute._addFileChildren(
   ProtectedRouteChildren,
 )
 
+interface AuthRegisterRouteRouteChildren {
+  AuthRegisterConfirmRoute: typeof AuthRegisterConfirmRoute
+  AuthRegisterIndexRoute: typeof AuthRegisterIndexRoute
+}
+
+const AuthRegisterRouteRouteChildren: AuthRegisterRouteRouteChildren = {
+  AuthRegisterConfirmRoute: AuthRegisterConfirmRoute,
+  AuthRegisterIndexRoute: AuthRegisterIndexRoute,
+}
+
+const AuthRegisterRouteRouteWithChildren =
+  AuthRegisterRouteRoute._addFileChildren(AuthRegisterRouteRouteChildren)
+
+interface AuthLoginForgotPasswordRouteRouteChildren {
+  AuthLoginForgotPasswordConfirmRoute: typeof AuthLoginForgotPasswordConfirmRoute
+  AuthLoginForgotPasswordIndexRoute: typeof AuthLoginForgotPasswordIndexRoute
+}
+
+const AuthLoginForgotPasswordRouteRouteChildren: AuthLoginForgotPasswordRouteRouteChildren =
+  {
+    AuthLoginForgotPasswordConfirmRoute: AuthLoginForgotPasswordConfirmRoute,
+    AuthLoginForgotPasswordIndexRoute: AuthLoginForgotPasswordIndexRoute,
+  }
+
+const AuthLoginForgotPasswordRouteRouteWithChildren =
+  AuthLoginForgotPasswordRouteRoute._addFileChildren(
+    AuthLoginForgotPasswordRouteRouteChildren,
+  )
+
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '': typeof ProtectedRouteWithChildren
-  '/$auth/$action': typeof AuthActionRoute
-  '/$auth': typeof AuthIndexRoute
+  '/register': typeof AuthRegisterRouteRouteWithChildren
+  '/login/forgot-password': typeof AuthLoginForgotPasswordRouteRouteWithChildren
+  '/register/confirm': typeof AuthRegisterConfirmRoute
   '/backgrounds/$backgroundId': typeof ProtectedBackgroundsBackgroundIdRoute
   '/characters/$characterId': typeof ProtectedCharactersCharacterIdRoute
   '/classes/$classId': typeof ProtectedClassesClassIdRoute
@@ -467,6 +570,8 @@ export interface FileRoutesByFullPath {
   '/feats/$featId': typeof ProtectedFeatsFeatIdRoute
   '/races/$raceId': typeof ProtectedRacesRaceIdRoute
   '/spells/$spellId': typeof ProtectedSpellsSpellIdRoute
+  '/login': typeof AuthLoginIndexRoute
+  '/register/': typeof AuthRegisterIndexRoute
   '/backgrounds': typeof ProtectedBackgroundsIndexRoute
   '/characters': typeof ProtectedCharactersIndexRoute
   '/classes': typeof ProtectedClassesIndexRoute
@@ -475,6 +580,7 @@ export interface FileRoutesByFullPath {
   '/home': typeof ProtectedHomeIndexRoute
   '/races': typeof ProtectedRacesIndexRoute
   '/spells': typeof ProtectedSpellsIndexRoute
+  '/login/forgot-password/confirm': typeof AuthLoginForgotPasswordConfirmRoute
   '/backgrounds/$action/$_backgroundId': typeof ProtectedBackgroundsActionbackgroundIdRoute
   '/characters/$action/$_characterId': typeof ProtectedCharactersActioncharacterIdRoute
   '/classes/$action/$_classId': typeof ProtectedClassesActionclassIdRoute
@@ -482,13 +588,13 @@ export interface FileRoutesByFullPath {
   '/feats/$action/$_featId': typeof ProtectedFeatsActionfeatIdRoute
   '/races/$action/$_raceId': typeof ProtectedRacesActionraceIdRoute
   '/spells/$action/$_spellId': typeof ProtectedSpellsActionspellIdRoute
+  '/login/forgot-password/': typeof AuthLoginForgotPasswordIndexRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '': typeof ProtectedRouteWithChildren
-  '/$auth/$action': typeof AuthActionRoute
-  '/$auth': typeof AuthIndexRoute
+  '/register/confirm': typeof AuthRegisterConfirmRoute
   '/backgrounds/$backgroundId': typeof ProtectedBackgroundsBackgroundIdRoute
   '/characters/$characterId': typeof ProtectedCharactersCharacterIdRoute
   '/classes/$classId': typeof ProtectedClassesClassIdRoute
@@ -496,6 +602,8 @@ export interface FileRoutesByTo {
   '/feats/$featId': typeof ProtectedFeatsFeatIdRoute
   '/races/$raceId': typeof ProtectedRacesRaceIdRoute
   '/spells/$spellId': typeof ProtectedSpellsSpellIdRoute
+  '/login': typeof AuthLoginIndexRoute
+  '/register': typeof AuthRegisterIndexRoute
   '/backgrounds': typeof ProtectedBackgroundsIndexRoute
   '/characters': typeof ProtectedCharactersIndexRoute
   '/classes': typeof ProtectedClassesIndexRoute
@@ -504,6 +612,7 @@ export interface FileRoutesByTo {
   '/home': typeof ProtectedHomeIndexRoute
   '/races': typeof ProtectedRacesIndexRoute
   '/spells': typeof ProtectedSpellsIndexRoute
+  '/login/forgot-password/confirm': typeof AuthLoginForgotPasswordConfirmRoute
   '/backgrounds/$action/$_backgroundId': typeof ProtectedBackgroundsActionbackgroundIdRoute
   '/characters/$action/$_characterId': typeof ProtectedCharactersActioncharacterIdRoute
   '/classes/$action/$_classId': typeof ProtectedClassesActionclassIdRoute
@@ -511,14 +620,16 @@ export interface FileRoutesByTo {
   '/feats/$action/$_featId': typeof ProtectedFeatsActionfeatIdRoute
   '/races/$action/$_raceId': typeof ProtectedRacesActionraceIdRoute
   '/spells/$action/$_spellId': typeof ProtectedSpellsActionspellIdRoute
+  '/login/forgot-password': typeof AuthLoginForgotPasswordIndexRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
   '/_protected': typeof ProtectedRouteWithChildren
-  '/$auth/$action': typeof AuthActionRoute
-  '/$auth/': typeof AuthIndexRoute
+  '/_auth/register': typeof AuthRegisterRouteRouteWithChildren
+  '/_auth/login/forgot-password': typeof AuthLoginForgotPasswordRouteRouteWithChildren
+  '/_auth/register/confirm': typeof AuthRegisterConfirmRoute
   '/_protected/backgrounds/$backgroundId': typeof ProtectedBackgroundsBackgroundIdRoute
   '/_protected/characters/$characterId': typeof ProtectedCharactersCharacterIdRoute
   '/_protected/classes/$classId': typeof ProtectedClassesClassIdRoute
@@ -526,6 +637,8 @@ export interface FileRoutesById {
   '/_protected/feats/$featId': typeof ProtectedFeatsFeatIdRoute
   '/_protected/races/$raceId': typeof ProtectedRacesRaceIdRoute
   '/_protected/spells/$spellId': typeof ProtectedSpellsSpellIdRoute
+  '/_auth/login/': typeof AuthLoginIndexRoute
+  '/_auth/register/': typeof AuthRegisterIndexRoute
   '/_protected/backgrounds/': typeof ProtectedBackgroundsIndexRoute
   '/_protected/characters/': typeof ProtectedCharactersIndexRoute
   '/_protected/classes/': typeof ProtectedClassesIndexRoute
@@ -534,6 +647,7 @@ export interface FileRoutesById {
   '/_protected/home/': typeof ProtectedHomeIndexRoute
   '/_protected/races/': typeof ProtectedRacesIndexRoute
   '/_protected/spells/': typeof ProtectedSpellsIndexRoute
+  '/_auth/login/forgot-password/confirm': typeof AuthLoginForgotPasswordConfirmRoute
   '/_protected/backgrounds/$action/$_backgroundId': typeof ProtectedBackgroundsActionbackgroundIdRoute
   '/_protected/characters/$action/$_characterId': typeof ProtectedCharactersActioncharacterIdRoute
   '/_protected/classes/$action/$_classId': typeof ProtectedClassesActionclassIdRoute
@@ -541,6 +655,7 @@ export interface FileRoutesById {
   '/_protected/feats/$action/$_featId': typeof ProtectedFeatsActionfeatIdRoute
   '/_protected/races/$action/$_raceId': typeof ProtectedRacesActionraceIdRoute
   '/_protected/spells/$action/$_spellId': typeof ProtectedSpellsActionspellIdRoute
+  '/_auth/login/forgot-password/': typeof AuthLoginForgotPasswordIndexRoute
 }
 
 export interface FileRouteTypes {
@@ -548,8 +663,9 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | ''
-    | '/$auth/$action'
-    | '/$auth'
+    | '/register'
+    | '/login/forgot-password'
+    | '/register/confirm'
     | '/backgrounds/$backgroundId'
     | '/characters/$characterId'
     | '/classes/$classId'
@@ -557,6 +673,8 @@ export interface FileRouteTypes {
     | '/feats/$featId'
     | '/races/$raceId'
     | '/spells/$spellId'
+    | '/login'
+    | '/register/'
     | '/backgrounds'
     | '/characters'
     | '/classes'
@@ -565,6 +683,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/races'
     | '/spells'
+    | '/login/forgot-password/confirm'
     | '/backgrounds/$action/$_backgroundId'
     | '/characters/$action/$_characterId'
     | '/classes/$action/$_classId'
@@ -572,12 +691,12 @@ export interface FileRouteTypes {
     | '/feats/$action/$_featId'
     | '/races/$action/$_raceId'
     | '/spells/$action/$_spellId'
+    | '/login/forgot-password/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | ''
-    | '/$auth/$action'
-    | '/$auth'
+    | '/register/confirm'
     | '/backgrounds/$backgroundId'
     | '/characters/$characterId'
     | '/classes/$classId'
@@ -585,6 +704,8 @@ export interface FileRouteTypes {
     | '/feats/$featId'
     | '/races/$raceId'
     | '/spells/$spellId'
+    | '/login'
+    | '/register'
     | '/backgrounds'
     | '/characters'
     | '/classes'
@@ -593,6 +714,7 @@ export interface FileRouteTypes {
     | '/home'
     | '/races'
     | '/spells'
+    | '/login/forgot-password/confirm'
     | '/backgrounds/$action/$_backgroundId'
     | '/characters/$action/$_characterId'
     | '/classes/$action/$_classId'
@@ -600,12 +722,14 @@ export interface FileRouteTypes {
     | '/feats/$action/$_featId'
     | '/races/$action/$_raceId'
     | '/spells/$action/$_spellId'
+    | '/login/forgot-password'
   id:
     | '__root__'
     | '/'
     | '/_protected'
-    | '/$auth/$action'
-    | '/$auth/'
+    | '/_auth/register'
+    | '/_auth/login/forgot-password'
+    | '/_auth/register/confirm'
     | '/_protected/backgrounds/$backgroundId'
     | '/_protected/characters/$characterId'
     | '/_protected/classes/$classId'
@@ -613,6 +737,8 @@ export interface FileRouteTypes {
     | '/_protected/feats/$featId'
     | '/_protected/races/$raceId'
     | '/_protected/spells/$spellId'
+    | '/_auth/login/'
+    | '/_auth/register/'
     | '/_protected/backgrounds/'
     | '/_protected/characters/'
     | '/_protected/classes/'
@@ -621,6 +747,7 @@ export interface FileRouteTypes {
     | '/_protected/home/'
     | '/_protected/races/'
     | '/_protected/spells/'
+    | '/_auth/login/forgot-password/confirm'
     | '/_protected/backgrounds/$action/$_backgroundId'
     | '/_protected/characters/$action/$_characterId'
     | '/_protected/classes/$action/$_classId'
@@ -628,21 +755,25 @@ export interface FileRouteTypes {
     | '/_protected/feats/$action/$_featId'
     | '/_protected/races/$action/$_raceId'
     | '/_protected/spells/$action/$_spellId'
+    | '/_auth/login/forgot-password/'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ProtectedRoute: typeof ProtectedRouteWithChildren
-  AuthActionRoute: typeof AuthActionRoute
-  AuthIndexRoute: typeof AuthIndexRoute
+  AuthRegisterRouteRoute: typeof AuthRegisterRouteRouteWithChildren
+  AuthLoginForgotPasswordRouteRoute: typeof AuthLoginForgotPasswordRouteRouteWithChildren
+  AuthLoginIndexRoute: typeof AuthLoginIndexRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ProtectedRoute: ProtectedRouteWithChildren,
-  AuthActionRoute: AuthActionRoute,
-  AuthIndexRoute: AuthIndexRoute,
+  AuthRegisterRouteRoute: AuthRegisterRouteRouteWithChildren,
+  AuthLoginForgotPasswordRouteRoute:
+    AuthLoginForgotPasswordRouteRouteWithChildren,
+  AuthLoginIndexRoute: AuthLoginIndexRoute,
 }
 
 export const routeTree = rootRoute
@@ -657,8 +788,9 @@ export const routeTree = rootRoute
       "children": [
         "/",
         "/_protected",
-        "/$auth/$action",
-        "/$auth/"
+        "/_auth/register",
+        "/_auth/login/forgot-password",
+        "/_auth/login/"
       ]
     },
     "/": {
@@ -691,11 +823,23 @@ export const routeTree = rootRoute
         "/_protected/spells/$action/$_spellId"
       ]
     },
-    "/$auth/$action": {
-      "filePath": "$auth/$action.tsx"
+    "/_auth/register": {
+      "filePath": "_auth/register/route.tsx",
+      "children": [
+        "/_auth/register/confirm",
+        "/_auth/register/"
+      ]
     },
-    "/$auth/": {
-      "filePath": "$auth/index.tsx"
+    "/_auth/login/forgot-password": {
+      "filePath": "_auth/login/forgot-password/route.tsx",
+      "children": [
+        "/_auth/login/forgot-password/confirm",
+        "/_auth/login/forgot-password/"
+      ]
+    },
+    "/_auth/register/confirm": {
+      "filePath": "_auth/register/confirm.tsx",
+      "parent": "/_auth/register"
     },
     "/_protected/backgrounds/$backgroundId": {
       "filePath": "_protected/backgrounds/$backgroundId.tsx",
@@ -724,6 +868,13 @@ export const routeTree = rootRoute
     "/_protected/spells/$spellId": {
       "filePath": "_protected/spells/$spellId.tsx",
       "parent": "/_protected"
+    },
+    "/_auth/login/": {
+      "filePath": "_auth/login/index.tsx"
+    },
+    "/_auth/register/": {
+      "filePath": "_auth/register/index.tsx",
+      "parent": "/_auth/register"
     },
     "/_protected/backgrounds/": {
       "filePath": "_protected/backgrounds/index.tsx",
@@ -757,6 +908,10 @@ export const routeTree = rootRoute
       "filePath": "_protected/spells/index.tsx",
       "parent": "/_protected"
     },
+    "/_auth/login/forgot-password/confirm": {
+      "filePath": "_auth/login/forgot-password/confirm.tsx",
+      "parent": "/_auth/login/forgot-password"
+    },
     "/_protected/backgrounds/$action/$_backgroundId": {
       "filePath": "_protected/backgrounds/$action/$_backgroundId.tsx",
       "parent": "/_protected"
@@ -784,6 +939,10 @@ export const routeTree = rootRoute
     "/_protected/spells/$action/$_spellId": {
       "filePath": "_protected/spells/$action/$_spellId.tsx",
       "parent": "/_protected"
+    },
+    "/_auth/login/forgot-password/": {
+      "filePath": "_auth/login/forgot-password/index.tsx",
+      "parent": "/_auth/login/forgot-password"
     }
   }
 }

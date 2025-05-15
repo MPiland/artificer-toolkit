@@ -1,10 +1,9 @@
 import { card_group, card_header, card_header_subtext, card_header_title, main_card } from '../../../Character.css'
 import clsx from 'clsx'
-import Group from '@/components/Group'
 import type { Character, ClassListItem } from '@/types'
 import { use, useState } from 'react'
 import { FormContext } from '../../../FormContext'
-import Grid from '@/components/Grid'
+import { Grid, Group } from '@mantine/core'
 import ClassDetail from './ClassDetail'
 import { useClassData, useSystemData } from '@/hooks'
 
@@ -24,7 +23,7 @@ const ClassSelection = () => {
 
   return (
     <>
-      <Grid.Item>
+      <Grid.Col>
         <Grid>
           {baseClasses?.map((uClass, index) => {
             const selected = data?.classes?.some((stateClass) => stateClass.id === uClass.id)
@@ -71,7 +70,7 @@ const ClassSelection = () => {
             }
 
             return (
-              <Grid.Item className={card_group} key={index}>
+              <Grid.Col className={card_group} key={index}>
                 <div
                   className={clsx(
                     main_card,
@@ -103,11 +102,11 @@ const ClassSelection = () => {
                     )}
                   </span>
                 </div>
-              </Grid.Item>
+              </Grid.Col>
             )
           })}
         </Grid>
-      </Grid.Item>
+      </Grid.Col>
       {formClass && <ClassDetail formClass={formClass} setFormClass={() => setFormClass(null)} />}
     </>
   )

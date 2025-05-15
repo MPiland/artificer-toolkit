@@ -1,48 +1,28 @@
+import '@mantine/core/styles.layer.css'
+import '@/css/main.css'
+import '@/css/theme.css'
 import { StrictMode, use } from 'react'
 import ReactDOM from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { Amplify } from 'aws-amplify'
 import { createRouter, RouterProvider } from '@tanstack/react-router'
-
 import { routeTree } from './routeTree.gen'
-import AuthProvider from './pages/auth/AuthProvider'
-import ThemeProvider from './theme/ThemeProvider'
 import { AuthContext } from './pages/auth/AuthContext'
+import AuthProvider from './pages/auth/AuthProvider'
 import { FormDataType, type FormType } from './types/types'
 import ErrorPage from './pages/auth/ErrorPage'
 import useSystemPref from './hooks/useSystemPref'
+import { MantineProvider } from '@mantine/core'
+import { resolver, theme } from './css/theme'
+import { Amplify } from 'aws-amplify'
 
 const queryClient = new QueryClient()
 
 Amplify.configure({
   API: {
     GraphQL: {
-      endpoint: 'https://uk3olnkzrbepvipuimv4prry2e.appsync-api.us-east-1.amazonaws.com/graphql',
-      region: 'us-east-1',
+      endpoint: import.meta.env.VITE_AWS_GRAPHQL_ENDPOINT || process.env.AWS_GRAPHQL_ENDPOINT!,
+      region: import.meta.env.VITE_AWS_DEFAULT_REGION || process.env.AWS_DEFAULT_REGION!,
       defaultAuthMode: 'userPool',
-    },
-  },
-  Auth: {
-    Cognito: {
-      userPoolId: 'us-east-1_siXBHaOwk',
-      userPoolClientId: '7oa02bpv1vbmadbuvuv9h8lv9e',
-      identityPoolId: 'us-east-1:e6dc283e-1bb5-40e9-acf0-f8e4bc6e70d0',
-      loginWith: {
-        email: true,
-      },
-      signUpVerificationMethod: 'code',
-      userAttributes: {
-        email: {
-          required: true,
-        },
-      },
-      passwordFormat: {
-        minLength: 8,
-        requireLowercase: true,
-        requireUppercase: true,
-        requireNumbers: true,
-        requireSpecialCharacters: true,
-      },
     },
   },
 })
@@ -76,6 +56,7 @@ declare module '@tanstack/react-router' {
 
 const App = () => {
   const auth = use(AuthContext)
+  console.log({ auth })
   const [systemPref] = useSystemPref()
   return <RouterProvider router={router} context={{ auth, systemPref }} />
 }
@@ -85,13 +66,13 @@ if (rootElement && !rootElement.innerHTML) {
   const root = ReactDOM.createRoot(rootElement)
   root.render(
     <StrictMode>
-      <ThemeProvider>
-        <QueryClientProvider client={queryClient}>
-          <AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <MantineProvider theme={theme} cssVariablesResolver={resolver}>
             <App />
-          </AuthProvider>
-        </QueryClientProvider>
-      </ThemeProvider>
+          </MantineProvider>
+        </AuthProvider>
+      </QueryClientProvider>
     </StrictMode>
   )
 }

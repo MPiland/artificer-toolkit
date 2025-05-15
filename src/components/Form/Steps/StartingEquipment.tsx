@@ -3,9 +3,9 @@ import Button from '@/components/Button'
 import Accordion from '@/components/Accordion'
 import { use } from 'react'
 import { FormContext } from '../FormContext'
-import Grid from '@/components/Grid'
 import EquipmentGroup from '../Substeps/StartingEquipment/EquipmentGroup'
 import type { OnChange, Class } from '@/types'
+import { Grid } from '@mantine/core'
 
 const StartingEquipmentStep = () => {
   const {
@@ -30,9 +30,9 @@ const StartingEquipmentStep = () => {
 
   return (
     <Grid>
-      <Grid.Item>
+      <Grid.Col>
         <Grid>
-          <Grid.Item colSpan={2}>
+          <Grid.Col span={2}>
             <Button
               color='primary'
               style='outline'
@@ -43,19 +43,19 @@ const StartingEquipmentStep = () => {
             >
               Add Equipment Group
             </Button>
-          </Grid.Item>
+          </Grid.Col>
         </Grid>
-      </Grid.Item>
+      </Grid.Col>
       {data.equipment?.length && (
-        <Grid.Item>
-          <Accordion dataArray={data.equipment} name='equipment' onChange={{ updateField }}>
+        <Grid.Col>
+          <Accordion dataArray={data.equipment} name='equipment' updateFn={{ updateField }}>
             {data.equipment?.map((equipmentItem, eIndex) => {
               if (equipmentItem?.length) {
                 return <EquipmentGroup key={eIndex} index={eIndex} equipment={equipmentItem} />
               }
             })}
           </Accordion>
-        </Grid.Item>
+        </Grid.Col>
       )}
     </Grid>
   )

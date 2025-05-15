@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import SpellForm from '@/pages/spells/SpellForm'
 import { fetchSpell } from '@/apis/spellsApi'
+import { FormProvider } from '@/components/Form'
 
 export const Route = createFileRoute('/_protected/spells/$action/$_spellId')({
   beforeLoad: () => {
@@ -12,5 +13,9 @@ export const Route = createFileRoute('/_protected/spells/$action/$_spellId')({
       return context.queryClient.ensureQueryData(fetchSpell(spellId))
     }
   },
-  component: SpellForm,
+  component: () => (
+    <FormProvider>
+      <SpellForm />
+    </FormProvider>
+  ),
 })

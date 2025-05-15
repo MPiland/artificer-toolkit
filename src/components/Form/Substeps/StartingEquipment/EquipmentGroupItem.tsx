@@ -1,7 +1,7 @@
 import { Fragment } from 'react'
 import Button from '@/components/Button'
 import { TbPlus, TbX } from 'react-icons/tb'
-import Grid from '@/components/Grid'
+import { Grid } from '@mantine/core'
 import { row_button } from '../../Form.css'
 import { FormContext } from '../../FormContext'
 import { use } from 'react'
@@ -49,12 +49,12 @@ const EquipmentGroupItem = ({
 
   const renderCurrencyInputs = () => {
     return (
-      <Grid.Item>
+      <Grid.Col>
         <Grid>
           {currencies.map((currency, cIndex) => (
-            <Grid.Item
+            <Grid.Col
               key={`${equipmentIndex}-${optionIndex}-${groupIndex}-${cIndex}`}
-              colSpan={{ sm: 6, md: 4, lg: 'auto' }}
+              span={{ sm: 6, md: 4, lg: 'auto' }}
             >
               <Input
                 validation='num'
@@ -64,16 +64,16 @@ const EquipmentGroupItem = ({
                 errorMsg='Must contain only numbers'
                 onChange={{ updateField }}
               />
-            </Grid.Item>
+            </Grid.Col>
           ))}
         </Grid>
-      </Grid.Item>
+      </Grid.Col>
     )
   }
 
   const renderEquipmentInputs = () => (
     <>
-      <Grid.Item colSpan={{ sm: 6, md: 4, lg: 'auto' }}>
+      <Grid.Col span={{ sm: 6, md: 4, lg: 'auto' }}>
         <Dropdown
           name={`equipment.${equipmentIndex}.${optionIndex}.${groupIndex}.properties`}
           multiSelect={true}
@@ -82,8 +82,8 @@ const EquipmentGroupItem = ({
           options={equipment.properties.filterByCategory(group.category)}
           onChange={{ updateField, removeField }}
         />
-      </Grid.Item>
-      <Grid.Item colSpan={{ sm: 6, md: 4, lg: 'auto' }}>
+      </Grid.Col>
+      <Grid.Col span={{ sm: 6, md: 4, lg: 'auto' }}>
         <Dropdown
           name={`equipment.${equipmentIndex}.${optionIndex}.${groupIndex}.equipment`}
           multiSelect={true}
@@ -92,9 +92,9 @@ const EquipmentGroupItem = ({
           options={filterByCategory(group.category).filterByEveryProperty(group.properties)}
           onChange={{ updateField, removeField }}
         />
-      </Grid.Item>
+      </Grid.Col>
       {multipleOptions ?
-        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 'auto' }}>
+        <Grid.Col span={{ sm: 6, md: 4, lg: 'auto' }}>
           <Input
             validation='num'
             name={`equipment.${equipmentIndex}.${optionIndex}.${groupIndex}.selectionCount`}
@@ -104,8 +104,8 @@ const EquipmentGroupItem = ({
             required={true}
             onChange={{ updateField }}
           />
-        </Grid.Item>
-      : <Grid.Item colSpan={{ sm: 6, md: 4, lg: 'auto' }}>
+        </Grid.Col>
+      : <Grid.Col span={{ sm: 6, md: 4, lg: 'auto' }}>
           <Input
             validation='num'
             name={`equipment.${equipmentIndex}.${optionIndex}.${groupIndex}.quantity`}
@@ -115,16 +115,16 @@ const EquipmentGroupItem = ({
             required={true}
             onChange={{ updateField }}
           />
-        </Grid.Item>
+        </Grid.Col>
       }
     </>
   )
 
   return (
     <Fragment>
-      <Grid.Item colSpan={11}>
+      <Grid.Col span={11}>
         <Grid>
-          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 'auto' }}>
+          <Grid.Col span={{ sm: 6, md: 4, lg: 'auto' }}>
             <Dropdown
               name={`equipment.${equipmentIndex}.${optionIndex}.${groupIndex}.attributes`}
               multiSelect={true}
@@ -138,8 +138,8 @@ const EquipmentGroupItem = ({
               value={group.attributes}
               onChange={{ updateField, removeField }}
             />
-          </Grid.Item>
-          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 'auto' }}>
+          </Grid.Col>
+          <Grid.Col span={{ sm: 6, md: 4, lg: 'auto' }}>
             <Dropdown
               name={`equipment.${equipmentIndex}.${optionIndex}.${groupIndex}.category`}
               label='Equipment Category'
@@ -147,13 +147,13 @@ const EquipmentGroupItem = ({
               options={equipment.categories}
               onChange={{ updateField, removeField }}
             />
-          </Grid.Item>
+          </Grid.Col>
           {renderEquipmentInputs()}
           {group?.attributes?.some((attribute) => attribute === Attributes?.CONTAINS_CURRENCY) &&
             renderCurrencyInputs()}
         </Grid>
-      </Grid.Item>
-      <Grid.Item colSpan={'auto'} justify='start'>
+      </Grid.Col>
+      <Grid.Col  justify='start'>
         <Button
           style='unstyled'
           className={row_button}
@@ -178,7 +178,7 @@ const EquipmentGroupItem = ({
         >
           <TbX />
         </Button>
-      </Grid.Item>
+      </Grid.Col>
     </Fragment>
   )
 }
