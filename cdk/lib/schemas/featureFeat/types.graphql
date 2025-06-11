@@ -1,0 +1,13 @@
+type FeatureFeat {
+  id: ID!
+  attributes: [ID!]
+  feats: [ID!]
+  selectionCount: Int
+  subtype: ID
+  prerequisites: Prerequisite
+}
+
+type FeatureFeatConnection {
+  items: [FeatureFeat!]!
+  nextToken: String
+}

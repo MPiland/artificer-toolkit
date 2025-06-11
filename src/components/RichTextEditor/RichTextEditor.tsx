@@ -1,76 +1,33 @@
-import { useState, useEffect, useCallback } from 'react'
-import { useEditor, EditorContent, Editor } from '@tiptap/react'
-import MenuBar from './MenuBar'
-import CustomTableHeader from './CustomTableHeader'
-import CustomTableCell from './CustomTableCell'
-import TextAlign from '@tiptap/extension-text-align'
-import Table from '@tiptap/extension-table'
-import TableRow from '@tiptap/extension-table-row'
+import { RichTextEditor as MantineRichTextEditor, Link } from '@mantine/tiptap'
+import { useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
-import {
-  editor_container,
-  editor_content_container,
-  editor_content,
-  editor_table,
-  editor_table_th,
-  editor_table_td,
-  editor_blockquote,
-} from './RichTextEditor.css'
-import clsx from 'clsx'
-import { useDebounceCallback } from 'usehooks-ts'
-import type { DeepKeyOf, OnChange } from '@/types'
-import { ScrollArea } from '@mantine/core'
+import TextAlign from '@tiptap/extension-text-align'
+import Superscript from '@tiptap/extension-superscript'
+import SubScript from '@tiptap/extension-subscript'
+import Table from '@tiptap/extension-table'
+import TableRow from '@tiptap/extension-table-row'
+import Placeholder from '@tiptap/extension-placeholder'
+import CustomTableHeader from './CustomTableHeader'
+import CustomTableCell from './CustomTableCell'
+import { editor_table, editor_table_th, editor_table_td } from './RichTextEditor.css'
 
-interface RichTextEditorProps<T> {
-  onChange: {
-    updateField: OnChange<T>['updateField']
-  }
+export interface RichTextEditorProps {
+  value: string
+  onChange: (value: string) => void
+  placeholder?: string
   label?: string
-  name: DeepKeyOf<T>
-  value: any
-  className?: string | number | symbol | any
 }
 
-const RichTextEditor = <T,>({ onChange, label, name, value, className }: RichTextEditorProps<T>) => {
-  const [debouncing, setDebouncing] = useState<boolean>(false)
-  const [inputValue, setInputValue] = useState<string>(value)
-
-  const debounceSave = useDebounceCallback(
-    useCallback(
-      (content) => {
-        onChange.updateField({ path: name, value: content })
-        setDebouncing(false)
-      },
-      [name, onChange]
-    ),
-    300
-  )
-
-  const handleChanges = useCallback(
-    (editor: Editor) => {
-      debounceSave.cancel()
-      const content = editor.getHTML()
-      setInputValue(content)
-      setDebouncing(true)
-      debounceSave(content)
-    },
-    [debounceSave]
-  )
-
+const RichTextEditor = ({ value, onChange, placeholder, label }: RichTextEditorProps) => {
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({
-        heading: {
-          levels: [1, 2, 3, 4, 5, 6],
-        },
-        blockquote: {
-          HTMLAttributes: {
-            class: editor_blockquote,
-          },
-        },
-      }),
+      StarterKit,
       Underline,
+      Link,
+      Superscript,
+      SubScript,
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Table.configure({
         HTMLAttributes: {
           class: editor_table,
@@ -88,38 +45,65 @@ const RichTextEditor = <T,>({ onChange, label, name, value, className }: RichTex
           class: editor_table_td,
         },
       }),
-      TextAlign,
+      Placeholder.configure({ placeholder: placeholder ?? '' }),
     ],
-    editorProps: {
-      attributes: {
-        class: editor_content,
-      },
+    content: value,
+    onUpdate: ({ editor }) => {
+      onChange(editor.getHTML())
     },
-    content: inputValue ?? '',
-    onUpdate: ({ editor }) => handleChanges(editor),
   })
-
-  useEffect(() => {
-    if (value !== inputValue && !debouncing) {
-      setInputValue(value)
-    }
-  }, [inputValue, value, debouncing])
-
-  useEffect(() => {
-    if (editor && editor.getHTML() !== inputValue && !debouncing) {
-      editor.commands.setContent(inputValue)
-    }
-  }, [editor, inputValue, debouncing])
 
   return (
     <>
       {label && <span>{label}</span>}
-      <div className={clsx(editor_container, { [className]: className })} tabIndex={-1}>
-        <MenuBar editor={editor} />
-        <ScrollArea>
-          <EditorContent editor={editor} className={editor_content_container} />
-        </ScrollArea>
-      </div>
+      <MantineRichTextEditor editor={editor}>
+        <MantineRichTextEditor.Toolbar sticky stickyOffset='var(--docs-header-height)'>
+          <MantineRichTextEditor.ControlsGroup>
+            <MantineRichTextEditor.Bold />
+            <MantineRichTextEditor.Italic />
+            <MantineRichTextEditor.Underline />
+            <MantineRichTextEditor.Strikethrough />
+            <MantineRichTextEditor.ClearFormatting />
+            <MantineRichTextEditor.Highlight />
+            <MantineRichTextEditor.Code />
+          </MantineRichTextEditor.ControlsGroup>
+
+          <MantineRichTextEditor.ControlsGroup>
+            <MantineRichTextEditor.H1 />
+            <MantineRichTextEditor.H2 />
+            <MantineRichTextEditor.H3 />
+            <MantineRichTextEditor.H4 />
+          </MantineRichTextEditor.ControlsGroup>
+
+          <MantineRichTextEditor.ControlsGroup>
+            <MantineRichTextEditor.Blockquote />
+            <MantineRichTextEditor.Hr />
+            <MantineRichTextEditor.BulletList />
+            <MantineRichTextEditor.OrderedList />
+            <MantineRichTextEditor.Subscript />
+            <MantineRichTextEditor.Superscript />
+          </MantineRichTextEditor.ControlsGroup>
+
+          <MantineRichTextEditor.ControlsGroup>
+            <MantineRichTextEditor.Link />
+            <MantineRichTextEditor.Unlink />
+          </MantineRichTextEditor.ControlsGroup>
+
+          <MantineRichTextEditor.ControlsGroup>
+            <MantineRichTextEditor.AlignLeft />
+            <MantineRichTextEditor.AlignCenter />
+            <MantineRichTextEditor.AlignJustify />
+            <MantineRichTextEditor.AlignRight />
+          </MantineRichTextEditor.ControlsGroup>
+
+          <MantineRichTextEditor.ControlsGroup>
+            <MantineRichTextEditor.Undo />
+            <MantineRichTextEditor.Redo />
+          </MantineRichTextEditor.ControlsGroup>
+        </MantineRichTextEditor.Toolbar>
+
+        <MantineRichTextEditor.Content />
+      </MantineRichTextEditor>
     </>
   )
 }

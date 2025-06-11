@@ -1,0 +1,52 @@
+type ModifierDiePerLevel {
+  level: String
+  dieConfig: String
+}
+
+type ModifierSetPerLevel {
+  level: String
+  setAmount: Int
+}
+
+type FeatureModifier {
+  id: ID!
+  subtype: ID
+  attributes: [ID!]
+  selectionCount: Int
+  category: ID
+  type: ID
+  method: ID
+  methodAbility: ID
+  methodSkill: ID
+  multiplier: Int
+  maxAmount: Int
+  minAmount: Int
+  setAmount: Int
+  dieConfig: String
+  feature: ID
+  diePerLevel: [ModifierDiePerLevel!]
+  setPerLevel: [ModifierSetPerLevel!]
+  skills: [ID!]
+  saveAbilities: [ID!]
+  abilities: [ID!]
+  speeds: [ID!]
+  charge: Charge
+  range: ID
+  minRange: Int
+  maxRange: Int
+  shape: ID
+  size: Int
+  duration: ID
+  unit: ID
+  conditions: [ID!]
+  damageTypes: [ID!]
+  damageType: ID
+  spell: ID
+  spellCategory: ID
+  prerequisites: Prerequisite
+}
+
+type FeatureModifierConnection {
+  items: [FeatureModifier!]!
+  nextToken: String
+}

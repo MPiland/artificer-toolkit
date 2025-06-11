@@ -1,0 +1,30 @@
+input AncestryFeatureInput {
+  id: ID!
+  label: String!
+  desc: String
+  detail: String
+  category: ID
+  attributes: [ID!]
+  actions: ActionGroupInput
+  damage: DamageInput
+  charges: ChargeInput
+  optionsByLevel: [ID!]
+  range: RangeInput
+  shape: ShapeInput
+  targets: Int
+  feats: [ID!]
+  modifiers: [ID!]
+  proficiencies: [ID!]
+  expertise: [ID!]
+  senses: [ID!]
+  spells: [ID!]
+  prerequisites: PrerequisiteInput
+  saveAbility: SaveAbilityInput
+  levelAvailable: String
+  options: [ID!]
+}
+
+input BatchAncestryFeaturesInput {
+  tableName: String!
+  data: AncestryFeatureInput!
+}

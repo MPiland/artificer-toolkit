@@ -1,0 +1,27 @@
+input SpellsByLevelInput {
+  id: ID!
+  spells: [ID!]
+  level: Int
+  spellLevel: Int
+}
+
+input FeatureSpellInput {
+  id: ID!
+  ids: [ID!]
+  attributes: [ID!]
+  selectionCount: Int
+  classLimit: [ID!]
+  levelLimit: [String!]
+  attributeLimit: [ID!]
+  ability: ID
+  spellLevel: Int
+  spellsByLevel: [SpellsByLevelInput!]
+  subtype: ID
+  prerequisites: PrerequisiteInput
+  charges: ChargeInput
+}
+
+input BatchFeatureSpellsInput {
+  tableName: String!
+  data: FeatureSpellInput!
+}

@@ -3,7 +3,6 @@ import { PlusIcon, Pencil, Trash2 } from 'lucide-react'
 import { closestCenter, DndContext, MouseSensor, TouchSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import type { DeepKeyOf, OnChange } from '@/types'
 import clsx from 'clsx'
 import {
   accordion_item,
@@ -15,7 +14,7 @@ import {
 import { sprinkles } from '@/css/sprinkles.css'
 import { Accordion, Group } from '@mantine/core'
 
-type AccordionItemProps = {
+export type AccordionItemProps = {
   itemId: string
   className?: string
   children?: ReactNode
@@ -99,18 +98,16 @@ const AccordionContent = ({ className, children, ...props }: AccordionContentPro
   )
 }
 
-type AccordionProps<T> = {
+export type AccordionProps = {
   dataArray: any[]
-  updateFn: {
-    updateField: OnChange<T>['updateField']
-  }
-  name?: DeepKeyOf<T>
+  onChange: (arg: any[]) => void
+  name?: string
   disableSort?: boolean
   children?: ReactNode
-} & ComponentProps<typeof Accordion>
+} & Omit<ComponentProps<typeof Accordion>, 'onChange'>
 
 const AccordionBase = Object.assign(
-  <T,>({ name, updateFn, disableSort, dataArray, children, ...props }: AccordionProps<T>) => {
+  ({ name, onChange, disableSort, dataArray, children, ...props }: AccordionProps) => {
     const sensor = useSensors(
       useSensor(TouchSensor, {
         activationConstraint: {
@@ -138,7 +135,7 @@ const AccordionBase = Object.assign(
       const newIndex = Number(over?.id)
       const newArray = arrayMove(oldArray, oldIndex, newIndex)
       if (name) {
-        updateFn.updateField({ path: name, value: newArray })
+        onChange(newArray)
       }
     }
 

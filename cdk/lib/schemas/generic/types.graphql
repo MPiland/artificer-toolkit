@@ -1,0 +1,133 @@
+## Basic Types
+
+type Detail {
+  label: String!
+  desc: String
+}
+
+type SaveAbility {
+  id: ID!
+  minAmount: Int
+  attributes: [ID!]
+  abilityModifier: ID
+}
+
+## Damage Related
+
+type DamageFields {
+  dieConfig: String
+  attribute: ID
+  id: ID
+  ability: ID
+  setAmount: Int
+  multiplier: Int
+  minAmount: Int
+  maxAmount: Int
+  pool: DamagePool
+}
+
+type DamagePool {
+  attribute: ID
+  setAmount: Int
+  multiplier: Int
+  minAmount: Int
+  maxAmount: Int
+  ability: ID
+  option: ID
+}
+
+type SetPerLevel {
+  level: String
+  primary: Int
+  secondary: Int
+  bonus: Int
+}
+
+type DiePerLevel {
+  level: String
+  primary: DamageFields
+  secondary: DamageFields
+  bonus: DamageFields
+}
+
+type Damage {
+  attributes: [ID!]
+  damageSave: [ID!]
+  setPerLevel: [SetPerLevel!]
+  diePerLevel: [DiePerLevel!]
+  primary: DamageFields
+  secondary: DamageFields
+  bonus: DamageFields
+  versatile: DamageFields
+}
+
+## Charges
+
+type UsesPerLevel {
+  level: Int
+  uses: Int
+}
+
+type Charge {
+  reset: ID
+  limit: ID
+  ability: ID
+  skill: ID
+  usesPerLevel: [UsesPerLevel!]
+  minAmount: Int
+  addAmount: Int
+  setAmount: Int
+  multiplier: Int
+  resourcePoints: Int
+}
+
+## Prerequisites
+
+type EquipPrerequisite {
+  numberEquipped: Int
+  category: ID
+  equipment: [ID!]
+  properties: [ID!]
+}
+
+type AbilityScore {
+  abilities: [ID!]
+  score: Int
+}
+
+type Prerequisite {
+  options: [ID!]
+  skillProficiencies: [ID!]
+  equipmentProficiencies: [EquipPrerequisite!]
+  equipped: [EquipPrerequisite!]
+  notEquipped: [EquipPrerequisite!]
+  abilityScore: AbilityScore
+  spellsObtained: [ID!]
+  featuresObtained: [ID!]
+  optionsObtained: [ID!]
+  size: [ID!]
+}
+
+## Feature Related
+
+type ProficiencyProperties {
+  ids: [ID!]
+  category: ID
+  properties: [ID!]
+}
+
+type ActionProperty {
+  id: ID
+  amount: Int
+}
+
+type ActionGroup {
+  primary: ActionProperty
+  secondary: ActionProperty
+}
+
+type OptionsByLevel {
+  level: Int
+  count: Int
+  replaceCount: Int
+}

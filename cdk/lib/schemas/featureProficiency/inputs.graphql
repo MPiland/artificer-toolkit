@@ -1,0 +1,20 @@
+input FeatureProficiencyInput {
+  id: ID!
+  subtype: ID
+  attributes: [ID!]
+  selectionCount: Int
+  category: ID!
+  level: ID
+  rounding: ID
+  saveAbilities: [ID!]
+  skills: [ID!]
+  languages: [ID!]
+  properties: ProficiencyPropertiesInput
+  equipment: ProficiencyPropertiesInput
+  prerequisites: PrerequisiteInput
+}
+
+input BatchFeatureProficienciesInput {
+  tableName: String!
+  data: FeatureProficiencyInput!
+}

@@ -1,12 +1,14 @@
 {
-  "name": "cdk_test",
+  "name": "cdk",
   "version": "0.1.0",
   "bin": {
-    "cdk_test": "bin/cdk_test.js"
+    "cdk": "bin/cdk.js"
   },
   "scripts": {
-    "predeploy": "node build.mjs",
+    "predeploy": "npx ts-node ./lib/scripts/merge-schema.ts && npx ts-node ./lib/scripts/parse-entity-names.ts && node build.mjs",
     "deploy": "cdk deploy",
+    "deploy:dev": "npm run deploy -- -c env=dev --profile artk-dev-admin",
+    "deploy:prod": "npm run deploy -- -c env=prod --profile artk-prod-admin",
     "postdeploy": "npx graphql-codegen --config codegen.ts --debug",
     "build": "tsc",
     "watch": "tsc -w",
@@ -15,38 +17,43 @@
   },
   "devDependencies": {
     "@0no-co/graphqlsp": "^1.12.16",
-    "@graphql-codegen/cli": "^5.0.5",
-    "@graphql-codegen/client-preset": "4.8.0",
-    "@graphql-codegen/import-types-preset": "^3.0.0",
+    "@graphql-codegen/cli": "^5.0.6",
     "@graphql-codegen/introspection": "4.0.3",
-    "@graphql-codegen/near-operation-file-preset": "^3.0.0",
+    "@graphql-codegen/near-operation-file-preset": "^3.0.1",
     "@graphql-codegen/schema-ast": "^4.1.0",
     "@graphql-codegen/typescript": "^4.1.6",
-    "@graphql-codegen/typescript-document-nodes": "^4.0.16",
-    "@graphql-codegen/typescript-operations": "^4.6.0",
-    "@graphql-codegen/typescript-react-query": "^6.1.0",
     "@parcel/watcher": "^2.5.1",
     "@types/jest": "^29.5.14",
-    "@types/node": "22.13.14",
-    "aws-cdk": "^2.1014.0",
-    "esbuild": "^0.25.2",
-    "glob": "^11.0.1",
+    "@types/node": "22.15.29",
+    "aws-cdk": "^2.1017.1",
+    "esbuild": "^0.25.5",
+    "glob": "^11.0.2",
     "gql-generator-node": "^2.1.16",
     "graphql-tools": "^9.0.18",
     "jest": "^29.7.0",
     "rimraf": "^6.0.1",
-    "ts-jest": "^29.3.1",
-    "ts-node": "^10.9.2",
-    "typescript": "~5.8.2"
+    "ts-jest": "^29.3.4",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "~5.8.3"
   },
   "dependencies": {
     "@aws-appsync/utils": "^2.0.3",
     "@aws-cdk/aws-dynamodb": "^1.204.0",
     "@aws-cdk/aws-lambda": "^1.204.0",
     "@aws-cdk/core": "^1.204.0",
-    "aws-cdk-lib": "2.185.0",
-    "constructs": "^10.0.0",
+    "@aws-sdk/client-cognito-identity-provider": "^3.826.0",
+    "@aws-sdk/client-dynamodb": "^3.826.0",
+    "@aws-sdk/client-sqs": "^3.821.0",
+    "@aws-sdk/lib-dynamodb": "^3.826.0",
+    "@graphql-codegen/typescript-enum-array": "^3.1.1",
+    "@tanstack/react-form": "https://pkg.pr.new/@tanstack/react-form@1469",
+    "@types/graphlib": "^2.1.12",
+    "aws-cdk-lib": "2.199.0",
+    "constructs": "^10.4.2",
     "glob": "^11.0.2",
-    "graphql-codegen-typescript-validation-schema": "^0.17.1"
+    "graphlib": "^2.1.8",
+    "graphql-codegen-typescript-validation-schema": "^0.17.1",
+    "graphql-tools": "^9.0.18",
+    "ts-node": "^10.9.2"
   }
 }

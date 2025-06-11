@@ -1,0 +1,10 @@
+type Mutation {
+  createMasterFeatureSpell(input: FeatureSpellInput!): FeatureSpell!
+  updateMasterFeatureSpell(input: FeatureSpellInput!): FeatureSpell!
+  deleteMasterFeatureSpell(id: ID!): ID!
+  batchCreateMasterFeatureSpells(input: [BatchFeatureSpellsInput!]!): [FeatureSpell!]!
+  createFeatureSpell(input: FeatureSpellInput!): FeatureSpell!
+  updateFeatureSpell(input: FeatureSpellInput!): FeatureSpell!
+  deleteFeatureSpell(id: ID!): ID!
+  batchCreateFeatureSpells(input: [BatchFeatureSpellsInput!]!): [FeatureSpell!]!
+}

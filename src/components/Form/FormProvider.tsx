@@ -1,4 +1,4 @@
-import { ReactElement, useEffect, useMemo } from 'react'
+import { ReactElement, useEffect, useMemo, type FunctionComponent } from 'react'
 import { FeatureWrapper } from './Features'
 import Details from './Steps/Details'
 import Traits from './Steps/Traits'
@@ -19,20 +19,21 @@ import Loading from '@/components/Loading'
 import Background from './Steps/Background'
 import { useGetCharacterData } from '@/hooks'
 import { useFormStore, type FormStore } from '@/store'
-import { Character } from '@/types'
-import type { FormDataType, Step } from '@/types'
+import type { CharacterInput, FormDataType, Step } from '@/types'
+import { CharacterInputSchema } from '@/schemas'
+import { AnyFormApi } from '@tanstack/react-form'
 
 const useFormOptions = () => {
   const formStore: FormStore<FormDataType> = useFormStore((state) => state)
 
   const { features, characterFeatures, sections, hitpoints, abilityScores } = useGetCharacterData({
-    formData: formStore.data as Character,
+    formData: formStore.data as CharacterInput,
   })
 
   const characterData = useMemo(() => {
-    if (formStore.data.__typename !== 'Character') return null
+    if (formStore.data.__kind !== 'CharacterInput') return null
 
-    return {
+    return CharacterInputSchema.parse({
       ...formStore.data,
       features: characterFeatures,
       ...sections,
@@ -41,40 +42,44 @@ const useFormOptions = () => {
         scores: abilityScores,
       },
       hitpoint: hitpoints,
-    } as Character
+    })
   }, [formStore.data, characterFeatures, sections, abilityScores, hitpoints])
 
   useEffect(() => {
-    if (formStore.data.__typename === 'Character' && characterData) {
+    if (formStore.data.__kind === 'CharacterInput' && characterData) {
       if (!isEqual(formStore.data, characterData)) {
         formStore.reinitState(characterData)
       }
     }
   }, [formStore.data, formStore, characterData])
 
+  const EquipmentWithDice = () => (
+    <DiceProvider>
+      <Equipment />
+    </DiceProvider>
+  )
+
+  const AbilitiesWithDice = () => (
+    <DiceProvider>
+      <Abilities />
+    </DiceProvider>
+  )
+
   // Standard possible form steps
-  const formSteps: Record<Step['id'], ReactElement> = {
-    details: <Details />,
-    attributes: <Attributes />,
-    traits: <Traits />,
-    ancestry: <AncestryWrapper />,
-    features: <FeatureWrapper />,
-    contains: <Contains />,
-    proficiencies: <Proficiencies />,
-    equipment: (
-      <DiceProvider>
-        <Equipment />
-      </DiceProvider>
-    ),
-    startingEquipment: <StartingEquipment />,
-    race: <Races />,
-    class: <Classes />,
-    abilities: (
-      <DiceProvider>
-        <Abilities />
-      </DiceProvider>
-    ),
-    background: <Background />,
+  const formSteps: Record<Step['id'], FunctionComponent<{ form: AnyFormApi }>> = {
+    details: Details,
+    attributes: Attributes,
+    traits: Traits,
+    ancestry: AncestryWrapper,
+    features: FeatureWrapper,
+    contains: Contains,
+    proficiencies: Proficiencies,
+    equipment: EquipmentWithDice,
+    startingEquipment: StartingEquipment,
+    race: Races,
+    class: Classes,
+    abilities: AbilitiesWithDice,
+    background: Background,
   }
 
   const { saving, steps, errorMessage, validForm, stepIndex, successMessage } = formStore.ui

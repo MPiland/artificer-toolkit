@@ -121,7 +121,7 @@ export const extractLookupData = (rawData: any): LookupItem[] => {
 }
 
 // Process array of IDs to find matching labels from lookup data
-export const getLabelsFromIds = (ids: string[], lookupData: LookupItem[]): string | null => {
+export const getLabelsFromIds = ({ ids, lookupData }: { ids: string[]; lookupData: LookupItem[] }): string | null => {
   const labelValues = ids
     .map((id) => {
       const lookupItem = lookupData.find((item) => item.id === id)

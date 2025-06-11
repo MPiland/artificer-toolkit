@@ -1,19 +1,29 @@
-import { Alert, Button, Container, Divider, Group, Paper, Stack, Text, Title } from '@mantine/core'
-import { useNavigate, useMatches } from '@tanstack/react-router'
+import {
+  Alert,
+  Button,
+  Container,
+  Divider,
+  Group,
+  Paper,
+  Stack,
+  Text,
+  Title,
+  Checkbox,
+  TextInput,
+  PasswordInput,
+} from '@mantine/core'
+import { useNavigate, useMatches, type ToOptions } from '@tanstack/react-router'
 import Link from '@/components/Link'
 import { auth_container, auth_link, auth_subtitle, auth_title, auth_wrapper, social_icon } from './Auth.css'
-import { signUp, signIn } from '@/apis/authApi'
+import { signUp, signIn } from '@/apis/auth.api'
 import IGoogle from '@/assets/Icons/IGoogle'
 import ITwitter from '@/assets/Icons/ITwitter'
-import { useForm } from '@/hooks'
-import type { InitiateAuthCommandOutput, SignUpCommandOutput } from '@aws-sdk/client-cognito-identity-provider'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Info } from 'lucide-react'
-import { Hub } from 'aws-amplify/utils'
+import { useForm } from '@tanstack/react-form'
 
-const AUTH_ERRORS = {
-  USER_NOT_CONFIRMED: 4,
-  USER_ALREADY_EXISTS: 1,
+const AUTH_SUCCESSES = {
+  USER_NOT_CONFIRMED: 2,
 } as const
 
 const AuthForm = () => {
@@ -21,63 +31,63 @@ const AuthForm = () => {
   const routeMatch = matches[matches.length - 1]
   const registerPath = routeMatch.pathname === '/register/'
   const navigate = useNavigate()
-  const { useAppForm } = useForm()
+  const [formMessage, setFormMessage] = useState<{ success: number; link: ToOptions['to'] } | null>(null)
 
   const isSignUpResponse = (
-    response: SignUpCommandOutput | { error: number; message: string }
-  ): response is SignUpCommandOutput => {
+    response: { success: number; link: ToOptions['to'] } | { error: number; message: string }
+  ): response is { success: number; link: ToOptions['to'] } => {
     return !('error' in response)
   }
 
   const isSignInResponse = (
-    response: InitiateAuthCommandOutput | { error: number; message: string }
-  ): response is InitiateAuthCommandOutput => {
+    response: { success: number; link: ToOptions['to'] } | { error: number; message: string }
+  ): response is { success: number; link: ToOptions['to'] } => {
     return !('error' in response)
   }
 
-  const AuthErrorHint = ({ errorCode, email }: { errorCode?: number; email?: string }) => {
-    switch (errorCode) {
-      case AUTH_ERRORS.USER_NOT_CONFIRMED:
+  const AuthSuccessHint = ({
+    successCode,
+    linkTo,
+    email,
+  }: {
+    successCode?: number
+    linkTo?: ToOptions['to']
+    email: string
+  }) => {
+    switch (successCode) {
+      case AUTH_SUCCESSES.USER_NOT_CONFIRMED: {
+        let message: string = ''
+        if (registerPath) {
+          message = `If an account with this email exists, a confirmation or login link will be sent. `
+        } else {
+          message = 'You must confirm your account before logging in.'
+        }
         return (
-          <Alert variant='light' color='red' icon={<Info />}>
+          <Alert variant='light' color='blue' icon={<Info />}>
             <Text size='sm'>
-              Account not confirmed.{' '}
-              <Link type='anchor' size='sm' to='/register/confirm' search={{ email }}>
+              {`${message} `}
+              <Link type='anchor' size='sm' to={linkTo} search={{ email }}>
                 Confirm now
               </Link>
             </Text>
           </Alert>
         )
-      case AUTH_ERRORS.USER_ALREADY_EXISTS:
-        return (
-          <Alert variant='light' color='blue' icon={<Info />}>
-            <Text size='sm'>
-              Account already exists.{' '}
-              <Link type='anchor' size='sm' to='/login'>
-                Login now
-              </Link>
-            </Text>
-          </Alert>
-        )
-      default:
-        return null
+      }
     }
   }
 
-  const form = useAppForm({
+  const form = useForm({
     defaultValues: {
       email: '',
       password: '',
       persist: false,
     },
     validators: {
-      onSubmitAsync: async ({ value: { email, password, persist }, formApi }) => {
+      onSubmitAsync: async ({ value: { email, password, persist } }) => {
         if (registerPath) {
           const result = await signUp({ email, password, persist })
           if (isSignUpResponse(result)) {
-            if (result.UserConfirmed === false) {
-              navigate({ to: '/register/confirm', search: { email } })
-            }
+            return setFormMessage(result)
           } else {
             return {
               form: {
@@ -89,11 +99,10 @@ const AuthForm = () => {
         } else {
           const result = await signIn({ email, password, persist })
           if (isSignInResponse(result)) {
-            Hub.dispatch('auth', {
-              event: 'signedIn',
-            })
-            if (!formApi.state.isSubmitting) {
+            if (result.success === 0) {
               return navigate({ to: '/home' })
+            } else {
+              return setFormMessage(result)
             }
           } else {
             return {
@@ -108,17 +117,14 @@ const AuthForm = () => {
     },
   })
 
-  const { AppForm, AppField, SubscribeSubmit, SubscribeAlert, handleSubmit, state, reset } = form
+  const { handleSubmit, state, reset } = form
 
   useEffect(() => {
     reset()
-  }, [routeMatch, reset])
-
-  const formError = state.errorMap?.onSubmit?.form
-  const errorCode = formError?.error
+  }, [registerPath, reset])
 
   return (
-    <AppForm>
+    <form>
       <Container
         component='form'
         onSubmit={(e) => {
@@ -161,39 +167,50 @@ const AuthForm = () => {
 
             <Divider label='Or continue with email' labelPosition='center' my='lg' />
             <Stack>
-              <SubscribeAlert variant='light' color='red' />
-              {errorCode && <AuthErrorHint errorCode={errorCode} email={state.values.email} />}
-              <AppField
+              <form.Subscribe selector={(state) => [state.errorMap]}>
+                {([errorMap]) => {
+                  let errorMessage = ''
+                  if (errorMap?.onSubmit?.form?.message) {
+                    errorMessage = errorMap.onSubmit.form.message
+                  } else if (errorMap.onSubmit && 'message' in errorMap.onSubmit) {
+                    errorMessage = errorMap.onSubmit.message as string
+                  }
+                  return (
+                    errorMessage && (
+                      <Alert variant='light' color='red' icon={<Info />}>
+                        {errorMessage}
+                      </Alert>
+                    )
+                  )
+                }}
+              </form.Subscribe>
+              {formMessage && (
+                <AuthSuccessHint
+                  successCode={formMessage.success}
+                  linkTo={formMessage.link}
+                  email={state.values.email}
+                />
+              )}
+              <form.Field
                 name='email'
                 validators={{
-                  onChange: ({ value }) => {
-                    if (!value) return null
-                    return /^\S+@\S+$/.test(value) ? null : 'Enter a valid email address.'
-                  },
                   onSubmit: ({ value }) => (value && /^\S+@\S+$/.test(value) ? null : 'Enter a valid email address.'),
                 }}
               >
-                {({ TextField }) => (
-                  <TextField
-                    type='email'
-                    autoComplete='username'
-                    placeholder='user@example.com'
+                {(field) => (
+                  <TextInput
                     label='Email'
-                    required
+                    placeholder={'user@email.com'}
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    error={!field.state.meta.isValid && field.state.meta.errors.join(', ')}
+                    autoComplete='username'
                   />
                 )}
-              </AppField>
-              <AppField
+              </form.Field>
+              <form.Field
                 name='password'
                 validators={{
-                  onChange: ({ value }) => {
-                    if (!value) return null
-                    return (
-                      value.length <= 8 ? 'Password should include at least 8-20 characters'
-                      : /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,20}$/.test(value) ? null
-                      : 'Password should include at least one uppercase letter, one number and one special character'
-                    )
-                  },
                   onSubmit: ({ value }) =>
                     value &&
                     (value.length <= 8 ? 'Password should include at least 8-20 characters'
@@ -201,31 +218,47 @@ const AuthForm = () => {
                     : 'Password should include at least one uppercase letter, one number and one special character'),
                 }}
               >
-                {({ PasswordField }) => (
-                  <PasswordField
-                    type='password'
-                    autoComplete={!registerPath ? 'current-password' : 'new-password'}
+                {(field) => (
+                  <PasswordInput
                     label='Password'
-                    required
+                    placeholder='Password...'
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    error={!field.state.meta.isValid && field.state.meta.errors.join(', ')}
                   />
                 )}
-              </AppField>
+              </form.Field>
               <Group justify='space-between'>
-                <AppField name='persist'>{({ CheckboxField }) => <CheckboxField label='Remember me' />}</AppField>
+                <form.Field name='persist'>
+                  {(field) => (
+                    <Checkbox
+                      label='Remember me'
+                      checked={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.checked)}
+                      onBlur={field.handleBlur}
+                    />
+                  )}
+                </form.Field>
                 {!registerPath && (
-                  <Link type='anchor' size='sm' to='/login/forgot-password'>
+                  <Link type='anchor' size='sm' to='/reset-password'>
                     Forgot password?
                   </Link>
                 )}
               </Group>
             </Stack>
             <Group justify='flex-end' mt='xl'>
-              <SubscribeSubmit label={registerPath ? 'Register' : 'Login'} radius='xl' />
+              <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
+                {([canSubmit, isSubmitting]) => (
+                  <Button loading={isSubmitting} disabled={!canSubmit} radius='xl' type='submit'>
+                    {registerPath ? 'Register' : 'Login'}
+                  </Button>
+                )}
+              </form.Subscribe>
             </Group>
           </Paper>
         </Stack>
       </Container>
-    </AppForm>
+    </form>
   )
 }
 

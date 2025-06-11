@@ -1,0 +1,54 @@
+type Feat {
+  id: ID!
+  label: String!
+  desc: String
+  detail: String
+  category: ID
+  attributes: [ID!]
+  actions: ActionGroup
+  damage: Damage
+  charges: Charge
+  range: Range
+  shape: Shape
+  targets: Int
+  modifiers: [ID!]
+  proficiencies: [ID!]
+  expertise: [ID!]
+  senses: [ID!]
+  spells: [ID!]
+  prerequisites: Prerequisite
+  saveAbility: SaveAbility
+  selectionCount: Int
+  levelAvailable: String
+  features: [Feature!]
+  options: [FeatureOption!]
+  ownerId: String!
+  systemId: ID!
+  masterId: String
+}
+
+type FeatFeatureMetaObject {
+  id: ID!
+  label: String!
+  featIds: [ID!]
+}
+
+type FeatMeta {
+  features: [FeatFeatureMetaObject!]!
+}
+
+type FeatListItem {
+  id: ID!
+  label: String!
+  desc: String
+  detail: String
+  ownerId: String!
+  systemId: ID!
+  masterId: String
+}
+
+type FeatConnection {
+  items: [FeatListItem!]!
+  metaData: FeatMeta!
+  nextToken: String
+}

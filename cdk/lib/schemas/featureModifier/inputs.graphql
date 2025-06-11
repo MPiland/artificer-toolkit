@@ -1,0 +1,52 @@
+input ModifierDiePerLevelInput {
+  level: String
+  dieConfig: String
+}
+
+input ModifierSetPerLevelInput {
+  level: String
+  setAmount: Int
+}
+
+input FeatureModifierInput {
+  id: ID!
+  subtype: ID
+  attributes: [ID!]
+  selectionCount: Int
+  category: ID
+  type: ID
+  method: ID
+  methodAbility: ID
+  methodSkill: ID
+  multiplier: Int
+  maxAmount: Int
+  minAmount: Int
+  setAmount: Int
+  dieConfig: String
+  feature: ID
+  diePerLevel: [ModifierDiePerLevelInput!]
+  setPerLevel: [ModifierSetPerLevelInput!]
+  skills: [ID!]
+  saveAbilities: [ID!]
+  abilities: [ID!]
+  speeds: [ID!]
+  charge: ChargeInput
+  range: ID
+  minRange: Int
+  maxRange: Int
+  shape: ID
+  size: Int
+  duration: ID
+  unit: ID
+  conditions: [ID!]
+  damageTypes: [ID!]
+  damageType: ID
+  spells: ID
+  spellCategory: ID
+  prerequisites: PrerequisiteInput
+}
+
+input BatchFeatureModifiersInput {
+  tableName: String!
+  data: FeatureModifierInput!
+}

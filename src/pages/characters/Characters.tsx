@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import List from '@/components/List'
-import { useDeleteCharacter } from '@/apis/charactersApi'
+import { useDeleteCharacter } from '@/apis/characters.api'
 import Loading from '@/components/Loading'
 import { useCharacterData } from '@/hooks'
 

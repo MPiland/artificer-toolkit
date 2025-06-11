@@ -1,0 +1,10 @@
+type Mutation {
+  createMasterFeatureProficiency(input: FeatureProficiencyInput!): FeatureProficiency!
+  updateMasterFeatureProficiency(input: FeatureProficiencyInput!): FeatureProficiency!
+  deleteMasterFeatureProficiency(id: ID!): ID!
+  batchCreateMasterFeatureProficiencies(input: [BatchFeatureProficienciesInput!]!): [FeatureProficiency!]!
+  createFeatureProficiency(input: FeatureProficiencyInput!): FeatureProficiency!
+  updateFeatureProficiency(input: FeatureProficiencyInput!): FeatureProficiency!
+  deleteFeatureProficiency(id: ID!): ID!
+  batchCreateFeatureProficiencies(input: [BatchFeatureProficienciesInput!]!): [FeatureProficiency!]!
+}

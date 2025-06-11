@@ -4,30 +4,35 @@ const config: CodegenConfig = {
   schema: './lib/schema.graphql',
   generates: {
     '../gql/types.ts': {
-      plugins: ['typescript', 'typescript-operations'],
       config: {
         namingConvention: {
           enumValues: 'keep',
         },
         nonOptionalTypename: true,
+        inputMaybeValue: 'T | null | undefined',
+        useMembers: true,
       },
+      plugins: ['typescript', 'typescript-enum-array'],
     },
-    '../zod/schemas.ts': {
-      plugins: ['typescript-validation-schema'],
+    '../src/Zod/schemas.ts': {
       config: {
-        importFrom: '../gql/types.ts',
-        schema: 'zod',
-        strictScalars: true,
-        scalars: {
-          ID: 'string',
-        },
-        defaultScalarSchema: 'z.unknown()'
+        schema: 'zod/v4',
+        importFrom: '@/types',
+        inputDiscriminator: '__kind',
+        validationSchemaExportType: 'const',
+        lazyStrategy: 'circular',
+        separateSchemaObject: true,
       },
+      plugins: ['typescript-validation-schema'],
     },
   },
   hooks: {
-    afterAllFileWrite: ['ts-node generateOperations.ts'],
+    afterAllFileWrite: [
+      'npx ts-node codegenScripts/genInputDisc.ts && npx ts-node codegenScripts/genOps.ts && npx ts-node codegenScripts/genSchemaMapping.ts',
+    ],
   },
 }
 
 export default config
+
+/// && npx ts-node codegenScripts/genZod.ts

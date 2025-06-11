@@ -53,12 +53,12 @@ const useSourceData = () => {
       if (Array.isArray(stateValue)) {
         // Handle array of values
         if (stateValue.every((value) => typeof value === 'string')) {
-          return getLabelsFromIds(stateValue, lookupData)
+          return getLabelsFromIds({ ids: stateValue, lookupData })
         }
         return processArrayValue(stateValue, false)
       } else if (typeof stateValue === 'string') {
         // Handle single string value
-        return getLabelFromId(stateValue, lookupData)
+        return getLabelFromId({ id: stateValue, lookupData })
       }
     } else {
       // No source - just return the state value directly

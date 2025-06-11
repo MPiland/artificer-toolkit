@@ -1,3 +1,4 @@
+import '@mantine/notifications/styles.layer.css'
 import '@mantine/core/styles.layer.css'
 import '@/css/main.css'
 import '@/css/theme.css'
@@ -12,19 +13,45 @@ import { FormDataType, type FormType } from './types/types'
 import ErrorPage from './pages/auth/ErrorPage'
 import useSystemPref from './hooks/useSystemPref'
 import { MantineProvider } from '@mantine/core'
+import { Notifications } from '@mantine/notifications'
 import { resolver, theme } from './css/theme'
 import { Amplify } from 'aws-amplify'
+import { ModalProvider } from '@/components/Modal'
+import { generateClient } from 'aws-amplify/api'
 
-const queryClient = new QueryClient()
+export const queryClient = new QueryClient()
 
 Amplify.configure({
   API: {
-    GraphQL: {
-      endpoint: import.meta.env.VITE_AWS_GRAPHQL_ENDPOINT || process.env.AWS_GRAPHQL_ENDPOINT!,
-      region: import.meta.env.VITE_AWS_DEFAULT_REGION || process.env.AWS_DEFAULT_REGION!,
-      defaultAuthMode: 'userPool',
+    REST: {
+      InitUserDomainData: {
+        endpoint: import.meta.env.VITE_AWS_INIT_USER_DOMAIN_DATA_ENDPOINT,
+        region: import.meta.env.VITE_AWS_DEFAULT_REGION,
+      },
+      InitUserFeatureData: {
+        endpoint: import.meta.env.VITE_AWS_INIT_USER_FEATURE_DATA_ENDPOINT,
+        region: import.meta.env.VITE_AWS_DEFAULT_REGION,
+      },
     },
   },
+  Auth: {
+    Cognito: {
+      userPoolClientId: import.meta.env.VITE_COGNITO_USER_POOL_CLIENT_ID,
+      userPoolId: import.meta.env.VITE_COGNITO_USER_POOL_ID,
+    },
+  },
+})
+
+export const adminClient = generateClient({
+  endpoint: import.meta.env.VITE_AWS_ADMIN_GRAPHQL_ENDPOINT,
+  region: import.meta.env.VITE_AWS_DEFAULT_REGION,
+  authMode: 'userPool',
+})
+
+export const userClient = generateClient({
+  endpoint: import.meta.env.VITE_AWS_USER_GRAPHQL_ENDPOINT,
+  region: import.meta.env.VITE_AWS_DEFAULT_REGION,
+  authMode: 'userPool',
 })
 
 const router = createRouter({
@@ -56,7 +83,6 @@ declare module '@tanstack/react-router' {
 
 const App = () => {
   const auth = use(AuthContext)
-  console.log({ auth })
   const [systemPref] = useSystemPref()
   return <RouterProvider router={router} context={{ auth, systemPref }} />
 }
@@ -69,7 +95,10 @@ if (rootElement && !rootElement.innerHTML) {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <MantineProvider theme={theme} cssVariablesResolver={resolver}>
-            <App />
+            <Notifications />
+            <ModalProvider>
+              <App />
+            </ModalProvider>
           </MantineProvider>
         </AuthProvider>
       </QueryClientProvider>

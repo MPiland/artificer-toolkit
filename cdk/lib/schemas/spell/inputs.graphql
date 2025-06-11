@@ -1,0 +1,71 @@
+input UpcastFieldsInput {
+  id: ID
+  size: Float
+  unit: ID
+  amount: Int
+  minRange: Int
+  maxRange: Int
+  distance: Int
+}
+
+input UpcastLevelInput {
+  level: Int
+  damage: DamageInput
+  duration: UpcastFieldsInput
+  range: UpcastFieldsInput
+  shape: UpcastFieldsInput
+  targets: Int
+}
+
+input UpcastInput {
+  attributes: [ID!]
+  levels: [UpcastLevelInput]
+}
+
+input ShapeInput {
+  id: ID!
+  size: Float
+  unit: ID
+}
+
+input RangeInput {
+  id: ID!
+  minRange: Int
+  maxRange: Int
+  distance: Int
+  unit: ID
+}
+
+input DurationInput {
+  id: ID!
+  amount: Int
+}
+
+input SpellInput {
+  id: ID!
+  label: String!
+  desc: String!
+  level: Int!
+  school: ID!
+  classes: [ID!]!
+  attributes: [ID!]
+  upcast: UpcastInput
+  actions: ActionGroupInput
+  targets: Int
+  saveAbility: SaveAbilityInput
+  conditions: [ID!]
+  requirements: [ID!]
+  range: RangeInput!
+  shape: ShapeInput!
+  duration: DurationInput!
+  damage: DamageInput
+  materialDesc: String
+  ownerId: String
+  systemId: ID!
+  masterId: String
+}
+
+input BatchSpellsInput {
+  tableName: String!
+  data: SpellInput!
+}

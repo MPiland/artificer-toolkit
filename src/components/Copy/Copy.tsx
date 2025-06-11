@@ -1,7 +1,7 @@
 import { use, useMemo, useState } from 'react'
 import { startCase } from 'lodash'
 import Dropdown from '@/components/Dropdown'
-import Button from '@/components/Button'
+import { Button } from '@mantine/core'
 import { sprinkles } from '@/css/sprinkles.css'
 import type {
   FeatureDataType,
@@ -153,9 +153,7 @@ const Copy = () => {
             />
           </Grid.Col>
           <Grid.Col span={2}>
-            <Button onClick={handleCopy}>
-              Copy
-            </Button>
+            <Button onClick={handleCopy}>Copy</Button>
           </Grid.Col>
         </Grid>
       </Modal.Content>

@@ -1,28 +1,28 @@
 import { create } from 'zustand'
 import { addField, removeField, updateField, reset } from './utils'
-import type { FeatureOption, DeepKeyOf } from '@/types'
+import type { FeatureOptionInput, DeepKeyOf } from '@/types'
 import { produce } from 'immer'
 import { persist } from 'zustand/middleware'
 
 export interface OptionStore {
-  data: FeatureOption
+  data: FeatureOptionInput
   index: number
-  initData: FeatureOption
-  updateField: (arg: { path: DeepKeyOf<FeatureOption>; value: any }) => void
-  addField: (arg: { path: DeepKeyOf<FeatureOption>; value?: any }) => void
-  removeField: (arg: { path: DeepKeyOf<FeatureOption> }) => void
-  resetData: (arg: { value: FeatureOption }) => void
-  resetInit: (arg: { value: FeatureOption }) => void
+  initData: FeatureOptionInput
+  updateField: (arg: { path: DeepKeyOf<FeatureOptionInput>; value: any }) => void
+  addField: (arg: { path: DeepKeyOf<FeatureOptionInput>; value?: any }) => void
+  removeField: (arg: { path: DeepKeyOf<FeatureOptionInput> }) => void
+  resetData: (arg: { value: FeatureOptionInput }) => void
+  resetInit: (arg: { value: FeatureOptionInput }) => void
   setIndex: (arg: { value: number }) => void
-  reinitState: (value?: FeatureOption) => void
+  reinitState: (value?: FeatureOptionInput) => void
 }
 
 export const useOptionStore = create<OptionStore>()(
   persist(
     (set) => {
       const defaultState: Pick<OptionStore, 'data' | 'initData' | 'index'> = {
-        data: {} as FeatureOption,
-        initData: {} as FeatureOption,
+        data: {} as FeatureOptionInput,
+        initData: {} as FeatureOptionInput,
         index: 0,
       }
 
@@ -31,27 +31,27 @@ export const useOptionStore = create<OptionStore>()(
 
         addField: ({ path, value }) =>
           set((state: OptionStore) =>
-            addField<OptionStore, FeatureOption>({ path, value, selector: (state) => state.data })(state)
+            addField<OptionStore, FeatureOptionInput>({ path, value, selector: (state) => state.data })(state)
           ),
 
         removeField: ({ path }) =>
           set((state: OptionStore) =>
-            removeField<OptionStore, FeatureOption>({ path, selector: (state) => state.data })(state)
+            removeField<OptionStore, FeatureOptionInput>({ path, selector: (state) => state.data })(state)
           ),
 
         updateField: ({ path, value }) =>
           set((state: OptionStore) =>
-            updateField<OptionStore, FeatureOption>({ path, value, selector: (state) => state.data })(state)
+            updateField<OptionStore, FeatureOptionInput>({ path, value, selector: (state) => state.data })(state)
           ),
 
         resetData: ({ value }) =>
           set((state: OptionStore) =>
-            reset<OptionStore, FeatureOption>({ value, selector: (state) => state.data })(state)
+            reset<OptionStore, FeatureOptionInput>({ value, selector: (state) => state.data })(state)
           ),
 
         resetInit: ({ value }) =>
           set((state: OptionStore) =>
-            reset<OptionStore, FeatureOption>({ value, selector: (state) => state.initData })(state)
+            reset<OptionStore, FeatureOptionInput>({ value, selector: (state) => state.initData })(state)
           ),
 
         setIndex: ({ value }) =>
@@ -61,7 +61,7 @@ export const useOptionStore = create<OptionStore>()(
             })
           ),
 
-        reinitState: (value?: FeatureOption) => {
+        reinitState: (value?: FeatureOptionInput) => {
           if (value) {
             return set((state) => ({
               ...state,

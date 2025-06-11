@@ -1,0 +1,18 @@
+type FeatureExpertise {
+  id: ID!
+  subtype: ID
+  attributes: [ID!]
+  selectionCount: Int
+  category: ID!
+  saveAbilities: [ID!]
+  skills: [ID!]
+  languages: [ID!]
+  properties: ProficiencyProperties
+  equipment: ProficiencyProperties
+  prerequisites: Prerequisite
+}
+
+type FeatureExpertiseConnection {
+  items: [FeatureExpertise!]!
+  nextToken: String
+}

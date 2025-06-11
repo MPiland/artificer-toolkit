@@ -1,6 +1,6 @@
 import { useRouteContext } from '@tanstack/react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { fetchSystem } from '@/apis/systemsApi'
+import { fetchSystem } from '@/apis/systems.api'
 import { createArrayWithMethods } from '@/utils'
 import type { System, GenericType } from '@/types'
 

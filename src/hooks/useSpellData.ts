@@ -1,5 +1,5 @@
 import { useSuspenseQueries, useSuspenseQuery } from '@tanstack/react-query'
-import { fetchSpell, fetchSpells } from '@/apis/spellsApi'
+import { fetchSpell, fetchSpells } from '@/apis/spells.api'
 import { useRouteContext } from '@tanstack/react-router'
 import { createArrayWithMethods } from '@/utils'
 import type { SpellListItem } from '@/types'

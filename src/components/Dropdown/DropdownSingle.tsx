@@ -19,8 +19,6 @@ type DropdownSingleProps = {
   activeLabel: string | ReactNode
   toggleDropdown: () => void
   closeDropdown: () => void
-  height?: 'full' | 'auto' | 'default'
-  border?: 'none' | 'default'
   error?: string
 } & DropdownCommonProps
 
@@ -65,7 +63,7 @@ const DropdownSingle = ({
         rightSectionPointerEvents={activeLabel != null ? 'all' : 'none'}
         wrapperProps={{
           onClick: () => toggleDropdown(),
-          onMouseDown: (event: MouseEvent<HTMLButtonElement>) => event.stopPropagation(),
+          onMouseDown: (event: MouseEvent<HTMLDivElement>) => event.stopPropagation(),
         }}
         onBlur={closeDropdown}
         error={error}

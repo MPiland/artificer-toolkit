@@ -1,10 +1,12 @@
 import { useEffect, use } from 'react'
-import { useAddNewEquipmentMutation, useUpdateEquipmentMutation } from '@/apis/equipmentApi'
-import { Step } from '@/types'
+import { useAddNewEquipmentMutation, useUpdateEquipmentMutation } from '@/apis/equipment.api'
+import { Step, type EquipmentInput } from '@/types'
 import Form, { FormContext } from '@/components/Form'
 import { isEqual } from 'lodash'
 import { Route } from '@/routes/_protected/equipment/$action/$_equipmentId'
 import { useEquipmentData } from '@/hooks'
+import { EquipmentInputSchema } from '@/schemas'
+import { v4 as uuidv4 } from 'uuid'
 
 const EquipmentForm = () => {
   const { _equipmentId: equipmentId, action } = Route.useParams()
@@ -24,15 +26,26 @@ const EquipmentForm = () => {
     if (!isEqual(steps, stepsArray)) {
       formStore.setSteps(stepsArray)
     }
-    if (action === 'new' && equipment) {
-      if (Object.keys(formStore.data).length === 0) {
-        formStore.reinitState(equipment)
+    if (action === 'new') {
+      let dataObj: EquipmentInput
+      if (equipment) {
+        dataObj = EquipmentInputSchema.parse({
+          ...equipment,
+          id: uuidv4(),
+          label: '',
+          masterId: undefined,
+        })
+      } else {
+        dataObj = EquipmentInputSchema.parse({
+          __kind: 'EquipmentInput',
+          id: uuidv4(),
+        })
       }
+      formStore.reinitState(dataObj)
     }
     if (action === 'edit' && equipment) {
-      if (formStore.data?.id !== equipment.id) {
-        formStore.reinitState(equipment)
-      }
+      const dataObj = EquipmentInputSchema.parse(equipment)
+      formStore.reinitState(dataObj)
     }
   }, [stepsArray, steps, formStore, equipment, action])
 

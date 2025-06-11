@@ -1,5 +1,5 @@
 import { form_footer } from './Form.css'
-import Button from '@/components/Button'
+import { Button } from '@mantine/core'
 import { isEqual, startCase } from 'lodash'
 import { useEffect } from 'react'
 import { UseMutationResult } from '@tanstack/react-query'
@@ -9,16 +9,22 @@ import { routeRoot } from '@/utils'
 import { sprinkles } from '@/css/sprinkles.css'
 import { ModalContext } from '@/components/Modal'
 import { Navigate, useNavigate } from '@tanstack/react-router'
-import type { FormDataType, FormType } from '@/types'
+import type { FormDataType, FormType, SourceDataType } from '@/types'
 import { useRouteNavigation } from '@/hooks'
 import { Group } from '@mantine/core'
+import { AnyFormApi } from '@tanstack/react-form'
 
-interface FooterProps<T extends FormDataType> {
-  useAddNewItemMutation: () => UseMutationResult<T, Error, T, unknown>
-  useUpdateItemMutation: () => UseMutationResult<T, Error, T, unknown>
+interface FooterProps<T extends SourceDataType, V extends FormDataType> {
+  useAddNewItemMutation: () => UseMutationResult<T, Error, V, unknown>
+  useUpdateItemMutation: () => UseMutationResult<T, Error, V, unknown>
+  form: AnyFormApi
 }
 
-const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMutation }: FooterProps<T>) => {
+const Footer = <T extends SourceDataType, V extends FormDataType>({
+  useAddNewItemMutation,
+  useUpdateItemMutation,
+  form,
+}: FooterProps<T, V>) => {
   const navigate = useNavigate()
   const { showModal } = use(ModalContext)
   const {
@@ -43,8 +49,8 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
   } = use(FormContext)
   const { featureStore, ancestryStore, optionStore, sectionStore, handleSaveFeatures } = use(FeatureContext)
 
-  const form = routeRoot(data.__typename) as FormType
-  const routeNav = useRouteNavigation(form)
+  const type = routeRoot(data.__kind) as FormType
+  const routeNav = useRouteNavigation(type)
 
   const {
     mutateAsync: addNewItem,
@@ -72,10 +78,10 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
   // Sucess Message
   useEffect(() => {
     if (updateIsSuccess) {
-      setSuccessMessage(`${startCase(data.__typename)} updated successfully!`)
+      setSuccessMessage(`${startCase(data.__kind.replace(/Input$/, ''))} updated successfully!`)
       setErrorMessage(null)
     }
-  }, [updateIsSuccess, data.__typename, setSuccessMessage, setErrorMessage])
+  }, [updateIsSuccess, data.__kind, setSuccessMessage, setErrorMessage])
 
   // Error Message
   useEffect(() => {
@@ -89,7 +95,7 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
     }
   }, [addIsSuccess, updateIsSuccess, addIsError, updateIsError, addError, updateError, setErrorMessage])
 
-  const handleNavigateEdit = (item: FormDataType) => {
+  const handleNavigateEdit = (item: SourceDataType) => {
     setStepIndex(0)
     setSaving(false)
     const itemNav = routeNav.forItem(item.id, item.label)
@@ -101,7 +107,7 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
       if (featureStore.step === 'option') {
         optionStore.updateField({ path: `${sectionStore.step}.${sectionStore.index}`, value: sectionStore.data })
       } else {
-        if (data.__typename === 'Feat') {
+        if (data.__kind === 'FeatInput') {
           updateField<typeof data>({
             path: `${sectionStore.step}.${sectionStore.index}`,
             value: sectionStore.data,
@@ -124,7 +130,7 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
   }
 
   const handleSaveOption = () => {
-    if (data.__typename === 'Feat') {
+    if (data.__kind === 'FeatInput') {
       updateField<typeof data>({
         path: `options.${optionStore.index}`,
         value: optionStore.data,
@@ -153,7 +159,7 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
     if (featureStore.step === 'option') {
       return handleSaveOption()
     }
-    if (sectionStore.step == null && featureStore.step != null && data.__typename !== 'Feat') {
+    if (sectionStore.step == null && featureStore.step != null && data.__kind !== 'FeatInput') {
       if (steps[stepIndex].id === 'ancestry') {
         if (featureStore.step === 'ancestry') {
           ancestryStore.updateField({
@@ -182,7 +188,7 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
 
   const handleForward = async () => {
     const isValid = validateForm()
-    if ((!isLastStep || (isLastStep && featureStore.step != null)) && data.__typename !== 'Feat') {
+    if ((!isLastStep || (isLastStep && featureStore.step != null)) && data.__kind !== 'FeatInput') {
       if (isValid) {
         setValidForm({ ...validForm, [steps[stepIndex].id]: true })
         if (featureStore.step != null) {
@@ -203,7 +209,7 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
         })
       }
     }
-    if ((isLastStep && featureStore.step == null) || (data.__typename === 'Feat' && sectionStore.step == null)) {
+    if ((isLastStep && featureStore.step == null) || (data.__kind === 'FeatInput' && sectionStore.step == null)) {
       if (isValid) {
         setValidForm({ ...validForm, [steps[stepIndex].id]: true })
         if (Object.values(validForm).length > 0 && !Object.values(validForm).every((value) => value === true)) {
@@ -216,7 +222,7 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
           })
         }
         setSaving(true)
-        const payload = await addNewItem(data as T)
+        const payload = await addNewItem(data as V)
         if (payload) {
           return handleNavigateEdit(payload)
         } else {
@@ -235,7 +241,7 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
             message:
               data.id != null ?
                 `Changes have not been saved. Press 'Cancel' and then 'Update' to save changes. Otherwise, press 'Continue'`
-              : `${data.__typename} has not been created. Press 'Cancel' and then 'Create' at end of form to save. Otherwise, press 'Continue'.`,
+              : `${data.__kind.replace(/Input$/, '')} has not been created. Press 'Cancel' and then 'Create' at end of form to save. Otherwise, press 'Continue'.`,
             onConfirm: handleConfirmBack,
           },
         })
@@ -274,12 +280,12 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
     let formClone: FormDataType = JSON.parse(JSON.stringify(data))
     if (isValid) {
       setValidForm({ ...validForm, [steps[stepIndex].id]: true })
-      if (featureStore.step === 'option' || (featureStore.step === 'feature' && data.__typename !== 'Feat')) {
+      if (featureStore.step === 'option' || (featureStore.step === 'feature' && data.__kind !== 'FeatInput')) {
         formClone = await handleSaveFeatures({ type: featureStore.step, state: formClone })
       }
       if (!(Object.values(validForm).length > 0) || Object.values(validForm).every((value) => value === true)) {
         try {
-          await updateItem(formClone as T)
+          await updateItem(formClone as V)
           reinitState(formClone)
         } catch (err: any) {
           console.log(err)

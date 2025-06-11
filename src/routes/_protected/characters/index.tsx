@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import Characters from '@/pages/characters/Characters'
-import { fetchCharacters } from '@/apis/charactersApi'
+import { fetchCharacters } from '@/apis/characters.api'
 import Loading from '@/components/Loading/Loading'
 
 export const Route = createFileRoute('/_protected/characters/')({

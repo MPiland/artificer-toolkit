@@ -20,7 +20,7 @@ import Options from './Options'
 import { set, toLower } from 'lodash'
 import Features from './Features'
 import { FormContext } from '../FormContext'
-import { sectionSteps } from '../Form.utils'
+import { sectionSteps } from '../utils'
 import { AncestryFeatures, AncestryOptions } from '../Ancestry'
 import { FeatureContext } from './FeatureContext'
 import {

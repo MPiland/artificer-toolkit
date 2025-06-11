@@ -1,7 +1,7 @@
 import List, { type FooterConfig } from '@/components/List'
 import ICategory from '@/assets/Icons/ICategory'
 import { Suspense } from 'react'
-import { useDeleteClass } from '@/apis/classesApi'
+import { useDeleteClass } from '@/apis/classes.api'
 import Loading from '@/components/Loading'
 import type { ClassMeta } from '@/types'
 import { useClassData } from '@/hooks'

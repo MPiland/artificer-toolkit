@@ -1,0 +1,6 @@
+type Query {
+  getMasterFeatureExpertise(id: ID!): FeatureExpertise
+  listMasterFeatureExpertises(limit: Int, nextToken: String): FeatureExpertiseConnection!
+  getFeatureExpertise(id: ID!): FeatureExpertise
+  listFeatureExpertises(systemId: ID!, limit: Int, nextToken: String): FeatureExpertiseConnection!
+}

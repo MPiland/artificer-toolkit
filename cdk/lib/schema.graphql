@@ -1,7 +1,7 @@
 schema {
-      query: Query
-      mutation: Mutation
-    }
+  query: Query
+  mutation: Mutation
+}
 
 ## Enums
 
@@ -59,7 +59,6 @@ enum ClassesEnum {
 
 type GenericType {
   id: ID!
-  value: String!
   label: String!
   desc: String
   tooltip: String
@@ -78,7 +77,6 @@ type CurrencyConversion {
 
 type Currency {
   id: ID!
-  value: String!
   label: String!
   desc: String
   abbreviation: String!
@@ -135,7 +133,6 @@ type SystemModifiers {
 
 type ProficiencyLevel {
   id: ID!
-  value: String!
   label: String!
   multiplier: Float
 }
@@ -160,7 +157,6 @@ type SystemSpell {
 
 type GenerateOption {
   id: ID!
-  value: String!
   label: String!
   reduce: Int
 }
@@ -179,7 +175,6 @@ type SystemMeasurement {
 
 type AbilityGenerateMethod {
   id: ID!
-  value: String!
   label: String!
   total: Int
   options: [GenerateOption!]
@@ -194,7 +189,6 @@ type SystemRules {
 
 type ChargeOption {
   id: ID!
-  value: String!
   label: String!
   features: [FeatureEnum!]
   damage: [DamageEnum!]
@@ -223,7 +217,6 @@ type CharacterSetting {
 
 type SystemAction {
   id: ID!
-  value: String!
   label: String!
   features: Boolean!
   damage: Boolean!
@@ -236,7 +229,6 @@ type SystemAction {
 
 type SystemAttribute {
   id: ID!
-  value: String!
   label: String!
   features: [FeatureEnum!]
   damage: [DamageEnum!]
@@ -249,7 +241,6 @@ type SystemAttribute {
 
 type SystemCategory {
   id: ID!
-  value: String!
   label: String!
   features: Boolean!
   classes: Boolean!
@@ -258,7 +249,6 @@ type SystemCategory {
 
 type SystemSense {
   id: ID!
-  value: String!
   label: String!
   creatureDesc: String
   monsterDesc: String
@@ -267,7 +257,6 @@ type SystemSense {
 
 type SystemSkill {
   id: ID!
-  value: String!
   label: String!
   desc: String
   abilityId: ID!
@@ -275,7 +264,6 @@ type SystemSkill {
 
 type SystemPrerequisite {
   id: ID!
-  value: String!
   label: String!
   features: [FeatureEnum]
   damage: [DamageEnum]
@@ -288,7 +276,6 @@ type SystemPrerequisite {
 
 type System {
   id: ID!
-  value: String!
   label: String!
   desc: String
   abilities: [GenericType!]!
@@ -320,7 +307,6 @@ type System {
 
 type SystemListItem {
   id: ID!
-  value: String!
   label: String!
   desc: String
   ownerId: String!
@@ -378,7 +364,6 @@ type Range {
 type Spell {
   id: ID!
   label: String!
-  value: String!
   desc: String
   level: Int!
   school: ID!
@@ -458,7 +443,6 @@ type SpellMeta {
 type SpellListItem {
   id: ID!
   label: String!
-  value: String!
   desc: String
   requirements: [ID!]
   materialDesc: String
@@ -478,45 +462,16 @@ type SpellConnection {
   nextToken: String
 }
 
-type AncestryFeature {
-  id: ID!
-  label: String
-  value: String
-  desc: String
-  detail: String
-  category: ID
-  attributes: [ID!]
-  actions: ActionGroup
-  damage: Damage
-  charges: Charge
-  optionsByLevel: [OptionsByLevel!]
-  range: Range
-  shape: Shape
-  targets: Int
-  feats: [FeatureFeat!]
-  modifiers: [FeatureModifier!]
-  proficiencies: [FeatureProficiency!]
-  expertise: [FeatureExpertise!]
-  senses: [FeatureSense!]
-  spells: [FeatureSpell!]
-  prerequisites: Prerequisite
-  saveAbility: SaveAbility
-  levelAvailable: String
-  options: [FeatureOption!]
-}
-
 type AncestryOption {
   id: ID!
-  value: String!
   label: String!
   desc: String
-  features: [AncestryFeature!]
+  features: [ID!]
 }
 
 type Ancestry {
   id: ID!
   label: String!
-  value: String!
   desc: String
   options: [AncestryOption!]!
 }
@@ -537,7 +492,6 @@ type Traits {
 type Race {
   id: ID!
   label: String!
-  value: String!
   quote: String
   desc: String
   playable: String
@@ -573,7 +527,6 @@ type RaceMeta {
 type RaceListItem {
   id: ID!
   label: String!
-  value: String!
   quote: String
   desc: String
   details: [Detail!]
@@ -591,7 +544,6 @@ type RaceConnection {
 
 type Detail {
   label: String!
-  value: String!
   desc: String
 }
 
@@ -700,13 +652,117 @@ type Prerequisite {
 
 ## Feature Related
 
-type FeatureFeat {
+type ProficiencyProperties {
+  ids: [ID!]
+  category: ID
+  properties: [ID!]
+}
+
+type ActionProperty {
+  id: ID
+  amount: Int
+}
+
+type ActionGroup {
+  primary: ActionProperty
+  secondary: ActionProperty
+}
+
+type OptionsByLevel {
+  level: Int
+  count: Int
+  replaceCount: Int
+}
+
+type SpellsByLevel {
+  spells: [ID!]
+  level: Int
+  spellLevel: Int
+}
+
+type FeatureSpell {
   id: ID!
+  ids: [ID!]
   attributes: [ID!]
-  feats: [ID!]
   selectionCount: Int
+  classLimit: [ID!]
+  levelLimit: [String!]
+  attributeLimit: [ID!]
+  ability: ID
+  spellLevel: Int
+  spellsByLevel: [SpellsByLevel!]
   subtype: ID
   prerequisites: Prerequisite
+  charges: Charge
+}
+
+type FeatureSpellConnection {
+  items: [FeatureSpell!]!
+  nextToken: String
+}
+
+type FeatureSense {
+  id: ID!
+  attributes: [ID!]
+  selectionCount: Int
+  subtype: ID
+  ids: [ID!]
+  prerequisites: Prerequisite
+}
+
+type FeatureSenseConnection {
+  items: [FeatureSense!]!
+  nextToken: String
+}
+
+type FeatureProficiency {
+  id: ID!
+  subtype: ID
+  attributes: [ID!]
+  selectionCount: Int
+  category: ID!
+  level: ID!
+  rounding: ID
+  saveAbilities: [ID!]
+  skills: [ID!]
+  languages: [ID!]
+  properties: ProficiencyProperties
+  equipment: ProficiencyProperties
+  prerequisites: Prerequisite
+}
+
+type FeatureProficiencyConnection {
+  items: [FeatureProficiency!]!
+  nextToken: String
+}
+
+type FeatureOption {
+  id: ID!
+  label: String
+  desc: String
+  detail: String
+  category: ID
+  attributes: [ID!]
+  actions: ActionGroup
+  damage: Damage
+  charges: Charge
+  range: Range
+  shape: Shape
+  targets: Int
+  feats: [ID!]
+  modifiers: [ID!]
+  proficiencies: [ID!]
+  expertise: [ID!]
+  senses: [ID!]
+  spells: [ID!]
+  prerequisites: Prerequisite
+  saveAbility: SaveAbility
+  levelAvailable: String
+}
+
+type FeatureOptionConnection {
+  items: [FeatureOption!]!
+  nextToken: String
 }
 
 type ModifierDiePerLevel {
@@ -757,26 +813,23 @@ type FeatureModifier {
   prerequisites: Prerequisite
 }
 
-type ProficiencyProperties {
-  ids: [ID!]
-  category: ID
-  properties: [ID!]
+type FeatureModifierConnection {
+  items: [FeatureModifier!]!
+  nextToken: String
 }
 
-type FeatureProficiency {
+type FeatureFeat {
   id: ID!
-  subtype: ID
   attributes: [ID!]
+  feats: [ID!]
   selectionCount: Int
-  category: ID!
-  level: ID!
-  rounding: ID
-  saveAbilities: [ID!]
-  skills: [ID!]
-  languages: [ID!]
-  properties: ProficiencyProperties
-  equipment: ProficiencyProperties
+  subtype: ID
   prerequisites: Prerequisite
+}
+
+type FeatureFeatConnection {
+  items: [FeatureFeat!]!
+  nextToken: String
 }
 
 type FeatureExpertise {
@@ -793,82 +846,14 @@ type FeatureExpertise {
   prerequisites: Prerequisite
 }
 
-type FeatureSense {
-  id: ID!
-  attributes: [ID!]
-  selectionCount: Int
-  subtype: ID
-  ids: [ID!]
-  prerequisites: Prerequisite
-}
-
-type SpellsByLevel {
-  spells: [ID!]
-  level: Int
-  spellLevel: Int
-}
-
-type FeatureSpell {
-  id: ID!
-  ids: [ID!]
-  attributes: [ID!]
-  selectionCount: Int
-  classLimit: [ID!]
-  levelLimit: [String!]
-  attributeLimit: [ID!]
-  ability: ID
-  spellLevel: Int
-  spellsByLevel: [SpellsByLevel!]
-  subtype: ID
-  prerequisites: Prerequisite
-  charges: Charge
-}
-
-type ActionProperty {
-  id: ID
-  amount: Int
-}
-
-type ActionGroup {
-  primary: ActionProperty
-  secondary: ActionProperty
-}
-
-type OptionsByLevel {
-  level: Int
-  count: Int
-  replaceCount: Int
-}
-
-type FeatureOption {
-  id: ID!
-  label: String
-  value: String
-  desc: String
-  detail: String
-  category: ID
-  attributes: [ID!]
-  actions: ActionGroup
-  damage: Damage
-  charges: Charge
-  range: Range
-  shape: Shape
-  targets: Int
-  feats: [FeatureFeat!]
-  modifiers: [FeatureModifier!]
-  proficiencies: [FeatureProficiency!]
-  expertise: [FeatureExpertise!]
-  senses: [FeatureSense!]
-  spells: [FeatureSpell!]
-  prerequisites: Prerequisite
-  saveAbility: SaveAbility
-  levelAvailable: String
+type FeatureExpertiseConnection {
+  items: [FeatureExpertise!]!
+  nextToken: String
 }
 
 type Feature {
   id: ID!
   label: String
-  value: String
   desc: String
   detail: String
   category: ID
@@ -880,40 +865,41 @@ type Feature {
   range: Range
   shape: Shape
   targets: Int
-  feats: [FeatureFeat!]
-  modifiers: [FeatureModifier!]
-  proficiencies: [FeatureProficiency!]
-  expertise: [FeatureExpertise!]
-  senses: [FeatureSense!]
-  spells: [FeatureSpell!]
+  feats: [ID!]
+  modifiers: [ID!]
+  proficiencies: [ID!]
+  expertise: [ID!]
+  senses: [ID!]
+  spells: [ID!]
   prerequisites: Prerequisite
   saveAbility: SaveAbility
   levelAvailable: String
-  options: [FeatureOption!]
+  options: [ID!]
+}
+
+type FeatureConnection {
+  items: [Feature!]!
+  nextToken: String
 }
 
 type Feat {
   id: ID!
   label: String!
-  value: String!
   desc: String
   detail: String
   category: ID
   attributes: [ID!]
   actions: ActionGroup
-  primaryDamage: Damage
-  secondaryDamage: Damage
-  bonusDamage: Damage
+  damage: Damage
   charges: Charge
   range: Range
   shape: Shape
   targets: Int
-  feats: [FeatureFeat!]
-  modifiers: [FeatureModifier!]
-  proficiencies: [FeatureProficiency!]
-  expertise: [FeatureProficiency!]
-  senses: [FeatureSense!]
-  spells: [FeatureSpell!]
+  modifiers: [ID!]
+  proficiencies: [ID!]
+  expertise: [ID!]
+  senses: [ID!]
+  spells: [ID!]
   prerequisites: Prerequisite
   saveAbility: SaveAbility
   selectionCount: Int
@@ -938,7 +924,6 @@ type FeatMeta {
 type FeatListItem {
   id: ID!
   label: String!
-  value: String!
   desc: String
   detail: String
   ownerId: String!
@@ -986,7 +971,6 @@ type EquipmentRange {
 type Equipment {
   id: ID!
   label: String!
-  value: String!
   desc: String
   quote: String
   cost: Cost
@@ -1054,7 +1038,6 @@ type EquipmentMeta {
 type EquipmentListItem {
   id: ID!
   label: String!
-  value: String!
   desc: String
   quote: String
   cost: Cost
@@ -1114,7 +1097,6 @@ type LevelAttribute {
 
 type Resource {
   label: String!
-  value: String!
   id: ID!
   levelAvailable: Int
   charges: Charge
@@ -1136,7 +1118,6 @@ type Multiclass {
 type Subtype {
   id: ID!
   label: String!
-  value: String!
 }
 
 type ClassCurrency {
@@ -1157,7 +1138,6 @@ type ClassEquipment {
 type Class {
   id: ID!
   label: String!
-  value: String!
   desc: String
   attributes: [ID!]
   category: ID!
@@ -1207,7 +1187,6 @@ type ClassMeta {
 type ClassListItem {
   id: ID!
   label: String!
-  value: String!
   desc: String
   ownerId: ID!
   systemId: ID!
@@ -1485,7 +1464,6 @@ type BackgroundStartingEquipment {
 type Possessions {
   id: ID!
   label: String!
-  value: String!
   desc: String
 }
 
@@ -1543,7 +1521,6 @@ type CharacterEquipment {
 
 type Character {
   id: ID!
-  value: String!
   label: String!
   desc: String
   advancement: ID
@@ -1592,7 +1569,6 @@ type BackgroundEquipment {
 type Background {
   id: ID!
   label: String!
-  value: String!
   desc: String
   details: [Detail!]
   equipment: [[[BackgroundEquipment!]!]!]
@@ -1616,7 +1592,6 @@ type BackgroundMeta {
 type BackgroundListItem {
   id: ID!
   label: String!
-  value: String!
   desc: String
   details: [Detail!]
   ownerId: ID!
@@ -1627,6 +1602,37 @@ type BackgroundListItem {
 type BackgroundConnection {
   items: [BackgroundListItem!]!
   metaData: BackgroundMeta!
+  nextToken: String
+}
+
+type AncestryFeature {
+  id: ID!
+  label: String!
+  desc: String
+  detail: String
+  category: ID
+  attributes: [ID!]
+  actions: ActionGroup
+  damage: Damage
+  charges: Charge
+  optionsByLevel: [OptionsByLevel!]
+  range: Range
+  shape: Shape
+  targets: Int
+  feats: [ID!]
+  modifiers: [ID!]
+  proficiencies: [ID!]
+  expertise: [ID!]
+  senses: [ID!]
+  spells: [ID!]
+  prerequisites: Prerequisite
+  saveAbility: SaveAbility
+  levelAvailable: String
+  options: [ID!]
+}
+
+type AncestryFeatureConnection {
+  items: [AncestryFeature!]!
   nextToken: String
 }
 
@@ -1686,7 +1692,6 @@ enum ClassesEnumInput {
 
 input GenericTypeInput {
   id: ID!
-  value: String!
   label: String!
   desc: String
   tooltip: String
@@ -1696,16 +1701,15 @@ input GenericTypeInput {
 ## Currency
 
 input CurrencyConversionInput {
-  copper: Float!
-  silver: Float!
-  gold: Float!
-  electrum: Float!
-  platinum: Float!
+  copper: Float! = 0
+  silver: Float! = 0
+  gold: Float! = 0
+  electrum: Float! = 0
+  platinum: Float! = 0
 }
 
 input CurrencyInput {
   id: ID!
-  value: String!
   label: String!
   desc: String
   abbreviation: String!
@@ -1762,7 +1766,6 @@ input SystemModifiersInput {
 
 input ProficiencyLevelInput {
   id: ID!
-  value: String!
   label: String!
   multiplier: Float
 }
@@ -1787,7 +1790,6 @@ input SystemSpellInput {
 
 input GenerateOptionInput {
   id: ID!
-  value: String!
   label: String!
   reduce: Int
 }
@@ -1806,7 +1808,6 @@ input SystemMeasurementInput {
 
 input AbilityGenerateMethodInput {
   id: ID!
-  value: String!
   label: String!
   total: Int
   options: [GenerateOptionInput!]
@@ -1821,7 +1822,6 @@ input SystemRulesInput {
 
 input ChargeOptionInput {
   id: ID!
-  value: String!
   label: String!
   features: [FeatureEnumInput!]
   damage: [DamageEnumInput!]
@@ -1850,20 +1850,18 @@ input CharacterSettingInput {
 
 input SystemActionInput {
   id: ID!
-  value: String!
   label: String!
-  features: Boolean!
-  damage: Boolean!
-  feats: Boolean!
-  sections: Boolean!
-  spells: Boolean!
-  equipment: Boolean!
-  classes: Boolean!
+  features: Boolean! = false
+  damage: Boolean! = false
+  feats: Boolean! = false
+  sections: Boolean! = false
+  spells: Boolean! = false
+  equipment: Boolean! = false
+  classes: Boolean! = false
 }
 
 input SystemAttributeInput {
   id: ID!
-  value: String!
   label: String!
   features: [FeatureEnumInput!]
   damage: [DamageEnumInput!]
@@ -1876,16 +1874,14 @@ input SystemAttributeInput {
 
 input SystemCategoryInput {
   id: ID!
-  value: String!
   label: String!
-  features: Boolean!
-  classes: Boolean!
-  races: Boolean!
+  features: Boolean! = false
+  classes: Boolean! = false
+  races: Boolean! = false
 }
 
 input SystemSenseInput {
   id: ID!
-  value: String!
   label: String!
   creatureDesc: String
   monsterDesc: String
@@ -1894,7 +1890,6 @@ input SystemSenseInput {
 
 input SystemSkillInput {
   id: ID!
-  value: String!
   label: String!
   desc: String
   abilityId: ID!
@@ -1902,7 +1897,6 @@ input SystemSkillInput {
 
 input SystemPrerequisiteInput {
   id: ID!
-  value: String!
   label: String!
   features: [FeatureEnumInput!]
   damage: [DamageEnumInput!]
@@ -1915,7 +1909,6 @@ input SystemPrerequisiteInput {
 
 input SystemInput {
   id: ID!
-  value: String!
   label: String!
   desc: String
   abilities: [GenericTypeInput!]!
@@ -1996,7 +1989,6 @@ input DurationInput {
 input SpellInput {
   id: ID!
   label: String!
-  value: String!
   desc: String!
   level: Int!
   school: ID!
@@ -2009,7 +2001,7 @@ input SpellInput {
   conditions: [ID!]
   requirements: [ID!]
   range: RangeInput!
-  shape: ShapeInput
+  shape: ShapeInput!
   duration: DurationInput!
   damage: DamageInput
   materialDesc: String
@@ -2023,36 +2015,10 @@ input BatchSpellsInput {
   data: SpellInput!
 }
 
-input AncestryFeatureInput {
-  id: ID!
-  label: String
-  value: String
-  desc: String
-  detail: String
-  category: ID
-  attributes: [ID!]
-  actions: ActionGroupInput
-  damage: DamageInput
-  charges: ChargeInput
-  optionsByLevel: [OptionsByLevelInput!]
-  range: RangeInput
-  shape: ShapeInput
-  targets: Int
-  feats: [FeatureFeatInput!]
-  modifiers: [FeatureModifierInput!]
-  proficiencies: [FeatureProficiencyInput!]
-  expertise: [FeatureExpertiseInput!]
-  senses: [FeatureSenseInput!]
-  spells: [FeatureSpellInput!]
-  prerequisites: PrerequisiteInput
-  saveAbility: SaveAbilityInput
-  levelAvailable: String
-  options: [FeatureOptionInput!]
-}
+
 
 input AncestryOptionInput {
   id: ID!
-  value: String!
   label: String!
   desc: String
   features: [AncestryFeatureInput!]
@@ -2061,7 +2027,6 @@ input AncestryOptionInput {
 input AncestryInput {
   id: ID!
   label: String!
-  value: String!
   desc: String
   options: [AncestryOptionInput!]!
 }
@@ -2082,7 +2047,6 @@ input TraitsInput {
 input RaceInput {
   id: ID!
   label: String!
-  value: String!
   quote: String
   desc: String
   playable: String
@@ -2106,7 +2070,6 @@ input BatchRacesInput {
 
 input DetailInput {
   label: String!
-  value: String!
   desc: String
 }
 
@@ -2215,14 +2178,121 @@ input PrerequisiteInput {
 
 ## Feature Related
 
-input FeatureFeatInput {
+input ProficiencyPropertiesInput {
+  ids: [ID!]
+  category: ID
+  properties: [ID!]
+}
+
+input ActionPropertyInput {
+  id: ID
+  amount: Int
+}
+
+input ActionGroupInput {
+  primary: ActionPropertyInput
+  secondary: ActionPropertyInput
+}
+
+input OptionsByLevelInput {
+  level: Int
+  count: Int
+  replaceCount: Int
+}
+
+input SpellsByLevelInput {
   id: ID!
+  spells: [ID!]
+  level: Int
+  spellLevel: Int
+}
+
+input FeatureSpellInput {
+  id: ID!
+  ids: [ID!]
   attributes: [ID!]
-  feats: [ID!]
   selectionCount: Int
+  classLimit: [ID!]
+  levelLimit: [String!]
+  attributeLimit: [ID!]
+  ability: ID
+  spellLevel: Int
+  spellsByLevel: [SpellsByLevelInput!]
   subtype: ID
   prerequisites: PrerequisiteInput
+  charges: ChargeInput
 }
+
+input BatchFeatureSpellsInput {
+  tableName: String!
+  data: FeatureSpellInput!
+}
+
+input FeatureSenseInput {
+  id: ID!
+  attributes: [ID!]
+  selectionCount: Int
+  subtype: ID
+  ids: [ID!]
+  prerequisites: PrerequisiteInput
+  charges: ChargeInput
+}
+
+input BatchFeatureSensesInput {
+  tableName: String!
+  data: FeatureSenseInput!
+}
+
+input FeatureProficiencyInput {
+  id: ID!
+  subtype: ID
+  attributes: [ID!]
+  selectionCount: Int
+  category: ID!
+  level: ID
+  rounding: ID
+  saveAbilities: [ID!]
+  skills: [ID!]
+  languages: [ID!]
+  properties: ProficiencyPropertiesInput
+  equipment: ProficiencyPropertiesInput
+  prerequisites: PrerequisiteInput
+}
+
+input BatchFeatureProficienciesInput {
+  tableName: String!
+  data: FeatureProficiencyInput!
+}
+
+input FeatureOptionInput {
+  id: ID!
+  label: String
+  desc: String
+  detail: String
+  category: ID
+  attributes: [ID!]
+  actions: ActionGroupInput
+  damage: DamageInput
+  charges: ChargeInput
+  range: RangeInput
+  shape: ShapeInput
+  targets: Int
+  feats: [ID!]
+  modifiers: [ID!]
+  proficiencies: [ID!]
+  expertise: [ID!]
+  senses: [ID!]
+  spells: [ID!]
+  prerequisites: PrerequisiteInput
+  saveAbility: SaveAbilityInput
+  levelAvailable: String
+}
+
+input BatchFeatureOptionsInput {
+  tableName: String!
+  data: FeatureOptionInput!
+}
+
 
 input ModifierDiePerLevelInput {
   level: String
@@ -2272,27 +2342,25 @@ input FeatureModifierInput {
   prerequisites: PrerequisiteInput
 }
 
-input ProficiencyPropertiesInput {
-  ids: [ID!]
-  category: ID
-  properties: [ID!]
+input BatchFeatureModifiersInput {
+  tableName: String!
+  data: FeatureModifierInput!
 }
 
-input FeatureProficiencyInput {
+input FeatureFeatInput {
   id: ID!
-  subtype: ID
   attributes: [ID!]
+  feats: [ID!]
   selectionCount: Int
-  category: ID!
-  level: ID
-  rounding: ID
-  saveAbilities: [ID!]
-  skills: [ID!]
-  languages: [ID!]
-  properties: ProficiencyPropertiesInput
-  equipment: ProficiencyPropertiesInput
+  subtype: ID
   prerequisites: PrerequisiteInput
 }
+
+input BatchFeatureFeatsInput {
+  tableName: String!
+  data: FeatureFeatInput!
+}
+
 
 input FeatureExpertiseInput {
   id: ID!
@@ -2308,83 +2376,14 @@ input FeatureExpertiseInput {
   prerequisites: PrerequisiteInput
 }
 
-input FeatureSenseInput {
-  id: ID!
-  attributes: [ID!]
-  selectionCount: Int
-  subtype: ID
-  ids: [ID!]
-  prerequisites: PrerequisiteInput
-  charges: ChargeInput
-}
-
-input SpellsByLevelInput {
-  id: ID!
-  spells: [ID!]
-  level: Int
-  spellLevel: Int
-}
-
-input FeatureSpellInput {
-  ids: [ID!]
-  attributes: [ID!]
-  selectionCount: Int
-  classLimit: [ID!]
-  levelLimit: [String!]
-  attributeLimit: [ID!]
-  ability: ID
-  spellLevel: Int
-  spellsByLevel: [SpellsByLevelInput!]
-  subtype: ID
-  prerequisites: PrerequisiteInput
-  charges: ChargeInput
-}
-
-input ActionPropertyInput {
-  id: ID
-  amount: Int
-}
-
-input ActionGroupInput {
-  primary: ActionPropertyInput
-  secondary: ActionPropertyInput
-}
-
-input OptionsByLevelInput {
-  level: Int
-  count: Int
-  replaceCount: Int
-}
-
-input FeatureOptionInput {
-  id: ID!
-  label: String
-  value: String
-  desc: String
-  detail: String
-  category: ID
-  attributes: [ID!]
-  actions: ActionGroupInput
-  damage: DamageInput
-  charges: ChargeInput
-  range: RangeInput
-  shape: ShapeInput
-  targets: Int
-  feats: [FeatureFeatInput!]
-  modifiers: [FeatureModifierInput!]
-  proficiencies: [FeatureProficiencyInput!]
-  expertise: [FeatureExpertiseInput!]
-  senses: [FeatureSenseInput!]
-  spells: [FeatureSpellInput!]
-  prerequisites: PrerequisiteInput
-  saveAbility: SaveAbilityInput
-  levelAvailable: String
+input BatchFeatureExpertisesInput {
+  tableName: String!
+  data: FeatureExpertiseInput!
 }
 
 input FeatureInput {
   id: ID!
   label: String
-  value: String
   desc: String
   detail: String
   category: ID
@@ -2396,40 +2395,41 @@ input FeatureInput {
   range: RangeInput
   shape: ShapeInput
   targets: Int
-  feats: [FeatureFeatInput!]
-  modifiers: [FeatureModifierInput!]
-  proficiencies: [FeatureProficiencyInput!]
-  expertise: [FeatureExpertiseInput!]
-  senses: [FeatureSenseInput!]
-  spells: [FeatureSpellInput!]
+  feats: [ID!]
+  modifiers: [ID!]
+  proficiencies: [ID!]
+  expertise: [ID!]
+  senses: [ID!]
+  spells: [ID!]
   prerequisites: PrerequisiteInput
   saveAbility: SaveAbilityInput
   levelAvailable: String
-  options: [FeatureOptionInput!]
+  options: [ID!]
+}
+
+input BatchFeaturesInput {
+  tableName: String!
+  data: FeatureInput!
 }
 
 input FeatInput {
   id: ID!
   label: String!
-  value: String!
   desc: String
   detail: String
   category: ID
   attributes: [ID!]
   actions: ActionGroupInput
-  primaryDamage: DamageInput
-  secondaryDamage: DamageInput
-  bonusDamage: DamageInput
+  damage: DamageInput
   charges: ChargeInput
   range: RangeInput
   shape: ShapeInput
   targets: Int
-  feats: [FeatureFeatInput!]
-  modifiers: [FeatureModifierInput!]
-  proficiencies: [FeatureProficiencyInput!]
-  expertise: [FeatureProficiencyInput!]
-  senses: [FeatureSenseInput!]
-  spells: [FeatureSpellInput!]
+  modifiers: [ID!]
+  proficiencies: [ID!]
+  expertise: [ID!]
+  senses: [ID!]
+  spells: [ID!]
   prerequisites: PrerequisiteInput
   saveAbility: SaveAbilityInput
   selectionCount: Int
@@ -2448,49 +2448,48 @@ input BatchFeatInput {
 
 input SpeedInput {
   amount: Int
-  unit: ID!
+  unit: ID! 
 }
 
 input WeightInput {
   amount: Float
-  unit: ID!
+  unit: ID! 
 }
 
 input CapacityInput {
   amount: Float
-  unit: ID!
+  unit: ID! 
 }
 
 input CostInput {
   amount: Int
-  currency: ID!
+  currency: ID! 
 }
 
 input ContainsInput {
-  id: ID!
+  id: ID! 
   quantity: Int!
 }
 
 input EquipmentRangeInput {
   minRange: Int
   maxRange: Int
-  unit: ID!
+  unit: ID! 
 }
 
 input EquipmentInput {
-  id: ID!
-  label: String!
-  value: String!
+  id: ID! 
+  label: String! 
   desc: String
   quote: String
-  cost: CostInput
-  weight: WeightInput
+  cost: CostInput!
+  weight: WeightInput!
   capacity: CapacityInput
   maxStack: Int
   quantity: Int!
   properties: [ID!]
-  category: ID!
-  rarity: ID!
+  category: ID! 
+  rarity: ID! 
   attributes: [ID!]
   damage: DamageInput
   saveAbility: SaveAbilityInput
@@ -2505,18 +2504,18 @@ input EquipmentInput {
   contains: [ContainsInput!]
   features: [FeatureInput!]
   ownerId: String
-  systemId: ID!
+  systemId: ID! 
   masterId: String
-  Rank: Int
+  rank: Int
 }
 
 input BatchEquipmentInput {
-  tableName: String!
+  tableName: String! 
   data: EquipmentInput!
 }
 
 input HitpointInput {
-  ability: ID
+  ability: ID!
   dieConfig: String
 }
 
@@ -2558,9 +2557,8 @@ input LevelAttributeInput {
 }
 
 input ResourceInput {
-  label: String!
-  value: String!
   id: ID!
+  label: String!
   levelAvailable: Int
   charges: ChargeInput
   method: ID
@@ -2581,7 +2579,6 @@ input MulticlassInput {
 input SubtypeInput {
   id: ID!
   label: String!
-  value: String!
 }
 
 input ClassCurrencyInput {
@@ -2602,7 +2599,6 @@ input ClassEquipmentInput {
 input ClassInput {
   id: ID!
   label: String!
-  value: String!
   desc: String
   category: ID!
   attributes: [ID!]
@@ -2709,7 +2705,7 @@ input CharacterExpertiseInput {
 
 input CharacterSpellInput {
   id: ID!
-  level: Int!
+  level: Int! = 1
   ability: ID
   isRitual: Boolean
   countAsKnown: Boolean
@@ -2733,7 +2729,7 @@ input CharacterSpellInput {
 input CharacterFeatureOptionInput {
   id: ID!
   optionIndex: String!
-  featureLevel: Int!
+  featureLevel: Int! = 1
 }
 
 input CharacterFeatureInput {
@@ -2751,16 +2747,16 @@ input CharacterFeatureInput {
 ## Ability ScoresInput
 
 input RollInput {
-  die: Int!
-  value: Int!
+  die: Int! = 1
+  value: Int! = 4
   id: String
 }
 
 input RollTypeInput {
-  score: Int!
+  score: Int! = 1
   ability: ID!
-  rolling: Boolean!
-  applied: Boolean!
+  rolling: Boolean! = false
+  applied: Boolean! = false
   rolled: [RollInput!]!
   kept: [RollInput!]
 }
@@ -2846,11 +2842,11 @@ input ClassSpellInput {
 }
 
 input ClassSpellListInput {
-  level: Int!
+  level: Int! = 1
   spells: [ClassSpellInput!]
 }
 
-input CharacterSpellSlotsInputs {
+input CharacterSpellSlotsInput {
   level: Int!
   used: Int!
   classId: ID!
@@ -2860,7 +2856,7 @@ input CharacterSpellcastingInput {
   prepared: [ClassSpellListInput!]
   known: [ClassSpellListInput!]
   additional: [CharacterSpellInput!]
-  spellSlots: [CharacterSpellSlotsInputs!]
+  spellSlots: [CharacterSpellSlotsInput!]
 }
 
 input CharacterClassInput {
@@ -2872,7 +2868,7 @@ input CharacterClassInput {
 input StartingEquipmentInput {
   id: ID!
   selectionId: ID
-  quantity: Int!
+  quantity: Int! = 1
 }
 
 input StartingEquipmentGroupInput {
@@ -2897,13 +2893,12 @@ input BackgroundStartingEquipmentInput {
 input PossessionsInput {
   id: ID!
   label: String!
-  value: String!
   desc: String
 }
 
 input CharacterCurrencyInput {
   id: ID!
-  amount: Int!
+  amount: Int! = 0
 }
 
 input CurrencyGroupInput {
@@ -2955,7 +2950,6 @@ input CharacterEquipmentInput {
 
 input CharacterInput {
   id: ID!
-  value: String!
   label: String!
   desc: String
   advancement: ID
@@ -2973,9 +2967,9 @@ input CharacterInput {
   currencyGroups: [CurrencyGroupInput!]
   features: [CharacterFeatureInput!]
   feats: [CharacterFeatInput!]
-  proficiencies: CharacterProficiencyInput
-  expertise: CharacterExpertiseInput
-  modifiers: CharacterModifierInput
+  proficiencies: [CharacterProficiencyInput!]
+  expertise: [CharacterExpertiseInput!]
+  modifiers: [CharacterModifierInput!]
   senses: [CharacterSenseInput!]
   ownerId: String
   systemId: String!
@@ -2999,7 +2993,6 @@ input BackgroundEquipmentInput {
 input BackgroundInput {
   id: ID!
   label: String!
-  value: String!
   desc: String
   details: [DetailInput!]
   equipment: [[[BackgroundEquipmentInput!]!]!]
@@ -3015,8 +3008,39 @@ input BatchBackgroundsInput {
   data: BackgroundInput!
 }
 
+input AncestryFeatureInput {
+  id: ID!
+  label: String!
+  desc: String
+  detail: String
+  category: ID
+  attributes: [ID!]
+  actions: ActionGroupInput
+  damage: DamageInput
+  charges: ChargeInput
+  optionsByLevel: [ID!]
+  range: RangeInput
+  shape: ShapeInput
+  targets: Int
+  feats: [ID!]
+  modifiers: [ID!]
+  proficiencies: [ID!]
+  expertise: [ID!]
+  senses: [ID!]
+  spells: [ID!]
+  prerequisites: PrerequisiteInput
+  saveAbility: SaveAbilityInput
+  levelAvailable: String
+  options: [ID!]
+}
+
+input BatchAncestryFeaturesInput {
+  tableName: String!
+  data: AncestryFeatureInput!
+}
+
 type Query {
-      getMasterSystem(id: ID!): System
+  getMasterSystem(id: ID!): System
   listMasterSystems(limit: Int, nextToken: String): SystemConnection!
   getSystem(id: ID!): System
   listSystems(limit: Int, nextToken: String): SystemConnection!
@@ -3028,6 +3052,38 @@ type Query {
   listMasterRaces(limit: Int, nextToken: String): RaceConnection!
   getRace(id: ID!): Race
   listRaces(systemId: ID!, limit: Int, nextToken: String): RaceConnection!
+  getMasterFeatureSpell(id: ID!): FeatureSpell
+  listMasterFeatureSpells(limit: Int, nextToken: String): FeatureSpellConnection!
+  getFeatureSpell(id: ID!): FeatureSpell
+  listFeatureSpells(systemId: ID!, limit: Int, nextToken: String): FeatureSpellConnection!
+  getMasterFeatureSense(id: ID!): FeatureSense
+  listMasterFeatureSenses(limit: Int, nextToken: String): FeatureSenseConnection!
+  getFeatureSense(id: ID!): FeatureSense
+  listFeatureSenses(systemId: ID!, limit: Int, nextToken: String): FeatureSenseConnection!
+  getMasterFeatureProficiency(id: ID!): FeatureProficiency
+  listMasterFeatureProficiencies(limit: Int, nextToken: String): FeatureProficiencyConnection!
+  getFeatureProficiency(id: ID!): FeatureProficiency
+  listFeatureProficiencies(systemId: ID!, limit: Int, nextToken: String): FeatureProficiencyConnection!
+  getMasterFeatureOption(id: ID!): FeatureOption
+  listMasterFeatureOptions(limit: Int, nextToken: String): FeatureOptionConnection!
+  getFeatureOption(id: ID!): FeatureOption
+  listFeatureOptions(systemId: ID!, limit: Int, nextToken: String): FeatureOptionConnection!
+  getMasterFeatureModifier(id: ID!): FeatureModifier
+  listMasterFeatureModifiers(limit: Int, nextToken: String): FeatureModifierConnection!
+  getFeatureModifier(id: ID!): FeatureModifier
+  listFeatureModifiers(systemId: ID!, limit: Int, nextToken: String): FeatureModifierConnection!
+  getMasterFeatureFeat(id: ID!): FeatureFeat
+  listMasterFeatureFeats(limit: Int, nextToken: String): FeatureFeatConnection!
+  getFeatureFeat(id: ID!): FeatureFeat
+  listFeatureFeats(systemId: ID!, limit: Int, nextToken: String): FeatureFeatConnection!
+  getMasterFeatureExpertise(id: ID!): FeatureExpertise
+  listMasterFeatureExpertises(limit: Int, nextToken: String): FeatureExpertiseConnection!
+  getFeatureExpertise(id: ID!): FeatureExpertise
+  listFeatureExpertises(systemId: ID!, limit: Int, nextToken: String): FeatureExpertiseConnection!
+  getMasterFeature(id: ID!): Feature
+  listMasterFeatures(limit: Int, nextToken: String): FeatureConnection!
+  getFeature(id: ID!): Feature
+  listFeatures(systemId: ID!, limit: Int, nextToken: String): FeatureConnection!
   getMasterFeat(id: ID!): Feat
   listMasterFeats(limit: Int, nextToken: String): FeatConnection!
   getFeat(id: ID!): Feat
@@ -3046,10 +3102,14 @@ type Query {
   listMasterBackgrounds(limit: Int, nextToken: String): BackgroundConnection!
   getBackground(id: ID!): Background
   listBackgrounds(systemId: ID!, limit: Int, nextToken: String): BackgroundConnection!
-    }
+  getMasterAncestryFeature(id: ID!): AncestryFeature
+  listMasterAncestryFeatures(limit: Int, nextToken: String): AncestryFeatureConnection!
+  getAncestryFeature(id: ID!): AncestryFeature
+  listAncestryFeatures(systemId: ID!, limit: Int, nextToken: String): AncestryFeatureConnection!
+}
 
-    type Mutation {
-      createMasterSystem(input: SystemInput!): System!
+type Mutation {
+  createMasterSystem(input: SystemInput!): System!
   updateMasterSystem(input: SystemInput!): System!
   deleteMasterSystem(id: ID!): ID!
   batchCreateMasterSystems(input: [BatchSystemsInput!]!): [System!]!
@@ -3073,6 +3133,70 @@ type Query {
   updateRace(input: RaceInput!): Race!
   deleteRace(id: ID!): ID!
   batchCreateRaces(input: [BatchRacesInput!]!): [Race!]!
+  createMasterFeatureSpell(input: FeatureSpellInput!): FeatureSpell!
+  updateMasterFeatureSpell(input: FeatureSpellInput!): FeatureSpell!
+  deleteMasterFeatureSpell(id: ID!): ID!
+  batchCreateMasterFeatureSpells(input: [BatchFeatureSpellsInput!]!): [FeatureSpell!]!
+  createFeatureSpell(input: FeatureSpellInput!): FeatureSpell!
+  updateFeatureSpell(input: FeatureSpellInput!): FeatureSpell!
+  deleteFeatureSpell(id: ID!): ID!
+  batchCreateFeatureSpells(input: [BatchFeatureSpellsInput!]!): [FeatureSpell!]!
+  createMasterFeatureSense(input: FeatureSenseInput!): FeatureSense!
+  updateMasterFeatureSense(input: FeatureSenseInput!): FeatureSense!
+  deleteMasterFeatureSense(id: ID!): ID!
+  batchCreateMasterFeatureSenses(input: [BatchFeatureSensesInput!]!): [FeatureSense!]!
+  createFeatureSense(input: FeatureSenseInput!): FeatureSense!
+  updateFeatureSense(input: FeatureSenseInput!): FeatureSense!
+  deleteFeatureSense(id: ID!): ID!
+  batchCreateFeatureSenses(input: [BatchFeatureSensesInput!]!): [FeatureSense!]!
+  createMasterFeatureProficiency(input: FeatureProficiencyInput!): FeatureProficiency!
+  updateMasterFeatureProficiency(input: FeatureProficiencyInput!): FeatureProficiency!
+  deleteMasterFeatureProficiency(id: ID!): ID!
+  batchCreateMasterFeatureProficiencies(input: [BatchFeatureProficienciesInput!]!): [FeatureProficiency!]!
+  createFeatureProficiency(input: FeatureProficiencyInput!): FeatureProficiency!
+  updateFeatureProficiency(input: FeatureProficiencyInput!): FeatureProficiency!
+  deleteFeatureProficiency(id: ID!): ID!
+  batchCreateFeatureProficiencies(input: [BatchFeatureProficienciesInput!]!): [FeatureProficiency!]!
+  createMasterFeatureOption(input: FeatureOptionInput!): FeatureOption!
+  updateMasterFeatureOption(input: FeatureOptionInput!): FeatureOption!
+  deleteMasterFeatureOption(id: ID!): ID!
+  batchCreateMasterFeatureOptions(input: [BatchFeatureOptionsInput!]!): [FeatureOption!]!
+  createFeatureOption(input: FeatureOptionInput!): FeatureOption!
+  updateFeatureOption(input: FeatureOptionInput!): FeatureOption!
+  deleteFeatureOption(id: ID!): ID!
+  batchCreateFeatureOptions(input: [BatchFeatureOptionsInput!]!): [FeatureOption!]!
+  createMasterFeatureModifier(input: FeatureModifierInput!): FeatureModifier!
+  updateMasterFeatureModifier(input: FeatureModifierInput!): FeatureModifier!
+  deleteMasterFeatureModifier(id: ID!): ID!
+  batchCreateMasterFeatureModifiers(input: [BatchFeatureModifiersInput!]!): [FeatureModifier!]!
+  createFeatureModifier(input: FeatureModifierInput!): FeatureModifier!
+  updateFeatureModifier(input: FeatureModifierInput!): FeatureModifier!
+  deleteFeatureModifier(id: ID!): ID!
+  batchCreateFeatureModifiers(input: [BatchFeatureModifiersInput!]!): [FeatureModifier!]!
+  createMasterFeatureFeat(input: FeatureFeatInput!): FeatureFeat!
+  updateMasterFeatureFeat(input: FeatureFeatInput!): FeatureFeat!
+  deleteMasterFeatureFeat(id: ID!): ID!
+  batchCreateMasterFeatureFeats(input: [BatchFeatureFeatsInput!]!): [FeatureFeat!]!
+  createFeatureFeat(input: FeatureFeatInput!): FeatureFeat!
+  updateFeatureFeat(input: FeatureFeatInput!): FeatureFeat!
+  deleteFeatureFeat(id: ID!): ID!
+  batchCreateFeatureFeats(input: [BatchFeatureFeatsInput!]!): [FeatureFeat!]!
+  createMasterFeatureExpertise(input: FeatureExpertiseInput!): FeatureExpertise!
+  updateMasterFeatureExpertise(input: FeatureExpertiseInput!): FeatureExpertise!
+  deleteMasterFeatureExpertise(id: ID!): ID!
+  batchCreateMasterFeatureExpertises(input: [BatchFeatureExpertisesInput!]!): [FeatureExpertise!]!
+  createFeatureExpertise(input: FeatureExpertiseInput!): FeatureExpertise!
+  updateFeatureExpertise(input: FeatureExpertiseInput!): FeatureExpertise!
+  deleteFeatureExpertise(id: ID!): ID!
+  batchCreateFeatureExpertises(input: [BatchFeatureExpertisesInput!]!): [FeatureExpertise!]!
+  createMasterFeature(input: FeatureInput!): Feature!
+  updateMasterFeature(input: FeatureInput!): Feature!
+  deleteMasterFeature(id: ID!): ID!
+  batchCreateMasterFeatures(input: [BatchFeaturesInput!]!): [Feature!]!
+  createFeature(input: FeatureInput!): Feature!
+  updateFeature(input: FeatureInput!): Feature!
+  deleteFeature(id: ID!): ID!
+  batchCreateFeatures(input: [BatchFeaturesInput!]!): [Feature!]!
   createMasterFeat(input: FeatInput!): Feat!
   updateMasterFeat(input: FeatInput!): Feat!
   deleteMasterFeat(id: ID!): ID!
@@ -3108,4 +3232,12 @@ type Query {
   updateBackground(input: BackgroundInput!): Background!
   deleteBackground(id: ID!): ID!
   batchCreateBackgrounds(input: [BatchBackgroundsInput!]!): [Background!]!
-    }
+  createMasterAncestryFeature(input: AncestryFeatureInput!): AncestryFeature!
+  updateMasterAncestryFeature(input: AncestryFeatureInput!): AncestryFeature!
+  deleteMasterAncestryFeature(id: ID!): ID!
+  batchCreateMasterAncestryFeatures(input: [BatchAncestryFeaturesInput!]!): [AncestryFeature!]!
+  createAncestryFeature(input: AncestryFeatureInput!): AncestryFeature!
+  updateAncestryFeature(input: AncestryFeatureInput!): AncestryFeature!
+  deleteAncestryFeature(id: ID!): ID!
+  batchCreateAncestryFeatures(input: [BatchAncestryFeaturesInput!]!): [AncestryFeature!]!
+}

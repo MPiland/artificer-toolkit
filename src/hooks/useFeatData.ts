@@ -1,5 +1,5 @@
 import { useSuspenseQueries, useSuspenseQuery } from '@tanstack/react-query'
-import { fetchFeat, fetchFeats } from '@/apis/featsApi'
+import { fetchFeat, fetchFeats } from '@/apis/feats.api'
 import { useRouteContext } from '@tanstack/react-router'
 import { createArrayWithMethods } from '@/utils'
 

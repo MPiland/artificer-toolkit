@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { progress_tab, progress_step, progress_line, progress_step_container } from './ProgressBar.css'
 import clsx from 'clsx'
-import { validateForm } from '../Form.utils'
+import { validateForm } from '../utils'
 import { isEqual } from 'lodash'
 import { use } from 'react'
 import { FormContext } from '../FormContext'

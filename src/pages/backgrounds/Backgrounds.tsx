@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import List from '@/components/List'
-import { useDeleteBackground } from '@/apis/backgroundsApi'
+import { useDeleteBackground } from '@/apis/backgrounds.api'
 import Loading from '@/components/Loading'
 import { useBackgroundData } from '@/hooks'
 

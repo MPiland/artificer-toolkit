@@ -1,0 +1,14 @@
+input FeatureFeatInput {
+  id: ID!
+  attributes: [ID!]
+  feats: [ID!]
+  selectionCount: Int
+  subtype: ID
+  prerequisites: PrerequisiteInput
+}
+
+input BatchFeatureFeatsInput {
+  tableName: String!
+  data: FeatureFeatInput!
+}
+

@@ -1,0 +1,6 @@
+type Query {
+  getMasterFeatureOption(id: ID!): FeatureOption
+  listMasterFeatureOptions(limit: Int, nextToken: String): FeatureOptionConnection!
+  getFeatureOption(id: ID!): FeatureOption
+  listFeatureOptions(systemId: ID!, limit: Int, nextToken: String): FeatureOptionConnection!
+}

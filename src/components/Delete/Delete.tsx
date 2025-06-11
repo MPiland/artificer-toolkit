@@ -1,6 +1,6 @@
 import { use, useState } from 'react'
 import Input from '@/components/Input'
-import Button from '@/components/Button'
+import { Button } from '@mantine/core'
 import { sprinkles } from '@/css/sprinkles.css'
 import Modal, { ModalContext, type DeleteModalProps } from '@/components/Modal'
 import { Group, Grid } from '@mantine/core'
@@ -41,10 +41,10 @@ const Delete = () => {
       </Modal.Content>
       <Modal.Footer>
         <Group justify='space-between' grow>
-          <Button color='main' type='button' onClick={hideModal}>
+          <Button color='rgba(97, 97, 97, 1)' onClick={hideModal}>
             Cancel
           </Button>
-          <Button color='danger' type='button' onClick={handleSubmit}>
+          <Button color='red' onClick={handleSubmit}>
             Submit
           </Button>
         </Group>

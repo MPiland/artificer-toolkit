@@ -1,34 +1,34 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { addField, removeField, updateField, reset } from './utils'
-import type { Feature, AncestryFeature, DeepKeyOf, FeatureTypes } from '@/types'
+import type { FeatureInput, AncestryFeatureInput, DeepKeyOf, FeatureTypes } from '@/types'
 import { produce } from 'immer'
 
 export interface FeatureStore {
   // Core Feature data
-  data: Feature | AncestryFeature
-  initData: Feature | AncestryFeature
+  data: FeatureInput | AncestryFeatureInput
+  initData: FeatureInput | AncestryFeatureInput
 
   // Feature UI state
   index: number
   step: FeatureTypes | null
 
-  updateField(arg: { path: DeepKeyOf<Feature | AncestryFeature>; value: any }): void
-  addField(arg: { path: DeepKeyOf<Feature | AncestryFeature>; value?: any }): void
-  removeField(arg: { path: DeepKeyOf<Feature | AncestryFeature> }): void
-  resetData: (arg: { value: Feature | AncestryFeature }) => void
-  resetInit: (arg: { value: Feature | AncestryFeature }) => void
+  updateField(arg: { path: DeepKeyOf<FeatureInput | AncestryFeatureInput>; value: any }): void
+  addField(arg: { path: DeepKeyOf<FeatureInput | AncestryFeatureInput>; value?: any }): void
+  removeField(arg: { path: DeepKeyOf<FeatureInput | AncestryFeatureInput> }): void
+  resetData: (arg: { value: FeatureInput | AncestryFeatureInput }) => void
+  resetInit: (arg: { value: FeatureInput | AncestryFeatureInput }) => void
   setIndex: (arg: { value: number }) => void
   setStep: (arg: FeatureTypes | null) => void
-  reinitState: (value?: Feature | AncestryFeature) => void
+  reinitState: (value?: FeatureInput | AncestryFeatureInput) => void
 }
 
 export const useFeatureStore = create<FeatureStore>()(
   persist(
     (set) => {
       const defaultState: Pick<FeatureStore, 'data' | 'initData' | 'index' | 'step'> = {
-        data: {} as Feature | AncestryFeature,
-        initData: {} as Feature | AncestryFeature,
+        data: {} as FeatureInput | AncestryFeatureInput,
+        initData: {} as FeatureInput | AncestryFeatureInput,
         step: null,
         index: 0,
       }
@@ -38,17 +38,23 @@ export const useFeatureStore = create<FeatureStore>()(
 
         addField: ({ path, value }) =>
           set((state: FeatureStore) =>
-            addField<FeatureStore, Feature | AncestryFeature>({ path, value, selector: (state) => state.data })(state)
+            addField<FeatureStore, FeatureInput | AncestryFeatureInput>({
+              path,
+              value,
+              selector: (state) => state.data,
+            })(state)
           ),
 
         removeField: ({ path }) =>
           set((state: FeatureStore) =>
-            removeField<FeatureStore, Feature | AncestryFeature>({ path, selector: (state) => state.data })(state)
+            removeField<FeatureStore, FeatureInput | AncestryFeatureInput>({ path, selector: (state) => state.data })(
+              state
+            )
           ),
 
         updateField: ({ path, value }) =>
           set((state: FeatureStore) =>
-            updateField<FeatureStore, Feature | AncestryFeature>({
+            updateField<FeatureStore, FeatureInput | AncestryFeatureInput>({
               path,
               value,
               selector: (state) => state.data,
@@ -57,12 +63,14 @@ export const useFeatureStore = create<FeatureStore>()(
 
         resetData: ({ value }) =>
           set((state: FeatureStore) =>
-            reset<FeatureStore, Feature | AncestryFeature>({ value, selector: (state) => state.data })(state)
+            reset<FeatureStore, FeatureInput | AncestryFeatureInput>({ value, selector: (state) => state.data })(state)
           ),
 
         resetInit: ({ value }) =>
           set((state: FeatureStore) =>
-            reset<FeatureStore, Feature | AncestryFeature>({ value, selector: (state) => state.initData })(state)
+            reset<FeatureStore, FeatureInput | AncestryFeatureInput>({ value, selector: (state) => state.initData })(
+              state
+            )
           ),
 
         setIndex: ({ value }) =>
@@ -79,7 +87,7 @@ export const useFeatureStore = create<FeatureStore>()(
             })
           ),
 
-        reinitState: (value?: Feature | AncestryFeature) => {
+        reinitState: (value?: FeatureInput | AncestryFeatureInput) => {
           if (value) {
             return set((state) => ({
               ...state,

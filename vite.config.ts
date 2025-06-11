@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite'
 import { vanillaExtractPlugin } from '@vanilla-extract/vite-plugin'
 import react from '@vitejs/plugin-react'
-import eslintPlugin from 'vite-plugin-eslint'
 import tsconfigPaths from 'vite-tsconfig-paths'
 import { TanStackRouterVite } from '@tanstack/router-plugin/vite'
 
@@ -12,7 +11,6 @@ export default defineConfig(() => {
       TanStackRouterVite({ target: 'react', autoCodeSplitting: true }),
       react(),
       vanillaExtractPlugin(),
-      eslintPlugin(),
       tsconfigPaths(),
     ],
     server: {

@@ -1,519 +1,600 @@
-import Dropdown from '@/components/Dropdown'
-import Input from '@/components/Input'
-import RichTextEditor from '@/components/RichTextEditor'
-import { startCase } from 'lodash'
-import Button from '@/components/Button'
+import { z } from 'zod/v4'
 import Accordion from '@/components/Accordion'
+import { Button } from '@mantine/core'
 import { sprinkles } from '@/css/sprinkles.css'
-import { use } from 'react'
-import { FormContext } from '../FormContext'
 import { Categories, EquipCats, EquipProps, SpellReqs } from '@/enums'
 import { useSystemData, useClassData, useRaceData } from '@/hooks'
-import type { FormDataType, OnChange } from '@/types'
 import { Grid, Divider } from '@mantine/core'
+import { withForm } from '../utils/factory'
+import { discriminatedDomainInputSchema, DetailInputSchema } from '@/schemas'
+import { DIE_REGEX } from '../utils/utils'
 
-const DetailsStep = () => {
-  const { formStore } = use(FormContext)
+const defaultValues: z.input<typeof discriminatedDomainInputSchema> = discriminatedDomainInputSchema.parse({})
 
-  const {
-    data,
-    updateField,
-    removeField,
-    addField,
-  }: {
-    data: FormDataType
-    updateField: OnChange<FormDataType>['updateField']
-    removeField: OnChange<FormDataType>['removeField']
-    addField: OnChange<FormDataType>['addField']
-  } = formStore
-
-  const { categories, characters, equipment, currencies, rules, abilities, spells } = useSystemData()
-  const { subclasses, classes } = useClassData()
-  const { races } = useRaceData()
-
-  return (
-    <Grid>
-      <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-        <Input
-          name='label'
-          label='Name'
-          autoComplete='off'
-          value={data?.label}
-          required={true}
-          onChange={{ updateField }}
-          autoFocus={true}
-          errorMsg='Name must not be blank'
-        />
-      </Grid.Col>
-      {data.__typename === 'Character' && (
-        <>
-          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-            <Dropdown
-              name='advancement'
-              label='Advancement Type'
-              value={data?.advancement}
-              options={characters.advancementMethods.all}
-              required={true}
-              onChange={{ updateField, removeField }}
-            />
-          </Grid.Col>
-          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-            <Dropdown
-              name='hitpoint.method'
-              label='Hit Point Type'
-              value={data?.hitpoint?.method}
-              options={characters.hitpointCalcMethods.all}
-              required={true}
-              onChange={{ updateField, removeField }}
-            />
-          </Grid.Col>
-        </>
-      )}
-      {(data.__typename === 'Race' || data.__typename === 'Class' || data.__typename === 'Equipment') && (
-        <>
-          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-            <Dropdown
-              name='category'
-              label={`${startCase(data.__typename)} Category`}
-              value={data?.category}
-              options={
-                data.__typename !== 'Equipment' ?
-                  categories.filter(
-                    (category) =>
-                      (data.__typename === 'Race' && category?.races) ||
-                      (data.__typename === 'Class' && category?.classes)
-                  )
-                : equipment.categories.all
-              }
-              required={true}
-              onChange={{ updateField, removeField }}
-            />
-          </Grid.Col>
-          {data.__typename === 'Race' && data.category === Categories.BASE && (
-            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-              <Dropdown
-                name='playable'
-                label='Playable'
-                value={data?.playable}
-                options={[
-                  {
-                    value: 'true',
-                    label: 'Yes',
-                    id: 'true',
-                  },
-                  {
-                    value: 'false',
-                    label: 'No',
-                    id: 'false',
-                  },
-                ]}
-                required={true}
-                onChange={{ updateField, removeField }}
-              />
-            </Grid.Col>
-          )}
-          {data.__typename === 'Equipment' && (
-            <>
-              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                <Dropdown
-                  name='properties'
-                  multiSelect={true}
-                  label='Properties'
-                  value={data?.properties}
-                  options={equipment.properties.filterByCategory(data.category)}
-                  onChange={{ updateField, removeField }}
-                />
-              </Grid.Col>
-              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                <Dropdown
-                  name='rarity'
-                  label='Rarity'
-                  value={data?.rarity}
-                  options={equipment.rarities}
-                  required={true}
-                  onChange={{ updateField, removeField }}
-                />
-              </Grid.Col>
-              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                <Input
-                  validation='cur'
-                  name='cost.amount'
-                  autoComplete='off'
-                  label='Cost'
-                  required={true}
-                  errorMsg='Must contain only decimal amounts'
-                  value={data?.cost?.amount}
-                  onChange={{ updateField }}
-                />
-              </Grid.Col>
-              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                <Dropdown
-                  name='cost.currency'
-                  label='Currency'
-                  value={data?.cost?.currency}
-                  options={currencies}
-                  required={true}
-                  onChange={{ updateField, removeField }}
-                />
-              </Grid.Col>
-              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                <Input
-                  validation='cur'
-                  name='weight.amount'
-                  errorMsg='Must contain only numbers'
-                  label='Item Weight'
-                  autoComplete='off'
-                  value={data?.weight?.amount}
-                  onChange={{ updateField }}
-                />
-              </Grid.Col>
-              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                <Dropdown
-                  name='weight.unit'
-                  label='UoM'
-                  value={data?.weight?.unit}
-                  options={rules.measurements.imperial.weight}
-                  onChange={{ updateField, removeField }}
-                />
-              </Grid.Col>
-            </>
-          )}
-        </>
-      )}
-      {data.__typename === 'Class' && (
-        <>
-          {data.category === Categories.SUBCLASS ?
-            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-              <Dropdown
-                name='parentClass'
-                label='Parent Class'
-                value={data?.parentClass}
-                options={subclasses}
-                required={true}
-                onChange={{ updateField, removeField }}
-              />
-            </Grid.Col>
-          : <>
-              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                <Input
-                  name='hitpoint.dieConfig'
-                  autoComplete='off'
-                  label='HP Die Value'
-                  required={true}
-                  value={data?.hitpoint?.dieConfig}
-                  validation='die'
-                  errorMsg='Must contain whole numbers only'
-                  onChange={{ updateField }}
-                />
-              </Grid.Col>
-              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                <Dropdown
-                  name='hitpoint.ability'
-                  label='HP Modifier Ability'
-                  value={data?.hitpoint?.ability}
-                  options={abilities.all}
-                  required={true}
-                  onChange={{ updateField, removeField }}
-                />
-              </Grid.Col>
-            </>
-          }
-        </>
-      )}
-      {data.__typename === 'Race' && (data.category === Categories.SUBRACE || data.category === Categories.VARIANT) && (
-        <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-          <Dropdown
-            multiSelect={true}
-            name='lineages'
-            label='Race Lineage'
-            value={data?.lineages}
-            options={races}
-            required={true}
-            onChange={{ updateField, removeField }}
-          />
-        </Grid.Col>
-      )}
-      {data.__typename === 'Equipment' &&
-        (((data.category === EquipCats.WATER_VEHICLE || data.category === EquipCats.MOUNT ?
-          <>
-            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-              <Input
-                validation={'cur'}
-                name='speed.amount'
-                errorMsg='Must contain only numbers'
-                label='Item Speed'
-                autoComplete='off'
-                required={true}
-                value={data?.speed?.amount}
-                onChange={{ updateField }}
-              />
-            </Grid.Col>
-            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-              <Dropdown
-                name='speed.unit'
-                label='UoM'
-                value={data?.speed?.unit}
-                options={rules.measurements.imperial.length}
-                onChange={{ updateField, removeField }}
-              />
-            </Grid.Col>
-          </>
-        : (data.category === EquipCats.WEAPON || data.category === EquipCats.ARMOR) && (
-            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-              <Input
-                validation={'num'}
-                name='rank'
-                errorMsg='Must contain only numbers'
-                label='Item Rank'
-                autoComplete='off'
-                value={data?.rank}
-                onChange={{ updateField }}
-              />
-            </Grid.Col>
-          )) &&
-          data.properties?.some((property) => property === EquipProps.CONTAINER)) ||
-          (data.category === EquipCats.MOUNT && (
-            <>
-              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                <Input
-                  validation={'cur'}
-                  name='capacity.amount'
-                  errorMsg='Must contain only numbers'
-                  label='Capacity Amount'
-                  autoComplete='off'
-                  value={data?.capacity?.amount}
-                  onChange={{ updateField }}
-                />
-              </Grid.Col>
-              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                <Dropdown
-                  name='capacity.unit'
-                  label='UoM'
-                  value={data?.capacity?.unit}
-                  options={[...rules.measurements.imperial.volume, ...rules.measurements.imperial.weight]}
-                  onChange={{ updateField, removeField }}
-                />
-              </Grid.Col>
-            </>
-          )))}
-      {data.__typename === 'Equipment' &&
-        (data.category === EquipProps.THROWN || data.category === EquipProps.RANGED) && (
-          <>
-            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-              <Input
-                validation='num'
-                name='range.minRange'
-                errorMsg='Must contain only numbers'
-                label='Min Range'
-                value={data?.range?.minRange}
-                required={true}
-                onChange={{ updateField }}
-              />
-            </Grid.Col>
-            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-              <Input
-                validation='num'
-                name='range.maxRange'
-                errorMsg='Must contain only numbers'
-                label='Max Range'
-                value={data?.range?.maxRange}
-                required={true}
-                onChange={{ updateField }}
-              />
-            </Grid.Col>
-          </>
-        )}
-      {data.__typename === 'Equipment' && (
-        <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-          <Input
-            validation='num'
-            name='quantity'
-            errorMsg='Must contain only numbers'
-            label='Quantity'
-            autoComplete='off'
-            value={data?.quantity}
-            onChange={{ updateField }}
-          />
-        </Grid.Col>
-      )}
-      {data.__typename === 'Spell' && (
-        <>
-          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-            <Input
-              validation='num'
-              name='level'
-              errorMsg='Must contain only numbers'
-              label='Level'
-              required={true}
-              value={data?.level}
-              onChange={{ updateField }}
-            />
-          </Grid.Col>
-          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-            <Dropdown
-              name='school'
-              label='School'
-              value={data?.school}
-              options={spells.schools}
-              required={true}
-              onChange={{ updateField, removeField }}
-            />
-          </Grid.Col>
-          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-            <Dropdown
-              name='requirements'
-              multiSelect={true}
-              label='Requirements'
-              value={data?.requirements}
-              options={spells.requirements}
-              required={true}
-              onChange={{ updateField, removeField }}
-            />
-          </Grid.Col>
-          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-            <Dropdown
-              name='classes'
-              multiSelect={true}
-              label='Class(es)'
-              value={data?.classes}
-              options={classes}
-              required={true}
-              onChange={{ updateField, removeField }}
-            />
-          </Grid.Col>
-          {data?.requirements?.some((requirement) => requirement === SpellReqs.MATERIAL) && (
-            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-              <Input
-                name='materialDesc'
-                label='Material Desc.'
-                required={true}
-                value={data?.materialDesc}
-                onChange={{ updateField }}
-              />
-            </Grid.Col>
-          )}
-        </>
-      )}
-      {data.__typename === 'Class' && data.category === Categories.BASE && (
-        <Grid.Col>
-          <Divider label='Starting Gold' />
+const DetailsStep = withForm({
+  defaultValues,
+  render: function Render({ form }) {
+    const { categories, characters, equipment, currencies, rules, abilities, spells } = useSystemData()
+    const { baseClasses, classes } = useClassData()
+    const { races } = useRaceData()
+    const { AppField, Subscribe } = form
+    return (
+      <Subscribe
+        selector={(state) => ({
+          __kind: state.values.__kind,
+          category:
+            (
+              state.values.__kind === 'RaceInput' ||
+              state.values.__kind === 'ClassInput' ||
+              state.values.__kind === 'EquipmentInput'
+            ) ?
+              state.values.category
+            : null,
+          properties: state.values.__kind === 'EquipmentInput' ? state.values.properties : null,
+          requirements: state.values.__kind === 'SpellInput' ? state.values.requirements : null,
+          details:
+            (
+              state.values.__kind === 'RaceInput' ||
+              state.values.__kind === 'ClassInput' ||
+              state.values.__kind === 'BackgroundInput'
+            ) ?
+              state.values.details
+            : null,
+        })}
+      >
+        {({ __kind, category, properties, requirements, details }) => (
           <Grid>
-            <Grid.Col >
-              <Input
-                name='startingGold.dieConfig'
-                label='Dice Configuration'
-                required={true}
-                validation='die'
-                errorMsg='Please enter a whole number'
-                value={data?.startingGold?.dieConfig}
-                onChange={{ updateField }}
-              />
-            </Grid.Col>
-            <Grid.Col >
-              <Input
-                name='startingGold.multiplier'
-                label='Multiplier'
-                required={true}
-                validation='num'
-                errorMsg='Please enter a whole number'
-                value={data?.startingGold?.multiplier}
-                onChange={{ updateField }}
-              />
-            </Grid.Col>
-            <Grid.Col >
-              <Dropdown
-                name='startingGold.currency'
-                label='Currency'
-                value={data?.startingGold?.currency}
-                options={currencies}
-                required={true}
-                onChange={{ updateField, removeField }}
-              />
-            </Grid.Col>
-          </Grid>
-        </Grid.Col>
-      )}
-      {data.__typename === 'Equipment' && (
-        <Grid.Col>
-          <RichTextEditor
-            name={'quote'}
-            className={sprinkles({ mb: 'space-3' })}
-            value={data?.quote}
-            label={'Quote'}
-            onChange={{ updateField }}
-          />
-        </Grid.Col>
-      )}
-      {(data.__typename === 'Character' || data.__typename === 'Spell' || data.__typename === 'Equipment') && (
-        <Grid.Col>
-          <RichTextEditor
-            name='desc'
-            className={sprinkles({ mb: 'space-3' })}
-            value={data?.desc}
-            label='Description'
-            onChange={{ updateField }}
-          />
-        </Grid.Col>
-      )}
-      {(data.__typename === 'Race' || data.__typename === 'Class' || data.__typename === 'Background') && (
-        <>
-          <Grid.Col span={2} className={sprinkles({ alignContent: 'flex-end' })}>
-            <Button
-              type='button'
-              color='main'
-              onClick={() => {
-                addField({
-                  path: 'details',
-                })
+            <AppField
+              name='label'
+              validators={{
+                onSubmit: ({ value }) => !value && 'Please enter a name',
               }}
             >
-              Add Detail
-            </Button>
-          </Grid.Col>
-          {data?.details != null && (
-            <Grid.Col>
-              <Accordion dataArray={data.details} updateFn={{ updateField }} name='details'>
-                {data?.details.map((detail, index) => (
-                  <Accordion.Item key={index} itemId={String(index)} value={detail.label}>
-                    <Accordion.Trigger
-                      removeFn={() =>
-                        removeField({
-                          path: `details.${index}`,
-                        })
-                      }
-                    >
-                      {detail.label != null && detail.label !== '' ? detail.label : `Detail ${index + 1}`}
-                    </Accordion.Trigger>
-                    <Accordion.Content>
-                      <Grid>
+              {({ TextField }) => (
+                <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                  <TextField label='Name' required={true} />
+                </Grid.Col>
+              )}
+            </AppField>
+            {__kind === 'CharacterInput' && (
+              <>
+                <AppField
+                  name='advancement'
+                  validators={{
+                    onSubmit: ({ value }) => !value && 'Please select a level advancement method',
+                  }}
+                >
+                  {({ DropdownField }) => (
+                    <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                      <DropdownField
+                        label='Advancement Type'
+                        options={characters.advancementMethods.all}
+                        required={true}
+                      />
+                    </Grid.Col>
+                  )}
+                </AppField>
+                <AppField
+                  name='hitpoint.method'
+                  validators={{
+                    onSubmit: ({ value }) => !value && 'Please select a hitpoint calculation method',
+                  }}
+                >
+                  {({ DropdownField }) => (
+                    <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                      <DropdownField
+                        label='Hit Point Type'
+                        options={characters.hitpointCalcMethods.all}
+                        required={true}
+                      />
+                    </Grid.Col>
+                  )}
+                </AppField>
+              </>
+            )}
+            {(__kind === 'RaceInput' || __kind === 'ClassInput' || __kind === 'EquipmentInput') && (
+              <>
+                <AppField
+                  name='category'
+                  validators={{
+                    onSubmit: ({ value }) => !value && 'Please select a category',
+                  }}
+                >
+                  {({ DropdownField }) => (
+                    <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                      <DropdownField
+                        label='Category'
+                        options={
+                          __kind !== 'EquipmentInput' ?
+                            categories.filter(
+                              (category) =>
+                                (__kind === 'RaceInput' && category?.races) ||
+                                (__kind === 'ClassInput' && category?.classes)
+                            )
+                          : equipment.categories.all
+                        }
+                        required={true}
+                      />
+                    </Grid.Col>
+                  )}
+                </AppField>
+                {__kind === 'RaceInput' && category === Categories.BASE && (
+                  <AppField
+                    name='playable'
+                    validators={{
+                      onSubmit: ({ value }) => !value && 'Choose whether this race is playable or not',
+                    }}
+                  >
+                    {({ DropdownField }) => (
+                      <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                        <DropdownField
+                          label='Playable'
+                          options={[
+                            {
+                              value: 'true',
+                              label: 'Yes',
+                              id: 'true',
+                            },
+                            {
+                              value: 'false',
+                              label: 'No',
+                              id: 'false',
+                            },
+                          ]}
+                          required={true}
+                        />
+                      </Grid.Col>
+                    )}
+                  </AppField>
+                )}
+                {__kind === 'EquipmentInput' && (
+                  <>
+                    <AppField name='properties'>
+                      {({ DropdownField }) => (
                         <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                          <Input
-                            name={`details.${index}.label`}
-                            autoComplete='off'
-                            label='Detail Name'
-                            value={detail.label}
-                            onChange={{ updateField }}
+                          <DropdownField
+                            label='properties'
+                            options={equipment.properties.filterByCategory(category)}
+                            multiselect={true}
                           />
                         </Grid.Col>
+                      )}
+                    </AppField>
+                    <AppField
+                      name='rarity'
+                      validators={{
+                        onSubmit: ({ value }) => !value && 'Please select a rarity',
+                      }}
+                    >
+                      {({ DropdownField }) => (
+                        <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                          <DropdownField label='Rarity' options={equipment.rarities} required={true} />
+                        </Grid.Col>
+                      )}
+                    </AppField>
+                    <AppField
+                      name='cost.amount'
+                      validators={{
+                        onSubmit: ({ value }) => !value && 'Please enter a cost amount',
+                        onChange: z.number('Cost amount must be an number'),
+                      }}
+                    >
+                      {({ TextField }) => (
+                        <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                          <TextField label='Cost' required={true} />
+                        </Grid.Col>
+                      )}
+                    </AppField>
+                    <AppField
+                      name='cost.currency'
+                      validators={{
+                        onSubmit: ({ value }) => !value && 'Please select a currency',
+                      }}
+                    >
+                      {({ DropdownField }) => (
+                        <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                          <DropdownField label='Currency' options={currencies} required={true} />
+                        </Grid.Col>
+                      )}
+                    </AppField>
+                    <AppField
+                      name='weight.amount'
+                      validators={{
+                        onSubmit: ({ value }) => !value && 'Please enter a weight amount',
+                        onChange: z.number('Weight').gt(0, 'Weight must be greater than 0'),
+                      }}
+                    >
+                      {({ TextField }) => (
+                        <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                          <TextField label='Weight' required={true} />
+                        </Grid.Col>
+                      )}
+                    </AppField>
+                    <AppField
+                      name='weight.unit'
+                      validators={{
+                        onSubmit: ({ value }) => !value && 'Please select a weight unit of measurement',
+                      }}
+                    >
+                      {({ DropdownField }) => (
+                        <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                          <DropdownField label='UoM' options={rules.measurements.imperial.weight} required={true} />
+                        </Grid.Col>
+                      )}
+                    </AppField>
+                  </>
+                )}
+              </>
+            )}
+            {__kind === 'ClassInput' && (
+              <>
+                {category === Categories.SUBCLASS ?
+                  <AppField
+                    name='parentClass'
+                    validators={{
+                      onSubmit: ({ value }) => !value && 'Please select a parent class',
+                    }}
+                  >
+                    {({ DropdownField }) => (
+                      <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                        <DropdownField label='Parent Class' options={baseClasses} required={true} />
+                      </Grid.Col>
+                    )}
+                  </AppField>
+                : <>
+                    <AppField
+                      name='hitpoint.dieConfig'
+                      validators={{
+                        onSubmit: ({ value }) => !value && 'Please enter a hitpoint die configuration',
+                        onChange: z
+                          .string()
+                          .regex(DIE_REGEX, 'Hitpoint die configuration must be a valid die configuration (ex: 1d8'),
+                      }}
+                    >
+                      {({ TextField }) => (
+                        <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                          <TextField label='HP Die Value' required={true} />
+                        </Grid.Col>
+                      )}
+                    </AppField>
+                    <AppField
+                      name='hitpoint.ability'
+                      validators={{
+                        onSubmit: ({ value }) => !value && 'Please select a hitpoint ability',
+                      }}
+                    >
+                      {({ DropdownField }) => (
+                        <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                          <DropdownField label='HP Modifier Ability' options={abilities} required={true} />
+                        </Grid.Col>
+                      )}
+                    </AppField>
+                  </>
+                }
+              </>
+            )}
+            {__kind === 'RaceInput' && (category === Categories.SUBRACE || category === Categories.VARIANT) && (
+              <AppField
+                name='lineages'
+                validators={{
+                  onSubmit: ({ value }) => !value && 'Please select a race lineage',
+                }}
+              >
+                {({ DropdownField }) => (
+                  <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                    <DropdownField label='Race Linage' options={races} required={true} multiselect={true} />
+                  </Grid.Col>
+                )}
+              </AppField>
+            )}
+            {__kind === 'EquipmentInput' &&
+              (category === EquipCats.WATER_VEHICLE || category === EquipCats.MOUNT ?
+                <>
+                  <AppField
+                    name='speed.amount'
+                    validators={{
+                      onSubmit: ({ value }) => !value && 'Please enter a speed value',
+                      onChange: z
+                        .int('Speed amount must be a whole number')
+                        .gte(1, 'Speed amount must be greater than 0'),
+                    }}
+                  >
+                    {({ TextField }) => (
+                      <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                        <TextField label='HP Die Value' />
+                      </Grid.Col>
+                    )}
+                  </AppField>
+                  <AppField
+                    name='speed.unit'
+                    validators={{
+                      onSubmit: ({ value }) => !value && 'Please select a speed unit of measurement',
+                    }}
+                  >
+                    {({ DropdownField }) => (
+                      <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                        <DropdownField label='UoM' options={rules.measurements.imperial.length} />
+                      </Grid.Col>
+                    )}
+                  </AppField>
+                </>
+              : (category === EquipCats.WEAPON || category === EquipCats.ARMOR) && (
+                  <AppField
+                    name='rank'
+                    validators={{
+                      onChange: z.int('Rank must be a whole number').gte(1, 'Rank must be greater than 0'),
+                    }}
+                  >
+                    {({ TextField }) => (
+                      <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                        <TextField label='Item Rank' />
+                      </Grid.Col>
+                    )}
+                  </AppField>
+                )) &&
+              (properties?.some((property) => property === EquipProps.CONTAINER) || category === EquipCats.MOUNT) && (
+                <>
+                  <AppField
+                    name='capacity.amount'
+                    validators={{
+                      onChange: z
+                        .number('Capacity amount must be a number')
+                        .gt(0, 'Speed amount must be greater than 0'),
+                    }}
+                  >
+                    {({ TextField }) => (
+                      <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                        <TextField label='Capacity Amount' />
+                      </Grid.Col>
+                    )}
+                  </AppField>
+                  <AppField
+                    name='capacity.unit'
+                    validators={{
+                      onSubmit: ({ value, fieldApi }) =>
+                        fieldApi.form.getFieldValue('capacity.amount') != null &&
+                        !value &&
+                        'Please select a capacity unit of measurement',
+                    }}
+                  >
+                    {({ DropdownField, form }) => (
+                      <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                        <DropdownField
+                          label='UoM'
+                          options={[...rules.measurements.imperial.volume, ...rules.measurements.imperial.weight]}
+                          required={form.getFieldValue('capacity.amount') != null}
+                        />
+                      </Grid.Col>
+                    )}
+                  </AppField>
+                </>
+              )}
+            {__kind === 'EquipmentInput' && (category === EquipProps.THROWN || category === EquipProps.RANGED) && (
+              <>
+                <AppField
+                  name='range.minRange'
+                  validators={{
+                    onSubmit: ({ value }) => !value && 'Please enter a min range value',
+                    onChange: z.int('Min range must be a whole number').gte(1, 'Min range must be greater than 0'),
+                  }}
+                >
+                  {({ TextField }) => (
+                    <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                      <TextField label='Min. Range' required={true} />
+                    </Grid.Col>
+                  )}
+                </AppField>
+                <AppField
+                  name='range.maxRange'
+                  validators={{
+                    onSubmit: ({ value }) => !value && 'Please enter a max range value',
+                    onChange: z.int('Min range must be a whole number').gte(1, 'Min range must be greater than 0'),
+                  }}
+                >
+                  {({ TextField }) => (
+                    <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                      <TextField label='Max Range' required={true} />
+                    </Grid.Col>
+                  )}
+                </AppField>
+              </>
+            )}
+            {__kind === 'EquipmentInput' && (
+              <AppField
+                name='quantity'
+                validators={{
+                  onChange: z.int('Quantity must be a whole number').gte(1, 'Quantity must be greater than 0'),
+                }}
+              >
+                {({ TextField }) => (
+                  <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                    <TextField label='Quantity' />
+                  </Grid.Col>
+                )}
+              </AppField>
+            )}
+            {__kind === 'SpellInput' && (
+              <>
+                <AppField
+                  name='level'
+                  validators={{
+                    onSubmit: ({ value }) => !value && 'Please enter a spell level',
+                    onChange: z.int('Spell level must be a whole number').gte(0, 'Spell level must be at least 0'),
+                  }}
+                >
+                  {({ TextField }) => (
+                    <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                      <TextField label='Level' required={true} />
+                    </Grid.Col>
+                  )}
+                </AppField>
+                <AppField
+                  name='school'
+                  validators={{
+                    onSubmit: ({ value }) => !value && 'Please select a spell school',
+                  }}
+                >
+                  {({ DropdownField }) => (
+                    <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                      <DropdownField label='School' required={true} options={spells.schools} />
+                    </Grid.Col>
+                  )}
+                </AppField>
+                <AppField name='requirements'>
+                  {({ DropdownField }) => (
+                    <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                      <DropdownField label='Requirements' options={spells.requirements} multiselect={true} />
+                    </Grid.Col>
+                  )}
+                </AppField>
+                <AppField
+                  name='classes'
+                  validators={{
+                    onSubmit: ({ value }) => !value && 'Please select at least one class',
+                  }}
+                >
+                  {({ DropdownField }) => (
+                    <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                      <DropdownField label='Class(es)' options={classes} multiselect={true} required={true} />
+                    </Grid.Col>
+                  )}
+                </AppField>
+                {requirements?.some((requirement) => requirement === SpellReqs.MATERIAL) && (
+                  <AppField
+                    name='materialDesc'
+                    validators={{
+                      onSubmit: ({ value }) => !value && 'Please enter a material requirement description',
+                    }}
+                  >
+                    {({ TextField }) => (
+                      <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                        <TextField label='Material Desc.' required={true} />
+                      </Grid.Col>
+                    )}
+                  </AppField>
+                )}
+              </>
+            )}
+            {__kind === 'ClassInput' && category === Categories.BASE && (
+              <Grid.Col>
+                <Divider label='Starting Gold' />
+                <Grid>
+                  <AppField
+                    name='startingGold.dieConfig'
+                    validators={{
+                      onSubmit: ({ value }) => !value && 'Please enter a gold die configuration',
+                      onChange: z.string().regex(DIE_REGEX, 'Please enter a valid die configuration (ex: 2d4)'),
+                    }}
+                  >
+                    {({ TextField }) => (
+                      <Grid.Col>
+                        <TextField label='Gold Die Config.' required={true} />
+                      </Grid.Col>
+                    )}
+                  </AppField>
+                  <AppField
+                    name='startingGold.multiplier'
+                    validators={{
+                      onSubmit: ({ value }) => !value && 'Please enter a gold die configuration',
+                      onChange: z
+                        .number('Multiplier must be a number')
+                        .gt(0, 'Multiplier must be a number greater than 0'),
+                    }}
+                  >
+                    {({ TextField }) => (
+                      <Grid.Col>
+                        <TextField label='Gold Multiplier' required={true} />
+                      </Grid.Col>
+                    )}
+                  </AppField>
+                  <AppField
+                    name='startingGold.currency'
+                    validators={{
+                      onSubmit: ({ value }) => !value && 'Please select a currency',
+                    }}
+                  >
+                    {({ DropdownField }) => (
+                      <Grid.Col>
+                        <DropdownField label='Currency' options={currencies} required={true} />
+                      </Grid.Col>
+                    )}
+                  </AppField>
+                </Grid>
+              </Grid.Col>
+            )}
+            {__kind === 'EquipmentInput' && (
+              <AppField name='quote'>
+                {({ RichTextEditorField }) => (
+                  <Grid.Col>
+                    <RichTextEditorField label='Quote' />
+                  </Grid.Col>
+                )}
+              </AppField>
+            )}
+            {(__kind === 'CharacterInput' || __kind === 'SpellInput' || __kind === 'EquipmentInput') && (
+              <AppField name='desc'>
+                {({ RichTextEditorField }) => (
+                  <Grid.Col>
+                    <RichTextEditorField label='Description' />
+                  </Grid.Col>
+                )}
+              </AppField>
+            )}
+            {(__kind === 'RaceInput' || __kind === 'ClassInput' || __kind === 'BackgroundInput') && (
+              <>
+                <AppField name='details' mode='array'>
+                  {({ insertValue, removeValue, AccordionField }) => (
+                    <>
+                      <Grid.Col span={2} className={sprinkles({ alignContent: 'flex-end' })}>
+                        <Button
+                          type='button'
+                          onClick={() => insertValue(details?.length ?? 0, DetailInputSchema.parse({}))}
+                        >
+                          Add Detail
+                        </Button>
+                      </Grid.Col>
+                      {details?.length && (
                         <Grid.Col>
-                          <RichTextEditor
-                            name={`details.${index}.desc`}
-                            value={detail.desc}
-                            label={'Section Description'}
-                            onChange={{ updateField }}
-                          />
+                          <AccordionField name='details'>
+                            {details.map((detail, i) => (
+                              <Accordion.Item key={`${i}-details`} itemId={String(i)} value={detail.label ?? ''}>
+                                <Accordion.Trigger removeFn={() => removeValue(i)}>
+                                  {detail.label != null && detail.label !== '' ? detail.label : `Detail ${i + 1}`}
+                                </Accordion.Trigger>
+                                <Accordion.Content>
+                                  <Grid>
+                                    <AppField name={`details[${i}].label`}>
+                                      {({ TextField }) => (
+                                        <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                          <TextField label='Detail Name' />
+                                        </Grid.Col>
+                                      )}
+                                    </AppField>
+
+                                    <AppField name={`details[${i}].desc`}>
+                                      {({ RichTextEditorField }) => (
+                                        <Grid.Col>
+                                          <RichTextEditorField label='Section Description' />
+                                        </Grid.Col>
+                                      )}
+                                    </AppField>
+                                  </Grid>
+                                </Accordion.Content>
+                              </Accordion.Item>
+                            ))}
+                          </AccordionField>
                         </Grid.Col>
-                      </Grid>
-                    </Accordion.Content>
-                  </Accordion.Item>
-                ))}
-              </Accordion>
-            </Grid.Col>
-          )}
-        </>
-      )}
-    </Grid>
-  )
-}
+                      )}
+                    </>
+                  )}
+                </AppField>
+              </>
+            )}
+          </Grid>
+        )}
+      </Subscribe>
+    )
+  },
+})
 
 export default DetailsStep

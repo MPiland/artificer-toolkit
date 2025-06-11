@@ -2,7 +2,7 @@ import { FormDataType, SectionName } from '@/types'
 import { CamelCase } from 'type-fest'
 import { ProfCats } from '@/enums'
 
-export const numberToWords = (number: number) => {
+export const numberToWords = (number: number): string => {
   const units = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']
   const teens = [
     'ten',
@@ -16,7 +16,7 @@ export const numberToWords = (number: number) => {
     'eighteen',
     'nineteen',
   ]
-  
+
   const tens = ['', 'ten', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety']
 
   if (number === 0) return 'zero'
@@ -62,28 +62,28 @@ export const numberToWords = (number: number) => {
   return result.trim().replace(/,$/, '')
 }
 
-export const routeRoot = (typename: FormDataType['__typename']) => {
+export const routeRoot = (typename: FormDataType['__kind']): string => {
   let routeString: string = ''
   switch (typename) {
-    case 'Character':
+    case 'CharacterInput':
       routeString = 'characters'
       break
-    case 'Class':
+    case 'ClassInput':
       routeString = 'classes'
       break
-    case 'Feat':
+    case 'FeatInput':
       routeString = 'feats'
       break
-    case 'Equipment':
+    case 'EquipmentInput':
       routeString = 'equipment'
       break
-    case 'Background':
+    case 'BackgroundInput':
       routeString = 'backgrounds'
       break
-    case 'Race':
+    case 'RaceInput':
       routeString = 'races'
       break
-    case 'Spell':
+    case 'SpellInput':
       routeString = 'spells'
       break
   }
@@ -91,7 +91,7 @@ export const routeRoot = (typename: FormDataType['__typename']) => {
   return routeString
 }
 
-export const sectionIdKey = (sectionStep: Exclude<SectionName, 'options'>) => {
+export const sectionIdKey = (sectionStep: Exclude<SectionName, 'options'>): string => {
   const idMap = {
     feats: 'featId',
     proficiencies: 'proficiencyId',
@@ -106,23 +106,23 @@ export const sectionIdKey = (sectionStep: Exclude<SectionName, 'options'>) => {
 
 export const typenameMap = {
   feats: {
-    typename: 'CharacterFeat',
+    typename: 'CharacterFeatInput',
     id: 'featId',
   },
   proficiencies: {
-    typename: 'CharacterProficiency',
+    typename: 'CharacterProficiencyInput',
     id: 'proficiencyId',
   },
   expertise: {
-    typename: 'CharacterExpertise',
+    typename: 'CharacterExpertiseInput',
     id: 'expertiseId',
   },
   modifiers: {
-    typename: 'CharacterModifier',
+    typename: 'CharacterModifierInput',
     id: 'modifierId',
   },
   senses: {
-    typename: 'CharacterSense',
+    typename: 'CharacterSenseInput',
     id: 'senseId',
   },
 } as const

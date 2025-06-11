@@ -6,7 +6,7 @@ import {
   ability_card_info_value,
   ability_card_info,
 } from '../../../Character.css'
-import { calculateModifier } from '../../../Form.utils'
+import { calculateModifier } from '../../../utils'
 import { Grid } from '@mantine/core'
 
 const AbilityCard = ({ ability, score }: { ability: GenericType; score: Scores }) => {

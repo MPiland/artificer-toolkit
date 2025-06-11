@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import Spell from '@/pages/spells/Spell'
-import { fetchSpell } from '@/apis/spellsApi'
+import { fetchSpell } from '@/apis/spells.api'
 import Loading from '@/components/Loading/Loading'
 
 export const Route = createFileRoute('/_protected/spells/$spellId')({

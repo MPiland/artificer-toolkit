@@ -1,6 +1,6 @@
-import { DeepKeyOf, FormDataType, SourceTypeMap } from '@/types'
+import { DeepKeyOf, SourceTypeMap, SourceDataType } from '@/types'
 
-export type DetailObject<T extends FormDataType> = {
+export type DetailObject<T extends SourceDataType> = {
   path: DeepKeyOf<T>
   source?: {
     [S in keyof SourceTypeMap]: {
@@ -12,12 +12,12 @@ export type DetailObject<T extends FormDataType> = {
 }
 
 // Can be either a DetailObject or an array of DetailObjects
-export type DetailItem<T extends FormDataType> = DetailObject<T> | DetailObject<T>[]
+export type DetailItem<T extends SourceDataType> = DetailObject<T> | DetailObject<T>[]
 
 // Array of DetailItems, which allows mixing objects and arrays
-export type DetailArray<T extends FormDataType> = DetailItem<T>[] | DetailArray<T>[]
+export type DetailArray<T extends SourceDataType> = DetailItem<T>[] | DetailArray<T>[]
 
-export type DetailConfig<T extends FormDataType> = {
+export type DetailConfig<T extends SourceDataType> = {
   header: string
   text: DetailObject<T> | DetailArray<T>
   truncate?: number

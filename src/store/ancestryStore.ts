@@ -1,28 +1,28 @@
 import { create } from 'zustand'
 import { addField, removeField, updateField, reset } from './utils'
-import type { DeepKeyOf, AncestryOption } from '@/types'
+import type { DeepKeyOf, AncestryOptionInput } from '@/types'
 import { produce } from 'immer'
 import { persist } from 'zustand/middleware'
 
 export interface AncestryStore {
-  data: AncestryOption
+  data: AncestryOptionInput
   index: number
-  initData: AncestryOption
-  updateField(arg: { path: DeepKeyOf<AncestryOption>; value: any }): void
-  addField(arg: { path: DeepKeyOf<AncestryOption>; value: any }): void
-  removeField(arg: { path: DeepKeyOf<AncestryOption> }): void
-  resetData: (arg: { value: AncestryOption }) => void
-  resetInit: (arg: { value: AncestryOption }) => void
+  initData: AncestryOptionInput
+  updateField(arg: { path: DeepKeyOf<AncestryOptionInput>; value: any }): void
+  addField(arg: { path: DeepKeyOf<AncestryOptionInput>; value: any }): void
+  removeField(arg: { path: DeepKeyOf<AncestryOptionInput> }): void
+  resetData: (arg: { value: AncestryOptionInput }) => void
+  resetInit: (arg: { value: AncestryOptionInput }) => void
   setIndex: (arg: { value: number }) => void
-  reinitState: (value?: AncestryOption) => void
+  reinitState: (value?: AncestryOptionInput) => void
 }
 
 export const useAncestryStore = create<AncestryStore>()(
   persist(
     (set) => {
       const defaultState: Pick<AncestryStore, 'data' | 'initData' | 'index'> = {
-        data: {} as AncestryOption,
-        initData: {} as AncestryOption,
+        data: {} as AncestryOptionInput,
+        initData: {} as AncestryOptionInput,
         index: 0,
       }
       return {
@@ -30,27 +30,27 @@ export const useAncestryStore = create<AncestryStore>()(
 
         addField: ({ path, value }) =>
           set((state: AncestryStore) =>
-            addField<AncestryStore, AncestryOption>({ path, value, selector: (state) => state.data })(state)
+            addField<AncestryStore, AncestryOptionInput>({ path, value, selector: (state) => state.data })(state)
           ),
 
         removeField: ({ path }) =>
           set((state: AncestryStore) =>
-            removeField<AncestryStore, AncestryOption>({ path, selector: (state) => state.data })(state)
+            removeField<AncestryStore, AncestryOptionInput>({ path, selector: (state) => state.data })(state)
           ),
 
         updateField: ({ path, value }) =>
           set((state: AncestryStore) =>
-            updateField<AncestryStore, AncestryOption>({ path, value, selector: (state) => state.data })(state)
+            updateField<AncestryStore, AncestryOptionInput>({ path, value, selector: (state) => state.data })(state)
           ),
 
         resetData: ({ value }) =>
           set((state: AncestryStore) =>
-            reset<AncestryStore, AncestryOption>({ value, selector: (state) => state.data })(state)
+            reset<AncestryStore, AncestryOptionInput>({ value, selector: (state) => state.data })(state)
           ),
 
         resetInit: ({ value }) =>
           set((state: AncestryStore) =>
-            reset<AncestryStore, AncestryOption>({ value, selector: (state) => state.initData })(state)
+            reset<AncestryStore, AncestryOptionInput>({ value, selector: (state) => state.initData })(state)
           ),
 
         setIndex: ({ value }) =>
@@ -60,7 +60,7 @@ export const useAncestryStore = create<AncestryStore>()(
             })
           ),
 
-        reinitState: (value?: AncestryOption) => {
+        reinitState: (value?: AncestryOptionInput) => {
           if (value) {
             return set((state) => ({
               ...state,

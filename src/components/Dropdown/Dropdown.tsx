@@ -11,21 +11,18 @@ import { Check } from 'lucide-react'
 import { useClickOutside } from '@mantine/hooks'
 import { ScrollArea } from '@mantine/core'
 
-const Dropdown = <T,>({
+const Dropdown = ({
   label,
   required,
-  name,
   options,
-  multiSelect,
+  multiselect,
   value,
   onChange,
   placeholder,
   all = true,
-  height = 'default',
-  border = 'default',
   disableRemove = false,
   errorMsg,
-}: DropdownProps<T>) => {
+}: DropdownProps) => {
   const [error, setError] = useState<string>()
   const [settingOption, setSettingOption] = useState<boolean>(false)
   const [selectedOptions, setSelectedOptions] = useState<string[] | string | null>(null)
@@ -94,7 +91,7 @@ const Dropdown = <T,>({
           return 0
         })
 
-        if (multiSelect && all === true) {
+        if (multiselect && all === true) {
           optionArray.unshift(
             { value: 'all', label: 'All', id: 'all' },
             { value: 'clear', label: 'Clear', id: 'clear' }
@@ -103,7 +100,7 @@ const Dropdown = <T,>({
       }
     }
     return optionArray
-  }, [options, multiSelect, all])
+  }, [options, multiselect, all])
 
   const filteredOptions = useMemo(() => filteredArray(), [filteredArray])
 
@@ -141,14 +138,14 @@ const Dropdown = <T,>({
   const handleValueSelect = (optionId: string) => {
     console.log({ optionId })
     setSettingOption(true)
-    if (multiSelect) {
+    if (multiselect) {
       let newOptions: string[] | null = [optionId]
       if (optionId === 'clear') {
         newOptions = null
       } else if (optionId === 'all') {
         newOptions = ['all']
         const allOptions = filteredOptions.filter((opt) => opt.id !== 'all' && opt.id !== 'clear').map((opt) => opt.id)
-        onChange.updateField({ path: name, value: newOptions })
+        onChange(newOptions)
         return setSelectedOptions(allOptions)
       }
       if (newOptions != null && Array.isArray(selectedOptions) && selectedOptions?.length) {
@@ -158,12 +155,12 @@ const Dropdown = <T,>({
           newOptions = [...selectedOptions, ...newOptions]
         }
       }
-      onChange.updateField({ path: name, value: newOptions })
+      onChange(newOptions)
       setSelectedOptions(newOptions)
     } else {
       // If it's a single select, update selectedOptionsRef.current to match selectedOptions
       setSelectedOptions(optionId)
-      onChange.updateField({ path: name, value: optionId })
+      onChange(optionId)
     }
     setSettingOption(false)
   }
@@ -172,7 +169,7 @@ const Dropdown = <T,>({
     if (disableRemove) return
     setSettingOption(true)
     setSelectedOptions(null)
-    onChange.removeField({ path: name })
+    onChange(undefined)
     setSettingOption(false)
   }
 
@@ -180,11 +177,11 @@ const Dropdown = <T,>({
     <Combobox.Option
       key={option.id}
       value={option.id}
-      active={multiSelect ? value?.includes(option.id) : value === option.id}
+      active={multiselect ? value?.includes(option.id) : value === option.id}
       className={dropdown_option}
       onMouseOver={() => combobox.selectOption(index)}
     >
-      {multiSelect ? value?.includes(option.id) : value === option.id && <Check className={dropdown_active_icon} />}
+      {multiselect ? value?.includes(option.id) : value === option.id && <Check className={dropdown_active_icon} />}
       {option.label}
     </Combobox.Option>
   ))
@@ -198,7 +195,7 @@ const Dropdown = <T,>({
       width='target'
       offset={8}
     >
-      {multiSelect ?
+      {multiselect ?
         <DropdownMultiple
           value={(value as string[]) || []}
           placeholder={placeholder}
@@ -208,8 +205,6 @@ const Dropdown = <T,>({
           required={required}
           toggleDropdown={() => combobox.toggleDropdown()}
           closeDropdown={() => combobox.closeDropdown()}
-          height={height}
-          border={border}
           error={error}
         />
       : <DropdownSingle
@@ -221,8 +216,6 @@ const Dropdown = <T,>({
           required={required}
           toggleDropdown={() => combobox.toggleDropdown()}
           closeDropdown={() => combobox.closeDropdown()}
-          height={height}
-          border={border}
           error={error}
         />
       }

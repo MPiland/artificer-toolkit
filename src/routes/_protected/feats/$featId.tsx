@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import Feat from '@/pages/feats/Feat'
-import { fetchFeat } from '@/apis/featsApi'
+import { fetchFeat } from '@/apis/feats.api'
 import Loading from '@/components/Loading/Loading'
 
 export const Route = createFileRoute('/_protected/feats/$featId')({

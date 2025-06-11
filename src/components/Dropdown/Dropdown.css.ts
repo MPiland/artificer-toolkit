@@ -1,5 +1,5 @@
 import { app } from '@/css/layers.css'
-import {style, styleVariants } from '@vanilla-extract/css'
+import {style } from '@vanilla-extract/css'
 import { size, space } from '@/css/size.css'
 
 export const dropdown = style({
@@ -89,9 +89,4 @@ export const dropdown_option = style({
       },
     },
   },
-})
-
-export const dropdown_height = styleVariants({
-  auto: { '@layer': { [app]: { height: size['size-auto'] } } },
-  full: { '@layer': { [app]: { height: size['size-full'] } } },
 })

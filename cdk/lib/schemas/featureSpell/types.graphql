@@ -1,0 +1,26 @@
+type SpellsByLevel {
+  spells: [ID!]
+  level: Int
+  spellLevel: Int
+}
+
+type FeatureSpell {
+  id: ID!
+  ids: [ID!]
+  attributes: [ID!]
+  selectionCount: Int
+  classLimit: [ID!]
+  levelLimit: [String!]
+  attributeLimit: [ID!]
+  ability: ID
+  spellLevel: Int
+  spellsByLevel: [SpellsByLevel!]
+  subtype: ID
+  prerequisites: Prerequisite
+  charges: Charge
+}
+
+type FeatureSpellConnection {
+  items: [FeatureSpell!]!
+  nextToken: String
+}

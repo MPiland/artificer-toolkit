@@ -1,572 +1,674 @@
+import { z } from 'zod/v4'
 import { useEffect, useMemo } from 'react'
-import Dropdown from '@/components/Dropdown'
-import Input from '@/components/Input'
 import Collapsible from '@/components/Collapsible'
 import { Attributes, Damages, Spells } from '@/enums'
-import Button from '@/components/Button'
 import { row_button } from '../Form.css'
 import { TbPlus, TbX } from 'react-icons/tb'
 import { useEnumChecks, useSystemData } from '@/hooks'
 import { startCase } from 'lodash'
-import { Grid } from '@mantine/core'
-import type { OnChange, Equipment, Spell, FeatureDataType } from '@/types'
+import { Grid, UnstyledButton } from '@mantine/core'
+import { withFieldGroup } from '../utils/factory'
+import { useStore } from '@tanstack/react-form'
+import {
+  DamageInputSchema,
+  SpellInputSchema,
+  FeatInputSchema,
+  FeatureInputSchema,
+  EquipmentInputSchema,
+  AncestryFeatureInputSchema,
+  FeatureOptionInputSchema,
+  DiePerLevelInputSchema,
+  SetPerLevelInputSchema,
+} from '@/schemas'
+import { DIE_REGEX } from '../utils/utils'
 
-const Damage = ({
-  formStore: { data, updateField, removeField, addField },
-}: {
-  formStore: {
-    data: Spell | Equipment | FeatureDataType
-    updateField: OnChange<Spell | Equipment | FeatureDataType>['updateField']
-    removeField: OnChange<Spell | Equipment | FeatureDataType>['removeField']
-    addField: OnChange<Spell | Equipment | FeatureDataType>['addField']
-  }
-}) => {
-  const { abilities, attributes, damageTypes } = useSystemData()
+const defaultValues: z.input<typeof DamageInputSchema> = DamageInputSchema.parse({})
 
-  const { doesDamage } = useEnumChecks({ data })
-  const { secondaryDamage, bonusDamage, isVersatile } = useEnumChecks({
-    data: data?.damage ? data?.damage : undefined,
-  })
+type ParentFormInputType =
+  | z.infer<typeof SpellInputSchema>
+  | z.infer<typeof FeatInputSchema>
+  | z.infer<typeof FeatureInputSchema>
+  | z.infer<typeof EquipmentInputSchema>
+  | z.infer<typeof AncestryFeatureInputSchema>
+  | z.infer<typeof FeatureOptionInputSchema>
 
-  // Set Damage types for spells, weapons, items
-  const formDamageTypes = useMemo(() => {
-    let types: ('primary' | 'secondary' | 'bonus' | 'versatile')[] = ['primary'] // Create a copy of damageTypes array
+const Damage = withFieldGroup({
+  defaultValues: defaultValues,
+  render: function Render({ group }) {
+    const values = useStore(group.store, (state) => state.values)
+    const formValues = useStore(group.form.store, (state) => state.values) as ParentFormInputType
 
-    // Handle secondary
-    if (secondaryDamage) {
-      if (!types.includes('secondary')) {
-        types.push('secondary')
+    const { abilities, attributes, damageTypes } = useSystemData()
+    const { secondaryDamage, bonusDamage, isVersatile } = useEnumChecks({
+      data: values || undefined,
+    })
+
+    // Set Damage types for spells, weapons, items
+    const formDamageTypes = useMemo(() => {
+      let types: ('primary' | 'secondary' | 'bonus' | 'versatile')[] = ['primary'] // Create a copy of damageTypes array
+
+      // Handle secondary
+      if (secondaryDamage) {
+        if (!types.includes('secondary')) {
+          types.push('secondary')
+        }
+      } else if (types.includes('secondary')) {
+        types = types.filter((type) => type !== 'secondary')
       }
-    } else if (types.includes('secondary')) {
-      types = types.filter((type) => type !== 'secondary')
-    }
 
-    // Handle bonus damage
-    if (bonusDamage) {
-      if (!types.includes('bonus')) {
-        types.push('bonus')
+      // Handle bonus damage
+      if (bonusDamage) {
+        if (!types.includes('bonus')) {
+          types.push('bonus')
+        }
+      } else if (types.includes('bonus')) {
+        types = types.filter((type) => type !== 'bonus')
       }
-    } else if (types.includes('bonus')) {
-      types = types.filter((type) => type !== 'bonus')
-    }
 
-    if (data.__typename === 'Equipment' && isVersatile) {
-      if (!types.includes('versatile')) {
-        types.push('versatile')
+      if (formValues.__kind === 'EquipmentInput' && isVersatile) {
+        if (!types.includes('versatile')) {
+          types.push('versatile')
+        }
+      } else if (types.includes('versatile')) {
+        types = types.filter((type) => type !== 'versatile')
       }
-    } else if (types.includes('versatile')) {
-      types = types.filter((type) => type !== 'versatile')
-    }
-    return types
-  }, [data, bonusDamage, secondaryDamage, isVersatile])
+      return types
+    }, [formValues.__kind, bonusDamage, secondaryDamage, isVersatile])
 
-  // Add primary damage if doesn't exist
-  useEffect(() => {
-    if (doesDamage && !data?.damage?.primary) {
-      updateField({
-        path: 'damage.primary',
-        value: {},
+    // Add primary damage if doesn't exist
+    useEffect(() => {
+      if (!values?.primary) {
+        group.setFieldValue('primary', { __kind: 'DamageFieldsInput' })
+      }
+    }, [values?.primary, group])
+
+    // Add/remove Die Per Level table
+    useEffect(() => {
+      const diePerLevel = {
+        primary: values?.primary?.attribute === Attributes.DIE_PER_LEVEL,
+        secondary: values?.secondary?.attribute === Attributes.DIE_PER_LEVEL,
+        bonus: values?.bonus?.attribute === Attributes.DIE_PER_LEVEL,
+      }
+      // Potential damage properties
+      const keys = ['primary', 'secondary', 'bonus'] as const
+      type DamageKey = (typeof keys)[number]
+      keys.forEach((key: DamageKey) => {
+        if (diePerLevel[key] && !values?.diePerLevel?.some((level) => level?.[key] != null) && values?.[key]) {
+          group.setFieldValue(`diePerLevel[0].${key}`, { __kind: 'DamageFieldsInput' })
+        }
+        if (!diePerLevel[key] && values?.diePerLevel?.find((level) => level?.[key]) != null) {
+          const diePerLevelArray = values?.diePerLevel?.map((level) => {
+            const levelObject = { ...level }
+            delete levelObject[key]
+            return levelObject
+          })
+          group.setFieldValue('diePerLevel', diePerLevelArray)
+        }
       })
-    }
-  }, [doesDamage, data?.damage?.primary, updateField])
+    }, [group, values])
 
-  // Add/remove Die Per Level table
-  useEffect(() => {
-    const diePerLevel = {
-      primary: data?.damage?.primary?.attribute === Attributes.DIE_PER_LEVEL,
-      secondary: data?.damage?.secondary?.attribute === Attributes.DIE_PER_LEVEL,
-      bonus: data?.damage?.bonus?.attribute === Attributes.DIE_PER_LEVEL,
-    }
-    // Potential damage properties
-    const keys = ['primary', 'secondary', 'bonus'] as const
-    type DamageKey = (typeof keys)[number]
-    keys.forEach((key: DamageKey) => {
+    // Add/remove Set Per Level table
+    useEffect(() => {
+      const setPerLevel = {
+        primary: values?.primary?.attribute === Attributes.SET_PER_LEVEL,
+        secondary: values?.secondary?.attribute === Attributes.SET_PER_LEVEL,
+        bonus: values?.bonus?.attribute === Attributes.SET_PER_LEVEL,
+      }
+      // Potential damage properties
+      const keys = ['primary', 'secondary', 'bonus'] as const
+      type DamageKey = (typeof keys)[number]
+      keys.forEach((key: DamageKey) => {
+        if (setPerLevel[key] && !values?.setPerLevel?.some((level) => level?.[key] != null) && values?.[key]) {
+          group.setFieldValue(`setPerLevel[0].${key}`, 0)
+        }
+        if (!setPerLevel[key] && values?.setPerLevel?.find((level) => level?.[key]) != null) {
+          const setPerLevelArray = values?.setPerLevel?.map((level) => {
+            const levelObject = { ...level }
+            delete levelObject[key]
+            return levelObject
+          })
+          group.setFieldValue('setPerLevel', setPerLevelArray)
+        }
+      })
+    }, [group, values])
+
+    // Remove Damage data
+    useEffect(() => {
+      if (values?.secondary && !secondaryDamage) {
+        group.setFieldValue('secondary', undefined)
+      }
+      if (values?.bonus && !bonusDamage) {
+        group.setFieldValue('bonus', undefined)
+      }
       if (
-        diePerLevel[key] &&
-        !data?.damage?.diePerLevel?.some((level) => level?.[key] != null) &&
-        data?.damage?.[key]
+        (formValues.__kind !== 'EquipmentInput' && values?.versatile) ||
+        (formValues.__kind === 'EquipmentInput' && !isVersatile)
       ) {
-        addField({ path: `damage.diePerLevel.0.${key}` })
+        group.setFieldValue('versatile', undefined)
       }
-      if (!diePerLevel[key] && data?.damage?.diePerLevel?.find((level) => level?.[key]) != null) {
-        const diePerLevelArray = data?.damage?.diePerLevel?.map((level) => {
-          const levelObject = { ...level }
-          delete levelObject[key]
-          return levelObject
-        })
-        updateField({
-          path: `damage.diePerLevel`,
-          value: diePerLevelArray,
-        })
-      }
-    })
-  }, [updateField, data?.damage, addField])
+    }, [group, values, bonusDamage, secondaryDamage, isVersatile, formValues])
 
-  // Add/remove Set Per Level table
-  useEffect(() => {
-    const setPerLevel = {
-      primary: data?.damage?.primary?.attribute === Attributes.SET_PER_LEVEL,
-      secondary: data?.damage?.secondary?.attribute === Attributes.SET_PER_LEVEL,
-      bonus: data?.damage?.bonus?.attribute === Attributes.SET_PER_LEVEL,
-    }
-    // Potential damage properties
-    const keys = ['primary', 'secondary', 'bonus'] as const
-    type DamageKey = (typeof keys)[number]
-    keys.forEach((key: DamageKey) => {
-      if (
-        setPerLevel[key] &&
-        !data?.damage?.setPerLevel?.some((level) => level?.[key] != null) &&
-        data?.damage?.[key]
-      ) {
-        addField({ path: `damage.setPerLevel.0.${key}` })
-      }
-      if (!setPerLevel[key] && data?.damage?.setPerLevel?.find((level) => level?.[key]) != null) {
-        const setPerLevelArray = data?.damage?.setPerLevel?.map((level) => {
-          const levelObject = { ...level }
-          delete levelObject[key]
-          return levelObject
-        })
-        addField({ path: `damage.setPerLevel`, value: setPerLevelArray })
-      }
-    })
-  }, [addField, data?.damage])
-
-  // Remove Damage data
-  useEffect(() => {
-    if (data?.damage?.secondary && !secondaryDamage) {
-      removeField({ path: 'damage.secondary' })
-    }
-    if (data?.damage?.bonus && !bonusDamage) {
-      removeField({ path: 'damage.bonus' })
-    }
-    if (
-      (data.__typename !== 'Equipment' && data?.damage?.versatile) ||
-      (data.__typename === 'Equipment' && !isVersatile)
-    ) {
-      updateField({ path: 'damage.versatile', value: null })
-    }
-  }, [updateField, removeField, data, bonusDamage, secondaryDamage, isVersatile])
-
-  return (
-    <>
-      <Grid.Col span={2}>
-        <Dropdown
-          multiSelect={true}
-          name={`damage.attributes`}
-          label={`Damage Attributes`}
-          value={data?.damage?.attributes}
-          options={attributes.filter((attribute) =>
-            data.__typename !== 'Spell' ?
-              attribute?.damage?.length && data.__typename === 'Equipment' ?
-                attribute?.damage?.includes(Damages.EQUIPMENT)
-              : attribute?.damage?.includes(Damages.ALL)
-            : attribute?.spells?.length && attribute.spells.includes(Spells.DAMAGE)
+    return (
+      <>
+        <group.AppField name='attributes'>
+          {({ DropdownField }) => (
+            <Grid.Col span={2}>
+              <DropdownField
+                label='Damage Attributes'
+                options={attributes.filter((attribute) =>
+                  formValues.__kind !== 'SpellInput' ?
+                    attribute?.damage?.length && formValues.__kind === 'EquipmentInput' ?
+                      attribute?.damage?.includes(Damages.EQUIPMENT)
+                    : attribute?.damage?.includes(Damages.ALL)
+                  : attribute?.spells?.length && attribute.spells.includes(Spells.DAMAGE)
+                )}
+                multiselect={true}
+              />
+            </Grid.Col>
           )}
-          onChange={{ updateField, removeField }}
-        />
-      </Grid.Col>
-      {formDamageTypes.map((type, index) => {
-        return (
-          <Grid.Col key={index}>
-            <Grid>
-              {type !== 'versatile' && (
-                <>
-                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                    <Dropdown
-                      name={`damage.${type}.attribute`}
-                      label={`${
-                        type === 'primary' ? 'Main'
-                        : type === 'secondary' ? 'Sec.'
-                        : 'Bonus'
-                      } Dmg. Attribute`}
-                      value={data?.damage?.[type]?.attribute}
-                      options={attributes.filter((attribute) =>
-                        attribute?.damage?.length && data.__typename === 'Equipment' ?
-                          attribute?.damage?.includes(Damages.EQUIPMENT)
-                        : attribute?.damage?.includes(Damages.MAIN)
-                      )}
-                      onChange={{ updateField, removeField }}
-                    />
-                  </Grid.Col>
-                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                    <Dropdown
-                      name={`damage.${type}.id`}
-                      label={`${
-                        type === 'primary' ? 'Main'
-                        : type === 'secondary' ? 'Sec.'
-                        : 'Bonus'
-                      } Dmg. Type`}
-                      value={data?.damage?.[type]?.id}
-                      options={[
-                        ...damageTypes,
-                        {
-                          id: 'matchWeapon',
-                          value: 'matchWeapon',
-                          label: 'Match Weapon',
-                        },
-                      ]}
-                      required={true}
-                      onChange={{ updateField, removeField }}
-                    />
-                  </Grid.Col>
-                </>
-              )}
-              {data?.damage?.[type]?.attribute !== Attributes.DIE_PER_LEVEL &&
-                data?.damage?.[type]?.attribute !== Attributes.SET_PER_LEVEL &&
-                (data?.damage?.[type]?.attribute === Attributes.SET_AMOUNT ?
-                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                    <Input
-                      name={`damage.${type}.setAmount`}
-                      value={data?.damage?.[type]?.setAmount}
-                      label={`Set ${
-                        type === 'primary' ? 'Main'
-                        : type === 'secondary' ? 'Sec.'
-                        : 'Bonus'
-                      } Value`}
-                      required={true}
-                      validation='num'
-                      errorMsg={'Must contain only numbers'}
-                      onChange={{ updateField }}
-                    />
-                  </Grid.Col>
-                : (
-                  data?.damage?.[type]?.attribute === Attributes.ABILITY ||
-                  data?.damage?.[type]?.attribute === Attributes.SPELLCASTING_ABILITY ||
-                  data?.damage?.[type]?.attribute === Attributes.PROFICIENCY
-                ) ?
+        </group.AppField>
+        {formDamageTypes.map((type, index) => {
+          return (
+            <Grid.Col key={index}>
+              <Grid>
+                {type !== 'versatile' && (
                   <>
-                    {data?.damage?.[type]?.attribute === Attributes.ABILITY && (
-                      <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                        <Dropdown
-                          name={`damage.${type}.ability`}
-                          label={`${
-                            type === 'primary' ? 'Main'
-                            : type === 'secondary' ? 'Sec.'
-                            : 'Bonus'
-                          } Ability`}
-                          value={data?.damage?.[type]?.ability}
-                          options={abilities}
-                          required={true}
-                          onChange={{ updateField, removeField }}
-                        />
-                      </Grid.Col>
-                    )}
-                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                      <Input
-                        name={`damage.${type}.minAmount`}
-                        value={data?.damage?.[type]?.minAmount}
-                        label={`${
-                          type === 'primary' ? 'Main'
-                          : type === 'secondary' ? 'Sec.'
-                          : 'Bonus'
-                        } Min. Value`}
-                        validation='num'
-                        errorMsg={'Must contain only numbers'}
-                        onChange={{ updateField }}
-                      />
-                    </Grid.Col>
-                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                      <Input
-                        name={`damage.${type}.maxAmount`}
-                        value={data?.damage?.[type]?.maxAmount}
-                        label={`${
-                          type === 'primary' ? 'Main'
-                          : type === 'secondary' ? 'Sec.'
-                          : 'Bonus'
-                        } Max Value`}
-                        validation='num'
-                        errorMsg={'Must contain only numbers'}
-                        onChange={{ updateField }}
-                      />
-                    </Grid.Col>
-                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                      <Input
-                        name={`damage.${type}.multiplier`}
-                        value={data?.damage?.[type]?.multiplier}
-                        label={`${
-                          type === 'primary' ? 'Main'
-                          : type === 'secondary' ? 'Sec.'
-                          : 'Bonus'
-                        } Dmg. Multiplier`}
-                        validation='num'
-                        errorMsg={'Must contain only numbers'}
-                        onChange={{ updateField }}
-                      />
-                    </Grid.Col>
-                  </>
-                : data?.damage?.[type]?.attribute === Attributes.DAMAGE_POOL ?
-                  <>
-                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                      <Dropdown
-                        name={`damage.${type}.pool.attribute`}
-                        label={`${
-                          type === 'primary' ? 'Main'
-                          : type === 'secondary' ? 'Sec.'
-                          : 'Bonus'
-                        } Dmg. Pool Attribute`}
-                        value={data?.damage?.[type]?.pool?.attribute}
-                        options={attributes.filter(
-                          (attribute) => attribute?.damage?.length && attribute?.damage.includes(Damages.POOL)
-                        )}
-                        required={true}
-                        onChange={{ updateField, removeField }}
-                      />
-                    </Grid.Col>
-                    {(
-                      data?.damage?.[type]?.pool?.attribute === Attributes.LEVEL ||
-                      data?.damage?.[type]?.pool?.attribute === Attributes.ABILITY ||
-                      data?.damage?.[type]?.pool?.attribute === Attributes.SPELLCASTING_ABILITY ||
-                      data?.damage?.[type]?.pool?.attribute === Attributes.PROFICIENCY
-                    ) ?
-                      <>
-                        {(data?.damage?.[type]?.pool?.attribute === Attributes.ABILITY ||
-                          data?.damage?.[type]?.pool.attribute === Attributes.SPELLCASTING_ABILITY) && (
-                          <>
-                            {data?.damage?.[type]?.pool?.attribute === Attributes.ABILITY && (
-                              <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                                <Dropdown
-                                  name={`damage.${type}.pool.ability`}
-                                  label='Pool Abilty'
-                                  value={data?.damage?.[type]?.pool?.ability}
-                                  options={abilities}
-                                  required={true}
-                                  onChange={{ updateField, removeField }}
-                                />
-                              </Grid.Col>
+                    <group.AppField name={`${type}.attribute`}>
+                      {({ DropdownField }) => (
+                        <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                          <DropdownField
+                            label={`${
+                              type === 'primary' ? 'Main'
+                              : type === 'secondary' ? 'Sec.'
+                              : 'Bonus'
+                            } Dmg. Attribute`}
+                            options={attributes.filter((attribute) =>
+                              attribute?.damage?.length && formValues.__kind === 'EquipmentInput' ?
+                                attribute?.damage?.includes(Damages.EQUIPMENT)
+                              : attribute?.damage?.includes(Damages.MAIN)
                             )}
-                            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                              <Input
-                                name={`damage.${type}.pool.minAmount`}
-                                value={data?.damage?.[type]?.pool?.minAmount}
+                          />
+                        </Grid.Col>
+                      )}
+                    </group.AppField>
+                    <group.AppField name={`${type}.id`}>
+                      {({ DropdownField }) => (
+                        <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                          <DropdownField
+                            label={`${
+                              type === 'primary' ? 'Main'
+                              : type === 'secondary' ? 'Sec.'
+                              : 'Bonus'
+                            } Dmg. Type`}
+                            options={[
+                              ...damageTypes,
+                              {
+                                id: 'matchWeapon',
+                                value: 'matchWeapon',
+                                label: 'Match Weapon',
+                              },
+                            ]}
+                          />
+                        </Grid.Col>
+                      )}
+                    </group.AppField>
+                  </>
+                )}
+                {values?.[type]?.attribute !== Attributes.DIE_PER_LEVEL &&
+                  values?.[type]?.attribute !== Attributes.SET_PER_LEVEL &&
+                  (values?.[type]?.attribute === Attributes.SET_AMOUNT ?
+                    <group.AppField
+                      name={`${type}.setAmount`}
+                      validators={{
+                        onChange: z
+                          .number('Set amount must be a number')
+                          .int('Set amount must be a whole number')
+                          .gte(1, 'Set amount must be greater than 0'),
+                        onSubmit: ({ value }) => !value && 'Enter a damage amount',
+                      }}
+                    >
+                      {({ TextField }) => (
+                        <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                          <TextField
+                            label={`Set ${
+                              type === 'primary' ? 'Main'
+                              : type === 'secondary' ? 'Sec.'
+                              : 'Bonus'
+                            } Value`}
+                          />
+                        </Grid.Col>
+                      )}
+                    </group.AppField>
+                  : (
+                    values?.[type]?.attribute === Attributes.ABILITY ||
+                    values?.[type]?.attribute === Attributes.SPELLCASTING_ABILITY ||
+                    values?.[type]?.attribute === Attributes.PROFICIENCY
+                  ) ?
+                    <>
+                      {values?.[type]?.attribute === Attributes.ABILITY && (
+                        <group.AppField
+                          name={`${type}.ability`}
+                          validators={{
+                            onSubmit: ({ value }) => !value && 'Choose an ability',
+                          }}
+                        >
+                          {({ DropdownField }) => (
+                            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                              <DropdownField
                                 label={`${
                                   type === 'primary' ? 'Main'
                                   : type === 'secondary' ? 'Sec.'
                                   : 'Bonus'
-                                } Dmg. Min. Value`}
-                                onChange={{ updateField }}
-                                validation='num'
-                                errorMsg={'Must contain only numbers'}
+                                } Ability`}
+                                options={abilities}
                               />
                             </Grid.Col>
-                          </>
+                          )}
+                        </group.AppField>
+                      )}
+                      <group.AppField
+                        name={`${type}.minAmount`}
+                        validators={{
+                          onChange: z
+                            .number('Min amount must be a number')
+                            .int('Min amount must be a whole number')
+                            .gte(1, 'Min amount must be greater than 0'),
+                        }}
+                      >
+                        {({ TextField }) => (
+                          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                            <TextField
+                              label={`${
+                                type === 'primary' ? 'Main'
+                                : type === 'secondary' ? 'Sec.'
+                                : 'Bonus'
+                              } Min. Amount`}
+                            />
+                          </Grid.Col>
                         )}
-                        <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                          <Input
-                            name={`damage.${type}.pool.maxAmount`}
-                            value={data?.damage?.[type].pool?.maxAmount}
-                            label={`${
-                              type === 'primary' ? 'Main'
-                              : type === 'secondary' ? 'Sec.'
-                              : 'Bonus'
-                            } Dmg. Max Value`}
-                            onChange={{ updateField }}
-                            validation='num'
-                            errorMsg={'Must contain only numbers'}
-                          />
-                        </Grid.Col>
-                        <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                          <Input
-                            name={`damage.${type}.pool.multiplier`}
-                            value={data?.damage?.[type]?.pool?.multiplier}
-                            label={`${
-                              type === 'primary' ? 'Main'
-                              : type === 'secondary' ? 'Sec.'
-                              : 'Bonus'
-                            } Dmg. Multiplier`}
-                            onChange={{ updateField }}
-                            validation='num'
-                            errorMsg={'Must contain only numbers'}
-                          />
-                        </Grid.Col>
-                      </>
-                    : data?.damage?.[type]?.pool?.attribute === Attributes.SET_AMOUNT && (
-                        <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                          <Input
-                            name={`damage.${type}.pool.setAmount`}
-                            value={data?.damage?.[type]?.pool?.setAmount}
-                            label='Pool Total'
-                            onChange={{ updateField }}
-                            validation='num'
-                            required={true}
-                            errorMsg={'Must contain only numbers'}
-                          />
-                        </Grid.Col>
-                      )
-                    }
-                  </>
-                : <>
-                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                      <Input
-                        name={`damage.${type}.dieConfig`}
-                        value={data?.damage?.[type]?.dieConfig}
-                        label={`${
-                          type === 'primary' ? 'Main'
-                          : type === 'secondary' ? 'Sec.'
-                          : 'Bonus'
-                        } Dice Config`}
-                        onChange={{ updateField }}
-                        required={type === 'primary' ? true : false}
-                        validation='die'
-                        errorMsg={'Must contain only numbers'}
-                      />
-                    </Grid.Col>
-                  </>)}
-            </Grid>
+                      </group.AppField>
+                      <group.AppField
+                        name={`${type}.maxAmount`}
+                        validators={{
+                          onChange: z
+                            .number('Max amount must be a number')
+                            .int('Max amount must be a whole number')
+                            .gte(1, 'Max amount must be greater than 0'),
+                        }}
+                      >
+                        {({ TextField }) => (
+                          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                            <TextField
+                              label={`${
+                                type === 'primary' ? 'Main'
+                                : type === 'secondary' ? 'Sec.'
+                                : 'Bonus'
+                              } Max Amount`}
+                            />
+                          </Grid.Col>
+                        )}
+                      </group.AppField>
+                      <group.AppField
+                        name={`${type}.multiplier`}
+                        validators={{
+                          onChange: z
+                            .number('Multiplier must be a number')
+                            .int('Multiplier must be a whole number')
+                            .gte(1, 'Multiplier must be greater than 0'),
+                        }}
+                      >
+                        {({ TextField }) => (
+                          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                            <TextField
+                              label={`${
+                                type === 'primary' ? 'Main'
+                                : type === 'secondary' ? 'Sec.'
+                                : 'Bonus'
+                              } Max Amount`}
+                            />
+                          </Grid.Col>
+                        )}
+                      </group.AppField>
+                    </>
+                  : values?.[type]?.attribute === Attributes.DAMAGE_POOL ?
+                    <>
+                      <group.AppField
+                        name={`${type}.pool.attribute`}
+                        validators={{
+                          onSubmit: ({ value }) => !value && 'Choose a damage pool attribute',
+                        }}
+                      >
+                        {({ DropdownField }) => (
+                          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                            <DropdownField
+                              label={`${
+                                type === 'primary' ? 'Main'
+                                : type === 'secondary' ? 'Sec.'
+                                : 'Bonus'
+                              } Dmg. Pool Attribute`}
+                              options={attributes.filter(
+                                (attribute) => attribute?.damage?.length && attribute?.damage.includes(Damages.POOL)
+                              )}
+                            />
+                          </Grid.Col>
+                        )}
+                      </group.AppField>
+                      {(
+                        values?.[type]?.pool?.attribute === Attributes.ABILITY ||
+                        values?.[type]?.pool?.attribute === Attributes.SPELLCASTING_ABILITY ||
+                        values?.[type]?.pool?.attribute === Attributes.PROFICIENCY
+                      ) ?
+                        <>
+                          {values?.[type]?.pool?.attribute === Attributes.ABILITY && (
+                            <group.AppField
+                              name={`${type}.pool.ability`}
+                              validators={{
+                                onSubmit: ({ value }) => !value && 'Choose a damage pool ability',
+                              }}
+                            >
+                              {({ DropdownField }) => (
+                                <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                  <DropdownField
+                                    label={`${
+                                      type === 'primary' ? 'Main'
+                                      : type === 'secondary' ? 'Sec.'
+                                      : 'Bonus'
+                                    } Dmg. Pool Abilty`}
+                                    options={abilities}
+                                  />
+                                </Grid.Col>
+                              )}
+                            </group.AppField>
+                          )}
+                          <group.AppField
+                            name={`${type}.pool.minAmount`}
+                            validators={{
+                              onChange: z
+                                .number('Min amount must be a number')
+                                .int('Min amount must be a whole number')
+                                .gte(1, 'Min amount must be greater than 0'),
+                            }}
+                          >
+                            {({ TextField }) => (
+                              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                <TextField
+                                  label={`${
+                                    type === 'primary' ? 'Main'
+                                    : type === 'secondary' ? 'Sec.'
+                                    : 'Bonus'
+                                  } Min. Amount`}
+                                />
+                              </Grid.Col>
+                            )}
+                          </group.AppField>
+                          <group.AppField
+                            name={`${type}.pool.maxAmount`}
+                            validators={{
+                              onChange: z
+                                .number('Max amount must be a number')
+                                .int('Max amount must be a whole number')
+                                .gte(1, 'Max amount must be greater than 0'),
+                            }}
+                          >
+                            {({ TextField }) => (
+                              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                <TextField
+                                  label={`${
+                                    type === 'primary' ? 'Main'
+                                    : type === 'secondary' ? 'Sec.'
+                                    : 'Bonus'
+                                  } Max Amount`}
+                                />
+                              </Grid.Col>
+                            )}
+                          </group.AppField>
+                          <group.AppField
+                            name={`${type}.pool.multiplier`}
+                            validators={{
+                              onChange: z
+                                .number('Multiplier must be a number')
+                                .int('Multiplier must be a whole number')
+                                .gte(1, 'Multiplier must be greater than 0'),
+                            }}
+                          >
+                            {({ TextField }) => (
+                              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                <TextField
+                                  label={`${
+                                    type === 'primary' ? 'Main'
+                                    : type === 'secondary' ? 'Sec.'
+                                    : 'Bonus'
+                                  } Max Amount`}
+                                />
+                              </Grid.Col>
+                            )}
+                          </group.AppField>
+                        </>
+                      : values?.[type]?.pool?.attribute === Attributes.SET_AMOUNT && (
+                          <group.AppField
+                            name={`${type}.pool.setAmount`}
+                            validators={{
+                              onChange: z
+                                .number('Set amount must be a number')
+                                .int('Set amount must be a whole number')
+                                .gte(1, 'Set amount must be greater than 0'),
+                              onSubmit: ({ value }) => !value && 'Enter a damage amount',
+                            }}
+                          >
+                            {({ TextField }) => (
+                              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                <TextField
+                                  label={`Set ${
+                                    type === 'primary' ? 'Main'
+                                    : type === 'secondary' ? 'Sec.'
+                                    : 'Bonus'
+                                  } Pool Value`}
+                                />
+                              </Grid.Col>
+                            )}
+                          </group.AppField>
+                        )
+                      }
+                    </>
+                  : <>
+                      <group.AppField
+                        name={`${type}.dieConfig`}
+                        validators={{
+                          onChange: z.string().regex(DIE_REGEX, 'Enter a valid die configuration (ex: 2d12)'),
+                          onSubmit: ({ value }) => !value && type === 'primary' && 'Enter a damage die configuration',
+                        }}
+                      >
+                        {({ TextField }) => (
+                          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                            <TextField
+                              label={`Set ${
+                                type === 'primary' ? 'Main'
+                                : type === 'secondary' ? 'Sec.'
+                                : 'Bonus'
+                              } Pool Value`}
+                            />
+                          </Grid.Col>
+                        )}
+                      </group.AppField>
+                    </>)}
+              </Grid>
+            </Grid.Col>
+          )
+        })}
+        {(values?.primary?.attribute === Attributes.DIE_PER_LEVEL ||
+          values?.secondary?.attribute === Attributes.DIE_PER_LEVEL ||
+          values?.bonus?.attribute === Attributes.DIE_PER_LEVEL) && (
+          <Grid.Col>
+            <Collapsible>
+              <Collapsible.Trigger title={`Damage Die By Level`} />
+              <Collapsible.Content>
+                <Grid>
+                  <Grid.Col>
+                    <Grid>
+                      <Grid.Col>Level</Grid.Col>
+                      {formDamageTypes.map((type) => {
+                        if (values?.[type]?.attribute === Attributes.DIE_PER_LEVEL) {
+                          return <Grid.Col key={type}>{`${startCase(type)} Die Roll`}</Grid.Col>
+                        }
+                      })}
+                      <Grid.Col>Remove Row</Grid.Col>
+                      <Grid.Col>Add Row</Grid.Col>
+                    </Grid>
+                  </Grid.Col>
+                  {values.diePerLevel?.length && (
+                    <group.AppField name='diePerLevel' mode='array'>
+                      {(field) =>
+                        field.state.value?.map((_, i) => (
+                          <Grid.Col key={`${i}-diePerLevel`}>
+                            <Grid>
+                              <group.AppField
+                                name={`diePerLevel[${i}].level`}
+                                validators={{
+                                  onSubmit: ({ value }) => (!value || value === '') && 'Enter a level',
+                                }}
+                              >
+                                {({ TextField }) => (
+                                  <Grid.Col>
+                                    <TextField />
+                                  </Grid.Col>
+                                )}
+                              </group.AppField>
+                              {formDamageTypes.map((type) => {
+                                if (type !== 'versatile' && values?.[type]?.attribute === Attributes.DIE_PER_LEVEL) {
+                                  return (
+                                    <group.AppField
+                                      name={`diePerLevel[${i}].${type}.dieConfig`}
+                                      validators={{
+                                        onSubmit: ({ value }) =>
+                                          (!value || value === '') && 'Enter a die configuration (ex: 2d12)',
+                                        onChange: z
+                                          .string()
+                                          .regex(DIE_REGEX, 'Enter a valid die configuration (ex: 2d12)'),
+                                      }}
+                                    >
+                                      {({ TextField }) => (
+                                        <Grid.Col>
+                                          <TextField />
+                                        </Grid.Col>
+                                      )}
+                                    </group.AppField>
+                                  )
+                                }
+                              })}
+                              <Grid.Col>
+                                <UnstyledButton className={row_button} onClick={() => field.removeValue(i)}>
+                                  <TbX />
+                                </UnstyledButton>
+                              </Grid.Col>
+                              <Grid.Col>
+                                <UnstyledButton
+                                  className={row_button}
+                                  onClick={() =>
+                                    group.setFieldValue(`diePerLevel[${i + 1}]`, DiePerLevelInputSchema.parse({}))
+                                  }
+                                >
+                                  <TbPlus />
+                                </UnstyledButton>
+                              </Grid.Col>
+                            </Grid>
+                          </Grid.Col>
+                        ))
+                      }
+                    </group.AppField>
+                  )}
+                </Grid>
+              </Collapsible.Content>
+            </Collapsible>
           </Grid.Col>
-        )
-      })}
-      {(data?.damage?.primary?.attribute === Attributes.DIE_PER_LEVEL ||
-        data?.damage?.secondary?.attribute === Attributes.DIE_PER_LEVEL ||
-        data?.damage?.bonus?.attribute === Attributes.DIE_PER_LEVEL) && (
-        <Grid.Col>
-          <Collapsible>
-            <Collapsible.Trigger title={`Damage Die By Level`} />
-            <Collapsible.Content>
-              <Grid>
-                <Grid.Col>
-                  <Grid>
-                    <Grid.Col >Level</Grid.Col>
-                    {formDamageTypes.map((type) => {
-                      if (data?.damage?.[type]?.attribute === Attributes.DIE_PER_LEVEL) {
-                        return <Grid.Col key={type} >{`${startCase(type)} Die Roll`}</Grid.Col>
-                      }
-                    })}
-                    <Grid.Col >Remove Row</Grid.Col>
-                    <Grid.Col >Add Row</Grid.Col>
-                  </Grid>
-                </Grid.Col>
-                {data?.damage.diePerLevel?.map((setLevel, index) => (
-                  <Grid.Col key={index}>
+        )}
+        {(values?.primary?.attribute === Attributes.SET_PER_LEVEL ||
+          values?.secondary?.attribute === Attributes.SET_PER_LEVEL ||
+          values?.bonus?.attribute === Attributes.SET_PER_LEVEL) && (
+          <Grid.Col>
+            <Collapsible>
+              <Collapsible.Trigger title={`Damage Die By Level`} />
+              <Collapsible.Content>
+                <Grid>
+                  <Grid.Col>
                     <Grid>
-                      <Grid.Col >
-                        <Input
-                          name={`damage.diePerLevel.${index}.level`}
-                          value={setLevel.level}
-                          validation='num'
-                          errorMsg='Please enter a whole number'
-                          onChange={{ updateField }}
-                          required={true}
-                        />
-                      </Grid.Col>
+                      <Grid.Col>Level</Grid.Col>
                       {formDamageTypes.map((type) => {
-                        if (type !== 'versatile' && data?.damage?.[type]?.attribute === Attributes.DIE_PER_LEVEL) {
-                          return (
-                            <Grid.Col key={type} >
-                              <Input
-                                name={`damage.diePerLevel.${index}.${type}.dieConfig`}
-                                value={setLevel?.[type]?.dieConfig}
-                                validation='die'
-                                errorMsg='Please enter a valid die value'
-                                onChange={{ updateField }}
-                                required={true}
-                              />
-                            </Grid.Col>
-                          )
+                        if (values?.[type]?.attribute === Attributes.SET_PER_LEVEL) {
+                          return <Grid.Col key={type}>{`${startCase(type)} Die Roll`}</Grid.Col>
                         }
                       })}
-                      <Grid.Col >
-                        <Button
-                          style='unstyled'
-                          className={row_button}
-                          onClick={() => removeField({ path: `damage.diePerLevel.${index}` })}
-                        >
-                          <TbX />
-                        </Button>
-                      </Grid.Col>
-                      <Grid.Col >
-                        <Button
-                          style='unstyled'
-                          className={row_button}
-                          onClick={() => addField({ path: 'damage.diePerLevel' })}
-                        >
-                          <TbPlus />
-                        </Button>
-                      </Grid.Col>
+                      <Grid.Col>Remove Row</Grid.Col>
+                      <Grid.Col>Add Row</Grid.Col>
                     </Grid>
                   </Grid.Col>
-                ))}
-              </Grid>
-            </Collapsible.Content>
-          </Collapsible>
-        </Grid.Col>
-      )}
-      {(data?.damage?.primary?.attribute === Attributes.SET_PER_LEVEL ||
-        data?.damage?.secondary?.attribute === Attributes.SET_PER_LEVEL ||
-        data?.damage?.bonus?.attribute === Attributes.SET_PER_LEVEL) && (
-        <Grid.Col>
-          <Collapsible>
-            <Collapsible.Trigger title={`Damage Die By Level`} />
-            <Collapsible.Content>
-              <Grid>
-                <Grid.Col>
-                  <Grid>
-                    <Grid.Col >Level</Grid.Col>
-                    {formDamageTypes.map((type) => {
-                      if (data?.damage?.[type]?.attribute === Attributes.SET_PER_LEVEL) {
-                        return <Grid.Col  key={type}>{`${startCase(type)} Die Roll`}</Grid.Col>
-                      }
-                    })}
-                    <Grid.Col >Remove Row</Grid.Col>
-                    <Grid.Col >Add Row</Grid.Col>
-                  </Grid>
-                </Grid.Col>
-                {data?.damage.setPerLevel?.map((setLevel, index) => (
-                  <Grid.Col key={index}>
-                    <Grid>
-                      <Grid.Col >
-                        <Input
-                          name={`damage.setPerLevel.${index}.level`}
-                          value={setLevel.level}
-                          validation='num'
-                          errorMsg='Please enter a whole number'
-                          onChange={{ updateField }}
-                          required={true}
-                        />
-                      </Grid.Col>
-                      {formDamageTypes.map((type) => {
-                        if (type !== 'versatile' && data?.damage?.[type]?.attribute === Attributes.SET_PER_LEVEL) {
-                          return (
-                            <Grid.Col key={type} >
-                              <Input
-                                name={`damage.setPerLevel.${index}.${type}`}
-                                value={setLevel?.[type]}
-                                validation='num'
-                                errorMsg='Please enter a whole number'
-                                onChange={{ updateField }}
-                                required={true}
-                              />
+                  <group.AppField name='setPerLevel' mode='array'>
+                    {(field) =>
+                      field.state.value?.map((_, i) => (
+                        <Grid.Col key={`${i}-setPerLevel`}>
+                          <Grid>
+                            <group.AppField
+                              name={`setPerLevel[${i}].level`}
+                              validators={{
+                                onSubmit: ({ value }) => (!value || value === '') && 'Enter a level',
+                              }}
+                            >
+                              {({ TextField }) => (
+                                <Grid.Col>
+                                  <TextField />
+                                </Grid.Col>
+                              )}
+                            </group.AppField>
+                            {formDamageTypes.map((type) => {
+                              if (type !== 'versatile' && values?.[type]?.attribute === Attributes.SET_PER_LEVEL) {
+                                return (
+                                  <group.AppField
+                                    name={`setPerLevel[${i}].${type}`}
+                                    key={type}
+                                    validators={{
+                                      onSubmit: ({ value }) => !value && 'Enter a damage amount',
+                                      onChange: z
+                                        .number('Enter a number')
+                                        .int('Enter a whole number')
+                                        .gte(1, 'Enter a number greater than 0'),
+                                    }}
+                                  >
+                                    {({ TextField }) => (
+                                      <Grid.Col>
+                                        <TextField />
+                                      </Grid.Col>
+                                    )}
+                                  </group.AppField>
+                                )
+                              }
+                            })}
+                            <Grid.Col>
+                              <UnstyledButton className={row_button} onClick={() => field.removeValue(i)}>
+                                <TbX />
+                              </UnstyledButton>
                             </Grid.Col>
-                          )
-                        }
-                      })}
-                      <Grid.Col >
-                        <Button
-                          style='unstyled'
-                          className={row_button}
-                          onClick={() => removeField({ path: `damage.setPerLevel.${index}` })}
-                        >
-                          <TbX />
-                        </Button>
-                      </Grid.Col>
-                      <Grid.Col >
-                        <Button
-                          style='unstyled'
-                          className={row_button}
-                          onClick={() => addField({ path: 'damage.setPerLevel' })}
-                        >
-                          <TbPlus />
-                        </Button>
-                      </Grid.Col>
-                    </Grid>
-                  </Grid.Col>
-                ))}
-              </Grid>
-            </Collapsible.Content>
-          </Collapsible>
-        </Grid.Col>
-      )}
-    </>
-  )
-}
+                            <Grid.Col>
+                              <UnstyledButton
+                                className={row_button}
+                                onClick={() =>
+                                  group.setFieldValue(`setPerLevel[${i + 1}]`, SetPerLevelInputSchema.parse({}))
+                                }
+                              >
+                                <TbPlus />
+                              </UnstyledButton>
+                            </Grid.Col>
+                          </Grid>
+                        </Grid.Col>
+                      ))
+                    }
+                  </group.AppField>
+                </Grid>
+              </Collapsible.Content>
+            </Collapsible>
+          </Grid.Col>
+        )}
+      </>
+    )
+  },
+})
 
 export default Damage

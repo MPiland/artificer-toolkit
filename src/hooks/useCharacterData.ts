@@ -1,6 +1,6 @@
 import { useSuspenseQueries, useSuspenseQuery } from '@tanstack/react-query'
 import { useRouteContext } from '@tanstack/react-router'
-import { fetchCharacters, fetchCharacter } from '@/apis/charactersApi'
+import { fetchCharacters, fetchCharacter } from '@/apis/characters.api'
 import { createArrayWithMethods } from '@/utils'
 
 const useCharacterData = () => {

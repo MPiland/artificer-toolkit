@@ -1,5 +1,5 @@
 import { useSuspenseQueries, useSuspenseQuery } from '@tanstack/react-query'
-import { fetchBackground, fetchBackgrounds } from '@/apis/backgroundsApi'
+import { fetchBackground, fetchBackgrounds } from '@/apis/backgrounds.api'
 import { useRouteContext } from '@tanstack/react-router'
 import { createArrayWithMethods } from '@/utils'
 

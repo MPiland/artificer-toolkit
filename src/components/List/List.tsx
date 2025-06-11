@@ -7,19 +7,19 @@ import { useMediaQuery } from 'usehooks-ts'
 import { type UseMutationResult } from '@tanstack/react-query'
 import { Outlet, useNavigate, Link, useMatches } from '@tanstack/react-router'
 import { startCase } from 'lodash'
-import Button from '@/components/Button'
-import type { Maybe, FormDataType, FormType, ListItemType, MetaDataType } from '@/types'
+import type { Maybe, FormDataType, FormType, ListItemType, MetaDataType, SourceDataType } from '@/types'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Categories } from '@/enums'
 import Filter from './Filter'
-// import Group from '@/components/Group'
 import { sprinkles } from '@/css/sprinkles.css'
 import { ModalContext } from '@/components/Modal'
-import { useFormStore, type FilterState, type FormStore } from '@/store'
+import { useFormStore, type FilterState } from '@/store'
 import { useRouteNavigation, useFilteredList } from '@/hooks'
 import VirtualList from './VirtualList'
 import { PlusIcon, Copy, LayoutGrid, List as ListIcon } from 'lucide-react'
 import { Group, ScrollArea, Divider } from '@mantine/core'
+import { Button } from '@mantine/core'
+import { discriminatedInputSchema } from '@/schemas'
 
 interface ListProps<T extends ListItemType, K extends MetaDataType, U extends FilterDataType> {
   className?: string | symbol | number | any
@@ -42,7 +42,7 @@ const List = <T extends ListItemType, K extends MetaDataType, U extends FilterDa
   const navigate = useNavigate()
   const sm = useMediaQuery('screen and (max-width: 567px)')
   const { showModal } = use(ModalContext)
-  const { reinitState }: FormStore<FormDataType> = useFormStore((state) => state)
+  const { reinitState } = useFormStore((state) => state)
 
   const form = useMatches({ select: (m) => m[m.length - 1].context.form?.type }) as FormType
 
@@ -55,20 +55,18 @@ const List = <T extends ListItemType, K extends MetaDataType, U extends FilterDa
   const [view, setView] = useState<'list' | 'grid'>('list')
   const [errorMessage, setErrorMessage] = useState<string>()
 
-  const handleCopyConfirmed = (item: FormDataType) => {
-    const data: Omit<FormDataType, 'id' | 'label' | 'value'> & {
-      id: string | undefined
-      label: string | undefined
-      value: string | undefined
-    } = {
+  const handleCopyConfirmed = (item: SourceDataType) => {
+    const kind = `${item.__typename}Input`
+    const data = discriminatedInputSchema.parse({
       ...item,
-      id: undefined,
-      label: undefined,
-      value: undefined,
-    }
-    const itemNav = routeNav.new
-    reinitState(data as FormDataType)
-    return navigate({ to: itemNav.to })
+      __kind: kind,
+      id: '',
+      label: '',
+      value: '',
+    }) as FormDataType
+    const itemNav = routeNav.forItem(item.id, item.label).copy
+    reinitState(data)
+    return navigate({ to: itemNav.to, params: itemNav.params })
   }
 
   const handleCopy = () => {
@@ -81,7 +79,7 @@ const List = <T extends ListItemType, K extends MetaDataType, U extends FilterDa
           value: item.value,
           id: item.id,
         })),
-        onCopy: (item: FormDataType) => handleCopyConfirmed(item),
+        onCopy: (item: SourceDataType) => handleCopyConfirmed(item),
       },
     })
   }
@@ -118,7 +116,7 @@ const List = <T extends ListItemType, K extends MetaDataType, U extends FilterDa
       <div className={list_title_container}>
         <h2>{startCase(form)}</h2>
         <div className={list_title_button_container}>
-          <Button color='main' style='outline' onClick={handleCopy}>
+          <Button variant='outline' onClick={handleCopy}>
             {<Copy />} {!sm && ' Copy'}
           </Button>
           <Link {...routeNav.new}>

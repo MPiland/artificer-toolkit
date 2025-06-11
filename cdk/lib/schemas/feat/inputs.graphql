@@ -1,0 +1,33 @@
+input FeatInput {
+  id: ID!
+  label: String!
+  desc: String
+  detail: String
+  category: ID
+  attributes: [ID!]
+  actions: ActionGroupInput
+  damage: DamageInput
+  charges: ChargeInput
+  range: RangeInput
+  shape: ShapeInput
+  targets: Int
+  modifiers: [ID!]
+  proficiencies: [ID!]
+  expertise: [ID!]
+  senses: [ID!]
+  spells: [ID!]
+  prerequisites: PrerequisiteInput
+  saveAbility: SaveAbilityInput
+  selectionCount: Int
+  levelAvailable: String
+  features: [FeatureInput!]
+  options: [FeatureOptionInput!]
+  ownerId: String!
+  systemId: ID!
+  masterId: String
+}
+
+input BatchFeatInput {
+  tableName: String!
+  data: FeatInput!
+}

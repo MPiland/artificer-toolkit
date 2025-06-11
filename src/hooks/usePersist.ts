@@ -1,13 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type Dispatch, type SetStateAction } from 'react'
 
-const usePersist = (): [
-  boolean,
-  React.Dispatch<React.SetStateAction<boolean>>
-] => {
+const usePersist = (): [boolean, Dispatch<SetStateAction<boolean>>] => {
   const jsonPersist = localStorage.getItem('persist')
-  const [persist, setPersist] = useState<boolean>(
-    jsonPersist ? JSON.parse(jsonPersist) : false
-  )
+  const [persist, setPersist] = useState<boolean>(jsonPersist ? JSON.parse(jsonPersist) : false)
 
   useEffect(() => {
     localStorage.setItem('persist', JSON.stringify(persist))

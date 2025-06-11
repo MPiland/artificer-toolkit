@@ -1,0 +1,57 @@
+[
+  {
+    "attributes": [
+      "3fadd608-c46e-4718-a2b5-10d50fffbbdb",
+      "40a91f3a-8909-4593-8a5f-b66b364602bb"
+    ],
+    "prerequisites": {
+      "options": [
+        "2da4575c-bac4-403e-bf66-1360fcdb28b3"
+      ]
+    },
+    "selectionCount": 2,
+    "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
+    "skills": [
+      "all"
+    ],
+    "id": "90ead480-f730-444b-a659-1ae9d3f024df"
+  },
+  {
+    "attributes": [
+      "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
+    ],
+    "selectionCount": 2,
+    "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
+    "skills": [
+      "all"
+    ],
+    "id": "27c9eeb0-a663-46a4-875c-cb7a26eee897"
+  },
+  {
+    "category": "3d256b38-0c78-4fd6-84a5-94b43c5a024c",
+    "equipment": {
+      "ids": [
+        "12c8c66b-76cb-49d0-8f58-08b4aa92df5c"
+      ],
+      "category": "e13981d6-2b10-4b79-adb6-07b2d85f711e"
+    },
+    "id": "a23ecc39-b787-4ba7-b292-9fab0971fc68"
+  },
+  {
+    "attributes": [
+      "3fadd608-c46e-4718-a2b5-10d50fffbbdb",
+      "40a91f3a-8909-4593-8a5f-b66b364602bb"
+    ],
+    "selectionCount": 1,
+    "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
+    "skills": [
+      "all"
+    ],
+    "prerequisites": {
+      "options": [
+        "2da4575c-bac4-403e-bf66-1360fcdb28b3"
+      ]
+    },
+    "id": "ebd81d84-a003-4a2d-8fad-bc2880579cfa"
+  }
+]

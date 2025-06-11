@@ -1,5 +1,5 @@
 import { useSuspenseQueries, useSuspenseQuery } from '@tanstack/react-query'
-import { fetchRace, fetchRaces } from '@/apis/racesApi'
+import { fetchRace, fetchRaces } from '@/apis/races.api'
 import { useRouteContext } from '@tanstack/react-router'
 import { createArrayWithMethods } from '@/utils'
 import { Categories } from '@/enums'

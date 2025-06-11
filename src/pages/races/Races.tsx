@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import List, { FooterConfig } from '@/components/List'
-import { useDeleteRaceMutation } from '@/apis/racesApi'
+import { useDeleteRaceMutation } from '@/apis/races.api'
 import Loading from '@/components/Loading'
 import ICategory from '@/assets/Icons/ICategory'
 import type { RaceMeta } from '@/types'

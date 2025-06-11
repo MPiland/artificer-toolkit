@@ -1,5 +1,5 @@
 import Modal, { ModalContext, type AlertModalProps } from '@/components/Modal'
-import Button from '@/components/Button'
+import { Button } from '@mantine/core'
 import { use } from 'react'
 import { Group } from '@mantine/core'
 
@@ -16,12 +16,8 @@ const Alert = () => {
       </Modal.Content>
       <Modal.Footer>
         <Group justify='space-between'>
-          <Button color='main' onClick={onCancel || hideModal}>
-            {cancelLabel || 'Cancel'}
-          </Button>
-          <Button color='danger' onClick={onConfirm}>
-            {confirmLabel || 'Confirm'}
-          </Button>
+          <Button onClick={onCancel || hideModal}>{cancelLabel || 'Cancel'}</Button>
+          <Button onClick={onConfirm}>{confirmLabel || 'Confirm'}</Button>
         </Group>
       </Modal.Footer>
     </Modal.Dialogue>

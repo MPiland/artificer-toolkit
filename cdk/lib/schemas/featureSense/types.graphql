@@ -1,0 +1,13 @@
+type FeatureSense {
+  id: ID!
+  attributes: [ID!]
+  selectionCount: Int
+  subtype: ID
+  ids: [ID!]
+  prerequisites: Prerequisite
+}
+
+type FeatureSenseConnection {
+  items: [FeatureSense!]!
+  nextToken: String
+}

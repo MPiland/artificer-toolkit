@@ -25,11 +25,11 @@ export interface FormStore<T extends FormDataType> {
   }
 
   // Actions remain at root level
-  updateField<T>(arg: { path: DeepKeyOf<T>; value: any }): void
-  addField<T>(arg: { path: DeepKeyOf<T>; value?: any }): void
+  updateField<T>(arg: { path: DeepKeyOf<T>; value: unknown }): void
+  addField<T>(arg: { path: DeepKeyOf<T>; value?: unknown }): void
   removeField<T>(arg: { path: DeepKeyOf<T> }): void
-  resetData: (arg: { value: any }) => void
-  resetInit: (arg: { value: any }) => void
+  resetData: (arg: { value: unknown }) => void
+  resetInit: (arg: { value: unknown }) => void
   setAddClass: (arg: boolean) => void
   setChangeRace: (arg: boolean) => void
   setSaving: (arg: boolean) => void

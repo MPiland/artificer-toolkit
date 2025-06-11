@@ -1,4 +1,4 @@
-import Button from '@/components/Button'
+import { Button } from '@mantine/core'
 import Modal from '@/components/Modal'
 import { startCase } from 'lodash'
 import { ReactNode } from 'react'
@@ -33,7 +33,7 @@ const ShortDetail = ({
           </ScrollArea>
         </Modal.Content>
         <Modal.Footer>
-          <Button color='primary' onClick={handleSelect}>{`Select ${startCase(context)}`}</Button>
+          <Button onClick={handleSelect}>{`Select ${startCase(context)}`}</Button>
         </Modal.Footer>
       </Modal.Dialogue>
     </Modal>

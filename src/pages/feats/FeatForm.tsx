@@ -1,10 +1,12 @@
 import { useEffect, use } from 'react'
 import Form, { FormContext } from '@/components/Form'
-import { useAddNewFeatMutation, useUpdateFeatMutation } from '@/apis/featsApi'
-import { Step } from '@/types'
+import { useAddNewFeatMutation, useUpdateFeatMutation } from '@/apis/feats.api'
+import { Step, type FeatInput } from '@/types'
 import { isEqual } from 'lodash'
 import { Route } from '@/routes/_protected/feats/$action/$_featId'
 import { useFeatData } from '@/hooks'
+import { FeatInputSchema } from '@/schemas'
+import { v4 as uuidv4 } from 'uuid'
 
 const FeatForm = () => {
   const { _featId: featId, action } = Route.useParams()
@@ -20,15 +22,26 @@ const FeatForm = () => {
     if (!isEqual(steps, stepsArray)) {
       formStore.setSteps(stepsArray)
     }
-    if (action === 'new' && feat) {
-      if (Object.keys(formStore.data).length === 0) {
-        formStore.reinitState(feat)
+    if (action === 'new') {
+      let dataObj: FeatInput
+      if (feat) {
+        dataObj = FeatInputSchema.parse({
+          ...feat,
+          id: uuidv4(),
+          label: '',
+          masterId: undefined
+        })
+      } else {
+        dataObj = FeatInputSchema.parse({
+          __kind: 'FeatInput',
+          id: uuidv4(),
+        })
       }
+      formStore.reinitState(dataObj)
     }
     if (action === 'edit' && feat) {
-      if (formStore.data?.id !== feat.id) {
-        formStore.reinitState(feat)
-      }
+      const dataObj = FeatInputSchema.parse(feat)
+      formStore.reinitState(dataObj)
     }
   }, [stepsArray, steps, formStore, feat, action])
 

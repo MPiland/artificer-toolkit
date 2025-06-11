@@ -6,8 +6,6 @@ export const Route = createFileRoute('/_protected')({
   beforeLoad: async ({ context, location }) => {
     const { isAuthenticating, user, isLoading } = context.auth
 
-    console.log({ isAuthenticating, user, isLoading })
-
     if (!isAuthenticating && !user && !isLoading) {
       throw redirect({
         to: '/login',

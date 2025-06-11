@@ -19,8 +19,6 @@ type DropdownMultipleProps = {
   activeLabels: (string | ReactNode)[]
   toggleDropdown: () => void
   closeDropdown: () => void
-  height?: 'full' | 'auto' | 'default'
-  border?: 'none' | 'default'
   error?: string
 } & DropdownCommonProps
 

@@ -1,0 +1,14 @@
+input FeatureSenseInput {
+  id: ID!
+  attributes: [ID!]
+  selectionCount: Int
+  subtype: ID
+  ids: [ID!]
+  prerequisites: PrerequisiteInput
+  charges: ChargeInput
+}
+
+input BatchFeatureSensesInput {
+  tableName: String!
+  data: FeatureSenseInput!
+}

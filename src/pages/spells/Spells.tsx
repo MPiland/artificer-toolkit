@@ -1,4 +1,4 @@
-import { useDeleteSpellMutation } from '@/apis/spellsApi'
+import { useDeleteSpellMutation } from '@/apis/spells.api'
 import List, { type FilterConfig, type FooterConfig } from '@/components/List'
 import { Suspense } from 'react'
 import IFlame from '@/assets/Icons/IFlame'

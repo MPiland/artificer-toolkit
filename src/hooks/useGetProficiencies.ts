@@ -2,7 +2,7 @@ import { Class } from '@/types'
 import { useEquipmentData, useSystemData } from '@/hooks'
 import { ProfCats } from '@/enums'
 
-export type ClassProficiency = {
+export interface ClassProficiency {
   [key: string]: {
     type: { id: string; label: string; value: string }[]
     property?: any[]
@@ -11,7 +11,7 @@ export type ClassProficiency = {
   }
 }
 
-const useGetProficiencies = ({ fullClass }: { fullClass: Class }) => {
+const useGetProficiencies = ({ fullClass }: { fullClass: Class }): ClassProficiency => {
   const { system } = useSystemData()
   const { equipment } = useEquipmentData()
 

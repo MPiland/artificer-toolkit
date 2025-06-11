@@ -1,16 +1,13 @@
-import { Container, Paper, Text, Title, Alert, Group, Stack } from '@mantine/core'
-import { useNavigate } from '@tanstack/react-router'
+import { Container, Paper, Text, Title, Alert, Group, Stack, TextInput, PasswordInput, Button } from '@mantine/core'
+import { useNavigate, type ToOptions } from '@tanstack/react-router'
 import { auth_container, auth_title, auth_wrapper } from './Auth.css'
-import { confirmSignUp, resendConfirmationCode, confirmForgotPassword } from '@/apis/authApi'
-import { useForm } from '@/hooks'
-import type {
-  ConfirmForgotPasswordCommandOutput,
-  ConfirmSignUpCommandOutput,
-  ResendConfirmationCodeCommandOutput,
-} from '@aws-sdk/client-cognito-identity-provider'
-import { useEffect, useState } from 'react'
+import { confirmSignUp, resendSignUpCode, confirmResetPassword } from '@/apis/auth.api'
+import { useState } from 'react'
 import { Info } from 'lucide-react'
 import { useMatches } from '@tanstack/react-router'
+import { notifications } from '@mantine/notifications'
+import { useForm } from '@tanstack/react-form'
+
 
 type ConfirmMeta = {
   submitAction: 'resend' | null
@@ -21,45 +18,36 @@ const defaultMeta: ConfirmMeta = {
 }
 
 const ConfirmStep = () => {
+  const navigate = useNavigate()
   const matches = useMatches()
   const routeMatch = matches[matches.length - 1]
   const registerPath = routeMatch.routeId === '/_auth/register/confirm'
-  const userEmail = routeMatch && 'email' in routeMatch.search ? routeMatch.search.email : ''
+  const userEmail =
+    routeMatch.search && typeof routeMatch.search === 'object' && 'email' in routeMatch.search ?
+      routeMatch.search.email
+    : ''
 
-  const navigate = useNavigate()
-  const { useAppForm } = useForm()
   const [formMessage, setFormMessage] = useState<string | null>(null)
-  const [success, setSuccess] = useState<'confirmed' | 'reset' | null>(null)
-
-  useEffect(() => {
-    if (success) {
-      const timer = setTimeout(() => {
-        console.log('redirecting')
-        navigate({ to: '/login' })
-      }, 4000)
-      return () => clearTimeout(timer)
-    }
-  }, [success, navigate])
 
   const isConfirmCodeResponse = (
-    response: ConfirmSignUpCommandOutput | { error: number; message: string }
-  ): response is ConfirmSignUpCommandOutput => {
+    response: { success: number; link: ToOptions['to'] } | { error: number; message: string }
+  ): response is { success: number; link: ToOptions['to'] } => {
     return !('error' in response)
   }
 
   const isConfirmForgotResponse = (
-    response: ConfirmForgotPasswordCommandOutput | { error: number; message: string }
-  ): response is ConfirmForgotPasswordCommandOutput => {
+    response: { success: number; link: ToOptions['to'] } | { error: number; message: string }
+  ): response is { success: number; link: ToOptions['to'] } => {
     return !('error' in response)
   }
 
   const isResendCodeResponse = (
-    response: ResendConfirmationCodeCommandOutput | { error: number; message: string }
-  ): response is ResendConfirmationCodeCommandOutput => {
+    response: { success: number; link: ToOptions['to'] } | { error: number; message: string }
+  ): response is { success: number; link: ToOptions['to'] } => {
     return !('error' in response)
   }
 
-  const form = useAppForm({
+  const form = useForm({
     defaultValues: {
       email: userEmail || '',
       password: '',
@@ -68,9 +56,9 @@ const ConfirmStep = () => {
     onSubmitMeta: defaultMeta,
     onSubmit: async ({ value: { confirmationCode, email, password }, formApi, meta: { submitAction } }) => {
       if (submitAction === 'resend') {
-        const result = await resendConfirmationCode({ email })
+        const result = await resendSignUpCode({ email })
         if (isResendCodeResponse(result)) {
-          return setFormMessage('Check your inbox for the new code.')
+          return setFormMessage('If an account with this email exists, a confirmation code will be sent.')
         } else {
           return formApi.setErrorMap({
             onSubmit: {
@@ -87,13 +75,18 @@ const ConfirmStep = () => {
           })
         }
       } else if (registerPath) {
-        const result = await confirmSignUp({ email, code: confirmationCode })
+        const result = await confirmSignUp({ email, confirmationCode })
         if (isConfirmCodeResponse(result)) {
-          if (result.$metadata.httpStatusCode === 200) {
+          if (result.success === 4) {
             formApi.reset()
-            setFormMessage('Your email is confirmed! Redirecting to login...')
-            setSuccess('confirmed')
-            return
+            notifications.show({
+              id: 'confirm-success',
+              position: 'bottom-center',
+              message: 'Your account is confirmed!',
+              autoClose: 4000,
+              withBorder: true,
+            })
+            return navigate({ to: '/home' })
           }
         } else {
           return formApi.setErrorMap({
@@ -111,12 +104,17 @@ const ConfirmStep = () => {
           })
         }
       } else if (!registerPath) {
-        const result = await confirmForgotPassword({ email, code: confirmationCode, newPassword: password })
+        const result = await confirmResetPassword({ email, confirmationCode, password })
         if (isConfirmForgotResponse(result)) {
           formApi.reset()
-          setFormMessage('Your password is reset! Redirecting to login...')
-          setSuccess('reset')
-          return
+          notifications.show({
+            id: 'confirm-success',
+            position: 'bottom-center',
+            message: 'Your password is reset!',
+            autoClose: 4000,
+            withBorder: true,
+          })
+          return navigate({ to: '/login' })
         } else {
           return formApi.setErrorMap({
             onSubmit: {
@@ -136,10 +134,10 @@ const ConfirmStep = () => {
     },
   })
 
-  const { AppForm, AppField, SubscribeSubmit, SubscribeAlert, handleSubmit } = form
+  const { handleSubmit } = form
 
   return (
-    <AppForm>
+    <form>
       <Container
         component='form'
         onSubmit={(e) => {
@@ -155,27 +153,43 @@ const ConfirmStep = () => {
           </Title>
           <Paper withBorder shadow='md' p={30} radius='md'>
             <Stack>
-              <SubscribeAlert variant='light' color='red' />
+              <form.Subscribe selector={(state) => [state.errorMap as any]}>
+                {([errorMap]) => {
+                  let errorMessage = ''
+                  if (errorMap?.onSubmit?.form?.message) {
+                    errorMessage = errorMap.onSubmit.form.message
+                  } else if (errorMap.onSubmit && 'message' in errorMap.onSubmit) {
+                    errorMessage = errorMap.onSubmit.message as string
+                  }
+                  return (
+                    errorMessage && (
+                      <Alert variant='light' color='red' icon={<Info />}>
+                        {errorMessage}
+                      </Alert>
+                    )
+                  )
+                }}
+              </form.Subscribe>
               {formMessage && (
                 <Alert variant='light' color='blue' icon={<Info />} mb='sm'>
                   {formMessage}
                 </Alert>
               )}
-              <AppField name='confirmationCode'>
-                {({ TextField }) => <TextField label='Confirmation code' placeholder='Confirmation code...' />}
-              </AppField>
+              <form.Field name='confirmationCode'>
+                {(field) => (
+                  <TextInput
+                    label='Confirmation code'
+                    placeholder='Confirmation code...'
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    error={!field.state.meta.isValid && field.state.meta.errors.join(', ')}
+                  />
+                )}
+              </form.Field>
               {!registerPath && (
-                <AppField
+                <form.Field
                   name='password'
                   validators={{
-                    onChange: ({ value }) => {
-                      if (!value) return null
-                      return (
-                        value.length <= 8 ? 'Password should include at least 8-20 characters'
-                        : /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,20}$/.test(value) ? null
-                        : 'Password should include at least one uppercase letter, one number and one special character'
-                      )
-                    },
                     onSubmit: ({ value }) =>
                       value &&
                       (value.length <= 8 ? 'Password should include at least 8-20 characters'
@@ -183,32 +197,40 @@ const ConfirmStep = () => {
                       : 'Password should include at least one uppercase letter, one number and one special character'),
                   }}
                 >
-                  {({ PasswordField }) => (
-                    <PasswordField type='password' autoComplete='new-password' label='New password' required />
+                  {(field) => (
+                    <PasswordInput
+                      label='Password'
+                      placeholder='Password...'
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      error={!field.state.meta.isValid && field.state.meta.errors.join(', ')}
+                    />
                   )}
-                </AppField>
+                </form.Field>
               )}
             </Stack>
-            <SubscribeSubmit label='Submit code' fullWidth mt='lg' />
+            <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
+              {([canSubmit, isSubmitting]) => (
+                <Button loading={isSubmitting} disabled={!canSubmit} type='submit' fullWidth mt='lg'>
+                  Submit code
+                </Button>
+              )}
+            </form.Subscribe>
           </Paper>
           <Group gap={4} px='md'>
-            <Text size='xs'>
-              {"Didn't recieve a code or need a new one? "}
-              to request a new code.
-            </Text>
+            <Text size='xs'>{"Didn't recieve a code or need a new one? "} </Text>
             <Text
               size='xs'
               c='blue'
               style={{ cursor: 'pointer' }}
               onClick={() => handleSubmit({ submitAction: 'resend' })}
             >
-              Click here
+              {'Click here '}
             </Text>
-            <Text size='xs'>to request a new code.</Text>
           </Group>
         </Stack>
       </Container>
-    </AppForm>
+    </form>
   )
 }
 

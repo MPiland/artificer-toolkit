@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import Race from '@/pages/races/Race'
 import Loading from '@/components/Loading/Loading'
-import { fetchRace } from '@/apis/racesApi'
+import { fetchRace } from '@/apis/races.api'
 
 export const Route = createFileRoute('/_protected/races/$raceId')({
   beforeLoad: () => {

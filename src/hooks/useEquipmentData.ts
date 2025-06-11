@@ -1,5 +1,5 @@
 import { useSuspenseQueries, useSuspenseQuery } from '@tanstack/react-query'
-import { fetchSingleEquipment, fetchAllEquipment } from '@/apis/equipmentApi'
+import { fetchSingleEquipment, fetchAllEquipment } from '@/apis/equipment.api'
 import { useRouteContext } from '@tanstack/react-router'
 import { createArrayWithMethods } from '@/utils'
 import type { EquipmentListItem, Equipment } from '@/types'

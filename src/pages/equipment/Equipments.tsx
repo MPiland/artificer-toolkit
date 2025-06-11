@@ -1,4 +1,4 @@
-import { useDeleteEquipmentMutation } from '@/apis/equipmentApi'
+import { useDeleteEquipmentMutation } from '@/apis/equipment.api'
 import IFlame from '@/assets/Icons/IFlame'
 import ICategory from '@/assets/Icons/ICategory'
 import IProps from '@/assets/Icons/IProps'

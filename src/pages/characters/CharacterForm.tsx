@@ -1,10 +1,12 @@
 import { useEffect, use } from 'react'
-import { Step } from '@/types'
-import { useAddCharacter, useUpdateCharacter } from '@/apis/charactersApi'
+import { Step, type CharacterInput } from '@/types'
+import { useAddCharacter, useUpdateCharacter } from '@/apis/characters.api'
 import Form, { FormContext } from '@/components/Form'
 import { isEqual } from 'lodash'
 import { Route } from '@/routes/_protected/characters/$action/$_characterId'
 import { useCharacterData } from '@/hooks'
+import { CharacterInputSchema } from '@/schemas'
+import { v4 as uuidv4 } from 'uuid'
 
 const CharacterForm = () => {
   const { _characterId: characterId, action } = Route.useParams()
@@ -27,15 +29,25 @@ const CharacterForm = () => {
     if (!isEqual(steps, stepsArray)) {
       formStore.setSteps(stepsArray)
     }
-    if (action === 'new' && character) {
-      if (Object.keys(formStore.data).length === 0) {
-        formStore.reinitState(character)
+    if (action === 'new') {
+      let dataObj: CharacterInput
+      if (character) {
+        dataObj = CharacterInputSchema.parse({
+          ...character,
+          id: uuidv4(),
+          label: '',
+        })
+      } else {
+        dataObj = CharacterInputSchema.parse({
+          __kind: 'CharacterInput',
+          id: uuidv4(),
+        })
       }
+      formStore.reinitState(dataObj)
     }
     if (action === 'edit' && character) {
-      if (formStore.data?.id !== character.id) {
-        formStore.reinitState(character)
-      }
+      const dataObj = CharacterInputSchema.parse(character)
+      formStore.reinitState(dataObj)
     }
   }, [stepsArray, steps, formStore, character, action])
 

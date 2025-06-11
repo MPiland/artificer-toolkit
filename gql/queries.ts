@@ -14,13 +14,11 @@ query GetMasterSystem($id: ID!) {
   getMasterSystem(id: $id) {
 	__typename
 	id
-	value
 	label
 	desc
 	abilities {
 		__typename
 		id
-		value
 		label
 		desc
 		tooltip
@@ -29,7 +27,6 @@ query GetMasterSystem($id: ID!) {
 	actions {
 		__typename
 		id
-		value
 		label
 		features
 		damage
@@ -42,7 +39,6 @@ query GetMasterSystem($id: ID!) {
 	alignments {
 		__typename
 		id
-		value
 		label
 		desc
 		tooltip
@@ -51,7 +47,6 @@ query GetMasterSystem($id: ID!) {
 	attributes {
 		__typename
 		id
-		value
 		label
 		features
 		damage
@@ -64,7 +59,6 @@ query GetMasterSystem($id: ID!) {
 	categories {
 		__typename
 		id
-		value
 		label
 		features
 		classes
@@ -75,7 +69,6 @@ query GetMasterSystem($id: ID!) {
 		hitpointCalcMethods {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -84,7 +77,6 @@ query GetMasterSystem($id: ID!) {
 		advancementMethods {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -93,7 +85,6 @@ query GetMasterSystem($id: ID!) {
 		spellPointCalcMethods {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -102,7 +93,6 @@ query GetMasterSystem($id: ID!) {
 		startingEquipmentOptions {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -114,7 +104,6 @@ query GetMasterSystem($id: ID!) {
 		resets {
 			__typename
 			id
-			value
 			label
 			features
 			damage
@@ -127,7 +116,6 @@ query GetMasterSystem($id: ID!) {
 		limits {
 			__typename
 			id
-			value
 			label
 			features
 			damage
@@ -141,7 +129,6 @@ query GetMasterSystem($id: ID!) {
 	conditions {
 		__typename
 		id
-		value
 		label
 		desc
 		tooltip
@@ -150,7 +137,6 @@ query GetMasterSystem($id: ID!) {
 	currencies {
 		__typename
 		id
-		value
 		label
 		desc
 		abbreviation
@@ -166,7 +152,6 @@ query GetMasterSystem($id: ID!) {
 	damageTypes {
 		__typename
 		id
-		value
 		label
 		desc
 		tooltip
@@ -177,7 +162,6 @@ query GetMasterSystem($id: ID!) {
 		categories {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -186,7 +170,6 @@ query GetMasterSystem($id: ID!) {
 		properties {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -201,7 +184,6 @@ query GetMasterSystem($id: ID!) {
 		rarities {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -211,7 +193,6 @@ query GetMasterSystem($id: ID!) {
 	languages {
 		__typename
 		id
-		value
 		label
 		desc
 		tooltip
@@ -222,7 +203,6 @@ query GetMasterSystem($id: ID!) {
 		categories {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -231,7 +211,6 @@ query GetMasterSystem($id: ID!) {
 		types {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -240,7 +219,6 @@ query GetMasterSystem($id: ID!) {
 		methods {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -249,7 +227,6 @@ query GetMasterSystem($id: ID!) {
 		spellCategories {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -278,7 +255,6 @@ query GetMasterSystem($id: ID!) {
 	passives {
 		__typename
 		id
-		value
 		label
 		desc
 		tooltip
@@ -287,7 +263,6 @@ query GetMasterSystem($id: ID!) {
 	prerequisites {
 		__typename
 		id
-		value
 		label
 		features
 		damage
@@ -302,14 +277,12 @@ query GetMasterSystem($id: ID!) {
 		levels {
 			__typename
 			id
-			value
 			label
 			multiplier
 		}
 		categories {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -323,7 +296,6 @@ query GetMasterSystem($id: ID!) {
 			amount {
 				__typename
 				id
-				value
 				label
 				desc
 				tooltip
@@ -332,7 +304,6 @@ query GetMasterSystem($id: ID!) {
 			rounding {
 				__typename
 				id
-				value
 				label
 				desc
 				tooltip
@@ -343,7 +314,6 @@ query GetMasterSystem($id: ID!) {
 				weight {
 					__typename
 					id
-					value
 					label
 					desc
 					tooltip
@@ -352,7 +322,6 @@ query GetMasterSystem($id: ID!) {
 				volume {
 					__typename
 					id
-					value
 					label
 					desc
 					tooltip
@@ -361,7 +330,6 @@ query GetMasterSystem($id: ID!) {
 				length {
 					__typename
 					id
-					value
 					label
 					desc
 					tooltip
@@ -372,13 +340,11 @@ query GetMasterSystem($id: ID!) {
 		abilityGenerateMethod {
 			__typename
 			id
-			value
 			label
 			total
 			options {
 				__typename
 				id
-				value
 				label
 				reduce
 			}
@@ -387,7 +353,6 @@ query GetMasterSystem($id: ID!) {
 	senses {
 		__typename
 		id
-		value
 		label
 		creatureDesc
 		monsterDesc
@@ -396,7 +361,6 @@ query GetMasterSystem($id: ID!) {
 	sizes {
 		__typename
 		id
-		value
 		label
 		desc
 		tooltip
@@ -405,7 +369,6 @@ query GetMasterSystem($id: ID!) {
 	skills {
 		__typename
 		id
-		value
 		label
 		desc
 		abilityId
@@ -413,7 +376,6 @@ query GetMasterSystem($id: ID!) {
 	speeds {
 		__typename
 		id
-		value
 		label
 		desc
 		tooltip
@@ -424,7 +386,6 @@ query GetMasterSystem($id: ID!) {
 		categories {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -433,7 +394,6 @@ query GetMasterSystem($id: ID!) {
 		durations {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -442,7 +402,6 @@ query GetMasterSystem($id: ID!) {
 		ranges {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -451,7 +410,6 @@ query GetMasterSystem($id: ID!) {
 		schools {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -460,7 +418,6 @@ query GetMasterSystem($id: ID!) {
 		shapes {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -469,7 +426,6 @@ query GetMasterSystem($id: ID!) {
 		requirements {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -479,7 +435,6 @@ query GetMasterSystem($id: ID!) {
 	terrains {
 		__typename
 		id
-		value
 		label
 		desc
 		tooltip
@@ -498,7 +453,6 @@ query ListMasterSystems($limit: Int, $nextToken: String) {
 	items {
 		__typename
 		id
-		value
 		label
 		desc
 		ownerId
@@ -514,13 +468,11 @@ query GetSystem($id: ID!) {
   getSystem(id: $id) {
 	__typename
 	id
-	value
 	label
 	desc
 	abilities {
 		__typename
 		id
-		value
 		label
 		desc
 		tooltip
@@ -529,7 +481,6 @@ query GetSystem($id: ID!) {
 	actions {
 		__typename
 		id
-		value
 		label
 		features
 		damage
@@ -542,7 +493,6 @@ query GetSystem($id: ID!) {
 	alignments {
 		__typename
 		id
-		value
 		label
 		desc
 		tooltip
@@ -551,7 +501,6 @@ query GetSystem($id: ID!) {
 	attributes {
 		__typename
 		id
-		value
 		label
 		features
 		damage
@@ -564,7 +513,6 @@ query GetSystem($id: ID!) {
 	categories {
 		__typename
 		id
-		value
 		label
 		features
 		classes
@@ -575,7 +523,6 @@ query GetSystem($id: ID!) {
 		hitpointCalcMethods {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -584,7 +531,6 @@ query GetSystem($id: ID!) {
 		advancementMethods {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -593,7 +539,6 @@ query GetSystem($id: ID!) {
 		spellPointCalcMethods {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -602,7 +547,6 @@ query GetSystem($id: ID!) {
 		startingEquipmentOptions {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -614,7 +558,6 @@ query GetSystem($id: ID!) {
 		resets {
 			__typename
 			id
-			value
 			label
 			features
 			damage
@@ -627,7 +570,6 @@ query GetSystem($id: ID!) {
 		limits {
 			__typename
 			id
-			value
 			label
 			features
 			damage
@@ -641,7 +583,6 @@ query GetSystem($id: ID!) {
 	conditions {
 		__typename
 		id
-		value
 		label
 		desc
 		tooltip
@@ -650,7 +591,6 @@ query GetSystem($id: ID!) {
 	currencies {
 		__typename
 		id
-		value
 		label
 		desc
 		abbreviation
@@ -666,7 +606,6 @@ query GetSystem($id: ID!) {
 	damageTypes {
 		__typename
 		id
-		value
 		label
 		desc
 		tooltip
@@ -677,7 +616,6 @@ query GetSystem($id: ID!) {
 		categories {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -686,7 +624,6 @@ query GetSystem($id: ID!) {
 		properties {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -701,7 +638,6 @@ query GetSystem($id: ID!) {
 		rarities {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -711,7 +647,6 @@ query GetSystem($id: ID!) {
 	languages {
 		__typename
 		id
-		value
 		label
 		desc
 		tooltip
@@ -722,7 +657,6 @@ query GetSystem($id: ID!) {
 		categories {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -731,7 +665,6 @@ query GetSystem($id: ID!) {
 		types {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -740,7 +673,6 @@ query GetSystem($id: ID!) {
 		methods {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -749,7 +681,6 @@ query GetSystem($id: ID!) {
 		spellCategories {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -778,7 +709,6 @@ query GetSystem($id: ID!) {
 	passives {
 		__typename
 		id
-		value
 		label
 		desc
 		tooltip
@@ -787,7 +717,6 @@ query GetSystem($id: ID!) {
 	prerequisites {
 		__typename
 		id
-		value
 		label
 		features
 		damage
@@ -802,14 +731,12 @@ query GetSystem($id: ID!) {
 		levels {
 			__typename
 			id
-			value
 			label
 			multiplier
 		}
 		categories {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -823,7 +750,6 @@ query GetSystem($id: ID!) {
 			amount {
 				__typename
 				id
-				value
 				label
 				desc
 				tooltip
@@ -832,7 +758,6 @@ query GetSystem($id: ID!) {
 			rounding {
 				__typename
 				id
-				value
 				label
 				desc
 				tooltip
@@ -843,7 +768,6 @@ query GetSystem($id: ID!) {
 				weight {
 					__typename
 					id
-					value
 					label
 					desc
 					tooltip
@@ -852,7 +776,6 @@ query GetSystem($id: ID!) {
 				volume {
 					__typename
 					id
-					value
 					label
 					desc
 					tooltip
@@ -861,7 +784,6 @@ query GetSystem($id: ID!) {
 				length {
 					__typename
 					id
-					value
 					label
 					desc
 					tooltip
@@ -872,13 +794,11 @@ query GetSystem($id: ID!) {
 		abilityGenerateMethod {
 			__typename
 			id
-			value
 			label
 			total
 			options {
 				__typename
 				id
-				value
 				label
 				reduce
 			}
@@ -887,7 +807,6 @@ query GetSystem($id: ID!) {
 	senses {
 		__typename
 		id
-		value
 		label
 		creatureDesc
 		monsterDesc
@@ -896,7 +815,6 @@ query GetSystem($id: ID!) {
 	sizes {
 		__typename
 		id
-		value
 		label
 		desc
 		tooltip
@@ -905,7 +823,6 @@ query GetSystem($id: ID!) {
 	skills {
 		__typename
 		id
-		value
 		label
 		desc
 		abilityId
@@ -913,7 +830,6 @@ query GetSystem($id: ID!) {
 	speeds {
 		__typename
 		id
-		value
 		label
 		desc
 		tooltip
@@ -924,7 +840,6 @@ query GetSystem($id: ID!) {
 		categories {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -933,7 +848,6 @@ query GetSystem($id: ID!) {
 		durations {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -942,7 +856,6 @@ query GetSystem($id: ID!) {
 		ranges {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -951,7 +864,6 @@ query GetSystem($id: ID!) {
 		schools {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -960,7 +872,6 @@ query GetSystem($id: ID!) {
 		shapes {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -969,7 +880,6 @@ query GetSystem($id: ID!) {
 		requirements {
 			__typename
 			id
-			value
 			label
 			desc
 			tooltip
@@ -979,7 +889,6 @@ query GetSystem($id: ID!) {
 	terrains {
 		__typename
 		id
-		value
 		label
 		desc
 		tooltip
@@ -998,7 +907,6 @@ query ListSystems($limit: Int, $nextToken: String) {
 	items {
 		__typename
 		id
-		value
 		label
 		desc
 		ownerId
@@ -1015,7 +923,6 @@ query GetMasterSpell($id: ID!) {
 	__typename
 	id
 	label
-	value
 	desc
 	level
 	school
@@ -1444,7 +1351,6 @@ query ListMasterSpells($limit: Int, $nextToken: String) {
 		__typename
 		id
 		label
-		value
 		desc
 		requirements
 		materialDesc
@@ -1545,7 +1451,6 @@ query GetSpell($id: ID!) {
 	__typename
 	id
 	label
-	value
 	desc
 	level
 	school
@@ -1974,7 +1879,6 @@ query ListSpells($systemId: ID!, $limit: Int, $nextToken: String) {
 		__typename
 		id
 		label
-		value
 		desc
 		requirements
 		materialDesc
@@ -2075,7 +1979,6 @@ query GetMasterRace($id: ID!) {
 	__typename
 	id
 	label
-	value
 	quote
 	desc
 	playable
@@ -2085,1290 +1988,18 @@ query GetMasterRace($id: ID!) {
 		__typename
 		id
 		label
-		value
 		desc
 		options {
 			__typename
 			id
-			value
 			label
 			desc
-			features {
-				__typename
-				id
-				label
-				value
-				desc
-				detail
-				category
-				attributes
-				actions {
-					__typename
-					primary {
-						__typename
-						id
-						amount
-					}
-					secondary {
-						__typename
-						id
-						amount
-					}
-				}
-				damage {
-					__typename
-					attributes
-					damageSave
-					setPerLevel {
-						__typename
-						level
-						primary
-						secondary
-						bonus
-					}
-					diePerLevel {
-						__typename
-						level
-						primary {
-							__typename
-							dieConfig
-							attribute
-							id
-							ability
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							pool {
-								__typename
-								attribute
-								setAmount
-								multiplier
-								minAmount
-								maxAmount
-								ability
-								option
-							}
-						}
-						secondary {
-							__typename
-							dieConfig
-							attribute
-							id
-							ability
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							pool {
-								__typename
-								attribute
-								setAmount
-								multiplier
-								minAmount
-								maxAmount
-								ability
-								option
-							}
-						}
-						bonus {
-							__typename
-							dieConfig
-							attribute
-							id
-							ability
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							pool {
-								__typename
-								attribute
-								setAmount
-								multiplier
-								minAmount
-								maxAmount
-								ability
-								option
-							}
-						}
-					}
-					primary {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-					secondary {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-					bonus {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-					versatile {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
-				optionsByLevel {
-					__typename
-					level
-					count
-					replaceCount
-				}
-				range {
-					__typename
-					id
-					minRange
-					maxRange
-					distance
-					unit
-				}
-				shape {
-					__typename
-					id
-					size
-					unit
-				}
-				targets
-				feats {
-					__typename
-					id
-					attributes
-					feats
-					selectionCount
-					subtype
-					prerequisites {
-						__typename
-						options
-						skillProficiencies
-						equipmentProficiencies {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						equipped {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						notEquipped {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						abilityScore {
-							__typename
-							abilities
-							score
-						}
-						spellsObtained
-						featuresObtained
-						optionsObtained
-						size
-					}
-				}
-				modifiers {
-					__typename
-					id
-					subtype
-					attributes
-					selectionCount
-					category
-					type
-					method
-					methodAbility
-					methodSkill
-					multiplier
-					maxAmount
-					minAmount
-					setAmount
-					dieConfig
-					feature
-					diePerLevel {
-						__typename
-						level
-						dieConfig
-					}
-					setPerLevel {
-						__typename
-						level
-						setAmount
-					}
-					skills
-					saveAbilities
-					abilities
-					speeds
-					charge {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
-					}
-					range
-					minRange
-					maxRange
-					shape
-					size
-					duration
-					unit
-					conditions
-					damageTypes
-					damageType
-					spell
-					spellCategory
-					prerequisites {
-						__typename
-						options
-						skillProficiencies
-						equipmentProficiencies {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						equipped {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						notEquipped {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						abilityScore {
-							__typename
-							abilities
-							score
-						}
-						spellsObtained
-						featuresObtained
-						optionsObtained
-						size
-					}
-				}
-				proficiencies {
-					__typename
-					id
-					subtype
-					attributes
-					selectionCount
-					category
-					level
-					rounding
-					saveAbilities
-					skills
-					languages
-					properties {
-						__typename
-						ids
-						category
-						properties
-					}
-					equipment {
-						__typename
-						ids
-						category
-						properties
-					}
-					prerequisites {
-						__typename
-						options
-						skillProficiencies
-						equipmentProficiencies {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						equipped {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						notEquipped {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						abilityScore {
-							__typename
-							abilities
-							score
-						}
-						spellsObtained
-						featuresObtained
-						optionsObtained
-						size
-					}
-				}
-				expertise {
-					__typename
-					id
-					subtype
-					attributes
-					selectionCount
-					category
-					saveAbilities
-					skills
-					languages
-					properties {
-						__typename
-						ids
-						category
-						properties
-					}
-					equipment {
-						__typename
-						ids
-						category
-						properties
-					}
-					prerequisites {
-						__typename
-						options
-						skillProficiencies
-						equipmentProficiencies {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						equipped {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						notEquipped {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						abilityScore {
-							__typename
-							abilities
-							score
-						}
-						spellsObtained
-						featuresObtained
-						optionsObtained
-						size
-					}
-				}
-				senses {
-					__typename
-					id
-					attributes
-					selectionCount
-					subtype
-					ids
-					prerequisites {
-						__typename
-						options
-						skillProficiencies
-						equipmentProficiencies {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						equipped {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						notEquipped {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						abilityScore {
-							__typename
-							abilities
-							score
-						}
-						spellsObtained
-						featuresObtained
-						optionsObtained
-						size
-					}
-				}
-				spells {
-					__typename
-					id
-					ids
-					attributes
-					selectionCount
-					classLimit
-					levelLimit
-					attributeLimit
-					ability
-					spellLevel
-					spellsByLevel {
-						__typename
-						spells
-						level
-						spellLevel
-					}
-					subtype
-					prerequisites {
-						__typename
-						options
-						skillProficiencies
-						equipmentProficiencies {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						equipped {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						notEquipped {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						abilityScore {
-							__typename
-							abilities
-							score
-						}
-						spellsObtained
-						featuresObtained
-						optionsObtained
-						size
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
-					}
-				}
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-				saveAbility {
-					__typename
-					id
-					minAmount
-					attributes
-					abilityModifier
-				}
-				levelAvailable
-				options {
-					__typename
-					id
-					label
-					value
-					desc
-					detail
-					category
-					attributes
-					actions {
-						__typename
-						primary {
-							__typename
-							id
-							amount
-						}
-						secondary {
-							__typename
-							id
-							amount
-						}
-					}
-					damage {
-						__typename
-						attributes
-						damageSave
-						setPerLevel {
-							__typename
-							level
-							primary
-							secondary
-							bonus
-						}
-						diePerLevel {
-							__typename
-							level
-							primary {
-								__typename
-								dieConfig
-								attribute
-								id
-								ability
-								setAmount
-								multiplier
-								minAmount
-								maxAmount
-								pool {
-									__typename
-									attribute
-									setAmount
-									multiplier
-									minAmount
-									maxAmount
-									ability
-									option
-								}
-							}
-							secondary {
-								__typename
-								dieConfig
-								attribute
-								id
-								ability
-								setAmount
-								multiplier
-								minAmount
-								maxAmount
-								pool {
-									__typename
-									attribute
-									setAmount
-									multiplier
-									minAmount
-									maxAmount
-									ability
-									option
-								}
-							}
-							bonus {
-								__typename
-								dieConfig
-								attribute
-								id
-								ability
-								setAmount
-								multiplier
-								minAmount
-								maxAmount
-								pool {
-									__typename
-									attribute
-									setAmount
-									multiplier
-									minAmount
-									maxAmount
-									ability
-									option
-								}
-							}
-						}
-						primary {
-							__typename
-							dieConfig
-							attribute
-							id
-							ability
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							pool {
-								__typename
-								attribute
-								setAmount
-								multiplier
-								minAmount
-								maxAmount
-								ability
-								option
-							}
-						}
-						secondary {
-							__typename
-							dieConfig
-							attribute
-							id
-							ability
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							pool {
-								__typename
-								attribute
-								setAmount
-								multiplier
-								minAmount
-								maxAmount
-								ability
-								option
-							}
-						}
-						bonus {
-							__typename
-							dieConfig
-							attribute
-							id
-							ability
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							pool {
-								__typename
-								attribute
-								setAmount
-								multiplier
-								minAmount
-								maxAmount
-								ability
-								option
-							}
-						}
-						versatile {
-							__typename
-							dieConfig
-							attribute
-							id
-							ability
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							pool {
-								__typename
-								attribute
-								setAmount
-								multiplier
-								minAmount
-								maxAmount
-								ability
-								option
-							}
-						}
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
-					}
-					range {
-						__typename
-						id
-						minRange
-						maxRange
-						distance
-						unit
-					}
-					shape {
-						__typename
-						id
-						size
-						unit
-					}
-					targets
-					feats {
-						__typename
-						id
-						attributes
-						feats
-						selectionCount
-						subtype
-						prerequisites {
-							__typename
-							options
-							skillProficiencies
-							equipmentProficiencies {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							equipped {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							notEquipped {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							abilityScore {
-								__typename
-								abilities
-								score
-							}
-							spellsObtained
-							featuresObtained
-							optionsObtained
-							size
-						}
-					}
-					modifiers {
-						__typename
-						id
-						subtype
-						attributes
-						selectionCount
-						category
-						type
-						method
-						methodAbility
-						methodSkill
-						multiplier
-						maxAmount
-						minAmount
-						setAmount
-						dieConfig
-						feature
-						diePerLevel {
-							__typename
-							level
-							dieConfig
-						}
-						setPerLevel {
-							__typename
-							level
-							setAmount
-						}
-						skills
-						saveAbilities
-						abilities
-						speeds
-						charge {
-							__typename
-							reset
-							limit
-							ability
-							skill
-							usesPerLevel {
-								__typename
-								level
-								uses
-							}
-							minAmount
-							addAmount
-							setAmount
-							multiplier
-							resourcePoints
-						}
-						range
-						minRange
-						maxRange
-						shape
-						size
-						duration
-						unit
-						conditions
-						damageTypes
-						damageType
-						spell
-						spellCategory
-						prerequisites {
-							__typename
-							options
-							skillProficiencies
-							equipmentProficiencies {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							equipped {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							notEquipped {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							abilityScore {
-								__typename
-								abilities
-								score
-							}
-							spellsObtained
-							featuresObtained
-							optionsObtained
-							size
-						}
-					}
-					proficiencies {
-						__typename
-						id
-						subtype
-						attributes
-						selectionCount
-						category
-						level
-						rounding
-						saveAbilities
-						skills
-						languages
-						properties {
-							__typename
-							ids
-							category
-							properties
-						}
-						equipment {
-							__typename
-							ids
-							category
-							properties
-						}
-						prerequisites {
-							__typename
-							options
-							skillProficiencies
-							equipmentProficiencies {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							equipped {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							notEquipped {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							abilityScore {
-								__typename
-								abilities
-								score
-							}
-							spellsObtained
-							featuresObtained
-							optionsObtained
-							size
-						}
-					}
-					expertise {
-						__typename
-						id
-						subtype
-						attributes
-						selectionCount
-						category
-						saveAbilities
-						skills
-						languages
-						properties {
-							__typename
-							ids
-							category
-							properties
-						}
-						equipment {
-							__typename
-							ids
-							category
-							properties
-						}
-						prerequisites {
-							__typename
-							options
-							skillProficiencies
-							equipmentProficiencies {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							equipped {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							notEquipped {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							abilityScore {
-								__typename
-								abilities
-								score
-							}
-							spellsObtained
-							featuresObtained
-							optionsObtained
-							size
-						}
-					}
-					senses {
-						__typename
-						id
-						attributes
-						selectionCount
-						subtype
-						ids
-						prerequisites {
-							__typename
-							options
-							skillProficiencies
-							equipmentProficiencies {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							equipped {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							notEquipped {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							abilityScore {
-								__typename
-								abilities
-								score
-							}
-							spellsObtained
-							featuresObtained
-							optionsObtained
-							size
-						}
-					}
-					spells {
-						__typename
-						id
-						ids
-						attributes
-						selectionCount
-						classLimit
-						levelLimit
-						attributeLimit
-						ability
-						spellLevel
-						spellsByLevel {
-							__typename
-							spells
-							level
-							spellLevel
-						}
-						subtype
-						prerequisites {
-							__typename
-							options
-							skillProficiencies
-							equipmentProficiencies {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							equipped {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							notEquipped {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							abilityScore {
-								__typename
-								abilities
-								score
-							}
-							spellsObtained
-							featuresObtained
-							optionsObtained
-							size
-						}
-						charges {
-							__typename
-							reset
-							limit
-							ability
-							skill
-							usesPerLevel {
-								__typename
-								level
-								uses
-							}
-							minAmount
-							addAmount
-							setAmount
-							multiplier
-							resourcePoints
-						}
-					}
-					prerequisites {
-						__typename
-						options
-						skillProficiencies
-						equipmentProficiencies {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						equipped {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						notEquipped {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						abilityScore {
-							__typename
-							abilities
-							score
-						}
-						spellsObtained
-						featuresObtained
-						optionsObtained
-						size
-					}
-					saveAbility {
-						__typename
-						id
-						minAmount
-						attributes
-						abilityModifier
-					}
-					levelAvailable
-				}
-			}
+			features
 		}
 	}
 	details {
 		__typename
 		label
-		value
 		desc
 	}
 	traits {
@@ -3376,7 +2007,6 @@ query GetMasterRace($id: ID!) {
 		details {
 			__typename
 			label
-			value
 			desc
 		}
 		size
@@ -3392,7 +2022,6 @@ query GetMasterRace($id: ID!) {
 		__typename
 		id
 		label
-		value
 		desc
 		detail
 		category
@@ -3611,377 +2240,12 @@ query GetMasterRace($id: ID!) {
 			unit
 		}
 		targets
-		feats {
-			__typename
-			id
-			attributes
-			feats
-			selectionCount
-			subtype
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		modifiers {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			type
-			method
-			methodAbility
-			methodSkill
-			multiplier
-			maxAmount
-			minAmount
-			setAmount
-			dieConfig
-			feature
-			diePerLevel {
-				__typename
-				level
-				dieConfig
-			}
-			setPerLevel {
-				__typename
-				level
-				setAmount
-			}
-			skills
-			saveAbilities
-			abilities
-			speeds
-			charge {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-			range
-			minRange
-			maxRange
-			shape
-			size
-			duration
-			unit
-			conditions
-			damageTypes
-			damageType
-			spell
-			spellCategory
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		proficiencies {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			level
-			rounding
-			saveAbilities
-			skills
-			languages
-			properties {
-				__typename
-				ids
-				category
-				properties
-			}
-			equipment {
-				__typename
-				ids
-				category
-				properties
-			}
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		expertise {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			saveAbilities
-			skills
-			languages
-			properties {
-				__typename
-				ids
-				category
-				properties
-			}
-			equipment {
-				__typename
-				ids
-				category
-				properties
-			}
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		senses {
-			__typename
-			id
-			attributes
-			selectionCount
-			subtype
-			ids
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		spells {
-			__typename
-			id
-			ids
-			attributes
-			selectionCount
-			classLimit
-			levelLimit
-			attributeLimit
-			ability
-			spellLevel
-			spellsByLevel {
-				__typename
-				spells
-				level
-				spellLevel
-			}
-			subtype
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-		}
+		feats
+		modifiers
+		proficiencies
+		expertise
+		senses
+		spells
 		prerequisites {
 			__typename
 			options
@@ -4025,638 +2289,7 @@ query GetMasterRace($id: ID!) {
 			abilityModifier
 		}
 		levelAvailable
-		options {
-			__typename
-			id
-			label
-			value
-			desc
-			detail
-			category
-			attributes
-			actions {
-				__typename
-				primary {
-					__typename
-					id
-					amount
-				}
-				secondary {
-					__typename
-					id
-					amount
-				}
-			}
-			damage {
-				__typename
-				attributes
-				damageSave
-				setPerLevel {
-					__typename
-					level
-					primary
-					secondary
-					bonus
-				}
-				diePerLevel {
-					__typename
-					level
-					primary {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-					secondary {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-					bonus {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-				}
-				primary {
-					__typename
-					dieConfig
-					attribute
-					id
-					ability
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					pool {
-						__typename
-						attribute
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						ability
-						option
-					}
-				}
-				secondary {
-					__typename
-					dieConfig
-					attribute
-					id
-					ability
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					pool {
-						__typename
-						attribute
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						ability
-						option
-					}
-				}
-				bonus {
-					__typename
-					dieConfig
-					attribute
-					id
-					ability
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					pool {
-						__typename
-						attribute
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						ability
-						option
-					}
-				}
-				versatile {
-					__typename
-					dieConfig
-					attribute
-					id
-					ability
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					pool {
-						__typename
-						attribute
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						ability
-						option
-					}
-				}
-			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-			range {
-				__typename
-				id
-				minRange
-				maxRange
-				distance
-				unit
-			}
-			shape {
-				__typename
-				id
-				size
-				unit
-			}
-			targets
-			feats {
-				__typename
-				id
-				attributes
-				feats
-				selectionCount
-				subtype
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			modifiers {
-				__typename
-				id
-				subtype
-				attributes
-				selectionCount
-				category
-				type
-				method
-				methodAbility
-				methodSkill
-				multiplier
-				maxAmount
-				minAmount
-				setAmount
-				dieConfig
-				feature
-				diePerLevel {
-					__typename
-					level
-					dieConfig
-				}
-				setPerLevel {
-					__typename
-					level
-					setAmount
-				}
-				skills
-				saveAbilities
-				abilities
-				speeds
-				charge {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
-				range
-				minRange
-				maxRange
-				shape
-				size
-				duration
-				unit
-				conditions
-				damageTypes
-				damageType
-				spell
-				spellCategory
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			proficiencies {
-				__typename
-				id
-				subtype
-				attributes
-				selectionCount
-				category
-				level
-				rounding
-				saveAbilities
-				skills
-				languages
-				properties {
-					__typename
-					ids
-					category
-					properties
-				}
-				equipment {
-					__typename
-					ids
-					category
-					properties
-				}
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			expertise {
-				__typename
-				id
-				subtype
-				attributes
-				selectionCount
-				category
-				saveAbilities
-				skills
-				languages
-				properties {
-					__typename
-					ids
-					category
-					properties
-				}
-				equipment {
-					__typename
-					ids
-					category
-					properties
-				}
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			senses {
-				__typename
-				id
-				attributes
-				selectionCount
-				subtype
-				ids
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			spells {
-				__typename
-				id
-				ids
-				attributes
-				selectionCount
-				classLimit
-				levelLimit
-				attributeLimit
-				ability
-				spellLevel
-				spellsByLevel {
-					__typename
-					spells
-					level
-					spellLevel
-				}
-				subtype
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
-			}
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-			saveAbility {
-				__typename
-				id
-				minAmount
-				attributes
-				abilityModifier
-			}
-			levelAvailable
-		}
+		options
 	}
 	ownerId
 	systemId
@@ -4673,13 +2306,11 @@ query ListMasterRaces($limit: Int, $nextToken: String) {
 		__typename
 		id
 		label
-		value
 		quote
 		desc
 		details {
 			__typename
 			label
-			value
 			desc
 		}
 		systemId
@@ -4720,7 +2351,6 @@ query GetRace($id: ID!) {
 	__typename
 	id
 	label
-	value
 	quote
 	desc
 	playable
@@ -4730,1290 +2360,18 @@ query GetRace($id: ID!) {
 		__typename
 		id
 		label
-		value
 		desc
 		options {
 			__typename
 			id
-			value
 			label
 			desc
-			features {
-				__typename
-				id
-				label
-				value
-				desc
-				detail
-				category
-				attributes
-				actions {
-					__typename
-					primary {
-						__typename
-						id
-						amount
-					}
-					secondary {
-						__typename
-						id
-						amount
-					}
-				}
-				damage {
-					__typename
-					attributes
-					damageSave
-					setPerLevel {
-						__typename
-						level
-						primary
-						secondary
-						bonus
-					}
-					diePerLevel {
-						__typename
-						level
-						primary {
-							__typename
-							dieConfig
-							attribute
-							id
-							ability
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							pool {
-								__typename
-								attribute
-								setAmount
-								multiplier
-								minAmount
-								maxAmount
-								ability
-								option
-							}
-						}
-						secondary {
-							__typename
-							dieConfig
-							attribute
-							id
-							ability
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							pool {
-								__typename
-								attribute
-								setAmount
-								multiplier
-								minAmount
-								maxAmount
-								ability
-								option
-							}
-						}
-						bonus {
-							__typename
-							dieConfig
-							attribute
-							id
-							ability
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							pool {
-								__typename
-								attribute
-								setAmount
-								multiplier
-								minAmount
-								maxAmount
-								ability
-								option
-							}
-						}
-					}
-					primary {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-					secondary {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-					bonus {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-					versatile {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
-				optionsByLevel {
-					__typename
-					level
-					count
-					replaceCount
-				}
-				range {
-					__typename
-					id
-					minRange
-					maxRange
-					distance
-					unit
-				}
-				shape {
-					__typename
-					id
-					size
-					unit
-				}
-				targets
-				feats {
-					__typename
-					id
-					attributes
-					feats
-					selectionCount
-					subtype
-					prerequisites {
-						__typename
-						options
-						skillProficiencies
-						equipmentProficiencies {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						equipped {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						notEquipped {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						abilityScore {
-							__typename
-							abilities
-							score
-						}
-						spellsObtained
-						featuresObtained
-						optionsObtained
-						size
-					}
-				}
-				modifiers {
-					__typename
-					id
-					subtype
-					attributes
-					selectionCount
-					category
-					type
-					method
-					methodAbility
-					methodSkill
-					multiplier
-					maxAmount
-					minAmount
-					setAmount
-					dieConfig
-					feature
-					diePerLevel {
-						__typename
-						level
-						dieConfig
-					}
-					setPerLevel {
-						__typename
-						level
-						setAmount
-					}
-					skills
-					saveAbilities
-					abilities
-					speeds
-					charge {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
-					}
-					range
-					minRange
-					maxRange
-					shape
-					size
-					duration
-					unit
-					conditions
-					damageTypes
-					damageType
-					spell
-					spellCategory
-					prerequisites {
-						__typename
-						options
-						skillProficiencies
-						equipmentProficiencies {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						equipped {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						notEquipped {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						abilityScore {
-							__typename
-							abilities
-							score
-						}
-						spellsObtained
-						featuresObtained
-						optionsObtained
-						size
-					}
-				}
-				proficiencies {
-					__typename
-					id
-					subtype
-					attributes
-					selectionCount
-					category
-					level
-					rounding
-					saveAbilities
-					skills
-					languages
-					properties {
-						__typename
-						ids
-						category
-						properties
-					}
-					equipment {
-						__typename
-						ids
-						category
-						properties
-					}
-					prerequisites {
-						__typename
-						options
-						skillProficiencies
-						equipmentProficiencies {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						equipped {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						notEquipped {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						abilityScore {
-							__typename
-							abilities
-							score
-						}
-						spellsObtained
-						featuresObtained
-						optionsObtained
-						size
-					}
-				}
-				expertise {
-					__typename
-					id
-					subtype
-					attributes
-					selectionCount
-					category
-					saveAbilities
-					skills
-					languages
-					properties {
-						__typename
-						ids
-						category
-						properties
-					}
-					equipment {
-						__typename
-						ids
-						category
-						properties
-					}
-					prerequisites {
-						__typename
-						options
-						skillProficiencies
-						equipmentProficiencies {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						equipped {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						notEquipped {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						abilityScore {
-							__typename
-							abilities
-							score
-						}
-						spellsObtained
-						featuresObtained
-						optionsObtained
-						size
-					}
-				}
-				senses {
-					__typename
-					id
-					attributes
-					selectionCount
-					subtype
-					ids
-					prerequisites {
-						__typename
-						options
-						skillProficiencies
-						equipmentProficiencies {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						equipped {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						notEquipped {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						abilityScore {
-							__typename
-							abilities
-							score
-						}
-						spellsObtained
-						featuresObtained
-						optionsObtained
-						size
-					}
-				}
-				spells {
-					__typename
-					id
-					ids
-					attributes
-					selectionCount
-					classLimit
-					levelLimit
-					attributeLimit
-					ability
-					spellLevel
-					spellsByLevel {
-						__typename
-						spells
-						level
-						spellLevel
-					}
-					subtype
-					prerequisites {
-						__typename
-						options
-						skillProficiencies
-						equipmentProficiencies {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						equipped {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						notEquipped {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						abilityScore {
-							__typename
-							abilities
-							score
-						}
-						spellsObtained
-						featuresObtained
-						optionsObtained
-						size
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
-					}
-				}
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-				saveAbility {
-					__typename
-					id
-					minAmount
-					attributes
-					abilityModifier
-				}
-				levelAvailable
-				options {
-					__typename
-					id
-					label
-					value
-					desc
-					detail
-					category
-					attributes
-					actions {
-						__typename
-						primary {
-							__typename
-							id
-							amount
-						}
-						secondary {
-							__typename
-							id
-							amount
-						}
-					}
-					damage {
-						__typename
-						attributes
-						damageSave
-						setPerLevel {
-							__typename
-							level
-							primary
-							secondary
-							bonus
-						}
-						diePerLevel {
-							__typename
-							level
-							primary {
-								__typename
-								dieConfig
-								attribute
-								id
-								ability
-								setAmount
-								multiplier
-								minAmount
-								maxAmount
-								pool {
-									__typename
-									attribute
-									setAmount
-									multiplier
-									minAmount
-									maxAmount
-									ability
-									option
-								}
-							}
-							secondary {
-								__typename
-								dieConfig
-								attribute
-								id
-								ability
-								setAmount
-								multiplier
-								minAmount
-								maxAmount
-								pool {
-									__typename
-									attribute
-									setAmount
-									multiplier
-									minAmount
-									maxAmount
-									ability
-									option
-								}
-							}
-							bonus {
-								__typename
-								dieConfig
-								attribute
-								id
-								ability
-								setAmount
-								multiplier
-								minAmount
-								maxAmount
-								pool {
-									__typename
-									attribute
-									setAmount
-									multiplier
-									minAmount
-									maxAmount
-									ability
-									option
-								}
-							}
-						}
-						primary {
-							__typename
-							dieConfig
-							attribute
-							id
-							ability
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							pool {
-								__typename
-								attribute
-								setAmount
-								multiplier
-								minAmount
-								maxAmount
-								ability
-								option
-							}
-						}
-						secondary {
-							__typename
-							dieConfig
-							attribute
-							id
-							ability
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							pool {
-								__typename
-								attribute
-								setAmount
-								multiplier
-								minAmount
-								maxAmount
-								ability
-								option
-							}
-						}
-						bonus {
-							__typename
-							dieConfig
-							attribute
-							id
-							ability
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							pool {
-								__typename
-								attribute
-								setAmount
-								multiplier
-								minAmount
-								maxAmount
-								ability
-								option
-							}
-						}
-						versatile {
-							__typename
-							dieConfig
-							attribute
-							id
-							ability
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							pool {
-								__typename
-								attribute
-								setAmount
-								multiplier
-								minAmount
-								maxAmount
-								ability
-								option
-							}
-						}
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
-					}
-					range {
-						__typename
-						id
-						minRange
-						maxRange
-						distance
-						unit
-					}
-					shape {
-						__typename
-						id
-						size
-						unit
-					}
-					targets
-					feats {
-						__typename
-						id
-						attributes
-						feats
-						selectionCount
-						subtype
-						prerequisites {
-							__typename
-							options
-							skillProficiencies
-							equipmentProficiencies {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							equipped {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							notEquipped {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							abilityScore {
-								__typename
-								abilities
-								score
-							}
-							spellsObtained
-							featuresObtained
-							optionsObtained
-							size
-						}
-					}
-					modifiers {
-						__typename
-						id
-						subtype
-						attributes
-						selectionCount
-						category
-						type
-						method
-						methodAbility
-						methodSkill
-						multiplier
-						maxAmount
-						minAmount
-						setAmount
-						dieConfig
-						feature
-						diePerLevel {
-							__typename
-							level
-							dieConfig
-						}
-						setPerLevel {
-							__typename
-							level
-							setAmount
-						}
-						skills
-						saveAbilities
-						abilities
-						speeds
-						charge {
-							__typename
-							reset
-							limit
-							ability
-							skill
-							usesPerLevel {
-								__typename
-								level
-								uses
-							}
-							minAmount
-							addAmount
-							setAmount
-							multiplier
-							resourcePoints
-						}
-						range
-						minRange
-						maxRange
-						shape
-						size
-						duration
-						unit
-						conditions
-						damageTypes
-						damageType
-						spell
-						spellCategory
-						prerequisites {
-							__typename
-							options
-							skillProficiencies
-							equipmentProficiencies {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							equipped {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							notEquipped {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							abilityScore {
-								__typename
-								abilities
-								score
-							}
-							spellsObtained
-							featuresObtained
-							optionsObtained
-							size
-						}
-					}
-					proficiencies {
-						__typename
-						id
-						subtype
-						attributes
-						selectionCount
-						category
-						level
-						rounding
-						saveAbilities
-						skills
-						languages
-						properties {
-							__typename
-							ids
-							category
-							properties
-						}
-						equipment {
-							__typename
-							ids
-							category
-							properties
-						}
-						prerequisites {
-							__typename
-							options
-							skillProficiencies
-							equipmentProficiencies {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							equipped {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							notEquipped {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							abilityScore {
-								__typename
-								abilities
-								score
-							}
-							spellsObtained
-							featuresObtained
-							optionsObtained
-							size
-						}
-					}
-					expertise {
-						__typename
-						id
-						subtype
-						attributes
-						selectionCount
-						category
-						saveAbilities
-						skills
-						languages
-						properties {
-							__typename
-							ids
-							category
-							properties
-						}
-						equipment {
-							__typename
-							ids
-							category
-							properties
-						}
-						prerequisites {
-							__typename
-							options
-							skillProficiencies
-							equipmentProficiencies {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							equipped {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							notEquipped {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							abilityScore {
-								__typename
-								abilities
-								score
-							}
-							spellsObtained
-							featuresObtained
-							optionsObtained
-							size
-						}
-					}
-					senses {
-						__typename
-						id
-						attributes
-						selectionCount
-						subtype
-						ids
-						prerequisites {
-							__typename
-							options
-							skillProficiencies
-							equipmentProficiencies {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							equipped {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							notEquipped {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							abilityScore {
-								__typename
-								abilities
-								score
-							}
-							spellsObtained
-							featuresObtained
-							optionsObtained
-							size
-						}
-					}
-					spells {
-						__typename
-						id
-						ids
-						attributes
-						selectionCount
-						classLimit
-						levelLimit
-						attributeLimit
-						ability
-						spellLevel
-						spellsByLevel {
-							__typename
-							spells
-							level
-							spellLevel
-						}
-						subtype
-						prerequisites {
-							__typename
-							options
-							skillProficiencies
-							equipmentProficiencies {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							equipped {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							notEquipped {
-								__typename
-								numberEquipped
-								category
-								equipment
-								properties
-							}
-							abilityScore {
-								__typename
-								abilities
-								score
-							}
-							spellsObtained
-							featuresObtained
-							optionsObtained
-							size
-						}
-						charges {
-							__typename
-							reset
-							limit
-							ability
-							skill
-							usesPerLevel {
-								__typename
-								level
-								uses
-							}
-							minAmount
-							addAmount
-							setAmount
-							multiplier
-							resourcePoints
-						}
-					}
-					prerequisites {
-						__typename
-						options
-						skillProficiencies
-						equipmentProficiencies {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						equipped {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						notEquipped {
-							__typename
-							numberEquipped
-							category
-							equipment
-							properties
-						}
-						abilityScore {
-							__typename
-							abilities
-							score
-						}
-						spellsObtained
-						featuresObtained
-						optionsObtained
-						size
-					}
-					saveAbility {
-						__typename
-						id
-						minAmount
-						attributes
-						abilityModifier
-					}
-					levelAvailable
-				}
-			}
+			features
 		}
 	}
 	details {
 		__typename
 		label
-		value
 		desc
 	}
 	traits {
@@ -6021,7 +2379,6 @@ query GetRace($id: ID!) {
 		details {
 			__typename
 			label
-			value
 			desc
 		}
 		size
@@ -6037,7 +2394,6 @@ query GetRace($id: ID!) {
 		__typename
 		id
 		label
-		value
 		desc
 		detail
 		category
@@ -6256,377 +2612,12 @@ query GetRace($id: ID!) {
 			unit
 		}
 		targets
-		feats {
-			__typename
-			id
-			attributes
-			feats
-			selectionCount
-			subtype
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		modifiers {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			type
-			method
-			methodAbility
-			methodSkill
-			multiplier
-			maxAmount
-			minAmount
-			setAmount
-			dieConfig
-			feature
-			diePerLevel {
-				__typename
-				level
-				dieConfig
-			}
-			setPerLevel {
-				__typename
-				level
-				setAmount
-			}
-			skills
-			saveAbilities
-			abilities
-			speeds
-			charge {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-			range
-			minRange
-			maxRange
-			shape
-			size
-			duration
-			unit
-			conditions
-			damageTypes
-			damageType
-			spell
-			spellCategory
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		proficiencies {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			level
-			rounding
-			saveAbilities
-			skills
-			languages
-			properties {
-				__typename
-				ids
-				category
-				properties
-			}
-			equipment {
-				__typename
-				ids
-				category
-				properties
-			}
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		expertise {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			saveAbilities
-			skills
-			languages
-			properties {
-				__typename
-				ids
-				category
-				properties
-			}
-			equipment {
-				__typename
-				ids
-				category
-				properties
-			}
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		senses {
-			__typename
-			id
-			attributes
-			selectionCount
-			subtype
-			ids
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		spells {
-			__typename
-			id
-			ids
-			attributes
-			selectionCount
-			classLimit
-			levelLimit
-			attributeLimit
-			ability
-			spellLevel
-			spellsByLevel {
-				__typename
-				spells
-				level
-				spellLevel
-			}
-			subtype
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-		}
+		feats
+		modifiers
+		proficiencies
+		expertise
+		senses
+		spells
 		prerequisites {
 			__typename
 			options
@@ -6670,638 +2661,7 @@ query GetRace($id: ID!) {
 			abilityModifier
 		}
 		levelAvailable
-		options {
-			__typename
-			id
-			label
-			value
-			desc
-			detail
-			category
-			attributes
-			actions {
-				__typename
-				primary {
-					__typename
-					id
-					amount
-				}
-				secondary {
-					__typename
-					id
-					amount
-				}
-			}
-			damage {
-				__typename
-				attributes
-				damageSave
-				setPerLevel {
-					__typename
-					level
-					primary
-					secondary
-					bonus
-				}
-				diePerLevel {
-					__typename
-					level
-					primary {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-					secondary {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-					bonus {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-				}
-				primary {
-					__typename
-					dieConfig
-					attribute
-					id
-					ability
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					pool {
-						__typename
-						attribute
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						ability
-						option
-					}
-				}
-				secondary {
-					__typename
-					dieConfig
-					attribute
-					id
-					ability
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					pool {
-						__typename
-						attribute
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						ability
-						option
-					}
-				}
-				bonus {
-					__typename
-					dieConfig
-					attribute
-					id
-					ability
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					pool {
-						__typename
-						attribute
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						ability
-						option
-					}
-				}
-				versatile {
-					__typename
-					dieConfig
-					attribute
-					id
-					ability
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					pool {
-						__typename
-						attribute
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						ability
-						option
-					}
-				}
-			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-			range {
-				__typename
-				id
-				minRange
-				maxRange
-				distance
-				unit
-			}
-			shape {
-				__typename
-				id
-				size
-				unit
-			}
-			targets
-			feats {
-				__typename
-				id
-				attributes
-				feats
-				selectionCount
-				subtype
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			modifiers {
-				__typename
-				id
-				subtype
-				attributes
-				selectionCount
-				category
-				type
-				method
-				methodAbility
-				methodSkill
-				multiplier
-				maxAmount
-				minAmount
-				setAmount
-				dieConfig
-				feature
-				diePerLevel {
-					__typename
-					level
-					dieConfig
-				}
-				setPerLevel {
-					__typename
-					level
-					setAmount
-				}
-				skills
-				saveAbilities
-				abilities
-				speeds
-				charge {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
-				range
-				minRange
-				maxRange
-				shape
-				size
-				duration
-				unit
-				conditions
-				damageTypes
-				damageType
-				spell
-				spellCategory
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			proficiencies {
-				__typename
-				id
-				subtype
-				attributes
-				selectionCount
-				category
-				level
-				rounding
-				saveAbilities
-				skills
-				languages
-				properties {
-					__typename
-					ids
-					category
-					properties
-				}
-				equipment {
-					__typename
-					ids
-					category
-					properties
-				}
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			expertise {
-				__typename
-				id
-				subtype
-				attributes
-				selectionCount
-				category
-				saveAbilities
-				skills
-				languages
-				properties {
-					__typename
-					ids
-					category
-					properties
-				}
-				equipment {
-					__typename
-					ids
-					category
-					properties
-				}
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			senses {
-				__typename
-				id
-				attributes
-				selectionCount
-				subtype
-				ids
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			spells {
-				__typename
-				id
-				ids
-				attributes
-				selectionCount
-				classLimit
-				levelLimit
-				attributeLimit
-				ability
-				spellLevel
-				spellsByLevel {
-					__typename
-					spells
-					level
-					spellLevel
-				}
-				subtype
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
-			}
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-			saveAbility {
-				__typename
-				id
-				minAmount
-				attributes
-				abilityModifier
-			}
-			levelAvailable
-		}
+		options
 	}
 	ownerId
 	systemId
@@ -7318,13 +2678,11 @@ query ListRaces($systemId: ID!, $limit: Int, $nextToken: String) {
 		__typename
 		id
 		label
-		value
 		quote
 		desc
 		details {
 			__typename
 			label
-			value
 			desc
 		}
 		systemId
@@ -7359,13 +2717,792 @@ query ListRaces($systemId: ID!, $limit: Int, $nextToken: String) {
 }
 `as GeneratedQuery<APITypes.QueryListRacesArgs, {listRaces: APITypes.Query['listRaces']}>;
 
-export const getMasterFeat = /* GraphQL */ `
-query GetMasterFeat($id: ID!) {
-  getMasterFeat(id: $id) {
+export const getMasterFeatureSpell = /* GraphQL */ `
+query GetMasterFeatureSpell($id: ID!) {
+  getMasterFeatureSpell(id: $id) {
+	__typename
+	id
+	ids
+	attributes
+	selectionCount
+	classLimit
+	levelLimit
+	attributeLimit
+	ability
+	spellLevel
+	spellsByLevel {
+		__typename
+		spells
+		level
+		spellLevel
+	}
+	subtype
+	prerequisites {
+		__typename
+		options
+		skillProficiencies
+		equipmentProficiencies {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		equipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		notEquipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		abilityScore {
+			__typename
+			abilities
+			score
+		}
+		spellsObtained
+		featuresObtained
+		optionsObtained
+		size
+	}
+	charges {
+		__typename
+		reset
+		limit
+		ability
+		skill
+		usesPerLevel {
+			__typename
+			level
+			uses
+		}
+		minAmount
+		addAmount
+		setAmount
+		multiplier
+		resourcePoints
+	}
+  }
+}
+`as GeneratedQuery<APITypes.QueryGetMasterFeatureSpellArgs, {getMasterFeatureSpell: APITypes.Query['getMasterFeatureSpell']}>;
+
+export const listMasterFeatureSpells = /* GraphQL */ `
+query ListMasterFeatureSpells($limit: Int, $nextToken: String) {
+  listMasterFeatureSpells(limit: $limit, nextToken: $nextToken) {
+	__typename
+	items {
+		__typename
+		id
+		ids
+		attributes
+		selectionCount
+		classLimit
+		levelLimit
+		attributeLimit
+		ability
+		spellLevel
+		spellsByLevel {
+			__typename
+			spells
+			level
+			spellLevel
+		}
+		subtype
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
+		charges {
+			__typename
+			reset
+			limit
+			ability
+			skill
+			usesPerLevel {
+				__typename
+				level
+				uses
+			}
+			minAmount
+			addAmount
+			setAmount
+			multiplier
+			resourcePoints
+		}
+	}
+	nextToken
+  }
+}
+`as GeneratedQuery<APITypes.QueryListMasterFeatureSpellsArgs, {listMasterFeatureSpells: APITypes.Query['listMasterFeatureSpells']}>;
+
+export const getFeatureSpell = /* GraphQL */ `
+query GetFeatureSpell($id: ID!) {
+  getFeatureSpell(id: $id) {
+	__typename
+	id
+	ids
+	attributes
+	selectionCount
+	classLimit
+	levelLimit
+	attributeLimit
+	ability
+	spellLevel
+	spellsByLevel {
+		__typename
+		spells
+		level
+		spellLevel
+	}
+	subtype
+	prerequisites {
+		__typename
+		options
+		skillProficiencies
+		equipmentProficiencies {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		equipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		notEquipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		abilityScore {
+			__typename
+			abilities
+			score
+		}
+		spellsObtained
+		featuresObtained
+		optionsObtained
+		size
+	}
+	charges {
+		__typename
+		reset
+		limit
+		ability
+		skill
+		usesPerLevel {
+			__typename
+			level
+			uses
+		}
+		minAmount
+		addAmount
+		setAmount
+		multiplier
+		resourcePoints
+	}
+  }
+}
+`as GeneratedQuery<APITypes.QueryGetFeatureSpellArgs, {getFeatureSpell: APITypes.Query['getFeatureSpell']}>;
+
+export const listFeatureSpells = /* GraphQL */ `
+query ListFeatureSpells($systemId: ID!, $limit: Int, $nextToken: String) {
+  listFeatureSpells(systemId: $systemId, limit: $limit, nextToken: $nextToken) {
+	__typename
+	items {
+		__typename
+		id
+		ids
+		attributes
+		selectionCount
+		classLimit
+		levelLimit
+		attributeLimit
+		ability
+		spellLevel
+		spellsByLevel {
+			__typename
+			spells
+			level
+			spellLevel
+		}
+		subtype
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
+		charges {
+			__typename
+			reset
+			limit
+			ability
+			skill
+			usesPerLevel {
+				__typename
+				level
+				uses
+			}
+			minAmount
+			addAmount
+			setAmount
+			multiplier
+			resourcePoints
+		}
+	}
+	nextToken
+  }
+}
+`as GeneratedQuery<APITypes.QueryListFeatureSpellsArgs, {listFeatureSpells: APITypes.Query['listFeatureSpells']}>;
+
+export const getMasterFeatureSense = /* GraphQL */ `
+query GetMasterFeatureSense($id: ID!) {
+  getMasterFeatureSense(id: $id) {
+	__typename
+	id
+	attributes
+	selectionCount
+	subtype
+	ids
+	prerequisites {
+		__typename
+		options
+		skillProficiencies
+		equipmentProficiencies {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		equipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		notEquipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		abilityScore {
+			__typename
+			abilities
+			score
+		}
+		spellsObtained
+		featuresObtained
+		optionsObtained
+		size
+	}
+  }
+}
+`as GeneratedQuery<APITypes.QueryGetMasterFeatureSenseArgs, {getMasterFeatureSense: APITypes.Query['getMasterFeatureSense']}>;
+
+export const listMasterFeatureSenses = /* GraphQL */ `
+query ListMasterFeatureSenses($limit: Int, $nextToken: String) {
+  listMasterFeatureSenses(limit: $limit, nextToken: $nextToken) {
+	__typename
+	items {
+		__typename
+		id
+		attributes
+		selectionCount
+		subtype
+		ids
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
+	}
+	nextToken
+  }
+}
+`as GeneratedQuery<APITypes.QueryListMasterFeatureSensesArgs, {listMasterFeatureSenses: APITypes.Query['listMasterFeatureSenses']}>;
+
+export const getFeatureSense = /* GraphQL */ `
+query GetFeatureSense($id: ID!) {
+  getFeatureSense(id: $id) {
+	__typename
+	id
+	attributes
+	selectionCount
+	subtype
+	ids
+	prerequisites {
+		__typename
+		options
+		skillProficiencies
+		equipmentProficiencies {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		equipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		notEquipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		abilityScore {
+			__typename
+			abilities
+			score
+		}
+		spellsObtained
+		featuresObtained
+		optionsObtained
+		size
+	}
+  }
+}
+`as GeneratedQuery<APITypes.QueryGetFeatureSenseArgs, {getFeatureSense: APITypes.Query['getFeatureSense']}>;
+
+export const listFeatureSenses = /* GraphQL */ `
+query ListFeatureSenses($systemId: ID!, $limit: Int, $nextToken: String) {
+  listFeatureSenses(systemId: $systemId, limit: $limit, nextToken: $nextToken) {
+	__typename
+	items {
+		__typename
+		id
+		attributes
+		selectionCount
+		subtype
+		ids
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
+	}
+	nextToken
+  }
+}
+`as GeneratedQuery<APITypes.QueryListFeatureSensesArgs, {listFeatureSenses: APITypes.Query['listFeatureSenses']}>;
+
+export const getMasterFeatureProficiency = /* GraphQL */ `
+query GetMasterFeatureProficiency($id: ID!) {
+  getMasterFeatureProficiency(id: $id) {
+	__typename
+	id
+	subtype
+	attributes
+	selectionCount
+	category
+	level
+	rounding
+	saveAbilities
+	skills
+	languages
+	properties {
+		__typename
+		ids
+		category
+		properties
+	}
+	equipment {
+		__typename
+		ids
+		category
+		properties
+	}
+	prerequisites {
+		__typename
+		options
+		skillProficiencies
+		equipmentProficiencies {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		equipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		notEquipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		abilityScore {
+			__typename
+			abilities
+			score
+		}
+		spellsObtained
+		featuresObtained
+		optionsObtained
+		size
+	}
+  }
+}
+`as GeneratedQuery<APITypes.QueryGetMasterFeatureProficiencyArgs, {getMasterFeatureProficiency: APITypes.Query['getMasterFeatureProficiency']}>;
+
+export const listMasterFeatureProficiencies = /* GraphQL */ `
+query ListMasterFeatureProficiencies($limit: Int, $nextToken: String) {
+  listMasterFeatureProficiencies(limit: $limit, nextToken: $nextToken) {
+	__typename
+	items {
+		__typename
+		id
+		subtype
+		attributes
+		selectionCount
+		category
+		level
+		rounding
+		saveAbilities
+		skills
+		languages
+		properties {
+			__typename
+			ids
+			category
+			properties
+		}
+		equipment {
+			__typename
+			ids
+			category
+			properties
+		}
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
+	}
+	nextToken
+  }
+}
+`as GeneratedQuery<APITypes.QueryListMasterFeatureProficienciesArgs, {listMasterFeatureProficiencies: APITypes.Query['listMasterFeatureProficiencies']}>;
+
+export const getFeatureProficiency = /* GraphQL */ `
+query GetFeatureProficiency($id: ID!) {
+  getFeatureProficiency(id: $id) {
+	__typename
+	id
+	subtype
+	attributes
+	selectionCount
+	category
+	level
+	rounding
+	saveAbilities
+	skills
+	languages
+	properties {
+		__typename
+		ids
+		category
+		properties
+	}
+	equipment {
+		__typename
+		ids
+		category
+		properties
+	}
+	prerequisites {
+		__typename
+		options
+		skillProficiencies
+		equipmentProficiencies {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		equipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		notEquipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		abilityScore {
+			__typename
+			abilities
+			score
+		}
+		spellsObtained
+		featuresObtained
+		optionsObtained
+		size
+	}
+  }
+}
+`as GeneratedQuery<APITypes.QueryGetFeatureProficiencyArgs, {getFeatureProficiency: APITypes.Query['getFeatureProficiency']}>;
+
+export const listFeatureProficiencies = /* GraphQL */ `
+query ListFeatureProficiencies($systemId: ID!, $limit: Int, $nextToken: String) {
+  listFeatureProficiencies(systemId: $systemId, limit: $limit, nextToken: $nextToken) {
+	__typename
+	items {
+		__typename
+		id
+		subtype
+		attributes
+		selectionCount
+		category
+		level
+		rounding
+		saveAbilities
+		skills
+		languages
+		properties {
+			__typename
+			ids
+			category
+			properties
+		}
+		equipment {
+			__typename
+			ids
+			category
+			properties
+		}
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
+	}
+	nextToken
+  }
+}
+`as GeneratedQuery<APITypes.QueryListFeatureProficienciesArgs, {listFeatureProficiencies: APITypes.Query['listFeatureProficiencies']}>;
+
+export const getMasterFeatureOption = /* GraphQL */ `
+query GetMasterFeatureOption($id: ID!) {
+  getMasterFeatureOption(id: $id) {
 	__typename
 	id
 	label
-	value
 	desc
 	detail
 	category
@@ -7383,333 +3520,7 @@ query GetMasterFeat($id: ID!) {
 			amount
 		}
 	}
-	primaryDamage {
-		__typename
-		attributes
-		damageSave
-		setPerLevel {
-			__typename
-			level
-			primary
-			secondary
-			bonus
-		}
-		diePerLevel {
-			__typename
-			level
-			primary {
-				__typename
-				dieConfig
-				attribute
-				id
-				ability
-				setAmount
-				multiplier
-				minAmount
-				maxAmount
-				pool {
-					__typename
-					attribute
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					ability
-					option
-				}
-			}
-			secondary {
-				__typename
-				dieConfig
-				attribute
-				id
-				ability
-				setAmount
-				multiplier
-				minAmount
-				maxAmount
-				pool {
-					__typename
-					attribute
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					ability
-					option
-				}
-			}
-			bonus {
-				__typename
-				dieConfig
-				attribute
-				id
-				ability
-				setAmount
-				multiplier
-				minAmount
-				maxAmount
-				pool {
-					__typename
-					attribute
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					ability
-					option
-				}
-			}
-		}
-		primary {
-			__typename
-			dieConfig
-			attribute
-			id
-			ability
-			setAmount
-			multiplier
-			minAmount
-			maxAmount
-			pool {
-				__typename
-				attribute
-				setAmount
-				multiplier
-				minAmount
-				maxAmount
-				ability
-				option
-			}
-		}
-		secondary {
-			__typename
-			dieConfig
-			attribute
-			id
-			ability
-			setAmount
-			multiplier
-			minAmount
-			maxAmount
-			pool {
-				__typename
-				attribute
-				setAmount
-				multiplier
-				minAmount
-				maxAmount
-				ability
-				option
-			}
-		}
-		bonus {
-			__typename
-			dieConfig
-			attribute
-			id
-			ability
-			setAmount
-			multiplier
-			minAmount
-			maxAmount
-			pool {
-				__typename
-				attribute
-				setAmount
-				multiplier
-				minAmount
-				maxAmount
-				ability
-				option
-			}
-		}
-		versatile {
-			__typename
-			dieConfig
-			attribute
-			id
-			ability
-			setAmount
-			multiplier
-			minAmount
-			maxAmount
-			pool {
-				__typename
-				attribute
-				setAmount
-				multiplier
-				minAmount
-				maxAmount
-				ability
-				option
-			}
-		}
-	}
-	secondaryDamage {
-		__typename
-		attributes
-		damageSave
-		setPerLevel {
-			__typename
-			level
-			primary
-			secondary
-			bonus
-		}
-		diePerLevel {
-			__typename
-			level
-			primary {
-				__typename
-				dieConfig
-				attribute
-				id
-				ability
-				setAmount
-				multiplier
-				minAmount
-				maxAmount
-				pool {
-					__typename
-					attribute
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					ability
-					option
-				}
-			}
-			secondary {
-				__typename
-				dieConfig
-				attribute
-				id
-				ability
-				setAmount
-				multiplier
-				minAmount
-				maxAmount
-				pool {
-					__typename
-					attribute
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					ability
-					option
-				}
-			}
-			bonus {
-				__typename
-				dieConfig
-				attribute
-				id
-				ability
-				setAmount
-				multiplier
-				minAmount
-				maxAmount
-				pool {
-					__typename
-					attribute
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					ability
-					option
-				}
-			}
-		}
-		primary {
-			__typename
-			dieConfig
-			attribute
-			id
-			ability
-			setAmount
-			multiplier
-			minAmount
-			maxAmount
-			pool {
-				__typename
-				attribute
-				setAmount
-				multiplier
-				minAmount
-				maxAmount
-				ability
-				option
-			}
-		}
-		secondary {
-			__typename
-			dieConfig
-			attribute
-			id
-			ability
-			setAmount
-			multiplier
-			minAmount
-			maxAmount
-			pool {
-				__typename
-				attribute
-				setAmount
-				multiplier
-				minAmount
-				maxAmount
-				ability
-				option
-			}
-		}
-		bonus {
-			__typename
-			dieConfig
-			attribute
-			id
-			ability
-			setAmount
-			multiplier
-			minAmount
-			maxAmount
-			pool {
-				__typename
-				attribute
-				setAmount
-				multiplier
-				minAmount
-				maxAmount
-				ability
-				option
-			}
-		}
-		versatile {
-			__typename
-			dieConfig
-			attribute
-			id
-			ability
-			setAmount
-			multiplier
-			minAmount
-			maxAmount
-			pool {
-				__typename
-				attribute
-				setAmount
-				multiplier
-				minAmount
-				maxAmount
-				ability
-				option
-			}
-		}
-	}
-	bonusDamage {
+	damage {
 		__typename
 		attributes
 		damageSave
@@ -7904,13 +3715,285 @@ query GetMasterFeat($id: ID!) {
 		unit
 	}
 	targets
-	feats {
+	feats
+	modifiers
+	proficiencies
+	expertise
+	senses
+	spells
+	prerequisites {
+		__typename
+		options
+		skillProficiencies
+		equipmentProficiencies {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		equipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		notEquipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		abilityScore {
+			__typename
+			abilities
+			score
+		}
+		spellsObtained
+		featuresObtained
+		optionsObtained
+		size
+	}
+	saveAbility {
 		__typename
 		id
+		minAmount
 		attributes
+		abilityModifier
+	}
+	levelAvailable
+  }
+}
+`as GeneratedQuery<APITypes.QueryGetMasterFeatureOptionArgs, {getMasterFeatureOption: APITypes.Query['getMasterFeatureOption']}>;
+
+export const listMasterFeatureOptions = /* GraphQL */ `
+query ListMasterFeatureOptions($limit: Int, $nextToken: String) {
+  listMasterFeatureOptions(limit: $limit, nextToken: $nextToken) {
+	__typename
+	items {
+		__typename
+		id
+		label
+		desc
+		detail
+		category
+		attributes
+		actions {
+			__typename
+			primary {
+				__typename
+				id
+				amount
+			}
+			secondary {
+				__typename
+				id
+				amount
+			}
+		}
+		damage {
+			__typename
+			attributes
+			damageSave
+			setPerLevel {
+				__typename
+				level
+				primary
+				secondary
+				bonus
+			}
+			diePerLevel {
+				__typename
+				level
+				primary {
+					__typename
+					dieConfig
+					attribute
+					id
+					ability
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					pool {
+						__typename
+						attribute
+						setAmount
+						multiplier
+						minAmount
+						maxAmount
+						ability
+						option
+					}
+				}
+				secondary {
+					__typename
+					dieConfig
+					attribute
+					id
+					ability
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					pool {
+						__typename
+						attribute
+						setAmount
+						multiplier
+						minAmount
+						maxAmount
+						ability
+						option
+					}
+				}
+				bonus {
+					__typename
+					dieConfig
+					attribute
+					id
+					ability
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					pool {
+						__typename
+						attribute
+						setAmount
+						multiplier
+						minAmount
+						maxAmount
+						ability
+						option
+					}
+				}
+			}
+			primary {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
+			}
+			secondary {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
+			}
+			bonus {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
+			}
+			versatile {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
+			}
+		}
+		charges {
+			__typename
+			reset
+			limit
+			ability
+			skill
+			usesPerLevel {
+				__typename
+				level
+				uses
+			}
+			minAmount
+			addAmount
+			setAmount
+			multiplier
+			resourcePoints
+		}
+		range {
+			__typename
+			id
+			minRange
+			maxRange
+			distance
+			unit
+		}
+		shape {
+			__typename
+			id
+			size
+			unit
+		}
+		targets
 		feats
-		selectionCount
-		subtype
+		modifiers
+		proficiencies
+		expertise
+		senses
+		spells
 		prerequisites {
 			__typename
 			options
@@ -7946,8 +4029,672 @@ query GetMasterFeat($id: ID!) {
 			optionsObtained
 			size
 		}
+		saveAbility {
+			__typename
+			id
+			minAmount
+			attributes
+			abilityModifier
+		}
+		levelAvailable
 	}
-	modifiers {
+	nextToken
+  }
+}
+`as GeneratedQuery<APITypes.QueryListMasterFeatureOptionsArgs, {listMasterFeatureOptions: APITypes.Query['listMasterFeatureOptions']}>;
+
+export const getFeatureOption = /* GraphQL */ `
+query GetFeatureOption($id: ID!) {
+  getFeatureOption(id: $id) {
+	__typename
+	id
+	label
+	desc
+	detail
+	category
+	attributes
+	actions {
+		__typename
+		primary {
+			__typename
+			id
+			amount
+		}
+		secondary {
+			__typename
+			id
+			amount
+		}
+	}
+	damage {
+		__typename
+		attributes
+		damageSave
+		setPerLevel {
+			__typename
+			level
+			primary
+			secondary
+			bonus
+		}
+		diePerLevel {
+			__typename
+			level
+			primary {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
+			}
+			secondary {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
+			}
+			bonus {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
+			}
+		}
+		primary {
+			__typename
+			dieConfig
+			attribute
+			id
+			ability
+			setAmount
+			multiplier
+			minAmount
+			maxAmount
+			pool {
+				__typename
+				attribute
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				ability
+				option
+			}
+		}
+		secondary {
+			__typename
+			dieConfig
+			attribute
+			id
+			ability
+			setAmount
+			multiplier
+			minAmount
+			maxAmount
+			pool {
+				__typename
+				attribute
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				ability
+				option
+			}
+		}
+		bonus {
+			__typename
+			dieConfig
+			attribute
+			id
+			ability
+			setAmount
+			multiplier
+			minAmount
+			maxAmount
+			pool {
+				__typename
+				attribute
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				ability
+				option
+			}
+		}
+		versatile {
+			__typename
+			dieConfig
+			attribute
+			id
+			ability
+			setAmount
+			multiplier
+			minAmount
+			maxAmount
+			pool {
+				__typename
+				attribute
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				ability
+				option
+			}
+		}
+	}
+	charges {
+		__typename
+		reset
+		limit
+		ability
+		skill
+		usesPerLevel {
+			__typename
+			level
+			uses
+		}
+		minAmount
+		addAmount
+		setAmount
+		multiplier
+		resourcePoints
+	}
+	range {
+		__typename
+		id
+		minRange
+		maxRange
+		distance
+		unit
+	}
+	shape {
+		__typename
+		id
+		size
+		unit
+	}
+	targets
+	feats
+	modifiers
+	proficiencies
+	expertise
+	senses
+	spells
+	prerequisites {
+		__typename
+		options
+		skillProficiencies
+		equipmentProficiencies {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		equipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		notEquipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		abilityScore {
+			__typename
+			abilities
+			score
+		}
+		spellsObtained
+		featuresObtained
+		optionsObtained
+		size
+	}
+	saveAbility {
+		__typename
+		id
+		minAmount
+		attributes
+		abilityModifier
+	}
+	levelAvailable
+  }
+}
+`as GeneratedQuery<APITypes.QueryGetFeatureOptionArgs, {getFeatureOption: APITypes.Query['getFeatureOption']}>;
+
+export const listFeatureOptions = /* GraphQL */ `
+query ListFeatureOptions($systemId: ID!, $limit: Int, $nextToken: String) {
+  listFeatureOptions(systemId: $systemId, limit: $limit, nextToken: $nextToken) {
+	__typename
+	items {
+		__typename
+		id
+		label
+		desc
+		detail
+		category
+		attributes
+		actions {
+			__typename
+			primary {
+				__typename
+				id
+				amount
+			}
+			secondary {
+				__typename
+				id
+				amount
+			}
+		}
+		damage {
+			__typename
+			attributes
+			damageSave
+			setPerLevel {
+				__typename
+				level
+				primary
+				secondary
+				bonus
+			}
+			diePerLevel {
+				__typename
+				level
+				primary {
+					__typename
+					dieConfig
+					attribute
+					id
+					ability
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					pool {
+						__typename
+						attribute
+						setAmount
+						multiplier
+						minAmount
+						maxAmount
+						ability
+						option
+					}
+				}
+				secondary {
+					__typename
+					dieConfig
+					attribute
+					id
+					ability
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					pool {
+						__typename
+						attribute
+						setAmount
+						multiplier
+						minAmount
+						maxAmount
+						ability
+						option
+					}
+				}
+				bonus {
+					__typename
+					dieConfig
+					attribute
+					id
+					ability
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					pool {
+						__typename
+						attribute
+						setAmount
+						multiplier
+						minAmount
+						maxAmount
+						ability
+						option
+					}
+				}
+			}
+			primary {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
+			}
+			secondary {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
+			}
+			bonus {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
+			}
+			versatile {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
+			}
+		}
+		charges {
+			__typename
+			reset
+			limit
+			ability
+			skill
+			usesPerLevel {
+				__typename
+				level
+				uses
+			}
+			minAmount
+			addAmount
+			setAmount
+			multiplier
+			resourcePoints
+		}
+		range {
+			__typename
+			id
+			minRange
+			maxRange
+			distance
+			unit
+		}
+		shape {
+			__typename
+			id
+			size
+			unit
+		}
+		targets
+		feats
+		modifiers
+		proficiencies
+		expertise
+		senses
+		spells
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
+		saveAbility {
+			__typename
+			id
+			minAmount
+			attributes
+			abilityModifier
+		}
+		levelAvailable
+	}
+	nextToken
+  }
+}
+`as GeneratedQuery<APITypes.QueryListFeatureOptionsArgs, {listFeatureOptions: APITypes.Query['listFeatureOptions']}>;
+
+export const getMasterFeatureModifier = /* GraphQL */ `
+query GetMasterFeatureModifier($id: ID!) {
+  getMasterFeatureModifier(id: $id) {
+	__typename
+	id
+	subtype
+	attributes
+	selectionCount
+	category
+	type
+	method
+	methodAbility
+	methodSkill
+	multiplier
+	maxAmount
+	minAmount
+	setAmount
+	dieConfig
+	feature
+	diePerLevel {
+		__typename
+		level
+		dieConfig
+	}
+	setPerLevel {
+		__typename
+		level
+		setAmount
+	}
+	skills
+	saveAbilities
+	abilities
+	speeds
+	charge {
+		__typename
+		reset
+		limit
+		ability
+		skill
+		usesPerLevel {
+			__typename
+			level
+			uses
+		}
+		minAmount
+		addAmount
+		setAmount
+		multiplier
+		resourcePoints
+	}
+	range
+	minRange
+	maxRange
+	shape
+	size
+	duration
+	unit
+	conditions
+	damageTypes
+	damageType
+	spell
+	spellCategory
+	prerequisites {
+		__typename
+		options
+		skillProficiencies
+		equipmentProficiencies {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		equipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		notEquipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		abilityScore {
+			__typename
+			abilities
+			score
+		}
+		spellsObtained
+		featuresObtained
+		optionsObtained
+		size
+	}
+  }
+}
+`as GeneratedQuery<APITypes.QueryGetMasterFeatureModifierArgs, {getMasterFeatureModifier: APITypes.Query['getMasterFeatureModifier']}>;
+
+export const listMasterFeatureModifiers = /* GraphQL */ `
+query ListMasterFeatureModifiers($limit: Int, $nextToken: String) {
+  listMasterFeatureModifiers(limit: $limit, nextToken: $nextToken) {
+	__typename
+	items {
 		__typename
 		id
 		subtype
@@ -8043,223 +4790,148 @@ query GetMasterFeat($id: ID!) {
 			size
 		}
 	}
-	proficiencies {
+	nextToken
+  }
+}
+`as GeneratedQuery<APITypes.QueryListMasterFeatureModifiersArgs, {listMasterFeatureModifiers: APITypes.Query['listMasterFeatureModifiers']}>;
+
+export const getFeatureModifier = /* GraphQL */ `
+query GetFeatureModifier($id: ID!) {
+  getFeatureModifier(id: $id) {
+	__typename
+	id
+	subtype
+	attributes
+	selectionCount
+	category
+	type
+	method
+	methodAbility
+	methodSkill
+	multiplier
+	maxAmount
+	minAmount
+	setAmount
+	dieConfig
+	feature
+	diePerLevel {
 		__typename
-		id
-		subtype
-		attributes
-		selectionCount
-		category
 		level
-		rounding
-		saveAbilities
-		skills
-		languages
-		properties {
-			__typename
-			ids
-			category
-			properties
-		}
-		equipment {
-			__typename
-			ids
-			category
-			properties
-		}
-		prerequisites {
-			__typename
-			options
-			skillProficiencies
-			equipmentProficiencies {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			equipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			notEquipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			abilityScore {
-				__typename
-				abilities
-				score
-			}
-			spellsObtained
-			featuresObtained
-			optionsObtained
-			size
-		}
+		dieConfig
 	}
-	expertise {
+	setPerLevel {
 		__typename
-		id
-		subtype
-		attributes
-		selectionCount
-		category
 		level
-		rounding
-		saveAbilities
-		skills
-		languages
-		properties {
-			__typename
-			ids
-			category
-			properties
-		}
-		equipment {
-			__typename
-			ids
-			category
-			properties
-		}
-		prerequisites {
-			__typename
-			options
-			skillProficiencies
-			equipmentProficiencies {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			equipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			notEquipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			abilityScore {
-				__typename
-				abilities
-				score
-			}
-			spellsObtained
-			featuresObtained
-			optionsObtained
-			size
-		}
+		setAmount
 	}
-	senses {
+	skills
+	saveAbilities
+	abilities
+	speeds
+	charge {
 		__typename
-		id
-		attributes
-		selectionCount
-		subtype
-		ids
-		prerequisites {
-			__typename
-			options
-			skillProficiencies
-			equipmentProficiencies {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			equipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			notEquipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			abilityScore {
-				__typename
-				abilities
-				score
-			}
-			spellsObtained
-			featuresObtained
-			optionsObtained
-			size
-		}
-	}
-	spells {
-		__typename
-		id
-		ids
-		attributes
-		selectionCount
-		classLimit
-		levelLimit
-		attributeLimit
+		reset
+		limit
 		ability
-		spellLevel
-		spellsByLevel {
+		skill
+		usesPerLevel {
 			__typename
-			spells
 			level
-			spellLevel
+			uses
 		}
-		subtype
-		prerequisites {
+		minAmount
+		addAmount
+		setAmount
+		multiplier
+		resourcePoints
+	}
+	range
+	minRange
+	maxRange
+	shape
+	size
+	duration
+	unit
+	conditions
+	damageTypes
+	damageType
+	spell
+	spellCategory
+	prerequisites {
+		__typename
+		options
+		skillProficiencies
+		equipmentProficiencies {
 			__typename
-			options
-			skillProficiencies
-			equipmentProficiencies {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			equipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			notEquipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			abilityScore {
-				__typename
-				abilities
-				score
-			}
-			spellsObtained
-			featuresObtained
-			optionsObtained
-			size
+			numberEquipped
+			category
+			equipment
+			properties
 		}
-		charges {
+		equipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		notEquipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		abilityScore {
+			__typename
+			abilities
+			score
+		}
+		spellsObtained
+		featuresObtained
+		optionsObtained
+		size
+	}
+  }
+}
+`as GeneratedQuery<APITypes.QueryGetFeatureModifierArgs, {getFeatureModifier: APITypes.Query['getFeatureModifier']}>;
+
+export const listFeatureModifiers = /* GraphQL */ `
+query ListFeatureModifiers($systemId: ID!, $limit: Int, $nextToken: String) {
+  listFeatureModifiers(systemId: $systemId, limit: $limit, nextToken: $nextToken) {
+	__typename
+	items {
+		__typename
+		id
+		subtype
+		attributes
+		selectionCount
+		category
+		type
+		method
+		methodAbility
+		methodSkill
+		multiplier
+		maxAmount
+		minAmount
+		setAmount
+		dieConfig
+		feature
+		diePerLevel {
+			__typename
+			level
+			dieConfig
+		}
+		setPerLevel {
+			__typename
+			level
+			setAmount
+		}
+		skills
+		saveAbilities
+		abilities
+		speeds
+		charge {
 			__typename
 			reset
 			limit
@@ -8276,7 +4948,749 @@ query GetMasterFeat($id: ID!) {
 			multiplier
 			resourcePoints
 		}
+		range
+		minRange
+		maxRange
+		shape
+		size
+		duration
+		unit
+		conditions
+		damageTypes
+		damageType
+		spell
+		spellCategory
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
 	}
+	nextToken
+  }
+}
+`as GeneratedQuery<APITypes.QueryListFeatureModifiersArgs, {listFeatureModifiers: APITypes.Query['listFeatureModifiers']}>;
+
+export const getMasterFeatureFeat = /* GraphQL */ `
+query GetMasterFeatureFeat($id: ID!) {
+  getMasterFeatureFeat(id: $id) {
+	__typename
+	id
+	attributes
+	feats
+	selectionCount
+	subtype
+	prerequisites {
+		__typename
+		options
+		skillProficiencies
+		equipmentProficiencies {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		equipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		notEquipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		abilityScore {
+			__typename
+			abilities
+			score
+		}
+		spellsObtained
+		featuresObtained
+		optionsObtained
+		size
+	}
+  }
+}
+`as GeneratedQuery<APITypes.QueryGetMasterFeatureFeatArgs, {getMasterFeatureFeat: APITypes.Query['getMasterFeatureFeat']}>;
+
+export const listMasterFeatureFeats = /* GraphQL */ `
+query ListMasterFeatureFeats($limit: Int, $nextToken: String) {
+  listMasterFeatureFeats(limit: $limit, nextToken: $nextToken) {
+	__typename
+	items {
+		__typename
+		id
+		attributes
+		feats
+		selectionCount
+		subtype
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
+	}
+	nextToken
+  }
+}
+`as GeneratedQuery<APITypes.QueryListMasterFeatureFeatsArgs, {listMasterFeatureFeats: APITypes.Query['listMasterFeatureFeats']}>;
+
+export const getFeatureFeat = /* GraphQL */ `
+query GetFeatureFeat($id: ID!) {
+  getFeatureFeat(id: $id) {
+	__typename
+	id
+	attributes
+	feats
+	selectionCount
+	subtype
+	prerequisites {
+		__typename
+		options
+		skillProficiencies
+		equipmentProficiencies {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		equipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		notEquipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		abilityScore {
+			__typename
+			abilities
+			score
+		}
+		spellsObtained
+		featuresObtained
+		optionsObtained
+		size
+	}
+  }
+}
+`as GeneratedQuery<APITypes.QueryGetFeatureFeatArgs, {getFeatureFeat: APITypes.Query['getFeatureFeat']}>;
+
+export const listFeatureFeats = /* GraphQL */ `
+query ListFeatureFeats($systemId: ID!, $limit: Int, $nextToken: String) {
+  listFeatureFeats(systemId: $systemId, limit: $limit, nextToken: $nextToken) {
+	__typename
+	items {
+		__typename
+		id
+		attributes
+		feats
+		selectionCount
+		subtype
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
+	}
+	nextToken
+  }
+}
+`as GeneratedQuery<APITypes.QueryListFeatureFeatsArgs, {listFeatureFeats: APITypes.Query['listFeatureFeats']}>;
+
+export const getMasterFeatureExpertise = /* GraphQL */ `
+query GetMasterFeatureExpertise($id: ID!) {
+  getMasterFeatureExpertise(id: $id) {
+	__typename
+	id
+	subtype
+	attributes
+	selectionCount
+	category
+	saveAbilities
+	skills
+	languages
+	properties {
+		__typename
+		ids
+		category
+		properties
+	}
+	equipment {
+		__typename
+		ids
+		category
+		properties
+	}
+	prerequisites {
+		__typename
+		options
+		skillProficiencies
+		equipmentProficiencies {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		equipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		notEquipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		abilityScore {
+			__typename
+			abilities
+			score
+		}
+		spellsObtained
+		featuresObtained
+		optionsObtained
+		size
+	}
+  }
+}
+`as GeneratedQuery<APITypes.QueryGetMasterFeatureExpertiseArgs, {getMasterFeatureExpertise: APITypes.Query['getMasterFeatureExpertise']}>;
+
+export const listMasterFeatureExpertises = /* GraphQL */ `
+query ListMasterFeatureExpertises($limit: Int, $nextToken: String) {
+  listMasterFeatureExpertises(limit: $limit, nextToken: $nextToken) {
+	__typename
+	items {
+		__typename
+		id
+		subtype
+		attributes
+		selectionCount
+		category
+		saveAbilities
+		skills
+		languages
+		properties {
+			__typename
+			ids
+			category
+			properties
+		}
+		equipment {
+			__typename
+			ids
+			category
+			properties
+		}
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
+	}
+	nextToken
+  }
+}
+`as GeneratedQuery<APITypes.QueryListMasterFeatureExpertisesArgs, {listMasterFeatureExpertises: APITypes.Query['listMasterFeatureExpertises']}>;
+
+export const getFeatureExpertise = /* GraphQL */ `
+query GetFeatureExpertise($id: ID!) {
+  getFeatureExpertise(id: $id) {
+	__typename
+	id
+	subtype
+	attributes
+	selectionCount
+	category
+	saveAbilities
+	skills
+	languages
+	properties {
+		__typename
+		ids
+		category
+		properties
+	}
+	equipment {
+		__typename
+		ids
+		category
+		properties
+	}
+	prerequisites {
+		__typename
+		options
+		skillProficiencies
+		equipmentProficiencies {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		equipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		notEquipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		abilityScore {
+			__typename
+			abilities
+			score
+		}
+		spellsObtained
+		featuresObtained
+		optionsObtained
+		size
+	}
+  }
+}
+`as GeneratedQuery<APITypes.QueryGetFeatureExpertiseArgs, {getFeatureExpertise: APITypes.Query['getFeatureExpertise']}>;
+
+export const listFeatureExpertises = /* GraphQL */ `
+query ListFeatureExpertises($systemId: ID!, $limit: Int, $nextToken: String) {
+  listFeatureExpertises(systemId: $systemId, limit: $limit, nextToken: $nextToken) {
+	__typename
+	items {
+		__typename
+		id
+		subtype
+		attributes
+		selectionCount
+		category
+		saveAbilities
+		skills
+		languages
+		properties {
+			__typename
+			ids
+			category
+			properties
+		}
+		equipment {
+			__typename
+			ids
+			category
+			properties
+		}
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
+	}
+	nextToken
+  }
+}
+`as GeneratedQuery<APITypes.QueryListFeatureExpertisesArgs, {listFeatureExpertises: APITypes.Query['listFeatureExpertises']}>;
+
+export const getMasterFeature = /* GraphQL */ `
+query GetMasterFeature($id: ID!) {
+  getMasterFeature(id: $id) {
+	__typename
+	id
+	label
+	desc
+	detail
+	category
+	attributes
+	actions {
+		__typename
+		primary {
+			__typename
+			id
+			amount
+		}
+		secondary {
+			__typename
+			id
+			amount
+		}
+	}
+	damage {
+		__typename
+		attributes
+		damageSave
+		setPerLevel {
+			__typename
+			level
+			primary
+			secondary
+			bonus
+		}
+		diePerLevel {
+			__typename
+			level
+			primary {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
+			}
+			secondary {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
+			}
+			bonus {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
+			}
+		}
+		primary {
+			__typename
+			dieConfig
+			attribute
+			id
+			ability
+			setAmount
+			multiplier
+			minAmount
+			maxAmount
+			pool {
+				__typename
+				attribute
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				ability
+				option
+			}
+		}
+		secondary {
+			__typename
+			dieConfig
+			attribute
+			id
+			ability
+			setAmount
+			multiplier
+			minAmount
+			maxAmount
+			pool {
+				__typename
+				attribute
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				ability
+				option
+			}
+		}
+		bonus {
+			__typename
+			dieConfig
+			attribute
+			id
+			ability
+			setAmount
+			multiplier
+			minAmount
+			maxAmount
+			pool {
+				__typename
+				attribute
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				ability
+				option
+			}
+		}
+		versatile {
+			__typename
+			dieConfig
+			attribute
+			id
+			ability
+			setAmount
+			multiplier
+			minAmount
+			maxAmount
+			pool {
+				__typename
+				attribute
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				ability
+				option
+			}
+		}
+	}
+	charges {
+		__typename
+		reset
+		limit
+		ability
+		skill
+		usesPerLevel {
+			__typename
+			level
+			uses
+		}
+		minAmount
+		addAmount
+		setAmount
+		multiplier
+		resourcePoints
+	}
+	optionsByLevel {
+		__typename
+		level
+		count
+		replaceCount
+	}
+	range {
+		__typename
+		id
+		minRange
+		maxRange
+		distance
+		unit
+	}
+	shape {
+		__typename
+		id
+		size
+		unit
+	}
+	targets
+	feats
+	modifiers
+	proficiencies
+	expertise
+	senses
+	spells
 	prerequisites {
 		__typename
 		options
@@ -8319,13 +5733,20 @@ query GetMasterFeat($id: ID!) {
 		attributes
 		abilityModifier
 	}
-	selectionCount
 	levelAvailable
-	features {
+	options
+  }
+}
+`as GeneratedQuery<APITypes.QueryGetMasterFeatureArgs, {getMasterFeature: APITypes.Query['getMasterFeature']}>;
+
+export const listMasterFeatures = /* GraphQL */ `
+query ListMasterFeatures($limit: Int, $nextToken: String) {
+  listMasterFeatures(limit: $limit, nextToken: $nextToken) {
+	__typename
+	items {
 		__typename
 		id
 		label
-		value
 		desc
 		detail
 		category
@@ -8544,377 +5965,12 @@ query GetMasterFeat($id: ID!) {
 			unit
 		}
 		targets
-		feats {
-			__typename
-			id
-			attributes
-			feats
-			selectionCount
-			subtype
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		modifiers {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			type
-			method
-			methodAbility
-			methodSkill
-			multiplier
-			maxAmount
-			minAmount
-			setAmount
-			dieConfig
-			feature
-			diePerLevel {
-				__typename
-				level
-				dieConfig
-			}
-			setPerLevel {
-				__typename
-				level
-				setAmount
-			}
-			skills
-			saveAbilities
-			abilities
-			speeds
-			charge {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-			range
-			minRange
-			maxRange
-			shape
-			size
-			duration
-			unit
-			conditions
-			damageTypes
-			damageType
-			spell
-			spellCategory
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		proficiencies {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			level
-			rounding
-			saveAbilities
-			skills
-			languages
-			properties {
-				__typename
-				ids
-				category
-				properties
-			}
-			equipment {
-				__typename
-				ids
-				category
-				properties
-			}
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		expertise {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			saveAbilities
-			skills
-			languages
-			properties {
-				__typename
-				ids
-				category
-				properties
-			}
-			equipment {
-				__typename
-				ids
-				category
-				properties
-			}
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		senses {
-			__typename
-			id
-			attributes
-			selectionCount
-			subtype
-			ids
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		spells {
-			__typename
-			id
-			ids
-			attributes
-			selectionCount
-			classLimit
-			levelLimit
-			attributeLimit
-			ability
-			spellLevel
-			spellsByLevel {
-				__typename
-				spells
-				level
-				spellLevel
-			}
-			subtype
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-		}
+		feats
+		modifiers
+		proficiencies
+		expertise
+		senses
+		spells
 		prerequisites {
 			__typename
 			options
@@ -8958,106 +6014,330 @@ query GetMasterFeat($id: ID!) {
 			abilityModifier
 		}
 		levelAvailable
-		options {
+		options
+	}
+	nextToken
+  }
+}
+`as GeneratedQuery<APITypes.QueryListMasterFeaturesArgs, {listMasterFeatures: APITypes.Query['listMasterFeatures']}>;
+
+export const getFeature = /* GraphQL */ `
+query GetFeature($id: ID!) {
+  getFeature(id: $id) {
+	__typename
+	id
+	label
+	desc
+	detail
+	category
+	attributes
+	actions {
+		__typename
+		primary {
 			__typename
 			id
-			label
-			value
-			desc
-			detail
-			category
-			attributes
-			actions {
+			amount
+		}
+		secondary {
+			__typename
+			id
+			amount
+		}
+	}
+	damage {
+		__typename
+		attributes
+		damageSave
+		setPerLevel {
+			__typename
+			level
+			primary
+			secondary
+			bonus
+		}
+		diePerLevel {
+			__typename
+			level
+			primary {
 				__typename
-				primary {
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
 					__typename
-					id
-					amount
-				}
-				secondary {
-					__typename
-					id
-					amount
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
 				}
 			}
-			damage {
+			secondary {
 				__typename
-				attributes
-				damageSave
-				setPerLevel {
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
 					__typename
-					level
-					primary
-					secondary
-					bonus
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
 				}
-				diePerLevel {
+			}
+			bonus {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
 					__typename
-					level
-					primary {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-					secondary {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-					bonus {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
 				}
+			}
+		}
+		primary {
+			__typename
+			dieConfig
+			attribute
+			id
+			ability
+			setAmount
+			multiplier
+			minAmount
+			maxAmount
+			pool {
+				__typename
+				attribute
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				ability
+				option
+			}
+		}
+		secondary {
+			__typename
+			dieConfig
+			attribute
+			id
+			ability
+			setAmount
+			multiplier
+			minAmount
+			maxAmount
+			pool {
+				__typename
+				attribute
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				ability
+				option
+			}
+		}
+		bonus {
+			__typename
+			dieConfig
+			attribute
+			id
+			ability
+			setAmount
+			multiplier
+			minAmount
+			maxAmount
+			pool {
+				__typename
+				attribute
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				ability
+				option
+			}
+		}
+		versatile {
+			__typename
+			dieConfig
+			attribute
+			id
+			ability
+			setAmount
+			multiplier
+			minAmount
+			maxAmount
+			pool {
+				__typename
+				attribute
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				ability
+				option
+			}
+		}
+	}
+	charges {
+		__typename
+		reset
+		limit
+		ability
+		skill
+		usesPerLevel {
+			__typename
+			level
+			uses
+		}
+		minAmount
+		addAmount
+		setAmount
+		multiplier
+		resourcePoints
+	}
+	optionsByLevel {
+		__typename
+		level
+		count
+		replaceCount
+	}
+	range {
+		__typename
+		id
+		minRange
+		maxRange
+		distance
+		unit
+	}
+	shape {
+		__typename
+		id
+		size
+		unit
+	}
+	targets
+	feats
+	modifiers
+	proficiencies
+	expertise
+	senses
+	spells
+	prerequisites {
+		__typename
+		options
+		skillProficiencies
+		equipmentProficiencies {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		equipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		notEquipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		abilityScore {
+			__typename
+			abilities
+			score
+		}
+		spellsObtained
+		featuresObtained
+		optionsObtained
+		size
+	}
+	saveAbility {
+		__typename
+		id
+		minAmount
+		attributes
+		abilityModifier
+	}
+	levelAvailable
+	options
+  }
+}
+`as GeneratedQuery<APITypes.QueryGetFeatureArgs, {getFeature: APITypes.Query['getFeature']}>;
+
+export const listFeatures = /* GraphQL */ `
+query ListFeatures($systemId: ID!, $limit: Int, $nextToken: String) {
+  listFeatures(systemId: $systemId, limit: $limit, nextToken: $nextToken) {
+	__typename
+	items {
+		__typename
+		id
+		label
+		desc
+		detail
+		category
+		attributes
+		actions {
+			__typename
+			primary {
+				__typename
+				id
+				amount
+			}
+			secondary {
+				__typename
+				id
+				amount
+			}
+		}
+		damage {
+			__typename
+			attributes
+			damageSave
+			setPerLevel {
+				__typename
+				level
+				primary
+				secondary
+				bonus
+			}
+			diePerLevel {
+				__typename
+				level
 				primary {
 					__typename
 					dieConfig
@@ -9121,7 +6401,531 @@ query GetMasterFeat($id: ID!) {
 						option
 					}
 				}
-				versatile {
+			}
+			primary {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
+			}
+			secondary {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
+			}
+			bonus {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
+			}
+			versatile {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
+			}
+		}
+		charges {
+			__typename
+			reset
+			limit
+			ability
+			skill
+			usesPerLevel {
+				__typename
+				level
+				uses
+			}
+			minAmount
+			addAmount
+			setAmount
+			multiplier
+			resourcePoints
+		}
+		optionsByLevel {
+			__typename
+			level
+			count
+			replaceCount
+		}
+		range {
+			__typename
+			id
+			minRange
+			maxRange
+			distance
+			unit
+		}
+		shape {
+			__typename
+			id
+			size
+			unit
+		}
+		targets
+		feats
+		modifiers
+		proficiencies
+		expertise
+		senses
+		spells
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
+		saveAbility {
+			__typename
+			id
+			minAmount
+			attributes
+			abilityModifier
+		}
+		levelAvailable
+		options
+	}
+	nextToken
+  }
+}
+`as GeneratedQuery<APITypes.QueryListFeaturesArgs, {listFeatures: APITypes.Query['listFeatures']}>;
+
+export const getMasterFeat = /* GraphQL */ `
+query GetMasterFeat($id: ID!) {
+  getMasterFeat(id: $id) {
+	__typename
+	id
+	label
+	desc
+	detail
+	category
+	attributes
+	actions {
+		__typename
+		primary {
+			__typename
+			id
+			amount
+		}
+		secondary {
+			__typename
+			id
+			amount
+		}
+	}
+	damage {
+		__typename
+		attributes
+		damageSave
+		setPerLevel {
+			__typename
+			level
+			primary
+			secondary
+			bonus
+		}
+		diePerLevel {
+			__typename
+			level
+			primary {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
+			}
+			secondary {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
+			}
+			bonus {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
+			}
+		}
+		primary {
+			__typename
+			dieConfig
+			attribute
+			id
+			ability
+			setAmount
+			multiplier
+			minAmount
+			maxAmount
+			pool {
+				__typename
+				attribute
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				ability
+				option
+			}
+		}
+		secondary {
+			__typename
+			dieConfig
+			attribute
+			id
+			ability
+			setAmount
+			multiplier
+			minAmount
+			maxAmount
+			pool {
+				__typename
+				attribute
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				ability
+				option
+			}
+		}
+		bonus {
+			__typename
+			dieConfig
+			attribute
+			id
+			ability
+			setAmount
+			multiplier
+			minAmount
+			maxAmount
+			pool {
+				__typename
+				attribute
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				ability
+				option
+			}
+		}
+		versatile {
+			__typename
+			dieConfig
+			attribute
+			id
+			ability
+			setAmount
+			multiplier
+			minAmount
+			maxAmount
+			pool {
+				__typename
+				attribute
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				ability
+				option
+			}
+		}
+	}
+	charges {
+		__typename
+		reset
+		limit
+		ability
+		skill
+		usesPerLevel {
+			__typename
+			level
+			uses
+		}
+		minAmount
+		addAmount
+		setAmount
+		multiplier
+		resourcePoints
+	}
+	range {
+		__typename
+		id
+		minRange
+		maxRange
+		distance
+		unit
+	}
+	shape {
+		__typename
+		id
+		size
+		unit
+	}
+	targets
+	modifiers
+	proficiencies
+	expertise
+	senses
+	spells
+	prerequisites {
+		__typename
+		options
+		skillProficiencies
+		equipmentProficiencies {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		equipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		notEquipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		abilityScore {
+			__typename
+			abilities
+			score
+		}
+		spellsObtained
+		featuresObtained
+		optionsObtained
+		size
+	}
+	saveAbility {
+		__typename
+		id
+		minAmount
+		attributes
+		abilityModifier
+	}
+	selectionCount
+	levelAvailable
+	features {
+		__typename
+		id
+		label
+		desc
+		detail
+		category
+		attributes
+		actions {
+			__typename
+			primary {
+				__typename
+				id
+				amount
+			}
+			secondary {
+				__typename
+				id
+				amount
+			}
+		}
+		damage {
+			__typename
+			attributes
+			damageSave
+			setPerLevel {
+				__typename
+				level
+				primary
+				secondary
+				bonus
+			}
+			diePerLevel {
+				__typename
+				level
+				primary {
+					__typename
+					dieConfig
+					attribute
+					id
+					ability
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					pool {
+						__typename
+						attribute
+						setAmount
+						multiplier
+						minAmount
+						maxAmount
+						ability
+						option
+					}
+				}
+				secondary {
+					__typename
+					dieConfig
+					attribute
+					id
+					ability
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					pool {
+						__typename
+						attribute
+						setAmount
+						multiplier
+						minAmount
+						maxAmount
+						ability
+						option
+					}
+				}
+				bonus {
 					__typename
 					dieConfig
 					attribute
@@ -9143,459 +6947,184 @@ query GetMasterFeat($id: ID!) {
 					}
 				}
 			}
-			charges {
+			primary {
 				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-			range {
-				__typename
-				id
-				minRange
-				maxRange
-				distance
-				unit
-			}
-			shape {
-				__typename
-				id
-				size
-				unit
-			}
-			targets
-			feats {
-				__typename
-				id
-				attributes
-				feats
-				selectionCount
-				subtype
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			modifiers {
-				__typename
-				id
-				subtype
-				attributes
-				selectionCount
-				category
-				type
-				method
-				methodAbility
-				methodSkill
-				multiplier
-				maxAmount
-				minAmount
-				setAmount
 				dieConfig
-				feature
-				diePerLevel {
-					__typename
-					level
-					dieConfig
-				}
-				setPerLevel {
-					__typename
-					level
-					setAmount
-				}
-				skills
-				saveAbilities
-				abilities
-				speeds
-				charge {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
-				range
-				minRange
-				maxRange
-				shape
-				size
-				duration
-				unit
-				conditions
-				damageTypes
-				damageType
-				spell
-				spellCategory
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			proficiencies {
-				__typename
+				attribute
 				id
-				subtype
-				attributes
-				selectionCount
-				category
-				level
-				rounding
-				saveAbilities
-				skills
-				languages
-				properties {
-					__typename
-					ids
-					category
-					properties
-				}
-				equipment {
-					__typename
-					ids
-					category
-					properties
-				}
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			expertise {
-				__typename
-				id
-				subtype
-				attributes
-				selectionCount
-				category
-				saveAbilities
-				skills
-				languages
-				properties {
-					__typename
-					ids
-					category
-					properties
-				}
-				equipment {
-					__typename
-					ids
-					category
-					properties
-				}
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			senses {
-				__typename
-				id
-				attributes
-				selectionCount
-				subtype
-				ids
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			spells {
-				__typename
-				id
-				ids
-				attributes
-				selectionCount
-				classLimit
-				levelLimit
-				attributeLimit
 				ability
-				spellLevel
-				spellsByLevel {
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
 					__typename
-					spells
-					level
-					spellLevel
-				}
-				subtype
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
+					attribute
 					setAmount
 					multiplier
-					resourcePoints
+					minAmount
+					maxAmount
+					ability
+					option
 				}
 			}
-			prerequisites {
+			secondary {
 				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-			saveAbility {
-				__typename
+				dieConfig
+				attribute
 				id
+				ability
+				setAmount
+				multiplier
 				minAmount
-				attributes
-				abilityModifier
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
 			}
-			levelAvailable
+			bonus {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
+			}
+			versatile {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
+			}
 		}
+		charges {
+			__typename
+			reset
+			limit
+			ability
+			skill
+			usesPerLevel {
+				__typename
+				level
+				uses
+			}
+			minAmount
+			addAmount
+			setAmount
+			multiplier
+			resourcePoints
+		}
+		optionsByLevel {
+			__typename
+			level
+			count
+			replaceCount
+		}
+		range {
+			__typename
+			id
+			minRange
+			maxRange
+			distance
+			unit
+		}
+		shape {
+			__typename
+			id
+			size
+			unit
+		}
+		targets
+		feats
+		modifiers
+		proficiencies
+		expertise
+		senses
+		spells
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
+		saveAbility {
+			__typename
+			id
+			minAmount
+			attributes
+			abilityModifier
+		}
+		levelAvailable
+		options
 	}
 	options {
 		__typename
 		id
 		label
-		value
 		desc
 		detail
 		category
@@ -9808,377 +7337,12 @@ query GetMasterFeat($id: ID!) {
 			unit
 		}
 		targets
-		feats {
-			__typename
-			id
-			attributes
-			feats
-			selectionCount
-			subtype
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		modifiers {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			type
-			method
-			methodAbility
-			methodSkill
-			multiplier
-			maxAmount
-			minAmount
-			setAmount
-			dieConfig
-			feature
-			diePerLevel {
-				__typename
-				level
-				dieConfig
-			}
-			setPerLevel {
-				__typename
-				level
-				setAmount
-			}
-			skills
-			saveAbilities
-			abilities
-			speeds
-			charge {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-			range
-			minRange
-			maxRange
-			shape
-			size
-			duration
-			unit
-			conditions
-			damageTypes
-			damageType
-			spell
-			spellCategory
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		proficiencies {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			level
-			rounding
-			saveAbilities
-			skills
-			languages
-			properties {
-				__typename
-				ids
-				category
-				properties
-			}
-			equipment {
-				__typename
-				ids
-				category
-				properties
-			}
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		expertise {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			saveAbilities
-			skills
-			languages
-			properties {
-				__typename
-				ids
-				category
-				properties
-			}
-			equipment {
-				__typename
-				ids
-				category
-				properties
-			}
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		senses {
-			__typename
-			id
-			attributes
-			selectionCount
-			subtype
-			ids
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		spells {
-			__typename
-			id
-			ids
-			attributes
-			selectionCount
-			classLimit
-			levelLimit
-			attributeLimit
-			ability
-			spellLevel
-			spellsByLevel {
-				__typename
-				spells
-				level
-				spellLevel
-			}
-			subtype
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-		}
+		feats
+		modifiers
+		proficiencies
+		expertise
+		senses
+		spells
 		prerequisites {
 			__typename
 			options
@@ -10238,7 +7402,6 @@ query ListMasterFeats($limit: Int, $nextToken: String) {
 		__typename
 		id
 		label
-		value
 		desc
 		detail
 		ownerId
@@ -10265,7 +7428,6 @@ query GetFeat($id: ID!) {
 	__typename
 	id
 	label
-	value
 	desc
 	detail
 	category
@@ -10283,333 +7445,7 @@ query GetFeat($id: ID!) {
 			amount
 		}
 	}
-	primaryDamage {
-		__typename
-		attributes
-		damageSave
-		setPerLevel {
-			__typename
-			level
-			primary
-			secondary
-			bonus
-		}
-		diePerLevel {
-			__typename
-			level
-			primary {
-				__typename
-				dieConfig
-				attribute
-				id
-				ability
-				setAmount
-				multiplier
-				minAmount
-				maxAmount
-				pool {
-					__typename
-					attribute
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					ability
-					option
-				}
-			}
-			secondary {
-				__typename
-				dieConfig
-				attribute
-				id
-				ability
-				setAmount
-				multiplier
-				minAmount
-				maxAmount
-				pool {
-					__typename
-					attribute
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					ability
-					option
-				}
-			}
-			bonus {
-				__typename
-				dieConfig
-				attribute
-				id
-				ability
-				setAmount
-				multiplier
-				minAmount
-				maxAmount
-				pool {
-					__typename
-					attribute
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					ability
-					option
-				}
-			}
-		}
-		primary {
-			__typename
-			dieConfig
-			attribute
-			id
-			ability
-			setAmount
-			multiplier
-			minAmount
-			maxAmount
-			pool {
-				__typename
-				attribute
-				setAmount
-				multiplier
-				minAmount
-				maxAmount
-				ability
-				option
-			}
-		}
-		secondary {
-			__typename
-			dieConfig
-			attribute
-			id
-			ability
-			setAmount
-			multiplier
-			minAmount
-			maxAmount
-			pool {
-				__typename
-				attribute
-				setAmount
-				multiplier
-				minAmount
-				maxAmount
-				ability
-				option
-			}
-		}
-		bonus {
-			__typename
-			dieConfig
-			attribute
-			id
-			ability
-			setAmount
-			multiplier
-			minAmount
-			maxAmount
-			pool {
-				__typename
-				attribute
-				setAmount
-				multiplier
-				minAmount
-				maxAmount
-				ability
-				option
-			}
-		}
-		versatile {
-			__typename
-			dieConfig
-			attribute
-			id
-			ability
-			setAmount
-			multiplier
-			minAmount
-			maxAmount
-			pool {
-				__typename
-				attribute
-				setAmount
-				multiplier
-				minAmount
-				maxAmount
-				ability
-				option
-			}
-		}
-	}
-	secondaryDamage {
-		__typename
-		attributes
-		damageSave
-		setPerLevel {
-			__typename
-			level
-			primary
-			secondary
-			bonus
-		}
-		diePerLevel {
-			__typename
-			level
-			primary {
-				__typename
-				dieConfig
-				attribute
-				id
-				ability
-				setAmount
-				multiplier
-				minAmount
-				maxAmount
-				pool {
-					__typename
-					attribute
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					ability
-					option
-				}
-			}
-			secondary {
-				__typename
-				dieConfig
-				attribute
-				id
-				ability
-				setAmount
-				multiplier
-				minAmount
-				maxAmount
-				pool {
-					__typename
-					attribute
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					ability
-					option
-				}
-			}
-			bonus {
-				__typename
-				dieConfig
-				attribute
-				id
-				ability
-				setAmount
-				multiplier
-				minAmount
-				maxAmount
-				pool {
-					__typename
-					attribute
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					ability
-					option
-				}
-			}
-		}
-		primary {
-			__typename
-			dieConfig
-			attribute
-			id
-			ability
-			setAmount
-			multiplier
-			minAmount
-			maxAmount
-			pool {
-				__typename
-				attribute
-				setAmount
-				multiplier
-				minAmount
-				maxAmount
-				ability
-				option
-			}
-		}
-		secondary {
-			__typename
-			dieConfig
-			attribute
-			id
-			ability
-			setAmount
-			multiplier
-			minAmount
-			maxAmount
-			pool {
-				__typename
-				attribute
-				setAmount
-				multiplier
-				minAmount
-				maxAmount
-				ability
-				option
-			}
-		}
-		bonus {
-			__typename
-			dieConfig
-			attribute
-			id
-			ability
-			setAmount
-			multiplier
-			minAmount
-			maxAmount
-			pool {
-				__typename
-				attribute
-				setAmount
-				multiplier
-				minAmount
-				maxAmount
-				ability
-				option
-			}
-		}
-		versatile {
-			__typename
-			dieConfig
-			attribute
-			id
-			ability
-			setAmount
-			multiplier
-			minAmount
-			maxAmount
-			pool {
-				__typename
-				attribute
-				setAmount
-				multiplier
-				minAmount
-				maxAmount
-				ability
-				option
-			}
-		}
-	}
-	bonusDamage {
+	damage {
 		__typename
 		attributes
 		damageSave
@@ -10804,379 +7640,11 @@ query GetFeat($id: ID!) {
 		unit
 	}
 	targets
-	feats {
-		__typename
-		id
-		attributes
-		feats
-		selectionCount
-		subtype
-		prerequisites {
-			__typename
-			options
-			skillProficiencies
-			equipmentProficiencies {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			equipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			notEquipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			abilityScore {
-				__typename
-				abilities
-				score
-			}
-			spellsObtained
-			featuresObtained
-			optionsObtained
-			size
-		}
-	}
-	modifiers {
-		__typename
-		id
-		subtype
-		attributes
-		selectionCount
-		category
-		type
-		method
-		methodAbility
-		methodSkill
-		multiplier
-		maxAmount
-		minAmount
-		setAmount
-		dieConfig
-		feature
-		diePerLevel {
-			__typename
-			level
-			dieConfig
-		}
-		setPerLevel {
-			__typename
-			level
-			setAmount
-		}
-		skills
-		saveAbilities
-		abilities
-		speeds
-		charge {
-			__typename
-			reset
-			limit
-			ability
-			skill
-			usesPerLevel {
-				__typename
-				level
-				uses
-			}
-			minAmount
-			addAmount
-			setAmount
-			multiplier
-			resourcePoints
-		}
-		range
-		minRange
-		maxRange
-		shape
-		size
-		duration
-		unit
-		conditions
-		damageTypes
-		damageType
-		spell
-		spellCategory
-		prerequisites {
-			__typename
-			options
-			skillProficiencies
-			equipmentProficiencies {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			equipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			notEquipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			abilityScore {
-				__typename
-				abilities
-				score
-			}
-			spellsObtained
-			featuresObtained
-			optionsObtained
-			size
-		}
-	}
-	proficiencies {
-		__typename
-		id
-		subtype
-		attributes
-		selectionCount
-		category
-		level
-		rounding
-		saveAbilities
-		skills
-		languages
-		properties {
-			__typename
-			ids
-			category
-			properties
-		}
-		equipment {
-			__typename
-			ids
-			category
-			properties
-		}
-		prerequisites {
-			__typename
-			options
-			skillProficiencies
-			equipmentProficiencies {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			equipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			notEquipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			abilityScore {
-				__typename
-				abilities
-				score
-			}
-			spellsObtained
-			featuresObtained
-			optionsObtained
-			size
-		}
-	}
-	expertise {
-		__typename
-		id
-		subtype
-		attributes
-		selectionCount
-		category
-		level
-		rounding
-		saveAbilities
-		skills
-		languages
-		properties {
-			__typename
-			ids
-			category
-			properties
-		}
-		equipment {
-			__typename
-			ids
-			category
-			properties
-		}
-		prerequisites {
-			__typename
-			options
-			skillProficiencies
-			equipmentProficiencies {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			equipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			notEquipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			abilityScore {
-				__typename
-				abilities
-				score
-			}
-			spellsObtained
-			featuresObtained
-			optionsObtained
-			size
-		}
-	}
-	senses {
-		__typename
-		id
-		attributes
-		selectionCount
-		subtype
-		ids
-		prerequisites {
-			__typename
-			options
-			skillProficiencies
-			equipmentProficiencies {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			equipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			notEquipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			abilityScore {
-				__typename
-				abilities
-				score
-			}
-			spellsObtained
-			featuresObtained
-			optionsObtained
-			size
-		}
-	}
-	spells {
-		__typename
-		id
-		ids
-		attributes
-		selectionCount
-		classLimit
-		levelLimit
-		attributeLimit
-		ability
-		spellLevel
-		spellsByLevel {
-			__typename
-			spells
-			level
-			spellLevel
-		}
-		subtype
-		prerequisites {
-			__typename
-			options
-			skillProficiencies
-			equipmentProficiencies {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			equipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			notEquipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			abilityScore {
-				__typename
-				abilities
-				score
-			}
-			spellsObtained
-			featuresObtained
-			optionsObtained
-			size
-		}
-		charges {
-			__typename
-			reset
-			limit
-			ability
-			skill
-			usesPerLevel {
-				__typename
-				level
-				uses
-			}
-			minAmount
-			addAmount
-			setAmount
-			multiplier
-			resourcePoints
-		}
-	}
+	modifiers
+	proficiencies
+	expertise
+	senses
+	spells
 	prerequisites {
 		__typename
 		options
@@ -11225,7 +7693,6 @@ query GetFeat($id: ID!) {
 		__typename
 		id
 		label
-		value
 		desc
 		detail
 		category
@@ -11444,377 +7911,12 @@ query GetFeat($id: ID!) {
 			unit
 		}
 		targets
-		feats {
-			__typename
-			id
-			attributes
-			feats
-			selectionCount
-			subtype
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		modifiers {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			type
-			method
-			methodAbility
-			methodSkill
-			multiplier
-			maxAmount
-			minAmount
-			setAmount
-			dieConfig
-			feature
-			diePerLevel {
-				__typename
-				level
-				dieConfig
-			}
-			setPerLevel {
-				__typename
-				level
-				setAmount
-			}
-			skills
-			saveAbilities
-			abilities
-			speeds
-			charge {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-			range
-			minRange
-			maxRange
-			shape
-			size
-			duration
-			unit
-			conditions
-			damageTypes
-			damageType
-			spell
-			spellCategory
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		proficiencies {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			level
-			rounding
-			saveAbilities
-			skills
-			languages
-			properties {
-				__typename
-				ids
-				category
-				properties
-			}
-			equipment {
-				__typename
-				ids
-				category
-				properties
-			}
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		expertise {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			saveAbilities
-			skills
-			languages
-			properties {
-				__typename
-				ids
-				category
-				properties
-			}
-			equipment {
-				__typename
-				ids
-				category
-				properties
-			}
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		senses {
-			__typename
-			id
-			attributes
-			selectionCount
-			subtype
-			ids
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		spells {
-			__typename
-			id
-			ids
-			attributes
-			selectionCount
-			classLimit
-			levelLimit
-			attributeLimit
-			ability
-			spellLevel
-			spellsByLevel {
-				__typename
-				spells
-				level
-				spellLevel
-			}
-			subtype
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-		}
+		feats
+		modifiers
+		proficiencies
+		expertise
+		senses
+		spells
 		prerequisites {
 			__typename
 			options
@@ -11858,644 +7960,12 @@ query GetFeat($id: ID!) {
 			abilityModifier
 		}
 		levelAvailable
-		options {
-			__typename
-			id
-			label
-			value
-			desc
-			detail
-			category
-			attributes
-			actions {
-				__typename
-				primary {
-					__typename
-					id
-					amount
-				}
-				secondary {
-					__typename
-					id
-					amount
-				}
-			}
-			damage {
-				__typename
-				attributes
-				damageSave
-				setPerLevel {
-					__typename
-					level
-					primary
-					secondary
-					bonus
-				}
-				diePerLevel {
-					__typename
-					level
-					primary {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-					secondary {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-					bonus {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-				}
-				primary {
-					__typename
-					dieConfig
-					attribute
-					id
-					ability
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					pool {
-						__typename
-						attribute
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						ability
-						option
-					}
-				}
-				secondary {
-					__typename
-					dieConfig
-					attribute
-					id
-					ability
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					pool {
-						__typename
-						attribute
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						ability
-						option
-					}
-				}
-				bonus {
-					__typename
-					dieConfig
-					attribute
-					id
-					ability
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					pool {
-						__typename
-						attribute
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						ability
-						option
-					}
-				}
-				versatile {
-					__typename
-					dieConfig
-					attribute
-					id
-					ability
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					pool {
-						__typename
-						attribute
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						ability
-						option
-					}
-				}
-			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-			range {
-				__typename
-				id
-				minRange
-				maxRange
-				distance
-				unit
-			}
-			shape {
-				__typename
-				id
-				size
-				unit
-			}
-			targets
-			feats {
-				__typename
-				id
-				attributes
-				feats
-				selectionCount
-				subtype
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			modifiers {
-				__typename
-				id
-				subtype
-				attributes
-				selectionCount
-				category
-				type
-				method
-				methodAbility
-				methodSkill
-				multiplier
-				maxAmount
-				minAmount
-				setAmount
-				dieConfig
-				feature
-				diePerLevel {
-					__typename
-					level
-					dieConfig
-				}
-				setPerLevel {
-					__typename
-					level
-					setAmount
-				}
-				skills
-				saveAbilities
-				abilities
-				speeds
-				charge {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
-				range
-				minRange
-				maxRange
-				shape
-				size
-				duration
-				unit
-				conditions
-				damageTypes
-				damageType
-				spell
-				spellCategory
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			proficiencies {
-				__typename
-				id
-				subtype
-				attributes
-				selectionCount
-				category
-				level
-				rounding
-				saveAbilities
-				skills
-				languages
-				properties {
-					__typename
-					ids
-					category
-					properties
-				}
-				equipment {
-					__typename
-					ids
-					category
-					properties
-				}
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			expertise {
-				__typename
-				id
-				subtype
-				attributes
-				selectionCount
-				category
-				saveAbilities
-				skills
-				languages
-				properties {
-					__typename
-					ids
-					category
-					properties
-				}
-				equipment {
-					__typename
-					ids
-					category
-					properties
-				}
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			senses {
-				__typename
-				id
-				attributes
-				selectionCount
-				subtype
-				ids
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			spells {
-				__typename
-				id
-				ids
-				attributes
-				selectionCount
-				classLimit
-				levelLimit
-				attributeLimit
-				ability
-				spellLevel
-				spellsByLevel {
-					__typename
-					spells
-					level
-					spellLevel
-				}
-				subtype
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
-			}
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-			saveAbility {
-				__typename
-				id
-				minAmount
-				attributes
-				abilityModifier
-			}
-			levelAvailable
-		}
+		options
 	}
 	options {
 		__typename
 		id
 		label
-		value
 		desc
 		detail
 		category
@@ -12708,377 +8178,12 @@ query GetFeat($id: ID!) {
 			unit
 		}
 		targets
-		feats {
-			__typename
-			id
-			attributes
-			feats
-			selectionCount
-			subtype
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		modifiers {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			type
-			method
-			methodAbility
-			methodSkill
-			multiplier
-			maxAmount
-			minAmount
-			setAmount
-			dieConfig
-			feature
-			diePerLevel {
-				__typename
-				level
-				dieConfig
-			}
-			setPerLevel {
-				__typename
-				level
-				setAmount
-			}
-			skills
-			saveAbilities
-			abilities
-			speeds
-			charge {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-			range
-			minRange
-			maxRange
-			shape
-			size
-			duration
-			unit
-			conditions
-			damageTypes
-			damageType
-			spell
-			spellCategory
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		proficiencies {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			level
-			rounding
-			saveAbilities
-			skills
-			languages
-			properties {
-				__typename
-				ids
-				category
-				properties
-			}
-			equipment {
-				__typename
-				ids
-				category
-				properties
-			}
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		expertise {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			saveAbilities
-			skills
-			languages
-			properties {
-				__typename
-				ids
-				category
-				properties
-			}
-			equipment {
-				__typename
-				ids
-				category
-				properties
-			}
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		senses {
-			__typename
-			id
-			attributes
-			selectionCount
-			subtype
-			ids
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		spells {
-			__typename
-			id
-			ids
-			attributes
-			selectionCount
-			classLimit
-			levelLimit
-			attributeLimit
-			ability
-			spellLevel
-			spellsByLevel {
-				__typename
-				spells
-				level
-				spellLevel
-			}
-			subtype
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-		}
+		feats
+		modifiers
+		proficiencies
+		expertise
+		senses
+		spells
 		prerequisites {
 			__typename
 			options
@@ -13138,7 +8243,6 @@ query ListFeats($systemId: ID!, $limit: Int, $nextToken: String) {
 		__typename
 		id
 		label
-		value
 		desc
 		detail
 		ownerId
@@ -13165,7 +8269,6 @@ query GetMasterEquipment($id: ID!) {
 	__typename
 	id
 	label
-	value
 	desc
 	quote
 	cost {
@@ -13419,7 +8522,6 @@ query GetMasterEquipment($id: ID!) {
 		__typename
 		id
 		label
-		value
 		desc
 		detail
 		category
@@ -13638,377 +8740,12 @@ query GetMasterEquipment($id: ID!) {
 			unit
 		}
 		targets
-		feats {
-			__typename
-			id
-			attributes
-			feats
-			selectionCount
-			subtype
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		modifiers {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			type
-			method
-			methodAbility
-			methodSkill
-			multiplier
-			maxAmount
-			minAmount
-			setAmount
-			dieConfig
-			feature
-			diePerLevel {
-				__typename
-				level
-				dieConfig
-			}
-			setPerLevel {
-				__typename
-				level
-				setAmount
-			}
-			skills
-			saveAbilities
-			abilities
-			speeds
-			charge {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-			range
-			minRange
-			maxRange
-			shape
-			size
-			duration
-			unit
-			conditions
-			damageTypes
-			damageType
-			spell
-			spellCategory
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		proficiencies {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			level
-			rounding
-			saveAbilities
-			skills
-			languages
-			properties {
-				__typename
-				ids
-				category
-				properties
-			}
-			equipment {
-				__typename
-				ids
-				category
-				properties
-			}
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		expertise {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			saveAbilities
-			skills
-			languages
-			properties {
-				__typename
-				ids
-				category
-				properties
-			}
-			equipment {
-				__typename
-				ids
-				category
-				properties
-			}
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		senses {
-			__typename
-			id
-			attributes
-			selectionCount
-			subtype
-			ids
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		spells {
-			__typename
-			id
-			ids
-			attributes
-			selectionCount
-			classLimit
-			levelLimit
-			attributeLimit
-			ability
-			spellLevel
-			spellsByLevel {
-				__typename
-				spells
-				level
-				spellLevel
-			}
-			subtype
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-		}
+		feats
+		modifiers
+		proficiencies
+		expertise
+		senses
+		spells
 		prerequisites {
 			__typename
 			options
@@ -14052,638 +8789,7 @@ query GetMasterEquipment($id: ID!) {
 			abilityModifier
 		}
 		levelAvailable
-		options {
-			__typename
-			id
-			label
-			value
-			desc
-			detail
-			category
-			attributes
-			actions {
-				__typename
-				primary {
-					__typename
-					id
-					amount
-				}
-				secondary {
-					__typename
-					id
-					amount
-				}
-			}
-			damage {
-				__typename
-				attributes
-				damageSave
-				setPerLevel {
-					__typename
-					level
-					primary
-					secondary
-					bonus
-				}
-				diePerLevel {
-					__typename
-					level
-					primary {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-					secondary {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-					bonus {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-				}
-				primary {
-					__typename
-					dieConfig
-					attribute
-					id
-					ability
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					pool {
-						__typename
-						attribute
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						ability
-						option
-					}
-				}
-				secondary {
-					__typename
-					dieConfig
-					attribute
-					id
-					ability
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					pool {
-						__typename
-						attribute
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						ability
-						option
-					}
-				}
-				bonus {
-					__typename
-					dieConfig
-					attribute
-					id
-					ability
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					pool {
-						__typename
-						attribute
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						ability
-						option
-					}
-				}
-				versatile {
-					__typename
-					dieConfig
-					attribute
-					id
-					ability
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					pool {
-						__typename
-						attribute
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						ability
-						option
-					}
-				}
-			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-			range {
-				__typename
-				id
-				minRange
-				maxRange
-				distance
-				unit
-			}
-			shape {
-				__typename
-				id
-				size
-				unit
-			}
-			targets
-			feats {
-				__typename
-				id
-				attributes
-				feats
-				selectionCount
-				subtype
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			modifiers {
-				__typename
-				id
-				subtype
-				attributes
-				selectionCount
-				category
-				type
-				method
-				methodAbility
-				methodSkill
-				multiplier
-				maxAmount
-				minAmount
-				setAmount
-				dieConfig
-				feature
-				diePerLevel {
-					__typename
-					level
-					dieConfig
-				}
-				setPerLevel {
-					__typename
-					level
-					setAmount
-				}
-				skills
-				saveAbilities
-				abilities
-				speeds
-				charge {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
-				range
-				minRange
-				maxRange
-				shape
-				size
-				duration
-				unit
-				conditions
-				damageTypes
-				damageType
-				spell
-				spellCategory
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			proficiencies {
-				__typename
-				id
-				subtype
-				attributes
-				selectionCount
-				category
-				level
-				rounding
-				saveAbilities
-				skills
-				languages
-				properties {
-					__typename
-					ids
-					category
-					properties
-				}
-				equipment {
-					__typename
-					ids
-					category
-					properties
-				}
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			expertise {
-				__typename
-				id
-				subtype
-				attributes
-				selectionCount
-				category
-				saveAbilities
-				skills
-				languages
-				properties {
-					__typename
-					ids
-					category
-					properties
-				}
-				equipment {
-					__typename
-					ids
-					category
-					properties
-				}
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			senses {
-				__typename
-				id
-				attributes
-				selectionCount
-				subtype
-				ids
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			spells {
-				__typename
-				id
-				ids
-				attributes
-				selectionCount
-				classLimit
-				levelLimit
-				attributeLimit
-				ability
-				spellLevel
-				spellsByLevel {
-					__typename
-					spells
-					level
-					spellLevel
-				}
-				subtype
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
-			}
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-			saveAbility {
-				__typename
-				id
-				minAmount
-				attributes
-				abilityModifier
-			}
-			levelAvailable
-		}
+		options
 	}
 	ownerId
 	systemId
@@ -14701,7 +8807,6 @@ query ListMasterEquipment($limit: Int, $nextToken: String) {
 		__typename
 		id
 		label
-		value
 		desc
 		quote
 		cost {
@@ -14780,7 +8885,6 @@ query GetEquipment($id: ID!) {
 	__typename
 	id
 	label
-	value
 	desc
 	quote
 	cost {
@@ -15034,7 +9138,6 @@ query GetEquipment($id: ID!) {
 		__typename
 		id
 		label
-		value
 		desc
 		detail
 		category
@@ -15253,377 +9356,12 @@ query GetEquipment($id: ID!) {
 			unit
 		}
 		targets
-		feats {
-			__typename
-			id
-			attributes
-			feats
-			selectionCount
-			subtype
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		modifiers {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			type
-			method
-			methodAbility
-			methodSkill
-			multiplier
-			maxAmount
-			minAmount
-			setAmount
-			dieConfig
-			feature
-			diePerLevel {
-				__typename
-				level
-				dieConfig
-			}
-			setPerLevel {
-				__typename
-				level
-				setAmount
-			}
-			skills
-			saveAbilities
-			abilities
-			speeds
-			charge {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-			range
-			minRange
-			maxRange
-			shape
-			size
-			duration
-			unit
-			conditions
-			damageTypes
-			damageType
-			spell
-			spellCategory
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		proficiencies {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			level
-			rounding
-			saveAbilities
-			skills
-			languages
-			properties {
-				__typename
-				ids
-				category
-				properties
-			}
-			equipment {
-				__typename
-				ids
-				category
-				properties
-			}
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		expertise {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			saveAbilities
-			skills
-			languages
-			properties {
-				__typename
-				ids
-				category
-				properties
-			}
-			equipment {
-				__typename
-				ids
-				category
-				properties
-			}
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		senses {
-			__typename
-			id
-			attributes
-			selectionCount
-			subtype
-			ids
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		spells {
-			__typename
-			id
-			ids
-			attributes
-			selectionCount
-			classLimit
-			levelLimit
-			attributeLimit
-			ability
-			spellLevel
-			spellsByLevel {
-				__typename
-				spells
-				level
-				spellLevel
-			}
-			subtype
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-		}
+		feats
+		modifiers
+		proficiencies
+		expertise
+		senses
+		spells
 		prerequisites {
 			__typename
 			options
@@ -15667,638 +9405,7 @@ query GetEquipment($id: ID!) {
 			abilityModifier
 		}
 		levelAvailable
-		options {
-			__typename
-			id
-			label
-			value
-			desc
-			detail
-			category
-			attributes
-			actions {
-				__typename
-				primary {
-					__typename
-					id
-					amount
-				}
-				secondary {
-					__typename
-					id
-					amount
-				}
-			}
-			damage {
-				__typename
-				attributes
-				damageSave
-				setPerLevel {
-					__typename
-					level
-					primary
-					secondary
-					bonus
-				}
-				diePerLevel {
-					__typename
-					level
-					primary {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-					secondary {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-					bonus {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-				}
-				primary {
-					__typename
-					dieConfig
-					attribute
-					id
-					ability
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					pool {
-						__typename
-						attribute
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						ability
-						option
-					}
-				}
-				secondary {
-					__typename
-					dieConfig
-					attribute
-					id
-					ability
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					pool {
-						__typename
-						attribute
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						ability
-						option
-					}
-				}
-				bonus {
-					__typename
-					dieConfig
-					attribute
-					id
-					ability
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					pool {
-						__typename
-						attribute
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						ability
-						option
-					}
-				}
-				versatile {
-					__typename
-					dieConfig
-					attribute
-					id
-					ability
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					pool {
-						__typename
-						attribute
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						ability
-						option
-					}
-				}
-			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-			range {
-				__typename
-				id
-				minRange
-				maxRange
-				distance
-				unit
-			}
-			shape {
-				__typename
-				id
-				size
-				unit
-			}
-			targets
-			feats {
-				__typename
-				id
-				attributes
-				feats
-				selectionCount
-				subtype
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			modifiers {
-				__typename
-				id
-				subtype
-				attributes
-				selectionCount
-				category
-				type
-				method
-				methodAbility
-				methodSkill
-				multiplier
-				maxAmount
-				minAmount
-				setAmount
-				dieConfig
-				feature
-				diePerLevel {
-					__typename
-					level
-					dieConfig
-				}
-				setPerLevel {
-					__typename
-					level
-					setAmount
-				}
-				skills
-				saveAbilities
-				abilities
-				speeds
-				charge {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
-				range
-				minRange
-				maxRange
-				shape
-				size
-				duration
-				unit
-				conditions
-				damageTypes
-				damageType
-				spell
-				spellCategory
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			proficiencies {
-				__typename
-				id
-				subtype
-				attributes
-				selectionCount
-				category
-				level
-				rounding
-				saveAbilities
-				skills
-				languages
-				properties {
-					__typename
-					ids
-					category
-					properties
-				}
-				equipment {
-					__typename
-					ids
-					category
-					properties
-				}
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			expertise {
-				__typename
-				id
-				subtype
-				attributes
-				selectionCount
-				category
-				saveAbilities
-				skills
-				languages
-				properties {
-					__typename
-					ids
-					category
-					properties
-				}
-				equipment {
-					__typename
-					ids
-					category
-					properties
-				}
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			senses {
-				__typename
-				id
-				attributes
-				selectionCount
-				subtype
-				ids
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			spells {
-				__typename
-				id
-				ids
-				attributes
-				selectionCount
-				classLimit
-				levelLimit
-				attributeLimit
-				ability
-				spellLevel
-				spellsByLevel {
-					__typename
-					spells
-					level
-					spellLevel
-				}
-				subtype
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
-			}
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-			saveAbility {
-				__typename
-				id
-				minAmount
-				attributes
-				abilityModifier
-			}
-			levelAvailable
-		}
+		options
 	}
 	ownerId
 	systemId
@@ -16316,7 +9423,6 @@ query ListEquipment($systemId: ID!, $limit: Int, $nextToken: String) {
 		__typename
 		id
 		label
-		value
 		desc
 		quote
 		cost {
@@ -16395,14 +9501,12 @@ query GetMasterClass($id: ID!) {
 	__typename
 	id
 	label
-	value
 	desc
 	attributes
 	category
 	details {
 		__typename
 		label
-		value
 		desc
 	}
 	hitpoint {
@@ -16537,7 +9641,6 @@ query GetMasterClass($id: ID!) {
 	resource {
 		__typename
 		label
-		value
 		id
 		levelAvailable
 		charges {
@@ -16583,13 +9686,11 @@ query GetMasterClass($id: ID!) {
 		__typename
 		id
 		label
-		value
 	}
 	features {
 		__typename
 		id
 		label
-		value
 		desc
 		detail
 		category
@@ -16808,377 +9909,12 @@ query GetMasterClass($id: ID!) {
 			unit
 		}
 		targets
-		feats {
-			__typename
-			id
-			attributes
-			feats
-			selectionCount
-			subtype
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		modifiers {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			type
-			method
-			methodAbility
-			methodSkill
-			multiplier
-			maxAmount
-			minAmount
-			setAmount
-			dieConfig
-			feature
-			diePerLevel {
-				__typename
-				level
-				dieConfig
-			}
-			setPerLevel {
-				__typename
-				level
-				setAmount
-			}
-			skills
-			saveAbilities
-			abilities
-			speeds
-			charge {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-			range
-			minRange
-			maxRange
-			shape
-			size
-			duration
-			unit
-			conditions
-			damageTypes
-			damageType
-			spell
-			spellCategory
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		proficiencies {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			level
-			rounding
-			saveAbilities
-			skills
-			languages
-			properties {
-				__typename
-				ids
-				category
-				properties
-			}
-			equipment {
-				__typename
-				ids
-				category
-				properties
-			}
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		expertise {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			saveAbilities
-			skills
-			languages
-			properties {
-				__typename
-				ids
-				category
-				properties
-			}
-			equipment {
-				__typename
-				ids
-				category
-				properties
-			}
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		senses {
-			__typename
-			id
-			attributes
-			selectionCount
-			subtype
-			ids
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		spells {
-			__typename
-			id
-			ids
-			attributes
-			selectionCount
-			classLimit
-			levelLimit
-			attributeLimit
-			ability
-			spellLevel
-			spellsByLevel {
-				__typename
-				spells
-				level
-				spellLevel
-			}
-			subtype
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-		}
+		feats
+		modifiers
+		proficiencies
+		expertise
+		senses
+		spells
 		prerequisites {
 			__typename
 			options
@@ -17222,638 +9958,7 @@ query GetMasterClass($id: ID!) {
 			abilityModifier
 		}
 		levelAvailable
-		options {
-			__typename
-			id
-			label
-			value
-			desc
-			detail
-			category
-			attributes
-			actions {
-				__typename
-				primary {
-					__typename
-					id
-					amount
-				}
-				secondary {
-					__typename
-					id
-					amount
-				}
-			}
-			damage {
-				__typename
-				attributes
-				damageSave
-				setPerLevel {
-					__typename
-					level
-					primary
-					secondary
-					bonus
-				}
-				diePerLevel {
-					__typename
-					level
-					primary {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-					secondary {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-					bonus {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-				}
-				primary {
-					__typename
-					dieConfig
-					attribute
-					id
-					ability
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					pool {
-						__typename
-						attribute
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						ability
-						option
-					}
-				}
-				secondary {
-					__typename
-					dieConfig
-					attribute
-					id
-					ability
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					pool {
-						__typename
-						attribute
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						ability
-						option
-					}
-				}
-				bonus {
-					__typename
-					dieConfig
-					attribute
-					id
-					ability
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					pool {
-						__typename
-						attribute
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						ability
-						option
-					}
-				}
-				versatile {
-					__typename
-					dieConfig
-					attribute
-					id
-					ability
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					pool {
-						__typename
-						attribute
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						ability
-						option
-					}
-				}
-			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-			range {
-				__typename
-				id
-				minRange
-				maxRange
-				distance
-				unit
-			}
-			shape {
-				__typename
-				id
-				size
-				unit
-			}
-			targets
-			feats {
-				__typename
-				id
-				attributes
-				feats
-				selectionCount
-				subtype
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			modifiers {
-				__typename
-				id
-				subtype
-				attributes
-				selectionCount
-				category
-				type
-				method
-				methodAbility
-				methodSkill
-				multiplier
-				maxAmount
-				minAmount
-				setAmount
-				dieConfig
-				feature
-				diePerLevel {
-					__typename
-					level
-					dieConfig
-				}
-				setPerLevel {
-					__typename
-					level
-					setAmount
-				}
-				skills
-				saveAbilities
-				abilities
-				speeds
-				charge {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
-				range
-				minRange
-				maxRange
-				shape
-				size
-				duration
-				unit
-				conditions
-				damageTypes
-				damageType
-				spell
-				spellCategory
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			proficiencies {
-				__typename
-				id
-				subtype
-				attributes
-				selectionCount
-				category
-				level
-				rounding
-				saveAbilities
-				skills
-				languages
-				properties {
-					__typename
-					ids
-					category
-					properties
-				}
-				equipment {
-					__typename
-					ids
-					category
-					properties
-				}
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			expertise {
-				__typename
-				id
-				subtype
-				attributes
-				selectionCount
-				category
-				saveAbilities
-				skills
-				languages
-				properties {
-					__typename
-					ids
-					category
-					properties
-				}
-				equipment {
-					__typename
-					ids
-					category
-					properties
-				}
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			senses {
-				__typename
-				id
-				attributes
-				selectionCount
-				subtype
-				ids
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			spells {
-				__typename
-				id
-				ids
-				attributes
-				selectionCount
-				classLimit
-				levelLimit
-				attributeLimit
-				ability
-				spellLevel
-				spellsByLevel {
-					__typename
-					spells
-					level
-					spellLevel
-				}
-				subtype
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
-			}
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-			saveAbility {
-				__typename
-				id
-				minAmount
-				attributes
-				abilityModifier
-			}
-			levelAvailable
-		}
+		options
 	}
 	ownerId
 	systemId
@@ -17870,7 +9975,6 @@ query ListMasterClasses($limit: Int, $nextToken: String) {
 		__typename
 		id
 		label
-		value
 		desc
 		ownerId
 		systemId
@@ -17924,14 +10028,12 @@ query GetClass($id: ID!) {
 	__typename
 	id
 	label
-	value
 	desc
 	attributes
 	category
 	details {
 		__typename
 		label
-		value
 		desc
 	}
 	hitpoint {
@@ -18066,7 +10168,6 @@ query GetClass($id: ID!) {
 	resource {
 		__typename
 		label
-		value
 		id
 		levelAvailable
 		charges {
@@ -18112,13 +10213,11 @@ query GetClass($id: ID!) {
 		__typename
 		id
 		label
-		value
 	}
 	features {
 		__typename
 		id
 		label
-		value
 		desc
 		detail
 		category
@@ -18337,377 +10436,12 @@ query GetClass($id: ID!) {
 			unit
 		}
 		targets
-		feats {
-			__typename
-			id
-			attributes
-			feats
-			selectionCount
-			subtype
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		modifiers {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			type
-			method
-			methodAbility
-			methodSkill
-			multiplier
-			maxAmount
-			minAmount
-			setAmount
-			dieConfig
-			feature
-			diePerLevel {
-				__typename
-				level
-				dieConfig
-			}
-			setPerLevel {
-				__typename
-				level
-				setAmount
-			}
-			skills
-			saveAbilities
-			abilities
-			speeds
-			charge {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-			range
-			minRange
-			maxRange
-			shape
-			size
-			duration
-			unit
-			conditions
-			damageTypes
-			damageType
-			spell
-			spellCategory
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		proficiencies {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			level
-			rounding
-			saveAbilities
-			skills
-			languages
-			properties {
-				__typename
-				ids
-				category
-				properties
-			}
-			equipment {
-				__typename
-				ids
-				category
-				properties
-			}
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		expertise {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			saveAbilities
-			skills
-			languages
-			properties {
-				__typename
-				ids
-				category
-				properties
-			}
-			equipment {
-				__typename
-				ids
-				category
-				properties
-			}
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		senses {
-			__typename
-			id
-			attributes
-			selectionCount
-			subtype
-			ids
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		spells {
-			__typename
-			id
-			ids
-			attributes
-			selectionCount
-			classLimit
-			levelLimit
-			attributeLimit
-			ability
-			spellLevel
-			spellsByLevel {
-				__typename
-				spells
-				level
-				spellLevel
-			}
-			subtype
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-		}
+		feats
+		modifiers
+		proficiencies
+		expertise
+		senses
+		spells
 		prerequisites {
 			__typename
 			options
@@ -18751,638 +10485,7 @@ query GetClass($id: ID!) {
 			abilityModifier
 		}
 		levelAvailable
-		options {
-			__typename
-			id
-			label
-			value
-			desc
-			detail
-			category
-			attributes
-			actions {
-				__typename
-				primary {
-					__typename
-					id
-					amount
-				}
-				secondary {
-					__typename
-					id
-					amount
-				}
-			}
-			damage {
-				__typename
-				attributes
-				damageSave
-				setPerLevel {
-					__typename
-					level
-					primary
-					secondary
-					bonus
-				}
-				diePerLevel {
-					__typename
-					level
-					primary {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-					secondary {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-					bonus {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-				}
-				primary {
-					__typename
-					dieConfig
-					attribute
-					id
-					ability
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					pool {
-						__typename
-						attribute
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						ability
-						option
-					}
-				}
-				secondary {
-					__typename
-					dieConfig
-					attribute
-					id
-					ability
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					pool {
-						__typename
-						attribute
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						ability
-						option
-					}
-				}
-				bonus {
-					__typename
-					dieConfig
-					attribute
-					id
-					ability
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					pool {
-						__typename
-						attribute
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						ability
-						option
-					}
-				}
-				versatile {
-					__typename
-					dieConfig
-					attribute
-					id
-					ability
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					pool {
-						__typename
-						attribute
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						ability
-						option
-					}
-				}
-			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-			range {
-				__typename
-				id
-				minRange
-				maxRange
-				distance
-				unit
-			}
-			shape {
-				__typename
-				id
-				size
-				unit
-			}
-			targets
-			feats {
-				__typename
-				id
-				attributes
-				feats
-				selectionCount
-				subtype
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			modifiers {
-				__typename
-				id
-				subtype
-				attributes
-				selectionCount
-				category
-				type
-				method
-				methodAbility
-				methodSkill
-				multiplier
-				maxAmount
-				minAmount
-				setAmount
-				dieConfig
-				feature
-				diePerLevel {
-					__typename
-					level
-					dieConfig
-				}
-				setPerLevel {
-					__typename
-					level
-					setAmount
-				}
-				skills
-				saveAbilities
-				abilities
-				speeds
-				charge {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
-				range
-				minRange
-				maxRange
-				shape
-				size
-				duration
-				unit
-				conditions
-				damageTypes
-				damageType
-				spell
-				spellCategory
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			proficiencies {
-				__typename
-				id
-				subtype
-				attributes
-				selectionCount
-				category
-				level
-				rounding
-				saveAbilities
-				skills
-				languages
-				properties {
-					__typename
-					ids
-					category
-					properties
-				}
-				equipment {
-					__typename
-					ids
-					category
-					properties
-				}
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			expertise {
-				__typename
-				id
-				subtype
-				attributes
-				selectionCount
-				category
-				saveAbilities
-				skills
-				languages
-				properties {
-					__typename
-					ids
-					category
-					properties
-				}
-				equipment {
-					__typename
-					ids
-					category
-					properties
-				}
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			senses {
-				__typename
-				id
-				attributes
-				selectionCount
-				subtype
-				ids
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			spells {
-				__typename
-				id
-				ids
-				attributes
-				selectionCount
-				classLimit
-				levelLimit
-				attributeLimit
-				ability
-				spellLevel
-				spellsByLevel {
-					__typename
-					spells
-					level
-					spellLevel
-				}
-				subtype
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
-			}
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-			saveAbility {
-				__typename
-				id
-				minAmount
-				attributes
-				abilityModifier
-			}
-			levelAvailable
-		}
+		options
 	}
 	ownerId
 	systemId
@@ -19399,7 +10502,6 @@ query ListClasses($systemId: ID!, $limit: Int, $nextToken: String) {
 		__typename
 		id
 		label
-		value
 		desc
 		ownerId
 		systemId
@@ -19452,7 +10554,6 @@ query GetCharacter($id: ID!) {
   getCharacter(id: $id) {
 	__typename
 	id
-	value
 	label
 	desc
 	advancement
@@ -19786,7 +10887,6 @@ query ListCharacters($systemId: ID!, $limit: Int, $nextToken: String) {
 	items {
 		__typename
 		id
-		value
 		label
 		desc
 		advancement
@@ -20121,12 +11221,10 @@ query GetMasterBackground($id: ID!) {
 	__typename
 	id
 	label
-	value
 	desc
 	details {
 		__typename
 		label
-		value
 		desc
 	}
 	equipment {
@@ -20207,7 +11305,6 @@ query GetMasterBackground($id: ID!) {
 		__typename
 		id
 		label
-		value
 		desc
 		detail
 		category
@@ -20426,377 +11523,12 @@ query GetMasterBackground($id: ID!) {
 			unit
 		}
 		targets
-		feats {
-			__typename
-			id
-			attributes
-			feats
-			selectionCount
-			subtype
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		modifiers {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			type
-			method
-			methodAbility
-			methodSkill
-			multiplier
-			maxAmount
-			minAmount
-			setAmount
-			dieConfig
-			feature
-			diePerLevel {
-				__typename
-				level
-				dieConfig
-			}
-			setPerLevel {
-				__typename
-				level
-				setAmount
-			}
-			skills
-			saveAbilities
-			abilities
-			speeds
-			charge {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-			range
-			minRange
-			maxRange
-			shape
-			size
-			duration
-			unit
-			conditions
-			damageTypes
-			damageType
-			spell
-			spellCategory
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		proficiencies {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			level
-			rounding
-			saveAbilities
-			skills
-			languages
-			properties {
-				__typename
-				ids
-				category
-				properties
-			}
-			equipment {
-				__typename
-				ids
-				category
-				properties
-			}
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		expertise {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			saveAbilities
-			skills
-			languages
-			properties {
-				__typename
-				ids
-				category
-				properties
-			}
-			equipment {
-				__typename
-				ids
-				category
-				properties
-			}
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		senses {
-			__typename
-			id
-			attributes
-			selectionCount
-			subtype
-			ids
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		spells {
-			__typename
-			id
-			ids
-			attributes
-			selectionCount
-			classLimit
-			levelLimit
-			attributeLimit
-			ability
-			spellLevel
-			spellsByLevel {
-				__typename
-				spells
-				level
-				spellLevel
-			}
-			subtype
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-		}
+		feats
+		modifiers
+		proficiencies
+		expertise
+		senses
+		spells
 		prerequisites {
 			__typename
 			options
@@ -20840,638 +11572,7 @@ query GetMasterBackground($id: ID!) {
 			abilityModifier
 		}
 		levelAvailable
-		options {
-			__typename
-			id
-			label
-			value
-			desc
-			detail
-			category
-			attributes
-			actions {
-				__typename
-				primary {
-					__typename
-					id
-					amount
-				}
-				secondary {
-					__typename
-					id
-					amount
-				}
-			}
-			damage {
-				__typename
-				attributes
-				damageSave
-				setPerLevel {
-					__typename
-					level
-					primary
-					secondary
-					bonus
-				}
-				diePerLevel {
-					__typename
-					level
-					primary {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-					secondary {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-					bonus {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-				}
-				primary {
-					__typename
-					dieConfig
-					attribute
-					id
-					ability
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					pool {
-						__typename
-						attribute
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						ability
-						option
-					}
-				}
-				secondary {
-					__typename
-					dieConfig
-					attribute
-					id
-					ability
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					pool {
-						__typename
-						attribute
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						ability
-						option
-					}
-				}
-				bonus {
-					__typename
-					dieConfig
-					attribute
-					id
-					ability
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					pool {
-						__typename
-						attribute
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						ability
-						option
-					}
-				}
-				versatile {
-					__typename
-					dieConfig
-					attribute
-					id
-					ability
-					setAmount
-					multiplier
-					minAmount
-					maxAmount
-					pool {
-						__typename
-						attribute
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						ability
-						option
-					}
-				}
-			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-			range {
-				__typename
-				id
-				minRange
-				maxRange
-				distance
-				unit
-			}
-			shape {
-				__typename
-				id
-				size
-				unit
-			}
-			targets
-			feats {
-				__typename
-				id
-				attributes
-				feats
-				selectionCount
-				subtype
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			modifiers {
-				__typename
-				id
-				subtype
-				attributes
-				selectionCount
-				category
-				type
-				method
-				methodAbility
-				methodSkill
-				multiplier
-				maxAmount
-				minAmount
-				setAmount
-				dieConfig
-				feature
-				diePerLevel {
-					__typename
-					level
-					dieConfig
-				}
-				setPerLevel {
-					__typename
-					level
-					setAmount
-				}
-				skills
-				saveAbilities
-				abilities
-				speeds
-				charge {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
-				range
-				minRange
-				maxRange
-				shape
-				size
-				duration
-				unit
-				conditions
-				damageTypes
-				damageType
-				spell
-				spellCategory
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			proficiencies {
-				__typename
-				id
-				subtype
-				attributes
-				selectionCount
-				category
-				level
-				rounding
-				saveAbilities
-				skills
-				languages
-				properties {
-					__typename
-					ids
-					category
-					properties
-				}
-				equipment {
-					__typename
-					ids
-					category
-					properties
-				}
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			expertise {
-				__typename
-				id
-				subtype
-				attributes
-				selectionCount
-				category
-				saveAbilities
-				skills
-				languages
-				properties {
-					__typename
-					ids
-					category
-					properties
-				}
-				equipment {
-					__typename
-					ids
-					category
-					properties
-				}
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			senses {
-				__typename
-				id
-				attributes
-				selectionCount
-				subtype
-				ids
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			spells {
-				__typename
-				id
-				ids
-				attributes
-				selectionCount
-				classLimit
-				levelLimit
-				attributeLimit
-				ability
-				spellLevel
-				spellsByLevel {
-					__typename
-					spells
-					level
-					spellLevel
-				}
-				subtype
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
-			}
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-			saveAbility {
-				__typename
-				id
-				minAmount
-				attributes
-				abilityModifier
-			}
-			levelAvailable
-		}
+		options
 	}
 	ownerId
 	systemId
@@ -21488,12 +11589,10 @@ query ListMasterBackgrounds($limit: Int, $nextToken: String) {
 		__typename
 		id
 		label
-		value
 		desc
 		details {
 			__typename
 			label
-			value
 			desc
 		}
 		ownerId
@@ -21520,12 +11619,10 @@ query GetBackground($id: ID!) {
 	__typename
 	id
 	label
-	value
 	desc
 	details {
 		__typename
 		label
-		value
 		desc
 	}
 	equipment {
@@ -21606,7 +11703,6 @@ query GetBackground($id: ID!) {
 		__typename
 		id
 		label
-		value
 		desc
 		detail
 		category
@@ -21825,377 +11921,12 @@ query GetBackground($id: ID!) {
 			unit
 		}
 		targets
-		feats {
-			__typename
-			id
-			attributes
-			feats
-			selectionCount
-			subtype
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		modifiers {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			type
-			method
-			methodAbility
-			methodSkill
-			multiplier
-			maxAmount
-			minAmount
-			setAmount
-			dieConfig
-			feature
-			diePerLevel {
-				__typename
-				level
-				dieConfig
-			}
-			setPerLevel {
-				__typename
-				level
-				setAmount
-			}
-			skills
-			saveAbilities
-			abilities
-			speeds
-			charge {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-			range
-			minRange
-			maxRange
-			shape
-			size
-			duration
-			unit
-			conditions
-			damageTypes
-			damageType
-			spell
-			spellCategory
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		proficiencies {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			level
-			rounding
-			saveAbilities
-			skills
-			languages
-			properties {
-				__typename
-				ids
-				category
-				properties
-			}
-			equipment {
-				__typename
-				ids
-				category
-				properties
-			}
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		expertise {
-			__typename
-			id
-			subtype
-			attributes
-			selectionCount
-			category
-			saveAbilities
-			skills
-			languages
-			properties {
-				__typename
-				ids
-				category
-				properties
-			}
-			equipment {
-				__typename
-				ids
-				category
-				properties
-			}
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		senses {
-			__typename
-			id
-			attributes
-			selectionCount
-			subtype
-			ids
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-		}
-		spells {
-			__typename
-			id
-			ids
-			attributes
-			selectionCount
-			classLimit
-			levelLimit
-			attributeLimit
-			ability
-			spellLevel
-			spellsByLevel {
-				__typename
-				spells
-				level
-				spellLevel
-			}
-			subtype
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-		}
+		feats
+		modifiers
+		proficiencies
+		expertise
+		senses
+		spells
 		prerequisites {
 			__typename
 			options
@@ -22239,106 +11970,364 @@ query GetBackground($id: ID!) {
 			abilityModifier
 		}
 		levelAvailable
-		options {
+		options
+	}
+	ownerId
+	systemId
+	masterId
+  }
+}
+`as GeneratedQuery<APITypes.QueryGetBackgroundArgs, {getBackground: APITypes.Query['getBackground']}>;
+
+export const listBackgrounds = /* GraphQL */ `
+query ListBackgrounds($systemId: ID!, $limit: Int, $nextToken: String) {
+  listBackgrounds(systemId: $systemId, limit: $limit, nextToken: $nextToken) {
+	__typename
+	items {
+		__typename
+		id
+		label
+		desc
+		details {
+			__typename
+			label
+			desc
+		}
+		ownerId
+		systemId
+		masterId
+	}
+	metaData {
+		__typename
+		features {
 			__typename
 			id
 			label
-			value
-			desc
-			detail
-			category
-			attributes
-			actions {
+			backgroundIds
+		}
+	}
+	nextToken
+  }
+}
+`as GeneratedQuery<APITypes.QueryListBackgroundsArgs, {listBackgrounds: APITypes.Query['listBackgrounds']}>;
+
+export const getMasterAncestryFeature = /* GraphQL */ `
+query GetMasterAncestryFeature($id: ID!) {
+  getMasterAncestryFeature(id: $id) {
+	__typename
+	id
+	label
+	desc
+	detail
+	category
+	attributes
+	actions {
+		__typename
+		primary {
+			__typename
+			id
+			amount
+		}
+		secondary {
+			__typename
+			id
+			amount
+		}
+	}
+	damage {
+		__typename
+		attributes
+		damageSave
+		setPerLevel {
+			__typename
+			level
+			primary
+			secondary
+			bonus
+		}
+		diePerLevel {
+			__typename
+			level
+			primary {
 				__typename
-				primary {
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
 					__typename
-					id
-					amount
-				}
-				secondary {
-					__typename
-					id
-					amount
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
 				}
 			}
-			damage {
+			secondary {
 				__typename
-				attributes
-				damageSave
-				setPerLevel {
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
 					__typename
-					level
-					primary
-					secondary
-					bonus
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
 				}
-				diePerLevel {
+			}
+			bonus {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
 					__typename
-					level
-					primary {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-					secondary {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
-					bonus {
-						__typename
-						dieConfig
-						attribute
-						id
-						ability
-						setAmount
-						multiplier
-						minAmount
-						maxAmount
-						pool {
-							__typename
-							attribute
-							setAmount
-							multiplier
-							minAmount
-							maxAmount
-							ability
-							option
-						}
-					}
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
 				}
+			}
+		}
+		primary {
+			__typename
+			dieConfig
+			attribute
+			id
+			ability
+			setAmount
+			multiplier
+			minAmount
+			maxAmount
+			pool {
+				__typename
+				attribute
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				ability
+				option
+			}
+		}
+		secondary {
+			__typename
+			dieConfig
+			attribute
+			id
+			ability
+			setAmount
+			multiplier
+			minAmount
+			maxAmount
+			pool {
+				__typename
+				attribute
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				ability
+				option
+			}
+		}
+		bonus {
+			__typename
+			dieConfig
+			attribute
+			id
+			ability
+			setAmount
+			multiplier
+			minAmount
+			maxAmount
+			pool {
+				__typename
+				attribute
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				ability
+				option
+			}
+		}
+		versatile {
+			__typename
+			dieConfig
+			attribute
+			id
+			ability
+			setAmount
+			multiplier
+			minAmount
+			maxAmount
+			pool {
+				__typename
+				attribute
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				ability
+				option
+			}
+		}
+	}
+	charges {
+		__typename
+		reset
+		limit
+		ability
+		skill
+		usesPerLevel {
+			__typename
+			level
+			uses
+		}
+		minAmount
+		addAmount
+		setAmount
+		multiplier
+		resourcePoints
+	}
+	optionsByLevel {
+		__typename
+		level
+		count
+		replaceCount
+	}
+	range {
+		__typename
+		id
+		minRange
+		maxRange
+		distance
+		unit
+	}
+	shape {
+		__typename
+		id
+		size
+		unit
+	}
+	targets
+	feats
+	modifiers
+	proficiencies
+	expertise
+	senses
+	spells
+	prerequisites {
+		__typename
+		options
+		skillProficiencies
+		equipmentProficiencies {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		equipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		notEquipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		abilityScore {
+			__typename
+			abilities
+			score
+		}
+		spellsObtained
+		featuresObtained
+		optionsObtained
+		size
+	}
+	saveAbility {
+		__typename
+		id
+		minAmount
+		attributes
+		abilityModifier
+	}
+	levelAvailable
+	options
+  }
+}
+`as GeneratedQuery<APITypes.QueryGetMasterAncestryFeatureArgs, {getMasterAncestryFeature: APITypes.Query['getMasterAncestryFeature']}>;
+
+export const listMasterAncestryFeatures = /* GraphQL */ `
+query ListMasterAncestryFeatures($limit: Int, $nextToken: String) {
+  listMasterAncestryFeatures(limit: $limit, nextToken: $nextToken) {
+	__typename
+	items {
+		__typename
+		id
+		label
+		desc
+		detail
+		category
+		attributes
+		actions {
+			__typename
+			primary {
+				__typename
+				id
+				amount
+			}
+			secondary {
+				__typename
+				id
+				amount
+			}
+		}
+		damage {
+			__typename
+			attributes
+			damageSave
+			setPerLevel {
+				__typename
+				level
+				primary
+				secondary
+				bonus
+			}
+			diePerLevel {
+				__typename
+				level
 				primary {
 					__typename
 					dieConfig
@@ -22402,7 +12391,546 @@ query GetBackground($id: ID!) {
 						option
 					}
 				}
-				versatile {
+			}
+			primary {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
+			}
+			secondary {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
+			}
+			bonus {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
+			}
+			versatile {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
+			}
+		}
+		charges {
+			__typename
+			reset
+			limit
+			ability
+			skill
+			usesPerLevel {
+				__typename
+				level
+				uses
+			}
+			minAmount
+			addAmount
+			setAmount
+			multiplier
+			resourcePoints
+		}
+		optionsByLevel {
+			__typename
+			level
+			count
+			replaceCount
+		}
+		range {
+			__typename
+			id
+			minRange
+			maxRange
+			distance
+			unit
+		}
+		shape {
+			__typename
+			id
+			size
+			unit
+		}
+		targets
+		feats
+		modifiers
+		proficiencies
+		expertise
+		senses
+		spells
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
+		saveAbility {
+			__typename
+			id
+			minAmount
+			attributes
+			abilityModifier
+		}
+		levelAvailable
+		options
+	}
+	nextToken
+  }
+}
+`as GeneratedQuery<APITypes.QueryListMasterAncestryFeaturesArgs, {listMasterAncestryFeatures: APITypes.Query['listMasterAncestryFeatures']}>;
+
+export const getAncestryFeature = /* GraphQL */ `
+query GetAncestryFeature($id: ID!) {
+  getAncestryFeature(id: $id) {
+	__typename
+	id
+	label
+	desc
+	detail
+	category
+	attributes
+	actions {
+		__typename
+		primary {
+			__typename
+			id
+			amount
+		}
+		secondary {
+			__typename
+			id
+			amount
+		}
+	}
+	damage {
+		__typename
+		attributes
+		damageSave
+		setPerLevel {
+			__typename
+			level
+			primary
+			secondary
+			bonus
+		}
+		diePerLevel {
+			__typename
+			level
+			primary {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
+			}
+			secondary {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
+			}
+			bonus {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
+			}
+		}
+		primary {
+			__typename
+			dieConfig
+			attribute
+			id
+			ability
+			setAmount
+			multiplier
+			minAmount
+			maxAmount
+			pool {
+				__typename
+				attribute
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				ability
+				option
+			}
+		}
+		secondary {
+			__typename
+			dieConfig
+			attribute
+			id
+			ability
+			setAmount
+			multiplier
+			minAmount
+			maxAmount
+			pool {
+				__typename
+				attribute
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				ability
+				option
+			}
+		}
+		bonus {
+			__typename
+			dieConfig
+			attribute
+			id
+			ability
+			setAmount
+			multiplier
+			minAmount
+			maxAmount
+			pool {
+				__typename
+				attribute
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				ability
+				option
+			}
+		}
+		versatile {
+			__typename
+			dieConfig
+			attribute
+			id
+			ability
+			setAmount
+			multiplier
+			minAmount
+			maxAmount
+			pool {
+				__typename
+				attribute
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				ability
+				option
+			}
+		}
+	}
+	charges {
+		__typename
+		reset
+		limit
+		ability
+		skill
+		usesPerLevel {
+			__typename
+			level
+			uses
+		}
+		minAmount
+		addAmount
+		setAmount
+		multiplier
+		resourcePoints
+	}
+	optionsByLevel {
+		__typename
+		level
+		count
+		replaceCount
+	}
+	range {
+		__typename
+		id
+		minRange
+		maxRange
+		distance
+		unit
+	}
+	shape {
+		__typename
+		id
+		size
+		unit
+	}
+	targets
+	feats
+	modifiers
+	proficiencies
+	expertise
+	senses
+	spells
+	prerequisites {
+		__typename
+		options
+		skillProficiencies
+		equipmentProficiencies {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		equipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		notEquipped {
+			__typename
+			numberEquipped
+			category
+			equipment
+			properties
+		}
+		abilityScore {
+			__typename
+			abilities
+			score
+		}
+		spellsObtained
+		featuresObtained
+		optionsObtained
+		size
+	}
+	saveAbility {
+		__typename
+		id
+		minAmount
+		attributes
+		abilityModifier
+	}
+	levelAvailable
+	options
+  }
+}
+`as GeneratedQuery<APITypes.QueryGetAncestryFeatureArgs, {getAncestryFeature: APITypes.Query['getAncestryFeature']}>;
+
+export const listAncestryFeatures = /* GraphQL */ `
+query ListAncestryFeatures($systemId: ID!, $limit: Int, $nextToken: String) {
+  listAncestryFeatures(systemId: $systemId, limit: $limit, nextToken: $nextToken) {
+	__typename
+	items {
+		__typename
+		id
+		label
+		desc
+		detail
+		category
+		attributes
+		actions {
+			__typename
+			primary {
+				__typename
+				id
+				amount
+			}
+			secondary {
+				__typename
+				id
+				amount
+			}
+		}
+		damage {
+			__typename
+			attributes
+			damageSave
+			setPerLevel {
+				__typename
+				level
+				primary
+				secondary
+				bonus
+			}
+			diePerLevel {
+				__typename
+				level
+				primary {
+					__typename
+					dieConfig
+					attribute
+					id
+					ability
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					pool {
+						__typename
+						attribute
+						setAmount
+						multiplier
+						minAmount
+						maxAmount
+						ability
+						option
+					}
+				}
+				secondary {
+					__typename
+					dieConfig
+					attribute
+					id
+					ability
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					pool {
+						__typename
+						attribute
+						setAmount
+						multiplier
+						minAmount
+						maxAmount
+						ability
+						option
+					}
+				}
+				bonus {
 					__typename
 					dieConfig
 					attribute
@@ -22424,492 +12952,182 @@ query GetBackground($id: ID!) {
 					}
 				}
 			}
-			charges {
+			primary {
 				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-			range {
-				__typename
-				id
-				minRange
-				maxRange
-				distance
-				unit
-			}
-			shape {
-				__typename
-				id
-				size
-				unit
-			}
-			targets
-			feats {
-				__typename
-				id
-				attributes
-				feats
-				selectionCount
-				subtype
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			modifiers {
-				__typename
-				id
-				subtype
-				attributes
-				selectionCount
-				category
-				type
-				method
-				methodAbility
-				methodSkill
-				multiplier
-				maxAmount
-				minAmount
-				setAmount
 				dieConfig
-				feature
-				diePerLevel {
-					__typename
-					level
-					dieConfig
-				}
-				setPerLevel {
-					__typename
-					level
-					setAmount
-				}
-				skills
-				saveAbilities
-				abilities
-				speeds
-				charge {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
-				range
-				minRange
-				maxRange
-				shape
-				size
-				duration
-				unit
-				conditions
-				damageTypes
-				damageType
-				spell
-				spellCategory
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			proficiencies {
-				__typename
+				attribute
 				id
-				subtype
-				attributes
-				selectionCount
-				category
-				level
-				rounding
-				saveAbilities
-				skills
-				languages
-				properties {
-					__typename
-					ids
-					category
-					properties
-				}
-				equipment {
-					__typename
-					ids
-					category
-					properties
-				}
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			expertise {
-				__typename
-				id
-				subtype
-				attributes
-				selectionCount
-				category
-				saveAbilities
-				skills
-				languages
-				properties {
-					__typename
-					ids
-					category
-					properties
-				}
-				equipment {
-					__typename
-					ids
-					category
-					properties
-				}
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			senses {
-				__typename
-				id
-				attributes
-				selectionCount
-				subtype
-				ids
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-			}
-			spells {
-				__typename
-				id
-				ids
-				attributes
-				selectionCount
-				classLimit
-				levelLimit
-				attributeLimit
 				ability
-				spellLevel
-				spellsByLevel {
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
 					__typename
-					spells
-					level
-					spellLevel
-				}
-				subtype
-				prerequisites {
-					__typename
-					options
-					skillProficiencies
-					equipmentProficiencies {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					equipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					notEquipped {
-						__typename
-						numberEquipped
-						category
-						equipment
-						properties
-					}
-					abilityScore {
-						__typename
-						abilities
-						score
-					}
-					spellsObtained
-					featuresObtained
-					optionsObtained
-					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
+					attribute
 					setAmount
 					multiplier
-					resourcePoints
+					minAmount
+					maxAmount
+					ability
+					option
 				}
 			}
-			prerequisites {
+			secondary {
 				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-			saveAbility {
-				__typename
+				dieConfig
+				attribute
 				id
+				ability
+				setAmount
+				multiplier
 				minAmount
-				attributes
-				abilityModifier
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
 			}
-			levelAvailable
+			bonus {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
+			}
+			versatile {
+				__typename
+				dieConfig
+				attribute
+				id
+				ability
+				setAmount
+				multiplier
+				minAmount
+				maxAmount
+				pool {
+					__typename
+					attribute
+					setAmount
+					multiplier
+					minAmount
+					maxAmount
+					ability
+					option
+				}
+			}
 		}
-	}
-	ownerId
-	systemId
-	masterId
-  }
-}
-`as GeneratedQuery<APITypes.QueryGetBackgroundArgs, {getBackground: APITypes.Query['getBackground']}>;
-
-export const listBackgrounds = /* GraphQL */ `
-query ListBackgrounds($systemId: ID!, $limit: Int, $nextToken: String) {
-  listBackgrounds(systemId: $systemId, limit: $limit, nextToken: $nextToken) {
-	__typename
-	items {
-		__typename
-		id
-		label
-		value
-		desc
-		details {
+		charges {
 			__typename
-			label
-			value
-			desc
+			reset
+			limit
+			ability
+			skill
+			usesPerLevel {
+				__typename
+				level
+				uses
+			}
+			minAmount
+			addAmount
+			setAmount
+			multiplier
+			resourcePoints
 		}
-		ownerId
-		systemId
-		masterId
-	}
-	metaData {
-		__typename
-		features {
+		optionsByLevel {
+			__typename
+			level
+			count
+			replaceCount
+		}
+		range {
 			__typename
 			id
-			label
-			backgroundIds
+			minRange
+			maxRange
+			distance
+			unit
 		}
+		shape {
+			__typename
+			id
+			size
+			unit
+		}
+		targets
+		feats
+		modifiers
+		proficiencies
+		expertise
+		senses
+		spells
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
+		saveAbility {
+			__typename
+			id
+			minAmount
+			attributes
+			abilityModifier
+		}
+		levelAvailable
+		options
 	}
 	nextToken
   }
 }
-`as GeneratedQuery<APITypes.QueryListBackgroundsArgs, {listBackgrounds: APITypes.Query['listBackgrounds']}>;
+`as GeneratedQuery<APITypes.QueryListAncestryFeaturesArgs, {listAncestryFeatures: APITypes.Query['listAncestryFeatures']}>;
 

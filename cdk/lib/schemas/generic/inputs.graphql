@@ -1,0 +1,133 @@
+## Basic Types
+
+input DetailInput {
+  label: String!
+  desc: String
+}
+
+input SaveAbilityInput {
+  id: ID!
+  minAmount: Int
+  attributes: [ID!]
+  abilityModifier: ID
+}
+
+## Damage Related
+
+input DamageFieldsInput {
+  dieConfig: String
+  attribute: ID
+  id: ID
+  ability: ID
+  setAmount: Int
+  multiplier: Int
+  minAmount: Int
+  maxAmount: Int
+  pool: DamagePoolInput
+}
+
+input DamagePoolInput {
+  attribute: ID
+  setAmount: Int
+  multiplier: Int
+  minAmount: Int
+  maxAmount: Int
+  ability: ID
+  option: ID
+}
+
+input SetPerLevelInput {
+  level: String
+  primary: Int
+  secondary: Int
+  bonus: Int
+}
+
+input DiePerLevelInput {
+  level: String
+  primary: DamageFieldsInput
+  secondary: DamageFieldsInput
+  bonus: DamageFieldsInput
+}
+
+input DamageInput {
+  attributes: [ID!]
+  damageSave: [ID!]
+  setPerLevel: [SetPerLevelInput!]
+  diePerLevel: [DiePerLevelInput!]
+  primary: DamageFieldsInput
+  secondary: DamageFieldsInput
+  bonus: DamageFieldsInput
+  versatile: DamageFieldsInput
+}
+
+## Charges
+
+input UsesPerLevelInput {
+  level: Int
+  uses: Int
+}
+
+input ChargeInput {
+  reset: ID
+  limit: ID
+  ability: ID
+  skill: ID
+  usesPerLevel: [UsesPerLevelInput]
+  minAmount: Int
+  addAmount: Int
+  setAmount: Int
+  multiplier: Int
+  resourcePoints: Int
+}
+
+## Prerequisites
+
+input EquipPrerequisiteInput {
+  numberEquipped: Int
+  category: ID
+  equipment: [ID!]
+  properties: [ID!]
+}
+
+input AbilityScoreInput {
+  abilities: [ID!]
+  score: Int
+}
+
+input PrerequisiteInput {
+  options: [ID!]
+  skillProficiencies: [ID!]
+  equipmentProficiencies: [EquipPrerequisiteInput!]
+  equipped: [EquipPrerequisiteInput!]
+  notEquipped: [EquipPrerequisiteInput!]
+  abilityScore: AbilityScoreInput
+  spellsObtained: [ID!]
+  featuresObtained: [ID!]
+  optionsObtained: [ID!]
+  size: [ID!]
+}
+
+## Feature Related
+
+input ProficiencyPropertiesInput {
+  ids: [ID!]
+  category: ID
+  properties: [ID!]
+}
+
+input ActionPropertyInput {
+  id: ID
+  amount: Int
+}
+
+input ActionGroupInput {
+  primary: ActionPropertyInput
+  secondary: ActionPropertyInput
+}
+
+input OptionsByLevelInput {
+  level: Int
+  count: Int
+  replaceCount: Int
+}

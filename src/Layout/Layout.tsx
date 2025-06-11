@@ -6,7 +6,6 @@ import {
   Tooltip,
   useComputedColorScheme,
   useMantineColorScheme,
-  UnstyledButton,
   Avatar,
   Text,
   Flex,
@@ -16,7 +15,7 @@ import {
 } from '@mantine/core'
 import ILogo from '@/assets/Icons/ILogo'
 import { Outlet, type ToOptions, type NavigateOptions, useNavigate } from '@tanstack/react-router'
-import { use, Suspense, type ReactNode } from 'react'
+import { use, Suspense, type ReactNode, useEffect } from 'react'
 import { AuthContext } from '@/pages/auth/AuthContext'
 import {
   header_title,
@@ -48,7 +47,6 @@ import {
   header_burger,
   main,
 } from './Layout.css'
-import { ModalProvider } from '@/components/Modal'
 import Loading from '@/components/Loading'
 import CharactersIcon from '@/assets/Icons/IChar'
 import ClassesIcon from '@/assets/Icons/IClass'
@@ -62,18 +60,31 @@ import clsx from 'clsx'
 import { startCase } from 'lodash'
 import { Sun, Moon, ChevronRight, LogOut } from 'lucide-react'
 import Link from '@/components/Link'
-import { signOut } from '@/apis/authApi'
+import { signOut } from '@/apis/auth.api'
+import { ModalContext } from '@/components/Modal'
 
 const Layout = () => {
   const navigate = useNavigate()
   const [sidebarOpen, { toggle: toggleSidebar }] = useDisclosure()
   const { user, isAuthenticating, isLoading } = use(AuthContext)
+  const { showModal, hideModal } = use(ModalContext)
   const signedIn = !isAuthenticating && user != null
 
   const md = useMediaQuery('(min-width: 769px) and (max-width: 992px)')
   const lg = useMediaQuery('(min-width: 993px)')
   const { setColorScheme } = useMantineColorScheme()
   const computedColorScheme = useComputedColorScheme('light', { getInitialValueInEffect: true })
+
+  useEffect(() => {
+    if (isLoading) {
+      showModal({
+        type: 'loading',
+      })
+    }
+    if (!isLoading) {
+      hideModal()
+    }
+  }, [hideModal, showModal, isLoading])
 
   const noAuthLinks: { to: ToOptions['to']; params?: NavigateOptions['params']; title: string }[] = [
     {
@@ -126,7 +137,7 @@ const Layout = () => {
 
   const SchemeToggle = ({ onClick }: { onClick?: () => void }) => {
     return (
-      <ActionIcon variant='outline' onClick={onClick}>
+      <ActionIcon component='div' variant='outline' onClick={onClick}>
         <Sun className={clsx(layout_toggle_scheme_icon, { ['hide']: computedColorScheme === 'dark' })} />
         <Moon className={clsx(layout_toggle_scheme_icon, { ['hide']: computedColorScheme === 'light' })} />
       </ActionIcon>
@@ -137,7 +148,7 @@ const Layout = () => {
     return (
       <Menu position='right-end' portalProps={{ target: '#app-shell' }} trigger='click-hover'>
         <Menu.Target>
-          <UnstyledButton className={user_button}>
+          <Group className={user_button}>
             <Avatar
               src='https://raw.githubusercontent.com/mantinedev/mantine/master/.demo/avatars/avatar-8.png'
               classNames={{
@@ -153,7 +164,7 @@ const Layout = () => {
             </Flex>
 
             <ChevronRight className={user_button_chevron} />
-          </UnstyledButton>
+          </Group>
         </Menu.Target>
 
         <Menu.Dropdown className={user_menu}>
@@ -267,52 +278,50 @@ const Layout = () => {
       id='app-shell'
       className={clsx(layout, { ['unAuth']: !signedIn })}
     >
-      <ModalProvider>
-        <AppShell.Header className={clsx(header)}>
-          <Group className={header_groups} justify={!signedIn ? 'space-between' : 'flex-start'}>
-            <Group className={header_burger} hiddenFrom={!signedIn ? 'sm' : 'sm'}>
-              <Burger opened={sidebarOpen} onClick={toggleSidebar} size='sm' />
-            </Group>
-            <Group className={header_left_group}>
-              {/* Logo and scheme toggle */}
-              {!signedIn && (
-                <SchemeToggle onClick={() => setColorScheme(computedColorScheme === 'light' ? 'dark' : 'light')} />
-              )}
-              <Link type='unstyled' to={'/home'} className={header_title}>
-                <span>Artificer Toolkit</span>
-                <ILogo className={header_logo_icon} />
-              </Link>
-            </Group>
-
-            {/* Nav links */}
-            {!isLoading && !signedIn && (
-              <>
-                <Group className={header_links} gap={0} visibleFrom='sm'>
-                  {noAuthLinks.map((navItem, index) => (
-                    <Link type='unstyled' to={navItem.to} params={navItem.params} key={index} className={header_link}>
-                      {navItem.title}
-                    </Link>
-                  ))}
-                </Group>
-                <Group className={header_right_group} visibleFrom='sm'>
-                  <Link to={'/login'} variant='default'>
-                    Login
-                  </Link>
-                  <Link to={'/register'}>Sign up</Link>
-                </Group>
-              </>
-            )}
+      <AppShell.Header className={clsx(header)}>
+        <Group className={header_groups} justify={!signedIn ? 'space-between' : 'flex-start'}>
+          <Group className={header_burger} hiddenFrom={!signedIn ? 'sm' : 'sm'}>
+            <Burger opened={sidebarOpen} onClick={toggleSidebar} size='sm' />
           </Group>
-        </AppShell.Header>
-        {signedIn ?
-          <AuthNavbar />
-        : <UnAuthNavbar />}
-        <AppShell.Main className={main}>
-          <Suspense fallback={<Loading />}>
-            <Outlet />
-          </Suspense>
-        </AppShell.Main>
-      </ModalProvider>
+          <Group className={header_left_group}>
+            {/* Logo and scheme toggle */}
+            {!signedIn && (
+              <SchemeToggle onClick={() => setColorScheme(computedColorScheme === 'light' ? 'dark' : 'light')} />
+            )}
+            <Link type='unstyled' to={'/home'} className={header_title}>
+              <span>Artificer Toolkit</span>
+              <ILogo className={header_logo_icon} />
+            </Link>
+          </Group>
+
+          {/* Nav links */}
+          {!isLoading && !signedIn && (
+            <>
+              <Group className={header_links} gap={0} visibleFrom='sm'>
+                {noAuthLinks.map((navItem, index) => (
+                  <Link type='unstyled' to={navItem.to} params={navItem.params} key={index} className={header_link}>
+                    {navItem.title}
+                  </Link>
+                ))}
+              </Group>
+              <Group className={header_right_group} visibleFrom='sm'>
+                <Link to={'/login'} variant='default'>
+                  Login
+                </Link>
+                <Link to={'/register'}>Sign up</Link>
+              </Group>
+            </>
+          )}
+        </Group>
+      </AppShell.Header>
+      {signedIn ?
+        <AuthNavbar />
+      : <UnAuthNavbar />}
+      <AppShell.Main className={main}>
+        <Suspense fallback={<Loading />}>
+          <Outlet />
+        </Suspense>
+      </AppShell.Main>
     </AppShell>
   )
 }

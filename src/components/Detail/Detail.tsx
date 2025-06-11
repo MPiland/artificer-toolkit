@@ -1,4 +1,4 @@
-import { ReactNode, Suspense } from 'react'
+import { ReactNode, Suspense, type MouseEvent } from 'react'
 import {
   detail_body,
   detail_col_item,
@@ -11,15 +11,16 @@ import {
 } from './Detail.css'
 import Loading from '@/components/Loading'
 import { useMatches } from '@tanstack/react-router'
-import type { FormType, FormDataType, Character } from '@/types'
+import type { FormType, Character, SourceDataType } from '@/types'
 import { useRouteNavigation, useSourceData } from '@/hooks'
 import type { DetailConfig } from './Detail.types'
 import { useFormStore } from '@/store'
 import { Group, Grid, ScrollArea } from '@mantine/core'
 import { CopyIcon, Pencil, ChevronLeft } from 'lucide-react'
 import Link from '@/components/Link'
+import { discriminatedInputSchema } from '@/schemas'
 
-interface DetailProps<T extends FormDataType> {
+interface DetailProps<T extends SourceDataType> {
   detailConfigs?: DetailConfig<T>[]
   children: ReactNode
   footer?: any
@@ -27,7 +28,7 @@ interface DetailProps<T extends FormDataType> {
   item: T
 }
 
-const Detail = <T extends FormDataType>({
+const Detail = <T extends SourceDataType>({
   detailConfigs,
   children,
   footer,
@@ -48,25 +49,30 @@ const Detail = <T extends FormDataType>({
         <ChevronLeft onClick={() => <Link to={'..'} />} cursor={'pointer'} />
         <Group justify='space-between'>
           <Link
-            {...routeNav.new}
+            {...itemNav.copy}
             className={detail_link}
-            onClick={(e) => {
-              const itemCopy: Omit<FormDataType, 'id' | 'label' | 'value'> & {
-                id: string | undefined
-                label: string | undefined
-                value: string | undefined
-              } = { ...item, id: undefined, label: undefined, value: undefined }
-              reinitState(itemCopy as FormDataType)
+            type='unstyled'
+            onClick={(e: MouseEvent<HTMLElement>) => {
+              const kind = `${item.__typename}Input`
+              const itemCopy = discriminatedInputSchema.parse({
+                __kind: kind,
+                ...item,
+                id: '',
+                label: '',
+                value: '',
+              })
+              reinitState(itemCopy)
               e.stopPropagation()
             }}
           >
             {<CopyIcon className={detail_link_icon} />} Copy
           </Link>
-          {(item as Exclude<FormDataType, Character>).masterId == null && (
+          {(item as Exclude<SourceDataType, Character>).masterId == null && (
             <Link
+              type='unstyled'
               {...itemNav.edit}
               className={detail_link}
-              onClick={(e) => {
+              onClick={(e: MouseEvent<HTMLElement>) => {
                 e.stopPropagation()
               }}
             >

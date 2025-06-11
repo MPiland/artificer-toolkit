@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import List from '@/components/List'
-import { useDeleteFeatMutation } from '@/apis/featsApi'
+import { useDeleteFeatMutation } from '@/apis/feats.api'
 import Loading from '@/components/Loading'
 import { useFeatData } from '@/hooks'
 

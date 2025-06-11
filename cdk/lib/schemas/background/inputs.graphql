@@ -1,0 +1,32 @@
+input BackgroundCurrencyInput {
+  id: ID!
+  amount: Int
+}
+
+input BackgroundEquipmentInput {
+  attributes: [ID!]
+  selectionCount: Int
+  category: ID
+  equipment: [ID!]
+  properties: [ID!]
+  quantity: Int
+  currencies: [BackgroundCurrencyInput]
+}
+
+input BackgroundInput {
+  id: ID!
+  label: String!
+  desc: String
+  details: [DetailInput!]
+  equipment: [[[BackgroundEquipmentInput!]!]!]
+  proficiencies: [FeatureProficiencyInput!]
+  features: [FeatureInput!]
+  ownerId: String
+  systemId: ID!
+  masterId: String
+}
+
+input BatchBackgroundsInput {
+  tableName: String!
+  data: BackgroundInput!
+}

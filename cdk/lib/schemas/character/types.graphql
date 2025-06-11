@@ -1,0 +1,351 @@
+type CharacterModifier {
+  modifierId: ID!
+  featureId: ID
+  classId: ID
+  raceId: ID
+  ancestryId: ID
+  equipmentId: ID
+  backgroundId: ID
+  featId: ID
+  optionId: ID
+  optionIndex: String
+  featureLevel: Int
+}
+
+type CharacterSense {
+  id: ID
+  senseId: ID!
+  featureId: ID
+  classId: ID
+  raceId: ID
+  ancestryId: ID
+  equipmentId: ID
+  backgroundId: ID
+  featId: ID
+  optionId: ID
+  optionIndex: String
+  featureLevel: Int
+}
+
+type CharacterFeat {
+  featId: ID
+  featureId: ID
+  classId: ID
+  raceId: ID
+  ancestryId: ID
+  equipmentId: ID
+  backgroundId: ID
+  optionId: ID
+  optionIndex: String
+  featureLevel: Int
+}
+
+type CharacterProficiency {
+  skill: ID
+  language: ID
+  saveAbility: ID
+  property: ID
+  equipment: ID
+  proficiencyId: ID!
+  featureId: ID
+  classId: ID
+  raceId: ID
+  ancestryId: ID
+  equipmentId: ID
+  backgroundId: ID
+  featId: ID
+  optionId: ID
+  optionIndex: String
+  featureLevel: Int
+}
+
+type CharacterExpertise {
+  skill: ID
+  language: ID
+  saveAbility: ID
+  property: ID
+  equipment: ID
+  expertiseId: ID!
+  featureId: ID
+  classId: ID
+  raceId: ID
+  ancestryId: ID
+  equipmentId: ID
+  backgroundId: ID
+  featId: ID
+  optionId: ID
+  optionIndex: String
+  featureLevel: Int
+}
+
+type CharacterSpell {
+  id: ID!
+  level: Int!
+  ability: ID
+  isRitual: Boolean
+  countAsKnown: Boolean
+  usesSlot: Boolean
+  alwaysPrepared: Boolean
+  castAtLevel: Boolean
+  requiresConcentration: Boolean
+  optionalAbility: Boolean
+  featureId: ID
+  classId: ID
+  raceId: ID
+  ancestryId: ID
+  equipmentId: ID
+  backgroundId: ID
+  featId: ID
+  optionId: ID
+  optionIndex: String
+  featureLevel: Int
+}
+
+type CharacterFeatureOption {
+  id: ID!
+  optionIndex: String!
+  featureLevel: Int!
+}
+
+type CharacterFeature {
+  id: ID
+  options: [CharacterFeatureOption!]
+  classId: ID
+  raceId: ID
+  ancestryId: ID
+  equipmentId: ID
+  backgroundId: ID
+  featId: ID
+  level: Int
+}
+
+## Ability Scores
+
+type Roll {
+  die: Int!
+  value: Int!
+  id: String
+}
+
+type RollType {
+  score: Int!
+  ability: ID!
+  rolling: Boolean!
+  applied: Boolean!
+  rolled: [Roll!]!
+  kept: [Roll!]
+}
+
+type Manual {
+  ability: ID
+  score: Int
+}
+
+type ManualRolled {
+  configuration: String!
+  rollGroups: [[RollType!]!]
+  manual: [Manual!]
+}
+
+type Distributed {
+  ability: ID
+  id: ID
+}
+
+type PointBuy {
+  pointsLeft: Int
+  distributed: [Distributed!]
+}
+
+type StandardArray {
+  ability: ID
+  score: ID
+}
+
+type Scores {
+  ability: ID!
+  baseScore: Int
+  raceScore: Int
+  classScore: Int
+  calculatedScore: Int
+  modifierScore: Int
+}
+
+type CharacterAbilities {
+  manualRolled: ManualRolled
+  pointBuy: PointBuy
+  standardArray: [StandardArray!]
+  selectedSystem: ID
+  scores: [Scores!]
+}
+
+## CharacterAncestry
+
+type CharacterAncestry {
+  id: ID
+  raceId: ID
+  lineages: [ID!]
+}
+
+## Class
+
+## Subclass
+
+type Subclass {
+  id: ID
+  subtype: ID
+}
+
+## SpellList
+
+type ClassSpell {
+  id: ID!
+  classId: ID!
+  ability: ID
+  isRitual: Boolean
+  countAsKnown: Boolean
+  usesSlot: Boolean
+  alwaysPrepared: Boolean
+  castAtLevel: Boolean
+  requiresConcentration: Boolean
+  optionalAbility: Boolean
+}
+
+type ClassSpellList {
+  level: Int!
+  spells: [ClassSpell!]
+}
+
+type CharacterSpellSlots {
+  level: Int!
+  used: Int!
+  classId: ID!
+}
+
+type CharacterSpellcasting {
+  prepared: [ClassSpellList!]
+  known: [ClassSpellList!]
+  additional: [CharacterSpell!]
+  spellSlots: [CharacterSpellSlots!]
+}
+
+type CharacterClass {
+  id: ID!
+  subclass: Subclass
+  level: Int!
+}
+
+type StartingEquipment {
+  id: ID!
+  selectionId: ID
+  quantity: Int!
+}
+
+type StartingEquipmentGroup {
+  optionId: ID!
+  groupId: ID!
+  equipment: [StartingEquipment!]
+}
+
+type ClassStartingEquipment {
+  option: ID!
+  goldOption: ID
+  totalGold: Int
+  equipmentGroups: [StartingEquipmentGroup!]
+  addedToCharacter: Boolean
+}
+
+type BackgroundStartingEquipment {
+  equipmentGroups: [StartingEquipmentGroup!]
+  addedToCharacter: Boolean
+}
+
+type Possessions {
+  id: ID!
+  label: String!
+  desc: String
+}
+
+type CharacterCurrency {
+  id: ID!
+  amount: Int!
+}
+
+type CurrencyGroup {
+  currencies: [CharacterCurrency!]
+  container: ID
+}
+
+type HitpointRollValues {
+  level: Int!
+  value: Int!
+}
+
+type HitpointRoll {
+  values: [HitpointRollValues!]
+  total: Int
+  current: Int
+}
+
+type HitpointFixed {
+  current: Int
+  total: Int
+}
+
+type CharacterHitpoint {
+  method: ID!
+  maxOverride: Int
+  maxHitpoints: Int
+  temp: Int
+  bonus: Int
+  rolled: HitpointRoll
+  fixed: HitpointFixed
+}
+
+type CharacterEquipmentObject {
+  id: ID!
+  equipmentId: ID!
+  quantity: Int!
+  containerId: ID
+  containerPath: String
+  customName: String
+  notes: String
+}
+
+type CharacterEquipment {
+  equipped: [ID!]
+  attuned: [ID!]
+  inventory: [CharacterEquipmentObject!]
+}
+
+type Character {
+  id: ID!
+  label: String!
+  desc: String
+  advancement: ID
+  exp: ID
+  hitpoint: CharacterHitpoint
+  abilities: CharacterAbilities
+  race: ID
+  ancestry: CharacterAncestry
+  background: ID
+  classes: [CharacterClass!]
+  spellcasting: CharacterSpellcasting
+  classEquipment: ClassStartingEquipment
+  backgroundEquipment: BackgroundStartingEquipment
+  equipment: CharacterEquipment
+  currencyGroups: [CurrencyGroup!]
+  features: [CharacterFeature!]
+  feats: [CharacterFeat!]
+  proficiencies: [CharacterProficiency!]
+  expertise: [CharacterExpertise!]
+  modifiers: [CharacterModifier!]
+  senses: [CharacterSense!]
+  ownerId: String!
+  systemId: String!
+}
+
+type CharacterConnection {
+  items: [Character!]!
+  nextToken: String
+}

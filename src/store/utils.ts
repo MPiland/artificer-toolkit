@@ -1,13 +1,13 @@
-import type { FeatureDataType, FormDataType, SectionDataType, AncestryOption } from '@/types'
+import type { FeatureFormDataType, FormDataType, SectionDataType, AncestryOptionInput } from '@/types'
 import { produce, type Draft } from 'immer'
-import { get, has, set as lSet, camelCase, PropertyPath } from 'lodash'
+import { get, has, set as lSet, PropertyPath } from 'lodash'
 import type { FormStore } from './formStore'
 import type { FeatureStore } from './featureStore'
 import type { AncestryStore } from './ancestryStore'
 import type { SectionStore } from './sectionStore'
 import type { OptionStore } from './optionStore'
 
-export type States = FormDataType | FeatureDataType | SectionDataType | AncestryOption
+export type States = FormDataType | FeatureFormDataType | SectionDataType | AncestryOptionInput
 type Stores = FormStore<FormDataType> | FeatureStore | AncestryStore | SectionStore<SectionDataType> | OptionStore
 
 const isNumber = (str: string): boolean => {
@@ -20,7 +20,7 @@ export const addField = <T extends Stores, U extends States>({
   selector,
 }: {
   path: string | string[]
-  value?: any
+  value?: unknown
   selector: (state: Draft<T>) => U
 }) => {
   return (state: T) => {
@@ -81,7 +81,7 @@ export const removeField = <T extends Stores, U extends States>({
           lSet(
             targetState,
             newPath,
-            array.filter((_: any, index: number) => index !== Number(lastKey))
+            array.filter((_: unknown, index: number) => index !== Number(lastKey))
           )
         } else {
           lSet(targetState, newPath, undefined)
@@ -97,7 +97,7 @@ export const updateField = <T extends Stores, U extends States>({
   selector,
 }: {
   path: string | string[]
-  value: any
+  value: unknown
   selector: (state: Draft<T>) => U
 }) => {
   return (state: T) => {
@@ -112,17 +112,6 @@ export const updateField = <T extends Stores, U extends States>({
       }
 
       lSet(targetState, statePath as PropertyPath, value)
-
-      if (statePath && statePath.length > 1 && statePath[statePath.length - 1] === 'label') {
-        if (statePath.length === 1) {
-          lSet(targetState, 'value', camelCase(value))
-        } else {
-          const newPath = [...statePath]
-          newPath.pop()
-          newPath.push('value')
-          lSet(targetState, newPath, camelCase(value))
-        }
-      }
     })
   }
 }
@@ -131,7 +120,7 @@ export const reset = <T extends Stores, U extends States>({
   value,
   selector,
 }: {
-  value: Partial<U>
+  value: Partial<U> | unknown
   selector: (state: Draft<T>) => U
 }) => {
   return (state: T) => {

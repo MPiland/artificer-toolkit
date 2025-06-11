@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import ClassForm from '@/pages/classes/ClassForm'
-import { fetchClass } from '@/apis/classesApi'
+import { fetchClass } from '@/apis/classes.api'
 import { FormProvider } from '@/components/Form'
 
 export const Route = createFileRoute('/_protected/classes/$action/$_classId')({

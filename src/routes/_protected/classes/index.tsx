@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import Classes from '@/pages/classes/Classes'
-import { fetchClasses } from '@/apis/classesApi'
+import { fetchClasses } from '@/apis/classes.api'
 import Loading from '@/components/Loading/Loading'
 
 export const Route = createFileRoute('/_protected/classes/')({

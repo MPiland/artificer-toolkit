@@ -1,0 +1,67 @@
+input SpeedInput {
+  amount: Int
+  unit: ID! 
+}
+
+input WeightInput {
+  amount: Float
+  unit: ID! 
+}
+
+input CapacityInput {
+  amount: Float
+  unit: ID! 
+}
+
+input CostInput {
+  amount: Int
+  currency: ID! 
+}
+
+input ContainsInput {
+  id: ID! 
+  quantity: Int!
+}
+
+input EquipmentRangeInput {
+  minRange: Int
+  maxRange: Int
+  unit: ID! 
+}
+
+input EquipmentInput {
+  id: ID! 
+  label: String! 
+  desc: String
+  quote: String
+  cost: CostInput!
+  weight: WeightInput!
+  capacity: CapacityInput
+  maxStack: Int
+  quantity: Int!
+  properties: [ID!]
+  category: ID! 
+  rarity: ID! 
+  attributes: [ID!]
+  damage: DamageInput
+  saveAbility: SaveAbilityInput
+  primaryAbility: ID
+  secondaryAbility: ID
+  optionalAbility: ID
+  maxBonus: Int
+  armorClass: Int
+  prerequisities: PrerequisiteInput
+  speed: SpeedInput
+  range: EquipmentRangeInput
+  contains: [ContainsInput!]
+  features: [FeatureInput!]
+  ownerId: String
+  systemId: ID! 
+  masterId: String
+  rank: Int
+}
+
+input BatchEquipmentInput {
+  tableName: String! 
+  data: EquipmentInput!
+}

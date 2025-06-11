@@ -16,8 +16,9 @@ import type {
   FeatureOption,
 } from '@/types'
 import { AddSection } from '@/components/Form/Features/Sections'
+import Loading from '../Loading'
 
-type ModalType = 'alert' | 'delete' | 'copy' | 'addSection'
+type ModalType = 'alert' | 'delete' | 'copy' | 'addSection' | 'loading'
 
 export interface AlertModalProps {
   title?: string
@@ -42,9 +43,9 @@ export interface CopyModalProps {
         value: string
         raceIds?: string[]
         classIds?: string[]
-        equipmentIds?:  string[]
-        featIds?:  string[]
-        backgroundIds?:  string[]
+        equipmentIds?: string[]
+        featIds?: string[]
+        backgroundIds?: string[]
       }[]
     | undefined
   onCopy: (() => void) | ((arg: any) => void)
@@ -62,11 +63,16 @@ export interface AddSectionModalProps {
   onAddSection: (sectionName: string) => void
 }
 
+export interface LoadingModalProps {
+  isLoading: boolean
+}
+
 export type ModalConfig =
   | { type: 'alert'; props: AlertModalProps }
   | { type: 'delete'; props: DeleteModalProps }
   | { type: 'copy'; props: CopyModalProps }
   | { type: 'addSection'; props: AddSectionModalProps }
+  | { type: 'loading'; props: LoadingModalProps }
 
 export type ShowModal<T> = {
   type: T
@@ -78,6 +84,7 @@ export type ModalPropsByType = {
   delete: DeleteModalProps
   copy: CopyModalProps
   addSection: AddSectionModalProps
+  loading: LoadingModalProps
 }
 
 const useModalOptions = () => {
@@ -99,6 +106,7 @@ const useModalOptions = () => {
     delete: <Delete />,
     copy: <Copy />,
     addSection: <AddSection />,
+    loading: <Loading />,
   }
 
   return {

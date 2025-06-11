@@ -1,0 +1,30 @@
+type Feature {
+  id: ID!
+  label: String
+  desc: String
+  detail: String
+  category: ID
+  attributes: [ID!]
+  actions: ActionGroup
+  damage: Damage
+  charges: Charge
+  optionsByLevel: [OptionsByLevel!]
+  range: Range
+  shape: Shape
+  targets: Int
+  feats: [ID!]
+  modifiers: [ID!]
+  proficiencies: [ID!]
+  expertise: [ID!]
+  senses: [ID!]
+  spells: [ID!]
+  prerequisites: Prerequisite
+  saveAbility: SaveAbility
+  levelAvailable: String
+  options: [ID!]
+}
+
+type FeatureConnection {
+  items: [Feature!]!
+  nextToken: String
+}

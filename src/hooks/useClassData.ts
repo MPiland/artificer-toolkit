@@ -1,6 +1,6 @@
 import { useSuspenseQueries, useSuspenseQuery } from '@tanstack/react-query'
 import { useRouteContext } from '@tanstack/react-router'
-import { fetchClass, fetchClasses } from '@/apis/classesApi'
+import { fetchClass, fetchClasses } from '@/apis/classes.api'
 import { Categories } from '@/enums'
 import { createArrayWithMethods } from '@/utils'
 
