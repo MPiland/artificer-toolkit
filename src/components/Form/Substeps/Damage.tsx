@@ -56,6 +56,9 @@ const Damage = withFieldGroup({
       diePerLevel: state.values.diePerLevel,
       setPerLevel: state.values.setPerLevel,
     }))
+
+    const { AppField, Subscribe } = group
+
     const { properties: formProperties, __kind } = useStore(group.form.store, (state) => ({
       properties:
         isEquipmentInput(state.values as z.infer<typeof EquipmentInputSchema>) ?
@@ -172,7 +175,7 @@ const Damage = withFieldGroup({
     }, [group, bonus, secondary, versatile, bonusDamage, secondaryDamage, isVersatile, __kind])
 
     return (
-      <group.Subscribe
+      <Subscribe
         selector={(state) => ({
           primary: state.values.primary,
           secondary: state.values.secondary,
@@ -183,7 +186,7 @@ const Damage = withFieldGroup({
       >
         {({ primary, secondary, bonus, versatile, diePerLevel }) => (
           <>
-            <group.AppField name='attributes'>
+            <AppField name='attributes'>
               {({ DropdownField }) => (
                 <Grid.Col span={2}>
                   <DropdownField
@@ -199,7 +202,7 @@ const Damage = withFieldGroup({
                   />
                 </Grid.Col>
               )}
-            </group.AppField>
+            </AppField>
             {formDamageTypes.map((type, index) => {
               const damageObject =
                 type === 'primary' ? primary
@@ -211,7 +214,7 @@ const Damage = withFieldGroup({
                   <Grid>
                     {type !== 'versatile' && (
                       <>
-                        <group.AppField name={`${type}.attribute`}>
+                        <AppField name={`${type}.attribute`}>
                           {({ DropdownField }) => (
                             <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
                               <DropdownField
@@ -228,8 +231,8 @@ const Damage = withFieldGroup({
                               />
                             </Grid.Col>
                           )}
-                        </group.AppField>
-                        <group.AppField name={`${type}.id`}>
+                        </AppField>
+                        <AppField name={`${type}.id`}>
                           {({ DropdownField }) => (
                             <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
                               <DropdownField
@@ -249,13 +252,13 @@ const Damage = withFieldGroup({
                               />
                             </Grid.Col>
                           )}
-                        </group.AppField>
+                        </AppField>
                       </>
                     )}
                     {damageObject?.attribute !== Attributes.DIE_PER_LEVEL &&
                       damageObject?.attribute !== Attributes.SET_PER_LEVEL &&
                       (damageObject?.attribute === Attributes.SET_AMOUNT ?
-                        <group.AppField
+                        <AppField
                           name={`${type}.setAmount`}
                           validators={{
                             onChange: z
@@ -276,7 +279,7 @@ const Damage = withFieldGroup({
                               />
                             </Grid.Col>
                           )}
-                        </group.AppField>
+                        </AppField>
                       : (
                         damageObject?.attribute === Attributes.ABILITY ||
                         damageObject?.attribute === Attributes.SPELLCASTING_ABILITY ||
@@ -284,7 +287,7 @@ const Damage = withFieldGroup({
                       ) ?
                         <>
                           {damageObject?.attribute === Attributes.ABILITY && (
-                            <group.AppField
+                            <AppField
                               name={`${type}.ability`}
                               validators={{
                                 onSubmit: ({ value }) => !value && 'Choose an ability',
@@ -302,9 +305,9 @@ const Damage = withFieldGroup({
                                   />
                                 </Grid.Col>
                               )}
-                            </group.AppField>
+                            </AppField>
                           )}
-                          <group.AppField
+                          <AppField
                             name={`${type}.minAmount`}
                             validators={{
                               onChange: z
@@ -324,8 +327,8 @@ const Damage = withFieldGroup({
                                 />
                               </Grid.Col>
                             )}
-                          </group.AppField>
-                          <group.AppField
+                          </AppField>
+                          <AppField
                             name={`${type}.maxAmount`}
                             validators={{
                               onChange: z
@@ -345,8 +348,8 @@ const Damage = withFieldGroup({
                                 />
                               </Grid.Col>
                             )}
-                          </group.AppField>
-                          <group.AppField
+                          </AppField>
+                          <AppField
                             name={`${type}.multiplier`}
                             validators={{
                               onChange: z
@@ -366,11 +369,11 @@ const Damage = withFieldGroup({
                                 />
                               </Grid.Col>
                             )}
-                          </group.AppField>
+                          </AppField>
                         </>
                       : damageObject?.attribute === Attributes.DAMAGE_POOL ?
                         <>
-                          <group.AppField
+                          <AppField
                             name={`${type}.pool.attribute`}
                             validators={{
                               onSubmit: ({ value }) => !value && 'Choose a damage pool attribute',
@@ -390,7 +393,7 @@ const Damage = withFieldGroup({
                                 />
                               </Grid.Col>
                             )}
-                          </group.AppField>
+                          </AppField>
                           {(
                             damageObject?.pool?.attribute === Attributes.ABILITY ||
                             damageObject?.pool?.attribute === Attributes.SPELLCASTING_ABILITY ||
@@ -398,7 +401,7 @@ const Damage = withFieldGroup({
                           ) ?
                             <>
                               {damageObject?.pool?.attribute === Attributes.ABILITY && (
-                                <group.AppField
+                                <AppField
                                   name={`${type}.pool.ability`}
                                   validators={{
                                     onSubmit: ({ value }) => !value && 'Choose a damage pool ability',
@@ -416,9 +419,9 @@ const Damage = withFieldGroup({
                                       />
                                     </Grid.Col>
                                   )}
-                                </group.AppField>
+                                </AppField>
                               )}
-                              <group.AppField
+                              <AppField
                                 name={`${type}.pool.minAmount`}
                                 validators={{
                                   onChange: z
@@ -438,8 +441,8 @@ const Damage = withFieldGroup({
                                     />
                                   </Grid.Col>
                                 )}
-                              </group.AppField>
-                              <group.AppField
+                              </AppField>
+                              <AppField
                                 name={`${type}.pool.maxAmount`}
                                 validators={{
                                   onChange: z
@@ -459,8 +462,8 @@ const Damage = withFieldGroup({
                                     />
                                   </Grid.Col>
                                 )}
-                              </group.AppField>
-                              <group.AppField
+                              </AppField>
+                              <AppField
                                 name={`${type}.pool.multiplier`}
                                 validators={{
                                   onChange: z
@@ -480,10 +483,10 @@ const Damage = withFieldGroup({
                                     />
                                   </Grid.Col>
                                 )}
-                              </group.AppField>
+                              </AppField>
                             </>
                           : damageObject?.pool?.attribute === Attributes.SET_AMOUNT && (
-                              <group.AppField
+                              <AppField
                                 name={`${type}.pool.setAmount`}
                                 validators={{
                                   onChange: z
@@ -504,12 +507,12 @@ const Damage = withFieldGroup({
                                     />
                                   </Grid.Col>
                                 )}
-                              </group.AppField>
+                              </AppField>
                             )
                           }
                         </>
                       : <>
-                          <group.AppField
+                          <AppField
                             name={`${type}.dieConfig`}
                             validators={{
                               onChange: z.string().regex(DIE_REGEX, 'Enter a valid die configuration (ex: 2d12)'),
@@ -528,7 +531,7 @@ const Damage = withFieldGroup({
                                 />
                               </Grid.Col>
                             )}
-                          </group.AppField>
+                          </AppField>
                         </>)}
                   </Grid>
                 </Grid.Col>
@@ -560,12 +563,12 @@ const Damage = withFieldGroup({
                         </Grid>
                       </Grid.Col>
                       {diePerLevel?.length && (
-                        <group.AppField name='diePerLevel' mode='array'>
+                        <AppField name='diePerLevel' mode='array'>
                           {(field) =>
                             field.state.value?.map((_, i) => (
                               <Grid.Col key={`${i}-diePerLevel`}>
                                 <Grid>
-                                  <group.AppField
+                                  <AppField
                                     name={`diePerLevel[${i}].level`}
                                     validators={{
                                       onSubmit: ({ value }) => (!value || value === '') && 'Enter a level',
@@ -576,7 +579,7 @@ const Damage = withFieldGroup({
                                         <TextField />
                                       </Grid.Col>
                                     )}
-                                  </group.AppField>
+                                  </AppField>
                                   {formDamageTypes.map((type) => {
                                     const damageObject =
                                       type === 'primary' ? primary
@@ -585,7 +588,7 @@ const Damage = withFieldGroup({
                                       : bonus
                                     if (type !== 'versatile' && damageObject?.attribute === Attributes.DIE_PER_LEVEL) {
                                       return (
-                                        <group.AppField
+                                        <AppField
                                           name={`diePerLevel[${i}].${type}.dieConfig`}
                                           validators={{
                                             onSubmit: ({ value }) =>
@@ -600,7 +603,7 @@ const Damage = withFieldGroup({
                                               <TextField />
                                             </Grid.Col>
                                           )}
-                                        </group.AppField>
+                                        </AppField>
                                       )
                                     }
                                   })}
@@ -612,9 +615,7 @@ const Damage = withFieldGroup({
                                   <Grid.Col>
                                     <UnstyledButton
                                       className={row_button}
-                                      onClick={() =>
-                                        group.setFieldValue(`diePerLevel[${i + 1}]`, DiePerLevelInputSchema.parse({}))
-                                      }
+                                      onClick={() => field.pushValue(DiePerLevelInputSchema.parse({}))}
                                     >
                                       <TbPlus />
                                     </UnstyledButton>
@@ -623,7 +624,7 @@ const Damage = withFieldGroup({
                               </Grid.Col>
                             ))
                           }
-                        </group.AppField>
+                        </AppField>
                       )}
                     </Grid>
                   </Collapsible.Content>
@@ -655,12 +656,12 @@ const Damage = withFieldGroup({
                           <Grid.Col>Add Row</Grid.Col>
                         </Grid>
                       </Grid.Col>
-                      <group.AppField name='setPerLevel' mode='array'>
+                      <AppField name='setPerLevel' mode='array'>
                         {(field) =>
                           field.state.value?.map((_, i) => (
                             <Grid.Col key={`${i}-setPerLevel`}>
                               <Grid>
-                                <group.AppField
+                                <AppField
                                   name={`setPerLevel[${i}].level`}
                                   validators={{
                                     onSubmit: ({ value }) => (!value || value === '') && 'Enter a level',
@@ -671,7 +672,7 @@ const Damage = withFieldGroup({
                                       <TextField />
                                     </Grid.Col>
                                   )}
-                                </group.AppField>
+                                </AppField>
                                 {formDamageTypes.map((type) => {
                                   const damageObject =
                                     type === 'primary' ? primary
@@ -680,7 +681,7 @@ const Damage = withFieldGroup({
                                     : bonus
                                   if (type !== 'versatile' && damageObject?.attribute === Attributes.SET_PER_LEVEL) {
                                     return (
-                                      <group.AppField
+                                      <AppField
                                         name={`setPerLevel[${i}].${type}`}
                                         key={type}
                                         validators={{
@@ -696,7 +697,7 @@ const Damage = withFieldGroup({
                                             <TextField />
                                           </Grid.Col>
                                         )}
-                                      </group.AppField>
+                                      </AppField>
                                     )
                                   }
                                 })}
@@ -719,7 +720,7 @@ const Damage = withFieldGroup({
                             </Grid.Col>
                           ))
                         }
-                      </group.AppField>
+                      </AppField>
                     </Grid>
                   </Collapsible.Content>
                 </Collapsible>
@@ -727,7 +728,7 @@ const Damage = withFieldGroup({
             )}
           </>
         )}
-      </group.Subscribe>
+      </Subscribe>
     )
   },
 })
