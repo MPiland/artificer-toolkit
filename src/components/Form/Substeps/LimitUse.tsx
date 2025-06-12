@@ -1,200 +1,262 @@
+import { z } from 'zod/v4'
 import { useEffect } from 'react'
-import Dropdown from '@/components/Dropdown'
-import Input from '@/components/Input'
 import Collapsible from '@/components/Collapsible'
 import { ChargesLimits, Features, Feats } from '@/enums'
 import { Grid } from '@mantine/core'
 import { useSystemData } from '@/hooks'
-import type { FeatureDataType, OnChange, Feat, FeatureSpell } from '@/types'
+import {
+  FeatInputSchema,
+  FeatureInputSchema,
+  AncestryFeatureInputSchema,
+  FeatureOptionInputSchema,
+  FeatureSpellInputSchema,
+  ChargeInputSchema,
+  UsesPerLevelInputSchema,
+} from '@/schemas'
+import { withFieldGroup } from '../utils/factory'
+import { useStore } from '@tanstack/react-form'
 
-const LimitUse = ({
-  formStore: { data, addField, removeField, updateField },
-}: {
-  formStore: {
-    data: Feat | FeatureDataType | FeatureSpell
-    addField: OnChange<Feat | FeatureDataType | FeatureSpell>['addField']
-    removeField: OnChange<Feat | FeatureDataType | FeatureSpell>['removeField']
-    updateField: OnChange<Feat | FeatureDataType | FeatureSpell>['updateField']
-  }
-}) => {
-  const { charges, abilities, skills } = useSystemData()
+const defaultValues: z.input<typeof ChargeInputSchema> = ChargeInputSchema.parse({})
 
-  //Add/remove Limit Use table
-  useEffect(() => {
-    if (data.charges && !data.charges?.usesPerLevel?.length && data?.charges?.limit === ChargesLimits.USES_PER_LEVEL) {
-      addField({ path: 'charges.usesPerLevel' })
-    }
-    if (data.charges && data.charges?.limit !== ChargesLimits.USES_PER_LEVEL && data.charges?.usesPerLevel?.length) {
-      removeField({ path: 'charges.usesPerLevel' })
-    }
-  }, [data, removeField, addField])
+type ParentFormInputType =
+  | z.infer<typeof FeatureSpellInputSchema>
+  | z.infer<typeof FeatInputSchema>
+  | z.infer<typeof FeatureInputSchema>
+  | z.infer<typeof AncestryFeatureInputSchema>
+  | z.infer<typeof FeatureOptionInputSchema>
 
-  return (
-    <>
-      <Grid.Col>
-        <Grid>
-          <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-            <Dropdown
-              name='charges.limit'
-              label='Limit Option'
-              value={data?.charges?.limit}
-              options={charges.limits.filter((limit) => {
-                if (data.__typename === 'Feat') {
-                  return limit?.feats?.length && limit?.feats?.includes(Feats.ALL)
-                }
-                return limit?.features?.length && limit?.features?.includes(Features.ALL)
-              })}
-              required={true}
-              onChange={{ updateField, removeField }}
-            />
-          </Grid.Col>
-          {data?.charges?.limit === ChargesLimits.ABILITY ?
-            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-              <Dropdown
-                name='charges.ability'
-                label='Ability'
-                value={data?.charges?.ability}
-                options={abilities}
-                required={true}
-                onChange={{ updateField, removeField }}
-              />
-            </Grid.Col>
-          : data.charges?.limit === ChargesLimits.SKILL ?
-            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-              <Dropdown
-                name='charges.skill'
-                label='Skill'
-                value={data?.charges?.skill}
-                options={skills}
-                required={true}
-                onChange={{ updateField, removeField }}
-              />
-            </Grid.Col>
-          : data.charges?.limit === ChargesLimits.SET_AMOUNT ?
-            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-              <Input
-                validation='num'
-                type='text'
-                name='charges.setAmount'
-                errorMsg='Must contain only numbers'
-                label='Use Amount'
-                value={data?.charges?.setAmount}
-                required={true}
-                onChange={{ updateField }}
-              />
-            </Grid.Col>
-          : data.charges?.limit === ChargesLimits.RESOURCE_POINTS && (
-              <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                <Input
-                  validation='num'
-                  type='text'
-                  name='charges.resourcePoints'
-                  errorMsg='Must contain only numbers'
-                  label='Use Amount'
-                  value={data?.charges?.resourcePoints}
-                  required={true}
-                  onChange={{ updateField }}
-                />
-              </Grid.Col>
-            )
-          }
-          {data?.charges?.limit != null &&
-            data.charges?.limit !== ChargesLimits.SET_AMOUNT &&
-            data.charges?.limit !== ChargesLimits.USES_PER_LEVEL &&
-            data?.charges?.limit !== ChargesLimits.RESOURCE_POINTS && (
-              <>
-                <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                  <Input
-                    name='charges.multiplier'
-                    autoComplete='off'
-                    validation='num'
-                    errorMsg='Must contain whole numbers only'
-                    label='Multiplier'
-                    value={data?.charges?.multiplier}
-                    onChange={{ updateField }}
-                  />
-                </Grid.Col>
-                <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                  <Input
-                    name='charges.addAmount'
-                    autoComplete='off'
-                    label='Additional Amount'
-                    value={data?.charges?.addAmount}
-                    onChange={{ updateField }}
-                  />
-                </Grid.Col>
-                <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                  <Input
-                    name='charges.minAmount'
-                    autoComplete='off'
-                    label='Min. Value'
-                    value={data?.charges?.minAmount}
-                    onChange={{ updateField }}
-                  />
-                </Grid.Col>
-              </>
-            )}
-          {data?.charges?.limit !== ChargesLimits.RESOURCE_POINTS && (
-            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-              <Dropdown
-                name='charges.reset'
-                label='Reset Option'
-                value={data?.charges?.reset}
-                options={charges.resets.filter(
-                  (reset) => reset?.features?.length && reset?.features?.includes(Features.ALL)
-                )}
-                required={true}
-                onChange={{ updateField, removeField }}
-              />
-            </Grid.Col>
-          )}
-        </Grid>
-      </Grid.Col>
-      {data.charges?.limit === ChargesLimits.USES_PER_LEVEL && (
+const LimitUse = withFieldGroup({
+  defaultValues,
+  render: function Render({ group }) {
+    const { usesPerLevel, limit } = useStore(group.store, (state) => ({
+      usesPerLevel: state.values.usesPerLevel,
+      limit: state.values.limit,
+    }))
+
+    const { __kind } = useStore(group.form.store, (state) => ({
+      __kind: (state.values as ParentFormInputType).__kind,
+    }))
+
+    const { AppField } = group
+
+    const { charges, abilities, skills } = useSystemData()
+
+    //Add/remove Limit Use table
+    useEffect(() => {
+      if (!usesPerLevel?.length && limit === ChargesLimits.USES_PER_LEVEL) {
+        group.setFieldValue(`usesPerLevel[0]`, UsesPerLevelInputSchema.parse({}))
+      }
+      if (limit !== ChargesLimits.USES_PER_LEVEL && usesPerLevel?.length) {
+        group.setFieldValue('usesPerLevel', undefined)
+      }
+    }, [usesPerLevel, limit, group])
+
+    return (
+      <>
         <Grid.Col>
-          <Collapsible>
-            <Collapsible.Trigger title={'Limit Use Table'} />
-            <Collapsible.Content>
-              <Grid>
-                <Grid.Col>
-                  <Grid>
-                    <Grid.Col >Level</Grid.Col>
-                    <Grid.Col >Uses</Grid.Col>
-                  </Grid>
+          <Grid>
+            <AppField
+              name='limit'
+              validators={{
+                onSubmit: ({ value }) => !value && 'Choose a limit option',
+              }}
+            >
+              {({ DropdownField }) => (
+                <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                  <DropdownField
+                    label='Limit Option'
+                    required={true}
+                    options={charges.limits.filter((limit) => {
+                      if (__kind === 'FeatInput') {
+                        return limit?.feats?.length && limit?.feats?.includes(Feats.ALL)
+                      }
+                      return limit?.features?.length && limit?.features?.includes(Features.ALL)
+                    })}
+                  />
                 </Grid.Col>
-                {data?.charges?.usesPerLevel?.map((setLevel, index) => (
-                  <Grid.Col key={index}>
+              )}
+            </AppField>
+            {limit === ChargesLimits.ABILITY ?
+              <AppField
+                name='ability'
+                validators={{
+                  onSubmit: ({ value }) => !value && 'Choose a charge ability',
+                }}
+              >
+                {({ DropdownField }) => (
+                  <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                    <DropdownField label='Ability' required={true} options={abilities} />
+                  </Grid.Col>
+                )}
+              </AppField>
+            : limit === ChargesLimits.SKILL ?
+              <AppField
+                name='skill'
+                validators={{
+                  onSubmit: ({ value }) => !value && 'Choose a charge skill',
+                }}
+              >
+                {({ DropdownField }) => (
+                  <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                    <DropdownField label='Ability' required={true} options={skills} />
+                  </Grid.Col>
+                )}
+              </AppField>
+            : limit === ChargesLimits.SET_AMOUNT ?
+              <AppField
+                name='setAmount'
+                validators={{
+                  onSubmit: ({ value }) => !value && 'Enter an amount of use charges',
+                  onChange: z.int('Use amount must be a whole number').gte(1, 'Use amount must be greater than 0'),
+                }}
+              >
+                {({ TextField }) => (
+                  <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                    <TextField label='Use Amount' required={true} />
+                  </Grid.Col>
+                )}
+              </AppField>
+            : limit === ChargesLimits.RESOURCE_POINTS && (
+                <AppField
+                  name='resourcePoints'
+                  validators={{
+                    onSubmit: ({ value }) => !value && 'Enter an amount of use charges',
+                    onChange: z.int('Use amount must be a whole number').gte(1, 'Use amount must be greater than 0'),
+                  }}
+                >
+                  {({ TextField }) => (
+                    <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                      <TextField label='Use Amount' required={true} />
+                    </Grid.Col>
+                  )}
+                </AppField>
+              )
+            }
+            {limit != null &&
+              limit !== ChargesLimits.SET_AMOUNT &&
+              limit !== ChargesLimits.USES_PER_LEVEL &&
+              limit !== ChargesLimits.RESOURCE_POINTS && (
+                <>
+                  <AppField
+                    name='multiplier'
+                    validators={{
+                      onChange: z.int('Multiplier must be a whole number').gte(1, 'Multiplier must be greater than 0'),
+                    }}
+                  >
+                    {({ TextField }) => (
+                      <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                        <TextField label='Multiplier' />
+                      </Grid.Col>
+                    )}
+                  </AppField>
+                  <AppField
+                    name='addAmount'
+                    validators={{
+                      onChange: z
+                        .int('Additional amount must be a whole number')
+                        .gte(1, 'Additional amount must be greater than 0'),
+                    }}
+                  >
+                    {({ TextField }) => (
+                      <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                        <TextField label='Additional Amount' />
+                      </Grid.Col>
+                    )}
+                  </AppField>
+                  <AppField
+                    name='minAmount'
+                    validators={{
+                      onChange: z
+                        .int('Min. amount must be a whole number')
+                        .gte(1, 'Min. amount must be greater than 0'),
+                    }}
+                  >
+                    {({ TextField }) => (
+                      <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                        <TextField label='Min. Amount' />
+                      </Grid.Col>
+                    )}
+                  </AppField>
+                </>
+              )}
+            {limit !== ChargesLimits.RESOURCE_POINTS && (
+              <AppField
+                name='reset'
+                validators={{
+                  onSubmit: ({ value }) => !value && 'Choose a reset method',
+                }}
+              >
+                {({ DropdownField }) => (
+                  <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                    <DropdownField
+                      label='Reset Option'
+                      required={true}
+                      options={charges.resets.filter(
+                        (reset) => reset?.features?.length && reset?.features?.includes(Features.ALL)
+                      )}
+                    />
+                  </Grid.Col>
+                )}
+              </AppField>
+            )}
+          </Grid>
+        </Grid.Col>
+        {limit === ChargesLimits.USES_PER_LEVEL && (
+          <Grid.Col>
+            <Collapsible>
+              <Collapsible.Trigger title={'Limit Use Table'} />
+              <Collapsible.Content>
+                <Grid>
+                  <Grid.Col>
                     <Grid>
-                      <Grid.Col >
-                        <Input
-                          name={`charges.usesPerLevel.${index}.level`}
-                          value={setLevel.level}
-                          validation='num'
-                          errorMsg='Please enter a whole number'
-                          onChange={{ updateField }}
-                          required={true}
-                        />
-                      </Grid.Col>
-                      <Grid.Col >
-                        <Input
-                          name={`charges.usesPerLevel.${index}.uses`}
-                          value={setLevel.uses}
-                          validation='num'
-                          errorMsg='Please enter a whole number'
-                          onChange={{ updateField }}
-                          required={true}
-                        />
-                      </Grid.Col>
+                      <Grid.Col>Level</Grid.Col>
+                      <Grid.Col>Uses</Grid.Col>
                     </Grid>
                   </Grid.Col>
-                ))}
-              </Grid>
-            </Collapsible.Content>
-          </Collapsible>
-        </Grid.Col>
-      )}
-    </>
-  )
-}
+                  <AppField name='usesPerLevel' mode='array'>
+                    {(field) =>
+                      field.state.value?.map((_, i) => (
+                        <Grid.Col key={`${i}-usesPerLevel`}>
+                          <Grid>
+                            <AppField
+                              name={`usesPerLevel[${i}].level`}
+                              validators={{
+                                onSubmit: ({ value }) => !value && 'Enter a level',
+                                onChange: z.int('Level must be a whole number').gte(1, 'Level must be greater than 0'),
+                              }}
+                            >
+                              {({ TextField }) => (
+                                <Grid.Col>
+                                  <TextField required={true} />
+                                </Grid.Col>
+                              )}
+                            </AppField>
+                            <AppField
+                              name={`usesPerLevel[${i}].uses`}
+                              validators={{
+                                onSubmit: ({ value }) => !value && 'Enter a number of uses',
+                                onChange: z.int('Level must be a whole number').gte(1, 'Level must be greater than 0'),
+                              }}
+                            >
+                              {({ TextField }) => (
+                                <Grid.Col>
+                                  <TextField required={true} />
+                                </Grid.Col>
+                              )}
+                            </AppField>
+                          </Grid>
+                        </Grid.Col>
+                      ))
+                    }
+                  </AppField>
+                </Grid>
+              </Collapsible.Content>
+            </Collapsible>
+          </Grid.Col>
+        )}
+      </>
+    )
+  },
+})
 
 export default LimitUse
