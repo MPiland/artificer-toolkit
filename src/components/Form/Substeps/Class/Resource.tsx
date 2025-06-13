@@ -1,116 +1,137 @@
+import { z } from 'zod/v4'
 import Collapsible from '@/components/Collapsible'
-import Input from '@/components/Input'
-import Dropdown from '@/components/Dropdown'
-import RichTextEditor from '@/components/RichTextEditor'
 import { Attributes, Classes } from '@/enums'
 import { Grid } from '@mantine/core'
 import { useSystemData } from '@/hooks'
-import type { OnChange, Class } from '@/types'
+import { withFieldGroup } from '../../utils/factory'
+import { ResourceInputSchema } from '@/schemas'
 
-const Resource = ({
-  formStore: { data, updateField, removeField },
-}: {
-  formStore: {
-    data: Class
-    updateField: OnChange<Class>['updateField']
-    removeField: OnChange<Class>['removeField']
-  }
-}) => {
-  const { charges, abilities } = useSystemData()
+const defaultValues: z.input<typeof ResourceInputSchema> = ResourceInputSchema.parse({})
 
-  return (
-    <Grid.Col>
-      <Collapsible defaultOpen={data.id == null} >
-        <Collapsible.Trigger title='Resource Attributes' />
-        <Collapsible.Content>
-          <Grid>
-            <Grid.Col>
-              <Grid>
-                <Grid.Col>
-                  <Input
-                    name='resource.label'
-                    label='Resource Name'
-                    autoComplete='off'
-                    value={data?.resource?.label}
-                    required={true}
-                    onChange={{ updateField }}
-                  />
-                </Grid.Col>
-                <Grid.Col>
-                  <Input
-                    name='resource.levelAvailable'
-                    label='Level Available'
-                    autoComplete='off'
-                    value={data?.resource?.levelAvailable}
-                    required={true}
-                    validation='num'
-                    errorMsg='Must contain whole numbers only'
-                    onChange={{ updateField }}
-                  />
-                </Grid.Col>
-                <Grid.Col>
-                  <Dropdown
-                    name='resource.charges.limit'
-                    label='Resource Limit Method'
-                    value={data?.resource?.charges?.limit}
-                    options={charges.limits.filter(
-                      (limit) => limit?.classes?.length && limit?.classes?.includes(Classes.RESOURCE)
+const Resource = withFieldGroup({
+  defaultValues,
+  render: function Render({ group }) {
+    const { charges, abilities } = useSystemData()
+    const { AppField, Subscribe } = group
+
+    return (
+      <Grid.Col>
+        <Collapsible>
+          <Collapsible.Trigger title='Resource Attributes' />
+          <Collapsible.Content>
+            <Grid>
+              <Grid.Col>
+                <Grid>
+                  <AppField
+                    name='label'
+                    validators={{
+                      onSubmit: ({ value }) => !value && 'Please enter a resource name',
+                    }}
+                  >
+                    {({ TextField }) => (
+                      <Grid.Col>
+                        <TextField label='Resource Name' required={true} />
+                      </Grid.Col>
                     )}
-                    required={true}
-                    onChange={{ updateField, removeField }}
-                  />
-                </Grid.Col>
-                {data?.resource?.charges?.limit === Attributes.ABILITY && (
+                  </AppField>
+                  <AppField
+                    name='levelAvailable'
+                    validators={{
+                      onSubmit: ({ value }) => !value && 'Please enter a level the resource becomes available',
+                      onChange: z.int('Level must be a whole number').gte(1, 'Level must be greater than 0'),
+                    }}
+                  >
+                    {({ TextField }) => (
+                      <Grid.Col>
+                        <TextField label='Level Available' required={true} />
+                      </Grid.Col>
+                    )}
+                  </AppField>
+                  <AppField
+                    name='charges.limit'
+                    validators={{
+                      onSubmit: ({ value }) => !value && 'Please enter a select a resource use limit method',
+                    }}
+                  >
+                    {({ DropdownField }) => (
+                      <Grid.Col>
+                        <DropdownField
+                          label='Resource Limit Method'
+                          required={true}
+                          options={charges.limits.filter(
+                            (limit) => limit?.classes?.length && limit?.classes?.includes(Classes.RESOURCE)
+                          )}
+                        />
+                      </Grid.Col>
+                    )}
+                  </AppField>
+                  <Subscribe
+                    selector={(state) => ({
+                      charges: state.values.charges,
+                      method: state.values.method,
+                    })}
+                  >
+                    {({ charges, method }) =>
+                      charges?.limit === Attributes.ABILITY && (
+                        <AppField
+                          name='charges.ability'
+                          validators={{
+                            onSubmit: ({ value }) => !value && 'Please select a resource limit ability',
+                          }}
+                        >
+                          {({ DropdownField }) => (
+                            <Grid.Col>
+                              <DropdownField label='Ability' options={abilities} required={true} />
+                            </Grid.Col>
+                          )}
+                        </AppField>
+                      ) &&
+                      method === Attributes.SET_AMOUNT && (
+                        <AppField
+                          name='charges.setAmount'
+                          validators={{
+                            onSubmit: ({ value }) => !value && 'Please enter an amount of uses',
+                            onChange: z
+                              .int('Use amount must be a whole number')
+                              .gte(1, 'Use amount must be greater than 0'),
+                          }}
+                        >
+                          {({ TextField }) => (
+                            <Grid.Col>
+                              <TextField label='Set Amount' required={true} />
+                            </Grid.Col>
+                          )}
+                        </AppField>
+                      )
+                    }
+                  </Subscribe>
+                  <AppField
+                    name='charges.reset'
+                    validators={{
+                      onSubmit: ({ value }) => !value && 'Please select a use reset option',
+                    }}
+                  >
+                    {({ DropdownField }) => (
+                      <Grid.Col>
+                        <DropdownField label='Resource Reset Option' required={true} options={charges.resets} />
+                      </Grid.Col>
+                    )}
+                  </AppField>
+                </Grid>
+              </Grid.Col>
+              <AppField name='desc'>
+                {({ RichTextEditorField }) => (
                   <Grid.Col>
-                    <Dropdown
-                      name='resource.charges.ability'
-                      label='Ability'
-                      value={data?.resource?.charges?.ability}
-                      options={abilities}
-                      required={true}
-                      onChange={{ updateField, removeField }}
-                    />
+                    <RichTextEditorField label='Description' />
                   </Grid.Col>
                 )}
-                {data?.resource?.method === Attributes.SET_AMOUNT && (
-                  <Grid.Col>
-                    <Input
-                      name='resource.charges.setAmount'
-                      label='Set Value'
-                      validation='num'
-                      errorMsg='Must contain whole numbers only'
-                      value={data?.resource?.charges?.setAmount}
-                      required={true}
-                      onChange={{ updateField }}
-                      autoComplete='off'
-                    />
-                  </Grid.Col>
-                )}
-                <Grid.Col>
-                  <Dropdown
-                    name='resource.charges.reset'
-                    label='Resource Reset Option'
-                    value={data?.resource?.charges?.reset}
-                    options={charges.resets}
-                    required={true}
-                    onChange={{ updateField, removeField }}
-                  />
-                </Grid.Col>
-              </Grid>
-            </Grid.Col>
-            <Grid.Col>
-              <RichTextEditor
-                name={'resource.desc'}
-                value={data?.resource?.desc}
-                label={'Description'}
-                onChange={{ updateField }}
-              />
-            </Grid.Col>
-          </Grid>
-        </Collapsible.Content>
-      </Collapsible>
-    </Grid.Col>
-  )
-}
+              </AppField>
+            </Grid>
+          </Collapsible.Content>
+        </Collapsible>
+      </Grid.Col>
+    )
+  },
+})
 
 export default Resource

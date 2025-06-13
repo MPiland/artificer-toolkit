@@ -12,10 +12,11 @@ import { Categories, Ranges, Shapes, Features } from '@/enums'
 import { FeatureContext } from './FeatureContext'
 import { useEnumChecks, useSystemData } from '@/hooks'
 import type { FeatureStore, OptionStore } from '@/store'
-import SelectOptionsByLevel from '../Substeps/SelectOptionsByLevel'
+import OptionsByLevel from '../Substeps/OptionsByLevel'
 import { Grid } from '@mantine/core'
 import Button from '@/components/Button'
 import { ModalContext } from '@/components/Modal'
+import Collapsible from '@/components/Collapsible'
 
 const Base = ({ featureStore, valueLabel }: { featureStore: FeatureStore | OptionStore; valueLabel: string }) => {
   const { formStore, steps, stepIndex } = use(FormContext)
@@ -36,8 +37,18 @@ const Base = ({ featureStore, valueLabel }: { featureStore: FeatureStore | Optio
     addAbilityModifier,
     limitTargets,
     selectCountByLevel,
+    replaceAtLevel,
   } = useEnumChecks({
     data,
+  })
+
+  useEffect(() => {
+    if (selectCountByLevel && !data.selectCountByLevel.length) {
+      updateField({ path: 'selectCountByLevel' })
+    }
+    if (!selectCountByLevel && data.selectCountByLevel.length) {
+      remomoveField({ path: 'selectCountByLevel' })
+    }
   })
 
   const { attributes, abilities, categories, spells, actions, rules } = useSystemData()
@@ -401,7 +412,27 @@ const Base = ({ featureStore, valueLabel }: { featureStore: FeatureStore | Optio
         {hasPrerequisites && <Requirements formStore={featureStore} />}
         {limitUse && <LimitUse formStore={featureStore} />}
         {doesDamage && <Damage formStore={featureStore} />}
-        {selectCountByLevel && <SelectOptionsByLevel />}
+        {selectCountByLevel && (
+          <Grid.Col>
+            <Collapsible>
+              <Collapsible.Trigger title='Select Options By Level' />
+              <Collapsible.Content>
+                <Grid>
+                  <Grid.Col>
+                    <Grid>
+                      <Grid.Col>Level</Grid.Col>
+                      <Grid.Col>Count</Grid.Col>
+                      {replaceAtLevel && <Grid.Col>Replace Count</Grid.Col>}
+                    </Grid>
+                  </Grid.Col>
+                  <AppField name='optionsByLevel' mode='array'>
+                    {(field) => field.state.value?.map((, i) => <OptionsByLevel field={`optionsByLevel[${i}]`}/>)}
+                  </AppField>
+                </Grid>
+              </Collapsible.Content>
+            </Collapsible>
+          </Grid.Col>
+        )}
         {hasAnySections && <SectionsList featureStore={featureStore} />}
       </Grid>
     </>

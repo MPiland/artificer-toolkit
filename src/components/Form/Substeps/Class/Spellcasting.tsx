@@ -1,132 +1,155 @@
+import { z } from 'zod/v4'
 import Collapsible from '@/components/Collapsible'
-import Input from '@/components/Input'
-import Dropdown from '@/components/Dropdown'
 import { Attributes, Measurements, Classes } from '@/enums'
 import { Grid } from '@mantine/core'
-import { useEnumChecks, useSystemData } from '@/hooks'
-import type { OnChange, Class } from '@/types'
+import { useSystemData } from '@/hooks'
+import { withFieldGroup } from '../../utils/factory'
+import { SpellcastingInputSchema } from '@/schemas'
 
-const Spellcasting = ({
-  formStore: { data, updateField, removeField },
-}: {
-  formStore: {
-    data: Class
-    updateField: OnChange<Class>['updateField']
-    removeField: OnChange<Class>['removeField']
-  }
-}) => {
-  const { charges, abilities, rules, attributes } = useSystemData()
+const defaultValues: z.input<typeof SpellcastingInputSchema> = SpellcastingInputSchema.parse({})
 
-  const { magicName, preparesSpells } = useEnumChecks({ data })
+const Spellcasting = withFieldGroup({
+  defaultValues,
+  props: {
+    magicName: false,
+    preparesSpells: false,
+  },
+  render: function Render({ group, magicName, preparesSpells }) {
+    const { charges, abilities, rules, attributes } = useSystemData()
 
-  return (
-    <Grid.Col>
-      <Collapsible defaultOpen={data.id == null}>
-        <Collapsible.Trigger title={'Spellcaster Attributes'} />
-        <Collapsible.Content>
-          <Grid>
-            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-              <Dropdown
-                name='spellcasting.ability'
-                label='Spellcasting Ability'
-                required={true}
-                value={data?.spellcasting?.ability}
-                options={abilities}
-                onChange={{ updateField, removeField }}
-              />
-            </Grid.Col>
-            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-              <Dropdown
-                name='spellcasting.attributes'
-                label='Spell Casting Attributes'
-                multiSelect={true}
-                value={data?.spellcasting?.attributes}
-                options={attributes.filter((attributes) => attributes?.classes?.includes(Classes.SPELLCASTER))}
-                onChange={{ updateField, removeField }}
-              />
-            </Grid.Col>
-            {magicName && (
-              <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                <Input
-                  name='spellcasting.magicName'
-                  autoComplete='off'
-                  label='Magic Type Name'
-                  required={true}
-                  value={data?.spellcasting?.magicName}
-                  onChange={{ updateField }}
-                />
-              </Grid.Col>
-            )}
-            {preparesSpells && (
-              <>
-                <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                  <Dropdown
-                    name='spellcasting.prepareLimit.methods'
-                    label='Prepare Limit Method'
-                    multiSelect={true}
-                    value={data?.spellcasting?.prepareLimit?.methods}
-                    options={attributes.filter(
-                      (attributes) =>
-                        attributes?.classes?.length && attributes?.classes?.includes(Classes.PREPARE_LIMIT)
-                    )}
-                    onChange={{ updateField, removeField }}
-                  />
-                </Grid.Col>
-                {data?.spellcasting?.prepareLimit?.methods?.some((method) => method === Attributes.CLASS_LEVEL) && (
-                  <>
-                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                      <Dropdown
-                        name='spellcasting.prepareLimit.level.measurement'
-                        label='Level Measurement'
-                        value={data?.spellcasting?.prepareLimit?.level?.measurement}
-                        options={rules.measurements.amount}
-                        onChange={{ updateField, removeField }}
-                      />
+    const { AppField, Subscribe } = group
+
+    return (
+      <Grid.Col>
+        <Collapsible>
+          <Collapsible.Trigger title={'Spellcaster Attributes'} />
+          <Collapsible.Content>
+            <Grid>
+              <AppField
+                name='ability'
+                validators={{
+                  onSubmit: ({ value }) => !value && 'Select the ability for spellcasting',
+                }}
+              >
+                {({ DropdownField }) => (
+                  <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                    <DropdownField label='Spellcasting Ability' required={true} options={abilities} />
+                  </Grid.Col>
+                )}
+              </AppField>
+              <AppField name='attributes'>
+                {({ DropdownField }) => (
+                  <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                    <DropdownField
+                      label='Spellcasting Attributes'
+                      multiselect={true}
+                      options={attributes.filter((attributes) => attributes?.classes?.includes(Classes.SPELLCASTER))}
+                    />
+                  </Grid.Col>
+                )}
+              </AppField>
+              {magicName && (
+                <AppField
+                  name='magicName'
+                  validators={{
+                    onSubmit: ({ value }) => !value && 'Enter a magic name',
+                  }}
+                >
+                  {({ TextField }) => (
+                    <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                      <TextField label='Magic Type Name' required={true} />
                     </Grid.Col>
-                    {data?.spellcasting?.prepareLimit?.level?.measurement === Measurements.HALF && (
-                      <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                        <Dropdown
-                          name='spellcasting.prepareLimit.level.rounding'
-                          label='Level Rounding'
-                          value={data?.spellcasting?.prepareLimit?.level?.rounding}
-                          options={rules.measurements.rounding}
-                          onChange={{ updateField, removeField }}
+                  )}
+                </AppField>
+              )}
+              {preparesSpells && (
+                <>
+                  <AppField name='prepareLimit.methods'>
+                    {({ DropdownField }) => (
+                      <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                        <DropdownField
+                          label='Prepare Limit Method'
+                          multiselect={true}
+                          options={attributes.filter(
+                            (attributes) =>
+                              attributes?.classes?.length && attributes?.classes?.includes(Classes.PREPARE_LIMIT)
+                          )}
                         />
                       </Grid.Col>
                     )}
-                  </>
+                  </AppField>
+                  <Subscribe selector={(state) => state.values.prepareLimit}>
+                    {(prepareLimit) =>
+                      prepareLimit?.methods?.some((method) => method === Attributes.CLASS_LEVEL) && (
+                        <>
+                          <AppField
+                            name='prepareLimit.level.measurement'
+                            validators={{
+                              onSubmit: ({ value }) => !value && 'Select the level measurement',
+                            }}
+                          >
+                            {({ DropdownField }) => (
+                              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                <DropdownField
+                                  label='Level Measurement'
+                                  options={rules.measurements.amount}
+                                  required={true}
+                                />
+                              </Grid.Col>
+                            )}
+                          </AppField>
+                          {prepareLimit?.level?.measurement === Measurements.HALF && (
+                            <AppField name='prepareLimit.level.rounding'>
+                              {({ DropdownField }) => (
+                                <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                  <DropdownField label='Level Rounding' options={rules.measurements.rounding} />
+                                </Grid.Col>
+                              )}
+                            </AppField>
+                          )}
+                        </>
+                      )
+                    }
+                  </Subscribe>
+                </>
+              )}
+              <AppField
+                name='maxSpellLevel'
+                validators={{
+                  onSubmit: ({ value }) => !value && 'Enter the highest spell level',
+                  onChange: z.int('Spell level must be a whole number').gte(1, 'Spell level must be greater than 0'),
+                }}
+              >
+                {({ TextField }) => (
+                  <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                    <TextField label='Max Spell Level' required={true} />
+                  </Grid.Col>
                 )}
-              </>
-            )}
-            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-              <Input
-                name='spellcasting.maxSpellLevel'
-                autoComplete='off'
-                label='Max Spell Level'
-                required={true}
-                value={data?.spellcasting?.maxSpellLevel}
-                validation='num'
-                errorMsg='Must contain whole numbers only'
-                onChange={{ updateField }}
-              />
-            </Grid.Col>
-            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-              <Dropdown
-                name='spellcasting.charges.reset'
-                label='Spellslot Reset Option'
-                value={data?.spellcasting?.charges?.reset}
-                options={charges.resets.filter(
-                  (reset) => reset?.classes?.length && reset?.classes?.includes(Classes.SPELLCASTER)
+              </AppField>
+              <AppField
+                name='prepareLimit.methods'
+                validators={{
+                  onSubmit: ({ value }) => !value && 'Select the prepare limit method',
+                }}
+              >
+                {({ DropdownField }) => (
+                  <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                    <DropdownField
+                      label='Prepare Limit Method'
+                      required={true}
+                      options={charges.resets.filter(
+                        (reset) => reset?.classes?.length && reset?.classes?.includes(Classes.SPELLCASTER)
+                      )}
+                    />
+                  </Grid.Col>
                 )}
-                required={true}
-                onChange={{ updateField, removeField }}
-              />
-            </Grid.Col>
-          </Grid>
-        </Collapsible.Content>
-      </Collapsible>
-    </Grid.Col>
-  )
-}
+              </AppField>
+            </Grid>
+          </Collapsible.Content>
+        </Collapsible>
+      </Grid.Col>
+    )
+  },
+})
 
 export default Spellcasting

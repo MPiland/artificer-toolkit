@@ -543,13 +543,10 @@ const DetailsStep = withForm({
             {(__kind === 'RaceInput' || __kind === 'ClassInput' || __kind === 'BackgroundInput') && (
               <>
                 <AppField name='details' mode='array'>
-                  {({ insertValue, removeValue, AccordionField }) => (
+                  {({ pushValue, removeValue, AccordionField }) => (
                     <>
                       <Grid.Col span={2} className={sprinkles({ alignContent: 'flex-end' })}>
-                        <Button
-                          type='button'
-                          onClick={() => insertValue(details?.length ?? 0, DetailInputSchema.parse({}))}
-                        >
+                        <Button type='button' onClick={() => pushValue(DetailInputSchema.parse({}))}>
                           Add Detail
                         </Button>
                       </Grid.Col>

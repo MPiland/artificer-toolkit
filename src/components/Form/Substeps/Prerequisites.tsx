@@ -1,449 +1,527 @@
+import { z } from 'zod/v4'
 import { sprinkles } from '@/css/sprinkles.css'
-import Dropdown from '@/components/Dropdown'
-import Input from '@/components/Input'
-import Button from '@/components/Button'
 import { row_button } from '../Form.css'
 import { TbPlus, TbX } from 'react-icons/tb'
-import { use, useEffect, useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import Collapsible from '@/components/Collapsible'
-import type { FormDataType, FeatureDataType, SectionDataType, OnChange, Character, Feat, Spell } from '@/types'
-import { Grid, Group, Divider } from '@mantine/core'
-import { FormContext } from '../FormContext'
+import { Grid, Group, Divider, UnstyledButton } from '@mantine/core'
 import { useSystemData, useSpellData, useEquipmentData, useEnumChecks } from '@/hooks'
-import type { FormStore } from '@/store'
 import { Features } from '@/enums'
+import { PrerequisiteInputSchema, EquipPrerequisiteInputSchema } from '@/schemas'
+import { withFieldGroup } from '../utils/factory'
+import { useStore } from '@tanstack/react-form'
 
-const Prerequisites = ({
-  formStore: { data, updateField, addField, removeField },
-}: {
-  formStore: {
-    data: Feat | FeatureDataType | SectionDataType
-    updateField: OnChange<Feat | FeatureDataType | SectionDataType>['updateField']
-    addField: OnChange<Feat | FeatureDataType | SectionDataType>['addField']
-    removeField: OnChange<Feat | FeatureDataType | SectionDataType>['removeField']
-  }
-}) => {
-  const {
-    abilities,
-    prerequisites,
-    skills,
-    equipment: { categories: equipmentCategories, properties: equipmentProperties },
-  } = useSystemData()
-  const { spells } = useSpellData()
-  const { equipment } = useEquipmentData()
+const defaultValues: z.input<typeof PrerequisiteInputSchema> = PrerequisiteInputSchema.parse({})
 
-  const {
-    formStore: { data: stateData },
-  } = use(FormContext) as { formStore: FormStore<Exclude<FormDataType, Spell | Character>> }
-
-  const {
-    hasPrerequisites,
-    equipmentProficiency,
-    equipped,
-    notEquipped,
-    spellsObtained,
-    featuresObtained,
-    optionsObtained,
-    skillProficiency,
-    abilityScore,
-  } = useEnumChecks({ data })
-
-  // Add/Remove prerequisites array
-  useEffect(() => {
-    if (hasPrerequisites) {
-      if (equipmentProficiency && !data.prerequisites?.equipmentProficiencies?.length) {
-        addField({
-          path: 'prerequisites.equipmentProficiencies',
-        })
-      }
-
-      if (equipped && !data.prerequisites?.equipped?.length) {
-        addField({
-          path: 'prerequisites.equipped',
-        })
-      }
-
-      if (notEquipped && !data.prerequisites?.notEquipped?.length) {
-        addField({
-          path: 'prerequisites.notEquipped',
-        })
-      }
-    }
-  }, [addField, hasPrerequisites, equipmentProficiency, equipped, notEquipped, data.prerequisites])
-
-  const featuresObtainedOptions = useMemo(() => {
-    const features = data.__typename !== 'Feat' ? stateData?.features : data?.features
-
-    const mappedFeatures = features?.map((feature) => {
-      if (feature.label != null && feature.value != null) {
-        return {
-          ...feature,
-          label: feature.label,
-          value: feature.value,
-          id: feature.id,
-        }
-      }
-      return null
-    })
-
-    return mappedFeatures?.filter((feature) => feature != null) || []
-  }, [stateData, data])
-
-  const optionsObtainedOptions = useMemo(() => {
-    const mappedOptions = data?.prerequisites?.featuresObtained?.flatMap((feature) =>
-      featuresObtainedOptions
-        .filter(Boolean)
-        ?.find((sFeature) => sFeature?.id === feature)
-        ?.options?.map((option) => {
-          if (option.label != null && option.value != null) {
-            return {
-              ...option,
-              label: option.label,
-              value: option.value,
-              id: option.id,
-            }
-          }
-          return null
-        })
+const Prerequisites = withFieldGroup({
+  defaultValues,
+  props: {
+    __kind: '' as
+      | 'FeatureSpellInput'
+      | 'FeatureSenseInput'
+      | 'FeatureModifierInput'
+      | 'FeatureExpertiseInput'
+      | 'FeatureProficiencyInput'
+      | 'FeatureFeatInput'
+      | 'FeatInput'
+      | 'FeatureInput'
+      | 'AncestryFeatureInput'
+      | 'FeatureOptionInput',
+    features: [] as string[],
+  },
+  render: function Render({ group, __kind, features }) {
+    const { options, equipmentProficiencies, equipped, notEquipped, featuresObtained } = useStore(
+      group.store,
+      (state) => ({
+        options: state.values.options,
+        equipmentProficiencies: state.values.equipmentProficiencies,
+        equipped: state.values.equipped,
+        notEquipped: state.values.notEquipped,
+        featuresObtained: state.values.featuresObtained,
+      })
     )
 
-    return mappedOptions?.filter((option) => option != null) || []
-  }, [featuresObtainedOptions, data?.prerequisites?.featuresObtained])
+    const { AppField, Subscribe } = group
 
-  return (
-    <Grid.Col>
-      <Collapsible>
-        <Collapsible.Trigger title='Prerequisites' />
-        <Collapsible.Content>
-          <Grid>
-            <Grid.Col>
-              <Grid>
-                <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                  <Dropdown
-                    multiSelect={true}
-                    name='prerequisites.options'
-                    label='Prerequisites'
-                    options={prerequisites.filter(
-                      (prerequisite) =>
-                        prerequisite?.features?.length &&
-                        (prerequisite?.features?.includes(Features.ALL) ||
-                          (data.__typename === 'FeatureOption' && prerequisite?.features.includes(Features.OPTION)))
-                    )}
-                    value={data?.prerequisites?.options}
-                    required={true}
-                    onChange={{ updateField, removeField }}
-                  />
-                </Grid.Col>
-                {spellsObtained && (
-                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                    <Dropdown
-                      multiSelect={true}
-                      name='prerequisites.spellsObtained'
-                      value={data?.prerequisites?.spellsObtained}
-                      label='Spell'
-                      options={spells}
-                      onChange={{ updateField, removeField }}
-                    />
-                  </Grid.Col>
-                )}
-                {featuresObtained && (
-                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                    <Dropdown
-                      multiSelect={true}
-                      name='prerequisites.featuresObtained'
-                      value={data?.prerequisites?.featuresObtained}
-                      label='Feature'
-                      options={featuresObtainedOptions}
-                      onChange={{ updateField, removeField }}
-                    />
-                  </Grid.Col>
-                )}
-                {optionsObtained &&
-                  data?.prerequisites?.optionsObtained?.some(
-                    (feature) =>
-                      featuresObtainedOptions.filter(Boolean)?.find((sFeature) => sFeature?.id === feature)?.options
-                        ?.length
-                  ) && (
-                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                      <Dropdown
-                        multiSelect={true}
-                        name='prerequisites.optionsObtained'
-                        value={data?.prerequisites?.optionsObtained}
-                        label='Feature Option'
-                        options={optionsObtainedOptions.filter(Boolean)}
-                        onChange={{ updateField, removeField }}
-                      />
-                    </Grid.Col>
-                  )}
-                {skillProficiency && (
-                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                    <Dropdown
-                      multiSelect={true}
-                      name='prerequisites.skillProficiencies'
-                      label='Skill Proficiency'
-                      value={data?.prerequisites?.skillProficiencies}
-                      options={skills}
-                      onChange={{ updateField, removeField }}
-                    />
-                  </Grid.Col>
-                )}
-                {abilityScore && (
+    const {
+      abilities,
+      prerequisites,
+      skills,
+      equipment: { categories: equipmentCategories, properties: equipmentProperties },
+    } = useSystemData()
+    const { spells } = useSpellData()
+    const { equipment } = useEquipmentData()
+    const { getPrerequisites } = useEnumChecks()
+    const {
+      equipmentProficiency,
+      equipped: equippedPrereq,
+      notEquipped: notEquippedPrereq,
+      spellsObtained: spellsObtainedPrereq,
+      featuresObtained: featuresObtainedPrereq,
+      optionsObtained: optionsObtainedPrereq,
+      skillProficiency: skillProficiencyPrereq,
+      abilityScore: abilityScorePrereq,
+    } = getPrerequisites({ options: options ?? [] })
+
+    // Add/Remove prerequisites array
+    useEffect(() => {
+      if (equipmentProficiency && !equipmentProficiencies?.length) {
+        group.setFieldValue('equipmentProficiencies[0]', EquipPrerequisiteInputSchema.parse({}))
+      }
+
+      if (equippedPrereq && !equipped?.length) {
+        group.setFieldValue('equipped[0]', EquipPrerequisiteInputSchema.parse({}))
+      }
+
+      if (notEquippedPrereq && !notEquipped?.length) {
+        group.setFieldValue('notEquipped[0]', EquipPrerequisiteInputSchema.parse({}))
+      }
+    }, [equipmentProficiency, equipped, notEquipped, notEquippedPrereq, equippedPrereq, equipmentProficiencies, group])
+
+    // TODO: Figure out how to map feature data from main data (ex: Class, Race, etc) to features constant
+
+    const featuresObtainedOptions = useMemo(() => {
+      const mappedFeatures = features?.map((feature) => {
+        if (feature.label != null && feature.value != null) {
+          return {
+            ...feature,
+            label: feature.label,
+            value: feature.value,
+            id: feature.id,
+          }
+        }
+        return null
+      })
+
+      return mappedFeatures?.filter((feature) => feature != null) || []
+    }, [features])
+
+    const optionsObtainedOptions = useMemo(() => {
+      const mappedOptions = featuresObtained?.flatMap((feature) =>
+        featuresObtainedOptions
+          .filter(Boolean)
+          ?.find((sFeature) => sFeature?.id === feature)
+          ?.options?.map((option) => {
+            if (option.label != null && option.value != null) {
+              return {
+                ...option,
+                label: option.label,
+                value: option.value,
+                id: option.id,
+              }
+            }
+            return null
+          })
+      )
+
+      return mappedOptions?.filter((option) => option != null) || []
+    }, [featuresObtainedOptions, featuresObtained])
+
+    return (
+      <Grid.Col>
+        <Collapsible>
+          <Collapsible.Trigger title='Prerequisites' />
+          <Collapsible.Content>
+            <Grid>
+              <Subscribe
+                selector={(state) => ({
+                  optionsObtained: state.values.optionsObtained,
+                })}
+              >
+                {({ optionsObtained }) => (
                   <>
-                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                      <Dropdown
-                        multiSelect={true}
-                        name='prerequisites.abilityScore.abilities'
-                        value={data?.prerequisites?.abilityScore?.abilities}
-                        label='Ability'
-                        options={abilities}
-                        required={true}
-                        onChange={{ updateField, removeField }}
-                      />
+                    <Grid.Col>
+                      <Grid>
+                        <AppField
+                          name='options'
+                          validators={{
+                            onSubmit: ({ value }) => !value && 'Please select at least one option',
+                          }}
+                        >
+                          {({ DropdownField }) => (
+                            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                              <DropdownField
+                                multiselect={true}
+                                label='Prerequisite(s)'
+                                options={prerequisites.filter(
+                                  (prerequisite) =>
+                                    prerequisite?.features?.length &&
+                                    (prerequisite?.features?.includes(Features.ALL) ||
+                                      (__kind === 'FeatureOptionInput' &&
+                                        prerequisite?.features.includes(Features.OPTION)))
+                                )}
+                                required={true}
+                              />
+                            </Grid.Col>
+                          )}
+                        </AppField>
+                        {spellsObtainedPrereq && (
+                          <AppField
+                            name='spellsObtained'
+                            validators={{
+                              onSubmit: ({ value }) => !value?.length && 'Please select at least one spell',
+                            }}
+                          >
+                            {({ DropdownField }) => (
+                              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                <DropdownField multiselect={true} label='Spell(s)' options={spells} required={true} />
+                              </Grid.Col>
+                            )}
+                          </AppField>
+                        )}
+                        {featuresObtainedPrereq && (
+                          <AppField
+                            name='featuresObtained'
+                            validators={{
+                              onSubmit: ({ value }) => !value?.length && 'Please select at least one feature',
+                            }}
+                          >
+                            {({ DropdownField }) => (
+                              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                <DropdownField
+                                  multiselect={true}
+                                  label='Feature(s)'
+                                  options={featuresObtainedOptions}
+                                  required={true}
+                                />
+                              </Grid.Col>
+                            )}
+                          </AppField>
+                        )}
+                        {optionsObtainedPrereq &&
+                          optionsObtained?.some(
+                            (feature) =>
+                              featuresObtainedOptions.filter(Boolean)?.find((sFeature) => sFeature?.id === feature)
+                                ?.options?.length
+                          ) && (
+                            <AppField
+                              name='optionsObtained'
+                              validators={{
+                                onSubmit: ({ value }) => !value?.length && 'Please select at least one feature option',
+                              }}
+                            >
+                              {({ DropdownField }) => (
+                                <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                  <DropdownField
+                                    multiselect={true}
+                                    label='Option(s)'
+                                    options={optionsObtainedOptions.filter(Boolean)}
+                                    required={true}
+                                  />
+                                </Grid.Col>
+                              )}
+                            </AppField>
+                          )}
+                        {skillProficiencyPrereq && (
+                          <AppField
+                            name='skillProficiencies'
+                            validators={{
+                              onSubmit: ({ value }) => !value?.length && 'Please select at least one skill',
+                            }}
+                          >
+                            {({ DropdownField }) => (
+                              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                <DropdownField multiselect={true} label='Skill(s)' options={skills} required={true} />
+                              </Grid.Col>
+                            )}
+                          </AppField>
+                        )}
+                        {abilityScorePrereq && (
+                          <>
+                            <AppField
+                              name='abilityScore.abilities'
+                              validators={{
+                                onSubmit: ({ value }) => !value?.length && 'Please select at least one ability',
+                              }}
+                            >
+                              {({ DropdownField }) => (
+                                <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                  <DropdownField
+                                    multiselect={true}
+                                    label='Abilities'
+                                    options={abilities}
+                                    required={true}
+                                  />
+                                </Grid.Col>
+                              )}
+                            </AppField>
+                            <AppField
+                              name='abilityScore.score'
+                              validators={{
+                                onSubmit: ({ value }) => !value && 'Please enter an ability score requirement',
+                                onChange: z.int('Score must be a whole number').gte(1, 'Score must be greater than 0'),
+                              }}
+                            >
+                              {({ TextField }) => (
+                                <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                  <TextField label='Ability Score' required={true} />
+                                </Grid.Col>
+                              )}
+                            </AppField>
+                          </>
+                        )}
+                      </Grid>
                     </Grid.Col>
-                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                      <Input
-                        name='prerequisites.abilityScore.score'
-                        value={data?.prerequisites?.abilityScore?.score}
-                        label='Score'
-                        required={true}
-                        validation='num'
-                        errorMsg='Must contain only numbers'
-                        onChange={{ updateField }}
-                      />
-                    </Grid.Col>
+                    {equipmentProficiency && (
+                      <Grid.Col>
+                        <Divider label='Equipment Proficiency' />
+                        <AppField name='equipmentProficiencies' mode='array'>
+                          {(field) =>
+                            field.state.value?.map((equipmentProficieny, i) => (
+                              <Grid key={`${i}-equipmentProficiencies`}>
+                                <AppField name={`equipmentProficiencies[${i}].category`}>
+                                  {({ DropdownField }) => (
+                                    <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                      <DropdownField
+                                        label='Equipment Category'
+                                        options={equipmentCategories.filterByProperties(
+                                          equipmentProficieny?.properties
+                                        )}
+                                      />
+                                    </Grid.Col>
+                                  )}
+                                </AppField>
+                                <AppField name={`equipmentProficiencies[${i}].properties`}>
+                                  {({ DropdownField }) => (
+                                    <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                      <DropdownField
+                                        multiselect={true}
+                                        label='Equipment Category'
+                                        options={equipmentCategories.filterByProperties(
+                                          equipmentProficieny?.properties
+                                        )}
+                                      />
+                                    </Grid.Col>
+                                  )}
+                                </AppField>
+                                <AppField
+                                  name={`equipmentProficiencies[${i}].equipment`}
+                                  validators={{
+                                    onSubmit: ({ value }) => !value?.length && 'Please select an equipment',
+                                  }}
+                                >
+                                  {({ DropdownField }) => (
+                                    <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                      <DropdownField
+                                        multiselect={true}
+                                        label='Equipment'
+                                        options={equipment
+                                          .filterByCategory(equipmentProficieny?.category)
+                                          .filterByProperties(equipmentProficieny?.properties)}
+                                        required={true}
+                                      />
+                                    </Grid.Col>
+                                  )}
+                                </AppField>
+                                <Grid.Col
+                                  span={{ base: 6, md: 4, lg: 2 }}
+                                  className={sprinkles({ alignContent: 'center' })}
+                                >
+                                  <Group
+                                    className={sprinkles({ height: 'size-full' })}
+                                    align='center'
+                                    justify='flex-start'
+                                  >
+                                    <UnstyledButton
+                                      className={row_button}
+                                      onClick={() => field.pushValue(EquipPrerequisiteInputSchema.parse({}))}
+                                    >
+                                      <TbPlus />
+                                    </UnstyledButton>
+                                    {i !== 0 && (
+                                      <UnstyledButton className={row_button} onClick={() => field.removeValue(i)}>
+                                        <TbX />
+                                      </UnstyledButton>
+                                    )}
+                                  </Group>
+                                </Grid.Col>
+                              </Grid>
+                            ))
+                          }
+                        </AppField>
+                      </Grid.Col>
+                    )}
+                    {equippedPrereq && (
+                      <Grid.Col>
+                        <Divider label='Equipped' />
+                        <AppField name='equipped' mode='array'>
+                          {(field) =>
+                            field.state.value?.map((equipPrerequisite, i) => (
+                              <Grid key={`${i}-equipped`}>
+                                <AppField name={`equipped[${i}].category`}>
+                                  {({ DropdownField }) => (
+                                    <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                      <DropdownField
+                                        label='Equipment Category'
+                                        options={equipmentCategories.filterByProperties(equipPrerequisite?.properties)}
+                                      />
+                                    </Grid.Col>
+                                  )}
+                                </AppField>
+                                <AppField name={`equipped[${i}].properties`}>
+                                  {({ DropdownField }) => (
+                                    <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                      <DropdownField
+                                        multiselect={true}
+                                        label='Equipment Property'
+                                        options={equipmentProperties.filterByCategory(equipPrerequisite?.category)}
+                                      />
+                                    </Grid.Col>
+                                  )}
+                                </AppField>
+                                <AppField
+                                  name={`equipped[${i}].equipment`}
+                                  validators={{
+                                    onSubmit: ({ value }) => !value?.length && 'Please select an equipment',
+                                  }}
+                                >
+                                  {({ DropdownField }) => (
+                                    <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                      <DropdownField
+                                        multiselect={true}
+                                        label='Equipment'
+                                        options={equipment
+                                          .filterByCategory(equipPrerequisite?.category)
+                                          .filterByProperties(equipPrerequisite?.properties)}
+                                        required={true}
+                                      />
+                                    </Grid.Col>
+                                  )}
+                                </AppField>
+                                <AppField
+                                  name={`equipped[${i}].numberEquipped`}
+                                  validators={{
+                                    onSubmit: ({ value }) => !value && 'Please select an equipment',
+                                    onChange: z
+                                      .int('Number equipped must be a whole number')
+                                      .gte(1, 'Number equipped must be greater than 0'),
+                                  }}
+                                >
+                                  {({ TextField }) => (
+                                    <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                      <TextField label='Number Equipped' required={true} />
+                                    </Grid.Col>
+                                  )}
+                                </AppField>
+                                <Grid.Col
+                                  span={{ base: 6, md: 4, lg: 2 }}
+                                  className={sprinkles({ alignContent: 'center' })}
+                                >
+                                  <Group
+                                    className={sprinkles({ height: 'size-full' })}
+                                    align='center'
+                                    justify='flex-start'
+                                  >
+                                    <UnstyledButton
+                                      className={row_button}
+                                      onClick={() => field.pushValue(EquipPrerequisiteInputSchema.parse({}))}
+                                    >
+                                      <TbPlus />
+                                    </UnstyledButton>
+                                    {i !== 0 && (
+                                      <UnstyledButton className={row_button} onClick={() => field.removeValue(i)}>
+                                        <TbX />
+                                      </UnstyledButton>
+                                    )}
+                                  </Group>
+                                </Grid.Col>
+                              </Grid>
+                            ))
+                          }
+                        </AppField>
+                      </Grid.Col>
+                    )}
+                    {notEquippedPrereq && (
+                      <Grid.Col>
+                        <Divider label={'Not Equipped'} />
+                        <AppField name='notEquipped' mode='array'>
+                          {(field) =>
+                            field.state.value?.map((notEquipPrerequisite, i) => (
+                              <Grid key={`${i}-notEquipped`}>
+                                <AppField name={`notEquipped[${i}].category`}>
+                                  {({ DropdownField }) => (
+                                    <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                      <DropdownField
+                                        label='Equipment Category'
+                                        options={equipmentCategories.filterByProperties(
+                                          notEquipPrerequisite?.properties
+                                        )}
+                                      />
+                                    </Grid.Col>
+                                  )}
+                                </AppField>
+                                <AppField name={`notEquipped[${i}].properties`}>
+                                  {({ DropdownField }) => (
+                                    <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                      <DropdownField
+                                        label='Equipment Properties'
+                                        multiselect={true}
+                                        options={equipmentProperties.filterByCategory(notEquipPrerequisite?.category)}
+                                      />
+                                    </Grid.Col>
+                                  )}
+                                </AppField>
+                                <AppField
+                                  name={`notEquipped[${i}].equipment`}
+                                  validators={{
+                                    onSubmit: ({ value }) => !value?.length && 'Please select at least one equipment',
+                                  }}
+                                >
+                                  {({ DropdownField }) => (
+                                    <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                      <DropdownField
+                                        multiselect={true}
+                                        label='Equipment'
+                                        options={equipment
+                                          .filterByCategory(notEquipPrerequisite?.category)
+                                          .filterByProperties(notEquipPrerequisite?.properties)}
+                                        required={true}
+                                      />
+                                    </Grid.Col>
+                                  )}
+                                </AppField>
+                                <Grid.Col
+                                  span={{ base: 6, md: 4, lg: 2 }}
+                                  className={sprinkles({ alignContent: 'center' })}
+                                >
+                                  <Group
+                                    className={sprinkles({ height: 'size-full' })}
+                                    align='center'
+                                    justify='flex-start'
+                                  >
+                                    <UnstyledButton
+                                      className={row_button}
+                                      onClick={() => field.pushValue(EquipPrerequisiteInputSchema.parse({}))}
+                                    >
+                                      <TbPlus />
+                                    </UnstyledButton>
+                                    {i !== 0 && (
+                                      <UnstyledButton
+                                        className={row_button}
+                                        onClick={() => {
+                                          field.removeValue(i)
+                                        }}
+                                      >
+                                        <TbX />
+                                      </UnstyledButton>
+                                    )}
+                                  </Group>
+                                </Grid.Col>
+                              </Grid>
+                            ))
+                          }
+                        </AppField>
+                      </Grid.Col>
+                    )}
                   </>
                 )}
-              </Grid>
-            </Grid.Col>
-            {equipmentProficiency && (
-              <Grid.Col>
-                <Divider label='Equipment Proficiency' />
-                {data?.prerequisites?.equipmentProficiencies?.map((equipmentProficieny, index) => (
-                  <Grid key={index}>
-                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                      <Dropdown
-                        name={`prerequisites.equipmentProficiencies.${index}.category`}
-                        value={equipmentProficieny.category}
-                        label='Equipment Category'
-                        options={equipmentCategories.filterByProperties(equipmentProficieny?.properties)}
-                        onChange={{ updateField, removeField }}
-                      />
-                    </Grid.Col>
-                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                      <Dropdown
-                        multiSelect={true}
-                        name={`prerequisites.equipmentProficiencies.${index}.properties`}
-                        value={equipmentProficieny.properties}
-                        label='Equipment Property'
-                        options={equipmentProperties.filterByCategory(equipmentProficieny?.category)}
-                        onChange={{ updateField, removeField }}
-                      />
-                    </Grid.Col>
-                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                      <Dropdown
-                        multiSelect={true}
-                        name={`prerequisites.equipmentProficiencies.${index}.equipment`}
-                        label='Equipment'
-                        value={equipmentProficieny?.equipment}
-                        options={equipment
-                          .filterByCategory(equipmentProficieny?.category)
-                          .filterByProperties(equipmentProficieny?.properties)}
-                        onChange={{ updateField, removeField }}
-                      />
-                    </Grid.Col>
-                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }} className={sprinkles({ alignContent: 'center' })}>
-                      <Group
-                        className={sprinkles({ height: 'size-full' })}
-                        alignItemsVariant='center'
-                        justifyContentVariant='start'
-                      >
-                        <Button
-                          style='unstyled'
-                          className={row_button}
-                          onClick={() =>
-                            addField({
-                              path: `prerequisites.equipmentProficiencies`,
-                            })
-                          }
-                        >
-                          <TbPlus />
-                        </Button>
-                        {index !== 0 && (
-                          <Button
-                            style='unstyled'
-                            className={row_button}
-                            onClick={() => {
-                              removeField({
-                                path: `prerequisites.equipmentProficiencies.${index}`,
-                              })
-                            }}
-                          >
-                            <TbX />
-                          </Button>
-                        )}
-                      </Group>
-                    </Grid.Col>
-                  </Grid>
-                ))}
-              </Grid.Col>
-            )}
-            {equipped && (
-              <Grid.Col>
-                <Divider label='Equipped' />
-                {data?.prerequisites?.equipped?.map((equipPrerequisite, index) => (
-                  <Grid key={index}>
-                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                      <Dropdown
-                        name={`prerequisites.equipped.${index}.category`}
-                        value={equipPrerequisite.category}
-                        label='Equipment Category'
-                        options={equipmentCategories.filterByProperties(equipPrerequisite?.properties)}
-                        onChange={{ updateField, removeField }}
-                      />
-                    </Grid.Col>
-                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                      <Dropdown
-                        multiSelect={true}
-                        name={`prerequisites.equipped.${index}.properties`}
-                        value={equipPrerequisite.properties}
-                        label='Equipment Property'
-                        options={equipmentProperties.filterByCategory(equipPrerequisite?.category)}
-                        onChange={{ updateField, removeField }}
-                      />
-                    </Grid.Col>
-                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                      <Dropdown
-                        multiSelect={true}
-                        name={`prerequisites.equipped.${index}.equipment`}
-                        label='Equipment'
-                        value={equipPrerequisite.equipment}
-                        options={equipment
-                          .filterByCategory(equipPrerequisite?.category)
-                          .filterByProperties(equipPrerequisite?.properties)}
-                        onChange={{ updateField, removeField }}
-                      />
-                    </Grid.Col>
-                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                      <Input
-                        name={`prerequisites.equipped.${index}.numberEquipped`}
-                        label='Number Equipped'
-                        value={equipPrerequisite.numberEquipped}
-                        onChange={{ updateField }}
-                      />
-                    </Grid.Col>
-                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }} className={sprinkles({ alignContent: 'center' })}>
-                      <Group
-                        className={sprinkles({ height: 'size-full' })}
-                        alignItemsVariant='center'
-                        justifyContentVariant='start'
-                      >
-                        <Button
-                          style='unstyled'
-                          className={row_button}
-                          onClick={() =>
-                            addField({
-                              path: `prerequisites.equipped`,
-                            })
-                          }
-                        >
-                          <TbPlus />
-                        </Button>
-                        {index !== 0 && (
-                          <Button
-                            style='unstyled'
-                            className={row_button}
-                            onClick={() => {
-                              removeField({
-                                path: `prerequisites.equipped.${index}`,
-                              })
-                            }}
-                          >
-                            <TbX />
-                          </Button>
-                        )}
-                      </Group>
-                    </Grid.Col>
-                  </Grid>
-                ))}
-              </Grid.Col>
-            )}
-            {notEquipped && (
-              <Grid.Col>
-                <Divider label={'Not Equipped'} />
-                {data?.prerequisites?.notEquipped?.map((notEquipPrerequisite, index) => (
-                  <Grid key={index}>
-                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                      <Dropdown
-                        name={`prerequisites.notEquipped.${index}.category`}
-                        value={notEquipPrerequisite.category}
-                        label='Equipment Category'
-                        options={equipmentCategories.filterByProperties(notEquipPrerequisite?.properties)}
-                        onChange={{ updateField, removeField }}
-                      />
-                    </Grid.Col>
-                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                      <Dropdown
-                        multiSelect={true}
-                        name={`prerequisites.notEquipped.${index}.properties`}
-                        value={notEquipPrerequisite.properties}
-                        label='Equipment Property'
-                        options={equipmentProperties.filterByCategory(notEquipPrerequisite?.category)}
-                        onChange={{ updateField, removeField }}
-                      />
-                    </Grid.Col>
-                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                      <Dropdown
-                        multiSelect={true}
-                        name={`prerequisites.notEquipped.${index}.equipment`}
-                        label='Equipment'
-                        value={notEquipPrerequisite.equipment}
-                        options={equipment
-                          .filterByCategory(notEquipPrerequisite?.category)
-                          .filterByProperties(notEquipPrerequisite?.properties)}
-                        onChange={{ updateField, removeField }}
-                      />
-                    </Grid.Col>
-                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }} className={sprinkles({ alignContent: 'center' })}>
-                      <Group
-                        className={sprinkles({ height: 'size-full' })}
-                        alignItemsVariant='center'
-                        justifyContentVariant='start'
-                      >
-                        <Button
-                          style='unstyled'
-                          className={row_button}
-                          onClick={() =>
-                            addField({
-                              path: `prerequisites.notEquipped`,
-                            })
-                          }
-                        >
-                          <TbPlus />
-                        </Button>
-                        {index !== 0 && (
-                          <Button
-                            style='unstyled'
-                            className={row_button}
-                            onClick={() => {
-                              removeField({
-                                path: `prerequisites.notEquipped.${index}`,
-                              })
-                            }}
-                          >
-                            <TbX />
-                          </Button>
-                        )}
-                      </Group>
-                    </Grid.Col>
-                  </Grid>
-                ))}
-              </Grid.Col>
-            )}
-          </Grid>
-        </Collapsible.Content>
-      </Collapsible>
-    </Grid.Col>
-  )
-}
+              </Subscribe>
+            </Grid>
+          </Collapsible.Content>
+        </Collapsible>
+      </Grid.Col>
+    )
+  },
+})
 
 export default Prerequisites

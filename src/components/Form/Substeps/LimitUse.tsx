@@ -4,37 +4,21 @@ import Collapsible from '@/components/Collapsible'
 import { ChargesLimits, Features, Feats } from '@/enums'
 import { Grid } from '@mantine/core'
 import { useSystemData } from '@/hooks'
-import {
-  FeatInputSchema,
-  FeatureInputSchema,
-  AncestryFeatureInputSchema,
-  FeatureOptionInputSchema,
-  FeatureSpellInputSchema,
-  ChargeInputSchema,
-  UsesPerLevelInputSchema,
-} from '@/schemas'
+import { ChargeInputSchema, UsesPerLevelInputSchema } from '@/schemas'
 import { withFieldGroup } from '../utils/factory'
 import { useStore } from '@tanstack/react-form'
 
 const defaultValues: z.input<typeof ChargeInputSchema> = ChargeInputSchema.parse({})
 
-type ParentFormInputType =
-  | z.infer<typeof FeatureSpellInputSchema>
-  | z.infer<typeof FeatInputSchema>
-  | z.infer<typeof FeatureInputSchema>
-  | z.infer<typeof AncestryFeatureInputSchema>
-  | z.infer<typeof FeatureOptionInputSchema>
-
 const LimitUse = withFieldGroup({
   defaultValues,
-  render: function Render({ group }) {
+  props: {
+    __kind: '' as 'FeatureSpellInput' | 'FeatInput' | 'FeatureInput' | 'AncestryFeatureInput' | 'FeatureOptionInput',
+  },
+  render: function Render({ group, __kind }) {
     const { usesPerLevel, limit } = useStore(group.store, (state) => ({
       usesPerLevel: state.values.usesPerLevel,
       limit: state.values.limit,
-    }))
-
-    const { __kind } = useStore(group.form.store, (state) => ({
-      __kind: (state.values as ParentFormInputType).__kind,
     }))
 
     const { AppField } = group

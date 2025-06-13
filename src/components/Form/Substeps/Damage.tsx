@@ -9,36 +9,24 @@ import { startCase } from 'lodash'
 import { Grid, UnstyledButton } from '@mantine/core'
 import { withFieldGroup } from '../utils/factory'
 import { useStore } from '@tanstack/react-form'
-import {
-  DamageInputSchema,
-  SpellInputSchema,
-  FeatInputSchema,
-  FeatureInputSchema,
-  EquipmentInputSchema,
-  AncestryFeatureInputSchema,
-  FeatureOptionInputSchema,
-  DiePerLevelInputSchema,
-  SetPerLevelInputSchema,
-} from '@/schemas'
+import { DamageInputSchema, DiePerLevelInputSchema, SetPerLevelInputSchema } from '@/schemas'
 import { DIE_REGEX } from '../utils/utils'
 
 const defaultValues: z.input<typeof DamageInputSchema> = DamageInputSchema.parse({})
 
-type ParentFormInputType =
-  | z.infer<typeof SpellInputSchema>
-  | z.infer<typeof FeatInputSchema>
-  | z.infer<typeof FeatureInputSchema>
-  | z.infer<typeof EquipmentInputSchema>
-  | z.infer<typeof AncestryFeatureInputSchema>
-  | z.infer<typeof FeatureOptionInputSchema>
-
-const isEquipmentInput = (input: ParentFormInputType): input is z.infer<typeof EquipmentInputSchema> => {
-  return input.__kind === 'EquipmentInput'
-}
-
 const Damage = withFieldGroup({
   defaultValues: defaultValues,
-  render: function Render({ group }) {
+  props: {
+    __kind: '' as
+      | 'SpellInput'
+      | 'EquipmentInput'
+      | 'FeatInput'
+      | 'FeatureInput'
+      | 'FeatureOptionInput'
+      | 'AncestryFeatureInput',
+    properties: [] as string[] | null | undefined,
+  },
+  render: function Render({ group, __kind, properties: formProperties }) {
     const {
       attributes: formAttributes,
       primary,
@@ -58,14 +46,6 @@ const Damage = withFieldGroup({
     }))
 
     const { AppField, Subscribe } = group
-
-    const { properties: formProperties, __kind } = useStore(group.form.store, (state) => ({
-      properties:
-        isEquipmentInput(state.values as z.infer<typeof EquipmentInputSchema>) ?
-          (state.values as z.infer<typeof EquipmentInputSchema>).properties
-        : null,
-      __kind: (state.values as ParentFormInputType).__kind,
-    }))
 
     const { abilities, attributes, damageTypes } = useSystemData()
     const { getAttributes, getEquipProperties } = useEnumChecks()

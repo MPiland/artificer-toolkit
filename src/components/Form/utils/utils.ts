@@ -7,9 +7,10 @@ import type {
   HitpointRollInput,
   HitpointFixedInput,
   CharacterEquipmentObjectInput,
+  SystemAttribute,
 } from '@/types'
 import { parseDiceRoll, type RollConfig } from '@/components/Dice'
-import { ModCats, ModSpellCats, HPCalcMethods } from '@/enums'
+import { ModCats, ModSpellCats, HPCalcMethods, Spells, Attributes } from '@/enums'
 import { camelCase } from 'lodash'
 import { CamelCase } from 'type-fest'
 import {
@@ -350,3 +351,51 @@ export const sourcePropertyMap = (data: CharacterInput) => ({
     data?.__kind === 'CharacterInput' && isEquipmentInInventory(id, data?.equipment?.inventory || []),
   backgroundId: (id: string): boolean | undefined => data?.__kind === 'CharacterInput' && data?.background === id,
 })
+
+export const getUpcastOptions = ({
+  systemAttributes,
+  formAttributes,
+  range,
+  duration,
+  shape,
+}: {
+  systemAttributes: SystemAttribute[]
+  formAttributes: string[] | undefined | null
+  range: string | undefined
+  duration: string | undefined
+  shape: string | undefined
+}) => {
+  const options = [
+    ...systemAttributes.filter((attribute) => attribute?.spells?.length && attribute?.spells.includes(Spells.UPCAST)),
+  ]
+
+  if (!formAttributes?.some((attribute) => attribute === Attributes.DOES_DAMAGE)) {
+    options.filter((option) => option.id !== Attributes.PRIMARY_DAMAGE)
+  }
+
+  if (!formAttributes?.some((attribute) => attribute === Attributes.PRIMARY_DAMAGE)) {
+    options.filter((option) => option.id !== Attributes.SECONDARY_DAMAGE)
+  }
+
+  if (!formAttributes?.some((attribute) => attribute === Attributes.PRIMARY_DAMAGE)) {
+    options.filter((option) => option.id !== Attributes.BONUS_DAMAGE)
+  }
+
+  if (!formAttributes?.some((attribute) => attribute === Attributes.LIMIT_TARGETS)) {
+    options.filter((option) => option.id !== Attributes.TARGETS)
+  }
+
+  if (!range) {
+    options.filter((option) => option.id !== Attributes.RANGE)
+  }
+
+  if (!shape) {
+    options.filter((option) => option.id !== Attributes.SHAPE)
+  }
+
+  if (!duration) {
+    options.filter((option) => option.id !== Attributes.DURATION)
+  }
+
+  return options
+}
