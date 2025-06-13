@@ -31,8 +31,8 @@ export const fetchFeatures = (systemPref: string) => {
       // Create a union type for the variables
       type ListVariables = QueryListFeaturesArgs | QueryListMasterFeaturesArgs
 
-      const isMaster = (data: any): data is { listMasterFeatures: any } => {
-        return 'listMasterFeatures' in data
+      const isMaster = (data: unknown): data is { listMasterFeatures: unknown } => {
+        return typeof data === 'object' && data !== null && 'listMasterFeatures' in data
       }
 
       const operation = master ? listMasterFeatures : listFeatures
@@ -65,14 +65,14 @@ export const fetchFeatures = (systemPref: string) => {
         if (allData.features.length) {
           allData.features.sort((a, b) => {
             if (a && b) {
-              if (a.value && !b.value) {
+              if (a.label && !b.label) {
                 return -1
               }
-              if (b.value && !a.value) {
+              if (b.label && !a.label) {
                 return 1
               }
-              if (b.value && a.value) {
-                return a.value.localeCompare(b.value)
+              if (b.label && a.label) {
+                return a.label.localeCompare(b.label)
               }
               return 0
             }
@@ -101,8 +101,8 @@ export const fetchFeature = (id: string) => {
       const { client, master } = await getClient()
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { getMasterFeature: any } {
-        return 'getMasterFeature' in data
+      function isMaster(data: unknown): data is { getMasterFeature: unknown } {
+        return typeof data === 'object' && data !== null && 'getMasterFeature' in data
       }
 
       const operation = master ? getMasterFeature : getFeature
@@ -137,8 +137,8 @@ export const useAddNewFeatureMutation = () => {
 
       const operation = master ? createMasterFeature : createFeature
 
-      function isMaster(data: any): data is { createMasterFeature: any } {
-        return 'createMasterFeature' in data
+      function isMaster(data: unknown): data is { createMasterFeature: unknown } {
+        return typeof data === 'object' && data !== null && 'createMasterFeature' in data
       }
 
       try {
@@ -178,8 +178,8 @@ export const useUpdateFeatureMutation = () => {
       const operation = master ? updateMasterFeature : updateFeature
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { updateMasterFeature: any } {
-        return 'updateMasterFeature' in data
+      function isMaster(data: unknown): data is { updateMasterFeature: unknown } {
+        return typeof data === 'object' && data !== null && 'updateMasterFeature' in data
       }
 
       try {
@@ -218,8 +218,8 @@ export const useDeleteFeatureMutation = () => {
       const operation = master ? deleteMasterFeature : deleteFeature
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { deleteMasterFeature: any } {
-        return 'deleteMasterFeature' in data
+      function isMaster(data: unknown): data is { deleteMasterFeature: unknown } {
+        return typeof data === 'object' && data !== null && 'deleteMasterFeature' in data
       }
 
       try {

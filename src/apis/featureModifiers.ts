@@ -1,6 +1,11 @@
 import { getClient } from './utils'
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query'
-import { listFeatureModifiers, listMasterFeatureModifiers, getFeatureModifier, getMasterFeatureModifier } from '@/queries'
+import {
+  listFeatureModifiers,
+  listMasterFeatureModifiers,
+  getFeatureModifier,
+  getMasterFeatureModifier,
+} from '@/queries'
 import type {
   FeatureModifierInput,
   FeatureModifier,
@@ -36,8 +41,8 @@ export const fetchFeatureModifiers = (systemPref: string) => {
       // Create a union type for the variables
       type ListVariables = QueryListFeatureModifiersArgs | QueryListMasterFeatureModifiersArgs
 
-      const isMaster = (data: any): data is { listMasterFeatureModifiers: any } => {
-        return 'listMasterFeatureModifiers' in data
+      const isMaster = (data: unknown): data is { listMasterFeatureModifiers: unknown } => {
+        return typeof data === 'object' && data !== null && 'listMasterFeatureModifiers' in data
       }
 
       const operation = master ? listMasterFeatureModifiers : listFeatureModifiers
@@ -83,8 +88,8 @@ export const fetchFeatureModifier = (id: string) => {
       const { client, master } = await getClient()
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { getMasterFeatureModifier: any } {
-        return 'getMasterFeatureModifier' in data
+      function isMaster(data: unknown): data is { getMasterFeatureModifier: unknown } {
+        return typeof data === 'object' && data !== null && 'getMasterFeatureModifier' in data
       }
 
       const operation = master ? getMasterFeatureModifier : getFeatureModifier
@@ -119,8 +124,8 @@ export const useAddNewFeatureModifierMutation = () => {
 
       const operation = master ? createMasterFeatureModifier : createFeatureModifier
 
-      function isMaster(data: any): data is { createMasterFeatureModifier: any } {
-        return 'createMasterFeatureModifier' in data
+      function isMaster(data: unknown): data is { createMasterFeatureModifier: unknown } {
+        return typeof data === 'object' && data !== null && 'createMasterFeatureModifier' in data
       }
 
       try {
@@ -160,8 +165,8 @@ export const useUpdateFeatureModifierMutation = () => {
       const operation = master ? updateMasterFeatureModifier : updateFeatureModifier
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { updateMasterFeatureModifier: any } {
-        return 'updateMasterFeatureModifier' in data
+      function isMaster(data: unknown): data is { updateMasterFeatureModifier: unknown } {
+        return typeof data === 'object' && data !== null && 'updateMasterFeatureModifier' in data
       }
 
       try {
@@ -184,7 +189,9 @@ export const useUpdateFeatureModifierMutation = () => {
     },
     onSuccess: (featureModifier: FeatureModifier) => {
       queryClient.setQueryData(featureModifiersKeys.all, (previous: FeatureModifier[]) =>
-        previous?.map((featureModifierKey) => (featureModifierKey.id === featureModifier.id ? featureModifier : featureModifierKey))
+        previous?.map((featureModifierKey) =>
+          featureModifierKey.id === featureModifier.id ? featureModifier : featureModifierKey
+        )
       )
     },
   })
@@ -200,8 +207,8 @@ export const useDeleteFeatureModifierMutation = () => {
       const operation = master ? deleteMasterFeatureModifier : deleteFeatureModifier
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { deleteMasterFeatureModifier: any } {
-        return 'deleteMasterFeatureModifier' in data
+      function isMaster(data: unknown): data is { deleteMasterFeatureModifier: unknown } {
+        return typeof data === 'object' && data !== null && 'deleteMasterFeatureModifier' in data
       }
 
       try {

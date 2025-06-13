@@ -36,8 +36,8 @@ export const fetchFeatureSpells = (systemPref: string) => {
       // Create a union type for the variables
       type ListVariables = QueryListFeatureSpellsArgs | QueryListMasterFeatureSpellsArgs
 
-      const isMaster = (data: any): data is { listMasterFeatureSpells: any } => {
-        return 'listMasterFeatureSpells' in data
+      const isMaster = (data: unknown): data is { listMasterFeatureSpells: unknown } => {
+        return typeof data === 'object' && data !== null && 'listMasterFeatureSpells' in data
       }
 
       const operation = master ? listMasterFeatureSpells : listFeatureSpells
@@ -83,8 +83,8 @@ export const fetchFeatureSpell = (id: string) => {
       const { client, master } = await getClient()
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { getMasterFeatureSpell: any } {
-        return 'getMasterFeatureSpell' in data
+      function isMaster(data: unknown): data is { getMasterFeatureSpell: unknown } {
+        return typeof data === 'object' && data !== null && 'getMasterFeatureSpell' in data
       }
 
       const operation = master ? getMasterFeatureSpell : getFeatureSpell
@@ -119,8 +119,8 @@ export const useAddNewFeatureSpellMutation = () => {
 
       const operation = master ? createMasterFeatureSpell : createFeatureSpell
 
-      function isMaster(data: any): data is { createMasterFeatureSpell: any } {
-        return 'createMasterFeatureSpell' in data
+      function isMaster(data: unknown): data is { createMasterFeatureSpell: unknown } {
+        return typeof data === 'object' && data !== null && 'createMasterFeatureSpell' in data
       }
 
       try {
@@ -160,8 +160,8 @@ export const useUpdateFeatureSpellMutation = () => {
       const operation = master ? updateMasterFeatureSpell : updateFeatureSpell
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { updateMasterFeatureSpell: any } {
-        return 'updateMasterFeatureSpell' in data
+      function isMaster(data: unknown): data is { updateMasterFeatureSpell: unknown } {
+        return typeof data === 'object' && data !== null && 'updateMasterFeatureSpell' in data
       }
 
       try {
@@ -200,8 +200,8 @@ export const useDeleteFeatureSpellMutation = () => {
       const operation = master ? deleteMasterFeatureSpell : deleteFeatureSpell
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { deleteMasterFeatureSpell: any } {
-        return 'deleteMasterFeatureSpell' in data
+      function isMaster(data: unknown): data is { deleteMasterFeatureSpell: unknown } {
+        return typeof data === 'object' && data !== null && 'deleteMasterFeatureSpell' in data
       }
 
       try {

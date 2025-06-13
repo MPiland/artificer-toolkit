@@ -41,8 +41,8 @@ export const fetchSpells = (systemPref: string) => {
       // Create a union type for the variables
       type ListVariables = QueryListMasterSpellsArgs | QueryListSpellsArgs
 
-      const isMaster = (data: any): data is { listMasterSpells: any } => {
-        return 'listMasterSpells' in data
+      const isMaster = (data: unknown): data is { listMasterSpells: unknown } => {
+        return typeof data === 'object' && data !== null && 'listMasterSpells' in data
       }
 
       const operation = master ? listMasterSpells : listSpells
@@ -77,7 +77,7 @@ export const fetchSpells = (systemPref: string) => {
         if (allData.spells.length) {
           allData.spells = allData.spells.sort((a, b) => {
             if (a && b) {
-              return a.value.localeCompare(b.value)
+              return a.label.localeCompare(b.label)
             }
             if (a) {
               return -1
@@ -101,8 +101,8 @@ export const fetchSpell = (id: string) => {
       const { client, master } = await getClient()
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { getMasterSpell: any } {
-        return 'getMasterSpell' in data
+      function isMaster(data: unknown): data is { getMasterSpell: unknown } {
+        return typeof data === 'object' && data !== null && 'getMasterSpell' in data
       }
 
       const operation = master ? getMasterSpell : getSpell
@@ -138,8 +138,8 @@ export const useAddNewSpellMutation = () => {
       const operation = master ? createMasterSpell : createSpell
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { createMasterSpell: any } {
-        return 'createMasterSpell' in data
+      function isMaster(data: unknown): data is { createMasterSpell: unknown } {
+        return typeof data === 'object' && data !== null && 'createMasterSpell' in data
       }
 
       try {
@@ -179,8 +179,8 @@ export const useUpdateSpellMutation = () => {
       const operation = master ? updateMasterSpell : updateSpell
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { updateMasterSpell: any } {
-        return 'updateMasterSpell' in data
+      function isMaster(data: unknown): data is { updateMasterSpell: unknown } {
+        return typeof data === 'object' && data !== null && 'updateMasterSpell' in data
       }
 
       try {
@@ -219,8 +219,8 @@ export const useDeleteSpellMutation = () => {
       const operation = master ? deleteMasterSpell : deleteSpell
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { deleteMasterSpell: any } {
-        return 'deleteMasterSpell' in data
+      function isMaster(data: unknown): data is { deleteMasterSpell: unknown } {
+        return typeof data === 'object' && data !== null && 'deleteMasterSpell' in data
       }
 
       try {

@@ -41,8 +41,8 @@ export const fetchFeatureExpertises = (systemPref: string) => {
       // Create a union type for the variables
       type ListVariables = QueryListFeatureExpertisesArgs | QueryListMasterFeatureExpertisesArgs
 
-      const isMaster = (data: any): data is { listMasterFeatureExpertises: any } => {
-        return 'listMasterFeatureExpertises' in data
+      const isMaster = (data: unknown): data is { listMasterFeatureExpertises: unknown } => {
+        return typeof data === 'object' && data !== null && 'listMasterFeatureExpertises' in data
       }
 
       const operation = master ? listMasterFeatureExpertises : listFeatureExpertises
@@ -88,8 +88,8 @@ export const fetchFeatureExpertise = (id: string) => {
       const { client, master } = await getClient()
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { getMasterFeatureExpertise: any } {
-        return 'getMasterFeatureExpertise' in data
+      function isMaster(data: unknown): data is { getMasterFeatureExpertise: unknown } {
+        return typeof data === 'object' && data !== null && 'getMasterFeatureExpertise' in data
       }
 
       const operation = master ? getMasterFeatureExpertise : getFeatureExpertise
@@ -124,8 +124,8 @@ export const useAddNewFeatureExpertiseMutation = () => {
 
       const operation = master ? createMasterFeatureExpertise : createFeatureExpertise
 
-      function isMaster(data: any): data is { createMasterFeatureExpertise: any } {
-        return 'createMasterFeatureExpertise' in data
+      function isMaster(data: unknown): data is { createMasterFeatureExpertise: unknown } {
+        return typeof data === 'object' && data !== null && 'createMasterFeatureExpertise' in data
       }
 
       try {
@@ -165,8 +165,8 @@ export const useUpdateFeatureExpertiseMutation = () => {
       const operation = master ? updateMasterFeatureExpertise : updateFeatureExpertise
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { updateMasterFeatureExpertise: any } {
-        return 'updateMasterFeatureExpertise' in data
+      function isMaster(data: unknown): data is { updateMasterFeatureExpertise: unknown } {
+        return typeof data === 'object' && data !== null && 'updateMasterFeatureExpertise' in data
       }
 
       try {
@@ -207,8 +207,8 @@ export const useDeleteFeatureExpertiseMutation = () => {
       const operation = master ? deleteMasterFeatureExpertise : deleteFeatureExpertise
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { deleteMasterFeatureExpertise: any } {
-        return 'deleteMasterFeatureExpertise' in data
+      function isMaster(data: unknown): data is { deleteMasterFeatureExpertise: unknown } {
+        return typeof data === 'object' && data !== null && 'deleteMasterFeatureExpertise' in data
       }
 
       try {

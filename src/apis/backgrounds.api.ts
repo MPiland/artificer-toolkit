@@ -41,8 +41,8 @@ export const fetchBackgrounds = (systemPref: string) => {
       // Create a union type for the variables
       type ListVariables = QueryListMasterBackgroundsArgs | QueryListBackgroundsArgs
 
-      const isMaster = (data: any): data is { listMasterBackgrounds: any } => {
-        return 'listMasterBackgrounds' in data
+      const isMaster = (data: unknown): data is { listMasterBackgrounds: unknown } => {
+        return typeof data === 'object' && data !== null && 'listMasterBackgrounds' in data
       }
 
       const operation = master ? listMasterBackgrounds : listBackgrounds
@@ -77,7 +77,7 @@ export const fetchBackgrounds = (systemPref: string) => {
         if (allData.backgrounds.length) {
           allData.backgrounds.sort((a, b) => {
             if (a && b) {
-              return a.value.localeCompare(b.value)
+              return a.label.localeCompare(b.label)
             }
             if (a) {
               return -1
@@ -101,8 +101,8 @@ export const fetchBackground = (id: string) => {
       const { client, master } = await getClient()
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { getMasterBackground: any } {
-        return 'getMasterBackground' in data
+      function isMaster(data: unknown): data is { getMasterBackground: unknown } {
+        return typeof data === 'object' && data !== null && 'getMasterBackground' in data
       }
 
       const operation = master ? getMasterBackground : getBackground
@@ -138,8 +138,8 @@ export const useAddBackground = () => {
       const operation = master ? createMasterBackground : createBackground
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { createMasterBackground: any } {
-        return 'createMasterBackground' in data
+      function isMaster(data: unknown): data is { createMasterBackground: unknown } {
+        return typeof data === 'object' && data !== null && 'createMasterBackground' in data
       }
 
       try {
@@ -179,8 +179,8 @@ export const useUpdateBackground = () => {
       const operation = master ? updateMasterBackground : updateBackground
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { updateMasterBackground: any } {
-        return 'updateMasterBackground' in data
+      function isMaster(data: unknown): data is { updateMasterBackground: unknown } {
+        return typeof data === 'object' && data !== null && 'updateMasterBackground' in data
       }
 
       try {
@@ -219,8 +219,8 @@ export const useDeleteBackground = () => {
       const operation = master ? deleteMasterBackground : deleteBackground
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { deleteMasterBackground: any } {
-        return 'deleteMasterBackground' in data
+      function isMaster(data: unknown): data is { deleteMasterBackground: unknown } {
+        return typeof data === 'object' && data !== null && 'deleteMasterBackground' in data
       }
 
       try {

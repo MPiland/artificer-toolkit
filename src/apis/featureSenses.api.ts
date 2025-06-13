@@ -36,8 +36,8 @@ export const fetchFeatureSenses = (systemPref: string) => {
       // Create a union type for the variables
       type ListVariables = QueryListFeatureSensesArgs | QueryListMasterFeatureSensesArgs
 
-      const isMaster = (data: any): data is { listMasterFeatureSenses: any } => {
-        return 'listMasterFeatureSenses' in data
+      const isMaster = (data: unknown): data is { listMasterFeatureSenses: unknown } => {
+        return typeof data === 'object' && data !== null && 'listMasterFeatureSenses' in data
       }
 
       const operation = master ? listMasterFeatureSenses : listFeatureSenses
@@ -83,8 +83,8 @@ export const fetchFeatureSense = (id: string) => {
       const { client, master } = await getClient()
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { getMasterFeatureSense: any } {
-        return 'getMasterFeatureSense' in data
+      function isMaster(data: unknown): data is { getMasterFeatureSense: unknown } {
+        return typeof data === 'object' && data !== null && 'getMasterFeatureSense' in data
       }
 
       const operation = master ? getMasterFeatureSense : getFeatureSense
@@ -119,8 +119,8 @@ export const useAddNewFeatureSenseMutation = () => {
 
       const operation = master ? createMasterFeatureSense : createFeatureSense
 
-      function isMaster(data: any): data is { createMasterFeatureSense: any } {
-        return 'createMasterFeatureSense' in data
+      function isMaster(data: unknown): data is { createMasterFeatureSense: unknown } {
+        return typeof data === 'object' && data !== null && 'createMasterFeatureSense' in data
       }
 
       try {
@@ -160,8 +160,8 @@ export const useUpdateFeatureSenseMutation = () => {
       const operation = master ? updateMasterFeatureSense : updateFeatureSense
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { updateMasterFeatureSense: any } {
-        return 'updateMasterFeatureSense' in data
+      function isMaster(data: unknown): data is { updateMasterFeatureSense: unknown } {
+        return typeof data === 'object' && data !== null && 'updateMasterFeatureSense' in data
       }
 
       try {
@@ -200,8 +200,8 @@ export const useDeleteFeatureSenseMutation = () => {
       const operation = master ? deleteMasterFeatureSense : deleteFeatureSense
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { deleteMasterFeatureSense: any } {
-        return 'deleteMasterFeatureSense' in data
+      function isMaster(data: unknown): data is { deleteMasterFeatureSense: unknown } {
+        return typeof data === 'object' && data !== null && 'deleteMasterFeatureSense' in data
       }
 
       try {

@@ -41,8 +41,8 @@ export const fetchClasses = (systemPref: string) => {
       // Create a union type for the variables
       type ListVariables = QueryListMasterClassesArgs | QueryListClassesArgs
 
-      const isMaster = (data: any): data is { listMasterClasses: any } => {
-        return 'listMasterClasses' in data
+      const isMaster = (data: unknown): data is { listMasterClasses: unknown } => {
+        return typeof data === 'object' && data !== null && 'listMasterClasses' in data
       }
 
       const operation = master ? listMasterClasses : listClasses
@@ -80,7 +80,7 @@ export const fetchClasses = (systemPref: string) => {
         if (allData.classes.length) {
           allData.classes.sort((a, b) => {
             if (a && b) {
-              return a.value.localeCompare(b.value)
+              return a.label.localeCompare(b.label)
             }
             if (a) {
               return -1
@@ -104,8 +104,8 @@ export const fetchClass = (id: string) => {
       const { client, master } = await getClient()
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { getMasterClass: any } {
-        return 'getMasterClass' in data
+      function isMaster(data: unknown): data is { getMasterClass: unknown } {
+        return typeof data === 'object' && data !== null && 'getMasterClass' in data
       }
 
       const operation = master ? getMasterClass : getClass
@@ -136,12 +136,11 @@ export const useAddClass = () => {
 
   return useMutation<Class, Error, ClassInput, unknown>({
     mutationFn: async (uClass: ClassInput) => {
-
       const { client, master } = await getClient()
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { createMasterClass: any } {
-        return 'createMasterClass' in data
+      function isMaster(data: unknown): data is { createMasterClass: unknown } {
+        return typeof data === 'object' && data !== null && 'createMasterClass' in data
       }
 
       const operation = master ? createMasterClass : createClass
@@ -181,8 +180,8 @@ export const useUpdateClass = () => {
       const { client, master } = await getClient()
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { updateMasterClass: any } {
-        return 'updateMasterClass' in data
+      function isMaster(data: unknown): data is { updateMasterClass: unknown } {
+        return typeof data === 'object' && data !== null && 'updateMasterClass' in data
       }
 
       const operation = master ? updateMasterClass : updateClass
@@ -221,8 +220,8 @@ export const useDeleteClass = () => {
       const { client, master } = await getClient()
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { deleteMasterClass: any } {
-        return 'deleteMasterClass' in data
+      function isMaster(data: unknown): data is { deleteMasterClass: unknown } {
+        return typeof data === 'object' && data !== null && 'deleteMasterClass' in data
       }
 
       const operation = master ? deleteMasterClass : deleteClass

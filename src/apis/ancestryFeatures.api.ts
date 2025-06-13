@@ -41,8 +41,9 @@ export const fetchAncestryFeatures = (systemPref: string) => {
       // Create a union type for the variables
       type ListVariables = QueryListAncestryFeaturesArgs | QueryListMasterAncestryFeaturesArgs
 
-      const isMaster = (data: any): data is { listMasterAncestryFeatures: any } => {
-        return 'listMasterAncestryFeatures' in data
+      const isMaster = (data: unknown): data is { listMasterAncestryFeatures: unknown } => {
+        return typeof data === 'object' &&
+    data !== null &&'listMasterAncestryFeatures' in data
       }
 
       const operation = master ? listMasterAncestryFeatures : listAncestryFeatures
@@ -75,14 +76,14 @@ export const fetchAncestryFeatures = (systemPref: string) => {
         if (allData.ancestryFeatures.length) {
           allData.ancestryFeatures.sort((a, b) => {
             if (a && b) {
-              if (a.value && !b.value) {
+              if (a.label && !b.label) {
                 return -1
               }
-              if (b.value && !a.value) {
+              if (b.label && !a.label) {
                 return 1
               }
-              if (b.value && a.value) {
-                return a.value.localeCompare(b.value)
+              if (b.label && a.label) {
+                return a.label.localeCompare(b.label)
               }
               return 0
             }
@@ -111,8 +112,8 @@ export const fetchAncestryFeature = (id: string) => {
       const { client, master } = await getClient()
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { getMasterAncestryFeature: any } {
-        return 'getMasterAncestryFeature' in data
+      function isMaster(data: unknown): data is { getMasterAncestryFeature: unknown } {
+        return typeof data === 'object' && data !== null && 'getMasterAncestryFeature' in data
       }
 
       const operation = master ? getMasterAncestryFeature : getAncestryFeature
@@ -147,8 +148,8 @@ export const useAddNewAncestryFeatureMutation = () => {
 
       const operation = master ? createMasterAncestryFeature : createAncestryFeature
 
-      function isMaster(data: any): data is { createMasterAncestryFeature: any } {
-        return 'createMasterAncestryFeature' in data
+      function isMaster(data: unknown): data is { createMasterAncestryFeature: unknown } {
+        return typeof data === 'object' && data !== null && 'createMasterAncestryFeature' in data
       }
 
       try {
@@ -188,8 +189,8 @@ export const useUpdateAncestryFeatureMutation = () => {
       const operation = master ? updateMasterAncestryFeature : updateAncestryFeature
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { updateMasterAncestryFeature: any } {
-        return 'updateMasterAncestryFeature' in data
+      function isMaster(data: unknown): data is { updateMasterAncestryFeature: unknown } {
+        return typeof data === 'object' && data !== null && 'updateMasterAncestryFeature' in data
       }
 
       try {
@@ -230,8 +231,8 @@ export const useDeleteAncestryFeatureMutation = () => {
       const operation = master ? deleteMasterAncestryFeature : deleteAncestryFeature
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { deleteMasterAncestryFeature: any } {
-        return 'deleteMasterAncestryFeature' in data
+      function isMaster(data: unknown): data is { deleteMasterAncestryFeature: unknown } {
+        return typeof data === 'object' && data !== null && 'deleteMasterAncestryFeature' in data
       }
 
       try {

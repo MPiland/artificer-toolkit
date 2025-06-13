@@ -36,8 +36,8 @@ export const fetchFeatureOptions = (systemPref: string) => {
       // Create a union type for the variables
       type ListVariables = QueryListFeatureOptionsArgs | QueryListMasterFeatureOptionsArgs
 
-      const isMaster = (data: any): data is { listMasterFeatureOptions: any } => {
-        return 'listMasterFeatureOptions' in data
+      const isMaster = (data: unknown): data is { listMasterFeatureOptions: unknown } => {
+        return typeof data === 'object' && data !== null && 'listMasterFeatureOptions' in data
       }
 
       const operation = master ? listMasterFeatureOptions : listFeatureOptions
@@ -67,6 +67,29 @@ export const fetchFeatureOptions = (systemPref: string) => {
           nextToken = result.nextToken || null
         } while (nextToken)
 
+        if (allData.featureOptions.length) {
+          allData.featureOptions.sort((a, b) => {
+            if (a && b) {
+              if (a.label && !b.label) {
+                return -1
+              }
+              if (b.label && !a.label) {
+                return 1
+              }
+              if (b.label && a.label) {
+                return a.label.localeCompare(b.label)
+              }
+              return 0
+            }
+            if (a) {
+              return -1
+            }
+            if (b) {
+              return 1
+            }
+            return 0
+          })
+        }
         return allData
       } catch (err) {
         console.log({ err })
@@ -83,8 +106,8 @@ export const fetchFeatureOption = (id: string) => {
       const { client, master } = await getClient()
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { getMasterFeatureOption: any } {
-        return 'getMasterFeatureOption' in data
+      function isMaster(data: unknown): data is { getMasterFeatureOption: unknown } {
+        return typeof data === 'object' && data !== null && 'getMasterFeatureOption' in data
       }
 
       const operation = master ? getMasterFeatureOption : getFeatureOption
@@ -119,8 +142,8 @@ export const useAddNewFeatureOptionMutation = () => {
 
       const operation = master ? createMasterFeatureOption : createFeatureOption
 
-      function isMaster(data: any): data is { createMasterFeatureOption: any } {
-        return 'createMasterFeatureOption' in data
+      function isMaster(data: unknown): data is { createMasterFeatureOption: unknown } {
+        return typeof data === 'object' && data !== null && 'createMasterFeatureOption' in data
       }
 
       try {
@@ -160,8 +183,8 @@ export const useUpdateFeatureOptionMutation = () => {
       const operation = master ? updateMasterFeatureOption : updateFeatureOption
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { updateMasterFeatureOption: any } {
-        return 'updateMasterFeatureOption' in data
+      function isMaster(data: unknown): data is { updateMasterFeatureOption: unknown } {
+        return typeof data === 'object' && data !== null && 'updateMasterFeatureOption' in data
       }
 
       try {
@@ -202,8 +225,8 @@ export const useDeleteFeatureOptionMutation = () => {
       const operation = master ? deleteMasterFeatureOption : deleteFeatureOption
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { deleteMasterFeatureOption: any } {
-        return 'deleteMasterFeatureOption' in data
+      function isMaster(data: unknown): data is { deleteMasterFeatureOption: unknown } {
+        return typeof data === 'object' && data !== null && 'deleteMasterFeatureOption' in data
       }
 
       try {

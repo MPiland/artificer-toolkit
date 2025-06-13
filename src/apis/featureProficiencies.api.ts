@@ -41,8 +41,8 @@ export const fetchFeatureProficiencies = (systemPref: string) => {
       // Create a union type for the variables
       type ListVariables = QueryListFeatureProficienciesArgs | QueryListMasterFeatureProficienciesArgs
 
-      const isMaster = (data: any): data is { listMasterFeatureProficiencies: any } => {
-        return 'listMasterFeatureProficiencies' in data
+      const isMaster = (data: unknown): data is { listMasterFeatureProficiencies: unknown } => {
+        return typeof data === 'object' && data !== null && 'listMasterFeatureProficiencies' in data
       }
 
       const operation = master ? listMasterFeatureProficiencies : listFeatureProficiencies
@@ -88,8 +88,8 @@ export const fetchFeatureProficiency = (id: string) => {
       const { client, master } = await getClient()
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { getMasterFeatureProficiency: any } {
-        return 'getMasterFeatureProficiency' in data
+      function isMaster(data: unknown): data is { getMasterFeatureProficiency: unknown } {
+        return typeof data === 'object' && data !== null && 'getMasterFeatureProficiency' in data
       }
 
       const operation = master ? getMasterFeatureProficiency : getFeatureProficiency
@@ -124,8 +124,8 @@ export const useAddNewFeatureProficiencyMutation = () => {
 
       const operation = master ? createMasterFeatureProficiency : createFeatureProficiency
 
-      function isMaster(data: any): data is { createMasterFeatureProficiency: any } {
-        return 'createMasterFeatureProficiency' in data
+      function isMaster(data: unknown): data is { createMasterFeatureProficiency: unknown } {
+        return typeof data === 'object' && data !== null && 'createMasterFeatureProficiency' in data
       }
 
       try {
@@ -165,8 +165,8 @@ export const useUpdateFeatureProficiencyMutation = () => {
       const operation = master ? updateMasterFeatureProficiency : updateFeatureProficiency
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { updateMasterFeatureProficiency: any } {
-        return 'updateMasterFeatureProficiency' in data
+      function isMaster(data: unknown): data is { updateMasterFeatureProficiency: unknown } {
+        return typeof data === 'object' && data !== null && 'updateMasterFeatureProficiency' in data
       }
 
       try {
@@ -207,8 +207,8 @@ export const useDeleteFeatureProficiencyMutation = () => {
       const operation = master ? deleteMasterFeatureProficiency : deleteFeatureProficiency
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { deleteMasterFeatureProficiency: any } {
-        return 'deleteMasterFeatureProficiency' in data
+      function isMaster(data: unknown): data is { deleteMasterFeatureProficiency: unknown } {
+        return typeof data === 'object' && data !== null && 'deleteMasterFeatureProficiency' in data
       }
 
       try {

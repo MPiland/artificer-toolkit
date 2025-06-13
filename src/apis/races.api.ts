@@ -34,8 +34,8 @@ export const fetchRaces = (systemPref: string) => {
       // Create a union type for the variables
       type ListVariables = QueryListMasterRacesArgs | QueryListRacesArgs
 
-      const isMaster = (data: any): data is { listMasterRaces: any } => {
-        return 'listMasterRaces' in data
+      const isMaster = (data: unknown): data is { listMasterRaces: unknown } => {
+        return typeof data === 'object' && data !== null && 'listMasterRaces' in data
       }
 
       const operation = master ? listMasterRaces : listRaces
@@ -70,7 +70,7 @@ export const fetchRaces = (systemPref: string) => {
         if (allData.races.length) {
           allData.races.sort((a, b) => {
             if (a && b) {
-              return a.value.localeCompare(b.value)
+              return a.label.localeCompare(b.label)
             }
             if (a) {
               return -1
@@ -94,8 +94,8 @@ export const fetchRace = (id: string) => {
       const { client, master } = await getClient()
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { getMasterRace: any } {
-        return 'getMasterRace' in data
+      function isMaster(data: unknown): data is { getMasterRace: unknown } {
+        return typeof data === 'object' && data !== null && 'getMasterRace' in data
       }
 
       const operation = master ? getMasterRace : getRace
@@ -131,8 +131,8 @@ export const useAddNewRaceMutation = () => {
       const operation = master ? createMasterRace : createRace
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { createMasterRace: any } {
-        return 'createMasterRace' in data
+      function isMaster(data: unknown): data is { createMasterRace: unknown } {
+        return typeof data === 'object' && data !== null && 'createMasterRace' in data
       }
 
       try {
@@ -172,8 +172,8 @@ export const useUpdateRaceMutation = () => {
       const operation = master ? updateMasterRace : updateRace
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { updateMasterRace: any } {
-        return 'updateMasterRace' in data
+      function isMaster(data: unknown): data is { updateMasterRace: unknown } {
+        return typeof data === 'object' && data !== null && 'updateMasterRace' in data
       }
 
       try {
@@ -212,8 +212,8 @@ export const useDeleteRaceMutation = () => {
       const operation = master ? deleteMasterRace : deleteRace
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { deleteMasterRace: any } {
-        return 'deleteMasterRace' in data
+      function isMaster(data: unknown): data is { deleteMasterRace: unknown } {
+        return typeof data === 'object' && data !== null && 'deleteMasterRace' in data
       }
 
       try {

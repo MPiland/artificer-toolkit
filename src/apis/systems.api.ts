@@ -21,8 +21,8 @@ export const fetchSystems = () => {
       // Create a union type for the variables
       type ListVariables = QueryListMasterSystemsArgs | QueryListSystemsArgs
 
-      const isMaster = (data: any): data is { listMasterSystems: any } => {
-        return 'listMasterSystems' in data
+      const isMaster = (data: unknown): data is { listMasterSystems: unknown } => {
+        return typeof data === 'object' && data !== null && 'listMasterSystems' in data
       }
 
       const operation = master ? listMasterSystems : listSystems
@@ -49,7 +49,6 @@ export const fetchSystems = () => {
           return allData.map((system) => ({
             id: system.id,
             label: system.label,
-            value: system.value,
           }))
         }
 
@@ -74,8 +73,8 @@ export const fetchSystem = (systemPref: string) => {
 
       try {
         // Type guard to check which response we got
-        function isMaster(data: any): data is { getMasterSystem: any } {
-          return 'getMasterSystem' in data
+        function isMaster(data: unknown): data is { getMasterSystem: unknown } {
+          return typeof data === 'object' && data !== null && 'getMasterSystem' in data
         }
 
         const operation = master ? getMasterSystem : getSystem

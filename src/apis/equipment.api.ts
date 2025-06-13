@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
-import {  type GraphQLResult } from 'aws-amplify/data'
+import { type GraphQLResult } from 'aws-amplify/data'
 import { getEquipment, getMasterEquipment, listEquipment, listMasterEquipment } from '@/queries'
 import {
   createEquipment,
@@ -41,8 +41,8 @@ export const fetchAllEquipment = (systemPref: string) => {
       // Create a union type for the variables
       type ListVariables = QueryListMasterEquipmentArgs | QueryListEquipmentArgs
 
-      const isMaster = (data: any): data is { listMasterEquipment: any } => {
-        return 'listMasterEquipment' in data
+      const isMaster = (data: unknown): data is { listMasterEquipment: unknown } => {
+        return typeof data === 'object' && data !== null && 'listMasterEquipment' in data
       }
 
       const operation = master ? listMasterEquipment : listEquipment
@@ -77,7 +77,7 @@ export const fetchAllEquipment = (systemPref: string) => {
         if (allData.equipment.length) {
           allData.equipment.sort((a, b) => {
             if (a && b) {
-              return a.value.localeCompare(b.value)
+              return a.label.localeCompare(b.label)
             }
             if (a) {
               return -1
@@ -101,8 +101,8 @@ export const fetchSingleEquipment = (id: string) => {
       const { client, master } = await getClient()
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { getMasterEquipment: any } {
-        return 'getMasterEquipment' in data
+      function isMaster(data: unknown): data is { getMasterEquipment: unknown } {
+        return typeof data === 'object' && data !== null && 'getMasterEquipment' in data
       }
 
       const operation = master ? getMasterEquipment : getEquipment
@@ -136,8 +136,8 @@ export const useAddNewEquipmentMutation = () => {
       const { client, master } = await getClient()
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { createMasterEquipment: any } {
-        return 'createMasterEquipment' in data
+      function isMaster(data: unknown): data is { createMasterEquipment: unknown } {
+        return typeof data === 'object' && data !== null && 'createMasterEquipment' in data
       }
 
       const operation = master ? createMasterEquipment : createEquipment
@@ -177,8 +177,8 @@ export const useUpdateEquipmentMutation = () => {
       const { client, master } = await getClient()
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { updateMasterEquipment: any } {
-        return 'updateMasterEquipment' in data
+      function isMaster(data: unknown): data is { updateMasterEquipment: unknown } {
+        return typeof data === 'object' && data !== null && 'updateMasterEquipment' in data
       }
 
       const operation = master ? updateMasterEquipment : updateEquipment
@@ -219,8 +219,8 @@ export const useDeleteEquipmentMutation = () => {
       const operation = master ? deleteMasterEquipment : deleteEquipment
 
       // Type guard to check which response we got
-      function isMaster(data: any): data is { deleteMasterEquipment: any } {
-        return 'deleteMasterEquipment' in data
+      function isMaster(data: unknown): data is { deleteMasterEquipment: unknown } {
+        return typeof data === 'object' && data !== null && 'deleteMasterEquipment' in data
       }
 
       try {

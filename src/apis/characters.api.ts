@@ -34,6 +34,15 @@ export const fetchCharacters = (systemPref: string) => {
           allData = [...allData, ...items.items]
           nextToken = data.listCharacters.nextToken || null
         } while (nextToken)
+        allData.sort((a, b) => {
+          if (a && b) {
+            return a.label.localeCompare(b.label)
+          }
+          if (a) {
+            return -1
+          }
+          return 1
+        })
 
         return allData
       } catch (err) {
