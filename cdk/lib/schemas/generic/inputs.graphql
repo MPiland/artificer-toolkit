@@ -126,8 +126,19 @@ input ActionGroupInput {
   secondary: ActionPropertyInput
 }
 
-input OptionsByLevelInput {
-  level: Int
-  count: Int
-  replaceCount: Int
+## Class/Backgroun Equipment
+
+input EquipmentOptionItemInput {
+  attributes: [ID!]
+  selectionCount: Int
+  category: ID
+  equipment: [ID!]
+  properties: [ID!]
+  quantity: Int
+  currencies: [EquipmentCurrencyInput!]
+}
+
+input EquipmentCurrencyInput {
+  id: ID!
+  amount: Int
 }

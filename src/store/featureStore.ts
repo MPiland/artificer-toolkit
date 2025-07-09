@@ -1,112 +1,75 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { addField, removeField, updateField, reset } from './utils'
-import type { FeatureInput, AncestryFeatureInput, DeepKeyOf, FeatureTypes } from '@/types'
+import type { FeatureInput } from '@/types'
 import { produce } from 'immer'
+import type { DeepKeys } from '@tanstack/react-form'
+import { updateField, removeField } from './utils'
+import { SECTION_STEPS } from '@/components/Form'
 
 export interface FeatureStore {
-  // Core Feature data
-  data: FeatureInput | AncestryFeatureInput
-  initData: FeatureInput | AncestryFeatureInput
-
-  // Feature UI state
-  index: number
-  step: FeatureTypes | null
-
-  updateField(arg: { path: DeepKeyOf<FeatureInput | AncestryFeatureInput>; value: any }): void
-  addField(arg: { path: DeepKeyOf<FeatureInput | AncestryFeatureInput>; value?: any }): void
-  removeField(arg: { path: DeepKeyOf<FeatureInput | AncestryFeatureInput> }): void
-  resetData: (arg: { value: FeatureInput | AncestryFeatureInput }) => void
-  resetInit: (arg: { value: FeatureInput | AncestryFeatureInput }) => void
-  setIndex: (arg: { value: number }) => void
-  setStep: (arg: FeatureTypes | null) => void
-  reinitState: (value?: FeatureInput | AncestryFeatureInput) => void
+  current: FeatureInput | null
+  step: (typeof SECTION_STEPS)[number] | 'options' | 'features' | null
+  added: Map<string, FeatureInput>
+  edited: Map<string, FeatureInput>
+  removed: Set<string>
+  setCurrent: (arg: FeatureInput | null) => void
+  upsertAdded: (arg: FeatureInput) => void
+  upsertEdited: (arg: FeatureInput) => void
+  remove: (id: string) => void
+  setStep: (arg: (typeof SECTION_STEPS)[number] | 'options' | 'features' | null) => void
+  updateField<T>(arg: { path: DeepKeys<T>; value: unknown }): void
+  removeField<T>(arg: { path: DeepKeys<T> }): void
 }
 
 export const useFeatureStore = create<FeatureStore>()(
   persist(
     (set) => {
-      const defaultState: Pick<FeatureStore, 'data' | 'initData' | 'index' | 'step'> = {
-        data: {} as FeatureInput | AncestryFeatureInput,
-        initData: {} as FeatureInput | AncestryFeatureInput,
-        step: null,
-        index: 0,
-      }
-
       return {
-        ...defaultState,
-
-        addField: ({ path, value }) =>
-          set((state: FeatureStore) =>
-            addField<FeatureStore, FeatureInput | AncestryFeatureInput>({
-              path,
-              value,
-              selector: (state) => state.data,
-            })(state)
-          ),
-
-        removeField: ({ path }) =>
-          set((state: FeatureStore) =>
-            removeField<FeatureStore, FeatureInput | AncestryFeatureInput>({ path, selector: (state) => state.data })(
-              state
-            )
-          ),
-
-        updateField: ({ path, value }) =>
-          set((state: FeatureStore) =>
-            updateField<FeatureStore, FeatureInput | AncestryFeatureInput>({
-              path,
-              value,
-              selector: (state) => state.data,
-            })(state)
-          ),
-
-        resetData: ({ value }) =>
-          set((state: FeatureStore) =>
-            reset<FeatureStore, FeatureInput | AncestryFeatureInput>({ value, selector: (state) => state.data })(state)
-          ),
-
-        resetInit: ({ value }) =>
-          set((state: FeatureStore) =>
-            reset<FeatureStore, FeatureInput | AncestryFeatureInput>({ value, selector: (state) => state.initData })(
-              state
-            )
-          ),
-
-        setIndex: ({ value }) =>
-          set((state) =>
-            produce(state, (draft) => {
-              draft.index = value
-            })
-          ),
-
+        current: null,
+        step: null,
+        added: new Map<string, FeatureInput>(),
+        edited: new Map<string, FeatureInput>(),
+        removed: new Set<string>(),
+        setCurrent: (value) => set((state) => ({ ...state, current: value })),
+        upsertAdded: (feature) =>
+          set((state) => {
+            const newMap = new Map(state.added)
+            newMap.set(feature.id, feature)
+            return { added: newMap }
+          }),
+        upsertEdited: (feature) =>
+          set((state) => {
+            const newMap = new Map(state.edited)
+            newMap.set(feature.id, feature)
+            return { edited: newMap }
+          }),
+        remove: (id: string) =>
+          set((state) => {
+            const newSet = new Set(state.removed)
+            newSet.add(id)
+            return { removed: newSet }
+          }),
         setStep: (value) =>
           set((state) =>
             produce(state, (draft) => {
               draft.step = value
             })
           ),
-
-        reinitState: (value?: FeatureInput | AncestryFeatureInput) => {
-          if (value) {
-            return set((state) => ({
-              ...state,
-              data: { ...value },
-              initData: {
-                ...value,
-              },
-            }))
-          } else {
-            return set((state) => ({
-              ...state,
-              data: { ...defaultState.data },
-              initData: {
-                ...defaultState.initData,
-              },
-              index: defaultState.index,
-            }))
-          }
-        },
+        updateField: ({ path, value }) =>
+          set((state: FeatureStore) =>
+            updateField<FeatureStore, FeatureInput>({
+              path,
+              value,
+              selector: (state) => state.current as FeatureInput,
+            })(state)
+          ),
+        removeField: ({ path }) =>
+          set((state: FeatureStore) =>
+            removeField<FeatureStore, FeatureInput>({
+              path,
+              selector: (state) => state.current as FeatureInput,
+            })(state)
+          ),
       }
     },
     {

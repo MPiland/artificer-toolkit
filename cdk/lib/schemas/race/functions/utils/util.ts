@@ -2,15 +2,11 @@ import type { Race } from '../../../../../../gql/types'
 
 type MetaObject = { raceIds: string[]; id: string | number }
 
-type FeatureMetaObject = MetaObject & {
-  label: string
-}
-
 type MetaData = {
   categories: MetaObject[]
   playable: MetaObject[]
   lineages: MetaObject[]
-  features: FeatureMetaObject[]
+  features: MetaObject[]
 }
 
 export const metaData: MetaData = {
@@ -35,15 +31,22 @@ export const itemsToMeta = (items: Race[]) => {
     }
     if (item.features && item.features.length) {
       item.features.forEach((feature) => {
-        addToMeta(metaData.features, feature.id, item.id, {
-          label: feature.label,
-        })
+        addToMeta(metaData.features, feature, item.id)
+      })
+    }
+    if (item.ancestry?.options?.length) {
+      item.ancestry.options.forEach((option) => {
+        if (option.features?.length) {
+          option.features.forEach((feature) => {
+            addToMeta(metaData.features, feature, option.id)
+          })
+        }
       })
     }
   })
 }
 
-export const addToMeta = <T extends Record<string, any>>(
+export const addToMeta = <T extends Record<string, unknown>>(
   metaArray: (MetaObject & T)[],
   keyId: string | number,
   raceId: string,

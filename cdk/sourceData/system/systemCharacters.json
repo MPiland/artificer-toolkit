@@ -1,36 +1,30 @@
 {
   "advancementMethods": [
     {
-      "value": "milestone",
       "label": "Milestone",
       "id": "24e31dc8-43ab-43de-89fe-15c878951d48"
     },
     {
-      "value": "experience",
       "label": "Experience",
       "id": "0bdb9b1a-cc40-40f5-95cf-390506b256d8"
     }
   ],
   "hitpointCalcMethods": [
     {
-      "value": "fixed",
       "label": "Fixed",
       "id": "567dff1c-e39e-4faa-a544-42fcf3970e66"
     },
     {
-      "value": "Manual",
       "label": "Manual",
       "id": "e99940d3-4a67-475a-8c41-860744111557"
     }
   ],
   "spellPointCalcMethods": [
     {
-      "value": "spellAbility",
       "label": "Spell Ability",
       "id": "478991e3-ca27-4f9e-96b5-60efe9b29058"
     },
     {
-      "value": "classLevel",
       "label": "Class Level",
       "id": "dad0ee93-c507-4c93-80de-39275cd94c98"
     }
@@ -38,12 +32,10 @@
   "startingEquipmentOptions": [
     {
       "label": "Gold",
-      "value": "gold",
       "id": "d748d1e1-17aa-40d4-af18-612c8f513fcf"
     },
     {
       "label": "Equipment",
-      "value": "equipment",
       "id": "67d370d9-80e4-47ac-9741-4cb7c17c1ec1"
     }
   ]

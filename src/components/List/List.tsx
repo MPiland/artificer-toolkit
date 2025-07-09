@@ -19,10 +19,10 @@ import VirtualList from './VirtualList'
 import { PlusIcon, Copy, LayoutGrid, List as ListIcon } from 'lucide-react'
 import { Group, ScrollArea, Divider } from '@mantine/core'
 import { Button } from '@mantine/core'
-import { discriminatedInputSchema } from '@/schemas'
+import { discriminatedDomainInputSchema } from '@/schemas'
 
 interface ListProps<T extends ListItemType, K extends MetaDataType, U extends FilterDataType> {
-  className?: string | symbol | number | any
+  className?: string
   visibility?: 'hidden' | 'visible' | 'always'
   useDeleteItem: () => UseMutationResult<string, Error, string, unknown>
   data: Maybe<T[]>
@@ -42,7 +42,7 @@ const List = <T extends ListItemType, K extends MetaDataType, U extends FilterDa
   const navigate = useNavigate()
   const sm = useMediaQuery('screen and (max-width: 567px)')
   const { showModal } = use(ModalContext)
-  const { reinitState } = useFormStore((state) => state)
+  const formStore = useFormStore()
 
   const form = useMatches({ select: (m) => m[m.length - 1].context.form?.type }) as FormType
 
@@ -57,7 +57,7 @@ const List = <T extends ListItemType, K extends MetaDataType, U extends FilterDa
 
   const handleCopyConfirmed = (item: SourceDataType) => {
     const kind = `${item.__typename}Input`
-    const data = discriminatedInputSchema.parse({
+    const data = discriminatedDomainInputSchema.parse({
       ...item,
       __kind: kind,
       id: '',
@@ -65,8 +65,8 @@ const List = <T extends ListItemType, K extends MetaDataType, U extends FilterDa
       value: '',
     }) as FormDataType
     const itemNav = routeNav.forItem(item.id, item.label).copy
-    reinitState(data)
-    return navigate({ to: itemNav.to, params: itemNav.params })
+    formStore.setCurrent(data)
+    navigate({ to: itemNav.to, params: itemNav.params })
   }
 
   const handleCopy = () => {
@@ -76,10 +76,9 @@ const List = <T extends ListItemType, K extends MetaDataType, U extends FilterDa
         form: form,
         data: data?.map((item) => ({
           label: item.label,
-          value: item.value,
           id: item.id,
         })),
-        onCopy: (item: SourceDataType) => handleCopyConfirmed(item),
+        onCopy: (item) => handleCopyConfirmed(item as SourceDataType),
       },
     })
   }
@@ -144,7 +143,7 @@ const List = <T extends ListItemType, K extends MetaDataType, U extends FilterDa
       <ScrollArea viewportRef={parentRef} type='hover' offsetScrollbars='present'>
         <div
           ref={listRef}
-          className={clsx({ [className]: className }, list, view)}
+          className={clsx({ [className || '']: className }, list, view)}
           style={{
             height: `${rowVirtualizer.getTotalSize()}px`,
           }}

@@ -5,19 +5,18 @@ import type { MetaDataItem } from '../hooks/useMetaData'
 export const createArrayWithMethods = <
   T,
   M extends {
-    [K in keyof M]: (this: T[] & M & { all: T[] }, ...args: any[]) => any
+    [K in keyof M]: (this: T[] & M) => unknown
   },
 >(
   array: T[],
   methods: M
-): T[] & M & { all: T[] } => {
-  const extended = array as T[] & M & { all: T[] }
+): T[] & M => {
+  const extended = array as T[] & M
 
   for (const key in methods) {
-    extended[key] = methods[key].bind(extended)
+    const method = methods[key].bind(extended)
+    extended[key as keyof M] = method as (T[] & M)[keyof M]
   }
-
-  extended.all = array
 
   return extended
 }
@@ -26,14 +25,19 @@ export const createArrayWithMethods = <
 export interface LookupItem {
   id: string
   label: string
-  value: any
-  [key: string]: any
+  value: unknown
+  [key: string]: unknown
+}
+
+type FlattenDataItem = {
+  id: string
+  label: string
+  value: string
+  [key: string]: unknown
 }
 
 // Flatten nested data structures to extract lookup items
-export const flattenData = <U extends { id: string; label: string; value: string; [key: string]: any }>(
-  obj: U | U[]
-): LookupItem[] => {
+export const flattenData = <U extends FlattenDataItem>(obj: U | U[]): LookupItem[] => {
   const result: LookupItem[] = []
 
   const process = (item: U | U[]): void => {
@@ -45,7 +49,7 @@ export const flattenData = <U extends { id: string; label: string; value: string
       }
       Object.values(item).forEach((val) => {
         if (typeof val === 'object' && val !== null) {
-          process(val as any)
+          process(val as U | U[])
         }
       })
     }
@@ -56,7 +60,7 @@ export const flattenData = <U extends { id: string; label: string; value: string
 }
 
 // Process array values with optional truncation
-export const processArrayValue = (value: any[], shouldTruncate: boolean, truncateNum?: number): string | null => {
+export const processArrayValue = (value: unknown[], shouldTruncate: boolean, truncateNum?: number): string | null => {
   if (value.length === 0) {
     return null
   } else if (value.length === 1) {
@@ -74,8 +78,8 @@ export const processArrayValue = (value: any[], shouldTruncate: boolean, truncat
     return sortedValues
       .map((nestedValue) => {
         const nameValue =
-          typeof nestedValue === 'object' && nestedValue !== null ?
-            (nestedValue as any).name || String(nestedValue)
+          typeof nestedValue === 'object' && nestedValue !== null && 'name' in nestedValue ?
+            (nestedValue.name as string) || String(nestedValue)
           : String(nestedValue)
 
         return shouldTruncate ?
@@ -90,7 +94,7 @@ export const processArrayValue = (value: any[], shouldTruncate: boolean, truncat
 }
 
 // Extract lookup data from raw source data
-export const extractLookupData = (rawData: any): LookupItem[] => {
+export const extractLookupData = (rawData: unknown): LookupItem[] => {
   let lookupData: LookupItem[] = []
 
   if (Array.isArray(rawData)) {
@@ -113,7 +117,7 @@ export const extractLookupData = (rawData: any): LookupItem[] => {
     if ('id' in rawData && 'label' in rawData && 'value' in rawData) {
       lookupData = [rawData as LookupItem]
     } else {
-      lookupData = flattenData(rawData as any)
+      lookupData = flattenData(rawData as FlattenDataItem)
     }
   }
 
@@ -147,7 +151,7 @@ export const getLabelFromId = ({
   const lookupItem = lookupData.find((item) => item.id === id)
   if (lookupItem) {
     if (labelKey) {
-      return lookupItem[labelKey]
+      return lookupItem[labelKey] as string | null
     }
     return lookupItem.label
   }

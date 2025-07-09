@@ -21,7 +21,6 @@ import type {
   CharacterModifierInput,
   FeatureInput,
   CharacterExpertiseInput,
-  AncestryFeatureInput,
   FeatureOptionInput,
   SpellInput,
   ClassInput,
@@ -38,9 +37,14 @@ import type {
   Spell,
   Background,
   Class,
+  FeatureModifier,
+  FeatureProficiency,
+  FeatureSpell,
+  FeatureSense,
+  FeatureFeat,
+  FeatureExpertise,
 } from '@/types'
 import { Paths } from 'type-fest'
-import { sectionSteps, FEATURE_TYPES } from '@/components/Form'
 
 export type SourceTypeMap = {
   spells: SpellInput
@@ -61,29 +65,6 @@ export type ListItemType =
   | BackgroundListItem
   | Character
 
-type GetValue<T, P> =
-  P extends `${infer Key}.${infer Rest}`
-    ? Key extends keyof T
-      ? GetValue<T[Key], Rest>
-      : never
-    : P extends keyof T
-      ? T[P]
-      : P extends number
-        ? T extends Array<infer U>
-          ? U
-          : never
-        : never;
-
-type UpdateField<T> = <P extends Paths<T>>(arg: { path: P; value: GetValue<T, P> }) => void
-type RemoveField<T> = (arg: { path: Paths<T> }) => void
-type AddField<T> = <P extends Paths<T>>(arg: { path: P; value?: GetValue<T, P> }) => void
-
-export type OnChange<T> = {
-  updateField: UpdateField<T>
-  removeField: RemoveField<T>
-  addField: AddField<T>
-}
-
 export type MetaDataType = SpellMeta | ClassMeta | RaceMeta | EquipmentMeta
 
 export type FormDataType =
@@ -97,17 +78,25 @@ export type FormDataType =
 
 export type SourceDataType = Race | Class | Equipment | Feat | Character | Background | Spell
 
-export type FeatureFormDataType = FeatureInput | AncestryFeatureInput | FeatureOptionInput
+export type FeatureFormDataType = FeatureInput | FeatureOptionInput
 
 export type FormType = 'spells' | 'equipment' | 'characters' | 'classes' | 'races' | 'backgrounds' | 'feats'
 
-export type SectionDataType =
+export type SectionFormDataType =
   | FeatureModifierInput
   | FeatureProficiencyInput
   | FeatureSenseInput
   | FeatureSpellInput
   | FeatureFeatInput
   | FeatureExpertiseInput
+
+export type SectionSourceDataType =
+  | FeatureModifier
+  | FeatureProficiency
+  | FeatureSense
+  | FeatureSpell
+  | FeatureFeat
+  | FeatureExpertise
 
 export type CharacterSectionData =
   | CharacterFeatInput
@@ -119,37 +108,6 @@ export type CharacterSectionData =
 export type DeepKeyOf<T> = Extract<Paths<T>, string>
 
 export type Step = {
-  id:
-    | 'details'
-    | 'class'
-    | 'race'
-    | 'abilities'
-    | 'traits'
-    | 'attributes'
-    | 'features'
-    | 'contains'
-    | 'proficiencies'
-    | 'equipment'
-    | 'startingEquipment'
-    | 'ancestry'
-    | 'background'
-  label:
-    | 'Details'
-    | 'Class'
-    | 'Race'
-    | 'Abilities'
-    | 'Traits'
-    | 'Attributes'
-    | 'Features'
-    | 'FeaturesContent'
-    | 'Contains'
-    | 'Proficiencies'
-    | 'Equipment'
-    | 'Starting Equipment'
-    | 'Ancestry'
-    | 'Background'
+  id: string
+  label: string
 }
-
-export type SectionName = (typeof sectionSteps)[number]
-
-export type FeatureTypes = (typeof FEATURE_TYPES)[number]

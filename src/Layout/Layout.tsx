@@ -62,6 +62,9 @@ import { Sun, Moon, ChevronRight, LogOut } from 'lucide-react'
 import Link from '@/components/Link'
 import { signOut } from '@/apis/auth.api'
 import { ModalContext } from '@/components/Modal'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { fetchSystems } from '@/apis/systems.api'
+import { useSystemPref } from '@/hooks'
 
 const Layout = () => {
   const navigate = useNavigate()
@@ -74,6 +77,9 @@ const Layout = () => {
   const lg = useMediaQuery('(min-width: 993px)')
   const { setColorScheme } = useMantineColorScheme()
   const computedColorScheme = useComputedColorScheme('light', { getInitialValueInEffect: true })
+
+  const { data: systems } = useSuspenseQuery(fetchSystems())
+  const [systemPref, setSystemPref] = useSystemPref()
 
   useEffect(() => {
     if (isLoading) {
@@ -264,6 +270,15 @@ const Layout = () => {
       </AppShell.Navbar>
     )
   }
+
+  useEffect(() => {
+    if (systems?.length && (systemPref === '' || !systems?.find((system) => system.id === systemPref))) {
+      const defaultSystem = systems?.find((system) => system.label === 'DND5e2014') || systems[0]
+      if (defaultSystem?.id) {
+        setSystemPref(defaultSystem.id)
+      }
+    }
+  }, [systemPref, systems, setSystemPref])
 
   return (
     <AppShell

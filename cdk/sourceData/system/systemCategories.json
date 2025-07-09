@@ -1,7 +1,6 @@
 [
   {
     "id": "b62cef0d-a4be-4cfe-94ee-c80a7aaaabc7",
-    "value": "base",
     "label": "Base",
     "features": false,
     "classes": true,
@@ -9,7 +8,6 @@
   },
   {
     "id": "75a580dc-6990-4c05-9853-1534c5be77f7",
-    "value": "subrace",
     "label": "Subrace",
     "features": false,
     "classes": false,
@@ -17,7 +15,6 @@
   },
   {
     "id": "a857f226-e09b-441f-9a09-f25c85beca1a",
-    "value": "variant",
     "label": "Variant",
     "features": false,
     "classes": false,
@@ -25,7 +22,6 @@
   },
   {
     "id": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
-    "value": "feature",
     "label": "Feature",
     "features": true,
     "classes": false,
@@ -33,7 +29,6 @@
   },
   {
     "id": "635bbde6-8c7f-4730-bb83-fb3be8d9006a",
-    "value": "subclass",
     "label": "Subclass",
     "features": true,
     "classes": true,

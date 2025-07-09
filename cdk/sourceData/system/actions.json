@@ -2,7 +2,6 @@
   {
     "id": "e35ec180-335c-4630-8f4c-9858ee8823fb",
     "label": "Bonus Action",
-    "value": "bonusAction",
     "features": true,
     "damage": false,
     "feats": false,
@@ -14,7 +13,6 @@
   {
     "id": "cb1b5c45-5ca3-4822-ab16-28a446947df5",
     "label": "Special",
-    "value": "special",
     "features": false,
     "damage": false,
     "feats": false,
@@ -26,7 +24,6 @@
   {
     "id": "de8f279a-22c0-4087-ba46-922a60caa433",
     "label": "Hour",
-    "value": "hour",
     "features": false,
     "damage": false,
     "feats": false,
@@ -38,7 +35,6 @@
   {
     "id": "41208ceb-837c-4af5-9a8a-0f92acf31237",
     "label": "Attack",
-    "value": "attack",
     "features": false,
     "damage": false,
     "feats": false,
@@ -50,7 +46,6 @@
   {
     "id": "559d6655-9929-4bfa-8928-bfb02c86f62a",
     "label": "Reaction",
-    "value": "reaction",
     "features": true,
     "damage": false,
     "feats": false,
@@ -62,7 +57,6 @@
   {
     "id": "ec034006-0d37-4687-b426-e8c4dc091b27",
     "label": "Action",
-    "value": "action",
     "features": true,
     "damage": false,
     "feats": false,
@@ -74,7 +68,6 @@
   {
     "id": "abecb36b-c245-4342-ac8b-a6448b70a079",
     "label": "Minute",
-    "value": "minute",
     "features": false,
     "damage": false,
     "feats": false,

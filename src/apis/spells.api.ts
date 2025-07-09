@@ -36,7 +36,7 @@ export const fetchSpells = (systemPref: string) => {
       }
       let nextToken: string | null = null
 
-      const { client, master } = await getClient()
+      const { domainClient, master } = await getClient()
 
       // Create a union type for the variables
       type ListVariables = QueryListMasterSpellsArgs | QueryListSpellsArgs
@@ -63,7 +63,7 @@ export const fetchSpells = (systemPref: string) => {
 
       try {
         do {
-          const { data } = (await client.graphql({
+          const { data } = (await domainClient.graphql({
             query: operation,
             variables: variables,
           })) as GraphQLResult<QueryResponse>
@@ -98,7 +98,7 @@ export const fetchSpell = (id: string) => {
   return queryOptions({
     queryKey: spellsKeys.single(id),
     queryFn: async () => {
-      const { client, master } = await getClient()
+      const { domainClient, master } = await getClient()
 
       // Type guard to check which response we got
       function isMaster(data: unknown): data is { getMasterSpell: unknown } {
@@ -108,7 +108,7 @@ export const fetchSpell = (id: string) => {
       const operation = master ? getMasterSpell : getSpell
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await domainClient.graphql({
           query: operation,
           variables: {
             id,
@@ -133,7 +133,7 @@ export const useAddNewSpellMutation = () => {
 
   return useMutation<Spell, Error, SpellInput, unknown>({
     mutationFn: async (spell: SpellInput) => {
-      const { client, master } = await getClient()
+      const { domainClient, master } = await getClient()
 
       const operation = master ? createMasterSpell : createSpell
 
@@ -143,7 +143,7 @@ export const useAddNewSpellMutation = () => {
       }
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await domainClient.graphql({
           query: operation,
           variables: {
             input: spell,
@@ -174,7 +174,7 @@ export const useUpdateSpellMutation = () => {
 
   return useMutation<Spell, Error, SpellInput, unknown>({
     mutationFn: async (spell: SpellInput) => {
-      const { client, master } = await getClient()
+      const { domainClient, master } = await getClient()
 
       const operation = master ? updateMasterSpell : updateSpell
 
@@ -184,7 +184,7 @@ export const useUpdateSpellMutation = () => {
       }
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await domainClient.graphql({
           query: operation,
           variables: {
             input: spell,
@@ -214,7 +214,7 @@ export const useDeleteSpellMutation = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { client, master } = await getClient()
+      const { domainClient, master } = await getClient()
 
       const operation = master ? deleteMasterSpell : deleteSpell
 
@@ -224,7 +224,7 @@ export const useDeleteSpellMutation = () => {
       }
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await domainClient.graphql({
           query: operation,
           variables: {
             id,

@@ -1,9 +1,7 @@
 import { use, useState } from 'react'
-import Input from '@/components/Input'
-import { Button } from '@mantine/core'
 import { sprinkles } from '@/css/sprinkles.css'
 import Modal, { ModalContext, type DeleteModalProps } from '@/components/Modal'
-import { Group, Grid } from '@mantine/core'
+import { Group, Grid, TextInput, Button } from '@mantine/core'
 
 const Delete = () => {
   const { modalProps, hideModal } = use(ModalContext)
@@ -29,11 +27,11 @@ const Delete = () => {
             </p>
           </Grid.Col>
           <Grid.Col>
-            <Input<{ deleteItem: string }>
+            <TextInput
               name='deleteItem'
-              onChange={{ updateField: ({ value }) => setDeleteState(value) }}
+              onChange={(e) => setDeleteState(e.target.value)}
               value={deleteState}
-              errorMsg='Must type DELETE exactly'
+              error={deleteState !== 'DELETE' && 'Must type DELETE exactly'}
               id='delete_input'
             />
           </Grid.Col>

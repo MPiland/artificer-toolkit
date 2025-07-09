@@ -10,8 +10,12 @@ const useCharacterData = () => {
   const { data: characters } = suspenseQuery(fetchCharacters(systemPref))
   return {
     characters: createArrayWithMethods(characters, {
-      findCharacter: (id: string) => suspenseQuery(fetchCharacter(id)).data,
-      findCharacters: (ids: string[]) => {
+      findCharacter: (id?: string) => {
+        if (!id) return null
+        return suspenseQuery(fetchCharacter(id)).data
+      },
+      findCharacters: (ids?: string[]) => {
+        if (!ids || !ids.length) return null
         return suspenseQueries({
           queries: ids.map((id) => fetchCharacter(id)),
           combine: (results) => results.map((result) => result.data),

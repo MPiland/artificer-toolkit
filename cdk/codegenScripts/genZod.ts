@@ -26,15 +26,15 @@ const scalarMap = {
   Date: 'z.string().datetime().transform((val) => new Date(val))',
 } as const
 
-const scalarDefaultMap = {
-  String: '""',
-  Int: '0',
-  Float: '0',
-  Boolean: 'false',
-  ID: '""',
-  DateTime: 'new Date().toISOString()',
-  Date: 'new Date().toISOString()',
-} as const
+// const scalarDefaultMap = {
+//   String: '""',
+//   Int: '0',
+//   Float: '0',
+//   Boolean: 'false',
+//   ID: '""',
+//   DateTime: 'new Date().toISOString()',
+//   Date: 'new Date().toISOString()',
+// } as const
 
 const toConstEnumArrayName = (enumName: string): string => {
   return enumName
@@ -74,79 +74,79 @@ const unwrapType = (
   return { type, isNonNull, listDepth, isListItemNonNull }
 }
 
-const getDefaultValueForType = (
-  unwrappedType: GraphQLInputType | GraphQLOutputType,
-  defaultValue?: unknown
-): string => {
-  if (defaultValue !== undefined) {
-    if (typeof defaultValue === 'string') {
-      return `"${defaultValue}"`
-    }
-    return JSON.stringify(defaultValue)
-  }
+// const getDefaultValueForType = (
+//   unwrappedType: GraphQLInputType | GraphQLOutputType,
+//   defaultValue?: unknown
+// ): string => {
+//   if (defaultValue !== undefined) {
+//     if (typeof defaultValue === 'string') {
+//       return `"${defaultValue}"`
+//     }
+//     return JSON.stringify(defaultValue)
+//   }
 
-  if (isScalarType(unwrappedType)) {
-    return scalarDefaultMap[unwrappedType.name as keyof typeof scalarDefaultMap] ?? 'null'
-  }
+//   if (isScalarType(unwrappedType)) {
+//     return scalarDefaultMap[unwrappedType.name as keyof typeof scalarDefaultMap] ?? 'null'
+//   }
 
-  if (isEnumType(unwrappedType)) {
-    const firstValue = unwrappedType.getValues()[0]
-    return firstValue ? `${unwrappedType.name}.${firstValue.value}` : 'null'
-  }
+//   if (isEnumType(unwrappedType)) {
+//     const firstValue = unwrappedType.getValues()[0]
+//     return firstValue ? `${unwrappedType.name}.${firstValue.value}` : 'null'
+//   }
 
-  return 'null'
-}
+//   return 'null'
+// }
 
-const createArrayDefault = (unwrappedType: GraphQLInputType | GraphQLOutputType, listDepth: number): string | null => {
-  if (listDepth === 0) return null
-  // For arrays, create appropriate defaults
-  if (isScalarType(unwrappedType)) {
-    if (unwrappedType.name === 'String') {
-      let def: string = '[""]'
-      for (let i = 1; i < listDepth; i++) {
-        def = `[${def}]`
-      }
-      return def
-    }
-    let def = `[${scalarDefaultMap[unwrappedType.name as keyof typeof scalarDefaultMap]}]`
-    for (let i = 1; i < listDepth; i++) {
-      def = `[${def}]`
-    }
-    return def
-  }
+// const createArrayDefault = (unwrappedType: GraphQLInputType | GraphQLOutputType, listDepth: number): string | null => {
+//   if (listDepth === 0) return null
+//   // For arrays, create appropriate defaults
+//   if (isScalarType(unwrappedType)) {
+//     if (unwrappedType.name === 'String') {
+//       let def: string = '[""]'
+//       for (let i = 1; i < listDepth; i++) {
+//         def = `[${def}]`
+//       }
+//       return def
+//     }
+//     let def = `[${scalarDefaultMap[unwrappedType.name as keyof typeof scalarDefaultMap]}]`
+//     for (let i = 1; i < listDepth; i++) {
+//       def = `[${def}]`
+//     }
+//     return def
+//   }
 
-  if (isEnumType(unwrappedType)) {
-    // Empty array for enums by default
-    let def = '[]'
-    for (let i = 1; i < listDepth; i++) {
-      def = `[${def}]`
-    }
-    return def
-  }
+//   if (isEnumType(unwrappedType)) {
+//     // Empty array for enums by default
+//     let def = '[]'
+//     for (let i = 1; i < listDepth; i++) {
+//       def = `[${def}]`
+//     }
+//     return def
+//   }
 
-  if (isInputObjectType(unwrappedType) || isObjectType(unwrappedType)) {
-    // For complex types, use array with parsed empty object
-    let def = `[${unwrappedType.name}Schema.parse({})]`
-    for (let i = 1; i < listDepth; i++) {
-      def = `[${def}]`
-    }
-    return `() => ${def}`
-  }
+//   if (isInputObjectType(unwrappedType) || isObjectType(unwrappedType)) {
+//     // For complex types, use array with parsed empty object
+//     let def = `[${unwrappedType.name}Schema.parse({})]`
+//     for (let i = 1; i < listDepth; i++) {
+//       def = `[${def}]`
+//     }
+//     return `() => ${def}`
+//   }
 
-  // Fallback to empty array
-  let def: unknown[] = []
-  for (let i = 1; i < listDepth; i++) {
-    def = [def]
-  }
-  return JSON.stringify(def)
-}
+//   // Fallback to empty array
+//   let def: unknown[] = []
+//   for (let i = 1; i < listDepth; i++) {
+//     def = [def]
+//   }
+//   return JSON.stringify(def)
+// }
 
 const createZodType = ({
   type,
-  defaultValue,
+  // defaultValue,
 }: {
   type: GraphQLInputType | GraphQLOutputType
-  defaultValue?: unknown
+  // defaultValue?: unknown
 }): string => {
   const { type: unwrappedType, isNonNull, listDepth, isListItemNonNull } = unwrapType(type)
   let zodType: string
@@ -175,42 +175,42 @@ const createZodType = ({
   // Handle nullability and defaults
   if (listDepth > 0) {
     // Array field
-    let arrayDefault: string | null
-    if (
-      isInputObjectType(unwrappedType) ||
-      isObjectType(unwrappedType) ||
-      isScalarType(unwrappedType) ||
-      isEnumType(unwrappedType)
-    ) {
-      arrayDefault = createArrayDefault(unwrappedType, listDepth)
-    } else {
-      arrayDefault = '[]'
-    }
+    // let arrayDefault: string | null
+    // if (
+    //   isInputObjectType(unwrappedType) ||
+    //   isObjectType(unwrappedType) ||
+    //   isScalarType(unwrappedType) ||
+    //   isEnumType(unwrappedType)
+    // ) {
+    //   arrayDefault = createArrayDefault(unwrappedType, listDepth)
+    // } else {
+    //   arrayDefault = '[]'
+    // }
 
     // Required array → optional with default
-    if (isNonNull) {
-      zodType += `.default(${arrayDefault})`
-    } else {
+    if (!isNonNull) {
+      //   zodType += `.default(${arrayDefault})`
+      // } else {
       zodType += `.optional()`
     }
   } else {
     // Non-array field
     if (isInputObjectType(unwrappedType) || isObjectType(unwrappedType)) {
       // Required object → optional with parsed default
-      if (isNonNull) {
-        zodType += `.default(${unwrappedType.name}Schema.parse({}))`
-      } else {
+      if (!isNonNull) {
+        //   zodType += `.default(${unwrappedType.name}Schema.parse({}))`
+        // } else {
         // Optional object → nullish with null default
         zodType += `.optional()`
       }
     } else {
       // Scalar and enum types
-      const def = getDefaultValueForType(unwrappedType, defaultValue)
+      // const def = getDefaultValueForType(unwrappedType, defaultValue)
 
-      if (isNonNull) {
+      if (!isNonNull) {
         // Required field → optional with default
-        zodType += `.default(${def})`
-      } else {
+        //   zodType += `.default(${def})`
+        // } else {
         // Optional field → nullish with null default
         zodType += `.optional()`
       }
@@ -231,7 +231,7 @@ const createZodInputObject = (type: GraphQLInputObjectType): string => {
   for (const [name, field] of Object.entries(fields)) {
     const zodType = createZodType({
       type: field.type,
-      defaultValue: field.defaultValue,
+      // defaultValue: field.defaultValue,
     })
     content += `    ${name}: ${zodType},\n`
   }

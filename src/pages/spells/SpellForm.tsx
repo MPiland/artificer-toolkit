@@ -1,12 +1,13 @@
-import { useEffect, use } from 'react'
+import { z } from 'zod/v4'
+import { useEffect, useMemo, useState } from 'react'
 import { useAddNewSpellMutation, useUpdateSpellMutation } from '@/apis/spells.api'
-import { Step, type SpellInput } from '@/types'
-import Form, { FormContext } from '@/components/Form'
-import { isEqual } from 'lodash'
 import { Route } from '@/routes/_protected/spells/$action/$_spellId'
 import { useSpellData } from '@/hooks'
 import { SpellInputSchema } from '@/schemas'
 import { v4 as uuidv4 } from 'uuid'
+import Form, { SpellAttributes, SpellDetails } from '@/components/Form'
+import { useFormStore } from '@/store'
+import { isEqual } from 'lodash'
 
 const SpellForm = () => {
   const { _spellId: spellId, action } = Route.useParams()
@@ -14,41 +15,49 @@ const SpellForm = () => {
     spells: { findSpell },
   } = useSpellData()
   const spell = findSpell(spellId)
-  const { steps, formStore } = use(FormContext)
+  const formStore = useFormStore((state) => state)
 
-  const stepsArray = [
-    { id: 'details', label: 'Details' },
-    { id: 'attributes', label: 'Attributes' },
-  ] satisfies Step[]
-
-  useEffect(() => {
-    if (!isEqual(steps, stepsArray)) {
-      formStore.setSteps(stepsArray)
-    }
-    if (action === 'new') {
-      let dataObj: SpellInput
-      if (spell) {
-        dataObj = SpellInputSchema.parse({
-          ...spell,
-          id: uuidv4(),
-          label: '',
-          masterId: undefined,
-        })
-      } else {
-        dataObj = SpellInputSchema.parse({
+  const data: z.input<typeof SpellInputSchema> = useMemo(
+    () =>
+      spell ?
+        action === 'new' ?
+          SpellInputSchema.parse({
+            ...spell,
+            id: uuidv4(),
+            label: '',
+            masterId: undefined,
+          })
+        : SpellInputSchema.parse(spell)
+      : SpellInputSchema.parse({
           __kind: 'SpellInput',
           id: uuidv4(),
-        })
-      }
-      formStore.reinitState(dataObj)
-    }
-    if (action === 'edit' && spell) {
-      const dataObj = SpellInputSchema.parse(spell)
-      formStore.reinitState(dataObj)
-    }
-  }, [stepsArray, steps, formStore, spell, action])
+        }),
+    [spell, action]
+  )
 
-  return <Form useAddNewItemMutation={useAddNewSpellMutation} useUpdateItemMutation={useUpdateSpellMutation} />
+  useEffect(() => {
+    formStore.setCurrent(data)
+  }, [formStore, data])
+
+  const [steps] = useState([
+    { id: 'details', label: 'Details' },
+    { id: 'attributes', label: 'Attributes' },
+  ])
+
+  useEffect(() => {
+    if (!isEqual(formStore.steps, steps)) formStore.setSteps(steps)
+  }, [formStore, steps])
+
+  const stepComponentMap = {
+    details: <SpellDetails />,
+    attributes: <SpellAttributes />,
+  }
+
+  return (
+    <Form useAddNewItemMutation={useAddNewSpellMutation} useUpdateItemMutation={useUpdateSpellMutation}>
+      {stepComponentMap[formStore.steps[formStore.stepIndex].id as keyof typeof stepComponentMap] || null}
+    </Form>
+  )
 }
 
 export default SpellForm

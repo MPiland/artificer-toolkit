@@ -1,93 +1,107 @@
-import Dropdown from '@/components/Dropdown'
-import Input from '@/components/Input'
-import { use } from 'react'
-import { FormContext } from '../../FormContext'
-import { FeatureContext } from '../FeatureContext'
 import { Attributes, Categories, Sections } from '@/enums'
-import { useSystemData } from '@/hooks'
-import type { SectionStore } from '@/store'
-import type { OnChange, Class, FeatureSense } from '@/types'
+import { useFieldUpdates, useSystemData } from '@/hooks'
 import { Grid } from '@mantine/core'
+import { useAppForm } from '@/components/Form'
+import { FeatureSenseInputSchema } from '@/schemas'
+import { SubtypeInput } from '@/types'
+import { useFormStore, useSenseStore } from '@/store'
 
-const Senses = () => {
-  const { formStore } = use(FormContext)
-  const { sectionStore } = use(FeatureContext) as {
-    sectionStore: SectionStore<FeatureSense>
-  }
+type SensesProps = {
+  category?: string
+  subtypes?: SubtypeInput[]
+}
 
-  const {
-    data,
-    updateField,
-    removeField,
-  }: {
-    data: FeatureSense
-    updateField: OnChange<FeatureSense>['updateField']
-    removeField: OnChange<FeatureSense>['removeField']
-  } = sectionStore
+const Senses = ({ category, subtypes }: SensesProps) => {
+  const senseStore = useSenseStore()
+
+  const form = useAppForm({
+    defaultValues: FeatureSenseInputSchema.parse(senseStore.current),
+  })
+
+  const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'sense' })
+
+  const formStore = useFormStore()
+
+  const __kind = formStore.current?.__kind as
+    | 'ClassInput'
+    | 'RaceInput'
+    | 'EquipmentInput'
+    | 'BackgroundInput'
+    | 'FeatInput'
+
+  const { AppField, Subscribe } = form
 
   const { senses, attributes } = useSystemData()
 
-  const providesOptions = data?.attributes?.some((attribute) => attribute === Attributes.PROVIDES_OPTIONS)
-
   return (
     <Grid>
-      <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-        <Dropdown
-          multiSelect={true}
-          name='attributes'
-          options={attributes.filter(
-            (attribute) =>
-              attribute.sections &&
-              (attribute.sections.includes(Sections.ALL) ||
-                ((formStore.data as Class).category === Categories.SUBCLASS &&
-                  attribute.sections.includes(Sections.SUBCLASS)))
-          )}
-          label='Sense Attributes'
-          value={data?.attributes}
-          onChange={{ updateField, removeField }}
-        />
-      </Grid.Col>
-      <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-        <Dropdown
-          name='ids'
-          multiSelect={true}
-          label='Sense'
-          value={data?.ids}
-          options={senses}
-          required={true}
-          onChange={{ updateField, removeField }}
-        />
-      </Grid.Col>
-      {data?.attributes?.some((attribute) => attribute === Attributes.PROVIDES_OPTIONS) &&
-        formStore.data.__typename === 'Class' &&
-        formStore.data?.subtypes?.length && (
-          <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-            <Dropdown
-              name={`subtype`}
-              label='Subtype'
-              value={data?.subtype}
-              options={formStore.data?.subtypes}
-              required={true}
-              onChange={{ updateField, removeField }}
+      <AppField name='attributes' listeners={fieldListeners}>
+        {({ DropdownField }) => (
+          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+            <DropdownField
+              multiselect={true}
+              options={attributes.filter(
+                (attribute) =>
+                  attribute.sections &&
+                  (attribute.sections.includes(Sections.ALL) ||
+                    (category === Categories.SUBCLASS && attribute.sections.includes(Sections.SUBCLASS)))
+              )}
+              label='Sense Attributes'
             />
           </Grid.Col>
         )}
-      {providesOptions && (
-        <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-          <Input
-            validation='num'
-            name={`selectionCount`}
-            label='# of Selections'
-            autoComplete='off'
-            value={data?.selectionCount}
-            errorMsg='Must contain only numbers'
-            required={true}
-            onChange={{ updateField }}
-          />
-        </Grid.Col>
-      )}
+      </AppField>
+      <AppField
+        name='ids'
+        validators={fieldValidators({
+          onBlur: 'Select at least one sense',
+        })}
+        listeners={fieldListeners}
+      >
+        {({ DropdownField }) => (
+          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+            <DropdownField multiselect={true} options={senses} required={true} label='Senses' />
+          </Grid.Col>
+        )}
+      </AppField>
+      <Subscribe selector={(state) => state.values.attributes}>
+        {(formAttributes) =>
+          formAttributes?.some((attribute) => attribute === Attributes.SUBTYPE_SPECIFIC) &&
+          __kind === 'ClassInput' &&
+          subtypes?.length && (
+            <AppField
+              name='subtype'
+              validators={fieldValidators({
+                onBlur: 'Select a subtype',
+              })}
+              listeners={fieldListeners}
+            >
+              {({ DropdownField }) => (
+                <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                  <DropdownField options={subtypes} required={true} label='Subtype' />
+                </Grid.Col>
+              )}
+            </AppField>
+          ) &&
+          formAttributes?.some((attribute) => attribute === Attributes.PROVIDES_OPTIONS) && (
+            <AppField
+              name='selectionCount'
+              validators={fieldValidators({
+                onBlur: 'Set an amount of selections allowed',
+                onChange: { type: 'number', min: 1, name: 'Selection count' },
+              })}
+              listeners={fieldListeners}
+            >
+              {({ TextField }) => (
+                <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                  <TextField required={true} label='# of Selections' />
+                </Grid.Col>
+              )}
+            </AppField>
+          )
+        }
+      </Subscribe>
     </Grid>
   )
 }
-
 export default Senses

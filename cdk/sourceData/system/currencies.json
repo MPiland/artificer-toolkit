@@ -3,7 +3,6 @@
     "id": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
     "abbreviation": "gp",
     "label": "Gold",
-    "value": "gold",
     "conversions": {
       "gold": 1,
       "copper": 1000,
@@ -16,7 +15,6 @@
     "id": "622c63f5-041a-429a-8cc5-ac17fb13d160",
     "abbreviation": "cp",
     "label": "Copper",
-    "value": "copper",
     "conversions": {
       "gold": 0.001,
       "copper": 1,
@@ -29,7 +27,6 @@
     "id": "e14508e4-a326-444f-8ee8-d253ee7b18a9",
     "abbreviation": "ep",
     "label": "Electrum",
-    "value": "electrum",
     "conversions": {
       "gold": 0.1,
       "copper": 100,
@@ -42,7 +39,6 @@
     "id": "563e0322-3cc3-4fcc-8cfa-2253383e5daf",
     "abbreviation": "sp",
     "label": "Silver",
-    "value": "silver",
     "conversions": {
       "gold": 0.01,
       "copper": 10,
@@ -55,7 +51,6 @@
     "id": "d9447a5b-c73c-4aa1-85ea-2fbc827bcecf",
     "abbreviation": "pp",
     "label": "Platinum",
-    "value": "platinum",
     "conversions": {
       "gold": 10,
       "copper": 10000,

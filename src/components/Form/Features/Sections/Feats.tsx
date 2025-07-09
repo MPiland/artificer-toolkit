@@ -1,102 +1,115 @@
-import { use } from 'react'
-import { FormContext } from '../../FormContext'
-import Dropdown from '@/components/Dropdown'
-import Input from '@/components/Input'
-import { startCase } from 'lodash'
-import { FeatureContext } from '../FeatureContext'
 import { Categories, Sections } from '@/enums'
-import Prerequisites from '../../Substeps/Prerequisites'
-import { useSystemData, useFeatData, useEnumChecks } from '@/hooks'
-import { type OnChange, FeatureFeat, Class } from '@/types'
-import type { SectionStore } from '@/store'
+import { useSystemData, useFeatData, useEnumChecks, useFieldUpdates } from '@/hooks'
+import type { SubtypeInput } from '@/types'
 import { Grid } from '@mantine/core'
+import { FeatureFeatInputSchema } from '@/schemas'
+import { useAppForm, Prerequisites } from '@/components/Form'
+import { useFeatStore } from '@/store'
 
-const Feats = () => {
-  const { formStore } = use(FormContext)
-  const { sectionStore } = use(FeatureContext) as {
-    sectionStore: SectionStore<FeatureFeat>
-  }
+type FeatsProps = {
+  category?: string
+  __kind?: 'ClassInput' | 'RaceInput' | 'EquipmentInput' | 'BackgroundInput' | 'FeatInput'
+  subtypes?: SubtypeInput[]
+}
 
-  const {
-    data,
-    updateField,
-    removeField,
-  }: {
-    data: FeatureFeat
-    updateField: OnChange<FeatureFeat>['updateField']
-    removeField: OnChange<FeatureFeat>['removeField']
-  } = sectionStore
+const Feats = ({ category, __kind, subtypes }: FeatsProps) => {
+  const featStore = useFeatStore()
 
+  const form = useAppForm({
+    defaultValues: FeatureFeatInputSchema.parse(featStore.current),
+  })
+
+  const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'feat' })
+
+  const { AppField, Subscribe } = form
   const { attributes } = useSystemData()
   const { feats } = useFeatData()
 
-  const { subtypeSpecific, providesOptions, hasPrerequisites } = useEnumChecks({
-    data: data,
-  })
+  const { getAttributes } = useEnumChecks()
 
   return (
     <Grid>
-      <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-        <Dropdown
-          multiSelect={true}
-          name='attributes'
-          options={attributes.filter(
-            (attribute) =>
-              attribute.sections?.length &&
-              (attribute.sections.includes(Sections.ALL) ||
-                ((formStore.data as Class).category === Categories.SUBCLASS &&
-                  attribute.sections.includes(Sections.SUBCLASS)))
-          )}
-          label={`${startCase('feat')} Attributes`}
-          value={data?.attributes}
-          onChange={{ updateField, removeField }}
-        />
-      </Grid.Col>
-      <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-        <Dropdown
-          name='feats'
-          multiSelect={true}
-          label='Feat'
-          value={data?.feats}
-          options={feats}
-          required={true}
-          onChange={{ updateField, removeField }}
-        />
-      </Grid.Col>
-      {subtypeSpecific &&
-        formStore.data.__typename === 'Class' &&
-        formStore.data.category === Categories.SUBCLASS &&
-        formStore.data?.subtypes?.length && (
-          <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-            <Dropdown
-              name='subtype'
-              label='Subtype'
-              value={data?.subtype}
-              options={formStore.data?.subtypes}
-              required={true}
-              onChange={{ updateField, removeField }}
+      <AppField name='attributes' listeners={fieldListeners}>
+        {({ DropdownField }) => (
+          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+            <DropdownField
+              multiselect={true}
+              options={attributes.filter(
+                (attribute) =>
+                  attribute?.sections?.length &&
+                  (attribute.sections.includes(Sections.SPELL) ||
+                    attribute.sections.includes(Sections.ALL) ||
+                    (category === Categories.SUBCLASS && attribute.sections.includes(Sections.SUBCLASS)))
+              )}
+              label='Attributes'
             />
           </Grid.Col>
         )}
-      {providesOptions && (
-        <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-          <Input
-            validation='num'
-            name='selectionCount'
-            label='# of Selections'
-            autoComplete='off'
-            value={data?.selectionCount}
-            errorMsg='Must contain only numbers'
-            required={true}
-            onChange={{ updateField }}
-          />
-        </Grid.Col>
-      )}
-      {hasPrerequisites && (
-        <Grid.Col>
-          <Prerequisites formStore={sectionStore} />
-        </Grid.Col>
-      )}
+      </AppField>
+      <AppField
+        name='feats'
+        validators={fieldValidators({
+          onBlur: 'Select at least one feat',
+        })}
+        listeners={fieldListeners}
+      >
+        {({ DropdownField }) => (
+          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+            <DropdownField multiselect={true} options={feats} label='Feats' required={true} />
+          </Grid.Col>
+        )}
+      </AppField>
+      <Subscribe selector={(store) => store.values.attributes}>
+        {(formAttributes) => {
+          const { subtypeSpecific, providesOptions, hasPrerequisites } = getAttributes({ attributes: formAttributes })
+          return (
+            <>
+              {subtypeSpecific && __kind === 'ClassInput' && category === Categories.SUBCLASS && subtypes?.length && (
+                <AppField
+                  name='subtype'
+                  validators={fieldValidators({
+                    onBlur: 'Select a subtype',
+                  })}
+                  listeners={fieldListeners}
+                >
+                  {({ DropdownField }) => (
+                    <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                      <DropdownField options={feats} label='Subtype' required={true} />
+                    </Grid.Col>
+                  )}
+                </AppField>
+              )}
+              {providesOptions && (
+                <AppField
+                  name='selectionCount'
+                  validators={fieldValidators({
+                    onBlur: 'Enter a selection amount allowed',
+                    onChange: { type: 'integer', name: 'Selection amount', min: 1 },
+                  })}
+                  listeners={fieldListeners}
+                >
+                  {({ TextField }) => (
+                    <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                      <TextField label='# of Selections' required={true} />
+                    </Grid.Col>
+                  )}
+                </AppField>
+              )}
+              {hasPrerequisites && (
+                <Grid.Col>
+                  <Prerequisites
+                    form={form}
+                    fields='prerequisites'
+                    __kind='FeatureFeatInput'
+                    updateFn={featStore.updateField}
+                    removeFn={featStore.removeField}
+                  />
+                </Grid.Col>
+              )}
+            </>
+          )
+        }}
+      </Subscribe>
     </Grid>
   )
 }

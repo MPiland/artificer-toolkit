@@ -1,26 +1,23 @@
 import type {
-  DeepKeyOf,
-  Character,
   FormDataType,
   SystemInput,
   SpellInput,
-  CharacterFeatureInput,
   FeatureInput,
-  AncestryFeatureInput,
   CharacterFeatureOptionInput,
   CharacterEquipmentObjectInput,
   FeatureOptionInput,
-  AncestryFeature,
-  Feature,
+  CharacterInput,
 } from '@/types'
 import { useCallback, useMemo } from 'react'
 import { getKeyFromId, sourcePropertyMap } from '@/components/Form'
 import { useClassData, useRaceData, useFeatData, useEquipmentData, useBackgroundData } from '@/hooks'
 import { Prerequisites, Attributes } from '@/enums'
 import { CamelCase } from 'type-fest'
-import { AncestryFeatureInputSchema, FeatureInputSchema } from '@/schemas'
+import { FeatureInputSchema, FeatureOptionInputSchema } from '@/schemas'
+import useFeatureData from './useFeatureData'
+import type { DeepKeys } from '@tanstack/react-form'
 
-export interface FactoryFeature extends Omit<FeatureInput | AncestryFeatureInput, 'options'> {
+export interface FactoryFeature extends Omit<FeatureInput, 'options'> {
   level?: number
   classId?: string
   backgroundId?: string
@@ -34,11 +31,14 @@ export interface FactoryFeature extends Omit<FeatureInput | AncestryFeatureInput
 export interface GetFeatureOptionsProps {
   feature: FactoryFeature
   optionIndex: string
+  features: CharacterInput['features']
+  abilities?: CharacterInput['abilities']
+  spellcasting?: CharacterInput['spellcasting']
 }
 
 export interface GetFeatureOptionsResult<T> {
-  options: Array<{ id: string; label: string; value: string }>
-  path: DeepKeyOf<T> | null
+  options: { id: string; label: string }[]
+  path: `features${DeepKeys<T>}`
   exist?: string // Making this optional since it might not always be set
 }
 
@@ -48,25 +48,29 @@ type PrerequisiteProcessor = {
     feature,
     optionIndex,
   }: {
+    features?: CharacterInput['features']
+    abilities?: CharacterInput['abilities']
+    spellcasting?: CharacterInput['spellcasting']
     option: FeatureOptionInput
     feature?: FactoryFeature
     optionIndex?: string
   }) => boolean
 }
 
-const useGetFeatures = ({ data }: { data: Exclude<FormDataType, SystemInput | SpellInput> }) => {
+const useGetFeatures = () => {
   const { classes } = useClassData()
   const { races } = useRaceData()
   const { feats } = useFeatData()
   const { equipment } = useEquipmentData()
   const { backgrounds } = useBackgroundData()
+  const { features: featureData, featureOptions, ancestryOptions } = useFeatureData()
 
   const prerequisiteProcessors: PrerequisiteProcessor = {
-    optionNotObtained: ({ option, feature, optionIndex }): boolean => {
-      if (data?.__kind !== 'CharacterInput' || !feature) return true
+    optionNotObtained: ({ features, option, feature, optionIndex }): boolean => {
+      if (!feature) return true
       // Get already selected options
       const alreadySelectedOptions =
-        data?.features
+        features
           ?.filter((f) => f.id === feature.id && f.options?.length)
           .flatMap((f) =>
             f.options?.filter((o) => !(o.optionIndex === optionIndex && o.id === option.id)).map((o) => o.id)
@@ -75,20 +79,19 @@ const useGetFeatures = ({ data }: { data: Exclude<FormDataType, SystemInput | Sp
       return !alreadySelectedOptions.includes(option.id)
     },
 
-    optionsObtained: ({ option, feature }): boolean => {
+    optionsObtained: ({ features, option, feature }): boolean => {
       if (!feature || !option?.prerequisites?.optionsObtained?.length) return true
       return option?.prerequisites?.optionsObtained?.some((o) =>
-        data?.features?.filter((f) => f.id === feature.id).flatMap((f) => f.options?.some((fO) => fO.id === o))
+        features?.filter((f) => f.id === feature.id).flatMap((f) => f.options?.some((fO) => fO.id === o))
       )
     },
 
-    featuresObtained: ({ option }): boolean => {
+    featuresObtained: ({ features, option }): boolean => {
       if (!option?.prerequisites?.featuresObtained?.length) return true
-      return option?.prerequisites?.featuresObtained?.some((fO) => data?.features?.some((f) => f.id === fO))
+      return option?.prerequisites?.featuresObtained?.some((fO) => features?.some((f) => f.id === fO))
     },
 
-    abilityScore: ({ option }): boolean => {
-      if (data?.__kind !== 'CharacterInput') return true
+    abilityScore: ({ abilities, option }): boolean => {
       // Get the required abilities and score
       const requiredAbilities = option?.prerequisites?.abilityScore?.abilities
       const requiredScore = option?.prerequisites?.abilityScore?.score
@@ -97,43 +100,57 @@ const useGetFeatures = ({ data }: { data: Exclude<FormDataType, SystemInput | Sp
 
       // Check if every required ability meets the minimum score
       return requiredAbilities.every((ability): boolean => {
-        const abilityScore = data?.abilities?.scores?.find((s) => s.ability === ability)?.calculatedScore || 0
+        const abilityScore = abilities?.scores?.find((s) => s.ability === ability)?.calculatedScore || 0
         return abilityScore >= requiredScore
       })
     },
 
-    spellsObtained: ({ option }): boolean => {
-      if (!option?.prerequisites?.spellsObtained?.length || data?.__kind !== 'CharacterInput') return true
+    spellsObtained: ({ spellcasting, option }): boolean => {
+      if (!option?.prerequisites?.spellsObtained?.length) return true
 
       // Check for the spell in all possible locations
       const inKnown =
-        data?.spellcasting?.known?.some((s) =>
+        spellcasting?.known?.some((s) =>
           s.spells?.some((spell) => option?.prerequisites?.spellsObtained?.includes(spell.id))
         ) || false
 
       const inPrepared =
-        data?.spellcasting?.prepared?.some((s) =>
+        spellcasting?.prepared?.some((s) =>
           s.spells?.some((spell) => option?.prerequisites?.spellsObtained?.includes(spell.id))
         ) || false
 
       const inAdditional =
-        data?.spellcasting?.additional?.some((spell) => option?.prerequisites?.spellsObtained?.includes(spell.id)) ||
-        false
+        spellcasting?.additional?.some((spell) => option?.prerequisites?.spellsObtained?.includes(spell.id)) || false
 
       return inKnown || inPrepared || inAdditional
     },
   }
 
-  const filterOptionsByPrerequisites = (
-    options: Array<{ id: string; label: string; value: string }>,
-    feature: FactoryFeature,
+  const filterOptionsByPrerequisites = ({
+    features,
+    abilities,
+    spellcasting,
+    feature,
+    optionIndex,
+    options,
+  }: {
+    options: Array<{ id: string; label: string }>
+    feature: FactoryFeature
     optionIndex: string
-  ): { id: string; label: string; value: string }[] => {
+    features?: CharacterInput['features']
+    abilities?: CharacterInput['abilities']
+    spellcasting?: CharacterInput['spellcasting']
+  }): { id: string; label: string }[] => {
     return options.filter((option) => {
-      const fullFeature = getFullFeature(feature)
-      const fullOption = fullFeature?.options?.find((o) => o.id === option.id)
+      const fullFeature = featureData.findFeature(feature.id)
+      const fullOption = featureOptions?.findFeatureOption(option.id)
 
-      if (!fullOption?.prerequisites || !fullOption?.prerequisites?.options?.length) return true
+      if (
+        !fullOption?.prerequisites ||
+        !fullOption?.prerequisites?.options?.length ||
+        !fullFeature?.options?.includes(fullOption.id)
+      )
+        return true
 
       return fullOption.prerequisites?.options?.every((prereqOption) => {
         const prereq = getKeyFromId(prereqOption, Prerequisites)
@@ -142,101 +159,66 @@ const useGetFeatures = ({ data }: { data: Exclude<FormDataType, SystemInput | Sp
           return true
         }
 
-        return prerequisiteProcessors[prereq]({ option: fullOption, feature, optionIndex })
+        const optionInput = FeatureOptionInputSchema.parse(fullOption)
+
+        return prerequisiteProcessors[prereq]({
+          features,
+          abilities,
+          spellcasting,
+          option: optionInput,
+          feature,
+          optionIndex,
+        })
       })
     })
   }
 
-  const getFullFeature = useCallback(
-    (feature: CharacterFeatureInput | FactoryFeature): FeatureInput | AncestryFeatureInput | null | undefined => {
-      if (data?.__kind !== 'CharacterInput') return null
+  const getFeatureOptions = ({
+    features,
+    abilities,
+    spellcasting,
+    feature,
+    optionIndex,
+  }: GetFeatureOptionsProps): GetFeatureOptionsResult<NonNullable<CharacterInput['features']>> => {
+    const featureIndex =
+      features?.findIndex((f) => {
+        return f.id === feature.id && f.level === feature.level
+      }) || 0
+    const existIndex = features?.[featureIndex]?.options?.findIndex(
+      (o) => o.optionIndex === optionIndex && feature.level === o.featureLevel
+    )
 
-      if (feature?.classId) {
-        const classFeature =
-          FeatureInputSchema.parse(classes?.findClass(feature.classId)?.features?.find((f) => f.id === feature.id)) ||
-          null
-        return classFeature
-      }
-      if (feature?.raceId) {
-        const raceFeature =
-          FeatureInputSchema.parse(races.findRace(feature.raceId)?.features?.find((f) => f?.id === feature?.id)) || null
-        return raceFeature
-      }
-      if (feature?.ancestryId) {
-        const ancestryFeature =
-          AncestryFeatureInputSchema.parse(
-            races
-              .findRace(data?.race)
-              ?.ancestry?.options?.find((a) => a?.id === feature?.ancestryId)
-              ?.features?.find((f) => f.id === feature.id)
-          ) || null
-        return ancestryFeature
-      }
-      if (feature?.backgroundId) {
-        const backgroundFeature =
-          FeatureInputSchema.parse(
-            backgrounds?.findBackground(feature.backgroundId)?.features?.find((f) => f.id === feature.id)
-          ) || null
-        return backgroundFeature
-      }
-      if (feature?.featId) {
-        const featFeature =
-          FeatureInputSchema.parse(feats?.findFeat(feature.featId)?.features?.find((f) => f.id === feature.id)) || null
-        return featFeature
-      }
-      if (feature?.equipmentId) {
-        const equipmentFeature =
-          FeatureInputSchema.parse(
-            equipment?.findEquipment(feature.equipmentId)?.features?.find((f) => f.id === feature.id)
-          ) || null
-        return equipmentFeature
-      }
-    },
-    [classes, races, backgrounds, feats, equipment, data]
-  )
+    const featureOptionIndex =
+      existIndex && existIndex > -1 ? existIndex : features?.[featureIndex]?.options?.length || 0
 
-  const getFeatureOptions = ({ feature, optionIndex }: GetFeatureOptionsProps): GetFeatureOptionsResult<Character> => {
-    if (data?.__kind === 'CharacterInput') {
-      const featureIndex =
-        data?.features?.findIndex((f) => {
-          return f.id === feature.id && f.level === feature.level
-        }) || 0
-      const existIndex = data?.features?.[featureIndex]?.options?.findIndex(
-        (o) => o.optionIndex === optionIndex && feature.level === o.featureLevel
-      )
+    const exist = existIndex && existIndex > -1 ? features?.[featureIndex]?.options?.[existIndex] : null
 
-      const featureOptionIndex =
-        existIndex && existIndex > -1 ? existIndex : data?.features?.[featureIndex]?.options?.length || 0
+    const path: `features${DeepKeys<NonNullable<CharacterInput['features']>>}` = `features[${featureIndex}].options[${featureOptionIndex}]`
 
-      const exist = existIndex && existIndex > -1 ? data?.features?.[featureIndex]?.options?.[existIndex] : null
+    const fullFeature = featureData.findFeature(feature.id)
 
-      const path: DeepKeyOf<Character> = `features.${featureIndex}.options.${featureOptionIndex}`
+    // Map options to our expected format
+    let options =
+      fullFeature?.options?.map((option) => {
+        const optionInput = FeatureInputSchema.parse(featureOptions.findFeatureOption(option))
+        return {
+          id: optionInput.id!,
+          label: optionInput.label || 'Option',
+        }
+      }) || []
 
-      const fullFeature = getFullFeature(feature)
-
-      // Map options to our expected format
-      let options =
-        fullFeature?.options?.map((option) => ({
-          id: option.id!,
-          label: option.label || 'Option',
-          value: option.value || 'option',
-        })) || []
-
-      // Filter options based on prerequisites
-      if (options?.length) {
-        // Filter the options
-        options = filterOptionsByPrerequisites(options, feature, optionIndex)
-      }
-
-      return { path, exist: exist?.id, options }
+    // Filter options based on prerequisites
+    if (options?.length) {
+      // Filter the options
+      options = filterOptionsByPrerequisites({ features, abilities, spellcasting, options, feature, optionIndex })
     }
 
-    return { path: null, options: [] }
+    return { path, exist: exist?.id, options }
   }
 
   const featureProcessor = useMemo(() => {
     return {
-      classes: (): FactoryFeature[] => {
+      classes: ({ data }: { data: Exclude<FormDataType, SystemInput | SpellInput> }): FactoryFeature[] => {
         if (data?.__kind !== 'CharacterInput' || !data?.classes || !data?.classes?.length) return []
 
         const features: FactoryFeature[] = []
@@ -245,8 +227,10 @@ const useGetFeatures = ({ data }: { data: Exclude<FormDataType, SystemInput | Sp
           data?.features
             ?.filter((feature) => feature?.classId && sourcePropertyMap(data).classId(feature?.classId))
             .map((eF) => {
-              const fullFeature = FeatureInputSchema.parse(getFullFeature(eF))
-              if (fullFeature) {
+              const featureState = featureData.findFeature(eF.id)
+
+              if (featureState) {
+                const fullFeature = FeatureInputSchema.omit({ options: true }).parse(featureState)
                 // Convert null to undefined for level
                 const level = eF.level === null ? undefined : eF.level
 
@@ -276,12 +260,16 @@ const useGetFeatures = ({ data }: { data: Exclude<FormDataType, SystemInput | Sp
           fullClass?.features?.forEach((feature) => {
             let levels: (number | string)[] = []
 
-            if (feature?.levelAvailable) {
-              levels = feature?.levelAvailable?.split(/\s*,\s*/)
+            const featureState = featureData.findFeature(feature)
+
+            if (!featureState) return
+
+            if (featureState?.levelAvailable) {
+              levels = featureState?.levelAvailable?.split(/\s*,\s*/)
             }
 
-            if (feature?.optionsByLevel?.length) {
-              const filteredFeatureOptions = feature?.optionsByLevel?.filter(
+            if (featureState?.optionsByLevel?.length) {
+              const filteredFeatureOptions = featureState?.optionsByLevel?.filter(
                 (o) => o.level !== null && o.level !== undefined
               )
               levels = filteredFeatureOptions.map((o) => o.level as number)
@@ -292,14 +280,14 @@ const useGetFeatures = ({ data }: { data: Exclude<FormDataType, SystemInput | Sp
                 if (
                   !existingFeatures?.some(
                     (existingFeature) =>
-                      existingFeature.id === feature.id &&
+                      existingFeature.id === featureState.id &&
                       existingFeature.level === Number(featureLevel) &&
                       existingFeature.classId === fullClass.id
                   )
                 ) {
                   const featureInput = FeatureInputSchema.omit({ options: true }).parse({
-                    ...feature,
-                    id: feature.id,
+                    ...featureState,
+                    id: featureState.id,
                     classId: fullClass.id,
                     level: Number(featureLevel),
                     options: null,
@@ -316,12 +304,16 @@ const useGetFeatures = ({ data }: { data: Exclude<FormDataType, SystemInput | Sp
             fullSubclass?.features?.forEach((feature) => {
               let levels: (number | string)[] = []
 
-              if (feature?.levelAvailable) {
-                levels = feature?.levelAvailable?.split(/\s*,\s*/)
+              const featureState = featureData.findFeature(feature)
+
+              if (!featureState) return
+
+              if (featureState?.levelAvailable) {
+                levels = featureState?.levelAvailable?.split(/\s*,\s*/)
               }
 
-              if (feature?.optionsByLevel?.length) {
-                const filteredFeatureOptions = feature?.optionsByLevel?.filter(
+              if (featureState?.optionsByLevel?.length) {
+                const filteredFeatureOptions = featureState?.optionsByLevel?.filter(
                   (o) => o.level !== null && o.level !== undefined
                 )
                 levels = filteredFeatureOptions.map((o) => o.level as number)
@@ -332,14 +324,14 @@ const useGetFeatures = ({ data }: { data: Exclude<FormDataType, SystemInput | Sp
                   if (
                     !existingFeatures?.some(
                       (existingFeature) =>
-                        existingFeature.id === feature.id &&
+                        existingFeature.id === featureState.id &&
                         existingFeature.level === Number(featureLevel) &&
                         existingFeature.classId === fullSubclass.id
                     )
                   ) {
                     const featureInput = FeatureInputSchema.omit({ options: true }).parse({
-                      ...feature,
-                      id: feature.id,
+                      ...featureState,
+                      id: featureState.id,
                       classId: fullSubclass.id,
                       level: Number(featureLevel),
                       options: null,
@@ -354,7 +346,7 @@ const useGetFeatures = ({ data }: { data: Exclude<FormDataType, SystemInput | Sp
 
         return features
       },
-      race: (): FactoryFeature[] => {
+      race: ({ data }: { data: Exclude<FormDataType, SystemInput | SpellInput> }): FactoryFeature[] => {
         if (data?.__kind !== 'CharacterInput' || !data?.race) return []
 
         const fullRace = races.findRace(data?.race)
@@ -363,12 +355,15 @@ const useGetFeatures = ({ data }: { data: Exclude<FormDataType, SystemInput | Sp
 
         const features: FactoryFeature[] = []
 
-        const existingFeatures =
+        const existingFeatures: FactoryFeature[] =
           data?.features
             ?.filter((feature) => feature?.raceId && sourcePropertyMap(data).raceId(feature?.raceId))
             .map((eF) => {
-              const fullFeature = FeatureInputSchema.parse(getFullFeature(eF))
-              if (fullFeature) {
+              const featureState = featureData.findFeature(eF.id)
+
+              if (featureState) {
+                const fullFeature = FeatureInputSchema.omit({ options: true }).parse(featureState)
+
                 // Convert null to undefined for level
                 const level = eF.level === null ? undefined : eF.level
 
@@ -392,13 +387,14 @@ const useGetFeatures = ({ data }: { data: Exclude<FormDataType, SystemInput | Sp
 
         features.push(...existingFeatures)
         fullRace.features?.forEach((feature) => {
+          const featureState = featureData.findFeature(feature)
           if (
             !existingFeatures?.some(
-              (existingFeature) => existingFeature.id === feature.id && existingFeature?.raceId === fullRace.id
+              (existingFeature) => existingFeature.id === featureState?.id && existingFeature?.raceId === fullRace.id
             )
           ) {
             const featureInput = FeatureInputSchema.omit({ options: true }).parse({
-              ...feature,
+              ...featureState,
               raceId: fullRace?.id,
               options: null,
             })
@@ -408,17 +404,19 @@ const useGetFeatures = ({ data }: { data: Exclude<FormDataType, SystemInput | Sp
 
         return features
       },
-      ancestry: (): FactoryFeature[] => {
+      ancestry: ({ data }: { data: Exclude<FormDataType, SystemInput | SpellInput> }): FactoryFeature[] => {
         if (data?.__kind !== 'CharacterInput' || !data?.race) return []
 
         const features: FactoryFeature[] = []
 
-        const existingFeatures =
+        const existingFeatures: FactoryFeature[] =
           data?.features
             ?.filter((feature) => feature?.ancestryId && sourcePropertyMap(data).ancestryId(feature?.ancestryId))
             .map((eF) => {
-              const fullFeature = FeatureInputSchema.parse(getFullFeature(eF))
-              if (fullFeature) {
+              const featureState = featureData.findFeature(eF.id)
+
+              if (featureState) {
+                const fullFeature = FeatureInputSchema.omit({ options: true }).parse(featureState)
                 // Convert null to undefined for level
                 const level = eF.level === null ? undefined : eF.level
 
@@ -442,18 +440,22 @@ const useGetFeatures = ({ data }: { data: Exclude<FormDataType, SystemInput | Sp
 
         features.push(...existingFeatures)
 
-        const fullAncestry = races?.findRace(data?.race)?.ancestry?.options?.find((a) => a?.id === data?.ancestry?.id)
+        const fullAncestry = ancestryOptions.findAncestryOption(data?.ancestry?.id)
 
         if (fullAncestry) {
-          fullAncestry.features?.forEach((feature) => {
+          fullAncestry.features?.forEach((f) => {
+            const featureState = featureData.findFeature(f)
+
+            if (!featureState) return
+
             if (
               !existingFeatures?.some(
                 (existingFeature) =>
-                  existingFeature?.id === feature?.id && existingFeature?.ancestryId === fullAncestry?.id
+                  existingFeature?.id === featureState?.id && existingFeature?.ancestryId === fullAncestry?.id
               )
             ) {
               const featureInput = FeatureInputSchema.omit({ options: true }).parse({
-                ...feature,
+                ...featureState,
                 ancestryId: fullAncestry?.id,
                 options: null,
               })
@@ -464,17 +466,19 @@ const useGetFeatures = ({ data }: { data: Exclude<FormDataType, SystemInput | Sp
 
         return features
       },
-      equipment: (): FactoryFeature[] => {
+      equipment: ({ data }: { data: Exclude<FormDataType, SystemInput | SpellInput> }): FactoryFeature[] => {
         if (data?.__kind !== 'CharacterInput' || !data?.equipment || !data?.equipment?.inventory?.length) return []
 
         const features: FactoryFeature[] = []
 
-        const existingFeatures =
+        const existingFeatures: FactoryFeature[] =
           data?.features
             ?.filter((feature) => feature?.equipmentId && sourcePropertyMap(data).equipmentId(feature?.equipmentId))
             .map((eF) => {
-              const fullFeature = FeatureInputSchema.parse(getFullFeature(eF))
-              if (fullFeature) {
+              const featureState = featureData.findFeature(eF.id)
+
+              if (featureState) {
+                const fullFeature = FeatureInputSchema.omit({ options: true }).parse(featureState)
                 // Convert null to undefined for level
                 const level = eF.level === null ? undefined : eF.level
 
@@ -510,15 +514,17 @@ const useGetFeatures = ({ data }: { data: Exclude<FormDataType, SystemInput | Sp
               !attunementRequired ||
               (attunementRequired && data?.equipment?.attuned?.includes(featureEquipment.id))
             ) {
-              fullEquipment?.features?.forEach((feature) => {
+              fullEquipment?.features?.forEach((eF) => {
+                const fullFeature = FeatureInputSchema.parse(featureData.findFeature(eF))
+
                 if (
                   !existingFeatures?.some(
                     (existingFeature) =>
-                      existingFeature.id === feature.id && existingFeature.equipmentId === fullEquipment.id
+                      existingFeature.id === fullFeature.id && existingFeature.equipmentId === fullEquipment.id
                   )
                 ) {
                   const featureInput = FeatureInputSchema.omit({ options: true }).parse({
-                    ...feature,
+                    ...fullFeature,
                     equipmentId: fullEquipment?.id,
                     options: null,
                   })
@@ -535,17 +541,19 @@ const useGetFeatures = ({ data }: { data: Exclude<FormDataType, SystemInput | Sp
 
         return features
       },
-      feats: (): FactoryFeature[] => {
+      feats: ({ data }: { data: Exclude<FormDataType, SystemInput | SpellInput> }): FactoryFeature[] => {
         if (data?.__kind !== 'CharacterInput' || !data?.feats || !data?.feats?.length) return []
 
         const features: FactoryFeature[] = []
 
-        const existingFeatures =
+        const existingFeatures: FactoryFeature[] =
           data?.features
             ?.filter((feature) => feature?.featId && sourcePropertyMap(data).featId(feature?.featId))
             .map((eF) => {
-              const fullFeature = FeatureInputSchema.parse(getFullFeature(eF))
-              if (fullFeature) {
+              const featureState = featureData.findFeature(eF.id)
+
+              if (featureState) {
+                const fullFeature = FeatureInputSchema.omit({ options: true }).parse(featureState)
                 // Convert null to undefined for level
                 const level = eF.level === null ? undefined : eF.level
 
@@ -574,13 +582,17 @@ const useGetFeatures = ({ data }: { data: Exclude<FormDataType, SystemInput | Sp
 
           if (fullFeat) {
             fullFeat.features?.forEach((feature) => {
+              const featureState = featureData.findFeature(feature)
+
+              if (!featureState) return
+
               if (
                 !existingFeatures?.some(
-                  (existingFeature) => existingFeature.id === feature.id && existingFeature.featId === fullFeat.id
+                  (existingFeature) => existingFeature.id === featureState.id && existingFeature.featId === fullFeat.id
                 )
               ) {
                 const featureInput = FeatureInputSchema.omit({ options: true }).parse({
-                  ...feature,
+                  ...featureState,
                   featId: fullFeat?.id,
                   options: null,
                 })
@@ -591,17 +603,19 @@ const useGetFeatures = ({ data }: { data: Exclude<FormDataType, SystemInput | Sp
         })
         return features
       },
-      background: (): FactoryFeature[] => {
+      background: ({ data }: { data: Exclude<FormDataType, SystemInput | SpellInput> }): FactoryFeature[] => {
         if (data?.__kind !== 'CharacterInput' || !data?.background) return []
 
         const features: FactoryFeature[] = []
 
-        const existingFeatures =
+        const existingFeatures: FactoryFeature[] =
           data?.features
             ?.filter((feature) => feature?.backgroundId && sourcePropertyMap(data).backgroundId(feature?.backgroundId))
             .map((eF) => {
-              const fullFeature = FeatureInputSchema.parse(getFullFeature(eF))
-              if (fullFeature) {
+              const featureState = featureData.findFeature(eF.id)
+
+              if (featureState) {
+                const fullFeature = FeatureInputSchema.omit({ options: true }).parse(featureState)
                 // Convert null to undefined for level
                 const level = eF.level === null ? undefined : eF.level
 
@@ -628,14 +642,18 @@ const useGetFeatures = ({ data }: { data: Exclude<FormDataType, SystemInput | Sp
         const fullBackground = backgrounds?.findBackground(data?.background)
 
         fullBackground?.features?.forEach((feature) => {
+          const featureState = featureData.findFeature(feature)
+
+          if (!featureState) return
+
           if (
             !existingFeatures?.some(
               (existingFeature) =>
-                existingFeature.id === feature.id && existingFeature.backgroundId === fullBackground?.id
+                existingFeature.id === featureState.id && existingFeature.backgroundId === fullBackground?.id
             )
           ) {
             const featureInput = FeatureInputSchema.omit({ options: true }).parse({
-              ...feature,
+              ...featureState,
               backgroundId: fullBackground?.id,
               options: null,
             })
@@ -645,7 +663,7 @@ const useGetFeatures = ({ data }: { data: Exclude<FormDataType, SystemInput | Sp
 
         return features
       },
-      base: (): FactoryFeature[] => {
+      base: ({ data }: { data: Exclude<FormDataType, SystemInput | SpellInput> }): FactoryFeature[] => {
         if (!data?.features || data?.features?.length === 0 || data?.__kind === 'CharacterInput') return []
 
         const features: FactoryFeature[] = []
@@ -653,10 +671,11 @@ const useGetFeatures = ({ data }: { data: Exclude<FormDataType, SystemInput | Sp
         if (data?.features?.length) {
           if (data?.__kind === 'ClassInput') {
             data?.features?.forEach((feature) => {
-              const levels = feature?.levelAvailable?.split(',')
+              const featureState = FeatureInputSchema.parse(featureData.findFeature(feature))
+              const levels = featureState?.levelAvailable?.split(',')
               levels?.forEach((level) => {
                 features.push({
-                  ...feature,
+                  ...featureState,
                   level: parseInt(level),
                   options: null,
                 })
@@ -665,7 +684,8 @@ const useGetFeatures = ({ data }: { data: Exclude<FormDataType, SystemInput | Sp
           } else {
             features.push(
               ...data.features.map((feature) => {
-                const featureObj: FactoryFeature = { ...feature, options: null }
+                const featureState = FeatureInputSchema.parse(featureData.findFeature(feature))
+                const featureObj: FactoryFeature = { ...featureState, options: null }
                 return featureObj
               })
             )
@@ -679,8 +699,9 @@ const useGetFeatures = ({ data }: { data: Exclude<FormDataType, SystemInput | Sp
                   lineage?.features?.length &&
                   features.push(
                     ...lineage.features.map((feature) => {
+                      const featureState = featureData.findFeature(feature)
                       const featureObj: FactoryFeature = FeatureInputSchema.omit({ options: true }).parse({
-                        ...feature,
+                        ...featureState,
                         options: null,
                       })
                       return featureObj
@@ -695,17 +716,20 @@ const useGetFeatures = ({ data }: { data: Exclude<FormDataType, SystemInput | Sp
         return features
       },
     }
-  }, [data, backgrounds, classes, feats, equipment, races, getFullFeature])
+  }, [backgrounds, classes, feats, equipment, races, ancestryOptions, featureData])
 
-  const createFeatures = useCallback((): FactoryFeature[] => {
-    let features: FactoryFeature[] = []
-    Object.values(featureProcessor).forEach((processor) => {
-      features = [...features, ...processor()]
-    })
+  const createFeatures = useCallback(
+    ({ data }: { data: Exclude<FormDataType, SystemInput | SpellInput> }): FactoryFeature[] => {
+      let features: FactoryFeature[] = []
+      Object.values(featureProcessor).forEach((processor) => {
+        features = [...features, ...processor({ data })]
+      })
 
-    return features
-  }, [featureProcessor])
+      return features
+    },
+    [featureProcessor]
+  )
 
-  return { createFeatures, getFeatureOptions, getFullFeature, sourcePropertyMap }
+  return { createFeatures, getFeatureOptions, sourcePropertyMap }
 }
 export default useGetFeatures

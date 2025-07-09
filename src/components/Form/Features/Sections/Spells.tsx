@@ -1,39 +1,54 @@
 import { useEffect, useState } from 'react'
-import Dropdown from '@/components/Dropdown'
-import Input from '@/components/Input'
-import { use } from 'react'
-import { FormContext } from '../../FormContext'
-import { FeatureContext } from '../FeatureContext'
 import { Categories, Sections } from '@/enums'
-import { useEnumChecks, useSystemData, useSpellData, useClassData } from '@/hooks'
-import Prerequisites from '../../Substeps/Prerequisites'
-import LimitUse from '../../Substeps/LimitUse'
-import type { SectionStore } from '@/store'
-import type { OnChange, Class, FeatureSpell, SpellListItem } from '@/types'
+import { useEnumChecks, useSystemData, useSpellData, useClassData, useFieldUpdates } from '@/hooks'
+import type { SpellListItem, SubtypeInput } from '@/types'
 import { Grid } from '@mantine/core'
+import { LimitUse, Prerequisites, useAppForm } from '@/components/Form'
+import { SpellsByLevelInputSchema, FeatureSpellInputSchema } from '@/schemas'
+import { useStore } from '@tanstack/react-form'
+import { useFormStore, useSpellStore } from '@/store'
 
-const Spells = () => {
-  const { formStore } = use(FormContext)
+type SpellsProps = {
+  category?: string
+  subtypes?: SubtypeInput[]
+}
 
-  const { sectionStore } = use(FeatureContext) as {
-    sectionStore: SectionStore<FeatureSpell>
-  }
+const Spells = ({ category, subtypes }: SpellsProps) => {
+  const spellStore = useSpellStore()
 
-  const {
-    data,
-    updateField,
-    removeField,
-    addField,
-  }: {
-    data: FeatureSpell
-    updateField: OnChange<FeatureSpell>['updateField']
-    removeField: OnChange<FeatureSpell>['removeField']
-    addField: OnChange<FeatureSpell>['addField']
-  } = sectionStore
+  const form = useAppForm({
+    defaultValues: FeatureSpellInputSchema.parse(spellStore.current),
+  })
+
+  const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'spell' })
+
+  const formStore = useFormStore()
+
+  const __kind = formStore.current?.__kind as
+    | 'ClassInput'
+    | 'RaceInput'
+    | 'EquipmentInput'
+    | 'BackgroundInput'
+    | 'FeatInput'
+
+  const { AppField } = form
+
+  const { formAttributes, formClassLimit, formLevelLimit, formAttributeLimit, formSpellsByLevel } = useStore(
+    form.store,
+    (state) => ({
+      formAttributes: state.values.attributes,
+      formClassLimit: state.values.classLimit,
+      formLevelLimit: state.values.levelLimit,
+      formAttributeLimit: state.values.attributeLimit,
+      formSpellsByLevel: state.values.spellsByLevel,
+    })
+  )
 
   const { attributes, abilities } = useSystemData()
   const { spells, metaData: spellMetaData } = useSpellData()
   const { classes } = useClassData()
+
+  const { getAttributes } = useEnumChecks()
 
   const {
     spellsByLevel,
@@ -46,8 +61,8 @@ const Spells = () => {
     hasPrerequisites,
     limitUse,
     providesOptions,
-  } = useEnumChecks({
-    data: data,
+  } = getAttributes({
+    attributes: formAttributes ?? [],
   })
 
   const [spellsArray, setSpellsArray] = useState<SpellListItem[]>([])
@@ -60,23 +75,23 @@ const Spells = () => {
       let meetsAttributeLimit: boolean = true
 
       // Check against classLimit filter
-      if (data?.classLimit?.length) {
+      if (formClassLimit?.length) {
         meetsClassLimit =
-          !data?.classLimit ||
-          data?.classLimit?.some((limit) =>
+          !formClassLimit ||
+          formClassLimit?.some((limit) =>
             spellMetaData.classes.find((c) => c.id === limit)?.spellIds?.includes(spell.id)
           )
       }
 
       // Check against levelLimit filter
-      if (data?.levelLimit?.length) {
-        meetsLevelLimit = data?.levelLimit?.includes(
+      if (formLevelLimit?.length) {
+        meetsLevelLimit = formLevelLimit?.includes(
           String(spellMetaData.levels?.find((level) => level.spellIds?.includes(spell.id))?.id)
         )
       }
 
-      if (data?.attributeLimit?.length) {
-        meetsAttributeLimit = data?.attributeLimit?.some((limitItem) =>
+      if (formAttributeLimit?.length) {
+        meetsAttributeLimit = formAttributeLimit?.some((limitItem) =>
           spellMetaData.attributes?.find((a) => a.id === limitItem)?.spellIds?.includes(spell.id)
         )
       }
@@ -86,147 +101,175 @@ const Spells = () => {
     })
 
     setSpellsArray(filteredSpells)
-  }, [spells, data?.classLimit, data?.levelLimit, data?.attributeLimit, spellMetaData])
+  }, [spells, formClassLimit, formLevelLimit, formAttributeLimit, spellMetaData])
 
   // Add/Remove Spells By Level Data
   useEffect(() => {
-    if (!spellsByLevel && data?.spellsByLevel) {
-      removeField({ path: 'spellsByLevel' })
+    if (!spellsByLevel && formSpellsByLevel) {
+      form.setFieldValue('spellsByLevel', undefined)
     }
-    if (spellsByLevel && !data?.spellsByLevel) {
-      addField({ path: 'spellsByLevel' })
+    if (spellsByLevel && !formSpellsByLevel) {
+      const spellsByLevelObject = SpellsByLevelInputSchema.parse({})
+      form.setFieldValue('spellsByLevel', [spellsByLevelObject])
     }
-  }, [data?.spellsByLevel, sectionStore, spellsByLevel, addField, removeField])
+  }, [formSpellsByLevel, spellsByLevel, form])
 
   return (
     <Grid>
-      <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-        <Dropdown
-          multiSelect={true}
-          name='attributes'
-          options={attributes.filter(
-            (attribute) =>
-              attribute?.sections?.length &&
-              (attribute.sections.includes(Sections.SPELL) ||
-                attribute.sections.includes(Sections.ALL) ||
-                ((formStore.data as Class)?.category === Categories.SUBCLASS &&
-                  attribute.sections.includes(Sections.SUBCLASS)))
-          )}
-          label='Spell Attributes'
-          value={data?.attributes}
-          onChange={{ updateField, removeField }}
-        />
-      </Grid.Col>
+      <AppField name='attributes' listeners={fieldListeners}>
+        {({ DropdownField }) => (
+          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+            <DropdownField
+              multiselect={true}
+              options={attributes.filter(
+                (attribute) =>
+                  attribute?.sections?.length &&
+                  (attribute.sections.includes(Sections.SPELL) ||
+                    attribute.sections.includes(Sections.ALL) ||
+                    (category === Categories.SUBCLASS && attribute.sections.includes(Sections.SUBCLASS)))
+              )}
+              label='Spell Attributes'
+            />
+          </Grid.Col>
+        )}
+      </AppField>
       {classLimit && (
-        <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-          <Dropdown
-            name='classLimit'
-            multiSelect={true}
-            label='Class Limit'
-            value={data?.classLimit}
-            options={classes}
-            required={true}
-            onChange={{ updateField, removeField }}
-          />
-        </Grid.Col>
+        <AppField
+          name='classLimit'
+          validators={fieldValidators({
+            onBlur: 'Select a class limit',
+          })}
+          listeners={fieldListeners}
+        >
+          {({ DropdownField }) => (
+            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+              <DropdownField multiselect={true} options={classes} label='Class Limit' required={true} />
+            </Grid.Col>
+          )}
+        </AppField>
       )}
       {levelLimit && (
-        <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-          <Dropdown
-            name='levelLimit'
-            label='Level Limit'
-            multiSelect={true}
-            value={data?.levelLimit}
-            options={spellMetaData?.levels.map((l) => ({
-              id: String(l.id),
-              label: l.id,
-              value: l.id,
-            }))}
-            required={true}
-            onChange={{ updateField, removeField }}
-          />
-        </Grid.Col>
+        <AppField
+          name='levelLimit'
+          validators={fieldValidators({
+            onBlur: 'Select a level limit',
+          })}
+          listeners={fieldListeners}
+        >
+          {({ DropdownField }) => (
+            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+              <DropdownField
+                multiselect={true}
+                options={spellMetaData?.levels.map((l) => ({
+                  id: String(l.id),
+                  label: l.id,
+                  value: l.id,
+                }))}
+                label='Level Limit'
+                required={true}
+              />
+            </Grid.Col>
+          )}
+        </AppField>
       )}
       {attributeLimit && (
-        <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-          <Dropdown
-            name='attributeLimit'
-            multiSelect={true}
-            label='Attribute'
-            value={data?.attributeLimit}
-            options={attributes.filter(
-              (attribute) => attribute?.sections?.length && attribute.sections.includes(Sections.SPELL)
-            )}
-            required={true}
-            onChange={{ updateField, removeField }}
-          />
-        </Grid.Col>
+        <AppField
+          name='attributeLimit'
+          validators={fieldValidators({
+            onBlur: 'Select an attribute limit',
+          })}
+          listeners={fieldListeners}
+        >
+          {({ DropdownField }) => (
+            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+              <DropdownField
+                multiselect={true}
+                options={attributes.filter(
+                  (attribute) => attribute?.sections?.length && attribute.sections.includes(Sections.SPELL)
+                )}
+                label='Attribute Limit'
+                required={true}
+              />
+            </Grid.Col>
+          )}
+        </AppField>
       )}
-      {subtypeSpecific && formStore.data.__typename === 'Class' && formStore.data?.subtypes?.length && (
-        <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-          <Dropdown
-            name='subtype'
-            label='Subtype'
-            value={data?.subtype}
-            options={formStore.data?.subtypes}
-            required={true}
-            onChange={{ updateField, removeField }}
-          />
-        </Grid.Col>
+      {subtypeSpecific && __kind === 'ClassInput' && subtypes?.length && (
+        <AppField
+          name='subtype'
+          validators={fieldValidators({
+            onBlur: 'Select a subtype',
+          })}
+          listeners={fieldListeners}
+        >
+          {({ DropdownField }) => (
+            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+              <DropdownField options={subtypes} label='Subtype' required={true} />
+            </Grid.Col>
+          )}
+        </AppField>
       )}
       {!spellsByLevel && (
         <>
-          {' '}
-          <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-            <Dropdown
-              name='ids'
-              multiSelect={true}
-              label='Spell'
-              value={data?.ids}
-              options={spellsArray}
-              required={true}
-              onChange={{ updateField, removeField }}
-            />
-          </Grid.Col>
+          <AppField
+            name='ids'
+            validators={fieldValidators({
+              onBlur: 'Select at least one spell',
+            })}
+            listeners={fieldListeners}
+          >
+            {({ DropdownField }) => (
+              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                <DropdownField multiselect={true} options={spellsArray} label='Spells' required={true} />
+              </Grid.Col>
+            )}
+          </AppField>
           {castAtLevel && (
-            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-              <Input
-                validation='num'
-                name='spellLevel'
-                label='Spell Level'
-                autoComplete='off'
-                value={data?.spellLevel}
-                errorMsg='Must contain only numbers'
-                required={true}
-                onChange={{ updateField }}
-              />
-            </Grid.Col>
+            <AppField
+              name='spellLevel'
+              validators={fieldValidators({
+                onBlur: 'Please set a spell level to cast the spell at',
+                onChange: { type: 'integer', name: 'Spell level', min: 1 },
+              })}
+              listeners={fieldListeners}
+            >
+              {({ TextField }) => (
+                <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                  <TextField label='Spell Level' required={true} />
+                </Grid.Col>
+              )}
+            </AppField>
           )}
           {optionalAbility && (
-            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-              <Dropdown
-                name='ability'
-                label='Ability'
-                value={data?.ability}
-                options={abilities}
-                required={true}
-                onChange={{ updateField, removeField }}
-              />
-            </Grid.Col>
+            <AppField
+              name='ability'
+              validators={fieldValidators({
+                onBlur: 'Select the optional ability',
+              })}
+              listeners={fieldListeners}
+            >
+              {({ DropdownField }) => (
+                <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                  <DropdownField options={abilities} label='Ability' required={true} />
+                </Grid.Col>
+              )}
+            </AppField>
           )}
           {providesOptions && (
-            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-              <Input
-                validation='num'
-                name={`selectionCount`}
-                label='# of Selections'
-                autoComplete='off'
-                value={data?.selectionCount}
-                errorMsg='Must contain only numbers'
-                required={true}
-                onChange={{ updateField }}
-              />
-            </Grid.Col>
+            <AppField
+              name='selectionCount'
+              validators={fieldValidators({
+                onBlur: 'Please set an amount of allowed selections',
+                onChange: { type: 'integer', name: 'Selection count', min: 1 },
+              })}
+              listeners={fieldListeners}
+            >
+              {({ TextField }) => (
+                <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                  <TextField label='# of Selections' required={true} />
+                </Grid.Col>
+              )}
+            </AppField>
           )}
         </>
       )}
@@ -234,60 +277,85 @@ const Spells = () => {
         <>
           <Grid.Col>
             <Grid>
-              <Grid.Col >Level</Grid.Col>
-              <Grid.Col >Spell</Grid.Col>
-              {castAtLevel && <Grid.Col >Die Value</Grid.Col>}
+              <Grid.Col>Level</Grid.Col>
+              <Grid.Col>Spell</Grid.Col>
+              {castAtLevel && <Grid.Col>Die Value</Grid.Col>}
             </Grid>
           </Grid.Col>
-          {data?.spellsByLevel?.map((setLevel, index) => (
-            <Grid.Col key={index}>
-              <Grid>
-                <Grid.Col >
-                  <Dropdown
-                    name={`spellsByLevel.${index}.level`}
-                    value={String(setLevel.level)}
-                    options={spells}
-                    errorMsg='Please enter a whole number'
-                    onChange={{ updateField, removeField }}
-                    required={true}
-                  />
+          <AppField name='spellsByLevel' mode='array'>
+            {({ state }) =>
+              state.value?.map((_, i) => (
+                <Grid.Col key={`${i}-spellsByLevel`}>
+                  <Grid>
+                    <AppField
+                      name={`spellsByLevel[${i}].level`}
+                      validators={fieldValidators({
+                        onBlur: 'Select a spell level',
+                      })}
+                      listeners={fieldListeners}
+                    >
+                      {({ DropdownField }) => (
+                        <Grid.Col>
+                          <DropdownField options={spells} required={true} />
+                        </Grid.Col>
+                      )}
+                    </AppField>
+                    <AppField
+                      name={`spellsByLevel[${i}].ids`}
+                      validators={fieldValidators({
+                        onBlur: 'Select at least one spell',
+                      })}
+                      listeners={fieldListeners}
+                    >
+                      {({ DropdownField }) => (
+                        <Grid.Col>
+                          <DropdownField multiselect={true} options={spells} required={true} />
+                        </Grid.Col>
+                      )}
+                    </AppField>
+                    {castAtLevel && (
+                      <AppField
+                        name={`spellsByLevel[${i}].spellLevel`}
+                        validators={fieldValidators({
+                          onBlur: 'Please set a spell level to cast the spell at',
+                          onChange: { type: 'integer', name: 'Spell level', min: 1 },
+                        })}
+                        listeners={fieldListeners}
+                      >
+                        {({ TextField }) => (
+                          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                            <TextField label='Spell Level' required={true} />
+                          </Grid.Col>
+                        )}
+                      </AppField>
+                    )}
+                  </Grid>
                 </Grid.Col>
-                <Grid.Col >
-                  <Dropdown
-                    name={`spellsByLevel.${index}.spells`}
-                    value={setLevel.spells}
-                    options={spells}
-                    errorMsg='Please enter a whole number'
-                    onChange={{ updateField, removeField }}
-                    required={true}
-                    multiSelect={true}
-                  />
-                </Grid.Col>
-                {castAtLevel && (
-                  <Grid.Col >
-                    <Dropdown
-                      name={`spellsByLevel.${index}.spellLevel`}
-                      value={String(setLevel.spellLevel)}
-                      options={spells}
-                      errorMsg='Please enter a valid die value'
-                      onChange={{ updateField, removeField }}
-                      required={true}
-                    />
-                  </Grid.Col>
-                )}
-              </Grid>
-            </Grid.Col>
-          ))}
+              ))
+            }
+          </AppField>
         </>
       )}
       {hasPrerequisites && (
         <Grid.Col>
-          <Prerequisites formStore={sectionStore} />
+          <Prerequisites
+            form={form}
+            fields='prerequisites'
+            __kind='FeatureSpellInput'
+            updateFn={spellStore.updateField}
+            removeFn={spellStore.removeField}
+          />
         </Grid.Col>
       )}
       {limitUse && (
         <Grid.Col>
-          <LimitUse formStore={sectionStore} />
+          <LimitUse
+            form={form}
+            fields='charges'
+            __kind='FeatureSpellInput'
+            updateFn={spellStore.updateField}
+            removeFn={spellStore.removeField}
+          />
         </Grid.Col>
       )}
     </Grid>

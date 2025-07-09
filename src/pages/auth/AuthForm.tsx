@@ -89,6 +89,7 @@ const AuthForm = () => {
           if (isSignUpResponse(result)) {
             return setFormMessage(result)
           } else {
+            console.log('error', result)
             return {
               form: {
                 error: result.error,
@@ -124,141 +125,142 @@ const AuthForm = () => {
   }, [registerPath, reset])
 
   return (
-    <form>
-      <Container
-        component='form'
-        onSubmit={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          handleSubmit()
-        }}
-        className={auth_container}
-      >
-        <Stack className={auth_wrapper}>
-          <Title ta='center' className={auth_title}>
-            Welcome {!registerPath ? 'back!' : 'to Artificer Toolkit!'}
-          </Title>
-          <Text className={auth_subtitle}>
-            {!registerPath ?
-              <>
-                {"Don't have an account yet? "}
-                <Link type='anchor' to={'/register'} className={auth_link}>
-                  Create account
-                </Link>
-              </>
-            : <>
-                Already have an account?{' '}
-                <Link type='anchor' to={'/login'} className={auth_link}>
-                  Login here
-                </Link>
-              </>
-            }
-          </Text>
-          <Paper withBorder shadow='md' p={30} radius='md'>
-            <Group grow mb='md' mt='md'>
-              <Button classNames={{ section: social_icon }} variant='default' leftSection={<IGoogle />} radius='xl'>
-                Google
-              </Button>
+    <Container
+      component='form'
+      onSubmit={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        handleSubmit()
+      }}
+      className={auth_container}
+    >
+      <Stack className={auth_wrapper}>
+        <Title ta='center' className={auth_title}>
+          Welcome {!registerPath ? 'back!' : 'to Artificer Toolkit!'}
+        </Title>
+        <Text className={auth_subtitle}>
+          {!registerPath ?
+            <>
+              {"Don't have an account yet? "}
+              <Link type='anchor' to={'/register'} className={auth_link}>
+                Create account
+              </Link>
+            </>
+          : <>
+              Already have an account?{' '}
+              <Link type='anchor' to={'/login'} className={auth_link}>
+                Login here
+              </Link>
+            </>
+          }
+        </Text>
+        <Paper withBorder shadow='md' p={30} radius='md'>
+          <Group grow mb='md' mt='md'>
+            <Button classNames={{ section: social_icon }} variant='default' leftSection={<IGoogle />} radius='xl'>
+              Google
+            </Button>
 
-              <Button classNames={{ section: social_icon }} variant='default' leftSection={<ITwitter />} radius='xl'>
-                Twitter
-              </Button>
-            </Group>
+            <Button classNames={{ section: social_icon }} variant='default' leftSection={<ITwitter />} radius='xl'>
+              Twitter
+            </Button>
+          </Group>
 
-            <Divider label='Or continue with email' labelPosition='center' my='lg' />
-            <Stack>
-              <form.Subscribe selector={(state) => [state.errorMap]}>
-                {([errorMap]) => {
-                  let errorMessage = ''
-                  if (errorMap?.onSubmit?.form?.message) {
-                    errorMessage = errorMap.onSubmit.form.message
-                  } else if (errorMap.onSubmit && 'message' in errorMap.onSubmit) {
-                    errorMessage = errorMap.onSubmit.message as string
-                  }
-                  return (
-                    errorMessage && (
-                      <Alert variant='light' color='red' icon={<Info />}>
-                        {errorMessage}
-                      </Alert>
-                    )
+          <Divider label='Or continue with email' labelPosition='center' my='lg' />
+          <Stack>
+            <form.Subscribe selector={(state) => [state.errorMap]}>
+              {([errorMap]) => {
+                let errorMessage = ''
+                if (errorMap?.onSubmit?.form?.message) {
+                  errorMessage = errorMap.onSubmit.form.message
+                } else if (errorMap.onSubmit && 'message' in errorMap.onSubmit) {
+                  errorMessage = errorMap.onSubmit.message as string
+                }
+                return (
+                  errorMessage && (
+                    <Alert variant='light' color='red' icon={<Info />}>
+                      {errorMessage}
+                    </Alert>
                   )
-                }}
-              </form.Subscribe>
-              {formMessage && (
-                <AuthSuccessHint
-                  successCode={formMessage.success}
-                  linkTo={formMessage.link}
-                  email={state.values.email}
+                )
+              }}
+            </form.Subscribe>
+            {formMessage && (
+              <AuthSuccessHint successCode={formMessage.success} linkTo={formMessage.link} email={state.values.email} />
+            )}
+            <form.Field
+              name='email'
+              validators={{
+                onBlur: ({ value }) =>
+                  value && /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(value) ?
+                    null
+                  : 'Enter a valid email address.',
+                onSubmit: ({ value }) => (!value || value === '') && 'Email is required',
+              }}
+            >
+              {(field) => (
+                <TextInput
+                  label='Email'
+                  placeholder='user@email.com'
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                  error={!field.state.meta.isValid && field.state.meta.errors.join(', ')}
+                  autoComplete='username'
                 />
               )}
-              <form.Field
-                name='email'
-                validators={{
-                  onSubmit: ({ value }) => (value && /^\S+@\S+$/.test(value) ? null : 'Enter a valid email address.'),
-                }}
-              >
+            </form.Field>
+            <form.Field
+              name='password'
+              validators={{
+                onBlur: ({ value }) =>
+                  value &&
+                  (value.length <= 8 ? 'Password should include at least 8-20 characters'
+                  : /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,20}$/.test(value) ? null
+                  : 'Password should include at least one uppercase letter, one number and one special character'),
+                onSubmit: ({ value }) => (!value || value === '') && 'Password is required',
+              }}
+            >
+              {(field) => (
+                <PasswordInput
+                  label='Password'
+                  placeholder='Password...'
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  error={!field.state.meta.isValid && field.state.meta.errors.join(', ')}
+                />
+              )}
+            </form.Field>
+            <Group justify='space-between'>
+              <form.Field name='persist'>
                 {(field) => (
-                  <TextInput
-                    label='Email'
-                    placeholder={'user@email.com'}
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    error={!field.state.meta.isValid && field.state.meta.errors.join(', ')}
-                    autoComplete='username'
+                  <Checkbox
+                    label='Remember me'
+                    checked={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.checked)}
+                    onBlur={field.handleBlur}
                   />
                 )}
               </form.Field>
-              <form.Field
-                name='password'
-                validators={{
-                  onSubmit: ({ value }) =>
-                    value &&
-                    (value.length <= 8 ? 'Password should include at least 8-20 characters'
-                    : /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,20}$/.test(value) ? null
-                    : 'Password should include at least one uppercase letter, one number and one special character'),
-                }}
-              >
-                {(field) => (
-                  <PasswordInput
-                    label='Password'
-                    placeholder='Password...'
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    error={!field.state.meta.isValid && field.state.meta.errors.join(', ')}
-                  />
-                )}
-              </form.Field>
-              <Group justify='space-between'>
-                <form.Field name='persist'>
-                  {(field) => (
-                    <Checkbox
-                      label='Remember me'
-                      checked={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.checked)}
-                      onBlur={field.handleBlur}
-                    />
-                  )}
-                </form.Field>
-                {!registerPath && (
-                  <Link type='anchor' size='sm' to='/reset-password'>
-                    Forgot password?
-                  </Link>
-                )}
-              </Group>
-            </Stack>
-            <Group justify='flex-end' mt='xl'>
-              <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
-                {([canSubmit, isSubmitting]) => (
-                  <Button loading={isSubmitting} disabled={!canSubmit} radius='xl' type='submit'>
-                    {registerPath ? 'Register' : 'Login'}
-                  </Button>
-                )}
-              </form.Subscribe>
+              {!registerPath && (
+                <Link type='anchor' size='sm' to='/reset-password'>
+                  Forgot password?
+                </Link>
+              )}
             </Group>
-          </Paper>
-        </Stack>
-      </Container>
-    </form>
+          </Stack>
+          <Group justify='flex-end' mt='xl'>
+            <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
+              {([canSubmit, isSubmitting]) => (
+                <Button loading={isSubmitting} disabled={!canSubmit} radius='xl' type='submit'>
+                  {registerPath ? 'Register' : 'Login'}
+                </Button>
+              )}
+            </form.Subscribe>
+          </Group>
+        </Paper>
+      </Stack>
+    </Container>
   )
 }
 

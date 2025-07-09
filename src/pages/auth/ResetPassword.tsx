@@ -24,72 +24,70 @@ const ResetPassword = () => {
   const { handleSubmit, reset, state } = form
 
   return (
-    <form>
-      <Container
-        component='form'
-        onSubmit={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          handleSubmit()
-        }}
-        className={auth_container}
-      >
-        <Stack className={auth_wrapper}>
-          <Title className={auth_title} ta='center'>
-            Forgot your password?
-          </Title>
-          <Text c='dimmed' fz='sm' ta='center' className={auth_subtitle}>
-            Enter your email to get a reset confirmation code email
-          </Text>
-          <Paper withBorder shadow='md' p={30} radius='md'>
-            {formMessage && (
-              <Alert variant='light' color='blue' icon={<Info />} mb='sm'>
-                {formMessage}{' '}
-                <Link size='sm' type='anchor' to='/reset-password/confirm' search={{ email: state.values.email }}>
-                  Confirm now
-                </Link>
-              </Alert>
-            )}
-            <form.Field
-              name='email'
-              validators={{
-                onChange: ({ value }) => {
-                  if (!value) return null
-                  return /^\S+@\S+$/.test(value) ? null : 'Enter a valid email address.'
-                },
-                onSubmit: ({ value }) => (value && /^\S+@\S+$/.test(value) ? null : 'Enter a valid email address.'),
-              }}
-            >
-              {(field) => (
-                <TextInput
-                  label='Email'
-                  placeholder={'user@email.com'}
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  error={!field.state.meta.isValid && field.state.meta.errors.join(', ')}
-                  autoComplete='username'
-                />
-              )}
-            </form.Field>
-            <Group justify='space-between' mt='lg' className={fp_controls}>
-              <Link type='anchor' c='dimmed' size='sm' className={fp_control} to='/login' onClick={() => reset()}>
-                <Center inline>
-                  <ArrowLeft className={fp_arrow} />
-                  <Box ml={5}>Back to the login page</Box>
-                </Center>
+    <Container
+      component='form'
+      onSubmit={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        handleSubmit()
+      }}
+      className={auth_container}
+    >
+      <Stack className={auth_wrapper}>
+        <Title className={auth_title} ta='center'>
+          Forgot your password?
+        </Title>
+        <Text c='dimmed' fz='sm' ta='center' className={auth_subtitle}>
+          Enter your email to get a reset confirmation code email
+        </Text>
+        <Paper withBorder shadow='md' p={30} radius='md'>
+          {formMessage && (
+            <Alert variant='light' color='blue' icon={<Info />} mb='sm'>
+              {formMessage}{' '}
+              <Link size='sm' type='anchor' to='/reset-password/confirm' search={{ email: state.values.email }}>
+                Confirm now
               </Link>
-              <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
-                {([canSubmit, isSubmitting]) => (
-                  <Button className={fp_control} loading={isSubmitting} disabled={!canSubmit}>
-                    Reset Password
-                  </Button>
-                )}
-              </form.Subscribe>
-            </Group>
-          </Paper>
-        </Stack>
-      </Container>
-    </form>
+            </Alert>
+          )}
+          <form.Field
+            name='email'
+            validators={{
+              onChange: ({ value }) => {
+                if (!value) return null
+                return /^\S+@\S+$/.test(value) ? null : 'Enter a valid email address.'
+              },
+              onSubmit: ({ value }) => (value && /^\S+@\S+$/.test(value) ? null : 'Enter a valid email address.'),
+            }}
+          >
+            {(field) => (
+              <TextInput
+                label='Email'
+                placeholder={'user@email.com'}
+                value={field.state.value}
+                onChange={(e) => field.handleChange(e.target.value)}
+                error={!field.state.meta.isValid && field.state.meta.errors.join(', ')}
+                autoComplete='username'
+              />
+            )}
+          </form.Field>
+          <Group justify='space-between' mt='lg' className={fp_controls}>
+            <Link type='anchor' c='dimmed' size='sm' className={fp_control} to='/login' onClick={() => reset()}>
+              <Center inline>
+                <ArrowLeft className={fp_arrow} />
+                <Box ml={5}>Back to the login page</Box>
+              </Center>
+            </Link>
+            <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
+              {([canSubmit, isSubmitting]) => (
+                <Button className={fp_control} loading={isSubmitting} disabled={!canSubmit}>
+                  Reset Password
+                </Button>
+              )}
+            </form.Subscribe>
+          </Group>
+        </Paper>
+      </Stack>
+    </Container>
   )
 }
 

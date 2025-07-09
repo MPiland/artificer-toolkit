@@ -6,15 +6,15 @@ import { CharacterFeatureInputSchema, CharacterHitpointInputSchema } from '@/sch
 const useGetCharacterData = ({ formData }: { formData: CharacterInput }) => {
   const { classes } = useClassData()
 
-  const { features, createSections, createAbilityScores } = useGetSections({ formData })
-  const sections = createSections()
-  const abilityScores = createAbilityScores()
+  const { createSections, createAbilityScores } = useGetSections()
+  const sections = createSections({ data: formData })
+  const abilityScores = createAbilityScores({ data: formData })
 
   let hitpoints = {} as CharacterHitpointInput
 
   const characterFeatures: CharacterFeatureInput[] =
-    features?.map((feature) => {
-      const featureObj: CharacterFeatureInput = CharacterFeatureInputSchema().parse({
+    formData.features?.map((feature) => {
+      const featureObj: CharacterFeatureInput = CharacterFeatureInputSchema.parse({
         __typename: 'CharacterFeature',
         id: feature.id,
       })
@@ -39,7 +39,7 @@ const useGetCharacterData = ({ formData }: { formData: CharacterInput }) => {
       hitpoints = calculateHitpoints(formData, primaryClass)
     }
   } else if (formData?.hitpoint?.maxHitpoints !== undefined && formData?.hitpoint?.maxHitpoints !== null) {
-    hitpoints = CharacterHitpointInputSchema().parse({
+    hitpoints = CharacterHitpointInputSchema.parse({
       maxHitpoints: undefined,
       maxOverride: undefined,
       method: formData?.hitpoint?.method,
@@ -57,6 +57,6 @@ const useGetCharacterData = ({ formData }: { formData: CharacterInput }) => {
     })
   }
 
-  return { features, characterFeatures, sections, hitpoints, abilityScores }
+  return { characterFeatures, sections, hitpoints, abilityScores }
 }
 export default useGetCharacterData

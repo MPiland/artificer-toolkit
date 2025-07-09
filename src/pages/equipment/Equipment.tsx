@@ -49,7 +49,7 @@ const Equipment = () => {
   ]
 
   return (
-    <Detail detailConfigs={detailConfigs} footerSpacing='end' item={equipment}>
+    <Detail detailConfigs={detailConfigs} item={equipment}>
       <div>{equipment?.desc && parse(equipment.desc)}</div>
     </Detail>
   )

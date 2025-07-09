@@ -8,17 +8,17 @@ export interface EntityOperationMapEntry {
 
 export const entityOperationMap: EntityOperationMapEntry[] = [
   {
-    "entity": "AncestryFeature",
-    "table": "ancestryFeature",
+    "entity": "AncestryOption",
+    "table": "ancestryOption",
     "queries": [
-      "getAncestryFeature",
-      "listAncestryFeatures"
+      "getAncestryOption",
+      "listAncestryOptions"
     ],
     "mutations": [
-      "batchCreateAncestryFeatures",
-      "createAncestryFeature",
-      "deleteAncestryFeature",
-      "updateAncestryFeature"
+      "batchCreateAncestryOptions",
+      "createAncestryOption",
+      "deleteAncestryOption",
+      "updateAncestryOption"
     ]
   },
   {
@@ -203,17 +203,17 @@ export const entityOperationMap: EntityOperationMapEntry[] = [
     ]
   },
   {
-    "entity": "MasterAncestryFeature",
-    "table": "masterAncestryFeature",
+    "entity": "MasterAncestryOption",
+    "table": "masterAncestryOption",
     "queries": [
-      "getMasterAncestryFeature",
-      "listMasterAncestryFeatures"
+      "getMasterAncestryOption",
+      "listMasterAncestryOptions"
     ],
     "mutations": [
-      "batchCreateMasterAncestryFeatures",
-      "createMasterAncestryFeature",
-      "deleteMasterAncestryFeature",
-      "updateMasterAncestryFeature"
+      "batchCreateMasterAncestryOptions",
+      "createMasterAncestryOption",
+      "deleteMasterAncestryOption",
+      "updateMasterAncestryOption"
     ]
   },
   {

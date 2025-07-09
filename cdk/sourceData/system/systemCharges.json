@@ -2,83 +2,107 @@
   "resets": [
     {
       "label": "Long Rest",
-      "value": "longRest",
       "id": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-      "features": ["ALL"],
-      "classes": ["SPELLCASTER"]
+      "features": [
+        "ALL"
+      ],
+      "classes": [
+        "SPELLCASTER"
+      ]
     },
     {
       "label": "Short Rest",
-      "value": "shortRest",
       "id": "c245fd8b-f343-4fb1-a6c4-5bc35ca43ac7",
-      "features": ["ALL"],
-      "classes": ["SPELLCASTER"]
+      "features": [
+        "ALL"
+      ],
+      "classes": [
+        "SPELLCASTER"
+      ]
     },
     {
       "label": "Manual",
-      "value": "manual",
       "id": "97f4a2d5-c88b-43d8-8255-330e5aa04684",
-      "features": ["ALL"]
+      "features": [
+        "ALL"
+      ]
     },
     {
       "label": "None",
-      "value": "none",
       "id": "e9538ede-8a61-4901-bc56-507257189712",
-      "features": ["ALL"]
+      "features": [
+        "ALL"
+      ]
     }
   ],
   "limits": [
     {
-      "value": "proficiency",
       "id": "b014c7d9-8a98-48a9-91f2-aa55345c93c9",
       "label": "Proficiency",
-      "features": ["ALL"]
+      "features": [
+        "ALL"
+      ]
     },
     {
-      "value": "skill",
       "id": "b8a4152b-ed51-4fe4-a6fc-a9a16fcb2aa6",
       "label": "Skill",
-      "features": ["ALL"]
+      "features": [
+        "ALL"
+      ]
     },
     {
-      "value": "abilityScoreModifier",
       "id": "0bc73f5e-e99a-470d-b95d-bbdc4005331f",
       "label": "Ability Score Modifier",
-      "features": ["ALL"],
-      "classes": ["RESOURCE"]
+      "features": [
+        "ALL"
+      ],
+      "classes": [
+        "RESOURCE"
+      ]
     },
     {
-      "value": "setAmount",
       "id": "f21220f9-96db-4369-ba11-88c87d631fac",
       "label": "Set Amount",
-      "features": ["ALL"],
-      "classes": ["RESOURCE"]
+      "features": [
+        "ALL"
+      ],
+      "classes": [
+        "RESOURCE"
+      ]
     },
     {
-      "value": "poolAmount",
       "label": "Pool Amount",
       "id": "ce085d90-e051-4d80-855c-b9c421b6ed8b",
-      "features": ["ALL"]
+      "features": [
+        "ALL"
+      ]
     },
     {
-      "value": "resourcePoints",
       "label": "Resource Points",
       "id": "c6b4ecb8-9246-4235-8e8a-4648d63a7ebe",
-      "features": ["ALL"]
+      "features": [
+        "ALL"
+      ]
     },
     {
-      "value": "setPerLevel",
       "label": "Set Per Level",
       "id": "0a010337-44d9-491e-9fb2-bc94961fe2a2",
-      "features": ["ALL"],
-      "classes": ["RESOURCE"]
+      "features": [
+        "ALL"
+      ],
+      "classes": [
+        "RESOURCE"
+      ]
     },
     {
       "id": "19d5f00e-c246-4478-9eb9-7b7ec2b942ed",
-      "value": "usesPerLevel",
       "label": "Uses Per Level",
-      "features": ["ALL"],
-      "classes": ["ALL"]
+      "features": [
+        "ALL"
+      ],
+      "classes": [
+        "ALL"
+      ]
     }
   ]
 }

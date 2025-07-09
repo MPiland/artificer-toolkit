@@ -1,135 +1,118 @@
-import { use } from 'react'
-import type { FeatureDataType, SectionDataType, SectionName, FeatureOption } from '@/types'
+import type { SectionFormDataType, FeatureOptionInput, FeatureInput } from '@/types'
 import Accordion from '@/components/Accordion'
 import { sprinkles } from '@/css/sprinkles.css'
 import { startCase } from 'lodash'
-import { feature_description } from '../../Form.css'
-import { sectionSteps } from '../../utils'
+import { SECTION_STEPS, feature_description, withFieldGroup } from '@/components/Form'
 import parse from 'html-react-parser'
-import { FeatureContext } from '../FeatureContext'
-import type { OptionStore, FeatureStore } from '@/store'
+import { useFeatureStore } from '@/store'
 import { Group, Grid } from '@mantine/core'
+import { useGetSections } from '@/hooks'
 
-const SectionsList = ({ featureStore }: { featureStore: FeatureStore | OptionStore }) => {
-  const {
-    sectionStore,
-    optionStore,
-    featureStore: { setStep: setFeatureStep, step: featureStep },
-  } = use(FeatureContext)
-
-  const handleRemove = (sectionStep: SectionName | 'options', sectionIndex: number) => {
-    if (sectionStep !== 'options') {
-      return (featureStore as OptionStore).removeField({
-        path: `${sectionStep}.${sectionIndex}`,
-      })
-    }
-    return (featureStore as FeatureStore).removeField({
-      path: `${sectionStep}.${sectionIndex}`,
-    })
-  }
-
-  const handleEdit = (
-    sectionStep: SectionName | 'options',
-    sectionIndex: number,
-    sectionItem: SectionDataType | FeatureOption
-  ) => {
-    sectionStore.setIndex({ value: sectionIndex })
-    if (sectionStep === 'options' && sectionItem.__typename === 'FeatureOption') {
-      optionStore.resetData({
-        value: sectionItem,
-      })
-      optionStore.setIndex({ value: sectionIndex })
-      optionStore.resetInit({ value: sectionItem })
-      return setFeatureStep('option')
-    } else if (sectionStep !== 'options' && sectionItem.__typename !== 'FeatureOption') {
-      sectionStore.setStep(sectionStep)
-      sectionStore.resetData({
-        value: sectionItem,
-      })
-      sectionStore.resetInit({ value: sectionItem })
-    }
-  }
-
-  const sectionsAndOptions = [...sectionSteps, 'options'] as const
-
-  return (
-    <>
-      {sectionsAndOptions.map((sectionStep, index) => {
-        let sections: SectionDataType[] | FeatureOption[] = []
-        if (featureStore.data.__typename === 'AncestryFeature') {
-          if (featureStore.data?.[sectionStep]?.length) {
-            sections = featureStore.data?.[sectionStep]
-          }
-        } else if (featureStore.data.__typename === 'FeatureOption' && sectionStep !== 'options') {
-          if (featureStore.data?.[sectionStep]?.length) {
-            sections = featureStore.data[sectionStep]
-          }
-        } else if (featureStore.data.__typename === 'Feature') {
-          if (featureStore.data?.[sectionStep]?.length) {
-            sections = featureStore.data[sectionStep]
-          }
-        }
-        return (
-          sections?.length > 0 && (
-            <Grid.Col key={index}>
-              <Accordion<FeatureDataType>
-                key={index}
-                dataArray={sections}
-                updateFn={featureStore}
-                name={sectionStep}
-                disableSort={featureStep !== 'option'}
-              >
-                {sections?.map((section, sIndex) => {
-                  return (
-                    <Accordion.Item key={sIndex} itemId={String(sIndex)} value={section.id}>
-                      <Accordion.Trigger
-                        key={sIndex}
-                        removeFn={() => handleRemove(sectionStep, sIndex)}
-                        editFn={() => handleEdit(sectionStep, sIndex, section)}
-                      >
-                        {section.__typename === 'FeatureOption' && section?.value != null ?
-                          section?.label
-                        : `${startCase(sectionStep)} ${sIndex + 1}`}
-                        {section.__typename === 'FeatureOption' && section.__typename === 'FeatureOption' && (
-                          <Group justify='flex-start'>
-                            {sectionSteps.map((fSectionStep, fSIndex) => {
-                              return (
-                                <span
-                                  key={fSIndex}
-                                  className={sprinkles({
-                                    me: 'space-3',
-                                  })}
-                                >
-                                  {section?.[fSectionStep]?.length ?
-                                    <strong key={fSIndex}>
-                                      {startCase(fSectionStep.charAt(0))}:{section[fSectionStep]?.length}
-                                    </strong>
-                                  : `${startCase(fSectionStep.charAt(0))}: 0`}
-                                </span>
-                              )
-                            })}
-                          </Group>
-                        )}
-                      </Accordion.Trigger>
-                      {section.__typename === 'FeatureOption' && section.__typename === 'FeatureOption' && (
-                        <>
-                          <Accordion.Content>
-                            <div className={feature_description}>
-                              {section.__typename === 'FeatureOption' && section?.desc && parse(section?.desc)}
-                            </div>
-                          </Accordion.Content>
-                        </>
-                      )}
-                    </Accordion.Item>
-                  )
-                })}
-              </Accordion>
-            </Grid.Col>
-          )
-        )
-      })}
-    </>
-  )
+type SectionsListProps = {
+  __kind?: 'FeatureInput' | 'FeatureOptionInput' | 'AncestryFeatureInput'
 }
+
+const defaultValues: {
+  modifiers?: FeatureInput['modifiers']
+  spells?: FeatureInput['spells']
+  proficiencies?: FeatureInput['proficiencies']
+  expertise?: FeatureInput['expertise']
+  senses?: FeatureInput['senses']
+  feats?: FeatureInput['feats']
+  options?: FeatureInput['options']
+} = {
+  modifiers: undefined,
+  spells: undefined,
+  proficiencies: undefined,
+  expertise: undefined,
+  senses: undefined,
+  feats: undefined,
+  options: undefined,
+}
+
+const SectionsList = withFieldGroup({
+  defaultValues,
+  props: {
+    __kind: undefined,
+  } as SectionsListProps,
+  render: function Render({ group, __kind }) {
+    const { AppField } = group
+    const featureStore = useFeatureStore()
+    const { sectionTypeMap } = useGetSections()
+
+    const handleEdit = (
+      sectionStep: (typeof SECTION_STEPS)[number] | 'options',
+      sectionItem: SectionFormDataType | FeatureOptionInput
+    ) => {
+      const sectionObject = sectionTypeMap(sectionStep).schema.parse(sectionItem)
+      sectionTypeMap(sectionStep, sectionObject).setCurrent()
+      featureStore.setStep(sectionStep)
+    }
+
+    const sectionsAndOptions = [...SECTION_STEPS, 'options'] as const
+
+    return (
+      <>
+        {sectionsAndOptions.map((sectionStep, i) => {
+          return (
+            <AppField name={sectionStep} key={`${i}-${sectionStep}`} mode='array'>
+              {({ state, removeValue, AccordionField }) =>
+                state.value?.length && (
+                  <Grid.Col>
+                    <AccordionField name={`${sectionStep}`} disableSort={__kind !== 'FeatureOptionInput'}>
+                      {state.value?.map((s, sI) => {
+                        const sectionData = sectionTypeMap(sectionStep).get(s)
+                        const section = sectionTypeMap(sectionStep).schema.parse(sectionData)
+                        return (
+                          section && (
+                            <Accordion.Item key={`${i}-${sI}-${sectionStep}`} itemId={String(sI)} value={section.id}>
+                              <Accordion.Trigger
+                                key={sI}
+                                removeFn={() => removeValue(sI)}
+                                editFn={() => handleEdit(sectionStep, section)}
+                              >
+                                {`${startCase(sectionStep)} ${sI + 1}`}
+                                {section.__kind === 'FeatureOptionInput' && (
+                                  <>
+                                    {section?.label}
+                                    <Accordion.Content>
+                                      <div className={feature_description}>{section?.desc && parse(section?.desc)}</div>
+                                    </Accordion.Content>
+                                    <Group>
+                                      {SECTION_STEPS.map((fSectionStep, fSIndex) => {
+                                        return (
+                                          <span
+                                            key={fSIndex}
+                                            className={sprinkles({
+                                              me: 'space-3',
+                                            })}
+                                          >
+                                            {section?.[fSectionStep]?.length ?
+                                              <strong key={fSIndex}>
+                                                {startCase(fSectionStep.charAt(0))}:{section[fSectionStep]?.length}
+                                              </strong>
+                                            : `${startCase(fSectionStep.charAt(0))}: 0`}
+                                          </span>
+                                        )
+                                      })}
+                                    </Group>
+                                  </>
+                                )}
+                              </Accordion.Trigger>
+                            </Accordion.Item>
+                          )
+                        )
+                      })}
+                    </AccordionField>
+                  </Grid.Col>
+                )
+              }
+            </AppField>
+          )
+        })}
+      </>
+    )
+  },
+})
 
 export default SectionsList

@@ -17,9 +17,11 @@ export interface RichTextEditorProps {
   onChange: (value: string) => void
   placeholder?: string
   label?: string
+  onBlur?: ({ target: { name, value } }: { target: { name: string; value: string } }) => void
+  name: string
 }
 
-const RichTextEditor = ({ value, onChange, placeholder, label }: RichTextEditorProps) => {
+const RichTextEditor = ({ value, onChange, placeholder, label, onBlur, name }: RichTextEditorProps) => {
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -50,6 +52,11 @@ const RichTextEditor = ({ value, onChange, placeholder, label }: RichTextEditorP
     content: value,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML())
+    },
+    onBlur: ({ editor }) => {
+      if (onBlur) {
+        onBlur({ target: { name: name, value: editor.getHTML() } })
+      }
     },
   })
 

@@ -3,7 +3,7 @@ import Detail from '@/components/Detail'
 import { Fragment } from 'react'
 import { race_section_divider } from '@/pages/races/Race.css'
 import { Route } from '@/routes/_protected/races/$raceId'
-import { useRaceData } from '@/hooks'
+import { useFeatureData, useRaceData } from '@/hooks'
 
 const Race = () => {
   const raceId = Route.useParams({ select: (r) => r.raceId })
@@ -13,28 +13,32 @@ const Race = () => {
   } = useRaceData()
   const race = findRace(raceId)
 
+  const {
+    features: { findFeature },
+  } = useFeatureData()
+
   if (!race) return <div>Invalid or missing race data</div>
 
   return (
-    <Detail footerSpacing='end' item={race}>
+    <Detail item={race}>
       <div>{race?.desc && parse(race.desc)}</div>
       {race.details &&
         race.details?.length > 0 &&
-        race.details.map((detail, index) => (
-          <Fragment key={index}>
-            <h1>{detail?.label}</h1>
+        race.details.map((d, dI) => (
+          <Fragment key={`${dI}-race-detail`}>
+            <h1>{d?.label}</h1>
             <hr className={race_section_divider} />
-            {detail?.desc && parse(detail?.desc)}
+            {d?.desc && parse(d?.desc)}
           </Fragment>
         ))}
       {race?.traits?.details?.length && (
         <>
           <h1>Traits</h1>
           <hr className={race_section_divider} />
-          {race.traits.details.map((detail, index) => (
-            <Fragment key={index}>
-              <h2>{detail?.label}</h2>
-              {detail?.desc && parse(detail?.desc)}
+          {race.traits.details.map((d, dI) => (
+            <Fragment key={`${dI}-race-trait-detail`}>
+              <h2>{d?.label}</h2>
+              {d?.desc && parse(d?.desc)}
             </Fragment>
           ))}
         </>
@@ -46,38 +50,41 @@ const Race = () => {
         </>
       )}
       {race.features?.length &&
-        race.features.map((feature, index) => (
-          <Fragment key={index}>
-            <h2>{feature?.label}</h2>
-            {feature?.desc && parse(feature.desc)}
-          </Fragment>
-        ))}
+        race.features.map((f, fI) => {
+          const feature = findFeature(f)
+          return (
+            <Fragment key={`${fI}-race-feature`}>
+              <h2>{feature?.label}</h2>
+              {feature?.desc && parse(feature.desc)}
+            </Fragment>
+          )
+        })}
       {subraces?.length &&
-        subraces.map((s, index) => {
+        subraces.map((s, sI) => {
           const subrace = findRace(s.id)
           return (
             subrace && (
-              <Fragment key={index}>
+              <Fragment key={`${sI}-subrace`}>
                 <h2>{subrace.label}</h2>
                 <hr className={race_section_divider} />
                 <div>{subrace?.desc && parse(subrace.desc)}</div>
                 {subrace.details &&
                   subrace.details?.length > 0 &&
-                  subrace.details.map((detail, dIndex) => (
-                    <Fragment key={dIndex}>
-                      <h1>{detail?.label}</h1>
+                  subrace.details.map((d, dI) => (
+                    <Fragment key={`${dI}-subrace-detail`}>
+                      <h1>{d?.label}</h1>
                       <hr className={race_section_divider} />
-                      {detail?.desc && parse(detail?.desc)}
+                      {d?.desc && parse(d?.desc)}
                     </Fragment>
                   ))}
                 {subrace?.traits?.details?.length && (
                   <>
                     <h1>Traits</h1>
                     <hr className={race_section_divider} />
-                    {subrace.traits.details.map((detail, dIndex) => (
-                      <Fragment key={dIndex}>
-                        <h2>{detail?.label}</h2>
-                        {detail?.desc && parse(detail?.desc)}
+                    {subrace.traits.details.map((d, dI) => (
+                      <Fragment key={`${dI}-subrace-trait-detail`}>
+                        <h2>{d?.label}</h2>
+                        {d?.desc && parse(d?.desc)}
                       </Fragment>
                     ))}
                   </>
@@ -89,12 +96,15 @@ const Race = () => {
                   </>
                 )}
                 {subrace.features?.length &&
-                  subrace.features.map((feature, index) => (
-                    <Fragment key={index}>
-                      <h2>{feature?.label}</h2>
-                      {feature?.desc && parse(feature.desc)}
-                    </Fragment>
-                  ))}
+                  subrace.features.map((f, fI) => {
+                    const feature = findFeature(f)
+                    return (
+                      <Fragment key={`${fI}-subrace-feature`}>
+                        <h2>{feature?.label}</h2>
+                        {feature?.desc && parse(feature.desc)}
+                      </Fragment>
+                    )
+                  })}
               </Fragment>
             )
           )

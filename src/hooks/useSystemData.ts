@@ -6,27 +6,27 @@ import type { System, GenericType } from '@/types'
 
 type ModifierMethod = System['modifiers']['methods'][number]
 
+type FilteredModifierMethods = ModifierMethod[] & {
+  _typeId?: string
+  _categoryId?: string
+} & ModMethodMethods
+
 type ModMethodMethods = {
   findMethod: (id?: string | null) => ModifierMethod | undefined | null
-  filterByType(typeId?: string | null): FilteredMethods
-  filterByCategory(categoryId?: string | null): FilteredMethods
-  filterByTypeAndCategory(typeId?: string | null, categoryId?: string | null): FilteredMethods
+  filterByType: (typeId?: string | null) => FilteredModifierMethods
+  filterByCategory: (categoryId?: string | null) => FilteredModifierMethods
+  filterByTypeAndCategory: (typeId?: string | null, categoryId?: string | null) => FilteredModifierMethods
 }
 
 type EquipmentCategoryMethods = {
   findCategory: (id?: string | null) => System['modifiers']['categories'][number] | undefined | null
-  filterByProperties(ids: string[] | null | undefined): System['equipment']['categories']
+  filterByProperties: (ids: string[] | null | undefined) => System['equipment']['categories']
 }
 
 type EquipmentPropertyMethods = {
   findProperty: (id?: string | null) => System['equipment']['properties'][number] | undefined | null
-  filterByCategory(categoryId?: string | null | undefined): System['equipment']['properties']
+  filterByCategory: (categoryId?: string | null | undefined) => System['equipment']['properties']
 }
-
-type FilteredMethods = ModifierMethod[] & {
-  _typeId?: string
-  _categoryId?: string
-} & ModMethodMethods
 
 const useSystemData = () => {
   const { systemPref } = useRouteContext({ from: '__root__' })
@@ -35,95 +35,77 @@ const useSystemData = () => {
   if (!system) return null
 
   const modMethodMethods: ModMethodMethods = {
-    findMethod(this: FilteredMethods, id) {
+    findMethod(this: FilteredModifierMethods, id) {
       if (!id) return undefined
       return this.find((m) => m.id === id)
     },
-    filterByType(this: FilteredMethods, typeId) {
+    filterByType(this: FilteredModifierMethods, typeId) {
       if (!typeId) return createArrayWithMethods(this, modMethodMethods)
       if (this._categoryId) {
-        const filteredMethods = system.modifiers.methods.filter((method) =>
+        const filteredModifierMethods = system.modifiers.methods.filter((method) =>
           system.modifiers.categoryMethods
             .filter((bridge) => bridge?.typeId === typeId && bridge?.categoryId === this._categoryId)
             .some((bridge) => bridge?.methodId === method?.id)
         )
-        const enrichedMethods = createArrayWithMethods(filteredMethods, modMethodMethods) as FilteredMethods
+        const enrichedMethods = createArrayWithMethods(
+          filteredModifierMethods,
+          modMethodMethods
+        ) as FilteredModifierMethods
         enrichedMethods._typeId = typeId
         return enrichedMethods
       }
-      const filteredMethods = system.modifiers.methods.filter((method) =>
+      const filteredModifierMethods = system.modifiers.methods.filter((method) =>
         system.modifiers.typeMethods
           .filter((bridge) => bridge?.typeId === typeId)
           .some((bridge) => bridge?.methodId === method?.id)
       )
-      const enrichedMethods = createArrayWithMethods(filteredMethods, modMethodMethods) as FilteredMethods
+      const enrichedMethods = createArrayWithMethods(
+        filteredModifierMethods,
+        modMethodMethods
+      ) as FilteredModifierMethods
       enrichedMethods._typeId = typeId
       return enrichedMethods
     },
-    filterByCategory(this: FilteredMethods, categoryId) {
+    filterByCategory(this: FilteredModifierMethods, categoryId) {
       if (!categoryId) return createArrayWithMethods(this, modMethodMethods)
-      let filteredMethods: GenericType[] = []
+      let filteredModifierMethods: GenericType[] = []
       if (this._typeId) {
-        filteredMethods = system.modifiers.methods.filter((method) => {
+        filteredModifierMethods = system.modifiers.methods.filter((method) => {
           return system.modifiers.categoryMethods
             .filter((bridge) => bridge?.categoryId === categoryId && bridge?.typeId === this._typeId)
             .some((bridge) => bridge?.methodId === method?.id)
         })
       }
-      filteredMethods = system.modifiers.methods.filter((method) => {
+      filteredModifierMethods = system.modifiers.methods.filter((method) => {
         return system.modifiers.categoryMethods
           .filter((bridge) => bridge?.categoryId === categoryId)
           .some((bridge) => bridge?.methodId === method?.id)
       })
-      const enrichedMethods = createArrayWithMethods(filteredMethods, modMethodMethods) as FilteredMethods
+      const enrichedMethods = createArrayWithMethods(
+        filteredModifierMethods,
+        modMethodMethods
+      ) as FilteredModifierMethods
       enrichedMethods._categoryId = categoryId
       return enrichedMethods
     },
-    filterByTypeAndCategory(this: FilteredMethods, typeId, categoryId) {
+    filterByTypeAndCategory(this: FilteredModifierMethods, typeId, categoryId) {
       if (!typeId || !this._typeId || !categoryId || this._categoryId) {
         return createArrayWithMethods(this, modMethodMethods)
       }
       const fTypeId = this._typeId || typeId
       const fCategoryId = this._categoryId || categoryId
-      const filteredMethods = system.modifiers.methods.filter((method) => {
+      const filteredModifierMethods = system.modifiers.methods.filter((method) => {
         return system.modifiers.categoryMethods.some(
           (bridge) => bridge.methodId === method.id && bridge.categoryId === fCategoryId && bridge.typeId === fTypeId
         )
       })
-      const enrichedMethods = createArrayWithMethods(filteredMethods, modMethodMethods) as FilteredMethods
+      const enrichedMethods = createArrayWithMethods(
+        filteredModifierMethods,
+        modMethodMethods
+      ) as FilteredModifierMethods
       enrichedMethods._typeId = typeId
       enrichedMethods._categoryId = categoryId
       return enrichedMethods
-    },
-  }
-
-  const equipmentCategoryMethods: EquipmentCategoryMethods = {
-    findCategory: (id?: string | null) => {
-      if (!id) return null
-      return system.equipment.categories.find((c) => c.id === id)
-    },
-    filterByProperties(this: System['equipment']['categories'], ids?: string[] | null) {
-      if (!ids || !ids.length) return system.equipment.categories
-      return this.filter((c) =>
-        system.equipment.categoryProperties.some(
-          (bridge) => bridge.categoryId === c.id && ids?.includes(bridge.propertyId)
-        )
-      )
-    },
-  }
-
-  const equipmentPropertyMethods: EquipmentPropertyMethods = {
-    findProperty: (id?: string | null) => {
-      if (!id) return null
-      system.equipment.properties.find((p) => p.id === id)
-    },
-    filterByCategory(id?: string | null) {
-      if (!id) return system.equipment.properties
-      return system.equipment.properties.filter((property) => {
-        return system.equipment.categoryProperties
-          .filter((bridge) => bridge?.categoryId === id)
-          .some((bridge) => bridge?.propertyId === property?.id)
-      })
     },
   }
 
@@ -215,8 +197,34 @@ const useSystemData = () => {
       },
     }),
     equipment: {
-      categories: createArrayWithMethods(system.equipment.categories, equipmentCategoryMethods),
-      properties: createArrayWithMethods(system.equipment.properties, equipmentPropertyMethods),
+      categories: createArrayWithMethods(system.equipment.categories, {
+        findCategory: (id?: string | null) => {
+          if (!id) return null
+          return system.equipment.categories.find((c) => c.id === id)
+        },
+        filterByProperties(this: System['equipment']['categories'] & EquipmentCategoryMethods, ids?: string[] | null) {
+          if (!ids || !ids.length) return system.equipment.categories
+          return this.filter((c) => {
+            return system.equipment.categoryProperties.some(
+              (bridge) => bridge.categoryId === c.id && ids?.includes(bridge.propertyId)
+            )
+          })
+        },
+      }),
+      properties: createArrayWithMethods(system.equipment.properties, {
+        findProperty: (id?: string | null) => {
+          if (!id) return null
+          system.equipment.properties.find((p) => p.id === id)
+        },
+        filterByCategory(this: System['equipment']['properties'] & EquipmentPropertyMethods, id?: string | null) {
+          if (!id) return system.equipment.properties
+          return this.filter((property) => {
+            return system.equipment.categoryProperties
+              .filter((bridge) => bridge?.categoryId === id)
+              .some((bridge) => bridge?.propertyId === property?.id)
+          })
+        },
+      }),
       rarities: createArrayWithMethods(system.equipment.rarities, {
         findRarity: (id?: string | null) => {
           if (!id) return null

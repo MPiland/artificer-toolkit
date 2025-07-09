@@ -17,35 +17,48 @@ const useRaceData = () => {
     (r) => !metaData.categories?.find((cat) => cat.id === Categories.SUBRACE)?.raceIds?.includes(r.id)
   )
 
-  const raceMethods = createArrayWithMethods(races, {
-    findRace: (id?: string | null) => {
-      if (!id) return null
-      return suspenseQuery(fetchRace(id)).data
-    },
-    findRaces: (ids: string[] | null) => {
-      if (!ids || !ids.length) return null
-      return suspenseQueries({
-        queries: ids.map((id) => fetchRace(id)),
-        combine: (results) => results.map((result) => result.data),
-      })
-    },
-    findLineages(id?: string | null) {
-      if (!id) return null
-      const lineageIds = metaData.lineages?.filter((p) => p.raceIds?.includes(id)).map((p) => p.id)
-      if (!lineageIds) return null
-      return races.filter((c) => lineageIds.includes(c.id))
-    },
-    findByLineage: (id?: string | null) => {
-      if (!id) return null
-      const subIds = metaData.lineages?.find((p) => p.id === id)?.raceIds
-      return subraces.filter((c) => subIds?.includes(c.id))
-    },
-  })
-
   return {
-    races: raceMethods,
-    subraces,
+    races: createArrayWithMethods(races, {
+      findRace: (id?: string | null) => {
+        if (!id) return null
+        return suspenseQuery(fetchRace(id)).data
+      },
+      findRaces: (ids?: string[] | null) => {
+        if (!ids || !ids.length) return null
+        return suspenseQueries({
+          queries: ids.map((id) => fetchRace(id)),
+          combine: (results) => results.map((result) => result.data),
+        })
+      },
+      findLineages(id?: string | null) {
+        if (!id) return null
+        const lineageIds = metaData.lineages?.filter((p) => p.raceIds?.includes(id)).map((p) => p.id)
+        if (!lineageIds) return null
+        return races.filter((c) => lineageIds.includes(c.id))
+      },
+      findByLineage: (id?: string | null) => {
+        if (!id) return null
+        const subIds = metaData.lineages?.find((p) => p.id === id)?.raceIds
+        return subraces.filter((c) => subIds?.includes(c.id))
+      },
+    }),
     baseRaces,
+    subraces: createArrayWithMethods(subraces, {
+      findSubrace: (id?: string | null) => {
+        if (!id) return null
+        return suspenseQuery(fetchRace(id)).data
+      },
+      findParent: (id?: string) => {
+        if (!id) return null
+        const parentId = metaData.lineages?.find((p) => p.raceIds?.includes(id))?.id
+        if (!parentId) return null
+        return races.find((c) => c.id === parentId)
+      },
+      findByParent: (id?: string) => {
+        if (!id) return null
+        return subraces.filter((c) => metaData.lineages?.find((p) => p.raceIds?.includes(c.id))?.id === id)
+      },
+    }),
     metaData,
   }
 }

@@ -20,21 +20,20 @@ type Feat {
   saveAbility: SaveAbility
   selectionCount: Int
   levelAvailable: String
-  features: [Feature!]
-  options: [FeatureOption!]
+  features: [ID!]
+  options: [ID!]
   ownerId: String!
   systemId: ID!
   masterId: String
 }
 
-type FeatFeatureMetaObject {
+type FeatMetaObject {
   id: ID!
-  label: String!
-  featIds: [ID!]
+  featIds: [ID!]!
 }
 
 type FeatMeta {
-  features: [FeatFeatureMetaObject!]!
+  features: [FeatMetaObject!]!
 }
 
 type FeatListItem {

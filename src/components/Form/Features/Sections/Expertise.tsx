@@ -1,195 +1,232 @@
-import Dropdown from '@/components/Dropdown'
-import Input from '@/components/Input'
-import { startCase } from 'lodash'
-import { use, useEffect } from 'react'
-import { FormContext } from '../../FormContext'
-import { FeatureContext } from '../FeatureContext'
-import { Categories, ProfCats, Classes, Sections } from '@/enums'
-import Prerequisites from '../../Substeps/Prerequisites'
-import { useSystemData, useEquipmentData, useEnumChecks } from '@/hooks'
-import type { OnChange, FeatureProficiency } from '@/types'
-import type { SectionStore } from '@/store'
+import { Categories, ProfCats, Sections } from '@/enums'
+import { useSystemData, useEquipmentData, useEnumChecks, useFieldUpdates } from '@/hooks'
+import type { SubtypeInput } from '@/types'
 import { Grid } from '@mantine/core'
+import { FeatureExpertiseInputSchema } from '@/schemas'
+import { getKeyFromId, useAppForm, Prerequisites } from '@/components/Form'
+import { useExpertiseStore, useFormStore } from '@/store'
 
-type CategoryType = 'skills' | 'equipment' | 'abilities' | 'saveAbilities' | 'properties' | 'languages'
+type ExpertiseProps = {
+  category?: string
+  subtypes?: SubtypeInput[]
+}
 
-const Expertise = () => {
-  const { formStore } = use(FormContext)
-  const { sectionStore } = use(FeatureContext) as {
-    sectionStore: SectionStore<FeatureProficiency>
-  }
+const Expertise = ({ category, subtypes }: ExpertiseProps) => {
+  const expertiseStore = useExpertiseStore()
 
-  const {
-    data,
-    updateField,
-    removeField,
-  }: {
-    data: FeatureProficiency
-    updateField: OnChange<FeatureProficiency>['updateField']
-    removeField: OnChange<FeatureProficiency>['removeField']
-  } = sectionStore
+  const form = useAppForm({
+    defaultValues: FeatureExpertiseInputSchema.parse(expertiseStore.current),
+  })
 
-  const {
-    proficiencies,
-    attributes,
-    abilities,
-    skills,
-    equipment: { properties: equipmentProperties, categories: equipmentCategories },
-    languages,
-  } = useSystemData()
+  const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'expertise' })
+
+  const formStore = useFormStore()
+
+  const __kind = formStore.current?.__kind as
+    | 'ClassInput'
+    | 'RaceInput'
+    | 'EquipmentInput'
+    | 'BackgroundInput'
+    | 'FeatInput'
+
+  const { AppField, Subscribe } = form
+
+  const { proficiencies, attributes, abilities, skills, equipment: systemEquipment, languages } = useSystemData()
 
   const { equipment } = useEquipmentData()
 
-  const { subtypeSpecific, providesOptions, hasPrerequisites } = useEnumChecks({
-    data,
-  })
+  const { getAttributes } = useEnumChecks()
 
-  const sectionCategory = proficiencies.categories.find((category) => category.id === data?.category)
-
-  const categoryName = sectionCategory?.value as CategoryType
-
-  useEffect(() => {
-    if (data.__typename == null) {
-      updateField({
-        path: '__typename',
-        value: 'FeatureExpertise',
-      })
-    }
-  }, [updateField, data.__typename])
+  const systemOptions = {
+    saveAbilities: abilities,
+    skills: skills,
+    languages: languages,
+  } as const
 
   return (
     <Grid>
-      <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-        <Dropdown
-          multiSelect={true}
-          name='attributes'
-          options={attributes.filter(
-            (attribute) =>
-              (attribute.sections?.length && attribute.sections.includes(Sections.ALL)) ||
-              (formStore.data.__typename === 'Class' &&
-                formStore.data.category === Categories.SUBCLASS &&
-                attribute.classes?.length &&
-                attribute.classes.includes(Classes.SUBCLASS))
-          )}
-          label={`${startCase('proficiency')} Attributes`}
-          value={data?.attributes}
-          onChange={{ updateField, removeField }}
-        />
-      </Grid.Col>
-      <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-        <Dropdown
-          name={`category`}
-          label='Proficiency Category'
-          value={data?.category}
-          options={proficiencies.categories}
-          required={true}
-          onChange={{ updateField, removeField }}
-        />
-      </Grid.Col>
-      {sectionCategory?.id &&
-        ((
-          sectionCategory.id !== ProfCats.PROPERTIES &&
-          sectionCategory.id !== ProfCats.EQUIPMENT &&
-          sectionCategory.id !== ProfCats.INITIATIVE
-        ) ?
-          <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-            <Dropdown
-              name={`${categoryName as 'skills' | 'saveAbilities' | 'languages'}`}
-              multiSelect={true}
-              label={`${startCase(categoryName)} Type`}
-              value={data[categoryName as 'skills' | 'saveAbilities' | 'languages']}
-              options={
-                categoryName === 'saveAbilities' ? abilities
-                : categoryName === 'skills' ?
-                  skills
-                : languages
-              }
-              required={true}
-              onChange={{ updateField, removeField }}
-            />
-          </Grid.Col>
-        : <>
-            {(data?.category === ProfCats.PROPERTIES || data?.category !== ProfCats.EQUIPMENT) && (
-              <>
-                <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                  <Dropdown
-                    name={`${categoryName as 'properties' | 'equipment'}.category`}
-                    label='Equipment Category'
-                    value={data[categoryName as 'properties' | 'equipment']?.category}
-                    options={equipmentCategories}
-                    required={true}
-                    onChange={{ updateField, removeField }}
-                  />
-                </Grid.Col>
-                <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                  <Dropdown
-                    name={`${categoryName as 'properties' | 'equipment'}.${
-                      categoryName === 'equipment' ? 'properties' : 'ids'
-                    }`}
-                    multiSelect={true}
-                    label='Equipment Property'
-                    value={data[categoryName as 'properties' | 'equipment']?.properties}
-                    options={equipmentProperties.filterByCategory(
-                      data[categoryName as 'properties' | 'equipment']?.category
-                    )}
-                    onChange={{ updateField, removeField }}
-                    required={categoryName === 'equipment' ? false : true}
-                  />
-                </Grid.Col>
-                {categoryName === 'equipment' && (
-                  <>
-                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                      <Dropdown
-                        name={`${categoryName}`}
-                        multiSelect={true}
-                        label='Equipment'
-                        value={data?.[categoryName]?.ids}
-                        options={equipment
-                          .filterByCategory(data[categoryName as 'properties' | 'equipment']?.category)
-                          .filterByProperties(data[categoryName as 'properties' | 'equipment']?.properties)}
-                        onChange={{ updateField, removeField }}
-                        required={true}
-                      />
-                    </Grid.Col>
-                  </>
-                )}
-              </>
-            )}
-          </>)}
-      {subtypeSpecific &&
-        formStore.data.__typename === 'Class' &&
-        formStore.data.category === Categories.SUBCLASS &&
-        formStore.data?.subtypes?.length && (
-          <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-            <Dropdown
-              name='subtype'
-              label='Subclass Subtypes'
-              value={data?.subtype}
-              options={formStore.data?.subtypes}
-              required={true}
-              onChange={{ updateField, removeField }}
+      <AppField name='attributes' listeners={fieldListeners}>
+        {({ DropdownField }) => (
+          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+            <DropdownField
+              multiselect={true}
+              options={attributes.filter(
+                (attribute) =>
+                  attribute?.sections?.length &&
+                  (attribute.sections.includes(Sections.SPELL) ||
+                    attribute.sections.includes(Sections.ALL) ||
+                    (category === Categories.SUBCLASS && attribute.sections.includes(Sections.SUBCLASS)))
+              )}
+              label='Attributes'
             />
           </Grid.Col>
         )}
-      {providesOptions && (
-        <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-          <Input
-            validation='num'
-            name={`selectionCount`}
-            label='# of Selections'
-            autoComplete='off'
-            value={data?.selectionCount}
-            errorMsg='Must contain only numbers'
-            required={true}
-            onChange={{ updateField }}
-          />
-        </Grid.Col>
-      )}
-      {hasPrerequisites && (
-        <Grid.Col>
-          <Prerequisites formStore={sectionStore} />
-        </Grid.Col>
-      )}
+      </AppField>
+      <AppField
+        name='category'
+        validators={fieldValidators({
+          onBlur: 'Select a expertise category',
+        })}
+        listeners={fieldListeners}
+      >
+        {({ DropdownField }) => (
+          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+            <DropdownField options={proficiencies.categories} required={true} label='Expertise Category' />
+          </Grid.Col>
+        )}
+      </AppField>
+      <Subscribe selector={(state) => state.values.category}>
+        {(formCategory) => {
+          const sectionCategory = proficiencies.categories.find((category) => category.id === formCategory)
+          const path = getKeyFromId(formCategory ?? '', ProfCats)
+          return (
+            <>
+              {sectionCategory != null &&
+                path !== 'initiative' &&
+                (path !== 'equipment' && path !== 'properties' ?
+                  <AppField
+                    name={path}
+                    validators={fieldValidators({
+                      onBlur: 'Select at lease one type',
+                    })}
+                    listeners={fieldListeners}
+                  >
+                    {({ DropdownField }) => (
+                      <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                        <DropdownField
+                          multiselect={true}
+                          options={systemOptions[path]}
+                          required={true}
+                          label={`${sectionCategory.label} Type`}
+                        />
+                      </Grid.Col>
+                    )}
+                  </AppField>
+                : <>
+                    <AppField
+                      name={path}
+                      validators={fieldValidators({
+                        onBlur: 'Select an equipment category',
+                      })}
+                      listeners={fieldListeners}
+                    >
+                      {({ DropdownField }) => (
+                        <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                          <DropdownField
+                            options={systemEquipment.categories}
+                            required={true}
+                            label='Equipment Category'
+                          />
+                        </Grid.Col>
+                      )}
+                    </AppField>
+                    <Subscribe selector={(state) => state.values}>
+                      {(values) => (
+                        <>
+                          <AppField
+                            name={`${path as 'properties' | 'equipment'}.${
+                              sectionCategory.id === ProfCats.EQUIPMENT ? 'properties' : 'ids'
+                            }`}
+                            validators={fieldValidators({
+                              onBlur: 'Select at leaset one property',
+                              condition: sectionCategory.id === ProfCats.EQUIPMENT,
+                            })}
+                            listeners={fieldListeners}
+                          >
+                            {({ DropdownField }) => (
+                              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                <DropdownField
+                                  multiselect={true}
+                                  options={systemEquipment.properties.filterByCategory(values[path]?.category)}
+                                  required={sectionCategory.id === ProfCats.EQUIPMENT ? false : true}
+                                  label='Equipment Properties'
+                                />
+                              </Grid.Col>
+                            )}
+                          </AppField>
+                          {sectionCategory.id === ProfCats.EQUIPMENT && (
+                            <AppField
+                              name={`${path as 'equipment'}.ids`}
+                              validators={fieldValidators({
+                                onBlur: 'Select at leaset one equipment',
+                              })}
+                              listeners={fieldListeners}
+                            >
+                              {({ DropdownField }) => (
+                                <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                  <DropdownField
+                                    multiselect={true}
+                                    options={equipment
+                                      .filterByCategory(values[path]?.category)
+                                      .filterByEveryProperty(values[path]?.properties)}
+                                    required={true}
+                                    label='Equipment'
+                                  />
+                                </Grid.Col>
+                              )}
+                            </AppField>
+                          )}
+                        </>
+                      )}
+                    </Subscribe>
+                  </>)}
+            </>
+          )
+        }}
+      </Subscribe>
+      <Subscribe
+        selector={(state) => ({ formAttributes: state.values.attributes, formCategory: state.values.category })}
+      >
+        {({ formAttributes, formCategory }) => {
+          const { subtypeSpecific, providesOptions, hasPrerequisites } = getAttributes({ attributes: formAttributes })
+          const sectionCategory = proficiencies.categories.findCategory(formCategory)
+          return (
+            subtypeSpecific &&
+            __kind === 'ClassInput' &&
+            sectionCategory != null &&
+            subtypes?.length && (
+              <AppField
+                name='subtype'
+                validators={fieldValidators({
+                  onBlur: 'Select a subtype',
+                })}
+              >
+                {({ DropdownField }) => (
+                  <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                    <DropdownField options={subtypes} required={true} label='Subclass Subtype' />
+                  </Grid.Col>
+                )}
+              </AppField>
+            ) &&
+            providesOptions && (
+              <AppField
+                name='selectionCount'
+                validators={fieldValidators({
+                  onBlur: 'Enter a number of selections allowed',
+                  onChange: { type: 'number', min: 1, name: 'selectionCount' },
+                })}
+              >
+                {({ TextField }) => (
+                  <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                    <TextField required={true} label='# of Selections' />
+                  </Grid.Col>
+                )}
+              </AppField>
+            ) &&
+            hasPrerequisites && (
+              <Grid.Col>
+                <Prerequisites
+                  form={form}
+                  fields='prerequisites'
+                  __kind='FeatureExpertiseInput'
+                  updateFn={expertiseStore.updateField}
+                  removeFn={expertiseStore.removeField}
+                />
+              </Grid.Col>
+            )
+          )
+        }}
+      </Subscribe>
     </Grid>
   )
 }

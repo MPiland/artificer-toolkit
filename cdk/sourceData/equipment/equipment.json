@@ -1,6 +1,5 @@
 [
   {
-    "value": "leatherworkersTools",
     "label": "Leatherworker's Tools",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -23,7 +22,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "masonsTools",
     "label": "Mason's Tools",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -47,7 +45,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "woodcarversTools",
     "label": "Woodcarver's Tools",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -71,7 +68,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "bagpipes",
     "label": "Bagpipes",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -95,7 +91,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "calligraphersSupplies",
     "label": "Calligrapher's Supplies",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -119,7 +114,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "diceSet",
     "label": "Dice Set",
     "cost": {
       "currency": "563e0322-3cc3-4fcc-8cfa-2253383e5daf",
@@ -140,7 +134,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "forgeryKit",
     "label": "Forgery Kit",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -164,7 +157,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "playingCardSet",
     "label": "Playing Card Set",
     "cost": {
       "currency": "563e0322-3cc3-4fcc-8cfa-2253383e5daf",
@@ -185,7 +177,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "viol",
     "label": "Viol",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -209,7 +200,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "hideArmor",
     "label": "Hide Armor",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -240,7 +230,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "brewersSupplies",
     "label": "Brewer's Supplies",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -264,7 +253,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "weaversTools",
     "label": "Weaver's Tools",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -288,7 +276,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "panFlute",
     "label": "Pan Flute",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -312,7 +299,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "shawm",
     "label": "Shawm",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -336,7 +322,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "thievesTools",
     "label": "Thieves's Tools",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -360,7 +345,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "ringMailArmor",
     "label": "Ring Mail Armor",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -391,7 +375,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "studdedLeatherArmor",
     "label": "Studded Leather Armor",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -420,7 +403,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "cobblersTools",
     "label": "Cobbler's Tools",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -444,7 +426,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "dulcimer",
     "label": "Dulcimer",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -468,7 +449,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "breastplateArmor",
     "label": "Breastplate Armor",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -499,7 +479,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "halfPlateArmor",
     "label": "Half Plate Armor",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -533,7 +512,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "chainShirtArmor",
     "label": "Chain Shirt Armor",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -564,7 +542,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "scaleMailArmor",
     "label": "Scale Mail Armor",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -598,7 +575,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "cooksUtensils",
     "label": "Cook's Untensils",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -622,7 +598,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "lute",
     "label": "Lute",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -646,7 +621,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "poisonersKit",
     "label": "Poisoner's Kit",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -670,7 +644,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "paddedArmor",
     "label": "Padded Armor",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -702,7 +675,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "metalShield",
     "label": "Metal Shield",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -731,7 +703,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "cartographersTools",
     "label": "Cartographer's Tools",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -755,7 +726,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "jewelersTools",
     "label": "Jeweler's Tools",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -778,7 +748,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "smithsTools",
     "label": "Smith's Tools",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -802,7 +771,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "tinkersTools",
     "label": "Tinker's Tools",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -826,7 +794,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "flute",
     "label": "Flute",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -850,7 +817,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "horn",
     "label": "Horn",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -874,7 +840,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "splintArmor",
     "label": "Splint Armor",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -893,7 +858,6 @@
       },
       "options": [
         {
-          "value": "abilityScore",
           "label": "Ability Score"
         }
       ]
@@ -920,7 +884,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "carpentersTools",
     "label": "Carpenter's Tools",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -944,7 +907,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "drum",
     "label": "Drum",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -968,7 +930,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "herbalismKit",
     "label": "Herbalism Kit",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -992,7 +953,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "leatherArmor",
     "label": "Leather Armor",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -1021,7 +981,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "chainMailArmor",
     "label": "Chain Mail Armor",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -1040,7 +999,6 @@
       },
       "options": [
         {
-          "value": "abilityScore",
           "label": "Ability Score"
         }
       ]
@@ -1067,7 +1025,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "pottersTools",
     "label": "Potter's Tools",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -1091,7 +1048,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "navigatorsTools",
     "label": "Navigator's Tools",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -1115,7 +1071,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "alchemistsSupplies",
     "label": "Alchemist's Supplies",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -1142,7 +1097,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "glassblowersTools",
     "label": "Glassblower's Tools",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -1166,7 +1120,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "paintersSupplies",
     "label": "Painter's Supplies",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -1190,7 +1143,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "disguiseKit",
     "label": "Disguise Kit",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -1214,7 +1166,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "lyre",
     "label": "Lyre",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -1238,7 +1189,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "club",
     "label": "Club",
     "cost": {
       "currency": "563e0322-3cc3-4fcc-8cfa-2253383e5daf",
@@ -1274,7 +1224,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "dagger",
     "label": "Dagger",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -1318,7 +1267,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "handaxe",
     "label": "Handaxe",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -1360,7 +1308,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "javelin",
     "label": "Javelin",
     "cost": {
       "currency": "563e0322-3cc3-4fcc-8cfa-2253383e5daf",
@@ -1401,7 +1348,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "lightHammer",
     "label": "Light Hammer",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -1443,7 +1389,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "mace",
     "label": "Mace",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -1479,7 +1424,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "greatclub",
     "label": "Greatclub",
     "cost": {
       "currency": "563e0322-3cc3-4fcc-8cfa-2253383e5daf",
@@ -1515,7 +1459,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "quarterstaff",
     "label": "Quarterstaff",
     "cost": {
       "currency": "563e0322-3cc3-4fcc-8cfa-2253383e5daf",
@@ -1554,7 +1497,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "sickle",
     "label": "Sickle",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -1590,7 +1532,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "spear",
     "label": "Spear",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -1635,7 +1576,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "lightCrossbow",
     "label": "Light Crossbow",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -1676,7 +1616,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "dart",
     "label": "Dart",
     "cost": {
       "currency": "622c63f5-041a-429a-8cc5-ac17fb13d160",
@@ -1718,7 +1657,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "shortbow",
     "label": "Shortbow",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -1759,7 +1697,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "sling",
     "label": "Sling",
     "cost": {
       "currency": "563e0322-3cc3-4fcc-8cfa-2253383e5daf",
@@ -1796,7 +1733,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "battleaxe",
     "label": "Battleaxe",
     "cost": {
       "amount": 10,
@@ -1836,7 +1772,6 @@
       ],
       "options": [
         {
-          "value": "characterSize",
           "label": "Size"
         }
       ]
@@ -1854,7 +1789,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "flail",
     "label": "Flail",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -1889,7 +1823,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "glaive",
     "label": "Glaive",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -1930,7 +1863,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "greataxe",
     "label": "Greataxe",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -1970,7 +1902,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "greatsword",
     "label": "Greatsword",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -2010,7 +1941,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "halberd",
     "label": "Halberd",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -2051,7 +1981,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "lance",
     "label": "Lance",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -2088,7 +2017,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "longsword",
     "label": "Longsword",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -2127,7 +2055,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "maul",
     "label": "Maul",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -2167,7 +2094,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "morningstar",
     "label": "Morningstar",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -2202,7 +2128,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "pike",
     "label": "Pike",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -2243,7 +2168,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "rapier",
     "label": "Rapier",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -2279,7 +2203,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "scimitar",
     "label": "Scimitar",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -2316,7 +2239,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "shortsword",
     "label": "Shortsword",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -2353,7 +2275,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "trident",
     "label": "Trident",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -2398,7 +2319,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "warPick",
     "label": "War Pick",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -2433,7 +2353,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "warhammer",
     "label": "Warhammer",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -2472,7 +2391,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "whip",
     "label": "Whip",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -2510,7 +2428,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "blowgun",
     "label": "Blowgun",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -2551,7 +2468,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "handCrossbow",
     "label": "Hand Crossbow",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -2593,7 +2509,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "heavyCrossbow",
     "label": "Heavy Crossbow",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -2639,7 +2554,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "longbow",
     "label": "Longbow",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -2684,7 +2598,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "net",
     "label": "Net",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -2724,7 +2637,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "arrow",
     "label": "Arrow",
     "cost": {
       "currency": "622c63f5-041a-429a-8cc5-ac17fb13d160",
@@ -2752,7 +2664,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "blowgunNeedle",
     "label": "Blowgun Needle",
     "cost": {
       "currency": "622c63f5-041a-429a-8cc5-ac17fb13d160",
@@ -2780,7 +2691,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "crossbowBolt",
     "label": "Crossbow Bolt",
     "cost": {
       "currency": "622c63f5-041a-429a-8cc5-ac17fb13d160",
@@ -2808,7 +2718,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "crystal",
     "label": "Crystal",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -2833,7 +2742,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "orb",
     "label": "Orb",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -2858,7 +2766,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "rod",
     "label": "Rod",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -2883,7 +2790,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "staff",
     "label": "Staff",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -2908,7 +2814,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "wand",
     "label": "Wand",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -2933,7 +2838,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "ballBearings",
     "label": "Ball Bearings",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -2957,7 +2861,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "barrel",
     "label": "Barrel",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -2988,7 +2891,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "basket",
     "label": "Basket",
     "cost": {
       "currency": "563e0322-3cc3-4fcc-8cfa-2253383e5daf",
@@ -3019,7 +2921,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "bedroll",
     "label": "Bedroll",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -3043,7 +2944,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "bell",
     "label": "Bell",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -3060,7 +2960,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "blanket",
     "label": "Blanket",
     "cost": {
       "currency": "563e0322-3cc3-4fcc-8cfa-2253383e5daf",
@@ -3084,7 +2983,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "blockAndTackle",
     "label": "Block and Tackle",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -3108,7 +3006,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "book",
     "label": "Book",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -3132,7 +3029,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "glassBottle",
     "label": "Glass Bottle",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -3163,7 +3059,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "bucket",
     "label": "Bucket",
     "cost": {
       "currency": "622c63f5-041a-429a-8cc5-ac17fb13d160",
@@ -3194,7 +3089,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "caltrops",
     "label": "Caltrops",
     "cost": {
       "currency": "622c63f5-041a-429a-8cc5-ac17fb13d160",
@@ -3217,7 +3111,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "abacus",
     "label": "Abacus",
     "desc": "<p>A standard tool used to make calculations.</p>",
     "cost": {
@@ -3238,7 +3131,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "acid",
     "label": "Acid",
     "desc": "<p>As an action, you can splash the contents of this vial onto a creature within 5 feet of you or throw the vial up to 20 feet, shattering it on impact. In either case, make a ranged attack against a creature or object, treating the acid as an improvised weapon. On a hit, the target takes 2d6 acid damage.</p>",
     "cost": {
@@ -3278,7 +3170,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "alchemistsFire",
     "label": "Alchemist's Fire",
     "desc": "<p>This sticky, adhesive fluid ignites when exposed to air. As an action, you can throw this flask up to 20 feet, shattering it on impact. Make a ranged attack against a creature or object, treating the alchemist's fire as an improvised weapon. On a hit, the target takes 1d4 fire damage at the start of each of its turns. A creature can end this damage by using its action to make a DC 10 Dexterity check to extinguish the flames.</p>",
     "cost": {
@@ -3311,7 +3202,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "slingBullet",
     "label": "Sling Bullet",
     "desc": "<p>Sling bullets are&nbsp;used with&nbsp;a weapon that has the ammunition property to make a ranged attack. Each time you attack with the weapon, you expend one piece of ammunition. Drawing the ammunition from a quiver, case, or other container is part of the attack (you need a free hand to load a one-handed weapon). At the end of the battle, you can recover half your expended ammunition by taking a minute to search the battlefield.</p>",
     "cost": {
@@ -3338,7 +3228,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "antitoxin",
     "label": "Antitoxin",
     "desc": "<p>A creature that drinks this vial of liquid gains advantage on saving throws against poison for 1 hour. It confers no benefit to undead or constructs.</p>",
     "cost": {
@@ -3361,7 +3250,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "backpack",
     "label": "Backpack",
     "desc": "<p>A backpack is a leather pack carried on the back, typically with straps to secure it. A backpack can hold&nbsp;1 cubic foot/ 30 pounds of gear.</p><p>You can also strap items, such as a bedroll or a coil of rope, to the outside of a backpack.</p>",
     "cost": {
@@ -3389,7 +3277,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "candle",
     "label": "Candle",
     "cost": {
       "amount": 1,
@@ -3405,7 +3292,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "crossbowBoltCase",
     "label": "Crossbow Bolt Case",
     "desc": "<p>This wooden case can hold up to twenty crossbow bolts.</p>",
     "cost": {
@@ -3429,7 +3315,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "mapAndScrollCase",
     "label": "Map and Scroll Case",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -3452,7 +3337,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "chalk",
     "label": "Chalk",
     "desc": "<p>A piece of chalk used for writing and marking on various surfaces.</p>",
     "cost": {
@@ -3472,7 +3356,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "chest",
     "label": "Chest",
     "desc": "<p>A chest can hold&nbsp;12 cubic feet/ 300 pounds of gear.</p>",
     "cost": {
@@ -3500,7 +3383,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "climbersKit",
     "label": "Climber's Kit",
     "desc": "<p>A climber's kit includes special pitons, boot tips, gloves, and a harness. You can use the climber's kit as an action to anchor yourself; when you do, you can't fall more than 25 feet from the point where you anchored yourself, and you can't climb more than 25 feet away from that point without undoing the anchor.</p>",
     "cost": {
@@ -3521,7 +3403,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "commonClothes",
     "label": "Common Clothes",
     "desc": "<p>This set of clothes could consist of a loose shirt and baggy breeches, or a loose shirt and skirt or overdress. Cloth wrappings are used for shoes.</p>",
     "cost": {
@@ -3545,7 +3426,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "costumeClothes",
     "label": "Costume Clothes",
     "desc": "<p>This set of&nbsp;clothes is fashioned after a particular costume, typically meant for entertaining.</p>",
     "cost": {
@@ -3569,7 +3449,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "fineClothes",
     "label": "Fine Clothes",
     "desc": "<p>This set of clothes is designed specifically to be expensive and to show it, including&nbsp;fancy, tailored clothes in whatever fashion happens to be the current style in the courts of the nobles. Precious metals and gems could be worked into the clothing.</p>",
     "cost": {
@@ -3593,7 +3472,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "travelersClothes",
     "label": "Traveler's Clothes",
     "desc": "<p>This set of clothes could consist of boots, a wool skirt or breeches, a sturdy belt, a shirt (perhaps with a vest or jacket), and an ample cloak with a hood.</p>",
     "cost": {
@@ -3617,7 +3495,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "componentPouch",
     "label": "Component Pouch",
     "desc": "<p>A component pouch is a small, watertight leather belt pouch that has compartments to hold all the material components and other special items you need to cast your spells, except for those components that have a specific cost (as indicated in a spell's description).</p>",
     "cost": {
@@ -3641,7 +3518,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "crowbar",
     "label": "Crowbar",
     "desc": "<p>Using a crowbar grants advantage to Strength checks where the crowbar's leverage can be applied.</p>",
     "cost": {
@@ -3662,7 +3538,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "sprigOfMistletoe",
     "label": "Sprig of Mistletoe",
     "desc": "<p>A druid can use a Sprig of Mistletoe (or holly) as a spellcasting focus, as described in the Spellcasting section.</p>",
     "cost": {
@@ -3682,7 +3557,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "totem",
     "label": "Totem",
     "desc": "<p>A druid can use a Totem as a spellcasting focus, as described in the Spellcasting section.</p>",
     "cost": {
@@ -3702,7 +3576,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "woodenStaff",
     "label": "Wooden Staff",
     "desc": "<p>A druid can use a Wooden Staff&nbsp;as a spellcasting focus, as described in the Spellcasting section.</p>",
     "cost": {
@@ -3726,7 +3599,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "yewWand",
     "label": "Yew Wand",
     "desc": "<p>A druid can use a Yew Wand&nbsp;as a spellcasting focus, as described in the Spellcasting section.</p>",
     "cost": {
@@ -3750,7 +3622,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "fishingTackle",
     "label": "Fishing Tackle",
     "desc": "<p>This kit includes a wooden rod, silken line, corkwood bobbers, steel hooks, lead sinkers, velvet lures, and narrow netting.</p>",
     "cost": {
@@ -3771,7 +3642,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "flask",
     "label": "Flask",
     "desc": "<p>A flask can hold&nbsp;1 pint of liquid.</p>",
     "cost": {
@@ -3800,7 +3670,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "tankard",
     "label": "Tankard",
     "desc": "<p>A tankard can hold&nbsp;1 pint of liquid.</p>",
     "cost": {
@@ -3829,7 +3698,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "grapplingHook",
     "label": "Grappling Hook",
     "desc": "<p>When tied to the end of a rope, a grappling hook can secure the rope to a battlement, window ledge, tree limb, or other protrusion.</p>",
     "cost": {
@@ -3850,7 +3718,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "hammer",
     "label": "Hammer",
     "desc": "<p>This one-handed hammer with an iron head is useful for pounding pitons into a wall.</p>",
     "cost": {
@@ -3871,7 +3738,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "sledgehammer",
     "label": "Sledgehammer",
     "desc": "<p>This two-handed, iron-headed hammer is good for smashing open treasure chests.</p>",
     "cost": {
@@ -3892,7 +3758,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "healersKit",
     "label": "Healer's Kit",
     "desc": "<p>This kit is a leather pouch containing bandages, salves, and splints. The kit has ten uses. As an action, you can expend one use of the kit to stabilize a creature that has 0 hit points, without needing to make a Wisdom (Medicine) check.</p>",
     "cost": {
@@ -3916,7 +3781,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "amulet",
     "label": "Amulet",
     "desc": "<p>A holy symbol is a representation of a god or pantheon. A cleric or paladin can use a holy symbol as a spellcasting focus, as described in the Spellcasting section. To use the symbol in this way, the caster must hold it in hand, wear it visibly, or bear it on a shield.</p>",
     "cost": {
@@ -3936,7 +3800,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "emblem",
     "label": "Emblem",
     "cost": {
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
@@ -3955,7 +3818,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "reliquary",
     "label": "Reliquary",
     "desc": "<p>A holy symbol is a representation of a god or pantheon. A cleric or paladin can use a holy symbol as a spellcasting focus, as described in the Spellcasting section. To use the symbol in this way, the caster must hold it in hand, wear it visibly, or bear it on a shield.</p>",
     "cost": {
@@ -3979,7 +3841,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "holyWater",
     "label": "Holy Water",
     "desc": "<p>As an action, you can splash the contents of this flask onto a creature within 5 feet of you or throw it up to 20 feet, shattering it on impact. In either case, make a ranged attack against a target creature, treating the holy water as an improvised weapon. If the target is a fiend or undead, it takes 2d6 radiant damage.</p><p>A cleric or paladin may create holy water by performing a special ritual. The ritual takes 1 hour to perform, uses 25 gp worth of powdered silver, and requires the caster to expend a 1st-level spell slot.</p>",
     "cost": {
@@ -4012,7 +3873,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "hourglass",
     "label": "Hourglass",
     "desc": "<p>A standard hourglass used to measure the passage of time.</p>",
     "cost": {
@@ -4033,7 +3893,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "huntingTrap",
     "label": "Hunting Trap",
     "desc": "<p>When you use your action to set it, this trap forms a saw-toothed steel ring that snaps shut when a creature steps on a pressure plate in the center. The trap is affixed by a heavy chain to an immobile object, such as a tree or a spike driven into the ground. A creature that steps on the plate must succeed on a DC 13 Dexterity saving throw or take 1d4 piercing damage and stop moving. Thereafter, until the creature breaks free of the trap, its movement is limited by the length of the chain (typically 3 feet long). A creature can use its action to make a DC 13 Strength check, freeing itself or another creature within its reach on a success. Each failed check deals 1 piercing damage to the trapped creature.</p>",
     "cost": {
@@ -4068,7 +3927,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "inkPen",
     "label": "Ink Pen",
     "cost": {
       "amount": 2,
@@ -4084,7 +3942,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "jug",
     "label": "Jug",
     "desc": "<p>A jug can hold 1 gallon of liquid.</p>",
     "cost": {
@@ -4112,7 +3969,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "pitcher",
     "label": "Pitcher",
     "desc": "<p>A pitcher can hold 1 gallon of liquid.</p>",
     "cost": {
@@ -4140,7 +3996,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "ladder10Foot",
     "label": "Ladder (10-Foot)",
     "desc": "<p>This item is a straight, simple wooden ladder.</p>",
     "cost": {
@@ -4161,7 +4016,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "bullseyeLantern",
     "label": "Bullseye Lantern",
     "desc": "<p>A bullseye lantern casts bright light in a 60-foot cone and dim light for an additional 60 feet. Once lit, it burns for 6 hours on a flask (1 pint) of oil.</p>",
     "cost": {
@@ -4182,7 +4036,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "hoodedLantern",
     "label": "Hooded Lantern",
     "desc": "<p>A hooded lantern casts bright light in a 30-foot radius and dim light for an additional 30 feet. Once lit, it burns for 6 hours on a flask (1 pint) of oil. As an action, you can lower the hood, reducing the light to dim light in a 5-foot radius.</p>",
     "cost": {
@@ -4203,7 +4056,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "lamp",
     "label": "Lamp",
     "desc": "<p>A lamp casts bright light in a 15-foot radius and dim light for an additional 30 feet. Once lit, it burns for 6 hours on a flask (1 pint) of oil.</p>",
     "cost": {
@@ -4224,7 +4076,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "lock",
     "label": "Lock",
     "desc": "<p>A key is provided with the lock. Without the key, a creature proficient with thieves' tools can pick this lock with a successful DC 15 Dexterity check. Your DM may decide that better locks are available for higher prices.</p>",
     "cost": {
@@ -4245,7 +4096,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "magnifyingGlass",
     "label": "Magnifying Glass",
     "desc": "<p>This lens allows a closer look at small objects. It is also useful as a substitute for flint and steel when starting fires. Lighting a fire with a magnifying glass requires light as bright as sunlight to focus, tinder to ignite, and about 5 minutes for the fire to ignite. A magnifying glass grants advantage on any ability check made to appraise or inspect an item that is small or highly detailed.</p>",
     "cost": {
@@ -4262,7 +4112,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "manacles",
     "label": "Manacles",
     "desc": "<p>These metal restraints can bind a Small or Medium creature. Escaping the manacles requires a successful DC 20 Dexterity check. Breaking them requires a successful DC 20 Strength check. Each set of manacles comes with one key. Without the key, a creature proficient with thieves' tools can pick the manacles' lock with a successful DC 15 Dexterity check. Manacles have 15 hit points.</p>",
     "cost": {
@@ -4283,7 +4132,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "messKit",
     "label": "Mess Kit",
     "desc": "<p>This tin box contains a cup and simple cutlery. The box clamps together, and one side can be used as a cooking pan and the other as a plate or shallow bowl.</p>",
     "cost": {
@@ -4304,7 +4152,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "steelMirror",
     "label": "Steel Mirror",
     "cost": {
       "amount": 5,
@@ -4324,7 +4171,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "oil",
     "label": "Oil",
     "desc": "<p>Oil usually comes in a clay flask that holds 1 pint. As an action, you can splash the oil in this flask onto a creature within 5 feet of you or throw it up to 20 feet, shattering it on impact. Make a ranged attack against a target creature or object, treating the oil as an improvised weapon. On a hit, the target is covered in oil. If the target takes any fire damage before the oil dries (after 1 minute), the target takes an additional 5 fire damage from the burning oil. You can also pour a flask of oil on the ground to cover a 5-foot-square area, provided that the surface is level. If lit, the oil burns for 2 rounds and deals 5 fire damage to any creature that enters the area or ends its turn in the area. A creature can take this damage only once per turn.</p>",
     "cost": {
@@ -4348,7 +4194,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "paper",
     "label": "Paper",
     "desc": "<p>A sheet of standard paper is made from cloth fibers.</p>",
     "cost": {
@@ -4368,7 +4213,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "parchment",
     "label": "Parchment",
     "cost": {
       "amount": 1,
@@ -4387,7 +4231,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "perfume",
     "label": "Perfume",
     "desc": "<p>A fragrant commodity typically used by the wealthy.</p>",
     "cost": {
@@ -4407,7 +4250,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "minersPick",
     "label": "Miner's Pick",
     "desc": "<p>A miner's pick is designed to concentrate the force of its blow on a small area.</p>",
     "cost": {
@@ -4428,7 +4270,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "piton",
     "label": "Piton",
     "desc": "<p>When a wall doesn’t offer handholds and footholds, you can make your own. A piton is a steel spike with an eye through which you can loop a rope.</p>",
     "cost": {
@@ -4449,7 +4290,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "basicPoison",
     "label": "Basic Poison",
     "desc": "<p>You can use the poison in this vial to coat one slashing or piercing weapon or up to three pieces of ammunition. Applying the poison takes an action. A creature hit by the poisoned weapon or ammunition must succeed on a DC 10 Constitution saving throw or take 1d4 poison damage. Once applied, the poison retains potency for 1 minute before drying.</p>",
     "cost": {
@@ -4473,7 +4313,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "pole10Foot",
     "label": "Pole (10-Foot)",
     "desc": "<p>When you suspect a trap, you can put the end of your 10-foot pole through that hole in the wall instead of reaching in with your hand.</p>",
     "cost": {
@@ -4494,7 +4333,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "ironPot",
     "label": "Iron Pot",
     "desc": "<p>An iron pot can hold 1 gallon of liquid.</p>",
     "cost": {
@@ -4522,7 +4360,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "potionOfHealing",
     "label": "Potion of Healing",
     "desc": "<p>A character who drinks the magical red fluid in this vial regains 2d4 + 2 hit points. Drinking or administering a potion takes an action.</p>",
     "cost": {
@@ -4554,7 +4391,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "pouch",
     "label": "Pouch",
     "desc": "<p>A cloth or leather pouch can hold 1/5 cubic foot/ 6 pounds of gear - or up to 20 sling bullets or 50 blowgun needles, among other things. A compartmentalized pouch for holding spell components is called a component pouch.</p>",
     "cost": {
@@ -4582,7 +4418,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "quiver",
     "label": "Quiver",
     "desc": "<p>A quiver can hold up to 20 arrows.</p>",
     "cost": {
@@ -4606,7 +4441,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "portableRam",
     "label": "Portable Ram",
     "desc": "<p>You can use a portable ram to break down doors. When doing so, you gain a +4 bonus on the Strength check. One other character can help you use the ram, giving you advantage on this check.</p>",
     "cost": {
@@ -4627,7 +4461,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "rations1Day",
     "label": "Rations (1 Day)",
     "desc": "<p>Rations consist of dry foods suitable for extended travel, including jerky, dried fruit, hardtack, and nuts.</p>",
     "cost": {
@@ -4651,7 +4484,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "robes",
     "label": "Robes",
     "desc": "<p>A standard set of robes.</p>",
     "cost": {
@@ -4675,7 +4507,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "hempenRope50Feet",
     "label": "Hempen Rope (50 Feet)",
     "desc": "<p>Rope,&nbsp;has 2 hit points and can be burst with a DC 17 Strength check.</p>",
     "cost": {
@@ -4696,7 +4527,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "silkenRope50Feet",
     "label": "Silken Rope (50 Feet)",
     "cost": {
       "amount": 10,
@@ -4716,7 +4546,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "sack",
     "label": "Sack",
     "desc": "<p>A sack can hold&nbsp;1 cubic foot/ 30 pounds of gear.</p>",
     "cost": {
@@ -4744,7 +4573,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "merchantsScale",
     "label": "Merchant's Scale",
     "desc": "<p>A scale includes a small balance, pans, and a suitable assortment of weights up to 2 pounds. With it, you can measure the exact weight of small objects, such as raw precious metals or trade goods, to help determine their worth.</p>",
     "cost": {
@@ -4765,7 +4593,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "sealingWax",
     "label": "Sealing Wax",
     "desc": "<p>When you press a signet ring into warm sealing wax, you leave an identifying mark.</p>",
     "cost": {
@@ -4782,7 +4609,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "shovel",
     "label": "Shovel",
     "desc": "<p>A standard shovel used for digging.</p>",
     "cost": {
@@ -4803,7 +4629,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "signalWhistle",
     "label": "Signal Whistle",
     "desc": "<p>A small whistle used for signaling.</p>",
     "cost": {
@@ -4820,7 +4645,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "signetRing",
     "label": "Signet Ring",
     "desc": "<p>Each signet ring has a distinctive design carved into it. When you press this ring into warm sealing wax, you leave an identifying mark.</p>",
     "cost": {
@@ -4837,7 +4661,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "soap",
     "label": "Soap",
     "desc": "<p>A commodity used for bathing.</p>",
     "cost": {
@@ -4854,7 +4677,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "spellbook",
     "label": "Spellbook",
     "desc": "<p>Essential for wizards, a spellbook is a leather-bound tome with 100 blank vellum pages suitable for recording spells.</p>",
     "cost": {
@@ -4875,7 +4697,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "ironSpike",
     "label": "Iron Spike",
     "desc": "<p>Standard iron spikes typically used with a hammer.</p>",
     "cost": {
@@ -4899,7 +4720,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "spyglass",
     "label": "Spyglass",
     "desc": "<p>Objects viewed through a spyglass are magnified to twice their size.</p>",
     "cost": {
@@ -4920,7 +4740,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "twoPersonTent",
     "label": "Two-Person Tent",
     "desc": "<p>A simple and portable canvas shelter, a tent sleeps two.</p>",
     "cost": {
@@ -4941,7 +4760,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "tinderbox",
     "label": "Tinderbox",
     "desc": "<p>This small container holds flint, fire steel, and tinder (usually dry cloth soaked in light oil) used to kindle a fire. Using it to light a torch -- or anything else with abundant, exposed fuel -- takes an action. Lighting any other fire takes 1 minute.</p>",
     "cost": {
@@ -4962,7 +4780,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "torch",
     "label": "Torch",
     "desc": "<p>A torch burns for 1 hour, providing bright light in a 20-foot radius and dim light for an additional 20 feet. If you make a melee attack with a burning torch and hit, it deals 1 fire damage.</p>",
     "cost": {
@@ -4983,7 +4800,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "vial",
     "label": "Vial",
     "desc": "<p>A vial can hold&nbsp;4 ounces of liquid.</p>",
     "cost": {
@@ -5003,7 +4819,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "waterskin",
     "label": "Waterskin",
     "desc": "<p>A waterskin can hold&nbsp;4 pints of liquid.</p>",
     "cost": {
@@ -5031,7 +4846,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "whetstone",
     "label": "Whetstone",
     "desc": "<p>A standard whetstone used to sharpen blades.</p>",
     "cost": {
@@ -5052,7 +4866,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "inkBottle",
     "label": "Ink Bottle",
     "desc": "<p>Ink is&nbsp;typically used with an ink pen to write.</p>",
     "cost": {
@@ -5080,7 +4893,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "string10Feet",
     "label": "String (10 Feet)",
     "desc": "<p>A 10-foot length of string, typically found in a burglar's pack.</p>",
     "cost": {
@@ -5097,7 +4909,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "burglarsPack",
     "label": "Burglar's Pack",
     "desc": "<p>Includes a backpack, a bag of 1,000 ball bearings, 10 feet of string, a bell, 5 candles, a crowbar, a hammer, 10 pitons, a hooded lantern, 2 flasks of oil, 5 days rations, a tinderbox, and a waterskin. The pack also has 50 feet of hempen rope strapped to the side of it.</p>",
     "cost": {
@@ -5182,7 +4993,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "diplomatsPack",
     "label": "Diplomat's Pack",
     "desc": "<p>Includes a chest, 2 cases for maps and scrolls, a set of fine clothes, a bottle of ink, an ink pen, a lamp, 2 flasks of oil, 5 sheets of paper, a vial of perfume, sealing wax, and soap.</p>",
     "cost": {
@@ -5259,7 +5069,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "dungeoneersPack",
     "label": "Dungeoneer's Pack",
     "desc": "<p>Includes a backpack, a crowbar, a hammer, 10 pitons, 10 torches, a tinderbox, 10 days of rations, and a waterskin. The pack also has 50 feet of hempen rope strapped to the side of it.</p>",
     "cost": {
@@ -5324,7 +5133,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "entertainersPack",
     "label": "Entertainer's Pack",
     "desc": "<p>Includes a backpack, a bedroll, 2 costumes, 5 candles, 5 days of rations, a waterskin, and a disguise kit.</p>",
     "cost": {
@@ -5381,7 +5189,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "explorersPack",
     "label": "Explorer's Pack",
     "desc": "<p>Includes a backpack, a bedroll, a mess kit, a tinderbox, 10 torches, 10 days of rations, and a waterskin. The pack also has 50 feet of hempen rope strapped to the side of it.</p>",
     "cost": {
@@ -5442,7 +5249,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "priestsPack",
     "label": "Priest's Pack",
     "desc": "<p>Includes a backpack, a blanket, 10 candles, a tinderbox, an alms box, 2 blocks of incense, a censer, vestments, 2 days of rations, and a waterskin.</p>",
     "cost": {
@@ -5507,7 +5313,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "almsBox",
     "label": "Alms Box",
     "desc": "<p>A small box for alms (donations such as coin and food), typically found in a priest's pack.</p>",
     "cost": {
@@ -5527,7 +5332,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "blockOfIncense",
     "label": "Block of Incense",
     "desc": "<p>A block of incense, typically found in a priest's pack.</p>",
     "cost": {
@@ -5544,7 +5348,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "censer",
     "label": "Censer",
     "desc": "<p>A censer, typically found in a priest's pack.</p>",
     "cost": {
@@ -5561,7 +5364,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "vestmentClothing",
     "label": "Vestment Clothing",
     "desc": "<p>Religious clothing, typically found in a priest's pack.</p>",
     "cost": {
@@ -5581,7 +5383,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "scholarsPack",
     "label": "Scholar's Pack",
     "desc": "<p>Includes a backpack, a book of lore, a bottle of ink, an ink pen, 10 sheets of parchment, a little bag of sand, and a small knife.</p>",
     "cost": {
@@ -5638,7 +5439,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "bagOfSand",
     "label": "Bag of Sand",
     "desc": "<p>A small bag of sand, typically found in a scholar's pack.</p>",
     "cost": {
@@ -5655,7 +5455,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "smallKnife",
     "label": "Small Knife",
     "desc": "<p>A small knife, typically found in a scholar's pack.</p>",
     "cost": {
@@ -5672,7 +5471,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "prayerBook",
     "label": "Prayer Book",
     "quote": "<p>A prayer book that an acolyte or a religion member may carry.</p>",
     "cost": {
@@ -5690,7 +5488,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "incenseStick",
     "label": "Incense Stick",
     "quote": "<p>Incense stick for religious ceremonies or rituals.</p>",
     "cost": {
@@ -5708,7 +5505,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "prayerWheel",
     "label": "Prayer Wheel",
     "cost": {
       "amount": 1,
@@ -5725,7 +5521,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "woodenShield",
     "label": "Wooden Shield",
     "desc": "<p>A shield made from wood and is carried in one hand. Wielding a shield increases your Armor Class by 2. You can benefit from only one shield at a time.</p>",
     "cost": {
@@ -5754,7 +5549,6 @@
     "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
-    "value": "ballBearingsBagOf1000",
     "label": "Ball Bearings (Bag of 1000)",
     "id": "b0b5f276-c0d5-4fab-817b-6ca1af327e8d",
     "ownerId": "master",

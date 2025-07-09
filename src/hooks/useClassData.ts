@@ -38,8 +38,12 @@ const useClassData = () => {
         })
       },
     }),
-    baseClasses: baseClasses,
+    baseClasses,
     subclasses: createArrayWithMethods(subclasses, {
+      findSubclass: (id?: string | null) => {
+        if (!id) return null
+        return suspenseQuery(fetchClass(id)).data
+      },
       findParent: (id?: string) => {
         if (!id) return null
         const parentId = metaData.parentClasses?.find((p) => p.classIds?.includes(id))?.id
@@ -51,7 +55,7 @@ const useClassData = () => {
         return subclasses.filter((c) => metaData.parentClasses?.find((p) => p.classIds?.includes(c.id))?.id === id)
       },
     }),
-    metaData: metaData,
+    metaData,
   }
 }
 export default useClassData

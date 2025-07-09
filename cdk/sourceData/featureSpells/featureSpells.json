@@ -265,9 +265,7 @@
       "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
     ],
     "levelLimit": [
-      {
-        "value": 0
-      }
+      {}
     ],
     "selectionCount": 2,
     "classLimit": [

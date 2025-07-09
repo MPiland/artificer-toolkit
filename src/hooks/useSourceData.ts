@@ -2,7 +2,7 @@ import { get, truncate } from 'lodash'
 import { useSystemData, useClassData } from '@/hooks'
 import { useCallback } from 'react'
 import type { DetailConfig, DetailArray, DetailObject } from '@/components/Detail'
-import type { FormDataType } from '@/types'
+import type { SourceDataType } from '@/types'
 import { extractLookupData, processArrayValue, getLabelsFromIds, getLabelFromId } from '@/utils'
 
 const useSourceData = () => {
@@ -26,12 +26,12 @@ const useSourceData = () => {
   /**
    * Process a DetailObject to create a label
    */
-  const createItemLabel = <T extends FormDataType>({
+  const createItemLabel = <T extends SourceDataType>({
     item,
     state,
   }: {
     item: DetailObject<T>
-    state: FormDataType
+    state: SourceDataType
   }): string | null => {
     const statePath = item.path
     const stateValue = get(state, statePath)
@@ -72,7 +72,7 @@ const useSourceData = () => {
     return null
   }
 
-  const getSourceText = <T extends FormDataType>({
+  const getSourceText = <T extends SourceDataType>({
     input,
     state,
     truncateNum,
@@ -86,13 +86,13 @@ const useSourceData = () => {
     /**
      * Process a single item or array of items
      */
-    const processItem = <T extends FormDataType>({
+    const processItem = <T extends SourceDataType>({
       item,
       state,
       shouldTruncate,
     }: {
       item: DetailObject<T> | DetailArray<T> | DetailArray<T>[]
-      state: FormDataType
+      state: SourceDataType
       shouldTruncate: boolean
     }): string | null | undefined => {
       if (!item || !state) {

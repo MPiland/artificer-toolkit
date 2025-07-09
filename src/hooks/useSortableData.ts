@@ -4,11 +4,25 @@ import { PropertyPath, get, isObject, uniq } from 'lodash'
 type SortConfig = {
   key: {
     orderKey?: string | PropertyPath
-    order?: any[]
+    order?: (
+      | string
+      | number
+      | {
+          [key: string]: unknown
+          name: string
+        }
+    )[]
     sortOn: string | PropertyPath
     subSort?: {
       orderKey?: string | PropertyPath
-      order?: any[]
+      order?: (
+        | string
+        | number
+        | {
+            [key: string]: unknown
+            name: string
+          }
+      )[]
       sortOn: string | PropertyPath | undefined
     }
     filter?: {
@@ -20,12 +34,12 @@ type SortConfig = {
 }
 
 interface UseSortableDataProps {
-  items: any[]
+  items: unknown[]
   config?: SortConfig | null
 }
 
 interface UseSortableDataResult {
-  items: any
+  items: unknown
   requestSort: (key: SortConfig['key']) => void
   sortConfig: SortConfig | null
 }
@@ -36,53 +50,63 @@ const useSortableData = (
 ): UseSortableDataResult => {
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(config)
 
-  const compareValues = useCallback((aValue: any, bValue: any, direction: SortConfig['direction']): number => {
-    if (aValue == null && aValue !== 0 && bValue == null && bValue !== 0) {
-      return 0
-    }
-    if (aValue == null && aValue !== 0 && bValue) {
-      return direction === 'ascending' ? -1 : 1
-    }
-    if (bValue == null && bValue !== 0 && aValue) {
-      return direction === 'ascending' ? 1 : -1
-    }
-    if (typeof aValue === 'number' && typeof bValue === 'number') {
-      return (
-        direction === 'ascending' ?
-          aValue > bValue ? 1
-          : aValue < bValue || !aValue ? -1
-          : 0
-        : aValue < bValue ? 1
-        : aValue > bValue || !aValue ? -1
-        : 0
-      )
-    }
-    if (isObject(aValue) && isObject(bValue)) {
-      if (Object.keys(aValue).length > 0 && !(Object.keys(bValue).length > 0)) {
-        return direction === 'ascending' ? 1 : -1
+  const compareValues = useCallback(
+    (
+      aValue: string | number | { name: string; [key: string]: unknown },
+      bValue: string | number | { name: string; [key: string]: unknown },
+      direction: SortConfig['direction']
+    ): number => {
+      if (aValue == null && aValue !== 0 && bValue == null && bValue !== 0) {
+        return 0
       }
-      if (Object.keys(bValue).length > 0 && !(Object.keys(bValue).length > 0)) {
+      if (aValue == null && aValue !== 0 && bValue) {
         return direction === 'ascending' ? -1 : 1
       }
-      if (direction === 'ascending') {
-        return String((aValue as any).name).localeCompare(String((bValue as any).name))
-      } else {
-        return String((bValue as any).name).localeCompare(String((aValue as any).name))
+      if (bValue == null && bValue !== 0 && aValue) {
+        return direction === 'ascending' ? 1 : -1
       }
-    }
-    if (aValue != null && bValue == null) {
-      return direction === 'ascending' ? 1 : -1
-    }
-    if (aValue == null && bValue != null) {
-      return direction === 'ascending' ? -1 : 1
-    }
-    return direction === 'ascending' ?
-        String(aValue).localeCompare(String(bValue))
-      : String(bValue).localeCompare(String(aValue))
-  }, [])
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return (
+          direction === 'ascending' ?
+            aValue > bValue ? 1
+            : aValue < bValue || !aValue ? -1
+            : 0
+          : aValue < bValue ? 1
+          : aValue > bValue || !aValue ? -1
+          : 0
+        )
+      }
+      if (isObject(aValue) && isObject(bValue)) {
+        if (Object.keys(aValue).length > 0 && !(Object.keys(bValue).length > 0)) {
+          return direction === 'ascending' ? 1 : -1
+        }
+        if (Object.keys(bValue).length > 0 && !(Object.keys(bValue).length > 0)) {
+          return direction === 'ascending' ? -1 : 1
+        }
+        if (direction === 'ascending') {
+          return String(aValue.name).localeCompare(String(bValue.name))
+        } else {
+          return String(bValue.name).localeCompare(String(aValue.name))
+        }
+      }
+      if (aValue != null && bValue == null) {
+        return direction === 'ascending' ? 1 : -1
+      }
+      if (aValue == null && bValue != null) {
+        return direction === 'ascending' ? -1 : 1
+      }
+      return direction === 'ascending' ?
+          String(aValue).localeCompare(String(bValue))
+        : String(bValue).localeCompare(String(aValue))
+    },
+    []
+  )
 
   const hierarchyOrderSort = useCallback(
-    (order: any[], direction: SortConfig['direction']): any[] => {
+    (
+      order: (string | number | { name: string; [key: string]: unknown })[],
+      direction: SortConfig['direction']
+    ): unknown[] => {
       return order.sort((a, b) => {
         const aValue = isObject(a) ? Object.keys(a)[0] : a
         const bValue = isObject(b) ? Object.keys(b)[0] : b
@@ -93,9 +117,9 @@ const useSortableData = (
   )
 
   const recursiveSort = useCallback(
-    (items: any[], key: SortConfig['key'], direction: SortConfig['direction']) => {
-      let sortableItems: any[] = []
-      let nullArray: any[] = []
+    (items: unknown[], key: SortConfig['key'], direction: SortConfig['direction']) => {
+      let sortableItems: unknown[] = []
+      let nullArray: unknown[] = []
       const { orderKey, order, sortOn, subSort } = key
 
       if (orderKey && order) {
@@ -119,8 +143,8 @@ const useSortableData = (
 
             const compareResult = compareValues(aValue, bValue, direction)
             if (compareResult === 0 && subSort) {
-              let aValueSub: any = null
-              let bValueSub: any = null
+              let aValueSub: unknown = null
+              let bValueSub: unknown = null
               let aSubIndex: number | null = null
               let bSubIndex: number | null = null
               if (subSort.orderKey) {
@@ -162,7 +186,7 @@ const useSortableData = (
   )
 
   const sortedItems = useMemo(() => {
-    let sortableItems: any[] = []
+    let sortableItems: unknown[] = []
 
     if (items != null && items.length > 0) {
       sortableItems = [...items]

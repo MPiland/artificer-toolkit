@@ -6,17 +6,13 @@ type AbilityMetaObject = MetaObject & {
   amount: number
 }
 
-type FeatureMetaObject = MetaObject & {
-  label: string
-}
-
 type MetaData = {
   categories: MetaObject[]
   parentClasses: MetaObject[]
   primaryAbilities: AbilityMetaObject[]
   secondaryAbilities: AbilityMetaObject[]
   optionalAbilities: AbilityMetaObject[]
-  features: FeatureMetaObject[]
+  features: MetaObject[]
 }
 
 export const metaData: MetaData = {
@@ -53,14 +49,12 @@ export const itemsToMeta = (items: Class[]) =>
     }
     if (item.features && item.features.length) {
       item.features.forEach((feature) => {
-        addToMeta(metaData.features, feature.id, item.id, {
-          label: feature.label,
-        })
+        addToMeta(metaData.features, feature, item.id)
       })
     }
   })
 
-export const addToMeta = <T extends Record<string, any>>(
+export const addToMeta = <T extends Record<string, unknown>>(
   metaArray: (MetaObject & T)[],
   keyId: string | number,
   classId: string,

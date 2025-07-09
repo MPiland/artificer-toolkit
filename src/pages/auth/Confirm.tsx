@@ -8,7 +8,6 @@ import { useMatches } from '@tanstack/react-router'
 import { notifications } from '@mantine/notifications'
 import { useForm } from '@tanstack/react-form'
 
-
 type ConfirmMeta = {
   submitAction: 'resend' | null
 }
@@ -137,100 +136,98 @@ const ConfirmStep = () => {
   const { handleSubmit } = form
 
   return (
-    <form>
-      <Container
-        component='form'
-        onSubmit={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          handleSubmit()
-        }}
-        className={auth_container}
-      >
-        <Stack className={auth_wrapper}>
-          <Title ta='center' className={auth_title}>
-            {registerPath ? 'Confirm Registration' : 'Reset Password'}
-          </Title>
-          <Paper withBorder shadow='md' p={30} radius='md'>
-            <Stack>
-              <form.Subscribe selector={(state) => [state.errorMap as any]}>
-                {([errorMap]) => {
-                  let errorMessage = ''
-                  if (errorMap?.onSubmit?.form?.message) {
-                    errorMessage = errorMap.onSubmit.form.message
-                  } else if (errorMap.onSubmit && 'message' in errorMap.onSubmit) {
-                    errorMessage = errorMap.onSubmit.message as string
-                  }
-                  return (
-                    errorMessage && (
-                      <Alert variant='light' color='red' icon={<Info />}>
-                        {errorMessage}
-                      </Alert>
-                    )
+    <Container
+      component='form'
+      onSubmit={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        handleSubmit()
+      }}
+      className={auth_container}
+    >
+      <Stack className={auth_wrapper}>
+        <Title ta='center' className={auth_title}>
+          {registerPath ? 'Confirm Registration' : 'Reset Password'}
+        </Title>
+        <Paper withBorder shadow='md' p={30} radius='md'>
+          <Stack>
+            <form.Subscribe selector={(state) => [state.errorMap]}>
+              {([errorMap]) => {
+                let errorMessage = ''
+                if (errorMap?.onSubmit && 'form' in errorMap.onSubmit) {
+                  errorMessage = (errorMap.onSubmit as { form: { message: string } }).form.message
+                } else if (errorMap.onSubmit && 'message' in errorMap.onSubmit) {
+                  errorMessage = (errorMap.onSubmit as { message: string }).message
+                }
+                return (
+                  errorMessage && (
+                    <Alert variant='light' color='red' icon={<Info />}>
+                      {errorMessage}
+                    </Alert>
                   )
-                }}
-              </form.Subscribe>
-              {formMessage && (
-                <Alert variant='light' color='blue' icon={<Info />} mb='sm'>
-                  {formMessage}
-                </Alert>
+                )
+              }}
+            </form.Subscribe>
+            {formMessage && (
+              <Alert variant='light' color='blue' icon={<Info />} mb='sm'>
+                {formMessage}
+              </Alert>
+            )}
+            <form.Field name='confirmationCode'>
+              {(field) => (
+                <TextInput
+                  label='Confirmation code'
+                  placeholder='Confirmation code...'
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  error={!field.state.meta.isValid && field.state.meta.errors.join(', ')}
+                />
               )}
-              <form.Field name='confirmationCode'>
+            </form.Field>
+            {!registerPath && (
+              <form.Field
+                name='password'
+                validators={{
+                  onSubmit: ({ value }) =>
+                    value &&
+                    (value.length <= 8 ? 'Password should include at least 8-20 characters'
+                    : /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,20}$/.test(value) ? null
+                    : 'Password should include at least one uppercase letter, one number and one special character'),
+                }}
+              >
                 {(field) => (
-                  <TextInput
-                    label='Confirmation code'
-                    placeholder='Confirmation code...'
+                  <PasswordInput
+                    label='Password'
+                    placeholder='Password...'
                     value={field.state.value}
                     onChange={(e) => field.handleChange(e.target.value)}
                     error={!field.state.meta.isValid && field.state.meta.errors.join(', ')}
                   />
                 )}
               </form.Field>
-              {!registerPath && (
-                <form.Field
-                  name='password'
-                  validators={{
-                    onSubmit: ({ value }) =>
-                      value &&
-                      (value.length <= 8 ? 'Password should include at least 8-20 characters'
-                      : /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,20}$/.test(value) ? null
-                      : 'Password should include at least one uppercase letter, one number and one special character'),
-                  }}
-                >
-                  {(field) => (
-                    <PasswordInput
-                      label='Password'
-                      placeholder='Password...'
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      error={!field.state.meta.isValid && field.state.meta.errors.join(', ')}
-                    />
-                  )}
-                </form.Field>
-              )}
-            </Stack>
-            <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
-              {([canSubmit, isSubmitting]) => (
-                <Button loading={isSubmitting} disabled={!canSubmit} type='submit' fullWidth mt='lg'>
-                  Submit code
-                </Button>
-              )}
-            </form.Subscribe>
-          </Paper>
-          <Group gap={4} px='md'>
-            <Text size='xs'>{"Didn't recieve a code or need a new one? "} </Text>
-            <Text
-              size='xs'
-              c='blue'
-              style={{ cursor: 'pointer' }}
-              onClick={() => handleSubmit({ submitAction: 'resend' })}
-            >
-              {'Click here '}
-            </Text>
-          </Group>
-        </Stack>
-      </Container>
-    </form>
+            )}
+          </Stack>
+          <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
+            {([canSubmit, isSubmitting]) => (
+              <Button loading={isSubmitting} disabled={!canSubmit} type='submit' fullWidth mt='lg'>
+                Submit code
+              </Button>
+            )}
+          </form.Subscribe>
+        </Paper>
+        <Group gap={4} px='md'>
+          <Text size='xs'>{"Didn't recieve a code or need a new one? "} </Text>
+          <Text
+            size='xs'
+            c='blue'
+            style={{ cursor: 'pointer' }}
+            onClick={() => handleSubmit({ submitAction: 'resend' })}
+          >
+            {'Click here '}
+          </Text>
+        </Group>
+      </Stack>
+    </Container>
   )
 }
 

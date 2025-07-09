@@ -15,7 +15,7 @@ import { PlusIcon, Trash2 } from 'lucide-react'
 import CollapsibleProvider from './CollapsibleProvider'
 import { CollapsibleContext } from './CollapsibleContext'
 import { Collapse, Group } from '@mantine/core'
-import { Slot } from '../Slot/Slot'
+import { Slot } from '@/components/Slot'
 
 type CollapsibleHeaderProps = {
   title: string

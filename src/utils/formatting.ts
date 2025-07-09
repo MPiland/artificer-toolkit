@@ -1,6 +1,7 @@
-import { FormDataType, SectionName } from '@/types'
+import { FormDataType } from '@/types'
 import { CamelCase } from 'type-fest'
 import { ProfCats } from '@/enums'
+import { SECTION_STEPS } from '@/components/Form'
 
 export const numberToWords = (number: number): string => {
   const units = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']
@@ -62,9 +63,10 @@ export const numberToWords = (number: number): string => {
   return result.trim().replace(/,$/, '')
 }
 
-export const routeRoot = (typename: FormDataType['__kind']): string => {
+export const routeRoot = (__kind: FormDataType['__kind'] | undefined): string => {
+  if (!__kind) return ''
   let routeString: string = ''
-  switch (typename) {
+  switch (__kind) {
     case 'CharacterInput':
       routeString = 'characters'
       break
@@ -91,7 +93,7 @@ export const routeRoot = (typename: FormDataType['__kind']): string => {
   return routeString
 }
 
-export const sectionIdKey = (sectionStep: Exclude<SectionName, 'options'>): string => {
+export const sectionIdKey = (sectionStep: Exclude<(typeof SECTION_STEPS)[number], 'options'>) => {
   const idMap = {
     feats: 'featId',
     proficiencies: 'proficiencyId',
@@ -106,29 +108,29 @@ export const sectionIdKey = (sectionStep: Exclude<SectionName, 'options'>): stri
 
 export const typenameMap = {
   feats: {
-    typename: 'CharacterFeatInput',
+    __kind: 'CharacterFeatInput',
     id: 'featId',
   },
   proficiencies: {
-    typename: 'CharacterProficiencyInput',
+    __kind: 'CharacterProficiencyInput',
     id: 'proficiencyId',
   },
   expertise: {
-    typename: 'CharacterExpertiseInput',
+    __kind: 'CharacterExpertiseInput',
     id: 'expertiseId',
   },
   modifiers: {
-    typename: 'CharacterModifierInput',
+    __kind: 'CharacterModifierInput',
     id: 'modifierId',
   },
   senses: {
-    typename: 'CharacterSenseInput',
+    __kind: 'CharacterSenseInput',
     id: 'senseId',
   },
 } as const
 
 // Make the function generic to properly narrow the return type
-export function typename<T extends keyof typeof typenameMap, P extends keyof (typeof typenameMap)[T]>(
+export function kind<T extends keyof typeof typenameMap, P extends keyof (typeof typenameMap)[T]>(
   sectionStep: T,
   type: P
 ): (typeof typenameMap)[T][P] {

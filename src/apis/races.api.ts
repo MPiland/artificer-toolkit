@@ -29,7 +29,7 @@ export const fetchRaces = (systemPref: string) => {
       }
       let nextToken: string | null = null
 
-      const { client, master } = await getClient()
+      const { domainClient, master } = await getClient()
 
       // Create a union type for the variables
       type ListVariables = QueryListMasterRacesArgs | QueryListRacesArgs
@@ -56,7 +56,7 @@ export const fetchRaces = (systemPref: string) => {
 
       try {
         do {
-          const { data } = (await client.graphql({
+          const { data } = (await domainClient.graphql({
             query: operation,
             variables: variables,
           })) as GraphQLResult<QueryResponse>
@@ -91,7 +91,7 @@ export const fetchRace = (id: string) => {
   return queryOptions({
     queryKey: racesKeys.single(id),
     queryFn: async () => {
-      const { client, master } = await getClient()
+      const { domainClient, master } = await getClient()
 
       // Type guard to check which response we got
       function isMaster(data: unknown): data is { getMasterRace: unknown } {
@@ -101,7 +101,7 @@ export const fetchRace = (id: string) => {
       const operation = master ? getMasterRace : getRace
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await domainClient.graphql({
           query: operation,
           variables: {
             id,
@@ -126,7 +126,7 @@ export const useAddNewRaceMutation = () => {
 
   return useMutation<Race, Error, RaceInput, unknown>({
     mutationFn: async (race: RaceInput) => {
-      const { client, master } = await getClient()
+      const { domainClient, master } = await getClient()
 
       const operation = master ? createMasterRace : createRace
 
@@ -136,7 +136,7 @@ export const useAddNewRaceMutation = () => {
       }
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await domainClient.graphql({
           query: operation,
           variables: {
             input: race,
@@ -167,7 +167,7 @@ export const useUpdateRaceMutation = () => {
 
   return useMutation<Race, Error, RaceInput, unknown>({
     mutationFn: async (race: RaceInput) => {
-      const { client, master } = await getClient()
+      const { domainClient, master } = await getClient()
 
       const operation = master ? updateMasterRace : updateRace
 
@@ -177,7 +177,7 @@ export const useUpdateRaceMutation = () => {
       }
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await domainClient.graphql({
           query: operation,
           variables: {
             input: race,
@@ -207,7 +207,7 @@ export const useDeleteRaceMutation = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { client, master } = await getClient()
+      const { domainClient, master } = await getClient()
 
       const operation = master ? deleteMasterRace : deleteRace
 
@@ -217,7 +217,7 @@ export const useDeleteRaceMutation = () => {
       }
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await domainClient.graphql({
           query: operation,
           variables: {
             id,

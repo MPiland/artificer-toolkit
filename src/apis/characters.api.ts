@@ -2,7 +2,7 @@ import { useMutation, useQueryClient, queryOptions } from '@tanstack/react-query
 import { getCharacter, listCharacters } from '@/queries'
 import { createCharacter, deleteCharacter, updateCharacter } from '@/mutations'
 import type { Character, QueryListCharactersArgs, CharacterInput } from '@/types'
-import { userClient } from 'src/main'
+import { userDomainClient } from './utils'
 
 const charactersKeys = {
   all: ['characters'] as const,
@@ -25,7 +25,7 @@ export const fetchCharacters = (systemPref: string) => {
 
       try {
         do {
-          const { data } = await userClient.graphql({
+          const { data } = await userDomainClient.graphql({
             query: listCharacters,
             variables: variables,
           })
@@ -60,7 +60,7 @@ export const fetchCharacter = (id: string) => {
       try {
         const {
           data: { getCharacter: character },
-        } = await userClient.graphql({
+        } = await userDomainClient.graphql({
           query: getCharacter,
           variables: {
             id,
@@ -82,7 +82,7 @@ export const useAddCharacter = () => {
   return useMutation<Character, Error, CharacterInput, unknown>({
     mutationFn: async (character: CharacterInput) => {
       try {
-        const { data } = await userClient.graphql({
+        const { data } = await userDomainClient.graphql({
           query: createCharacter,
           variables: {
             input: character,
@@ -110,7 +110,7 @@ export const useUpdateCharacter = () => {
   return useMutation<Character, Error, CharacterInput, unknown>({
     mutationFn: async (character: CharacterInput) => {
       try {
-        const { data } = await userClient.graphql({
+        const { data } = await userDomainClient.graphql({
           query: updateCharacter,
           variables: {
             input: character,
@@ -135,7 +135,7 @@ export const useDeleteCharacter = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { data } = await userClient.graphql({
+      const { data } = await userDomainClient.graphql({
         query: deleteCharacter,
         variables: {
           id,

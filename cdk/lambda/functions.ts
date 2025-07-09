@@ -25,6 +25,8 @@ export function createFunctions({
   for (const { name, table } of adminTables) {
     env[`${name.toUpperCase()}_TABLE_NAME`] = table.tableName
   }
+  
+  env.USER_POOL_ID = userPool.userPoolId
 
   const initUserData = new NodejsFunction(stack, 'InitUserData', {
     entry: join(__dirname, 'initUserData.ts'),

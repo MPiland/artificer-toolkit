@@ -1,22 +1,18 @@
 [
   {
     "id": "fdffb7ef-9a13-4ae2-b39d-53d499597aa7",
-    "value": "control",
     "label": "Control"
   },
   {
     "id": "1260e591-7094-46d3-9495-42cc7cb36a73",
-    "value": "utility",
     "label": "Utility"
   },
   {
     "id": "75eaa6fc-d65f-4aa0-b39f-a6ce5f4e8623",
-    "value": "invisible",
     "label": "Invisible"
   },
   {
     "id": "36a69e52-6bb8-4fdd-93a5-1adf6fc51897",
-    "value": "damage",
     "label": "Damage"
   }
 ]

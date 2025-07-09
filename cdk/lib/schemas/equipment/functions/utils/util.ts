@@ -10,10 +10,6 @@ type WeightMetaObject = MetaObject & {
   amount: number | null
 }
 
-type FeatureMetaObject = MetaObject & {
-  label: string
-}
-
 export type MetaData = {
   categories: MetaObject[]
   properties: MetaObject[]
@@ -23,7 +19,7 @@ export type MetaData = {
   armorClasses: MetaObject[]
   cost: CostMetaObject[]
   weight: WeightMetaObject[]
-  features: FeatureMetaObject[]
+  features: MetaObject[]
 }
 
 export const metaData: MetaData = {
@@ -72,15 +68,13 @@ export const itemsToMeta = (items: Equipment[]) => {
     }
     if (item.features && item.features.length) {
       item.features.forEach((feature) => {
-        addToMeta(metaData.features, feature.id, item.id, {
-          label: feature.label,
-        })
+        addToMeta(metaData.features, feature, item.id)
       })
     }
   })
 }
 
-export const addToMeta = <T extends Record<string, any>>(
+export const addToMeta = <T extends Record<string, unknown>>(
   metaArray: (MetaObject & T)[],
   keyId: string | number,
   equipmentId: string,

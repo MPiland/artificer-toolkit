@@ -2,139 +2,116 @@
   {
     "id": "971fbd66-c149-4bc5-80bf-ee4eeab053b2",
     "tooltip": "Modify the ability save scores for the character.",
-    "value": "saveAbility",
     "label": "Save Ability"
   },
   {
     "id": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
     "tooltip": "Modify how the armor class is calculated for the character",
-    "value": "armorClass",
     "label": "Armor Class"
   },
   {
     "id": "9ae9aef6-5442-495e-bcf3-216b0e1a4c58",
     "tooltip": "Modify the skill check scores for the chosen skill that characters can perform",
-    "value": "skill",
     "label": "Skill"
   },
   {
     "id": "b35b941f-8ad6-461f-8640-7540dc8e4934",
     "tooltip": "Unarmed attack modifier of the character",
-    "value": "unarmedAttack",
     "label": "Unarmed Attack"
   },
   {
     "id": "7218423b-56cf-44b8-bac9-8c62a6cb2e55",
     "tooltip": "Unarmed attack damage of the character",
-    "value": "unarmedDamage",
     "label": "Unarmed Damage"
   },
   {
     "id": "6387fe43-b305-4121-bfb4-b337df754868",
     "tooltip": "Melee attack modifier of the character",
-    "value": "meleeAttack",
     "label": "Melee Attack"
   },
   {
     "id": "50f3cf5c-47f9-4f61-9bc5-b4464bbd8bd1",
     "tooltip": "Damage of a melee attack",
-    "value": "meleeDamage",
     "label": "Melee Damage"
   },
   {
     "id": "105a7606-28ac-4bc6-88ef-11d0be9ec6bd",
     "tooltip": "Range attack modifier of the character",
-    "value": "rangeAttack",
     "label": "Range Attack"
   },
   {
     "id": "7b294017-f4bf-43e4-803f-b11f002273b1",
     "tooltip": "Damage of a range attack",
-    "value": "rangeDamage",
     "label": "Range Damage"
   },
   {
     "id": "bf17f1cf-8fa5-4372-b17d-93106bde8eef",
     "tooltip": "Spell attack modifier of the character",
-    "value": "spellAttack",
     "label": "Spell Attack"
   },
   {
     "id": "07c9be79-c207-4fee-92e4-7842126a73c5",
     "tooltip": "Spell difficulty class amount of the character",
-    "value": "spellDC",
     "label": "Spell DC"
   },
   {
     "id": "f03223d4-22ee-4866-8abf-1757791d356c",
     "tooltip": "Modify either the damage done of the chosen type or the defenses of that damage for the character.",
-    "value": "damageType",
     "label": "Damage Type"
   },
   {
     "id": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
     "tooltip": "Modify the ability score of the chosen ability for the character",
-    "value": "abilities",
     "label": "Ability Score"
   },
   {
     "id": "0168aa65-99ea-4381-9997-11f12f7adbfc",
     "tooltip": "Speed at which character travels such as walk",
-    "value": "speed",
     "label": "Speed"
   },
   {
     "id": "ecb7dc40-c822-4178-ac75-bb3ad1eb1236",
     "tooltip": "Conditions character can possess such as poison",
-    "value": "condition",
     "label": "Condition"
   },
   {
     "id": "c723554f-7e53-49c6-aa62-74e33b7736ad",
     "tooltip": "Proficiency bonus added to rolls with proficient skills",
-    "value": "proficiencyBonus",
     "label": "Proficiency Bonus"
   },
   {
     "id": "2d619720-5819-4dee-aec2-4f13f5c72c5c",
     "tooltip": "Initiative modifier added to initiative roll",
-    "value": "initiative",
     "label": "Initiative"
   },
   {
     "id": "e33fba7e-27f1-4562-a270-90baa234e1aa",
     "tooltip": "Modify how the health is calculated for the character.",
-    "value": "hitpoints",
     "label": "Hit Points"
   },
   {
     "id": "526b7457-00b0-40b9-a163-e1f598a0d8b5",
     "tooltip": "Modify the damage of the chosen spell.",
-    "value": "spellDamage",
     "label": "Spell Damage"
   },
   {
     "id": "1c2b4037-ba93-4edc-8299-323e60dc934e",
     "tooltip": "Modify the DC for a damage save.",
-    "value": "damageSave",
     "label": "Damage Save"
   },
   {
     "id": "e7012bf9-4e83-4e31-888f-d4674d4ef865",
     "tooltip": "Modify the DC for a condition save.",
-    "value": "conditionSave",
     "label": "Condition Save"
   },
   {
     "id": "fa7b799a-a26b-4ca2-b0eb-1cbf6f700730",
     "tooltip": "Modify the charges for a feature or resource.",
-    "value": "charges",
     "label": "Charges"
   },
   {
     "id": "c0ea7ecb-1dd9-419a-8220-32a0db629401",
     "tooltip": "Modify an aspect of the selected spell(s).",
-    "value": "spell",
     "label": "Spell"
   }
 ]

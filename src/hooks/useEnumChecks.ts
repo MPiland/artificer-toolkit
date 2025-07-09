@@ -1,7 +1,8 @@
 import { Actions, Attributes, ChargesLimits, ChargesResets, EquipCats, EquipProps, Prerequisites } from '@/enums'
+import type { ActionGroupInput, ActionGroup } from 'gql/types'
 
 const useEnumChecks = () => {
-  const getAttributes = ({ attributes }: { attributes: string[] }) => {
+  const getAttributes = ({ attributes }: { attributes?: string[] }) => {
     const isSpellcaster = attributes?.some((attr) => attr === Attributes.SPELLCASTER)
     const doesDamage = attributes?.some((attr) => attr === Attributes.DOES_DAMAGE)
     const canUpcast = attributes?.some((attr) => attr === Attributes.CAN_UPCAST)
@@ -32,8 +33,9 @@ const useEnumChecks = () => {
     const attributeLimit = attributes?.some((att) => att === Attributes.ATTRIBUTE_LIMIT)
     const castAtLevel = attributes?.some((att) => att === Attributes.CAST_AT_LEVEL)
     const subtypeSpecific = attributes?.some((att) => att === Attributes.SUBTYPE_SPECIFIC)
+    const hasSubtypes = attributes?.some((att) => att === Attributes.SUBTYPES)
     const providesOptions = attributes?.some((att) => att === Attributes.PROVIDES_OPTIONS)
-    const selectCountByLevel = attributes?.some((att) => att === Attributes.SELECT_COUNT_BY_LEVEL)
+    const optionsByLevel = attributes?.some((att) => att === Attributes.OPTIONS_BY_LEVEL)
     const replaceAtLevel = attributes?.some((att) => att === Attributes.REPLACE_AT_LEVEL)
     return {
       isSpellcaster,
@@ -66,22 +68,24 @@ const useEnumChecks = () => {
       providesOptions,
       magicName,
       preparesSpells,
-      selectCountByLevel,
+      optionsByLevel,
       replaceAtLevel,
       usesSpellbook,
+      hasSubtypes,
     }
   }
-  const getPrerequisites = ({ prerequisites }: { prerequisites: { options: string[] } }) => {
-    const notEquipped = prerequisites?.options?.some((preq) => preq === Prerequisites.NOT_EQUIPPED)
-    const equipped = prerequisites?.options?.some((preq) => preq === Prerequisites.EQUIPPED)
-    const equipmentProficiency = prerequisites?.options?.some((preq) => preq === Prerequisites.EQUIPMENT_PROFICIENCY)
-    const abilityScore = prerequisites?.options?.some((preq) => preq === Prerequisites.ABILITY_SCORE)
-    const skillProficiency = prerequisites?.options?.some((preq) => preq === Prerequisites.SKILL_PROFICIENCY)
-    const notProficient = prerequisites?.options?.some((preq) => preq === Prerequisites.NOT_PROFICIENT)
-    const spellsObtained = prerequisites?.options?.some((preq) => preq === Prerequisites.SPELLS_OBTAINED)
-    const optionsObtained = prerequisites?.options?.some((preq) => preq === Prerequisites.OPTIONS_OBTAINED)
-    const featuresObtained = prerequisites?.options?.some((preq) => preq === Prerequisites.FEATURES_OBTAINED)
-    const characterSize = prerequisites?.options?.some((preq) => preq === Prerequisites.CHARACTER_SIZE)
+
+  const getPrerequisites = ({ options }: { options?: string[] }) => {
+    const notEquipped = options?.some((opt) => opt === Prerequisites.NOT_EQUIPPED)
+    const equipped = options?.some((opt) => opt === Prerequisites.EQUIPPED)
+    const equipmentProficiency = options?.some((opt) => opt === Prerequisites.EQUIPMENT_PROFICIENCY)
+    const abilityScore = options?.some((opt) => opt === Prerequisites.ABILITY_SCORE)
+    const skillProficiency = options?.some((opt) => opt === Prerequisites.SKILL_PROFICIENCY)
+    const notProficient = options?.some((opt) => opt === Prerequisites.NOT_PROFICIENT)
+    const spellsObtained = options?.some((opt) => opt === Prerequisites.SPELLS_OBTAINED)
+    const optionsObtained = options?.some((opt) => opt === Prerequisites.OPTIONS_OBTAINED)
+    const featuresObtained = options?.some((opt) => opt === Prerequisites.FEATURES_OBTAINED)
+    const characterSize = options?.some((opt) => opt === Prerequisites.CHARACTER_SIZE)
 
     return {
       notEquipped,
@@ -97,7 +101,7 @@ const useEnumChecks = () => {
     }
   }
 
-  const getEquipCategories = ({ category }: { category: string }) => {
+  const getEquipCategories = ({ category }: { category?: string }) => {
     const isWeapon = category === EquipCats.WEAPON
     const isArmor = category === EquipCats.ARMOR
     const isShield = category === EquipCats.SHIELD
@@ -113,7 +117,7 @@ const useEnumChecks = () => {
     }
   }
 
-  const getEquipProperties = ({ properties }: { properties: string[] }) => {
+  const getEquipProperties = ({ properties }: { properties?: string[] }) => {
     const isSpecial = properties?.some((prop) => prop === EquipProps.SPECIAL)
     const isHeavyArmor = properties?.some((prop) => prop === EquipProps.HEAVY_ARMOR)
     const isMediumArmor = properties?.some((prop) => prop === EquipProps.MEDIUM_ARMOR)
@@ -133,7 +137,7 @@ const useEnumChecks = () => {
     }
   }
 
-  const getChargeResets = ({ reset }: { reset: string }) => {
+  const getChargeResets = ({ reset }: { reset?: string }) => {
     const resetsOnLongRest = reset === ChargesResets.LONG_REST
     const resetsOnShortRest = reset === ChargesResets.SHORT_REST
     const resetsManually = reset === ChargesResets.MANUAL
@@ -145,7 +149,7 @@ const useEnumChecks = () => {
     }
   }
 
-  const getChargeLimits = ({ limit }: { limit: string }) => {
+  const getChargeLimits = ({ limit }: { limit?: string }) => {
     const limitByProficiency = limit === ChargesLimits.PROFICIENCY
     const limitBySkill = limit === ChargesLimits.SKILL
     const limitByAbilityMod = limit === ChargesLimits.ABILITY_SCORE_MODIFIER
@@ -169,13 +173,13 @@ const useEnumChecks = () => {
     }
   }
 
-  const getResourceMethods = ({ method }: { method: string }) => {
+  const getResourceMethods = ({ method }: { method?: string }) => {
     const resourceSetPerLevel = method === Attributes.SET_PER_LEVEL
 
     return { resourceSetPerLevel }
   }
 
-  const getActions = ({ actions }: { actions: { primary: { id: string }; secondary: { id: string } } }) => {
+  const getActions = ({ actions }: { actions?: ActionGroupInput | ActionGroup }) => {
     const specialPrimaryAction = actions?.primary?.id === Actions.SPECIAL
     const specialSecondaryAction = actions?.secondary?.id === Actions.SPECIAL
 

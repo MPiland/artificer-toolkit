@@ -1,37 +1,30 @@
 [
   {
     "id": "1297bea1-4de3-4e38-9484-5313d92aee70",
-    "label": "Coast",
-    "value": "coast"
+    "label": "Coast"
   },
   {
     "id": "1201ab99-e0ee-4026-938d-cb491fa45635",
-    "label": "Forest",
-    "value": "forest"
+    "label": "Forest"
   },
   {
     "id": "dfedf88c-e41b-43ff-8a79-d35050693714",
-    "label": "Grassland",
-    "value": "grassland"
+    "label": "Grassland"
   },
   {
     "id": "844e7f70-45ca-4b5b-bc61-5cbade60d569",
-    "label": "Arctic",
-    "value": "arctic"
+    "label": "Arctic"
   },
   {
     "id": "9243c7f2-886c-4cdb-b97e-9ca15e9780c1",
-    "label": "Swamp",
-    "value": "swamp"
+    "label": "Swamp"
   },
   {
     "id": "d17eebcf-13e4-484a-9ff8-95ce67aca5ee",
-    "label": "Mountain",
-    "value": "mountain"
+    "label": "Mountain"
   },
   {
     "id": "fe2a8a37-a855-40fa-9909-090d2444f9a8",
-    "label": "Desert",
-    "value": "desert"
+    "label": "Desert"
   }
 ]

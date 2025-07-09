@@ -1,448 +1,556 @@
 [
   {
     "label": "Hide On Sheet",
-    "value": "hideOnSheet",
     "id": "736ee797-e8a8-481a-83c0-ec166a027614",
-    "features": ["ALL"]
+    "features": [
+      "ALL"
+    ]
   },
   {
     "label": "Show As Attack",
-    "value": "showAsAttack",
     "id": "02918555-68f6-4041-b051-87da14b44279",
-    "damage": ["ALL"]
+    "damage": [
+      "ALL"
+    ]
   },
   {
     "label": "Add to Weapon Attack",
-    "value": "addToWeaponAttack",
     "id": "5ad88a48-ca9e-4bb5-b005-6600effbc620",
-    "damage": ["ALL"]
+    "damage": [
+      "ALL"
+    ]
   },
   {
-    "value": "limitTargets",
     "label": "Limit Targets",
     "id": "d409bef0-5b16-41d5-af77-d91cd202fd19",
-    "features": ["ALL"]
+    "features": [
+      "ALL"
+    ]
   },
   {
     "label": "Limit Use",
-    "value": "limitUse",
     "id": "408bd86e-2ed9-4da6-9932-0e99a6e40e17",
-    "features": ["ALL"],
-    "sections": ["spells"]
+    "features": [
+      "ALL"
+    ],
+    "sections": [
+      "spells"
+    ]
   },
   {
     "label": "Self Only",
-    "value": "selfOnly",
     "id": "a5a64799-6105-4d1f-a849-cb6ef41b0823",
-    "sections": ["spells"]
+    "sections": [
+      "spells"
+    ]
   },
   {
-    "value": "isAction",
     "label": "Action Type",
     "id": "84916f75-92c2-4ee6-abe0-cc038128f0fc",
-    "features": ["ALL"]
+    "features": [
+      "ALL"
+    ]
   },
   {
     "label": "Inflicts Damage",
-    "value": "doesDamage",
     "id": "348c49e2-a25e-42d6-8357-390530243929",
-    "features": ["ALL"],
-    "equipment": ["ADVENTURING_GEAR", "TOOL", "SHIELD"],
-    "spells": ["ALL"]
+    "features": [
+      "ALL"
+    ],
+    "equipment": [
+      "ADVENTURING_GEAR",
+      "TOOL",
+      "SHIELD"
+    ],
+    "spells": [
+      "ALL"
+    ]
   },
   {
     "label": "Ranged",
-    "value": "hasRange",
     "id": "96a72204-a97a-4a55-845a-077120c95d6e",
-    "features": ["ALL"]
+    "features": [
+      "ALL"
+    ]
   },
   {
-    "value": "prerequisites",
     "label": "Prerequisites",
     "id": "40a91f3a-8909-4593-8a5f-b66b364602bb",
-    "features": ["ALL"],
-    "feats": ["ALL"],
-    "equipment": ["ALL"]
+    "features": [
+      "ALL"
+    ],
+    "feats": [
+      "ALL"
+    ],
+    "equipment": [
+      "ALL"
+    ]
   },
   {
-    "value": "addProficiencyBonus",
     "label": "Add Proficiency Bonus",
     "id": "99d19345-51a7-4364-ad26-fb1dbf9c0342",
-    "features": ["SAVE_ABILITY"]
+    "features": [
+      "SAVE_ABILITY"
+    ]
   },
   {
-    "value": "addAbilityModifier",
     "label": "Add Ability Modifier",
     "id": "a6a71a7a-6951-4441-90be-73fc779d0aee",
-    "features": ["SAVE_ABILITY"]
+    "features": [
+      "SAVE_ABILITY"
+    ]
   },
   {
-    "value": "spellDC",
     "label": "Spell DC",
     "id": "60cb5190-54c0-430d-88f1-c34e7ba7ec01",
-    "features": ["SAVE_ABILITY"]
+    "features": [
+      "SAVE_ABILITY"
+    ]
   },
   {
-    "value": "replaceAtLevel",
     "label": "Replace Options at Level",
     "id": "2eec6a5e-a7b3-4263-84dd-d977cce4cc79",
-    "features": ["FEATURE"]
+    "features": [
+      "FEATURE"
+    ]
   },
   {
-    "value": "selectCountByLevel",
     "label": "Select Count By Level",
     "id": "87e26eca-3d18-4858-aa3e-c6efc6d15a59",
-    "features": ["FEATURE"]
+    "features": [
+      "FEATURE"
+    ]
   },
   {
-    "value": "providesOptions",
     "label": "Provides Options",
     "id": "3fadd608-c46e-4718-a2b5-10d50fffbbdb",
-    "sections": ["ALL"],
-    "equipment": ["ALL", "classes", "BACKGROUND"]
+    "sections": [
+      "ALL"
+    ],
+    "equipment": [
+      "ALL",
+      "classes",
+      "BACKGROUND"
+    ]
   },
   {
-    "value": "isRitual",
     "label": "Cast as Ritual",
     "id": "5dd4f91e-074d-47c0-8c34-db750ea75b05",
-    "sections": ["spells"],
-    "spells": ["ALL"]
+    "sections": [
+      "spells"
+    ],
+    "spells": [
+      "ALL"
+    ]
   },
   {
-    "value": "requiresConcentration",
     "label": "Requires Concentration",
     "id": "854fdc5a-6168-4b35-96af-d3b3713edf4c",
-    "sections": ["spells"],
-    "spells": ["ALL"]
+    "sections": [
+      "spells"
+    ],
+    "spells": [
+      "ALL"
+    ]
   },
   {
-    "value": "optionalAbility",
     "label": "Optional Spell Ability",
     "id": "fd1e8360-da3b-45cf-ac35-b4ad4ab53bcd",
-    "sections": ["spells"]
+    "sections": [
+      "spells"
+    ]
   },
   {
-    "value": "alwaysPrepared",
     "label": "Always Prepared",
     "id": "cabe9cde-c846-426f-8f55-e23a40e0367b",
-    "sections": ["spells"]
+    "sections": [
+      "spells"
+    ]
   },
   {
-    "value": "spellsByLevel",
     "label": "Add Spells By Level",
     "id": "4b29c54a-b258-42ec-a877-4fbd6873f760",
-    "sections": ["spells"]
+    "sections": [
+      "spells"
+    ]
   },
   {
-    "value": "classLimit",
     "label": "Limit By Class",
     "id": "1bec624b-14c4-4fe7-baa5-277277394bbf",
-    "sections": ["spells"]
+    "sections": [
+      "spells"
+    ]
   },
   {
-    "value": "attributeLimit",
     "label": "Limit By Attribute",
     "id": "3028c7fb-536a-4a6e-8b77-dea57ff51214",
-    "sections": ["spells"]
+    "sections": [
+      "spells"
+    ]
   },
   {
-    "value": "levelLimit",
     "label": "Limit By Level",
     "id": "a354fe6c-c7e0-4551-b444-756e62fd672c",
-    "sections": ["spells"]
+    "sections": [
+      "spells"
+    ]
   },
   {
-    "value": "castAtLevel",
     "label": "Cast at Level",
     "id": "ecee08e1-2f04-404b-bdc7-7eadcb9656e1",
-    "sections": ["spells"]
+    "sections": [
+      "spells"
+    ]
   },
   {
-    "value": "requiresProficiency",
     "label": "Requires Proficiency",
     "id": "f481b458-1b44-4d15-80b0-e2b758576c04",
-    "equipment": ["classes"]
+    "equipment": [
+      "classes"
+    ]
   },
   {
-    "value": "subtypeSpecific",
     "label": "Subtype Specific",
     "id": "ab6aa1a2-8cd6-438b-9060-079a4c3d07df",
-    "sections": ["SUBCLASS"]
+    "sections": [
+      "SUBCLASS"
+    ]
   },
   {
     "label": "Equippable",
-    "value": "canEquip",
     "id": "c88dafe7-0494-4913-83d9-34fcf7904196",
-    "equipment": ["ALL"]
+    "equipment": [
+      "ALL"
+    ]
   },
   {
     "label": "Magic",
-    "value": "isMagic",
     "id": "6baf01cd-59bc-4dfd-9874-40b3aebe7170",
-    "equipment": ["ALL"]
+    "equipment": [
+      "ALL"
+    ]
   },
   {
     "label": "Stackable",
-    "value": "stackable",
     "id": "5bfaaaf4-f5d0-40de-9c07-ec441d75bf51",
-    "equipment": ["ALL"]
+    "equipment": [
+      "ALL"
+    ]
   },
   {
     "label": "Attunement Required",
-    "value": "requireAttunement",
     "id": "b5d460e5-3443-49e5-b736-77cf4d2dfb21",
-    "equipment": ["ALL"]
+    "equipment": [
+      "ALL"
+    ]
   },
   {
-    "value": "maxBonus",
     "label": "Max Bonus",
     "id": "265c6cc0-1de4-40b7-be69-4cacd43b77fe",
-    "equipment": ["ALL"]
+    "equipment": [
+      "ALL"
+    ]
   },
   {
-    "value": "containsItems",
     "label": "Contains Items",
     "id": "d8a46d89-3e37-4a79-862f-8f503bcecd8a",
-    "equipment": ["ALL"]
+    "equipment": [
+      "ALL"
+    ]
   },
   {
-    "value": "appliesCondition",
     "label": "Applies Condition",
     "id": "4662b9f7-cf83-404a-8d33-a046c6441dae",
-    "spells": ["ALL"]
+    "spells": [
+      "ALL"
+    ]
   },
   {
-    "value": "secondaryAction",
     "label": "Secondary Action",
     "id": "bb8315e1-6f48-4ab5-b650-0e3af7c670a2",
-    "spells": ["ALL"]
+    "spells": [
+      "ALL"
+    ]
   },
   {
-    "value": "primaryAbility",
     "label": "Primary Ability",
     "id": "e8b2aedf-be41-4b4c-9754-2dc6a9a4b1c9",
-    "classes": ["BASE"]
+    "classes": [
+      "BASE"
+    ]
   },
   {
-    "value": "optionalAbility",
     "label": "Optional Primary Ability",
     "id": "f63b9fd5-e517-45af-afca-8e8a5a0ee933",
-    "classes": ["BASE"]
+    "classes": [
+      "BASE"
+    ]
   },
   {
-    "value": "secondaryAbility",
     "label": "Secondary Ability",
     "id": "dfc0ec46-623e-4d8d-8101-7234494414bb",
-    "classes": ["BASE"]
+    "classes": [
+      "BASE"
+    ]
   },
   {
-    "value": "SPELLCASTER",
     "label": "Spellcaster",
     "id": "59c97c68-d773-4434-925f-ca9c1be3d2d8",
-    "classes": ["BASE"]
+    "classes": [
+      "BASE"
+    ]
   },
   {
-    "value": "subtypes",
     "label": "Subtypes",
     "id": "36aeab69-fada-4f08-a4e0-215b34d5b4d5",
-    "classes": ["SUBCLASS"]
+    "classes": [
+      "SUBCLASS"
+    ]
   },
   {
-    "value": "hasResourcePoints",
     "label": "Has Resource Points",
     "id": "250a1629-5bd7-486b-a007-be78ac43013d",
-    "classes": ["ALL"]
+    "classes": [
+      "ALL"
+    ]
   },
   {
-    "value": "ritualCaster",
     "label": "Ritual Caster",
     "id": "becce5cb-5f1e-4de8-9aca-74324f507063",
-    "classes": ["SPELLCASTER"]
+    "classes": [
+      "SPELLCASTER"
+    ]
   },
   {
-    "value": "limitKnownSpells",
     "label": "Limit Known Spells",
     "id": "9b919427-7c38-4ccd-aecd-6c032a047b57",
-    "classes": ["SPELLCASTER"]
+    "classes": [
+      "SPELLCASTER"
+    ]
   },
   {
-    "value": "preparesSpells",
     "label": "Prepares Spells",
     "id": "b7ad7cc0-736d-416b-aed6-a374857adcd0",
-    "classes": ["SPELLCASTER"]
+    "classes": [
+      "SPELLCASTER"
+    ]
   },
   {
-    "value": "magicName",
     "label": "Custom Magic Name",
     "id": "01965583-8b20-4b30-8b9f-ffe5fe8d10a1",
-    "classes": ["SPELLCASTER"]
+    "classes": [
+      "SPELLCASTER"
+    ]
   },
   {
-    "value": "usesSpellbook",
     "label": "Uses Spellbook",
     "id": "ee9294ea-90a0-4c70-92d6-6ee8f4d31f15",
-    "classes": ["SPELLCASTER"]
+    "classes": [
+      "SPELLCASTER"
+    ]
   },
   {
-    "value": "primaryDamage",
     "label": "Primary Damage",
     "id": "cb47b615-2a96-4617-870a-9051ab4b95cf",
-    "spells": ["UPCAST"]
+    "spells": [
+      "UPCAST"
+    ]
   },
   {
-    "value": "bonusDamage",
     "label": "Bonus Damage",
     "id": "412e4b5f-f202-4519-851f-03965749051a",
-    "damage": ["ALL"],
-    "spells": ["DAMAGE", "UPCAST"]
+    "damage": [
+      "ALL"
+    ],
+    "spells": [
+      "DAMAGE",
+      "UPCAST"
+    ]
   },
   {
-    "value": "range",
     "label": "Range",
     "id": "80a52d60-b644-4623-b87a-88c70799cdb4",
-    "spells": ["UPCAST"]
+    "spells": [
+      "UPCAST"
+    ]
   },
   {
-    "value": "targets",
     "label": "Targets",
     "id": "c4611274-295d-453a-8441-4d41ba519777",
-    "spells": ["UPCAST"]
+    "spells": [
+      "UPCAST"
+    ]
   },
   {
-    "value": "shape",
     "label": "Shape",
     "id": "24d16527-d6b2-4f85-b8ee-906ed3238d47",
-    "spells": ["UPCAST"]
+    "spells": [
+      "UPCAST"
+    ]
   },
   {
-    "value": "duration",
     "label": "Duration",
     "id": "075fc5db-1dcd-404b-9d75-8c776e2db96a",
-    "spells": ["UPCAST"]
+    "spells": [
+      "UPCAST"
+    ]
   },
   {
-    "value": "secondaryDamage",
     "label": "Secondary Damage",
     "id": "90ed849a-a870-419c-b58b-451afeeff7bb",
-    "damage": ["ALL"],
-    "spells": ["DAMAGE", "UPCAST"]
+    "damage": [
+      "ALL"
+    ],
+    "spells": [
+      "DAMAGE",
+      "UPCAST"
+    ]
   },
   {
-    "value": "setAmount",
     "label": "Set Value",
     "id": "119789c9-909c-499a-8936-6777efb9b990",
-    "damage": ["MAIN", "POOL"],
-    "classes": ["RESOURCES"]
+    "damage": [
+      "MAIN",
+      "POOL"
+    ],
+    "classes": [
+      "RESOURCES"
+    ]
   },
   {
-    "value": "damagePool",
     "label": "Damage Pool",
     "id": "9b8224bf-1c64-4399-b7b0-428cc2443b37",
-    "damage": ["MAIN"]
+    "damage": [
+      "MAIN"
+    ]
   },
   {
-    "value": "diePerLevel",
     "label": "Die Per Level",
     "id": "281ec9af-79ff-41d2-b2aa-c9a6ea1f5ed5",
-    "damage": ["MAIN"]
+    "damage": [
+      "MAIN"
+    ]
   },
   {
-    "value": "setPerLevel",
     "label": "Set Per Level",
     "id": "2518eb43-581a-4611-a45d-95f75ad449cc",
-    "damage": ["MAIN"],
-    "classes": ["RESOURCES"]
+    "damage": [
+      "MAIN"
+    ],
+    "classes": [
+      "RESOURCES"
+    ]
   },
   {
-    "value": "proficiency",
     "label": "Proficiency",
     "id": "3fd3a5ba-33fb-48ee-9dd9-086f859e6c8a",
-    "damage": ["MAIN"]
+    "damage": [
+      "MAIN"
+    ]
   },
   {
-    "value": "spellcastingAbility",
     "label": "Spellcasting Ability",
     "id": "b5857657-75a7-4290-aef9-85a3f87fd8c6",
-    "damage": ["BONUS"]
+    "damage": [
+      "BONUS"
+    ]
   },
   {
-    "value": "ability",
     "label": "Ability",
     "id": "0c6a576c-ce1f-4b19-8c80-f0780d80de8f",
-    "damage": ["BONUS"]
+    "damage": [
+      "BONUS"
+    ]
   },
   {
-    "value": "level",
     "label": "Level",
     "id": "5c8b45be-9612-48a9-848a-4665fec0b22c",
-    "damage": ["POOL"]
+    "damage": [
+      "POOL"
+    ]
   },
   {
-    "value": "spellAbility",
     "label": "Spell Ability",
     "id": "22936831-1dd1-49a8-a4af-08e0746eb9b4",
-    "classes": ["PREPARE_LIMIT"]
+    "classes": [
+      "PREPARE_LIMIT"
+    ]
   },
   {
-    "value": "classLevel",
     "label": "Class Level",
     "id": "384bdd3d-dece-4e71-88b0-c1fc44130987",
-    "classes": ["PREPARE_LIMIT"]
+    "classes": [
+      "PREPARE_LIMIT"
+    ]
   },
   {
-    "value": "requiresSave",
     "label": "DC Required",
     "id": "13e4400f-aeed-4a6a-a2f3-9f661862ddd9",
-    "spells": ["ALL"],
-    "features": ["ALL"],
-    "equipment": ["ALL"]
+    "spells": [
+      "ALL"
+    ],
+    "features": [
+      "ALL"
+    ],
+    "equipment": [
+      "ALL"
+    ]
   },
   {
-    "value": "canUpcast",
     "label": "Can Upcast",
     "id": "af40a76d-56cb-4c32-9b61-110847edc481",
-    "spells": ["ALL"]
+    "spells": [
+      "ALL"
+    ]
   },
   {
-    "value": "weight",
     "label": "Weight",
     "id": "14b3ca23-2b10-4bfc-a763-f543a72fa3e2",
-    "equipment": ["ALL"]
+    "equipment": [
+      "ALL"
+    ]
   },
   {
-    "value": "abilityBonus",
     "label": "Ability Bonus",
     "id": "cfbc3740-2afc-448e-a7d4-0cd1ad530fef",
-    "features": ["ALL"]
+    "features": [
+      "ALL"
+    ]
   },
   {
-    "value": "altType",
     "label": "Alternate Type",
     "id": "63ed8641-6ff4-4807-a61d-d43a0c2b6926",
-    "spells": ["ALL"]
+    "spells": [
+      "ALL"
+    ]
   },
   {
-    "value": "expandsSpellList",
     "label": "Expands Spell List",
     "id": "57351a56-9b66-46cf-8c85-be7702172185",
-    "sections": ["spells"]
+    "sections": [
+      "spells"
+    ]
   },
   {
-    "value": "classStyle",
     "label": "Has Class Style",
     "id": "3764d329-dff1-4d17-8d22-ef9a0f5bc60d",
-    "classes": ["SUBCLASS"]
+    "classes": [
+      "SUBCLASS"
+    ]
   },
   {
-    "value": "castAtWill",
     "label": "Cast At Will",
     "id": "0fb2aae6-f606-46de-94fd-b0f4d9fa9be0",
-    "sections": ["spells"]
+    "sections": [
+      "spells"
+    ]
   },
   {
-    "value": "containsCurrency",
     "label": "Contains Currency",
-    "equipment": ["classes", "BACKGROUND"],
+    "equipment": [
+      "classes",
+      "BACKGROUND"
+    ],
     "id": "f4a91a84-5bc2-4cc3-aad9-7b9551a43b32"
   }
 ]

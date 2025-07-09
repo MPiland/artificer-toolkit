@@ -1,12 +1,15 @@
-import { useEffect, use } from 'react'
+import { z } from 'zod/v4'
+import { useEffect, useMemo, useState } from 'react'
 import { useAddNewEquipmentMutation, useUpdateEquipmentMutation } from '@/apis/equipment.api'
-import { Step, type EquipmentInput } from '@/types'
-import Form, { FormContext } from '@/components/Form'
-import { isEqual } from 'lodash'
+import { v4 as uuidv4 } from 'uuid'
 import { Route } from '@/routes/_protected/equipment/$action/$_equipmentId'
 import { useEquipmentData } from '@/hooks'
-import { EquipmentInputSchema } from '@/schemas'
-import { v4 as uuidv4 } from 'uuid'
+import { ContainsInputSchema, EquipmentInputSchema } from '@/schemas'
+import { useFormStore } from '@/store'
+import type { EquipmentInput } from '@/types'
+import Form, { EquipmentDetails, EquipmentAttributes, Contains, Features } from '@/components/Form'
+import { Attributes as AttributesEnum } from '@/enums'
+import { isEqual } from 'lodash'
 
 const EquipmentForm = () => {
   const { _equipmentId: equipmentId, action } = Route.useParams()
@@ -14,42 +17,73 @@ const EquipmentForm = () => {
     equipment: { findEquipment },
   } = useEquipmentData()
   const equipment = findEquipment(equipmentId)
-  const { steps, formStore } = use(FormContext)
+  const formStore = useFormStore((state) => state)
 
-  const stepsArray = [
-    { id: 'details', label: 'Details' },
-    { id: 'attributes', label: 'Attributes' },
-    { id: 'features', label: 'Features' },
-  ] satisfies Step[]
-
-  useEffect(() => {
-    if (!isEqual(steps, stepsArray)) {
-      formStore.setSteps(stepsArray)
-    }
-    if (action === 'new') {
-      let dataObj: EquipmentInput
-      if (equipment) {
-        dataObj = EquipmentInputSchema.parse({
-          ...equipment,
-          id: uuidv4(),
-          label: '',
-          masterId: undefined,
-        })
-      } else {
-        dataObj = EquipmentInputSchema.parse({
+  const data: z.input<typeof EquipmentInputSchema> = useMemo(
+    () =>
+      equipment ?
+        action === 'new' ?
+          EquipmentInputSchema.parse({
+            ...equipment,
+            id: uuidv4(),
+            label: '',
+            masterId: undefined,
+          })
+        : EquipmentInputSchema.parse(equipment)
+      : EquipmentInputSchema.parse({
           __kind: 'EquipmentInput',
           id: uuidv4(),
-        })
-      }
-      formStore.reinitState(dataObj)
-    }
-    if (action === 'edit' && equipment) {
-      const dataObj = EquipmentInputSchema.parse(equipment)
-      formStore.reinitState(dataObj)
-    }
-  }, [stepsArray, steps, formStore, equipment, action])
+        }),
+    [equipment, action]
+  )
 
-  return <Form useUpdateItemMutation={useUpdateEquipmentMutation} useAddNewItemMutation={useAddNewEquipmentMutation} />
+  useEffect(() => {
+    formStore.setCurrent(data as EquipmentInput)
+  }, [formStore, data])
+
+  const [steps, setSteps] = useState([
+    { id: 'details', label: 'Details' },
+    { id: 'attributes', label: 'Attributes' },
+    {
+      id: 'features',
+      label: 'Features',
+      content: <Features />,
+    },
+  ])
+
+  useEffect(() => {
+    if ((formStore.current as EquipmentInput)?.attributes?.includes(AttributesEnum.CONTAINS_EQUIPMENT)) {
+      if (!steps.includes({ id: 'contains', label: 'Contains' })) {
+        const updatedSteps = [...steps]
+        updatedSteps.push({ id: 'contains', label: 'Contains' })
+        formStore.updateField({ path: 'contains[0]', value: ContainsInputSchema.parse({ id: uuidv4() }) })
+        setSteps(updatedSteps)
+      }
+    } else {
+      const updatedSteps = steps.filter((step) => step.id !== 'contains')
+      setSteps(updatedSteps)
+      if ((formStore.current as EquipmentInput)?.contains?.length) {
+        formStore.removeField({ path: 'contains' })
+      }
+    }
+  }, [steps, formStore])
+
+  useEffect(() => {
+    if (!isEqual(formStore.steps, steps)) formStore.setSteps(steps)
+  }, [formStore, steps])
+
+  const stepComponentMap = {
+    details: <EquipmentDetails />,
+    attributes: <EquipmentAttributes />,
+    features: <Features />,
+    contains: <Contains />,
+  }
+
+  return (
+    <Form useUpdateItemMutation={useUpdateEquipmentMutation} useAddNewItemMutation={useAddNewEquipmentMutation}>
+      {stepComponentMap[formStore.steps[formStore.stepIndex].id as keyof typeof stepComponentMap] || null}
+    </Form>
+  )
 }
 
 export default EquipmentForm

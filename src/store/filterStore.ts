@@ -1,8 +1,9 @@
 import { produce } from 'immer'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { DeepKeyOf, Class, Equipment, Spell } from '@/types'
+import type { Class, Equipment, Spell } from '@/types'
 import { get, set as lSet } from 'lodash'
+import type { DeepKeys } from '@tanstack/react-form'
 
 // Define the overall filter state
 export interface FilterState {
@@ -16,7 +17,7 @@ export type StoreFormType = keyof FilterState
 // Define the filter slice
 export interface FilterStore {
   filters: FilterState
-  setFilter: <T extends StoreFormType>(context: T, path: DeepKeyOf<FilterState[T]>, value: any) => void
+  setFilter: <T extends StoreFormType>(context: T, path: DeepKeys<FilterState[T]>, value: unknown) => void
   resetFilters: (context: StoreFormType) => void
   clearAllFilters: () => void
 }
@@ -34,7 +35,7 @@ export const useFilterStore = create<FilterStore>()(
               state.filters[context] = {}
             }
 
-            const typedFilter = state.filters[context] as Record<string, any>
+            const typedFilter = state.filters[context] as Record<string, unknown>
 
             if (value === null) {
               // For removal, we need to handle nested paths
@@ -47,7 +48,7 @@ export const useFilterStore = create<FilterStore>()(
                 const parent = get(typedFilter, parentPath)
 
                 if (parent && typeof parent === 'object' && lastPart && lastPart in parent) {
-                  delete parent[lastPart]
+                  delete parent[lastPart as keyof typeof parent]
                 }
               } else {
                 // For top-level paths

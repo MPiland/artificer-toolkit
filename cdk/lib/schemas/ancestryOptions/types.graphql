@@ -1,0 +1,11 @@
+type AncestryOption {
+  id: ID!
+  label: String!
+  desc: String
+  features: [ID!]
+}
+
+type AncestryOptionConnection {
+  items: [AncestryOption!]!
+  nextToken: String
+}

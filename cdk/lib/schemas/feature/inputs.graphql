@@ -1,3 +1,9 @@
+input OptionsByLevelInput {
+  level: Int
+  count: Int
+  replaceCount: Int
+}
+
 input FeatureInput {
   id: ID!
   label: String

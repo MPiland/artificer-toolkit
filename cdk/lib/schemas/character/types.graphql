@@ -1,5 +1,5 @@
 type CharacterModifier {
-  modifierId: ID!
+  id: ID!
   featureId: ID
   classId: ID
   raceId: ID
@@ -28,7 +28,8 @@ type CharacterSense {
 }
 
 type CharacterFeat {
-  featId: ID
+  id: ID
+  featId: ID!
   featureId: ID
   classId: ID
   raceId: ID
@@ -46,7 +47,7 @@ type CharacterProficiency {
   saveAbility: ID
   property: ID
   equipment: ID
-  proficiencyId: ID!
+  id: ID!
   featureId: ID
   classId: ID
   raceId: ID
@@ -65,7 +66,7 @@ type CharacterExpertise {
   saveAbility: ID
   property: ID
   equipment: ID
-  expertiseId: ID!
+  id: ID!
   featureId: ID
   classId: ID
   raceId: ID
@@ -81,7 +82,7 @@ type CharacterExpertise {
 type CharacterSpell {
   id: ID!
   level: Int!
-  ability: ID
+  saveAbility: ID
   isRitual: Boolean
   countAsKnown: Boolean
   usesSlot: Boolean

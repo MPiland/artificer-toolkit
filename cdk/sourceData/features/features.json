@@ -1,7 +1,6 @@
 [
   {
     "desc": "<p>In battle, you fight with primal ferocity. On your turn, you can enter a rage as a bonus action.</p><p>While raging, you gain the following benefits if you aren’t wearing heavy armor:</p><ul><li><p>You have advantage on Strength checks and Strength saving throws.</p></li><li><p>When you make a melee weapon attack using Strength, you gain a bonus to the damage roll that increases as you gain levels as a barbarian, as shown in the Rage Damage column of the Barbarian table.</p></li><li><p>You have resistance to bludgeoning, piercing, and slashing damage.</p></li></ul><p>If you are able to cast spells, you can’t cast them or concentrate on them while raging.</p><p>Your rage lasts for 1 minute. It ends early if you are knocked unconscious or if your turn ends and you haven’t attacked a hostile creature since your last turn or taken damage since then. You can also end your rage on your turn as a bonus action.</p><p>Once you have raged the number of times shown for your barbarian level in the Rages column of the Barbarian table, you must finish a long rest before you can rage again.</p>",
-    "value": "rage",
     "label": "Rage",
     "levelAvailable": "1",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -56,7 +55,6 @@
   },
   {
     "desc": "<p>While you are not wearing any armor, your Armor Class equals 10 + your Dexterity modifier + your Constitution modifier. You can use a shield and still gain this benefit.</p>",
-    "value": "unarmoredDefense",
     "label": "Unarmored Defense",
     "levelAvailable": "1",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -87,7 +85,6 @@
   },
   {
     "desc": "<p>Starting at 2nd level, you can throw aside all concern for defense to attack with fierce desperation. When you make your first attack on your turn, you can decide to attack recklessly. Doing so gives you advantage on melee weapon attack rolls using Strength during this turn, but attack rolls against you have advantage until your next turn.</p>",
-    "value": "recklessAttack",
     "label": "Reckless Attack",
     "levelAvailable": "2",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -96,7 +93,6 @@
   },
   {
     "desc": "<p>At 2nd level, you gain an uncanny sense of when things nearby aren’t as they should be, giving you an edge when you dodge away from danger.</p><p>You have advantage on Dexterity saving throws against effects that you can see, such as traps and spells. To gain this benefit, you can’t be blinded, deafened, or incapacitated.</p>",
-    "value": "dangerSense",
     "label": "Danger Sense",
     "levelAvailable": "2",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -106,7 +102,6 @@
   {
     "desc": "<p>At 3rd level, you choose a path that shapes the nature of your rage. Choose the Path of the Berserker or the Path of the Totem Warrior, both detailed at the end of the class description. Your choice grants you features at 3rd level and again at 6th, 10th, and 14th levels.</p>",
     "details": "<p>Rage burns in every barbarian’s heart, a furnace that drives him or her toward greatness. Different barbarians attribute their rage to different sources, however. For some, it is an internal reservoir where pain, grief, and anger are forged into a fury hard as steel. Others see it as a spiritual blessing, a gift of a&nbsp;totem animal.</p>",
-    "value": "primalPath",
     "label": "Primal Path",
     "levelAvailable": "3",
     "category": "635bbde6-8c7f-4730-bb83-fb3be8d9006a",
@@ -118,7 +113,6 @@
   },
   {
     "desc": "<p>When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can’t increase an ability score above 20 using this feature.</p>",
-    "value": "abilityScoreImprovement",
     "label": "Ability Score Improvement",
     "levelAvailable": "4, 8, 12, 16, 19",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -139,7 +133,6 @@
   },
   {
     "desc": "<p>Beginning at 5th level, you can attack twice, instead of once, whenever you take the Attack action on your turn.</p>",
-    "value": "extraAttack",
     "label": "Extra Attack",
     "levelAvailable": "5",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -148,7 +141,6 @@
   },
   {
     "desc": "<p>Starting at 5th level, your speed increases by 10 feet while you aren’t wearing heavy armor.</p>",
-    "value": "fastMovement",
     "label": "Fast Movement",
     "levelAvailable": "5",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -166,7 +158,6 @@
   },
   {
     "desc": "<p>By 7th level, your instincts are so honed that you have advantage on initiative rolls.</p><p>Additionally, if you are surprised at the beginning of combat and aren’t incapacitated, you can act normally on your first turn, but only if you enter your rage before doing anything else on that turn.</p>",
-    "value": "feralInstinct",
     "label": "Feral Instinct",
     "levelAvailable": "7",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -184,7 +175,6 @@
   },
   {
     "desc": "<p>Beginning at 9th level, you can roll one additional weapon damage die when determining the extra damage for a critical hit with a melee attack.</p><p>This increases to two additional dice at 13th level and three additional dice at 17th level.</p>",
-    "value": "brutalCritical",
     "label": "Brutal Critical",
     "levelAvailable": "9, 13, 17",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -193,7 +183,6 @@
   },
   {
     "desc": "<p>Starting at 11th level, your rage can keep you fighting despite grievous wounds. If you drop to 0 hit points while you’re raging and don’t die outright, you can make a DC 10 Constitution saving throw. If you succeed, you drop to 1 hit point instead. Each time you use this feature after the first, the DC increases by 5. When you finish a short or long rest, the DC resets to 10.</p>",
-    "value": "relentlessRage",
     "label": "Relentless Rage",
     "levelAvailable": "11",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -202,7 +191,6 @@
   },
   {
     "desc": "<p>Beginning at 15th level, your rage is so fierce that it ends early only if you fall unconscious or if you choose to end it.</p>",
-    "value": "persistentRage",
     "label": "Persistent Rage",
     "levelAvailable": "15",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -211,7 +199,6 @@
   },
   {
     "desc": "<p>Beginning at 18th level, if your total for a Strength check is less than your Strength score, you can use that score in place of the total.</p>",
-    "value": "indomitableMight",
     "label": "Indomitable Might",
     "levelAvailable": "18",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -220,7 +207,6 @@
   },
   {
     "desc": "<p>At 20th level, you embody the power of the wilds. Your Strength and Constitution scores increase by 4. Your maximum for those scores is now 24.</p>",
-    "value": "primalChampion",
     "label": "Primal Champion",
     "levelAvailable": "20",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -241,7 +227,6 @@
   },
   {
     "desc": "<p>Starting at 2nd level, you can add half your proficiency bonus, rounded down, to any ability check you make that doesn’t already include your proficiency bonus.</p>",
-    "value": "jackOfAllTrades",
     "label": "Jack of All Trades",
     "levelAvailable": "2",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -253,7 +238,6 @@
   },
   {
     "desc": "<p>Beginning at 2nd level, you can use soothing music or oration to help revitalize your wounded allies during a short rest. If you or any friendly creatures who can hear your performance regain hit points at the end of the short rest by spending one or more Hit Dice, each of those creatures regains an extra 1d6 hit points.</p><p>The extra hit points increase when you reach certain levels in this class: to 1d8 at 9th level, to 1d10 at 13th level, and to 1d12 at 17th level.</p>",
-    "value": "songOfRest",
     "label": "Song of Rest",
     "levelAvailable": "2",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -298,7 +282,6 @@
   {
     "desc": "<p>At 3rd level, you delve into the advanced techniques of a bard college of your choice, such as the College of Lore. Your choice grants you features at 3rd level and again at 6th and 14th level.</p>",
     "details": "<p>The way of a bard is gregarious. Bards seek each other out to swap songs and stories, boast of their accomplishments, and share their knowledge. Bards form loose associations, which they call colleges, to facilitate their gatherings and preserve their traditions.</p>",
-    "value": "bardCollege",
     "label": "Bard College",
     "levelAvailable": "3",
     "category": "635bbde6-8c7f-4730-bb83-fb3be8d9006a",
@@ -306,7 +289,6 @@
   },
   {
     "desc": "<p>At 3rd level, choose two of your skill proficiencies. Your proficiency bonus is doubled for any ability check you make that uses either of the chosen proficiencies.</p><p>At 10th level, you can choose another two skill proficiencies to gain this benefit.</p>",
-    "value": "expertise",
     "label": "Expertise",
     "levelAvailable": "3, 10",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -318,7 +300,6 @@
   },
   {
     "desc": "<p>When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can’t increase an ability score above 20 using this feature.</p>",
-    "value": "abilityScoreImprovement",
     "label": "Ability Score Improvement",
     "levelAvailable": "4, 8, 12, 16, 19",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -334,7 +315,6 @@
   },
   {
     "desc": "<p>Beginning when you reach 5th level, you regain all of your expended uses of Bardic Inspiration when you finish a short or long rest.</p>",
-    "value": "fontOfInspiration",
     "label": "Font of Inspiration",
     "levelAvailable": "5",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -347,7 +327,6 @@
   },
   {
     "desc": "<p>At 6th level, you gain the ability to use musical notes or words of power to disrupt mind-influencing effects. As an action, you can start a performance that lasts until the end of your next turn. During that time, you and any friendly creatures within 30 feet of you have advantage on saving throws against being frightened or charmed. A creature must be able to hear you to gain this benefit. The performance ends early if you are incapacitated or silenced or if you voluntarily end it (no action required).</p>",
-    "value": "countercharm",
     "label": "Countercharm",
     "levelAvailable": "6",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -364,7 +343,6 @@
   },
   {
     "desc": "<p>By 10th level, you have plundered magical knowledge from a wide spectrum of disciplines. Choose two spells from any class, including this one. A spell you choose must be of a level you can cast, as shown on the Bard table, or a cantrip.</p><p>The chosen spells count as bard spells for you and are included in the number in the Spells Known column of the Bard table.</p><p>You learn two additional spells from any class at 14th level and again at 18th level.</p>",
-    "value": "magicalSecrets",
     "label": "Magical Secrets",
     "levelAvailable": "10, 14, 18",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -376,7 +354,6 @@
   },
   {
     "desc": "<p>At 20th level, when you roll initiative and have no uses of Bardic Inspiration left, you regain one use.</p>",
-    "value": "superiorInspiration",
     "label": "Superior Inspiration",
     "levelAvailable": "20",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -386,7 +363,6 @@
   {
     "desc": "<p>Choose one domain related to your deity, such as Life. Each domain is detailed at the end of the class description, and each one provides examples of gods associated with it. Your choice grants you domain spells and other features when you choose it at 1st level. It also grants you additional ways to use Channel Divinity when you gain that feature at 2nd level, and additional benefits at 6th, 8th, and 17th levels.</p><h5><strong>Domain Spells</strong></h5><p>Each domain has a list of spells—its domain spells— that you gain at the cleric levels noted in the domain description. Once you gain a domain spell, you always have it prepared, and it doesn’t count against the number of spells you can prepare each day.</p><p>If you have a domain spell that doesn’t appear on the cleric spell list, the spell is nonetheless a cleric spell for you.</p>",
     "details": "<p>In a pantheon, every deity has influence over different aspects of mortal life and civilization, called a deity’s domain. All the domains over which a deity has influence are called the deity’s portfolio. For example, the portfolio of the Greek god Apollo includes the domains of Knowledge, Life, and Light. As a cleric, you choose one aspect of your deity’s portfolio to emphasize, and you are granted powers related to&nbsp;that domain.</p><p>Your choice might correspond to a particular sect dedicated to your deity. Apollo, for example, could be worshiped in one region as Phoebus (“radiant”) Apollo, emphasizing his influence over the Light domain, and in a different place as Apollo Acesius (“healing”), emphasizing his association with the Life domain. Alternatively, your choice of domain could simply be a matter of personal preference, the aspect of the deity that appeals&nbsp;to you most.</p><p>Each domain’s description gives examples of deities who have influence over that domain. Gods are included from the worlds of the Forgotten Realms, Greyhawk, Dragonlance, and Eberron campaign settings, as well as from the Celtic, Greek, Norse, and Egyptian pantheons&nbsp;of antiquity.</p>",
-    "value": "divineDomain",
     "label": "Divine Domain",
     "levelAvailable": "1",
     "category": "635bbde6-8c7f-4730-bb83-fb3be8d9006a",
@@ -394,7 +370,6 @@
   },
   {
     "desc": "<p>As an action, you present your holy symbol and speak a prayer censuring the undead. Each undead that can see or hear you within 30 feet of you must make a Wisdom saving throw. If the creature fails its saving throw, it is turned for 1 minute or until it takes any damage.</p><p>A turned creature must spend its turns trying to move as far away from you as it can, and it can’t willingly move to a space within 30 feet of you. It also can’t take reactions. For its action, it can use only the Dash action or try to escape from an effect that prevents it from moving. If there’s nowhere to move, the creature can use the Dodge action.</p>",
-    "value": "channelDivinityTurnUndead",
     "label": "Channel Divinity: Turn Undead",
     "levelAvailable": "2",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -423,7 +398,6 @@
   },
   {
     "desc": "<p>When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can’t increase an ability score above 20 using this feature.</p>",
-    "value": "abilityScoreImprovement",
     "label": "Ability Score Improvement",
     "levelAvailable": "4, 8, 12, 16, 19",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -438,7 +412,6 @@
   },
   {
     "desc": "<p>Starting at 5th level, when an undead fails its saving throw against your Turn Undead feature, the creature is instantly destroyed if its challenge rating is at or below a certain threshold, as shown in the Destroy Undead table.</p><table class=\"RichTextEditor_editor_table__1pu01sk8\" style=\"width: 327px\"><colgroup><col style=\"width: 105px\"><col style=\"width: 222px\"></colgroup><tbody><tr><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"105\" style=\"width: 105px;\"><p><strong>Cleric Level</strong></p></th><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"222\" style=\"width: 222px;\"><p><strong>Destroys Undead of CR …</strong></p></th></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"105\" style=\"width: 105px;\"><p>5th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"222\" style=\"width: 222px;\"><p>1/2 or lower</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"105\" style=\"width: 105px;\"><p>8th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"222\" style=\"width: 222px;\"><p>1 or lower</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"105\" style=\"width: 105px;\"><p>11th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"222\" style=\"width: 222px;\"><p>2 or lower</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"105\" style=\"width: 105px;\"><p>14th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"222\" style=\"width: 222px;\"><p>3 or lower</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"105\" style=\"width: 105px;\"><p>17th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"222\" style=\"width: 222px;\"><p>4 or lower</p></td></tr></tbody></table>",
-    "value": "destroyUndead",
     "label": "Destroy Undead",
     "levelAvailable": "5",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -447,7 +420,6 @@
   },
   {
     "desc": "<p>Beginning at 10th level, you can call on your deity to intervene on your behalf when your need is great.</p><p>Imploring your deity’s aid requires you to use your action. Describe the assistance you seek, and roll percentile dice. If you roll a number equal to or lower than your cleric level, your deity intervenes. The GM chooses the nature of the intervention; the effect of any cleric spell or cleric domain spell would be appropriate.</p><p>If your deity intervenes, you can’t use this feature again for 7 days. Otherwise, you can use it again after you finish a long rest.</p><p>At 20th level, your call for intervention succeeds automatically, no roll required.</p>",
-    "value": "divineIntervention",
     "label": "Divine Intervention",
     "levelAvailable": "10",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -465,7 +437,6 @@
   {
     "desc": "<p>At 2nd level, you choose to identify with a circle of druids: the Circle of the Land detailed at the end of the class description or one from the Player's Handbook or other sources. Your choice grants you features at 2nd level and again at 6th, 10th, and 14th level.</p>",
     "details": "<p>Though their organization is invisible to most outsiders, druids are part of a society that spans the land, ignoring political borders. All druids are nominally members of this druidic society, though some individuals are so isolated that they have never seen any high-ranking members of the society or participated in druidic gatherings. Druids recognize each other as brothers and sisters. Like creatures of the wilderness, however, druids sometimes compete with or even prey on each other.</p><p>At a local scale, druids are organized into circles that share certain perspectives on nature, balance, and the way of the druid.</p>",
-    "value": "druidCircle",
     "label": "Druid Circle",
     "levelAvailable": "2",
     "category": "635bbde6-8c7f-4730-bb83-fb3be8d9006a",
@@ -473,7 +444,6 @@
   },
   {
     "desc": "<p>Starting at 2nd level, you can use your action to magically assume the shape of a beast that you have seen before. You can use this feature twice. You regain expended uses when you finish a short or long rest.</p><p>Your druid level determines the beasts you can transform into, as shown in the Beast Shapes table. At 2nd level, for example, you can transform into any beast that has a challenge rating of 1/4 or lower that doesn’t have a flying or swimming speed.</p><h5><strong>Beast Shapes</strong></h5><table class=\"RichTextEditor_editor_table__1pu01sk8\" style=\"width: 527px\"><colgroup><col style=\"width: 109px\"><col style=\"width: 88px\"><col style=\"width: 221px\"><col style=\"width: 109px\"></colgroup><tbody><tr><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"109\" style=\"width: 109px;\"><p><strong>Level</strong></p></th><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"88\" style=\"width: 88px;\"><p><strong>Max CR</strong></p></th><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"221\" style=\"width: 221px;\"><p><strong>Limitations</strong></p></th><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"109\" style=\"width: 109px;\"><p><strong>Example</strong></p></th></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"109\" style=\"width: 109px;\"><p>2nd</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"88\" style=\"width: 88px;\"><p>1/4</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"221\" style=\"width: 221px;\"><p>No flying or swimming speed</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"109\" style=\"width: 109px;\"><p>Wolf</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"109\" style=\"width: 109px;\"><p>4th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"88\" style=\"width: 88px;\"><p>1/2</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"221\" style=\"width: 221px;\"><p>No flying speed</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"109\" style=\"width: 109px;\"><p>Crocodile</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"109\" style=\"width: 109px;\"><p>8th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"88\" style=\"width: 88px;\"><p>1</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"221\" style=\"width: 221px;\"><p>—</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"109\" style=\"width: 109px;\"><p>Giant eagle</p></td></tr></tbody></table><p><br>You can stay in a beast shape for a number of hours equal to half your druid level (rounded down). You then revert to your normal form unless you expend another use of this feature. You can revert to your normal form earlier by using a bonus action on your turn. You automatically revert if you fall unconscious, drop to 0 hit points, or die.</p><p>While you are transformed, the following rules apply:</p><ul><li><p>Your game statistics are replaced by the statistics of the beast, but you retain your alignment, personality, and Intelligence, Wisdom, and Charisma scores. You also retain all of your skill and saving throw proficiencies, in addition to gaining those of the creature. If the creature has the same proficiency as you and the bonus in its stat block is higher than yours, use the creature’s bonus instead of yours. If the creature has any legendary or lair actions, you can’t use them.</p></li><li><p>When you transform, you assume the beast’s hit points and Hit Dice. When you revert to your normal form, you return to the number of hit points you had before you transformed. However, if you revert as a result of dropping to 0 hit points, any excess damage carries over to your normal form. For example, if you take 10 damage in animal form and have only 1 hit point left, you revert and take 9 damage. As long as the excess damage doesn’t reduce your normal form to 0 hit points, you aren’t knocked unconscious.</p></li><li><p>You can’t cast spells, and your ability to speak or take any action that requires hands is limited to the capabilities of your beast form. Transforming doesn’t break your concentration on a spell you’ve already cast, however, or prevent you from taking actions that are part of a spell, such as <em>call lightning</em>, that you’ve already cast.</p></li><li><p>You retain the benefit of any features from your class, race, or other source and can use them if the new form is physically capable of doing so. However, you can’t use any of your special senses, such as darkvision, unless your new form also has that sense.</p></li><li><p>You choose whether your equipment falls to the ground in your space, merges into your new form, or is worn by it. Worn equipment functions as normal, but the DM decides whether it is practical for the new form to wear a piece of equipment, based on the creature’s shape and size. Your equipment doesn’t change size or shape to match the new form, and any equipment that the new form can’t wear must either fall to the ground or merge with it. Equipment that merges with the form has no effect until you leave the form.</p></li></ul>",
-    "value": "wildShape",
     "label": "Wild Shape",
     "levelAvailable": "2",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -497,7 +467,6 @@
   },
   {
     "desc": "<p>At 4th level, you can use your action to magically assume the shape of a beast that you have seen before of challenge rating 1/2 or lower that doesn't have a flying speed. You can use this feature twice. You regain expended uses when you finish a short or long rest.</p>",
-    "value": "wildShapeImprovement",
     "label": "Wild Shape Improvement",
     "levelAvailable": "4",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -506,7 +475,6 @@
   },
   {
     "desc": "<p>When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can’t increase an ability score above 20 using this feature.</p><p>Using the optional feats rule, you can forgo taking this feature to take a feat of your choice instead.</p>",
-    "value": "abilityScoreImprovement",
     "label": "Ability Score Improvement",
     "levelAvailable": "4, 8, 12, 16, 19",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -521,7 +489,6 @@
   },
   {
     "desc": "<p>At 8th level, you can use your action to magically assume the shape of a beast that you have seen before of challenge rating 1 or lower. You can use this feature twice. You regain expended uses when you finish a short or long rest.</p>",
-    "value": "wildShapeImprovement",
     "label": "Wild Shape Improvement",
     "levelAvailable": "8",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -530,7 +497,6 @@
   },
   {
     "desc": "<p>Starting at 18th level, the primal magic that you wield causes you to age more slowly. For every 10 years that pass, your body ages only 1 year.</p>",
-    "value": "timelessBody",
     "label": "Timeless Body",
     "levelAvailable": "18",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -539,7 +505,6 @@
   },
   {
     "desc": "<p>Beginning at 18th level, you can cast many of your druid spells in any shape you assume using Wild Shape. You can perform the somatic and verbal components of a druid spell while in a beast shape, but you aren’t able to provide material components.</p>",
-    "value": "beastSpells",
     "label": "Beast Spells",
     "levelAvailable": "18",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -548,7 +513,6 @@
   },
   {
     "desc": "<p>At 20th level, you can use your Wild Shape an unlimited number of times.</p><p>Additionally, you can ignore the verbal and somatic components of your druid spells, as well as any material components that lack a cost and aren’t consumed by a spell. You gain this benefit in both your normal shape and your beast shape from Wild Shape.</p>",
-    "value": "archdruid",
     "label": "Archdruid",
     "levelAvailable": "20",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -557,7 +521,6 @@
   },
   {
     "desc": "<p>You adopt a particular style of fighting as your specialty. Choose one of the following options.</p><p>You can’t take a Fighting Style option more than once, even if you later get to choose again.</p>",
-    "value": "fightingStyle",
     "label": "Fighting Style",
     "levelAvailable": "1",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -576,7 +539,6 @@
   },
   {
     "desc": "<p>You have a limited well of stamina that you can draw on to protect yourself from harm. On your turn, you can use a bonus action to regain hit points equal to 1d10 + your fighter level. Once you use this feature, you must finish a short or long rest before you can use it again.</p>",
-    "value": "secondWind",
     "label": "Second Wind",
     "levelAvailable": "1",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -600,7 +562,6 @@
   },
   {
     "desc": "<p>Starting at 2nd level, you can push yourself beyond your normal limits for a moment. On your turn, you can take one additional action.</p><p>Once you use this feature, you must finish a short or long rest before you can use it again. Starting at 17th level, you can use it twice before a rest, but only once on the same turn.</p>",
-    "value": "actionSurge",
     "label": "Action Surge",
     "levelAvailable": "2",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -610,7 +571,6 @@
   {
     "desc": "<p>At 3rd level, you choose an archetype that you strive to emulate in your combat styles and techniques, such as Champion. The archetype you choose grants you features at 3rd level and again at 7th, 10th, 15th, and 18th level.</p>",
     "details": "<p>Different fighters choose different approaches to perfecting their fighting prowess. The martial archetype you choose to emulate reflects your approach.</p>",
-    "value": "martialArchetypes",
     "label": "Martial Archetypes",
     "levelAvailable": "3",
     "category": "635bbde6-8c7f-4730-bb83-fb3be8d9006a",
@@ -618,7 +578,6 @@
   },
   {
     "desc": "<p>When you reach 4th level, and again at 6th, 8th, 12th, 14th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can’t increase an ability score above 20 using this feature.</p>",
-    "value": "abilityScoreImprovement",
     "label": "Ability Score Improvement",
     "levelAvailable": "4, 6, 8, 12, 14, 16, 19",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -633,7 +592,6 @@
   },
   {
     "desc": "<p>Beginning at 5th level, you can attack twice, instead of once, whenever you take the Attack action on your turn.</p><p>The number of attacks increases to three when you reach 11th level in this class and to four when you reach 20th level in this class.</p>",
-    "value": "extraAttack",
     "label": "Extra Attack",
     "levelAvailable": "5, 11, 20",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -645,7 +603,6 @@
   },
   {
     "desc": "<p>Beginning at 9th level, you can reroll a saving throw that you fail. If you do so, you must use the new roll, and you can’t use this feature again until you finish a long rest.</p><p>You can use this feature twice between long rests starting at 13th level and three times between long rests starting at 17th level.</p>",
-    "value": "indomitable",
     "label": "Indomitable",
     "levelAvailable": "9",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -676,7 +633,6 @@
   },
   {
     "desc": "<p>Beginning at 1st level, while you are wearing no armor and not wielding a shield, your AC equals 10 + your Dexterity modifier + your Wisdom modifier.</p>",
-    "value": "unarmoredDefense",
     "label": "Unarmored Defense",
     "levelAvailable": "1",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -711,7 +667,6 @@
   },
   {
     "desc": "<p>At 1st level, your practice of martial arts gives you mastery of combat styles that use unarmed strikes and monk weapons, which are shortswords and any simple melee weapons that don’t have the two-handed or heavy property.</p><p>You gain the following benefits while you are unarmed or wielding only monk weapons and you aren’t wearing armor or wielding a shield:</p><ul><li><p>You can use Dexterity instead of Strength for the attack and damage rolls of your unarmed strikes and monk weapons.</p></li><li><p>You can roll a d4 in place of the normal damage of your unarmed strike or monk weapon. This die changes as you gain monk levels, as shown in the Martial Arts column of the Monk table.</p></li><li><p>When you use the Attack action with an unarmed strike or a monk weapon on your turn, you can make one unarmed strike as a bonus action. For example, if you take the Attack action and attack with a quarterstaff, you can also make an unarmed strike as a bonus action, assuming you haven’t already taken a bonus action this turn.</p></li></ul><p>Certain monasteries use specialized forms of the monk weapons. For example, you might use a club that is two lengths of wood connected by a short chain (called a nunchaku) or a sickle with a shorter, straighter blade (called a kama). Whatever name you use for a monk weapon, you can use the game statistics provided for the weapon in the Weapons section.</p>",
-    "value": "martialArts",
     "label": "Martial Arts",
     "levelAvailable": "1",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -768,7 +723,6 @@
   },
   {
     "desc": "<p>Starting at 2nd level, your training allows you to harness the mystic energy of ki. Your access to this energy is represented by a number of ki points. Your monk level determines the number of points you have, as shown in the Ki Points column of the Monk table.</p><p>You can spend these points to fuel various ki features. You start knowing three such features: <strong>Flurry of Blows</strong>, <strong>Patient Defense</strong>, and <strong>Step of the Wind</strong>. You learn more ki features as you gain levels in this class.</p><p>When you spend a ki point, it is unavailable until you finish a short or long rest, at the end of which you draw all of your expended ki back into yourself. You must spend at least 30 minutes of the rest meditating to regain your ki points.</p><p>Some of your ki features require your target to make a saving throw to resist the feature’s effects. The saving throw DC is calculated as follows:</p><p><strong>Ki save DC</strong> = 8 + your proficiency bonus + your Wisdom modifier</p>",
-    "value": "ki",
     "label": "Ki",
     "levelAvailable": "2",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -780,7 +734,6 @@
   },
   {
     "desc": "<p>Immediately after you take the Attack action on your turn, you can spend 1 ki point to make two unarmed strikes as a bonus action.</p>",
-    "value": "flurryOfBlows",
     "label": "Flurry of Blows",
     "levelAvailable": "2",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -802,7 +755,6 @@
   },
   {
     "desc": "<p>You can spend 1 ki point to take the Dodge action as a bonus action on your turn.</p>",
-    "value": "patientDefense",
     "label": "Patient Defense",
     "levelAvailable": "2",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -824,7 +776,6 @@
   },
   {
     "desc": "<p>You can spend 1 ki point to take the Disengage or Dash action as a bonus action on your turn, and your jump distance is doubled for the turn.</p>",
-    "value": "stepOfTheWind",
     "label": "Step of the Wind",
     "levelAvailable": "2",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -846,7 +797,6 @@
   },
   {
     "desc": "<p>Starting at 2nd level, your speed increases by 10 feet while you are not wearing armor or wielding a shield. This bonus increases when you reach certain monk levels, as shown in the Monk table.</p><p>At 9th level, you gain the ability to move along vertical surfaces and across liquids on your turn without falling during the move.</p>",
-    "value": "unarmoredMovement",
     "label": "Unarmored Movement",
     "levelAvailable": "2, 6, 10, 14, 18",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -866,7 +816,6 @@
   {
     "desc": "<p>When you reach 3rd level, you commit yourself to a monastic tradition, such as the Way of the Open Hand. Your tradition grants you features at 3rd level and again at 6th, 11th, and 17th level.</p>",
     "details": "<p>Three traditions of monastic pursuit are common in the monasteries scattered across the multiverse. Most monasteries practice one tradition exclusively, but a few honor the three traditions and instruct each monk according to his or her aptitude and interest. All three traditions rely on the same basic techniques, diverging as the student grows more adept. Thus, a monk need choose a tradition only upon reaching 3rd level.</p>",
-    "value": "monasticTradition",
     "label": "Monastic Tradition",
     "levelAvailable": "3",
     "category": "635bbde6-8c7f-4730-bb83-fb3be8d9006a",
@@ -874,7 +823,6 @@
   },
   {
     "desc": "<p>Starting at 3rd level, you can use your reaction to deflect or catch the missile when you are hit by a ranged weapon attack. When you do so, the damage you take from the attack is reduced by 1d10 + your Dexterity modifier + your monk level.</p><p>If you reduce the damage to 0, you can catch the missile if it is small enough for you to hold in one hand and you have at least one hand free. If you catch a missile in this way, you can spend 1 ki point to make a ranged attack with the weapon or piece of ammunition you just caught, as part of the same reaction. You make this attack with proficiency, regardless of your weapon proficiencies, and the missile counts as a monk weapon for the attack, which has a normal range of 20 feet and a long range of 60 feet.</p>",
-    "value": "deflectMissiles",
     "label": "Deflect Missiles",
     "levelAvailable": "3",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -896,7 +844,6 @@
   },
   {
     "desc": "<p>When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can’t increase an ability score above 20 using this feature.</p>",
-    "value": "abilityScoreImprovement",
     "label": "Ability Score Improvement",
     "levelAvailable": "4, 8, 12, 16, 19",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -918,7 +865,6 @@
   },
   {
     "desc": "<p>Beginning at 4th level, you can use your reaction when you fall to reduce any falling damage you take by an amount equal to five times your monk level.</p>",
-    "value": "slowFall",
     "label": "Slow Fall",
     "levelAvailable": "4",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -935,7 +881,6 @@
   },
   {
     "desc": "<p>Beginning at 5th level, you can attack twice, instead of once, whenever you take the Attack action on your turn.</p>",
-    "value": "extraAttack",
     "label": "Extra Attack",
     "levelAvailable": "5",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -944,7 +889,6 @@
   },
   {
     "desc": "<p>Starting at 5th level, you can interfere with the flow of ki in an opponent’s body. When you hit another creature with a melee weapon attack, you can spend 1 ki point to attempt a stunning strike. The target must succeed on a Constitution saving throw or be stunned until the end of your next turn.</p>",
-    "value": "stunningStrike",
     "label": "Stunning Strike",
     "levelAvailable": "5",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -965,7 +909,6 @@
   },
   {
     "desc": "<p>Starting at 6th level, your unarmed strikes count as magical for the purpose of overcoming resistance and immunity to nonmagical attacks and damage.</p>",
-    "value": "kiEmpoweredStrikes",
     "label": "Ki-Empowered Strikes",
     "levelAvailable": "6",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -974,7 +917,6 @@
   },
   {
     "desc": "<p>At 7th level, your instinctive agility lets you dodge out of the way of certain area effects, such as a blue dragon’s lightning breath or a <em>fireball</em> spell. When you are subjected to an effect that allows you to make a Dexterity saving throw to take only half damage, you instead take no damage if you succeed on the saving throw, and only half damage if you fail.</p>",
-    "value": "evasion",
     "label": "Evasion",
     "levelAvailable": "7",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -983,7 +925,6 @@
   },
   {
     "desc": "<p>Starting at 7th level, you can use your action to end one effect on yourself that is causing you to be charmed or frightened.</p>",
-    "value": "stillnessOfMind",
     "label": "Stillness of Mind",
     "levelAvailable": "7",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1000,7 +941,6 @@
   },
   {
     "desc": "<p>At 9th level, you gain the ability to move along vertical surfaces and across liquids on your turn without falling during your move.</p>",
-    "value": "unarmoredMovementImprovement",
     "label": "Unarmored Movement Improvement",
     "levelAvailable": "9",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1025,7 +965,6 @@
   },
   {
     "desc": "<p>At 10th level, your mastery of the ki flowing through you makes you immune to disease and poison.</p>",
-    "value": "purityOfBody",
     "label": "Purity of Body",
     "levelAvailable": "10",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1044,7 +983,6 @@
   },
   {
     "desc": "<p>Starting at 13th level, you learn to touch the ki of other minds so that you understand all spoken languages. Moreover, any creature that can understand a language can understand what you say.</p>",
-    "value": "tongueOfTheSunAndMoon",
     "label": "Tongue of the Sun and Moon",
     "levelAvailable": "13",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1053,7 +991,6 @@
   },
   {
     "desc": "<p>Beginning at 14th level, your mastery of ki grants you proficiency in all saving throws.</p><p>Additionally, whenever you make a saving throw and fail, you can spend 1 ki point to reroll it and take the second result.</p>",
-    "value": "diamondSoul",
     "label": "Diamond Soul",
     "levelAvailable": "14",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1072,7 +1009,6 @@
   },
   {
     "desc": "<p>At 15th level, your ki sustains you so that you suffer none of the frailty of old age, and you can’t be aged magically. You can still die of old age, however. In addition, you no longer need food or water.</p>",
-    "value": "timelessBody",
     "label": "Timeless Body",
     "levelAvailable": "15",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1081,7 +1017,6 @@
   },
   {
     "desc": "<p>Beginning at 18th level, you can use your action to spend 4 ki points to become invisible for 1 minute. During that time, you also have resistance to all damage but force damage.</p><p>Additionally, you can spend 8 ki points to cast the <em>astral projection</em> spell, without needing material components. When you do so, you can’t take any other creatures with you.</p>",
-    "value": "emptyBody",
     "label": "Empty Body",
     "levelAvailable": "18",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1106,7 +1041,6 @@
   },
   {
     "desc": "<p>At 20th level, when you roll for initiative and have no ki points remaining, you regain 4 ki points.</p>",
-    "value": "perfectSelf",
     "label": "Perfect Self",
     "levelAvailable": "20",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1115,7 +1049,6 @@
   },
   {
     "desc": "<p>The presence of strong evil registers on your senses like a noxious odor, and powerful good rings like heavenly music in your ears. As an action, you can open your awareness to detect such forces. Until the end of your next turn, you know the location of any celestial, fiend, or undead within 60 feet of you that is not behind total cover. You know the type (celestial, fiend, or undead) of any being whose presence you sense, but not its identity (the vampire Count Strahd von Zarovich, for instance). Within the same radius, you also detect the presence of any place or object that has been consecrated or desecrated, as with the <em>hallow</em> spell.</p><p>You can use this feature a number of times equal to 1 + your Charisma modifier. When you finish a long rest, you regain all expended uses.</p>",
-    "value": "divineSense",
     "label": "Divine Sense",
     "levelAvailable": "1",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1141,7 +1074,6 @@
   },
   {
     "desc": "<p>Your blessed touch can heal wounds. You have a pool of healing power that replenishes when you take a long rest. With that pool, you can restore a total number of hit points equal to your paladin level × 5.</p><p>As an action, you can touch a creature and draw power from the pool to restore a number of hit points to that creature, up to the maximum amount remaining in your pool.</p><p>Alternatively, you can expend 5 hit points from your pool of healing to cure the target of one disease or neutralize one poison affecting it. You can cure multiple diseases and neutralize multiple poisons with a single use of Lay on Hands, expending hit points separately for each one.</p><p>This feature has no effect on undead and constructs.</p>",
-    "value": "layOnHands",
     "label": "Lay on Hands",
     "levelAvailable": "1",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1172,7 +1104,6 @@
   },
   {
     "desc": "<p>At 2nd level, you adopt a style of fighting as your specialty. Choose one of the following options.</p><p>You can’t take a Fighting Style option more than once, even if you later get to choose again.</p>",
-    "value": "fightingStyle",
     "label": "Fighting Style",
     "levelAvailable": "2",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1183,7 +1114,6 @@
     "options": [
       {
         "desc": "<p>While you are wearing armor, you gain a +1 bonus to AC.</p>",
-        "value": "defense",
         "label": "Defense",
         "attributes": [
           "40a91f3a-8909-4593-8a5f-b66b364602bb"
@@ -1191,11 +1121,9 @@
         "prerequisites": {
           "option": [
             {
-              "value": "hasEquipped",
               "label": "Have Equipped"
             },
             {
-              "value": "optionNotObtained",
               "label": "Option Not Acquired"
             }
           ],
@@ -1218,7 +1146,6 @@
       },
       {
         "desc": "<p>When you are wielding a melee weapon in one hand and no other weapons, you gain a +2 bonus to damage rolls with that weapon.</p>",
-        "value": "dueling",
         "label": "Dueling",
         "attributes": [
           "40a91f3a-8909-4593-8a5f-b66b364602bb"
@@ -1259,7 +1186,6 @@
       },
       {
         "desc": "<p>When you roll a 1 or 2 on a damage die for an attack you make with a melee weapon that you are wielding with two hands, you can reroll the die and must use the new roll, even if the new roll is a 1 or a 2. The weapon must have the two-handed or versatile property for you to gain this benefit.</p>",
-        "value": "greatWeaponFighting",
         "label": "Great Weapon Fighting",
         "attributes": [
           "40a91f3a-8909-4593-8a5f-b66b364602bb"
@@ -1267,11 +1193,9 @@
         "prerequisites": {
           "option": [
             {
-              "value": "hasEquipped",
               "label": "Have Equipped"
             },
             {
-              "value": "optionNotObtained",
               "label": "Option Not Acquired"
             }
           ],
@@ -1290,7 +1214,6 @@
       },
       {
         "desc": "<p>When a creature you can see attacks a target other than you that is within 5 feet of you, you can use your reaction to impose disadvantage on the attack roll. You must be wielding a shield.</p>",
-        "value": "protection",
         "label": "Protection",
         "attributes": [
           "40a91f3a-8909-4593-8a5f-b66b364602bb",
@@ -1319,7 +1242,6 @@
   },
   {
     "desc": "<p>By 2nd level, you have learned to draw on divine magic through meditation and prayer to cast spells as a cleric does. See Spells Rules for the general rules of spellcasting and the Spells Listing&nbsp;for the paladin&nbsp;spell list.</p><h4><strong>Preparing and Casting Spells</strong></h4><p>The Paladin table shows how many spell slots you have to cast your paladin spells. To cast one of your paladin spells of 1st level or higher, you must expend a slot of the spell’s level or higher. You regain all expended spell slots when you finish a long rest.</p><p>You prepare the list of paladin spells that are available for you to cast, choosing from the paladin spell list. When you do so, choose a number of paladin spells equal to your Charisma modifier + half your paladin level, rounded down (minimum of one spell). The spells must be of a level for which you have spell slots.</p><p>For example, if you are a 5th-level paladin, you have four 1st-level and two 2nd-level spell slots. With a Charisma of 14, your list of prepared spells can include four spells of 1st or 2nd level, in any combination. If you prepare the 1st-level spell <em>cure wounds</em>, you can cast it using a 1st-level or a 2nd-level slot. Casting the spell doesn’t remove it from your list of prepared spells.</p><p>You can change your list of prepared spells when you finish a long rest. Preparing a new list of paladin spells requires time spent in prayer and meditation: at least 1 minute per spell level for each spell on your list.</p><h4><strong>Spellcasting Ability</strong></h4><p>Charisma is your spellcasting ability for your paladin spells, since their power derives from the strength of your convictions. You use your Charisma whenever a spell refers to your spellcasting ability. In addition, you use your Charisma modifier when setting the saving throw DC for a paladin spell you cast and when making an attack roll with one.</p><p><strong>Spell save DC </strong>= 8 + your proficiency bonus + your Charisma modifier</p><p><strong>Spell attack modifier </strong>= your proficiency bonus + your Charisma modifier</p><h4><strong>Spellcasting Focus</strong></h4><p>You can use a holy symbol (see the Adventuring Gear section) as a spellcasting focus for your paladin spells.</p>",
-    "value": "spellcasting",
     "label": "Spellcasting",
     "levelAvailable": "2",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1331,7 +1253,6 @@
   },
   {
     "desc": "<p>Starting at 2nd level, when you hit a creature with a melee weapon attack, you can expend one spell slot to deal radiant damage to the target, in addition to the weapon’s damage. The extra damage is 2d8 for a 1st-level spell slot, plus 1d8 for each spell level higher than 1st, to a maximum of 5d8. The damage increases by 1d8 if the target is an undead or a fiend, to a maximum of 6d8.</p>",
-    "value": "divineSmite",
     "label": "Divine Smite",
     "levelAvailable": "2",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1352,7 +1273,6 @@
   },
   {
     "desc": "<p>By 3rd level, the divine magic flowing through you makes you immune to disease.</p>",
-    "value": "divineHealth",
     "label": "Divine Health",
     "levelAvailable": "3",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1362,7 +1282,6 @@
   {
     "desc": "<p>When you reach 3rd level, you swear the oath that binds you as a paladin forever. Up to this time you have been in a preparatory stage, committed to the path but not yet sworn to it. Now you choose the Oath of Devotion detailed at the end of the class description or one from another source.</p><p>Your choice grants you features at 3rd level and again at 7th, 15th, and 20th level. Those features include oath spells and the Channel Divinity feature.</p><p><strong>Oath Spells</strong></p><p>Each oath has a list of associated spells. You gain access to these spells at the levels specified in the oath description. Once you gain access to an oath spell, you always have it prepared. Oath spells don’t count against the number of spells you can prepare each day.</p><p>If you gain an oath spell that doesn’t appear on the paladin spell list, the spell is nonetheless a paladin spell for you.</p><p><strong>Channel Divinity</strong></p><p>Your oath allows you to channel divine energy to fuel magical effects. Each Channel Divinity option provided by your oath explains how to use it.</p><p>When you use your Channel Divinity, you choose which option to use. You must then finish a short or long rest to use your Channel Divinity again.</p><p>Some Channel Divinity effects require saving throws. When you use such an effect from this class, the DC equals your paladin spell save DC.</p>",
     "details": "<p>Becoming a paladin involves taking vows that commit the paladin to the cause of righteousness, an active path of fighting wickedness. The final oath, taken when he or she reaches 3rd level, is the culmination of all the paladin’s training. Some characters with this class don’t consider themselves true paladins until they have reached 3rd level and made this oath. For others, the actual swearing of the oath is a formality, an official stamp on what has always been true in the paladin’s heart.</p><p>When you reach 3rd level, you swear the oath that binds you as a paladin forever. Up to this time you have been in a preparatory stage, committed to the path but not yet sworn to it. Now you choose an oath, such as the Oath of Devotion.</p><p>Your choice grants you features at 3rd level and again at 7th, 15th, and 20th level. Those features include oath spells and the Channel Divinity feature.</p><h3>Oath Spells</h3><p>Each oath has a list of associated spells. You gain access to these spells at the levels specified in the oath description. Once you gain access to an oath spell, you always have it prepared. Oath spells don’t count against the number of spells you can prepare each day.</p><p>If you gain an oath spell that doesn’t appear on the paladin spell list, the spell is nonetheless a paladin spell for you</p><h3>Channel Divinity</h3><p>Your oath allows you to channel divine energy to fuel magical effects. Each Channel Divinity option provided by your oath explains how to use it.</p><p>When you use your Channel Divinity, you choose which option to use. You must then finish a short or long rest to use your Channel Divinity again.</p><p>Some Channel Divinity effects require saving throws. When you use such an effect from this class, the DC equals your paladin spell save DC.</p>",
-    "value": "sacredOath",
     "label": "Sacred Oath",
     "levelAvailable": "3",
     "category": "635bbde6-8c7f-4730-bb83-fb3be8d9006a",
@@ -1371,7 +1290,6 @@
   },
   {
     "desc": "<p>When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can’t increase an ability score above 20 using this feature.</p>",
-    "value": "abilityScoreImprovement",
     "label": "Ability Score Improvement",
     "levelAvailable": "4, 8, 12, 16, 19",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1383,7 +1301,6 @@
   },
   {
     "desc": "<p>Beginning at 5th level, you can attack twice, instead of once, whenever you take the Attack action on your turn.</p>",
-    "value": "extraAttack",
     "label": "Extra Attack",
     "levelAvailable": "5",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1395,7 +1312,6 @@
   },
   {
     "desc": "<p>Starting at 6th level, whenever you or a friendly creature within 10 feet of you must make a saving throw, the creature gains a bonus to the saving throw equal to your Charisma modifier (with a minimum bonus of +1). You must be conscious to grant this bonus.</p><p>At 18th level, the range of this aura increases to 30 feet.</p>",
-    "value": "auraOfProtection",
     "label": "Aura of Protection",
     "levelAvailable": "6",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1404,7 +1320,6 @@
   },
   {
     "desc": "<p>Starting at 10th level, you and friendly creatures within 10 feet of you can’t be frightened while you are conscious.</p><p>At 18th level, the range of this aura increases to 30 feet.</p>",
-    "value": "auraOfCourage",
     "label": "Aura of Courage",
     "levelAvailable": "10",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1413,7 +1328,6 @@
   },
   {
     "desc": "<p>By 11th level, you are so suffused with righteous might that all your melee weapon strikes carry divine power with them. Whenever you hit a creature with a melee weapon, the creature takes an extra 1d8 radiant damage. If you also use your Divine Smite with an attack, you add this damage to the extra damage of your Divine Smite.</p>",
-    "value": "improvedDivineSmite",
     "label": "Improved Divine Smite",
     "levelAvailable": "11",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1434,7 +1348,6 @@
   },
   {
     "desc": "<p>Beginning at 14th level, you can use your action to end one spell on yourself or on one willing creature that you touch.</p><p>You can use this feature a number of times equal to your Charisma modifier (a minimum of once). You regain expended uses when you finish a long rest.</p>",
-    "value": "cleansingTouch",
     "label": "Cleansing Touch",
     "levelAvailable": "14",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1459,7 +1372,6 @@
   },
   {
     "desc": "<p>You are particularly familiar with one type of natural environment and are adept at traveling and surviving in such regions. Choose one type of favored terrain: arctic, coast, desert, forest, grassland, mountain, swamp, or the Underdark. When you make an Intelligence or Wisdom check related to your favored terrain, your proficiency bonus is doubled if you are using a skill that you’re proficient in.</p><p>While traveling for an hour or more in your favored terrain, you gain the following benefits:</p><ul><li><p>Difficult terrain doesn’t slow your group’s travel.</p></li><li><p>Your group can’t become lost except by magical means.</p></li><li><p>Even when you are engaged in another activity while traveling (such as foraging, navigating, or tracking), you remain alert to danger.</p></li><li><p>If you are traveling alone, you can move stealthily at a normal pace.</p></li><li><p>When you forage, you find twice as much food as you normally would.</p></li><li><p>While tracking other creatures, you also learn their exact number, their sizes, and how long ago they passed through the area.</p></li></ul><p>You choose additional favored terrain types at 6th and 10th level.</p>",
-    "value": "naturalExplorer",
     "label": "Natural Explorer",
     "levelAvailable": "1",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1468,7 +1380,6 @@
   },
   {
     "desc": "<p>At 2nd level, you adopt a particular style of fighting as your specialty. Choose one of the following options.</p><p>You can’t take a Fighting Style option more than once, even if you later get to choose again.</p>",
-    "value": "fightingStyle",
     "label": "Fighting Style",
     "levelAvailable": "2",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1484,7 +1395,6 @@
   },
   {
     "desc": "<p>By the time you reach 2nd level, you have learned to use the magical essence of nature to cast spells, much as a druid does. See Spells Rules for the general rules of spellcasting and the Spells Listing&nbsp;for the ranger spell list.</p><h4><strong>Spell Slots</strong></h4><p>The Ranger table shows how many spell slots you have to cast your ranger spells of 1st level and higher. To cast one of these spells, you must expend a slot of the spell’s level or higher. You regain all expended spell slots when you finish a long rest.</p><p>For example, if you know the 1st-level spell <em>animal friendship</em> and have a 1st-level and a 2nd-level spell slot available, you can cast <em>animal friendship</em> using either slot.</p><h4><strong>Spells Known of 1st Level and Higher</strong></h4><p>You know two 1st-level spells of your choice from the ranger spell list.</p><p>The Spells Known column of the Ranger table shows when you learn more ranger spells of your choice. Each of these spells must be of a level for which you have spell slots. For instance, when you reach 5th level in this class, you can learn one new spell of 1st or 2nd level.</p><p>Additionally, when you gain a level in this class, you can choose one of the ranger spells you know and replace it with another spell from the ranger spell list, which also must be of a level for which you have spell slots.</p><h4><strong>Spellcasting Ability</strong></h4><p>Wisdom is your spellcasting ability for your ranger spells, since your magic draws on your attunement to nature. You use your Wisdom whenever a spell refers to your spellcasting ability. In addition, you use your Wisdom modifier when setting the saving throw DC for a ranger spell you cast and when making an attack roll with one.<strong><br>Spell save DC </strong>= 8 + your proficiency bonus + your Wisdom modifier</p><p><strong>Spell attack modifier </strong>= your proficiency bonus + your Wisdom modifier</p>",
-    "value": "spellcasting",
     "label": "Spellcasting",
     "levelAvailable": "2",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1497,7 +1407,6 @@
   {
     "desc": "<p>At 3rd level, you choose an archetype that you strive to emulate: the Hunter that is detailed at the end of the class description or one from another source. Your choice grants you features at 3rd level and again at 7th, 11th, and 15th level.</p>",
     "details": "<p>Emulating the Hunter archetype means accepting your place as a bulwark between the people you protect and the terrors of the wilderness. As you walk the Hunter’s path, you learn specialized techniques for fighting the threats you face, from rampaging ogres to towering giants and terrifying dragons.</p>",
-    "value": "rangerArchetype",
     "label": "Ranger Archetype",
     "levelAvailable": "3",
     "category": "635bbde6-8c7f-4730-bb83-fb3be8d9006a",
@@ -1506,7 +1415,6 @@
   },
   {
     "desc": "<p>Beginning at 3rd level, you can use your action and expend one ranger spell slot to focus your awareness on the region around you. For 1 minute per level of the spell slot you expend, you can sense whether the following types of creatures are present within 1 mile of you (or within up to 6 miles if you are in your favored terrain): aberrations, celestials, dragons, elementals, fey, fiends, and undead. This feature doesn’t reveal the creatures’ location or number.</p>",
-    "value": "primevalAwareness",
     "label": "Primeval Awareness",
     "levelAvailable": "3",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1523,7 +1431,6 @@
   },
   {
     "desc": "<p>When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can’t increase an ability score above 20 using this feature.</p><p>Using the optional feats rule, you can forgo taking this feature to take a feat of your choice instead.</p>",
-    "value": "abilityScoreImprovement",
     "label": "Ability Score Improvement",
     "levelAvailable": "4, 8, 12, 16, 19",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1535,7 +1442,6 @@
   },
   {
     "desc": "<p>Beginning at 5th level, you can attack twice, instead of once, whenever you take the Attack action on your turn.</p>",
-    "value": "extraAttack",
     "label": "Extra Attack",
     "levelAvailable": "5",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1544,7 +1450,6 @@
   },
   {
     "desc": "<p>Starting at 8th level, moving through nonmagical difficult terrain costs you no extra movement. You can also pass through nonmagical plants without being slowed by them and without taking damage from them if they have thorns, spines, or a similar hazard.</p><p>In addition, you have advantage on saving throws against plants that are magically created or manipulated to impede movement, such those created by the <em>entangle</em> spell.</p>",
-    "value": "landsStrike",
     "label": "Land's Strike",
     "levelAvailable": "8",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1553,7 +1458,6 @@
   },
   {
     "desc": "<p>Starting at 10th level, you can spend 1 minute creating camouflage for yourself. You must have access to fresh mud, dirt, plants, soot, and other naturally occurring materials with which to create your camouflage.</p><p>Once you are camouflaged in this way, you can try to hide by pressing yourself up against a solid surface, such as a tree or wall, that is at least as tall and wide as you are. You gain a +10 bonus to Dexterity (Stealth) checks as long as you remain there without moving or taking actions. Once you move or take an action or a reaction, you must camouflage yourself again to gain this benefit.</p>",
-    "value": "hideInPlainSight",
     "label": "Hide in Plain Sight",
     "levelAvailable": "10",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1562,7 +1466,6 @@
   },
   {
     "desc": "<p>Starting at 14th level, you can use the Hide action as a bonus action on your turn. Also, you can’t be tracked by nonmagical means, unless you choose to leave a trail.</p>",
-    "value": "vanish",
     "label": "Vanish",
     "levelAvailable": "14",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1579,7 +1482,6 @@
   },
   {
     "desc": "<p>At 18th level, you gain preternatural senses that help you fight creatures you can’t see. When you attack a creature you can’t see, your inability to see it doesn’t impose disadvantage on your attack rolls against it.</p><p>You are also aware of the location of any invisible creature within 30 feet of you, provided that the creature isn’t hidden from you and you aren’t blinded or deafened.</p>",
-    "value": "feralSenses",
     "label": "Feral Senses",
     "levelAvailable": "18",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1588,7 +1490,6 @@
   },
   {
     "desc": "<p>At 20th level, you become an unparalleled hunter of your enemies. Once on each of your turns, you can add your Wisdom modifier to the attack roll or the damage roll of an attack you make against one of your favored enemies. You can choose to use this feature before or after the roll, but before any effects of the roll are applied.</p>",
-    "value": "foeSlayer",
     "label": "Foe Slayer",
     "levelAvailable": "20",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1597,7 +1498,6 @@
   },
   {
     "desc": "<p>At 1st level, choose two of your skill proficiencies, or one of your skill proficiencies and your proficiency with thieves’ tools. Your proficiency bonus is doubled for any ability check you make that uses either of the chosen proficiencies.</p><p>At 6th level, you can choose two more of your proficiencies (in skills or with thieves’ tools) to gain this benefit.</p>",
-    "value": "expertise",
     "label": "Expertise",
     "levelAvailable": "1, 6",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1613,7 +1513,6 @@
   },
   {
     "desc": "<p>Beginning at 1st level, you know how to strike subtly and exploit a foe’s distraction. Once per turn, you can deal an extra 1d6 damage to one creature you hit with an attack if you have advantage on the attack roll. The attack must use a finesse or a ranged weapon.</p><p>You don’t need advantage on the attack roll if another enemy of the target is within 5 feet of it, that enemy isn’t incapacitated, and you don’t have disadvantage on the attack roll.</p><p>The amount of the extra damage increases as you gain levels in this class, as shown in the Sneak Attack column of the Rogue table.</p>",
-    "value": "sneakAttack",
     "label": "Sneak Attack",
     "levelAvailable": "1",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1697,7 +1596,6 @@
   },
   {
     "desc": "<p>During your rogue training you learned thieves’ cant, a secret mix of dialect, jargon, and code that allows you to hide messages in seemingly normal conversation. Only another creature that knows thieves’ cant understands such messages. It takes four times longer to convey such a message than it does to speak the same idea plainly.</p><p>In addition, you understand a set of secret signs and symbols used to convey short, simple messages, such as whether an area is dangerous or the territory of a thieves’ guild, whether loot is nearby, or whether the people in an area are easy marks or will provide a safe house for thieves on the run.</p>",
-    "value": "thievesCant",
     "label": "Thieves' Cant",
     "levelAvailable": "1",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1706,7 +1604,6 @@
   },
   {
     "desc": "<p>Starting at 2nd level, your quick thinking and agility allow you to move and act quickly. You can take a bonus action on each of your turns in combat. This action can be used only to take the Dash, Disengage, or Hide action.</p>",
-    "value": "cunningAction",
     "label": "Cunning Action",
     "levelAvailable": "2",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1724,7 +1621,6 @@
   {
     "desc": "<p>At 3rd level, you choose an archetype that you emulate in the exercise of your rogue abilities, such as Thief. Your archetype choice grants you features at 3rd level and then again at 9th, 13th, and 17th level.</p>",
     "details": "<p>Rogues have many features in common, including their emphasis on perfecting their skills, their precise and deadly approach to combat, and their increasingly quick reflexes. But different rogues steer those talents in varying directions, embodied by the rogue archetypes. Your choice of archetype is a reflection of your focus—not necessarily an indication of your chosen profession, but a description of your preferred techniques.</p>",
-    "value": "roguishArchetype",
     "label": "Roguish Archetype",
     "levelAvailable": "3",
     "category": "635bbde6-8c7f-4730-bb83-fb3be8d9006a",
@@ -1733,7 +1629,6 @@
   },
   {
     "desc": "<p>When you reach 4th level, and again at 8th, 10th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can’t increase an ability score above 20 using this feature.</p>",
-    "value": "abilityScoreImprovement",
     "label": "Ability Score Improvement",
     "levelAvailable": "4, 8, 12, 16, 19",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1745,7 +1640,6 @@
   },
   {
     "desc": "<p>Starting at 5th level, when an attacker that you can see hits you with an attack, you can use your reaction to halve the attack’s damage against you.</p>",
-    "value": "uncannyDodge",
     "label": "Uncanny Dodge",
     "levelAvailable": "5",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1762,7 +1656,6 @@
   },
   {
     "desc": "<p>Beginning at 7th level, you can nimbly dodge out of the way of certain area effects, such as a red dragon’s fiery breath or an<em> ice storm</em> spell. When you are subjected to an effect that allows you to make a Dexterity saving throw to take only half damage, you instead take no damage if you succeed on the saving throw, and only half damage if you fail.</p>",
-    "value": "evasion",
     "label": "Evasion",
     "levelAvailable": "7",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1771,7 +1664,6 @@
   },
   {
     "desc": "<p>By 11th level, you have refined your chosen skills until they approach perfection. Whenever you make an ability check that lets you add your proficiency bonus, you can treat a d20 roll of 9 or lower as a 10.</p>",
-    "value": "reliableTalent",
     "label": "Reliable Talent",
     "levelAvailable": "11",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1780,7 +1672,6 @@
   },
   {
     "desc": "<p>Starting at 14th level, if you are able to hear, you are aware of the location of any hidden or invisible creature within 10 feet of you.</p>",
-    "value": "blindsense",
     "label": "Blindsense",
     "levelAvailable": "14",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1789,7 +1680,6 @@
   },
   {
     "desc": "<p>By 15th level, you have acquired greater mental strength. You gain proficiency in Wisdom saving throws.</p>",
-    "value": "slipperyMind",
     "label": "Slippery Mind",
     "levelAvailable": "15",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1801,7 +1691,6 @@
   },
   {
     "desc": "<p>At 20th level, you have an uncanny knack for succeeding when you need to. If your attack misses a target within range, you can turn the miss into a hit. Alternatively, if you fail an ability check, you can treat the d20 roll as a 20.</p><p>Once you use this feature, you can’t use it again until you finish a short or long rest.</p>",
-    "value": "strokeOfLuck",
     "label": "Stroke of Luck",
     "levelAvailable": "20",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1819,7 +1708,6 @@
   {
     "desc": "<p>Choose a sorcerous origin, which describes the source of your innate magical power, such as Draconic Bloodline.</p><p>Your choice grants you features when you choose it at 1st level and again at 6th, 14th, and 18th level.</p>",
     "details": "<p>Different sorcerers claim different origins for their innate magic. Although many variations exist, most of these origins fall into two categories: a draconic bloodline and wild magic. Choose the draconic bloodline below or one from another source.</p>",
-    "value": "sorcerousOrigin",
     "label": "Sorcerous Origin",
     "levelAvailable": "1",
     "category": "635bbde6-8c7f-4730-bb83-fb3be8d9006a",
@@ -1827,7 +1715,6 @@
   },
   {
     "desc": "<p>At 2nd level, you tap into a deep wellspring of magic within yourself. This wellspring is represented by sorcery points, which allow you to create a variety of magical effects.</p><h4><strong>Flexible Casting</strong></h4><p>You can use your sorcery points to gain additional spell slots, or sacrifice spell slots to gain additional sorcery points. You learn other ways to use your sorcery points as you reach higher levels.</p><p><strong>Creating Spell Slots.</strong> You can transform unexpended sorcery points into one spell slot as a bonus action on your turn. The Creating Spell Slots table shows the cost of creating a spell slot of a given level. You can create spell slots no higher in level than 5th.</p><p>Any spell slot you create with this feature vanishes when you finish a long rest.</p><h4><strong>Creating Spell Slots</strong></h4><table class=\"RichTextEditor_editor_table__1pu01sk8\" style=\"width: 363px\"><colgroup><col style=\"width: 172px\"><col style=\"width: 191px\"></colgroup><tbody><tr><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"172\" style=\"width: 172px;\"><p><strong>SPELL SLOT LEVEL</strong></p></th><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"191\" style=\"width: 191px;\"><p><strong>SORCERY POINT COST</strong></p></th></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"172\" style=\"width: 172px;\"><p>1st</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"191\" style=\"width: 191px;\"><p>2</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"172\" style=\"width: 172px;\"><p>2nd</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"191\" style=\"width: 191px;\"><p>3</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"172\" style=\"width: 172px;\"><p>3rd</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"191\" style=\"width: 191px;\"><p>5</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"172\" style=\"width: 172px;\"><p>4th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"191\" style=\"width: 191px;\"><p>6</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"172\" style=\"width: 172px;\"><p>5th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"191\" style=\"width: 191px;\"><p>7</p></td></tr></tbody></table><p><strong>Converting a Spell Slot to Sorcery Points.</strong> As a bonus action on your turn, you can expend one spell slot and gain a number of sorcery points equal to the slot’s level.</p>",
-    "value": "fontOfMagic",
     "label": "Font of Magic",
     "levelAvailable": "2",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1844,7 +1731,6 @@
   },
   {
     "desc": "<p>At 3rd level, you gain the ability to twist your spells to suit your needs. You gain two of the following Metamagic options of your choice. You gain another one at 10th and 17th level.</p><p>You can use only one Metamagic option on a spell when you cast it, unless otherwise noted.</p>",
-    "value": "metamagic",
     "label": "Metamagic",
     "levelAvailable": "3, 3, 10, 17",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1863,7 +1749,6 @@
   },
   {
     "desc": "<p>When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can’t increase an ability score above 20 using this feature.</p>",
-    "value": "abilityScoreImprovement",
     "label": "Ability Score Improvement",
     "levelAvailable": "4, 8, 12, 16, 19",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1875,7 +1760,6 @@
   },
   {
     "desc": "<p>At 20th level, you regain 4 expended sorcery points whenever you finish a short rest.</p>",
-    "value": "sorcerousRestoration",
     "label": "Sorcerous Restoration",
     "levelAvailable": "20",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1885,7 +1769,6 @@
   {
     "desc": "<p>At 1st level, you have struck a bargain with an otherworldly being of your choice: the Archfey, the Fiend, or the Great Old One, each of which is detailed at the end of the class description. Your choice grants you features at 1st level and again at 6th, 10th, and 14th level.</p>",
     "details": "<p>The beings that serve as patrons for warlocks are mighty inhabitants of other planes of existence—not gods, but almost godlike in their power. Various patrons give their warlocks access to different powers and invocations, and expect significant favors in return.</p><p>Some patrons collect warlocks, doling out mystic knowledge relatively freely or boasting of their ability to bind mortals to their will. Other patrons bestow their power only grudgingly, and might make a pact with only one warlock. Warlocks who serve the same patron might view each other as allies, siblings, or rivals.</p>",
-    "value": "otherworldlyPatron",
     "label": "Otherworldly Patron",
     "levelAvailable": "1",
     "category": "635bbde6-8c7f-4730-bb83-fb3be8d9006a",
@@ -1893,7 +1776,6 @@
   },
   {
     "desc": "<p>In your study of occult lore, you have unearthed eldritch invocations, fragments of forbidden knowledge that imbue you with an abiding magical ability.</p><p>At 2nd level, you gain two eldritch invocations of your choice. Your invocation options are detailed at the end of the class description. When you gain certain warlock levels, you gain additional invocations of your choice, as shown in the Invocations Known column of the Warlock table.</p><p>Additionally, when you gain a level in this class, you can choose one of the invocations you know and replace it with another invocation that you could learn at that level.</p><p>If an eldritch invocation has prerequisites, you must meet them to learn it. You can learn the invocation at the same time that you meet its prerequisites. A level prerequisite refers to your level in this class.</p>",
-    "value": "eldritchInvocations",
     "label": "Eldritch Invocations",
     "attributes": [
       "87e26eca-3d18-4858-aa3e-c6efc6d15a59",
@@ -1975,7 +1857,6 @@
   },
   {
     "desc": "<p>At 3rd level, your otherworldly patron bestows a gift upon you for your loyal service. You gain one of the following features of your choice.</p>",
-    "value": "pactBoon",
     "label": "Pact Boon",
     "levelAvailable": "3",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -1989,7 +1870,6 @@
   },
   {
     "desc": "<p>When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can’t increase an ability score above 20 using this feature.</p>",
-    "value": "abilityScoreImprovement",
     "label": "Ability Score Improvement",
     "levelAvailable": "4, 8, 12, 16, 19",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2004,7 +1884,6 @@
   },
   {
     "desc": "<p>At 11th level, your patron bestows upon you a magical secret called an arcanum. Choose one 6th-level spell from the warlock spell list as this arcanum.</p><p>You can cast your arcanum spell once without expending a spell slot. You must finish a long rest before you can do so again.</p>",
-    "value": "mysticArcanum6thLevelSpell",
     "label": "Mystic Arcanum (6th Level Spell)",
     "levelAvailable": "11",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2021,7 +1900,6 @@
   },
   {
     "desc": "<p>At 13th level, your patron bestows upon you a magical secret called an arcanum. Choose one 7th-level spell from the warlock spell list as this arcanum.</p><p>You can cast your arcanum spell once without expending a spell slot. You must finish a long rest before you can do so again.</p>",
-    "value": "mysticArcanum7thLevelSpell",
     "label": "Mystic Arcanum (7th Level Spell)",
     "levelAvailable": "13",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2038,7 +1916,6 @@
   },
   {
     "desc": "<p>At 15th level, your patron bestows upon you a magical secret called an arcanum. Choose one 8th-level spell from the warlock spell list as this arcanum.</p><p>You can cast your arcanum spell once without expending a spell slot. You must finish a long rest before you can do so again.</p>",
-    "value": "mysticArcanum8thLevelSpell",
     "label": "Mystic Arcanum (8th Level Spell)",
     "levelAvailable": "15",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2055,7 +1932,6 @@
   },
   {
     "desc": "<p>At 17th level, your patron bestows upon you a magical secret called an arcanum. Choose one 9th-level spell from the warlock spell list as this arcanum.</p><p>You can cast your arcanum spell once without expending a spell slot. You must finish a long rest before you can do so again.</p>",
-    "value": "mysticArcanum9thLevelSpell",
     "label": "Mystic Arcanum (9th Level Spell)",
     "levelAvailable": "17",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2072,7 +1948,6 @@
   },
   {
     "desc": "<p>At 20th level, you can draw on your inner reserve of mystical power while entreating your patron to regain expended spell slots. You can spend 1 minute entreating your patron for aid to regain all your expended spell slots from your Pact Magic feature. Once you regain spell slots with this feature, you must finish a long rest before you can do so again.</p>",
-    "value": "eldritchMaster",
     "label": "Eldritch Master",
     "levelAvailable": "20",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2089,7 +1964,6 @@
   },
   {
     "desc": "<p>You have learned to regain some of your magical energy by studying your spellbook. Once per day when you finish a short rest, you can choose expended spell slots to recover. The spell slots can have a combined level that is equal to or less than half your wizard level (rounded up), and none of the slots can be 6th level or higher.</p><p>For example, if you’re a 4th-level wizard, you can recover up to two levels worth of spell slots. You can recover either a 2nd-level spell slot or two 1st-level spell slots.</p>",
-    "value": "arcaneRecovery",
     "label": "Arcane Recovery",
     "levelAvailable": "1",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2107,7 +1981,6 @@
   {
     "desc": "<p>When you reach 2nd level, you choose an arcane tradition, shaping your practice of magic through one of eight schools, such as Evocation.</p><p>Your choice grants you features at 2nd level and again at 6th, 10th, and 14th level.</p>",
     "details": "<p>The study of wizardry is ancient, stretching back to the earliest mortal discoveries of magic. It is firmly established in the worlds of D&amp;D, with various traditions dedicated to its complex study.</p><p>The most common arcane traditions in the multiverse revolve around the schools of magic. Wizards through the ages have cataloged thousands of spells, grouping them into eight categories called schools, as described in chapter 10. In some places, these traditions are literally schools; a wizard might study at the School of Illusion while another studies across town at the School of Enchantment. In other institutions, the schools are more like academic departments, with rival faculties competing for students and funding. Even wizards who train apprentices in the solitude of their own towers use the division of magic into schools as a learning device, since the spells of each school require mastery of different techniques.</p>",
-    "value": "arcaneTradition",
     "label": "Arcane Tradition",
     "levelAvailable": "2",
     "category": "635bbde6-8c7f-4730-bb83-fb3be8d9006a",
@@ -2116,7 +1989,6 @@
   },
   {
     "desc": "<p>When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can’t increase an ability score above 20 using this feature.</p>",
-    "value": "abilityScoreImprovement",
     "label": "Ability Score Improvement",
     "levelAvailable": "4, 8, 12, 16, 19",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2128,7 +2000,6 @@
   },
   {
     "desc": "<p>At 18th level, you have achieved such mastery over certain spells that you can cast them at will. Choose a 1st-level wizard spell and a 2nd-level wizard spell that are in your spellbook. You can cast those spells at their lowest level without expending a spell slot when you have them prepared. If you want to cast either spell at a higher level, you must expend a spell slot as normal.</p><p>By spending 8 hours in study, you can exchange one or both of the spells you chose for different spells of the same levels.</p>",
-    "value": "spellMastery",
     "label": "Spell Mastery",
     "levelAvailable": "18",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2137,7 +2008,6 @@
   },
   {
     "desc": "<p>When you reach 20th level, you gain mastery over two powerful spells and can cast them with little effort. Choose two 3rd-level wizard spells in your spellbook as your signature spells. You always have these spells prepared, they don’t count against the number of spells you have prepared, and you can cast each of them once at 3rd level without expending a spell slot. When you do so, you can’t do so again until you finish a short or long rest.</p><p>If you want to cast either spell at a higher level, you must expend a spell slot as normal.</p>",
-    "value": "signatureSpells",
     "label": "Signature Spells",
     "levelAvailable": "20",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2157,7 +2027,6 @@
   },
   {
     "desc": "<p>When you join the College of Lore at 3rd level, you gain proficiency with three skills of your choice.</p>",
-    "value": "bonusProficiencies",
     "label": "Bonus Proficiencies",
     "levelAvailable": "3",
     "attributes": [
@@ -2171,7 +2040,6 @@
   },
   {
     "desc": "<p>At 3rd level, you learn how to use your wit to distract, confuse, and otherwise sap the confidence and competence of others. When a creature that you can see within 60 feet of you makes an attack roll, an ability check, or a damage roll, you can use your reaction to expend one of your uses of Bardic Inspiration, rolling a Bardic Inspiration die and subtracting the number rolled from the creature’s roll. You can choose to use this feature after the creature makes its roll, but before the GM determines whether the attack roll or ability check succeeds or fails, or before the creature deals its damage. The creature is immune if it can’t hear you or if it’s immune to being charmed.</p>",
-    "value": "cuttingWords",
     "label": "Cutting Words",
     "levelAvailable": "3",
     "attributes": [
@@ -2192,7 +2060,6 @@
   },
   {
     "desc": "<p>At 6th level, you learn two spells of your choice from any class. A spell you choose must be of a level you can cast, as shown on the Bard table, or a cantrip. The chosen spells count as bard spells for you but don’t count against the number of bard spells you know</p>",
-    "value": "additionalMagicalSecrets",
     "label": "Additional Magical Secrets",
     "levelAvailable": "6",
     "attributes": [
@@ -2206,7 +2073,6 @@
   },
   {
     "desc": "<p>Starting at 14th level, when you make an ability check, you can expend one use of Bardic Inspiration. Roll a Bardic Inspiration die and add the number rolled to your ability check. You can choose to do so after you roll the die for the ability check, but before the GM tells you whether you succeed or fail.</p>",
-    "value": "peerlessSkill",
     "label": "Peerless Skill",
     "levelAvailable": "14",
     "attributes": [
@@ -2221,7 +2087,6 @@
   },
   {
     "desc": "<p>Your domain has a list of spells that you gain at the cleric levels noted in the domain description. Once you gain a domain spell, you always have it prepared, and it doesn’t count against the number of spells you can prepare each day.</p><p></p><table class=\"RichTextEditor_editor_table__1pu01sk8\" style=\"width: 404px\"><colgroup><col style=\"width: 131px\"><col style=\"width: 273px\"></colgroup><tbody><tr><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"131\" style=\"width: 131px;\"><p><strong>Cleric Level</strong></p></th><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"273\" style=\"width: 273px;\"><p><strong>Spells</strong></p></th></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"131\" style=\"width: 131px;\"><p>1st</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"273\" style=\"width: 273px;\"><p><em>bless</em>, <em>cure wounds</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"131\" style=\"width: 131px;\"><p>3rd</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"273\" style=\"width: 273px;\"><p><em>lesser restoration</em>, <em>spiritual weapon</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"131\" style=\"width: 131px;\"><p>5th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"273\" style=\"width: 273px;\"><p><em>beacon of hope</em>, <em>revivify</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"131\" style=\"width: 131px;\"><p>7th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"273\" style=\"width: 273px;\"><p><em>death ward</em>, <em>guardian of faith</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"131\" style=\"width: 131px;\"><p>9th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"273\" style=\"width: 273px;\"><p><em>mass cure wounds</em>, <em>raise dead</em></p></td></tr></tbody></table>",
-    "value": "lifeDomainSpells",
     "label": "Life Domain Spells",
     "levelAvailable": "1",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2235,7 +2100,6 @@
   },
   {
     "desc": "<p>When you choose this domain at 1st level, you gain proficiency with heavy armor.</p>",
-    "value": "bonusProficiency",
     "label": "Bonus Proficiency",
     "levelAvailable": "1",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2246,7 +2110,6 @@
   },
   {
     "desc": "<p>Also starting at 1st level, your healing spells are more effective. Whenever you use a spell of 1st level or higher to restore hit points to a creature, the creature regains additional hit points equal to 2 + the spell’s level.</p>",
-    "value": "discipleOfLife",
     "label": "Disciple of Life",
     "levelAvailable": "1",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2259,7 +2122,6 @@
   },
   {
     "desc": "<p>Starting at 2nd level, you can use your Channel Divinity to heal the badly injured.</p><p>As an action, you present your holy symbol and evoke healing energy that can restore a number of hit points equal to five times your cleric level. Choose any creatures within 30 feet of you, and divide those hit points among them. This feature can restore a creature to no more than half of its hit point maximum. You can’t use this feature on an undead or a construct.</p>",
-    "value": "channelDivinityPreserveLife",
     "label": "Channel Divinity: Preserve Life",
     "levelAvailable": "2",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2290,7 +2152,6 @@
   },
   {
     "desc": "<p>Beginning at 6th level, the healing spells you cast on others heal you as well. When you cast a spell of 1st level or higher that restores hit points to a creature other than you, you regain hit points equal to 2 + the spell’s level.</p>",
-    "value": "blessedHealer",
     "label": "Blessed Healer",
     "levelAvailable": "6",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2298,7 +2159,6 @@
   },
   {
     "desc": "<p>At 8th level, you gain the ability to infuse your weapon strikes with divine energy. Once on each of your turns when you hit a creature with a weapon attack, you can cause the attack to deal an extra 1d8 radiant damage to the target. When you reach 14th level, the extra damage increases to 2d8.</p>",
-    "value": "divineStrike",
     "label": "Divine Strike",
     "levelAvailable": "8",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2314,7 +2174,6 @@
   },
   {
     "desc": "<p>Starting at 17th level, when you would normally roll one or more dice to restore hit points with a spell, you instead use the highest number possible for each die. For example, instead of restoring 2d6 hit points to a creature, you restore 12.</p>",
-    "value": "supremeHealing",
     "label": "Supreme Healing",
     "levelAvailable": "17",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2327,7 +2186,6 @@
   },
   {
     "desc": "<p>When you choose this circle at 2nd level, you learn one additional druid cantrip of your choice. This cantrip doesn’t count against the number of druid cantrips you know.</p>",
-    "value": "bonusCantrip",
     "label": "Bonus Cantrip",
     "levelAvailable": "2",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2349,7 +2207,6 @@
   },
   {
     "desc": "<p>Starting at 2nd level, you can regain some of your magical energy by sitting in meditation and communing with nature. During a short rest, you choose expended spell slots to recover. The spell slots can have a combined level that is equal to or less than half your druid level (rounded up), and none of the slots can be 6th level or higher. You can’t use this feature again until you finish a long rest.</p><p>For example, when you are a 4th-level druid, you can recover up to two levels worth of spell slots. You can recover either a 2nd-level slot or two 1st-level slots.</p>",
-    "value": "naturalRecovery",
     "label": "Natural Recovery",
     "levelAvailable": "2",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2366,7 +2223,6 @@
   },
   {
     "desc": "<p>Your mystical connection to the land infuses you with the ability to cast certain spells. At 3rd, 5th, 7th, and 9th level you gain access to circle spells connected to the land where you became a druid. Choose that land—arctic, coast, desert, forest, grassland, mountain, or swamp—and consult the associated list of spells</p><p>Once you gain access to a circle spell, you always have it prepared, and it doesn’t count against the number of spells you can prepare each day. If you gain access to a spell that doesn’t appear on the druid spell list, the spell is nonetheless a druid spell for you.</p><h5><strong>Arctic</strong></h5><table class=\"RichTextEditor_editor_table__1pu01sk8\" style=\"width: 417px\"><colgroup><col style=\"width: 136px\"><col style=\"width: 281px\"></colgroup><tbody><tr><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"136\" style=\"width: 136px;\"><p><strong>Druid Level</strong></p></th><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"281\" style=\"width: 281px;\"><p><strong>Spells</strong></p></th></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"136\" style=\"width: 136px;\"><p>3rd</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"281\" style=\"width: 281px;\"><p><em>hold person</em>, <em>spike growth</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"136\" style=\"width: 136px;\"><p>5th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"281\" style=\"width: 281px;\"><p><em>sleet storm</em>, <em>slow</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"136\" style=\"width: 136px;\"><p>7th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"281\" style=\"width: 281px;\"><p><em>freedom of movement</em>, <em>ice storm</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"136\" style=\"width: 136px;\"><p>9th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"281\" style=\"width: 281px;\"><p><em>commune with nature</em>, <em>cone of cold</em>&nbsp;</p></td></tr></tbody></table><h5><strong>Coast</strong></h5><table class=\"RichTextEditor_editor_table__1pu01sk8\" style=\"width: 418px\"><colgroup><col style=\"width: 139px\"><col style=\"width: 279px\"></colgroup><tbody><tr><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p><strong>Druid Level</strong></p></th><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"279\" style=\"width: 279px;\"><p><strong>Spells</strong></p></th></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p>3rd</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"279\" style=\"width: 279px;\"><p><em>mirror image</em>, <em>misty step</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p>5th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"279\" style=\"width: 279px;\"><p><em>water breathing</em>, <em>water walk</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p>7th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"279\" style=\"width: 279px;\"><p><em>control water</em>,<em> freedom of movement</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p>9th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"279\" style=\"width: 279px;\"><p><em>conjure elemental</em>, <em>scrying</em></p></td></tr></tbody></table><h5><strong>Desert</strong></h5><table class=\"RichTextEditor_editor_table__1pu01sk8\" style=\"width: 418px\"><colgroup><col style=\"width: 141px\"><col style=\"width: 277px\"></colgroup><tbody><tr><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"141\" style=\"width: 141px;\"><p><strong>Druid Level</strong></p></th><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"277\" style=\"width: 277px;\"><p><strong>Spells</strong></p></th></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"141\" style=\"width: 141px;\"><p>3rd</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"277\" style=\"width: 277px;\"><p><em>blur</em>, <em>silence</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"141\" style=\"width: 141px;\"><p>5th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"277\" style=\"width: 277px;\"><p><em>create food and water</em>, <em>protection from energy</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"141\" style=\"width: 141px;\"><p>7th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"277\" style=\"width: 277px;\"><p><em>blight</em>, <em>hallucinatory terrain</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"141\" style=\"width: 141px;\"><p>9th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"277\" style=\"width: 277px;\"><p><em>insect plague</em>, <em>wall of stone</em></p></td></tr></tbody></table><h5><strong>Forest</strong></h5><table class=\"RichTextEditor_editor_table__1pu01sk8\" style=\"width: 421px\"><colgroup><col style=\"width: 141px\"><col style=\"width: 280px\"></colgroup><tbody><tr><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"141\" style=\"width: 141px;\"><p><strong>Druid Level</strong></p></th><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"280\" style=\"width: 280px;\"><p><strong>Spells</strong></p></th></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"141\" style=\"width: 141px;\"><p>3rd</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"280\" style=\"width: 280px;\"><p><em>barkskin</em>, <em>spider climb</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"141\" style=\"width: 141px;\"><p>5th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"280\" style=\"width: 280px;\"><p><em>call lightning</em>, <em>plant growth</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"141\" style=\"width: 141px;\"><p>7th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"280\" style=\"width: 280px;\"><p><em>divination</em>, <em>freedom of movement</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"141\" style=\"width: 141px;\"><p>9th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"280\" style=\"width: 280px;\"><p><em>commune with nature</em>, <em>tree stride</em></p></td></tr></tbody></table><h5><strong>Grassland</strong></h5><table class=\"RichTextEditor_editor_table__1pu01sk8\" style=\"width: 421px\"><colgroup><col style=\"width: 140px\"><col style=\"width: 281px\"></colgroup><tbody><tr><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"140\" style=\"width: 140px;\"><p><strong>Druid Level</strong></p></th><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"281\" style=\"width: 281px;\"><p><strong>Spells</strong></p></th></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"140\" style=\"width: 140px;\"><p>3rd</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"281\" style=\"width: 281px;\"><p><em>invisibility</em>, <em>pass without trace</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"140\" style=\"width: 140px;\"><p>5th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"281\" style=\"width: 281px;\"><p><em>daylight</em>, <em>haste</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"140\" style=\"width: 140px;\"><p>7th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"281\" style=\"width: 281px;\"><p><em>divination</em>, <em>freedom of movement</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"140\" style=\"width: 140px;\"><p>9th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"281\" style=\"width: 281px;\"><p><em>dream</em>, <em>insect plague</em></p></td></tr></tbody></table><h5><strong>Mountain</strong></h5><table class=\"RichTextEditor_editor_table__1pu01sk8\" style=\"width: 421px\"><colgroup><col style=\"width: 142px\"><col style=\"width: 279px\"></colgroup><tbody><tr><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"142\" style=\"width: 142px;\"><p><strong>Druid Level</strong></p></th><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"279\" style=\"width: 279px;\"><p><strong>Spells</strong></p></th></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"142\" style=\"width: 142px;\"><p>3rd</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"279\" style=\"width: 279px;\"><p><em>spider climb</em>, <em>spike growth</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"142\" style=\"width: 142px;\"><p>5th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"279\" style=\"width: 279px;\"><p><em>lightning bolt</em>, <em>meld into stone</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"142\" style=\"width: 142px;\"><p>7th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"279\" style=\"width: 279px;\"><p><em>stone shape</em>, <em>stoneskin</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"142\" style=\"width: 142px;\"><p>9th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"279\" style=\"width: 279px;\"><p><em>passwall</em>, <em>wall of stone</em></p></td></tr></tbody></table><h5><strong>Swamp</strong></h5><table class=\"RichTextEditor_editor_table__1pu01sk8\" style=\"width: 423px\"><colgroup><col style=\"width: 143px\"><col style=\"width: 280px\"></colgroup><tbody><tr><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"143\" style=\"width: 143px;\"><p><strong>Druid Level</strong></p></th><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"280\" style=\"width: 280px;\"><p><strong>Spells</strong></p></th></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"143\" style=\"width: 143px;\"><p>3rd</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"280\" style=\"width: 280px;\"><p><em>darkness</em>, <em>acid arrow</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"143\" style=\"width: 143px;\"><p>5th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"280\" style=\"width: 280px;\"><p><em>water walk</em>, <em>stinking cloud</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"143\" style=\"width: 143px;\"><p>7th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"280\" style=\"width: 280px;\"><p><em>freedom of movement</em>, <em>locate creature</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"143\" style=\"width: 143px;\"><p>9th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"280\" style=\"width: 280px;\"><p><em>insect plague</em>, <em>scrying</em></p></td></tr></tbody></table>",
-    "value": "circleSpells",
     "label": "Circle Spells",
     "levelAvailable": "3, 5, 7, 9",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2388,7 +2244,6 @@
   },
   {
     "desc": "<p>Starting at 6th level, moving through nonmagical difficult terrain costs you no extra movement. You can also pass through nonmagical plants without being slowed by them and without taking damage from them if they have thorns, spines, or a similar hazard.</p><p>In addition, you have advantage on saving throws against plants that are magically created or manipulated to impede movement, such those created by the <em>entangle</em> spell.</p>",
-    "value": "landsStride",
     "label": "Land's Stride",
     "levelAvailable": "6",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2397,7 +2252,6 @@
   },
   {
     "desc": "<p>When you reach 10th level, you can’t be charmed or frightened by elementals or fey, and you are immune to poison and disease.</p>",
-    "value": "naturesWard",
     "label": "Nature's Ward",
     "levelAvailable": "10",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2409,7 +2263,6 @@
   },
   {
     "desc": "<p>When you reach 14th level, creatures of the natural world sense your connection to nature and become hesitant to attack you. When a beast or plant creature attacks you, that creature must make a Wisdom saving throw against your druid spell save DC. On a failed save, the creature must choose a different target, or the attack automatically misses. On a successful save, the creature is immune to this effect for 24 hours.</p><p>The creature is aware of this effect before it makes its attack against you.</p>",
-    "value": "naturesSanctuary",
     "label": "Nature's Sanctuary",
     "levelAvailable": "14",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2418,7 +2271,6 @@
   },
   {
     "desc": "<p>Beginning when you choose this archetype at 3rd level, your weapon attacks score a critical hit on a roll of 19 or 20.</p>",
-    "value": "improvedCritical",
     "label": "Improved Critical",
     "levelAvailable": "3",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2426,7 +2278,6 @@
   },
   {
     "desc": "<p>Starting at 7th level, you can add half your proficiency bonus (round up) to any Strength, Dexterity, or Constitution check you make that doesn’t already use your proficiency bonus.</p><p>In addition, when you make a running long jump, the distance you can cover increases by a number of feet equal to your Strength modifier.</p>",
-    "value": "remarkableAthlete",
     "label": "Remarkable Athlete",
     "levelAvailable": "7",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2434,7 +2285,6 @@
   },
   {
     "desc": "<p>Starting at 15th level, your weapon attacks score a critical hit on a roll of 18–20.</p>",
-    "value": "superiorCritical",
     "label": "Superior Critical",
     "levelAvailable": "15",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2442,7 +2292,6 @@
   },
   {
     "desc": "<p>At 18th level, you attain the pinnacle of resilience in battle. At the start of each of your turns, you regain hit points equal to 5 + your Constitution modifier if you have no more than half of your hit points left. You don’t gain this benefit if you have 0 hit points.</p>",
-    "value": "survivor",
     "label": "Survivor",
     "levelAvailable": "18",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2450,7 +2299,6 @@
   },
   {
     "desc": "<p>You adopt a particular style of fighting as your specialty. Choose one of the following options. You can’t take a Fighting Style option more than once, even if you later get to choose again.</p>",
-    "value": "additionalFightingStyle",
     "label": "Additional Fighting Style",
     "levelAvailable": "1",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2465,7 +2313,6 @@
   },
   {
     "desc": "<p>Starting when you choose this tradition at 3rd level, you can manipulate your enemy’s ki when you harness your own. Whenever you hit a creature with one of the attacks granted by your Flurry of Blows, you can impose one of the following effects on that target:</p><ul><li><p>It must succeed on a Dexterity saving throw or be knocked prone.</p></li><li><p>It must make a Strength saving throw. If it fails, you can push it up to 15 feet away from you.</p></li><li><p>It can’t take reactions until the end of your next turn.</p></li></ul>",
-    "value": "openHandTechnique",
     "label": "Open Hand Technique",
     "levelAvailable": "3",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2473,7 +2320,6 @@
   },
   {
     "desc": "<p>At 6th level, you gain the ability to heal yourself. As an action, you can regain hit points equal to three times your monk level. You must finish a long rest before you can use this feature again.</p>",
-    "value": "wholenessBody",
     "label": "Wholeness Body",
     "levelAvailable": "6",
     "attributes": [
@@ -2564,7 +2410,6 @@
   },
   {
     "desc": "<p>Beginning at 11th level, you can enter a special meditation that surrounds you with an aura of peace. At the end of a long rest, you gain the effect of a <em>sanctuary</em> spell that lasts until the start of your next long rest (the spell can end early as normal). The saving throw DC for the spell equals 8 + your Wisdom modifier + your proficiency bonus.</p>",
-    "value": "tranquility",
     "label": "Tranquility",
     "levelAvailable": "11",
     "saveAbility": {
@@ -2580,7 +2425,6 @@
   },
   {
     "desc": "<p>At 17th level, you gain the ability to set up lethal vibrations in someone’s body. When you hit a creature with an unarmed strike, you can spend 3 ki points to start these imperceptible vibrations, which last for a number of days equal to your monk level. The vibrations are harmless unless you use your action to end them. To do so, you and the target must be on the same plane of existence. When you use this action, the creature must make a Constitution saving throw. If it fails, it is reduced to 0 hit points. If it succeeds, it takes 10d10 necrotic damage.</p><p>You can have only one creature under the effect of this feature at a time. You can choose to end the vibrations harmlessly without using an action.</p>",
-    "value": "quiveringPalm",
     "label": "Quivering Palm",
     "levelAvailable": "17",
     "attributes": [
@@ -2618,7 +2462,6 @@
   },
   {
     "desc": "<p>As an action, you can imbue one weapon that you are holding with positive energy, using your Channel Divinity. For 1 minute, you add your Charisma modifier to attack rolls made with that weapon (with a minimum bonus of +1). The weapon also emits bright light in a 20-foot radius and dim light 20 feet beyond that. If the weapon is not already magical, it becomes magical for the duration.</p><p>You can end this effect on your turn as part of any other action. If you are no longer holding or carrying this weapon, or if you fall unconscious, this effect ends.</p>",
-    "value": "channelDivinitySacredWeapon",
     "label": "Channel Divinity: Sacred Weapon",
     "levelAvailable": "3",
     "attributes": [
@@ -2639,7 +2482,6 @@
   },
   {
     "desc": "<p>As an action, you present your holy symbol and speak a prayer censuring fiends and undead, using your Channel Divinity. Each fiend or undead that can see or hear you within 30 feet of you must make a Wisdom saving throw. If the creature fails its saving throw, it is turned for 1 minute or until it takes damage.</p><p>A turned creature must spend its turns trying to move as far away from you as it can, and it can’t willingly move to a space within 30 feet of you. It also can’t take reactions. For its action, it can use only the Dash action or try to escape from an effect that prevents it from moving. If there’s nowhere to move, the creature can use the Dodge action.</p>",
-    "value": "channelDivinityTurnTheUnholy",
     "label": "Channel Divinity: Turn the Unholy",
     "levelAvailable": "3",
     "attributes": [
@@ -2659,7 +2501,6 @@
   },
   {
     "desc": "<p>You gain oath spells at the paladin levels listed.<br></p><table class=\"RichTextEditor_editor_table__1pu01sk8\" style=\"width: 416px\"><colgroup><col style=\"width: 139px\"><col style=\"width: 277px\"></colgroup><tbody><tr><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p><strong>Paladin Level</strong></p></th><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"277\" style=\"width: 277px;\"><p><strong>Spells</strong></p></th></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p>3rd</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"277\" style=\"width: 277px;\"><p><em>protection from evil and good</em>, <em>sanctuary</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p>5th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"277\" style=\"width: 277px;\"><p><em>lesser restoration</em>, <em>zone of truth</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p>9th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"277\" style=\"width: 277px;\"><p><em>beacon of hope</em>, <em>dispel magic</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p>13th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"277\" style=\"width: 277px;\"><p><em>freedom of movement</em>, <em>guardian of faith</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p>17th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"277\" style=\"width: 277px;\"><p><em>commune</em>, <em>flame strike</em></p></td></tr></tbody></table>",
-    "value": "oathOfDevotionSpells",
     "label": "Oath of Devotion Spells",
     "levelAvailable": "3, 5, 9, 13, 17",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2670,7 +2511,6 @@
   },
   {
     "desc": "<p>Starting at 7th level, you and friendly creatures within 10 feet of you can’t be charmed while you are conscious.</p><p>At 18th level, the range of this aura increases to 30 feet.</p>",
-    "value": "auraOfDevotion",
     "label": "Aura of Devotion",
     "levelAvailable": "7",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2681,7 +2521,6 @@
   },
   {
     "desc": "<p>Beginning at 15th level, you are always under the effects of a <em>protection from evil and good</em> spell.</p>",
-    "value": "purityOfSpirit",
     "label": "Purity of Spirit",
     "levelAvailable": "15",
     "charges": {
@@ -2692,7 +2531,6 @@
   },
   {
     "desc": "<p>At 20th level, as an action, you can emanate an aura of sunlight. For 1 minute, bright light shines from you in a 30-foot radius, and dim light shines 30 feet beyond that.</p><p>Whenever an enemy creature starts its turn in the bright light, the creature takes 10 radiant damage.</p><p>In addition, for the duration, you have advantage on saving throws against spells cast by fiends or undead.</p><p>Once you use this feature, you can’t use it again until you finish a long rest.</p>",
-    "value": "holyNimbus",
     "label": "Holy Nimbus",
     "levelAvailable": "20",
     "attributes": [
@@ -2715,7 +2553,6 @@
   },
   {
     "desc": "<p>At 3rd level, you gain one of the following features of your choice.</p>",
-    "value": "huntersPrey",
     "label": "Hunter's Prey",
     "levelAvailable": "3",
     "targets": 1,
@@ -2729,7 +2566,6 @@
   },
   {
     "desc": "<p>At 7th level, you gain one of the following features of your choice.</p>",
-    "value": "defensiveTactics",
     "label": "Defensive Tactics",
     "levelAvailable": "7",
     "targets": 1,
@@ -2743,7 +2579,6 @@
   },
   {
     "desc": "<p>At 11th level, you gain one of the following features of your choice.</p>",
-    "value": "multiattack",
     "label": "Multiattack",
     "levelAvailable": "11",
     "targets": 1,
@@ -2756,7 +2591,6 @@
   },
   {
     "desc": "<p>At 15th level, you gain one of the following features of your choice.</p>",
-    "value": "superiorHuntersDefense",
     "label": "Superior Hunter's Defense",
     "levelAvailable": "15",
     "targets": 1,
@@ -2770,7 +2604,6 @@
   },
   {
     "desc": "<p>Starting at 3rd level, you can use the bonus action granted by your Cunning Action to make a Dexterity (Sleight of Hand) check, use your thieves’ tools to disarm a trap or open a lock, or take the Use an Object action.</p>",
-    "value": "fastHands",
     "label": "Fast Hands",
     "levelAvailable": "3",
     "attributes": [
@@ -2786,7 +2619,6 @@
   },
   {
     "desc": "<p>When you choose this archetype at 3rd level, you gain the ability to climb faster than normal; climbing no longer costs you extra movement.</p><p>In addition, when you make a running jump, the distance you cover increases by a number of feet equal to your Dexterity modifier.</p>",
-    "value": "secondStoryWork",
     "label": "Second-Story Work",
     "levelAvailable": "3",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2794,7 +2626,6 @@
   },
   {
     "desc": "<p>Starting at 9th level, you have advantage on a Dexterity (Stealth) check if you move no more than half your speed on the same turn.</p>",
-    "value": "supremeSneak",
     "label": "Supreme Sneak",
     "levelAvailable": "9",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2802,7 +2633,6 @@
   },
   {
     "desc": "<p>By 13th level, you have learned enough about the workings of magic that you can improvise the use of items even when they are not intended for you. You ignore all class, race, and level requirements on the use of magic items.</p>",
-    "value": "useMagicDevice",
     "label": "Use Magic Device",
     "levelAvailable": "13",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2810,7 +2640,6 @@
   },
   {
     "desc": "<p>When you reach 17th level, you have become adept at laying ambushes and quickly escaping danger. You can take two turns during the first round of any combat. You take your first turn at your normal initiative and your second turn at your initiative minus 10. You can’t use this feature when you are surprised.</p>",
-    "value": "thiefsReflexes",
     "label": "Thief's Reflexes",
     "levelAvailable": "17",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2818,7 +2647,6 @@
   },
   {
     "desc": "<p>At 1st level, you choose one type of dragon as your ancestor. The damage type associated with each dragon is used by features you gain later.</p><h5><strong>Draconic Ancestry</strong></h5><table class=\"RichTextEditor_editor_table__1pu01sk8\" style=\"width: 295px\"><colgroup><col style=\"width: 140px\"><col style=\"width: 155px\"></colgroup><tbody><tr><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"140\" style=\"width: 140px;\"><p><strong>Dragon</strong></p></th><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"155\" style=\"width: 155px;\"><p><strong>Damage Type</strong></p></th></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"140\" style=\"width: 140px;\"><p>Black</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"155\" style=\"width: 155px;\"><p>Acid</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"140\" style=\"width: 140px;\"><p>Blue</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"155\" style=\"width: 155px;\"><p>Lightning</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"140\" style=\"width: 140px;\"><p>Brass</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"155\" style=\"width: 155px;\"><p>Fire</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"140\" style=\"width: 140px;\"><p>Bronze</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"155\" style=\"width: 155px;\"><p>Lightning</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"140\" style=\"width: 140px;\"><p>Copper</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"155\" style=\"width: 155px;\"><p>Acid</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"140\" style=\"width: 140px;\"><p>Gold</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"155\" style=\"width: 155px;\"><p>Fire</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"140\" style=\"width: 140px;\"><p>Green</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"155\" style=\"width: 155px;\"><p>Poison</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"140\" style=\"width: 140px;\"><p>Red</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"155\" style=\"width: 155px;\"><p>Fire</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"140\" style=\"width: 140px;\"><p>Silver</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"155\" style=\"width: 155px;\"><p>Cold</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"140\" style=\"width: 140px;\"><p>White</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"155\" style=\"width: 155px;\"><p>Cold</p></td></tr></tbody></table><p>You can speak, read, and write Draconic. Additionally, whenever you make a Charisma check when interacting with dragons, your proficiency bonus is doubled if it applies to the check.</p>",
-    "value": "dragonAncestor",
     "label": "Dragon Ancestor",
     "levelAvailable": "1",
     "ancestry": [
@@ -2827,7 +2655,6 @@
           "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
         ],
         "origin": {
-          "value": "dragonborn",
           "label": "Dragonborn"
         },
         "selectionCount": 1,
@@ -2845,7 +2672,6 @@
   },
   {
     "desc": "<p>Starting at 6th level, when you cast a spell that deals damage of the type associated with your draconic ancestry, you can add your Charisma modifier to one damage roll of that spell. At the same time, you can spend 1 sorcery point to gain resistance to that damage type for 1 hour.</p>",
-    "value": "elementalAffinity",
     "label": "Elemental Affinity",
     "levelAvailable": "6",
     "attributes": [
@@ -2861,7 +2687,6 @@
   },
   {
     "desc": "<p>At 14th level, you gain the ability to sprout a pair of dragon wings from your back, gaining a flying speed equal to your current speed. You can create these wings as a bonus action on your turn. They last until you dismiss them as a bonus action on your turn.</p><p>You can’t manifest your wings while wearing armor unless the armor is made to accommodate them, and clothing not made to accommodate your wings might be destroyed when you manifest them.</p>",
-    "value": "dragonWings",
     "label": "Dragon Wings",
     "levelAvailable": "14",
     "attributes": [
@@ -2881,7 +2706,6 @@
   },
   {
     "desc": "<p>Beginning at 18th level, you can channel the dread presence of your dragon ancestor, causing those around you to become awestruck or frightened. As an action, you can spend 5 sorcery points to draw on this power and exude an aura of awe or fear (your choice) to a distance of 60 feet. For 1 minute or until you lose your concentration (as if you were casting a concentration spell), each hostile creature that starts its turn in this aura must succeed on a Wisdom saving throw or be charmed (if you chose awe) or frightened (if you chose fear) until the aura ends. A creature that succeeds on this saving throw is immune to your aura for 24 hours.</p>",
-    "value": "draconicPresence",
     "label": "Draconic Presence",
     "levelAvailable": "18",
     "attributes": [
@@ -2907,7 +2731,6 @@
   },
   {
     "desc": "<p>Beginning when you select this school at 2nd level, the gold and time you must spend to copy an evocation spell into your spellbook is halved.</p>",
-    "value": "evocationSavant",
     "label": "Evocation Savant",
     "levelAvailable": "2",
     "targets": 1,
@@ -2916,7 +2739,6 @@
   },
   {
     "desc": "<p>Beginning at 2nd level, you can create pockets of relative safety within the effects of your evocation spells. When you cast an evocation spell that affects other creatures that you can see, you can choose a number of them equal to 1 + the spell’s level. The chosen creatures automatically succeed on their saving throws against the spell, and they take no damage if they would normally take half damage on a successful save.</p>",
-    "value": "sculptSpells",
     "label": "Sculpt Spells",
     "levelAvailable": "2",
     "targets": 1,
@@ -2925,7 +2747,6 @@
   },
   {
     "desc": "<p>Starting at 6th level, your damaging cantrips affect even creatures that avoid the brunt of the effect. When a creature succeeds on a saving throw against your cantrip, the creature takes half the cantrip’s damage (if any) but suffers no additional effect from the cantrip.</p>",
-    "value": "potentCantrip",
     "label": "Potent Cantrip",
     "levelAvailable": "6",
     "targets": 1,
@@ -2934,7 +2755,6 @@
   },
   {
     "desc": "<p>Beginning at 10th level, you can add your Intelligence modifier to one damage roll of any wizard evocation spell you cast.</p>",
-    "value": "empoweredEvocation",
     "label": "Empowered Evocation",
     "levelAvailable": "10",
     "targets": 1,
@@ -2943,7 +2763,6 @@
   },
   {
     "desc": "<p>Starting at 14th level, you can increase the power of your simpler spells. When you cast a wizard spell of 1st through 5th level that deals damage, you can deal maximum damage with that spell.</p><p>The first time you do so, you suffer no adverse effect. If you use this feature again before you finish a long rest, you take 2d12 necrotic damage for each level of the spell, immediately after you cast it. Each time you use this feature again before finishing a long rest, the necrotic damage per spell level increases by 1d12. This damage ignores resistance and immunity.</p>",
-    "value": "overchannel",
     "label": "Overchannel",
     "levelAvailable": "14",
     "targets": 1,
@@ -2952,7 +2771,6 @@
   },
   {
     "desc": "<p>Starting when you choose this path at 3rd level, you can go into a frenzy when you rage. If you do so, for the duration of your rage you can make a single melee weapon attack as a bonus action on each of your turns after this one. When your rage ends, you suffer one level of exhaustion (as described in appendix PH-A).</p>",
-    "value": "frenzy",
     "label": "Frenzy",
     "levelAvailable": "3",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2960,7 +2778,6 @@
   },
   {
     "desc": "<p>Beginning at 6th level, you can’t be charmed or frightened while raging. If you are charmed or frightened when you enter your rage, the effect is suspended for the duration of the rage.</p>",
-    "value": "mindlessRage",
     "label": "Mindless Rage",
     "levelAvailable": "6",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -2968,7 +2785,6 @@
   },
   {
     "desc": "<p>Intimidating Presence Beginning at 10th level, you can use your action to frighten someone with your menacing presence. When you do so, choose one creature that you can see within 30 feet of you. If the creature can see or hear you, it must succeed on a Wisdom saving throw (DC equal to 8 + your proficiency bonus + your Charisma modifier) or be frightened of you until the end of your next turn. On subsequent turns, you can use your action to extend the duration of this effect on the frightened creature until the end of your next turn. This effect ends if the creature ends its turn out of line of sight or more than 60 feet away from you.</p><p>If the creature succeeds on its saving throw, you can’t use this feature on that creature again for 24 hours.</p>",
-    "value": "intimidatingPresence",
     "label": "Intimidating Presence",
     "levelAvailable": "10",
     "attributes": [
@@ -2994,7 +2810,6 @@
   },
   {
     "desc": "<p>Starting at 14th level, when you take damage from a creature that is within 5 feet of you, you can use your reaction to make a melee weapon attack against that creature.</p>",
-    "value": "retaliation",
     "label": "Retaliation",
     "levelAvailable": "14",
     "attributes": [
@@ -3010,7 +2825,6 @@
   },
   {
     "desc": "<p>The Fiend lets you choose from an expanded list of spells when you learn a warlock spell. The following spells are added to the warlock spell list for you.</p><table class=\"RichTextEditor_editor_table__1pu01sk8\" style=\"width: 405px\"><colgroup><col style=\"width: 136px\"><col style=\"width: 269px\"></colgroup><tbody><tr><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"136\" style=\"width: 136px;\"><p><strong>Spell Level</strong></p></th><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"269\" style=\"width: 269px;\"><p><strong>Spells</strong></p></th></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"136\" style=\"width: 136px;\"><p>1st</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"269\" style=\"width: 269px;\"><p><em>burning hands</em>, <em>command</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"136\" style=\"width: 136px;\"><p>2nd</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"269\" style=\"width: 269px;\"><p><em>blindness/deafness</em>, <em>scorching ray</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"136\" style=\"width: 136px;\"><p>3rd</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"269\" style=\"width: 269px;\"><p><em>fireball</em>, <em>stinking cloud</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"136\" style=\"width: 136px;\"><p>4th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"269\" style=\"width: 269px;\"><p><em>fire shield</em>, <em>wall of fire</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"136\" style=\"width: 136px;\"><p>5th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"269\" style=\"width: 269px;\"><p><em>flame strike</em>, <em>hallow</em></p></td></tr></tbody></table>",
-    "value": "expandedSpellList",
     "label": "Expanded Spell List",
     "levelAvailable": "1",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -3022,7 +2836,6 @@
   },
   {
     "desc": "<p>Starting at 1st level, when you reduce a hostile creature to 0 hit points, you gain temporary hit points equal to your Charisma modifier + your warlock level (minimum of 1).</p>",
-    "value": "darkOnesBlessing",
     "label": "Dark One's Blessing",
     "levelAvailable": "1",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -3031,7 +2844,6 @@
   },
   {
     "desc": "<p>Starting at 6th level, you can call on your patron to alter fate in your favor. When you make an ability check or a saving throw, you can use this feature to add a d10 to your roll. You can do so after seeing the initial roll but before any of the roll’s effects occur.</p><p>Once you use this feature, you can’t use it again until you finish a short or long rest.</p>",
-    "value": "darkOnesOwnLuck",
     "label": "Dark One's Own Luck",
     "levelAvailable": "6",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -3048,7 +2860,6 @@
   },
   {
     "desc": "<p>Starting at 10th level, you can choose one damage type when you finish a short or long rest. You gain resistance to that damage type until you choose a different one with this feature. Damage from magical weapons or silver weapons ignores this resistance.</p>",
-    "value": "fiendishResilience",
     "label": "Fiendish Resilience",
     "levelAvailable": "10",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -3065,7 +2876,6 @@
   },
   {
     "desc": "<p>Starting at 14th level, when you hit a creature with an attack, you can use this feature to instantly transport the target through the lower planes. The creature disappears and hurtles through a nightmare landscape.</p><p>At the end of your next turn, the target returns to the space it previously occupied, or the nearest unoccupied space. If the target is not a fiend, it takes 10d10 psychic damage as it reels from its horrific experience.</p><p>Once you use this feature, you can’t use it again until you finish a long rest.</p>",
-    "value": "hurlThroughHell",
     "label": "Hurl Through Hell",
     "levelAvailable": "14",
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
@@ -3347,7 +3157,6 @@
   },
   {
     "desc": "<p>Stabilize a creature that has 0 hit points, without needing to make a Wisdom (Medicine) check.</p>",
-    "value": "stabilize",
     "label": "Stabilize",
     "actions": {
       "primary": {
@@ -3366,7 +3175,6 @@
     "id": "c548dba2-df6d-4bc7-b198-091a834d16bf"
   },
   {
-    "value": "applyPoison",
     "label": "Apply Poison",
     "actions": {
       "primary": {
@@ -3397,7 +3205,6 @@
   },
   {
     "desc": "<p>Your Strength score increases by 2, and your Charisma score increases by 1.</p>",
-    "value": "abilityScoreIncrease",
     "label": "Ability Score Increase",
     "attributes": [
       "736ee797-e8a8-481a-83c0-ec166a027614"
@@ -3411,7 +3218,6 @@
   },
   {
     "desc": "<p>You can speak, read, and write Common and Draconic. Draconic is thought to be one of the oldest languages and is often used in the study of magic. The language sounds harsh to most other creatures and includes numerous hard consonants and sibilants.</p>",
-    "value": "languages",
     "label": "Languages",
     "attributes": [
       "736ee797-e8a8-481a-83c0-ec166a027614"
@@ -3423,7 +3229,6 @@
     "id": "ae2bf895-80a6-4a2f-a1b7-c8287b2a984f"
   },
   {
-    "value": "breathWeapon",
     "label": "Breath Weapon",
     "id": "e52b7922-605e-4022-8548-a4d9aff9a77d",
     "desc": "<p>You can use your action to exhale destructive energy. Your draconic ancestry determines the size, shape, and damage type of the exhalation.</p><p>When you use your breath weapon, each creature in the area of the exhalation must make a saving throw, the type of which is determined by your draconic ancestry. The DC for this saving throw equals 8 + your Constitution modifier + your proficiency bonus. A creature takes 2d6 damage on a failed save, and half as much damage on a successful one. The damage increases to 3d6 at 6th level, 4d6 at 11th level, and 5d6 at 16th level.</p><p>After you use your breath weapon, you can’t use it again until you complete a short or long rest.</p>",
@@ -3490,7 +3295,6 @@
     }
   },
   {
-    "value": "damageResistance",
     "label": "Damage Resistance",
     "id": "e1d13c20-5698-4dfd-a061-8904a8bfd775",
     "desc": "<p>You have resistance to the damage type associated with your draconic ancestry.</p>",
@@ -3499,7 +3303,6 @@
     ]
   },
   {
-    "value": "breathWeapon",
     "label": "Breath Weapon",
     "id": "f4a30085-8acd-43a5-930f-dcef3562cb78",
     "desc": "<p>You can use your action to exhale destructive energy. Your draconic ancestry determines the size, shape, and damage type of the exhalation.</p><p>When you use your breath weapon, each creature in the area of the exhalation must make a saving throw, the type of which is determined by your draconic ancestry. The DC for this saving throw equals 8 + your Constitution modifier + your proficiency bonus. A creature takes 2d6 damage on a failed save, and half as much damage on a successful one. The damage increases to 3d6 at 6th level, 4d6 at 11th level, and 5d6 at 16th level.</p><p>After you use your breath weapon, you can’t use it again until you complete a short or long rest.</p>",
@@ -3566,7 +3369,6 @@
     }
   },
   {
-    "value": "damageResistance",
     "label": "Damage Resistance",
     "id": "20a0a123-e5be-4d89-8c8f-96dc791d2a84",
     "desc": "<p>You have resistance to the damage type associated with your draconic ancestry.</p>",
@@ -3575,7 +3377,6 @@
     ]
   },
   {
-    "value": "breathWeapon",
     "label": "Breath Weapon",
     "id": "1a4c506a-d78b-41ac-8201-d7767cc848a1",
     "desc": "<p>You can use your action to exhale destructive energy. Your draconic ancestry determines the size, shape, and damage type of the exhalation.</p><p>When you use your breath weapon, each creature in the area of the exhalation must make a saving throw, the type of which is determined by your draconic ancestry. The DC for this saving throw equals 8 + your Constitution modifier + your proficiency bonus. A creature takes 2d6 damage on a failed save, and half as much damage on a successful one. The damage increases to 3d6 at 6th level, 4d6 at 11th level, and 5d6 at 16th level.</p><p>After you use your breath weapon, you can’t use it again until you complete a short or long rest.</p>",
@@ -3642,7 +3443,6 @@
     }
   },
   {
-    "value": "damageResistance",
     "label": "Damage Resistance",
     "id": "fa032ba4-84ca-4e36-b3d6-420dbaa5ec9e",
     "desc": "<p>You have resistance to the damage type associated with your draconic ancestry.</p>",
@@ -3651,7 +3451,6 @@
     ]
   },
   {
-    "value": "breathWeapon",
     "label": "Breath Weapon",
     "id": "0ecea713-f668-4cc2-be5a-d1fb8baa2336",
     "desc": "<p>You can use your action to exhale destructive energy. Your draconic ancestry determines the size, shape, and damage type of the exhalation.</p><p>When you use your breath weapon, each creature in the area of the exhalation must make a saving throw, the type of which is determined by your draconic ancestry. The DC for this saving throw equals 8 + your Constitution modifier + your proficiency bonus. A creature takes 2d6 damage on a failed save, and half as much damage on a successful one. The damage increases to 3d6 at 6th level, 4d6 at 11th level, and 5d6 at 16th level.</p><p>After you use your breath weapon, you can’t use it again until you complete a short or long rest.</p>",
@@ -3718,7 +3517,6 @@
     }
   },
   {
-    "value": "damageResistance",
     "label": "Damage Resistance",
     "id": "9ccc4804-2232-4f53-bf61-74466abb168b",
     "desc": "<p>You have resistance to the damage type associated with your draconic ancestry.</p>",
@@ -3727,7 +3525,6 @@
     ]
   },
   {
-    "value": "breathWeapon",
     "label": "Breath Weapon",
     "id": "67aba724-2311-4418-99ee-b24462f11cae",
     "desc": "<p>You can use your action to exhale destructive energy. Your draconic ancestry determines the size, shape, and damage type of the exhalation.</p><p>When you use your breath weapon, each creature in the area of the exhalation must make a saving throw, the type of which is determined by your draconic ancestry. The DC for this saving throw equals 8 + your Constitution modifier + your proficiency bonus. A creature takes 2d6 damage on a failed save, and half as much damage on a successful one. The damage increases to 3d6 at 6th level, 4d6 at 11th level, and 5d6 at 16th level.</p><p>After you use your breath weapon, you can’t use it again until you complete a short or long rest.</p>",
@@ -3794,7 +3591,6 @@
     }
   },
   {
-    "value": "damageResistance",
     "label": "Damage Resistance",
     "id": "a6f1e579-b775-4e85-aaae-af09aeb9c15b",
     "desc": "<p>You have resistance to the damage type associated with your draconic ancestry.</p>",
@@ -3803,7 +3599,6 @@
     ]
   },
   {
-    "value": "breathWeapon",
     "label": "Breath Weapon",
     "id": "677e84f0-7b9a-4e3d-b2c2-2f59cc6497c9",
     "desc": "<p>You can use your action to exhale destructive energy. Your draconic ancestry determines the size, shape, and damage type of the exhalation.</p><p>When you use your breath weapon, each creature in the area of the exhalation must make a saving throw, the type of which is determined by your draconic ancestry. The DC for this saving throw equals 8 + your Constitution modifier + your proficiency bonus. A creature takes 2d6 damage on a failed save, and half as much damage on a successful one. The damage increases to 3d6 at 6th level, 4d6 at 11th level, and 5d6 at 16th level.</p><p>After you use your breath weapon, you can’t use it again until you complete a short or long rest.</p>",
@@ -3868,7 +3663,6 @@
     }
   },
   {
-    "value": "damageResistance",
     "label": "Damage Resistance",
     "id": "1b309ebb-b676-4826-85a4-ccfc13c3de22",
     "desc": "<p>You have resistance to the damage type associated with your draconic ancestry.</p>",
@@ -3877,7 +3671,6 @@
     ]
   },
   {
-    "value": "breathWeapon",
     "label": "Breath Weapon",
     "id": "deaf5841-fbb8-49d6-ab36-67dba1537df8",
     "desc": "<p>You can use your action to exhale destructive energy. Your draconic ancestry determines the size, shape, and damage type of the exhalation.</p><p>When you use your breath weapon, each creature in the area of the exhalation must make a saving throw, the type of which is determined by your draconic ancestry. The DC for this saving throw equals 8 + your Constitution modifier + your proficiency bonus. A creature takes 2d6 damage on a failed save, and half as much damage on a successful one. The damage increases to 3d6 at 6th level, 4d6 at 11th level, and 5d6 at 16th level.</p><p>After you use your breath weapon, you can’t use it again until you complete a short or long rest.</p>",
@@ -3942,7 +3735,6 @@
     }
   },
   {
-    "value": "damageResistance",
     "label": "Damage Resistance",
     "id": "e648ebb1-e126-48e8-88c8-66ffec65ff57",
     "desc": "<p>You have resistance to the damage type associated with your draconic ancestry.</p>",
@@ -3951,7 +3743,6 @@
     ]
   },
   {
-    "value": "breathWeapon",
     "label": "Breath Weapon",
     "id": "fb063d31-2d68-4ef2-8be3-bd27db518700",
     "desc": "<p>You can use your action to exhale destructive energy. Your draconic ancestry determines the size, shape, and damage type of the exhalation.</p><p>When you use your breath weapon, each creature in the area of the exhalation must make a saving throw, the type of which is determined by your draconic ancestry. The DC for this saving throw equals 8 + your Constitution modifier + your proficiency bonus. A creature takes 2d6 damage on a failed save, and half as much damage on a successful one. The damage increases to 3d6 at 6th level, 4d6 at 11th level, and 5d6 at 16th level.</p><p>After you use your breath weapon, you can’t use it again until you complete a short or long rest.</p>",
@@ -4016,7 +3807,6 @@
     }
   },
   {
-    "value": "damageResistance",
     "label": "Damage Resistance",
     "id": "3e8a54ea-c372-4e18-a431-d3b1eb3b235a",
     "desc": "<p>You have resistance to the damage type associated with your draconic ancestry.</p>",
@@ -4025,7 +3815,6 @@
     ]
   },
   {
-    "value": "breathWeapon",
     "label": "Breath Weapon",
     "id": "f9272c08-368c-4967-b494-baaf564ea998",
     "desc": "<p>You can use your action to exhale destructive energy. Your draconic ancestry determines the size, shape, and damage type of the exhalation.</p><p>When you use your breath weapon, each creature in the area of the exhalation must make a saving throw, the type of which is determined by your draconic ancestry. The DC for this saving throw equals 8 + your Constitution modifier + your proficiency bonus. A creature takes 2d6 damage on a failed save, and half as much damage on a successful one. The damage increases to 3d6 at 6th level, 4d6 at 11th level, and 5d6 at 16th level.</p><p>After you use your breath weapon, you can’t use it again until you complete a short or long rest.</p>",
@@ -4090,7 +3879,6 @@
     }
   },
   {
-    "value": "damageResistance",
     "label": "Damage Resistance",
     "id": "00f55970-77af-49b8-8c74-5b5f0d3f7c1b",
     "desc": "<p>You have resistance to the damage type associated with your draconic ancestry.</p>",
@@ -4099,7 +3887,6 @@
     ]
   },
   {
-    "value": "breathWeapon",
     "label": "Breath Weapon",
     "id": "70f300f7-4efa-4127-9c8a-3307b430574c",
     "desc": "<p>You can use your action to exhale destructive energy. Your draconic ancestry determines the size, shape, and damage type of the exhalation.</p><p>When you use your breath weapon, each creature in the area of the exhalation must make a saving throw, the type of which is determined by your draconic ancestry. The DC for this saving throw equals 8 + your Constitution modifier + your proficiency bonus. A creature takes 2d6 damage on a failed save, and half as much damage on a successful one. The damage increases to 3d6 at 6th level, 4d6 at 11th level, and 5d6 at 16th level.</p><p>After you use your breath weapon, you can’t use it again until you complete a short or long rest.</p>",
@@ -4164,7 +3951,6 @@
     }
   },
   {
-    "value": "damageResistance",
     "label": "Damage Resistance",
     "id": "3765622a-c4b7-4bed-948b-3292c64adc99",
     "desc": "<p>You have resistance to the damage type associated with your draconic ancestry.</p>",
@@ -4174,7 +3960,6 @@
   },
   {
     "desc": "<p>Your Constitution score increases by 2.</p>",
-    "value": "abilityScoreIncrease",
     "label": "Ability Score Increase",
     "attributes": [
       "736ee797-e8a8-481a-83c0-ec166a027614"
@@ -4189,7 +3974,6 @@
   },
   {
     "desc": "<p>Accustomed to life underground, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You can’t discern color in darkness, only shades of gray.</p>",
-    "value": "darkvision",
     "label": "Darkvision",
     "targets": 1,
     "senses": [
@@ -4199,7 +3983,6 @@
   },
   {
     "desc": "<p>You have advantage on saving throws against poison, and you have resistance against poison damage.</p>",
-    "value": "dwarvenResilience",
     "label": "Dwarven Resilience",
     "targets": 1,
     "modifiers": [
@@ -4211,7 +3994,6 @@
   },
   {
     "desc": "<p>You have proficiency with the battleaxe, handaxe, light hammer, and warhammer.</p>",
-    "value": "dwarvenCombatTraining",
     "label": "Dwarven Combat Training",
     "targets": 1,
     "proficiencies": [
@@ -4223,7 +4005,6 @@
   },
   {
     "desc": "<p>You gain proficiency with the artisan’s tools of your choice: smith’s tools, brewer’s supplies, or mason’s tools.</p>",
-    "value": "toolProficiency",
     "label": "Tool Proficiency",
     "attributes": [
       "736ee797-e8a8-481a-83c0-ec166a027614"
@@ -4238,14 +4019,12 @@
   },
   {
     "desc": "<p>Whenever you make an Intelligence (History) check related to the origin of stonework, you are considered proficient in the History skill and add double your proficiency bonus to the check, instead of your normal proficiency bonus.</p>",
-    "value": "stonecunning",
     "label": "Stonecunning",
     "targets": 1,
     "id": "36ee71a6-0f44-4c1e-a9bd-a2a5d7a8a906"
   },
   {
     "desc": "<p>You can speak, read, and write Common and Dwarvish. Dwarvish is full of hard consonants and guttural sounds, and those characteristics spill over into whatever other language a dwarf might speak.</p>",
-    "value": "languages",
     "label": "Languages",
     "attributes": [
       "736ee797-e8a8-481a-83c0-ec166a027614"
@@ -4260,7 +4039,6 @@
   },
   {
     "desc": "<p>Your Wisdom score increases by 1.</p>",
-    "value": "abilityScoreIncrease",
     "label": "Ability Score Increase",
     "id": "edf9887e-a680-411a-b402-235e9f251a70",
     "attributes": [
@@ -4274,7 +4052,6 @@
   },
   {
     "desc": "<p>Your hit point maximum increases by 1, and it increases by 1 every time you gain a level.</p>",
-    "value": "dwarvenToughness",
     "label": "Dwarven Toughness",
     "levelAvailable": "1",
     "id": "cfff7256-6ad0-4bbf-ac3d-81fc6eed368e",
@@ -4286,7 +4063,6 @@
   },
   {
     "desc": "<p>Your Dexterity score increases by 2.</p>",
-    "value": "abilityScoreIncrease",
     "label": "Ability Score Increase",
     "attributes": [
       "736ee797-e8a8-481a-83c0-ec166a027614"
@@ -4300,7 +4076,6 @@
   },
   {
     "desc": "<p>Accustomed to twilit forests and the night sky, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You can’t discern color in darkness, only shades of gray.</p>",
-    "value": "darkvision",
     "label": "Darkvision",
     "targets": 1,
     "senses": [
@@ -4310,7 +4085,6 @@
   },
   {
     "desc": "<p>You have proficiency in the Perception skill.</p>",
-    "value": "keenSenses",
     "label": "Keen Senses",
     "targets": 1,
     "proficiencies": [
@@ -4321,7 +4095,6 @@
   },
   {
     "desc": "<p>You have advantage on saving throws against being charmed, and magic can’t put you to sleep.</p>",
-    "value": "feyAncestry",
     "label": "Fey Ancestry",
     "targets": 1,
     "modifiers": [
@@ -4332,14 +4105,12 @@
   },
   {
     "desc": "<p>Elves don’t need to sleep. Instead, they meditate deeply, remaining semiconscious, for 4 hours a day. (The Common word for such meditation is “trance.”) While meditating, you can dream after a fashion; such dreams are actually mental exercises that have become reflexive through years of practice. After resting in this way, you gain the same benefit that a human does from 8 hours of sleep.</p>",
-    "value": "trance",
     "label": "Trance",
     "targets": 1,
     "id": "47458790-4de1-4e86-ac9f-8795b90718e8"
   },
   {
     "desc": "<p>You can speak, read, and write Common and Elvish. Elvish is fluid, with subtle intonations and intricate grammar. Elven literature is rich and varied, and their songs and poems are famous among other races. Many bards learn their language so they can add Elvish ballads to their repertoires.</p>",
-    "value": "languages",
     "label": "Languages",
     "targets": 1,
     "proficiencies": [
@@ -4350,7 +4121,6 @@
   },
   {
     "desc": "<p>Your Intelligence score increases by 1.</p>",
-    "value": "abilityScoreIncrease",
     "label": "Ability Score Increase",
     "attributes": [
       "736ee797-e8a8-481a-83c0-ec166a027614"
@@ -4363,7 +4133,6 @@
   },
   {
     "desc": "<p>You have proficiency with the longsword, shortsword, shortbow, and longbow.</p>",
-    "value": "elfWeaponTraining",
     "label": "Elf Weapon Training",
     "targets": 1,
     "proficiencies": [
@@ -4374,7 +4143,6 @@
   },
   {
     "desc": "<p>You know one cantrip of your choice from the wizard spell list. Intelligence is your spellcasting ability for it.</p>",
-    "value": "cantrip",
     "label": "Cantrip",
     "targets": 1,
     "spells": [
@@ -4384,7 +4152,6 @@
   },
   {
     "desc": "<p>You can speak, read, and write one extra language of your choice.</p>",
-    "value": "extraLanguage",
     "label": "Extra Language",
     "attributes": [
       "40a91f3a-8909-4593-8a5f-b66b364602bb"
@@ -4402,7 +4169,6 @@
   },
   {
     "desc": "<p>Your Dexterity score increases by 2.</p>",
-    "value": "abilityScoreIncrease",
     "label": "Ability Score Increase",
     "attributes": [
       "736ee797-e8a8-481a-83c0-ec166a027614"
@@ -4416,14 +4182,12 @@
   },
   {
     "desc": "<p>When you roll a 1 on the d20 for an attack roll, ability check, or saving throw, you can reroll the die and must use the new roll.</p>",
-    "value": "lucky",
     "label": "Lucky",
     "targets": 1,
     "id": "2fcab646-96bd-46d2-ba64-59f5f96a53a0"
   },
   {
     "desc": "<p>You have advantage on saving throws against being frightened.</p>",
-    "value": "brave",
     "label": "Brave",
     "targets": 1,
     "modifiers": [
@@ -4434,14 +4198,12 @@
   },
   {
     "desc": "<p>You can move through the space of any creature that is of a size larger than yours.</p>",
-    "value": "halflingNimbleness",
     "label": "Halfling Nimbleness",
     "targets": 1,
     "id": "44047aa3-b771-4ebd-bdeb-2b3ce7ed9259"
   },
   {
     "desc": "<p>You can speak, read, and write Common and Halfling. The Halfling language isn’t secret, but halflings are loath to share it with others. They write very little, so they don’t have a rich body of literature. Their oral tradition, however, is very strong. Almost all halflings speak Common to converse with the people in whose lands they dwell or through which they are traveling.</p>",
-    "value": "languages",
     "label": "Languages",
     "targets": 1,
     "proficiencies": [
@@ -4451,7 +4213,6 @@
   },
   {
     "desc": "<p>Your Charisma score increases by 1.</p>",
-    "value": "abilityScoreIncrease",
     "label": "Ability Score Increase",
     "attributes": [
       "736ee797-e8a8-481a-83c0-ec166a027614"
@@ -4464,14 +4225,12 @@
   },
   {
     "desc": "<p>You can attempt to hide even when you are obscured only by a creature that is at least one size larger than you.</p>",
-    "value": "naturallyStealthy",
     "label": "Naturally Stealthy",
     "targets": 1,
     "id": "45db7ce9-487d-406a-be81-2d83d9ee98a3"
   },
   {
     "desc": "<p>Your ability scores each increase by 1.</p>",
-    "value": "abilityScoreIncrease",
     "label": "Ability Score Increase",
     "attributes": [
       "736ee797-e8a8-481a-83c0-ec166a027614"
@@ -4484,7 +4243,6 @@
   },
   {
     "desc": "<p>You can speak, read, and write Common and one extra language of your choice. Humans typically learn the languages of other peoples they deal with, including obscure dialects. They are fond of sprinkling their speech with words borrowed from other tongues: Orc curses, Elvish musical expressions, Dwarvish military phrases, and so on.</p>",
-    "value": "languages",
     "label": "Languages",
     "attributes": [
       "40a91f3a-8909-4593-8a5f-b66b364602bb"
@@ -4503,7 +4261,6 @@
   },
   {
     "desc": "<p>Your Intelligence score increases by 2.</p>",
-    "value": "abilityScoreIncrease",
     "label": "Ability Score Increase",
     "attributes": [
       "736ee797-e8a8-481a-83c0-ec166a027614"
@@ -4516,7 +4273,6 @@
   },
   {
     "desc": "<p>Accustomed to life underground, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You can’t discern color in darkness, only shades of gray.</p>",
-    "value": "darkvision",
     "label": "Darkvision",
     "targets": 1,
     "senses": [
@@ -4526,14 +4282,12 @@
   },
   {
     "desc": "<p>You have advantage on all Intelligence, Wisdom, and Charisma saving throws against magic.</p>",
-    "value": "gnomeCunning",
     "label": "Gnome Cunning",
     "targets": 1,
     "id": "6b9eb7f0-576e-46f9-9d04-32ad3be1a4f1"
   },
   {
     "desc": "<p>You can speak, read, and write Common and Gnomish. The Gnomish language, which uses the Dwarvish script, is renowned for its technical treatises and its catalogs of knowledge about the natural world.</p>",
-    "value": "languages",
     "label": "Languages",
     "targets": 1,
     "proficiencies": [
@@ -4543,7 +4297,6 @@
   },
   {
     "desc": "<p>Your Constitution score increases by 1.</p>",
-    "value": "abilityScoreIncrease",
     "label": "Ability Score Increase",
     "attributes": [
       "736ee797-e8a8-481a-83c0-ec166a027614"
@@ -4556,14 +4309,12 @@
   },
   {
     "desc": "<p>Whenever you make an Intelligence (History) check related to magic items, alchemical objects, or technological devices, you can add twice your proficiency bonus, instead of any proficiency bonus you normally apply.</p>",
-    "value": "artificersLore",
     "label": "Artificer's Lore",
     "targets": 1,
     "id": "2730c87c-6554-4ddd-b472-5a2d2c7f1bac"
   },
   {
     "desc": "<p>You have proficiency with artisan’s tools (tinker’s tools). Using those tools, you can spend 1 hour and 10 gp worth of materials to construct a Tiny clockwork device (AC 5, 1 hp). The device ceases to function after 24 hours (unless you spend 1 hour repairing it to keep the device functioning), or when you use your action to dismantle it; at that time, you can reclaim the materials used to create it. You can have up to three such devices active at a time.</p><p>When you create a device, choose one of the following options:</p><p><em>Clockwork Toy.</em> This toy is a clockwork animal, monster, or person, such as a frog, mouse, bird, dragon, or soldier. When placed on the ground, the toy moves 5 feet across the ground on each of your turns in a random direction. It makes noises as appropriate to the creature it represents.</p><p><em>Fire Starter.</em> The device produces a miniature flame, which you can use to light a candle, torch, or campfire. Using the device requires your action.</p><p><em>Music Box.</em> When opened, this music box plays a single song at a moderate volume. The box stops playing when it reaches the song’s end or when it is closed.</p>",
-    "value": "tinker",
     "label": "Tinker",
     "targets": 1,
     "proficiencies": [
@@ -4573,7 +4324,6 @@
   },
   {
     "desc": "<p>Your Charisma score increases by 2, and two other ability scores of your choice increase by 1.</p>",
-    "value": "abilityScoreIncrease",
     "label": "Ability Score Increase",
     "attributes": [
       "736ee797-e8a8-481a-83c0-ec166a027614"
@@ -4588,7 +4338,6 @@
   },
   {
     "desc": "<p>Thanks to your elf blood, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You can’t discern color in darkness, only shades of gray.</p>",
-    "value": "darkvision",
     "label": "Darkvision",
     "targets": 1,
     "senses": [
@@ -4598,7 +4347,6 @@
   },
   {
     "desc": "<p>You have advantage on saving throws against being charmed, and magic can’t put you to sleep.</p>",
-    "value": "feyAncestry",
     "label": "Fey Ancestry",
     "targets": 1,
     "modifiers": [
@@ -4610,7 +4358,6 @@
   },
   {
     "desc": "<p>You gain proficiency in two skills of your choice.</p>",
-    "value": "skillVersatility",
     "label": "Skill Versatility",
     "attributes": [
       "40a91f3a-8909-4593-8a5f-b66b364602bb"
@@ -4630,7 +4377,6 @@
   },
   {
     "desc": "<p>You can speak, read, and write Common, Elvish, and one extra language of your choice.</p>",
-    "value": "languages",
     "label": "Languages",
     "attributes": [
       "40a91f3a-8909-4593-8a5f-b66b364602bb"
@@ -4650,7 +4396,6 @@
   },
   {
     "desc": "<p>Your Strength score increases by 2, and your Constitution score increases by 1.</p>",
-    "value": "abilityScoreIncrease",
     "label": "Ability Score Increase",
     "attributes": [
       "736ee797-e8a8-481a-83c0-ec166a027614"
@@ -4664,7 +4409,6 @@
   },
   {
     "desc": "<p>Thanks to your orc blood, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You can’t discern color in darkness, only shades of gray.</p>",
-    "value": "darkvision",
     "label": "Darkvision",
     "targets": 1,
     "senses": [
@@ -4674,7 +4418,6 @@
   },
   {
     "desc": "<p>You gain proficiency in the Intimidation skill.</p>",
-    "value": "menacing",
     "label": "Menacing",
     "targets": 1,
     "proficiencies": [
@@ -4685,7 +4428,6 @@
   },
   {
     "desc": "<p>When you are reduced to 0 hit points but not killed outright, you can drop to 1 hit point instead. You can’t use this feature again until you finish a long rest.</p>",
-    "value": "relentlessEndurance",
     "label": "Relentless Endurance",
     "attributes": [
       "408bd86e-2ed9-4da6-9932-0e99a6e40e17"
@@ -4699,14 +4441,12 @@
   },
   {
     "desc": "<p>When you score a critical hit with a melee weapon attack, you can roll one of the weapon’s damage dice one additional time and add it to the extra damage of the critical hit.</p>",
-    "value": "savageAttacks",
     "label": "Savage Attacks",
     "targets": 1,
     "id": "21f9858b-03f9-495d-83f4-5364795e0866"
   },
   {
     "desc": "<p>You can speak, read, and write Common and Orc. Orc is a harsh, grating language with hard consonants. It has no script of its own but is written in the Dwarvish script.</p>",
-    "value": "languages",
     "label": "Languages",
     "targets": 1,
     "proficiencies": [
@@ -4717,7 +4457,6 @@
   },
   {
     "desc": "<p>Your Intelligence score increases by 1, and your Charisma score increases by 2.</p>",
-    "value": "abilityScoreIncrease",
     "label": "Ability Score Increase",
     "attributes": [
       "736ee797-e8a8-481a-83c0-ec166a027614"
@@ -4732,7 +4471,6 @@
   },
   {
     "desc": "<p>Thanks to your infernal heritage, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You can’t discern color in darkness, only shades of gray.</p>",
-    "value": "darkvision",
     "label": "Darkvision",
     "targets": 1,
     "senses": [
@@ -4742,7 +4480,6 @@
   },
   {
     "desc": "<p>You have resistance to fire damage.</p>",
-    "value": "hellishResistance",
     "label": "Hellish Resistance",
     "targets": 1,
     "modifiers": [
@@ -4754,7 +4491,6 @@
   },
   {
     "desc": "<p>You know the <em>thaumaturgy</em> cantrip. When you reach 3rd level, you can cast the <em>hellish rebuke</em> spell as a 2nd-level spell once with this trait and regain the ability to do so when you finish a long rest. When you reach 5th level, you can cast the <em>darkness</em> spell once with this trait and regain the ability to do so when you finish a long rest. Charisma is your spellcasting ability for these spells.</p>",
-    "value": "infernalLegacy",
     "label": "Infernal Legacy",
     "attributes": [
       "408bd86e-2ed9-4da6-9932-0e99a6e40e17"
@@ -4772,7 +4508,6 @@
   },
   {
     "desc": "<p>You can speak, read, and write Common and Infernal.</p>",
-    "value": "languages",
     "label": "Languages",
     "targets": 1,
     "proficiencies": [
@@ -4782,7 +4517,6 @@
   },
   {
     "desc": "<p>As an acolyte, you command the respect of those who share your faith, and you can perform the religious ceremonies of your deity. You and your adventuring companions can expect to receive free healing and care at a temple, shrine, or other established presence of your faith, though you must provide any material components needed for spells. Those who share your religion will support you (but only you) at a modest lifestyle.</p><p>You might also have ties to a specific temple dedicated to your chosen deity or pantheon, and you have a residence there. This could be the temple where you used to serve, if you remain on good terms with it, or a temple where you have found a new home. While near your temple, you can call upon the priests for assistance, provided the assistance you ask for is not hazardous and you remain in good standing with your temple.</p>",
-    "value": "shelterOfTheFaithful",
     "label": "Shelter of the Faithful",
     "targets": 1,
     "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",

@@ -131,3 +131,20 @@ type OptionsByLevel {
   count: Int
   replaceCount: Int
 }
+
+## Class/Backgroun Equipment
+
+type EquipmentOptionItem {
+  attributes: [ID!]
+  selectionCount: Int
+  category: ID
+  equipment: [ID!]
+  properties: [ID!]
+  quantity: Int
+  currencies: [EquipmentCurrency!]
+}
+
+type EquipmentCurrency {
+  id: ID!
+  amount: Int
+}

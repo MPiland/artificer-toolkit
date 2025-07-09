@@ -1,39 +1,23 @@
-type BackgroundCurrency {
-  id: ID!
-  amount: Int
-}
-
-type BackgroundEquipment {
-  attributes: [ID!]
-  selectionCount: Int
-  category: ID
-  equipment: [ID!]
-  properties: [ID!]
-  quantity: Int
-  currencies: [BackgroundCurrency!]
-}
-
 type Background {
   id: ID!
   label: String!
   desc: String
   details: [Detail!]
-  equipment: [[[BackgroundEquipment!]!]!]
+  equipment: [[[EquipmentOptionItem!]!]!]
   proficiencies: [FeatureProficiency!]
-  features: [Feature!]
+  features: [ID!]
   ownerId: ID!
   systemId: ID!
   masterId: String
 }
 
-type BackgroundFeatureMetaObject {
+type BackgroundMetaObject {
   id: ID!
-  label: String!
-  backgroundIds: [ID!]
+  backgroundIds: [ID!]!
 }
 
 type BackgroundMeta {
-  features: [BackgroundFeatureMetaObject!]!
+  features: [BackgroundMetaObject!]!
 }
 
 type BackgroundListItem {

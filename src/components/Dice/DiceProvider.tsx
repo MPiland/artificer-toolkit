@@ -1,10 +1,12 @@
+import { z } from 'zod/v4'
 import { ReactElement, useCallback, ReactNode, useEffect, useRef } from 'react'
-import type { DiceConfig, DiceResult, Point, RollConfig, DiceProps } from './Dice.types'
+import type { DiceConfig, DiceResult, Point, DiceProps } from './Dice.types'
 import { generateRandomLinearVelocity, generateRandomRotation, generateRandomPoints, parseDiceRoll } from './Dice.utils'
 import Dice from './Dice'
 import { Vector3Tuple } from '@react-three/rapier'
 import { DiceContext } from './DiceContext'
 import { useDiceStore } from '@/store'
+import { ROLL_CONFIG_REGEX } from '../Form'
 
 const useDiceOptions = () => {
   const rollPromiseResolver = useRef<((result: { rolled: DiceResult[]; kept: DiceResult[] }) => void) | null>(null)
@@ -211,7 +213,7 @@ const useDiceOptions = () => {
     setResults(results)
   }
 
-  const rollDice = async (input: RollConfig) => {
+  const rollDice = async (input: string) => {
     return new Promise<{ rolled: DiceResult[]; kept: DiceResult[] }>((resolve) => {
       rollPromiseResolver.current = resolve
 
@@ -220,9 +222,10 @@ const useDiceOptions = () => {
       setResults([])
 
       const diceRolls: DiceConfig[] = []
-      const rollStrings = input.split(' ') as RollConfig[]
+      const rollStrings = input.split(' ')
 
       for (let i = 0; i < rollStrings.length; i++) {
+        if (!z.string(rollStrings[i]).regex(ROLL_CONFIG_REGEX)) return
         const parsedRoll = parseDiceRoll(rollStrings[i])
         diceRolls.push({
           quantity: parsedRoll?.quantity || 1,

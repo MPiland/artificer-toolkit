@@ -65,21 +65,6 @@ type Subtype {
   label: String!
 }
 
-type ClassCurrency {
-  id: ID!
-  amount: Int
-}
-
-type ClassEquipment {
-  attributes: [ID!]
-  selectionCount: Int
-  category: ID
-  equipment: [ID!]
-  properties: [ID!]
-  quantity: Int
-  currencies: [ClassCurrency]
-}
-
 type Class {
   id: ID!
   label: String!
@@ -89,7 +74,7 @@ type Class {
   details: [Detail!]
   hitpoint: Hitpoint
   startingGold: StartingGold
-  equipment: [[[ClassEquipment!]!]!]
+  equipment: [[[EquipmentOptionItem!]!]!]
   proficiencies: [FeatureProficiency!]
   spellcasting: Spellcasting
   levelAttributes: [LevelAttribute!]
@@ -97,25 +82,19 @@ type Class {
   multiclass: Multiclass
   parentClass: ID
   subtypes: [Subtype!]
-  features: [Feature!]
+  features: [ID!]
   ownerId: ID!
   systemId: ID!
   masterId: String
 }
 
 type ClassMetaObject {
-  classIds: [ID!]
+  classIds: [ID!]!
   id: ID!
-}
-
-type ClassFeatureMetaObject {
-  id: ID!
-  label: String!
-  classIds: [ID!]
 }
 
 type ClassMultiClassMetaObject {
-  classIds: [ID!]
+  classIds: [ID!]!
   id: ID!
   amount: Int
 }
@@ -126,7 +105,7 @@ type ClassMeta {
   primaryAbilities: [ClassMultiClassMetaObject!]!
   secondaryAbilities: [ClassMultiClassMetaObject!]!
   optionalAbilities: [ClassMultiClassMetaObject!]!
-  features: [ClassFeatureMetaObject!]!
+  features: [ClassMetaObject!]!
 }
 
 type ClassListItem {

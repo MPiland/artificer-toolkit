@@ -36,7 +36,7 @@ const useMetaData = <T extends MetaDataType, K extends keyof T, U extends ListIt
         case 'system':
           return system
         case 'classes':
-          return classes.all
+          return classes
         default:
           return null
       }
@@ -104,7 +104,7 @@ const useMetaData = <T extends MetaDataType, K extends keyof T, U extends ListIt
     [metaData, getSourceData]
   )
 
-  const isPathObject = (pathObject: any): pathObject is FooterPathObject<T, K> => {
+  const isPathObject = (pathObject: object): pathObject is FooterPathObject<T, K> => {
     return pathObject && typeof pathObject === 'object' && 'subPaths' in pathObject
   }
 

@@ -16,7 +16,7 @@ const useSpellData = () => {
         if (!id) return null
         return suspenseQuery(fetchSpell(id)).data
       },
-      findSpells: (ids: string[] | null) => {
+      findSpells: (ids?: string[] | null) => {
         if (!ids || !ids.length) return null
         return suspenseQueries({
           queries: ids.map((id) => fetchSpell(id)),

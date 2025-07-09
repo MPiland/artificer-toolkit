@@ -1,47 +1,38 @@
 import { useEffect, useState } from 'react'
-import Dropdown from '@/components/Dropdown'
-import Input from '@/components/Input'
-import Collapsible from '@/components/Collapsible'
-import { use } from 'react'
-import { FormContext } from '../../FormContext'
-import { FeatureContext } from '../FeatureContext'
 import { Attributes, Categories, ModCats, ModMethods, ModSpellCats, ModTypes, Ranges, Sections } from '@/enums'
-import { getKeyFromId, getModifierProperties } from '../../utils'
-import { useEnumChecks } from '@/hooks'
-import Prerequisites from '../../Substeps/Prerequisites'
+import { getKeyFromId, getModifierProperties, useAppForm, Prerequisites } from '@/components/Form'
+import { useEnumChecks, useFeatureData, useFieldUpdates } from '@/hooks'
 import { useSystemData, useSpellData } from '@/hooks'
-import type { SectionStore } from '@/store'
-import type {
-  OnChange,
-  FormDataType,
-  FeatureModifier,
-  GenericType,
-  SpellListItem,
-  Class,
-  Resource,
-  Spell,
-  Character,
-} from '@/types'
+import type { GenericType, SpellListItem, SubtypeInput } from '@/types'
 import { Grid } from '@mantine/core'
+import { FeatureModifierInputSchema, ModifierDiePerLevelInputSchema, ModifierSetPerLevelInputSchema } from '@/schemas'
+import { useStore } from '@tanstack/react-form'
+import Collapsible from '@/components/Collapsible'
+import {} from '@/components/Form'
+import { useFormStore, useModifierStore } from '@/store'
 
-const Modifiers = () => {
-  const { formStore } = use(FormContext)
+type ModifiersProps = {
+  category?: string
+  __kind?: 'ClassInput' | 'RaceInput' | 'EquipmentInput' | 'BackgroundInput' | 'FeatInput'
+  subtypes?: SubtypeInput[]
+}
 
-  const { sectionStore } = use(FeatureContext) as {
-    sectionStore: SectionStore<FeatureModifier>
-  }
+const Modifiers = ({ category, subtypes }: ModifiersProps) => {
+  const modifierStore = useModifierStore()
 
-  const {
-    data,
-    updateField,
-    removeField,
-    addField,
-  }: {
-    data: FeatureModifier
-    updateField: OnChange<FeatureModifier>['updateField']
-    removeField: OnChange<FeatureModifier>['removeField']
-    addField: OnChange<FeatureModifier>['addField']
-  } = sectionStore
+  const formStore = useFormStore()
+
+  const __kind = formStore.current?.__kind
+
+  const form = useAppForm({
+    defaultValues: FeatureModifierInputSchema.parse(modifierStore.current),
+  })
+
+  const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'modifier' })
+
+  const { AppField, Subscribe } = form
+
+  const { features } = useFeatureData()
 
   const {
     modifiers,
@@ -57,48 +48,35 @@ const Modifiers = () => {
   } = useSystemData()
   const { spells, metaData: spellMetaData } = useSpellData()
 
-  const { subtypeSpecific, providesOptions, hasPrerequisites, doesDamage } = useEnumChecks({
-    data: data,
-  })
+  const { getAttributes } = useEnumChecks()
 
   const [modTypes, setModTypes] = useState<GenericType[]>([])
   const [modMethods, setModMethods] = useState<GenericType[] | null>(null)
   const [spellsArray, setSpellsArray] = useState<SpellListItem[]>([])
   const [typeOptions, setTypeOptions] = useState<boolean>(false)
 
-  const sectionCategory = modifiers.categories.findCategory(data?.category)
-
-  const categoryName = data?.category ? getKeyFromId(data?.category, { ...ModCats, ...ModSpellCats }) : null
-
-  const path =
-    categoryName ?
-      getModifierProperties({
-        category: categoryName,
-      })
-    : null
-
-  useEffect(() => {
-    if (data.__typename == null) {
-      updateField({
-        path: '__typename',
-        value: 'FeatureModifier',
-      })
-    }
-  }, [sectionStore, data.__typename, updateField])
+  const { formCategory, spellCategory, type, method, diePerLevel, setPerLevel } = useStore(form.store, (state) => ({
+    formCategory: state.values.category,
+    spellCategory: state.values.spellCategory,
+    type: state.values.type,
+    method: state.values.method,
+    diePerLevel: state.values.diePerLevel,
+    setPerLevel: state.values.setPerLevel,
+  }))
 
   // Set if selected category has type options
   useEffect(() => {
     setTypeOptions(
-      data?.category === ModCats.DAMAGE_TYPES ||
-        data?.category === ModCats.ABILITY_SCORES ||
-        data?.category === ModCats.SAVE_ABILITY ||
-        data?.category === ModCats.CONDITIONS ||
-        data?.category === ModCats.CONDITION_SAVE ||
-        data?.category === ModCats.DAMAGE_SAVE ||
-        data?.category === ModCats.SPEEDS ||
-        data?.category === ModCats.SPELL_DAMAGE
+      formCategory === ModCats.DAMAGE_TYPES ||
+        formCategory === ModCats.ABILITY_SCORES ||
+        formCategory === ModCats.SAVE_ABILITY ||
+        formCategory === ModCats.CONDITIONS ||
+        formCategory === ModCats.CONDITION_SAVE ||
+        formCategory === ModCats.DAMAGE_SAVE ||
+        formCategory === ModCats.SPEEDS ||
+        formCategory === ModCats.SPELL_DAMAGE
     )
-  }, [data?.category])
+  }, [formCategory])
 
   const options = {
     damageTypes: damageTypes,
@@ -109,53 +87,51 @@ const Modifiers = () => {
 
   // Set modTypes and modMethods options
   useEffect(() => {
-    if (data != null) {
-      let types: GenericType[] = []
-      if (data?.category === ModCats.SPELL) {
-        types = modifiers.types.filterByCategory(data?.spellCategory) || []
-      } else {
-        types = modifiers.types.filterByCategory(data?.category) || []
-      }
+    let types: GenericType[] = []
+    if (formCategory === ModCats.SPELL) {
+      types = modifiers.types.filterByCategory(spellCategory) || []
+    } else {
+      types = modifiers.types.filterByCategory(formCategory) || []
+    }
 
-      if (types?.length) {
-        setModTypes(types)
-      }
+    if (types?.length) {
+      setModTypes(types)
     }
     if (modTypes?.length) {
-      if (data?.category === ModCats.SPELL) {
-        const methods = modifiers.methods.filterByCategory(data?.spellCategory) || []
+      if (formCategory === ModCats.SPELL) {
+        const methods = modifiers.methods.filterByCategory(spellCategory) || []
 
         setModMethods(methods)
       } else {
-        const methods = modifiers.methods.filterByTypeAndCategory(data?.type, data?.category)
+        const methods = modifiers.methods.filterByTypeAndCategory(type, formCategory)
 
         setModMethods(methods)
       }
     }
-  }, [modTypes, data, modifiers])
+  }, [modTypes, spellCategory, formCategory, type, modifiers])
 
   // Filter spells array
   useEffect(() => {
     const filteredSpells = spells?.filter((spell) => {
-      if (data?.spellCategory === ModSpellCats.SPELL_DAMAGE) {
+      if (spellCategory === ModSpellCats.SPELL_DAMAGE) {
         return spellMetaData?.attributes
           ?.find((attribute) => attribute.id === Attributes.DOES_DAMAGE)
           ?.spellIds?.includes(spell.id)
       }
       if (
-        data?.spellCategory === ModSpellCats.SPELL_RANGE &&
+        spellCategory === ModSpellCats.SPELL_RANGE &&
         spellMetaData.ranges?.find((range) => range.spellIds?.includes(spell.id)) != null
       ) {
         return true
       }
       if (
-        data?.spellCategory === ModSpellCats.SPELL_SHAPE &&
+        spellCategory === ModSpellCats.SPELL_SHAPE &&
         spellMetaData.shapes?.find((shape) => shape.spellIds?.includes(spell.id)) != null
       ) {
         return true
       }
       if (
-        data?.spellCategory === ModSpellCats.SPELL_DURATION &&
+        spellCategory === ModSpellCats.SPELL_DURATION &&
         spellMetaData.durations?.find((duration) => duration.spellIds?.includes(spell.id)) != null
       ) {
         return true
@@ -163,486 +139,630 @@ const Modifiers = () => {
       return false
     })
     setSpellsArray(filteredSpells)
-  }, [data?.spellCategory, spells, doesDamage, spellMetaData])
+  }, [spellCategory, spells, spellMetaData])
 
   // Add/Remove die per level Table
   useEffect(() => {
     if (
-      ((data?.type !== ModTypes.SET_DIE && data?.type !== ModTypes.BONUS_DIE && data?.type !== ModTypes.PENALTY_DIE) ||
-        data?.method !== ModMethods.SET_PER_LEVEL ||
+      ((type !== ModTypes.SET_DIE && type !== ModTypes.BONUS_DIE && type !== ModTypes.PENALTY_DIE) ||
+        method !== ModMethods.SET_PER_LEVEL ||
         !modMethods?.some((method) => method.id === ModMethods.SET_PER_LEVEL)) &&
-      data?.diePerLevel?.length
+      diePerLevel?.length
     ) {
-      removeField({ path: 'diePerLevel' })
+      form.setFieldValue('diePerLevel', undefined)
+      modifierStore.removeField({ path: 'diePerLevel' })
     }
     if (
-      (data?.type === ModTypes.SET_DIE || data?.type === ModTypes.BONUS_DIE || data?.type === ModTypes.PENALTY_DIE) &&
-      data?.method === ModMethods.SET_PER_LEVEL &&
+      (type === ModTypes.SET_DIE || type === ModTypes.BONUS_DIE || type === ModTypes.PENALTY_DIE) &&
+      method === ModMethods.SET_PER_LEVEL &&
       modMethods?.some((method) => method.id === ModMethods.SET_PER_LEVEL) &&
-      (!data?.diePerLevel || !data?.diePerLevel?.length)
+      (!diePerLevel || !diePerLevel?.length)
     ) {
-      addField({ path: 'diePerLevel' })
+      const modifierInputObject = ModifierDiePerLevelInputSchema.parse({})
+      form.setFieldValue('diePerLevel', [modifierInputObject])
+      modifierStore.updateField({ path: 'diePerLevel', value: [modifierInputObject] })
     }
-  }, [data, sectionStore, data?.type, data?.method, modMethods, addField, removeField])
+  }, [type, method, modMethods, diePerLevel, form, modifierStore])
 
   // Add/remove setPerLevel table
   useEffect(() => {
     if (
-      ((data?.type !== ModTypes.SET_AMOUNT && data?.type !== ModTypes.BONUS && data?.type !== ModTypes.PENALTY) ||
-        data?.method !== ModMethods.SET_PER_LEVEL ||
+      ((type !== ModTypes.SET_AMOUNT && type !== ModTypes.BONUS && type !== ModTypes.PENALTY) ||
+        method !== ModMethods.SET_PER_LEVEL ||
         !modMethods?.some((method) => method.id === ModMethods.SET_PER_LEVEL)) &&
-      data?.setPerLevel?.length
+      setPerLevel?.length
     ) {
-      removeField({ path: 'setPerLevel' })
+      form.setFieldValue('setPerLevel', undefined)
+      modifierStore.removeField({ path: 'setPerLevel' })
     }
     if (
-      (data?.type === ModTypes.SET_AMOUNT || data?.type === ModTypes.BONUS || data?.type === ModTypes.PENALTY) &&
-      data?.method === ModMethods.SET_PER_LEVEL &&
+      (type === ModTypes.SET_AMOUNT || type === ModTypes.BONUS || type === ModTypes.PENALTY) &&
+      method === ModMethods.SET_PER_LEVEL &&
       modMethods?.some((method) => method.id === ModMethods.SET_PER_LEVEL) &&
-      (!data?.setPerLevel || !data?.setPerLevel?.length)
+      (!setPerLevel || !setPerLevel?.length)
     ) {
-      addField({ path: 'setPerLevel' })
+      const modifierInputObject = ModifierSetPerLevelInputSchema.parse({})
+      form.setFieldValue('setPerLevel', [modifierInputObject])
+      modifierStore.updateField({ path: 'setPerLevel', value: [modifierInputObject] })
     }
-  }, [data?.type, data?.method, data?.setPerLevel, sectionStore, modMethods, addField, removeField])
-
-  if (!path) return null
+  }, [type, method, setPerLevel, modMethods, form, modifierStore])
 
   return (
     <>
       <Grid>
-        <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-          <Dropdown
-            multiSelect={true}
-            name='attributes'
-            options={attributes.filter(
-              (attribute) =>
-                attribute?.sections?.length &&
-                attribute?.sections?.includes(Sections.ALL) &&
-                (formStore.data as Class).category === Categories.SUBCLASS &&
-                attribute?.sections?.includes(Sections.SUBCLASS)
-            )}
-            label='Attrbutes'
-            value={data?.attributes}
-            onChange={{ updateField, removeField }}
-          />
-        </Grid.Col>
-        <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-          <Dropdown
-            name='category'
-            label='Modifier Category'
-            value={data?.category}
-            options={modifiers.categories}
-            required={true}
-            onChange={{ updateField, removeField }}
-          />
-        </Grid.Col>
-        {data?.category === ModCats.SPELL && (
-          <>
-            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-              <Dropdown
-                name='spellCategory'
-                label='Spell Category'
-                value={data?.spellCategory}
-                options={modifiers.spellCategories}
-                required={true}
-                onChange={{ updateField, removeField }}
-              />
-            </Grid.Col>
-            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-              <Dropdown
-                name='spell'
-                label='Spell'
-                value={data?.spell}
-                options={spellsArray}
-                required={true}
-                onChange={{ updateField, removeField }}
-              />
-            </Grid.Col>
-          </>
-        )}
-        {modTypes?.length && sectionCategory != null && (
-          <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-            <Dropdown
-              name='type'
-              label='Modifier Type'
-              value={data?.type}
-              options={modTypes}
-              required={true}
-              onChange={{ updateField, removeField }}
-            />
-          </Grid.Col>
-        )}
-        {modMethods != null && modMethods?.length && (
-          <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-            <Dropdown
-              name='method'
-              label='Method'
-              value={data?.method}
-              options={modMethods}
-              required={true}
-              onChange={{ updateField, removeField }}
-            />
-          </Grid.Col>
-        )}
-        {typeOptions && data?.category !== ModCats.SPELL && data?.category != null && (
-          <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-            <Dropdown
-              name={path}
-              multiSelect={true}
-              label={sectionCategory?.label}
-              value={data[path]}
-              options={
-                data?.category === ModCats.SAVE_ABILITY ? abilities
-                : data?.category === ModCats.CONDITION_SAVE ?
-                  conditions
-                : data?.category === ModCats.SPELL_DC || data?.category === ModCats.DAMAGE_SAVE ?
-                  damageTypes
-                : options[path as 'damageTypes' | 'conditions' | 'abilities' | 'speeds']
-              }
-              required={true}
-              onChange={{ updateField, removeField }}
-            />
-          </Grid.Col>
-        )}
-        {data?.category === ModCats.CHARGE && data?.type === ModTypes.USE_RESET && (
-          <>
-            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-              <Dropdown
-                name='charge.reset'
-                label='Reset Option'
-                value={data?.charge?.reset}
-                options={charges.resets}
-                required={true}
-                onChange={{ updateField, removeField }}
-              />
-            </Grid.Col>
-            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-              <Dropdown
-                name='feature'
-                label='Feature'
-                value={data?.feature}
-                options={[
-                  ...((formStore.data as Exclude<FormDataType, Spell | Character>)?.features?.map((feature) => ({
-                    label: feature.label!,
-                    value: feature.value!,
-                    id: feature.id,
-                  })) || []),
-                  { ...((formStore.data as Class)?.resource as Resource) },
-                ]}
-                required={true}
-                onChange={{ updateField, removeField }}
-              />
-            </Grid.Col>
-          </>
-        )}
-        {data?.category === ModCats.SPELL &&
-          (data?.spellCategory === ModSpellCats.SPELL_DURATION ?
-            <>
-              <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                <Dropdown
-                  name='duration'
-                  label='Spell Duration Type'
-                  value={data?.duration}
-                  options={systemSpells.durations}
-                  required={true}
-                  onChange={{ updateField, removeField }}
-                />
-              </Grid.Col>
-              {data?.type === ModTypes.SET_AMOUNT && (
-                <>
-                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                    <Input
-                      validation='num'
-                      name='setAmount'
-                      label='Duration Increment'
-                      errorMsg='Must contain only whole numbers'
-                      autoComplete='off'
-                      value={data?.setAmount}
-                      onChange={{ updateField }}
-                    />
-                  </Grid.Col>
-                </>
-              )}
-            </>
-          : data?.spellCategory === ModSpellCats.SPELL_RANGE ?
-            <>
-              <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                <Dropdown
-                  name='range'
-                  label='Spell Range Type'
-                  value={data?.range}
-                  options={systemSpells.ranges}
-                  required={true}
-                  onChange={{ updateField, removeField }}
-                />
-              </Grid.Col>
-              {data?.type === ModTypes.SET_AMOUNT && (
-                <>
-                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                    <Input
-                      validation='num'
-                      name='minAmount'
-                      label='Minimum Value'
-                      errorMsg='Must contain only whole numbers'
-                      autoComplete='off'
-                      value={data?.minAmount}
-                      onChange={{ updateField }}
-                    />
-                  </Grid.Col>
-                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                    <Input
-                      validation='num'
-                      name='maxAmount'
-                      label='Maximum Value'
-                      errorMsg='Must contain only whole numbers'
-                      autoComplete='off'
-                      value={data?.maxAmount}
-                      onChange={{ updateField }}
-                    />
-                  </Grid.Col>
-                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                    <Dropdown
-                      name='unit'
-                      label='UoM'
-                      value={data?.unit}
-                      options={rules.measurements.imperial.length}
-                      required={data?.range === Ranges.DISTANCE ? true : false}
-                      onChange={{ updateField, removeField }}
-                    />
-                  </Grid.Col>
-                </>
-              )}
-            </>
-          : data?.spellCategory === ModSpellCats.SPELL_SHAPE && (
-              <>
-                <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                  <Dropdown
-                    name='shape'
-                    label='Spell Shape Type'
-                    value={data?.shape}
-                    options={systemSpells.shapes}
-                    required={true}
-                    onChange={{ updateField, removeField }}
-                  />
-                </Grid.Col>
-                {data?.type === ModTypes.SET_AMOUNT && (
-                  <>
-                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                      <Input
-                        validation='num'
-                        name='size'
-                        label='Shape Size'
-                        errorMsg='Must contain only whole numbers'
-                        autoComplete='off'
-                        value={data?.size}
-                        onChange={{ updateField }}
-                      />
-                    </Grid.Col>
-                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                      <Dropdown
-                        name='unit'
-                        label='UoM'
-                        value={data?.unit}
-                        options={rules.measurements.imperial.length}
-                        required={true}
-                        onChange={{ updateField, removeField }}
-                      />
-                    </Grid.Col>
-                  </>
+        <AppField name='attributes' listeners={fieldListeners}>
+          {({ DropdownField }) => (
+            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+              <DropdownField
+                multiselect={true}
+                label='Attrbutes'
+                options={attributes.filter(
+                  (attribute) =>
+                    attribute?.sections?.length &&
+                    attribute?.sections?.includes(Sections.ALL) &&
+                    category === Categories.SUBCLASS &&
+                    attribute?.sections?.includes(Sections.SUBCLASS)
                 )}
-              </>
-            ))}
-        {data?.method != null && data?.method !== ModMethods.SET_PER_LEVEL && (
-          <>
-            {(data?.type === ModTypes.BONUS || data?.type === ModTypes.SET_AMOUNT) && (
-              <>
-                {data?.method === ModMethods.SET_GLOBALLY ?
-                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                    <Input
-                      validation='num'
-                      name='setAmount'
-                      label='Set Value'
-                      errorMsg='Must contain only numbers'
-                      autoComplete='off'
-                      value={data?.setAmount}
-                      required={true}
-                      onChange={{ updateField }}
-                    />
-                  </Grid.Col>
-                : data?.method === ModMethods.ABILITY_SCORE_MODIFIER ?
-                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                    <Dropdown
-                      name='methodAbility'
-                      label='Method Ability'
-                      value={data?.methodAbility}
-                      options={abilities}
-                      required={true}
-                      onChange={{ updateField, removeField }}
-                    />
-                  </Grid.Col>
-                : data?.method === ModMethods.SKILL_MODIFIER && (
-                    <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                      <Dropdown
-                        name='methodSkill'
-                        label='Method Skill'
-                        value={data?.methodSkill}
-                        options={skills}
-                        required={true}
-                        onChange={{ updateField, removeField }}
-                      />
-                    </Grid.Col>
-                  )
-                }
-              </>
-            )}
-            {data?.method !== ModMethods.SET_GLOBALLY && (
-              <>
-                <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                  <Input
-                    validation='num'
-                    name='multiplier'
-                    label='Multiplier'
-                    errorMsg='Must contain only whole numbers'
-                    autoComplete='off'
-                    value={data?.multiplier}
-                    onChange={{ updateField }}
-                  />
-                </Grid.Col>
-                <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                  <Input
-                    validation='num'
-                    name='minAmount'
-                    label='Minimum Value'
-                    errorMsg='Must contain only whole numbers'
-                    autoComplete='off'
-                    value={data?.minAmount}
-                    onChange={{ updateField }}
-                  />
-                </Grid.Col>
-              </>
-            )}
-          </>
-        )}
-        {subtypeSpecific &&
-          formStore.data.__typename === 'Class' &&
-          data?.category != null &&
-          formStore.data?.subtypes?.length && (
-            <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-              <Dropdown
-                name='subtype'
-                label='Subclass Subtype'
-                value={data?.subtype}
-                options={formStore.data?.subtypes}
-                required={true}
-                onChange={{ updateField, removeField }}
               />
             </Grid.Col>
           )}
-        {providesOptions && (
-          <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-            <Input
-              validation='num'
-              name={`selectionCount`}
-              label='# of Selections'
-              autoComplete='off'
-              value={data?.selectionCount}
-              errorMsg='Must contain only numbers'
-              required={true}
-              onChange={{ updateField }}
-            />
-          </Grid.Col>
-        )}
-        {hasPrerequisites && (
-          <Grid.Col>
-            <Prerequisites formStore={sectionStore} />
-          </Grid.Col>
-        )}
-        {data?.method === ModMethods.SET_PER_LEVEL && data?.diePerLevel?.length && (
-          <Grid.Col>
-            <Collapsible>
-              <Collapsible.Trigger title='Die Per Level' />
-              <Collapsible.Content>
-                <Grid>
+        </AppField>
+        <AppField
+          name='category'
+          validators={fieldValidators({
+            onBlur: 'Select a category',
+          })}
+          listeners={fieldListeners}
+        >
+          {({ DropdownField }) => (
+            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+              <DropdownField label='Modifier Category' options={modifiers.categories} required={true} />
+            </Grid.Col>
+          )}
+        </AppField>
+        <Subscribe
+          selector={(state) => ({
+            formAttributes: state.values.attributes,
+            formCategory: state.values.category,
+            type: state.values.type,
+            method: state.values.method,
+            spellCategory: state.values.spellCategory,
+            diePerLevel: state.values.diePerLevel,
+            setPerLevel: state.values.setPerLevel,
+            range: state.values.range,
+          })}
+        >
+          {({ formAttributes, formCategory, type, method, spellCategory, diePerLevel, setPerLevel, range }) => {
+            if (!formCategory) return null
+            const sectionCategory = modifiers.categories.findCategory(formCategory)
+            const categoryName = getKeyFromId(formCategory, { ...ModCats, ...ModSpellCats })
+            const path = getModifierProperties({
+              category: categoryName,
+            })
+            const { subtypeSpecific, providesOptions, hasPrerequisites } = getAttributes({
+              attributes: formAttributes,
+            })
+            return (
+              <>
+                {formCategory === ModCats.SPELL && (
+                  <>
+                    <AppField
+                      name='spellCategory'
+                      validators={fieldValidators({
+                        onBlur: 'Select a spell category',
+                      })}
+                      listeners={fieldListeners}
+                    >
+                      {({ DropdownField }) => (
+                        <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                          <DropdownField label='Spell Category' options={modifiers.spellCategories} required={true} />
+                        </Grid.Col>
+                      )}
+                    </AppField>
+                    <AppField
+                      name='spells'
+                      validators={fieldValidators({
+                        onBlur: 'Select at least one spell',
+                      })}
+                      listeners={fieldListeners}
+                    >
+                      {({ DropdownField }) => (
+                        <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                          <DropdownField label='Spells' multiselect={true} options={spellsArray} required={true} />
+                        </Grid.Col>
+                      )}
+                    </AppField>
+                  </>
+                )}
+                {modTypes?.length && sectionCategory != null && (
+                  <AppField
+                    name='type'
+                    validators={fieldValidators({
+                      onBlur: 'Select a modifier type',
+                    })}
+                    listeners={fieldListeners}
+                  >
+                    {({ DropdownField }) => (
+                      <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                        <DropdownField label='Modifier Type' options={modTypes} required={true} />
+                      </Grid.Col>
+                    )}
+                  </AppField>
+                )}
+                {modMethods?.length && (
+                  <AppField
+                    name='method'
+                    validators={fieldValidators({
+                      onBlur: 'Select a modifier method',
+                    })}
+                    listeners={fieldListeners}
+                  >
+                    {({ DropdownField }) => (
+                      <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                        <DropdownField label='Modifier Method' options={modMethods} required={true} />
+                      </Grid.Col>
+                    )}
+                  </AppField>
+                )}
+                {path && typeOptions && formCategory !== ModCats.SPELL && formCategory != null && (
+                  <AppField
+                    name={path}
+                    validators={fieldValidators({
+                      onBlur: 'Select a modifier method',
+                    })}
+                    listeners={fieldListeners}
+                  >
+                    {({ DropdownField }) => (
+                      <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                        <DropdownField
+                          label='Modifier Method'
+                          multiselect={true}
+                          options={
+                            formCategory === ModCats.SAVE_ABILITY ? abilities
+                            : formCategory === ModCats.CONDITION_SAVE ?
+                              conditions
+                            : formCategory === ModCats.SPELL_DC || formCategory === ModCats.DAMAGE_SAVE ?
+                              damageTypes
+                            : options[path as 'damageTypes' | 'conditions' | 'abilities' | 'speeds']
+                          }
+                          required={true}
+                        />
+                      </Grid.Col>
+                    )}
+                  </AppField>
+                )}
+                {formCategory === ModCats.CHARGE && type === ModTypes.USE_RESET && (
+                  <>
+                    <AppField
+                      name='charges.reset'
+                      validators={fieldValidators({
+                        onBlur: 'Select a reset option',
+                      })}
+                      listeners={fieldListeners}
+                    >
+                      {({ DropdownField }) => (
+                        <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                          <DropdownField label='Reset Option' options={charges.resets} required={true} />
+                        </Grid.Col>
+                      )}
+                    </AppField>
+                    <AppField
+                      name='feature'
+                      validators={fieldValidators({
+                        onBlur: 'Select a feature',
+                      })}
+                      listeners={fieldListeners}
+                    >
+                      {({ DropdownField }) => (
+                        <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                          <DropdownField
+                            label='Feature'
+                            options={
+                              features?.map((feature) => ({
+                                id: feature.id,
+                                label: feature?.label || feature?.id,
+                              })) ?? []
+                            }
+                            required={true}
+                          />
+                        </Grid.Col>
+                      )}
+                    </AppField>
+                  </>
+                )}
+                {formCategory === ModCats.SPELL &&
+                  (spellCategory === ModSpellCats.SPELL_DURATION ?
+                    <>
+                      <AppField
+                        name='duration'
+                        validators={fieldValidators({
+                          onBlur: 'Select a spell duration type',
+                        })}
+                        listeners={fieldListeners}
+                      >
+                        {({ DropdownField }) => (
+                          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                            <DropdownField
+                              label='Spell Duration Type'
+                              options={systemSpells.durations}
+                              required={true}
+                            />
+                          </Grid.Col>
+                        )}
+                      </AppField>
+                      {type === ModTypes.SET_AMOUNT && (
+                        <AppField
+                          name='setAmount'
+                          validators={fieldValidators({
+                            onBlur: 'Set a duration increment amount',
+                            onChange: { type: 'integer', min: 1, name: 'Duration increment' },
+                          })}
+                          listeners={fieldListeners}
+                        >
+                          {({ TextField }) => (
+                            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                              <TextField label='Duration Increment' required={true} />
+                            </Grid.Col>
+                          )}
+                        </AppField>
+                      )}
+                    </>
+                  : spellCategory === ModSpellCats.SPELL_RANGE ?
+                    <>
+                      <AppField
+                        name='range'
+                        validators={fieldValidators({ onBlur: 'Select a spell range type' })}
+                        listeners={fieldListeners}
+                      >
+                        {({ DropdownField }) => (
+                          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                            <DropdownField label='Spell Range Type' options={systemSpells.ranges} required={true} />
+                          </Grid.Col>
+                        )}
+                      </AppField>
+                      {type === ModTypes.SET_AMOUNT && (
+                        <>
+                          <AppField
+                            name='minAmount'
+                            validators={fieldValidators({
+                              onBlur: 'Set a min range amount',
+                              onChange: { type: 'number', min: 0, name: 'Min. range amount' },
+                            })}
+                            listeners={fieldListeners}
+                          >
+                            {({ TextField }) => (
+                              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                <TextField label='Min Range Amount' required={true} />
+                              </Grid.Col>
+                            )}
+                          </AppField>
+                          <AppField
+                            name='maxAmount'
+                            validators={fieldValidators({
+                              onBlur: 'Set a max range amount',
+                              onChange: { type: 'integer', min: 1, name: 'Max range amount' },
+                            })}
+                            listeners={fieldListeners}
+                          >
+                            {({ TextField }) => (
+                              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                <TextField label='Max Range Amount' required={true} />
+                              </Grid.Col>
+                            )}
+                          </AppField>
+                          <AppField
+                            name='unit'
+                            validators={fieldValidators({
+                              onBlur: 'Select a unit of measurement',
+                              condition: range === Ranges.DISTANCE,
+                            })}
+                            listeners={fieldListeners}
+                          >
+                            {({ DropdownField }) => (
+                              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                <DropdownField
+                                  label='Spell Range UoM'
+                                  options={rules.measurements.imperial.length}
+                                  required={range === Ranges.DISTANCE ? true : false}
+                                />
+                              </Grid.Col>
+                            )}
+                          </AppField>
+                        </>
+                      )}
+                    </>
+                  : spellCategory === ModSpellCats.SPELL_SHAPE && (
+                      <>
+                        <AppField
+                          name='shape'
+                          validators={fieldValidators({
+                            onBlur: 'Select a spell shape type',
+                          })}
+                          listeners={fieldListeners}
+                        >
+                          {({ DropdownField }) => (
+                            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                              <DropdownField label='Spell Shape Type' options={systemSpells.shapes} required={true} />
+                            </Grid.Col>
+                          )}
+                        </AppField>
+                        {type === ModTypes.SET_AMOUNT && (
+                          <>
+                            <AppField
+                              name='size'
+                              validators={fieldValidators({
+                                onBlur: 'Set a max range amount',
+                                onChange: { type: 'number', min: 1, name: 'Max range amount' },
+                              })}
+                              listeners={fieldListeners}
+                            >
+                              {({ TextField }) => (
+                                <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                  <TextField label='Shape Size Amount' required={true} />
+                                </Grid.Col>
+                              )}
+                            </AppField>
+                            <AppField
+                              name='unit'
+                              validators={fieldValidators({
+                                onBlur: 'Select a unit of measurement',
+                                condition: range === Ranges.DISTANCE,
+                              })}
+                              listeners={fieldListeners}
+                            >
+                              {({ DropdownField }) => (
+                                <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                  <DropdownField
+                                    label='Spell Range UoM'
+                                    options={rules.measurements.imperial.length}
+                                    required={true}
+                                  />
+                                </Grid.Col>
+                              )}
+                            </AppField>
+                          </>
+                        )}
+                      </>
+                    ))}
+                {method != null && method !== ModMethods.SET_PER_LEVEL && (
+                  <>
+                    {(type === ModTypes.BONUS || type === ModTypes.SET_AMOUNT) && (
+                      <>
+                        {method === ModMethods.SET_GLOBALLY ?
+                          <AppField
+                            name='setAmount'
+                            validators={fieldValidators({
+                              onBlur: 'Set an amount',
+                              onChange: { type: 'integer', min: 1, name: 'Amount' },
+                            })}
+                            listeners={fieldListeners}
+                          >
+                            {({ TextField }) => (
+                              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                <TextField label='Set Amount' required={true} />
+                              </Grid.Col>
+                            )}
+                          </AppField>
+                        : method === ModMethods.ABILITY_SCORE_MODIFIER ?
+                          <AppField
+                            name='methodAbility'
+                            validators={fieldValidators({
+                              onBlur: 'Select an  ability',
+                            })}
+                            listeners={fieldListeners}
+                          >
+                            {({ DropdownField }) => (
+                              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                <DropdownField label='Method Ability' options={abilities} required={true} />
+                              </Grid.Col>
+                            )}
+                          </AppField>
+                        : method === ModMethods.SKILL_MODIFIER && (
+                            <AppField
+                              name='methodSkill'
+                              validators={fieldValidators({
+                                onBlur: 'Select a skill',
+                              })}
+                              listeners={fieldListeners}
+                            >
+                              {({ DropdownField }) => (
+                                <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                  <DropdownField label='Method Skill' options={skills} required={true} />
+                                </Grid.Col>
+                              )}
+                            </AppField>
+                          )
+                        }
+                      </>
+                    )}
+                    {method !== ModMethods.SET_GLOBALLY && (
+                      <>
+                        <AppField
+                          name='multiplier'
+                          validators={fieldValidators({
+                            onChange: { type: 'integer', min: 1, name: 'Multiplier' },
+                          })}
+                          listeners={fieldListeners}
+                        >
+                          {({ TextField }) => (
+                            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                              <TextField label='Multiplier' />
+                            </Grid.Col>
+                          )}
+                        </AppField>
+                        <AppField
+                          name='minAmount'
+                          validators={fieldValidators({
+                            onChange: { type: 'integer', min: 1, name: 'Min. amount' },
+                          })}
+                          listeners={fieldListeners}
+                        >
+                          {({ TextField }) => (
+                            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                              <TextField label='Min Amount' />
+                            </Grid.Col>
+                          )}
+                        </AppField>
+                      </>
+                    )}
+                  </>
+                )}
+                {subtypeSpecific && __kind === 'ClassInput' && formCategory != null && subtypes?.length && (
+                  <AppField
+                    name='subtype'
+                    validators={fieldValidators({
+                      onBlur: 'Select a subtype',
+                    })}
+                    listeners={fieldListeners}
+                  >
+                    {({ DropdownField }) => (
+                      <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                        <DropdownField label='Subtype' options={subtypes} required={true} />
+                      </Grid.Col>
+                    )}
+                  </AppField>
+                )}
+                {providesOptions && (
+                  <AppField
+                    name='selectionCount'
+                    validators={fieldValidators({
+                      onChange: { type: 'integer', min: 1, name: 'Selection amount' },
+                    })}
+                    listeners={fieldListeners}
+                  >
+                    {({ TextField }) => (
+                      <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                        <TextField label='# of Selections' required={true} />
+                      </Grid.Col>
+                    )}
+                  </AppField>
+                )}
+                {hasPrerequisites && (
                   <Grid.Col>
-                    <Grid>
-                      <Grid.Col >Level</Grid.Col>
-                      <Grid.Col >Die Config</Grid.Col>
-                    </Grid>
+                    <Prerequisites
+                      form={form}
+                      fields='prerequisites'
+                      __kind='FeatureModifierInput'
+                      updateFn={modifierStore.updateField}
+                      removeFn={modifierStore.removeField}
+                    />
                   </Grid.Col>
-                  {data?.diePerLevel?.map((setLevel, index) => (
-                    <Grid.Col key={index}>
-                      <Grid>
-                        <Grid.Col >
-                          <Input
-                            name={`diePerLevel.${index}.level`}
-                            value={setLevel.level}
-                            validation='num'
-                            errorMsg='Please enter a whole number'
-                            onChange={{ updateField }}
-                            required={true}
-                          />
-                        </Grid.Col>
-                        <Grid.Col >
-                          <Input
-                            name={`diePerLevel.${index}.dieConfig`}
-                            value={setLevel.dieConfig}
-                            validation='num'
-                            errorMsg='Please enter a valid die value'
-                            onChange={{ updateField }}
-                            required={true}
-                          />
-                        </Grid.Col>
-                      </Grid>
-                    </Grid.Col>
-                  ))}
-                </Grid>
-              </Collapsible.Content>
-            </Collapsible>
-          </Grid.Col>
-        )}
-        {data?.method === ModMethods.SET_PER_LEVEL && data?.setPerLevel?.length && (
-          <Grid.Col>
-            <Collapsible>
-              <Collapsible.Trigger title='Set Per Level' />
-              <Collapsible.Content>
-                <Grid>
+                )}
+                {method === ModMethods.SET_PER_LEVEL && diePerLevel?.length && (
                   <Grid.Col>
-                    <Grid>
-                      <Grid.Col >Level</Grid.Col>
-                      <Grid.Col >Amount</Grid.Col>
-                    </Grid>
+                    <Collapsible>
+                      <Collapsible.Trigger title='Die Per Level' />
+                      <Collapsible.Content>
+                        <Grid>
+                          <Grid.Col>
+                            <Grid>
+                              <Grid.Col>Level</Grid.Col>
+                              <Grid.Col>Die Config</Grid.Col>
+                            </Grid>
+                          </Grid.Col>
+                          <AppField name='diePerLevel' mode='array'>
+                            {({ state }) =>
+                              state.value?.map((_, i) => (
+                                <Grid.Col key={i}>
+                                  <Grid>
+                                    <AppField
+                                      name={`diePerLevel[${i}].level`}
+                                      validators={fieldValidators({
+                                        onBlur: 'Level is required',
+                                        onChange: { type: 'integer', min: 1, name: 'Level' },
+                                      })}
+                                      listeners={fieldListeners}
+                                    >
+                                      {({ TextField }) => (
+                                        <Grid.Col>
+                                          <TextField required={true} />
+                                        </Grid.Col>
+                                      )}
+                                    </AppField>
+                                    <AppField
+                                      name={`diePerLevel[${i}].dieConfig`}
+                                      validators={fieldValidators({
+                                        onBlur: 'Please enter a die configuration',
+                                        onChange: { type: 'die', name: 'Die configuration' },
+                                      })}
+                                      listeners={fieldListeners}
+                                    >
+                                      {({ TextField }) => (
+                                        <Grid.Col>
+                                          <TextField required={true} />
+                                        </Grid.Col>
+                                      )}
+                                    </AppField>
+                                  </Grid>
+                                </Grid.Col>
+                              ))
+                            }
+                          </AppField>
+                        </Grid>
+                      </Collapsible.Content>
+                    </Collapsible>
                   </Grid.Col>
-                  {data?.setPerLevel?.map((setLevel, index) => (
-                    <Grid.Col key={index}>
-                      <Grid>
-                        <Grid.Col >
-                          <Input
-                            name={`setPerLevel.${index}.level`}
-                            value={setLevel.level}
-                            validation='num'
-                            errorMsg='Please enter a whole number'
-                            onChange={{ updateField }}
-                            required={true}
-                          />
-                        </Grid.Col>
-                        <Grid.Col >
-                          <Input
-                            name={`setPerLevel.${index}.setAmount`}
-                            value={setLevel.setAmount}
-                            validation='num'
-                            errorMsg='Please enter a whole number'
-                            onChange={{ updateField }}
-                            required={true}
-                          />
-                        </Grid.Col>
-                      </Grid>
-                    </Grid.Col>
-                  ))}
-                </Grid>
-              </Collapsible.Content>
-            </Collapsible>
-          </Grid.Col>
-        )}
+                )}
+                {method === ModMethods.SET_PER_LEVEL && setPerLevel?.length && (
+                  <Grid.Col>
+                    <Collapsible>
+                      <Collapsible.Trigger title='Set Per Level' />
+                      <Collapsible.Content>
+                        <Grid>
+                          <Grid.Col>
+                            <Grid>
+                              <Grid.Col>Level</Grid.Col>
+                              <Grid.Col>Amount</Grid.Col>
+                            </Grid>
+                          </Grid.Col>
+
+                          <AppField name='setPerLevel' mode='array'>
+                            {({ state }) =>
+                              state.value?.map((_, i) => (
+                                <Grid.Col key={i}>
+                                  <Grid>
+                                    <AppField
+                                      name={`setPerLevel[${i}].level`}
+                                      validators={fieldValidators({
+                                        onBlur: 'Level is required',
+                                        onChange: { type: 'integer', min: 1, name: 'Level' },
+                                      })}
+                                      listeners={fieldListeners}
+                                    >
+                                      {({ TextField }) => (
+                                        <Grid.Col>
+                                          <TextField required={true} />
+                                        </Grid.Col>
+                                      )}
+                                    </AppField>
+                                    <AppField
+                                      name={`setPerLevel[${i}].setAmount`}
+                                      validators={fieldValidators({
+                                        onBlur: 'Please enter an amount',
+                                        onChange: { type: 'integer', min: 1, name: 'Set amount' },
+                                      })}
+                                      listeners={fieldListeners}
+                                    >
+                                      {({ TextField }) => (
+                                        <Grid.Col>
+                                          <TextField required={true} />
+                                        </Grid.Col>
+                                      )}
+                                    </AppField>
+                                  </Grid>
+                                </Grid.Col>
+                              ))
+                            }
+                          </AppField>
+                        </Grid>
+                      </Collapsible.Content>
+                    </Collapsible>
+                  </Grid.Col>
+                )}
+              </>
+            )
+          }}
+        </Subscribe>
       </Grid>
     </>
   )

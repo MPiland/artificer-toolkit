@@ -196,7 +196,6 @@
     "unarmedDamage": {
       "id": "6a038302-1ac7-482f-acdc-3e1502e04397",
       "method": {
-        "value": "diePerLevel",
         "label": "Die Per Level"
       },
       "diePerLevel": [

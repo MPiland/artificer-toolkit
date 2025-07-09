@@ -108,6 +108,8 @@ export const signUp = async ({ email, password, persist }: { email: string; pass
       },
     })
 
+    console.log('next step successful')
+
     if (persist) {
       cognitoUserPoolsTokenProvider.setKeyValueStorage(defaultStorage)
     } else {
@@ -119,7 +121,7 @@ export const signUp = async ({ email, password, persist }: { email: string; pass
     if (import.meta.env.DEV) {
       console.log('Error signing up:', err)
     }
-    return getFriendlyErrorMessage(err)
+    return getFriendlyErrorMessage(err as { name: string })
   }
 }
 
@@ -137,11 +139,11 @@ export const signIn = async ({ email, password, persist }: { email: string; pass
     }
 
     return getFriendlyAuthMessage(nextStep?.signInStep)
-  } catch (err: any) {
+  } catch (err) {
     if (import.meta.env.DEV) {
       console.log('Error signing in:', err)
     }
-    return getFriendlyErrorMessage(err)
+    return getFriendlyErrorMessage(err as { name: string })
   }
 }
 
@@ -164,7 +166,7 @@ export const confirmSignUp = async ({ email, confirmationCode }: { email: string
           if (import.meta.env.DEV) {
             console.log('Error signing in after sign up:', err)
           }
-          return getFriendlyErrorMessage(err)
+          return getFriendlyErrorMessage(err as { name: string })
         }
       } else {
         return getFriendlyAuthMessage(nextStep?.signUpStep)
@@ -176,7 +178,7 @@ export const confirmSignUp = async ({ email, confirmationCode }: { email: string
     if (import.meta.env.DEV) {
       console.log('Error confirming sign up:', err)
     }
-    return getFriendlyErrorMessage(err)
+    return getFriendlyErrorMessage(err as { name: string })
   }
 }
 
@@ -188,7 +190,7 @@ export const confirmSignIn = async ({ challengeResponse }: { challengeResponse: 
     if (import.meta.env.DEV) {
       console.log('Error confirming sign in:', err)
     }
-    return getFriendlyErrorMessage(err)
+    return getFriendlyErrorMessage(err as { name: string })
   }
 }
 
@@ -200,7 +202,7 @@ export const resendSignUpCode = async ({ email }: { email: string }) => {
     if (import.meta.env.DEV) {
       console.log('Error resending confirmation code:', err)
     }
-    return getFriendlyErrorMessage(err)
+    return getFriendlyErrorMessage(err as { name: string })
   }
 }
 
@@ -218,7 +220,7 @@ export const resetPassword = async ({ email }: { email: string }) => {
     if (import.meta.env.DEV) {
       console.log('Error resetting password:', err)
     }
-    return getFriendlyErrorMessage(err)
+    return getFriendlyErrorMessage(err as { name: string })
   }
 }
 
@@ -245,7 +247,7 @@ export const confirmResetPassword = async ({
     if (import.meta.env.DEV) {
       console.error('Error confirming password reset:', err)
     }
-    return getFriendlyErrorMessage(err)
+    return getFriendlyErrorMessage(err as { name: string })
   }
 }
 
@@ -260,6 +262,7 @@ export const signOut = async () => {
 }
 
 export const initUserData = async ({ userId, email }: { userId: string; email: string }) => {
+  console.log({ userId, email })
   try {
     await post({
       apiName: 'InitUserDomainData',
@@ -292,6 +295,6 @@ export const initUserData = async ({ userId, email }: { userId: string; email: s
     if (import.meta.env.DEV) {
       console.error('Error initializing user data:', err)
     }
-    return getFriendlyErrorMessage(err)
+    return getFriendlyErrorMessage(err as { name: string })
   }
 }

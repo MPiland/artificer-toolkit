@@ -1,6 +1,0 @@
-type Query {
-  getMasterAncestryFeature(id: ID!): AncestryFeature
-  listMasterAncestryFeatures(limit: Int, nextToken: String): AncestryFeatureConnection!
-  getAncestryFeature(id: ID!): AncestryFeature
-  listAncestryFeatures(systemId: ID!, limit: Int, nextToken: String): AncestryFeatureConnection!
-}

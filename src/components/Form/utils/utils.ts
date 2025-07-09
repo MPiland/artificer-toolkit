@@ -9,7 +9,7 @@ import type {
   CharacterEquipmentObjectInput,
   SystemAttribute,
 } from '@/types'
-import { parseDiceRoll, type RollConfig } from '@/components/Dice'
+import { parseDiceRoll } from '@/components/Dice'
 import { ModCats, ModSpellCats, HPCalcMethods, Spells, Attributes } from '@/enums'
 import { camelCase } from 'lodash'
 import { CamelCase } from 'type-fest'
@@ -26,11 +26,10 @@ export const DEL_REGEX: RegExp = /^DELETE$/
 export const NUM_REGEX = /^(\d+)(, ?\d+)*(,)?$/
 export const CUR_REGEX = /^\d*\.?\d*$/
 export const DIE_REGEX = /^(\d+)d(4|6|8|10|12|20|100)?$/
-export const ROLL_CONFIG_REGEX = /^(\d+)d(4|6|8|10|12|20|100)(?:(kh|kl)(\d+))?(dh|dl)?(\d+)?(?:(r|ro)([><=])?(\d+))?$/
+export const ROLL_CONFIG_REGEX =
+  /(?<quantity>\d+)?(?:d(?<die>(4|6|8|10|12|20|100))?)?(?<keep>(?<keepType>(?:kl|kh))?(?<keepCount>\d+))?(?<drop>(?<dropType>(?:dl|dh))?(?<dropCount>\d+))?(?<reroll>(?<rerollType>(?:ro|r))?(?<rerollCondition>[<>])?(?<rerollValue>\d+)?)?/
 
-export const sectionSteps = ['modifiers', 'spells', 'proficiencies', 'expertise', 'senses', 'feats'] as const
-
-export const FEATURE_TYPES = ['feature', 'option', 'ancestry', 'ancestryOption'] as const
+export const SECTION_STEPS = ['modifiers', 'spells', 'proficiencies', 'expertise', 'senses', 'feats'] as const
 
 function isNonNullable<T>(value: T): value is NonNullable<T> {
   return value !== null && value !== undefined
@@ -113,76 +112,6 @@ export const getKeyFromId = <T extends Record<string, string>, K extends keyof T
   return camelCaseKey as CamelCase<K>
 }
 
-export const validateForm = (resetValidation: boolean = false): { isValid: boolean; invalidFields: string[] } => {
-  if (resetValidation) {
-    document.dispatchEvent(new CustomEvent('setErrorState', { detail: false }))
-  }
-
-  const invalidFields: string[] = []
-
-  // Validate required dropdowns
-  const requiredDropdowns: NodeListOf<Element> = document.querySelectorAll('[aria-required]')
-  requiredDropdowns.forEach((element: Element) => {
-    if (element && element.getAttribute('aria-required') === 'true') {
-      if (element.hasAttribute('data-atapp-options')) {
-        const isValidDropdown = element.getAttribute('data-atapp-options') === 'true'
-
-        element.dispatchEvent(
-          new CustomEvent('setErrorState', {
-            detail: !isValidDropdown,
-          })
-        )
-
-        if (!isValidDropdown) {
-          const name = element.getAttribute('name')
-          if (name) invalidFields.push(name)
-        }
-      }
-    }
-  })
-
-  // Validate required inputs
-  const requiredInputs: NodeListOf<Element> = document.querySelectorAll('[required]')
-  requiredInputs.forEach((element: Element) => {
-    if (element) {
-      const value: string = (element as HTMLInputElement).value
-      const name = element.getAttribute('name')
-      const isRequired = element.hasAttribute('required')
-      let isValidInput = value !== '' && isRequired
-
-      if (element.hasAttribute('data-atapp-validation')) {
-        const validation: string | null = element.getAttribute('data-atapp-validation')
-
-        if (isValidInput) {
-          isValidInput =
-            (validation === 'user' && USER_REGEX.test(value)) ||
-            (validation === 'pwd' && PWD_REGEX.test(value)) ||
-            (validation === 'del' && DEL_REGEX.test(value)) ||
-            (validation === 'num' && NUM_REGEX.test(value)) ||
-            (validation === 'cur' && CUR_REGEX.test(value)) ||
-            (validation === 'die' && DIE_REGEX.test(value)) ||
-            (validation === 'roll' && ROLL_CONFIG_REGEX.test(value))
-        }
-      }
-
-      element.dispatchEvent(
-        new CustomEvent('setErrorState', {
-          detail: !isValidInput,
-        })
-      )
-
-      if (!isValidInput && name) {
-        invalidFields.push(name)
-      }
-    }
-  })
-
-  return {
-    isValid: invalidFields.length === 0,
-    invalidFields,
-  }
-}
-
 export const calculateModifier = (score: number, type: 'bonus' | 'modifier'): string => {
   let scoreString: string = ''
   if (!score) {
@@ -235,7 +164,7 @@ export const calculateHitpoints = (formData: CharacterInput, primaryClass: Class
     maxHitpoints: formData?.hitpoint?.maxHitpoints || null,
   })
 
-  const { die = null } = parseDiceRoll(primaryClass?.hitpoint?.dieConfig as RollConfig) || {}
+  const { die = null } = parseDiceRoll(primaryClass?.hitpoint?.dieConfig || '') || {}
   const classLevel = formData?.classes?.[0]?.level
 
   if (classLevel && die) {

@@ -17,10 +17,11 @@ const useFeatData = () => {
       },
       findFeats: (ids?: string[] | null) => {
         if (!ids || !ids.length) return null
-        return suspenseQueries({
+        const result = suspenseQueries({
           queries: ids.map((id) => fetchFeat(id)),
           combine: (results) => results.map((result) => result.data),
         })
+        return result
       },
     }),
     metaData,

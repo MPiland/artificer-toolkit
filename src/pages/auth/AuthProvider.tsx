@@ -51,10 +51,18 @@ const useAuthOptions = () => {
             }
             setIsAuthenticating(false)
             if (session.tokens?.idToken?.payload?.['init-data-complete'] !== 'true') {
+              console.log('init user data')
               const email = session.tokens?.idToken?.payload?.email as string
               const userId = session.tokens?.idToken?.payload?.sub
               if (email && userId) {
-                await initUserData({ email, userId })
+                try {
+                  await initUserData({ email, userId })
+                  console.log('init user data complete')
+                } catch (err) {
+                  if (import.meta.env.DEV) {
+                    console.log('Error initializing user data:', err)
+                  }
+                }
               }
             }
             setIsLoading(false)

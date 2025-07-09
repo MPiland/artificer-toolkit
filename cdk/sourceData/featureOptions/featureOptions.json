@@ -1,7 +1,6 @@
 [
   {
     "desc": "<p>While you are wearing armor, you gain a +1 bonus to AC.</p>",
-    "value": "defense",
     "label": "Defense",
     "attributes": [
       "40a91f3a-8909-4593-8a5f-b66b364602bb"
@@ -24,7 +23,6 @@
   },
   {
     "desc": "<p>When you are wielding a melee weapon in one hand and no other weapons, you gain a +2 bonus to damage rolls with that weapon.</p>",
-    "value": "dueling",
     "label": "Dueling",
     "attributes": [
       "40a91f3a-8909-4593-8a5f-b66b364602bb"
@@ -59,7 +57,6 @@
   },
   {
     "desc": "<p>When you roll a 1 or 2 on a damage die for an attack you make with a melee weapon that you are wielding with two hands, you can reroll the die and must use the new roll, even if the new roll is a 1 or a 2. The weapon must have the two-handed or versatile property for you to gain this benefit.</p>",
-    "value": "greatWeaponFighting",
     "label": "Great Weapon Fighting",
     "attributes": [
       "40a91f3a-8909-4593-8a5f-b66b364602bb"
@@ -84,7 +81,6 @@
   },
   {
     "desc": "<p>When a creature you can see attacks a target other than you that is within 5 feet of you, you can use your reaction to impose disadvantage on the attack roll. You must be wielding a shield.</p>",
-    "value": "protection",
     "label": "Protection",
     "attributes": [
       "40a91f3a-8909-4593-8a5f-b66b364602bb",
@@ -115,7 +111,6 @@
   },
   {
     "desc": "<p>When you engage in two-weapon fighting, you can add your ability modifier to the damage of the second attack.</p>",
-    "value": "twoWeaponFighting",
     "label": "Two-Weapon Fighting",
     "attributes": [
       "40a91f3a-8909-4593-8a5f-b66b364602bb"
@@ -148,14 +143,12 @@
   },
   {
     "desc": "<p>When you engage in two-weapon fighting, you can add your ability modifier to the damage of the second attack.</p>",
-    "value": "twoWeaponFighting",
     "label": "Two-Weapon Fighting",
     "levelAvailable": "2",
     "id": "d12eef75-5406-4f0a-aec4-7a3081ddcefd"
   },
   {
     "desc": "<p>Choose two of your skill proficiencies.</p>",
-    "value": "skills",
     "label": "Skills",
     "id": "73b028f1-fd85-4b63-a343-a490851eec28",
     "expertise": [
@@ -166,7 +159,6 @@
   },
   {
     "desc": "<p>Choose one of your skill proficiencies and Thieves' Tool.</p>",
-    "value": "skillAndTool",
     "label": "Skill and Tool",
     "id": "85e55750-50b7-4b5e-947d-e6497fed4e7d",
     "attributes": [
@@ -185,7 +177,6 @@
   },
   {
     "desc": "<p>When you cast a spell that forces other creatures to make a saving throw, you can protect some of those creatures from the spell’s full force. To do so, you spend 1 sorcery point and choose a number of those creatures up to your Charisma modifier (minimum of one creature). A chosen creature automatically succeeds on its saving throw against the spell.</p>",
-    "value": "carefulSpell",
     "label": "Careful Spell",
     "levelAvailable": "3",
     "attributes": [
@@ -199,7 +190,6 @@
   },
   {
     "desc": "<p>When you cast a spell that has a range of 5 feet or greater, you can spend 1 sorcery point to double the range of the spell.</p><p>When you cast a spell that has a range of touch, you can spend 1 sorcery point to make the range of the spell 30 feet.</p>",
-    "value": "distantSpell",
     "label": "Distant Spell",
     "levelAvailable": "3",
     "attributes": [
@@ -213,7 +203,6 @@
   },
   {
     "desc": "<p>When you roll damage for a spell, you can spend 1 sorcery point to reroll a number of the damage dice up to your Charisma modifier (minimum of one). You must use the new rolls.</p><p>You can use Empowered Spell even if you have already used a different Metamagic option during the casting of the spell.</p>",
-    "value": "empoweredSpell",
     "label": "Empowered Spell",
     "levelAvailable": "3",
     "attributes": [
@@ -227,7 +216,6 @@
   },
   {
     "desc": "<p>When you cast a spell that has a duration of 1 minute or longer, you can spend 1 sorcery point to double its duration, to a maximum duration of 24 hours.</p>",
-    "value": "extendedSpell",
     "label": "Extended Spell",
     "levelAvailable": "3",
     "attributes": [
@@ -241,7 +229,6 @@
   },
   {
     "desc": "<p>When you cast a spell that forces a creature to make a saving throw to resist its effects, you can spend 3 sorcery points to give one target of the spell disadvantage on its first saving throw made against the spell.</p>",
-    "value": "heightenedSpell",
     "label": "Heightened Spell",
     "levelAvailable": "3",
     "attributes": [
@@ -255,7 +242,6 @@
   },
   {
     "desc": "<p>When you cast a spell that has a casting time of 1 action, you can spend 2 sorcery points to change the casting time to 1 bonus action for this casting.</p>",
-    "value": "quickenedSpell",
     "label": "Quickened Spell",
     "levelAvailable": "3",
     "attributes": [
@@ -269,7 +255,6 @@
   },
   {
     "desc": "<p>When you cast a spell, you can spend 1 sorcery point to cast it without any somatic or verbal components.</p>",
-    "value": "subtleSpell",
     "label": "Subtle Spell",
     "levelAvailable": "3",
     "attributes": [
@@ -283,7 +268,6 @@
   },
   {
     "desc": "<p>When you cast a spell that targets only one creature and doesn’t have a range of self, you can spend a number of sorcery points equal to the spell’s level to target a second creature in range with the same spell (1 sorcery point if the spell is a cantrip).</p><p>To be eligible, a spell must be incapable of targeting more than one creature at the spell’s current level. For example, <em>magic missile</em>&nbsp;and <em>scorching ray</em> aren’t eligible, but <em>ray of frost</em> and <em>chromatic orb</em> are.</p>",
-    "value": "twinnedSpell",
     "label": "Twinned Spell",
     "levelAvailable": "3",
     "attributes": [
@@ -297,7 +281,6 @@
   },
   {
     "desc": "<p>When you cast <em>eldritch blast</em>, add your Charisma modifier to the damage it deals on a hit.</p>",
-    "value": "agonizingBlast",
     "label": "Agonizing Blast",
     "levelAvailable": "2",
     "attributes": [
@@ -321,7 +304,6 @@
   },
   {
     "desc": "<p>You can cast <em>mage armor</em> on yourself at will, without expending a spell slot or material components.</p>",
-    "value": "armorOfShadows",
     "label": "Armor of Shadows",
     "attributes": [
       "40a91f3a-8909-4593-8a5f-b66b364602bb"
@@ -358,7 +340,6 @@
   },
   {
     "desc": "<p>You can cast levitate on yourself at will, without expending a spell slot or material components.</p>",
-    "value": "ascendantStep",
     "label": "Ascendant Step",
     "attributes": [
       "40a91f3a-8909-4593-8a5f-b66b364602bb"
@@ -395,7 +376,6 @@
   },
   {
     "desc": "<p>You can cast speak with animals at will, without expending a spell slot.</p>",
-    "value": "beastSpeech",
     "label": "Beast Speech",
     "attributes": [
       "40a91f3a-8909-4593-8a5f-b66b364602bb"
@@ -432,7 +412,6 @@
   },
   {
     "desc": "<p>You gain proficiency in the Deception and Persuasion skills.</p>",
-    "value": "beguilingInfluence",
     "label": "Beguiling Influence",
     "levelAvailable": "2",
     "attributes": [
@@ -450,7 +429,6 @@
   },
   {
     "desc": "<p>You can cast compulsion once using a warlock spell slot. You can’t do so again until you finish a long rest.</p>",
-    "value": "bewitchingWhispers",
     "label": "Bewitching Whispers",
     "levelAvailable": "7",
     "attributes": [
@@ -487,7 +465,6 @@
   },
   {
     "desc": "<p>You can now inscribe magical rituals in your Book of Shadows. Choose two 1st-level spells that have the ritual tag from any class’s spell list (the two needn’t be from the same list). The spells appear in the book and don’t count against the number of spells you know. With your Book of Shadows in hand, you can cast the chosen spells as rituals. You can’t cast the spells except as rituals, unless you’ve learned them by some other means. You can also cast a warlock spell you know as a ritual if it has the ritual tag.</p><p>On your adventures, you can add other ritual spells to your Book of Shadows. When you find such a spell, you can add it to the book if the spell’s level is equal to or less than half your warlock level (rounded up) and if you can spare the time to transcribe the spell. For each level of the spell, the transcription process takes 2 hours and costs 50 gp for the rare inks needed to inscribe it.</p>",
-    "value": "bookOfAncientSecrets",
     "label": "Book of Ancient Secrets",
     "levelAvailable": "2",
     "attributes": [
@@ -528,7 +505,6 @@
   },
   {
     "desc": "<p>You can cast hold monster at will—targeting a celestial, fiend, or elemental—without expending a spell slot or material components. You must finish a long rest before you can use this invocation on the same creature again.</p>",
-    "value": "chainsOfCarceri",
     "label": "Chains of Carceri",
     "levelAvailable": "15",
     "attributes": [
@@ -569,7 +545,6 @@
   },
   {
     "desc": "<p>You can see normally in darkness, both magical and nonmagical, to a distance of 120 feet.</p>",
-    "value": "devilsSight",
     "label": "Devil's Sight",
     "levelAvailable": "2",
     "attributes": [
@@ -588,7 +563,6 @@
   },
   {
     "desc": "<p>You can cast confusion once using a warlock spell slot. You can’t do so again until you finish a long rest.</p>",
-    "value": "dreadfulWord",
     "label": "Dreadful Word",
     "attributes": [
       "40a91f3a-8909-4593-8a5f-b66b364602bb"
@@ -625,7 +599,6 @@
   },
   {
     "desc": "<p>You can cast detect magic at will, without expending a spell slot.</p>",
-    "value": "eldritchSight",
     "label": "Eldritch Sight",
     "levelAvailable": "2",
     "attributes": [
@@ -662,7 +635,6 @@
   },
   {
     "desc": "<p>When you cast eldritch blast, its range is 300 feet.</p>",
-    "value": "eldritchSpear",
     "label": "Eldritch Spear",
     "levelAvailable": "2",
     "attributes": [
@@ -686,7 +658,6 @@
   },
   {
     "desc": "<p>You can read all writing.</p>",
-    "value": "eyesOfTheRuneKeeper",
     "label": "Eyes of the Rune Keeper",
     "levelAvailable": "2",
     "attributes": [
@@ -701,7 +672,6 @@
   },
   {
     "desc": "<p>You can cast false life on yourself at will as a 1st-level spell, without expending a spell slot or material components.</p>",
-    "value": "fiendishVigor",
     "label": "Fiendish Vigor",
     "levelAvailable": "2",
     "id": "ead58838-3121-49b6-ba08-e563fd8bf79d",
@@ -738,7 +708,6 @@
   },
   {
     "desc": "<p>You can use your action to touch a willing humanoid and perceive through its senses until the end of your next turn. As long as the creature is on the same plane of existence as you, you can use your action on subsequent turns to maintain this connection, extending the duration until the end of your next turn. While perceiving through the other creature’s senses, you benefit from any special senses possessed by that creature, and you are blinded and deafened to your own surroundings.</p>",
-    "value": "gazeOfTwoMinds",
     "label": "Gaze of Two Minds",
     "levelAvailable": "2",
     "prerequisites": {
@@ -759,7 +728,6 @@
   },
   {
     "desc": "<p>When you hit a creature with your pact weapon, the creature takes extra necrotic damage equal to your Charisma modifier (minimum 1).</p>",
-    "value": "lifedrinker",
     "label": "Lifedrinker",
     "levelAvailable": "2",
     "attributes": [
@@ -783,7 +751,6 @@
   },
   {
     "desc": "<p>You can cast disguise self at will, without expending a spell slot.</p>",
-    "value": "maskOfManyFaces",
     "label": "Mask of Many Faces",
     "levelAvailable": "2",
     "attributes": [
@@ -820,7 +787,6 @@
   },
   {
     "desc": "<p>You can cast alter self at will, without expending a spell slot.</p>",
-    "value": "masterOfMyriadForms",
     "label": "Master of Myriad Forms",
     "levelAvailable": "15",
     "attributes": [
@@ -857,7 +823,6 @@
   },
   {
     "desc": "<p>You can cast conjure elemental once using a warlock spell slot. You can’t do so again until you finish a long rest.</p>",
-    "value": "minionsOfChaos",
     "label": "Minions of Chaos",
     "levelAvailable": "9",
     "attributes": [
@@ -894,7 +859,6 @@
   },
   {
     "desc": "<p>You can cast slow once using a warlock spell slot. You can’t do so again until you finish a long rest.</p>",
-    "value": "mireTheMind",
     "label": "Mire the Mind",
     "levelAvailable": "5",
     "attributes": [
@@ -931,7 +895,6 @@
   },
   {
     "desc": "<p>You can cast silent image at will, without expending a spell slot or material components.</p>",
-    "value": "mistyVisions",
     "label": "Misty Visions",
     "levelAvailable": "2",
     "attributes": [
@@ -968,7 +931,6 @@
   },
   {
     "desc": "<p>When you are in an area of dim light or darkness, you can use your action to become invisible until you move or take an action or a reaction.</p>",
-    "value": "oneWithShadows",
     "label": "One with Shadows",
     "levelAvailable": "5",
     "attributes": [
@@ -989,7 +951,6 @@
   },
   {
     "desc": "<p>You can cast jump on yourself at will, without expending a spell slot or material components.</p>",
-    "value": "otherworldlyLeap",
     "label": "Otherworldly Leap",
     "levelAvailable": "9",
     "attributes": [
@@ -1026,7 +987,6 @@
   },
   {
     "desc": "<p>When you hit a creature with eldritch blast, you can push the creature up to 10 feet away from you in a straight line.</p>",
-    "value": "repellingBlast",
     "label": "Repelling Blast",
     "levelAvailable": "2",
     "attributes": [
@@ -1045,7 +1005,6 @@
   },
   {
     "desc": "<p>You can cast polymorph once using a warlock spell slot. You can’t do so again until you finish a long rest.</p>",
-    "value": "sculptorOfFlesh",
     "label": "Sculptor of Flesh",
     "levelAvailable": "7",
     "attributes": [
@@ -1082,7 +1041,6 @@
   },
   {
     "desc": "<p>You can cast bestow curse once using a warlock spell slot. You can’t do so again until you finish a long rest.</p>",
-    "value": "signOfIllOmen",
     "label": "Sign of Ill Omen",
     "levelAvailable": "5",
     "attributes": [
@@ -1119,7 +1077,6 @@
   },
   {
     "desc": "<p>You can cast bane once using a warlock spell slot. You can’t do so again until you finish a long rest.</p>",
-    "value": "thiefOfFiveFates",
     "label": "Thief of Five Fates",
     "levelAvailable": "2",
     "attributes": [
@@ -1156,7 +1113,6 @@
   },
   {
     "desc": "<p>You can attack with your pact weapon twice, instead of once, whenever you take the Attack action on your turn.</p>",
-    "value": "thirstingBlade",
     "label": "Thirsting Blade",
     "levelAvailable": "5",
     "attributes": [
@@ -1175,7 +1131,6 @@
   },
   {
     "desc": "<p>You can cast arcane eye at will, without expending a spell slot.</p>",
-    "value": "visionsOfDistantRealms",
     "label": "Visions of Distant Realms",
     "levelAvailable": "15",
     "attributes": [
@@ -1212,7 +1167,6 @@
   },
   {
     "desc": "<p>You can communicate telepathically with your familiar and perceive through your familiar’s senses as long as you are on the same plane of existence. Additionally, while perceiving through your familiar’s senses, you can also speak through your familiar in your own voice, even if your familiar is normally incapable of speech.</p>",
-    "value": "voiceOfTheChainMaster",
     "label": "Voice of the Chain Master",
     "levelAvailable": "2",
     "attributes": [
@@ -1231,7 +1185,6 @@
   },
   {
     "desc": "<p>You can cast speak with dead at will, without expending a spell slot.</p>",
-    "value": "whispersOfTheGrave",
     "label": "Whispers of the Grave",
     "levelAvailable": "9",
     "attributes": [
@@ -1268,7 +1221,6 @@
   },
   {
     "desc": "<p>You can see the true form of any shapechanger or creature concealed by illusion or transmutation magic while the creature is within 30 feet of you and within line of sight.</p>",
-    "value": "witchSight",
     "label": "Witch Sight",
     "attributes": [
       "40a91f3a-8909-4593-8a5f-b66b364602bb"
@@ -1287,7 +1239,6 @@
   },
   {
     "desc": "<p>You can use your action to create a pact weapon in your empty hand. You can choose the form that this melee weapon takes each time you create it (see the Weapons section&nbsp;for weapon options). You are proficient with it while you wield it. This weapon counts as magical for the purpose of overcoming resistance and immunity to nonmagical attacks and damage.</p><p>Your pact weapon disappears if it is more than 5 feet away from you for 1 minute or more. It also disappears if you use this feature again, if you dismiss the weapon (no action required), or if you die.</p><p>You can transform one magic weapon into your pact weapon by performing a special ritual while you hold the weapon. You perform the ritual over the course of 1 hour, which can be done during a short rest. You can then dismiss the weapon, shunting it into an extradimensional space, and it appears whenever you create your pact weapon thereafter. You can’t affect an artifact or a sentient weapon in this way. The weapon ceases being your pact weapon if you die, if you perform the 1-hour ritual on a different weapon, or if you use a 1-hour ritual to break your bond to it. The weapon appears at your feet if it is in the extradimensional space when the bond breaks.</p>",
-    "value": "pactOfTheBlade",
     "label": "Pact of the Blade",
     "levelAvailable": "3",
     "attributes": [
@@ -1302,21 +1253,18 @@
   },
   {
     "desc": "<p>You learn the <em>find familiar</em> spell and can cast it as a ritual. The spell doesn’t count against your number of spells known.</p><p>When you cast the spell, you can choose one of the normal forms for your familiar or one of the following special forms: imp, pseudodragon, quasit, or sprite.</p><p>Additionally, when you take the Attack action, you can forgo one of your own attacks to allow your familiar to make one attack with its reaction.</p>",
-    "value": "pactOfTheChain",
     "label": "Pact of the Chain",
     "levelAvailable": "3",
     "id": "7436bad8-4e7c-4164-9a6a-d1600388bb21"
   },
   {
     "desc": "<p>Your patron gives you a grimoire called a Book of Shadows. When you gain this feature, choose three cantrips from any class’s spell list (the three needn’t be from the same list). While the book is on your person, you can cast those cantrips at will. They don’t count against your number of cantrips known. If they don’t appear on the warlock spell list, they are nonetheless warlock spells for you.</p><p>If you lose your Book of Shadows, you can perform a 1-hour ceremony to receive a replacement from your patron. This ceremony can be performed during a short or long rest, and it destroys the previous book. The book turns to ash when you die.</p>",
-    "value": "pactOfTheTome",
     "label": "Pact of the Tome",
     "levelAvailable": "3",
     "id": "e7720a82-404d-4ead-bb98-e0dcd10a277f"
   },
   {
     "desc": "<p>You gain a +2 bonus to attack rolls you make with ranged weapons.</p>",
-    "value": "archery",
     "label": "Archery",
     "attributes": [
       "40a91f3a-8909-4593-8a5f-b66b364602bb"
@@ -1333,14 +1281,12 @@
   },
   {
     "desc": "<p>Your tenacity can wear down the most potent foes. When you hit a creature with a weapon attack, the creature takes an extra 1d8 damage if it’s below its hit point maximum. You can deal this extra damage only once per turn.</p>",
-    "value": "colossusSlayer",
     "label": "Colossus Slayer",
     "levelAvailable": "3",
     "id": "bf18b841-2ba2-4255-9b58-f790b5f1bde0"
   },
   {
     "desc": "<p>When a Large or larger creature within 5 feet of you hits or misses you with an attack, you can use your reaction to attack that creature immediately after its attack, provided that you can see the creature.</p>",
-    "value": "giantKiller",
     "label": "Giant Killer",
     "levelAvailable": "3",
     "attributes": [
@@ -1355,28 +1301,24 @@
   },
   {
     "desc": "<p>Once on each of your turns when you make a weapon attack, you can make another attack with the same weapon against a different creature that is within 5 feet of the original target and within range of your weapon.</p>",
-    "value": "hordeBreaker",
     "label": "Horde Breaker",
     "levelAvailable": "3",
     "id": "6f1a1abf-2887-4c8e-96af-fcf006bcf337"
   },
   {
     "desc": "<p>Opportunity attacks against you are made with disadvantage.</p>",
-    "value": "escapeTheHorde",
     "label": "Escape the Horde",
     "levelAvailable": "7",
     "id": "c6d19178-fb96-4430-bad1-39eed5b3703b"
   },
   {
     "desc": "<p>When a creature hits you with an attack, you gain a +4 bonus to AC against all subsequent attacks made by that creature for the rest of the turn.</p>",
-    "value": "multiattackDefense",
     "label": "Multiattack Defense",
     "levelAvailable": "7",
     "id": "f933690a-f071-4234-a1bd-c9e09eef926e"
   },
   {
     "desc": "<p>You have advantage on saving throws against being frightened.</p>",
-    "value": "steelWill",
     "label": "Steel Will",
     "levelAvailable": "7",
     "modifiers": [
@@ -1386,7 +1328,6 @@
   },
   {
     "desc": "<p>You can use your action to make a ranged attack against any number of creatures within 10 feet of a point you can see within your weapon’s range. You must have ammunition for each target, as normal, and you make a separate attack roll for each target.</p>",
-    "value": "volley",
     "label": "Volley",
     "levelAvailable": "11",
     "attributes": [
@@ -1401,7 +1342,6 @@
   },
   {
     "desc": "<p>You can use your action to make a melee attack against any number of creatures within 5 feet of you, with a separate attack roll for each target.</p>",
-    "value": "whirlwindAttack",
     "label": "Whirlwind Attack",
     "levelAvailable": "11",
     "attributes": [
@@ -1416,14 +1356,12 @@
   },
   {
     "desc": "<p>When you are subjected to an effect, such as a red dragon’s fiery breath or a <em>lightning bolt</em> spell, that allows you to make a Dexterity saving throw to take only half damage, you instead take no damage if you succeed on the saving throw, and only half damage if you fail.</p>",
-    "value": "evasion",
     "label": "Evasion",
     "levelAvailable": "15",
     "id": "ac47a9ec-9d07-4241-8999-f0f313ab343c"
   },
   {
     "desc": "<p>When a hostile creature misses you with a melee attack, you can use your reaction to force that creature to repeat the same attack against another creature (other than itself) of your choice.</p>",
-    "value": "standAgainstTheTide",
     "label": "Stand Against the Tide",
     "levelAvailable": "15",
     "attributes": [
@@ -1438,7 +1376,6 @@
   },
   {
     "desc": "<p>When an attacker that you can see hits you with an attack, you can use your reaction to halve the attack’s damage against you.</p>",
-    "value": "uncannyDodge",
     "label": "Uncanny Dodge",
     "levelAvailable": "15",
     "attributes": [

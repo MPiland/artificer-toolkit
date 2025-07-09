@@ -2,12 +2,12 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { loadSchema } from '@graphql-tools/load'
 import { GraphQLFileLoader } from '@graphql-tools/graphql-file-loader'
-import type { GraphQLObjectType } from 'graphql'
+import type { GraphQLArgument, GraphQLObjectType } from 'graphql'
 
 // Unwrap nested GraphQL types (e.g. NonNull, List)
-const unwrapTypeName = (type: any): string => {
+const unwrapTypeName = (type: GraphQLArgument['type']): string => {
   let t = type
-  while (t.ofType) {
+  while (t && 'ofType' in t) {
     t = t.ofType
   }
   return t.name
@@ -64,7 +64,7 @@ const generateMappingFile = async (schemasFilePath: string, outputPath: string, 
   const discriminatedDomainSchemaLines = typeToSchemaMapEntries
     .map((entry) => {
       const match = entry.match(/"(\w+)": "(\w+)"/)
-      if (!match || entry.includes('Feature') || entry.includes('System')) return null
+      if (!match || entry.includes('Feature') || entry.includes('Option') || entry.includes('System')) return null
       const [, schemaFnName] = match
       return `  schemas.${schemaFnName}Schema`
     })
@@ -73,7 +73,7 @@ const generateMappingFile = async (schemasFilePath: string, outputPath: string, 
   const discriminatedFeatureSchemaLines = typeToSchemaMapEntries
     .map((entry) => {
       const match = entry.match(/"(\w+)": "(\w+)"/)
-      if (!match || !entry.includes('Feature')) return null
+      if (!match || (!entry.includes('Feature') && !entry.includes('Option'))) return null
       const [, schemaFnName] = match
       return `  schemas.${schemaFnName}Schema`
     })

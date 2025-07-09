@@ -1,11 +1,11 @@
 type ModifierDiePerLevel {
-  level: String
-  dieConfig: String
+  level: Int!
+  dieConfig: String!
 }
 
 type ModifierSetPerLevel {
-  level: String
-  setAmount: Int
+  level: Int!
+  setAmount: Int!
 }
 
 type FeatureModifier {
@@ -30,7 +30,7 @@ type FeatureModifier {
   saveAbilities: [ID!]
   abilities: [ID!]
   speeds: [ID!]
-  charge: Charge
+  charges: Charge
   range: ID
   minRange: Int
   maxRange: Int

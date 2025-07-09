@@ -16,7 +16,7 @@ export const fetchSystems = () => {
       let nextToken = null
       let allData: SystemListItem[] = []
 
-      const { client, master } = await getClient()
+      const { domainClient, master } = await getClient()
 
       // Create a union type for the variables
       type ListVariables = QueryListMasterSystemsArgs | QueryListSystemsArgs
@@ -34,7 +34,7 @@ export const fetchSystems = () => {
 
       try {
         do {
-          const { data } = await client.graphql({
+          const { data } = await domainClient.graphql({
             query: operation,
             variables: variables,
           })
@@ -51,11 +51,10 @@ export const fetchSystems = () => {
             label: system.label,
           }))
         }
-
         return []
       } catch (error) {
         console.error('Error fetching systems:', error)
-        throw error
+        return []
       }
     },
   })
@@ -65,7 +64,7 @@ export const fetchSystem = (systemPref: string) => {
   return queryOptions({
     queryKey: systemsKeys.single(systemPref),
     queryFn: async () => {
-      const { client, master } = await getClient()
+      const { domainClient, master } = await getClient()
 
       if (!systemPref) {
         throw 'System preference not found'
@@ -79,7 +78,7 @@ export const fetchSystem = (systemPref: string) => {
 
         const operation = master ? getMasterSystem : getSystem
 
-        const { data } = await client.graphql({
+        const { data } = await domainClient.graphql({
           query: operation,
           variables: {
             id: systemPref,
@@ -93,7 +92,7 @@ export const fetchSystem = (systemPref: string) => {
         }
       } catch (error) {
         console.error('Error fetching systems:', error)
-        throw error
+        return null
       }
     },
   })

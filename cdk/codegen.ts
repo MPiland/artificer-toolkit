@@ -14,21 +14,10 @@ const config: CodegenConfig = {
       },
       plugins: ['typescript', 'typescript-enum-array'],
     },
-    '../src/Zod/schemas.ts': {
-      config: {
-        schema: 'zod/v4',
-        importFrom: '@/types',
-        inputDiscriminator: '__kind',
-        validationSchemaExportType: 'const',
-        lazyStrategy: 'circular',
-        separateSchemaObject: true,
-      },
-      plugins: ['typescript-validation-schema'],
-    },
   },
   hooks: {
     afterAllFileWrite: [
-      'npx ts-node codegenScripts/genInputDisc.ts && npx ts-node codegenScripts/genOps.ts && npx ts-node codegenScripts/genSchemaMapping.ts',
+      'npx ts-node codegenScripts/genInputDisc.ts && npx ts-node codegenScripts/genOps.ts && npx ts-node codegenScripts/genZod.ts && npx ts-node codegenScripts/genSchemaMapping.ts',
     ],
   },
 }

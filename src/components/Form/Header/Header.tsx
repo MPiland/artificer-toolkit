@@ -1,13 +1,11 @@
-import Button from '@/components/Button'
-import { use } from 'react'
-import { FormContext } from '../FormContext'
 import ProgressBar from './ProgressBar'
-import CharacterHeader from './CharacterHeader'
 import { sprinkles } from '@/css/sprinkles.css'
-import { Grid, Group } from '@mantine/core'
+import { Grid, Group, Button } from '@mantine/core'
+import { useFormStore } from '@/store'
 
 const Header = () => {
-  const { formStore, addClass, changeRace, stepIndex, errorMessage, successMessage, steps } = use(FormContext)
+  const formStore = useFormStore()
+  const { addClass, changeRace, stepIndex, steps } = formStore
 
   return (
     <Grid className={sprinkles({ mb: 'space-4' })}>
@@ -15,13 +13,13 @@ const Header = () => {
       <Grid.Col>
         <Group justify='space-between'>
           <h1>
-            {`${formStore.data.id == null ? 'Create' : formStore.data.__typename} ${
-              formStore.data.__typename === 'Character' ? ' An ' : ' A '
+            {`${formStore.current?.id == null ? 'Create' : formStore.current?.__kind} ${
+              formStore.current?.__kind === 'CharacterInput' ? ' An ' : ' A '
             }`}
-            {formStore.data.__typename}
-            {formStore.data?.label && ` (${formStore.data.label})`}
+            {formStore.current?.__kind}
+            {formStore.current?.label && ` (${formStore.current?.label})`}
           </h1>
-          {formStore.data.__typename === 'Character' && (
+          {formStore.current?.__kind === 'CharacterInput' && (
             <>
               {steps[stepIndex]?.label === 'Race' &&
                 (!changeRace ?
@@ -41,7 +39,7 @@ const Header = () => {
                   >
                     Keep Race
                   </Button>)}
-              {formStore.data.classes?.length &&
+              {formStore.current?.classes?.length &&
                 steps[stepIndex].label === 'Class' &&
                 (!addClass ?
                   <Button
@@ -63,10 +61,7 @@ const Header = () => {
             </>
           )}
         </Group>
-        {errorMessage && <span>{errorMessage}</span>}
-        {successMessage && <span>{successMessage}</span>}
       </Grid.Col>
-      {formStore.data.__typename === 'Character' && <CharacterHeader />}
     </Grid>
   )
 }

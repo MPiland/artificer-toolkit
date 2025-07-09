@@ -1,81 +1,64 @@
 import { create } from 'zustand'
-import { addField, removeField, updateField, reset } from './utils'
-import type { FeatureOptionInput, DeepKeyOf } from '@/types'
-import { produce } from 'immer'
+import type { FeatureOptionInput } from '@/types'
 import { persist } from 'zustand/middleware'
+import type { DeepKeys } from '@tanstack/react-form'
+import { updateField, removeField } from './utils'
 
 export interface OptionStore {
-  data: FeatureOptionInput
-  index: number
-  initData: FeatureOptionInput
-  updateField: (arg: { path: DeepKeyOf<FeatureOptionInput>; value: any }) => void
-  addField: (arg: { path: DeepKeyOf<FeatureOptionInput>; value?: any }) => void
-  removeField: (arg: { path: DeepKeyOf<FeatureOptionInput> }) => void
-  resetData: (arg: { value: FeatureOptionInput }) => void
-  resetInit: (arg: { value: FeatureOptionInput }) => void
-  setIndex: (arg: { value: number }) => void
-  reinitState: (value?: FeatureOptionInput) => void
+  current: FeatureOptionInput | null
+  added: Map<string, FeatureOptionInput>
+  edited: Map<string, FeatureOptionInput>
+  removed: Set<string>
+  setCurrent: (arg: FeatureOptionInput | null) => void
+  upsertAdded: (arg: FeatureOptionInput) => void
+  upsertEdited: (arg: FeatureOptionInput) => void
+  remove: (id: string) => void
+  updateField<T>(arg: { path: DeepKeys<T>; value: unknown }): void
+  removeField<T>(arg: { path: DeepKeys<T> }): void
 }
 
 export const useOptionStore = create<OptionStore>()(
   persist(
     (set) => {
-      const defaultState: Pick<OptionStore, 'data' | 'initData' | 'index'> = {
-        data: {} as FeatureOptionInput,
-        initData: {} as FeatureOptionInput,
-        index: 0,
-      }
-
       return {
-        ...defaultState,
-
-        addField: ({ path, value }) =>
-          set((state: OptionStore) =>
-            addField<OptionStore, FeatureOptionInput>({ path, value, selector: (state) => state.data })(state)
-          ),
-
-        removeField: ({ path }) =>
-          set((state: OptionStore) =>
-            removeField<OptionStore, FeatureOptionInput>({ path, selector: (state) => state.data })(state)
-          ),
-
+        current: null,
+        added: new Map<string, FeatureOptionInput>(),
+        edited: new Map<string, FeatureOptionInput>(),
+        removed: new Set<string>(),
+        setCurrent: (value) => set((state) => ({ ...state, current: value })),
+        upsertAdded: (option) =>
+          set((state) => {
+            const newMap = new Map(state.added)
+            newMap.set(option.id, option)
+            return { added: newMap }
+          }),
+        upsertEdited: (option) =>
+          set((state) => {
+            const newMap = new Map(state.edited)
+            newMap.set(option.id, option)
+            return { edited: newMap }
+          }),
+        remove: (id: string) =>
+          set((state) => {
+            const newSet = new Set(state.removed)
+            newSet.add(id)
+            return { removed: newSet }
+          }),
         updateField: ({ path, value }) =>
           set((state: OptionStore) =>
-            updateField<OptionStore, FeatureOptionInput>({ path, value, selector: (state) => state.data })(state)
+            updateField<OptionStore, FeatureOptionInput>({
+              path,
+              value,
+              selector: (state) => state.current as FeatureOptionInput,
+            })(state)
           ),
-
-        resetData: ({ value }) =>
+        removeField: ({ path }) =>
           set((state: OptionStore) =>
-            reset<OptionStore, FeatureOptionInput>({ value, selector: (state) => state.data })(state)
+            removeField<OptionStore, FeatureOptionInput>({
+              path,
+              selector: (state) => state.current as FeatureOptionInput,
+            })(state)
           ),
-
-        resetInit: ({ value }) =>
-          set((state: OptionStore) =>
-            reset<OptionStore, FeatureOptionInput>({ value, selector: (state) => state.initData })(state)
-          ),
-
-        setIndex: ({ value }) =>
-          set((state) =>
-            produce(state, (draft) => {
-              draft.index = value
-            })
-          ),
-
-        reinitState: (value?: FeatureOptionInput) => {
-          if (value) {
-            return set((state) => ({
-              ...state,
-              data: value,
-              initData: value,
-            }))
-          } else {
-            return set(() => ({
-              data: defaultState.data,
-              initData: defaultState.initData,
-              index: defaultState.index,
-            }))
-          }
-        },
       }
     },
     {

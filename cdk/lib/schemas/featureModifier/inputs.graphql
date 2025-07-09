@@ -1,11 +1,11 @@
 input ModifierDiePerLevelInput {
-  level: String
-  dieConfig: String
+  level: Int!
+  dieConfig: String!
 }
 
 input ModifierSetPerLevelInput {
-  level: String
-  setAmount: Int
+  level: Int!
+  setAmount: Int!
 }
 
 input FeatureModifierInput {
@@ -30,7 +30,7 @@ input FeatureModifierInput {
   saveAbilities: [ID!]
   abilities: [ID!]
   speeds: [ID!]
-  charge: ChargeInput
+  charges: ChargeInput
   range: ID
   minRange: Int
   maxRange: Int

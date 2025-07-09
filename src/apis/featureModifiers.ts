@@ -36,7 +36,7 @@ export const fetchFeatureModifiers = (systemPref: string) => {
       }
       let nextToken: string | null = null
 
-      const { client, master } = await getClient()
+      const { featureClient, master } = await getClient()
 
       // Create a union type for the variables
       type ListVariables = QueryListFeatureModifiersArgs | QueryListMasterFeatureModifiersArgs
@@ -61,7 +61,7 @@ export const fetchFeatureModifiers = (systemPref: string) => {
 
       try {
         do {
-          const { data } = await client.graphql({
+          const { data } = await featureClient.graphql({
             query: operation,
             variables: variables,
           })
@@ -85,7 +85,7 @@ export const fetchFeatureModifier = (id: string) => {
   return queryOptions({
     queryKey: featureModifiersKeys.single(id),
     queryFn: async () => {
-      const { client, master } = await getClient()
+      const { featureClient, master } = await getClient()
 
       // Type guard to check which response we got
       function isMaster(data: unknown): data is { getMasterFeatureModifier: unknown } {
@@ -95,7 +95,7 @@ export const fetchFeatureModifier = (id: string) => {
       const operation = master ? getMasterFeatureModifier : getFeatureModifier
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await featureClient.graphql({
           query: operation,
           variables: {
             id,
@@ -120,7 +120,7 @@ export const useAddNewFeatureModifierMutation = () => {
 
   return useMutation<FeatureModifier, Error, FeatureModifierInput, unknown>({
     mutationFn: async (featureModifier: FeatureModifierInput) => {
-      const { client, master } = await getClient()
+      const { featureClient, master } = await getClient()
 
       const operation = master ? createMasterFeatureModifier : createFeatureModifier
 
@@ -129,7 +129,7 @@ export const useAddNewFeatureModifierMutation = () => {
       }
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await featureClient.graphql({
           query: operation,
           variables: {
             input: featureModifier,
@@ -160,7 +160,7 @@ export const useUpdateFeatureModifierMutation = () => {
 
   return useMutation<FeatureModifier, Error, FeatureModifierInput, unknown>({
     mutationFn: async (featureModifier: FeatureModifierInput) => {
-      const { client, master } = await getClient()
+      const { featureClient, master } = await getClient()
 
       const operation = master ? updateMasterFeatureModifier : updateFeatureModifier
 
@@ -170,7 +170,7 @@ export const useUpdateFeatureModifierMutation = () => {
       }
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await featureClient.graphql({
           query: operation,
           variables: {
             input: featureModifier,
@@ -202,7 +202,7 @@ export const useDeleteFeatureModifierMutation = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { client, master } = await getClient()
+      const { featureClient, master } = await getClient()
 
       const operation = master ? deleteMasterFeatureModifier : deleteFeatureModifier
 
@@ -212,7 +212,7 @@ export const useDeleteFeatureModifierMutation = () => {
       }
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await featureClient.graphql({
           query: operation,
           variables: {
             id,

@@ -1,27 +1,34 @@
 import type {
   CharacterSectionData,
   DeepKeyOf,
-  SectionDataType,
-  SectionName,
-  FeatureDataType,
+  SectionFormDataType,
+  FeatureFormDataType,
   Character,
   CharacterFeature,
   Spell,
   FeatureModifier,
-  Scores,
   CharacterInput,
-  FeatureInput,
-  AncestryFeatureInput,
   CharacterProficiencyInput,
   CharacterExpertiseInput,
   CharacterFeatInput,
   CharacterModifierInput,
   CharacterSenseInput,
   ScoresInput,
+  FeatureProficiencyInput,
+  FeatureExpertiseInput,
+  CharacterSpellcastingInput,
+  CharacterFeatureInput,
+  SectionSourceDataType,
+  FeatureOption,
+  FeatureOptionInput,
+  FeatureFeatInput,
+  FeatureSpellInput,
+  FeatureSenseInput,
+  FeatureModifierInput,
 } from '@/types'
-import { getKeyFromId, getModifierProperties, sectionSteps } from '@/components/Form'
+import { getKeyFromId, getModifierProperties, SECTION_STEPS } from '@/components/Form'
 import { useCallback, useMemo } from 'react'
-import { typename, sectionIdKey, proficiencyKey } from '@/utils'
+import { kind, sectionIdKey, proficiencyKey } from '@/utils'
 import {
   useBackgroundData,
   useClassData,
@@ -37,7 +44,6 @@ import { ProfCats, Attributes, ModMethods, ModTypes, ModCats, ModSpellCats } fro
 import { camelCase } from 'lodash'
 import { CamelCase } from 'type-fest'
 import {
-  AncestryFeatureInputSchema,
   CharacterFeatInputSchema,
   CharacterFeatureInputSchema,
   FeatureInputSchema,
@@ -46,18 +52,54 @@ import {
   CharacterExpertiseInputSchema,
   CharacterModifierInputSchema,
   CharacterSenseInputSchema,
+  FeatureExpertiseInputSchema,
+  FeatureFeatInputSchema,
+  FeatureModifierInputSchema,
+  FeatureSenseInputSchema,
+  FeatureSpellInputSchema,
+  FeatureOptionInputSchema,
+  ScoresInputSchema,
 } from '@/schemas'
 import { z } from 'zod/v4'
+import useFeatureData from './useFeatureData'
+import useSectionData from './useSectionData'
+import { DeepKeys } from '@tanstack/react-form'
+import {
+  useOptionStore,
+  useSenseStore,
+  useProficiencyStore,
+  useSpellStore,
+  useExpertiseStore,
+  useModifierStore,
+} from '@/store'
+import { useFeatStore } from '@/store/featStore'
 
 export interface GetSectionOptionsProps {
-  section: SectionDataType
-  sectionStep: Exclude<SectionName, 'ancestries' | 'options' | 'subfeatures'>
+  data: {
+    modifiers?: CharacterModifierInput[]
+    expertise?: CharacterExpertiseInput[]
+    proficiencies?: CharacterProficiencyInput[]
+    senses?: CharacterSenseInput[]
+    feats?: CharacterFeatInput[]
+    spellcasting?: CharacterSpellcastingInput
+    features?: CharacterFeatureInput[]
+  }
+  section: SectionFormDataType
+  sectionStep: Exclude<(typeof SECTION_STEPS)[number], 'ancestries' | 'options' | 'subfeatures'>
   optionIndex: string
 }
 
-export interface GetSectionOptionsResult<T> {
-  options: Array<{ id: string; label: string; value: string }>
-  path: DeepKeyOf<T>
+export interface GetSectionOptionsResult {
+  options: Array<{ id: string; label: string }>
+  path: DeepKeys<{
+    modifiers: CharacterModifierInput[]
+    expertise: CharacterExpertiseInput[]
+    proficiencies: CharacterProficiencyInput[]
+    senses: CharacterSenseInput[]
+    feats: CharacterFeatInput[]
+    spellcasting: CharacterSpellcastingInput
+    features: CharacterFeatureInput[]
+  }>
   label: string
   exist?: string // Making this optional since it might not always be set
 }
@@ -67,17 +109,17 @@ export interface GetFeatureOptionsProps {
   optionIndex: string
 }
 
-export interface GetFeatureOptionsResult<T> {
-  options: Array<{ id: string; label: string; value: string }>
-  path: DeepKeyOf<T>
+export interface GetFeatureOptionsResult {
+  options: Array<{ id: string; label: string }>
+  path: DeepKeyOf<CharacterInput>
   exist?: string // Making this optional since it might not always be set
 }
 
 type OptionHandler = {
-  [key in Exclude<SectionName, 'ancestries' | 'options' | 'subfeatures'>]: {
-    canHandle: (section: SectionDataType, sectionStep: SectionName) => boolean
-    getOptions: (section: SectionDataType) => {
-      options: Array<{ id: string; label: string; value: string }>
+  [key in Exclude<(typeof SECTION_STEPS)[number], 'ancestries' | 'options' | 'subfeatures'>]: {
+    canHandle: (section: SectionFormDataType, sectionStep: (typeof SECTION_STEPS)[number]) => boolean
+    getOptions: (section: SectionFormDataType) => {
+      options: Array<{ id: string; label: string }>
       label: string
     }
   }
@@ -105,7 +147,7 @@ const characterSectionSchemas = z.discriminatedUnion('__kind', [
 
 export const sectionIds = ['classId', 'raceId', 'backgroundId', 'equipmentId', 'ancestryId', 'featId'] as const
 
-const useGetSections = ({ formData }: { formData: CharacterInput }): StateSections => {
+const useGetSections = () => {
   const { classes } = useClassData()
   const { system } = useSystemData()
   const { spells } = useSpellData()
@@ -113,23 +155,142 @@ const useGetSections = ({ formData }: { formData: CharacterInput }): StateSectio
   const { feats } = useFeatData()
   const { equipment } = useEquipmentData()
   const { backgrounds } = useBackgroundData()
+  const optionStore = useOptionStore()
+  const proficiencyStore = useProficiencyStore()
+  const senseStore = useSenseStore()
+  const spellStore = useSpellStore()
+  const expertiseStore = useExpertiseStore()
+  const modifierStore = useModifierStore()
+  const featStore = useFeatStore()
+  const { features: featureData, featureOptions, ancestryOptions } = useFeatureData()
+  const { featureModifiers, featureExpertise, featureProficiencies, featureSenses, featureSpells, featureFeats } =
+    useSectionData()
 
-  const { createFeatures, getFullFeature } = useGetFeatures({ data: formData })
+  type SectionTypeMapEntry = {
+    get: (id: string) => SectionSourceDataType | FeatureOption | null | undefined
+    list: (ids: string[]) => SectionSourceDataType[] | FeatureOption[] | null
+    schema:
+      | typeof FeatureProficiencyInputSchema
+      | typeof FeatureExpertiseInputSchema
+      | typeof FeatureModifierInputSchema
+      | typeof FeatureSenseInputSchema
+      | typeof FeatureSpellInputSchema
+      | typeof FeatureOptionInputSchema
+      | typeof FeatureFeatInputSchema
+    setCurrent: () => void
+  }
 
-  const features = createFeatures()
+  const sectionTypeMap = useCallback(
+    (
+      step: (typeof SECTION_STEPS)[number] | 'options',
+      object?: SectionFormDataType | FeatureOptionInput | null
+    ): SectionTypeMapEntry => {
+      switch (step) {
+        case 'proficiencies': {
+          return {
+            get: (id: string) => featureProficiencies.findFeatureProficiency(id),
+            list: (ids: string[]) => featureProficiencies.findFeatureProficiencies(ids),
+            schema: FeatureProficiencyInputSchema,
+            setCurrent: () => proficiencyStore.setCurrent(object as FeatureProficiencyInput),
+          }
+          break
+        }
+        case 'expertise': {
+          return {
+            get: (id: string) => featureExpertise.findFeatureExpertise(id),
+            list: (ids: string[]) => featureExpertise.findFeatureExpertises(ids),
+            schema: FeatureExpertiseInputSchema,
+            setCurrent: () => expertiseStore.setCurrent(object as FeatureExpertiseInput),
+          }
+          break
+        }
+        case 'modifiers': {
+          return {
+            get: (id: string) => featureModifiers.findFeatureModifier(id),
+            list: (ids: string[]) => featureModifiers.findFeatureModifiers(ids),
+            schema: FeatureModifierInputSchema,
+            setCurrent: () => modifierStore.setCurrent(object as FeatureModifierInput),
+          }
+          break
+        }
+        case 'senses': {
+          return {
+            get: (id: string) => featureSenses.findFeatureSense(id),
+            list: (ids: string[]) => featureSenses.findFeatureSenses(ids),
+            schema: FeatureSenseInputSchema,
+            setCurrent: () => senseStore.setCurrent(object as FeatureSenseInput),
+          }
+          break
+        }
+        case 'spells': {
+          return {
+            get: (id: string) => featureSpells.findFeatureSpell(id),
+            list: (ids: string[]) => featureSpells.findFeatureSpells(ids),
+            schema: FeatureSpellInputSchema,
+            setCurrent: () => spellStore.setCurrent(object as FeatureSpellInput),
+          }
+        }
+        case 'options': {
+          return {
+            get: (id: string) => featureOptions.findFeatureOption(id),
+            list: (ids: string[]) => featureOptions.findFeatureOptions(ids),
+            schema: FeatureOptionInputSchema,
+            setCurrent: () => optionStore.setCurrent(object as FeatureOptionInput),
+          }
+        }
+        case 'feats': {
+          return {
+            get: (id: string) => featureFeats.findFeatureFeat(id),
+            list: (ids: string[]) => featureFeats.findFeatureFeats(ids),
+            schema: FeatureFeatInputSchema,
+            setCurrent: () => featStore.setCurrent(object as FeatureFeatInput),
+          }
+        }
+      }
+    },
+    [
+      featureExpertise,
+      featureModifiers,
+      featureProficiencies,
+      featureSenses,
+      featureSpells,
+      featureOptions,
+      optionStore,
+      proficiencyStore,
+      senseStore,
+      spellStore,
+      expertiseStore,
+      modifierStore,
+      featStore,
+      featureFeats,
+    ]
+  )
 
-  const getStateSections = useMemo((): StateSections => {
-    const existing: StateSections = {}
-    sectionSteps
-      .filter((sectionStep) => sectionStep !== 'spells')
-      .forEach((sectionStep) => {
+  const { createFeatures } = useGetFeatures()
+
+  const getStateSections = useCallback(
+    ({
+      data,
+    }: {
+      data: {
+        modifiers?: CharacterModifierInput[]
+        expertise?: CharacterExpertiseInput[]
+        proficiencies?: CharacterProficiencyInput[]
+        senses?: CharacterSenseInput[]
+        feats?: CharacterFeatInput[]
+        spellcasting?: CharacterSpellcastingInput
+        features?: CharacterFeatureInput[]
+      }
+    }): StateSections => {
+      const existing: StateSections = {}
+      SECTION_STEPS.filter((sectionStep) => sectionStep !== 'spells').forEach((sectionStep) => {
         existing[sectionStep] = []
 
-        const sections = formData[sectionStep]
+        const sections = data[sectionStep]
         if (!sections) return
         sections?.forEach((section, index) => {
-          let fullSections: Array<SectionDataType> = []
-          let fullFeature = {} as FeatureDataType
+          let fullSections: SectionFormDataType[] = []
+          let fullFeature = {} as FeatureFormDataType
           const featureId = section.featureId
           const classId = section.classId
           const raceId = section.raceId
@@ -151,22 +312,9 @@ const useGetSections = ({ formData }: { formData: CharacterInput }): StateSectio
             index,
           }
 
-          const getSectionId = (section: any) => {
-            // Map of property names to check for
-            const idProperties = [
-              { check: (s: any) => s.__kind === 'CharacterFeat', getId: (s: any) => s.featId },
-              { check: (s: any) => 'expertiseId' in s, getId: (s: any) => s.expertiseId },
-              { check: (s: any) => 'proficiencyId' in s, getId: (s: any) => s.proficiencyId },
-              { check: (s: any) => 'senseId' in s, getId: (s: any) => s.senseId },
-              { check: (s: any) => 'modifierId' in s, getId: (s: any) => s.modifierId },
-            ]
+          if (!section.id) return
 
-            // Find the first matching property and return its ID
-            const match = idProperties.find((prop) => prop.check(section))
-            return match ? match.getId(section) : undefined
-          }
-
-          existingSection.id = getSectionId(section)
+          existingSection.id = section.id
 
           if (optionId) {
             existingSection.optionId = optionId
@@ -188,10 +336,11 @@ const useGetSections = ({ formData }: { formData: CharacterInput }): StateSectio
                 FeatureProficiencyInputSchema.parse(proficiency)
               )
             } else {
-              const classFeature = fullClass?.features?.find((feature) => feature.id === featureId)
-
-              if (classFeature) {
-                fullFeature = FeatureInputSchema.parse(classFeature)
+              if (featureId && fullClass?.features?.includes(featureId)) {
+                const classFeature = featureData.findFeature(featureId)
+                if (classFeature) {
+                  fullFeature = FeatureInputSchema.parse(classFeature)
+                }
               }
             }
           }
@@ -199,76 +348,85 @@ const useGetSections = ({ formData }: { formData: CharacterInput }): StateSectio
             const fullRace = races?.findRace(raceId)
 
             if (ancestryId) {
-              const fullAncestry = fullRace?.ancestry?.options?.find((option) => option.id === ancestryId)
+              const fullAncestry = ancestryOptions.findAncestryOption(ancestryId)
 
               if (fullAncestry) {
-                const ancestryFeature = fullAncestry?.features?.find((feature) => feature.id === featureId)
-
-                if (ancestryFeature) {
-                  fullFeature = AncestryFeatureInputSchema.parse(ancestryFeature)
+                if (featureId && fullAncestry?.features?.includes(featureId)) {
+                  const ancestryFeature = featureData.findFeature(featureId)
+                  if (ancestryFeature) {
+                    fullFeature = FeatureInputSchema.parse(ancestryFeature)
+                  }
                 }
               }
             } else {
-              const raceFeature = fullRace?.features?.find((feature) => feature.id === featureId)
-
-              if (raceFeature) {
-                fullFeature = FeatureInputSchema.parse(raceFeature)
+              if (featureId && fullRace?.features?.includes(featureId)) {
+                const raceFeature = featureData.findFeature(featureId)
+                if (raceFeature) {
+                  fullFeature = FeatureInputSchema.parse(raceFeature)
+                }
               }
             }
           }
           if (featId) {
             const fullFeat = feats?.findFeat(featId)
 
-            const featFeature = fullFeat?.features?.find((feature) => feature.id === featureId)
-
-            if (featFeature) {
-              fullFeature = FeatureInputSchema.parse(featFeature)
+            if (featureId && fullFeat?.features?.includes(featureId)) {
+              const featFeature = featureData.findFeature(featureId)
+              if (featFeature) {
+                fullFeature = FeatureInputSchema.parse(featFeature)
+              }
             }
           }
           if (backgroundId) {
             const fullBackground = backgrounds?.findBackground(backgroundId)
 
-            const backgroundFeature = fullBackground?.features?.find((feature) => feature.id === featureId)
-
-            if (backgroundFeature) {
-              fullFeature = FeatureInputSchema.parse(backgroundFeature)
+            if (featureId && fullBackground?.features?.includes(featureId)) {
+              const backgroundFeature = featureData.findFeature(featureId)
+              if (backgroundFeature) {
+                fullFeature = FeatureInputSchema.parse(backgroundFeature)
+              }
             }
           }
           if (equipmentId) {
             const fullEquipment = equipment?.findEquipment(equipmentId)
 
-            const equipmentFeature = fullEquipment?.features?.find((feature) => feature.id === featureId)
-
-            if (equipmentFeature) {
-              fullFeature = FeatureInputSchema.parse(equipmentFeature)
+            if (featureId && fullEquipment?.features?.includes(featureId)) {
+              const equipmentFeature = featureData.findFeature(featureId)
+              if (equipmentFeature) {
+                fullFeature = FeatureInputSchema.parse(equipmentFeature)
+              }
             }
           }
 
-          if (
-            fullFeature.__kind === 'FeatureInput' ||
-            (fullFeature.__kind === 'AncestryFeatureInput' && fullFeature?.options?.length)
-          ) {
-            const optionId = formData?.features
+          if (fullFeature.__kind === 'FeatureInput' && fullFeature?.options?.length) {
+            const optionId = data?.features
               ?.find((f) => f.id === fullFeature?.id)
               ?.options?.find((o) => o.optionIndex === optionIndex)?.id
 
-            const sections = (fullFeature as FeatureInput | AncestryFeatureInput)?.options?.find(
-              (option) => option.id === optionId
-            )?.[sectionStep]
+            const sectionIds = featureOptions.findFeatureOption(optionId)?.[sectionStep]
 
-            if (sections?.length) {
-              fullSections = sections
+            if (sectionIds?.length) {
+              const sections = sectionTypeMap(sectionStep)
+                ?.list(sectionIds)
+                ?.map((section) => sectionTypeMap(sectionStep)?.schema.parse(section))
+
+              if (sections?.length) {
+                fullSections = sections as SectionFormDataType[]
+              }
             }
           }
 
           fullSections?.forEach((fullSection, sIndex) => {
             if (fullSection.__kind === 'FeatureProficiencyInput' || fullSection.__kind === 'FeatureExpertiseInput') {
-              const categorySection = fullFeature?.[sectionStep as 'proficiencies' | 'expertise']?.find((step) => {
-                if (section.__kind === 'CharacterProficiencyInput') {
-                  return step.id === section.proficiencyId
+              let categorySection: FeatureProficiencyInput | FeatureExpertiseInput | undefined | null
+              fullFeature?.[sectionStep as 'proficiencies' | 'expertise']?.forEach((step) => {
+                if (section.__kind === 'CharacterProficiencyInput' && step === section.id) {
+                  const proficiency = featureProficiencies.findFeatureProficiency(step)
+                  categorySection = FeatureProficiencyInputSchema.parse(proficiency)
                 }
-                if (section.__kind === 'CharacterExpertiseInput') {
-                  return step.id === section.expertiseId
+                if (section.__kind === 'CharacterExpertiseInput' && step === section.id) {
+                  const expertise = featureExpertise.findFeatureExpertise(step)
+                  categorySection = FeatureExpertiseInputSchema.parse(expertise)
                 }
               })
 
@@ -281,10 +439,7 @@ const useGetSections = ({ formData }: { formData: CharacterInput }): StateSectio
               // If the sections do not provide options, pass the set ids from the category/subcategory
               // The ones that did provides options are already set in the above in if options condition
               if (!fullSection?.attributes?.some((attribute) => attribute === Attributes.PROVIDES_OPTIONS)) {
-                if (
-                  fullSection.id === (section as CharacterProficiencyInput).proficiencyId ||
-                  fullSection.id === (section as CharacterExpertiseInput).expertiseId
-                ) {
+                if (fullSection.id === section.id) {
                   if (categoryName && categoryName !== 'initiative') {
                     if (categoryName === 'equipment') {
                       const proficiencyState = fullSection[categoryName]
@@ -313,9 +468,8 @@ const useGetSections = ({ formData }: { formData: CharacterInput }): StateSectio
               // If the sections do not provide options, pass the set ids from the category/subcategory
               // The ones that did provides options are already set in the above in if options condition
               if (!fullSection?.attributes?.some((attribute) => attribute === Attributes.PROVIDES_OPTIONS)) {
-                const sectionId = `${typename(sectionStep, 'id')}Id` as const
-                if (sectionId in section) {
-                  if (fullSection.id === section[sectionId as keyof typeof section]) {
+                if (section.id) {
+                  if (fullSection.id === section.id) {
                     existing[sectionStep].push({ index: sIndex, id: fullSection.id })
                   }
                 }
@@ -325,12 +479,26 @@ const useGetSections = ({ formData }: { formData: CharacterInput }): StateSectio
         })
       })
 
-    return existing
-  }, [classes, equipment, feats, backgrounds, formData, races])
+      return existing
+    },
+    [
+      classes,
+      equipment,
+      feats,
+      backgrounds,
+      races,
+      featureData,
+      featureExpertise,
+      featureProficiencies,
+      featureOptions,
+      sectionTypeMap,
+      ancestryOptions,
+    ]
+  )
 
   // Private helper functions
   const optionHandlers = useMemo((): OptionHandler => {
-    let options: Array<{ id: string; label: string; value: string }> = []
+    let options: Array<{ id: string; label: string; [x: string]: unknown }> = []
     return {
       proficiencies: {
         canHandle: (section, sectionStep) =>
@@ -551,17 +719,18 @@ const useGetSections = ({ formData }: { formData: CharacterInput }): StateSectio
   // Grouped by domain
   // Option-related functions
   const getSectionOptions = ({
+    data,
     section,
     sectionStep,
     optionIndex,
-  }: GetSectionOptionsProps): GetSectionOptionsResult<typeof formData> => {
-    const existing = getStateSections
-    let options: Array<{ id: string; label: string; value: string }> = []
+  }: GetSectionOptionsProps): GetSectionOptionsResult => {
+    const existing = getStateSections({ data })
+    let options: Array<{ id: string; label: string }> = []
     let label = ''
-    let path: DeepKeyOf<typeof formData>
+    let path: DeepKeys<typeof data>
     let exist: string | undefined
 
-    const stateIndex = formData[sectionStep as Exclude<typeof sectionStep, 'spells'>]?.length || 0
+    const stateIndex = data[sectionStep as Exclude<typeof sectionStep, 'spells'>]?.length || 0
 
     const handlers = Object.values(optionHandlers)
     const handler = handlers.find((handler) => handler.canHandle(section, sectionStep))
@@ -584,28 +753,26 @@ const useGetSections = ({ formData }: { formData: CharacterInput }): StateSectio
     })
 
     if (sectionStep === 'spells') {
-      const stateIndex = formData?.spellcasting?.additional?.length || 0
+      const stateIndex = data?.spellcasting?.additional?.length || 0
 
-      path = `spellcasting.additional.${stateIndex}`
+      path = `spellcasting.additional[${stateIndex}]`
 
-      exist = formData?.spellcasting?.additional?.find((spell) => spell.optionIndex === optionIndex)?.id
+      exist = data?.spellcasting?.additional?.find((spell) => spell.optionIndex === optionIndex)?.id
 
       if (exist != null) {
-        const existIndex = formData?.spellcasting?.additional?.findIndex(
-          (section) => section.optionIndex === optionIndex
-        )
+        const existIndex = data?.spellcasting?.additional?.findIndex((section) => section.optionIndex === optionIndex)
 
         if (existIndex && existIndex > -1) {
-          path = `spellcasting.additional.${existIndex}`
+          path = `spellcasting.additional[${existIndex}]`
         }
       }
     } else {
       const existOption = existing[sectionStep].find((existObj) => existObj.optionIndex === optionIndex)
 
-      path = `${sectionStep}.${stateIndex}`
+      path = `${sectionStep}[${stateIndex}]`
 
       if (existOption && existOption?.index > -1) {
-        path = `${sectionStep}.${existOption.index}`
+        path = `${sectionStep}[${existOption.index}]`
         exist = existOption.id
       }
     }
@@ -613,149 +780,155 @@ const useGetSections = ({ formData }: { formData: CharacterInput }): StateSectio
     return { options, path, label, exist }
   }
 
-  const createSections = useCallback((): {
-    feats: CharacterFeatInput[]
-    modifiers: CharacterModifierInput[]
-    proficiencies: CharacterProficiencyInput[]
-    expertise: CharacterExpertiseInput[]
-    senses: CharacterSenseInput[]
-  } => {
-    // Initialize with existing data and validate against current formData// Common validation function for all section types
-    const isValidSection = (
-      section:
-        | CharacterExpertiseInput
-        | CharacterFeatInput
-        | CharacterSenseInput
-        | CharacterProficiencyInput
-        | CharacterModifierInput
-    ) => {
-      const sourceValid =
-        (section.classId && formData?.classes?.some((c) => c && c.id === section.classId)) ||
-        (section.raceId && section.raceId === formData.race) ||
-        (section.ancestryId && section.ancestryId === formData.ancestry?.id) ||
-        (section.backgroundId && section.backgroundId === formData?.background)
+  const createSections = useCallback(
+    ({
+      data,
+    }: {
+      data: CharacterInput
+    }): {
+      feats: CharacterFeatInput[]
+      modifiers: CharacterModifierInput[]
+      proficiencies: CharacterProficiencyInput[]
+      expertise: CharacterExpertiseInput[]
+      senses: CharacterSenseInput[]
+    } => {
+      // Initialize with existing data and validate against current data// Common validation function for all section types
+      const isValidSection = (
+        section:
+          | CharacterExpertiseInput
+          | CharacterFeatInput
+          | CharacterSenseInput
+          | CharacterProficiencyInput
+          | CharacterModifierInput
+      ) => {
+        const sourceValid =
+          (section.classId && data?.classes?.some((c) => c && c.id === section.classId)) ||
+          (section.raceId && section.raceId === data.race) ||
+          (section.ancestryId && section.ancestryId === data.ancestry?.id) ||
+          (section.backgroundId && section.backgroundId === data?.background)
 
-      const optionValid =
-        !section.optionId ||
-        formData?.features?.find((f) => f.id === section.featureId)?.options?.some((o) => o.id === section.optionId)
+        const optionValid =
+          !section.optionId ||
+          data?.features?.find((f) => f.id === section.featureId)?.options?.some((o) => o.id === section.optionId)
 
-      return sourceValid && optionValid
-    }
-
-    // Create sections object with explicit typing
-    const sections = {
-      feats: [...(formData.feats || [])].filter(isValidSection) as CharacterFeatInput[],
-      modifiers: [...(formData.modifiers || [])].filter(isValidSection) as CharacterModifierInput[],
-      proficiencies: [...(formData.proficiencies || [])].filter(isValidSection) as CharacterProficiencyInput[],
-      expertise: [...(formData.expertise || [])].filter(isValidSection) as CharacterExpertiseInput[],
-      senses: [...(formData.senses || [])].filter(isValidSection) as CharacterSenseInput[],
-    }
-
-    // Specific type guard that preserves the object type
-    function hasProperty<T extends object, K extends string>(obj: T, key: K): obj is T & Record<K, unknown> {
-      return key in obj
-    }
-
-    // Type-safe function to get a property from an object
-    function getProperty<T extends object, K extends string>(obj: T, key: K): unknown {
-      if (hasProperty(obj, key)) {
-        return obj[key]
-      }
-      return undefined
-    }
-
-    // Type-safe function to add a section
-    function pushToSection<K extends keyof typeof sections>(step: K, obj: CharacterSectionData): void {
-      const idKey = sectionIdKey(step)
-
-      // Type guard using the existing sections object type
-      function isSectionType<T extends keyof typeof sections>(
-        obj: CharacterSectionData,
-        section: T
-      ): obj is (typeof sections)[T][number] {
-        return obj.__kind === typename(section, 'typename')
+        return sourceValid && optionValid
       }
 
-      const exists = sections[step].some((section) => {
-        if (hasProperty(section, idKey)) {
-          // Basic check for general section identity
-          const basicMatch =
-            hasProperty(section, 'featureId') &&
-            hasProperty(obj, 'featureId') &&
-            section.featureId === obj.featureId &&
-            getProperty(section, idKey) === getProperty(obj, idKey)
+      // Create sections object with explicit typing
+      const sections = {
+        feats: [...(data.feats || [])].filter(isValidSection) as CharacterFeatInput[],
+        modifiers: [...(data.modifiers || [])].filter(isValidSection) as CharacterModifierInput[],
+        proficiencies: [...(data.proficiencies || [])].filter(isValidSection) as CharacterProficiencyInput[],
+        expertise: [...(data.expertise || [])].filter(isValidSection) as CharacterExpertiseInput[],
+        senses: [...(data.senses || [])].filter(isValidSection) as CharacterSenseInput[],
+      }
 
-          // For proficiencies and expertise, also check the specific target identifier
-          if (step === 'proficiencies' || step === 'expertise') {
-            // Get all category identifiers from the typenameMap
-            const categoryIdentifiers = Object.keys(ProfCats)
-              .filter((key) => {
-                const typedKey = camelCase(key) as CamelCase<keyof typeof ProfCats>
-                return typedKey !== 'initiative'
-              })
-              .map((key) => {
-                const typedKey = key as keyof typeof ProfCats
-                return typedKey
-              }) // Exclude initiative which doesn't have IDs
+      // Specific type guard that preserves the object type
+      function hasProperty<T extends object, K extends string>(obj: T, key: K): obj is T & Record<K, unknown> {
+        return key in obj
+      }
 
-            // Find common properties
-            const commonProps = categoryIdentifiers.filter(
-              (prop) => hasProperty(section, prop) && hasProperty(obj, prop)
-            )
+      // Type-safe function to get a property from an object
+      function getProperty<T extends object, K extends string>(obj: T, key: K): unknown {
+        if (hasProperty(obj, key)) {
+          return obj[key]
+        }
+        return undefined
+      }
 
-            // If we have common properties, verify they match
-            if (commonProps.length) {
-              return commonProps.every((prop) => getProperty(section, prop) === getProperty(obj, prop))
+      // Type-safe function to add a section
+      function pushToSection<K extends keyof typeof sections>(step: K, obj: CharacterSectionData): void {
+        const idKey = sectionIdKey(step)
+
+        // Type guard using the existing sections object type
+        function isSectionType<T extends keyof typeof sections>(
+          obj: CharacterSectionData,
+          section: T
+        ): obj is (typeof sections)[T][number] {
+          return obj.__kind === kind(section, '__kind')
+        }
+
+        const exists = sections[step].some((section) => {
+          if (hasProperty(section, idKey)) {
+            // Basic check for general section identity
+            const basicMatch =
+              hasProperty(section, 'featureId') &&
+              hasProperty(obj, 'featureId') &&
+              section.featureId === obj.featureId &&
+              getProperty(section, idKey) === getProperty(obj, idKey)
+
+            // For proficiencies and expertise, also check the specific target identifier
+            if (step === 'proficiencies' || step === 'expertise') {
+              // Get all category identifiers from the typenameMap
+              const categoryIdentifiers = Object.keys(ProfCats)
+                .filter((key) => {
+                  const typedKey = camelCase(key) as CamelCase<keyof typeof ProfCats>
+                  return typedKey !== 'initiative'
+                })
+                .map((key) => {
+                  const typedKey = key as keyof typeof ProfCats
+                  return typedKey
+                }) // Exclude initiative which doesn't have IDs
+
+              // Find common properties
+              const commonProps = categoryIdentifiers.filter(
+                (prop) => hasProperty(section, prop) && hasProperty(obj, prop)
+              )
+
+              // If we have common properties, verify they match
+              if (commonProps.length) {
+                return commonProps.every((prop) => getProperty(section, prop) === getProperty(obj, prop))
+              }
             }
+
+            return basicMatch
           }
+          return false
+        })
 
-          return basicMatch
-        }
-        return false
-      })
-
-      if (!exists) {
-        if (isSectionType(obj, step)) {
-          // Get a reference to the array with the correct type
-          const sectionArray = sections[step] as Array<(typeof sections)[typeof step][number]>
-          // Push to it (this modifies the original array)
-          sectionArray.push(obj as (typeof sections)[typeof step][number])
-          // No need to reassign
-        } else {
-          console.warn(`Attempted to add object with wrong type to ${step} section`)
+        if (!exists) {
+          if (isSectionType(obj, step)) {
+            // Get a reference to the array with the correct type
+            const sectionArray = sections[step] as Array<(typeof sections)[typeof step][number]>
+            // Push to it (this modifies the original array)
+            sectionArray.push(obj as (typeof sections)[typeof step][number])
+            // No need to reassign
+          } else {
+            console.warn(`Attempted to add object with wrong type to ${step} section`)
+          }
         }
       }
-    }
 
-    // Process features...
-    const pushSections = (fullFeature: FeatureDataType, feature: FactoryFeature) => {
-      // For each valid section type
-      const featureObject = CharacterFeatureInputSchema.parse({
-        ...feature,
-      }) as FactoryFeature & { __kind: 'CharacterFeatureInput' }
-      sectionSteps
-        .filter((step) => step !== 'spells')
-        .forEach((sectionStep) => {
+      // Process features...
+      const pushSections = (fullFeature: FeatureFormDataType, feature: FactoryFeature) => {
+        // For each valid section type
+        const featureObject = CharacterFeatureInputSchema.parse({
+          ...feature,
+        }) as FactoryFeature & { __kind: 'CharacterFeatureInput' }
+        SECTION_STEPS.filter((step) => step !== 'spells').forEach((sectionStep) => {
           if (fullFeature?.[sectionStep]?.length) {
             fullFeature[sectionStep].forEach((fSection) => {
-              if (!fSection?.attributes?.some((attribute) => attribute === Attributes.PROVIDES_OPTIONS)) {
+              const sectionData = sectionTypeMap(sectionStep).get(fSection)
+              const sectionInput = sectionTypeMap(sectionStep).schema.parse(sectionData)
+              if (!sectionInput?.attributes?.some((attribute) => attribute === Attributes.PROVIDES_OPTIONS)) {
                 // Special handling for proficiencies and expertise
                 if (
-                  (fSection.__kind === 'FeatureProficiencyInput' || fSection.__kind === 'FeatureExpertiseInput') &&
-                  fSection.category
+                  (sectionInput?.__kind === 'FeatureProficiencyInput' ||
+                    sectionInput?.__kind === 'FeatureExpertiseInput') &&
+                  sectionInput.category
                 ) {
-                  const categoryId = fSection.category
+                  const categoryId = sectionInput.category
                   const categoryName = getKeyFromId(categoryId, ProfCats)
 
                   // Handle different category types that contain arrays
                   if (categoryName && categoryName !== 'initiative') {
-                    if (categoryName === 'equipment' && fSection.equipment?.ids) {
+                    if (categoryName === 'equipment' && sectionInput.equipment?.ids) {
                       // Handle equipment IDs array
-                      fSection.equipment.ids.forEach((equipId) => {
+                      sectionInput.equipment.ids.forEach((equipId) => {
                         if (equipId !== 'all') {
                           const sectionObject = createBaseSectionObject(
                             sectionStep as 'proficiencies' | 'expertise',
-                            fSection,
+                            sectionInput,
                             fullFeature,
                             featureObject
                           )
@@ -763,13 +936,13 @@ const useGetSections = ({ formData }: { formData: CharacterInput }): StateSectio
                           pushToSection(sectionStep, sectionObject)
                         }
                       })
-                    } else if (categoryName === 'properties' && fSection.properties?.properties) {
+                    } else if (categoryName === 'properties' && sectionInput.properties?.properties) {
                       // Handle properties array
-                      fSection.properties.properties.forEach((propId) => {
+                      sectionInput.properties.properties.forEach((propId) => {
                         if (propId !== 'all') {
                           const sectionObject = createBaseSectionObject(
                             sectionStep as 'proficiencies' | 'expertise',
-                            fSection,
+                            sectionInput,
                             fullFeature,
                             featureObject
                           )
@@ -777,13 +950,13 @@ const useGetSections = ({ formData }: { formData: CharacterInput }): StateSectio
                           pushToSection(sectionStep, sectionObject)
                         }
                       })
-                    } else if (fSection[categoryName] && Array.isArray(fSection[categoryName])) {
+                    } else if (sectionInput[categoryName] && Array.isArray(sectionInput[categoryName])) {
                       // Handle other arrays like skills, saveAbilities, languages
-                      fSection[categoryName].forEach((itemId) => {
+                      sectionInput[categoryName].forEach((itemId) => {
                         if (itemId !== 'all') {
                           const sectionObject = createBaseSectionObject(
                             sectionStep as 'proficiencies' | 'expertise',
-                            fSection,
+                            sectionInput,
                             fullFeature,
                             featureObject
                           )
@@ -798,95 +971,110 @@ const useGetSections = ({ formData }: { formData: CharacterInput }): StateSectio
                       })
                     } else {
                       // Handle non-array case
-                      const sectionObject = createBaseSectionObject(sectionStep, fSection, fullFeature, featureObject)
+                      const sectionObject = createBaseSectionObject(
+                        sectionStep,
+                        sectionInput,
+                        fullFeature,
+                        featureObject
+                      )
                       pushToSection(sectionStep, sectionObject)
                     }
                   } else {
                     // Handle initiative or unknown category
-                    const sectionObject = createBaseSectionObject(sectionStep, fSection, fullFeature, featureObject)
+                    const sectionObject = createBaseSectionObject(sectionStep, sectionInput, fullFeature, featureObject)
                     pushToSection(sectionStep, sectionObject)
                   }
                 } else {
                   // Normal case for non-proficiency/expertise sections
-                  const sectionObject = createBaseSectionObject(sectionStep, fSection, fullFeature, featureObject)
+                  const sectionObject = createBaseSectionObject(
+                    sectionStep,
+                    sectionInput as SectionFormDataType,
+                    fullFeature,
+                    featureObject
+                  )
                   pushToSection(sectionStep, sectionObject)
                 }
               }
             })
           }
         })
-    }
-
-    // Helper function to create the base section object
-    function createBaseSectionObject<T extends keyof typeof sections>(
-      sectionStep: T,
-      fSection: SectionDataType,
-      fullFeature: FeatureDataType,
-      feature: CharacterFeature
-    ): (typeof sections)[T][number] {
-      // Use the specific return type based on the section type
-      const typeName = typename(sectionStep, 'typename')
-
-      // Create the base object with the required type
-      const sectionObject = characterSectionSchemas.parse({
-        __kind: typeName,
-        [`${sectionIdKey(sectionStep)}`]: fSection.id,
-        featureId: fullFeature.id,
-      })
-
-      // Add source IDs
-      sectionIds.forEach((sourceKey) => {
-        if (feature?.[sourceKey]) sectionObject[sourceKey] = feature[sourceKey]
-      })
-
-      return sectionObject as (typeof sections)[typeof sectionStep][number]
-    }
-
-    features?.forEach((feature) => {
-      const fullFeature = getFullFeature(feature)
-      if (fullFeature) {
-        pushSections(fullFeature, feature)
       }
 
-      if (feature?.options?.length) {
-        feature?.options?.forEach((option) => {
-          const fullOption = getFullFeature(feature)?.options?.find((o) => o.id === option.id)
+      // Helper function to create the base section object
+      function createBaseSectionObject<T extends keyof typeof sections>(
+        sectionStep: T,
+        fSection: SectionFormDataType,
+        fullFeature: FeatureFormDataType,
+        feature: CharacterFeatureInput
+      ): (typeof sections)[T][number] {
+        // Use the specific return type based on the section type
+        const typeName = kind(sectionStep, '__kind')
 
-          if (fullOption) {
-            pushSections(fullOption, feature)
-          }
+        // Create the base object with the required type
+        const sectionObject = characterSectionSchemas.parse({
+          __kind: typeName,
+          id: fSection.id,
+          featureId: fullFeature.id,
         })
+
+        // Add source IDs
+        sectionIds.forEach((sourceKey) => {
+          if (feature?.[sourceKey]) sectionObject[sourceKey] = feature[sourceKey]
+        })
+
+        return sectionObject as (typeof sections)[typeof sectionStep][number]
       }
-    })
 
-    formData?.classes?.forEach((fClass) => {
-      if (!fClass) return
-      const fullClass = classes?.findClass(fClass.id)
+      const features = createFeatures({ data })
 
-      const proficiencies = fullClass?.proficiencies || []
+      features?.forEach((feature) => {
+        const fullFeature = featureData.findFeature(feature.id)
+        if (fullFeature) {
+          pushSections(FeatureInputSchema.parse(fullFeature), feature)
+        }
 
-      proficiencies?.forEach((proficiency) => {
-        const exist = sections.proficiencies.find((s) => s.classId === fClass.id && s.proficiencyId === proficiency.id)
+        if (feature?.options?.length) {
+          feature?.options?.forEach((option) => {
+            const optionData = featureOptions.findFeatureOption(option.id)
 
-        if (exist) return
-
-        const sectionObject = CharacterProficiencyInputSchema.parse({
-          classId: fClass.id,
-          proficiencyId: proficiency.id,
-        })
-        pushToSection('proficiencies', sectionObject)
+            if (optionData) {
+              const optionInput = FeatureOptionInputSchema.parse(optionData)
+              pushSections(optionInput, feature)
+            }
+          })
+        }
       })
-    })
 
-    return sections
-  }, [classes, formData, getFullFeature, features])
+      data?.classes?.forEach((fClass) => {
+        if (!fClass) return
+        const fullClass = classes?.findClass(fClass.id)
 
-  const createAbilityScores = useCallback((): ScoresInput[] | undefined => {
-    if (formData.__kind === 'CharacterInput') {
-      const abilityScores: Scores[] =
-        JSON.parse(JSON.stringify(formData?.abilities?.scores)) || ([] as NonNullable<Character['abilities']>['scores'])
+        const proficiencies = fullClass?.proficiencies || []
 
-      const characterModifiers = [...(formData?.modifiers || [])]
+        proficiencies?.forEach((proficiency) => {
+          const exist = sections.proficiencies.find((s) => s.classId === fClass.id && s.id === proficiency.id)
+
+          if (exist) return
+
+          const sectionObject = CharacterProficiencyInputSchema.parse({
+            classId: fClass.id,
+            id: proficiency.id,
+          })
+          pushToSection('proficiencies', sectionObject)
+        })
+      })
+
+      return sections
+    },
+    [classes, featureData, featureOptions, sectionTypeMap, createFeatures]
+  )
+
+  const createAbilityScores = useCallback(
+    ({ data }: { data: CharacterInput }): ScoresInput[] | undefined => {
+      const abilityScores: ScoresInput[] =
+        JSON.parse(JSON.stringify(data?.abilities?.scores)) || ([] as NonNullable<Character['abilities']>['scores'])
+
+      const characterModifiers = [...(data?.modifiers || [])]
 
       abilityScores?.forEach((score, index) => {
         // Set the calculated score
@@ -904,18 +1092,9 @@ const useGetSections = ({ formData }: { formData: CharacterInput }): StateSectio
           if (cModifier.classId) {
             const foundClass = classes?.findClass(cModifier.classId)
             if (foundClass) {
-              const foundMod = foundClass?.features
-                ?.find(
-                  (feature) =>
-                    feature.id === cModifier.featureId &&
-                    feature.levelAvailable
-                      ?.split(/\s*,\s*/)
-                      .includes(
-                        String(formData?.classes?.find((fClass) => fClass && fClass.id === cModifier.classId)?.level)
-                      )
-                )
-                ?.modifiers?.find((modifier) => modifier.id === cModifier.modifierId)
-              if (foundMod) {
+              const feature = featureData.findFeature(cModifier.featureId)
+              const foundMod = featureModifiers.findFeatureModifier(cModifier.id)
+              if (foundMod && feature?.modifiers?.includes(foundMod.id) && foundClass.features?.includes(feature.id)) {
                 featureMod = foundMod
               }
             }
@@ -923,20 +1102,22 @@ const useGetSections = ({ formData }: { formData: CharacterInput }): StateSectio
           if (cModifier.raceId) {
             const foundRace = races.findRace(cModifier.raceId)
             if (foundRace) {
-              const foundMod = foundRace?.features
-                ?.find((feature) => feature.id === cModifier.featureId)
-                ?.modifiers?.find((modifier) => modifier.id === cModifier.modifierId)
-              if (foundMod) {
+              const feature = featureData.findFeature(cModifier.featureId)
+              const foundMod = featureModifiers.findFeatureModifier(cModifier.id)
+              if (foundMod && feature?.modifiers?.includes(foundMod.id) && foundRace.features?.includes(feature.id)) {
                 featureMod = foundMod
               }
               if (cModifier.ancestryId) {
-                const foundAncestry = foundRace?.ancestry?.options?.find((option) => option.id === cModifier.ancestryId)
+                const foundAncestry = ancestryOptions.findAncestryOption(cModifier.ancestryId)
                 if (foundAncestry) {
-                  const foundMOd = foundAncestry?.features
-                    ?.find((feature) => feature.id === cModifier.featureId)
-                    ?.modifiers?.find((modifier) => modifier.id === cModifier.modifierId)
-                  if (foundMOd) {
-                    featureMod = foundMOd
+                  const ancestryFeature = featureData.findFeature(cModifier.featureId)
+                  const foundMod = featureModifiers.findFeatureModifier(cModifier.id)
+                  if (
+                    foundMod &&
+                    ancestryFeature?.modifiers?.includes(foundMod.id) &&
+                    foundAncestry.features?.includes(ancestryFeature.id)
+                  ) {
+                    featureMod = foundMod
                   }
                 }
               }
@@ -970,25 +1151,26 @@ const useGetSections = ({ formData }: { formData: CharacterInput }): StateSectio
         calculatedScore += classScore
 
         if (calculatedScore !== score.calculatedScore || !score.calculatedScore) {
-          abilityScores[index] = {
+          abilityScores[index] = ScoresInputSchema.parse({
             ...score,
             calculatedScore: calculatedScore,
             raceScore: raceScore,
             classScore: classScore,
             modifierScore: modifierScore,
-          }
+          })
         }
       })
 
       return abilityScores
-    }
-  }, [classes, formData.__kind, races, formData?.modifiers, formData?.abilities?.scores, formData?.classes])
+    },
+    [classes, races, featureData, featureModifiers, ancestryOptions]
+  )
 
   return {
     getSectionOptions,
     createSections,
     createAbilityScores,
-    features,
+    sectionTypeMap,
   }
 }
 export default useGetSections

@@ -1,13 +1,13 @@
-import { Class } from '@/types'
+import { Class, type System } from '@/types'
 import { useEquipmentData, useSystemData } from '@/hooks'
 import { ProfCats } from '@/enums'
 
 export interface ClassProficiency {
   [key: string]: {
-    type: { id: string; label: string; value: string }[]
-    property?: any[]
+    type: { id: string; label: string }[]
+    property?: System['equipment']['properties']
     selectionCount: number | null
-    proficiencyId: string
+    id: string
   }
 }
 
@@ -26,8 +26,8 @@ const useGetProficiencies = ({ fullClass }: { fullClass: Class }): ClassProficie
           (category) => category.id === proficiency?.properties?.category
         )
         if (equipmentCategory) {
-          const existType: Array<{ id: string; label: string; value: string }> = [
-            ...(proficiencyObject[equipmentCategory.value]?.type || []),
+          const existType: Array<{ id: string; label: string }> = [
+            ...(proficiencyObject[equipmentCategory.label]?.type || []),
           ]
 
           const filteredProperties = []
@@ -42,19 +42,19 @@ const useGetProficiencies = ({ fullClass }: { fullClass: Class }): ClassProficie
                   )
                 )
                 .filter((property) => !existType.some((type) => type.id === property.id))
-                .map((property) => ({ id: property.id, label: property.label, value: property.value }))
+                .map((property) => ({ id: property.id, label: property.label }))
             )
           } else {
             filteredProperties.push(
               ...system.equipment.properties
                 .filter((property) => proficiency?.properties?.ids?.some((id) => id === property.id))
                 .filter((property) => !existType.some((type) => type.id === property.id))
-                .map((property) => ({ id: property.id, label: property.label, value: property.value }))
+                .map((property) => ({ id: property.id, label: property.label }))
             )
           }
 
-          proficiencyObject[equipmentCategory.value] = {
-            proficiencyId: proficiency.id,
+          proficiencyObject[equipmentCategory.label] = {
+            id: proficiency.id,
             type: [...existType, ...filteredProperties],
             selectionCount: proficiency?.selectionCount || 0,
           }
@@ -67,8 +67,8 @@ const useGetProficiencies = ({ fullClass }: { fullClass: Class }): ClassProficie
       )
 
       if (equipmentCategory) {
-        const existType: Array<{ id: string; label: string; value: string }> = [
-          ...(proficiencyObject[equipmentCategory.value]?.type || []),
+        const existType: Array<{ id: string; label: string }> = [
+          ...(proficiencyObject[equipmentCategory.label]?.type || []),
         ]
 
         const filteredEquipment = []
@@ -79,14 +79,14 @@ const useGetProficiencies = ({ fullClass }: { fullClass: Class }): ClassProficie
                 .filterByCategory(proficiency?.equipment?.category)
                 .filterByProperties(proficiency?.equipment?.properties)
                 .filter((sEquipment) => !existType.some((type) => type.id === sEquipment.id))
-                .map((sEquipment) => ({ id: sEquipment.id, label: sEquipment.label, value: sEquipment.value }))
+                .map((sEquipment) => ({ id: sEquipment.id, label: sEquipment.label }))
             )
           } else {
             filteredEquipment.push(
               ...equipment
                 .filterByCategory(proficiency?.equipment?.category)
                 .filter((sEquipment) => !existType.some((type) => type.id === sEquipment.id))
-                .map((sEquipment) => ({ id: sEquipment.id, label: sEquipment.label, value: sEquipment.value }))
+                .map((sEquipment) => ({ id: sEquipment.id, label: sEquipment.label }))
             )
           }
         } else {
@@ -94,89 +94,85 @@ const useGetProficiencies = ({ fullClass }: { fullClass: Class }): ClassProficie
             ...equipment
               .filter((sEquipment) => proficiency?.equipment?.ids?.some((id) => id === sEquipment.id))
               .filter((sEquipment) => !existType.some((type) => type.id === sEquipment.id))
-              .map((sEquipment) => ({ id: sEquipment.id, label: sEquipment.label, value: sEquipment.value }))
+              .map((sEquipment) => ({ id: sEquipment.id, label: sEquipment.label }))
           )
         }
 
-        proficiencyObject[equipmentCategory.value] = {
-          proficiencyId: proficiency.id,
+        proficiencyObject[equipmentCategory.label] = {
+          id: proficiency.id,
           type: [...existType, ...filteredEquipment],
           selectionCount: proficiency?.selectionCount || 0,
         }
       }
     } else if (proficiency?.category === ProfCats.SKILLS) {
-      const existType: Array<{ id: string; label: string; value: string }> = [...(proficiencyObject?.skils?.type || [])]
+      const existType: Array<{ id: string; label: string }> = [...(proficiencyObject?.skils?.type || [])]
 
       const filteredSkills = []
       if (proficiency?.skills?.some((skill) => skill === 'all')) {
         filteredSkills.push(
           ...system.skills
             .filter((skill) => !existType.some((type) => type.id === skill.id))
-            .map((skill) => ({ id: skill.id, label: skill.label, value: skill.value }))
+            .map((skill) => ({ id: skill.id, label: skill.label }))
         )
       } else {
         filteredSkills.push(
           ...system.skills
             .filter((skill) => proficiency?.skills?.some((skillId) => skillId === skill.id))
             .filter((skill) => !existType.some((type) => type.id === skill.id))
-            .map((skill) => ({ id: skill.id, label: skill.label, value: skill.value }))
+            .map((skill) => ({ id: skill.id, label: skill.label }))
         )
       }
 
       proficiencyObject.skills = {
-        proficiencyId: proficiency.id,
+        id: proficiency.id,
         type: [...existType, ...filteredSkills],
         selectionCount: proficiency?.selectionCount || 0,
       }
     } else if (proficiency?.category === ProfCats.LANGUAGES) {
-      const existType: Array<{ id: string; label: string; value: string }> = [
-        ...(proficiencyObject?.languages?.type || []),
-      ]
+      const existType: Array<{ id: string; label: string }> = [...(proficiencyObject?.languages?.type || [])]
 
       const filteredLanguages = []
       if (proficiency?.languages?.some((language) => language === 'all')) {
         filteredLanguages.push(
           ...system.languages
             .filter((language) => !existType.some((type) => type.id === language.id))
-            .map((language) => ({ id: language.id, label: language.label, value: language.value }))
+            .map((language) => ({ id: language.id, label: language.label }))
         )
       } else {
         filteredLanguages.push(
           ...system.languages
             .filter((language) => proficiency?.languages?.some((languageId) => languageId === language.id))
             .filter((language) => !existType.some((type) => type.id === language.id))
-            .map((language) => ({ id: language.id, label: language.label, value: language.value }))
+            .map((language) => ({ id: language.id, label: language.label }))
         )
       }
 
       proficiencyObject.languages = {
-        proficiencyId: proficiency.id,
+        id: proficiency.id,
         type: [...existType, ...filteredLanguages],
         selectionCount: proficiency?.selectionCount || 0,
       }
     } else if (proficiency?.category === ProfCats.SAVE_ABILITIES) {
-      const existType: Array<{ id: string; label: string; value: string }> = [
-        ...(proficiencyObject?.saveAbilities?.type || []),
-      ]
+      const existType: Array<{ id: string; label: string }> = [...(proficiencyObject?.saveAbilities?.type || [])]
 
       const filteredSaveAbilities = []
       if (proficiency?.saveAbilities?.some((ability) => ability === 'all')) {
         filteredSaveAbilities.push(
           ...system.abilities
             .filter((ability) => !existType.some((type) => type.id === ability.id))
-            .map((ability) => ({ id: ability.id, label: ability.label, value: ability.value }))
+            .map((ability) => ({ id: ability.id, label: ability.label }))
         )
       } else {
         filteredSaveAbilities.push(
           ...system.abilities
             .filter((ability) => proficiency?.saveAbilities?.some((abilityId) => abilityId === ability.id))
             .filter((ability) => !existType.some((type) => type.id === ability.id))
-            .map((ability) => ({ id: ability.id, label: ability.label, value: ability.value }))
+            .map((ability) => ({ id: ability.id, label: ability.label }))
         )
       }
 
       proficiencyObject.saveAbilities = {
-        proficiencyId: proficiency.id,
+        id: proficiency.id,
         type: [...existType, ...filteredSaveAbilities],
         selectionCount: proficiency?.selectionCount || 0,
       }

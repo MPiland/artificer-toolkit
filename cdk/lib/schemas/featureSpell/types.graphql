@@ -1,5 +1,6 @@
 type SpellsByLevel {
-  spells: [ID!]
+  id: ID!
+  ids: [ID!]
   level: Int
   spellLevel: Int
 }

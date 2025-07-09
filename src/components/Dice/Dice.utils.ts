@@ -1,7 +1,9 @@
-import type { RollConfig, Point, DiceConfig, DieType } from './Dice.types'
+import type { Point, DiceConfig, DieType } from './Dice.types'
 import type { Vector3Tuple } from '@react-three/rapier'
 import type { Vector } from 'three/examples/jsm/Addons.js'
 import type { Vector4Like } from 'three'
+import { z } from 'zod/v4'
+import { ROLL_CONFIG_REGEX } from '../Form'
 
 export const diceNormalsMap: Record<DieType, Array<{ normal: number[]; value: number }>> = {
   4: [], // D4 uses a different calculation method
@@ -230,11 +232,21 @@ export const generateRandomPoints = (numPoints: number, minDistance: number, cen
   return points
 }
 
-export const parseDiceRoll = (rollString: RollConfig) => {
-  const rollRegex =
-    /(?<quantity>\d+)?(?:d(?<die>\d+)?)?(?<keep>(?<keepType>(?:kl|kh))?(?<keepCount>\d+))?(?<drop>(?<dropType>(?:dl|dh))?(?<dropCount>\d+))?(?<reroll>(?<rerollType>(?:ro|r))?(?<rerollCondition>[<>])?(?<rerollValue>\d+)?)?/
+export const parseDiceRoll = (rollString?: string | null) => {
+  if (!rollString || !z.string(rollString).regex(ROLL_CONFIG_REGEX))
+    return {
+      quantity: undefined,
+      die: undefined,
+      keepType: undefined,
+      keepCount: undefined,
+      dropType: undefined,
+      dropCount: undefined,
+      rerollType: undefined,
+      rerollCondition: undefined,
+      rerollValue: undefined,
+    }
 
-  const match = rollString.match(rollRegex)
+  const match = rollString.match(ROLL_CONFIG_REGEX)
 
   return {
     quantity: (Number(match?.groups?.quantity) || 0) as DiceConfig['quantity'],

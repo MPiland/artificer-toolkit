@@ -1,17 +1,16 @@
 import { use, useMemo } from 'react'
 import Modal, { ModalContext, type AddSectionModalProps } from '@/components/Modal'
-import { FeatureContext } from '@/components/Form'
-import Button from '@/components/Button'
+import { SECTION_STEPS } from '@/components/Form'
+import { Button } from '@mantine/core'
 
 const AddSection = () => {
   const { modalProps, hideModal } = use(ModalContext)
-  const { sectionSteps } = use(FeatureContext)
 
-  const { featureData, onAddSection } = modalProps as AddSectionModalProps
+  const { __kind, onAddSection } = modalProps as AddSectionModalProps
 
   const sectionStepOptions = useMemo(
-    () => (featureData.__typename === 'FeatureOption' ? sectionSteps : ([...sectionSteps, 'options'] as const)),
-    [featureData.__typename, sectionSteps]
+    () => (__kind === 'FeatureOptionInput' ? SECTION_STEPS : ([...SECTION_STEPS, 'options'] as const)),
+    [__kind]
   )
 
   return (
@@ -22,7 +21,7 @@ const AddSection = () => {
           <Button
             key={sectionStep}
             onClick={() => {
-              onAddSection(sectionStep)
+              onAddSection(sectionStep, __kind)
               hideModal()
             }}
           >

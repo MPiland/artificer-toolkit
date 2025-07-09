@@ -1,13 +1,11 @@
 import { useCallback, useMemo } from 'react'
 import Dropdown from '@/components/Dropdown'
-import Input from '@/components/Input'
 import { get, startCase } from 'lodash'
 import { useFilterStore, type FilterState } from '@/store'
-import Button from '@/components/Button'
 import type { FilterConfig, FilterDataType } from '@/components/List'
-import type { MetaDataType, OnChange } from '@/types'
+import type { MetaDataType } from '@/types'
 import { useMetaData } from '@/hooks'
-import { Grid } from '@mantine/core'
+import { Grid, Button, TextInput } from '@mantine/core'
 
 // This is a wrapper component that maintains the same API as before
 function Filter<T extends FilterDataType, K extends MetaDataType>({
@@ -63,21 +61,13 @@ function Filter<T extends FilterDataType, K extends MetaDataType>({
           case 'text':
             return (
               <Grid.Col key={String(config.path)} span={{ sm: 4, lg: 'auto' }}>
-                <Input<FilterState[typeof context]>
+                <TextInput
                   key={String(config.path)}
                   name={config.path}
                   label={config.label || startCase(String(config.path))}
                   autoComplete='off'
-                  value={value}
-                  onChange={
-                    {
-                      updateField: ({ path, value }) => {
-                        return setFilter(context, path, value)
-                      },
-                    } as {
-                      updateField: OnChange<FilterState[typeof context]>['updateField']
-                    }
-                  }
+                  value={value || ''}
+                  onChange={(e) => setFilter(context, e.target.name, e.target.value)}
                 />
               </Grid.Col>
             )
@@ -89,28 +79,20 @@ function Filter<T extends FilterDataType, K extends MetaDataType>({
 
             return (
               <Grid.Col key={String(config.path)} span={{ sm: 4, lg: 'auto' }}>
-                <Dropdown<FilterState[typeof context]>
+                <Dropdown
                   key={String(config.path)}
-                  multiSelect={config.type === 'multiSelect'}
+                  multiselect={config.type === 'multiSelect'}
                   name={config.path}
                   label={config.label || startCase(String(config.path))}
                   options={optionsForConfig}
                   value={value}
                   all={false}
-                  boundary='app'
-                  onChange={
-                    {
-                      updateField: ({ path, value }) => {
-                        return setFilter(context, path, value)
-                      },
-                      removeField: ({ path }) => {
-                        return setFilter(context, path, null)
-                      },
-                    } as {
-                      updateField: OnChange<FilterState[typeof context]>['updateField']
-                      removeField: OnChange<FilterState[typeof context]>['removeField']
+                  onChange={(value) => {
+                    if (value == null) {
+                      return setFilter(context, config.path, null)
                     }
-                  }
+                    return setFilter(context, config.path, value)
+                  }}
                 />
               </Grid.Col>
             )
@@ -122,7 +104,7 @@ function Filter<T extends FilterDataType, K extends MetaDataType>({
       })}
 
       <Grid.Col>
-        <Button width={'size-full'} color='main' style='outline' onClick={handleReset}>
+        <Button fullWidth variant='outline' onClick={handleReset}>
           Reset
         </Button>
       </Grid.Col>

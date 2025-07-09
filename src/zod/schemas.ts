@@ -1,5 +1,5 @@
 import { z } from 'zod/v4'
-import { GenericTypeInput, CurrencyConversionInput, CurrencyInput, EquipmentCategoryPropertyInput, SystemEquipmentInput, ModifierCategoryTypeInput, ModifierTypeMethodInput, ModifierCategoryTypeMethodInput, SystemModifiersInput, ProficiencyLevelInput, SystemProficiencyInput, SystemSpellInput, GenerateOptionInput, ImperialInput, SystemMeasurementInput, AbilityGenerateMethodInput, SystemRulesInput, ChargeOptionInput, SystemChargesInput, CharacterSettingInput, SystemActionInput, SystemAttributeInput, SystemCategoryInput, SystemSenseInput, SystemSkillInput, SystemPrerequisiteInput, SystemInput, UpcastFieldsInput, SetPerLevelInput, DamagePoolInput, DamageFieldsInput, DiePerLevelInput, DamageInput, UpcastLevelInput, UpcastInput, ShapeInput, RangeInput, DurationInput, ActionPropertyInput, ActionGroupInput, SaveAbilityInput, SpellInput, UsesPerLevelInput, ChargeInput, EquipPrerequisiteInput, AbilityScoreInput, PrerequisiteInput, AncestryFeatureInput, AncestryOptionInput, AncestryInput, RaceSpeedInput, DetailInput, TraitsInput, OptionsByLevelInput, FeatureInput, RaceInput, ProficiencyPropertiesInput, SpellsByLevelInput, FeatureSpellInput, FeatureSenseInput, FeatureProficiencyInput, FeatureOptionInput, ModifierDiePerLevelInput, ModifierSetPerLevelInput, FeatureModifierInput, FeatureFeatInput, FeatureExpertiseInput, FeatInput, SpeedInput, WeightInput, CapacityInput, CostInput, ContainsInput, EquipmentRangeInput, EquipmentInput, HitpointInput, StartingGoldInput, PrepareLimitLevelInput, PrepareLimitInput, SpellcastingInput, SpellSlotInput, LevelAttributeInput, ResourceInput, MulticlassAbilityInput, MulticlassInput, SubtypeInput, ClassCurrencyInput, ClassEquipmentInput, ClassInput, CharacterModifierInput, CharacterSenseInput, CharacterFeatInput, CharacterProficiencyInput, CharacterExpertiseInput, CharacterSpellInput, CharacterFeatureOptionInput, CharacterFeatureInput, RollInput, RollTypeInput, ManualInput, ManualRolledInput, DistributedInput, PointBuyInput, StandardArrayInput, ScoresInput, CharacterAbilitiesInput, LineageInput, CharacterAncestryInput, SubclassInput, ClassSpellInput, ClassSpellListInput, CharacterSpellSlotsInput, CharacterSpellcastingInput, CharacterClassInput, StartingEquipmentInput, StartingEquipmentGroupInput, ClassStartingEquipmentInput, BackgroundStartingEquipmentInput, PossessionsInput, CharacterCurrencyInput, CurrencyGroupInput, HitpointRollValuesInput, HitpointRollInput, HitpointFixedInput, CharacterHitpointInput, CharacterEquipmentObjectInput, CharacterEquipmentInput, CharacterInput, BackgroundCurrencyInput, BackgroundEquipmentInput, BackgroundInput, FEATURE_ENUM_INPUT, DAMAGE_ENUM_INPUT, SPELL_ENUM_INPUT, FEAT_ENUM_INPUT, SECTION_ENUM_INPUT, EQUIPMENT_ENUM_INPUT, CLASSES_ENUM_INPUT } from '@/types'
+import { GenericTypeInput, CurrencyConversionInput, CurrencyInput, EquipmentCategoryPropertyInput, SystemEquipmentInput, ModifierCategoryTypeInput, ModifierTypeMethodInput, ModifierCategoryTypeMethodInput, SystemModifiersInput, ProficiencyLevelInput, SystemProficiencyInput, SystemSpellInput, GenerateOptionInput, ImperialInput, SystemMeasurementInput, AbilityGenerateMethodInput, SystemRulesInput, ChargeOptionInput, SystemChargesInput, CharacterSettingInput, SystemActionInput, SystemAttributeInput, SystemCategoryInput, SystemSenseInput, SystemSkillInput, SystemPrerequisiteInput, SystemInput, UpcastFieldsInput, SetPerLevelInput, DamagePoolInput, DamageFieldsInput, DiePerLevelInput, DamageInput, UpcastLevelInput, UpcastInput, ShapeInput, RangeInput, DurationInput, ActionPropertyInput, ActionGroupInput, SaveAbilityInput, SpellInput, AncestryInput, RaceSpeedInput, DetailInput, TraitsInput, RaceInput, UsesPerLevelInput, ChargeInput, EquipPrerequisiteInput, AbilityScoreInput, PrerequisiteInput, ProficiencyPropertiesInput, EquipmentCurrencyInput, EquipmentOptionItemInput, SpellsByLevelInput, FeatureSpellInput, FeatureSenseInput, FeatureProficiencyInput, FeatureOptionInput, ModifierDiePerLevelInput, ModifierSetPerLevelInput, FeatureModifierInput, FeatureFeatInput, FeatureExpertiseInput, OptionsByLevelInput, FeatureInput, FeatInput, SpeedInput, WeightInput, CapacityInput, CostInput, ContainsInput, EquipmentRangeInput, EquipmentInput, HitpointInput, StartingGoldInput, PrepareLimitLevelInput, PrepareLimitInput, SpellcastingInput, SpellSlotInput, LevelAttributeInput, ResourceInput, MulticlassAbilityInput, MulticlassInput, SubtypeInput, ClassInput, CharacterModifierInput, CharacterSenseInput, CharacterFeatInput, CharacterProficiencyInput, CharacterExpertiseInput, CharacterSpellInput, CharacterFeatureOptionInput, CharacterFeatureInput, RollInput, RollTypeInput, ManualInput, ManualRolledInput, DistributedInput, PointBuyInput, StandardArrayInput, ScoresInput, CharacterAbilitiesInput, LineageInput, CharacterAncestryInput, SubclassInput, ClassSpellInput, ClassSpellListInput, CharacterSpellSlotsInput, CharacterSpellcastingInput, CharacterClassInput, StartingEquipmentInput, StartingEquipmentGroupInput, ClassStartingEquipmentInput, BackgroundStartingEquipmentInput, PossessionsInput, CharacterCurrencyInput, CurrencyGroupInput, HitpointRollValuesInput, HitpointRollInput, HitpointFixedInput, CharacterHitpointInput, CharacterEquipmentObjectInput, CharacterEquipmentInput, CharacterInput, BackgroundInput, AncestryOptionInput, FEATURE_ENUM_INPUT, DAMAGE_ENUM_INPUT, SPELL_ENUM_INPUT, FEAT_ENUM_INPUT, SECTION_ENUM_INPUT, EQUIPMENT_ENUM_INPUT, CLASSES_ENUM_INPUT } from '@/types'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K]>
@@ -7,8 +7,8 @@ type Properties<T> = Required<{
 
 export const genericTypeInputObject = {
     __kind: z.literal('GenericTypeInput'),
-    id: z.string().default(""),
-    label: z.string().default(""),
+    id: z.string(),
+    label: z.string(),
     desc: z.string().optional(),
     tooltip: z.string().optional(),
     short: z.string().optional(),
@@ -20,11 +20,11 @@ export type GenericTypeInputInfer = z.infer<typeof GenericTypeInputSchema>
 
 export const currencyConversionInputObject = {
     __kind: z.literal('CurrencyConversionInput'),
-    copper: z.number().default(0),
-    silver: z.number().default(0),
-    gold: z.number().default(0),
-    electrum: z.number().default(0),
-    platinum: z.number().default(0),
+    copper: z.number(),
+    silver: z.number(),
+    gold: z.number(),
+    electrum: z.number(),
+    platinum: z.number(),
 } satisfies Properties<CurrencyConversionInput>
 
 export const CurrencyConversionInputSchema = z.object(currencyConversionInputObject)
@@ -33,11 +33,11 @@ export type CurrencyConversionInputInfer = z.infer<typeof CurrencyConversionInpu
 
 export const currencyInputObject = {
     __kind: z.literal('CurrencyInput'),
-    id: z.string().default(""),
-    label: z.string().default(""),
+    id: z.string(),
+    label: z.string(),
     desc: z.string().optional(),
-    abbreviation: z.string().default(""),
-    conversions: CurrencyConversionInputSchema.default(CurrencyConversionInputSchema.parse({})),
+    abbreviation: z.string(),
+    conversions: CurrencyConversionInputSchema,
 } satisfies Properties<CurrencyInput>
 
 export const CurrencyInputSchema = z.object(currencyInputObject)
@@ -46,9 +46,9 @@ export type CurrencyInputInfer = z.infer<typeof CurrencyInputSchema>
 
 export const equipmentCategoryPropertyInputObject = {
     __kind: z.literal('EquipmentCategoryPropertyInput'),
-    id: z.string().default(""),
-    propertyId: z.string().default(""),
-    categoryId: z.string().default(""),
+    id: z.string(),
+    propertyId: z.string(),
+    categoryId: z.string(),
 } satisfies Properties<EquipmentCategoryPropertyInput>
 
 export const EquipmentCategoryPropertyInputSchema = z.object(equipmentCategoryPropertyInputObject)
@@ -57,10 +57,10 @@ export type EquipmentCategoryPropertyInputInfer = z.infer<typeof EquipmentCatego
 
 export const systemEquipmentInputObject = {
     __kind: z.literal('SystemEquipmentInput'),
-    categories: z.array(GenericTypeInputSchema).default(() => [GenericTypeInputSchema.parse({})]),
-    properties: z.array(GenericTypeInputSchema).default(() => [GenericTypeInputSchema.parse({})]),
-    categoryProperties: z.array(EquipmentCategoryPropertyInputSchema).default(() => [EquipmentCategoryPropertyInputSchema.parse({})]),
-    rarities: z.array(GenericTypeInputSchema).default(() => [GenericTypeInputSchema.parse({})]),
+    categories: z.array(GenericTypeInputSchema),
+    properties: z.array(GenericTypeInputSchema),
+    categoryProperties: z.array(EquipmentCategoryPropertyInputSchema),
+    rarities: z.array(GenericTypeInputSchema),
 } satisfies Properties<SystemEquipmentInput>
 
 export const SystemEquipmentInputSchema = z.object(systemEquipmentInputObject)
@@ -69,9 +69,9 @@ export type SystemEquipmentInputInfer = z.infer<typeof SystemEquipmentInputSchem
 
 export const modifierCategoryTypeInputObject = {
     __kind: z.literal('ModifierCategoryTypeInput'),
-    id: z.string().default(""),
-    typeId: z.string().default(""),
-    categoryId: z.string().default(""),
+    id: z.string(),
+    typeId: z.string(),
+    categoryId: z.string(),
 } satisfies Properties<ModifierCategoryTypeInput>
 
 export const ModifierCategoryTypeInputSchema = z.object(modifierCategoryTypeInputObject)
@@ -80,9 +80,9 @@ export type ModifierCategoryTypeInputInfer = z.infer<typeof ModifierCategoryType
 
 export const modifierTypeMethodInputObject = {
     __kind: z.literal('ModifierTypeMethodInput'),
-    id: z.string().default(""),
-    typeId: z.string().default(""),
-    methodId: z.string().default(""),
+    id: z.string(),
+    typeId: z.string(),
+    methodId: z.string(),
 } satisfies Properties<ModifierTypeMethodInput>
 
 export const ModifierTypeMethodInputSchema = z.object(modifierTypeMethodInputObject)
@@ -91,10 +91,10 @@ export type ModifierTypeMethodInputInfer = z.infer<typeof ModifierTypeMethodInpu
 
 export const modifierCategoryTypeMethodInputObject = {
     __kind: z.literal('ModifierCategoryTypeMethodInput'),
-    id: z.string().default(""),
-    methodId: z.string().default(""),
-    typeId: z.string().default(""),
-    categoryId: z.string().default(""),
+    id: z.string(),
+    methodId: z.string(),
+    typeId: z.string(),
+    categoryId: z.string(),
 } satisfies Properties<ModifierCategoryTypeMethodInput>
 
 export const ModifierCategoryTypeMethodInputSchema = z.object(modifierCategoryTypeMethodInputObject)
@@ -103,13 +103,13 @@ export type ModifierCategoryTypeMethodInputInfer = z.infer<typeof ModifierCatego
 
 export const systemModifiersInputObject = {
     __kind: z.literal('SystemModifiersInput'),
-    categories: z.array(GenericTypeInputSchema).default(() => [GenericTypeInputSchema.parse({})]),
-    types: z.array(GenericTypeInputSchema).default(() => [GenericTypeInputSchema.parse({})]),
-    methods: z.array(GenericTypeInputSchema).default(() => [GenericTypeInputSchema.parse({})]),
-    spellCategories: z.array(GenericTypeInputSchema).default(() => [GenericTypeInputSchema.parse({})]),
-    categoryTypes: z.array(ModifierCategoryTypeInputSchema).default(() => [ModifierCategoryTypeInputSchema.parse({})]),
-    typeMethods: z.array(ModifierTypeMethodInputSchema).default(() => [ModifierTypeMethodInputSchema.parse({})]),
-    categoryMethods: z.array(ModifierCategoryTypeMethodInputSchema).default(() => [ModifierCategoryTypeMethodInputSchema.parse({})]),
+    categories: z.array(GenericTypeInputSchema),
+    types: z.array(GenericTypeInputSchema),
+    methods: z.array(GenericTypeInputSchema),
+    spellCategories: z.array(GenericTypeInputSchema),
+    categoryTypes: z.array(ModifierCategoryTypeInputSchema),
+    typeMethods: z.array(ModifierTypeMethodInputSchema),
+    categoryMethods: z.array(ModifierCategoryTypeMethodInputSchema),
 } satisfies Properties<SystemModifiersInput>
 
 export const SystemModifiersInputSchema = z.object(systemModifiersInputObject)
@@ -118,8 +118,8 @@ export type SystemModifiersInputInfer = z.infer<typeof SystemModifiersInputSchem
 
 export const proficiencyLevelInputObject = {
     __kind: z.literal('ProficiencyLevelInput'),
-    id: z.string().default(""),
-    label: z.string().default(""),
+    id: z.string(),
+    label: z.string(),
     multiplier: z.number().optional(),
 } satisfies Properties<ProficiencyLevelInput>
 
@@ -129,8 +129,8 @@ export type ProficiencyLevelInputInfer = z.infer<typeof ProficiencyLevelInputSch
 
 export const systemProficiencyInputObject = {
     __kind: z.literal('SystemProficiencyInput'),
-    levels: z.array(ProficiencyLevelInputSchema).default(() => [ProficiencyLevelInputSchema.parse({})]),
-    categories: z.array(GenericTypeInputSchema).default(() => [GenericTypeInputSchema.parse({})]),
+    levels: z.array(ProficiencyLevelInputSchema),
+    categories: z.array(GenericTypeInputSchema),
 } satisfies Properties<SystemProficiencyInput>
 
 export const SystemProficiencyInputSchema = z.object(systemProficiencyInputObject)
@@ -139,12 +139,12 @@ export type SystemProficiencyInputInfer = z.infer<typeof SystemProficiencyInputS
 
 export const systemSpellInputObject = {
     __kind: z.literal('SystemSpellInput'),
-    categories: z.array(GenericTypeInputSchema).default(() => [GenericTypeInputSchema.parse({})]),
-    durations: z.array(GenericTypeInputSchema).default(() => [GenericTypeInputSchema.parse({})]),
-    ranges: z.array(GenericTypeInputSchema).default(() => [GenericTypeInputSchema.parse({})]),
-    schools: z.array(GenericTypeInputSchema).default(() => [GenericTypeInputSchema.parse({})]),
-    shapes: z.array(GenericTypeInputSchema).default(() => [GenericTypeInputSchema.parse({})]),
-    requirements: z.array(GenericTypeInputSchema).default(() => [GenericTypeInputSchema.parse({})]),
+    categories: z.array(GenericTypeInputSchema),
+    durations: z.array(GenericTypeInputSchema),
+    ranges: z.array(GenericTypeInputSchema),
+    schools: z.array(GenericTypeInputSchema),
+    shapes: z.array(GenericTypeInputSchema),
+    requirements: z.array(GenericTypeInputSchema),
 } satisfies Properties<SystemSpellInput>
 
 export const SystemSpellInputSchema = z.object(systemSpellInputObject)
@@ -153,8 +153,8 @@ export type SystemSpellInputInfer = z.infer<typeof SystemSpellInputSchema>
 
 export const generateOptionInputObject = {
     __kind: z.literal('GenerateOptionInput'),
-    id: z.string().default(""),
-    label: z.string().default(""),
+    id: z.string(),
+    label: z.string(),
     reduce: z.number().int().optional(),
 } satisfies Properties<GenerateOptionInput>
 
@@ -164,9 +164,9 @@ export type GenerateOptionInputInfer = z.infer<typeof GenerateOptionInputSchema>
 
 export const imperialInputObject = {
     __kind: z.literal('ImperialInput'),
-    weight: z.array(GenericTypeInputSchema).default(() => [GenericTypeInputSchema.parse({})]),
-    volume: z.array(GenericTypeInputSchema).default(() => [GenericTypeInputSchema.parse({})]),
-    length: z.array(GenericTypeInputSchema).default(() => [GenericTypeInputSchema.parse({})]),
+    weight: z.array(GenericTypeInputSchema),
+    volume: z.array(GenericTypeInputSchema),
+    length: z.array(GenericTypeInputSchema),
 } satisfies Properties<ImperialInput>
 
 export const ImperialInputSchema = z.object(imperialInputObject)
@@ -175,9 +175,9 @@ export type ImperialInputInfer = z.infer<typeof ImperialInputSchema>
 
 export const systemMeasurementInputObject = {
     __kind: z.literal('SystemMeasurementInput'),
-    amount: z.array(GenericTypeInputSchema).default(() => [GenericTypeInputSchema.parse({})]),
-    rounding: z.array(GenericTypeInputSchema).default(() => [GenericTypeInputSchema.parse({})]),
-    imperial: ImperialInputSchema.default(ImperialInputSchema.parse({})),
+    amount: z.array(GenericTypeInputSchema),
+    rounding: z.array(GenericTypeInputSchema),
+    imperial: ImperialInputSchema,
 } satisfies Properties<SystemMeasurementInput>
 
 export const SystemMeasurementInputSchema = z.object(systemMeasurementInputObject)
@@ -186,8 +186,8 @@ export type SystemMeasurementInputInfer = z.infer<typeof SystemMeasurementInputS
 
 export const abilityGenerateMethodInputObject = {
     __kind: z.literal('AbilityGenerateMethodInput'),
-    id: z.string().default(""),
-    label: z.string().default(""),
+    id: z.string(),
+    label: z.string(),
     total: z.number().int().optional(),
     options: z.array(GenerateOptionInputSchema).optional(),
 } satisfies Properties<AbilityGenerateMethodInput>
@@ -198,8 +198,8 @@ export type AbilityGenerateMethodInputInfer = z.infer<typeof AbilityGenerateMeth
 
 export const systemRulesInputObject = {
     __kind: z.literal('SystemRulesInput'),
-    measurements: SystemMeasurementInputSchema.default(SystemMeasurementInputSchema.parse({})),
-    abilityGenerateMethod: z.array(AbilityGenerateMethodInputSchema).default(() => [AbilityGenerateMethodInputSchema.parse({})]),
+    measurements: SystemMeasurementInputSchema,
+    abilityGenerateMethod: z.array(AbilityGenerateMethodInputSchema),
 } satisfies Properties<SystemRulesInput>
 
 export const SystemRulesInputSchema = z.object(systemRulesInputObject)
@@ -208,8 +208,8 @@ export type SystemRulesInputInfer = z.infer<typeof SystemRulesInputSchema>
 
 export const chargeOptionInputObject = {
     __kind: z.literal('ChargeOptionInput'),
-    id: z.string().default(""),
-    label: z.string().default(""),
+    id: z.string(),
+    label: z.string(),
     features: z.array(z.enum(FEATURE_ENUM_INPUT)).optional(),
     damage: z.array(z.enum(DAMAGE_ENUM_INPUT)).optional(),
     feats: z.array(z.enum(FEAT_ENUM_INPUT)).optional(),
@@ -225,8 +225,8 @@ export type ChargeOptionInputInfer = z.infer<typeof ChargeOptionInputSchema>
 
 export const systemChargesInputObject = {
     __kind: z.literal('SystemChargesInput'),
-    resets: z.array(ChargeOptionInputSchema).default(() => [ChargeOptionInputSchema.parse({})]),
-    limits: z.array(ChargeOptionInputSchema).default(() => [ChargeOptionInputSchema.parse({})]),
+    resets: z.array(ChargeOptionInputSchema),
+    limits: z.array(ChargeOptionInputSchema),
 } satisfies Properties<SystemChargesInput>
 
 export const SystemChargesInputSchema = z.object(systemChargesInputObject)
@@ -235,10 +235,10 @@ export type SystemChargesInputInfer = z.infer<typeof SystemChargesInputSchema>
 
 export const characterSettingInputObject = {
     __kind: z.literal('CharacterSettingInput'),
-    hitpointCalcMethods: z.array(GenericTypeInputSchema).default(() => [GenericTypeInputSchema.parse({})]),
-    advancementMethods: z.array(GenericTypeInputSchema).default(() => [GenericTypeInputSchema.parse({})]),
-    spellPointCalcMethods: z.array(GenericTypeInputSchema).default(() => [GenericTypeInputSchema.parse({})]),
-    startingEquipmentOptions: z.array(GenericTypeInputSchema).default(() => [GenericTypeInputSchema.parse({})]),
+    hitpointCalcMethods: z.array(GenericTypeInputSchema),
+    advancementMethods: z.array(GenericTypeInputSchema),
+    spellPointCalcMethods: z.array(GenericTypeInputSchema),
+    startingEquipmentOptions: z.array(GenericTypeInputSchema),
 } satisfies Properties<CharacterSettingInput>
 
 export const CharacterSettingInputSchema = z.object(characterSettingInputObject)
@@ -247,15 +247,15 @@ export type CharacterSettingInputInfer = z.infer<typeof CharacterSettingInputSch
 
 export const systemActionInputObject = {
     __kind: z.literal('SystemActionInput'),
-    id: z.string().default(""),
-    label: z.string().default(""),
-    features: z.boolean().default(false),
-    damage: z.boolean().default(false),
-    feats: z.boolean().default(false),
-    sections: z.boolean().default(false),
-    spells: z.boolean().default(false),
-    equipment: z.boolean().default(false),
-    classes: z.boolean().default(false),
+    id: z.string(),
+    label: z.string(),
+    features: z.boolean(),
+    damage: z.boolean(),
+    feats: z.boolean(),
+    sections: z.boolean(),
+    spells: z.boolean(),
+    equipment: z.boolean(),
+    classes: z.boolean(),
 } satisfies Properties<SystemActionInput>
 
 export const SystemActionInputSchema = z.object(systemActionInputObject)
@@ -264,8 +264,8 @@ export type SystemActionInputInfer = z.infer<typeof SystemActionInputSchema>
 
 export const systemAttributeInputObject = {
     __kind: z.literal('SystemAttributeInput'),
-    id: z.string().default(""),
-    label: z.string().default(""),
+    id: z.string(),
+    label: z.string(),
     features: z.array(z.enum(FEATURE_ENUM_INPUT)).optional(),
     damage: z.array(z.enum(DAMAGE_ENUM_INPUT)).optional(),
     feats: z.array(z.enum(FEAT_ENUM_INPUT)).optional(),
@@ -281,11 +281,11 @@ export type SystemAttributeInputInfer = z.infer<typeof SystemAttributeInputSchem
 
 export const systemCategoryInputObject = {
     __kind: z.literal('SystemCategoryInput'),
-    id: z.string().default(""),
-    label: z.string().default(""),
-    features: z.boolean().default(false),
-    classes: z.boolean().default(false),
-    races: z.boolean().default(false),
+    id: z.string(),
+    label: z.string(),
+    features: z.boolean(),
+    classes: z.boolean(),
+    races: z.boolean(),
 } satisfies Properties<SystemCategoryInput>
 
 export const SystemCategoryInputSchema = z.object(systemCategoryInputObject)
@@ -294,8 +294,8 @@ export type SystemCategoryInputInfer = z.infer<typeof SystemCategoryInputSchema>
 
 export const systemSenseInputObject = {
     __kind: z.literal('SystemSenseInput'),
-    id: z.string().default(""),
-    label: z.string().default(""),
+    id: z.string(),
+    label: z.string(),
     creatureDesc: z.string().optional(),
     monsterDesc: z.string().optional(),
     type: z.array(z.string().optional()).optional(),
@@ -307,10 +307,10 @@ export type SystemSenseInputInfer = z.infer<typeof SystemSenseInputSchema>
 
 export const systemSkillInputObject = {
     __kind: z.literal('SystemSkillInput'),
-    id: z.string().default(""),
-    label: z.string().default(""),
+    id: z.string(),
+    label: z.string(),
     desc: z.string().optional(),
-    abilityId: z.string().default(""),
+    abilityId: z.string(),
 } satisfies Properties<SystemSkillInput>
 
 export const SystemSkillInputSchema = z.object(systemSkillInputObject)
@@ -319,8 +319,8 @@ export type SystemSkillInputInfer = z.infer<typeof SystemSkillInputSchema>
 
 export const systemPrerequisiteInputObject = {
     __kind: z.literal('SystemPrerequisiteInput'),
-    id: z.string().default(""),
-    label: z.string().default(""),
+    id: z.string(),
+    label: z.string(),
     features: z.array(z.enum(FEATURE_ENUM_INPUT)).optional(),
     damage: z.array(z.enum(DAMAGE_ENUM_INPUT)).optional(),
     feats: z.array(z.enum(FEAT_ENUM_INPUT)).optional(),
@@ -336,33 +336,33 @@ export type SystemPrerequisiteInputInfer = z.infer<typeof SystemPrerequisiteInpu
 
 export const systemInputObject = {
     __kind: z.literal('SystemInput'),
-    id: z.string().default(""),
-    label: z.string().default(""),
+    id: z.string(),
+    label: z.string(),
     desc: z.string().optional(),
-    abilities: z.array(GenericTypeInputSchema).default(() => [GenericTypeInputSchema.parse({})]),
-    actions: z.array(SystemActionInputSchema).default(() => [SystemActionInputSchema.parse({})]),
-    alignments: z.array(GenericTypeInputSchema).default(() => [GenericTypeInputSchema.parse({})]),
-    attributes: z.array(SystemAttributeInputSchema).default(() => [SystemAttributeInputSchema.parse({})]),
-    categories: z.array(SystemCategoryInputSchema).default(() => [SystemCategoryInputSchema.parse({})]),
-    characters: CharacterSettingInputSchema.default(CharacterSettingInputSchema.parse({})),
-    charges: SystemChargesInputSchema.default(SystemChargesInputSchema.parse({})),
-    conditions: z.array(GenericTypeInputSchema).default(() => [GenericTypeInputSchema.parse({})]),
-    currencies: z.array(CurrencyInputSchema).default(() => [CurrencyInputSchema.parse({})]),
-    damageTypes: z.array(GenericTypeInputSchema).default(() => [GenericTypeInputSchema.parse({})]),
-    equipment: SystemEquipmentInputSchema.default(SystemEquipmentInputSchema.parse({})),
-    languages: z.array(GenericTypeInputSchema).default(() => [GenericTypeInputSchema.parse({})]),
-    modifiers: SystemModifiersInputSchema.default(SystemModifiersInputSchema.parse({})),
-    passives: z.array(GenericTypeInputSchema).default(() => [GenericTypeInputSchema.parse({})]),
-    prerequisites: z.array(SystemPrerequisiteInputSchema).default(() => [SystemPrerequisiteInputSchema.parse({})]),
-    proficiencies: SystemProficiencyInputSchema.default(SystemProficiencyInputSchema.parse({})),
-    rules: SystemRulesInputSchema.default(SystemRulesInputSchema.parse({})),
-    senses: z.array(SystemSenseInputSchema).default(() => [SystemSenseInputSchema.parse({})]),
-    sizes: z.array(GenericTypeInputSchema).default(() => [GenericTypeInputSchema.parse({})]),
-    skills: z.array(SystemSkillInputSchema).default(() => [SystemSkillInputSchema.parse({})]),
-    speeds: z.array(GenericTypeInputSchema).default(() => [GenericTypeInputSchema.parse({})]),
-    spells: SystemSpellInputSchema.default(SystemSpellInputSchema.parse({})),
-    terrains: z.array(GenericTypeInputSchema).default(() => [GenericTypeInputSchema.parse({})]),
-    ownerId: z.string().default(""),
+    abilities: z.array(GenericTypeInputSchema),
+    actions: z.array(SystemActionInputSchema),
+    alignments: z.array(GenericTypeInputSchema),
+    attributes: z.array(SystemAttributeInputSchema),
+    categories: z.array(SystemCategoryInputSchema),
+    characters: CharacterSettingInputSchema,
+    charges: SystemChargesInputSchema,
+    conditions: z.array(GenericTypeInputSchema),
+    currencies: z.array(CurrencyInputSchema),
+    damageTypes: z.array(GenericTypeInputSchema),
+    equipment: SystemEquipmentInputSchema,
+    languages: z.array(GenericTypeInputSchema),
+    modifiers: SystemModifiersInputSchema,
+    passives: z.array(GenericTypeInputSchema),
+    prerequisites: z.array(SystemPrerequisiteInputSchema),
+    proficiencies: SystemProficiencyInputSchema,
+    rules: SystemRulesInputSchema,
+    senses: z.array(SystemSenseInputSchema),
+    sizes: z.array(GenericTypeInputSchema),
+    skills: z.array(SystemSkillInputSchema),
+    speeds: z.array(GenericTypeInputSchema),
+    spells: SystemSpellInputSchema,
+    terrains: z.array(GenericTypeInputSchema),
+    ownerId: z.string(),
     masterId: z.string().optional(),
 } satisfies Properties<SystemInput>
 
@@ -483,7 +483,7 @@ export type UpcastInputInfer = z.infer<typeof UpcastInputSchema>
 
 export const shapeInputObject = {
     __kind: z.literal('ShapeInput'),
-    id: z.string().default(""),
+    id: z.string(),
     size: z.number().optional(),
     unit: z.string().optional(),
 } satisfies Properties<ShapeInput>
@@ -494,7 +494,7 @@ export type ShapeInputInfer = z.infer<typeof ShapeInputSchema>
 
 export const rangeInputObject = {
     __kind: z.literal('RangeInput'),
-    id: z.string().default(""),
+    id: z.string(),
     minRange: z.number().int().optional(),
     maxRange: z.number().int().optional(),
     distance: z.number().int().optional(),
@@ -507,7 +507,7 @@ export type RangeInputInfer = z.infer<typeof RangeInputSchema>
 
 export const durationInputObject = {
     __kind: z.literal('DurationInput'),
-    id: z.string().default(""),
+    id: z.string(),
     amount: z.number().int().optional(),
 } satisfies Properties<DurationInput>
 
@@ -537,7 +537,7 @@ export type ActionGroupInputInfer = z.infer<typeof ActionGroupInputSchema>
 
 export const saveAbilityInputObject = {
     __kind: z.literal('SaveAbilityInput'),
-    id: z.string().default(""),
+    id: z.string(),
     minAmount: z.number().int().optional(),
     attributes: z.array(z.string()).optional(),
     abilityModifier: z.string().optional(),
@@ -549,12 +549,12 @@ export type SaveAbilityInputInfer = z.infer<typeof SaveAbilityInputSchema>
 
 export const spellInputObject = {
     __kind: z.literal('SpellInput'),
-    id: z.string().default(""),
-    label: z.string().default(""),
-    desc: z.string().default(""),
-    level: z.number().int().default(0),
-    school: z.string().default(""),
-    classes: z.array(z.string()).default([""]),
+    id: z.string(),
+    label: z.string(),
+    desc: z.string(),
+    level: z.number().int(),
+    school: z.string(),
+    classes: z.array(z.string()),
     attributes: z.array(z.string()).optional(),
     upcast: UpcastInputSchema.optional(),
     actions: ActionGroupInputSchema.optional(),
@@ -562,19 +562,86 @@ export const spellInputObject = {
     saveAbility: SaveAbilityInputSchema.optional(),
     conditions: z.array(z.string()).optional(),
     requirements: z.array(z.string()).optional(),
-    range: RangeInputSchema.default(RangeInputSchema.parse({})),
-    shape: ShapeInputSchema.default(ShapeInputSchema.parse({})),
-    duration: DurationInputSchema.default(DurationInputSchema.parse({})),
+    range: RangeInputSchema,
+    shape: ShapeInputSchema,
+    duration: DurationInputSchema,
     damage: DamageInputSchema.optional(),
     materialDesc: z.string().optional(),
     ownerId: z.string().optional(),
-    systemId: z.string().default(""),
+    systemId: z.string(),
     masterId: z.string().optional(),
 } satisfies Properties<SpellInput>
 
 export const SpellInputSchema = z.object(spellInputObject)
 
 export type SpellInputInfer = z.infer<typeof SpellInputSchema>
+
+export const ancestryInputObject = {
+    __kind: z.literal('AncestryInput'),
+    id: z.string(),
+    label: z.string(),
+    desc: z.string().optional(),
+    options: z.array(z.string()),
+} satisfies Properties<AncestryInput>
+
+export const AncestryInputSchema = z.object(ancestryInputObject)
+
+export type AncestryInputInfer = z.infer<typeof AncestryInputSchema>
+
+export const raceSpeedInputObject = {
+    __kind: z.literal('RaceSpeedInput'),
+    walking: z.number().int().optional(),
+    swimming: z.number().int().optional(),
+    flying: z.number().int().optional(),
+    climbing: z.number().int().optional(),
+} satisfies Properties<RaceSpeedInput>
+
+export const RaceSpeedInputSchema = z.object(raceSpeedInputObject)
+
+export type RaceSpeedInputInfer = z.infer<typeof RaceSpeedInputSchema>
+
+export const detailInputObject = {
+    __kind: z.literal('DetailInput'),
+    label: z.string(),
+    desc: z.string().optional(),
+} satisfies Properties<DetailInput>
+
+export const DetailInputSchema = z.object(detailInputObject)
+
+export type DetailInputInfer = z.infer<typeof DetailInputSchema>
+
+export const traitsInputObject = {
+    __kind: z.literal('TraitsInput'),
+    details: z.array(DetailInputSchema).optional(),
+    size: z.string().optional(),
+    speeds: RaceSpeedInputSchema.optional(),
+} satisfies Properties<TraitsInput>
+
+export const TraitsInputSchema = z.object(traitsInputObject)
+
+export type TraitsInputInfer = z.infer<typeof TraitsInputSchema>
+
+export const raceInputObject = {
+    __kind: z.literal('RaceInput'),
+    id: z.string(),
+    label: z.string(),
+    quote: z.string().optional(),
+    desc: z.string().optional(),
+    playable: z.string().optional(),
+    category: z.string(),
+    lineages: z.array(z.string()).optional(),
+    ancestry: AncestryInputSchema.optional(),
+    details: z.array(DetailInputSchema).optional(),
+    traits: TraitsInputSchema.optional(),
+    features: z.array(z.string()).optional(),
+    ownerId: z.string().optional(),
+    systemId: z.string(),
+    masterId: z.string().optional(),
+} satisfies Properties<RaceInput>
+
+export const RaceInputSchema = z.object(raceInputObject)
+
+export type RaceInputInfer = z.infer<typeof RaceInputSchema>
 
 export const usesPerLevelInputObject = {
     __kind: z.literal('UsesPerLevelInput'),
@@ -644,158 +711,6 @@ export const PrerequisiteInputSchema = z.object(prerequisiteInputObject)
 
 export type PrerequisiteInputInfer = z.infer<typeof PrerequisiteInputSchema>
 
-export const ancestryFeatureInputObject = {
-    __kind: z.literal('AncestryFeatureInput'),
-    id: z.string().default(""),
-    label: z.string().default(""),
-    desc: z.string().optional(),
-    detail: z.string().optional(),
-    category: z.string().optional(),
-    attributes: z.array(z.string()).optional(),
-    actions: ActionGroupInputSchema.optional(),
-    damage: DamageInputSchema.optional(),
-    charges: ChargeInputSchema.optional(),
-    optionsByLevel: z.array(z.string()).optional(),
-    range: RangeInputSchema.optional(),
-    shape: ShapeInputSchema.optional(),
-    targets: z.number().int().optional(),
-    feats: z.array(z.string()).optional(),
-    modifiers: z.array(z.string()).optional(),
-    proficiencies: z.array(z.string()).optional(),
-    expertise: z.array(z.string()).optional(),
-    senses: z.array(z.string()).optional(),
-    spells: z.array(z.string()).optional(),
-    prerequisites: PrerequisiteInputSchema.optional(),
-    saveAbility: SaveAbilityInputSchema.optional(),
-    levelAvailable: z.string().optional(),
-    options: z.array(z.string()).optional(),
-} satisfies Properties<AncestryFeatureInput>
-
-export const AncestryFeatureInputSchema = z.object(ancestryFeatureInputObject)
-
-export type AncestryFeatureInputInfer = z.infer<typeof AncestryFeatureInputSchema>
-
-export const ancestryOptionInputObject = {
-    __kind: z.literal('AncestryOptionInput'),
-    id: z.string().default(""),
-    label: z.string().default(""),
-    desc: z.string().optional(),
-    features: z.array(AncestryFeatureInputSchema).optional(),
-} satisfies Properties<AncestryOptionInput>
-
-export const AncestryOptionInputSchema = z.object(ancestryOptionInputObject)
-
-export type AncestryOptionInputInfer = z.infer<typeof AncestryOptionInputSchema>
-
-export const ancestryInputObject = {
-    __kind: z.literal('AncestryInput'),
-    id: z.string().default(""),
-    label: z.string().default(""),
-    desc: z.string().optional(),
-    options: z.array(AncestryOptionInputSchema).default(() => [AncestryOptionInputSchema.parse({})]),
-} satisfies Properties<AncestryInput>
-
-export const AncestryInputSchema = z.object(ancestryInputObject)
-
-export type AncestryInputInfer = z.infer<typeof AncestryInputSchema>
-
-export const raceSpeedInputObject = {
-    __kind: z.literal('RaceSpeedInput'),
-    walking: z.number().int().optional(),
-    swimming: z.number().int().optional(),
-    flying: z.number().int().optional(),
-    climbing: z.number().int().optional(),
-} satisfies Properties<RaceSpeedInput>
-
-export const RaceSpeedInputSchema = z.object(raceSpeedInputObject)
-
-export type RaceSpeedInputInfer = z.infer<typeof RaceSpeedInputSchema>
-
-export const detailInputObject = {
-    __kind: z.literal('DetailInput'),
-    label: z.string().default(""),
-    desc: z.string().optional(),
-} satisfies Properties<DetailInput>
-
-export const DetailInputSchema = z.object(detailInputObject)
-
-export type DetailInputInfer = z.infer<typeof DetailInputSchema>
-
-export const traitsInputObject = {
-    __kind: z.literal('TraitsInput'),
-    details: z.array(DetailInputSchema).optional(),
-    size: z.string().optional(),
-    speeds: RaceSpeedInputSchema.optional(),
-} satisfies Properties<TraitsInput>
-
-export const TraitsInputSchema = z.object(traitsInputObject)
-
-export type TraitsInputInfer = z.infer<typeof TraitsInputSchema>
-
-export const optionsByLevelInputObject = {
-    __kind: z.literal('OptionsByLevelInput'),
-    level: z.number().int().optional(),
-    count: z.number().int().optional(),
-    replaceCount: z.number().int().optional(),
-} satisfies Properties<OptionsByLevelInput>
-
-export const OptionsByLevelInputSchema = z.object(optionsByLevelInputObject)
-
-export type OptionsByLevelInputInfer = z.infer<typeof OptionsByLevelInputSchema>
-
-export const featureInputObject = {
-    __kind: z.literal('FeatureInput'),
-    id: z.string().default(""),
-    label: z.string().optional(),
-    desc: z.string().optional(),
-    detail: z.string().optional(),
-    category: z.string().optional(),
-    attributes: z.array(z.string()).optional(),
-    actions: ActionGroupInputSchema.optional(),
-    damage: DamageInputSchema.optional(),
-    charges: ChargeInputSchema.optional(),
-    optionsByLevel: z.array(OptionsByLevelInputSchema).optional(),
-    range: RangeInputSchema.optional(),
-    shape: ShapeInputSchema.optional(),
-    targets: z.number().int().optional(),
-    feats: z.array(z.string()).optional(),
-    modifiers: z.array(z.string()).optional(),
-    proficiencies: z.array(z.string()).optional(),
-    expertise: z.array(z.string()).optional(),
-    senses: z.array(z.string()).optional(),
-    spells: z.array(z.string()).optional(),
-    prerequisites: PrerequisiteInputSchema.optional(),
-    saveAbility: SaveAbilityInputSchema.optional(),
-    levelAvailable: z.string().optional(),
-    options: z.array(z.string()).optional(),
-} satisfies Properties<FeatureInput>
-
-export const FeatureInputSchema = z.object(featureInputObject)
-
-export type FeatureInputInfer = z.infer<typeof FeatureInputSchema>
-
-export const raceInputObject = {
-    __kind: z.literal('RaceInput'),
-    id: z.string().default(""),
-    label: z.string().default(""),
-    quote: z.string().optional(),
-    desc: z.string().optional(),
-    playable: z.string().optional(),
-    category: z.string().default(""),
-    lineages: z.array(z.string()).optional(),
-    ancestry: AncestryInputSchema.optional(),
-    details: z.array(DetailInputSchema).optional(),
-    traits: TraitsInputSchema.optional(),
-    features: z.array(FeatureInputSchema).optional(),
-    ownerId: z.string().optional(),
-    systemId: z.string().default(""),
-    masterId: z.string().optional(),
-} satisfies Properties<RaceInput>
-
-export const RaceInputSchema = z.object(raceInputObject)
-
-export type RaceInputInfer = z.infer<typeof RaceInputSchema>
-
 export const proficiencyPropertiesInputObject = {
     __kind: z.literal('ProficiencyPropertiesInput'),
     ids: z.array(z.string()).optional(),
@@ -807,10 +722,35 @@ export const ProficiencyPropertiesInputSchema = z.object(proficiencyPropertiesIn
 
 export type ProficiencyPropertiesInputInfer = z.infer<typeof ProficiencyPropertiesInputSchema>
 
+export const equipmentCurrencyInputObject = {
+    __kind: z.literal('EquipmentCurrencyInput'),
+    id: z.string(),
+    amount: z.number().int().optional(),
+} satisfies Properties<EquipmentCurrencyInput>
+
+export const EquipmentCurrencyInputSchema = z.object(equipmentCurrencyInputObject)
+
+export type EquipmentCurrencyInputInfer = z.infer<typeof EquipmentCurrencyInputSchema>
+
+export const equipmentOptionItemInputObject = {
+    __kind: z.literal('EquipmentOptionItemInput'),
+    attributes: z.array(z.string()).optional(),
+    selectionCount: z.number().int().optional(),
+    category: z.string().optional(),
+    equipment: z.array(z.string()).optional(),
+    properties: z.array(z.string()).optional(),
+    quantity: z.number().int().optional(),
+    currencies: z.array(EquipmentCurrencyInputSchema).optional(),
+} satisfies Properties<EquipmentOptionItemInput>
+
+export const EquipmentOptionItemInputSchema = z.object(equipmentOptionItemInputObject)
+
+export type EquipmentOptionItemInputInfer = z.infer<typeof EquipmentOptionItemInputSchema>
+
 export const spellsByLevelInputObject = {
     __kind: z.literal('SpellsByLevelInput'),
-    id: z.string().default(""),
-    spells: z.array(z.string()).optional(),
+    id: z.string(),
+    ids: z.array(z.string()).optional(),
     level: z.number().int().optional(),
     spellLevel: z.number().int().optional(),
 } satisfies Properties<SpellsByLevelInput>
@@ -821,7 +761,7 @@ export type SpellsByLevelInputInfer = z.infer<typeof SpellsByLevelInputSchema>
 
 export const featureSpellInputObject = {
     __kind: z.literal('FeatureSpellInput'),
-    id: z.string().default(""),
+    id: z.string(),
     ids: z.array(z.string()).optional(),
     attributes: z.array(z.string()).optional(),
     selectionCount: z.number().int().optional(),
@@ -842,7 +782,7 @@ export type FeatureSpellInputInfer = z.infer<typeof FeatureSpellInputSchema>
 
 export const featureSenseInputObject = {
     __kind: z.literal('FeatureSenseInput'),
-    id: z.string().default(""),
+    id: z.string(),
     attributes: z.array(z.string()).optional(),
     selectionCount: z.number().int().optional(),
     subtype: z.string().optional(),
@@ -857,11 +797,11 @@ export type FeatureSenseInputInfer = z.infer<typeof FeatureSenseInputSchema>
 
 export const featureProficiencyInputObject = {
     __kind: z.literal('FeatureProficiencyInput'),
-    id: z.string().default(""),
+    id: z.string(),
     subtype: z.string().optional(),
     attributes: z.array(z.string()).optional(),
     selectionCount: z.number().int().optional(),
-    category: z.string().default(""),
+    category: z.string(),
     level: z.string().optional(),
     rounding: z.string().optional(),
     saveAbilities: z.array(z.string()).optional(),
@@ -878,7 +818,7 @@ export type FeatureProficiencyInputInfer = z.infer<typeof FeatureProficiencyInpu
 
 export const featureOptionInputObject = {
     __kind: z.literal('FeatureOptionInput'),
-    id: z.string().default(""),
+    id: z.string(),
     label: z.string().optional(),
     desc: z.string().optional(),
     detail: z.string().optional(),
@@ -907,8 +847,8 @@ export type FeatureOptionInputInfer = z.infer<typeof FeatureOptionInputSchema>
 
 export const modifierDiePerLevelInputObject = {
     __kind: z.literal('ModifierDiePerLevelInput'),
-    level: z.string().optional(),
-    dieConfig: z.string().optional(),
+    level: z.number().int(),
+    dieConfig: z.string(),
 } satisfies Properties<ModifierDiePerLevelInput>
 
 export const ModifierDiePerLevelInputSchema = z.object(modifierDiePerLevelInputObject)
@@ -917,8 +857,8 @@ export type ModifierDiePerLevelInputInfer = z.infer<typeof ModifierDiePerLevelIn
 
 export const modifierSetPerLevelInputObject = {
     __kind: z.literal('ModifierSetPerLevelInput'),
-    level: z.string().optional(),
-    setAmount: z.number().int().optional(),
+    level: z.number().int(),
+    setAmount: z.number().int(),
 } satisfies Properties<ModifierSetPerLevelInput>
 
 export const ModifierSetPerLevelInputSchema = z.object(modifierSetPerLevelInputObject)
@@ -927,7 +867,7 @@ export type ModifierSetPerLevelInputInfer = z.infer<typeof ModifierSetPerLevelIn
 
 export const featureModifierInputObject = {
     __kind: z.literal('FeatureModifierInput'),
-    id: z.string().default(""),
+    id: z.string(),
     subtype: z.string().optional(),
     attributes: z.array(z.string()).optional(),
     selectionCount: z.number().int().optional(),
@@ -948,7 +888,7 @@ export const featureModifierInputObject = {
     saveAbilities: z.array(z.string()).optional(),
     abilities: z.array(z.string()).optional(),
     speeds: z.array(z.string()).optional(),
-    charge: ChargeInputSchema.optional(),
+    charges: ChargeInputSchema.optional(),
     range: z.string().optional(),
     minRange: z.number().int().optional(),
     maxRange: z.number().int().optional(),
@@ -970,7 +910,7 @@ export type FeatureModifierInputInfer = z.infer<typeof FeatureModifierInputSchem
 
 export const featureFeatInputObject = {
     __kind: z.literal('FeatureFeatInput'),
-    id: z.string().default(""),
+    id: z.string(),
     attributes: z.array(z.string()).optional(),
     feats: z.array(z.string()).optional(),
     selectionCount: z.number().int().optional(),
@@ -984,11 +924,11 @@ export type FeatureFeatInputInfer = z.infer<typeof FeatureFeatInputSchema>
 
 export const featureExpertiseInputObject = {
     __kind: z.literal('FeatureExpertiseInput'),
-    id: z.string().default(""),
+    id: z.string(),
     subtype: z.string().optional(),
     attributes: z.array(z.string()).optional(),
     selectionCount: z.number().int().optional(),
-    category: z.string().default(""),
+    category: z.string(),
     saveAbilities: z.array(z.string()).optional(),
     skills: z.array(z.string()).optional(),
     languages: z.array(z.string()).optional(),
@@ -1001,10 +941,52 @@ export const FeatureExpertiseInputSchema = z.object(featureExpertiseInputObject)
 
 export type FeatureExpertiseInputInfer = z.infer<typeof FeatureExpertiseInputSchema>
 
+export const optionsByLevelInputObject = {
+    __kind: z.literal('OptionsByLevelInput'),
+    level: z.number().int().optional(),
+    count: z.number().int().optional(),
+    replaceCount: z.number().int().optional(),
+} satisfies Properties<OptionsByLevelInput>
+
+export const OptionsByLevelInputSchema = z.object(optionsByLevelInputObject)
+
+export type OptionsByLevelInputInfer = z.infer<typeof OptionsByLevelInputSchema>
+
+export const featureInputObject = {
+    __kind: z.literal('FeatureInput'),
+    id: z.string(),
+    label: z.string().optional(),
+    desc: z.string().optional(),
+    detail: z.string().optional(),
+    category: z.string().optional(),
+    attributes: z.array(z.string()).optional(),
+    actions: ActionGroupInputSchema.optional(),
+    damage: DamageInputSchema.optional(),
+    charges: ChargeInputSchema.optional(),
+    optionsByLevel: z.array(OptionsByLevelInputSchema).optional(),
+    range: RangeInputSchema.optional(),
+    shape: ShapeInputSchema.optional(),
+    targets: z.number().int().optional(),
+    feats: z.array(z.string()).optional(),
+    modifiers: z.array(z.string()).optional(),
+    proficiencies: z.array(z.string()).optional(),
+    expertise: z.array(z.string()).optional(),
+    senses: z.array(z.string()).optional(),
+    spells: z.array(z.string()).optional(),
+    prerequisites: PrerequisiteInputSchema.optional(),
+    saveAbility: SaveAbilityInputSchema.optional(),
+    levelAvailable: z.string().optional(),
+    options: z.array(z.string()).optional(),
+} satisfies Properties<FeatureInput>
+
+export const FeatureInputSchema = z.object(featureInputObject)
+
+export type FeatureInputInfer = z.infer<typeof FeatureInputSchema>
+
 export const featInputObject = {
     __kind: z.literal('FeatInput'),
-    id: z.string().default(""),
-    label: z.string().default(""),
+    id: z.string(),
+    label: z.string(),
     desc: z.string().optional(),
     detail: z.string().optional(),
     category: z.string().optional(),
@@ -1024,10 +1006,10 @@ export const featInputObject = {
     saveAbility: SaveAbilityInputSchema.optional(),
     selectionCount: z.number().int().optional(),
     levelAvailable: z.string().optional(),
-    features: z.array(FeatureInputSchema).optional(),
-    options: z.array(FeatureOptionInputSchema).optional(),
-    ownerId: z.string().default(""),
-    systemId: z.string().default(""),
+    features: z.array(z.string()).optional(),
+    options: z.array(z.string()).optional(),
+    ownerId: z.string(),
+    systemId: z.string(),
     masterId: z.string().optional(),
 } satisfies Properties<FeatInput>
 
@@ -1038,7 +1020,7 @@ export type FeatInputInfer = z.infer<typeof FeatInputSchema>
 export const speedInputObject = {
     __kind: z.literal('SpeedInput'),
     amount: z.number().int().optional(),
-    unit: z.string().default(""),
+    unit: z.string(),
 } satisfies Properties<SpeedInput>
 
 export const SpeedInputSchema = z.object(speedInputObject)
@@ -1048,7 +1030,7 @@ export type SpeedInputInfer = z.infer<typeof SpeedInputSchema>
 export const weightInputObject = {
     __kind: z.literal('WeightInput'),
     amount: z.number().optional(),
-    unit: z.string().default(""),
+    unit: z.string(),
 } satisfies Properties<WeightInput>
 
 export const WeightInputSchema = z.object(weightInputObject)
@@ -1058,7 +1040,7 @@ export type WeightInputInfer = z.infer<typeof WeightInputSchema>
 export const capacityInputObject = {
     __kind: z.literal('CapacityInput'),
     amount: z.number().optional(),
-    unit: z.string().default(""),
+    unit: z.string(),
 } satisfies Properties<CapacityInput>
 
 export const CapacityInputSchema = z.object(capacityInputObject)
@@ -1068,7 +1050,7 @@ export type CapacityInputInfer = z.infer<typeof CapacityInputSchema>
 export const costInputObject = {
     __kind: z.literal('CostInput'),
     amount: z.number().int().optional(),
-    currency: z.string().default(""),
+    currency: z.string(),
 } satisfies Properties<CostInput>
 
 export const CostInputSchema = z.object(costInputObject)
@@ -1077,8 +1059,8 @@ export type CostInputInfer = z.infer<typeof CostInputSchema>
 
 export const containsInputObject = {
     __kind: z.literal('ContainsInput'),
-    id: z.string().default(""),
-    quantity: z.number().int().default(0),
+    id: z.string(),
+    quantity: z.number().int(),
 } satisfies Properties<ContainsInput>
 
 export const ContainsInputSchema = z.object(containsInputObject)
@@ -1089,7 +1071,7 @@ export const equipmentRangeInputObject = {
     __kind: z.literal('EquipmentRangeInput'),
     minRange: z.number().int().optional(),
     maxRange: z.number().int().optional(),
-    unit: z.string().default(""),
+    unit: z.string(),
 } satisfies Properties<EquipmentRangeInput>
 
 export const EquipmentRangeInputSchema = z.object(equipmentRangeInputObject)
@@ -1098,18 +1080,18 @@ export type EquipmentRangeInputInfer = z.infer<typeof EquipmentRangeInputSchema>
 
 export const equipmentInputObject = {
     __kind: z.literal('EquipmentInput'),
-    id: z.string().default(""),
-    label: z.string().default(""),
+    id: z.string(),
+    label: z.string(),
     desc: z.string().optional(),
     quote: z.string().optional(),
-    cost: CostInputSchema.default(CostInputSchema.parse({})),
-    weight: WeightInputSchema.default(WeightInputSchema.parse({})),
+    cost: CostInputSchema,
+    weight: WeightInputSchema,
     capacity: CapacityInputSchema.optional(),
     maxStack: z.number().int().optional(),
-    quantity: z.number().int().default(0),
+    quantity: z.number().int(),
     properties: z.array(z.string()).optional(),
-    category: z.string().default(""),
-    rarity: z.string().default(""),
+    category: z.string(),
+    rarity: z.string(),
     attributes: z.array(z.string()).optional(),
     damage: DamageInputSchema.optional(),
     saveAbility: SaveAbilityInputSchema.optional(),
@@ -1122,9 +1104,9 @@ export const equipmentInputObject = {
     speed: SpeedInputSchema.optional(),
     range: EquipmentRangeInputSchema.optional(),
     contains: z.array(ContainsInputSchema).optional(),
-    features: z.array(FeatureInputSchema).optional(),
+    features: z.array(z.string()).optional(),
     ownerId: z.string().optional(),
-    systemId: z.string().default(""),
+    systemId: z.string(),
     masterId: z.string().optional(),
     rank: z.number().int().optional(),
 } satisfies Properties<EquipmentInput>
@@ -1135,7 +1117,7 @@ export type EquipmentInputInfer = z.infer<typeof EquipmentInputSchema>
 
 export const hitpointInputObject = {
     __kind: z.literal('HitpointInput'),
-    ability: z.string().default(""),
+    ability: z.string(),
     dieConfig: z.string().optional(),
 } satisfies Properties<HitpointInput>
 
@@ -1145,8 +1127,8 @@ export type HitpointInputInfer = z.infer<typeof HitpointInputSchema>
 
 export const startingGoldInputObject = {
     __kind: z.literal('StartingGoldInput'),
-    multiplier: z.number().int().default(0),
-    currency: z.string().default(""),
+    multiplier: z.number().int(),
+    currency: z.string(),
     dieConfig: z.string().optional(),
 } satisfies Properties<StartingGoldInput>
 
@@ -1212,8 +1194,8 @@ export type LevelAttributeInputInfer = z.infer<typeof LevelAttributeInputSchema>
 
 export const resourceInputObject = {
     __kind: z.literal('ResourceInput'),
-    id: z.string().default(""),
-    label: z.string().default(""),
+    id: z.string(),
+    label: z.string(),
     levelAvailable: z.number().int().optional(),
     charges: ChargeInputSchema.optional(),
     method: z.string().optional(),
@@ -1247,50 +1229,25 @@ export type MulticlassInputInfer = z.infer<typeof MulticlassInputSchema>
 
 export const subtypeInputObject = {
     __kind: z.literal('SubtypeInput'),
-    id: z.string().default(""),
-    label: z.string().default(""),
+    id: z.string(),
+    label: z.string(),
 } satisfies Properties<SubtypeInput>
 
 export const SubtypeInputSchema = z.object(subtypeInputObject)
 
 export type SubtypeInputInfer = z.infer<typeof SubtypeInputSchema>
 
-export const classCurrencyInputObject = {
-    __kind: z.literal('ClassCurrencyInput'),
-    id: z.string().default(""),
-    amount: z.number().int().optional(),
-} satisfies Properties<ClassCurrencyInput>
-
-export const ClassCurrencyInputSchema = z.object(classCurrencyInputObject)
-
-export type ClassCurrencyInputInfer = z.infer<typeof ClassCurrencyInputSchema>
-
-export const classEquipmentInputObject = {
-    __kind: z.literal('ClassEquipmentInput'),
-    attributes: z.array(z.string()).optional(),
-    selectionCount: z.number().int().optional(),
-    category: z.string().optional(),
-    equipment: z.array(z.string()).optional(),
-    properties: z.array(z.string()).optional(),
-    quantity: z.number().int().optional(),
-    currencies: z.array(ClassCurrencyInputSchema).optional(),
-} satisfies Properties<ClassEquipmentInput>
-
-export const ClassEquipmentInputSchema = z.object(classEquipmentInputObject)
-
-export type ClassEquipmentInputInfer = z.infer<typeof ClassEquipmentInputSchema>
-
 export const classInputObject = {
     __kind: z.literal('ClassInput'),
-    id: z.string().default(""),
-    label: z.string().default(""),
+    id: z.string(),
+    label: z.string(),
     desc: z.string().optional(),
-    category: z.string().default(""),
+    category: z.string(),
     attributes: z.array(z.string()).optional(),
     details: z.array(DetailInputSchema).optional(),
     hitpoint: HitpointInputSchema.optional(),
     startingGold: StartingGoldInputSchema.optional(),
-    equipment: z.array(z.array(z.array(ClassEquipmentInputSchema))).optional(),
+    equipment: z.array(z.array(z.array(EquipmentOptionItemInputSchema))).optional(),
     proficiencies: z.array(FeatureProficiencyInputSchema).optional(),
     spellcasting: SpellcastingInputSchema.optional(),
     levelAttributes: z.array(LevelAttributeInputSchema).optional(),
@@ -1298,9 +1255,9 @@ export const classInputObject = {
     multiclass: MulticlassInputSchema.optional(),
     parentClass: z.string().optional(),
     subtypes: z.array(SubtypeInputSchema).optional(),
-    features: z.array(FeatureInputSchema).optional(),
+    features: z.array(z.string()).optional(),
     ownerId: z.string().optional(),
-    systemId: z.string().default(""),
+    systemId: z.string(),
     masterId: z.string().optional(),
 } satisfies Properties<ClassInput>
 
@@ -1310,7 +1267,7 @@ export type ClassInputInfer = z.infer<typeof ClassInputSchema>
 
 export const characterModifierInputObject = {
     __kind: z.literal('CharacterModifierInput'),
-    modifierId: z.string().default(""),
+    id: z.string(),
     featureId: z.string().optional(),
     classId: z.string().optional(),
     raceId: z.string().optional(),
@@ -1329,6 +1286,7 @@ export type CharacterModifierInputInfer = z.infer<typeof CharacterModifierInputS
 
 export const characterSenseInputObject = {
     __kind: z.literal('CharacterSenseInput'),
+    id: z.string(),
     senseId: z.string().optional(),
     featureId: z.string().optional(),
     classId: z.string().optional(),
@@ -1348,6 +1306,7 @@ export type CharacterSenseInputInfer = z.infer<typeof CharacterSenseInputSchema>
 
 export const characterFeatInputObject = {
     __kind: z.literal('CharacterFeatInput'),
+    id: z.string().optional(),
     featId: z.string().optional(),
     featureId: z.string().optional(),
     classId: z.string().optional(),
@@ -1371,7 +1330,7 @@ export const characterProficiencyInputObject = {
     saveAbility: z.string().optional(),
     property: z.string().optional(),
     equipment: z.string().optional(),
-    proficiencyId: z.string().default(""),
+    id: z.string(),
     featureId: z.string().optional(),
     classId: z.string().optional(),
     raceId: z.string().optional(),
@@ -1395,7 +1354,7 @@ export const characterExpertiseInputObject = {
     saveAbility: z.string().optional(),
     property: z.string().optional(),
     equipment: z.string().optional(),
-    expertiseId: z.string().default(""),
+    id: z.string(),
     featureId: z.string().optional(),
     classId: z.string().optional(),
     raceId: z.string().optional(),
@@ -1414,9 +1373,9 @@ export type CharacterExpertiseInputInfer = z.infer<typeof CharacterExpertiseInpu
 
 export const characterSpellInputObject = {
     __kind: z.literal('CharacterSpellInput'),
-    id: z.string().default(""),
-    level: z.number().int().default(1),
-    ability: z.string().optional(),
+    id: z.string(),
+    level: z.number().int(),
+    saveAbility: z.string().optional(),
     isRitual: z.boolean().optional(),
     countAsKnown: z.boolean().optional(),
     usesSlot: z.boolean().optional(),
@@ -1442,9 +1401,9 @@ export type CharacterSpellInputInfer = z.infer<typeof CharacterSpellInputSchema>
 
 export const characterFeatureOptionInputObject = {
     __kind: z.literal('CharacterFeatureOptionInput'),
-    id: z.string().default(""),
-    optionIndex: z.string().default(""),
-    featureLevel: z.number().int().default(1),
+    id: z.string(),
+    optionIndex: z.string(),
+    featureLevel: z.number().int(),
 } satisfies Properties<CharacterFeatureOptionInput>
 
 export const CharacterFeatureOptionInputSchema = z.object(characterFeatureOptionInputObject)
@@ -1470,8 +1429,8 @@ export type CharacterFeatureInputInfer = z.infer<typeof CharacterFeatureInputSch
 
 export const rollInputObject = {
     __kind: z.literal('RollInput'),
-    die: z.number().int().default(1),
-    value: z.number().int().default(4),
+    die: z.number().int(),
+    value: z.number().int(),
     id: z.string().optional(),
 } satisfies Properties<RollInput>
 
@@ -1481,11 +1440,11 @@ export type RollInputInfer = z.infer<typeof RollInputSchema>
 
 export const rollTypeInputObject = {
     __kind: z.literal('RollTypeInput'),
-    score: z.number().int().default(1),
-    ability: z.string().default(""),
-    rolling: z.boolean().default(false),
-    applied: z.boolean().default(false),
-    rolled: z.array(RollInputSchema).default(() => [RollInputSchema.parse({})]),
+    score: z.number().int(),
+    ability: z.string(),
+    rolling: z.boolean(),
+    applied: z.boolean(),
+    rolled: z.array(RollInputSchema),
     kept: z.array(RollInputSchema).optional(),
 } satisfies Properties<RollTypeInput>
 
@@ -1505,7 +1464,7 @@ export type ManualInputInfer = z.infer<typeof ManualInputSchema>
 
 export const manualRolledInputObject = {
     __kind: z.literal('ManualRolledInput'),
-    configuration: z.string().default(""),
+    configuration: z.string(),
     rollGroups: z.array(z.array(RollTypeInputSchema)).optional(),
     manual: z.array(ManualInputSchema).optional(),
 } satisfies Properties<ManualRolledInput>
@@ -1516,8 +1475,8 @@ export type ManualRolledInputInfer = z.infer<typeof ManualRolledInputSchema>
 
 export const distributedInputObject = {
     __kind: z.literal('DistributedInput'),
-    ability: z.string().default(""),
-    id: z.string().default(""),
+    ability: z.string(),
+    id: z.string(),
 } satisfies Properties<DistributedInput>
 
 export const DistributedInputSchema = z.object(distributedInputObject)
@@ -1546,12 +1505,12 @@ export type StandardArrayInputInfer = z.infer<typeof StandardArrayInputSchema>
 
 export const scoresInputObject = {
     __kind: z.literal('ScoresInput'),
-    ability: z.string().default(""),
+    ability: z.string(),
     baseScore: z.number().int().optional(),
     raceScore: z.number().int().optional(),
     classScore: z.number().int().optional(),
     calculatedScore: z.number().int().optional(),
-    ModifierScore: z.number().int().optional(),
+    modifierScore: z.number().int().optional(),
 } satisfies Properties<ScoresInput>
 
 export const ScoresInputSchema = z.object(scoresInputObject)
@@ -1604,7 +1563,7 @@ export type SubclassInputInfer = z.infer<typeof SubclassInputSchema>
 
 export const classSpellInputObject = {
     __kind: z.literal('ClassSpellInput'),
-    id: z.string().default(""),
+    id: z.string(),
     classId: z.string().optional(),
     ability: z.string().optional(),
     isRitual: z.boolean().optional(),
@@ -1622,7 +1581,7 @@ export type ClassSpellInputInfer = z.infer<typeof ClassSpellInputSchema>
 
 export const classSpellListInputObject = {
     __kind: z.literal('ClassSpellListInput'),
-    level: z.number().int().default(1),
+    level: z.number().int(),
     spells: z.array(ClassSpellInputSchema).optional(),
 } satisfies Properties<ClassSpellListInput>
 
@@ -1632,9 +1591,9 @@ export type ClassSpellListInputInfer = z.infer<typeof ClassSpellListInputSchema>
 
 export const characterSpellSlotsInputObject = {
     __kind: z.literal('CharacterSpellSlotsInput'),
-    level: z.number().int().default(0),
-    used: z.number().int().default(0),
-    classId: z.string().default(""),
+    level: z.number().int(),
+    used: z.number().int(),
+    classId: z.string(),
 } satisfies Properties<CharacterSpellSlotsInput>
 
 export const CharacterSpellSlotsInputSchema = z.object(characterSpellSlotsInputObject)
@@ -1655,9 +1614,9 @@ export type CharacterSpellcastingInputInfer = z.infer<typeof CharacterSpellcasti
 
 export const characterClassInputObject = {
     __kind: z.literal('CharacterClassInput'),
-    id: z.string().default(""),
+    id: z.string(),
     subclass: SubclassInputSchema.optional(),
-    level: z.number().int().default(0),
+    level: z.number().int(),
 } satisfies Properties<CharacterClassInput>
 
 export const CharacterClassInputSchema = z.object(characterClassInputObject)
@@ -1666,9 +1625,9 @@ export type CharacterClassInputInfer = z.infer<typeof CharacterClassInputSchema>
 
 export const startingEquipmentInputObject = {
     __kind: z.literal('StartingEquipmentInput'),
-    id: z.string().default(""),
+    id: z.string(),
     selectionId: z.string().optional(),
-    quantity: z.number().int().default(1),
+    quantity: z.number().int(),
 } satisfies Properties<StartingEquipmentInput>
 
 export const StartingEquipmentInputSchema = z.object(startingEquipmentInputObject)
@@ -1677,8 +1636,8 @@ export type StartingEquipmentInputInfer = z.infer<typeof StartingEquipmentInputS
 
 export const startingEquipmentGroupInputObject = {
     __kind: z.literal('StartingEquipmentGroupInput'),
-    optionId: z.string().default(""),
-    groupId: z.string().default(""),
+    optionId: z.string(),
+    groupId: z.string(),
     equipment: z.array(StartingEquipmentInputSchema).optional(),
 } satisfies Properties<StartingEquipmentGroupInput>
 
@@ -1688,7 +1647,7 @@ export type StartingEquipmentGroupInputInfer = z.infer<typeof StartingEquipmentG
 
 export const classStartingEquipmentInputObject = {
     __kind: z.literal('ClassStartingEquipmentInput'),
-    option: z.string().default(""),
+    option: z.string(),
     goldOption: z.string().optional(),
     totalGold: z.number().int().optional(),
     equipmentGroups: z.array(StartingEquipmentGroupInputSchema).optional(),
@@ -1711,8 +1670,8 @@ export type BackgroundStartingEquipmentInputInfer = z.infer<typeof BackgroundSta
 
 export const possessionsInputObject = {
     __kind: z.literal('PossessionsInput'),
-    id: z.string().default(""),
-    label: z.string().default(""),
+    id: z.string(),
+    label: z.string(),
     desc: z.string().optional(),
 } satisfies Properties<PossessionsInput>
 
@@ -1722,8 +1681,8 @@ export type PossessionsInputInfer = z.infer<typeof PossessionsInputSchema>
 
 export const characterCurrencyInputObject = {
     __kind: z.literal('CharacterCurrencyInput'),
-    id: z.string().default(""),
-    amount: z.number().int().default(0),
+    id: z.string(),
+    amount: z.number().int(),
 } satisfies Properties<CharacterCurrencyInput>
 
 export const CharacterCurrencyInputSchema = z.object(characterCurrencyInputObject)
@@ -1742,8 +1701,8 @@ export type CurrencyGroupInputInfer = z.infer<typeof CurrencyGroupInputSchema>
 
 export const hitpointRollValuesInputObject = {
     __kind: z.literal('HitpointRollValuesInput'),
-    level: z.number().int().default(0),
-    value: z.number().int().default(0),
+    level: z.number().int(),
+    value: z.number().int(),
 } satisfies Properties<HitpointRollValuesInput>
 
 export const HitpointRollValuesInputSchema = z.object(hitpointRollValuesInputObject)
@@ -1773,7 +1732,7 @@ export type HitpointFixedInputInfer = z.infer<typeof HitpointFixedInputSchema>
 
 export const characterHitpointInputObject = {
     __kind: z.literal('CharacterHitpointInput'),
-    method: z.string().default(""),
+    method: z.string(),
     maxOverride: z.number().int().optional(),
     maxHitpoints: z.number().int().optional(),
     temp: z.number().int().optional(),
@@ -1788,9 +1747,9 @@ export type CharacterHitpointInputInfer = z.infer<typeof CharacterHitpointInputS
 
 export const characterEquipmentObjectInputObject = {
     __kind: z.literal('CharacterEquipmentObjectInput'),
-    id: z.string().default(""),
-    equipmentId: z.string().default(""),
-    quantity: z.number().int().default(0),
+    id: z.string(),
+    equipmentId: z.string(),
+    quantity: z.number().int(),
     containerId: z.string().optional(),
     containerPath: z.string().optional(),
     customName: z.string().optional(),
@@ -1814,8 +1773,8 @@ export type CharacterEquipmentInputInfer = z.infer<typeof CharacterEquipmentInpu
 
 export const characterInputObject = {
     __kind: z.literal('CharacterInput'),
-    id: z.string().default(""),
-    label: z.string().default(""),
+    id: z.string(),
+    label: z.string(),
     desc: z.string().optional(),
     advancement: z.string().optional(),
     exp: z.number().int().optional(),
@@ -1824,11 +1783,11 @@ export const characterInputObject = {
     race: z.string().optional(),
     ancestry: CharacterAncestryInputSchema.optional(),
     background: z.string().optional(),
-    classes: z.array(CharacterClassInputSchema.optional()).optional(),
+    classes: z.array(CharacterClassInputSchema).optional(),
     spellcasting: CharacterSpellcastingInputSchema.optional(),
     classEquipment: ClassStartingEquipmentInputSchema.optional(),
     backgroundEquipment: BackgroundStartingEquipmentInputSchema.optional(),
-    equipment: CharacterEquipmentInputSchema.default(CharacterEquipmentInputSchema.parse({})),
+    equipment: CharacterEquipmentInputSchema,
     currencyGroups: z.array(CurrencyGroupInputSchema).optional(),
     features: z.array(CharacterFeatureInputSchema).optional(),
     feats: z.array(CharacterFeatInputSchema).optional(),
@@ -1837,53 +1796,40 @@ export const characterInputObject = {
     modifiers: z.array(CharacterModifierInputSchema).optional(),
     senses: z.array(CharacterSenseInputSchema).optional(),
     ownerId: z.string().optional(),
-    systemId: z.string().default(""),
+    systemId: z.string(),
 } satisfies Properties<CharacterInput>
 
 export const CharacterInputSchema = z.object(characterInputObject)
 
 export type CharacterInputInfer = z.infer<typeof CharacterInputSchema>
 
-export const backgroundCurrencyInputObject = {
-    __kind: z.literal('BackgroundCurrencyInput'),
-    id: z.string().default(""),
-    amount: z.number().int().optional(),
-} satisfies Properties<BackgroundCurrencyInput>
-
-export const BackgroundCurrencyInputSchema = z.object(backgroundCurrencyInputObject)
-
-export type BackgroundCurrencyInputInfer = z.infer<typeof BackgroundCurrencyInputSchema>
-
-export const backgroundEquipmentInputObject = {
-    __kind: z.literal('BackgroundEquipmentInput'),
-    attributes: z.array(z.string()).optional(),
-    selectionCount: z.number().int().optional(),
-    category: z.string().optional(),
-    equipment: z.array(z.string()).optional(),
-    properties: z.array(z.string()).optional(),
-    quantity: z.number().int().optional(),
-    currencies: z.array(BackgroundCurrencyInputSchema.optional()).optional(),
-} satisfies Properties<BackgroundEquipmentInput>
-
-export const BackgroundEquipmentInputSchema = z.object(backgroundEquipmentInputObject)
-
-export type BackgroundEquipmentInputInfer = z.infer<typeof BackgroundEquipmentInputSchema>
-
 export const backgroundInputObject = {
     __kind: z.literal('BackgroundInput'),
-    id: z.string().default(""),
-    label: z.string().default(""),
+    id: z.string(),
+    label: z.string(),
     desc: z.string().optional(),
     details: z.array(DetailInputSchema).optional(),
-    equipment: z.array(z.array(z.array(BackgroundEquipmentInputSchema))).optional(),
+    equipment: z.array(z.array(z.array(EquipmentOptionItemInputSchema))).optional(),
     proficiencies: z.array(FeatureProficiencyInputSchema).optional(),
-    features: z.array(FeatureInputSchema).optional(),
+    features: z.array(z.string()).optional(),
     ownerId: z.string().optional(),
-    systemId: z.string().default(""),
+    systemId: z.string(),
     masterId: z.string().optional(),
 } satisfies Properties<BackgroundInput>
 
 export const BackgroundInputSchema = z.object(backgroundInputObject)
 
 export type BackgroundInputInfer = z.infer<typeof BackgroundInputSchema>
+
+export const ancestryOptionInputObject = {
+    __kind: z.literal('AncestryOptionInput'),
+    id: z.string(),
+    label: z.string(),
+    desc: z.string().optional(),
+    features: z.array(z.string()).optional(),
+} satisfies Properties<AncestryOptionInput>
+
+export const AncestryOptionInputSchema = z.object(ancestryOptionInputObject)
+
+export type AncestryOptionInputInfer = z.infer<typeof AncestryOptionInputSchema>
 

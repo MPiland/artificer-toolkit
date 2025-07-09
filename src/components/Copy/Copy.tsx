@@ -4,17 +4,17 @@ import Dropdown from '@/components/Dropdown'
 import { Button } from '@mantine/core'
 import { sprinkles } from '@/css/sprinkles.css'
 import type {
-  FeatureDataType,
+  FeatureFormDataType,
   FormDataType,
   EquipmentListItem,
   ClassListItem,
   RaceListItem,
   BackgroundListItem,
   FeatListItem,
-  DeepKeyOf,
 } from '@/types'
 import Modal, { ModalContext, type CopyModalProps } from '@/components/Modal'
 import { Grid } from '@mantine/core'
+import type { DeepKeys } from '@tanstack/react-form'
 
 type ValidFilterBy = 'races' | 'classes' | 'equipment' | 'backgrounds' | 'feats'
 
@@ -37,7 +37,7 @@ type Selection = {
     | BackgroundListItem['id']
     | FeatListItem['id']
   filterBy?: ValidFilterBy
-  option?: FeatureDataType['id'] | FormDataType['id']
+  option?: FeatureFormDataType['id'] | FormDataType['id']
 }
 
 const Copy = () => {
@@ -46,13 +46,11 @@ const Copy = () => {
 
   const { form, data, filters, onCopy } = modalProps as CopyModalProps
 
-  const handleOnChange = {
-    updateField: ({ value, path }: { value: any; path: DeepKeyOf<typeof selection> }) => {
+  const handleOnChange = (value: string | string[] | null | undefined, path: DeepKeys<Selection>) => {
+    if (value != null) {
       return setSelection((prev) => ({ ...prev, [path]: value }))
-    },
-    removeField: ({ path }: { path: DeepKeyOf<typeof selection> }) => {
-      return setSelection((prev) => ({ ...prev, [path]: undefined }))
-    },
+    }
+    return setSelection((prev) => ({ ...prev, [path]: undefined }))
   }
 
   const handleCopy = () => {
@@ -114,7 +112,7 @@ const Copy = () => {
           {filters && (
             <>
               <Grid.Col span={6}>
-                <Dropdown<typeof selection>
+                <Dropdown
                   options={filterByOptions.map((key) => ({
                     label: key,
                     value: key,
@@ -123,33 +121,30 @@ const Copy = () => {
                   name='filterBy'
                   value={selection?.filterBy}
                   errorMsg='Must choose an option to copy'
-                  boundary='app'
-                  onChange={handleOnChange}
+                  onChange={(value) => handleOnChange(value, 'filterBy')}
                 />
               </Grid.Col>
               {selection?.filterBy && (
                 <Grid.Col span={6}>
-                  <Dropdown<typeof selection>
+                  <Dropdown
                     options={filterOptions}
                     name='filter'
                     value={selection?.filter}
                     errorMsg='Must choose an option to copy'
-                    boundary='app'
-                    onChange={handleOnChange}
+                    onChange={(value) => handleOnChange(value, 'filter')}
                   />
                 </Grid.Col>
               )}
             </>
           )}
           <Grid.Col span={8}>
-            <Dropdown<typeof selection>
+            <Dropdown
               options={copyData}
               name='option'
               value={selection?.option}
               className={sprinkles({ flex: '1', me: 'space-3' })}
               errorMsg='Must choose an option to copy'
-              boundary='app'
-              onChange={handleOnChange}
+              onChange={(value) => handleOnChange(value, 'option')}
             />
           </Grid.Col>
           <Grid.Col span={2}>

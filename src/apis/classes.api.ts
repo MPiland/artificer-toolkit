@@ -36,7 +36,7 @@ export const fetchClasses = (systemPref: string) => {
       }
       let nextToken: string | null = null
 
-      const { client, master } = await getClient()
+      const { domainClient, master } = await getClient()
 
       // Create a union type for the variables
       type ListVariables = QueryListMasterClassesArgs | QueryListClassesArgs
@@ -63,10 +63,12 @@ export const fetchClasses = (systemPref: string) => {
 
       try {
         do {
-          const { data } = (await client.graphql({
+          const { data } = (await domainClient.graphql({
             query: operation,
             variables: variables,
           })) as GraphQLResult<QueryResponse>
+
+          console.log({ data })
 
           const result = isMaster(data) ? data.listMasterClasses : data.listClasses
 
@@ -101,7 +103,7 @@ export const fetchClass = (id: string) => {
   return queryOptions({
     queryKey: classesKeys.single(id),
     queryFn: async () => {
-      const { client, master } = await getClient()
+      const { domainClient, master } = await getClient()
 
       // Type guard to check which response we got
       function isMaster(data: unknown): data is { getMasterClass: unknown } {
@@ -111,7 +113,7 @@ export const fetchClass = (id: string) => {
       const operation = master ? getMasterClass : getClass
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await domainClient.graphql({
           query: operation,
           variables: {
             id,
@@ -131,22 +133,22 @@ export const fetchClass = (id: string) => {
   })
 }
 
-export const useAddClass = () => {
+export const useAddNewClassMutation = () => {
   const queryClient = useQueryClient()
 
   return useMutation<Class, Error, ClassInput, unknown>({
     mutationFn: async (uClass: ClassInput) => {
-      const { client, master } = await getClient()
+      const { domainClient, master } = await getClient()
+
+      const operation = master ? createMasterClass : createClass
 
       // Type guard to check which response we got
       function isMaster(data: unknown): data is { createMasterClass: unknown } {
         return typeof data === 'object' && data !== null && 'createMasterClass' in data
       }
 
-      const operation = master ? createMasterClass : createClass
-
       try {
-        const { data } = await client.graphql({
+        const { data } = await domainClient.graphql({
           query: operation,
           variables: {
             input: uClass,
@@ -172,12 +174,12 @@ export const useAddClass = () => {
   })
 }
 
-export const useUpdateClass = () => {
+export const useUpdateClassMutation = () => {
   const queryClient = useQueryClient()
 
   return useMutation<Class, Error, ClassInput, unknown>({
     mutationFn: async (uClass: ClassInput) => {
-      const { client, master } = await getClient()
+      const { domainClient, master } = await getClient()
 
       // Type guard to check which response we got
       function isMaster(data: unknown): data is { updateMasterClass: unknown } {
@@ -187,7 +189,7 @@ export const useUpdateClass = () => {
       const operation = master ? updateMasterClass : updateClass
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await domainClient.graphql({
           query: operation,
           variables: {
             input: uClass,
@@ -212,12 +214,12 @@ export const useUpdateClass = () => {
   })
 }
 
-export const useDeleteClass = () => {
+export const useDeleteClassMutation = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { client, master } = await getClient()
+      const { domainClient, master } = await getClient()
 
       // Type guard to check which response we got
       function isMaster(data: unknown): data is { deleteMasterClass: unknown } {
@@ -227,7 +229,7 @@ export const useDeleteClass = () => {
       const operation = master ? deleteMasterClass : deleteClass
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await domainClient.graphql({
           query: operation,
           variables: {
             id,
@@ -247,7 +249,10 @@ export const useDeleteClass = () => {
     onSuccess: (id: string) => {
       queryClient.setQueryData(classesKeys.all, (previous: Class[]) => {
         const uClass = previous.find((classKey) => classKey.id === id)
-        return previous.filter((classKey) => uClass && classKey.id !== uClass.id)
+        if (uClass) {
+          return previous.filter((classKey) => classKey.id !== uClass.id)
+        }
+        return previous
       })
     },
   })

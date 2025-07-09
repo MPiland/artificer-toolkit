@@ -1,0 +1,11 @@
+input AncestryOptionInput {
+  id: ID!
+  label: String!
+  desc: String
+  features: [ID!]
+}
+
+input BatchAncestryOptionsInput {
+  tableName: String!
+  data: AncestryOptionInput!
+}

@@ -1,6 +1,6 @@
 input SpellsByLevelInput {
   id: ID!
-  spells: [ID!]
+  ids: [ID!]
   level: Int
   spellLevel: Int
 }

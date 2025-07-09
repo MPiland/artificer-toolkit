@@ -36,7 +36,7 @@ export const fetchAllEquipment = (systemPref: string) => {
       }
       let nextToken: string | null = null
 
-      const { client, master } = await getClient()
+      const { domainClient, master } = await getClient()
 
       // Create a union type for the variables
       type ListVariables = QueryListMasterEquipmentArgs | QueryListEquipmentArgs
@@ -63,7 +63,7 @@ export const fetchAllEquipment = (systemPref: string) => {
 
       try {
         do {
-          const { data } = (await client.graphql({
+          const { data } = (await domainClient.graphql({
             query: operation,
             variables: variables,
           })) as GraphQLResult<QueryResponse>
@@ -98,7 +98,7 @@ export const fetchSingleEquipment = (id: string) => {
   return queryOptions({
     queryKey: equipmentKeys.single(id),
     queryFn: async () => {
-      const { client, master } = await getClient()
+      const { domainClient, master } = await getClient()
 
       // Type guard to check which response we got
       function isMaster(data: unknown): data is { getMasterEquipment: unknown } {
@@ -108,7 +108,7 @@ export const fetchSingleEquipment = (id: string) => {
       const operation = master ? getMasterEquipment : getEquipment
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await domainClient.graphql({
           query: operation,
           variables: {
             id,
@@ -133,7 +133,7 @@ export const useAddNewEquipmentMutation = () => {
 
   return useMutation<Equipment, Error, EquipmentInput, unknown>({
     mutationFn: async (equipment: EquipmentInput) => {
-      const { client, master } = await getClient()
+      const { domainClient, master } = await getClient()
 
       // Type guard to check which response we got
       function isMaster(data: unknown): data is { createMasterEquipment: unknown } {
@@ -143,7 +143,7 @@ export const useAddNewEquipmentMutation = () => {
       const operation = master ? createMasterEquipment : createEquipment
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await domainClient.graphql({
           query: operation,
           variables: {
             input: equipment,
@@ -174,7 +174,7 @@ export const useUpdateEquipmentMutation = () => {
 
   return useMutation<Equipment, Error, EquipmentInput, unknown>({
     mutationFn: async (equipment: EquipmentInput) => {
-      const { client, master } = await getClient()
+      const { domainClient, master } = await getClient()
 
       // Type guard to check which response we got
       function isMaster(data: unknown): data is { updateMasterEquipment: unknown } {
@@ -184,7 +184,7 @@ export const useUpdateEquipmentMutation = () => {
       const operation = master ? updateMasterEquipment : updateEquipment
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await domainClient.graphql({
           query: operation,
           variables: {
             input: equipment,
@@ -214,7 +214,7 @@ export const useDeleteEquipmentMutation = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { client, master } = await getClient()
+      const { domainClient, master } = await getClient()
 
       const operation = master ? deleteMasterEquipment : deleteEquipment
 
@@ -224,7 +224,7 @@ export const useDeleteEquipmentMutation = () => {
       }
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await domainClient.graphql({
           query: operation,
           variables: {
             id,

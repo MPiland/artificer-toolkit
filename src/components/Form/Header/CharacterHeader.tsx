@@ -1,23 +1,26 @@
 import { sprinkles } from '@/css/sprinkles.css'
-import { character_header_body, character_header_item, character_header_item_divider } from '../Character.css'
 import Collapsible from '@/components/Collapsible'
-import type { Character } from '@/types'
-import { use, useState } from 'react'
-import { FormContext } from '../FormContext'
-import { calculateModifier } from '../utils'
+import { use } from 'react'
+import {
+  calculateModifier,
+  character_header_body,
+  character_header_item,
+  character_header_item_divider,
+} from '@/components/Form'
 import { useMediaQuery } from 'usehooks-ts'
-import { Grid } from '@mantine/core'
-import Button from '@/components/Button'
-import Hitpoints from '../Substeps/Character/Hitpoints'
+import { Grid, Button } from '@mantine/core'
 import { useRaceData, useClassData, useSystemData } from '@/hooks'
-import type { FormStore } from '@/store'
+import { useFormStore } from '@/store'
+import type { CharacterInput } from 'gql/types'
+import { ModalContext } from '@/components/Modal'
 
-const CharacterHeader = () => {
-  const { formStore } = use(FormContext) as {
-    formStore: FormStore<Character>
-  }
-
-  const [manageHitpoints, setManageHitpoints] = useState<boolean>(false)
+const CharacterHeader = ({
+  setFieldValueFn,
+}: {
+  setFieldValueFn: (name: string, value: string | number | string[] | undefined | null) => void
+}) => {
+  const { current } = useFormStore() as { current: CharacterInput }
+  const { showModal } = use(ModalContext)
 
   const {
     races: { findRace },
@@ -29,7 +32,7 @@ const CharacterHeader = () => {
     abilities: { findAbility },
   } = useSystemData()
 
-  const race = findRace(formStore.data.race)
+  const race = findRace(current?.race)
 
   const sm = useMediaQuery('(max-width: 567px)')
 
@@ -41,12 +44,15 @@ const CharacterHeader = () => {
             title='Character Details'
             titleRight={
               <Button
-                style='filled'
-                color='primary'
                 className={sprinkles({ height: 'size-auto' })}
                 onClick={(e) => {
                   e.stopPropagation()
-                  setManageHitpoints(true)
+                  showModal({
+                    type: 'hitpoints',
+                    props: {
+                      setFieldValue: setFieldValueFn,
+                    },
+                  })
                 }}
               >
                 Manage Hitpoints
@@ -60,7 +66,7 @@ const CharacterHeader = () => {
                   <Grid.Col span={{ sm: 12, md: 4 }} className={character_header_item}>
                     <span>
                       {'Name: '}
-                      {formStore.data.label || <span className={sprinkles({ ws: 'nowrap' })}>---</span>}
+                      {current.label || <span className={sprinkles({ ws: 'nowrap' })}>---</span>}
                     </span>
                     {!sm && <hr className={character_header_item_divider} />}
                   </Grid.Col>
@@ -73,16 +79,16 @@ const CharacterHeader = () => {
                   </Grid.Col>
                   <Grid.Col span={{ sm: 12, md: 4 }} className={character_header_item}>
                     <span>
-                      {formStore.data.classes?.length && formStore.data.classes?.length < 2 ? 'Class: ' : 'Class(es): '}
-                      {formStore.data.classes?.length ?
-                        formStore.data.classes?.map((uClass, index) => {
+                      {current.classes?.length && current.classes?.length < 2 ? 'Class: ' : 'Class(es): '}
+                      {current.classes?.length ?
+                        current.classes?.map((uClass, index) => {
                           const fullClass = findListClass(uClass.id)
                           return (
                             <span key={index}>
                               {`${fullClass?.label} (Lvl. ${uClass.level})`}
-                              {formStore.data.classes?.length &&
-                                index !== formStore.data?.classes?.length - 1 &&
-                                formStore.data.classes.length > 1 &&
+                              {current.classes?.length &&
+                                index !== current?.classes?.length - 1 &&
+                                current.classes.length > 1 &&
                                 ' / '}
                             </span>
                           )
@@ -94,14 +100,14 @@ const CharacterHeader = () => {
               </Grid.Col>
               <Grid.Col span={6}>
                 <Grid className={sprinkles({ mb: 'space-x' })}>
-                  {formStore.data?.abilities?.scores?.map((score, index) => {
+                  {current?.abilities?.scores?.map((score, index) => {
                     const ability = findAbility(score.ability)
 
                     const modifier = calculateModifier(score?.calculatedScore || 0, 'modifier')
                     return (
                       <Grid.Col span={{ sm: 12, md: 4, lg: 'auto' }} className={character_header_item} key={index}>
                         <span className={sprinkles({ me: 'space-4' })}>
-                          {`${ability?.value.toUpperCase()}: `}
+                          {`${ability?.label}: `}
                           {score.calculatedScore ?
                             <span
                               className={sprinkles({ ws: 'nowrap' })}
@@ -109,8 +115,8 @@ const CharacterHeader = () => {
                           : <span className={sprinkles({ ws: 'nowrap' })}>---</span>}
                         </span>
                         {!sm &&
-                          formStore.data.abilities?.scores?.length &&
-                          index !== formStore.data.abilities?.scores?.length - 1 && (
+                          current.abilities?.scores?.length &&
+                          index !== current.abilities?.scores?.length - 1 && (
                             <hr className={character_header_item_divider} />
                           )}
                       </Grid.Col>
@@ -122,7 +128,6 @@ const CharacterHeader = () => {
           </Collapsible.Content>
         </Collapsible>
       </Grid.Col>
-      {manageHitpoints && <Hitpoints onClose={() => setManageHitpoints(false)} />}
     </>
   )
 }

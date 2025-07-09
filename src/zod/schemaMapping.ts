@@ -6,23 +6,23 @@ import * as schemas from './schemas'
  * Mapping of GraphQL input type names to their corresponding Zod schema function names.
  */
 export const inputTypeToSchemaMap = {
-  "CharacterInput": "CharacterInputSchema",
+  "SystemInput": "SystemInputSchema",
   "SpellInput": "SpellInputSchema",
+  "RaceInput": "RaceInputSchema",
   "FeatureSpellInput": "FeatureSpellInputSchema",
   "FeatureSenseInput": "FeatureSenseInputSchema",
   "FeatureProficiencyInput": "FeatureProficiencyInputSchema",
   "FeatureOptionInput": "FeatureOptionInputSchema",
   "FeatureModifierInput": "FeatureModifierInputSchema",
-  "FeatureInput": "FeatureInputSchema",
-  "ClassInput": "ClassInputSchema",
-  "BackgroundInput": "BackgroundInputSchema",
   "FeatureFeatInput": "FeatureFeatInputSchema",
   "FeatureExpertiseInput": "FeatureExpertiseInputSchema",
+  "FeatureInput": "FeatureInputSchema",
   "FeatInput": "FeatInputSchema",
   "EquipmentInput": "EquipmentInputSchema",
-  "AncestryFeatureInput": "AncestryFeatureInputSchema",
-  "RaceInput": "RaceInputSchema",
-  "SystemInput": "SystemInputSchema"
+  "ClassInput": "ClassInputSchema",
+  "CharacterInput": "CharacterInputSchema",
+  "BackgroundInput": "BackgroundInputSchema",
+  "AncestryOptionInput": "AncestryOptionInputSchema"
 } as const
 
 /**
@@ -48,13 +48,14 @@ export type DomainInputTypeToInferredType = {
 }
 
 export const DomainInputTypeToInferredType = {
-    "CharacterInput": schemas.CharacterInputSchema,
-  "SpellInput": schemas.SpellInputSchema,
-  "ClassInput": schemas.ClassInputSchema,
-  "BackgroundInput": schemas.BackgroundInputSchema,
+    "SpellInput": schemas.SpellInputSchema,
+  "RaceInput": schemas.RaceInputSchema,
   "FeatInput": schemas.FeatInputSchema,
   "EquipmentInput": schemas.EquipmentInputSchema,
-  "RaceInput": schemas.RaceInputSchema
+  "ClassInput": schemas.ClassInputSchema,
+  "CharacterInput": schemas.CharacterInputSchema,
+  "BackgroundInput": schemas.BackgroundInputSchema,
+  "AncestryOptionInput": schemas.AncestryOptionInputSchema
 } as const
 
 export type FeatureInputTypeToInferredType = {
@@ -67,23 +68,22 @@ export const FeatureInputTypeToInferredType = {
   "FeatureProficiencyInput": schemas.FeatureProficiencyInputSchema,
   "FeatureOptionInput": schemas.FeatureOptionInputSchema,
   "FeatureModifierInput": schemas.FeatureModifierInputSchema,
-  "FeatureInput": schemas.FeatureInputSchema,
   "FeatureFeatInput": schemas.FeatureFeatInputSchema,
   "FeatureExpertiseInput": schemas.FeatureExpertiseInputSchema,
-  "AncestryFeatureInput": schemas.AncestryFeatureInputSchema
+  "FeatureInput": schemas.FeatureInputSchema
 } as const
 
 /**
  * Discriminated union Zod schema for GraphQL input objects.
  */
 export const discriminatedDomainInputSchema = z.discriminatedUnion('__kind', [
-  schemas.CharacterInputSchema,
   schemas.SpellInputSchema,
-  schemas.ClassInputSchema,
-  schemas.BackgroundInputSchema,
+  schemas.RaceInputSchema,
   schemas.FeatInputSchema,
   schemas.EquipmentInputSchema,
-  schemas.RaceInputSchema
+  schemas.ClassInputSchema,
+  schemas.CharacterInputSchema,
+  schemas.BackgroundInputSchema
 ])
 
 export const discriminatedFeatureInputSchema = z.discriminatedUnion('__kind', [
@@ -92,8 +92,8 @@ export const discriminatedFeatureInputSchema = z.discriminatedUnion('__kind', [
   schemas.FeatureProficiencyInputSchema,
   schemas.FeatureOptionInputSchema,
   schemas.FeatureModifierInputSchema,
-  schemas.FeatureInputSchema,
   schemas.FeatureFeatInputSchema,
   schemas.FeatureExpertiseInputSchema,
-  schemas.AncestryFeatureInputSchema
+  schemas.FeatureInputSchema,
+  schemas.AncestryOptionInputSchema
 ])

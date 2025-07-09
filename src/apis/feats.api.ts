@@ -36,7 +36,7 @@ export const fetchFeats = (systemPref: string) => {
       }
       let nextToken: string | null = null
 
-      const { client, master } = await getClient()
+      const { domainClient, master } = await getClient()
 
       // Create a union type for the variables
       type ListVariables = QueryListMasterFeatsArgs | QueryListFeatsArgs
@@ -63,7 +63,7 @@ export const fetchFeats = (systemPref: string) => {
 
       try {
         do {
-          const { data } = (await client.graphql({
+          const { data } = (await domainClient.graphql({
             query: operation,
             variables: variables,
           })) as GraphQLResult<QueryResponse>
@@ -98,7 +98,7 @@ export const fetchFeat = (id: string) => {
   return queryOptions({
     queryKey: featsKeys.single(id),
     queryFn: async () => {
-      const { client, master } = await getClient()
+      const { domainClient, master } = await getClient()
 
       // Type guard to check which response we got
       function isMaster(data: unknown): data is { getMasterFeat: unknown } {
@@ -108,7 +108,7 @@ export const fetchFeat = (id: string) => {
       const operation = master ? getMasterFeat : getFeat
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await domainClient.graphql({
           query: operation,
           variables: {
             id,
@@ -133,7 +133,7 @@ export const useAddNewFeatMutation = () => {
 
   return useMutation<Feat, Error, FeatInput, unknown>({
     mutationFn: async (feat: FeatInput) => {
-      const { client, master } = await getClient()
+      const { domainClient, master } = await getClient()
 
       const operation = master ? createMasterFeat : createFeat
 
@@ -143,7 +143,7 @@ export const useAddNewFeatMutation = () => {
       }
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await domainClient.graphql({
           query: operation,
           variables: {
             input: feat,
@@ -174,7 +174,7 @@ export const useUpdateFeatMutation = () => {
 
   return useMutation<Feat, Error, FeatInput, unknown>({
     mutationFn: async (feat: FeatInput) => {
-      const { client, master } = await getClient()
+      const { domainClient, master } = await getClient()
 
       const operation = master ? updateMasterFeat : updateFeat
 
@@ -184,7 +184,7 @@ export const useUpdateFeatMutation = () => {
       }
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await domainClient.graphql({
           query: operation,
           variables: {
             input: feat,
@@ -214,7 +214,7 @@ export const useDeleteFeatMutation = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { client, master } = await getClient()
+      const { domainClient, master } = await getClient()
 
       const operation = master ? deleteMasterFeat : deleteFeat
 
@@ -224,7 +224,7 @@ export const useDeleteFeatMutation = () => {
       }
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await domainClient.graphql({
           query: operation,
           variables: {
             id,

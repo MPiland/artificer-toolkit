@@ -2,7 +2,7 @@ import { useSuspenseQueries, useSuspenseQuery } from '@tanstack/react-query'
 import { fetchFeature, fetchFeatures } from '@/apis/features.api'
 import { useRouteContext } from '@tanstack/react-router'
 import { createArrayWithMethods } from '@/utils'
-import { fetchAncestryFeatures, fetchAncestryFeature } from '@/apis/ancestryFeatures.api'
+import { fetchAncestryOptions, fetchAncestryOption } from '@/apis/ancestryOptions.api'
 import { fetchFeatureOption, fetchFeatureOptions } from '@/apis/featureOptions.api'
 
 const useFeatureData = () => {
@@ -13,8 +13,8 @@ const useFeatureData = () => {
     data: { features },
   } = suspenseQuery(fetchFeatures(systemPref))
   const {
-    data: { ancestryFeatures },
-  } = suspenseQuery(fetchAncestryFeatures(systemPref))
+    data: { ancestryOptions },
+  } = suspenseQuery(fetchAncestryOptions(systemPref))
   const {
     data: { featureOptions },
   } = suspenseQuery(fetchFeatureOptions(systemPref))
@@ -28,33 +28,42 @@ const useFeatureData = () => {
         if (!ids || !ids.length) return null
         return suspenseQueries({
           queries: ids.map((id) => fetchFeature(id)),
-          combine: (results) => results.map((result) => result.data),
+          combine: (results) => {
+            const resultArray = results.map((result) => result.data || undefined).filter(Boolean)
+            return resultArray as NonNullable<(typeof resultArray)[number]>[]
+          },
         })
       },
     }),
-    ancestryFeatures: createArrayWithMethods(ancestryFeatures, {
-      findAncestryFeature: (id?: string | null) => {
+    ancestryOptions: createArrayWithMethods(ancestryOptions, {
+      findAncestryOption: (id?: string | null) => {
         if (!id) return null
-        return suspenseQuery(fetchAncestryFeature(id)).data
+        return suspenseQuery(fetchAncestryOption(id)).data
       },
-      findAncestryFeatures: (ids?: string[] | null) => {
+      findAncestryOptions: (ids?: string[] | null) => {
         if (!ids || !ids.length) return null
         return suspenseQueries({
-          queries: ids.map((id) => fetchAncestryFeature(id)),
-          combine: (results) => results.map((result) => result.data),
+          queries: ids.map((id) => fetchAncestryOption(id)),
+          combine: (results) => {
+            const resultArray = results.map((result) => result.data || undefined).filter(Boolean)
+            return resultArray as NonNullable<(typeof resultArray)[number]>[]
+          },
         })
       },
     }),
     featureOptions: createArrayWithMethods(featureOptions, {
-      findOption: (id?: string | null) => {
+      findFeatureOption: (id?: string | null) => {
         if (!id) return null
         return suspenseQuery(fetchFeatureOption(id)).data
       },
-      findOptions: (ids?: string[] | null) => {
+      findFeatureOptions: (ids?: string[] | null) => {
         if (!ids || !ids.length) return null
         return suspenseQueries({
           queries: ids.map((id) => fetchFeatureOption(id)),
-          combine: (results) => results.map((result) => result.data),
+          combine: (results) => {
+            const resultArray = results.map((result) => result.data || undefined).filter(Boolean)
+            return resultArray as NonNullable<(typeof resultArray)[number]>[]
+          },
         })
       },
     }),

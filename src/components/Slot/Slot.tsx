@@ -14,11 +14,11 @@ type SlotProps = {
 } & HTMLAttributes<HTMLElement> &
   RefAttributes<HTMLElement>
 
-export const Slot = ({ children, ...props }: SlotProps) => {
+const Slot = ({ children, ...props }: SlotProps) => {
   const child = Children.only(children)
 
   if (isValidElement(child)) {
-    const childProps = child.props as { [key: string]: any }
+    const childProps = child.props as { [key: string]: unknown }
     return cloneElement(child as ReactElement, {
       // Spread child props first
       ...childProps,
@@ -29,7 +29,9 @@ export const Slot = ({ children, ...props }: SlotProps) => {
       // Merge event handlers
       onClick: (e: ReactMouseEvent<HTMLElement, MouseEvent>) => {
         props.onClick?.(e)
-        childProps.onClick?.(e)
+        if (typeof childProps.onClick === 'function') {
+          childProps.onClick(e)
+        }
       },
 
       // Spread remaining new props (like data-attributes)
@@ -39,3 +41,5 @@ export const Slot = ({ children, ...props }: SlotProps) => {
 
   return <>{children}</>
 }
+
+export default Slot

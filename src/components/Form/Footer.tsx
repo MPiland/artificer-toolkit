@@ -1,204 +1,273 @@
 import { form_footer } from './Form.css'
 import { Button } from '@mantine/core'
-import { isEqual, startCase } from 'lodash'
-import { useEffect } from 'react'
 import { UseMutationResult } from '@tanstack/react-query'
 import { use } from 'react'
-import { FormContext, FeatureContext, validateForm } from '@/components/Form'
 import { routeRoot } from '@/utils'
 import { sprinkles } from '@/css/sprinkles.css'
 import { ModalContext } from '@/components/Modal'
-import { Navigate, useNavigate } from '@tanstack/react-router'
-import type { FormDataType, FormType, SourceDataType } from '@/types'
+import { useNavigate } from '@tanstack/react-router'
+import type {
+  FeatInput,
+  FeatureExpertiseInput,
+  FeatureFeatInput,
+  FeatureInput,
+  FeatureModifierInput,
+  FeatureOptionInput,
+  FeatureProficiencyInput,
+  FeatureSenseInput,
+  FeatureSpellInput,
+  FormDataType,
+  FormType,
+  SectionFormDataType,
+  SourceDataType,
+} from '@/types'
 import { useRouteNavigation } from '@/hooks'
 import { Group } from '@mantine/core'
-import { AnyFormApi } from '@tanstack/react-form'
+import {
+  useAncestryStore,
+  useExpertiseStore,
+  useFeatureStore,
+  useFormStore,
+  useModifierStore,
+  useOptionStore,
+  useProficiencyStore,
+  useSenseStore,
+  useSpellStore,
+  type FeatureStore,
+  type OptionStore,
+} from '@/store'
+import { useFeatStore } from '@/store/featStore'
 
 interface FooterProps<T extends SourceDataType, V extends FormDataType> {
   useAddNewItemMutation: () => UseMutationResult<T, Error, V, unknown>
   useUpdateItemMutation: () => UseMutationResult<T, Error, V, unknown>
-  form: AnyFormApi
 }
 
 const Footer = <T extends SourceDataType, V extends FormDataType>({
   useAddNewItemMutation,
   useUpdateItemMutation,
-  form,
 }: FooterProps<T, V>) => {
   const navigate = useNavigate()
   const { showModal } = use(ModalContext)
-  const {
-    formStore: {
-      data,
-      updateField,
-      setStepIndex,
-      setErrorMessage,
-      setSuccessMessage,
-      setValidForm,
-      setSaving,
-      setAddClass,
-      setChangeRace,
-      resetData,
-      reinitState,
-    },
-    isFirstStep,
-    isLastStep,
-    steps,
-    validForm,
-    stepIndex,
-  } = use(FormContext)
-  const { featureStore, ancestryStore, optionStore, sectionStore, handleSaveFeatures } = use(FeatureContext)
 
-  const type = routeRoot(data.__kind) as FormType
+  const formStore = useFormStore()
+  const featureStore = useFeatureStore()
+  const ancestryStore = useAncestryStore()
+  const optionStore = useOptionStore()
+  const expertiseStore = useExpertiseStore()
+  const senseStore = useSenseStore()
+  const proficiencyStore = useProficiencyStore()
+  const modifierStore = useModifierStore()
+  const spellStore = useSpellStore()
+  const featStore = useFeatStore()
+
+  const type = routeRoot(formStore.current?.__kind) as FormType
   const routeNav = useRouteNavigation(type)
 
-  const {
-    mutateAsync: addNewItem,
-    isSuccess: addIsSuccess,
-    isError: addIsError,
-    error: addError,
-  } = useAddNewItemMutation()
+  const sectionStoreMap = {
+    expertise: {
+      store: expertiseStore,
+      upsertAdd: (data: SectionFormDataType) => expertiseStore.upsertAdded(data as FeatureExpertiseInput),
+      upsertEdit: (data: SectionFormDataType) => expertiseStore.upsertEdited(data as FeatureExpertiseInput),
+    },
+    senses: {
+      store: senseStore,
+      upsertAdd: (data: SectionFormDataType) => senseStore.upsertAdded(data as FeatureSenseInput),
+      upsertEdit: (data: SectionFormDataType) => senseStore.upsertEdited(data as FeatureSenseInput),
+    },
+    proficiencies: {
+      store: proficiencyStore,
+      upsertAdd: (data: SectionFormDataType) => proficiencyStore.upsertAdded(data as FeatureProficiencyInput),
+      upsertEdit: (data: SectionFormDataType) => proficiencyStore.upsertEdited(data as FeatureProficiencyInput),
+    },
+    modifiers: {
+      store: modifierStore,
+      upsertAdd: (data: SectionFormDataType) => modifierStore.upsertAdded(data as FeatureModifierInput),
+      upsertEdit: (data: SectionFormDataType) => modifierStore.upsertEdited(data as FeatureModifierInput),
+    },
+    spells: {
+      store: spellStore,
+      upsertAdd: (data: SectionFormDataType) => spellStore.upsertAdded(data as FeatureSpellInput),
+      upsertEdit: (data: SectionFormDataType) => spellStore.upsertEdited(data as FeatureSpellInput),
+    },
+    feats: {
+      store: featStore,
+      upsertAdd: (data: SectionFormDataType) => featStore.upsertAdded(data as FeatureFeatInput),
+      upsertEdit: (data: SectionFormDataType) => featStore.upsertEdited(data as FeatureFeatInput),
+    },
+  } as const
 
-  const {
-    mutateAsync: updateItem,
-    isSuccess: updateIsSuccess,
-    isError: updateIsError,
-    error: updateError,
-  } = useUpdateItemMutation()
+  const { mutateAsync: addNewItem } = useAddNewItemMutation()
+
+  const { mutateAsync: updateItem } = useUpdateItemMutation()
+
+  const isLastStep = formStore.stepIndex === formStore.steps?.length - 1
 
   const forwardLabel =
     isLastStep ?
       featureStore.step != null ? 'Finish'
-      : data.id != null ? 'Update'
+      : formStore.current?.id != null ? 'Update'
       : 'Create'
     : 'Next'
 
-  const backLabel = isFirstStep ? 'Cancel' : 'Back'
+  const backLabel = isLastStep ? 'Cancel' : 'Back'
 
-  // Sucess Message
-  useEffect(() => {
-    if (updateIsSuccess) {
-      setSuccessMessage(`${startCase(data.__kind.replace(/Input$/, ''))} updated successfully!`)
-      setErrorMessage(null)
+  const handleConfirmBack = () => {
+    if (formStore.stepIndex !== 0) {
+      if (featureStore.step != null) {
+        formStore.setCurrent(null)
+        return navigate({ to: '..' })
+      }
+      formStore.setStepIndex(formStore.stepIndex - 1)
     }
-  }, [updateIsSuccess, data.__kind, setSuccessMessage, setErrorMessage])
+  }
 
-  // Error Message
-  useEffect(() => {
-    if (addIsError || updateIsError) {
-      if (addError) {
-        setErrorMessage((addError as any).message)
+  const handleConfirmForward = () => {
+    if (!isLastStep) {
+      if (featureStore.step != null) {
+        return
       }
-      if (updateError) {
-        setErrorMessage((updateError as any).message)
-      }
+      formStore.setStepIndex(formStore.stepIndex + 1)
     }
-  }, [addIsSuccess, updateIsSuccess, addIsError, updateIsError, addError, updateError, setErrorMessage])
+  }
 
   const handleNavigateEdit = (item: SourceDataType) => {
-    setStepIndex(0)
-    setSaving(false)
+    formStore.setStepIndex(0)
+    formStore.setSaving(false)
     const itemNav = routeNav.forItem(item.id, item.label)
     return navigate({ to: itemNav.edit.to, params: itemNav.edit.params, mask: itemNav.edit.mask })
   }
 
-  const handleSaveSection = () => {
-    if (sectionStore.step !== null) {
-      if (featureStore.step === 'option') {
-        optionStore.updateField({ path: `${sectionStore.step}.${sectionStore.index}`, value: sectionStore.data })
+  const checkExisting = (step: 'senses' | 'expertise' | 'proficiencies' | 'modifiers' | 'spells' | 'feats') => {
+    let current: FeatureInput | FeatureOptionInput | FeatInput | null = featureStore.current
+    let store: FeatureStore | OptionStore = featureStore
+    let sectionIds: string[]
+    if (optionStore.current != null) {
+      current = optionStore.current
+      store = optionStore
+    }
+    if (current == null) {
+      current = formStore.current as FeatInput
+    }
+    const sectionStore = sectionStoreMap[step].store
+    const upsertAddFn = sectionStoreMap[step].upsertAdd
+    const upsertEditFn = sectionStoreMap[step].upsertEdit
+    if (current != null && sectionStore.current != null) {
+      const sectionId = sectionStore.current?.id
+      if (current.__kind === 'FeatInput') {
+        sectionIds = current[step as Exclude<typeof step, 'feats'>] || []
       } else {
-        if (data.__kind === 'FeatInput') {
-          updateField<typeof data>({
-            path: `${sectionStore.step}.${sectionStore.index}`,
-            value: sectionStore.data,
+        sectionIds = current[step] || []
+      }
+      if (sectionId != null) {
+        if (!sectionIds.includes(sectionId)) {
+          upsertAddFn(sectionStore.current)
+          store.updateField({
+            path: `${step}`,
+            value: [...sectionIds, sectionId],
           })
         } else {
-          if (steps[stepIndex].id === 'ancestry') {
-            ancestryStore.updateField({
-              path: `features.${featureStore.index}.${sectionStore.step}.${sectionStore.index}`,
-              value: sectionStore.data,
-            })
-          }
+          upsertEditFn(sectionStore.current)
         }
       }
     }
-    sectionStore.resetInit({ value: sectionStore.data })
-    if (steps && steps?.length > 0) {
-      setValidForm({ ...validForm, [steps[stepIndex].id]: true })
+  }
+
+  const handleSaveSection = () => {
+    if (featureStore.step !== null) {
+      if (featureStore.step !== 'options' && featureStore.step !== 'features') {
+        checkExisting(featureStore.step)
+        sectionStoreMap[featureStore.step].store.setCurrent(null)
+      }
+      if (optionStore.current !== null) {
+        return featureStore.setStep('options')
+      }
+      return featureStore.setStep('features')
     }
-    return sectionStore.setStep(null)
   }
 
   const handleSaveOption = () => {
-    if (data.__kind === 'FeatInput') {
-      updateField<typeof data>({
-        path: `options.${optionStore.index}`,
-        value: optionStore.data,
+    if (!optionStore.current) return
+    if (formStore.current?.__kind === 'FeatInput') {
+      if (formStore.current?.options?.includes(optionStore.current?.id)) {
+        optionStore.upsertEdited(optionStore.current)
+      }
+      optionStore.upsertAdded(optionStore.current)
+      formStore.updateField({
+        path: `options`,
+        value: [...(formStore.current?.options || []), optionStore.current?.id],
       })
     } else {
-      if (steps[stepIndex].id === 'ancestry') {
-        ancestryStore.updateField({
-          path: `features.${featureStore.index}.options.${optionStore.index}`,
-          value: optionStore.data,
-        })
-      } else {
-        featureStore.updateField({
-          path: `options.${optionStore.index}`,
-          value: optionStore.data,
-        })
+      if (featureStore.current?.options?.includes(optionStore.current?.id)) {
+        optionStore.upsertEdited(optionStore.current)
       }
+      optionStore.upsertAdded(optionStore.current)
+      featureStore.updateField({
+        path: `options`,
+        value: [...(featureStore.current?.options || []), optionStore.current?.id],
+      })
     }
-    return featureStore.setStep('feature')
+    optionStore.setCurrent(null)
+    return featureStore.setStep('features')
   }
 
   // Save feature hierachy and clear states
-  const handleSave = () => {
-    if (sectionStore.step != null) {
+  const handleSave = async () => {
+    if (featureStore.step != null && featureStore.step !== 'options' && featureStore.step !== 'features') {
       return handleSaveSection()
     }
-    if (featureStore.step === 'option') {
+    if (featureStore.step === 'options') {
       return handleSaveOption()
     }
-    if (sectionStore.step == null && featureStore.step != null && data.__kind !== 'FeatInput') {
-      if (steps[stepIndex].id === 'ancestry') {
-        if (featureStore.step === 'ancestry') {
-          ancestryStore.updateField({
-            path: `features.${featureStore.index}`,
-            value: featureStore.data,
-          })
-          return featureStore.setStep('ancestryOption')
+    if (featureStore.step != null && featureStore.current && formStore.current?.__kind !== 'CharacterInput') {
+      if (formStore.current?.__kind === 'RaceInput' && ancestryStore.step === 'ancestryOption') {
+        if (ancestryStore?.current?.features?.includes(featureStore.current?.id)) {
+          featureStore.upsertEdited(featureStore.current)
         }
-        if (featureStore.step === 'ancestryOption') {
-          updateField<typeof data>({
-            path: `ancestry.options.${optionStore.index}`,
-            value: ancestryStore.data,
-          })
-          return featureStore.setStep(null)
-        }
-      } else {
-        updateField<typeof data>({
-          path: `features.${featureStore.index}`,
-          value: featureStore.data,
+        featureStore.upsertAdded(featureStore.current)
+        ancestryStore.updateField({
+          path: `features`,
+          value: [...(ancestryStore?.current?.features || []), featureStore.current?.id],
         })
-        return featureStore.setStep(null)
+        ancestryStore.setCurrent(null)
+        return ancestryStore.setStep(null)
+      } else if (formStore.current && 'features' in formStore.current) {
+        if (formStore.current?.features?.includes(featureStore.current?.id)) {
+          featureStore.upsertEdited(featureStore.current)
+        }
+        featureStore.upsertAdded(featureStore.current)
+        formStore.updateField({
+          path: `features`,
+          value: [...(formStore.current?.features || []), featureStore.current?.id],
+        })
       }
+      featureStore.setCurrent(null)
+      return featureStore.setStep(null)
     }
-    return reinitState(data)
+    if (
+      formStore.current?.__kind === 'RaceInput' &&
+      ancestryStore.current &&
+      formStore.steps[formStore.stepIndex].id === 'ancestry'
+    ) {
+      if (formStore.current?.ancestry?.options?.includes(ancestryStore.current?.id)) {
+        ancestryStore.upsertEdited(ancestryStore.current)
+      }
+      ancestryStore.upsertAdded(ancestryStore.current)
+      formStore.updateField({
+        path: 'ancestry.options',
+        value: [...(formStore.current?.ancestry?.options || []), ancestryStore.current?.id],
+      })
+    }
   }
 
   const handleForward = async () => {
-    const isValid = validateForm()
-    if ((!isLastStep || (isLastStep && featureStore.step != null)) && data.__kind !== 'FeatInput') {
-      if (isValid) {
-        setValidForm({ ...validForm, [steps[stepIndex].id]: true })
+    if ((!isLastStep || (isLastStep && featureStore.step != null)) && formStore.current?.__kind !== 'FeatInput') {
+      if (formStore.steps[formStore.stepIndex].isValid) {
         if (featureStore.step != null) {
-          setValidForm({ ...validForm, [steps[stepIndex].id]: true })
           return handleSave()
         }
-        reinitState(data)
-        return setStepIndex(stepIndex + 1)
+        return formStore.setStepIndex(formStore.stepIndex + 1)
       }
-      setValidForm({ ...validForm, [steps[stepIndex].id]: false })
       if (featureStore.step != null) {
         return showModal({
           type: 'alert',
@@ -209,53 +278,46 @@ const Footer = <T extends SourceDataType, V extends FormDataType>({
         })
       }
     }
-    if ((isLastStep && featureStore.step == null) || (data.__kind === 'FeatInput' && sectionStore.step == null)) {
-      if (isValid) {
-        setValidForm({ ...validForm, [steps[stepIndex].id]: true })
-        if (Object.values(validForm).length > 0 && !Object.values(validForm).every((value) => value === true)) {
-          return showModal({
-            type: 'alert',
-            props: {
-              message: 'Some required fields are missing. Current form step will not be saved.',
-              onConfirm: handleConfirmForward,
-            },
-          })
-        }
-        setSaving(true)
-        const payload = await addNewItem(data as V)
+    if (
+      (isLastStep && featureStore.step == null) ||
+      (formStore.current?.__kind === 'FeatInput' && featureStore.step == null)
+    ) {
+      if (!formStore.steps?.every((step) => step.isValid)) {
+        return showModal({
+          type: 'alert',
+          props: {
+            message: 'Some required fields are missing. Current form step will not be saved.',
+            onConfirm: handleConfirmForward,
+          },
+        })
+      }
+      formStore.setSaving(true)
+      try {
+        const payload = await addNewItem(formStore.current as V)
         if (payload) {
           return handleNavigateEdit(payload)
-        } else {
-          return setErrorMessage('No data returned')
         }
+      } catch (error: unknown) {
+        return console.log(error)
       }
     }
   }
 
   const handleBack = () => {
-    if (isFirstStep) {
-      if (!isEqual(featureStore.initData, data)) {
-        return showModal({
-          type: 'alert',
-          props: {
-            message:
-              data.id != null ?
-                `Changes have not been saved. Press 'Cancel' and then 'Update' to save changes. Otherwise, press 'Continue'`
-              : `${data.__kind.replace(/Input$/, '')} has not been created. Press 'Cancel' and then 'Create' at end of form to save. Otherwise, press 'Continue'.`,
-            onConfirm: handleConfirmBack,
-          },
-        })
-      }
-      return <Navigate to={'..'} />
+    if (formStore.stepIndex === 0) {
+      return showModal({
+        type: 'alert',
+        props: {
+          message:
+            formStore.current?.id != null ?
+              `Changes have not been saved. Press 'Cancel' and then 'Update' to save changes. Otherwise, press 'Continue'`
+            : `${formStore.current?.__kind.replace(/Input$/, '')} has not been created. Press 'Cancel' and then 'Create' at end of form to save. Otherwise, press 'Continue'.`,
+          onConfirm: handleConfirmBack,
+        },
+      })
     }
-    const isValid = validateForm()
-    if (isValid) {
-      setValidForm({ ...validForm, [steps[stepIndex].id]: true })
-      if (featureStore.step != null) {
-        return handleSave()
-      }
-    } else {
-      setValidForm({ ...validForm, [steps[stepIndex].id]: false })
+    if (featureStore.step != null) {
+      return handleSave()
     }
     if (featureStore.step != null) {
       return showModal({
@@ -266,34 +328,29 @@ const Footer = <T extends SourceDataType, V extends FormDataType>({
         },
       })
     }
-    if (stepIndex <= 0) {
-      return setStepIndex(stepIndex)
+    if (formStore.stepIndex <= 0) {
+      return formStore.setStepIndex(formStore.stepIndex)
     } else {
-      return setStepIndex(stepIndex - 1)
+      return formStore.setStepIndex(formStore.stepIndex - 1)
     }
   }
 
   const handleUpdate = async () => {
-    setAddClass(false)
-    setChangeRace(false)
-    const isValid = validateForm()
-    let formClone: FormDataType = JSON.parse(JSON.stringify(data))
-    if (isValid) {
-      setValidForm({ ...validForm, [steps[stepIndex].id]: true })
-      if (featureStore.step === 'option' || (featureStore.step === 'feature' && data.__kind !== 'FeatInput')) {
-        formClone = await handleSaveFeatures({ type: featureStore.step, state: formClone })
+    formStore.setAddClass(false)
+    formStore.setChangeRace(false)
+    if (formStore.steps?.every((step) => step.isValid)) {
+      if (
+        featureStore.step === 'options' ||
+        (featureStore.step === 'features' && formStore.current?.__kind !== 'FeatInput')
+      ) {
+        await handleSave()
       }
-      if (!(Object.values(validForm).length > 0) || Object.values(validForm).every((value) => value === true)) {
-        try {
-          await updateItem(formClone as V)
-          reinitState(formClone)
-        } catch (err: any) {
-          console.log(err)
-          return setErrorMessage(err.message)
-        }
+      try {
+        await updateItem(formStore.current as V)
+      } catch (error: unknown) {
+        console.log(error)
       }
-    }
-    if (featureStore.step != null) {
+    } else {
       return showModal({
         type: 'alert',
         props: {
@@ -302,72 +359,18 @@ const Footer = <T extends SourceDataType, V extends FormDataType>({
       })
     }
   }
-
-  const handleReset = () => {
-    if (sectionStore.step != null) {
-      return sectionStore.resetData({ value: sectionStore.initData })
-    }
-    if (featureStore.step === 'option') {
-      return optionStore.resetData({ value: optionStore.initData })
-    }
-    if (featureStore.step === 'feature') {
-      if (steps[stepIndex].id === 'ancestry') {
-        return ancestryStore.resetData({ value: ancestryStore.initData })
-      }
-      return featureStore.resetData({ value: featureStore.initData })
-    }
-    return resetData({ value: featureStore.initData })
-  }
-
-  const reset = () => {
-    if (sectionStore.step != null) {
-      sectionStore.reinitState()
-      return sectionStore.setStep(null)
-    } else if (featureStore.step === 'option') {
-      optionStore.reinitState()
-      return featureStore.setStep('feature')
-    } else if (featureStore.step === 'ancestryOption') {
-      ancestryStore.reinitState()
-      return featureStore.setStep(null)
-    } else {
-      featureStore.reinitState()
-      if (featureStore.step === 'ancestry') {
-        return featureStore.setStep('ancestryOption')
-      }
-      return featureStore.setStep(null)
-    }
-  }
-
-  const handleConfirmBack = () => {
-    if (!isFirstStep) {
-      if (featureStore.step != null) {
-        reset()
-      }
-      setStepIndex(stepIndex - 1)
-    }
-  }
-
-  const handleConfirmForward = () => {
-    if (!isLastStep) {
-      if (featureStore.step != null) {
-        reset()
-      }
-      setStepIndex(stepIndex + 1)
-    }
-  }
-
   return (
     <Group className={form_footer} justify='space-between'>
       <Group>
         <Button color='main' type='button' onClick={handleBack} className={sprinkles({ marginRight: 'space-2' })}>
           {backLabel}
         </Button>
-        <Button color='warning' type='button' onClick={handleReset}>
+        <Button color='warning' type='button'>
           Reset
         </Button>
       </Group>
       <Group>
-        {data.id != null && (!isLastStep || (isLastStep && featureStore.step != null)) && (
+        {(!isLastStep || (isLastStep && featureStore.step != null)) && (
           <Button color='update' type='button' onClick={handleUpdate} className={sprinkles({ marginRight: 'space-2' })}>
             Update
           </Button>
@@ -375,9 +378,7 @@ const Footer = <T extends SourceDataType, V extends FormDataType>({
         <Button
           color={forwardLabel === 'Update' ? 'update' : 'primary'}
           type='button'
-          onClick={() =>
-            isLastStep && featureStore.step == null && data.id != null ? handleUpdate() : handleForward()
-          }
+          onClick={() => (isLastStep && featureStore.step == null ? handleUpdate() : handleForward())}
         >
           {forwardLabel}
         </Button>

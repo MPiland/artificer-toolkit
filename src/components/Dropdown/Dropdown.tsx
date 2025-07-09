@@ -22,6 +22,7 @@ const Dropdown = ({
   all = true,
   disableRemove = false,
   errorMsg,
+  onBlur,
 }: DropdownProps) => {
   const [error, setError] = useState<string>()
   const [settingOption, setSettingOption] = useState<boolean>(false)
@@ -74,8 +75,8 @@ const Dropdown = ({
           }
 
           // Get comparable values for a and b
-          const aValue = getComparableValue(a.value)
-          const bValue = getComparableValue(b.value)
+          const aValue = getComparableValue(a.label)
+          const bValue = getComparableValue(b.label)
 
           // Compare the values
           if (typeof aValue === 'number' && typeof bValue === 'number') {
@@ -206,6 +207,7 @@ const Dropdown = ({
           toggleDropdown={() => combobox.toggleDropdown()}
           closeDropdown={() => combobox.closeDropdown()}
           error={error}
+          onBlur={onBlur}
         />
       : <DropdownSingle
           value={value as string}
@@ -217,6 +219,7 @@ const Dropdown = ({
           toggleDropdown={() => combobox.toggleDropdown()}
           closeDropdown={() => combobox.closeDropdown()}
           error={error}
+          onBlur={onBlur}
         />
       }
 

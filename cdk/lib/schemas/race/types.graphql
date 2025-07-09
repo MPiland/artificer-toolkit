@@ -1,15 +1,8 @@
-type AncestryOption {
-  id: ID!
-  label: String!
-  desc: String
-  features: [ID!]
-}
-
 type Ancestry {
   id: ID!
   label: String!
   desc: String
-  options: [AncestryOption!]!
+  options: [ID!]!
 }
 
 type RaceSpeed {
@@ -36,28 +29,22 @@ type Race {
   ancestry: Ancestry
   details: [Detail!]
   traits: Traits
-  features: [Feature!]
+  features: [ID!]
   ownerId: ID!
   systemId: ID!
   masterId: String
 }
 
 type RaceMetaObject {
-  raceIds: [ID!]
+  raceIds: [ID!]!
   id: ID!
-}
-
-type RaceFeatureMetaObject {
-  id: ID!
-  label: String!
-  raceIds: [ID!]
 }
 
 type RaceMeta {
   categories: [RaceMetaObject!]!
   playable: [RaceMetaObject!]!
   lineages: [RaceMetaObject!]!
-  features: [RaceFeatureMetaObject!]!
+  features: [RaceMetaObject!]!
 }
 
 type RaceListItem {

@@ -1,32 +1,26 @@
 [
   {
     "id": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
-    "value": "skills",
     "label": "Skills"
   },
   {
     "id": "7328d22a-8c29-45de-a08f-5987fac2d6d1",
-    "value": "saveAbility",
     "label": "Save Ability"
   },
   {
     "id": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
-    "value": "properties",
     "label": "Equipment Properties"
   },
   {
     "id": "3d256b38-0c78-4fd6-84a5-94b43c5a024c",
-    "value": "equipment",
     "label": "Equipment"
   },
   {
     "id": "43780ab4-fe83-4477-bd6a-4d3343044f8c",
-    "value": "languages",
     "label": "Languages"
   },
   {
     "id": "5a8d9e8c-508c-4175-866e-f57925ba41e6",
-    "value": "initiative",
     "label": "Initiative"
   }
 ]

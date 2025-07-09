@@ -11,12 +11,11 @@ import {
   modal_background,
 } from './Modal.css'
 import { TbX } from 'react-icons/tb'
-import Button from '@/components/Button'
 import clsx from 'clsx'
 import { sprinkles } from '@/css/sprinkles.css'
 import { useEventListener } from 'usehooks-ts'
 import { ModalContext } from './ModalContext'
-import { Group } from '@mantine/core'
+import { Group, UnstyledButton } from '@mantine/core'
 
 export const Header = ({
   title,
@@ -45,15 +44,14 @@ export const Header = ({
             <h2 className={modal_title}>{title}</h2>
           </Group>
           {handleClose && (
-            <Button
+            <UnstyledButton
               type='button'
-              style='unstyled'
               className={sprinkles({ w: 'size-7' })}
               aria-label='Close'
               onClick={handleClose}
             >
               <TbX className={sprinkles({ w: 'size-full', h: 'size-auto' })} />
-            </Button>
+            </UnstyledButton>
           )}
         </Group>
       </div>

@@ -19,10 +19,6 @@ export type DropType = 'dh' | 'dl' | null
 export type RerollType = 'r' | 'ro' | null
 export type RerollCondition = '>' | '<' | '===' | null
 
-export type RollConfig = `${number | 0}d${DieType}${'' | `${KeepType}${number}`}${'' | `${DropType}${number}`}${
-  | ''
-  | `${RerollType}${'' | RerollCondition}${number}`}`
-
 export type DiceResult = {
   die: number
   value: number
@@ -43,7 +39,7 @@ export type DiceConfig = {
 
 export type DiceRolls = {
   score: number | null
-  ability: any
+  ability: unknown
   rolling: boolean
   rolled: DiceResult[]
   kept?: DiceResult[] | null

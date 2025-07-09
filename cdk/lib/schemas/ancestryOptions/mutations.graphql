@@ -1,0 +1,10 @@
+type Mutation {
+  createMasterAncestryOption(input: AncestryOptionInput!): AncestryOption!
+  updateMasterAncestryOption(input: AncestryOptionInput!): AncestryOption!
+  deleteMasterAncestryOption(id: ID!): ID!
+  batchCreateMasterAncestryOptions(input: [BatchAncestryOptionsInput!]!): [AncestryOption!]!
+  createAncestryOption(input: AncestryOptionInput!): AncestryOption!
+  updateAncestryOption(input: AncestryOptionInput!): AncestryOption!
+  deleteAncestryOption(id: ID!): ID!
+  batchCreateAncestryOptions(input: [BatchAncestryOptionsInput!]!): [AncestryOption!]!
+}

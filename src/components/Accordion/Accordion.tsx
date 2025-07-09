@@ -99,8 +99,8 @@ const AccordionContent = ({ className, children, ...props }: AccordionContentPro
 }
 
 export type AccordionProps = {
-  dataArray: any[]
-  onChange: (arg: any[]) => void
+  dataArray: unknown[]
+  onChange: (arg: unknown[]) => void
   name?: string
   disableSort?: boolean
   children?: ReactNode

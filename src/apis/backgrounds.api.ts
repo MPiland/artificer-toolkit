@@ -36,7 +36,7 @@ export const fetchBackgrounds = (systemPref: string) => {
       }
       let nextToken: string | null = null
 
-      const { client, master } = await getClient()
+      const { domainClient, master } = await getClient()
 
       // Create a union type for the variables
       type ListVariables = QueryListMasterBackgroundsArgs | QueryListBackgroundsArgs
@@ -63,7 +63,7 @@ export const fetchBackgrounds = (systemPref: string) => {
 
       try {
         do {
-          const { data } = (await client.graphql({
+          const { data } = (await domainClient.graphql({
             query: operation,
             variables: variables,
           })) as GraphQLResult<QueryResponse>
@@ -98,7 +98,7 @@ export const fetchBackground = (id: string) => {
   return queryOptions({
     queryKey: backgroundsKeys.single(id),
     queryFn: async () => {
-      const { client, master } = await getClient()
+      const { domainClient, master } = await getClient()
 
       // Type guard to check which response we got
       function isMaster(data: unknown): data is { getMasterBackground: unknown } {
@@ -108,7 +108,7 @@ export const fetchBackground = (id: string) => {
       const operation = master ? getMasterBackground : getBackground
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await domainClient.graphql({
           query: operation,
           variables: {
             id,
@@ -133,7 +133,7 @@ export const useAddBackground = () => {
 
   return useMutation<Background, Error, BackgroundInput, unknown>({
     mutationFn: async (background: BackgroundInput) => {
-      const { client, master } = await getClient()
+      const { domainClient, master } = await getClient()
 
       const operation = master ? createMasterBackground : createBackground
 
@@ -143,7 +143,7 @@ export const useAddBackground = () => {
       }
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await domainClient.graphql({
           query: operation,
           variables: {
             input: background,
@@ -174,7 +174,7 @@ export const useUpdateBackground = () => {
 
   return useMutation<Background, Error, BackgroundInput, unknown>({
     mutationFn: async (background: BackgroundInput) => {
-      const { client, master } = await getClient()
+      const { domainClient, master } = await getClient()
 
       const operation = master ? updateMasterBackground : updateBackground
 
@@ -184,7 +184,7 @@ export const useUpdateBackground = () => {
       }
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await domainClient.graphql({
           query: operation,
           variables: {
             input: background,
@@ -214,7 +214,7 @@ export const useDeleteBackground = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { client, master } = await getClient()
+      const { domainClient, master } = await getClient()
 
       const operation = master ? deleteMasterBackground : deleteBackground
 
@@ -224,7 +224,7 @@ export const useDeleteBackground = () => {
       }
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await domainClient.graphql({
           query: operation,
           variables: {
             id,

@@ -1,5 +1,5 @@
 input CharacterModifierInput {
-  modifierId: ID!
+  id: ID!
   featureId: ID
   classId: ID
   raceId: ID
@@ -13,6 +13,7 @@ input CharacterModifierInput {
 }
 
 input CharacterSenseInput {
+  id: ID!
   senseId: ID
   featureId: ID
   classId: ID
@@ -27,6 +28,7 @@ input CharacterSenseInput {
 }
 
 input CharacterFeatInput {
+  id: ID
   featId: ID
   featureId: ID
   classId: ID
@@ -45,7 +47,7 @@ input CharacterProficiencyInput {
   saveAbility: ID
   property: ID
   equipment: ID
-  proficiencyId: ID!
+  id: ID!
   featureId: ID
   classId: ID
   raceId: ID
@@ -64,7 +66,7 @@ input CharacterExpertiseInput {
   saveAbility: ID
   property: ID
   equipment: ID
-  expertiseId: ID!
+  id: ID!
   featureId: ID
   classId: ID
   raceId: ID
@@ -80,7 +82,7 @@ input CharacterExpertiseInput {
 input CharacterSpellInput {
   id: ID!
   level: Int! = 1
-  ability: ID
+  saveAbility: ID
   isRitual: Boolean
   countAsKnown: Boolean
   usesSlot: Boolean
@@ -167,7 +169,7 @@ input ScoresInput {
   raceScore: Int
   classScore: Int
   calculatedScore: Int
-  ModifierScore: Int
+  modifierScore: Int
 }
 
 input CharacterAbilitiesInput {
@@ -216,7 +218,7 @@ input ClassSpellInput {
 }
 
 input ClassSpellListInput {
-  level: Int! = 1
+  level: Int!
   spells: [ClassSpellInput!]
 }
 
@@ -242,7 +244,7 @@ input CharacterClassInput {
 input StartingEquipmentInput {
   id: ID!
   selectionId: ID
-  quantity: Int! = 1
+  quantity: Int!
 }
 
 input StartingEquipmentGroupInput {
@@ -272,7 +274,7 @@ input PossessionsInput {
 
 input CharacterCurrencyInput {
   id: ID!
-  amount: Int! = 0
+  amount: Int!
 }
 
 input CurrencyGroupInput {
@@ -333,7 +335,7 @@ input CharacterInput {
   race: ID
   ancestry: CharacterAncestryInput
   background: ID
-  classes: [CharacterClassInput]
+  classes: [CharacterClassInput!]
   spellcasting: CharacterSpellcastingInput
   classEquipment: ClassStartingEquipmentInput
   backgroundEquipment: BackgroundStartingEquipmentInput

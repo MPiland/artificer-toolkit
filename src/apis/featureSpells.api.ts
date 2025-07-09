@@ -31,7 +31,7 @@ export const fetchFeatureSpells = (systemPref: string) => {
       }
       let nextToken: string | null = null
 
-      const { client, master } = await getClient()
+      const { featureClient, master } = await getClient()
 
       // Create a union type for the variables
       type ListVariables = QueryListFeatureSpellsArgs | QueryListMasterFeatureSpellsArgs
@@ -56,7 +56,7 @@ export const fetchFeatureSpells = (systemPref: string) => {
 
       try {
         do {
-          const { data } = await client.graphql({
+          const { data } = await featureClient.graphql({
             query: operation,
             variables: variables,
           })
@@ -80,7 +80,7 @@ export const fetchFeatureSpell = (id: string) => {
   return queryOptions({
     queryKey: featureSpellsKeys.single(id),
     queryFn: async () => {
-      const { client, master } = await getClient()
+      const { featureClient, master } = await getClient()
 
       // Type guard to check which response we got
       function isMaster(data: unknown): data is { getMasterFeatureSpell: unknown } {
@@ -90,7 +90,7 @@ export const fetchFeatureSpell = (id: string) => {
       const operation = master ? getMasterFeatureSpell : getFeatureSpell
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await featureClient.graphql({
           query: operation,
           variables: {
             id,
@@ -115,7 +115,7 @@ export const useAddNewFeatureSpellMutation = () => {
 
   return useMutation<FeatureSpell, Error, FeatureSpellInput, unknown>({
     mutationFn: async (featureSpell: FeatureSpellInput) => {
-      const { client, master } = await getClient()
+      const { featureClient, master } = await getClient()
 
       const operation = master ? createMasterFeatureSpell : createFeatureSpell
 
@@ -124,7 +124,7 @@ export const useAddNewFeatureSpellMutation = () => {
       }
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await featureClient.graphql({
           query: operation,
           variables: {
             input: featureSpell,
@@ -155,7 +155,7 @@ export const useUpdateFeatureSpellMutation = () => {
 
   return useMutation<FeatureSpell, Error, FeatureSpellInput, unknown>({
     mutationFn: async (featureSpell: FeatureSpellInput) => {
-      const { client, master } = await getClient()
+      const { featureClient, master } = await getClient()
 
       const operation = master ? updateMasterFeatureSpell : updateFeatureSpell
 
@@ -165,7 +165,7 @@ export const useUpdateFeatureSpellMutation = () => {
       }
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await featureClient.graphql({
           query: operation,
           variables: {
             input: featureSpell,
@@ -195,7 +195,7 @@ export const useDeleteFeatureSpellMutation = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { client, master } = await getClient()
+      const { featureClient, master } = await getClient()
 
       const operation = master ? deleteMasterFeatureSpell : deleteFeatureSpell
 
@@ -205,7 +205,7 @@ export const useDeleteFeatureSpellMutation = () => {
       }
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await featureClient.graphql({
           query: operation,
           variables: {
             id,

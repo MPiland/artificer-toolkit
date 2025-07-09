@@ -20,8 +20,8 @@ input FeatInput {
   saveAbility: SaveAbilityInput
   selectionCount: Int
   levelAvailable: String
-  features: [FeatureInput!]
-  options: [FeatureOptionInput!]
+  features: [ID!]
+  options: [ID!]
   ownerId: String!
   systemId: ID!
   masterId: String

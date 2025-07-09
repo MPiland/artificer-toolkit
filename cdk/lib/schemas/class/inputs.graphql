@@ -65,21 +65,6 @@ input SubtypeInput {
   label: String!
 }
 
-input ClassCurrencyInput {
-  id: ID!
-  amount: Int
-}
-
-input ClassEquipmentInput {
-  attributes: [ID!]
-  selectionCount: Int
-  category: ID
-  equipment: [ID!]
-  properties: [ID!]
-  quantity: Int
-  currencies: [ClassCurrencyInput!]
-}
-
 input ClassInput {
   id: ID!
   label: String!
@@ -89,7 +74,7 @@ input ClassInput {
   details: [DetailInput!]
   hitpoint: HitpointInput
   startingGold: StartingGoldInput
-  equipment: [[[ClassEquipmentInput!]!]!]
+  equipment: [[[EquipmentOptionItemInput!]!]!]
   proficiencies: [FeatureProficiencyInput!]
   spellcasting: SpellcastingInput
   levelAttributes: [LevelAttributeInput!]
@@ -97,7 +82,7 @@ input ClassInput {
   multiclass: MulticlassInput
   parentClass: ID
   subtypes: [SubtypeInput!]
-  features: [FeatureInput!]
+  features: [ID!]
   ownerId: String
   systemId: ID!
   masterId: String

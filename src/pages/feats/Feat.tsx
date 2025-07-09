@@ -13,7 +13,7 @@ const Feat = () => {
   if (!feat) return <div>Invalid or missing feat data</div>
 
   return (
-    <Detail footerSpacing='end' item={feat}>
+    <Detail item={feat}>
       <div>{feat.desc && parse(feat.desc)}</div>
     </Detail>
   )

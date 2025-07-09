@@ -1,55 +1,32 @@
-import type { FeatureFormDataType, FormDataType, SectionDataType, AncestryOptionInput } from '@/types'
+import type { FeatureFormDataType, FormDataType, SectionFormDataType, AncestryOptionInput } from '@/types'
 import { produce, type Draft } from 'immer'
-import { get, has, set as lSet, PropertyPath } from 'lodash'
+import { get, set, PropertyPath, toPath } from 'lodash'
 import type { FormStore } from './formStore'
 import type { FeatureStore } from './featureStore'
 import type { AncestryStore } from './ancestryStore'
-import type { SectionStore } from './sectionStore'
+import type { SenseStore } from './senseStore'
 import type { OptionStore } from './optionStore'
+import type { ModifierStore } from './modifierStore'
+import type { SpellStore } from './spellStore'
+import type { ProficiencyStore } from './proficiencyStore'
+import type { ExpertiseStore } from './expertiseStore'
+import type { FeatStore } from './featStore'
 
-export type States = FormDataType | FeatureFormDataType | SectionDataType | AncestryOptionInput
-type Stores = FormStore<FormDataType> | FeatureStore | AncestryStore | SectionStore<SectionDataType> | OptionStore
+export type States = FormDataType | FeatureFormDataType | SectionFormDataType | AncestryOptionInput
+type Stores =
+  | FormStore
+  | FeatureStore
+  | AncestryStore
+  | SenseStore
+  | OptionStore
+  | ModifierStore
+  | SpellStore
+  | ProficiencyStore
+  | ExpertiseStore
+  | FeatStore
 
 const isNumber = (str: string): boolean => {
   return !isNaN(parseFloat(str)) && isFinite(Number(str))
-}
-
-export const addField = <T extends Stores, U extends States>({
-  path,
-  value,
-  selector,
-}: {
-  path: string | string[]
-  value?: unknown
-  selector: (state: Draft<T>) => U
-}) => {
-  return (state: T) => {
-    return produce(state, (draft) => {
-      const targetState = selector(draft)
-      const pathExists = has(targetState, path)
-
-      if (pathExists) {
-        const existing = get(targetState, path)
-
-        if (Array.isArray(existing) && existing.length > 0) {
-          if (!value) {
-            // If existing is an array of arrays, add a new array
-            if (existing.length > 0 && Array.isArray(existing[0])) {
-              lSet(targetState, path, [...existing, []])
-            } else {
-              lSet(targetState, path, [...existing, {}])
-            }
-          } else {
-            lSet(targetState, path, value)
-          }
-        } else {
-          lSet(targetState, path, value || [{}])
-        }
-      } else {
-        lSet(targetState, path, value || [{}])
-      }
-    })
-  }
 }
 
 export const removeField = <T extends Stores, U extends States>({
@@ -60,9 +37,9 @@ export const removeField = <T extends Stores, U extends States>({
   selector: (state: Draft<T>) => U
 }) => {
   return (state: T) => {
-    return produce(state, (draft) => {
+    return produce(state, (draft: Draft<T>) => {
       const targetState = selector(draft)
-      const statePath: string[] = Array.isArray(path) ? path : path.split('.')
+      const statePath: string[] = Array.isArray(path) ? path : toPath(path)
       const lastKey = statePath[statePath.length - 1]
 
       if (!isNumber(lastKey)) {
@@ -78,13 +55,13 @@ export const removeField = <T extends Stores, U extends States>({
         const newPath = statePath.slice(0, -1)
         const array = get(targetState, newPath)
         if (array.length > 1) {
-          lSet(
+          set(
             targetState,
             newPath,
             array.filter((_: unknown, index: number) => index !== Number(lastKey))
           )
         } else {
-          lSet(targetState, newPath, undefined)
+          set(targetState, newPath, undefined)
         }
       }
     })
@@ -101,32 +78,17 @@ export const updateField = <T extends Stores, U extends States>({
   selector: (state: Draft<T>) => U
 }) => {
   return (state: T) => {
-    return produce(state, (draft) => {
+    return produce(state, (draft: Draft<T>) => {
       const targetState = selector(draft)
       let statePath: string[] | null
 
       if (!Array.isArray(path)) {
-        statePath = path.split('.')
+        statePath = toPath(path)
       } else {
         statePath = path
       }
 
-      lSet(targetState, statePath as PropertyPath, value)
-    })
-  }
-}
-
-export const reset = <T extends Stores, U extends States>({
-  value,
-  selector,
-}: {
-  value: Partial<U> | unknown
-  selector: (state: Draft<T>) => U
-}) => {
-  return (state: T) => {
-    return produce(state, (draft) => {
-      const targetState = selector(draft)
-      Object.assign(targetState, value)
+      set(targetState, statePath as PropertyPath, value)
     })
   }
 }

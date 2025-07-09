@@ -54,7 +54,7 @@ type Equipment {
   speed: Speed
   range: EquipmentRange
   contains: [Contains!]
-  features: [Feature!]
+  features: [ID!]
   ownerId: ID!
   systemId: ID!
   masterId: String
@@ -62,26 +62,20 @@ type Equipment {
 }
 
 type EquipmentMetaObject {
-  equipmentIds: [ID!]
+  equipmentIds: [ID!]!
   id: ID!
 }
 
 type EquipementCostMeta {
-  equipmentIds: [ID!]
+  equipmentIds: [ID!]!
   amount: Int
   id: ID!
 }
 
 type EquipmentWeightMeta {
-  equipmentIds: [ID!]
+  equipmentIds: [ID!]!
   amount: Float
   id: ID!
-}
-
-type EquipmentFeatureMetaObject {
-  id: ID!
-  label: String!
-  equipmentIds: [ID!]
 }
 
 type EquipmentMeta {
@@ -93,7 +87,7 @@ type EquipmentMeta {
   armorClasses: [EquipmentMetaObject!]!
   cost: [EquipementCostMeta!]!
   weight: [EquipmentWeightMeta!]!
-  features: [EquipmentFeatureMetaObject]!
+  features: [EquipmentMetaObject!]!
 }
 
 type EquipmentListItem {

@@ -6,19 +6,17 @@ import Copy from '@/components/Copy'
 import Modal from './Modal'
 import type {
   ListItemType,
-  Feature,
   BackgroundListItem,
   ClassListItem,
   EquipmentListItem,
   FeatListItem,
   RaceListItem,
-  AncestryFeature,
-  FeatureOption,
 } from '@/types'
-import { AddSection } from '@/components/Form/Features/Sections'
+import { AddSection, SECTION_STEPS } from '@/components/Form'
 import Loading from '../Loading'
+import Hitpoints from '../Hitpoints/Hitpoints'
 
-type ModalType = 'alert' | 'delete' | 'copy' | 'addSection' | 'loading'
+type ModalType = 'alert' | 'delete' | 'copy' | 'addSection' | 'loading' | 'hitpoints'
 
 export interface AlertModalProps {
   title?: string
@@ -40,7 +38,6 @@ export interface CopyModalProps {
     | {
         id: string
         label: string
-        value: string
         raceIds?: string[]
         classIds?: string[]
         equipmentIds?: string[]
@@ -48,7 +45,7 @@ export interface CopyModalProps {
         backgroundIds?: string[]
       }[]
     | undefined
-  onCopy: (() => void) | ((arg: any) => void)
+  onCopy: (() => void) | ((arg: unknown) => void)
   filters?: {
     races: RaceListItem[]
     classes: ClassListItem[]
@@ -59,12 +56,20 @@ export interface CopyModalProps {
 }
 
 export interface AddSectionModalProps {
-  featureData: Feature | AncestryFeature | FeatureOption
-  onAddSection: (sectionName: string) => void
+  __kind: 'FeatureInput' | 'AncestryFeatureInput' | 'FeatureOptionInput'
+  onAddSection: (
+    arg: (typeof SECTION_STEPS)[number] | 'options',
+    __kind: 'FeatureInput' | 'AncestryFeatureInput' | 'FeatureOptionInput'
+  ) => void
 }
 
 export interface LoadingModalProps {
   isLoading: boolean
+}
+
+export interface HitpointModalProps {
+  setFieldValue: (name: string, value: string | number | string[] | undefined | null) => void
+  onCancel?: () => void
 }
 
 export type ModalConfig =
@@ -73,6 +78,7 @@ export type ModalConfig =
   | { type: 'copy'; props: CopyModalProps }
   | { type: 'addSection'; props: AddSectionModalProps }
   | { type: 'loading'; props: LoadingModalProps }
+  | { type: 'hitpoints'; props: HitpointModalProps }
 
 export type ShowModal<T> = {
   type: T
@@ -85,6 +91,7 @@ export type ModalPropsByType = {
   copy: CopyModalProps
   addSection: AddSectionModalProps
   loading: LoadingModalProps
+  hitpoints: HitpointModalProps
 }
 
 const useModalOptions = () => {
@@ -107,6 +114,7 @@ const useModalOptions = () => {
     copy: <Copy />,
     addSection: <AddSection />,
     loading: <Loading />,
+    hitpoints: <Hitpoints />,
   }
 
   return {
