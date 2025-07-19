@@ -1,4 +1,4 @@
-import { use, useMemo, useState } from 'react'
+import { use, useEffect, useMemo, useState } from 'react'
 import { startCase } from 'lodash'
 import Dropdown from '@/components/Dropdown'
 import { Button } from '@mantine/core'
@@ -41,10 +41,15 @@ type Selection = {
 }
 
 const Copy = () => {
-  const { modalProps, hideModal } = use(ModalContext)
+  const { modalProps, hideModal, setSize, setTitle } = use(ModalContext)
   const [selection, setSelection] = useState<Selection>()
 
   const { form, data, filters, onCopy } = modalProps as CopyModalProps
+
+  useEffect(() => {
+    setSize('sm')
+    setTitle(`Copy ${startCase(form)}`)
+  }, [form, setTitle, setSize])
 
   const handleOnChange = (value: string | string[] | null | undefined, path: DeepKeys<Selection>) => {
     if (value != null) {
@@ -105,54 +110,54 @@ const Copy = () => {
   )
 
   return (
-    <Modal.Dialogue size='sm'>
-      <Modal.Header title={`Copy ${startCase(form)}`} onClose={hideModal} />
-      <Modal.Content>
-        <Grid>
-          {filters && (
-            <>
+    <Modal>
+      <Grid>
+        {filters && (
+          <>
+            <Grid.Col span={6}>
+              <Dropdown
+                options={filterByOptions.map((key) => ({
+                  label: key,
+                  value: key,
+                  id: key,
+                }))}
+                name='filterBy'
+                value={selection?.filterBy}
+                error='Must choose an option to copy'
+                onChange={(value) => handleOnChange(value, 'filterBy')}
+                required
+              />
+            </Grid.Col>
+            {selection?.filterBy && (
               <Grid.Col span={6}>
                 <Dropdown
-                  options={filterByOptions.map((key) => ({
-                    label: key,
-                    value: key,
-                    id: key,
-                  }))}
-                  name='filterBy'
-                  value={selection?.filterBy}
-                  errorMsg='Must choose an option to copy'
-                  onChange={(value) => handleOnChange(value, 'filterBy')}
+                  options={filterOptions}
+                  name='filter'
+                  value={selection?.filter}
+                  error='Must choose an option to copy'
+                  onChange={(value) => handleOnChange(value, 'filter')}
+                  required
                 />
               </Grid.Col>
-              {selection?.filterBy && (
-                <Grid.Col span={6}>
-                  <Dropdown
-                    options={filterOptions}
-                    name='filter'
-                    value={selection?.filter}
-                    errorMsg='Must choose an option to copy'
-                    onChange={(value) => handleOnChange(value, 'filter')}
-                  />
-                </Grid.Col>
-              )}
-            </>
-          )}
-          <Grid.Col span={8}>
-            <Dropdown
-              options={copyData}
-              name='option'
-              value={selection?.option}
-              className={sprinkles({ flex: '1', me: 'space-3' })}
-              errorMsg='Must choose an option to copy'
-              onChange={(value) => handleOnChange(value, 'option')}
-            />
-          </Grid.Col>
-          <Grid.Col span={2}>
-            <Button onClick={handleCopy}>Copy</Button>
-          </Grid.Col>
-        </Grid>
-      </Modal.Content>
-    </Modal.Dialogue>
+            )}
+          </>
+        )}
+        <Grid.Col span={8}>
+          <Dropdown
+            options={copyData}
+            name='option'
+            value={selection?.option}
+            className={sprinkles({ flex: '1', me: 'space-3' })}
+            error='Must choose an option to copy'
+            onChange={(value) => handleOnChange(value, 'option')}
+            required
+          />
+        </Grid.Col>
+        <Grid.Col span={2}>
+          <Button onClick={handleCopy}>Copy</Button>
+        </Grid.Col>
+      </Grid>
+    </Modal>
   )
 }
 

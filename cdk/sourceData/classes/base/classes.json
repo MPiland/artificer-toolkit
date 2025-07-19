@@ -3,9 +3,7 @@
     "label": "Barbarian",
     "desc": "<p>A tall human tribesman strides through a blizzard, draped in fur and hefting his axe. He laughs as he charges toward the frost giant who dared poach his people’s elk herd.</p><p>A half-orc snarls at the latest challenger to her authority over their tribe, ready to break his neck with her bare hands as she did to the last six rivals.</p><p>Frothing at the mouth, a dwarf slams his helmet into the face of his drow foe, then turns to drive his armored elbow into the gut of another.</p><p>These barbarians, different as they might be, are defined by their rage: unbridled, unquenchable, and unthinking fury. More than a mere emotion, their anger is the ferocity of a cornered predator, the unrelenting assault of a storm, the churning turmoil of the sea.</p><p>For some, their rage springs from a communion with fierce animal spirits. Others draw from a roiling reservoir of anger at a world full of pain. For every barbarian, rage is a power that fuels not just a battle frenzy but also uncanny reflexes, resilience, and feats of strength.</p>",
     "category": "b62cef0d-a4be-4cfe-94ee-c80a7aaaabc7",
-    "attributes": [
-      "e8b2aedf-be41-4b4c-9754-2dc6a9a4b1c9"
-    ],
+    "attributes": ["e8b2aedf-be41-4b4c-9754-2dc6a9a4b1c9"],
     "multiclass": {
       "primaryAbility": {
         "id": "93607465-de3d-4788-a5e0-df290fda7959",
@@ -55,10 +53,7 @@
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
-          "ids": [
-            "786e4da5-d0a7-4d30-9232-864950691654",
-            "df5b0efb-0ab4-44e8-845a-13f109331d9b"
-          ],
+          "ids": ["786e4da5-d0a7-4d30-9232-864950691654", "df5b0efb-0ab4-44e8-845a-13f109331d9b"],
           "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
         },
         "id": "6e6199b6-2a78-4bc1-af3c-7b0886518592"
@@ -67,9 +62,7 @@
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
-          "ids": [
-            "all"
-          ],
+          "ids": ["all"],
           "category": "81990afe-e34a-48cb-aece-5e7c46088615"
         },
         "id": "1e1db55b-9cf7-4907-86a6-6f85db572ed5"
@@ -78,9 +71,7 @@
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
-          "ids": [
-            "ab95948e-73af-4cd6-ac18-a22841fb5773"
-          ],
+          "ids": ["ab95948e-73af-4cd6-ac18-a22841fb5773"],
           "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
         },
         "id": "fd551ba0-798c-4da0-8467-da2981c64a08"
@@ -89,9 +80,7 @@
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
-          "ids": [
-            "9fa816b5-a0cd-474f-9dee-f7de93e22803"
-          ],
+          "ids": ["9fa816b5-a0cd-474f-9dee-f7de93e22803"],
           "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
         },
         "id": "5a00691b-bc8d-44bf-a8ae-0a0c251c99c5"
@@ -99,16 +88,11 @@
       {
         "category": "7328d22a-8c29-45de-a08f-5987fac2d6d1",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
-        "saveAbilities": [
-          "93607465-de3d-4788-a5e0-df290fda7959",
-          "492f208f-6e7a-4a69-bbf2-047389576246"
-        ],
+        "saveAbilities": ["93607465-de3d-4788-a5e0-df290fda7959", "492f208f-6e7a-4a69-bbf2-047389576246"],
         "id": "874dbc3e-5426-4489-b048-5e38d453243b"
       },
       {
-        "attributes": [
-          "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-        ],
+        "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
         "selectionCount": 2,
         "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
@@ -133,25 +117,16 @@
         [
           {
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "equipment": [
-              "adb015a3-d038-4bff-8555-5c550dfea34c"
-            ],
+            "equipment": ["adb015a3-d038-4bff-8555-5c550dfea34c"],
             "quantity": 1
           }
         ],
         [
           {
-            "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-            ],
+            "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "properties": [
-              "9fa816b5-a0cd-474f-9dee-f7de93e22803",
-              "72f57c5d-c213-4b1b-887f-1eea56f02fe2"
-            ],
-            "equipment": [
-              "all"
-            ],
+            "properties": ["9fa816b5-a0cd-474f-9dee-f7de93e22803", "72f57c5d-c213-4b1b-887f-1eea56f02fe2"],
+            "equipment": ["all"],
             "selectionCount": 1
           }
         ]
@@ -160,24 +135,16 @@
         [
           {
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "equipment": [
-              "ef0694d9-5b4a-4a70-8a85-94adb0ad00e5"
-            ],
+            "equipment": ["ef0694d9-5b4a-4a70-8a85-94adb0ad00e5"],
             "quantity": 2
           }
         ],
         [
           {
-            "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-            ],
+            "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "properties": [
-              "ab95948e-73af-4cd6-ac18-a22841fb5773"
-            ],
-            "equipment": [
-              "all"
-            ],
+            "properties": ["ab95948e-73af-4cd6-ac18-a22841fb5773"],
+            "equipment": ["all"],
             "selectionCount": "1"
           }
         ]
@@ -186,16 +153,12 @@
         [
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "equipment": [
-              "4ac4900c-0d2d-4991-93f1-c2c67bf30f54"
-            ],
+            "equipment": ["4ac4900c-0d2d-4991-93f1-c2c67bf30f54"],
             "quantity": 1
           },
           {
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "equipment": [
-              "9c5123db-8648-4bda-af08-301bf155612f"
-            ],
+            "equipment": ["9c5123db-8648-4bda-af08-301bf155612f"],
             "quantity": 4
           }
         ]
@@ -215,10 +178,7 @@
       "charges": {
         "reset": "c245fd8b-f343-4fb1-a6c4-5bc35ca43ac7"
       },
-      "attributes": [
-        "becce5cb-5f1e-4de8-9aca-74324f507063",
-        "9b919427-7c38-4ccd-aecd-6c032a047b57"
-      ],
+      "attributes": ["becce5cb-5f1e-4de8-9aca-74324f507063", "9b919427-7c38-4ccd-aecd-6c032a047b57"],
       "maxSpellLevel": 9,
       "ability": "def276fe-3fa5-4af7-95ad-a37113815cc7"
     },
@@ -748,9 +708,7 @@
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
-          "ids": [
-            "786e4da5-d0a7-4d30-9232-864950691654"
-          ],
+          "ids": ["786e4da5-d0a7-4d30-9232-864950691654"],
           "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
         },
         "id": "2e09f359-f709-4c99-871e-8feb9e8ee6f2"
@@ -759,9 +717,7 @@
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
-          "ids": [
-            "ab95948e-73af-4cd6-ac18-a22841fb5773"
-          ],
+          "ids": ["ab95948e-73af-4cd6-ac18-a22841fb5773"],
           "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
         },
         "id": "ad7385d8-1945-46f2-8327-3a30cab324ae"
@@ -781,42 +737,29 @@
         "id": "b3030e01-ca7e-4ce7-a2a7-90a8a7a37460"
       },
       {
-        "attributes": [
-          "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-        ],
+        "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
         "selectionCount": 3,
         "category": "3d256b38-0c78-4fd6-84a5-94b43c5a024c",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "equipment": {
-          "ids": [
-            "all"
-          ],
+          "ids": ["all"],
           "category": "e13981d6-2b10-4b79-adb6-07b2d85f711e",
-          "properties": [
-            "96ae55ee-79fa-44e8-9fb8-c96d713a6424"
-          ]
+          "properties": ["96ae55ee-79fa-44e8-9fb8-c96d713a6424"]
         },
         "id": "5d3cd8f8-cdc6-4bd2-91c9-65e0260d42d6"
       },
       {
         "category": "7328d22a-8c29-45de-a08f-5987fac2d6d1",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
-        "saveAbilities": [
-          "9a6cbe6e-9119-4a84-8a13-24b45a614dcc",
-          "def276fe-3fa5-4af7-95ad-a37113815cc7"
-        ],
+        "saveAbilities": ["9a6cbe6e-9119-4a84-8a13-24b45a614dcc", "def276fe-3fa5-4af7-95ad-a37113815cc7"],
         "id": "d10df032-3ebd-40d4-9d4a-5862c4b1c0a6"
       },
       {
-        "attributes": [
-          "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-        ],
+        "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
         "selectionCount": 3,
         "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
-        "skills": [
-          "all"
-        ],
+        "skills": ["all"],
         "id": "6a36ac33-6a8b-4188-9de6-0d1aa95aad7b"
       }
     ],
@@ -830,33 +773,23 @@
         [
           {
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "equipment": [
-              "19ed4b20-5521-4758-b8db-63589866a61c"
-            ],
+            "equipment": ["19ed4b20-5521-4758-b8db-63589866a61c"],
             "quantity": 1
           }
         ],
         [
           {
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "equipment": [
-              "1eee2672-52a8-4b22-9a51-ecbda8ea64d7"
-            ],
+            "equipment": ["1eee2672-52a8-4b22-9a51-ecbda8ea64d7"],
             "quantity": 1
           }
         ],
         [
           {
-            "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-            ],
+            "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "properties": [
-              "ab95948e-73af-4cd6-ac18-a22841fb5773"
-            ],
-            "equipment": [
-              "all"
-            ],
+            "properties": ["ab95948e-73af-4cd6-ac18-a22841fb5773"],
+            "equipment": ["all"],
             "selectionCount": 1
           }
         ]
@@ -865,18 +798,14 @@
         [
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "equipment": [
-              "4457cba0-2f02-424c-8644-7ff57e54a089"
-            ],
+            "equipment": ["4457cba0-2f02-424c-8644-7ff57e54a089"],
             "quantity": 1
           }
         ],
         [
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "equipment": [
-              "86148a46-e764-41a0-bc93-2f53533aff96"
-            ],
+            "equipment": ["86148a46-e764-41a0-bc93-2f53533aff96"],
             "quantity": 1
           }
         ]
@@ -884,16 +813,10 @@
       [
         [
           {
-            "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-            ],
+            "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
             "category": "e13981d6-2b10-4b79-adb6-07b2d85f711e",
-            "properties": [
-              "96ae55ee-79fa-44e8-9fb8-c96d713a6424"
-            ],
-            "equipment": [
-              "all"
-            ],
+            "properties": ["96ae55ee-79fa-44e8-9fb8-c96d713a6424"],
+            "equipment": ["all"],
             "selectionCount": 1
           }
         ]
@@ -902,16 +825,12 @@
         [
           {
             "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea",
-            "equipment": [
-              "9b594c64-0fc5-47e4-badb-595b4a333a32"
-            ],
+            "equipment": ["9b594c64-0fc5-47e4-badb-595b4a333a32"],
             "quantity": 1
           },
           {
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "equipment": [
-              "9f015b46-29eb-4cbd-87b4-d97508ac64ce"
-            ],
+            "equipment": ["9f015b46-29eb-4cbd-87b4-d97508ac64ce"],
             "quantity": 1
           }
         ]
@@ -935,16 +854,10 @@
         "level": {
           "measurement": "c01064bc-eea0-48d1-824a-3fb0ae983822"
         },
-        "methods": [
-          "384bdd3d-dece-4e71-88b0-c1fc44130987",
-          "22936831-1dd1-49a8-a4af-08e0746eb9b4"
-        ]
+        "methods": ["384bdd3d-dece-4e71-88b0-c1fc44130987", "22936831-1dd1-49a8-a4af-08e0746eb9b4"]
       },
       "maxSpellLevel": 9,
-      "attributes": [
-        "b7ad7cc0-736d-416b-aed6-a374857adcd0",
-        "becce5cb-5f1e-4de8-9aca-74324f507063"
-      ],
+      "attributes": ["b7ad7cc0-736d-416b-aed6-a374857adcd0", "becce5cb-5f1e-4de8-9aca-74324f507063"],
       "ability": "458fdf58-0496-4701-86d0-7bc234009276"
     },
     "levelAttributes": [
@@ -1470,10 +1383,7 @@
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
-          "ids": [
-            "786e4da5-d0a7-4d30-9232-864950691654",
-            "df5b0efb-0ab4-44e8-845a-13f109331d9b"
-          ],
+          "ids": ["786e4da5-d0a7-4d30-9232-864950691654", "df5b0efb-0ab4-44e8-845a-13f109331d9b"],
           "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
         },
         "id": "0af6d586-745c-44b0-b79b-7ce1ed9867d5"
@@ -1482,10 +1392,7 @@
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
-          "ids": [
-            "a6cf86fd-8553-41a6-a6bf-24110e1e91f1",
-            "44478ef1-2c6f-4b7c-8b49-c364a77e5bb9"
-          ],
+          "ids": ["a6cf86fd-8553-41a6-a6bf-24110e1e91f1", "44478ef1-2c6f-4b7c-8b49-c364a77e5bb9"],
           "category": "81990afe-e34a-48cb-aece-5e7c46088615"
         },
         "id": "87d44c77-1337-4f6b-bf3c-aa509bd8e154"
@@ -1494,9 +1401,7 @@
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
-          "ids": [
-            "ab95948e-73af-4cd6-ac18-a22841fb5773"
-          ],
+          "ids": ["ab95948e-73af-4cd6-ac18-a22841fb5773"],
           "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
         },
         "id": "337594cd-80c0-4f16-b737-6b3badd644e3"
@@ -1504,16 +1409,11 @@
       {
         "category": "7328d22a-8c29-45de-a08f-5987fac2d6d1",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
-        "saveAbilities": [
-          "def276fe-3fa5-4af7-95ad-a37113815cc7",
-          "458fdf58-0496-4701-86d0-7bc234009276"
-        ],
+        "saveAbilities": ["def276fe-3fa5-4af7-95ad-a37113815cc7", "458fdf58-0496-4701-86d0-7bc234009276"],
         "id": "a5362b30-116c-4288-a4bd-64a20f2d00ab"
       },
       {
-        "attributes": [
-          "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-        ],
+        "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
         "selectionCount": 2,
         "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
@@ -1537,21 +1437,15 @@
         [
           {
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "equipment": [
-              "38644ef8-2770-4511-8b14-0c5c9a1f4289"
-            ],
+            "equipment": ["38644ef8-2770-4511-8b14-0c5c9a1f4289"],
             "quantity": 1
           }
         ],
         [
           {
-            "attributes": [
-              "f481b458-1b44-4d15-80b0-e2b758576c04"
-            ],
+            "attributes": ["f481b458-1b44-4d15-80b0-e2b758576c04"],
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "equipment": [
-              "4a178514-8c41-4b37-bf1d-2837125ef3fe"
-            ],
+            "equipment": ["4a178514-8c41-4b37-bf1d-2837125ef3fe"],
             "quantity": 1
           }
         ]
@@ -1560,30 +1454,22 @@
         [
           {
             "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea",
-            "equipment": [
-              "b14487c9-946b-46d9-851f-1a591e1b61e6"
-            ],
+            "equipment": ["b14487c9-946b-46d9-851f-1a591e1b61e6"],
             "quantity": 1
           }
         ],
         [
           {
             "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea",
-            "equipment": [
-              "9b594c64-0fc5-47e4-badb-595b4a333a32"
-            ],
+            "equipment": ["9b594c64-0fc5-47e4-badb-595b4a333a32"],
             "quantity": 1
           }
         ],
         [
           {
-            "attributes": [
-              "f481b458-1b44-4d15-80b0-e2b758576c04"
-            ],
+            "attributes": ["f481b458-1b44-4d15-80b0-e2b758576c04"],
             "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea",
-            "equipment": [
-              "4e413ee0-d691-49bf-8cd0-4013df9b0829"
-            ],
+            "equipment": ["4e413ee0-d691-49bf-8cd0-4013df9b0829"],
             "quantity": 1
           }
         ]
@@ -1592,34 +1478,22 @@
         [
           {
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "equipment": [
-              "213a9ec0-02f4-49b1-8b1e-c02dbd2b5e45"
-            ],
+            "equipment": ["213a9ec0-02f4-49b1-8b1e-c02dbd2b5e45"],
             "quantity": 1
           },
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "properties": [
-              "be798ea9-2db6-4eb9-89ce-1073e09f9fe6"
-            ],
-            "equipment": [
-              "b349249d-b9b5-4064-ab31-685c44a29bb7"
-            ],
+            "properties": ["be798ea9-2db6-4eb9-89ce-1073e09f9fe6"],
+            "equipment": ["b349249d-b9b5-4064-ab31-685c44a29bb7"],
             "quantity": 20
           }
         ],
         [
           {
-            "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-            ],
+            "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "properties": [
-              "ab95948e-73af-4cd6-ac18-a22841fb5773"
-            ],
-            "equipment": [
-              "all"
-            ],
+            "properties": ["ab95948e-73af-4cd6-ac18-a22841fb5773"],
+            "equipment": ["all"],
             "selectionCount": 1
           }
         ]
@@ -1628,18 +1502,14 @@
         [
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "equipment": [
-              "d14d717a-9621-42e8-abfe-fbe5ae25468e"
-            ],
+            "equipment": ["d14d717a-9621-42e8-abfe-fbe5ae25468e"],
             "quantity": 1
           }
         ],
         [
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "equipment": [
-              "4ac4900c-0d2d-4991-93f1-c2c67bf30f54"
-            ],
+            "equipment": ["4ac4900c-0d2d-4991-93f1-c2c67bf30f54"],
             "quantity": 1
           }
         ]
@@ -1648,22 +1518,14 @@
         [
           {
             "category": "81990afe-e34a-48cb-aece-5e7c46088615",
-            "equipment": [
-              "all"
-            ],
+            "equipment": ["all"],
             "quantity": 1
           },
           {
-            "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-            ],
+            "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "properties": [
-              "5f5ac5fa-2602-4104-8abd-86a2c413056f"
-            ],
-            "equipment": [
-              "all"
-            ],
+            "properties": ["5f5ac5fa-2602-4104-8abd-86a2c413056f"],
+            "equipment": ["all"],
             "selectionCount": 1
           }
         ]
@@ -2128,10 +1990,7 @@
       }
     ],
     "desc": "<p>Holding high a gnarled staff wreathed with holly, an elf summons the fury of the storm and calls down explosive bolts of lightning to smite the torch-carrying orcs who threaten her forest.</p><p>Crouching out of sight on a high tree branch in the form of a leopard, a human peers out of the jungle at the strange construction of a temple of Evil Elemental Air, keeping a close eye on the cultists’ activities.</p><p>Swinging a blade formed of pure fire, a half-elf charges into a mass of skeletal soldiers, sundering the unnatural magic that gives the foul creatures the mocking semblance of life.</p><p>Whether calling on the elemental forces of nature or emulating the creatures of the animal world, druids are an embodiment of nature’s resilience, cunning, and fury. They claim no mastery over nature. Instead, they see themselves as extensions of nature’s indomitable will.</p>",
-    "attributes": [
-      "59c97c68-d773-4434-925f-ca9c1be3d2d8",
-      "e8b2aedf-be41-4b4c-9754-2dc6a9a4b1c9"
-    ],
+    "attributes": ["59c97c68-d773-4434-925f-ca9c1be3d2d8", "e8b2aedf-be41-4b4c-9754-2dc6a9a4b1c9"],
     "multiclass": {
       "primaryAbility": {
         "id": "458fdf58-0496-4701-86d0-7bc234009276",
@@ -2146,16 +2005,10 @@
         "level": {
           "measurement": "c01064bc-eea0-48d1-824a-3fb0ae983822"
         },
-        "methods": [
-          "384bdd3d-dece-4e71-88b0-c1fc44130987",
-          "22936831-1dd1-49a8-a4af-08e0746eb9b4"
-        ]
+        "methods": ["384bdd3d-dece-4e71-88b0-c1fc44130987", "22936831-1dd1-49a8-a4af-08e0746eb9b4"]
       },
       "maxSpellLevel": 9,
-      "attributes": [
-        "becce5cb-5f1e-4de8-9aca-74324f507063",
-        "b7ad7cc0-736d-416b-aed6-a374857adcd0"
-      ],
+      "attributes": ["becce5cb-5f1e-4de8-9aca-74324f507063", "b7ad7cc0-736d-416b-aed6-a374857adcd0"],
       "ability": "458fdf58-0496-4701-86d0-7bc234009276"
     },
     "details": [
@@ -2195,10 +2048,7 @@
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
-          "ids": [
-            "786e4da5-d0a7-4d30-9232-864950691654",
-            "df5b0efb-0ab4-44e8-845a-13f109331d9b"
-          ],
+          "ids": ["786e4da5-d0a7-4d30-9232-864950691654", "df5b0efb-0ab4-44e8-845a-13f109331d9b"],
           "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
         },
         "id": "9b3395a0-754b-414c-9223-f84a1ec4e50b"
@@ -2207,9 +2057,7 @@
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
-          "ids": [
-            "44478ef1-2c6f-4b7c-8b49-c364a77e5bb9"
-          ],
+          "ids": ["44478ef1-2c6f-4b7c-8b49-c364a77e5bb9"],
           "category": "81990afe-e34a-48cb-aece-5e7c46088615"
         },
         "id": "6390ebcb-141e-42c4-9c7e-1446b1d87358"
@@ -2238,9 +2086,7 @@
         "category": "3d256b38-0c78-4fd6-84a5-94b43c5a024c",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "equipment": {
-          "ids": [
-            "5176dae3-e445-4d5f-8676-2c5a43fb97c3"
-          ],
+          "ids": ["5176dae3-e445-4d5f-8676-2c5a43fb97c3"],
           "category": "e13981d6-2b10-4b79-adb6-07b2d85f711e"
         },
         "id": "991781bf-5783-429e-8f3d-af053831c446"
@@ -2248,16 +2094,11 @@
       {
         "category": "7328d22a-8c29-45de-a08f-5987fac2d6d1",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
-        "saveAbilities": [
-          "d0cd6776-ef2c-4589-8a18-175a160b8ef4",
-          "458fdf58-0496-4701-86d0-7bc234009276"
-        ],
+        "saveAbilities": ["d0cd6776-ef2c-4589-8a18-175a160b8ef4", "458fdf58-0496-4701-86d0-7bc234009276"],
         "id": "70f26293-1ad4-47d8-a3f4-920d2da29b45"
       },
       {
-        "attributes": [
-          "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-        ],
+        "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
         "selectionCount": 2,
         "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
@@ -2279,27 +2120,17 @@
         [
           {
             "category": "81990afe-e34a-48cb-aece-5e7c46088615",
-            "properties": [
-              "44478ef1-2c6f-4b7c-8b49-c364a77e5bb9"
-            ],
-            "equipment": [
-              "57c6cbc8-9bb2-4e11-9dc6-2622d7482282"
-            ],
+            "properties": ["44478ef1-2c6f-4b7c-8b49-c364a77e5bb9"],
+            "equipment": ["57c6cbc8-9bb2-4e11-9dc6-2622d7482282"],
             "quantity": 1
           }
         ],
         [
           {
-            "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-            ],
+            "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "properties": [
-              "ab95948e-73af-4cd6-ac18-a22841fb5773"
-            ],
-            "equipment": [
-              "all"
-            ],
+            "properties": ["ab95948e-73af-4cd6-ac18-a22841fb5773"],
+            "equipment": ["all"],
             "selectionCount": 1
           }
         ]
@@ -2308,25 +2139,16 @@
         [
           {
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "equipment": [
-              "3be8e09e-0cbf-4ef4-8a1a-0e0d418abdc6"
-            ],
+            "equipment": ["3be8e09e-0cbf-4ef4-8a1a-0e0d418abdc6"],
             "quantity": 1
           }
         ],
         [
           {
-            "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-            ],
+            "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "properties": [
-              "ab95948e-73af-4cd6-ac18-a22841fb5773",
-              "72f57c5d-c213-4b1b-887f-1eea56f02fe2"
-            ],
-            "equipment": [
-              "all"
-            ],
+            "properties": ["ab95948e-73af-4cd6-ac18-a22841fb5773", "72f57c5d-c213-4b1b-887f-1eea56f02fe2"],
+            "equipment": ["all"],
             "selectionCount": 1
           }
         ]
@@ -2335,29 +2157,19 @@
         [
           {
             "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea",
-            "equipment": [
-              "9b594c64-0fc5-47e4-badb-595b4a333a32"
-            ],
+            "equipment": ["9b594c64-0fc5-47e4-badb-595b4a333a32"],
             "quantity": 1
           },
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "equipment": [
-              "4ac4900c-0d2d-4991-93f1-c2c67bf30f54"
-            ],
+            "equipment": ["4ac4900c-0d2d-4991-93f1-c2c67bf30f54"],
             "quantity": 1
           },
           {
-            "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-            ],
+            "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "properties": [
-              "68163324-bcb2-45c1-b465-7ac1976e49fb"
-            ],
-            "equipment": [
-              "all"
-            ],
+            "properties": ["68163324-bcb2-45c1-b465-7ac1976e49fb"],
+            "equipment": ["all"],
             "selectionCount": 1
           }
         ]
@@ -2406,10 +2218,7 @@
         "desc": "<p>As a fighter, you gain the following class features.</p><h4><strong>Hit Points</strong></h4><p><strong>Hit Dice: </strong>1d10 per fighter level<br><strong>Hit Points at 1st Level: </strong>10 + your Constitution modifier<br><strong>Hit Points at Higher Levels: </strong>1d10 (or 6) + your Constitution modifier per fighter level after 1st</p><h4><strong>Proficiencies</strong></h4><p><strong>Armor: </strong>All armor, shields<br><strong>Weapons: </strong>Simple weapons, martial weapons<br><strong>Tools: </strong>None<br><strong>Saving Throws: </strong>Strength, Constitution<br><strong>Skills: </strong>Choose two skills from Acrobatics, Animal Handling, Athletics, History, Insight, Intimidation, Perception, and Survival</p><h4><strong>Equipment</strong></h4><p>You start with the following equipment, in addition to the equipment granted by your background:</p><ul><li><p>(a) chain mail or (b) leather armor, longbow, and 20 arrows</p></li><li><p>(a) a martial weapon and a shield or (b) two martial weapons</p></li><li><p>(a) a light crossbow and 20 bolts or (b) two handaxes</p></li><li><p>(a) a dungeoneer’s pack or (b) an explorer’s pack</p></li></ul>"
       }
     ],
-    "attributes": [
-      "e8b2aedf-be41-4b4c-9754-2dc6a9a4b1c9",
-      "dfc0ec46-623e-4d8d-8101-7234494414bb"
-    ],
+    "attributes": ["e8b2aedf-be41-4b4c-9754-2dc6a9a4b1c9", "dfc0ec46-623e-4d8d-8101-7234494414bb"],
     "hitpoint": {
       "ability": "492f208f-6e7a-4a69-bbf2-047389576246",
       "dieConfig": "1d10"
@@ -2428,9 +2237,7 @@
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
-          "ids": [
-            "all"
-          ],
+          "ids": ["all"],
           "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
         },
         "id": "79584451-979a-4cde-9195-997ebdef845f"
@@ -2439,10 +2246,7 @@
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
-          "ids": [
-            "44478ef1-2c6f-4b7c-8b49-c364a77e5bb9",
-            "a6cf86fd-8553-41a6-a6bf-24110e1e91f1"
-          ],
+          "ids": ["44478ef1-2c6f-4b7c-8b49-c364a77e5bb9", "a6cf86fd-8553-41a6-a6bf-24110e1e91f1"],
           "category": "81990afe-e34a-48cb-aece-5e7c46088615"
         },
         "id": "3683f576-8a97-4d4d-b4e8-bb927abc60ee"
@@ -2451,9 +2255,7 @@
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
-          "ids": [
-            "ab95948e-73af-4cd6-ac18-a22841fb5773"
-          ],
+          "ids": ["ab95948e-73af-4cd6-ac18-a22841fb5773"],
           "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
         },
         "id": "0914844e-6a72-403c-af83-35bb02c907fb"
@@ -2462,9 +2264,7 @@
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
-          "ids": [
-            "9fa816b5-a0cd-474f-9dee-f7de93e22803"
-          ],
+          "ids": ["9fa816b5-a0cd-474f-9dee-f7de93e22803"],
           "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
         },
         "id": "176e98d1-6834-41a1-807c-325e6d295efb"
@@ -2472,16 +2272,11 @@
       {
         "category": "7328d22a-8c29-45de-a08f-5987fac2d6d1",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
-        "saveAbilities": [
-          "492f208f-6e7a-4a69-bbf2-047389576246",
-          "93607465-de3d-4788-a5e0-df290fda7959"
-        ],
+        "saveAbilities": ["492f208f-6e7a-4a69-bbf2-047389576246", "93607465-de3d-4788-a5e0-df290fda7959"],
         "id": "9367f1c4-f9ac-4de9-bef5-badefa76478d"
       },
       {
-        "attributes": [
-          "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-        ],
+        "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
         "selectionCount": 2,
         "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
@@ -2508,35 +2303,25 @@
         [
           {
             "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea",
-            "equipment": [
-              "4e413ee0-d691-49bf-8cd0-4013df9b0829"
-            ],
+            "equipment": ["4e413ee0-d691-49bf-8cd0-4013df9b0829"],
             "quantity": 1
           }
         ],
         [
           {
             "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea",
-            "equipment": [
-              "9b594c64-0fc5-47e4-badb-595b4a333a32"
-            ],
+            "equipment": ["9b594c64-0fc5-47e4-badb-595b4a333a32"],
             "quantity": 1
           },
           {
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "equipment": [
-              "3e5c9945-ea1e-4545-a478-a53f0359750e"
-            ],
+            "equipment": ["3e5c9945-ea1e-4545-a478-a53f0359750e"],
             "quantity": 1
           },
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "properties": [
-              "be798ea9-2db6-4eb9-89ce-1073e09f9fe6"
-            ],
-            "equipment": [
-              "6413c7ca-5b35-48fa-aee0-79aefa730d56"
-            ],
+            "properties": ["be798ea9-2db6-4eb9-89ce-1073e09f9fe6"],
+            "equipment": ["6413c7ca-5b35-48fa-aee0-79aefa730d56"],
             "quantity": 20
           }
         ]
@@ -2544,41 +2329,25 @@
       [
         [
           {
-            "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-            ],
+            "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "properties": [
-              "9fa816b5-a0cd-474f-9dee-f7de93e22803"
-            ],
-            "equipment": [
-              "all"
-            ],
+            "properties": ["9fa816b5-a0cd-474f-9dee-f7de93e22803"],
+            "equipment": ["all"],
             "selectionCount": 1
           },
           {
-            "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-            ],
+            "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
             "category": "81990afe-e34a-48cb-aece-5e7c46088615",
-            "equipment": [
-              "all"
-            ],
+            "equipment": ["all"],
             "selectionCount": 1
           }
         ],
         [
           {
-            "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-            ],
+            "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "properties": [
-              "9fa816b5-a0cd-474f-9dee-f7de93e22803"
-            ],
-            "equipment": [
-              "all"
-            ],
+            "properties": ["9fa816b5-a0cd-474f-9dee-f7de93e22803"],
+            "equipment": ["all"],
             "quantity": 2
           }
         ]
@@ -2587,28 +2356,20 @@
         [
           {
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "equipment": [
-              "213a9ec0-02f4-49b1-8b1e-c02dbd2b5e45"
-            ],
+            "equipment": ["213a9ec0-02f4-49b1-8b1e-c02dbd2b5e45"],
             "quantity": 1
           },
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "properties": [
-              "be798ea9-2db6-4eb9-89ce-1073e09f9fe6"
-            ],
-            "equipment": [
-              "b349249d-b9b5-4064-ab31-685c44a29bb7"
-            ],
+            "properties": ["be798ea9-2db6-4eb9-89ce-1073e09f9fe6"],
+            "equipment": ["b349249d-b9b5-4064-ab31-685c44a29bb7"],
             "quantity": 20
           }
         ],
         [
           {
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "equipment": [
-              "ef0694d9-5b4a-4a70-8a85-94adb0ad00e5"
-            ],
+            "equipment": ["ef0694d9-5b4a-4a70-8a85-94adb0ad00e5"],
             "quantity": 2
           }
         ]
@@ -2617,18 +2378,14 @@
         [
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "equipment": [
-              "44603a6b-dd7e-413e-bc2d-e1f59f37dd7a"
-            ],
+            "equipment": ["44603a6b-dd7e-413e-bc2d-e1f59f37dd7a"],
             "quantity": 1
           }
         ],
         [
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "equipment": [
-              "4ac4900c-0d2d-4991-93f1-c2c67bf30f54"
-            ],
+            "equipment": ["4ac4900c-0d2d-4991-93f1-c2c67bf30f54"],
             "quantity": 1
           }
         ]
@@ -2803,9 +2560,7 @@
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
-          "ids": [
-            "ab95948e-73af-4cd6-ac18-a22841fb5773"
-          ],
+          "ids": ["ab95948e-73af-4cd6-ac18-a22841fb5773"],
           "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
         },
         "id": "46fdbf4b-51e1-4e1f-a47c-d17e379742b3"
@@ -2814,24 +2569,18 @@
         "category": "3d256b38-0c78-4fd6-84a5-94b43c5a024c",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "equipment": {
-          "ids": [
-            "9ff1b5f1-c373-41ee-9c60-8ab423338796"
-          ],
+          "ids": ["9ff1b5f1-c373-41ee-9c60-8ab423338796"],
           "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
         },
         "id": "03717230-90c8-4e0f-a661-f6f11183dd2a"
       },
       {
-        "attributes": [
-          "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-        ],
+        "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
         "selectionCount": 1,
         "category": "3d256b38-0c78-4fd6-84a5-94b43c5a024c",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "equipment": {
-          "ids": [
-            "all"
-          ],
+          "ids": ["all"],
           "category": "e13981d6-2b10-4b79-adb6-07b2d85f711e"
         },
         "id": "96db87ac-2919-4dd9-8596-215e07ecefaa"
@@ -2839,16 +2588,11 @@
       {
         "category": "7328d22a-8c29-45de-a08f-5987fac2d6d1",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
-        "saveAbilities": [
-          "9a6cbe6e-9119-4a84-8a13-24b45a614dcc",
-          "93607465-de3d-4788-a5e0-df290fda7959"
-        ],
+        "saveAbilities": ["9a6cbe6e-9119-4a84-8a13-24b45a614dcc", "93607465-de3d-4788-a5e0-df290fda7959"],
         "id": "09815515-58c8-45a8-990c-ff0061713c8b"
       },
       {
-        "attributes": [
-          "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-        ],
+        "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
         "selectionCount": 2,
         "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
@@ -2873,24 +2617,16 @@
         [
           {
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "equipment": [
-              "9ff1b5f1-c373-41ee-9c60-8ab423338796"
-            ],
+            "equipment": ["9ff1b5f1-c373-41ee-9c60-8ab423338796"],
             "quantity": 1
           }
         ],
         [
           {
-            "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-            ],
+            "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "properties": [
-              "ab95948e-73af-4cd6-ac18-a22841fb5773"
-            ],
-            "equipment": [
-              "all"
-            ],
+            "properties": ["ab95948e-73af-4cd6-ac18-a22841fb5773"],
+            "equipment": ["all"],
             "selectionCount": 1
           }
         ]
@@ -2899,18 +2635,14 @@
         [
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "equipment": [
-              "44603a6b-dd7e-413e-bc2d-e1f59f37dd7a"
-            ],
+            "equipment": ["44603a6b-dd7e-413e-bc2d-e1f59f37dd7a"],
             "quantity": 1
           }
         ],
         [
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "equipment": [
-              "4ac4900c-0d2d-4991-93f1-c2c67bf30f54"
-            ],
+            "equipment": ["4ac4900c-0d2d-4991-93f1-c2c67bf30f54"],
             "quantity": 1
           }
         ]
@@ -2919,9 +2651,7 @@
         [
           {
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "equipment": [
-              "f622337e-7253-4928-8829-985af0948b86"
-            ],
+            "equipment": ["f622337e-7253-4928-8829-985af0948b86"],
             "quantity": 10
           }
         ]
@@ -3241,15 +2971,10 @@
           "measurement": "88789395-3e9a-4ff3-bf69-bd13be9cdaf8",
           "rounding": "7a7dc0de-c6bb-4afe-9507-5446c1b85a67"
         },
-        "methods": [
-          "22936831-1dd1-49a8-a4af-08e0746eb9b4",
-          "384bdd3d-dece-4e71-88b0-c1fc44130987"
-        ]
+        "methods": ["22936831-1dd1-49a8-a4af-08e0746eb9b4", "384bdd3d-dece-4e71-88b0-c1fc44130987"]
       },
       "maxSpellLevel": 5,
-      "attributes": [
-        "b7ad7cc0-736d-416b-aed6-a374857adcd0"
-      ],
+      "attributes": ["b7ad7cc0-736d-416b-aed6-a374857adcd0"],
       "ability": "def276fe-3fa5-4af7-95ad-a37113815cc7"
     },
     "details": [
@@ -3313,16 +3038,11 @@
       {
         "category": "7328d22a-8c29-45de-a08f-5987fac2d6d1",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
-        "saveAbilities": [
-          "def276fe-3fa5-4af7-95ad-a37113815cc7",
-          "458fdf58-0496-4701-86d0-7bc234009276"
-        ],
+        "saveAbilities": ["def276fe-3fa5-4af7-95ad-a37113815cc7", "458fdf58-0496-4701-86d0-7bc234009276"],
         "id": "99a2dcc6-3fe1-4c9e-9cdc-1af7972bf560"
       },
       {
-        "attributes": [
-          "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-        ],
+        "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
         "selectionCount": 2,
         "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
@@ -3341,38 +3061,24 @@
       [
         [
           {
-            "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-            ],
+            "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "properties": [
-              "9fa816b5-a0cd-474f-9dee-f7de93e22803"
-            ],
+            "properties": ["9fa816b5-a0cd-474f-9dee-f7de93e22803"],
             "selectionCount": 1
           },
           {
-            "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-            ],
+            "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
             "category": "81990afe-e34a-48cb-aece-5e7c46088615",
-            "equipment": [
-              "all"
-            ],
+            "equipment": ["all"],
             "selectionCount": 1
           }
         ],
         [
           {
-            "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-            ],
+            "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "properties": [
-              "9fa816b5-a0cd-474f-9dee-f7de93e22803"
-            ],
-            "equipment": [
-              "all"
-            ],
+            "properties": ["9fa816b5-a0cd-474f-9dee-f7de93e22803"],
+            "equipment": ["all"],
             "selectionCount": 2
           }
         ]
@@ -3381,25 +3087,16 @@
         [
           {
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "equipment": [
-              "9c5123db-8648-4bda-af08-301bf155612f"
-            ],
+            "equipment": ["9c5123db-8648-4bda-af08-301bf155612f"],
             "quantity": 5
           }
         ],
         [
           {
-            "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-            ],
+            "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "properties": [
-              "ab95948e-73af-4cd6-ac18-a22841fb5773",
-              "72f57c5d-c213-4b1b-887f-1eea56f02fe2"
-            ],
-            "equipment": [
-              "all"
-            ],
+            "properties": ["ab95948e-73af-4cd6-ac18-a22841fb5773", "72f57c5d-c213-4b1b-887f-1eea56f02fe2"],
+            "equipment": ["all"],
             "selectionCount": 1
           }
         ]
@@ -3408,18 +3105,14 @@
         [
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "equipment": [
-              "4ac4900c-0d2d-4991-93f1-c2c67bf30f54"
-            ],
+            "equipment": ["4ac4900c-0d2d-4991-93f1-c2c67bf30f54"],
             "quantity": 1
           }
         ],
         [
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "equipment": [
-              "d14d717a-9621-42e8-abfe-fbe5ae25468e"
-            ],
+            "equipment": ["d14d717a-9621-42e8-abfe-fbe5ae25468e"],
             "quantity": 1
           }
         ]
@@ -3428,22 +3121,14 @@
         [
           {
             "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea",
-            "equipment": [
-              "4e413ee0-d691-49bf-8cd0-4013df9b0829"
-            ],
+            "equipment": ["4e413ee0-d691-49bf-8cd0-4013df9b0829"],
             "quantity": 1
           },
           {
-            "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-            ],
+            "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "properties": [
-              "5f5ac5fa-2602-4104-8abd-86a2c413056f"
-            ],
-            "equipment": [
-              "all"
-            ],
+            "properties": ["5f5ac5fa-2602-4104-8abd-86a2c413056f"],
+            "equipment": ["all"],
             "selectionCount": 1
           }
         ]
@@ -3775,9 +3460,7 @@
       "charges": {
         "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb"
       },
-      "attributes": [
-        "9b919427-7c38-4ccd-aecd-6c032a047b57"
-      ],
+      "attributes": ["9b919427-7c38-4ccd-aecd-6c032a047b57"],
       "maxSpellLevel": 5,
       "ability": "458fdf58-0496-4701-86d0-7bc234009276"
     },
@@ -3845,16 +3528,11 @@
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
-          "ids": [
-            "all"
-          ],
+          "ids": ["all"],
           "category": "81990afe-e34a-48cb-aece-5e7c46088615"
         },
         "equipment": {
-          "ids": [
-            "57c6cbc8-9bb2-4e11-9dc6-2622d7482282",
-            "cd2f1dfa-0906-475d-b8f4-25a553513511"
-          ],
+          "ids": ["57c6cbc8-9bb2-4e11-9dc6-2622d7482282", "cd2f1dfa-0906-475d-b8f4-25a553513511"],
           "category": "81990afe-e34a-48cb-aece-5e7c46088615"
         },
         "id": "b10e76b4-b686-4bdd-b654-804bc02f3e94"
@@ -3863,9 +3541,7 @@
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
-          "ids": [
-            "ab95948e-73af-4cd6-ac18-a22841fb5773"
-          ],
+          "ids": ["ab95948e-73af-4cd6-ac18-a22841fb5773"],
           "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
         },
         "id": "b7fcc128-58e4-41b7-9d21-2eaa9877b130"
@@ -3874,9 +3550,7 @@
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
-          "ids": [
-            "9fa816b5-a0cd-474f-9dee-f7de93e22803"
-          ],
+          "ids": ["9fa816b5-a0cd-474f-9dee-f7de93e22803"],
           "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
         },
         "id": "fb4f3086-f73b-4717-b329-e80b03be0206"
@@ -3884,16 +3558,11 @@
       {
         "category": "7328d22a-8c29-45de-a08f-5987fac2d6d1",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
-        "saveAbilities": [
-          "9a6cbe6e-9119-4a84-8a13-24b45a614dcc",
-          "93607465-de3d-4788-a5e0-df290fda7959"
-        ],
+        "saveAbilities": ["9a6cbe6e-9119-4a84-8a13-24b45a614dcc", "93607465-de3d-4788-a5e0-df290fda7959"],
         "id": "5c4506b3-2d71-4099-96fb-3bfcfe7f7120"
       },
       {
-        "attributes": [
-          "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-        ],
+        "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
         "selectionCount": 3,
         "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
@@ -3915,18 +3584,14 @@
         [
           {
             "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea",
-            "equipment": [
-              "b14487c9-946b-46d9-851f-1a591e1b61e6"
-            ],
+            "equipment": ["b14487c9-946b-46d9-851f-1a591e1b61e6"],
             "quantity": 1
           }
         ],
         [
           {
             "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea",
-            "equipment": [
-              "9b594c64-0fc5-47e4-badb-595b4a333a32"
-            ],
+            "equipment": ["9b594c64-0fc5-47e4-badb-595b4a333a32"],
             "quantity": 1
           }
         ]
@@ -3935,25 +3600,16 @@
         [
           {
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "equipment": [
-              "9ff1b5f1-c373-41ee-9c60-8ab423338796"
-            ],
+            "equipment": ["9ff1b5f1-c373-41ee-9c60-8ab423338796"],
             "quantity": 2
           }
         ],
         [
           {
-            "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-            ],
+            "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "properties": [
-              "ab95948e-73af-4cd6-ac18-a22841fb5773",
-              "72f57c5d-c213-4b1b-887f-1eea56f02fe2"
-            ],
-            "equipment": [
-              "all"
-            ],
+            "properties": ["ab95948e-73af-4cd6-ac18-a22841fb5773", "72f57c5d-c213-4b1b-887f-1eea56f02fe2"],
+            "equipment": ["all"],
             "selectionCount": 2
           }
         ]
@@ -3962,18 +3618,14 @@
         [
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "equipment": [
-              "44603a6b-dd7e-413e-bc2d-e1f59f37dd7a"
-            ],
+            "equipment": ["44603a6b-dd7e-413e-bc2d-e1f59f37dd7a"],
             "quantity": 1
           }
         ],
         [
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "equipment": [
-              "4ac4900c-0d2d-4991-93f1-c2c67bf30f54"
-            ],
+            "equipment": ["4ac4900c-0d2d-4991-93f1-c2c67bf30f54"],
             "quantity": 1
           }
         ]
@@ -3982,19 +3634,13 @@
         [
           {
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "equipment": [
-              "3e5c9945-ea1e-4545-a478-a53f0359750e"
-            ],
+            "equipment": ["3e5c9945-ea1e-4545-a478-a53f0359750e"],
             "quantity": 1
           },
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "properties": [
-              "be798ea9-2db6-4eb9-89ce-1073e09f9fe6"
-            ],
-            "equipment": [
-              "6413c7ca-5b35-48fa-aee0-79aefa730d56"
-            ],
+            "properties": ["be798ea9-2db6-4eb9-89ce-1073e09f9fe6"],
+            "equipment": ["6413c7ca-5b35-48fa-aee0-79aefa730d56"],
             "quantity": 20
           }
         ]
@@ -4033,9 +3679,7 @@
         "desc": "<p>As a rogue, you have the following class features.</p><h4><strong>Hit Points</strong></h4><p><strong>Hit Dice:</strong> 1d8 per rogue level<br><strong>Hit Points at 1st Level:</strong> 8 + your Constitution modifier<br><strong>Hit Points at Higher Levels:</strong> 1d8 (or 5) + your Constitution modifier per rogue level after 1st</p><h4><strong>Proficiencies</strong></h4><p><strong>Armor:</strong> Light armor<br><strong>Weapons:</strong> Simple weapons, hand crossbows, longswords, rapiers, shortswords<br><strong>Tools: </strong>Thieves’ tools<br><strong>Saving Throws: </strong>Dexterity, Intelligence<br><strong>Skills: </strong>Choose four from Acrobatics, Athletics, Deception, Insight, Intimidation, Investigation, Perception, Performance, Persuasion, Sleight of Hand, and Stealth</p><h4><strong>Equipment</strong></h4><p>You start with the following equipment, in addition to the equipment granted by your background:</p><ul><li><p>(a) a rapier or (b) a shortsword</p></li><li><p>(a) a shortbow and quiver of 20 arrows or (b) a shortsword</p></li><li><p>(a) a burglar’s pack, (b) a dungeoneer’s pack, or (c) an explorer’s pack</p></li><li><p>Leather armor, two daggers, and thieves’ tools</p></li></ul>"
       }
     ],
-    "attributes": [
-      "e8b2aedf-be41-4b4c-9754-2dc6a9a4b1c9"
-    ],
+    "attributes": ["e8b2aedf-be41-4b4c-9754-2dc6a9a4b1c9"],
     "multiclass": {
       "primaryAbility": {
         "id": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc",
@@ -4065,9 +3709,7 @@
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
-          "ids": [
-            "786e4da5-d0a7-4d30-9232-864950691654"
-          ],
+          "ids": ["786e4da5-d0a7-4d30-9232-864950691654"],
           "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
         },
         "id": "426e6aa1-ddbb-4f73-92c8-9d9308afd0ef"
@@ -4076,9 +3718,7 @@
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
-          "ids": [
-            "ab95948e-73af-4cd6-ac18-a22841fb5773"
-          ],
+          "ids": ["ab95948e-73af-4cd6-ac18-a22841fb5773"],
           "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
         },
         "id": "b5f8498a-ee57-4382-9731-5fde886ed2f5"
@@ -4101,9 +3741,7 @@
         "category": "3d256b38-0c78-4fd6-84a5-94b43c5a024c",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "equipment": {
-          "ids": [
-            "12c8c66b-76cb-49d0-8f58-08b4aa92df5c"
-          ],
+          "ids": ["12c8c66b-76cb-49d0-8f58-08b4aa92df5c"],
           "category": "e13981d6-2b10-4b79-adb6-07b2d85f711e"
         },
         "id": "faa8aebf-839c-48a6-a820-d5b40ec0c356"
@@ -4111,16 +3749,11 @@
       {
         "category": "7328d22a-8c29-45de-a08f-5987fac2d6d1",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
-        "saveAbilities": [
-          "9a6cbe6e-9119-4a84-8a13-24b45a614dcc",
-          "d0cd6776-ef2c-4589-8a18-175a160b8ef4"
-        ],
+        "saveAbilities": ["9a6cbe6e-9119-4a84-8a13-24b45a614dcc", "d0cd6776-ef2c-4589-8a18-175a160b8ef4"],
         "id": "a066eb63-8585-413a-bc52-89c174fce9db"
       },
       {
-        "attributes": [
-          "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-        ],
+        "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
         "selectionCount": 4,
         "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
@@ -4145,18 +3778,14 @@
         [
           {
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "equipment": [
-              "19ed4b20-5521-4758-b8db-63589866a61c"
-            ],
+            "equipment": ["19ed4b20-5521-4758-b8db-63589866a61c"],
             "quantity": 1
           }
         ],
         [
           {
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "equipment": [
-              "9ff1b5f1-c373-41ee-9c60-8ab423338796"
-            ],
+            "equipment": ["9ff1b5f1-c373-41ee-9c60-8ab423338796"],
             "quantity": 1
           }
         ]
@@ -4165,35 +3794,25 @@
         [
           {
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "equipment": [
-              "9032bc94-d197-4d8e-a44e-1b4949ebdfc7"
-            ],
+            "equipment": ["9032bc94-d197-4d8e-a44e-1b4949ebdfc7"],
             "quantity": 1
           },
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "equipment": [
-              "cebf6bda-f88d-456c-99a1-cc269876d5e3"
-            ],
+            "equipment": ["cebf6bda-f88d-456c-99a1-cc269876d5e3"],
             "quantity": 1
           },
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "properties": [
-              "be798ea9-2db6-4eb9-89ce-1073e09f9fe6"
-            ],
-            "equipment": [
-              "6413c7ca-5b35-48fa-aee0-79aefa730d56"
-            ],
+            "properties": ["be798ea9-2db6-4eb9-89ce-1073e09f9fe6"],
+            "equipment": ["6413c7ca-5b35-48fa-aee0-79aefa730d56"],
             "quantity": 20
           }
         ],
         [
           {
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "equipment": [
-              "9ff1b5f1-c373-41ee-9c60-8ab423338796"
-            ],
+            "equipment": ["9ff1b5f1-c373-41ee-9c60-8ab423338796"],
             "quantity": 1
           }
         ]
@@ -4202,25 +3821,19 @@
         [
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "equipment": [
-              "9ae7b7d2-e2ed-473f-80eb-d49acabb6f7d"
-            ],
+            "equipment": ["9ae7b7d2-e2ed-473f-80eb-d49acabb6f7d"],
             "quantity": 1
           },
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "equipment": [
-              "44603a6b-dd7e-413e-bc2d-e1f59f37dd7a"
-            ],
+            "equipment": ["44603a6b-dd7e-413e-bc2d-e1f59f37dd7a"],
             "quantity": 1
           }
         ],
         [
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "equipment": [
-              "4ac4900c-0d2d-4991-93f1-c2c67bf30f54"
-            ],
+            "equipment": ["4ac4900c-0d2d-4991-93f1-c2c67bf30f54"],
             "quantity": 1
           }
         ]
@@ -4229,26 +3842,18 @@
         [
           {
             "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea",
-            "equipment": [
-              "9b594c64-0fc5-47e4-badb-595b4a333a32"
-            ],
+            "equipment": ["9b594c64-0fc5-47e4-badb-595b4a333a32"],
             "quantity": 1
           },
           {
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "equipment": [
-              "9f015b46-29eb-4cbd-87b4-d97508ac64ce"
-            ],
+            "equipment": ["9f015b46-29eb-4cbd-87b4-d97508ac64ce"],
             "quantity": 2
           },
           {
             "category": "e13981d6-2b10-4b79-adb6-07b2d85f711e",
-            "properties": [
-              "98da1d55-0445-4927-ac40-cd05fc14fe6d"
-            ],
-            "equipment": [
-              "12c8c66b-76cb-49d0-8f58-08b4aa92df5c"
-            ],
+            "properties": ["98da1d55-0445-4927-ac40-cd05fc14fe6d"],
+            "equipment": ["12c8c66b-76cb-49d0-8f58-08b4aa92df5c"],
             "quantity": 1
           }
         ]
@@ -4788,9 +4393,7 @@
         "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb"
       },
       "maxSpellLevel": 9,
-      "attributes": [
-        "9b919427-7c38-4ccd-aecd-6c032a047b57"
-      ],
+      "attributes": ["9b919427-7c38-4ccd-aecd-6c032a047b57"],
       "ability": "def276fe-3fa5-4af7-95ad-a37113815cc7"
     },
     "resource": {
@@ -4833,10 +4436,7 @@
       {
         "category": "7328d22a-8c29-45de-a08f-5987fac2d6d1",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
-        "saveAbilities": [
-          "492f208f-6e7a-4a69-bbf2-047389576246",
-          "def276fe-3fa5-4af7-95ad-a37113815cc7"
-        ],
+        "saveAbilities": ["492f208f-6e7a-4a69-bbf2-047389576246", "def276fe-3fa5-4af7-95ad-a37113815cc7"],
         "id": "a3baaa33-904c-4252-8e29-80f8e060e93b"
       },
       {
@@ -4858,34 +4458,22 @@
         [
           {
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "equipment": [
-              "213a9ec0-02f4-49b1-8b1e-c02dbd2b5e45"
-            ],
+            "equipment": ["213a9ec0-02f4-49b1-8b1e-c02dbd2b5e45"],
             "quantity": 1
           },
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "properties": [
-              "be798ea9-2db6-4eb9-89ce-1073e09f9fe6"
-            ],
-            "equipment": [
-              "b349249d-b9b5-4064-ab31-685c44a29bb7"
-            ],
+            "properties": ["be798ea9-2db6-4eb9-89ce-1073e09f9fe6"],
+            "equipment": ["b349249d-b9b5-4064-ab31-685c44a29bb7"],
             "quantity": 20
           }
         ],
         [
           {
-            "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-            ],
+            "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "properties": [
-              "ab95948e-73af-4cd6-ac18-a22841fb5773"
-            ],
-            "equipment": [
-              "all"
-            ],
+            "properties": ["ab95948e-73af-4cd6-ac18-a22841fb5773"],
+            "equipment": ["all"],
             "selectionCount": 1
           }
         ]
@@ -4894,25 +4482,17 @@
         [
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "equipment": [
-              "e1c83b6d-e5d8-4e8c-8b48-75b85cd528c3"
-            ],
+            "equipment": ["e1c83b6d-e5d8-4e8c-8b48-75b85cd528c3"],
             "quantity": 1
           }
         ],
         [
           [
             {
-              "attributes": [
-                "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-              ],
+              "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
               "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-              "properties": [
-                "d012faee-75b7-4cee-a4ba-55246289c6c2"
-              ],
-              "equipment": [
-                "all"
-              ],
+              "properties": ["d012faee-75b7-4cee-a4ba-55246289c6c2"],
+              "equipment": ["all"],
               "selectionCount": 1
             }
           ]
@@ -4922,18 +4502,14 @@
         [
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "equipment": [
-              "44603a6b-dd7e-413e-bc2d-e1f59f37dd7a"
-            ],
+            "equipment": ["44603a6b-dd7e-413e-bc2d-e1f59f37dd7a"],
             "quantity": 1
           }
         ],
         [
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "equipment": [
-              "4ac4900c-0d2d-4991-93f1-c2c67bf30f54"
-            ],
+            "equipment": ["4ac4900c-0d2d-4991-93f1-c2c67bf30f54"],
             "quantity": 1
           }
         ]
@@ -4942,9 +4518,7 @@
         [
           {
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "equipment": [
-              "9f015b46-29eb-4cbd-87b4-d97508ac64ce"
-            ],
+            "equipment": ["9f015b46-29eb-4cbd-87b4-d97508ac64ce"],
             "quantity": 2
           }
         ]
@@ -5185,18 +4759,12 @@
         "desc": "<p>As a warlock, you gain the following class features.</p><h4><strong>Hit Points</strong></h4><p><strong>Hit Dice:</strong> 1d8 per warlock level<br><strong>Hit Points at 1st Level:</strong> 8 + your Constitution modifier<br><strong>Hit Points at Higher Levels:</strong> 1d8 (or 5) + your Constitution modifier per warlock level after 1st</p><h4><strong>Proficiencies</strong></h4><p><strong>Armor: </strong>Light armor<br><strong>Weapons: </strong>Simple weapons<br><strong>Tools:</strong> None<br><strong>Saving Throws:</strong> Wisdom, Charisma<br><strong>Skills:</strong> Choose two skills from Arcana, Deception, History, Intimidation, Investigation, Nature, and Religion</p><h4><strong>Equipment</strong></h4><p>You start with the following equipment, in addition to the equipment granted by your background:</p><ul><li><p>(a) a light crossbow and 20 bolts or (b) any simple weapon</p></li><li><p>(a) a component pouch or (b) an arcane focus</p></li><li><p>(a) a scholar’s pack or (b) a dungeoneer’s pack</p></li><li><p>Leather armor, any simple weapon, and two daggers</p></li></ul><h3><strong>Pact Magic</strong></h3><p>Your arcane research and the magic bestowed on you by your patron have given you facility with spells. See Spells Rules for the general rules of spellcasting and the Spells Listing&nbsp;for the warlock&nbsp;spell list.</p><h4><strong>Cantrips</strong></h4><p>You know two cantrips of your choice from the warlock spell list. You learn additional warlock cantrips of your choice at higher levels, as shown in the Cantrips Known column of the Warlock table.</p><h4><strong>Spell Slots</strong></h4><p>The Warlock table shows how many spell slots you have to cast your warlock spells of 1st through 5th level. The table also shows what the level of those slots is; all of your spell slots are the same level. To cast one of your warlock spells of 1st level or higher, you must expend a spell slot. You regain all expended Pact Magic spell slots when you finish a short or long rest.</p><p>For example, when you are 5th level, you have two 3rd-level spell slots. To cast the 1st-level spell <em>witch bolt</em>, you must spend one of those slots, and you cast it as a 3rd-level spell.</p><h4><strong>Spells Known of 1st Level and Higher</strong></h4><p>At 1st level, you know two 1st-level spells of your choice from the warlock spell list.</p><p>The Spells Known column of the Warlock table shows when you learn more warlock spells of your choice of 1st level and higher. A spell you choose must be of a level no higher than what’s shown in the table’s Slot Level column for your level. When you reach 6th level, for example, you learn a new warlock spell, which can be 1st, 2nd, or 3rd level.</p><p>Additionally, when you gain a level in this class, you can choose one of the warlock spells you know and replace it with another spell from the warlock spell list, which also must be of a level for which you have spell slots.</p><h4><strong>Spellcasting Ability</strong></h4><p>Charisma is your spellcasting ability for your warlock spells, so you use your Charisma whenever a spell refers to your spellcasting ability. In addition, you use your Charisma modifier when setting the saving throw DC for a warlock spell you cast and when making an attack roll with one.</p><p><strong>Spell save DC </strong>= 8 + your proficiency bonus + your Charisma modifier</p><p><strong>Spell attack modifier </strong>= your proficiency bonus + your Charisma modifier</p><h4><strong>Spellcasting Focus</strong></h4><p>You can use an arcane focus (see the Adventuring Gear section) as a spellcasting focus for your warlock spells.</p>"
       }
     ],
-    "attributes": [
-      "59c97c68-d773-4434-925f-ca9c1be3d2d8",
-      "e8b2aedf-be41-4b4c-9754-2dc6a9a4b1c9"
-    ],
+    "attributes": ["59c97c68-d773-4434-925f-ca9c1be3d2d8", "e8b2aedf-be41-4b4c-9754-2dc6a9a4b1c9"],
     "spellcasting": {
       "charges": {
         "reset": "c245fd8b-f343-4fb1-a6c4-5bc35ca43ac7"
       },
-      "attributes": [
-        "01965583-8b20-4b30-8b9f-ffe5fe8d10a1",
-        "9b919427-7c38-4ccd-aecd-6c032a047b57"
-      ],
+      "attributes": ["01965583-8b20-4b30-8b9f-ffe5fe8d10a1", "9b919427-7c38-4ccd-aecd-6c032a047b57"],
       "magicName": "Pact Magic",
       "maxSpellLevel": 5,
       "ability": "def276fe-3fa5-4af7-95ad-a37113815cc7"
@@ -5227,9 +4795,7 @@
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
-          "ids": [
-            "786e4da5-d0a7-4d30-9232-864950691654"
-          ],
+          "ids": ["786e4da5-d0a7-4d30-9232-864950691654"],
           "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
         },
         "id": "99e0ba22-cb04-4ea3-b21c-4a609d1f75d1"
@@ -5238,9 +4804,7 @@
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
-          "ids": [
-            "ab95948e-73af-4cd6-ac18-a22841fb5773"
-          ],
+          "ids": ["ab95948e-73af-4cd6-ac18-a22841fb5773"],
           "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
         },
         "id": "6f8b5056-5946-4998-9b7b-487401376699"
@@ -5248,16 +4812,11 @@
       {
         "category": "7328d22a-8c29-45de-a08f-5987fac2d6d1",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
-        "saveAbilities": [
-          "def276fe-3fa5-4af7-95ad-a37113815cc7",
-          "458fdf58-0496-4701-86d0-7bc234009276"
-        ],
+        "saveAbilities": ["def276fe-3fa5-4af7-95ad-a37113815cc7", "458fdf58-0496-4701-86d0-7bc234009276"],
         "id": "407d7215-37ea-4b58-a286-d13a6578873b"
       },
       {
-        "attributes": [
-          "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-        ],
+        "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
         "selectionCount": 2,
         "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
@@ -5278,34 +4837,22 @@
         [
           {
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "equipment": [
-              "213a9ec0-02f4-49b1-8b1e-c02dbd2b5e45"
-            ],
+            "equipment": ["213a9ec0-02f4-49b1-8b1e-c02dbd2b5e45"],
             "quantity": 1
           },
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "properties": [
-              "be798ea9-2db6-4eb9-89ce-1073e09f9fe6"
-            ],
-            "equipment": [
-              "b349249d-b9b5-4064-ab31-685c44a29bb7"
-            ],
+            "properties": ["be798ea9-2db6-4eb9-89ce-1073e09f9fe6"],
+            "equipment": ["b349249d-b9b5-4064-ab31-685c44a29bb7"],
             "quantity": 20
           }
         ],
         [
           {
-            "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-            ],
+            "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "properties": [
-              "ab95948e-73af-4cd6-ac18-a22841fb5773"
-            ],
-            "equipment": [
-              "all"
-            ],
+            "properties": ["ab95948e-73af-4cd6-ac18-a22841fb5773"],
+            "equipment": ["all"],
             "selectionCount": 1
           }
         ]
@@ -5314,25 +4861,17 @@
         [
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "equipment": [
-              "e1c83b6d-e5d8-4e8c-8b48-75b85cd528c3"
-            ],
+            "equipment": ["e1c83b6d-e5d8-4e8c-8b48-75b85cd528c3"],
             "quantity": 1
           }
         ],
         [
           [
             {
-              "attributes": [
-                "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-              ],
+              "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
               "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-              "properties": [
-                "d012faee-75b7-4cee-a4ba-55246289c6c2"
-              ],
-              "equipment": [
-                "all"
-              ],
+              "properties": ["d012faee-75b7-4cee-a4ba-55246289c6c2"],
+              "equipment": ["all"],
               "selectionCount": 1
             }
           ]
@@ -5342,18 +4881,14 @@
         [
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "equipment": [
-              "44603a6b-dd7e-413e-bc2d-e1f59f37dd7a"
-            ],
+            "equipment": ["44603a6b-dd7e-413e-bc2d-e1f59f37dd7a"],
             "quantity": 1
           }
         ],
         [
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "equipment": [
-              "85c7c9a3-ebbd-46f6-82a3-5794a87cd3d9"
-            ],
+            "equipment": ["85c7c9a3-ebbd-46f6-82a3-5794a87cd3d9"],
             "quantity": 1
           }
         ]
@@ -5362,29 +4897,19 @@
         [
           {
             "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea",
-            "equipment": [
-              "9b594c64-0fc5-47e4-badb-595b4a333a32"
-            ],
+            "equipment": ["9b594c64-0fc5-47e4-badb-595b4a333a32"],
             "quantity": 1
           },
           {
-            "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-            ],
+            "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "properties": [
-              "ab95948e-73af-4cd6-ac18-a22841fb5773"
-            ],
-            "equipment": [
-              "all"
-            ],
+            "properties": ["ab95948e-73af-4cd6-ac18-a22841fb5773"],
+            "equipment": ["all"],
             "quantity": 1
           },
           {
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "equipment": [
-              "9f015b46-29eb-4cbd-87b4-d97508ac64ce"
-            ],
+            "equipment": ["9f015b46-29eb-4cbd-87b4-d97508ac64ce"],
             "quantity": 2
           }
         ]
@@ -5856,10 +5381,7 @@
         "cantripsKnownLimit": 5
       }
     ],
-    "attributes": [
-      "e8b2aedf-be41-4b4c-9754-2dc6a9a4b1c9",
-      "59c97c68-d773-4434-925f-ca9c1be3d2d8"
-    ],
+    "attributes": ["e8b2aedf-be41-4b4c-9754-2dc6a9a4b1c9", "59c97c68-d773-4434-925f-ca9c1be3d2d8"],
     "desc": "<p>Clad in the silver robes that denote her station, an elf closes her eyes to shut out the distractions of the battlefield and begins her quiet chant. Fingers weaving in front of her, she completes her spell and launches a tiny bead of fire toward the enemy ranks, where it erupts into a conflagration that engulfs the soldiers.</p><p>Checking and rechecking his work, a human scribes an intricate magic circle in chalk on the bare stone floor, then sprinkles powdered iron along every line and graceful curve. When the circle is complete, he drones a long incantation. A hole opens in space inside the circle, bringing a whiff of brimstone from the otherworldly plane beyond.</p><p>Crouching on the floor in a dungeon intersection, a gnome tosses a handful of small bones inscribed with mystic symbols, muttering a few words of power over them. Closing his eyes to see the visions more clearly, he nods slowly, then opens his eyes and points down the passage to his left.</p><p>Wizards are supreme magic-users, defined and united as a class by the spells they cast. Drawing on the subtle weave of magic that permeates the cosmos, wizards cast spells of explosive fire, arcing lightning, subtle deception, and brute-force mind control. Their magic conjures monsters from other planes of existence, glimpses the future, or turns slain foes into zombies. Their mightiest spells change one substance into another, call meteors down from the sky, or open portals to other worlds.</p>",
     "details": [
       {
@@ -5893,10 +5415,7 @@
         "level": {
           "measurement": "c01064bc-eea0-48d1-824a-3fb0ae983822"
         },
-        "methods": [
-          "22936831-1dd1-49a8-a4af-08e0746eb9b4",
-          "384bdd3d-dece-4e71-88b0-c1fc44130987"
-        ]
+        "methods": ["22936831-1dd1-49a8-a4af-08e0746eb9b4", "384bdd3d-dece-4e71-88b0-c1fc44130987"]
       },
       "attributes": [
         "becce5cb-5f1e-4de8-9aca-74324f507063",
@@ -5936,16 +5455,11 @@
       {
         "category": "7328d22a-8c29-45de-a08f-5987fac2d6d1",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
-        "saveAbilities": [
-          "d0cd6776-ef2c-4589-8a18-175a160b8ef4",
-          "458fdf58-0496-4701-86d0-7bc234009276"
-        ],
+        "saveAbilities": ["d0cd6776-ef2c-4589-8a18-175a160b8ef4", "458fdf58-0496-4701-86d0-7bc234009276"],
         "id": "7cf95a40-5c14-45c8-987a-982acf59cb49"
       },
       {
-        "attributes": [
-          "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-        ],
+        "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
         "selectionCount": 2,
         "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
@@ -5965,18 +5479,14 @@
         [
           {
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "equipment": [
-              "a0b43476-b706-4a2a-9f6e-1ac461efc8ef"
-            ],
+            "equipment": ["a0b43476-b706-4a2a-9f6e-1ac461efc8ef"],
             "quantity": 1
           }
         ],
         [
           {
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-            "equipment": [
-              "9f015b46-29eb-4cbd-87b4-d97508ac64ce"
-            ],
+            "equipment": ["9f015b46-29eb-4cbd-87b4-d97508ac64ce"],
             "quantity": 1
           }
         ]
@@ -5985,25 +5495,17 @@
         [
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "equipment": [
-              "e1c83b6d-e5d8-4e8c-8b48-75b85cd528c3"
-            ],
+            "equipment": ["e1c83b6d-e5d8-4e8c-8b48-75b85cd528c3"],
             "quantity": 1
           }
         ],
         [
           [
             {
-              "attributes": [
-                "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-              ],
+              "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
               "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-              "properties": [
-                "d012faee-75b7-4cee-a4ba-55246289c6c2"
-              ],
-              "equipment": [
-                "all"
-              ],
+              "properties": ["d012faee-75b7-4cee-a4ba-55246289c6c2"],
+              "equipment": ["all"],
               "selectionCount": 1
             }
           ]
@@ -6013,18 +5515,14 @@
         [
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "equipment": [
-              "4ac4900c-0d2d-4991-93f1-c2c67bf30f54"
-            ],
+            "equipment": ["4ac4900c-0d2d-4991-93f1-c2c67bf30f54"],
             "quantity": 1
           }
         ],
         [
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "equipment": [
-              "85c7c9a3-ebbd-46f6-82a3-5794a87cd3d9"
-            ],
+            "equipment": ["85c7c9a3-ebbd-46f6-82a3-5794a87cd3d9"],
             "quantity": 1
           }
         ]
@@ -6033,9 +5531,7 @@
         [
           {
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-            "equipment": [
-              "aea4c443-03c3-4874-82f4-6c3b6cd0eee8"
-            ],
+            "equipment": ["aea4c443-03c3-4874-82f4-6c3b6cd0eee8"],
             "quantity": 1
           }
         ]

@@ -71,7 +71,7 @@ function createRouteDestinationFromForm<T extends FormType>(form: T): RouteDesti
 }
 
 // Define navigation link types
-type NavigationLink = {
+export type NavigationLink = {
   to: ToOptions['to']
   params: NavigateOptions['params']
   mask?: {

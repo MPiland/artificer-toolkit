@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import Collapsible from '@/components/Collapsible'
+import Collapsible from '@/components/Collapse'
 import { ChargesLimits, Features, Feats } from '@/enums'
 import { Grid } from '@mantine/core'
 import { useFieldUpdates, useSystemData } from '@/hooks'
@@ -209,56 +209,59 @@ const LimitUse = withFieldGroup({
         </Grid.Col>
         {limit === ChargesLimits.USES_PER_LEVEL && (
           <Grid.Col>
-            <Collapsible>
-              <Collapsible.Trigger title={'Limit Use Table'} />
-              <Collapsible.Content>
-                <Grid>
-                  <Grid.Col>
-                    <Grid>
-                      <Grid.Col>Level</Grid.Col>
-                      <Grid.Col>Uses</Grid.Col>
-                    </Grid>
-                  </Grid.Col>
-                  <AppField name='usesPerLevel' mode='array'>
-                    {(field) =>
-                      field.state.value?.map((_, i) => (
-                        <Grid.Col key={`${i}-usesPerLevel`}>
-                          <Grid>
-                            <AppField
-                              name={`usesPerLevel[${i}].level`}
-                              validators={fieldValidators({
-                                onBlur: 'Enter a level',
-                                onChange: { type: 'number', min: 1, name: 'Level' },
-                              })}
-                              listeners={fieldListeners}
-                            >
-                              {({ TextField }) => (
-                                <Grid.Col>
-                                  <TextField required={true} />
-                                </Grid.Col>
-                              )}
-                            </AppField>
-                            <AppField
-                              name={`usesPerLevel[${i}].uses`}
-                              validators={fieldValidators({
-                                onBlur: 'Enter a number of uses',
-                                onChange: { type: 'number', min: 1, name: 'Uses' },
-                              })}
-                              listeners={fieldListeners}
-                            >
-                              {({ TextField }) => (
-                                <Grid.Col>
-                                  <TextField required={true} />
-                                </Grid.Col>
-                              )}
-                            </AppField>
-                          </Grid>
-                        </Grid.Col>
-                      ))
-                    }
-                  </AppField>
-                </Grid>
-              </Collapsible.Content>
+            <Collapsible
+              props={{
+                trigger: {
+                  title: 'Limit Use Table',
+                },
+              }}
+            >
+              <Grid>
+                <Grid.Col>
+                  <Grid>
+                    <Grid.Col>Level</Grid.Col>
+                    <Grid.Col>Uses</Grid.Col>
+                  </Grid>
+                </Grid.Col>
+                <AppField name='usesPerLevel' mode='array'>
+                  {(field) =>
+                    field.state.value?.map((_, i) => (
+                      <Grid.Col key={`${i}-usesPerLevel`}>
+                        <Grid>
+                          <AppField
+                            name={`usesPerLevel[${i}].level`}
+                            validators={fieldValidators({
+                              onBlur: 'Enter a level',
+                              onChange: { type: 'number', min: 1, name: 'Level' },
+                            })}
+                            listeners={fieldListeners}
+                          >
+                            {({ TextField }) => (
+                              <Grid.Col>
+                                <TextField required={true} />
+                              </Grid.Col>
+                            )}
+                          </AppField>
+                          <AppField
+                            name={`usesPerLevel[${i}].uses`}
+                            validators={fieldValidators({
+                              onBlur: 'Enter a number of uses',
+                              onChange: { type: 'number', min: 1, name: 'Uses' },
+                            })}
+                            listeners={fieldListeners}
+                          >
+                            {({ TextField }) => (
+                              <Grid.Col>
+                                <TextField required={true} />
+                              </Grid.Col>
+                            )}
+                          </AppField>
+                        </Grid>
+                      </Grid.Col>
+                    ))
+                  }
+                </AppField>
+              </Grid>
             </Collapsible>
           </Grid.Col>
         )}

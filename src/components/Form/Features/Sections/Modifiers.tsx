@@ -7,9 +7,9 @@ import type { GenericType, SpellListItem, SubtypeInput } from '@/types'
 import { Grid } from '@mantine/core'
 import { FeatureModifierInputSchema, ModifierDiePerLevelInputSchema, ModifierSetPerLevelInputSchema } from '@/schemas'
 import { useStore } from '@tanstack/react-form'
-import Collapsible from '@/components/Collapsible'
+import Collapsible from '@/components/Collapse'
 import {} from '@/components/Form'
-import { useFormStore, useModifierStore } from '@/store'
+import { useFormStore, useFeatureModifierStore } from '@/store'
 
 type ModifiersProps = {
   category?: string
@@ -18,7 +18,7 @@ type ModifiersProps = {
 }
 
 const Modifiers = ({ category, subtypes }: ModifiersProps) => {
-  const modifierStore = useModifierStore()
+  const modifierStore = useFeatureModifierStore()
 
   const formStore = useFormStore()
 
@@ -187,6 +187,21 @@ const Modifiers = ({ category, subtypes }: ModifiersProps) => {
     }
   }, [type, method, setPerLevel, modMethods, form, modifierStore])
 
+  useEffect(() => {
+    if (!modifierStore.formReset) {
+      modifierStore.registerFormReset(form.reset)
+    }
+  }, [form.reset, modifierStore])
+
+  useEffect(() => {
+    return form.store.subscribe((state) => {
+      const isValid = state.currentVal.isValid
+      if (modifierStore.current?.id && modifierStore.valid.get(modifierStore.current.id) !== isValid) {
+        modifierStore.upsertValid(modifierStore.current.id, isValid)
+      }
+    })
+  }, [modifierStore, form.store])
+
   return (
     <>
       <Grid>
@@ -240,7 +255,7 @@ const Modifiers = ({ category, subtypes }: ModifiersProps) => {
               category: categoryName,
             })
             const { subtypeSpecific, providesOptions, hasPrerequisites } = getAttributes({
-              attributes: formAttributes,
+              attributes: formAttributes || [],
             })
             return (
               <>
@@ -650,112 +665,118 @@ const Modifiers = ({ category, subtypes }: ModifiersProps) => {
                 )}
                 {method === ModMethods.SET_PER_LEVEL && diePerLevel?.length && (
                   <Grid.Col>
-                    <Collapsible>
-                      <Collapsible.Trigger title='Die Per Level' />
-                      <Collapsible.Content>
-                        <Grid>
-                          <Grid.Col>
-                            <Grid>
-                              <Grid.Col>Level</Grid.Col>
-                              <Grid.Col>Die Config</Grid.Col>
-                            </Grid>
-                          </Grid.Col>
-                          <AppField name='diePerLevel' mode='array'>
-                            {({ state }) =>
-                              state.value?.map((_, i) => (
-                                <Grid.Col key={i}>
-                                  <Grid>
-                                    <AppField
-                                      name={`diePerLevel[${i}].level`}
-                                      validators={fieldValidators({
-                                        onBlur: 'Level is required',
-                                        onChange: { type: 'integer', min: 1, name: 'Level' },
-                                      })}
-                                      listeners={fieldListeners}
-                                    >
-                                      {({ TextField }) => (
-                                        <Grid.Col>
-                                          <TextField required={true} />
-                                        </Grid.Col>
-                                      )}
-                                    </AppField>
-                                    <AppField
-                                      name={`diePerLevel[${i}].dieConfig`}
-                                      validators={fieldValidators({
-                                        onBlur: 'Please enter a die configuration',
-                                        onChange: { type: 'die', name: 'Die configuration' },
-                                      })}
-                                      listeners={fieldListeners}
-                                    >
-                                      {({ TextField }) => (
-                                        <Grid.Col>
-                                          <TextField required={true} />
-                                        </Grid.Col>
-                                      )}
-                                    </AppField>
-                                  </Grid>
-                                </Grid.Col>
-                              ))
-                            }
-                          </AppField>
-                        </Grid>
-                      </Collapsible.Content>
+                    <Collapsible
+                      props={{
+                        trigger: {
+                          title: 'Die Per Level',
+                        },
+                      }}
+                    >
+                      <Grid>
+                        <Grid.Col>
+                          <Grid>
+                            <Grid.Col>Level</Grid.Col>
+                            <Grid.Col>Die Config</Grid.Col>
+                          </Grid>
+                        </Grid.Col>
+                        <AppField name='diePerLevel' mode='array'>
+                          {({ state }) =>
+                            state.value?.map((_, i) => (
+                              <Grid.Col key={i}>
+                                <Grid>
+                                  <AppField
+                                    name={`diePerLevel[${i}].level`}
+                                    validators={fieldValidators({
+                                      onBlur: 'Level is required',
+                                      onChange: { type: 'integer', min: 1, name: 'Level' },
+                                    })}
+                                    listeners={fieldListeners}
+                                  >
+                                    {({ TextField }) => (
+                                      <Grid.Col>
+                                        <TextField required={true} />
+                                      </Grid.Col>
+                                    )}
+                                  </AppField>
+                                  <AppField
+                                    name={`diePerLevel[${i}].dieConfig`}
+                                    validators={fieldValidators({
+                                      onBlur: 'Please enter a die configuration',
+                                      onChange: { type: 'die', name: 'Die configuration' },
+                                    })}
+                                    listeners={fieldListeners}
+                                  >
+                                    {({ TextField }) => (
+                                      <Grid.Col>
+                                        <TextField required={true} />
+                                      </Grid.Col>
+                                    )}
+                                  </AppField>
+                                </Grid>
+                              </Grid.Col>
+                            ))
+                          }
+                        </AppField>
+                      </Grid>
                     </Collapsible>
                   </Grid.Col>
                 )}
                 {method === ModMethods.SET_PER_LEVEL && setPerLevel?.length && (
                   <Grid.Col>
-                    <Collapsible>
-                      <Collapsible.Trigger title='Set Per Level' />
-                      <Collapsible.Content>
-                        <Grid>
-                          <Grid.Col>
-                            <Grid>
-                              <Grid.Col>Level</Grid.Col>
-                              <Grid.Col>Amount</Grid.Col>
-                            </Grid>
-                          </Grid.Col>
+                    <Collapsible
+                      props={{
+                        trigger: {
+                          title: 'Set Per Level',
+                        },
+                      }}
+                    >
+                      <Grid>
+                        <Grid.Col>
+                          <Grid>
+                            <Grid.Col>Level</Grid.Col>
+                            <Grid.Col>Amount</Grid.Col>
+                          </Grid>
+                        </Grid.Col>
 
-                          <AppField name='setPerLevel' mode='array'>
-                            {({ state }) =>
-                              state.value?.map((_, i) => (
-                                <Grid.Col key={i}>
-                                  <Grid>
-                                    <AppField
-                                      name={`setPerLevel[${i}].level`}
-                                      validators={fieldValidators({
-                                        onBlur: 'Level is required',
-                                        onChange: { type: 'integer', min: 1, name: 'Level' },
-                                      })}
-                                      listeners={fieldListeners}
-                                    >
-                                      {({ TextField }) => (
-                                        <Grid.Col>
-                                          <TextField required={true} />
-                                        </Grid.Col>
-                                      )}
-                                    </AppField>
-                                    <AppField
-                                      name={`setPerLevel[${i}].setAmount`}
-                                      validators={fieldValidators({
-                                        onBlur: 'Please enter an amount',
-                                        onChange: { type: 'integer', min: 1, name: 'Set amount' },
-                                      })}
-                                      listeners={fieldListeners}
-                                    >
-                                      {({ TextField }) => (
-                                        <Grid.Col>
-                                          <TextField required={true} />
-                                        </Grid.Col>
-                                      )}
-                                    </AppField>
-                                  </Grid>
-                                </Grid.Col>
-                              ))
-                            }
-                          </AppField>
-                        </Grid>
-                      </Collapsible.Content>
+                        <AppField name='setPerLevel' mode='array'>
+                          {({ state }) =>
+                            state.value?.map((_, i) => (
+                              <Grid.Col key={i}>
+                                <Grid>
+                                  <AppField
+                                    name={`setPerLevel[${i}].level`}
+                                    validators={fieldValidators({
+                                      onBlur: 'Level is required',
+                                      onChange: { type: 'integer', min: 1, name: 'Level' },
+                                    })}
+                                    listeners={fieldListeners}
+                                  >
+                                    {({ TextField }) => (
+                                      <Grid.Col>
+                                        <TextField required={true} />
+                                      </Grid.Col>
+                                    )}
+                                  </AppField>
+                                  <AppField
+                                    name={`setPerLevel[${i}].setAmount`}
+                                    validators={fieldValidators({
+                                      onBlur: 'Please enter an amount',
+                                      onChange: { type: 'integer', min: 1, name: 'Set amount' },
+                                    })}
+                                    listeners={fieldListeners}
+                                  >
+                                    {({ TextField }) => (
+                                      <Grid.Col>
+                                        <TextField required={true} />
+                                      </Grid.Col>
+                                    )}
+                                  </AppField>
+                                </Grid>
+                              </Grid.Col>
+                            ))
+                          }
+                        </AppField>
+                      </Grid>
                     </Collapsible>
                   </Grid.Col>
                 )}

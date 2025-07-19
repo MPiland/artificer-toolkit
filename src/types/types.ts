@@ -110,4 +110,6 @@ export type DeepKeyOf<T> = Extract<Paths<T>, string>
 export type Step = {
   id: string
   label: string
+  fieldValidation?: Record<string, boolean>
+  defaultValues?: Partial<FormDataType>
 }

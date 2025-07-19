@@ -1,10 +1,12 @@
 import { Suspense, type ReactNode } from 'react'
-import { Footer, Header, form_content, form_wrapper, CharacterHeader } from '@/components/Form'
+import { Footer, Header, content, form, CharacterHeader } from '@/components/Form'
 import { UseMutationResult } from '@tanstack/react-query'
 import type { FormDataType, SourceDataType } from '@/types'
-import Loading from '@/components/Loading'
-import { ScrollArea } from '@mantine/core'
+import { Modal, ScrollArea } from '@mantine/core'
 import { useFormStore } from '@/store'
+import Loading from '@/components/Loading'
+import { useMediaQuery } from '@mantine/hooks'
+import { sprinkles } from '@/css/sprinkles.css'
 
 interface FormProps<T extends SourceDataType, V extends FormDataType> {
   useAddNewItemMutation: () => UseMutationResult<T, Error, V, unknown>
@@ -17,23 +19,39 @@ const Form = <T extends SourceDataType, V extends FormDataType>({
   useUpdateItemMutation,
   children,
 }: FormProps<T, V>) => {
-  const formStore = useFormStore()
+  const __kind = useFormStore((state) => state.current?.__kind)
+  const sm = useMediaQuery('(max-width: 768px)')
+
   return (
-    <Suspense fallback={<Loading />}>
-      <form
-        className={form_wrapper}
-        id='form-wrapper'
-        onSubmit={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-        }}
+    <form
+      className={form}
+      id='form-wrapper'
+      onSubmit={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+      }}
+    >
+      <Header />
+      {__kind === 'CharacterInput' && <CharacterHeader setFieldValueFn={() => undefined} />}
+      <Suspense
+        fallback={
+          <Modal withCloseButton={false} opened onClose={() => {}} centered size='auto'>
+            <Loading />
+          </Modal>
+        }
       >
-        <Header />
-        {formStore.current?.__kind === 'CharacterInput' && <CharacterHeader setFieldValueFn={() => undefined} />}
-        <ScrollArea className={form_content}>{children}</ScrollArea>
-        <Footer useAddNewItemMutation={useAddNewItemMutation} useUpdateItemMutation={useUpdateItemMutation} />
-      </form>
-    </Suspense>
+        <ScrollArea
+          classNames={{
+            content: content,
+          }}
+          className={sprinkles({ flex: '1' })}
+          type={sm ? 'auto' : 'hover'}
+        >
+          {children}
+        </ScrollArea>
+      </Suspense>
+      <Footer useAddNewItemMutation={useAddNewItemMutation} useUpdateItemMutation={useUpdateItemMutation} />
+    </form>
   )
 }
 

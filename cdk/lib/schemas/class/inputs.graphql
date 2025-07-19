@@ -65,6 +65,22 @@ input SubtypeInput {
   label: String!
 }
 
+input ClassProficiencyInput {
+  id: ID!
+  subtype: ID
+  attributes: [ID!]
+  selectionCount: Int
+  category: ID!
+  level: ID!
+  rounding: ID
+  saveAbilities: [ID!]
+  skills: [ID!]
+  languages: [ID!]
+  properties: ProficiencyPropertiesInput
+  equipment: ProficiencyPropertiesInput
+  prerequisites: PrerequisiteInput
+}
+
 input ClassInput {
   id: ID!
   label: String!
@@ -75,7 +91,7 @@ input ClassInput {
   hitpoint: HitpointInput
   startingGold: StartingGoldInput
   equipment: [[[EquipmentOptionItemInput!]!]!]
-  proficiencies: [FeatureProficiencyInput!]
+  proficiencies: [ClassProficiencyInput!]
   spellcasting: SpellcastingInput
   levelAttributes: [LevelAttributeInput!]
   resource: ResourceInput
@@ -83,7 +99,7 @@ input ClassInput {
   parentClass: ID
   subtypes: [SubtypeInput!]
   features: [ID!]
-  ownerId: String
+  ownerId: ID
   systemId: ID!
   masterId: String
 }

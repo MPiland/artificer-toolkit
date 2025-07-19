@@ -1,5 +1,4 @@
-import { z } from 'zod/v4'
-import { useEffect, useMemo } from 'react'
+import { useCallback, useMemo, useLayoutEffect, useEffect } from 'react'
 import { useAddNewClassMutation, useUpdateClassMutation } from '@/apis/classes.api'
 import type { ClassInput } from '@/types'
 import { Route } from '@/routes/_protected/classes/$action/$_classId'
@@ -7,69 +6,115 @@ import { useClassData } from '@/hooks'
 import { ClassInputSchema } from '@/schemas'
 import { v4 as uuidv4 } from 'uuid'
 import { useFormStore } from '@/store'
-import Form, { ClassAttributes, ClassDetails, ClassProficiencies, StartingEquipment, Features } from '@/components/Form'
+import Form, {
+  ClassAttributes,
+  ClassDetails,
+  ClassProficiencies,
+  StartingEquipment,
+  Features,
+  useAppForm,
+} from '@/components/Form'
 import { Categories } from '@/enums'
+import { convertTypenameToKindInput } from '@/utils'
+import { useSystemPref } from '@/hooks'
 
 const ClassForm = () => {
   const { _classId: classId, action } = Route.useParams()
   const {
     classes: { findClass },
   } = useClassData()
-  const classData = findClass(classId)
-  const formStore = useFormStore()
+  const [systemPref] = useSystemPref()
 
-  const data: z.input<typeof ClassInputSchema> = useMemo(
-    () =>
-      classData ?
-        action === 'new' ?
-          ClassInputSchema.parse({
-            ...classData,
+  const classData = findClass(classId)
+
+  const current = useFormStore((state) => state.current)
+  const steps = useFormStore((state) => state.steps)
+  const setSteps = useFormStore((state) => state.setSteps)
+  const setCurrent = useFormStore((state) => state.setCurrent)
+  const stepIndex = useFormStore((state) => state.stepIndex)
+  const registerForm = useFormStore((state) => state.registerForm)
+
+  const createDataObject = useCallback(() => {
+    if (classData) {
+      const classInput = convertTypenameToKindInput(classData)
+      if (classInput) {
+        if (action === 'new') {
+          return ClassInputSchema.parse({
+            ...classInput,
             id: uuidv4(),
             label: '',
             masterId: undefined,
+            category: Categories.BASE,
+            systemId: systemPref,
           })
-        : ClassInputSchema.parse(classData)
-      : ClassInputSchema.parse({
-          __kind: 'ClassInput',
-          id: uuidv4(),
-        }),
-    [classData, action]
-  )
-
-  useEffect(() => {
-    formStore.setCurrent(data as ClassInput)
-  }, [formStore, data])
-
-  useEffect(() => {
-    if ((formStore.current as ClassInput)?.category === Categories.SUBCLASS) {
-      formStore.setSteps([
-        { id: 'details', label: 'Details' },
-        { id: 'proficiencies', label: 'Proficiencies' },
-        { id: 'attributes', label: 'Attributes' },
-        { id: 'features', label: 'Features' },
-      ])
-    } else {
-      formStore.setSteps([
-        { id: 'details', label: 'Details' },
-        { id: 'proficiencies', label: 'Proficiencies' },
-        { id: 'startingEquipment', label: 'Starting Equipment' },
-        { id: 'attributes', label: 'Attributes' },
-        { id: 'features', label: 'Features' },
-      ])
+        } else {
+          return ClassInputSchema.parse({ ...classInput })
+        }
+      }
     }
-  }, [formStore])
+    return ClassInputSchema.parse({
+      __kind: 'ClassInput',
+      id: uuidv4(),
+      category: Categories.BASE,
+      systemId: systemPref,
+      label: '',
+    })
+  }, [action, systemPref, classData])
+
+  const data = useMemo(() => createDataObject(), [createDataObject])
+
+  useLayoutEffect(() => {
+    if (current === null) {
+      setCurrent(data as ClassInput)
+    }
+  }, [current, data, setCurrent])
+
+  const form = useAppForm({
+    defaultValues: data,
+  })
+
+  const classSteps = useMemo(() => {
+    if ((data as ClassInput)?.category === Categories.SUBCLASS) {
+      return [
+        { id: 'details', label: 'Details', fieldValidation: {}, defaultValues: {} },
+        { id: 'proficiencies', label: 'Proficiencies', fieldValidation: {}, defaultValues: {} },
+        { id: 'attributes', label: 'Attributes', fieldValidation: {}, defaultValues: {} },
+        { id: 'features', label: 'Features', fieldValidation: {}, defaultValues: {} },
+      ]
+    } else {
+      return [
+        { id: 'details', label: 'Details', fieldValidation: {}, defaultValues: {} },
+        { id: 'proficiencies', label: 'Proficiencies', fieldValidation: {}, defaultValues: {} },
+        { id: 'startingEquipment', label: 'Equipment', fieldValidation: {}, defaultValues: {} },
+        { id: 'attributes', label: 'Attributes', fieldValidation: {}, defaultValues: {} },
+        { id: 'features', label: 'Features' },
+      ]
+    }
+  }, [data])
+
+  useLayoutEffect(() => {
+    if (!steps.every((step) => classSteps.some((s) => s.id === step.id)) || !steps?.length) {
+      setSteps(classSteps)
+    }
+  }, [steps, classSteps, setSteps])
+
+  useEffect(() => {
+    if (!steps[stepIndex].reset) {
+      registerForm(form.reset)
+    }
+  }, [form.reset, steps, stepIndex, registerForm])
 
   const stepComponentMap = {
-    details: <ClassDetails />,
-    proficiencies: <ClassProficiencies />,
-    startingEquipment: <StartingEquipment />,
-    attributes: <ClassAttributes />,
+    details: <ClassDetails form={form} />,
+    proficiencies: <ClassProficiencies form={form} />,
+    startingEquipment: <StartingEquipment form={form} />,
+    attributes: <ClassAttributes form={form} />,
     features: <Features />,
   }
 
   return (
     <Form useAddNewItemMutation={useAddNewClassMutation} useUpdateItemMutation={useUpdateClassMutation}>
-      {stepComponentMap[formStore.steps[formStore.stepIndex].id as keyof typeof stepComponentMap] || null}
+      {stepComponentMap[steps[stepIndex]?.id as keyof typeof stepComponentMap] || null}
     </Form>
   )
 }

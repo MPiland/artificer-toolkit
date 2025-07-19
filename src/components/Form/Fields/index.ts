@@ -1,4 +1,3 @@
-export { default as AccordionField } from './AccordionField'
 export { default as CheckboxField } from './CheckboxField'
 export { default as DropdownField } from './DropdownField'
 export { default as PasswordField } from './PasswordField'

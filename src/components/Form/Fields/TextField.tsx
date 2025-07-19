@@ -1,5 +1,6 @@
 import { TextInput, type TextInputProps } from '@mantine/core'
 import { useFieldContext } from '@/components/Form'
+import { sprinkles } from '@/css/sprinkles.css'
 
 type TextFieldProps = {
   label?: string
@@ -12,13 +13,19 @@ const TextField = ({ label, placeholder, ...props }: TextFieldProps) => {
   const { state, name, handleChange, handleBlur } = useFieldContext<string | number>()
   return (
     <TextInput
+      labelProps={{
+        className: sprinkles({ mb: 'space-2' }),
+      }}
       label={label}
       placeholder={placeholder || ''}
       name={name}
-      value={state.value}
+      value={state.value || ''}
       onBlur={handleBlur}
       onChange={(e) => handleChange(e.target.value)}
-      error={!state.meta.isValid && state.meta.errors.join(', ')}
+      error={
+        !state.meta.isValid &&
+        state.meta.errors.filter((error) => (typeof error === 'string' ? error : error.message)).join(', ')
+      }
       {...props}
     />
   )

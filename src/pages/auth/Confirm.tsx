@@ -1,4 +1,16 @@
-import { Container, Paper, Text, Title, Alert, Group, Stack, TextInput, PasswordInput, Button } from '@mantine/core'
+import {
+  Container,
+  Paper,
+  Text,
+  Title,
+  Alert,
+  Group,
+  Stack,
+  TextInput,
+  PasswordInput,
+  Button,
+  UnstyledButton,
+} from '@mantine/core'
 import { useNavigate, type ToOptions } from '@tanstack/react-router'
 import { auth_container, auth_title, auth_wrapper } from './Auth.css'
 import { confirmSignUp, resendSignUpCode, confirmResetPassword } from '@/apis/auth.api'
@@ -74,6 +86,7 @@ const ConfirmStep = () => {
           })
         }
       } else if (registerPath) {
+        setFormMessage(null)
         const result = await confirmSignUp({ email, confirmationCode })
         if (isConfirmCodeResponse(result)) {
           if (result.success === 4) {
@@ -103,6 +116,7 @@ const ConfirmStep = () => {
           })
         }
       } else if (!registerPath) {
+        setFormMessage(null)
         const result = await confirmResetPassword({ email, confirmationCode, password })
         if (isConfirmForgotResponse(result)) {
           formApi.reset()
@@ -217,14 +231,16 @@ const ConfirmStep = () => {
         </Paper>
         <Group gap={4} px='md'>
           <Text size='xs'>{"Didn't recieve a code or need a new one? "} </Text>
-          <Text
-            size='xs'
+          <UnstyledButton
             c='blue'
+            type='button'
             style={{ cursor: 'pointer' }}
-            onClick={() => handleSubmit({ submitAction: 'resend' })}
+            onClick={() => {
+              handleSubmit({ submitAction: 'resend' })
+            }}
           >
-            {'Click here '}
-          </Text>
+            <Text size='xs'>Click Here</Text>
+          </UnstyledButton>
         </Group>
       </Stack>
     </Container>

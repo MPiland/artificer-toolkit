@@ -108,7 +108,7 @@ export const fetchFeatureProficiency = (id: string) => {
           return data.getFeatureProficiency
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -142,7 +142,7 @@ export const useAddNewFeatureProficiencyMutation = () => {
           return data.createFeatureProficiency
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -183,7 +183,7 @@ export const useUpdateFeatureProficiencyMutation = () => {
           return data.updateFeatureProficiency
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -225,7 +225,7 @@ export const useDeleteFeatureProficiencyMutation = () => {
           return data.deleteFeatureProficiency
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },

@@ -20,7 +20,9 @@ const DetailsStep = () => {
   const { characters } = useSystemData()
 
   useEffect(() => {
-    formStore.registerForm(form.reset)
+    if (!formStore.steps[formStore.stepIndex].reset) {
+      formStore.registerForm( form.reset )
+    }
   }, [form.reset, formStore])
 
   const { isValid } = useStore(form.store, (state) => ({
@@ -55,7 +57,7 @@ const DetailsStep = () => {
       >
         {({ DropdownField }) => (
           <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-            <DropdownField label='Advancement Type' options={characters.advancementMethods.all} required={true} />
+            <DropdownField label='Advancement Type' options={characters.advancementMethods} required={true} />
           </Grid.Col>
         )}
       </AppField>
@@ -68,7 +70,7 @@ const DetailsStep = () => {
       >
         {({ DropdownField }) => (
           <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-            <DropdownField label='Hit Point Type' options={characters.hitpointCalcMethods.all} required={true} />
+            <DropdownField label='Hit Point Type' options={characters.hitpointCalcMethods} required={true} />
           </Grid.Col>
         )}
       </AppField>

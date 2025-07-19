@@ -4,10 +4,16 @@ import { useRouteContext } from '@tanstack/react-router'
 import { createArrayWithMethods } from '@/utils'
 import { fetchAncestryOptions, fetchAncestryOption } from '@/apis/ancestryOptions.api'
 import { fetchFeatureOption, fetchFeatureOptions } from '@/apis/featureOptions.api'
+import { useFeatureStore } from '@/store'
 
 const useFeatureData = () => {
   const suspenseQuery = useSuspenseQuery
   const suspenseQueries = useSuspenseQueries
+  const featureStore = useFeatureStore()
+
+  const edited = useFeatureStore.persist.hasHydrated() ? Array.from(featureStore.edited.values()) : []
+  const added = useFeatureStore.persist.hasHydrated() ? Array.from(featureStore.added.values()) : []
+
   const { systemPref } = useRouteContext({ from: '__root__' })
   const {
     data: { features },
@@ -18,8 +24,15 @@ const useFeatureData = () => {
   const {
     data: { featureOptions },
   } = suspenseQuery(fetchFeatureOptions(systemPref))
+
+  const featureArray = [
+    ...features.filter((f) => !featureStore.added.has(f.id) && !featureStore.edited.has(f.id)),
+    ...added,
+    ...edited,
+  ]
+
   return {
-    features: createArrayWithMethods(features, {
+    features: createArrayWithMethods(featureArray, {
       findFeature: (id?: string | null) => {
         if (!id) return null
         return suspenseQuery(fetchFeature(id)).data

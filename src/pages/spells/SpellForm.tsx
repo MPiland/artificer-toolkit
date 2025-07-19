@@ -1,61 +1,95 @@
-import { z } from 'zod/v4'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useLayoutEffect, useCallback } from 'react'
 import { useAddNewSpellMutation, useUpdateSpellMutation } from '@/apis/spells.api'
 import { Route } from '@/routes/_protected/spells/$action/$_spellId'
-import { useSpellData } from '@/hooks'
+import { useSpellData, useSystemPref } from '@/hooks'
 import { SpellInputSchema } from '@/schemas'
 import { v4 as uuidv4 } from 'uuid'
-import Form, { SpellAttributes, SpellDetails } from '@/components/Form'
+import Form, { SpellAttributes, SpellDetails, useAppForm } from '@/components/Form'
 import { useFormStore } from '@/store'
-import { isEqual } from 'lodash'
+import type { SpellInput } from '@/types'
+import { convertTypenameToKindInput } from '@/utils'
 
 const SpellForm = () => {
   const { _spellId: spellId, action } = Route.useParams()
   const {
     spells: { findSpell },
   } = useSpellData()
-  const spell = findSpell(spellId)
-  const formStore = useFormStore((state) => state)
+  const [systemPref] = useSystemPref()
 
-  const data: z.input<typeof SpellInputSchema> = useMemo(
-    () =>
-      spell ?
-        action === 'new' ?
-          SpellInputSchema.parse({
-            ...spell,
+  const spellData = findSpell(spellId)
+
+  const current = useFormStore((state) => state.current)
+  const steps = useFormStore((state) => state.steps)
+  const setSteps = useFormStore((state) => state.setSteps)
+  const setCurrent = useFormStore((state) => state.setCurrent)
+  const stepIndex = useFormStore((state) => state.stepIndex)
+  const registerForm = useFormStore((state) => state.registerForm)
+
+  const createDataObject = useCallback(() => {
+    if (spellData) {
+      const spellInput = convertTypenameToKindInput(spellData)
+      if (spellInput) {
+        if (action === 'new') {
+          return SpellInputSchema.parse({
+            ...spellInput,
             id: uuidv4(),
             label: '',
             masterId: undefined,
+            systemId: systemPref,
           })
-        : SpellInputSchema.parse(spell)
-      : SpellInputSchema.parse({
-          __kind: 'SpellInput',
-          id: uuidv4(),
-        }),
-    [spell, action]
+        } else {
+          return SpellInputSchema.parse({ ...spellInput })
+        }
+      }
+    }
+    return SpellInputSchema.parse({
+      __kind: 'SpellInput',
+      id: uuidv4(),
+      systemId: systemPref,
+      label: '',
+    })
+  }, [action, systemPref, spellData])
+
+  const data = useMemo(() => createDataObject(), [createDataObject])
+
+  useLayoutEffect(() => {
+    if (current === null) {
+      setCurrent(data as SpellInput)
+    }
+  }, [current, data, setCurrent])
+
+  const form = useAppForm({
+    defaultValues: data,
+  })
+
+  const spellSteps = useMemo(
+    () => [
+      { id: 'details', label: 'Details', fieldValidation: {}, defaultValues: {} },
+      { id: 'attributes', label: 'Attributes', fieldValidation: {}, defaultValues: {} },
+    ],
+    []
   )
 
-  useEffect(() => {
-    formStore.setCurrent(data)
-  }, [formStore, data])
-
-  const [steps] = useState([
-    { id: 'details', label: 'Details' },
-    { id: 'attributes', label: 'Attributes' },
-  ])
+  useLayoutEffect(() => {
+    if (!steps.every((step) => spellSteps.some((s) => s.id === step.id)) || !steps?.length) {
+      setSteps(spellSteps)
+    }
+  }, [steps, spellSteps, setSteps])
 
   useEffect(() => {
-    if (!isEqual(formStore.steps, steps)) formStore.setSteps(steps)
-  }, [formStore, steps])
+    if (!steps[stepIndex].reset) {
+      registerForm(form.reset)
+    }
+  }, [form.reset, steps, stepIndex, registerForm])
 
   const stepComponentMap = {
-    details: <SpellDetails />,
-    attributes: <SpellAttributes />,
+    details: <SpellDetails form={form} />,
+    attributes: <SpellAttributes form={form} />,
   }
 
   return (
     <Form useAddNewItemMutation={useAddNewSpellMutation} useUpdateItemMutation={useUpdateSpellMutation}>
-      {stepComponentMap[formStore.steps[formStore.stepIndex].id as keyof typeof stepComponentMap] || null}
+      {stepComponentMap[steps[stepIndex].id as keyof typeof stepComponentMap] || null}
     </Form>
   )
 }

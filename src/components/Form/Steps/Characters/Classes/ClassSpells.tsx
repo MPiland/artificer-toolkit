@@ -1,4 +1,4 @@
-import Collapsible from '@/components/Collapsible'
+import Collapsible from '@/components/Collapse'
 import parse from 'html-react-parser'
 import { get, isEqual, set } from 'lodash'
 import { useCallback, useEffect, useMemo } from 'react'
@@ -17,16 +17,11 @@ import { CharacterSpellInputSchema, ClassSpellInputSchema, ClassSpellListInputSc
 import { useStore } from '@tanstack/react-form'
 import { useFormStore } from '@/store'
 
-const defaultValues: {
-  classInput?: CharacterClassInput
-  spellcasting?: CharacterSpellcastingInput
-} = {
-  classInput: undefined,
-  spellcasting: undefined,
-}
-
 const ClassSpells = withFieldGroup({
-  defaultValues,
+  defaultValues: {
+    classInput: {} as CharacterClassInput | null | undefined,
+    spellcasting: {} as CharacterSpellcastingInput | null | undefined,
+  },
   render: function Render({ group }) {
     const formStore = useFormStore()
 
@@ -445,191 +440,99 @@ const ClassSpells = withFieldGroup({
     return (
       <>
         <Grid.Col>
-          <Collapsible defaultOpen={false}>
-            <Collapsible.Trigger title={`${preparesSpells ? 'Prepared' : 'Known'} Spells`} />
-            <Collapsible.Content>
-              <Grid>
-                {spellcasting?.[casterType]?.length ?
-                  spellcasting?.[casterType]?.map(
-                    (listObject, lIndex) =>
-                      listObject.spells?.length && (
-                        <Grid.Col key={lIndex}>
-                          <Collapsible>
-                            <Collapsible.Trigger
-                              title={listObject.level === 0 ? 'Cantrips' : `Level ${listObject.level}`}
-                            />
-                            <Collapsible.Content>
-                              <Grid>
-                                {listObject.spells.map((spell, sIndex) => {
-                                  const stateSpell = spells.find((sSpell) => sSpell.id === spell.id)
-                                  return (
-                                    <Grid.Col key={sIndex}>
-                                      <Collapsible>
-                                        <Collapsible.Trigger title={stateSpell?.label || ''} />
-                                        <Collapsible.Content>
-                                          {stateSpell?.desc && parse(stateSpell?.desc)}
-                                        </Collapsible.Content>
-                                      </Collapsible>
-                                    </Grid.Col>
-                                  )
-                                })}
-                              </Grid>
-                            </Collapsible.Content>
-                          </Collapsible>
-                        </Grid.Col>
-                      )
-                  )
-                : <div>{`No ${preparesSpells ? 'prepared' : 'known'} spells`}</div>}
-              </Grid>
-            </Collapsible.Content>
+          <Collapsible
+            props={{
+              trigger: {
+                title: `${preparesSpells ? 'Prepared' : 'Known'} Spells`,
+              },
+            }}
+          >
+            <Grid>
+              {spellcasting?.[casterType]?.length ?
+                spellcasting?.[casterType]?.map(
+                  (listObject, lIndex) =>
+                    listObject.spells?.length && (
+                      <Grid.Col key={lIndex}>
+                        <Collapsible
+                          props={{
+                            trigger: {
+                              title: listObject.level === 0 ? 'Cantrips' : `Level ${listObject.level}`,
+                            },
+                          }}
+                        >
+                          <Grid>
+                            {listObject.spells.map((spell, sIndex) => {
+                              const stateSpell = spells.find((sSpell) => sSpell.id === spell.id)
+                              return (
+                                <Grid.Col key={sIndex}>
+                                  <Collapsible
+                                    props={{
+                                      trigger: {
+                                        title: stateSpell?.label || '',
+                                      },
+                                    }}
+                                  >
+                                    {stateSpell?.desc && parse(stateSpell?.desc)}
+                                  </Collapsible>
+                                </Grid.Col>
+                              )
+                            })}
+                          </Grid>
+                        </Collapsible>
+                      </Grid.Col>
+                    )
+                )
+              : <div>{`No ${preparesSpells ? 'prepared' : 'known'} spells`}</div>}
+            </Grid>
           </Collapsible>
         </Grid.Col>
         {usesSpellbook && (
           <Grid.Col>
-            <Collapsible defaultOpen={false}>
-              <Collapsible.Trigger title='Spellbook' />
-              <Collapsible.Content>
-                <Grid>
-                  <Group>
-                    <span>
-                      {`Prepared Spells: ${preparedSpellCount}/${preparesSpells ? maxPreparedSpells() : maxSpellsKnown}`}
-                    </span>
-                  </Group>
-                  {maxSpellLevel &&
-                    spellList?.map((listObject, lIndex) => {
-                      return (
-                        listObject.level &&
-                        listObject.level <= maxSpellLevel && (
-                          <Grid.Col key={lIndex}>
-                            <Collapsible>
-                              <Collapsible.Trigger title={`Level ${listObject.level}`} />
-                              <Collapsible.Content>
-                                <Grid>
-                                  {listObject.spells?.map((spell, sIndex) => {
-                                    const fullSpell = spells.find((sSpell) => sSpell.id === spell.id)
-                                    if (fullSpell) {
-                                      const spellFound = spellcasting?.prepared
-                                        ?.flatMap((listObject) => listObject.spells)
-                                        ?.find((lSpell) => lSpell && fullSpell.id === lSpell.id)
-                                      const disabled =
-                                        (preparesSpells ?
-                                          preparedSpellCount >= maxPreparedSpells()
-                                        : knownSpellCount >= maxSpellsKnown) && !spellFound
-                                      return (
-                                        <Grid.Col key={sIndex}>
-                                          <Collapsible defaultOpen={false}>
-                                            <Collapsible.Trigger
-                                              title={fullSpell.label}
-                                              titleRight={
-                                                <Button
-                                                  color={spellFound != null ? 'danger' : 'primary'}
-                                                  onClick={(e) => {
-                                                    e.stopPropagation()
-                                                    if (spellFound != null) {
-                                                      handleRemoveSpell(
-                                                        fullSpell,
-                                                        !preparesSpells ? 'known' : 'prepared'
-                                                      )
-                                                    } else {
-                                                      handleAddSpell(fullSpell, !preparesSpells ? 'known' : 'prepared')
-                                                    }
-                                                  }}
-                                                  disabled={disabled}
-                                                >
-                                                  {spellFound != null ?
-                                                    'Remove'
-                                                  : disabled ?
-                                                    '---'
-                                                  : 'Add'}
-                                                </Button>
-                                              }
-                                            ></Collapsible.Trigger>
-                                            <Collapsible.Content>
-                                              {fullSpell?.desc && parse(fullSpell?.desc)}
-                                            </Collapsible.Content>
-                                          </Collapsible>
-                                        </Grid.Col>
-                                      )
-                                    }
-                                  })}
-                                </Grid>
-                              </Collapsible.Content>
-                            </Collapsible>
-                          </Grid.Col>
-                        )
-                      )
-                    })}
-                </Grid>
-              </Collapsible.Content>
-            </Collapsible>
-          </Grid.Col>
-        )}
-        <Grid.Col>
-          <Collapsible defaultOpen={false}>
-            <Collapsible.Trigger title={`${preparesSpells && !usesSpellbook ? 'Known' : 'Add'} Spells`} />
-            <Collapsible.Content>
+            <Collapsible
+              props={{
+                trigger: {
+                  title: 'Spellbook',
+                },
+              }}
+            >
               <Grid>
-                <Grid.Col>
-                  <Group>
-                    <span>{`Cantrips: ${cantripsKnownCount}/${maxCantripsKnown}`}</span>
-                    <span>
-                      {!usesSpellbook &&
-                        `${preparesSpells ? 'Prepared' : 'Known'} Spells: ${knownSpellCount}/${
-                          preparesSpells ? maxPreparedSpells() : maxSpellsKnown
-                        }`}
-                    </span>
-                  </Group>
-                </Grid.Col>
-                {spellListArray?.map((group, lIndex) => {
-                  return (
-                    group.level <= maxSpellLevel && (
-                      <Grid.Col key={lIndex}>
-                        <Collapsible defaultOpen={false}>
-                          <Collapsible.Trigger title={group.level === 0 ? 'Cantrips' : `Level ${group.level}`} />
-                          <Collapsible.Content>
+                <Group>
+                  <span>
+                    {`Prepared Spells: ${preparedSpellCount}/${preparesSpells ? maxPreparedSpells() : maxSpellsKnown}`}
+                  </span>
+                </Group>
+                {maxSpellLevel &&
+                  spellList?.map((listObject, lIndex) => {
+                    return (
+                      listObject.level &&
+                      listObject.level <= maxSpellLevel && (
+                        <Grid.Col key={lIndex}>
+                          <Collapsible
+                            props={{
+                              trigger: {
+                                title: `Level ${listObject.level}`,
+                              },
+                            }}
+                          >
                             <Grid>
-                              {group.spells?.map((spell, sIndex) => {
-                                const spellFound = spellList
-                                  ?.flatMap((listObject) => listObject.spells)
-                                  ?.find((oSpell) => oSpell && spell.id === oSpell.id)
-                                const cantripFound = cantripsKnown
-                                  ?.flatMap((cantripObject) => cantripObject.spells)
-                                  ?.find((oSpell) => oSpell && spell.id === oSpell.id)
+                              {listObject.spells?.map((spell, sIndex) => {
                                 const fullSpell = spells.find((sSpell) => sSpell.id === spell.id)
-                                const cantripDisabled = cantripsKnownCount === maxCantripsKnown && !cantripFound
-                                const spellDisabled =
-                                  spellFound?.alwaysPrepared ||
-                                  ((preparesSpells ?
-                                    preparedSpellCount >= maxPreparedSpells()
-                                  : knownSpellCount >= maxSpellsKnown) &&
-                                    !spellFound)
                                 if (fullSpell) {
+                                  const spellFound = spellcasting?.prepared
+                                    ?.flatMap((listObject) => listObject.spells)
+                                    ?.find((lSpell) => lSpell && fullSpell.id === lSpell.id)
+                                  const disabled =
+                                    (preparesSpells ?
+                                      preparedSpellCount >= maxPreparedSpells()
+                                    : knownSpellCount >= maxSpellsKnown) && !spellFound
                                   return (
                                     <Grid.Col key={sIndex}>
-                                      <Collapsible defaultOpen={false}>
-                                        <Collapsible.Trigger
-                                          title={fullSpell.label}
-                                          titleRight={
-                                            group.level === 0 ?
+                                      <Collapsible
+                                        props={{
+                                          trigger: {
+                                            title: fullSpell.label,
+                                            titleRight: (
                                               <Button
-                                                color={cantripFound != null ? 'danger' : 'primary'}
-                                                onClick={(e) => {
-                                                  e.stopPropagation()
-                                                  if (cantripFound != null) {
-                                                    handleRemoveSpell(fullSpell, !preparesSpells ? 'known' : 'prepared')
-                                                  } else {
-                                                    handleAddSpell(fullSpell, !preparesSpells ? 'known' : 'prepared')
-                                                  }
-                                                }}
-                                                disabled={cantripDisabled}
-                                              >
-                                                {cantripFound != null ?
-                                                  'Remove'
-                                                : cantripDisabled ?
-                                                  '---'
-                                                : 'Add'}
-                                              </Button>
-                                            : <Button
                                                 color={spellFound != null ? 'danger' : 'primary'}
                                                 onClick={(e) => {
                                                   e.stopPropagation()
@@ -639,33 +542,142 @@ const ClassSpells = withFieldGroup({
                                                     handleAddSpell(fullSpell, !preparesSpells ? 'known' : 'prepared')
                                                   }
                                                 }}
-                                                disabled={spellDisabled}
+                                                disabled={disabled}
                                               >
                                                 {spellFound != null ?
                                                   'Remove'
-                                                : spellDisabled ?
+                                                : disabled ?
                                                   '---'
                                                 : 'Add'}
                                               </Button>
-                                          }
-                                        ></Collapsible.Trigger>
-                                        <Collapsible.Content>
-                                          {fullSpell?.desc && parse(fullSpell?.desc)}
-                                        </Collapsible.Content>
+                                            ),
+                                          },
+                                        }}
+                                      >
+                                        {fullSpell?.desc && parse(fullSpell?.desc)}
                                       </Collapsible>
                                     </Grid.Col>
                                   )
                                 }
                               })}
                             </Grid>
-                          </Collapsible.Content>
-                        </Collapsible>
-                      </Grid.Col>
+                          </Collapsible>
+                        </Grid.Col>
+                      )
                     )
-                  )
-                })}
+                  })}
               </Grid>
-            </Collapsible.Content>
+            </Collapsible>
+          </Grid.Col>
+        )}
+        <Grid.Col>
+          <Collapsible
+            props={{
+              trigger: {
+                title: `${preparesSpells && !usesSpellbook ? 'Known' : 'Add'} Spells`,
+              },
+            }}
+          >
+            <Grid>
+              <Grid.Col>
+                <Group>
+                  <span>{`Cantrips: ${cantripsKnownCount}/${maxCantripsKnown}`}</span>
+                  <span>
+                    {!usesSpellbook &&
+                      `${preparesSpells ? 'Prepared' : 'Known'} Spells: ${knownSpellCount}/${
+                        preparesSpells ? maxPreparedSpells() : maxSpellsKnown
+                      }`}
+                  </span>
+                </Group>
+              </Grid.Col>
+              {spellListArray?.map((group, lIndex) => {
+                return (
+                  group.level <= maxSpellLevel && (
+                    <Grid.Col key={lIndex}>
+                      <Collapsible
+                        props={{
+                          trigger: {
+                            title: group.level === 0 ? 'Cantrips' : `Level ${group.level}`,
+                          },
+                        }}
+                      >
+                        <Grid>
+                          {group.spells?.map((spell, sIndex) => {
+                            const spellFound = spellList
+                              ?.flatMap((listObject) => listObject.spells)
+                              ?.find((oSpell) => oSpell && spell.id === oSpell.id)
+                            const cantripFound = cantripsKnown
+                              ?.flatMap((cantripObject) => cantripObject.spells)
+                              ?.find((oSpell) => oSpell && spell.id === oSpell.id)
+                            const fullSpell = spells.find((sSpell) => sSpell.id === spell.id)
+                            const cantripDisabled = cantripsKnownCount === maxCantripsKnown && !cantripFound
+                            const spellDisabled =
+                              spellFound?.alwaysPrepared ||
+                              ((preparesSpells ?
+                                preparedSpellCount >= maxPreparedSpells()
+                              : knownSpellCount >= maxSpellsKnown) &&
+                                !spellFound)
+                            if (fullSpell) {
+                              return (
+                                <Grid.Col key={sIndex}>
+                                  <Collapsible
+                                    props={{
+                                      trigger: {
+                                        title: fullSpell.label,
+                                        titleRight:
+                                          group.level === 0 ?
+                                            <Button
+                                              color={cantripFound != null ? 'danger' : 'primary'}
+                                              onClick={(e) => {
+                                                e.stopPropagation()
+                                                if (cantripFound != null) {
+                                                  handleRemoveSpell(fullSpell, !preparesSpells ? 'known' : 'prepared')
+                                                } else {
+                                                  handleAddSpell(fullSpell, !preparesSpells ? 'known' : 'prepared')
+                                                }
+                                              }}
+                                              disabled={cantripDisabled}
+                                            >
+                                              {cantripFound != null ?
+                                                'Remove'
+                                              : cantripDisabled ?
+                                                '---'
+                                              : 'Add'}
+                                            </Button>
+                                          : <Button
+                                              color={spellFound != null ? 'danger' : 'primary'}
+                                              onClick={(e) => {
+                                                e.stopPropagation()
+                                                if (spellFound != null) {
+                                                  handleRemoveSpell(fullSpell, !preparesSpells ? 'known' : 'prepared')
+                                                } else {
+                                                  handleAddSpell(fullSpell, !preparesSpells ? 'known' : 'prepared')
+                                                }
+                                              }}
+                                              disabled={spellDisabled}
+                                            >
+                                              {spellFound != null ?
+                                                'Remove'
+                                              : spellDisabled ?
+                                                '---'
+                                              : 'Add'}
+                                            </Button>,
+                                      },
+                                    }}
+                                  >
+                                    {fullSpell?.desc && parse(fullSpell?.desc)}
+                                  </Collapsible>
+                                </Grid.Col>
+                              )
+                            }
+                          })}
+                        </Grid>
+                      </Collapsible>
+                    </Grid.Col>
+                  )
+                )
+              })}
+            </Grid>
           </Collapsible>
         </Grid.Col>
       </>

@@ -97,6 +97,7 @@ type EquipmentListItem {
   quote: String
   cost: Cost
   weight: Weight
+  ownerId: ID!
   systemId: ID!
   masterId: String
   rank: Int

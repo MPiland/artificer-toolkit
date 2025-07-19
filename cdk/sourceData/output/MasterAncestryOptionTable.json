@@ -1,0 +1,94 @@
+{
+  "ancestryOptions": [
+    {
+      "label": "Black",
+      "desc": "<p>Acid</p>",
+      "id": "b505a01e-c5fd-4f11-9d68-d57996c97b2a",
+      "features": [
+        "e52b7922-605e-4022-8548-a4d9aff9a77d",
+        "e1d13c20-5698-4dfd-a061-8904a8bfd775"
+      ]
+    },
+    {
+      "label": "Blue",
+      "desc": "<p>Lightning</p>",
+      "id": "956f0927-6b3d-4c21-9521-01b40c9d2cc4",
+      "features": [
+        "f4a30085-8acd-43a5-930f-dcef3562cb78",
+        "20a0a123-e5be-4d89-8c8f-96dc791d2a84"
+      ]
+    },
+    {
+      "label": "Brass",
+      "desc": "<p>Fire</p>",
+      "id": "b47ace26-b338-43fc-a03e-d5a7ef04b2bf",
+      "features": [
+        "1a4c506a-d78b-41ac-8201-d7767cc848a1",
+        "fa032ba4-84ca-4e36-b3d6-420dbaa5ec9e"
+      ]
+    },
+    {
+      "label": "Bronze",
+      "desc": "<p>Lightning</p>",
+      "id": "18b24bf6-f9a3-415c-a34b-9d4d54554fa0",
+      "features": [
+        "0ecea713-f668-4cc2-be5a-d1fb8baa2336",
+        "9ccc4804-2232-4f53-bf61-74466abb168b"
+      ]
+    },
+    {
+      "label": "Copper",
+      "desc": "<p>Acid</p>",
+      "id": "7ad144c3-fc50-409b-9d5d-e2ad6b8e050e",
+      "features": [
+        "67aba724-2311-4418-99ee-b24462f11cae",
+        "a6f1e579-b775-4e85-aaae-af09aeb9c15b"
+      ]
+    },
+    {
+      "label": "Gold",
+      "desc": "<p>Fire</p>",
+      "id": "0525bd8b-14a5-4bbe-babf-b87c723e4ab2",
+      "features": [
+        "677e84f0-7b9a-4e3d-b2c2-2f59cc6497c9",
+        "1b309ebb-b676-4826-85a4-ccfc13c3de22"
+      ]
+    },
+    {
+      "label": "Green",
+      "desc": "<p>Poison</p>",
+      "id": "13c4435d-c01e-4f7b-a4d1-2a1c8f071d3b",
+      "features": [
+        "deaf5841-fbb8-49d6-ab36-67dba1537df8",
+        "e648ebb1-e126-48e8-88c8-66ffec65ff57"
+      ]
+    },
+    {
+      "label": "Red",
+      "desc": "<p>Fire</p>",
+      "id": "1fe6cad2-4b4a-4ac6-894c-df370eb2a280",
+      "features": [
+        "fb063d31-2d68-4ef2-8be3-bd27db518700",
+        "3e8a54ea-c372-4e18-a431-d3b1eb3b235a"
+      ]
+    },
+    {
+      "label": "Silver",
+      "desc": "<p>Cold</p>",
+      "id": "5fd15cf7-77a0-4c9c-9342-56e59017d709",
+      "features": [
+        "f9272c08-368c-4967-b494-baaf564ea998",
+        "00f55970-77af-49b8-8c74-5b5f0d3f7c1b"
+      ]
+    },
+    {
+      "label": "White",
+      "desc": "<p>Cold</p>",
+      "id": "f4a6e38b-3174-47ea-98c9-446c1797bd14",
+      "features": [
+        "70f300f7-4efa-4127-9c8a-3307b430574c",
+        "3765622a-c4b7-4bed-948b-3292c64adc99"
+      ]
+    }
+  ]
+}

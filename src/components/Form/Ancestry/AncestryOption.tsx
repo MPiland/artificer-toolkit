@@ -1,18 +1,18 @@
-import Collapsible from '@/components/Collapsible'
+import Collapsible from '@/components/Collapse'
 import Accordion from '@/components/Accordion'
 import parse from 'html-react-parser'
 import type { AncestryOption } from '@/types'
 import { Grid, Button } from '@mantine/core'
-import { feature_description, useAppForm } from '@/components/Form'
+import { description, useAppForm } from '@/components/Form'
 import { FeatureInputSchema, AncestryOptionInputSchema } from '@/schemas'
-import { useAncestryStore, useFeatureStore } from '@/store'
+import { useAncestryOptionStore, useFeatureStore } from '@/store'
 import { useStore } from '@tanstack/react-form'
 import { v4 as uuidv4 } from 'uuid'
 import { sprinkles } from '@/css/sprinkles.css'
 import { useFeatureData, useFieldUpdates } from '@/hooks'
 
 const AncestryOption = () => {
-  const ancestryStore = useAncestryStore()
+  const ancestryStore = useAncestryOptionStore()
 
   const form = useAppForm({
     defaultValues: AncestryOptionInputSchema.parse(ancestryStore.current),
@@ -71,13 +71,10 @@ const AncestryOption = () => {
         )}
       </AppField>
       <Grid.Col>
-        <Collapsible>
-          <Collapsible.Trigger title='Ancestry Option Description' />
-          <Collapsible.Content>
-            <AppField name='desc' listeners={fieldListeners}>
-              {({ RichTextField }) => <RichTextField />}
-            </AppField>
-          </Collapsible.Content>
+        <Collapsible props={{ trigger: { title: 'Ancestry Option Description' } }}>
+          <AppField name='desc' listeners={fieldListeners}>
+            {({ RichTextField }) => <RichTextField />}
+          </AppField>
         </Collapsible>
       </Grid.Col>
       <Grid.Col>
@@ -86,18 +83,18 @@ const AncestryOption = () => {
         </Button>
       </Grid.Col>
       <AppField name='features' mode='array'>
-        {({ state, AccordionField, removeValue }) =>
-          state.value?.length && (
+        {(features) =>
+          features.state.value?.length && (
             <Grid.Col>
-              <AccordionField>
-                {state.value?.map((f, i) => {
+              <Accordion dataArray={features.state.value} onChange={(dataArray) => features.handleChange(dataArray as string[])}>
+                {features.state.value?.map((f, i) => {
                   const feature = findFeature(f)
                   if (feature) {
                     return (
                       <Accordion.Item key={`${i}-ancestry-option-feature`} itemId={String(i)} value={feature.id}>
                         <Accordion.Trigger
                           removeFn={() => {
-                            removeValue(i)
+                            features.removeValue(i)
                             ancestryStore.removeField({ path: `features.${i}` })
                           }}
                           editFn={() => handleEditFeature(i)}
@@ -106,7 +103,7 @@ const AncestryOption = () => {
                         </Accordion.Trigger>
                         {feature.desc && (
                           <Accordion.Content>
-                            <div className={feature_description}>
+                            <div className={description}>
                               <div>{feature?.desc && parse(feature.desc)}</div>
                             </div>
                           </Accordion.Content>
@@ -115,7 +112,7 @@ const AncestryOption = () => {
                     )
                   }
                 })}
-              </AccordionField>
+              </Accordion>
             </Grid.Col>
           )
         }

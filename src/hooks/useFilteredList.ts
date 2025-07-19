@@ -1,18 +1,34 @@
 import { useMemo } from 'react'
 import { get } from 'lodash'
 import { useFilterStore, type StoreFormType } from '@/store'
-import type { ListItemType } from '@/types'
+import type { ListItemType, MetaDataType } from '@/types'
+import type { FilterConfig, FilterDataType } from '@/components/List'
+import type { MetaDataItem } from './useMetaData'
 
-interface UseFilteredListProps {
+interface UseFilteredListProps<T extends FilterDataType, K extends MetaDataType> {
   data: ListItemType[] | null | undefined
   context: StoreFormType | null | undefined
+  metaData?: MetaDataType
+  filterConfigs?: FilterConfig<T, K>[]
 }
+
+const metaKey = {
+  spells: 'spellIds',
+  equipment: 'equipmentIds',
+  classes: 'classIds',
+  races: 'raceIds',
+} as const
 
 /**
  * Custom hook for filtering data based on filter state
  * @returns The filtered data array
  */
-const useFilteredList = ({ data, context }: UseFilteredListProps): ListItemType[] => {
+const useFilteredList = <T extends FilterDataType, K extends MetaDataType>({
+  data,
+  context,
+  metaData,
+  filterConfigs,
+}: UseFilteredListProps<T, K>): ListItemType[] => {
   // Get the filter state directly from the store
   const { filters } = useFilterStore((state) => state)
 
@@ -20,7 +36,7 @@ const useFilteredList = ({ data, context }: UseFilteredListProps): ListItemType[
   return useMemo(() => {
     // Early return conditions
     if (!data) return []
-    if (!context || !filters || !filters[context]) return data
+    if (!context || !filters || !filters[context] || !filterConfigs || !metaData) return data
 
     const currentFilters = filters[context]
 
@@ -38,50 +54,56 @@ const useFilteredList = ({ data, context }: UseFilteredListProps): ListItemType[
           return true
         }
 
-        // Get the item value at this path
-        const itemValue = get(item, path)
+        if (path === 'label') {
+          return item.label.toLowerCase().includes((value as string).toLowerCase())
+        }
 
-        // If the item doesn't have this path, it doesn't match
-        if (itemValue === undefined) return false
+        const metaPath = filterConfigs.find((c) => c.path === path)?.options?.metaPath
+
+        if (!metaPath) return true
+
+        const metaArray: MetaDataItem[] = get(metaData, metaPath)
 
         // Handle array values (like from multi-select)
         if (Array.isArray(value)) {
-          // If the item value is an array, check if any filter value matches any item value
-          if (Array.isArray(itemValue)) {
-            return value.some((v) => itemValue.some((iv) => valuesMatch(iv, v)))
-          }
+          const metaIds = metaArray
+            .filter((metaObject) => value.includes(metaObject.id))
+            .flatMap((metaObject) => metaObject[metaKey[context]])
 
-          // If the item value is not an array, check if any filter value matches it
-          return value.some((v) => valuesMatch(itemValue, v))
+          if (!metaIds.length) return false
+
+          return metaIds.includes(item.id)
         }
 
         // Handle string values (like from text inputs)
         if (typeof value === 'string') {
-          // For string item values, check if it includes the filter value
-          if (typeof itemValue === 'string') {
-            return itemValue.toLowerCase().includes(value.toLowerCase())
-          }
+          const metaIds = metaArray
+            .filter((metaObject) => metaObject.id === value)
+            .flatMap((metaObject) => metaObject[metaKey[context]])
 
-          // For number item values, convert to string and check
-          if (typeof itemValue === 'number') {
-            return String(itemValue).toLowerCase().includes(value.toLowerCase())
-          }
-
-          return false
+          return metaIds.includes(item.id)
         }
 
-        // For other value types, do a direct comparison
-        return valuesMatch(itemValue, value)
+        // For number item values, convert to string and check
+        if (typeof value === 'number') {
+          const metaIds = metaArray
+            .filter((metaObject) => metaObject.id === String(value))
+            .map((metaObject) => metaObject[metaKey[context]])
+
+          return metaIds.includes(get(item, path))
+        }
+
+        return false
       })
     })
-  }, [data, context, filters])
+  }, [data, context, filters, filterConfigs, metaData])
 }
 
 /**
  * Extract all paths and their values from a nested object
  * Example: { damage: { primary: { id: ['cold'] } } } becomes [['damage.primary.id', ['cold']]]
  */
-function extractPathsAndValues(obj: any, basePath = ''): [string, any][] {
+function extractPathsAndValues(obj: object, basePath = ''): [string, unknown][] {
   return Object.entries(obj).flatMap(([key, value]) => {
     const currentPath = basePath ? `${basePath}.${key}` : key
 
@@ -93,25 +115,6 @@ function extractPathsAndValues(obj: any, basePath = ''): [string, any][] {
     // Otherwise, return this path and its value
     return [[currentPath, value]]
   })
-}
-
-/**
- * Helper function to check if two values match, handling type conversions
- */
-function valuesMatch(a: any, b: any): boolean {
-  // Direct equality
-  if (a === b) return true
-
-  // String equality
-  if (String(a) === String(b)) return true
-
-  // Number equality (string to number)
-  if (typeof a === 'string' && typeof b === 'number' && Number(a) === b) return true
-
-  // Number equality (number to string)
-  if (typeof a === 'number' && typeof b === 'string' && a === Number(b)) return true
-
-  return false
 }
 
 export default useFilteredList

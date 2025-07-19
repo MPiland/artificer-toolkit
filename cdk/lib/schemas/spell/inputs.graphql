@@ -60,7 +60,7 @@ input SpellInput {
   duration: DurationInput!
   damage: DamageInput
   materialDesc: String
-  ownerId: String
+  ownerId: ID
   systemId: ID!
   masterId: String
 }

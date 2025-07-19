@@ -109,7 +109,7 @@ type CharacterFeatureOption {
 }
 
 type CharacterFeature {
-  id: ID
+  id: ID!
   options: [CharacterFeatureOption!]
   classId: ID
   raceId: ID
@@ -342,7 +342,7 @@ type Character {
   expertise: [CharacterExpertise!]
   modifiers: [CharacterModifier!]
   senses: [CharacterSense!]
-  ownerId: String!
+  ownerId: ID!
   systemId: String!
 }
 

@@ -5,6 +5,9 @@ input FeatureFeatInput {
   selectionCount: Int
   subtype: ID
   prerequisites: PrerequisiteInput
+  ownerId: ID!
+  systemId: ID!
+  masterId: String
 }
 
 input BatchFeatureFeatsInput {

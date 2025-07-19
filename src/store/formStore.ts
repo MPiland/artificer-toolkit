@@ -1,44 +1,65 @@
-import { create } from 'zustand'
+import { create, type StoreApi, type UseBoundStore } from 'zustand'
 import { FormDataType, Step } from '@/types'
 import { updateField, removeField } from './utils'
 import { persist } from 'zustand/middleware'
+import { useFeatureStore } from './featureStore'
+import { useFeatureOptionStore } from './featureOptionStore'
+import { useFeatureSpellStore } from './featureSpellStore'
+import { useFeatureFeatStore } from './featureFeatStore'
+import { useFeatureSenseStore } from './featureSenseStore'
+import { useFeatureProficiencyStore } from './featureProficiencyStore'
+import { useFeatureExpertiseStore } from './featureExpertiseStore'
+import { useFeatureModifierStore } from './featureModifierStore'
+import { useAncestryOptionStore } from './ancestryOptionStore'
+import { set as lSet } from 'lodash'
 
-export interface FormStore {
-  current: FormDataType | null
-  resetState: FormDataType | null
+export interface FormStore<T extends FormDataType> {
+  current: T | null
   saving: boolean
   stepIndex: number
-  steps: (Step & { isTouched: boolean; isValid: boolean; reset: () => void })[]
+  steps: (Step & {
+    reset: (values?: Partial<T>) => void
+    fieldValidation?: Record<string, boolean>
+    defaultValues?: Partial<T>
+  })[]
   addClass: boolean
   changeRace: boolean
-  setCurrent: (arg: FormDataType | null) => void
-  setResetState: (arg: FormDataType | null) => void
+  formReset: () => void
+  setCurrent: (arg: T | null) => void
   setAddClass: (arg: boolean) => void
   setChangeRace: (arg: boolean) => void
   setSaving: (arg: boolean) => void
   setStepIndex: (arg: number) => void
   setSteps: (arg: Step[]) => void
   registerForm: (reset: () => void) => void
-  setValidForm: (isValid: boolean) => void
-  setTouchedForm: (isTouched: boolean) => void
+  updateDefaultValues: ({ path, value }: { path: string; value: unknown }) => void
+  setFieldValidation: (args: { fieldName: string; isValid: boolean }) => void
   updateField(arg: { path: string; value: unknown }): void
   removeField(arg: { path: string }): void
+  reset: () => void
 }
 
-export const useFormStore = create<FormStore>()(
+export const useFormStore = create<FormStore<FormDataType>>()(
   persist(
     (set) => {
       return {
         current: null,
-        resetState: null,
         saving: false,
         stepIndex: 0,
         steps: [],
         addClass: false,
         changeRace: false,
-        validSteps: null,
+        formReset: () =>
+          set((state) => {
+            const values = state.steps[state.stepIndex].defaultValues
+            const newCurrentState = { ...state.current, ...values } as FormDataType
+            state.steps[state.stepIndex].reset(newCurrentState)
+            return {
+              ...state,
+              current: newCurrentState,
+            }
+          }),
         setCurrent: (value) => set((state) => ({ ...state, current: value })),
-        setResetState: (value) => set((state) => ({ ...state, resetState: value })),
         setAddClass: (value) => set((state) => ({ ...state, addClass: value })),
         setChangeRace: (value) => set((state) => ({ ...state, changeRace: value })),
         setStepIndex: (value) => set((state) => ({ ...state, stepIndex: value })),
@@ -48,44 +69,54 @@ export const useFormStore = create<FormStore>()(
             const stepArray = state.steps.filter((s) => value.some((step) => step.id === s.id))
             value.forEach((step) => {
               if (!stepArray.some((s) => s.id === step.id)) {
-                stepArray.push({ ...step, isTouched: false, isValid: true, reset: () => undefined })
+                stepArray.push({
+                  ...step,
+                  reset: () => undefined,
+                  fieldValidation: undefined,
+                  defaultValues: undefined,
+                })
               }
             })
             return { ...state, steps: stepArray }
           }),
-        registerForm: (value) =>
+        registerForm: (reset) =>
           set((state) => {
             const stepArray = state.steps.map((step) => {
               if (step.id === state.steps[state.stepIndex].id) {
                 return {
                   ...step,
-                  reset: value,
+                  reset,
                 }
               }
               return step
             })
             return { ...state, steps: stepArray }
           }),
-        setValidForm: (value) =>
+        setFieldValidation: ({ fieldName, isValid }) =>
           set((state) => {
             const stepArray = state.steps.map((step) => {
               if (step.id === state.steps[state.stepIndex].id) {
                 return {
                   ...step,
-                  isValid: value,
+                  fieldValidation: step.fieldValidation ? {
+                    ...step.fieldValidation,
+                    [fieldName]: isValid,
+                  } : undefined,
                 }
               }
               return step
             })
             return { ...state, steps: stepArray }
           }),
-        setTouchedForm: (value) =>
+        updateDefaultValues: ({ path, value }) =>
           set((state) => {
             const stepArray = state.steps.map((step) => {
               if (step.id === state.steps[state.stepIndex].id) {
+                const defaultValues = { ...step.defaultValues }
+                lSet(defaultValues, path, value)
                 return {
                   ...step,
-                  isTouched: value,
+                  defaultValues,
                 }
               }
               return step
@@ -94,7 +125,7 @@ export const useFormStore = create<FormStore>()(
           }),
         updateField: ({ path, value }) =>
           set((state) =>
-            updateField<FormStore, FormDataType>({
+            updateField<FormStore<FormDataType>, FormDataType>({
               path,
               value,
               selector: (state) => state.current as FormDataType,
@@ -102,11 +133,24 @@ export const useFormStore = create<FormStore>()(
           ),
         removeField: ({ path }) =>
           set((state) =>
-            removeField<FormStore, FormDataType>({
+            removeField<FormStore<FormDataType>, FormDataType>({
               path,
               selector: (state) => state.current as FormDataType,
             })(state)
           ),
+        reset: () => {
+          set((state) => ({ ...state, steps: [], current: null, stepIndex: 0, addClass: false, changeRace: false }))
+          useFeatureStore.getState().reset()
+          useFeatureOptionStore.getState().reset()
+          useFeatureSenseStore.getState().reset()
+          useFeatureSpellStore.getState().reset()
+          useFeatureFeatStore.getState().reset()
+          useFeatureSenseStore.getState().reset()
+          useFeatureProficiencyStore.getState().reset()
+          useFeatureExpertiseStore.getState().reset()
+          useFeatureModifierStore.getState().reset()
+          useAncestryOptionStore.getState().reset()
+        },
       }
     },
     {
@@ -114,3 +158,9 @@ export const useFormStore = create<FormStore>()(
     }
   )
 )
+
+export type UseFormStore<T extends FormDataType> = UseBoundStore<StoreApi<FormStore<T>>>
+
+export function useTypedFormStore<T extends FormDataType>() {
+  return useFormStore as unknown as UseFormStore<T>
+}

@@ -53,7 +53,7 @@ export const fetchSystems = () => {
         }
         return []
       } catch (error) {
-        console.error('Error fetching systems:', error)
+        console.log('Error fetching systems:', error)
         return []
       }
     },
@@ -91,7 +91,7 @@ export const fetchSystem = (systemPref: string) => {
           return data.getSystem
         }
       } catch (error) {
-        console.error('Error fetching systems:', error)
+        console.log('Error fetching system:', error)
         return null
       }
     },

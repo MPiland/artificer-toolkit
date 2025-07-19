@@ -3,7 +3,6 @@ import { ModalContext } from './ModalContext'
 import Alert from '@/components/Alert'
 import Delete from '@/components/Delete'
 import Copy from '@/components/Copy'
-import Modal from './Modal'
 import type {
   ListItemType,
   BackgroundListItem,
@@ -15,6 +14,7 @@ import type {
 import { AddSection, SECTION_STEPS } from '@/components/Form'
 import Loading from '../Loading'
 import Hitpoints from '../Hitpoints/Hitpoints'
+import { Modal } from '@mantine/core'
 
 type ModalType = 'alert' | 'delete' | 'copy' | 'addSection' | 'loading' | 'hitpoints'
 
@@ -95,8 +95,11 @@ export type ModalPropsByType = {
 }
 
 const useModalOptions = () => {
+  const [size, setSize] = useState<'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'auto'>('auto')
+  const [title, setTitle] = useState<string | null>(null)
   const [modalType, setModalType] = useState<ModalType | null>(null)
   const [modalProps, setModalProps] = useState<ModalPropsByType[ModalType] | null>(null)
+  const [withCloseButton, setWithCloseButton] = useState<boolean>(true)
 
   const showModal = <T extends ModalType>({ type, props }: ShowModal<T>) => {
     setModalType(type)
@@ -122,16 +125,41 @@ const useModalOptions = () => {
     hideModal,
     modalType,
     modalProps,
+    setModalProps,
     modalTypes,
+    size,
+    setSize,
+    title,
+    setTitle,
+    withCloseButton,
+    setWithCloseButton,
   }
 }
 
 const ModalProvider = ({ children }: { children: ReactNode }) => {
-  const { showModal, hideModal, modalType, modalProps, modalTypes } = useModalOptions()
+  const modalOptions = useModalOptions()
+  const { hideModal, modalType, modalProps, modalTypes, size, title, withCloseButton } = modalOptions
+
+  const handleClose = () => {
+    if (modalProps && 'onClose' in modalProps && modalProps.onClose && typeof modalProps.onClose === 'function') {
+      modalProps.onClose()
+    }
+    hideModal()
+  }
+
   return (
-    <ModalContext value={{ showModal, hideModal, modalType, modalProps, modalTypes }}>
+    <ModalContext value={modalOptions}>
       {children}
-      {modalType !== null && <Modal>{modalTypes[modalType]}</Modal>}
+      <Modal
+        opened={modalType !== null}
+        onClose={handleClose}
+        title={title}
+        size={size}
+        withCloseButton={withCloseButton}
+        centered
+      >
+        {modalTypes[modalType!]}
+      </Modal>
     </ModalContext>
   )
 }

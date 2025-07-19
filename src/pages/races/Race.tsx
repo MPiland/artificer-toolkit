@@ -1,9 +1,9 @@
 import parse from 'html-react-parser'
 import Detail from '@/components/Detail'
 import { Fragment } from 'react'
-import { race_section_divider } from '@/pages/races/Race.css'
 import { Route } from '@/routes/_protected/races/$raceId'
 import { useFeatureData, useRaceData } from '@/hooks'
+import { sprinkles } from '@/css/sprinkles.css'
 
 const Race = () => {
   const raceId = Route.useParams({ select: (r) => r.raceId })
@@ -27,14 +27,22 @@ const Race = () => {
         race.details.map((d, dI) => (
           <Fragment key={`${dI}-race-detail`}>
             <h1>{d?.label}</h1>
-            <hr className={race_section_divider} />
+            <hr
+              className={sprinkles({
+                width: 'size-full',
+              })}
+            />
             {d?.desc && parse(d?.desc)}
           </Fragment>
         ))}
       {race?.traits?.details?.length && (
         <>
           <h1>Traits</h1>
-          <hr className={race_section_divider} />
+          <hr
+            className={sprinkles({
+              width: 'size-full',
+            })}
+          />
           {race.traits.details.map((d, dI) => (
             <Fragment key={`${dI}-race-trait-detail`}>
               <h2>{d?.label}</h2>
@@ -66,21 +74,33 @@ const Race = () => {
             subrace && (
               <Fragment key={`${sI}-subrace`}>
                 <h2>{subrace.label}</h2>
-                <hr className={race_section_divider} />
+                <hr
+                  className={sprinkles({
+                    width: 'size-full',
+                  })}
+                />
                 <div>{subrace?.desc && parse(subrace.desc)}</div>
                 {subrace.details &&
                   subrace.details?.length > 0 &&
                   subrace.details.map((d, dI) => (
                     <Fragment key={`${dI}-subrace-detail`}>
                       <h1>{d?.label}</h1>
-                      <hr className={race_section_divider} />
+                      <hr
+                        className={sprinkles({
+                          width: 'size-full',
+                        })}
+                      />
                       {d?.desc && parse(d?.desc)}
                     </Fragment>
                   ))}
                 {subrace?.traits?.details?.length && (
                   <>
                     <h1>Traits</h1>
-                    <hr className={race_section_divider} />
+                    <hr
+                      className={sprinkles({
+                        width: 'size-full',
+                      })}
+                    />
                     {subrace.traits.details.map((d, dI) => (
                       <Fragment key={`${dI}-subrace-trait-detail`}>
                         <h2>{d?.label}</h2>

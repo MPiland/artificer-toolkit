@@ -3,15 +3,32 @@ import { useAppForm } from '@/components/Form'
 import { Grid } from '@mantine/core'
 import { CharacterInputSchema } from '@/schemas'
 import { useFormStore } from '@/store'
+import type { CharacterInput } from '@/types'
+import { useEffect } from 'react'
 
 const ClassesStep = () => {
   const formStore = useFormStore()
 
   const form = useAppForm({
-    defaultValues: CharacterInputSchema.parse(formStore.current),
+    defaultValues: CharacterInputSchema.parse(formStore.current as CharacterInput),
   })
 
   const { AppField } = form
+
+  useEffect(() => {
+    if (!formStore.steps[formStore.stepIndex].reset) {
+      formStore.registerForm(form.reset)
+    }
+  }, [form.reset, formStore, form])
+
+  useEffect(() => {
+    return form.store.subscribe((state) => {
+      const isValid = state.currentVal.isValid
+      if (formStore.steps[formStore.stepIndex].isValid !== isValid) {
+        formStore.setValidForm(isValid)
+      }
+    })
+  }, [formStore, form.store])
 
   return (
     <Grid>

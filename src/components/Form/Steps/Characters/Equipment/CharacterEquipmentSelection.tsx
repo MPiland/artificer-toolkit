@@ -15,7 +15,7 @@ type CharacterEquipmentSelectionProps = {
 }
 
 const CharacterEquipmentSelection = withFieldGroup({
-  defaultValues: [] as StartingEquipmentGroupInput[],
+  defaultValues: [] as StartingEquipmentGroupInput[] | null | undefined,
   props: {
     groupIndex: 0,
     equipmentGroups: undefined,

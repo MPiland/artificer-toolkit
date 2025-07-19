@@ -6,7 +6,7 @@ import { Grid } from '@mantine/core'
 import { LimitUse, Prerequisites, useAppForm } from '@/components/Form'
 import { SpellsByLevelInputSchema, FeatureSpellInputSchema } from '@/schemas'
 import { useStore } from '@tanstack/react-form'
-import { useFormStore, useSpellStore } from '@/store'
+import { useFormStore, useFeatureSpellStore } from '@/store'
 
 type SpellsProps = {
   category?: string
@@ -14,7 +14,7 @@ type SpellsProps = {
 }
 
 const Spells = ({ category, subtypes }: SpellsProps) => {
-  const spellStore = useSpellStore()
+  const spellStore = useFeatureSpellStore()
 
   const form = useAppForm({
     defaultValues: FeatureSpellInputSchema.parse(spellStore.current),
@@ -113,6 +113,21 @@ const Spells = ({ category, subtypes }: SpellsProps) => {
       form.setFieldValue('spellsByLevel', [spellsByLevelObject])
     }
   }, [formSpellsByLevel, spellsByLevel, form])
+
+  useEffect(() => {
+    if (!spellStore.formReset) {
+      spellStore.registerFormReset(form.reset)
+    }
+  }, [form.reset, spellStore])
+
+  useEffect(() => {
+    return form.store.subscribe((state) => {
+      const isValid = state.currentVal.isValid
+      if (spellStore.current?.id && spellStore.valid.get(spellStore.current.id) !== isValid) {
+        spellStore.upsertValid(spellStore.current.id, isValid)
+      }
+    })
+  }, [spellStore, form.store])
 
   return (
     <Grid>

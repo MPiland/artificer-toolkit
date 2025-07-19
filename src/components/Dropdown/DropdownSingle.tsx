@@ -1,46 +1,37 @@
 import '@mantine/core/styles/Input.css'
 import { Combobox, InputBase, Input } from '@mantine/core'
-import type { ReactNode, MouseEvent } from 'react'
+import type { ReactNode, MouseEvent, FocusEvent } from 'react'
 import { ChevronDown, X } from 'lucide-react'
 import { DropdownCommonProps } from './Dropdown.types'
-import {
-  dropdown_input,
-  dropdown_label,
-  dropdown_icon,
-  dropdown_wrapper,
-  dropdown,
-} from './Dropdown.css'
+import { input, label as input_label, icon, wrapper, base } from './Dropdown.css'
 import clsx from 'clsx'
-import { useClickOutside } from '@mantine/hooks'
 
 type DropdownSingleProps = {
   value: string | null | undefined
   handleRemoveValue: () => void
-  activeLabel: string | ReactNode
+  activeLabel: { id: string; label: string | ReactNode }
   toggleDropdown: () => void
-  closeDropdown: () => void
   error?: string
 } & DropdownCommonProps
 
 const DropdownSingle = ({
   toggleDropdown,
-  closeDropdown,
   activeLabel,
   placeholder,
   handleRemoveValue,
   label,
   required,
   error,
+  onBlur,
 }: DropdownSingleProps) => {
-  const ref = useClickOutside(() => closeDropdown())
   return (
-    <Combobox.DropdownTarget ref={ref}>
+    <Combobox.DropdownTarget>
       <InputBase
         classNames={{
-          wrapper: clsx(dropdown_wrapper),
-          label: dropdown_label,
-          input: dropdown_input,
-          root: dropdown,
+          wrapper: clsx(wrapper),
+          label: input_label,
+          input: input,
+          root: base,
         }}
         label={label}
         required={required}
@@ -48,27 +39,26 @@ const DropdownSingle = ({
         type='button'
         pointer
         rightSection={
-          activeLabel !== null ?
-            <X
-              className={dropdown_icon}
-              onMouseDown={(event) => event.preventDefault()}
+          activeLabel === null || (Array.isArray(activeLabel) && !activeLabel?.length) ?
+            <ChevronDown className={icon} />
+          : <X
+              className={icon}
               onClick={(event) => {
                 event.stopPropagation()
                 handleRemoveValue()
               }}
               aria-label='Clear value'
             />
-          : <ChevronDown className={dropdown_icon} />
         }
         rightSectionPointerEvents={activeLabel != null ? 'all' : 'none'}
         wrapperProps={{
           onClick: () => toggleDropdown(),
           onMouseDown: (event: MouseEvent<HTMLDivElement>) => event.stopPropagation(),
         }}
-        onBlur={closeDropdown}
+        onBlur={onBlur as ((arg: FocusEvent<HTMLButtonElement>) => void) | undefined}
         error={error}
       >
-        {activeLabel || <Input.Placeholder>{placeholder}</Input.Placeholder>}
+        {activeLabel.label || <Input.Placeholder>{placeholder}</Input.Placeholder>}
       </InputBase>
     </Combobox.DropdownTarget>
   )

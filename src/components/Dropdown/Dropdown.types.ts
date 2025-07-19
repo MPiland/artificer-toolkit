@@ -1,11 +1,12 @@
 import type { ReactElement, FocusEvent } from 'react'
 
+type NotValueKey = { [K in string as K extends 'value' ? never : K]?: unknown }
+
 export type DropdownOption = {
   label: string | number | null | undefined
   id: string
-  [key: string]: unknown
   renderedLabel?: string | number | null | undefined | ReactElement
-}
+} & NotValueKey
 
 export type DropdownCommonProps = {
   placeholder?: string
@@ -20,7 +21,7 @@ export type DropdownProps = {
   className?: string | number | symbol | unknown
   options: DropdownOption[]
   multiselect?: boolean
-  errorMsg?: string
+  error?: string
   id?: string
   all?: boolean
   disableRemove?: boolean

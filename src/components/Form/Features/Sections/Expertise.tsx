@@ -4,7 +4,8 @@ import type { SubtypeInput } from '@/types'
 import { Grid } from '@mantine/core'
 import { FeatureExpertiseInputSchema } from '@/schemas'
 import { getKeyFromId, useAppForm, Prerequisites } from '@/components/Form'
-import { useExpertiseStore, useFormStore } from '@/store'
+import { useFeatureExpertiseStore, useFormStore } from '@/store'
+import { useEffect } from 'react'
 
 type ExpertiseProps = {
   category?: string
@@ -12,7 +13,7 @@ type ExpertiseProps = {
 }
 
 const Expertise = ({ category, subtypes }: ExpertiseProps) => {
-  const expertiseStore = useExpertiseStore()
+  const expertiseStore = useFeatureExpertiseStore()
 
   const form = useAppForm({
     defaultValues: FeatureExpertiseInputSchema.parse(expertiseStore.current),
@@ -30,6 +31,21 @@ const Expertise = ({ category, subtypes }: ExpertiseProps) => {
     | 'FeatInput'
 
   const { AppField, Subscribe } = form
+
+  useEffect(() => {
+    if (!expertiseStore.formReset) {
+      expertiseStore.registerFormReset(form.reset)
+    }
+  }, [form.reset, expertiseStore])
+
+  useEffect(() => {
+    return form.store.subscribe((state) => {
+      const isValid = state.currentVal.isValid
+      if (expertiseStore.current?.id && expertiseStore.valid.get(expertiseStore.current.id) !== isValid) {
+        expertiseStore.upsertValid(expertiseStore.current.id, isValid)
+      }
+    })
+  }, [expertiseStore, form.store])
 
   const { proficiencies, attributes, abilities, skills, equipment: systemEquipment, languages } = useSystemData()
 
@@ -178,7 +194,9 @@ const Expertise = ({ category, subtypes }: ExpertiseProps) => {
         selector={(state) => ({ formAttributes: state.values.attributes, formCategory: state.values.category })}
       >
         {({ formAttributes, formCategory }) => {
-          const { subtypeSpecific, providesOptions, hasPrerequisites } = getAttributes({ attributes: formAttributes })
+          const { subtypeSpecific, providesOptions, hasPrerequisites } = getAttributes({
+            attributes: formAttributes || [],
+          })
           const sectionCategory = proficiencies.categories.findCategory(formCategory)
           return (
             subtypeSpecific &&

@@ -296,7 +296,7 @@ input SystemInput {
   speeds: [GenericTypeInput!]!
   spells: SystemSpellInput!
   terrains: [GenericTypeInput!]!
-  ownerId: String!
+  ownerId: ID!
   masterId: String
 }
 

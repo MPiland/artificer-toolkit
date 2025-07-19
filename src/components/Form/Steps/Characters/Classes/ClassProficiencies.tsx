@@ -1,6 +1,6 @@
-import Collapsible from '@/components/Collapsible'
+import Collapsible from '@/components/Collapse'
 import { startCase } from 'lodash'
-import { feature_card_header, option_dropdown } from '@/components/Form'
+import { card_header, option_dropdown } from '@/components/Form'
 import { numberToWords } from '@/utils'
 import type { CharacterClassInput, CharacterInput, CharacterProficiencyInput } from '@/types'
 import { useGetSections, useGetProficiencies, useClassData, useFieldUpdates } from '@/hooks'
@@ -11,15 +11,11 @@ import { CharacterProficiencyInputSchema, FeatureProficiencyInputSchema } from '
 import { useStore, type DeepKeys } from '@tanstack/react-form'
 import { useFormStore } from '@/store'
 
-const defaultValues: {
-  proficiencies?: CharacterProficiencyInput[]
-  classInput?: CharacterClassInput
-} = {
-  proficiencies: undefined,
-  classInput: undefined,
-}
 const ClassProficiencies = withFieldGroup({
-  defaultValues,
+  defaultValues: {
+    proficiencies: [] as CharacterProficiencyInput[] | null | undefined,
+    classInput: {} as CharacterClassInput | null | undefined,
+  },
   props: {
     classIndex: 0,
   },
@@ -197,11 +193,15 @@ const ClassProficiencies = withFieldGroup({
 
     return (
       <Grid.Col>
-        <Collapsible>
-          <Collapsible.Trigger title='Proficiencies' className={feature_card_header} />
-          <Collapsible.Content>
-            <Grid>{dropdowns}</Grid>
-          </Collapsible.Content>
+        <Collapsible
+          props={{
+            trigger: {
+              title: 'Proficiencies',
+              className: card_header,
+            },
+          }}
+        >
+          <Grid>{dropdowns}</Grid>
         </Collapsible>
       </Grid.Col>
     )

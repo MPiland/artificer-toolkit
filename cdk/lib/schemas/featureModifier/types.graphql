@@ -44,6 +44,9 @@ type FeatureModifier {
   spell: ID
   spellCategory: ID
   prerequisites: Prerequisite
+  ownerId: ID!
+  systemId: ID!
+  masterId: String
 }
 
 type FeatureModifierConnection {

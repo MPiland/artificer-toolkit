@@ -87,7 +87,7 @@ export const fetchAllEquipment = (systemPref: string) => {
         }
         return allData
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -121,7 +121,7 @@ export const fetchSingleEquipment = (id: string) => {
           return data.getEquipment
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -156,7 +156,7 @@ export const useAddNewEquipmentMutation = () => {
           return data.createEquipment
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -197,7 +197,7 @@ export const useUpdateEquipmentMutation = () => {
           return data.updateEquipment
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -237,7 +237,7 @@ export const useDeleteEquipmentMutation = () => {
           return data.deleteEquipment
         }
       } catch (err) {
-        console.error(err)
+        console.log(err)
         throw err
       }
     },

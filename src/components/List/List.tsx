@@ -1,11 +1,10 @@
-import '@mantine/core/styles/Group.css'
 import { useCallback, useRef, useState, use, useMemo } from 'react'
 import clsx from 'clsx'
-import { list, list_title_button_container, list_title_container, list_layout_icon } from './List.css'
+import { base, title_button_container } from './List.css'
 import type { FilterConfig, FilterDataType, FooterConfig } from './List.types'
 import { useMediaQuery } from 'usehooks-ts'
 import { type UseMutationResult } from '@tanstack/react-query'
-import { Outlet, useNavigate, Link, useMatches } from '@tanstack/react-router'
+import { Outlet, useNavigate, useMatches } from '@tanstack/react-router'
 import { startCase } from 'lodash'
 import type { Maybe, FormDataType, FormType, ListItemType, MetaDataType, SourceDataType } from '@/types'
 import { useVirtualizer } from '@tanstack/react-virtual'
@@ -20,6 +19,9 @@ import { PlusIcon, Copy, LayoutGrid, List as ListIcon } from 'lucide-react'
 import { Group, ScrollArea, Divider } from '@mantine/core'
 import { Button } from '@mantine/core'
 import { discriminatedDomainInputSchema } from '@/schemas'
+import Link from '@/components/Link'
+import { useMantineColorScheme } from '@mantine/core'
+import { vars } from '@/css/theme'
 
 interface ListProps<T extends ListItemType, K extends MetaDataType, U extends FilterDataType> {
   className?: string
@@ -40,6 +42,7 @@ const List = <T extends ListItemType, K extends MetaDataType, U extends FilterDa
   filterConfigs,
 }: ListProps<T, K, U>) => {
   const navigate = useNavigate()
+  const { colorScheme } = useMantineColorScheme()
   const sm = useMediaQuery('screen and (max-width: 567px)')
   const { showModal } = use(ModalContext)
   const formStore = useFormStore()
@@ -47,7 +50,7 @@ const List = <T extends ListItemType, K extends MetaDataType, U extends FilterDa
   const form = useMatches({ select: (m) => m[m.length - 1].context.form?.type }) as FormType
 
   const routeNav = useRouteNavigation(form)
-  const filteredData = useFilteredList({ data, context: form as keyof FilterState })
+  const filteredData = useFilteredList({ data, context: form as keyof FilterState, metaData, filterConfigs })
 
   const listRef = useRef<HTMLDivElement>(null)
   const parentRef = useRef<HTMLDivElement>(null)
@@ -112,38 +115,61 @@ const List = <T extends ListItemType, K extends MetaDataType, U extends FilterDa
 
   return (
     <>
-      <div className={list_title_container}>
-        <h2>{startCase(form)}</h2>
-        <div className={list_title_button_container}>
-          <Button variant='outline' onClick={handleCopy}>
-            {<Copy />} {!sm && ' Copy'}
-          </Button>
-          <Link {...routeNav.new}>
-            {<PlusIcon />} {!sm && ' Create'}
-          </Link>
-        </div>
-      </div>
-      <Divider />
-      <Group justify='space-between' align='flex-end' className={sprinkles({ mb: 'space-4' })}>
-        {filterConfigs && (
-          <Group grow align='flex-end' className={sprinkles({ flex: '1' })}>
-            <Filter context={form as keyof FilterState} metaData={metaData} filterConfigs={filterConfigs} />
-          </Group>
-        )}
-        <Group justify='flex-end' align='flex-end'>
+      <Group>
+        <h2 className={sprinkles({ w: 'size-full' })}>{startCase(form)}</h2>
+        <Group justify='space-between' w='100%'>
           {!sm && !subItems.length && (
-            <>
-              <LayoutGrid onClick={() => setView('grid')} className={list_layout_icon} />
-              <ListIcon onClick={() => setView('list')} className={list_layout_icon} />
-            </>
+            <Group justify='flex-end' align='flex-end'>
+              <Button
+                variant='subtle'
+                color={colorScheme === 'dark' ? vars.colors.blue[3] : vars.colors.dark[4]}
+                onClick={() => setView('grid')}
+                size='compact-md'
+              >
+                <LayoutGrid />
+              </Button>
+              <Button
+                variant='subtle'
+                color={colorScheme === 'dark' ? vars.colors.blue[3] : vars.colors.dark[4]}
+                onClick={() => setView('list')}
+                size='compact-md'
+              >
+                <ListIcon />
+              </Button>
+            </Group>
           )}
+          <Group className={title_button_container} mb='sm'>
+            <Button
+              variant='subtle'
+              color={colorScheme === 'dark' ? vars.colors.blue[3] : vars.colors.dark[4]}
+              onClick={handleCopy}
+              size='compact-md'
+            >
+              <Copy /> {!sm && <span className={sprinkles({ ms: 'space-2' })}> Copy</span>}
+            </Button>
+            <Link
+              {...routeNav.new}
+              type='styled'
+              variant='subtle'
+              color={colorScheme === 'dark' ? vars.colors.blue[3] : vars.colors.dark[4]}
+              size='compact-md'
+            >
+              <PlusIcon /> {!sm && <span className={sprinkles({ ms: 'space-2' })}> Create</span>}
+            </Link>
+          </Group>
         </Group>
       </Group>
+      <Divider className={sprinkles({ mb: 'space-4' })} />
+      {filterConfigs && (
+        <Group grow align='flex-end' className={sprinkles({ mb: 'space-4' })}>
+          <Filter context={form as keyof FilterState} metaData={metaData} filterConfigs={filterConfigs} />
+        </Group>
+      )}
       {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
-      <ScrollArea viewportRef={parentRef} type='hover' offsetScrollbars='present'>
+      <ScrollArea viewportRef={parentRef} type='hover' offsetScrollbars='y'>
         <div
           ref={listRef}
-          className={clsx({ [className || '']: className }, list, view)}
+          className={clsx({ [className || '']: className }, base, view)}
           style={{
             height: `${rowVirtualizer.getTotalSize()}px`,
           }}

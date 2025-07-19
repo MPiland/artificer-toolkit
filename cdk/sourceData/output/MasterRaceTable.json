@@ -1,0 +1,621 @@
+{
+  "races": [
+    {
+      "label": "Dragonborn",
+      "quote": "<p>Her father stood on the first of the three stairs that led down from the portal, unmoving. The scales of his face had grown paler around the edges, but Clanless Mehen still looked as if he could wrestle down a dire bear himself. His familiar well-worn armor was gone, replaced by violet-tinted scale armor with bright silvery tracings. There was a blazon on his arm as well, the mark of some foreign house. The sword at his back was the same, though, the one he had carried since even before he had found the twins left in swaddling at the gates of Arush Vayem.</p><p>For all her life, Farideh had known that reading her father’s face was a skill she’d been fortunate to learn. A human who couldn’t spot the shift of her eyes or Havilar’s would certainly see only the indifference of a dragon in Clanless Mehen’s face. But the shift of scales, the arch of a ridge, the set of his eyes, the gape of his teeth—her father’s face spoke volumes.</p><p>But every scale of it, this time, seemed completely still—the indifference of a dragon, even to Farideh.</p><p><em>— Erin M. Evans, The Adversary</em></p>",
+      "details": [
+        {
+          "label": "Proud Dragon Kin",
+          "desc": "<p>Dragonborn look very much like dragons standing erect in humanoid form, though they lack wings or a tail. The first dragonborn had scales of vibrant hues matching the colors of their dragon kin, but generations of interbreeding have created a more uniform appearance. Their small, fine scales are usually brass or bronze in color, sometimes ranging to scarlet, rust, gold, or copper-green. They are tall and strongly built, often standing close to 6½ feet tall and weighing 300 pounds or more. Their hands and feet are strong, talonlike claws with three fingers and a thumb on each hand.</p><p>The blood of a particular type of dragon runs very strong through some dragonborn clans. These dragonborn often boast scales that more closely match those of their dragon ancestor—bright red, green, blue, or white, lustrous black, or gleaming metallic gold, silver, brass, copper, or bronze.</p>"
+        },
+        {
+          "label": "Self-Sufficient Clans",
+          "desc": "<p>To any dragonborn, the clan is more important than life itself. Dragonborn owe their devotion and respect to their clan above all else, even the gods. Each dragonborn’s conduct reflects on the honor of his or her clan, and bringing dishonor to the clan can result in expulsion and exile. Each dragonborn knows his or her station and duties within the clan, and honor demands maintaining the bounds of that position.</p><p>A continual drive for self-improvement reflects the self-sufficiency of the race as a whole. Dragonborn value skill and excellence in all endeavors. They hate to fail, and they push themselves to extreme efforts before they give up on something. A dragonborn holds mastery of a particular skill as a lifetime goal. Members of other races who share the same commitment find it easy to earn the respect of a dragonborn.</p><p>Though all dragonborn strive to be self-sufficient, they recognize that help is sometimes needed in difficult situations. But the best source for such help is the clan, and when a clan needs help, it turns to another dragonborn clan before seeking aid from other races—or even from the gods.</p>"
+        },
+        {
+          "label": "Dragonborn Names",
+          "desc": "<p>Dragonborn have personal names given at birth, but they put their clan names first as a mark of honor. A childhood name or nickname is often used among clutchmates as a descriptive term or a term of endearment. The name might recall an event or center on a habit.</p><p><strong>Male Names:</strong> Arjhan, Balasar, Bharash, Donaar, Ghesh, Heskan, Kriv, Medrash, Mehen, Nadarr, Pandjed, Patrin, Rhogar, Shamash, Shedinn, Tarhun, Torinn</p><p><strong>Female Names:</strong> Akra, Biri, Daar, Farideh, Harann, Havilar, Jheri, Kava, Korinn, Mishann, Nala, Perra, Raiann, Sora, Surina, Thava, Uadjit</p><p><strong>Childhood Names:</strong> Climber, Earbender, Leaper, Pious, Shieldbiter, Zealous</p><p><strong>Clan Names:</strong> Clethtinthiallor, Daardendrian, Delmirev, Drachedandion, Fenkenkabradon, Kepeshkmolik, Kerrhylon, Kimbatuul, Linxakasendalor, Myastan, Nemmonis, Norixius, Ophinshtalajiir, Prexijandilin, Shestendeliath, Turnuroth, Verthisathurgiesh, Yarjerit</p><blockquote><p><strong>DRACONIANS</strong></p><p>In the Dragonlance setting, the followers of the evil goddess Takhisis learned a&nbsp;vile ritual that let them corrupt the eggs of metallic dragons, producing evil dragonborn called draconians. Five types of draconians, corresponding to the five types of metallic dragons, fought for Takhisis in the War of the Lance: auraks (gold), baaz (brass), bozak (bronze), kapak (copper), and sivak (silver). In place of their draconic breath weapons, they have unique magical abilities.</p></blockquote>"
+        }
+      ],
+      "traits": {
+        "speeds": {
+          "climbing": 30,
+          "walking": 30,
+          "swimming": 30,
+          "flying": 0
+        },
+        "details": [
+          {
+            "label": "Age",
+            "desc": "<p>Young dragonborn grow quickly. They walk hours after hatching, attain the size and development of a 10-year-old human child by the age of 3, and reach adulthood by 15. They live to be around 80.</p>"
+          },
+          {
+            "label": "Alignment",
+            "desc": "<p>Dragonborn tend to extremes, making a conscious choice for one side or the other in the cosmic war between good and evil. Most dragonborn are good, but those who side with evil can be terrible villains.</p>"
+          },
+          {
+            "label": "Size",
+            "desc": "<p>Dragonborn are taller and heavier than humans, standing well over 6 feet tall and averaging almost 250 pounds. Your size is Medium.</p>"
+          },
+          {
+            "label": "Speed",
+            "desc": "<p>Your base walking speed is 30 feet.</p>"
+          }
+        ],
+        "size": "10910065-c17e-4994-93d3-f030d9b4c649"
+      },
+      "category": "b62cef0d-a4be-4cfe-94ee-c80a7aaaabc7",
+      "desc": "<p>Born of dragons, as their name proclaims, the dragonborn walk proudly through a world that greets them with fearful incomprehension. Shaped by draconic gods or the dragons themselves, dragonborn originally hatched from dragon eggs as a unique race, combining the best attributes of dragons and humanoids. Some dragonborn are faithful servants to true dragons, others form the ranks of soldiers in great wars, and still others find themselves adrift, with no clear calling in life.</p>",
+      "ancestry": {
+        "desc": "<p>You have draconic ancestry. Choose one type of dragon from the Draconic Ancestry table. Your breath weapon and damage resistance are determined by the dragon type, as shown in the table.</p><table class=\"RichTextEditor_editor_table__1pu01sk8\" style=\"width: 573px\"><colgroup><col style=\"width: 139px\"><col style=\"width: 166px\"><col style=\"width: 268px\"></colgroup><tbody><tr><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p><strong>Dragon</strong></p></th><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"166\" style=\"width: 166px;\"><p><strong>Damage Type</strong></p></th><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"268\" style=\"width: 268px;\"><p><strong>Breath Weapon</strong></p></th></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p><strong>Black</strong></p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"166\" style=\"width: 166px;\"><p>Acid</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"268\" style=\"width: 268px;\"><p>5 by 30 ft. line (Dex. save)</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p><strong>Blue</strong></p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"166\" style=\"width: 166px;\"><p>Lightning</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"268\" style=\"width: 268px;\"><p>5 by 30 ft. line (Dex. save)</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p><strong>Brass</strong></p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"166\" style=\"width: 166px;\"><p>Fire</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"268\" style=\"width: 268px;\"><p>5 by 30 ft. line (Dex. save)</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p><strong>Bronze</strong></p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"166\" style=\"width: 166px;\"><p>Lightning</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"268\" style=\"width: 268px;\"><p>5 by 30 ft. line (Dex. save)</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p><strong>Copper</strong></p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"166\" style=\"width: 166px;\"><p>Acid</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"268\" style=\"width: 268px;\"><p>5 by 30 ft. line (Dex. save)</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p><strong>Gold</strong></p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"166\" style=\"width: 166px;\"><p>Fire</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"268\" style=\"width: 268px;\"><p>15 ft. cone (Dex. save)</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p><strong>Green</strong></p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"166\" style=\"width: 166px;\"><p>Poison</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"268\" style=\"width: 268px;\"><p>15 ft. cone (Con. save)</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p><strong>Red</strong></p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"166\" style=\"width: 166px;\"><p>Fire</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"268\" style=\"width: 268px;\"><p>15 ft. cone (Dex. save)</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p><strong>Silver</strong></p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"166\" style=\"width: 166px;\"><p>Cold</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"268\" style=\"width: 268px;\"><p>15 ft. cone (Con. save)</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p><strong>White</strong></p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"166\" style=\"width: 166px;\"><p>Cold</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"268\" style=\"width: 268px;\"><p>15 ft. cone (Con. save)</p></td></tr></tbody></table><h4><strong>Breath Weapon</strong></h4><p>You can use your action to exhale destructive energy. Your draconic ancestry determines the size, shape, and damage type of the exhalation.</p><p>When you use your breath weapon, each creature in the area of the exhalation must make a saving throw, the type of which is determined by your draconic ancestry. The DC for this saving throw equals 8 + your Constitution modifier + your proficiency bonus. A creature takes 2d6 damage on a failed save, and half as much damage on a successful one. The damage increases to 3d6 at 6th level, 4d6 at 11th level, and 5d6 at 16th level.</p><p>After you use your breath weapon, you can’t use it again until you complete a short or long rest.</p><h4><strong>Damage Resistance</strong></h4><p>You have resistance to the damage type associated with your draconic ancestry.</p>",
+        "label": "Draconic Ancestry",
+        "options": [
+          "b505a01e-c5fd-4f11-9d68-d57996c97b2a",
+          "956f0927-6b3d-4c21-9521-01b40c9d2cc4",
+          "b47ace26-b338-43fc-a03e-d5a7ef04b2bf",
+          "18b24bf6-f9a3-415c-a34b-9d4d54554fa0",
+          "7ad144c3-fc50-409b-9d5d-e2ad6b8e050e",
+          "0525bd8b-14a5-4bbe-babf-b87c723e4ab2",
+          "13c4435d-c01e-4f7b-a4d1-2a1c8f071d3b",
+          "1fe6cad2-4b4a-4ac6-894c-df370eb2a280",
+          "5fd15cf7-77a0-4c9c-9342-56e59017d709",
+          "f4a6e38b-3174-47ea-98c9-446c1797bd14"
+        ]
+      },
+      "playable": "true",
+      "features": [
+        "1d1d72f1-c4bf-4d61-87ad-d03d31aa65ba",
+        "ae2bf895-80a6-4a2f-a1b7-c8287b2a984f"
+      ],
+      "id": "6346dcd3-3a51-4173-a1ef-bba8d94c4806",
+      "ownerId": "master",
+      "createdAt": "2024-09-12T11:05:10.351Z",
+      "updatedAt": "2024-09-12T11:05:10.351Z",
+      "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+    },
+    {
+      "label": "Dwarf",
+      "category": "b62cef0d-a4be-4cfe-94ee-c80a7aaaabc7",
+      "traits": {
+        "speed": {
+          "walking": 25,
+          "swimming": 0,
+          "flying": 0,
+          "climbing": 0
+        },
+        "size": "10910065-c17e-4994-93d3-f030d9b4c649",
+        "details": [
+          {
+            "label": "Age",
+            "desc": "<p>Dwarves mature at the same rate as humans, but they’re considered young until they reach the age of 50. On average, they live about 350 years.</p>"
+          },
+          {
+            "label": "Alignment",
+            "desc": "<p>Most dwarves are lawful, believing firmly in the benefits of a well-ordered society. They tend toward good as well, with a strong sense of fair play and a belief that everyone deserves to share in the benefits of a just order.</p>"
+          },
+          {
+            "label": "Size",
+            "desc": "<p>Dwarves stand between 4 and 5 feet tall and average about 150 pounds. Your size is Medium.</p>"
+          },
+          {
+            "label": "Speed",
+            "desc": "<p>Your base walking speed is 25 feet. Your speed is not reduced by wearing heavy armor.</p>"
+          }
+        ]
+      },
+      "desc": "<blockquote class=\"RichTextEditor_editor_blockquote__1pu01sk7\"><p>“Yer late, elf!” came the rough edge of a familiar voice. Bruenor Battlehammer walked up the back of his dead foe, disregarding the fact that the heavy monster lay on top of his elven friend. In spite of the added discomfort, the dwarf’s long, pointed, often-broken nose and gray-streaked though still-fiery red beard came as a welcome sight to Drizzt. “Knew I’d find ye in trouble if I came out an’ looked for ye!”</p><p><em>— R. A. Salvatore, The Crystal Shard</em></p></blockquote><p>Kingdoms rich in ancient grandeur, halls carved into the roots of mountains, the echoing of picks and hammers in deep mines and blazing forges, a commitment to clan and tradition, and a burning hatred of goblins and orcs—these common threads unite all dwarves.</p>",
+      "details": [
+        {
+          "label": "Short and Stout",
+          "desc": "<p>Bold and hardy, dwarves are known as skilled warriors, miners, and workers of stone and metal. Though they stand well under 5 feet tall, dwarves are so broad and compact that they can weigh as much as a human standing nearly two feet taller. Their courage and endurance are also easily a match for any of the larger folk.</p><p>Dwarven skin ranges from deep brown to a paler hue tinged with red, but the most common shades are light brown or deep tan, like certain tones of earth. Their hair, worn long but in simple styles, is usually black, gray, or brown, though paler dwarves often have red hair. Male dwarves value their beards highly and groom them carefully.</p>"
+        },
+        {
+          "label": "Long Memory, Long Grudges",
+          "desc": "<p>Dwarves can live to be more than 400 years old, so the oldest living dwarves often remember a very different world. For example, some of the oldest dwarves living in Citadel Felbarr (in the world of the Forgotten Realms) can recall the day, more than three centuries ago, when orcs conquered the fortress and drove them into an exile that lasted over 250 years. This longevity grants them a perspective on the world that shorter-lived races such as humans and halflings lack.</p><p>Dwarves are solid and enduring like the mountains they love, weathering the passage of centuries with stoic endurance and little change. They respect the traditions of their clans, tracing their ancestry back to the founding of their most ancient strongholds in the youth of the world, and don’t abandon those traditions lightly. Part of those traditions is devotion to the gods of the dwarves, who uphold the dwarven ideals of industrious labor, skill in battle, and devotion to the forge.</p><p>Individual dwarves are determined and loyal, true to their word and decisive in action, sometimes to the point of stubbornness. Many dwarves have a strong sense of justice, and they are slow to forget wrongs they have suffered. A wrong done to one dwarf is a wrong done to the dwarf’s entire clan, so what begins as one dwarf’s hunt for vengeance can become a full-blown clan feud.</p>"
+        },
+        {
+          "label": "Clans and Kingdoms",
+          "desc": "<p>Dwarven kingdoms stretch deep beneath the mountains where the dwarves mine gems and precious metals and forge items of wonder. They love the beauty and artistry of precious metals and fine jewelry, and in some dwarves this love festers into avarice. Whatever wealth they can’t find in their mountains, they gain through trade. They dislike boats, so enterprising humans and halflings frequently handle trade in dwarven goods along water routes. Trustworthy members of other races are welcome in dwarf settlements, though some areas are off limits even to them.</p><p>The chief unit of dwarven society is the clan, and dwarves highly value social standing. Even dwarves who live far from their own kingdoms cherish their clan identities and affiliations, recognize related dwarves, and invoke their ancestors’ names in oaths and curses. To be clanless is the worst fate that can befall a dwarf.</p><p>Dwarves in other lands are typically artisans, especially weaponsmiths, armorers, and jewelers. Some become mercenaries or bodyguards, highly sought after for their courage and loyalty.</p>"
+        },
+        {
+          "label": "Gods, Gold, and Clan",
+          "desc": "<p>Dwarves who take up the adventuring life might be motivated by a desire for treasure—for its own sake, for a specific purpose, or even out of an altruistic desire to help others. Other dwarves are driven by the command or inspiration of a deity, a direct calling or simply a desire to bring glory to one of the dwarf gods. Clan and ancestry are also important motivators. A dwarf might seek to restore a clan’s lost honor, avenge an ancient wrong the clan suffered, or earn a new place within the clan after having been exiled. Or a dwarf might search for the axe wielded by a mighty ancestor, lost on the field of battle centuries ago.</p><blockquote class=\"RichTextEditor_editor_blockquote__1pu01sk7\"><p><strong>SLOW TO TRUST</strong></p><p>Dwarves get along passably well with most other races. “The difference between an acquaintance and a friend is about a hundred years,” is a dwarf saying that might be hyperbole, but certainly points to how difficult it can be for a member of a short-lived race like humans to earn a dwarf’s trust.</p><p><strong><em>Elves.</em></strong> “It’s not wise to depend on the elves. No telling what an elf will do next; when the hammer meets the orc’s head, they’re as apt to start singing as to pull out a sword. They’re flighty and frivolous. Two things to be said for them, though: They don’t have many smiths, but the ones they have do very fine work. And when orcs or goblins come streaming down out of the mountains, an elf’s good to have at your back. Not as good as a dwarf, maybe, but no doubt they hate the orcs as much as we do.”</p><p><strong><em>Halflings.</em></strong> “Sure, they’re pleasant folk. But show me a halfling hero. An empire, a triumphant army. Even a treasure for the ages made by halfling hands. Nothing. How can you take them seriously?”</p><p><strong><em>Humans.</em></strong> “You take the time to get to know a human, and by then the human’s on her deathbed. If you’re lucky, she’s got kin—a daughter or granddaughter, maybe—who’s got hands and heart as good as hers. That’s when you can make a human friend. And watch them go! They set their hearts on something, they’ll get it, whether it’s a dragon’s hoard or an empire’s throne. You have to admire that kind of dedication, even if it gets them in trouble more often than not.”</p></blockquote>"
+        },
+        {
+          "label": "Dwarf Names",
+          "desc": "<p>A dwarf’s name is granted by a clan elder, in accordance with tradition. Every proper dwarven name has been used and reused down through the generations. A dwarf’s name belongs to the clan, not to the individual. A dwarf who misuses or brings shame to a clan name is stripped of the name and forbidden by law to use any dwarven name in its place.</p><p><strong>Male Names:</strong> Adrik, Alberich, Baern, Barendd, Brottor, Bruenor, Dain, Darrak, Delg, Eberk, Einkil, Fargrim, Flint, Gardain, Harbek, Kildrak, Morgran, Orsik, Oskar, Rangrim, Rurik, Taklinn, Thoradin, Thorin, Tordek, Traubon, Travok, Ulfgar, Veit, Vondal</p><p><strong>Female Names:</strong> Amber, Artin, Audhild, Bardryn, Dagnal, Diesa, Eldeth, Falkrunn, Finellen, Gunnloda, Gurdis, Helja, Hlin, Kathra, Kristryd, Ilde, Liftrasa, Mardred, Riswynn, Sannl, Torbera, Torgga, Vistra</p><p><strong>Clan Names:</strong> Balderk, Battlehammer, Brawnanvil, Dankil, Fireforge, Frostbeard, Gorunn, Holderhek, Ironfist, Loderr, Lutgehr, Rumnaheim, Strakeln, Torunn, Ungart</p>"
+        }
+      ],
+      "playable": "false",
+      "features": [
+        "d5bf9f99-00ee-4606-9c8f-5809212ae3f6",
+        "96fc53d3-c50d-4f90-aad3-68cab0958feb",
+        "6fa93122-5f24-4ac9-b1cc-2a3979f1be79",
+        "065d027f-442e-4d07-80c3-cd611e3fdc3d",
+        "dd5aea3d-16d1-444d-a241-22ce67204643",
+        "36ee71a6-0f44-4c1e-a9bd-a2a5d7a8a906",
+        "57489d6e-3a5e-45a5-96af-7fbffbd2af2f"
+      ],
+      "id": "fb2ed668-5681-4a70-b685-30aedda2c544",
+      "ownerId": "master",
+      "createdAt": "2024-09-12T11:05:10.351Z",
+      "updatedAt": "2024-09-12T11:05:10.351Z",
+      "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+    },
+    {
+      "label": "Hill Dwarf",
+      "category": "75a580dc-6990-4c05-9853-1534c5be77f7",
+      "lineages": [
+        "fb2ed668-5681-4a70-b685-30aedda2c544"
+      ],
+      "desc": "<p>As a hill dwarf, you have keen senses, deep intuition, and remarkable resilience. The gold dwarves of Faerûn in their mighty southern kingdom are hill dwarves, as are the exiled Neidar and the debased Klar of Krynn in the Dragonlance setting.</p>",
+      "features": [
+        "edf9887e-a680-411a-b402-235e9f251a70",
+        "cfff7256-6ad0-4bbf-ac3d-81fc6eed368e"
+      ],
+      "id": "f065f541-e411-4cf5-9c5a-55ff5d27359a",
+      "ownerId": "master",
+      "createdAt": "2024-09-12T11:05:10.351Z",
+      "updatedAt": "2024-09-12T11:05:10.351Z",
+      "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+    },
+    {
+      "label": "Elf",
+      "desc": "<blockquote class=\"RichTextEditor_editor_blockquote__1pu01sk7\"><p>“I have never imagined such beauty existed,” Goldmoon said softly. The day’s march had been difficult, but the reward at the end was beyond their dreams. The companions stood on a high cliff over the fabled city of Qualinost.</p><p>Four slender spires rose from the city’s corners like glistening spindles, their brilliant white stone marbled with shining silver. Graceful arches, swooping from spire to spire, soared through the air. Crafted by ancient dwarven metalsmiths, they were strong enough to hold the weight of an army, yet they appeared so delicate that a bird lighting on them might overthrow the balance. These glistening arches were the city’s only boundaries; there was no wall around Qualinost. The elven city opened its arms lovingly to the wilderness.</p><p>— <em>Margaret Weis &amp; Tracy Hickman, Dragons of Autumn Twilight</em></p></blockquote><p>Elves are a magical people of otherworldly grace, living in the world but not entirely part of it. They live in places of ethereal beauty, in the midst of ancient forests or in silvery spires glittering with faerie light, where soft music drifts through the air and gentle fragrances waft on the breeze. Elves love nature and magic, art and artistry, music and poetry, and the good things of the world.</p>",
+      "category": "b62cef0d-a4be-4cfe-94ee-c80a7aaaabc7",
+      "details": [
+        {
+          "label": "Slender and Graceful",
+          "desc": "<p>With their unearthly grace and fine features, elves appear hauntingly beautiful to humans and members of many other races. They are slightly shorter than humans on average, ranging from well under 5 feet tall to just over 6 feet. They are more slender than humans, weighing only 100 to 145 pounds. Males and females are about the same height, and males are only marginally heavier than females.</p><p>Elves’ coloration encompasses the normal human range and also includes skin in shades of copper, bronze, and almost bluish-white, hair of green or blue, and eyes like pools of liquid gold or silver. Elves have no facial and little body hair. They favor elegant clothing in bright colors, and they enjoy simple yet lovely jewelry.</p>"
+        },
+        {
+          "label": "A Timeless Perspective",
+          "desc": "<p>Elves can live well over 700 years, giving them a broad perspective on events that might trouble the shorter-lived races more deeply. They are more often amused than excited, and more likely to be curious than greedy. They tend to remain aloof and unfazed by petty happenstance. When pursuing a goal, however, whether adventuring on a mission or learning a new skill or art, elves can be focused and relentless. They are slow to make friends and enemies, and even slower to forget them. They reply to petty insults with disdain and to serious insults with vengeance.</p><p>Like the branches of a young tree, elves are flexible in the face of danger. They trust in diplomacy and compromise to resolve differences before they escalate to violence. They have been known to retreat from intrusions into their woodland homes, confident that they can simply wait the invaders out. But when the need arises, elves reveal a stern martial side, demonstrating skill with sword, bow, and strategy.</p>"
+        },
+        {
+          "label": "Hidden Woodland Realms",
+          "desc": "<p>Most elves dwell in small forest villages hidden among the trees. Elves hunt game, gather food, and grow vegetables, and their skill and magic allow them to support themselves without the need for clearing and plowing land. They are talented artisans, crafting finely worked clothes and art objects. Their contact with outsiders is usually limited, though a few elves make a good living by trading crafted items for metals (which they have no interest in mining).</p><p>Elves encountered outside their own lands are commonly traveling minstrels, artists, or sages. Human nobles compete for the services of elf instructors to teach swordplay or magic to their children.</p>"
+        },
+        {
+          "label": "Exploration and Adventure",
+          "desc": "<p>Elves take up adventuring out of wanderlust. Since they are so long-lived, they can enjoy centuries of exploration and discovery. They dislike the pace of human society, which is regimented from day to day but constantly changing over decades, so they find careers that let them travel freely and set their own pace. Elves also enjoy exercising their martial prowess or gaining greater magical power, and adventuring allows them to do so. Some might join with rebels fighting against oppression, and others might become champions of moral causes.</p><blockquote class=\"RichTextEditor_editor_blockquote__1pu01sk7\"><p><strong>HAUGHTY BUT GRACIOUS</strong></p><p>Although they can be haughty, elves are generally gracious even to those who fall short of their high expectations—which is most non-elves. Still, they can find good in just about anyone.</p><p><strong><em>Dwarves.</em></strong> “Dwarves are dull, clumsy oafs. But what they lack in humor, sophistication, and manners, they make up in valor. And I must admit, their best smiths produce art that approaches elven quality.”</p><p><strong><em>Halflings.</em></strong> “Halflings are people of simple pleasures, and that is not a quality to scorn. They’re good folk, they care for each other and tend their gardens, and they have proven themselves tougher than they seem when the need arises.”</p><p><strong><em>Humans.</em></strong> “All that haste, their ambition and drive to accomplish something before their brief lives pass away—human endeavors seem so futile sometimes. But then you look at what they have accomplished, and you have to appreciate their achievements. If only they could slow down and learn some refinement.”</p></blockquote>"
+        },
+        {
+          "label": "Elf Names",
+          "desc": "<p>Elves are considered children until they declare themselves adults, some time after the hundredth birthday, and before this period they are called by child names.</p><p>On declaring adulthood, an elf selects an adult name, although those who knew him or her as a youngster might continue to use the child name. Each elf’s adult name is a unique creation, though it might reflect the names of respected individuals or other family members. Little distinction exists between male names and female names; the groupings here reflect only general tendencies. In addition, every elf bears a family name, typically a combination of other Elvish words. Some elves traveling among humans translate their family names into Common, but others retain the Elvish version.</p><p><strong>Child Names:</strong> Ara, Bryn, Del, Eryn, Faen, Innil, Lael, Mella, Naill, Naeris, Phann, Rael, Rinn, Sai, Syllin, Thia, Vall</p><p><strong>Male Adult Names:</strong> Adran, Aelar, Aramil, Arannis, Aust, Beiro, Berrian, Carric, Enialis, Erdan, Erevan, Galinndan, Hadarai, Heian, Himo, Immeral, Ivellios, Laucian, Mindartis, Paelias, Peren, Quarion, Riardon, Rolen, Soveliss, Thamior, Tharivol, Theren, Varis</p><p><strong>Female Adult Names:</strong> Adrie, Althaea, Anastrianna, Andraste, Antinua, Bethrynna, Birel, Caelynn, Drusilia, Enna, Felosial, Ielenia, Jelenneth, Keyleth, Leshanna, Lia, Meriele, Mialee, Naivara, Quelenna, Quillathe, Sariel, Shanairra, Shava, Silaqui, Theirastra, Thia, Vadania, Valanthe, Xanaphia</p><p><strong>Family Names (Common Translations):</strong> Amakiir (Gemflower), Amastacia (Starflower), Galanodel (Moonwhisper), Holimion (Diamonddew), Ilphelkiir (Gemblossom), Liadon (Silverfrond), Meliamne (Oakenheel), Naïlo (Nightbreeze), Siannodel (Moonbrook), Xiloscient (Goldpetal)</p>"
+        }
+      ],
+      "traits": {
+        "speed": {
+          "walking": 30
+        },
+        "size": "10910065-c17e-4994-93d3-f030d9b4c649",
+        "details": [
+          {
+            "label": "Age",
+            "desc": "<p>Although elves reach physical maturity at about the same age as humans, the elven understanding of adulthood goes beyond physical growth to encompass worldly experience. An elf typically claims adulthood and an adult name around the age of 100 and can live to be 750 years old.</p>"
+          },
+          {
+            "label": "Alignment",
+            "desc": "<p>Elves love freedom, variety, and selfexpression, so they lean strongly toward the gentler aspects of chaos. They value and protect others’ freedom as well as their own, and they are more often good than not.</p>"
+          },
+          {
+            "label": "Size",
+            "desc": "<p>Elves range from under 5 to over 6 feet tall and have slender builds. Your size is Medium.</p>"
+          },
+          {
+            "label": "Speed",
+            "desc": "<p>Your base walking speed is 30 feet.</p>"
+          }
+        ]
+      },
+      "playable": "false",
+      "features": [
+        "9eafaebc-b20d-4f32-9e9a-e139c6edce43",
+        "61e05d78-d3a7-4c6d-8973-803a9a48fc0f",
+        "8aa4efdf-c71a-4f72-9c89-c68d1d5e5572",
+        "a96df19a-688d-4ae3-935a-4734a38c993c",
+        "47458790-4de1-4e86-ac9f-8795b90718e8",
+        "2eafab01-c34a-4c15-baee-76ab8fbf48b6"
+      ],
+      "id": "b849af0f-d516-4278-8de3-e82deba4b595",
+      "ownerId": "master",
+      "createdAt": "2024-09-12T11:05:10.351Z",
+      "updatedAt": "2024-09-12T11:05:10.351Z",
+      "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+    },
+    {
+      "label": "High Elf",
+      "desc": "<p>As a high elf, you have a keen mind and a mastery of at least the basics of magic. In many of the worlds of D&amp;D, there are two kinds of high elves. One type (which includes the gray elves and valley elves of Greyhawk, the Silvanesti of Dragonlance, and the sun elves of the Forgotten Realms) is haughty and reclusive, believing themselves to be superior to non-elves and even other elves. The other type (including the high elves of Greyhawk, the Qualinesti of Dragonlance, and the moon elves of the Forgotten Realms) are more common and more friendly, and often encountered among humans and other races.</p><p>The sun elves of Faerûn (also called gold elves or sunrise elves) have bronze skin and hair of copper, black, or golden blond. Their eyes are golden, silver, or black. Moon elves (also called silver elves or gray elves) are much paler, with alabaster skin sometimes tinged with blue. They often have hair of silver-white, black, or blue, but various shades of blond, brown, and red are not uncommon. Their eyes are blue or green and flecked with gold.</p>",
+      "category": "75a580dc-6990-4c05-9853-1534c5be77f7",
+      "lineages": [
+        "b849af0f-d516-4278-8de3-e82deba4b595"
+      ],
+      "features": [
+        "7a5d2f83-d41c-494d-a26e-5f363ac2ff57",
+        "3b1c6e02-f30f-43e9-bbe0-905780b77504",
+        "107d8315-781d-4daa-a25b-46ba6992f9a1",
+        "77ef611d-54fc-4a4f-a50e-ef78082a43a0"
+      ],
+      "id": "49c49137-503d-4972-94f0-7e3c684d2186",
+      "ownerId": "master",
+      "createdAt": "2024-09-12T11:05:10.351Z",
+      "updatedAt": "2024-09-12T11:05:10.351Z",
+      "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+    },
+    {
+      "label": "Halfling",
+      "desc": "<blockquote class=\"RichTextEditor_editor_blockquote__1pu01sk7\"><p>Regis the halfling, the only one of his kind for hundreds of miles in any direction, locked his fingers behind his head and leaned back against the mossy blanket of the tree trunk. Regis was short, even by the standards of his diminutive race, with the fluff of his curly brown locks barely cresting the three-foot mark, but his belly was amply thickened by his love of a good meal, or several, as the opportunities presented themselves. The crooked stick that served as his fishing pole rose up above him, clenched between two of his toes, and hung out over the quiet lake, mirrored perfectly in the glassy surface of Maer Dualdon.</p><p><em>— R.A. Salvatore, The Crystal Shard</em></p></blockquote><p>The comforts of home are the goals of most halflings’ lives: a place to settle in peace and quiet, far from marauding monsters and clashing armies; a blazing fire and a generous meal; fine drink and fine conversation. Though some halflings live out their days in remote agricultural communities, others form nomadic bands that travel constantly, lured by the open road and the wide horizon to discover the wonders of new lands and peoples. But even these wanderers love peace, food, hearth, and home, though home might be a wagon jostling along a dirt road or a raft floating downriver.</p>",
+      "category": "b62cef0d-a4be-4cfe-94ee-c80a7aaaabc7",
+      "details": [
+        {
+          "label": "Small and Practical",
+          "desc": "<p>The diminutive halflings survive in a world full of larger creatures by avoiding notice or, barring that, avoiding offense. Standing about 3 feet tall, they appear relatively harmless and so have managed to survive for centuries in the shadow of empires and on the edges of wars and political strife. They are inclined to be stout, weighing between 40 and 45 pounds.</p><p>Halflings’ skin ranges from tan to pale with a ruddy cast, and their hair is usually brown or sandy brown and wavy. They have brown or hazel eyes. Halfling men often sport long sideburns, but beards are rare among them and mustaches even more so. They like to wear simple, comfortable, and practical clothes, favoring bright colors.</p><p>Halfling practicality extends beyond their clothing. They’re concerned with basic needs and simple pleasures and have little use for ostentation. Even the wealthiest of halflings keep their treasures locked in a cellar rather than on display for all to see. They have a knack for finding the most straightforward solution to a problem, and have little patience for dithering.</p>"
+        },
+        {
+          "label": "Kind and Curious",
+          "desc": "<p>Halflings are an affable and cheerful people. They cherish the bonds of family and friendship as well as the comforts of hearth and home, harboring few dreams of gold or glory. Even adventurers among them usually venture into the world for reasons of community, friendship, wanderlust, or curiosity. They love discovering new things, even simple things, such as an exotic food or an unfamiliar style of clothing.</p><p>Halflings are easily moved to pity and hate to see any living thing suffer. They are generous, happily sharing what they have even in lean times.</p>"
+        },
+        {
+          "label": "Blend into the Crowd",
+          "desc": "<p>Halflings are adept at fitting into a community of humans, dwarves, or elves, making themselves valuable and welcome. The combination of their inherent stealth and their unassuming nature helps halflings to avoid unwanted attention.</p><p>Halflings work readily with others, and they are loyal to their friends, whether halfling or otherwise. They can display remarkable ferocity when their friends, families, or communities are threatened.</p>"
+        },
+        {
+          "label": "Pastoral Pleasantries",
+          "desc": "<p>Most halflings live in small, peaceful communities with large farms and well-kept groves. They rarely build kingdoms of their own or even hold much land beyond their quiet shires. They typically don’t recognize any sort of halfling nobility or royalty, instead looking to family elders to guide them. Families preserve their traditional ways despite the rise and fall of empires.</p><p>Many halflings live among other races, where the halflings’ hard work and loyal outlook offer them abundant rewards and creature comforts. Some halfling communities travel as a way of life, driving wagons or guiding boats from place to place and maintaining no permanent home.</p><blockquote class=\"RichTextEditor_editor_blockquote__1pu01sk7\"><p><strong>AFFABLE AND POSITIVE</strong></p><p>Halflings try to get along with everyone else and are loath to make sweeping generalizations—especially negative ones.</p><p><strong><em>Dwarves. </em></strong>“Dwarves make loyal friends, and you can count on them to keep their word. But would it hurt them to smile once in a while?”</p><p><strong><em>Elves.</em></strong> “They’re so beautiful! Their faces, their music, their grace and all. It’s like they stepped out of a wonderful dream. But there’s no telling what’s going on behind their smiling faces—surely more than they ever let on.”</p><p><strong><em>Humans. </em></strong>“Humans are a lot like us, really. At least some of them are. Step out of the castles and keeps, go talk to the farmers and herders and you’ll find good, solid folk. Not that there’s anything wrong with the barons and soldiers—you have to admire their conviction. And by protecting their own lands, they protect us as well.”</p></blockquote>"
+        },
+        {
+          "label": "Exploring Opportunities",
+          "desc": "<p>Halflings usually set out on the adventurer’s path to defend their communities, support their friends, or explore a wide and wonder-filled world. For them, adventuring is less a career than an opportunity or sometimes a necessity.</p>"
+        },
+        {
+          "label": "Halfling Names",
+          "desc": "<p>A halfling has a given name, a family name, and possibly a nickname. Family names are often nicknames that stuck so tenaciously they have been passed down through the generations.</p><p><strong>Male Names: </strong>Alton, Ander, Cade, Corrin, Eldon, Errich, Finnan, Garret, Lindal, Lyle, Merric, Milo, Osborn, Perrin, Reed, Roscoe, Wellby</p><p><strong>Female Names:</strong> Andry, Bree, Callie, Cora, Euphemia, Jillian, Kithri, Lavinia, Lidda, Merla, Nedda, Paela, Portia, Seraphina, Shaena, Trym, Vani, Verna</p><p><strong>Family Names:</strong> Brushgather, Goodbarrel, Greenbottle, High-hill, Hilltopple, Leagallow, Tealeaf, Thorngage, Tosscobble, Underbough</p>"
+        }
+      ],
+      "traits": {
+        "speed": {
+          "walking": 25
+        },
+        "size": "c6dcfa53-da6e-4258-8857-37eea7135c52"
+      },
+      "playable": "false",
+      "features": [
+        "5db36460-a627-4669-b501-31e311fcb4a4",
+        "2fcab646-96bd-46d2-ba64-59f5f96a53a0",
+        "a6252ae8-8e18-4703-b89a-71116d6d18de",
+        "44047aa3-b771-4ebd-bdeb-2b3ce7ed9259",
+        "226e7310-fc56-4e03-97a9-84083e895156"
+      ],
+      "id": "f7094296-51b5-41ec-a54b-2bf11921abb8",
+      "ownerId": "master",
+      "createdAt": "2024-09-12T11:05:10.351Z",
+      "updatedAt": "2024-09-12T11:05:10.351Z",
+      "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+    },
+    {
+      "label": "Lightfoot Halfling",
+      "desc": "<p>As a lightfoot halfling, you can easily hide from notice, even using other people as cover. You’re inclined to be affable and get along well with others. In the Forgotten Realms, lightfoot halflings have spread the farthest and thus are the most common variety.</p><p>Lightfoots are more prone to wanderlust than other halflings, and often dwell alongside other races or take up a nomadic life. In the world of Greyhawk, these halflings are called hairfeet or tallfellows.</p>",
+      "category": "75a580dc-6990-4c05-9853-1534c5be77f7",
+      "lineages": [
+        "f7094296-51b5-41ec-a54b-2bf11921abb8"
+      ],
+      "features": [
+        "20f97328-60bb-492b-9d8a-61fdd21de482",
+        "45db7ce9-487d-406a-be81-2d83d9ee98a3"
+      ],
+      "id": "3d048e40-d6a5-4e3a-9173-84a1b5a2c399",
+      "ownerId": "master",
+      "createdAt": "2024-09-12T11:05:10.351Z",
+      "updatedAt": "2024-09-12T11:05:10.351Z",
+      "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+    },
+    {
+      "label": "Human",
+      "desc": "<blockquote class=\"RichTextEditor_editor_blockquote__1pu01sk7\"><p>These were the stories of a restless people who long ago took to the seas and rivers in longboats, first to pillage and terrorize, then to settle. Yet there was an energy, a love of adventure, that sang from every page. Long into the night Liriel read, lighting candle after precious candle.</p><p>She’d never given much thought to humans, but these stories fascinated her. In these yellowed pages were tales of bold heroes, strange and fierce animals, mighty primitive gods, and a magic that was part and fabric of that distant land.</p><p><em>— Elaine Cunningham, Daughter of the Drow</em></p></blockquote><p>In the reckonings of most worlds, humans are the youngest of the common races, late to arrive on the world scene and short-lived in comparison to dwarves, elves, and dragons. Perhaps it is because of their shorter lives that they strive to achieve as much as they can in the years they are given. Or maybe they feel they have something to prove to the elder races, and that’s why they build their mighty empires on the foundation of conquest and trade. Whatever drives them, humans are the innovators, the achievers, and the pioneers of the worlds.</p>",
+      "category": "b62cef0d-a4be-4cfe-94ee-c80a7aaaabc7",
+      "details": [
+        {
+          "label": "A Broad Spectrum",
+          "desc": "<p>With their penchant for migration and conquest, humans are more physically diverse than other common races. There is no typical human. An individual can stand from 5 feet to a little over 6 feet tall and weigh from 125 to 250 pounds. Human skin shades range from nearly black to very pale, and hair colors from black to blond (curly, kinky, or straight); males might sport facial hair that is sparse or thick. A lot of humans have a dash of nonhuman blood, revealing hints of elf, orc, or other lineages. Humans reach adulthood in their late teens and rarely live even a single century.</p>"
+        },
+        {
+          "label": "Variety in All Things",
+          "desc": "<p>Humans are the most adaptable and ambitious people among the common races. They have widely varying tastes, morals, and customs in the many different lands where they have settled. When they settle, though, they stay: they build cities to last for the ages, and great kingdoms that can persist for long centuries. An individual human might have a relatively short life span, but a human nation or culture preserves traditions with origins far beyond the reach of any single human’s memory. They live fully in the present—making them well suited to the adventuring life—but also plan for the future, striving to leave a lasting legacy. Individually and as a group, humans are adaptable opportunists, and they stay alert to changing political and social dynamics.</p><blockquote class=\"RichTextEditor_editor_blockquote__1pu01sk7\"><p><strong>EVERYONE’S SECOND-BEST FRIENDS</strong></p><p>Just as readily as they mix with each other, humans mingle with members of other races. They get along with almost everyone, though they might not be close to many. Humans serve as ambassadors, diplomats, magistrates, merchants, and functionaries of all kinds.</p><p><strong><em>Dwarves.</em></strong> “They’re stout folk, stalwart friends, and true to their word. Their greed for gold is their downfall, though.”</p><p><strong><em>Elves.</em></strong> “It’s best not to wander into elven woods. They don’t like intruders, and you’ll as likely be bewitched as peppered with arrows. Still, if an elf can get past that damned racial pride and actually treat you like an equal, you can learn a lot from them.”</p><p><strong><em>Halflings.</em></strong> “It’s hard to beat a meal in a halfling home, as long as you don’t crack your head on the ceiling—good food and good stories in front of a nice, warm fire. If halflings had a shred of ambition, they might really amount to something.”</p></blockquote>"
+        },
+        {
+          "label": "Lasting Institutions",
+          "desc": "<p>Where a single elf or dwarf might take on the responsibility of guarding a special location or a powerful secret, humans found sacred orders and institutions for such purposes. While dwarf clans and halfling elders pass on the ancient traditions to each new generation, human temples, governments, libraries, and codes of law fix their traditions in the bedrock of history. Humans dream of immortality, but (except for those few who seek undeath or divine ascension to escape death’s clutches) they achieve it by ensuring that they will be remembered when they are gone.</p><p>Although some humans can be xenophobic, in general their societies are inclusive. Human lands welcome large numbers of nonhumans compared to the proportion of humans who live in nonhuman lands.</p>"
+        },
+        {
+          "label": "Exemplars of Ambition",
+          "desc": "<p>Humans who seek adventure are the most daring and ambitious members of a daring and ambitious race. They seek to earn glory in the eyes of their fellows by amassing power, wealth, and fame. More than other people, humans champion causes rather than territories or groups.</p>"
+        },
+        {
+          "label": "Human Names and Ethnicities",
+          "desc": "<p>Having so much more variety than other cultures, humans as a whole have no typical names. Some human parents give their children names from other languages, such as Dwarvish or Elvish (pronounced more or less correctly), but most parents give names that are linked to their region’s culture or to the naming traditions of their ancestors.</p><p>The material culture and physical characteristics of humans can change wildly from region to region. In the Forgotten Realms, for example, the clothing, architecture, cuisine, music, and literature are different in the northwestern lands of the Silver Marches than in distant Turmish or Impiltur to the east—and even more distinctive in far-off Kara-Tur. Human physical characteristics, though, vary according to the ancient migrations of the earliest humans, so that the humans of the Silver Marches have every possible variation of coloration and features.</p><p>In the Forgotten Realms, nine human ethnic groups are widely recognized, though over a dozen others are found in more localized areas of Faerûn. These groups, and the typical names of their members, can be used as inspiration no matter which world your human is in.</p><h3><strong>Calishite</strong></h3><p>Shorter and slighter in build than most other humans, Calishites have dusky brown skin, hair, and eyes. They’re found primarily in southwest Faerûn.</p><p><strong>Calishite Names:</strong> (Male) Aseir, Bardeid, Haseid, Khemed, Mehmen, Sudeiman, Zasheir; (female) Atala, Ceidil, Hama, Jasmal, Meilil, Seipora, Yasheira, Zasheida; (surnames) Basha, Dumein, Jassan, Khalid, Mostana, Pashar, Rein</p><h3><strong>Chondathan</strong></h3><p>Chondathans are slender, tawny-skinned folk with brown hair that ranges from almost blond to almost black. Most are tall and have green or brown eyes, but these traits are hardly universal. Humans of Chondathan descent dominate the central lands of Faerûn, around the Inner Sea.</p><p><strong>Chondathan Names:</strong> (Male) Darvin, Dorn, Evendur, Gorstag, Grim, Helm, Malark, Morn, Randal, Stedd; (female) Arveene, Esvele, Jhessail, Kerri, Lureene, Miri, Rowan, Shandri, Tessele; (surnames) Amblecrown, Buckman, Dundragon, Evenwood, Greycastle, Tallstag</p><h3><strong>Damaran</strong></h3><p>Found primarily in the northwest of Faerûn, Damarans are of moderate height and build, with skin hues ranging from tawny to fair. Their hair is usually brown or black, and their eye color varies widely, though brown is most common.</p><p><strong>Damaran Names:</strong> (Male) Bor, Fodel, Glar, Grigor, Igan, Ivor, Kosef, Mival, Orel, Pavel, Sergor; (female) Alethra, Kara, Katernin, Mara, Natali, Olma, Tana, Zora; (surnames) Bersk, Chernin, Dotsk, Kulenov, Marsk, Nemetsk, Shemov, Starag</p><h3><strong>Illuskan</strong></h3><p>Illuskans are tall, fair-skinned folk with blue or steely gray eyes. Most have raven-black hair, but those who inhabit the extreme northwest have blond, red, or light brown hair.</p><p><strong>Illuskan Names:</strong> (Male) Ander, Blath, Bran, Frath, Geth, Lander, Luth, Malcer, Stor, Taman, Urth; (female) Amafrey, Betha, Cefrey, Kethra, Mara, Olga, Silifrey, Westra; (surnames) Brightwood, Helder, Hornraven, Lackman, Stormwind, Windrivver</p><h3><strong>Mulan</strong></h3><p>Dominant in the eastern and southeastern shores of the Inner Sea, the Mulan are generally tall, slim, and amber-skinned, with eyes of hazel or brown. Their hair ranges from black to dark brown, but in the lands where the Mulan are most prominent, nobles and many other Mulan shave off all their hair.</p><p><strong>Mulan Names:</strong> (Male) Aoth, Bareris, Ehput-Ki, Kethoth, Mumed, Ramas, So-Kehur, Thazar-De, Urhur; (female) Arizima, Chathi, Nephis, Nulara, Murithi, Sefris, Thola, Umara, Zolis; (surnames) Ankhalab, Anskuld, Fezim, Hahpet, Nathandem, Sepret, Uuthrakt</p><h3><strong>Rashemi</strong></h3><p>Most often found east of the Inner Sea and often intermingled with the Mulan, Rashemis tend to be short, stout, and muscular. They usually have dusky skin, dark eyes, and thick black hair.</p><p><strong>Rashemi Names:</strong> (Male) Borivik, Faurgar, Jandar, Kanithar, Madislak, Ralmevik, Shaumar, Vladislak; (female) Fyevarra, Hulmarra, Immith, Imzel, Navarra, Shevarra, Tammith, Yuldra; (surnames) Chergoba, Dyernina, Iltazyara, Murnyethara, Stayanoga, Ulmokina</p><h3><strong>Shou</strong></h3><p>The Shou are the most numerous and powerful ethnic group in Kara-Tur, far to the east of Faerûn. They are yellowish-bronze in hue, with black hair and dark eyes. Shou surnames are usually presented before the given name.</p><p><strong>Shou Names:</strong> (Male) An, Chen, Chi, Fai, Jiang, Jun, Lian, Long, Meng, On, Shan, Shui, Wen; (female) Bai, Chao, Jia, Lei, Mei, Qiao, Shui, Tai; (surnames) Chien, Huang, Kao, Kung, Lao, Ling, Mei, Pin, Shin, Sum, Tan, Wan</p><h3><strong>Tethyrian</strong></h3><p>Widespread along the entire Sword Coast at the western edge of Faerûn, Tethyrians are of medium build and height, with dusky skin that tends to grow fairer the farther north they dwell. Their hair and eye color varies widely, but brown hair and blue eyes are the most common. Tethyrians primarily use Chondathan names.</p><h3><strong>Turami</strong></h3><p>Native to the southern shore of the Inner Sea, the Turami people are generally tall and muscular, with dark mahogany skin, curly black hair, and dark eyes.</p><p><strong>Turami Names:</strong> (Male) Anton, Diero, Marcon, Pieron, Rimardo, Romero, Salazar, Umbero; (female) Balama, Dona, Faila, Jalana, Luisa, Marta, Quara, Selise, Vonda; (surnames) Agosto, Astorio, Calabra, Domine, Falone, Marivaldi, Pisacar, Ramondo</p>"
+        }
+      ],
+      "traits": {
+        "speed": {
+          "walking": 30
+        },
+        "details": [
+          {
+            "label": "Age",
+            "desc": "<p>Humans reach adulthood in their late teens and live less than a century.</p>"
+          },
+          {
+            "label": "Size",
+            "desc": "<p>Humans vary widely in height and build, from barely 5 feet to well over 6 feet tall. Regardless of your position in that range, your size is Medium.</p>"
+          },
+          {
+            "label": "Speed",
+            "desc": "<p>Your base walking speed is 30 feet.</p>"
+          }
+        ],
+        "size": "10910065-c17e-4994-93d3-f030d9b4c649"
+      },
+      "playable": "true",
+      "features": [
+        "aadf7ef8-f5fe-4377-9358-7eddec75399f",
+        "115a9513-e0ac-4322-8ce5-e55c3e7434ea"
+      ],
+      "id": "391ad35c-8fb4-46ec-a16a-f0f77b4c6e6a",
+      "ownerId": "master",
+      "createdAt": "2024-09-12T11:05:10.351Z",
+      "updatedAt": "2024-09-12T11:05:10.351Z",
+      "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+    },
+    {
+      "label": "Gnome",
+      "desc": "<blockquote class=\"RichTextEditor_editor_blockquote__1pu01sk7\"><p>Skinny and flaxen-haired, his skin walnut brown and his eyes a startling turquoise, Burgell stood half as tall as Aeron and had to climb up on a stool to look out the peephole. Like most habitations in Oeble, that particular tenement had been built for humans, and smaller residents coped with the resulting awkwardness as best they could.</p><p>But at least the relative largeness of the apartment gave Burgell room to pack in all his gnome-sized gear. The front room was his workshop, and it contained a bewildering miscellany of tools: hammers, chisels, saws, lockpicks, tinted lenses, jeweler’s loupes, and jars of powdered and shredded ingredients for casting spells. A fat gray cat, the mage’s familiar, lay curled atop a grimoire. It opened its eyes, gave Aeron a disdainful yellow stare, then appeared to go back to sleep.</p><p>— <em>Richard Lee Byers, The Black Bouquet</em></p></blockquote><p>A constant hum of busy activity pervades the warrens and neighborhoods where gnomes form their close-knit communities. Louder sounds punctuate the hum: a crunch of grinding gears here, a minor explosion there, a yelp of surprise or triumph, and especially bursts of laughter. Gnomes take delight in life, enjoying every moment of invention, exploration, investigation, creation, and play.</p>",
+      "category": "b62cef0d-a4be-4cfe-94ee-c80a7aaaabc7",
+      "details": [
+        {
+          "label": "Vibrant Expression",
+          "desc": "<p>A gnome’s energy and enthusiasm for living shines through every inch of his or her tiny body. Gnomes average slightly over 3 feet tall and weigh 40 to 45 pounds. Their tan or brown faces are usually adorned with broad smiles (beneath their prodigious noses), and their bright eyes shine with excitement. Their fair hair has a tendency to stick out in every direction, as if expressing the gnome’s insatiable interest in everything around.</p><p>A gnome’s personality is writ large in his or her appearance. A male gnome’s beard, in contrast to his wild hair, is kept carefully trimmed but often styled into curious forks or neat points. A gnome’s clothing, though usually made in modest earth tones, is elaborately decorated with embroidery, embossing, or gleaming jewels.</p>"
+        },
+        {
+          "label": "Delighted Dedication",
+          "desc": "<p>As far as gnomes are concerned, being alive is a wonderful thing, and they squeeze every ounce of enjoyment out of their three to five centuries of life. Humans might wonder about getting bored over the course of such a long life, and elves take plenty of time to savor the beauties of the world in their long years, but gnomes seem to worry that even with all that time, they can’t get in enough of the things they want to do and see.</p><p>Gnomes speak as if they can’t get the thoughts out of their heads fast enough. Even as they offer ideas and opinions on a range of subjects, they still manage to listen carefully to others, adding the appropriate exclamations of surprise and appreciation along the way.</p><p>Though gnomes love jokes of all kinds, particularly puns and pranks, they’re just as dedicated to the more serious tasks they undertake. Many gnomes are skilled engineers, alchemists, tinkers, and inventors. They’re willing to make mistakes and laugh at themselves in the process of perfecting what they do, taking bold (sometimes foolhardy) risks and dreaming large.</p>"
+        },
+        {
+          "label": "Bright Burrows",
+          "desc": "<p>Gnomes make their homes in hilly, wooded lands. They live underground but get more fresh air than dwarves do, enjoying the natural, living world on the surface whenever they can. Their homes are well hidden by both clever construction and simple illusions. Welcome visitors are quickly ushered into the bright, warm burrows. Those who are not welcome are unlikely to find the burrows in the first place.</p><p>Gnomes who settle in human lands are commonly gemcutters, engineers, sages, or tinkers. Some human families retain gnome tutors, ensuring that their pupils enjoy a mix of serious learning and delighted enjoyment. A gnome might tutor several generations of a single human family over the course of his or her long life.</p>"
+        },
+        {
+          "label": "Gnome Names",
+          "desc": "<p>Gnomes love names, and most have half a dozen or so. A gnome’s mother, father, clan elder, aunts, and uncles each give the gnome a name, and various nicknames from just about everyone else might or might not stick over time. Gnome names are typically variants on the names of ancestors or distant relatives, though some are purely new inventions. When dealing with humans and others who are “stuffy” about names, a gnome learns to use no more than three names: a personal name, a clan name, and a nickname, choosing the one in each category that’s the most fun to say.</p><p><strong>Male Names:</strong> Alston, Alvyn, Boddynock, Brocc, Burgell, Dimble, Eldon, Erky, Fonkin, Frug, Gerbo, Gimble, Glim, Jebeddo, Kellen, Namfoodle, Orryn, Roondar, Seebo, Sindri, Warryn, Wrenn, Zook</p><p><strong>Female Names:</strong> Bimpnottin, Breena, Caramip, Carlin, Donella, Duvamil, Ella, Ellyjobell, Ellywick, Lilli, Loopmottin, Lorilla, Mardnab, Nissa, Nyx, Oda, Orla, Roywyn, Shamil, Tana, Waywocket, Zanna</p><p><strong>Clan Names: </strong>Beren, Daergel, Folkor, Garrick, Nackle, Murnig, Ningel, Raulnor, Scheppen, Timbers, Turen</p><p><strong>Nicknames: </strong>Aleslosh, Ashhearth, Badger, Cloak, Doublelock, Filchbatter, Fnipper, Ku, Nim, Oneshoe, Pock, Sparklegem, Stumbleduck</p>"
+        },
+        {
+          "label": "Seeing the World",
+          "desc": "<p>Curious and impulsive, gnomes might take up adventuring as a way to see the world or for the love of exploring. As lovers of gems and other fine items, some gnomes take to adventuring as a quick, if dangerous, path to wealth. Regardless of what spurs them to adventure, gnomes who adopt this way of life eke as much enjoyment out of it as they do out of any other activity they undertake, sometimes to the great annoyance of their adventuring companions.</p><blockquote class=\"RichTextEditor_editor_blockquote__1pu01sk7\"><p><strong>ALWAYS APPRECIATIVE</strong></p><p>It’s rare for a gnome to be hostile or malicious unless he or she has suffered a grievous injury. Gnomes know that most races don’t share their sense of humor, but they enjoy anyone’s company just as they enjoy everything else they set out to do.</p></blockquote>"
+        }
+      ],
+      "traits": {
+        "speed": {
+          "walking": 25
+        },
+        "details": [
+          {
+            "label": "Age",
+            "desc": "<p>Gnomes mature at the same rate humans do, and most are expected to settle down into an adult life by around age 40. They can live 350 to almost 500 years.</p>"
+          },
+          {
+            "label": "Size",
+            "desc": "<p>Gnomes are between 3 and 4 feet tall and average about 40 pounds. Your size is Small.</p>"
+          },
+          {
+            "label": "Speed",
+            "desc": "<p>Your base walking speed is 25 feet.</p>"
+          }
+        ],
+        "size": "c6dcfa53-da6e-4258-8857-37eea7135c52"
+      },
+      "playable": "false",
+      "features": [
+        "1a9f9cdb-8efc-4f49-aca8-d7fac00ff0fd",
+        "440cf9f7-fe91-4a24-90cf-b1c997253325",
+        "6b9eb7f0-576e-46f9-9d04-32ad3be1a4f1",
+        "5224b120-5151-4cb6-bfc1-1f4da6b2c4cb"
+      ],
+      "id": "d298a37b-e263-4037-a0cb-e433610d0c3f",
+      "ownerId": "master",
+      "createdAt": "2024-09-12T11:05:10.351Z",
+      "updatedAt": "2024-09-12T11:05:10.351Z",
+      "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+    },
+    {
+      "label": "Rock Gnome",
+      "desc": "<p>As a rock gnome, you have a natural inventiveness and hardiness beyond that of other gnomes.</p>",
+      "category": "75a580dc-6990-4c05-9853-1534c5be77f7",
+      "lineages": [
+        "d298a37b-e263-4037-a0cb-e433610d0c3f"
+      ],
+      "traits": {
+        "details": [
+          {
+            "label": "Age",
+            "desc": "<p>Gnomes mature at the same rate humans do, and most are expected to settle down into an adult life by around age 40. They can live 350 to almost 500 years.</p>"
+          },
+          {
+            "label": "Size",
+            "desc": "<p>Gnomes are between 3 and 4 feet tall and average about 40 pounds. Your size is Small.</p>"
+          },
+          {
+            "label": "Speed",
+            "desc": "<p>Your base walking speed is 25 feet.</p>"
+          }
+        ]
+      },
+      "features": [
+        "17848cbf-3443-4fa7-8529-f11ee3f55607",
+        "2730c87c-6554-4ddd-b472-5a2d2c7f1bac",
+        "7d572a49-4d55-44d4-82e1-cc268686d057"
+      ],
+      "id": "00479e97-2158-4185-b30e-08bb5fc98a5b",
+      "ownerId": "master",
+      "createdAt": "2024-09-12T11:05:10.351Z",
+      "updatedAt": "2024-09-12T11:05:10.351Z",
+      "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+    },
+    {
+      "label": "Half-Elf",
+      "desc": "<blockquote class=\"RichTextEditor_editor_blockquote__1pu01sk7\"><p>Flint squinted into the setting sun. He thought he saw the figure of a man striding up the path. Standing, Flint drew back into the shadow of a tall pine to see better. The man’s walk was marked by an easy grace—an elvish grace, Flint would have said; yet the man’s body had the thickness and tight muscles of a human, while the facial hair was definitely humankind’s. All the dwarf could see of the man’s face beneath a green hood was tan skin and a brownish-red beard. A longbow was slung over one shoulder and a sword hung at his left side. He was dressed in soft leather, carefully tooled in the intricate designs the elves loved. But no elf in the world of Krynn could grow a beard<br>. . . no elf, but . . .</p><p>“Tanis?” said Flint hesitantly as the man neared.</p><p>“The same.” The newcomer’s bearded face split in a wide grin. He held open his arms and, before the dwarf could stop him, engulfed Flint in a hug that lifted him off the ground. The dwarf clasped his old friend close for a brief instant, then, remembering his dignity, squirmed and freed himself from the half-elf’s embrace.</p><p><em>— Margaret Weis and Tracy Hickman, Dragons of Autumn Twilight</em></p></blockquote><p>Walking in two worlds but truly belonging to neither, half-elves combine what some say are the best qualities of their elf and human parents: human curiosity, inventiveness, and ambition tempered by the refined senses, love of nature, and artistic tastes of the elves. Some half-elves live among humans, set apart by their emotional and physical differences, watching friends and loved ones age while time barely touches them. Others live with the elves, growing restless as they reach adulthood in the timeless elven realms, while their peers continue to live as children. Many half-elves, unable to fit into either society, choose lives of solitary wandering or join with other misfits and outcasts in the adventuring life.</p>",
+      "category": "b62cef0d-a4be-4cfe-94ee-c80a7aaaabc7",
+      "details": [
+        {
+          "label": "Of Two Worlds",
+          "desc": "<p>To humans, half-elves look like elves, and to elves, they look human. In height, they’re on par with both parents, though they’re neither as slender as elves nor as broad as humans. They range from under 5 feet to about 6 feet tall, and from 100 to 180 pounds, with men only slightly taller and heavier than women. Half-elf men do have facial hair, and sometimes grow beards to mask their elven ancestry. Half-elven coloration and features lie somewhere between their human and elf parents, and thus show a variety even more pronounced than that found among either race. They tend to have the eyes of their elven parents.</p>"
+        },
+        {
+          "label": "Diplomats or Wanderers",
+          "desc": "<p>Half-elves have no lands of their own, though they are welcome in human cities and somewhat less welcome in elven forests. In large cities in regions where elves and humans interact often, half-elves are sometimes numerous enough to form small communities of their own. They enjoy the company of other half-elves, the only people who truly understand what it is to live between these two worlds.</p><p>In most parts of the world, though, half-elves are uncommon enough that one might live for years without meeting another. Some half-elves prefer to avoid company altogether, wandering the wilds as trappers, foresters, hunters, or adventurers and visiting civilization only rarely. Like elves, they are driven by the wanderlust that comes of their longevity. Others, in contrast, throw themselves into the thick of society, putting their charisma and social skills to great use in diplomatic roles or as swindlers.</p>"
+        },
+        {
+          "label": "Half-Elf Names",
+          "desc": "<p>Half-elves use either human or elven naming conventions. As if to emphasize that they don’t really fit in to either society, half-elves raised among humans are often given elven names, and those raised among elves often take human names.</p><blockquote class=\"RichTextEditor_editor_blockquote__1pu01sk7\"><p><strong>EXCELLENT AMBASSADORS</strong></p><p>Many half-elves learn at an early age to get along with everyone, defusing hostility and finding common ground. As a race, they have elven grace without elven aloofness and human energy without human boorishness. They often make excellent ambassadors and go-betweens (except between elves and humans, since each side suspects the half-elf of favoring the other).</p></blockquote>"
+        }
+      ],
+      "traits": {
+        "speed": {
+          "walking": 30
+        },
+        "details": [
+          {
+            "label": "Age",
+            "desc": "<p>Half-elves mature at the same rate humans do and reach adulthood around the age of 20. They live much longer than humans, however, often exceeding 180 years.</p>"
+          },
+          {
+            "label": "Size",
+            "desc": "<p>Half-elves are about the same size as humans, ranging from 5 to 6 feet tall. Your size is Medium.</p>"
+          },
+          {
+            "label": "Speed",
+            "desc": "<p>Your base walking speed is 30 feet.</p>"
+          }
+        ],
+        "size": "10910065-c17e-4994-93d3-f030d9b4c649"
+      },
+      "playable": "true",
+      "features": [
+        "a6c28c7f-20bf-4eec-8c7f-2cbb10b4bbcf",
+        "38a2876d-16d9-42d5-89a3-e49fe9e06004",
+        "2075e8ee-4c99-4574-9cc9-3e5662c3d340",
+        "f48c599c-1ac4-4d3a-a578-466e5656dcd0",
+        "2dfb3e41-c244-47eb-a80f-4093444b7f25"
+      ],
+      "id": "b5723a7b-2d34-4055-865a-5dfc5e964ade",
+      "ownerId": "master",
+      "createdAt": "2024-09-12T11:05:10.351Z",
+      "updatedAt": "2024-09-12T11:05:10.351Z",
+      "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+    },
+    {
+      "label": "Half-Orc",
+      "desc": "<blockquote class=\"RichTextEditor_editor_blockquote__1pu01sk7\"><p>The warchief Mhurren roused himself from his sleeping-furs and his women and pulled a short hauberk of heavy steel rings over his thick, well-muscled torso. He usually rose before most of his warriors, since he had a strong streak of human blood in him, and he found the daylight less bothersome than most of his tribe did. Among the Bloody Skulls, a warrior was judged by his strength, his fierceness, and his wits. Human ancestry was no blemish against a warrior—provided he was every bit as strong, enduring, and bloodthirsty as his full-blooded kin. Half-orcs who were weaker than their orc comrades didn’t last long among the Bloody Skulls or any other orc tribe for that matter. But it was often true that a bit of human blood gave a warrior just the right mix of cunning, ambition, and self-discipline to go far indeed, as Mhurren had. He was master of a tribe that could muster two thousand spears, and the strongest chief in Thar.</p><p><em>— Richard Baker, Swordmage</em></p></blockquote><p>Whether united under the leadership of a mighty warlock or having fought to a standstill after years of conflict, orc and human communities, sometimes form alliances. When these alliances are sealed by marriages, half-orcs are born. Some half-orcs rise to become proud leaders of orc communities. Some venture into the world to prove their worth. Many of these become adventurers, achieving greatness for their mighty deeds.</p>",
+      "category": "b62cef0d-a4be-4cfe-94ee-c80a7aaaabc7",
+      "details": [
+        {
+          "label": "Scarred and Strong",
+          "desc": "<p>Half-orcs exhibit a blend of orcish and human characteristics, and their appearance varies widely. Grayish skin tones and prominent teeth are the most common shared elements among these folk.</p><p>Orcs regard battle scars as tokens of pride and ornamental scars as things of beauty. Other scars, though, mark an orc or half-orc as a former prisoner or a disgraced exile. Any half-orc who has lived among or near orcs has scars, whether they are marks of humiliation or of pride, recounting their past exploits and injuries.</p>"
+        },
+        {
+          "label": "The Mark of Gruumsh",
+          "desc": "<p>The one-eyed god Gruumsh—lord of war and fury—created the first orcs, and even those orcs who turn away from his worship carry his blessings of might and endurance. The same is true of half-orcs. Some half-orcs hear the whispers of Gruumsh in their dreams, calling them to unleash the rage that simmers within them. Others feel Gruumsh’s exultation when they join in melee combat — and either exult along with him or shiver with fear and loathing.</p><p>Beyond the rage of Gruumsh, half-orcs feel emotion powerfully. Rage doesn’t just quicken their pulse, it makes their bodies burn. An insult stings like acid, and sadness saps their strength. But they laugh loudly and heartily, and simple pleasures — feasting, drinking, wrestling, drumming, and wild dancing — fill their hearts with joy. They tend to be short-tempered and sometimes sullen, more inclined to action than contemplation and to fighting than arguing. And when their hearts swell with love, they leap to perform acts of great kindness and compassion.</p>"
+        },
+        {
+          "label": "Half-Orc Names",
+          "desc": "<p>Half-orcs usually have names appropriate to the culture in which they were raised. A half-orc who wants to fit in among humans might trade an orc name for a human name. Some half-orcs with human names decide to adopt a guttural orc name because they think it makes them more intimidating.</p><p><strong>Male Orc Names: </strong>Dench, Feng, Gell, Henk, Holg, Imsh, Keth, Krusk, Mhurren, Ront, Shump, Thokk</p><p><strong>Female Orc Names: </strong>Baggi, Emen, Engong, Kansif, Myev, Neega, Ovak, Ownka, Shautha, Sutha, Vola, Volen, Yevelda</p>"
+        }
+      ],
+      "traits": {
+        "speed": {
+          "walking": 30
+        },
+        "details": [
+          {
+            "label": "Age",
+            "desc": "<p>Half-orcs mature a little faster than humans, reaching adulthood around age 14. They age noticeably faster and rarely live longer than 75 years.</p>"
+          },
+          {
+            "label": "Size",
+            "desc": "<p>Half-orcs are somewhat larger and bulkier than humans, and they range from 5 to well over 6 feet tall. Your size is Medium.</p>"
+          },
+          {
+            "label": "Speed",
+            "desc": "<p>Your base walking speed is 30 feet.</p>"
+          }
+        ],
+        "size": "10910065-c17e-4994-93d3-f030d9b4c649"
+      },
+      "playable": "true",
+      "features": [
+        "3b7e006f-15d8-4387-ba5f-51ab1ab05883",
+        "1eb373c6-91e0-4b02-bbba-3eb78a86036d",
+        "3ea7111a-f7b4-41fc-8437-689fd0ad8c6a",
+        "344406c1-97e6-4d03-bb18-66b208c19bb9",
+        "21f9858b-03f9-495d-83f4-5364795e0866",
+        "57675c8d-cec0-4664-adc4-a6896ea1e75b"
+      ],
+      "id": "721a9e92-cba4-4755-9de3-a83554895a48",
+      "ownerId": "master",
+      "createdAt": "2024-09-12T11:05:10.351Z",
+      "updatedAt": "2024-09-12T11:05:10.351Z",
+      "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+    },
+    {
+      "label": "Tiefling",
+      "desc": "<blockquote class=\"RichTextEditor_editor_blockquote__1pu01sk7\"><p>“But you do see the way people look at you, devil’s child.”</p><p>Those black eyes, cold as a winter storm, were staring right into her heart and the sudden seriousness in his voice jolted her.</p><p>“What is it they say?” he asked. “One’s a curiosity, two’s a conspiracy—”</p><p>“Three’s a curse,” she finished. “You think I haven’t heard that rubbish before?”</p><p>“I know you have.” When she glared at him, he added, “It’s not as if I’m plumbing the depths of your mind, dear girl. That is the burden of every tiefling. Some break under it, some make it the millstone around their neck, some revel in it.” He tilted his head again, scrutinizing her, with that wicked glint in his eyes. “You fight it, don’t you? Like a little wildcat, I wager. Every little jab and comment just sharpens your claws.”</p><p><em>— Erin M. Evans,</em> <em>Brimstone Angels</em></p></blockquote><p>To be greeted with stares and whispers, to suffer violence and insult on the street, to see mistrust and fear in every eye: this is the lot of the tiefling. And to twist the knife, tieflings know that this is because a pact struck generations ago infused the essence of Asmodeus—overlord of the Nine Hells—into their bloodline. Their appearance and their nature are not their fault but the result of an ancient sin, for which they and their children and their children’s children will always be held accountable.</p>",
+      "category": "b62cef0d-a4be-4cfe-94ee-c80a7aaaabc7",
+      "details": [
+        {
+          "label": "Infernal Bloodline",
+          "desc": "<p>Tieflings are derived from human bloodlines, and in the broadest possible sense, they still look human. However, their infernal heritage has left a clear imprint on their appearance. Tieflings have large horns that take any of a variety of shapes: some have curling horns like a ram, others have straight and tall horns like a gazelle’s, and some spiral upward like an antelopes’ horns. They have thick tails, four to five feet long, which lash or coil around their legs when they get upset or nervous. Their canine teeth are sharply pointed, and their eyes are solid colors—black, red, white, silver, or gold—with no visible sclera or pupil. Their skin tones cover the full range of human coloration, but also include various shades of red. Their hair, cascading down from behind their horns, is usually dark, from black or brown to dark red, blue, or purple.</p>"
+        },
+        {
+          "label": "Self-Reliant and Suspicious",
+          "desc": "<p>Tieflings subsist in small minorities found mostly in human cities or towns, often in the roughest quarters of those places, where they grow up to be swindlers, thieves, or crime lords. Sometimes they live among other minority populations in enclaves where they are treated with more respect.</p><p>Lacking a homeland, tieflings know that they have to make their own way in the world and that they have to be strong to survive. They are not quick to trust anyone who claims to be a friend, but when a tiefling’s companions demonstrate that they trust him or her, the tiefling learns to extend the same trust to them. And once a tiefling gives someone loyalty, the tiefling is a firm friend or ally for life.</p>"
+        },
+        {
+          "label": "Tiefling Names",
+          "desc": "<p>Tiefling names fall into three broad categories. Tieflings born into another culture typically have names reflective of that culture. Some have names derived from the Infernal language, passed down through generations, that reflect their fiendish heritage. And some younger tieflings, striving to find a place in the world, adopt a name that signifies a virtue or other concept and then try to embody that concept. For some, the chosen name is a noble quest. For others, it’s a grim destiny.</p><p><strong>Male Infernal Names:</strong> Akmenos, Amnon, Barakas, Damakos, Ekemon, Iados, Kairon, Leucis, Melech, Mordai, Morthos, Pelaios, Skamos, Therai</p><p><strong>Female Infernal Names:</strong> Akta, Anakis, Bryseis, Criella, Damaia, Ea, Kallista, Lerissa, Makaria, Nemeia, Orianna, Phelaia, Rieta</p><p><strong>“Virtue” Names:</strong> Art, Carrion, Chant, Creed, Despair, Excellence, Fear, Glory, Hope, Ideal, Music, Nowhere, Open, Poetry, Quest, Random, Reverence, Sorrow, Temerity, Torment, Weary</p><blockquote class=\"RichTextEditor_editor_blockquote__1pu01sk7\"><p><strong>MET WITH MISTRUST</strong></p><p>Ignorant people tend to be suspicious of tieflings, assuming that their infernal heritage has left its mark on their personality and morality, not just their appearance. The reality is that a tiefling’s bloodline doesn’t affect their personality. They are gifted with magic from the infernal realms but chart their own course in life.</p></blockquote>"
+        }
+      ],
+      "traits": {
+        "speed": {
+          "walking": 30
+        },
+        "size": "10910065-c17e-4994-93d3-f030d9b4c649",
+        "details": [
+          {
+            "label": "Age",
+            "desc": "<p>Tieflings mature at the same rate as humans but live a few years longer.</p>"
+          },
+          {
+            "label": "Size",
+            "desc": "<p>Tieflings are about the same size and build as humans. Your size is Medium.</p>"
+          },
+          {
+            "label": "Speed",
+            "desc": "<p>Your base walking speed is 30 feet.</p>"
+          }
+        ]
+      },
+      "playable": "true",
+      "features": [
+        "aa4fca9f-320a-4590-9417-b83ae47ec681",
+        "a649f57b-14ed-44b9-8a45-aac3fb483422",
+        "9a51ad2b-6436-40aa-bf24-1865ada6f9a2",
+        "de79417f-7047-449f-884b-cceeca5f758d",
+        "f84e8891-59b3-44fa-a4a4-afa6a52a07c2"
+      ],
+      "id": "50615e65-ddb3-4aa0-8346-c9a869eb2bec",
+      "ownerId": "master",
+      "createdAt": "2024-09-12T11:05:10.351Z",
+      "updatedAt": "2024-09-12T11:05:10.351Z",
+      "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+    }
+  ]
+}

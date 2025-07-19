@@ -2035,6 +2035,7 @@ query ListMasterRaces($limit: Int, $nextToken: String) {
 			label
 			desc
 		}
+		ownerId
 		systemId
 		masterId
 	}
@@ -2128,6 +2129,7 @@ query ListRaces($systemId: ID!, $limit: Int, $nextToken: String) {
 			label
 			desc
 		}
+		ownerId
 		systemId
 		masterId
 	}
@@ -2232,6 +2234,9 @@ query GetMasterFeatureSpell($id: ID!) {
 		multiplier
 		resourcePoints
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedQuery<APITypes.QueryGetMasterFeatureSpellArgs, {getMasterFeatureSpell: APITypes.Query['getMasterFeatureSpell']}>;
@@ -2311,6 +2316,9 @@ query ListMasterFeatureSpells($limit: Int, $nextToken: String) {
 			multiplier
 			resourcePoints
 		}
+		ownerId
+		systemId
+		masterId
 	}
 	nextToken
   }
@@ -2390,6 +2398,9 @@ query GetFeatureSpell($id: ID!) {
 		multiplier
 		resourcePoints
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedQuery<APITypes.QueryGetFeatureSpellArgs, {getFeatureSpell: APITypes.Query['getFeatureSpell']}>;
@@ -2469,6 +2480,9 @@ query ListFeatureSpells($systemId: ID!, $limit: Int, $nextToken: String) {
 			multiplier
 			resourcePoints
 		}
+		ownerId
+		systemId
+		masterId
 	}
 	nextToken
   }
@@ -2736,6 +2750,9 @@ query GetMasterFeatureProficiency($id: ID!) {
 		optionsObtained
 		size
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedQuery<APITypes.QueryGetMasterFeatureProficiencyArgs, {getMasterFeatureProficiency: APITypes.Query['getMasterFeatureProficiency']}>;
@@ -2803,6 +2820,9 @@ query ListMasterFeatureProficiencies($limit: Int, $nextToken: String) {
 			optionsObtained
 			size
 		}
+		ownerId
+		systemId
+		masterId
 	}
 	nextToken
   }
@@ -2870,6 +2890,9 @@ query GetFeatureProficiency($id: ID!) {
 		optionsObtained
 		size
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedQuery<APITypes.QueryGetFeatureProficiencyArgs, {getFeatureProficiency: APITypes.Query['getFeatureProficiency']}>;
@@ -2937,6 +2960,9 @@ query ListFeatureProficiencies($systemId: ID!, $limit: Int, $nextToken: String) 
 			optionsObtained
 			size
 		}
+		ownerId
+		systemId
+		masterId
 	}
 	nextToken
   }
@@ -3210,6 +3236,9 @@ query GetMasterFeatureOption($id: ID!) {
 		abilityModifier
 	}
 	levelAvailable
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedQuery<APITypes.QueryGetMasterFeatureOptionArgs, {getMasterFeatureOption: APITypes.Query['getMasterFeatureOption']}>;
@@ -3483,6 +3512,9 @@ query ListMasterFeatureOptions($limit: Int, $nextToken: String) {
 			abilityModifier
 		}
 		levelAvailable
+		ownerId
+		systemId
+		masterId
 	}
 	nextToken
   }
@@ -3756,6 +3788,9 @@ query GetFeatureOption($id: ID!) {
 		abilityModifier
 	}
 	levelAvailable
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedQuery<APITypes.QueryGetFeatureOptionArgs, {getFeatureOption: APITypes.Query['getFeatureOption']}>;
@@ -4029,6 +4064,9 @@ query ListFeatureOptions($systemId: ID!, $limit: Int, $nextToken: String) {
 			abilityModifier
 		}
 		levelAvailable
+		ownerId
+		systemId
+		masterId
 	}
 	nextToken
   }
@@ -4132,6 +4170,9 @@ query GetMasterFeatureModifier($id: ID!) {
 		optionsObtained
 		size
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedQuery<APITypes.QueryGetMasterFeatureModifierArgs, {getMasterFeatureModifier: APITypes.Query['getMasterFeatureModifier']}>;
@@ -4235,6 +4276,9 @@ query ListMasterFeatureModifiers($limit: Int, $nextToken: String) {
 			optionsObtained
 			size
 		}
+		ownerId
+		systemId
+		masterId
 	}
 	nextToken
   }
@@ -4338,6 +4382,9 @@ query GetFeatureModifier($id: ID!) {
 		optionsObtained
 		size
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedQuery<APITypes.QueryGetFeatureModifierArgs, {getFeatureModifier: APITypes.Query['getFeatureModifier']}>;
@@ -4441,6 +4488,9 @@ query ListFeatureModifiers($systemId: ID!, $limit: Int, $nextToken: String) {
 			optionsObtained
 			size
 		}
+		ownerId
+		systemId
+		masterId
 	}
 	nextToken
   }
@@ -4491,6 +4541,9 @@ query GetMasterFeatureFeat($id: ID!) {
 		optionsObtained
 		size
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedQuery<APITypes.QueryGetMasterFeatureFeatArgs, {getMasterFeatureFeat: APITypes.Query['getMasterFeatureFeat']}>;
@@ -4541,6 +4594,9 @@ query ListMasterFeatureFeats($limit: Int, $nextToken: String) {
 			optionsObtained
 			size
 		}
+		ownerId
+		systemId
+		masterId
 	}
 	nextToken
   }
@@ -4591,6 +4647,9 @@ query GetFeatureFeat($id: ID!) {
 		optionsObtained
 		size
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedQuery<APITypes.QueryGetFeatureFeatArgs, {getFeatureFeat: APITypes.Query['getFeatureFeat']}>;
@@ -4641,6 +4700,9 @@ query ListFeatureFeats($systemId: ID!, $limit: Int, $nextToken: String) {
 			optionsObtained
 			size
 		}
+		ownerId
+		systemId
+		masterId
 	}
 	nextToken
   }
@@ -4706,6 +4768,9 @@ query GetMasterFeatureExpertise($id: ID!) {
 		optionsObtained
 		size
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedQuery<APITypes.QueryGetMasterFeatureExpertiseArgs, {getMasterFeatureExpertise: APITypes.Query['getMasterFeatureExpertise']}>;
@@ -4771,6 +4836,9 @@ query ListMasterFeatureExpertises($limit: Int, $nextToken: String) {
 			optionsObtained
 			size
 		}
+		ownerId
+		systemId
+		masterId
 	}
 	nextToken
   }
@@ -4836,6 +4904,9 @@ query GetFeatureExpertise($id: ID!) {
 		optionsObtained
 		size
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedQuery<APITypes.QueryGetFeatureExpertiseArgs, {getFeatureExpertise: APITypes.Query['getFeatureExpertise']}>;
@@ -4901,6 +4972,9 @@ query ListFeatureExpertises($systemId: ID!, $limit: Int, $nextToken: String) {
 			optionsObtained
 			size
 		}
+		ownerId
+		systemId
+		masterId
 	}
 	nextToken
   }
@@ -5181,6 +5255,9 @@ query GetMasterFeature($id: ID!) {
 	}
 	levelAvailable
 	options
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedQuery<APITypes.QueryGetMasterFeatureArgs, {getMasterFeature: APITypes.Query['getMasterFeature']}>;
@@ -5461,6 +5538,9 @@ query ListMasterFeatures($limit: Int, $nextToken: String) {
 		}
 		levelAvailable
 		options
+		ownerId
+		systemId
+		masterId
 	}
 	nextToken
   }
@@ -5741,6 +5821,9 @@ query GetFeature($id: ID!) {
 	}
 	levelAvailable
 	options
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedQuery<APITypes.QueryGetFeatureArgs, {getFeature: APITypes.Query['getFeature']}>;
@@ -6021,6 +6104,9 @@ query ListFeatures($systemId: ID!, $limit: Int, $nextToken: String) {
 		}
 		levelAvailable
 		options
+		ownerId
+		systemId
+		masterId
 	}
 	nextToken
   }
@@ -6917,6 +7003,7 @@ query ListMasterEquipment($limit: Int, $nextToken: String) {
 			amount
 			unit
 		}
+		ownerId
 		systemId
 		masterId
 		rank
@@ -7260,6 +7347,7 @@ query ListEquipment($systemId: ID!, $limit: Int, $nextToken: String) {
 			amount
 			unit
 		}
+		ownerId
 		systemId
 		masterId
 		rank
@@ -8580,6 +8668,9 @@ query GetMasterBackground($id: ID!) {
 			optionsObtained
 			size
 		}
+		ownerId
+		systemId
+		masterId
 	}
 	features
 	ownerId
@@ -8705,6 +8796,9 @@ query GetBackground($id: ID!) {
 			optionsObtained
 			size
 		}
+		ownerId
+		systemId
+		masterId
 	}
 	features
 	ownerId
@@ -8753,6 +8847,9 @@ query GetMasterAncestryOption($id: ID!) {
 	label
 	desc
 	features
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedQuery<APITypes.QueryGetMasterAncestryOptionArgs, {getMasterAncestryOption: APITypes.Query['getMasterAncestryOption']}>;
@@ -8767,6 +8864,9 @@ query ListMasterAncestryOptions($limit: Int, $nextToken: String) {
 		label
 		desc
 		features
+		ownerId
+		systemId
+		masterId
 	}
 	nextToken
   }
@@ -8781,6 +8881,9 @@ query GetAncestryOption($id: ID!) {
 	label
 	desc
 	features
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedQuery<APITypes.QueryGetAncestryOptionArgs, {getAncestryOption: APITypes.Query['getAncestryOption']}>;
@@ -8795,6 +8898,9 @@ query ListAncestryOptions($systemId: ID!, $limit: Int, $nextToken: String) {
 		label
 		desc
 		features
+		ownerId
+		systemId
+		masterId
 	}
 	nextToken
   }

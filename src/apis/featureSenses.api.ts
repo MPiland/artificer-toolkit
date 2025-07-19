@@ -103,7 +103,7 @@ export const fetchFeatureSense = (id: string) => {
           return data.getFeatureSense
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -137,7 +137,7 @@ export const useAddNewFeatureSenseMutation = () => {
           return data.createFeatureSense
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -178,7 +178,7 @@ export const useUpdateFeatureSenseMutation = () => {
           return data.updateFeatureSense
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -218,7 +218,7 @@ export const useDeleteFeatureSenseMutation = () => {
           return data.deleteFeatureSense
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },

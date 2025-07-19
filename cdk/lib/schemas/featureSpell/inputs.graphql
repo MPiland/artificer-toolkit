@@ -19,6 +19,9 @@ input FeatureSpellInput {
   subtype: ID
   prerequisites: PrerequisiteInput
   charges: ChargeInput
+  ownerId: ID!
+  systemId: ID!
+  masterId: String
 }
 
 input BatchFeatureSpellsInput {

@@ -1,41 +1,36 @@
 import { SpellReqs } from '@/enums'
 import { useClassData, useFieldUpdates, useSystemData } from '@/hooks'
 import { Grid } from '@mantine/core'
-import { useAppForm } from '@/components/Form'
+import { withForm } from '@/components/Form'
 import { SpellInputSchema } from '@/schemas'
-import { useFormStore } from '@/store'
+import { useTypedFormStore } from '@/store'
 import { useEffect } from 'react'
-import { useStore } from '@tanstack/react-form'
+import type { SpellInput } from '@/types'
+import { z } from 'zod/v4'
 
-const DetailsStep = () => {
-  const formStore = useFormStore()
+const DetailsStep = withForm({
+  defaultValues: {} as z.input<typeof SpellInputSchema>,
+  render: function Render({ form }) {
+    const { AppField, Subscribe } = form
 
-  const form = useAppForm({
-    defaultValues: SpellInputSchema.parse(formStore.current),
-  })
+    const store = useTypedFormStore<SpellInput>()
+    const steps = store((state) => state.steps)
+    const stepIndex = store((state) => state.stepIndex)
+    const registerForm = store((state) => state.registerForm)
 
-  const { AppField, Subscribe } = form
+    const { fieldValidators, fieldListeners } = useFieldUpdates({ data: 'form', stepIndex })
 
-  const { fieldValidators, fieldListeners } = useFieldUpdates({ data: 'form' })
+    const { spells } = useSystemData()
+    const { classes } = useClassData()
 
-  const { spells } = useSystemData()
-  const { classes } = useClassData()
+    // Set current step's form component's reset function
+    useEffect(() => {
+      if (!steps[stepIndex].reset) {
+        registerForm(form.reset)
+      }
+    }, [form.reset, steps, stepIndex, registerForm])
 
-  useEffect(() => {
-    formStore.registerForm(form.reset)
-  }, [form.reset, formStore])
-
-  const { isValid } = useStore(form.store, (state) => ({
-    isValid: state.isValid,
-  }))
-
-  useEffect(() => {
-    formStore.setValidForm(isValid)
-  }, [formStore, isValid])
-
-  form.reset()
-
-  return (
+    return (
     <Subscribe
       selector={(state) => ({
         requirements: state.values.requirements,
@@ -128,7 +123,8 @@ const DetailsStep = () => {
         </Grid>
       )}
     </Subscribe>
-  )
-}
+    )
+  },
+})
 
 export default DetailsStep

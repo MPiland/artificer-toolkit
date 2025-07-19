@@ -28,6 +28,9 @@ input FeatureInput {
   saveAbility: SaveAbilityInput
   levelAvailable: String
   options: [ID!]
+  ownerId: ID!
+  systemId: ID!
+  masterId: String
 }
 
 input BatchFeaturesInput {

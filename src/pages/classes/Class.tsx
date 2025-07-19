@@ -4,7 +4,6 @@ import Detail from '@/components/Detail'
 import { sprinkles } from '@/css/sprinkles.css'
 import type { Feature, FeatureOption } from '@/types'
 import { Attributes, Categories, Prerequisites } from '@/enums'
-import { class_section_divider } from './Class.css'
 import { Route } from '@/routes/_protected/classes/$classId'
 import { useSystemData, useSpellData, useClassData, useFeatureData } from '@/hooks'
 
@@ -159,7 +158,11 @@ const Class = () => {
             uClass?.details.map((detail, index) => (
               <Fragment key={index}>
                 <h1>{detail?.label}</h1>
-                <hr className={class_section_divider} />
+                <hr
+                  className={sprinkles({
+                    width: 'size-full',
+                  })}
+                />
                 {detail?.desc && parse(detail.desc)}
                 {uClass?.details?.length &&
                   index === uClass?.details?.length - 1 &&
@@ -227,7 +230,11 @@ const Class = () => {
               return (
                 <div key={`${fi}-sub-feature`} id={`${feature?.label}`}>
                   <h1>{feature?.label}</h1>
-                  <hr className={class_section_divider} />
+                  <hr
+                    className={sprinkles({
+                      width: 'size-full',
+                    })}
+                  />
                   {detail && parse(detail)}
                 </div>
               )
@@ -241,7 +248,12 @@ const Class = () => {
                   return (
                     <Fragment key={index}>
                       <h2>{subclass.label}</h2>
-                      <hr className={class_section_divider} />
+
+                      <hr
+                        className={sprinkles({
+                          width: 'size-full',
+                        })}
+                      />
                       {subclass.desc && parse(subclass.desc)}
                       {subclass?.features?.length &&
                         subclass.features.map((f, fI) => {
@@ -294,7 +306,13 @@ const Class = () => {
                             </Fragment>
                           )
                         })}
-                      {index !== subclasses.length - 1 && <hr />}
+                      {index !== subclasses.length - 1 && (
+                        <hr
+                          className={sprinkles({
+                            width: 'size-full',
+                          })}
+                        />
+                      )}
                     </Fragment>
                   )
                 }

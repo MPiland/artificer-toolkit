@@ -7,7 +7,7 @@ export const thumb_height = createVar()
 
 export const thumb_top = createVar()
 
-export const list_wrapper = style({
+export const wrapper = style({
   '@layer': {
     [app]: {
       display: 'flex',
@@ -23,7 +23,7 @@ export const list_wrapper = style({
   },
 })
 
-export const list_parent = style({
+export const parent = style({
   '@layer': {
     [app]: {
       width: '100%',
@@ -41,7 +41,7 @@ export const list_parent = style({
   },
 })
 
-export const list = style({
+export const base = style({
   '@layer': {
     [app]: {
       position: 'relative',
@@ -59,7 +59,7 @@ export const list = style({
   },
 })
 
-export const list_title_container = style({
+export const title_container = style({
   '@layer': {
     [app]: {
       display: 'flex',
@@ -71,7 +71,7 @@ export const list_title_container = style({
   },
 })
 
-export const list_title_button_container = style({
+export const title_button_container = style({
   '@layer': {
     ['app']: {
       display: 'flex',
@@ -82,7 +82,18 @@ export const list_title_button_container = style({
   },
 })
 
-export const list_item_link_icon = style({
+export const item_link = style({
+  '@layer': {
+    [app]: {
+      display: 'flex',
+      alignItems: 'center',
+      textDecoration: 'none',
+      color: 'var(--mantine-text-color)',
+    },
+  },
+})
+
+export const item_link_icon = style({
   '@layer': {
     [app]: {
       flexShrink: 0,
@@ -93,11 +104,11 @@ export const list_item_link_icon = style({
   },
 })
 
-export const list_sub = style({
+export const sub = style({
   '@layer': {
     [app]: {
       selectors: {
-        [`${list} &`]: {
+        [`${base} &`]: {
           width: 'auto',
           marginLeft: space['space-10'],
         },
@@ -106,7 +117,7 @@ export const list_sub = style({
   },
 })
 
-export const list_footer_group = style({
+export const footer_group = style({
   '@layer': {
     [app]: {
       display: 'flex',
@@ -115,7 +126,7 @@ export const list_footer_group = style({
       alignItems: 'center',
 
       selectors: {
-        [`${list}.grid &`]: {
+        [`${base}.grid &`]: {
           alignItems: 'end',
         },
       },
@@ -123,7 +134,7 @@ export const list_footer_group = style({
   },
 })
 
-export const list_footer_item = style({
+export const footer_item = style({
   '@layer': {
     [app]: {
       display: 'flex',
@@ -138,17 +149,15 @@ export const list_footer_item = style({
   },
 })
 
-export const list_layout_icon = style({
+export const layout_icon = style({
   '@layer': {
     [app]: {
-      padding: space['space-2'],
-      width: size['size-6'],
-      height: size['size-6'],
+      strokeWidth: '1px',
     },
   },
 })
 
-globalStyle(`${list_footer_item} > svg`, {
+globalStyle(`${footer_item} > svg`, {
   '@layer': {
     [app]: {
       scale: 0.7,

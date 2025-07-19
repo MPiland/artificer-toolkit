@@ -15,15 +15,16 @@ import type { FormType, Character, SourceDataType } from '@/types'
 import { useRouteNavigation, useSourceData } from '@/hooks'
 import type { DetailConfig } from './Detail.types'
 import { useFormStore } from '@/store'
-import { Group, Grid, ScrollArea } from '@mantine/core'
+import { Group, Grid, ScrollArea, Modal } from '@mantine/core'
 import { CopyIcon, Pencil, ChevronLeft } from 'lucide-react'
 import Link from '@/components/Link'
-import { discriminatedInputSchema } from '@/schemas'
+import { discriminatedDomainInputSchema } from '@/schemas'
+import { sprinkles } from '@/css/sprinkles.css'
 
 interface DetailProps<T extends SourceDataType> {
   detailConfigs?: DetailConfig<T>[]
   children: ReactNode
-  footer?: any
+  footer?: ReactNode
   footerSpacing?: 'space-between' | 'center' | 'flex-end' | 'flex-start' | undefined
   item: T
 }
@@ -36,7 +37,7 @@ const Detail = <T extends SourceDataType>({
   item,
 }: DetailProps<T>) => {
   const getSourceText = useSourceData()
-  const { reinitState } = useFormStore((state) => state)
+  const formStore = useFormStore()
 
   const form = useMatches({ select: (m) => m[m.length - 1].context.form?.type }) as FormType
 
@@ -44,7 +45,13 @@ const Detail = <T extends SourceDataType>({
   const itemNav = routeNav.forItem(item.id, item.label)
 
   return (
-    <Suspense fallback={<Loading />}>
+    <Suspense
+      fallback={
+        <Modal opened onClose={() => {}}>
+          <Loading />
+        </Modal>
+      }
+    >
       <Group justify='space-between'>
         <ChevronLeft onClick={() => <Link to={'..'} />} cursor={'pointer'} />
         <Group justify='space-between'>
@@ -54,14 +61,14 @@ const Detail = <T extends SourceDataType>({
             type='unstyled'
             onClick={(e: MouseEvent<HTMLElement>) => {
               const kind = `${item.__typename}Input`
-              const itemCopy = discriminatedInputSchema.parse({
+              const itemCopy = discriminatedDomainInputSchema.parse({
                 __kind: kind,
                 ...item,
                 id: '',
                 label: '',
                 value: '',
               })
-              reinitState(itemCopy)
+              formStore.setCurrent(itemCopy)
               e.stopPropagation()
             }}
           >
@@ -84,7 +91,11 @@ const Detail = <T extends SourceDataType>({
       <div className={detail_title}>
         <h1>{item.label}</h1>
       </div>
-      <hr />
+      <hr
+        className={sprinkles({
+          width: 'size-full',
+        })}
+      />
       <ScrollArea scrollbars='y' offsetScrollbars='present'>
         {detailConfigs && (
           <>
@@ -106,7 +117,11 @@ const Detail = <T extends SourceDataType>({
                 })}
               </Grid>
             </div>
-            <hr />
+            <hr
+              className={sprinkles({
+                width: 'size-full',
+              })}
+            />
           </>
         )}
         <div className={detail_body}>{children}</div>

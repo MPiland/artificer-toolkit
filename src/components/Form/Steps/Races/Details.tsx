@@ -4,185 +4,180 @@ import { sprinkles } from '@/css/sprinkles.css'
 import { Categories } from '@/enums'
 import { useSystemData, useRaceData, useFieldUpdates } from '@/hooks'
 import { Grid } from '@mantine/core'
-import { useAppForm } from '@/components/Form'
+import { withForm } from '@/components/Form'
 import { RaceInputSchema, DetailInputSchema } from '@/schemas'
-import { useFormStore } from '@/store'
+import { useTypedFormStore } from '@/store'
 import { useEffect } from 'react'
-import { useStore } from '@tanstack/react-form'
+import type { RaceInput, DetailInput } from '@/types'
+import { z } from 'zod/v4'
 
-const DetailsStep = () => {
-  const formStore = useFormStore()
+const DetailsStep = withForm({
+  defaultValues: {} as z.input<typeof RaceInputSchema>,
+  render: function Render({ form }) {
+    const { AppField } = form
 
-  const form = useAppForm({
-    defaultValues: RaceInputSchema.parse(formStore.current),
-  })
+    const store = useTypedFormStore<RaceInput>()
+    const steps = store((state) => state.steps)
+    const stepIndex = store((state) => state.stepIndex)
+    const category = store((state) => state.current?.category)
+    const registerForm = store((state) => state.registerForm)
+    const updateField = store((state) => state.updateField)
+    const removeField = store((state) => state.removeField)
 
-  const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form' })
+    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form', stepIndex })
 
-  const { AppField, Subscribe } = form
-  
-  const { categories } = useSystemData()
-  const { races } = useRaceData()
+    const { categories } = useSystemData()
+    const { races } = useRaceData()
 
-  useEffect(() => {
-    formStore.registerForm(form.reset)
-  }, [form.reset, formStore])
+    useEffect(() => {
+      if (!steps[stepIndex].reset) {
+        registerForm(form.reset)
+      }
+    }, [form.reset, steps, stepIndex, registerForm])
 
-  const { isValid } = useStore(form.store, (state) => ({
-    isValid: state.isValid,
-  }))
-
-  useEffect(() => {
-    formStore.setValidForm(isValid)
-  }, [formStore, isValid])
-
-  return (
-    <Subscribe
-      selector={(state) => ({
-        category: state.values.category,
-      })}
-    >
-      {({ category }) => (
-        <Grid>
+    return (
+      <Grid>
+        <AppField
+          name='label'
+          validators={fieldValidators({
+            onBlur: 'Please enter a name',
+          })}
+          listeners={fieldListeners}
+        >
+          {({ TextField }) => (
+            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+              <TextField label='Name' required={true} />
+            </Grid.Col>
+          )}
+        </AppField>
+        <AppField
+          name='category'
+          validators={fieldValidators({
+            onBlur: 'Please select a category',
+          })}
+          listeners={fieldListeners}
+        >
+          {({ DropdownField }) => (
+            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+              <DropdownField
+                label='Category'
+                options={categories.filter((category) => category?.races)}
+                required={true}
+              />
+            </Grid.Col>
+          )}
+        </AppField>
+        {category === Categories.BASE ?
           <AppField
-            name='label'
+            name='playable'
             validators={fieldValidators({
-              onBlur: 'Please enter a name',
-            })}
-            listeners={fieldListeners}
-          >
-            {({ TextField }) => (
-              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                <TextField label='Name' required={true} />
-              </Grid.Col>
-            )}
-          </AppField>
-          <AppField
-            name='category'
-            validators={fieldValidators({
-              onBlur: 'Please select a category',
+              onBlur: 'Choose whether this race is playable or not',
             })}
             listeners={fieldListeners}
           >
             {({ DropdownField }) => (
               <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
                 <DropdownField
-                  label='Category'
-                  options={categories.filter((category) => category?.races)}
+                  label='Playable'
+                  options={[
+                    {
+                      value: 'true',
+                      label: 'Yes',
+                      id: 'true',
+                    },
+                    {
+                      value: 'false',
+                      label: 'No',
+                      id: 'false',
+                    },
+                  ]}
                   required={true}
                 />
               </Grid.Col>
             )}
           </AppField>
-          {category === Categories.BASE ?
+        : (category === Categories.SUBRACE || category === Categories.VARIANT) && (
             <AppField
-              name='playable'
+              name='lineages'
               validators={fieldValidators({
-                onBlur: 'Choose whether this race is playable or not',
+                onBlur: 'Please select a race lineage',
               })}
               listeners={fieldListeners}
             >
               {({ DropdownField }) => (
                 <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                  <DropdownField
-                    label='Playable'
-                    options={[
-                      {
-                        value: 'true',
-                        label: 'Yes',
-                        id: 'true',
-                      },
-                      {
-                        value: 'false',
-                        label: 'No',
-                        id: 'false',
-                      },
-                    ]}
-                    required={true}
-                  />
+                  <DropdownField label='Race Linage' options={races} required={true} multiselect={true} />
                 </Grid.Col>
               )}
             </AppField>
-          : (category === Categories.SUBRACE || category === Categories.VARIANT) && (
-              <AppField
-                name='lineages'
-                validators={fieldValidators({
-                  onBlur: 'Please select a race lineage',
-                })}
-                listeners={fieldListeners}
-              >
-                {({ DropdownField }) => (
-                  <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                    <DropdownField label='Race Linage' options={races} required={true} multiselect={true} />
+          )
+        }
+        <>
+          <AppField name='details' mode='array'>
+            {(details) => (
+              <>
+                <Grid.Col span={2} className={sprinkles({ alignContent: 'flex-end' })}>
+                  <Button
+                    type='button'
+                    onClick={() => {
+                      const detailInputObj = DetailInputSchema.parse({})
+                      details.pushValue(detailInputObj)
+                      updateField({
+                        path: `details[${details.state.value?.length}]`,
+                        value: detailInputObj,
+                      })
+                    }}
+                  >
+                    Add Detail
+                  </Button>
+                </Grid.Col>
+                {details.state.value?.length && (
+                  <Grid.Col>
+                    <Accordion
+                      dataArray={details.state.value}
+                      onChange={(dataArray) => details.handleChange(dataArray as DetailInput[])}
+                    >
+                      {details.state.value?.map((detail, i) => (
+                        <Accordion.Item key={`${i}-details`} itemId={String(i)} value={detail.label ?? ''}>
+                          <Accordion.Trigger
+                            removeFn={() => {
+                              details.removeValue(i)
+                              removeField({ path: `details[${i}]` })
+                            }}
+                          >
+                            {detail.label != null && detail.label !== '' ? detail.label : `Detail ${i + 1}`}
+                          </Accordion.Trigger>
+                          <Accordion.Content>
+                            <Grid>
+                              <AppField name={`details[${i}].label`} listeners={fieldListeners}>
+                                {({ TextField }) => (
+                                  <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                    <TextField label='Detail Name' />
+                                  </Grid.Col>
+                                )}
+                              </AppField>
+
+                              <AppField name={`details[${i}].desc`} listeners={fieldListeners}>
+                                {({ RichTextField }) => (
+                                  <Grid.Col>
+                                    <RichTextField label='Section Description' />
+                                  </Grid.Col>
+                                )}
+                              </AppField>
+                            </Grid>
+                          </Accordion.Content>
+                        </Accordion.Item>
+                      ))}
+                    </Accordion>
                   </Grid.Col>
                 )}
-              </AppField>
-            )
-          }
-          <>
-            <AppField name='details' mode='array'>
-              {({ pushValue, removeValue, AccordionField, state }) => (
-                <>
-                  <Grid.Col span={2} className={sprinkles({ alignContent: 'flex-end' })}>
-                    <Button
-                      type='button'
-                      onClick={() => {
-                        const detailInputObj = DetailInputSchema.parse({})
-                        pushValue(detailInputObj)
-                        formStore.updateField({
-                          path: `details[${state.value?.length}]`,
-                          value: detailInputObj,
-                        })
-                      }}
-                    >
-                      Add Detail
-                    </Button>
-                  </Grid.Col>
-                  {state.value?.length && (
-                    <Grid.Col>
-                      <AccordionField name='details'>
-                        {state.value?.map((detail, i) => (
-                          <Accordion.Item key={`${i}-details`} itemId={String(i)} value={detail.label ?? ''}>
-                            <Accordion.Trigger
-                              removeFn={() => {
-                                removeValue(i)
-                                formStore.removeField({ path: `details[${i}]` })
-                              }}
-                            >
-                              {detail.label != null && detail.label !== '' ? detail.label : `Detail ${i + 1}`}
-                            </Accordion.Trigger>
-                            <Accordion.Content>
-                              <Grid>
-                                <AppField name={`details[${i}].label`} listeners={fieldListeners}>
-                                  {({ TextField }) => (
-                                    <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                                      <TextField label='Detail Name' />
-                                    </Grid.Col>
-                                  )}
-                                </AppField>
-
-                                <AppField name={`details[${i}].desc`} listeners={fieldListeners}>
-                                  {({ RichTextField }) => (
-                                    <Grid.Col>
-                                      <RichTextField label='Section Description' />
-                                    </Grid.Col>
-                                  )}
-                                </AppField>
-                              </Grid>
-                            </Accordion.Content>
-                          </Accordion.Item>
-                        ))}
-                      </AccordionField>
-                    </Grid.Col>
-                  )}
-                </>
-              )}
-            </AppField>
-          </>
-        </Grid>
-      )}
-    </Subscribe>
-  )
-}
+              </>
+            )}
+          </AppField>
+        </>
+      </Grid>
+    )
+  },
+})
 
 export default DetailsStep

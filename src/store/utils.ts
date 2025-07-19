@@ -1,29 +1,29 @@
 import type { FeatureFormDataType, FormDataType, SectionFormDataType, AncestryOptionInput } from '@/types'
 import { produce, type Draft } from 'immer'
-import { get, set, PropertyPath, toPath } from 'lodash'
+import { get, set, PropertyPath, toPath, isEqual } from 'lodash'
 import type { FormStore } from './formStore'
 import type { FeatureStore } from './featureStore'
-import type { AncestryStore } from './ancestryStore'
-import type { SenseStore } from './senseStore'
-import type { OptionStore } from './optionStore'
-import type { ModifierStore } from './modifierStore'
-import type { SpellStore } from './spellStore'
-import type { ProficiencyStore } from './proficiencyStore'
-import type { ExpertiseStore } from './expertiseStore'
-import type { FeatStore } from './featStore'
+import type { AncestryOptionStore } from './ancestryOptionStore'
+import type { FeatureSenseStore } from './featureSenseStore'
+import type { FeatureOptionStore } from './featureOptionStore'
+import type { FeatureModifierStore } from './featureModifierStore'
+import type { FeatureSpellStore } from './featureSpellStore'
+import type { FeatureProficiencyStore } from './featureProficiencyStore'
+import type { FeatureExpertiseStore } from './featureExpertiseStore'
+import type { FeatureFeatStore } from './featureFeatStore'
 
 export type States = FormDataType | FeatureFormDataType | SectionFormDataType | AncestryOptionInput
 type Stores =
-  | FormStore
+  | FormStore<FormDataType>
   | FeatureStore
-  | AncestryStore
-  | SenseStore
-  | OptionStore
-  | ModifierStore
-  | SpellStore
-  | ProficiencyStore
-  | ExpertiseStore
-  | FeatStore
+  | AncestryOptionStore
+  | FeatureSenseStore
+  | FeatureOptionStore
+  | FeatureModifierStore
+  | FeatureSpellStore
+  | FeatureProficiencyStore
+  | FeatureExpertiseStore
+  | FeatureFeatStore
 
 const isNumber = (str: string): boolean => {
   return !isNaN(parseFloat(str)) && isFinite(Number(str))
@@ -88,7 +88,11 @@ export const updateField = <T extends Stores, U extends States>({
         statePath = path
       }
 
-      set(targetState, statePath as PropertyPath, value)
+      // Only update if the values are different
+      const currentValue = get(targetState, statePath as PropertyPath)
+      if (!isEqual(currentValue, value)) {
+        set(targetState, statePath as PropertyPath, value)
+      }
     })
   }
 }

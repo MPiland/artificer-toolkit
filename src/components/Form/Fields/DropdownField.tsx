@@ -26,6 +26,7 @@ const DropdownField = ({ label, placeholder, options, exist, ...props }: Dropdow
       onBlur={handleBlur}
       placeholder={placeholder}
       options={options}
+      error={state.meta.errors.join(', ')}
       {...props}
     />
   )

@@ -3,6 +3,9 @@ type AncestryOption {
   label: String!
   desc: String
   features: [ID!]
+  ownerId: ID!
+  systemId: ID!
+  masterId: String
 }
 
 type AncestryOptionConnection {

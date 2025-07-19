@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react'
+import { Fragment, useState, useEffect } from 'react'
 import {
   card_group,
   card_header,
@@ -25,6 +25,21 @@ const RaceSelection = () => {
 
   const { AppField } = form
 
+  useEffect(() => {
+    if (!formStore.steps[formStore.stepIndex].reset) {
+      formStore.registerForm(form.reset)
+    }
+  }, [form.reset, formStore, form])
+
+  useEffect(() => {
+    return form.store.subscribe((state) => {
+      const isValid = state.currentVal.isValid
+      if (formStore.steps[formStore.stepIndex].isValid !== isValid) {
+        formStore.setValidForm(isValid)
+      }
+    })
+  }, [formStore, form.store])
+
   const [race, setRace] = useState<RaceListItem | null>(null)
 
   const {
@@ -33,6 +48,14 @@ const RaceSelection = () => {
     races: { findByLineage, findLineages },
     metaData,
   } = useRaceData()
+
+  const findLineage = (id: string) => {
+    const lineages = findByLineage(id)
+    if (lineages?.length) {
+      return lineages
+    }
+    return null
+  }
 
   return (
     <>
@@ -44,7 +67,7 @@ const RaceSelection = () => {
                 className={clsx(main_card, {
                   ['clickable']: metaData.playable?.find((p) => p.id === 'false')?.raceIds?.includes(race.id),
                 })}
-                onClick={() => !findByLineage(race.id)?.length && setRace(race)}
+                onClick={() => !findLineage(race.id)?.length && setRace(race)}
               >
                 <h3 className={clsx(card_header_title, card_header)}>{race.label}</h3>
               </div>

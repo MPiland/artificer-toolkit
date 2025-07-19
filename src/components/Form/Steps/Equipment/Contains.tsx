@@ -18,7 +18,9 @@ const ContainsStep = () => {
   const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form' })
 
   useEffect(() => {
-    formStore.registerForm(form.reset)
+    if (!formStore.steps[formStore.stepIndex].reset) {
+      formStore.registerForm(form.reset)
+    }
   }, [form.reset, formStore])
 
   const { isValid } = useStore(form.store, (state) => ({

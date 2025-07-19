@@ -14,7 +14,8 @@ export class AuthStack extends Stack {
       autoVerify: { email: true },
       signInAliases: { email: true },
       customAttributes: {
-        'init-data-complete': new StringAttribute({ mutable: true }),
+        init_domain_data: new StringAttribute({ mutable: true }),
+        init_feature_data: new StringAttribute({ mutable: true }),
       },
     })
 

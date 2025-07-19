@@ -1,4 +1,11 @@
-import { SubscribeAlert, SubscribeButton, SubscribeSubmit, TextField, DropdownField, RichTextField, AccordionField } from '@/components/Form'
+import {
+  SubscribeAlert,
+  SubscribeButton,
+  SubscribeSubmit,
+  TextField,
+  DropdownField,
+  RichTextField,
+} from '@/components/Form'
 import { createFormHook, createFormHookContexts } from '@tanstack/react-form'
 
 export const { fieldContext, formContext, useFieldContext, useFormContext } = createFormHookContexts()
@@ -7,7 +14,6 @@ export const { useAppForm, withForm, withFieldGroup } = createFormHook({
     TextField,
     DropdownField,
     RichTextField,
-    AccordionField
   },
   formComponents: {
     SubscribeButton,

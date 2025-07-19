@@ -65,6 +65,22 @@ type Subtype {
   label: String!
 }
 
+type ClassProficiency {
+  id: ID!
+  subtype: ID
+  attributes: [ID!]
+  selectionCount: Int
+  category: ID!
+  level: ID!
+  rounding: ID
+  saveAbilities: [ID!]
+  skills: [ID!]
+  languages: [ID!]
+  properties: ProficiencyProperties
+  equipment: ProficiencyProperties
+  prerequisites: Prerequisite
+}
+
 type Class {
   id: ID!
   label: String!
@@ -75,7 +91,7 @@ type Class {
   hitpoint: Hitpoint
   startingGold: StartingGold
   equipment: [[[EquipmentOptionItem!]!]!]
-  proficiencies: [FeatureProficiency!]
+  proficiencies: [ClassProficiency!]
   spellcasting: Spellcasting
   levelAttributes: [LevelAttribute!]
   resource: Resource

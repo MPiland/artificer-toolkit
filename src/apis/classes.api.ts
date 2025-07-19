@@ -68,8 +68,6 @@ export const fetchClasses = (systemPref: string) => {
             variables: variables,
           })) as GraphQLResult<QueryResponse>
 
-          console.log({ data })
-
           const result = isMaster(data) ? data.listMasterClasses : data.listClasses
 
           allData = {
@@ -92,7 +90,7 @@ export const fetchClasses = (systemPref: string) => {
         }
         return allData
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -126,7 +124,7 @@ export const fetchClass = (id: string) => {
           return data.getClass
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -161,7 +159,7 @@ export const useAddNewClassMutation = () => {
           return data.createClass
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -202,7 +200,7 @@ export const useUpdateClassMutation = () => {
           return data.updateClass
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -242,7 +240,7 @@ export const useDeleteClassMutation = () => {
           return data.deleteClass
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },

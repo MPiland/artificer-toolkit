@@ -2,11 +2,12 @@ import type { SectionFormDataType, FeatureOptionInput, FeatureInput } from '@/ty
 import Accordion from '@/components/Accordion'
 import { sprinkles } from '@/css/sprinkles.css'
 import { startCase } from 'lodash'
-import { SECTION_STEPS, feature_description, withFieldGroup } from '@/components/Form'
+import { SECTION_STEPS, withFieldGroup } from '@/components/Form'
 import parse from 'html-react-parser'
 import { useFeatureStore } from '@/store'
 import { Group, Grid } from '@mantine/core'
 import { useGetSections } from '@/hooks'
+import { description } from '../Feature.css'
 
 type SectionsListProps = {
   __kind?: 'FeatureInput' | 'FeatureOptionInput' | 'AncestryFeatureInput'
@@ -56,11 +57,11 @@ const SectionsList = withFieldGroup({
         {sectionsAndOptions.map((sectionStep, i) => {
           return (
             <AppField name={sectionStep} key={`${i}-${sectionStep}`} mode='array'>
-              {({ state, removeValue, AccordionField }) =>
-                state.value?.length && (
+              {(sectionArray) =>
+                sectionArray.state.value?.length && (
                   <Grid.Col>
-                    <AccordionField name={`${sectionStep}`} disableSort={__kind !== 'FeatureOptionInput'}>
-                      {state.value?.map((s, sI) => {
+                    <Accordion dataArray={sectionArray.state.value} onChange={(dataArray) => sectionArray.handleChange(dataArray as string[])} disableSort={__kind !== 'FeatureOptionInput'}>
+                      {sectionArray.state.value?.map((s, sI) => {
                         const sectionData = sectionTypeMap(sectionStep).get(s)
                         const section = sectionTypeMap(sectionStep).schema.parse(sectionData)
                         return (
@@ -68,7 +69,7 @@ const SectionsList = withFieldGroup({
                             <Accordion.Item key={`${i}-${sI}-${sectionStep}`} itemId={String(sI)} value={section.id}>
                               <Accordion.Trigger
                                 key={sI}
-                                removeFn={() => removeValue(sI)}
+                                removeFn={() => sectionArray.removeValue(sI)}
                                 editFn={() => handleEdit(sectionStep, section)}
                               >
                                 {`${startCase(sectionStep)} ${sI + 1}`}
@@ -76,7 +77,7 @@ const SectionsList = withFieldGroup({
                                   <>
                                     {section?.label}
                                     <Accordion.Content>
-                                      <div className={feature_description}>{section?.desc && parse(section?.desc)}</div>
+                                      <div className={description}>{section?.desc && parse(section?.desc)}</div>
                                     </Accordion.Content>
                                     <Group>
                                       {SECTION_STEPS.map((fSectionStep, fSIndex) => {
@@ -103,7 +104,7 @@ const SectionsList = withFieldGroup({
                           )
                         )
                       })}
-                    </AccordionField>
+                    </Accordion>
                   </Grid.Col>
                 )
               }

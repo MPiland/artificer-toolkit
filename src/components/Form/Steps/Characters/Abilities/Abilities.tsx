@@ -1,7 +1,7 @@
 import { Scene } from '@/components/Dice'
 import { createPortal } from 'react-dom'
 import { AbilityGenMethods } from '@/enums'
-import Collapsible from '@/components/Collapsible'
+import Collapsible from '@/components/Collapse'
 import { useSystemData, useFieldUpdates } from '@/hooks'
 import { Grid } from '@mantine/core'
 import { CharacterInputSchema } from '@/schemas'
@@ -29,7 +29,9 @@ const AbilitiesStep = () => {
   const formType: HTMLFormElement = document.getElementById('form-content') as HTMLFormElement
 
   useEffect(() => {
-    formStore.registerForm(form.reset)
+    if (!formStore.steps[formStore.stepIndex].reset) {
+      formStore.registerForm(form.reset)
+    }
   }, [form.reset, formStore])
 
   const { isValid } = useStore(form.store, (state) => ({
@@ -82,22 +84,25 @@ const AbilitiesStep = () => {
             {selectedSystem === AbilityGenMethods.MANUAL && <ManualArray form={form} fields='abilities' />}
             {selectedSystem === AbilityGenMethods.STANDARD_ARRAY && <StandardArray form={form} fields='abilities' />}
             <Grid.Col>
-              <Collapsible defaultOpen={true}>
-                <Collapsible.Trigger title='Abilities' />
-                <Collapsible.Content>
-                  <Grid>
-                    <AppField name='abilities.scores' mode='array'>
-                      {(field) =>
-                        field.state.value?.map((score, index) => {
-                          const ability = findAbility(score.ability)
-                          if (ability) {
-                            return <AbilityCard key={index} score={score} ability={ability} />
-                          }
-                        })
-                      }
-                    </AppField>
-                  </Grid>
-                </Collapsible.Content>
+              <Collapsible
+                props={{
+                  trigger: {
+                    title: 'Abilities',
+                  },
+                }}
+              >
+                <Grid>
+                  <AppField name='abilities.scores' mode='array'>
+                    {(field) =>
+                      field.state.value?.map((score, index) => {
+                        const ability = findAbility(score.ability)
+                        if (ability) {
+                          return <AbilityCard key={index} score={score} ability={ability} />
+                        }
+                      })
+                    }
+                  </AppField>
+                </Grid>
               </Collapsible>
             </Grid.Col>
           </>

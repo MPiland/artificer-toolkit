@@ -54,6 +54,7 @@
     "graphlib": "^2.1.8",
     "graphql-codegen-typescript-validation-schema": "^0.17.1",
     "graphql-tools": "^9.0.18",
+    "lodash": "^4.17.21",
     "ts-node": "^10.9.2"
   }
 }

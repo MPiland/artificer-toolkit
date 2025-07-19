@@ -64,7 +64,7 @@ const RichTextEditor = ({ value, onChange, placeholder, label, onBlur, name }: R
     <>
       {label && <span>{label}</span>}
       <MantineRichTextEditor editor={editor}>
-        <MantineRichTextEditor.Toolbar sticky stickyOffset='var(--docs-header-height)'>
+        <MantineRichTextEditor.Toolbar>
           <MantineRichTextEditor.ControlsGroup>
             <MantineRichTextEditor.Bold />
             <MantineRichTextEditor.Italic />

@@ -217,12 +217,12 @@ const useSystemData = () => {
           system.equipment.properties.find((p) => p.id === id)
         },
         filterByCategory(this: System['equipment']['properties'] & EquipmentPropertyMethods, id?: string | null) {
-          if (!id) return system.equipment.properties
-          return this.filter((property) => {
-            return system.equipment.categoryProperties
-              .filter((bridge) => bridge?.categoryId === id)
-              .some((bridge) => bridge?.propertyId === property?.id)
-          })
+          if (!id || id === '') return system.equipment.properties
+          return this.filter((property) =>
+            system.equipment.categoryProperties.some(
+              (bridge) => bridge?.categoryId === id && bridge?.propertyId === property?.id
+            )
+          )
         },
       }),
       rarities: createArrayWithMethods(system.equipment.rarities, {

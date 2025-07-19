@@ -26,7 +26,10 @@ const listMappingsByPrefix: Partial<Record<string, string>> = {
   Feat: 'listFeatsMapping.js',
   MasterBackground: 'listBackgroundsMasterMapping.js',
   Background: 'listBackgroundsMapping.js',
+  MasterSystem: 'listSystemsMasterMapping.js',
+  System: 'listSystemsMapping.js',
 }
+
 const defaultMasterMapping = 'listItemsMasterMapping.js'
 const defaultMapping = 'listItemsMapping.js'
 

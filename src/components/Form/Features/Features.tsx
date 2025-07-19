@@ -11,7 +11,6 @@ import {
   Expertise,
   Feature,
   SECTION_STEPS,
-  feature_description,
   useAppForm,
 } from '@/components/Form'
 import type { ClassInput, Feature as FeatureOutput, RaceInput } from '@/types'
@@ -23,7 +22,7 @@ import {
   FeatureInputSchema,
   RaceInputSchema,
 } from '@/schemas'
-import { useFeatureStore, useFormStore, useOptionStore } from '@/store'
+import { useFeatureStore, useFormStore, useFeatureOptionStore } from '@/store'
 import { ModalContext } from '@/components/Modal'
 import { useBackgroundData, useFeatData, useEquipmentData, useClassData, useRaceData, useFeatureData } from '@/hooks'
 import { v4 as uuidv4 } from 'uuid'
@@ -31,10 +30,12 @@ import { Outlet } from '@tanstack/react-router'
 import Accordion from '@/components/Accordion'
 import { startCase } from 'lodash'
 import parse from 'html-react-parser'
+import { description } from './Feature.css'
+import { convertTypenameToKindInput } from '@/utils'
 
 const Features = () => {
   const formStore = useFormStore()
-  
+
   const form = useAppForm({
     defaultValues: z
       .discriminatedUnion('__kind', [
@@ -65,7 +66,7 @@ const Features = () => {
   const { AppField } = form
 
   const featureStore = useFeatureStore()
-  const optionStore = useOptionStore()
+  const optionStore = useFeatureOptionStore()
   const { showModal } = use(ModalContext)
 
   const { races, metaData: raceMetaData } = useRaceData()
@@ -85,16 +86,18 @@ const Features = () => {
     featureStore.setCurrent(
       FeatureInputSchema.parse({
         id: uuidv4(),
+        __kind: 'FeatureInput',
       })
     )
     featureStore.setStep('features')
   }
 
   // Edit feature
-  const handleEditFeature = (id: string) => {
-    const featureState = featureData.findFeature(id)
+  const handleEditFeature = async (id: string) => {
+    const featureState = featureData.find((feature) => feature.id === id)
     if (!featureState) return
-    featureStore.setCurrent(FeatureInputSchema.parse(featureState))
+    const featureInput = FeatureInputSchema.parse(convertTypenameToKindInput(featureState))
+    featureStore.setCurrent(featureInput)
     featureStore.setStep('features')
   }
 
@@ -153,35 +156,36 @@ const Features = () => {
               Add Feature
             </Button>
           </Grid.Col>
-          {featureStore.step == null && (
-            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-              <Button color='primary' variant='outline' fullWidth onClick={handleCopyFeature}>
-                Copy Feature
-              </Button>
-            </Grid.Col>
-          )}
+          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+            <Button color='primary' variant='outline' fullWidth onClick={handleCopyFeature}>
+              Copy Feature
+            </Button>
+          </Grid.Col>
           <AppField name='features' mode='array'>
-            {({ state, AccordionField, removeValue }) =>
-              state.value?.length && (
+            {(features) =>
+              features.state.value?.length && (
                 <Grid.Col>
-                  <AccordionField name='features'>
-                    {state.value?.map((f, i) => {
-                      const feature = featureData.findFeature(f)
+                  <Accordion
+                    dataArray={features.state.value}
+                    onChange={(dataArray) => features.handleChange(dataArray as string[])}
+                  >
+                    {features.state.value?.map((f, i) => {
+                      const feature = featureData.find((fData) => fData.id === f)
                       return (
                         feature && (
-                          <Accordion.Item key={`${i}-feature`} itemId={String(i)} value={`${i}-feature`}>
+                          <Accordion.Item key={`feature-${i}`} itemId={String(i)} value={`feature-${i}`}>
                             <Accordion.Trigger
                               removeFn={() => {
-                                removeValue(i)
+                                features.removeValue(i)
                                 formStore.removeField({ path: `features.${i}` })
                               }}
                               editFn={() => handleEditFeature(f)}
+                              title={feature.label != null && feature.label !== '' ? feature.label : `feature ${i + 1}`}
                             >
-                              {feature.label != null && feature.label !== '' ? feature.label : `feature ${i + 1}`}
                               <Group justify='flex-start' wrap='nowrap'>
-                                {SECTION_STEPS.map((sectionStep, si) => {
+                                {SECTION_STEPS.map((sectionStep, sI) => {
                                   return (
-                                    <span key={`${si}-${sectionStep}`} className={sprinkles({ me: 'space-2' })}>
+                                    <span key={`${sectionStep}-${sI}`} className={sprinkles({ me: 'space-2' })}>
                                       {feature[sectionStep] && feature[sectionStep]?.length ?
                                         <strong>
                                           {startCase(sectionStep.charAt(0))}: {feature[sectionStep]?.length}
@@ -194,15 +198,15 @@ const Features = () => {
                             </Accordion.Trigger>
                             {feature.desc && (
                               <Accordion.Content>
-                                <div className={feature_description}>
+                                <div className={description}>
                                   <div>
                                     {feature?.desc && parse(feature.desc)}
                                     {feature.options &&
                                       feature.options?.length > 0 &&
                                       feature.options?.map((o, oI) => {
-                                        const option = optionData.findFeatureOption(o)
+                                        const option = optionData.find((option) => option.id === o)
                                         return (
-                                          <div key={`${oI}-option`}>
+                                          <div key={`option-${oI}`}>
                                             {option?.label && <strong>{option.label}</strong>}
                                             {option?.desc && parse(option.desc)}
                                           </div>
@@ -216,7 +220,7 @@ const Features = () => {
                         )
                       )
                     })}
-                  </AccordionField>
+                  </Accordion>
                 </Grid.Col>
               )
             }

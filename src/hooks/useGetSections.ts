@@ -65,24 +65,24 @@ import useFeatureData from './useFeatureData'
 import useSectionData from './useSectionData'
 import { DeepKeys } from '@tanstack/react-form'
 import {
-  useOptionStore,
-  useSenseStore,
-  useProficiencyStore,
-  useSpellStore,
-  useExpertiseStore,
-  useModifierStore,
+  useFeatureOptionStore,
+  useFeatureSenseStore,
+  useFeatureProficiencyStore,
+  useFeatureSpellStore,
+  useFeatureExpertiseStore,
+  useFeatureModifierStore,
 } from '@/store'
-import { useFeatStore } from '@/store/featStore'
+import { useFeatureFeatStore } from '@/store/featureFeatStore'
 
 export interface GetSectionOptionsProps {
   data: {
-    modifiers?: CharacterModifierInput[]
-    expertise?: CharacterExpertiseInput[]
-    proficiencies?: CharacterProficiencyInput[]
-    senses?: CharacterSenseInput[]
-    feats?: CharacterFeatInput[]
-    spellcasting?: CharacterSpellcastingInput
-    features?: CharacterFeatureInput[]
+    modifiers?: CharacterModifierInput[] | null
+    expertise?: CharacterExpertiseInput[] | null
+    proficiencies?: CharacterProficiencyInput[] | null
+    senses?: CharacterSenseInput[] | null
+    feats?: CharacterFeatInput[] | null
+    spellcasting?: CharacterSpellcastingInput | null
+    features?: CharacterFeatureInput[] | null
   }
   section: SectionFormDataType
   sectionStep: Exclude<(typeof SECTION_STEPS)[number], 'ancestries' | 'options' | 'subfeatures'>
@@ -155,13 +155,13 @@ const useGetSections = () => {
   const { feats } = useFeatData()
   const { equipment } = useEquipmentData()
   const { backgrounds } = useBackgroundData()
-  const optionStore = useOptionStore()
-  const proficiencyStore = useProficiencyStore()
-  const senseStore = useSenseStore()
-  const spellStore = useSpellStore()
-  const expertiseStore = useExpertiseStore()
-  const modifierStore = useModifierStore()
-  const featStore = useFeatStore()
+  const optionStore = useFeatureOptionStore()
+  const proficiencyStore = useFeatureProficiencyStore()
+  const senseStore = useFeatureSenseStore()
+  const spellStore = useFeatureSpellStore()
+  const expertiseStore = useFeatureExpertiseStore()
+  const modifierStore = useFeatureModifierStore()
+  const featStore = useFeatureFeatStore()
   const { features: featureData, featureOptions, ancestryOptions } = useFeatureData()
   const { featureModifiers, featureExpertise, featureProficiencies, featureSenses, featureSpells, featureFeats } =
     useSectionData()
@@ -273,13 +273,13 @@ const useGetSections = () => {
       data,
     }: {
       data: {
-        modifiers?: CharacterModifierInput[]
-        expertise?: CharacterExpertiseInput[]
-        proficiencies?: CharacterProficiencyInput[]
-        senses?: CharacterSenseInput[]
-        feats?: CharacterFeatInput[]
-        spellcasting?: CharacterSpellcastingInput
-        features?: CharacterFeatureInput[]
+        modifiers?: CharacterModifierInput[] | null
+        expertise?: CharacterExpertiseInput[] | null
+        proficiencies?: CharacterProficiencyInput[] | null
+        senses?: CharacterSenseInput[] | null
+        feats?: CharacterFeatInput[] | null
+        spellcasting?: CharacterSpellcastingInput | null
+        features?: CharacterFeatureInput[] | null
       }
     }): StateSections => {
       const existing: StateSections = {}

@@ -19,5 +19,5 @@ try {
   writeFileSync(filePath, patched)
   console.log('✅ Patched input types with discriminators.')
 } catch (err) {
-  console.error('❌ Failed to patch input types:', err)
+  console.log('❌ Failed to patch input types:', err)
 }

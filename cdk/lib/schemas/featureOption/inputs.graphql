@@ -20,6 +20,9 @@ input FeatureOptionInput {
   prerequisites: PrerequisiteInput
   saveAbility: SaveAbilityInput
   levelAvailable: String
+  ownerId: ID!
+  systemId: ID!
+  masterId: String
 }
 
 input BatchFeatureOptionsInput {

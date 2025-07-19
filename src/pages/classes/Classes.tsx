@@ -1,8 +1,6 @@
 import List, { type FooterConfig } from '@/components/List'
 import ICategory from '@/assets/Icons/ICategory'
-import { Suspense } from 'react'
 import { useDeleteClassMutation } from '@/apis/classes.api'
-import Loading from '@/components/Loading'
 import type { ClassMeta } from '@/types'
 import { useClassData } from '@/hooks'
 
@@ -25,9 +23,7 @@ const Classes = () => {
   ]
 
   return (
-    <Suspense fallback={<Loading />}>
-      <List data={classes} metaData={metaData} useDeleteItem={useDeleteClassMutation} footerConfigs={footerConfigs} />
-    </Suspense>
+    <List data={classes} metaData={metaData} useDeleteItem={useDeleteClassMutation} footerConfigs={footerConfigs} />
   )
 }
 export default Classes

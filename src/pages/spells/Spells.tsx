@@ -1,13 +1,11 @@
 import { useDeleteSpellMutation } from '@/apis/spells.api'
 import List, { type FilterConfig, type FooterConfig } from '@/components/List'
-import { Suspense } from 'react'
 import IFlame from '@/assets/Icons/IFlame'
 import IClass from '@/assets/Icons/IClass'
 import IBook from '@/assets/Icons/IBook'
 import IClock from '@/assets/Icons/IClock'
 import IRange from '@/assets/Icons/IRange'
 import IMortPest from '@/assets/Icons/IMortPest'
-import Loading from '@/components/Loading'
 import type { Spell, SpellMeta } from '@/types'
 import { useSpellData } from '@/hooks'
 
@@ -225,15 +223,13 @@ const Spells = () => {
   ]
 
   return (
-    <Suspense fallback={<Loading />}>
-      <List
-        data={spells}
-        metaData={metaData}
-        useDeleteItem={useDeleteSpellMutation}
-        footerConfigs={footerConfigs}
-        filterConfigs={filterConfigs}
-      />
-    </Suspense>
+    <List
+      data={spells}
+      metaData={metaData}
+      useDeleteItem={useDeleteSpellMutation}
+      footerConfigs={footerConfigs}
+      filterConfigs={filterConfigs}
+    />
   )
 }
 

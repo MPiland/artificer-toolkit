@@ -20,6 +20,9 @@ type FeatureOption {
   prerequisites: Prerequisite
   saveAbility: SaveAbility
   levelAvailable: String
+  ownerId: ID!
+  systemId: ID!
+  masterId: String
 }
 
 type FeatureOptionConnection {

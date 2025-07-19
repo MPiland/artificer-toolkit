@@ -121,7 +121,7 @@ export const fetchSpell = (id: string) => {
           return data.getSpell
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -156,7 +156,7 @@ export const useAddNewSpellMutation = () => {
           return data.createSpell
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -197,7 +197,7 @@ export const useUpdateSpellMutation = () => {
           return data.updateSpell
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -237,7 +237,7 @@ export const useDeleteSpellMutation = () => {
           return data.deleteSpell
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },

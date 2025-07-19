@@ -19,18 +19,12 @@ import { useStore } from '@tanstack/react-form'
 type CharacterEquipmentOptionsProps = {
   dataSource?: Class | Background
 }
-
-const defaultValues: {
-  equipment?: CharacterInput['classEquipment'] | CharacterInput['backgroundEquipment']
-  currencyGroups?: CharacterInput['currencyGroups']
-  characterInventory?: CharacterInput['equipment']['inventory']
-} = {
-  equipment: undefined,
-  currencyGroups: undefined,
-}
-
 const CharacterEquipmentOptions = withFieldGroup({
-  defaultValues,
+  defaultValues: {
+    equipment: {} as CharacterInput['classEquipment'] | CharacterInput['backgroundEquipment'] | null | undefined,
+    currencyGroups: [] as CharacterInput['currencyGroups'] | null | undefined,
+    characterInventory: [] as CharacterInput['equipment']['inventory'] | null | undefined,
+  },
   props: {
     dataSource: undefined,
   } as CharacterEquipmentOptionsProps,

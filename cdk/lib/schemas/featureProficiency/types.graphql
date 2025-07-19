@@ -12,6 +12,9 @@ type FeatureProficiency {
   properties: ProficiencyProperties
   equipment: ProficiencyProperties
   prerequisites: Prerequisite
+  ownerId: ID!
+  systemId: ID!
+  masterId: String
 }
 
 type FeatureProficiencyConnection {

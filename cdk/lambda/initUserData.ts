@@ -49,8 +49,6 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
       }
     }
 
-    console.log('User ID:', userId)
-
     const masterTables: Record<string, string> = {}
     const userTables: Record<string, string> = {}
 
@@ -101,7 +99,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
           Username: email,
           UserAttributes: [
             {
-              Name: 'custom:init_data_complete',
+              Name: `custom:init_${process.env.type}_data`,
               Value: 'true',
             },
           ],
@@ -116,7 +114,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event) => {
       headers: commonHeaders,
     }
   } catch (error) {
-    console.error('Error initializing user data:', error)
+    console.log('Error initializing user data:', error)
     return {
       statusCode: 500,
       body: JSON.stringify({ message: 'Error initializing user data', error: String(error) }),
@@ -173,7 +171,9 @@ const updateReferencesInObject = (
       continue
     }
 
-    if (Array.isArray(value) && value.every((v) => typeof v === 'string')) {
+    if (Array.isArray(value) && !value.every((v) => typeof v === 'string')) {
+      result[key] = updateReferencesInArray(value, idMap)
+    } else if (Array.isArray(value) && value.every((v) => typeof v === 'string')) {
       result[key] = value.map((id) => idMap.get(id) || id)
     } else if (typeof value === 'string' && idMap.has(value)) {
       result[key] = idMap.get(value) as string

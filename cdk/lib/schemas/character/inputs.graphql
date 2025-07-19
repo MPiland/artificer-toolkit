@@ -109,7 +109,7 @@ input CharacterFeatureOptionInput {
 }
 
 input CharacterFeatureInput {
-  id: ID
+  id: ID!
   options: [CharacterFeatureOptionInput!]
   classId: ID
   raceId: ID
@@ -347,6 +347,6 @@ input CharacterInput {
   expertise: [CharacterExpertiseInput!]
   modifiers: [CharacterModifierInput!]
   senses: [CharacterSenseInput!]
-  ownerId: String
+  ownerId: ID
   systemId: String!
 }

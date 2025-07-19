@@ -5584,6 +5584,9 @@ mutation CreateMasterFeatureSpell($input: FeatureSpellInput!) {
 		multiplier
 		resourcePoints
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationCreateMasterFeatureSpellArgs, {createMasterFeatureSpell: APITypes.Mutation['createMasterFeatureSpell']}>;
@@ -5661,6 +5664,9 @@ mutation UpdateMasterFeatureSpell($input: FeatureSpellInput!) {
 		multiplier
 		resourcePoints
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationUpdateMasterFeatureSpellArgs, {updateMasterFeatureSpell: APITypes.Mutation['updateMasterFeatureSpell']}>;
@@ -5745,6 +5751,9 @@ mutation BatchCreateMasterFeatureSpells($input: BatchFeatureSpellsInput!) {
 		multiplier
 		resourcePoints
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationBatchCreateMasterFeatureSpellsArgs, {batchCreateMasterFeatureSpells: APITypes.Mutation['batchCreateMasterFeatureSpells']}>;
@@ -5822,6 +5831,9 @@ mutation CreateFeatureSpell($input: FeatureSpellInput!) {
 		multiplier
 		resourcePoints
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationCreateFeatureSpellArgs, {createFeatureSpell: APITypes.Mutation['createFeatureSpell']}>;
@@ -5899,6 +5911,9 @@ mutation UpdateFeatureSpell($input: FeatureSpellInput!) {
 		multiplier
 		resourcePoints
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationUpdateFeatureSpellArgs, {updateFeatureSpell: APITypes.Mutation['updateFeatureSpell']}>;
@@ -5983,6 +5998,9 @@ mutation BatchCreateFeatureSpells($input: BatchFeatureSpellsInput!) {
 		multiplier
 		resourcePoints
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationBatchCreateFeatureSpellsArgs, {batchCreateFeatureSpells: APITypes.Mutation['batchCreateFeatureSpells']}>;
@@ -6350,6 +6368,9 @@ mutation CreateMasterFeatureProficiency($input: FeatureProficiencyInput!) {
 		optionsObtained
 		size
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationCreateMasterFeatureProficiencyArgs, {createMasterFeatureProficiency: APITypes.Mutation['createMasterFeatureProficiency']}>;
@@ -6415,6 +6436,9 @@ mutation UpdateMasterFeatureProficiency($input: FeatureProficiencyInput!) {
 		optionsObtained
 		size
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationUpdateMasterFeatureProficiencyArgs, {updateMasterFeatureProficiency: APITypes.Mutation['updateMasterFeatureProficiency']}>;
@@ -6487,6 +6511,9 @@ mutation BatchCreateMasterFeatureProficiencies($input: BatchFeatureProficiencies
 		optionsObtained
 		size
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationBatchCreateMasterFeatureProficienciesArgs, {batchCreateMasterFeatureProficiencies: APITypes.Mutation['batchCreateMasterFeatureProficiencies']}>;
@@ -6552,6 +6579,9 @@ mutation CreateFeatureProficiency($input: FeatureProficiencyInput!) {
 		optionsObtained
 		size
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationCreateFeatureProficiencyArgs, {createFeatureProficiency: APITypes.Mutation['createFeatureProficiency']}>;
@@ -6617,6 +6647,9 @@ mutation UpdateFeatureProficiency($input: FeatureProficiencyInput!) {
 		optionsObtained
 		size
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationUpdateFeatureProficiencyArgs, {updateFeatureProficiency: APITypes.Mutation['updateFeatureProficiency']}>;
@@ -6689,6 +6722,9 @@ mutation BatchCreateFeatureProficiencies($input: BatchFeatureProficienciesInput!
 		optionsObtained
 		size
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationBatchCreateFeatureProficienciesArgs, {batchCreateFeatureProficiencies: APITypes.Mutation['batchCreateFeatureProficiencies']}>;
@@ -6960,6 +6996,9 @@ mutation CreateMasterFeatureOption($input: FeatureOptionInput!) {
 		abilityModifier
 	}
 	levelAvailable
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationCreateMasterFeatureOptionArgs, {createMasterFeatureOption: APITypes.Mutation['createMasterFeatureOption']}>;
@@ -7231,6 +7270,9 @@ mutation UpdateMasterFeatureOption($input: FeatureOptionInput!) {
 		abilityModifier
 	}
 	levelAvailable
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationUpdateMasterFeatureOptionArgs, {updateMasterFeatureOption: APITypes.Mutation['updateMasterFeatureOption']}>;
@@ -7509,6 +7551,9 @@ mutation BatchCreateMasterFeatureOptions($input: BatchFeatureOptionsInput!) {
 		abilityModifier
 	}
 	levelAvailable
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationBatchCreateMasterFeatureOptionsArgs, {batchCreateMasterFeatureOptions: APITypes.Mutation['batchCreateMasterFeatureOptions']}>;
@@ -7780,6 +7825,9 @@ mutation CreateFeatureOption($input: FeatureOptionInput!) {
 		abilityModifier
 	}
 	levelAvailable
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationCreateFeatureOptionArgs, {createFeatureOption: APITypes.Mutation['createFeatureOption']}>;
@@ -8051,6 +8099,9 @@ mutation UpdateFeatureOption($input: FeatureOptionInput!) {
 		abilityModifier
 	}
 	levelAvailable
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationUpdateFeatureOptionArgs, {updateFeatureOption: APITypes.Mutation['updateFeatureOption']}>;
@@ -8329,6 +8380,9 @@ mutation BatchCreateFeatureOptions($input: BatchFeatureOptionsInput!) {
 		abilityModifier
 	}
 	levelAvailable
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationBatchCreateFeatureOptionsArgs, {batchCreateFeatureOptions: APITypes.Mutation['batchCreateFeatureOptions']}>;
@@ -8430,6 +8484,9 @@ mutation CreateMasterFeatureModifier($input: FeatureModifierInput!) {
 		optionsObtained
 		size
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationCreateMasterFeatureModifierArgs, {createMasterFeatureModifier: APITypes.Mutation['createMasterFeatureModifier']}>;
@@ -8531,6 +8588,9 @@ mutation UpdateMasterFeatureModifier($input: FeatureModifierInput!) {
 		optionsObtained
 		size
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationUpdateMasterFeatureModifierArgs, {updateMasterFeatureModifier: APITypes.Mutation['updateMasterFeatureModifier']}>;
@@ -8639,6 +8699,9 @@ mutation BatchCreateMasterFeatureModifiers($input: BatchFeatureModifiersInput!) 
 		optionsObtained
 		size
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationBatchCreateMasterFeatureModifiersArgs, {batchCreateMasterFeatureModifiers: APITypes.Mutation['batchCreateMasterFeatureModifiers']}>;
@@ -8740,6 +8803,9 @@ mutation CreateFeatureModifier($input: FeatureModifierInput!) {
 		optionsObtained
 		size
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationCreateFeatureModifierArgs, {createFeatureModifier: APITypes.Mutation['createFeatureModifier']}>;
@@ -8841,6 +8907,9 @@ mutation UpdateFeatureModifier($input: FeatureModifierInput!) {
 		optionsObtained
 		size
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationUpdateFeatureModifierArgs, {updateFeatureModifier: APITypes.Mutation['updateFeatureModifier']}>;
@@ -8949,6 +9018,9 @@ mutation BatchCreateFeatureModifiers($input: BatchFeatureModifiersInput!) {
 		optionsObtained
 		size
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationBatchCreateFeatureModifiersArgs, {batchCreateFeatureModifiers: APITypes.Mutation['batchCreateFeatureModifiers']}>;
@@ -8997,6 +9069,9 @@ mutation CreateMasterFeatureFeat($input: FeatureFeatInput!) {
 		optionsObtained
 		size
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationCreateMasterFeatureFeatArgs, {createMasterFeatureFeat: APITypes.Mutation['createMasterFeatureFeat']}>;
@@ -9045,6 +9120,9 @@ mutation UpdateMasterFeatureFeat($input: FeatureFeatInput!) {
 		optionsObtained
 		size
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationUpdateMasterFeatureFeatArgs, {updateMasterFeatureFeat: APITypes.Mutation['updateMasterFeatureFeat']}>;
@@ -9100,6 +9178,9 @@ mutation BatchCreateMasterFeatureFeats($input: BatchFeatureFeatsInput!) {
 		optionsObtained
 		size
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationBatchCreateMasterFeatureFeatsArgs, {batchCreateMasterFeatureFeats: APITypes.Mutation['batchCreateMasterFeatureFeats']}>;
@@ -9148,6 +9229,9 @@ mutation CreateFeatureFeat($input: FeatureFeatInput!) {
 		optionsObtained
 		size
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationCreateFeatureFeatArgs, {createFeatureFeat: APITypes.Mutation['createFeatureFeat']}>;
@@ -9196,6 +9280,9 @@ mutation UpdateFeatureFeat($input: FeatureFeatInput!) {
 		optionsObtained
 		size
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationUpdateFeatureFeatArgs, {updateFeatureFeat: APITypes.Mutation['updateFeatureFeat']}>;
@@ -9251,6 +9338,9 @@ mutation BatchCreateFeatureFeats($input: BatchFeatureFeatsInput!) {
 		optionsObtained
 		size
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationBatchCreateFeatureFeatsArgs, {batchCreateFeatureFeats: APITypes.Mutation['batchCreateFeatureFeats']}>;
@@ -9314,6 +9404,9 @@ mutation CreateMasterFeatureExpertise($input: FeatureExpertiseInput!) {
 		optionsObtained
 		size
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationCreateMasterFeatureExpertiseArgs, {createMasterFeatureExpertise: APITypes.Mutation['createMasterFeatureExpertise']}>;
@@ -9377,6 +9470,9 @@ mutation UpdateMasterFeatureExpertise($input: FeatureExpertiseInput!) {
 		optionsObtained
 		size
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationUpdateMasterFeatureExpertiseArgs, {updateMasterFeatureExpertise: APITypes.Mutation['updateMasterFeatureExpertise']}>;
@@ -9447,6 +9543,9 @@ mutation BatchCreateMasterFeatureExpertises($input: BatchFeatureExpertisesInput!
 		optionsObtained
 		size
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationBatchCreateMasterFeatureExpertisesArgs, {batchCreateMasterFeatureExpertises: APITypes.Mutation['batchCreateMasterFeatureExpertises']}>;
@@ -9510,6 +9609,9 @@ mutation CreateFeatureExpertise($input: FeatureExpertiseInput!) {
 		optionsObtained
 		size
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationCreateFeatureExpertiseArgs, {createFeatureExpertise: APITypes.Mutation['createFeatureExpertise']}>;
@@ -9573,6 +9675,9 @@ mutation UpdateFeatureExpertise($input: FeatureExpertiseInput!) {
 		optionsObtained
 		size
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationUpdateFeatureExpertiseArgs, {updateFeatureExpertise: APITypes.Mutation['updateFeatureExpertise']}>;
@@ -9643,6 +9748,9 @@ mutation BatchCreateFeatureExpertises($input: BatchFeatureExpertisesInput!) {
 		optionsObtained
 		size
 	}
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationBatchCreateFeatureExpertisesArgs, {batchCreateFeatureExpertises: APITypes.Mutation['batchCreateFeatureExpertises']}>;
@@ -9921,6 +10029,9 @@ mutation CreateMasterFeature($input: FeatureInput!) {
 	}
 	levelAvailable
 	options
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationCreateMasterFeatureArgs, {createMasterFeature: APITypes.Mutation['createMasterFeature']}>;
@@ -10199,6 +10310,9 @@ mutation UpdateMasterFeature($input: FeatureInput!) {
 	}
 	levelAvailable
 	options
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationUpdateMasterFeatureArgs, {updateMasterFeature: APITypes.Mutation['updateMasterFeature']}>;
@@ -10484,6 +10598,9 @@ mutation BatchCreateMasterFeatures($input: BatchFeaturesInput!) {
 	}
 	levelAvailable
 	options
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationBatchCreateMasterFeaturesArgs, {batchCreateMasterFeatures: APITypes.Mutation['batchCreateMasterFeatures']}>;
@@ -10762,6 +10879,9 @@ mutation CreateFeature($input: FeatureInput!) {
 	}
 	levelAvailable
 	options
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationCreateFeatureArgs, {createFeature: APITypes.Mutation['createFeature']}>;
@@ -11040,6 +11160,9 @@ mutation UpdateFeature($input: FeatureInput!) {
 	}
 	levelAvailable
 	options
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationUpdateFeatureArgs, {updateFeature: APITypes.Mutation['updateFeature']}>;
@@ -11325,6 +11448,9 @@ mutation BatchCreateFeatures($input: BatchFeaturesInput!) {
 	}
 	levelAvailable
 	options
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationBatchCreateFeaturesArgs, {batchCreateFeatures: APITypes.Mutation['batchCreateFeatures']}>;
@@ -16567,6 +16693,9 @@ mutation CreateMasterBackground($input: BackgroundInput!) {
 			optionsObtained
 			size
 		}
+		ownerId
+		systemId
+		masterId
 	}
 	features
 	ownerId
@@ -16661,6 +16790,9 @@ mutation UpdateMasterBackground($input: BackgroundInput!) {
 			optionsObtained
 			size
 		}
+		ownerId
+		systemId
+		masterId
 	}
 	features
 	ownerId
@@ -16762,6 +16894,9 @@ mutation BatchCreateMasterBackgrounds($input: BatchBackgroundsInput!) {
 			optionsObtained
 			size
 		}
+		ownerId
+		systemId
+		masterId
 	}
 	features
 	ownerId
@@ -16856,6 +16991,9 @@ mutation CreateBackground($input: BackgroundInput!) {
 			optionsObtained
 			size
 		}
+		ownerId
+		systemId
+		masterId
 	}
 	features
 	ownerId
@@ -16950,6 +17088,9 @@ mutation UpdateBackground($input: BackgroundInput!) {
 			optionsObtained
 			size
 		}
+		ownerId
+		systemId
+		masterId
 	}
 	features
 	ownerId
@@ -17051,6 +17192,9 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 			optionsObtained
 			size
 		}
+		ownerId
+		systemId
+		masterId
 	}
 	features
 	ownerId
@@ -17068,6 +17212,9 @@ mutation CreateMasterAncestryOption($input: AncestryOptionInput!) {
 	label
 	desc
 	features
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationCreateMasterAncestryOptionArgs, {createMasterAncestryOption: APITypes.Mutation['createMasterAncestryOption']}>;
@@ -17080,6 +17227,9 @@ mutation UpdateMasterAncestryOption($input: AncestryOptionInput!) {
 	label
 	desc
 	features
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationUpdateMasterAncestryOptionArgs, {updateMasterAncestryOption: APITypes.Mutation['updateMasterAncestryOption']}>;
@@ -17099,6 +17249,9 @@ mutation BatchCreateMasterAncestryOptions($input: BatchAncestryOptionsInput!) {
 	label
 	desc
 	features
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationBatchCreateMasterAncestryOptionsArgs, {batchCreateMasterAncestryOptions: APITypes.Mutation['batchCreateMasterAncestryOptions']}>;
@@ -17111,6 +17264,9 @@ mutation CreateAncestryOption($input: AncestryOptionInput!) {
 	label
 	desc
 	features
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationCreateAncestryOptionArgs, {createAncestryOption: APITypes.Mutation['createAncestryOption']}>;
@@ -17123,6 +17279,9 @@ mutation UpdateAncestryOption($input: AncestryOptionInput!) {
 	label
 	desc
 	features
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationUpdateAncestryOptionArgs, {updateAncestryOption: APITypes.Mutation['updateAncestryOption']}>;
@@ -17142,6 +17301,9 @@ mutation BatchCreateAncestryOptions($input: BatchAncestryOptionsInput!) {
 	label
 	desc
 	features
+	ownerId
+	systemId
+	masterId
   }
 }
 `as GeneratedMutation<APITypes.MutationBatchCreateAncestryOptionsArgs, {batchCreateAncestryOptions: APITypes.Mutation['batchCreateAncestryOptions']}>;

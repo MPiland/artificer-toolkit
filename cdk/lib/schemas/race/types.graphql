@@ -53,6 +53,7 @@ type RaceListItem {
   quote: String
   desc: String
   details: [Detail!]
+  ownerId: ID!
   systemId: ID!
   masterId: String
 }

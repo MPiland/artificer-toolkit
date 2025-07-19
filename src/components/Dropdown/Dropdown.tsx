@@ -1,14 +1,13 @@
 import '@mantine/core/styles/Popover.layer.css'
 import '@mantine/core/styles/Combobox.layer.css'
-import { useEffect, useState, useRef, useMemo, useCallback, ReactNode } from 'react'
-import { dropdown_option, dropdown_active_icon } from './Dropdown.css'
+import { useEffect, useState, useMemo, useCallback, ReactNode } from 'react'
+import { combobox_option, active_icon } from './Dropdown.css'
 import { isEqual, uniqBy } from 'lodash'
 import { DropdownOption, DropdownProps } from './Dropdown.types'
-import { Combobox, useCombobox } from '@mantine/core'
+import { Combobox, Group, useCombobox } from '@mantine/core'
 import DropdownMultiple from './DropdownMultiple'
 import DropdownSingle from './DropdownSingle'
 import { Check } from 'lucide-react'
-import { useClickOutside } from '@mantine/hooks'
 import { ScrollArea } from '@mantine/core'
 
 const Dropdown = ({
@@ -21,29 +20,16 @@ const Dropdown = ({
   placeholder,
   all = true,
   disableRemove = false,
-  errorMsg,
+  error,
   onBlur,
 }: DropdownProps) => {
-  const [error, setError] = useState<string>()
   const [settingOption, setSettingOption] = useState<boolean>(false)
-  const [selectedOptions, setSelectedOptions] = useState<string[] | string | null>(null)
+  const [selectedOptions, setSelectedOptions] = useState<string[] | string | null | undefined>(null)
 
   const combobox = useCombobox({
     onDropdownClose: () => combobox.resetSelectedOption(),
     onDropdownOpen: () => combobox.updateSelectedOptionIndex('active'),
   })
-  const dropdownRef = useRef<HTMLDivElement | null>(null)
-
-  const ref = useClickOutside(() => combobox.closeDropdown())
-
-  useEffect(() => {
-    const dropdown = dropdownRef.current
-    if (dropdown) {
-      dropdown.addEventListener('setErrorState', () => setError(errorMsg || 'Please make a selection'))
-
-      return () => dropdown.removeEventListener('setErrorState', () => setError(errorMsg || 'Please make a selection'))
-    }
-  }, [errorMsg])
 
   const filteredArray = useCallback(() => {
     if (!options) return []
@@ -51,7 +37,7 @@ const Dropdown = ({
     let optionArray: DropdownOption[] = Array.isArray(options) ? [...options] : []
     if (options?.length) {
       optionArray = optionArray?.filter((option) => option?.label != null)
-      optionArray = uniqBy(optionArray, (option) => option.value)
+      optionArray = uniqBy(optionArray, (option) => option.label)
 
       if (optionArray.length) {
         optionArray = uniqBy(optionArray, (obj) => obj?.id)
@@ -93,10 +79,7 @@ const Dropdown = ({
         })
 
         if (multiselect && all === true) {
-          optionArray.unshift(
-            { value: 'all', label: 'All', id: 'all' },
-            { value: 'clear', label: 'Clear', id: 'clear' }
-          )
+          optionArray.unshift({ label: 'All', id: 'all' }, { label: 'Clear', id: 'clear' })
         }
       }
     }
@@ -107,11 +90,11 @@ const Dropdown = ({
 
   useEffect(() => {
     if (options?.length && filteredOptions?.length) {
-      if (value && !isEqual(value, selectedOptions) && (value != null || selectedOptions != null) && !settingOption) {
+      if (!isEqual(value, selectedOptions) && !settingOption) {
         setSelectedOptions(value)
       }
     }
-  }, [filteredOptions?.length, options?.length, settingOption, value, selectedOptions])
+  }, [value, selectedOptions, settingOption, options?.length, filteredOptions?.length])
 
   const activeOptions = useMemo(() => {
     if (!selectedOptions) return null
@@ -122,22 +105,26 @@ const Dropdown = ({
     return selectedOptions
   }, [filteredOptions, selectedOptions])
 
-  const activeLabels: string | string[] | ReactNode | ReactNode[] = useMemo(() => {
-    if (!activeOptions || !filteredOptions?.length) return null
-    if (Array.isArray(activeOptions)) {
-      return activeOptions.map((id) => {
-        const option = filteredOptions.find((opt) => opt.id === id)
-        if (option?.renderedLabel) {
-          return option?.renderedLabel
-        }
-        return option?.label
-      })
-    }
-    return filteredOptions.find((opt) => opt.id === activeOptions)?.label
-  }, [activeOptions, filteredOptions])
+  const activeLabels: { id: string; label: string | ReactNode } | { id: string; label: string | ReactNode }[] =
+    useMemo(() => {
+      if (!activeOptions || !filteredOptions?.length) return []
+      if (Array.isArray(activeOptions)) {
+        return activeOptions.map((id) => {
+          const option = filteredOptions.find((opt) => opt.id === id)
+          if (option?.renderedLabel) {
+            return { id, label: option?.renderedLabel }
+          }
+          return { id: id || '', label: option?.label || '' }
+        })
+      }
+      const option = filteredOptions.find((opt) => activeOptions.includes(opt.id))
+      if (option?.renderedLabel) {
+        return { id: option.id, label: option.renderedLabel }
+      }
+      return { id: option?.id || '', label: option?.label || '' }
+    }, [activeOptions, filteredOptions])
 
   const handleValueSelect = (optionId: string) => {
-    console.log({ optionId })
     setSettingOption(true)
     if (multiselect) {
       let newOptions: string[] | null = [optionId]
@@ -150,7 +137,11 @@ const Dropdown = ({
         return setSelectedOptions(allOptions)
       }
       if (newOptions != null && Array.isArray(selectedOptions) && selectedOptions?.length) {
-        if (selectedOptions.includes(optionId)) {
+        if (selectedOptions.includes('all')) {
+          newOptions = filteredOptions
+            .filter((opt) => opt.id !== 'all' && opt.id !== 'clear' && opt.id !== optionId)
+            .map((opt) => opt.id)
+        } else if (selectedOptions.includes(optionId)) {
           newOptions = selectedOptions.filter((selectedOption) => selectedOption !== optionId)
         } else {
           newOptions = [...selectedOptions, ...newOptions]
@@ -170,22 +161,26 @@ const Dropdown = ({
     if (disableRemove) return
     setSettingOption(true)
     setSelectedOptions(null)
-    onChange(undefined)
+    onChange(null)
     setSettingOption(false)
   }
 
-  const comboOptions = filteredOptions.map((option, index) => (
-    <Combobox.Option
-      key={option.id}
-      value={option.id}
-      active={multiselect ? value?.includes(option.id) : value === option.id}
-      className={dropdown_option}
-      onMouseOver={() => combobox.selectOption(index)}
-    >
-      {multiselect ? value?.includes(option.id) : value === option.id && <Check className={dropdown_active_icon} />}
-      {option.label}
-    </Combobox.Option>
-  ))
+  const comboOptions = filteredOptions.map((option, index) => {
+    return (
+      <Combobox.Option
+        key={option.id}
+        value={option.id}
+        active={multiselect ? value?.includes(option.id) : value === option.id}
+        className={combobox_option}
+        onMouseOver={() => combobox.selectOption(index)}
+      >
+        <Group justify='space-between'>
+          {option.label}
+          {(multiselect ? value?.includes(option.id) : value === option.id) && <Check className={active_icon} />}
+        </Group>
+      </Combobox.Option>
+    )
+  })
 
   return (
     <Combobox
@@ -201,11 +196,11 @@ const Dropdown = ({
           value={(value as string[]) || []}
           placeholder={placeholder}
           handleValueSelect={handleValueSelect}
-          activeLabels={(activeLabels as (string | ReactNode)[]) || []}
+          activeLabels={(activeLabels as { id: string; label: string | ReactNode }[]) || []}
           label={label}
           required={required}
-          toggleDropdown={() => combobox.toggleDropdown()}
-          closeDropdown={() => combobox.closeDropdown()}
+          toggleDropdown={combobox.toggleDropdown}
+          closeDropdown={combobox.closeDropdown}
           error={error}
           onBlur={onBlur}
         />
@@ -213,17 +208,16 @@ const Dropdown = ({
           value={value as string}
           placeholder={placeholder}
           handleRemoveValue={handleValueRemove}
-          activeLabel={activeLabels as string | ReactNode}
+          activeLabel={activeLabels as { id: string; label: string | ReactNode }}
           label={label}
           required={required}
-          toggleDropdown={() => combobox.toggleDropdown()}
-          closeDropdown={() => combobox.closeDropdown()}
+          toggleDropdown={combobox.toggleDropdown}
           error={error}
           onBlur={onBlur}
         />
       }
 
-      <Combobox.Dropdown ref={ref}>
+      <Combobox.Dropdown>
         <Combobox.Options>
           <ScrollArea.Autosize mah={136} type='always'>
             {comboOptions.length ? comboOptions : <Combobox.Empty>No options</Combobox.Empty>}

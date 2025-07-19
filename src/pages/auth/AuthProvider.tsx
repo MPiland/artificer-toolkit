@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useState } from 'react'
-import { initUserData, signOut } from '@/apis/auth.api'
+import { initUserDomainData, initUserFeatureData, signOut } from '@/apis/auth.api'
 import { getCurrentUser, fetchAuthSession, AuthUser, AuthTokens } from 'aws-amplify/auth'
 import { Hub } from 'aws-amplify/utils'
 import { AuthContext } from './AuthContext'
@@ -9,6 +9,7 @@ const useAuthOptions = () => {
   const [tokens, setTokens] = useState<AuthTokens['accessToken'] | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isAuthenticating, setIsAuthenticating] = useState(false)
+  const [initData, setInitData] = useState<boolean>(false)
 
   useEffect(() => {
     const checkUser = async () => {
@@ -37,36 +38,66 @@ const useAuthOptions = () => {
     }
 
     checkUser()
+  }, [])
 
-    Hub.listen('auth', ({ payload }) => {
+  useEffect(() => {
+    const listener = Hub.listen('auth', async ({ payload }) => {
       switch (payload.event) {
         case 'signedIn':
-          setIsAuthenticating(true)
-          setIsLoading(true)
-          fetchAuthSession().then(async (session) => {
-            const currentUser = await getCurrentUser()
-            setUser(currentUser)
-            if (session.tokens?.accessToken) {
-              setTokens(session.tokens?.accessToken)
-            }
-            setIsAuthenticating(false)
-            if (session.tokens?.idToken?.payload?.['init-data-complete'] !== 'true') {
-              console.log('init user data')
-              const email = session.tokens?.idToken?.payload?.email as string
-              const userId = session.tokens?.idToken?.payload?.sub
-              if (email && userId) {
+          {
+            if (initData === false) {
+              setInitData(true)
+              setIsAuthenticating(true)
+              setIsLoading(true)
+              try {
+                const session = await fetchAuthSession()
+                console.log('signed in')
                 try {
-                  await initUserData({ email, userId })
-                  console.log('init user data complete')
-                } catch (err) {
-                  if (import.meta.env.DEV) {
-                    console.log('Error initializing user data:', err)
+                  const currentUser = await getCurrentUser()
+                  setUser(currentUser)
+                  if (session.tokens?.accessToken) {
+                    setTokens(session.tokens?.accessToken)
                   }
+                  setIsAuthenticating(false)
+                  const email = session.tokens?.idToken?.payload?.email as string
+                  const userId = session.tokens?.idToken?.payload?.sub
+                  console.log({ session: session.tokens?.idToken?.payload })
+                    if (email && userId) {
+                      if (session.tokens?.idToken?.payload?.['custom:init_domain_data'] !== 'true') {
+                        console.log('init user domain data')
+                        try {
+                          await initUserDomainData({ email, userId })
+                          console.log('init user domain data complete')
+                        } catch (err) {
+                          console.log('Error initializing user domain data:', err)
+                        }
+                      }
+                      if (session.tokens?.idToken?.payload?.['custom:init_feature_data'] !== 'true') {
+                        console.log('init user feature data')
+                        try {
+                          await initUserFeatureData({ email, userId })
+                          console.log('init user feature data complete')
+                        } catch (err) {
+                          console.log('Error initializing user feature data:', err)
+                        }
+                      }
+                      setInitData(false)
+                      setIsLoading(false)
+                    }
+                  setInitData(false)
+                  setIsLoading(false)
+                } catch (err) {
+                  console.log('Error initializing user data:', err)
                 }
+                setInitData(false)
+                setIsLoading(false)
+              } catch (err) {
+                console.log(err)
               }
+              setInitData(false)
+              setIsLoading(false)
             }
-            setIsLoading(false)
-          })
+          }
           break
         case 'signedOut':
           setUser(null)
@@ -74,7 +105,11 @@ const useAuthOptions = () => {
           break
       }
     })
-  }, [])
+
+    return () => {
+      listener()
+    }
+  }, [initData])
 
   return {
     user,

@@ -12,7 +12,7 @@ import {
 import { cognitoUserPoolsTokenProvider } from 'aws-amplify/auth/cognito'
 import { defaultStorage, sessionStorage } from 'aws-amplify/utils'
 import type { ToOptions } from '@tanstack/react-router'
-import { post } from 'aws-amplify/api'
+import { post } from 'aws-amplify/data'
 
 export const getFriendlyErrorMessage = (error: { name: string }): { error: number; message: string } => {
   switch (error.name) {
@@ -20,6 +20,11 @@ export const getFriendlyErrorMessage = (error: { name: string }): { error: numbe
       return {
         error: 1,
         message: 'Incorrect email or password.',
+      }
+    case 'UsernameExistsException':
+      return {
+        error: 2,
+        message: 'If an account with this email exists, a confirmation or login link will be sent.',
       }
     case 'NotAuthorizedException':
       return {
@@ -245,7 +250,7 @@ export const confirmResetPassword = async ({
     } as { success: number; link: ToOptions['to'] }
   } catch (err) {
     if (import.meta.env.DEV) {
-      console.error('Error confirming password reset:', err)
+      console.log('Error confirming password reset:', err)
     }
     return getFriendlyErrorMessage(err as { name: string })
   }
@@ -256,13 +261,12 @@ export const signOut = async () => {
     await AWSSignOut()
   } catch (err) {
     if (import.meta.env.DEV) {
-      console.error('Error signing out:', err)
+      console.log('Error signing out:', err)
     }
   }
 }
 
-export const initUserData = async ({ userId, email }: { userId: string; email: string }) => {
-  console.log({ userId, email })
+export const initUserDomainData = async ({ userId, email }: { userId: string; email: string }) => {
   try {
     await post({
       apiName: 'InitUserDomainData',
@@ -277,7 +281,16 @@ export const initUserData = async ({ userId, email }: { userId: string; email: s
         },
       },
     }).response
+  } catch (err) {
+    if (import.meta.env.DEV) {
+      console.log('Error initializing user data:', err)
+    }
+    return getFriendlyErrorMessage(err as { name: string })
+  }
+}
 
+export const initUserFeatureData = async ({ userId, email }: { userId: string; email: string }) => {
+  try {
     await post({
       apiName: 'InitUserFeatureData',
       path: '/init-user-feature-data',
@@ -293,7 +306,7 @@ export const initUserData = async ({ userId, email }: { userId: string; email: s
     }).response
   } catch (err) {
     if (import.meta.env.DEV) {
-      console.error('Error initializing user data:', err)
+      console.log('Error initializing user data:', err)
     }
     return getFriendlyErrorMessage(err as { name: string })
   }

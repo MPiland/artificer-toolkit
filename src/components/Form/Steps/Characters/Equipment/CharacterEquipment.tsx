@@ -2,7 +2,7 @@ import { use, useEffect, useState } from 'react'
 import { StartingEquipOptions } from '@/enums'
 import { parseDiceRoll, DiceContext, Scene } from '@/components/Dice'
 import { sprinkles } from '@/css/sprinkles.css'
-import Collapsible from '@/components/Collapsible'
+import Collapsible from '@/components/Collapse'
 import { createPortal } from 'react-dom'
 import { useSystemData, useClassData, useFieldUpdates } from '@/hooks'
 import type { ClassStartingEquipmentInput } from '@/types'
@@ -24,7 +24,9 @@ const CharacterEquipmentStep = () => {
   const { fieldListeners } = useFieldUpdates({ data: 'form' })
 
   useEffect(() => {
-    formStore.registerForm(form.reset)
+    if (!formStore.steps[formStore.stepIndex].reset) {
+      formStore.registerForm(form.reset)
+    }
   }, [form.reset, formStore])
 
   const { isValid } = useStore(form.store, (state) => ({
@@ -160,7 +162,7 @@ const CharacterEquipmentStep = () => {
       formStore.updateField({ path: 'classEquipment.totalGold', value: amount })
     } catch (error: unknown) {
       // Handle invalid input format error
-      console.error(error)
+      console.log(error)
     }
 
     setIsRolling(false)
@@ -197,110 +199,113 @@ const CharacterEquipmentStep = () => {
           </Grid.Col>
         : <>
             <Grid.Col>
-              <Collapsible>
-                <Collapsible.Trigger title='Starting EquipmentStep' />
-                <Collapsible.Content>
-                  <Grid>
-                    <AppField
-                      name='classEquipment.option'
-                      listeners={{
-                        ...fieldListeners,
-                        onChange: ({ value }) => {
-                          if (value != null) {
-                            const classEquipmentObj: ClassStartingEquipmentInput =
-                              ClassStartingEquipmentInputSchema.parse({
-                                equipmentGroups: classEquipment?.equipmentGroups || null,
-                                goldOption: classEquipment?.goldOption || null,
-                                option: '',
-                                totalGold: classEquipment?.totalGold || null,
-                              })
+              <Collapsible
+                props={{
+                  trigger: {
+                    title: 'Starting Equipment',
+                  },
+                }}
+              >
+                <Grid>
+                  <AppField
+                    name='classEquipment.option'
+                    listeners={{
+                      ...fieldListeners,
+                      onChange: ({ value }) => {
+                        if (value != null) {
+                          const classEquipmentObj: ClassStartingEquipmentInput =
+                            ClassStartingEquipmentInputSchema.parse({
+                              equipmentGroups: classEquipment?.equipmentGroups || null,
+                              goldOption: classEquipment?.goldOption || null,
+                              option: '',
+                              totalGold: classEquipment?.totalGold || null,
+                            })
 
-                            if (value !== classEquipment?.option) {
-                              if (classEquipment?.equipmentGroups?.length) {
-                                classEquipmentObj.equipmentGroups = null
-                              }
-                              if (classEquipment?.goldOption) {
-                                classEquipmentObj.goldOption = null
-                                if (classEquipment?.totalGold) {
-                                  classEquipmentObj.totalGold = null
-                                }
+                          if (value !== classEquipment?.option) {
+                            if (classEquipment?.equipmentGroups?.length) {
+                              classEquipmentObj.equipmentGroups = null
+                            }
+                            if (classEquipment?.goldOption) {
+                              classEquipmentObj.goldOption = null
+                              if (classEquipment?.totalGold) {
+                                classEquipmentObj.totalGold = null
                               }
                             }
-                            classEquipmentObj.option = value as string
-
-                            return { ...classEquipmentObj, id: value }
                           }
-                        },
-                      }}
-                    >
-                      {({ DropdownField }) => (
-                        <Grid.Col>
-                          <DropdownField
-                            className={option_dropdown}
-                            label='Gold'
-                            options={characters.startingEquipmentOptions}
-                          />
-                        </Grid.Col>
-                      )}
-                    </AppField>
-                    {classEquipment?.option === StartingEquipOptions.GOLD ?
-                      <>
-                        <AppField name='classEquipment.goldOption' listeners={fieldListeners}>
-                          {({ DropdownField }) => (
+                          classEquipmentObj.option = value as string
+
+                          return { ...classEquipmentObj, id: value }
+                        }
+                      },
+                    }}
+                  >
+                    {({ DropdownField }) => (
+                      <Grid.Col>
+                        <DropdownField
+                          className={option_dropdown}
+                          label='Gold'
+                          options={characters.startingEquipmentOptions}
+                        />
+                      </Grid.Col>
+                    )}
+                  </AppField>
+                  {classEquipment?.option === StartingEquipOptions.GOLD ?
+                    <>
+                      <AppField name='classEquipment.goldOption' listeners={fieldListeners}>
+                        {({ DropdownField }) => (
+                          <Grid.Col>
+                            <DropdownField className={option_dropdown} label='Gold' options={combinationOptions} />
+                          </Grid.Col>
+                        )}
+                      </AppField>
+                      <Grid.Col>
+                        <Grid>
+                          <Grid.Col>
+                            <span>Multipler: {multiplier}</span>
+                          </Grid.Col>
+                          <Grid.Col>
+                            <Group justify='center'>
+                              {random && (
+                                <>
+                                  <Button
+                                    className={sprinkles({ me: 'space-2' })}
+                                    onClick={() => handleRandom('random')}
+                                  >
+                                    Randomize
+                                  </Button>
+                                  <Button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleRandom('roll')
+                                    }}
+                                  >
+                                    Roll Dice
+                                  </Button>
+                                </>
+                              )}
+                            </Group>
+                          </Grid.Col>
+                          {classEquipment?.totalGold && (
                             <Grid.Col>
-                              <DropdownField className={option_dropdown} label='Gold' options={combinationOptions} />
+                              <h3>Total Gold: {classEquipment?.totalGold}</h3>
                             </Grid.Col>
                           )}
-                        </AppField>
-                        <Grid.Col>
-                          <Grid>
-                            <Grid.Col>
-                              <span>Multipler: {multiplier}</span>
-                            </Grid.Col>
-                            <Grid.Col>
-                              <Group justify='center'>
-                                {random && (
-                                  <>
-                                    <Button
-                                      className={sprinkles({ me: 'space-2' })}
-                                      onClick={() => handleRandom('random')}
-                                    >
-                                      Randomize
-                                    </Button>
-                                    <Button
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        handleRandom('roll')
-                                      }}
-                                    >
-                                      Roll Dice
-                                    </Button>
-                                  </>
-                                )}
-                              </Group>
-                            </Grid.Col>
-                            {classEquipment?.totalGold && (
-                              <Grid.Col>
-                                <h3>Total Gold: {classEquipment?.totalGold}</h3>
-                              </Grid.Col>
-                            )}
-                          </Grid>
-                        </Grid.Col>
-                      </>
-                    : primaryClass && (
-                        <CharacterEquipmentOptions
-                          form={form}
-                          fields={{
-                            equipment: 'classEquipment',
-                            currencyGroups: 'currencyGroups',
-                            characterInventory: 'equipment.inventory',
-                          }}
-                          dataSource={primaryClass}
-                        />
-                      )
-                    }
-                  </Grid>
-                </Collapsible.Content>
+                        </Grid>
+                      </Grid.Col>
+                    </>
+                  : primaryClass && (
+                      <CharacterEquipmentOptions
+                        form={form}
+                        fields={{
+                          equipment: 'classEquipment',
+                          currencyGroups: 'currencyGroups',
+                          characterInventory: 'equipment.inventory',
+                        }}
+                        dataSource={primaryClass}
+                      />
+                    )
+                  }
+                </Grid>
               </Collapsible>
             </Grid.Col>
             <CharacterCurrency form={form} fields='currencyGroups' />

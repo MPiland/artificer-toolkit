@@ -1,98 +1,128 @@
-import Collapsible from '@/components/Collapsible'
+import Collapsible from '@/components/Collapse'
 import parse from 'html-react-parser'
-import { useBackgroundData, useGetFeatures, useFieldUpdates } from '@/hooks'
+import { useBackgroundData, useFieldUpdates } from '@/hooks'
 import { Grid } from '@mantine/core'
 import {
   useAppForm,
   option_dropdown,
   CharacterEquipmentOptions,
-  CharacterFeature,
+  CharacterFeatures,
   CharacterCurrency,
 } from '@/components/Form'
 import { CharacterInputSchema } from '@/schemas'
-import { useStore } from '@tanstack/react-form'
 import { useFormStore } from '@/store'
 import { useEffect } from 'react'
+import type {
+  CharacterInput,
+  CharacterFeatureInput,
+  CharacterEquipmentInput,
+  BackgroundStartingEquipmentInput,
+  CurrencyGroupInput,
+  CharacterModifierInput,
+  CharacterExpertiseInput,
+  CharacterProficiencyInput,
+  CharacterSenseInput,
+  CharacterFeatInput,
+  CharacterSpellcastingInput,
+  CharacterAbilitiesInput,
+} from '@/types'
 
 const BackgroundStep = () => {
   const formStore = useFormStore()
 
+  const currentData = CharacterInputSchema.parse(formStore.current as CharacterInput)
+
   const form = useAppForm({
-    defaultValues: CharacterInputSchema.parse(formStore.current),
+    defaultValues: {
+      background: currentData.background as string | null,
+      features: currentData.features as CharacterFeatureInput[] | null,
+      equipment: currentData.equipment as CharacterEquipmentInput | null,
+      backgroundEquipment: currentData.backgroundEquipment as BackgroundStartingEquipmentInput | null,
+      currencyGroups: currentData.currencyGroups as CurrencyGroupInput[] | null,
+      modifiers: currentData.modifiers as CharacterModifierInput[] | null,
+      expertise: currentData.expertise as CharacterExpertiseInput[] | null,
+      proficiencies: currentData.proficiencies as CharacterProficiencyInput[] | null,
+      senses: currentData.senses as CharacterSenseInput[] | null,
+      feats: currentData.feats as CharacterFeatInput[] | null,
+      spellcasting: currentData.spellcasting as CharacterSpellcastingInput | null,
+      abilities: currentData.abilities as CharacterAbilitiesInput | null,
+    },
   })
 
-  const { AppField, Subscribe } = form
+  const { AppField } = form
 
   const { fieldListeners } = useFieldUpdates({ data: 'form' })
 
   useEffect(() => {
-    formStore.registerForm(form.reset)
+    if (!formStore.steps[formStore.stepIndex].reset) {
+      formStore.registerForm(form.reset)
+    }
   }, [form.reset, formStore])
 
-  const { isValid } = useStore(form.store, (state) => ({
-    isValid: state.isValid,
-  }))
-
   useEffect(() => {
-    formStore.setValidForm(isValid)
-  }, [formStore, isValid])
+    return form.store.subscribe((state) => {
+      const isValid = state.currentVal.isValid
+      if (formStore.steps[formStore.stepIndex].isValid !== isValid) {
+        formStore.setValidForm(isValid)
+      }
+    })
+  }, [formStore, form.store])
 
   const { backgrounds } = useBackgroundData()
-  const values = useStore(form.store, (state) => state.values)
-  const { createFeatures } = useGetFeatures()
-
-  const features = createFeatures({ data: values })
 
   return (
     <Grid>
-      <AppField
-        name='background'
-        listeners={fieldListeners}
-      >
-        {({ DropdownField }) => (
-          <Grid.Col>
-            <DropdownField label='Background' options={backgrounds} className={option_dropdown} />
-          </Grid.Col>
-        )}
-      </AppField>
-      <Subscribe selector={(state) => state.values.background}>
-        {(background) => {
-          const backgroundData = backgrounds.findBackground(background)
-          if (backgroundData) {
-            return (
-              <>
-                {backgroundData?.desc && (
+      <AppField name='background' listeners={fieldListeners}>
+        {({ DropdownField, state }) => {
+          const backgroundData = backgrounds.findBackground(state.value)
+          return (
+            <>
+              <Grid.Col>
+                <DropdownField label='Background' options={backgrounds} className={option_dropdown} />
+              </Grid.Col>
+              {backgroundData && (
+                <>
+                  {backgroundData?.desc && (
+                    <Grid.Col>
+                      <Collapsible
+                        props={{
+                          trigger: {
+                            title: 'Description',
+                          },
+                        }}
+                      >
+                        {backgroundData?.desc && parse(backgroundData?.desc)}
+                      </Collapsible>
+                    </Grid.Col>
+                  )}
+                  <AppField name='features' mode='array'>
+                    {(featuresArray) =>
+                      featuresArray.state.value?.length && (
+                        <CharacterFeatures
+                          form={form}
+                          fields={{
+                            features: 'features',
+                            modifiers: 'modifiers',
+                            expertise: 'expertise',
+                            proficiencies: 'proficiencies',
+                            senses: 'senses',
+                            feats: 'feats',
+                            spellcasting: 'spellcasting',
+                            abilities: 'abilities',
+                          }}
+                          backgroundId={backgroundData.id}
+                        />
+                      )
+                    }
+                  </AppField>
                   <Grid.Col>
-                    <Collapsible>
-                      <Collapsible.Trigger title='Description' />
-                      <Collapsible.Content>{backgroundData?.desc && parse(backgroundData?.desc)}</Collapsible.Content>
-                    </Collapsible>
-                  </Grid.Col>
-                )}
-                {features?.map((f, i) => {
-                  return (
-                    <CharacterFeature
-                      key={`${i}-character-feature`}
-                      form={form}
-                      fields={{
-                        modifiers: 'modifiers',
-                        expertise: 'expertise',
-                        spellcasting: 'spellcasting',
-                        proficiencies: 'proficiencies',
-                        senses: 'senses',
-                        features: 'features',
-                        abilities: 'abilities',
-                        feats: 'feats',
+                    <Collapsible
+                      props={{
+                        trigger: {
+                          title: 'Starting Equipment',
+                        },
                       }}
-                      backgroundId={background}
-                      feature={f}
-                    />
-                  )
-                })}
-                <Grid.Col>
-                  <Collapsible>
-                    <Collapsible.Trigger title='Starting Equipment' />
-                    <Collapsible.Content>
+                    >
                       <Grid>
                         <CharacterEquipmentOptions
                           form={form}
@@ -104,17 +134,15 @@ const BackgroundStep = () => {
                           }}
                         />
                       </Grid>
-                    </Collapsible.Content>
-                  </Collapsible>
-                </Grid.Col>
-                <CharacterCurrency form={form} fields='currencyGroups' />
-              </>
-            )
-          } else {
-            return null
-          }
+                    </Collapsible>
+                  </Grid.Col>
+                  <CharacterCurrency form={form} fields='currencyGroups' />
+                </>
+              )}
+            </>
+          )
         }}
-      </Subscribe>
+      </AppField>
     </Grid>
   )
 }

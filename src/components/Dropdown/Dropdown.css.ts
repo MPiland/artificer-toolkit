@@ -2,7 +2,7 @@ import { app } from '@/css/layers.css'
 import {style } from '@vanilla-extract/css'
 import { size, space } from '@/css/size.css'
 
-export const dropdown = style({
+export const base = style({
   '@layer': {
     [app]: {
       vars: {
@@ -13,7 +13,7 @@ export const dropdown = style({
   'zIndex': 1000,
 })
 
-export const dropdown_label = style({
+export const label = style({
   '@layer': {
     [app]: {
       marginBottom: space['space-2'],
@@ -21,21 +21,18 @@ export const dropdown_label = style({
   },
 })
 
-export const dropdown_wrapper = style({
+export const wrapper = style({
   '@layer': {
     [app]: {
       display: 'flex',
       flexDirection: 'row',
       alignItems: 'center',
-      vars: {
-        '--input-asterisk-color': 'red',
-      },
       cursor: 'pointer',
     },
   },
 })
 
-export const dropdown_input = style({
+export const input = style({
   '@layer': {
     [app]: {
       width: '100%',
@@ -50,7 +47,7 @@ export const dropdown_input = style({
   },
 })
 
-export const dropdown_icon = style({
+export const icon = style({
   '@layer': {
     [app]: {
       flexShrink: 0,
@@ -62,7 +59,7 @@ export const dropdown_icon = style({
   },
 })
 
-export const dropdown_active_icon = style({
+export const active_icon = style({
   '@layer': {
     [app]: {
       flexShrink: 0,
@@ -72,7 +69,7 @@ export const dropdown_active_icon = style({
   },
 })
 
-export const dropdown_option = style({
+export const combobox_option = style({
   '@layer': {
     [app]: {
       display: 'flex',

@@ -22,7 +22,7 @@ input FeatInput {
   levelAvailable: String
   features: [ID!]
   options: [ID!]
-  ownerId: String!
+  ownerId: ID!
   systemId: ID!
   masterId: String
 }

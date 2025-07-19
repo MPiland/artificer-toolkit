@@ -6,7 +6,11 @@
     "features": [
       "e52b7922-605e-4022-8548-a4d9aff9a77d",
       "e1d13c20-5698-4dfd-a061-8904a8bfd775"
-    ]
+    ],
+    "ownerId": "master",
+    "createdAt": "2024-09-12T11:05:10.351Z",
+    "updatedAt": "2024-09-12T11:05:10.351Z",
+    "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
     "label": "Blue",
@@ -15,7 +19,11 @@
     "features": [
       "f4a30085-8acd-43a5-930f-dcef3562cb78",
       "20a0a123-e5be-4d89-8c8f-96dc791d2a84"
-    ]
+    ],
+    "ownerId": "master",
+    "createdAt": "2024-09-12T11:05:10.351Z",
+    "updatedAt": "2024-09-12T11:05:10.351Z",
+    "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
     "label": "Brass",
@@ -24,7 +32,11 @@
     "features": [
       "1a4c506a-d78b-41ac-8201-d7767cc848a1",
       "fa032ba4-84ca-4e36-b3d6-420dbaa5ec9e"
-    ]
+    ],
+    "ownerId": "master",
+    "createdAt": "2024-09-12T11:05:10.351Z",
+    "updatedAt": "2024-09-12T11:05:10.351Z",
+    "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
     "label": "Bronze",
@@ -33,7 +45,11 @@
     "features": [
       "0ecea713-f668-4cc2-be5a-d1fb8baa2336",
       "9ccc4804-2232-4f53-bf61-74466abb168b"
-    ]
+    ],
+    "ownerId": "master",
+    "createdAt": "2024-09-12T11:05:10.351Z",
+    "updatedAt": "2024-09-12T11:05:10.351Z",
+    "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
     "label": "Copper",
@@ -42,7 +58,11 @@
     "features": [
       "67aba724-2311-4418-99ee-b24462f11cae",
       "a6f1e579-b775-4e85-aaae-af09aeb9c15b"
-    ]
+    ],
+    "ownerId": "master",
+    "createdAt": "2024-09-12T11:05:10.351Z",
+    "updatedAt": "2024-09-12T11:05:10.351Z",
+    "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
     "label": "Gold",
@@ -51,7 +71,11 @@
     "features": [
       "677e84f0-7b9a-4e3d-b2c2-2f59cc6497c9",
       "1b309ebb-b676-4826-85a4-ccfc13c3de22"
-    ]
+    ],
+    "ownerId": "master",
+    "createdAt": "2024-09-12T11:05:10.351Z",
+    "updatedAt": "2024-09-12T11:05:10.351Z",
+    "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
     "label": "Green",
@@ -60,7 +84,11 @@
     "features": [
       "deaf5841-fbb8-49d6-ab36-67dba1537df8",
       "e648ebb1-e126-48e8-88c8-66ffec65ff57"
-    ]
+    ],
+    "ownerId": "master",
+    "createdAt": "2024-09-12T11:05:10.351Z",
+    "updatedAt": "2024-09-12T11:05:10.351Z",
+    "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
     "label": "Red",
@@ -69,7 +97,11 @@
     "features": [
       "fb063d31-2d68-4ef2-8be3-bd27db518700",
       "3e8a54ea-c372-4e18-a431-d3b1eb3b235a"
-    ]
+    ],
+    "ownerId": "master",
+    "createdAt": "2024-09-12T11:05:10.351Z",
+    "updatedAt": "2024-09-12T11:05:10.351Z",
+    "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
     "label": "Silver",
@@ -78,7 +110,11 @@
     "features": [
       "f9272c08-368c-4967-b494-baaf564ea998",
       "00f55970-77af-49b8-8c74-5b5f0d3f7c1b"
-    ]
+    ],
+    "ownerId": "master",
+    "createdAt": "2024-09-12T11:05:10.351Z",
+    "updatedAt": "2024-09-12T11:05:10.351Z",
+    "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
     "label": "White",
@@ -87,6 +123,10 @@
     "features": [
       "70f300f7-4efa-4127-9c8a-3307b430574c",
       "3765622a-c4b7-4bed-948b-3292c64adc99"
-    ]
+    ],
+    "ownerId": "master",
+    "createdAt": "2024-09-12T11:05:10.351Z",
+    "updatedAt": "2024-09-12T11:05:10.351Z",
+    "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   }
 ]

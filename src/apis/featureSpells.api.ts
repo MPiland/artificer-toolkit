@@ -103,7 +103,7 @@ export const fetchFeatureSpell = (id: string) => {
           return data.getFeatureSpell
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -137,7 +137,7 @@ export const useAddNewFeatureSpellMutation = () => {
           return data.createFeatureSpell
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -178,7 +178,7 @@ export const useUpdateFeatureSpellMutation = () => {
           return data.updateFeatureSpell
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -218,7 +218,7 @@ export const useDeleteFeatureSpellMutation = () => {
           return data.deleteFeatureSpell
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },

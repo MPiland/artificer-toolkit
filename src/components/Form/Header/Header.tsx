@@ -1,68 +1,70 @@
-import ProgressBar from './ProgressBar'
-import { sprinkles } from '@/css/sprinkles.css'
-import { Grid, Group, Button } from '@mantine/core'
+import { Group, Button } from '@mantine/core'
 import { useFormStore } from '@/store'
+import Stepper from './Stepper'
 
 const Header = () => {
-  const formStore = useFormStore()
-  const { addClass, changeRace, stepIndex, steps } = formStore
+  const __kind = useFormStore((state) => state.current?.__kind)
+  const label = useFormStore((state) => state.current?.label)
+  const stepIndex = useFormStore((state) => state.stepIndex)
+  const steps = useFormStore((state) => state.steps)
+  const addClass = useFormStore((state) => state.addClass)
+  const changeRace = useFormStore((state) => state.changeRace)
+  const setChangeRace = useFormStore((state) => state.setChangeRace)
+  const classes = useFormStore((state) =>
+    state.current?.__kind === 'CharacterInput' ? state.current?.classes : undefined
+  )
+  const setAddClass = useFormStore((state) => state.setAddClass)
 
   return (
-    <Grid className={sprinkles({ mb: 'space-4' })}>
-      {steps.length > 1 && <ProgressBar />}
-      <Grid.Col>
-        <Group justify='space-between'>
-          <h1>
-            {`${formStore.current?.id == null ? 'Create' : formStore.current?.__kind} ${
-              formStore.current?.__kind === 'CharacterInput' ? ' An ' : ' A '
-            }`}
-            {formStore.current?.__kind}
-            {formStore.current?.label && ` (${formStore.current?.label})`}
-          </h1>
-          {formStore.current?.__kind === 'CharacterInput' && (
-            <>
-              {steps[stepIndex]?.label === 'Race' &&
-                (!changeRace ?
-                  <Button
-                    color='update'
-                    onClick={() => {
-                      formStore.setChangeRace(true)
-                    }}
-                  >
-                    Change Race
-                  </Button>
-                : <Button
-                    color='danger'
-                    onClick={() => {
-                      formStore.setChangeRace(false)
-                    }}
-                  >
-                    Keep Race
-                  </Button>)}
-              {formStore.current?.classes?.length &&
-                steps[stepIndex].label === 'Class' &&
-                (!addClass ?
-                  <Button
-                    color='update'
-                    onClick={() => {
-                      formStore.setAddClass(true)
-                    }}
-                  >
-                    Add Class
-                  </Button>
-                : <Button
-                    color='danger'
-                    onClick={() => {
-                      formStore.setAddClass(false)
-                    }}
-                  >
-                    Cancel Add Class
-                  </Button>)}
-            </>
-          )}
-        </Group>
-      </Grid.Col>
-    </Grid>
+    <>
+      {steps.length > 1 && <Stepper />}
+      <Group justify='space-between'>
+        <h1>
+          {label ? ` ${label}` : `Create ${__kind === 'CharacterInput' ? 'an ' : 'a '} ${__kind}`}
+        </h1>
+        {__kind === 'CharacterInput' && (
+          <>
+            {steps[stepIndex]?.label === 'Race' &&
+              (!changeRace ?
+                <Button
+                  color='update'
+                  onClick={() => {
+                    setChangeRace(true)
+                  }}
+                >
+                  Change Race
+                </Button>
+              : <Button
+                  color='danger'
+                  onClick={() => {
+                    setChangeRace(false)
+                  }}
+                >
+                  Keep Race
+                </Button>)}
+            {classes?.length &&
+              steps[stepIndex].label === 'Class' &&
+              (!addClass ?
+                <Button
+                  color='update'
+                  onClick={() => {
+                    setAddClass(true)
+                  }}
+                >
+                  Add Class
+                </Button>
+              : <Button
+                  color='danger'
+                  onClick={() => {
+                    setAddClass(false)
+                  }}
+                >
+                  Cancel Add Class
+                </Button>)}
+          </>
+        )}
+      </Group>
+    </>
   )
 }
 

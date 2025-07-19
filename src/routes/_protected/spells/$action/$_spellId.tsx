@@ -1,7 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 import SpellForm from '@/pages/spells/SpellForm'
 import { fetchSpell } from '@/apis/spells.api'
-import { FormProvider } from '@/components/Form'
+import Loading from '@/components/Loading/Loading'
+import { Modal } from '@mantine/core'
 
 export const Route = createFileRoute('/_protected/spells/$action/$_spellId')({
   beforeLoad: () => {
@@ -13,9 +14,10 @@ export const Route = createFileRoute('/_protected/spells/$action/$_spellId')({
       return context.queryClient.ensureQueryData(fetchSpell(spellId))
     }
   },
-  component: () => (
-    <FormProvider>
-      <SpellForm />
-    </FormProvider>
+  pendingComponent: () => (
+    <Modal withCloseButton={false}  opened onClose={() => {}} centered size='auto'>
+      <Loading />
+    </Modal>
   ),
+  component: SpellForm,
 })

@@ -11,36 +11,37 @@ import { GraphqlApiConstruct } from '../constructs/graphqlApi'
 import type { EntityTable } from '../resolvers/tables'
 
 interface UserStackProps extends StackProps {
-  userPool: UserPool
-  adminTables: EntityTable[]
+	userPool: UserPool
+	adminTables: EntityTable[]
 }
 
 export class UserDomainStack extends Stack {
-  constructor(scope: Construct, id: string, props: UserStackProps) {
-    super(scope, id, props)
+	constructor(scope: Construct, id: string, props: UserStackProps) {
+		super(scope, id, props)
 
-    const { httpApi } = new HttpApiConstruct(this, 'artk-user-domain-http-api')
+		const { httpApi } = new HttpApiConstruct(this, 'artk-user-domain-http-api')
 
-    const { graphqlApi } = new GraphqlApiConstruct(this, 'artk-user-domain-graphql-api', {
-      userPool: props.userPool,
-      name: 'artk-user-domain-graphql-api',
-    })
+		const { graphqlApi } = new GraphqlApiConstruct(this, 'artk-user-domain-graphql-api', {
+			userPool: props.userPool,
+			name: 'artk-user-domain-graphql-api',
+		})
 
-    const { tables } = createUserResolvers({ api: graphqlApi, stack: this, type: 'domain' })
+		const { tables } = createUserResolvers({ api: graphqlApi, stack: this, type: 'domain' })
 
-    const { initUserData } = createFunctions({
-      stack: this,
-      userTables: tables,
-      adminTables: props.adminTables,
-      userPool: props.userPool,
-    })
+		const { initUserData } = createFunctions({
+			stack: this,
+			userTables: tables,
+			adminTables: props.adminTables,
+			userPool: props.userPool,
+			type: 'domain',
+		})
 
-    const InitUserDataApi = new HttpLambdaIntegration('init-user-domain-data-api', initUserData)
+		const InitUserDataApi = new HttpLambdaIntegration('init-user-domain-data-api', initUserData)
 
-    httpApi.addRoutes({
-      path: '/init-user-domain-data',
-      methods: [HttpMethod.POST],
-      integration: InitUserDataApi,
-    })
-  }
+		httpApi.addRoutes({
+			path: '/init-user-domain-data',
+			methods: [HttpMethod.POST],
+			integration: InitUserDataApi,
+		})
+	}
 }

@@ -2,18 +2,17 @@ import { z } from 'zod/v4'
 import { use, useEffect, useMemo } from 'react'
 import { Categories, Ranges, Shapes, Features, Attributes } from '@/enums'
 import { useEnumChecks, useFieldUpdates, useGetSections, useSystemData } from '@/hooks'
-import { useFeatureStore, useFormStore, useOptionStore } from '@/store'
+import { useFeatureStore, useFormStore, useFeatureOptionStore } from '@/store'
 import OptionsByLevel from './OptionsByLevel'
 import { Grid, Button } from '@mantine/core'
 import { ModalContext } from '@/components/Modal'
-import Collapsible from '@/components/Collapsible'
-import { useStore } from '@tanstack/react-form'
+import Collapsible from '@/components/Collapse'
 import { SECTION_STEPS, SectionsList, Prerequisites, Damage, LimitUse, useAppForm } from '@/components/Form'
 import { FeatureInputSchema, FeatureOptionInputSchema, OptionsByLevelInputSchema } from '@/schemas'
 
 const Feature = () => {
   const featureStore = useFeatureStore()
-  const optionStore = useOptionStore()
+  const optionStore = useFeatureOptionStore()
   const formStore = useFormStore()
   const { sectionTypeMap } = useGetSections()
 
@@ -35,14 +34,11 @@ const Feature = () => {
 
   const { AppField, Subscribe } = form
 
-  const { formAttributes, formOptionsByLevel, __kind } = useStore(form.store, (state) => ({
-    formAttributes: state.values.attributes,
-    formOptionsByLevel: state.values.__kind === 'FeatureInput' ? state.values.optionsByLevel : undefined,
-    __kind: state.values.__kind,
-  }))
+  const formAttributes = featureStore.current?.attributes
+  const formOptionsByLevel = featureStore.current?.optionsByLevel
 
   const { fieldListeners, fieldValidators } = useFieldUpdates({
-    data: __kind === 'FeatureInput' ? 'feature' : 'option',
+    data: featureStore.current?.__kind === 'FeatureInput' ? 'feature' : 'option',
   })
 
   const { showModal } = use(ModalContext)
@@ -54,13 +50,28 @@ const Feature = () => {
   })
 
   useEffect(() => {
-    if (optionsByLevel && !formOptionsByLevel?.length && __kind === 'FeatureInput') {
+    if (optionsByLevel && !formOptionsByLevel?.length && featureStore.current?.__kind === 'FeatureInput') {
       form.setFieldValue(`optionsByLevel[${0}]`, OptionsByLevelInputSchema.parse({}))
     }
     if (!optionsByLevel && formOptionsByLevel?.length) {
       form.setFieldValue('optionsByLevel', undefined)
     }
   })
+
+  useEffect(() => {
+    if (!featureStore.formReset) {
+      featureStore.registerFormReset(form.reset)
+    }
+  }, [form.reset, featureStore])
+
+  useEffect(() => {
+    return form.store.subscribe((state) => {
+      const isValid = state.currentVal.isValid
+      if (featureStore.current?.id && featureStore.valid.get(featureStore.current.id) !== isValid) {
+        featureStore.upsertValid(featureStore.current.id, isValid)
+      }
+    })
+  }, [featureStore, form.store])
 
   const { attributes, abilities, categories, spells, actions, rules } = useSystemData()
 
@@ -439,35 +450,36 @@ const Feature = () => {
           )}
           {formAttributes?.some((attribute) => attribute === Attributes.OPTIONS_BY_LEVEL) && (
             <Grid.Col>
-              <Collapsible>
-                <Collapsible.Trigger title='Select Options By Level' />
-                <Collapsible.Content>
-                  <Grid>
-                    <Grid.Col>
-                      <Grid>
-                        <Grid.Col>Level</Grid.Col>
-                        <Grid.Col>Count</Grid.Col>
-                        {formAttributes.some((attribute) => attribute === Attributes.REPLACE_AT_LEVEL) && (
-                          <Grid.Col>Replace Count</Grid.Col>
-                        )}
-                      </Grid>
-                    </Grid.Col>
-                    <AppField name='optionsByLevel' mode='array'>
-                      {({ state }) =>
-                        state.value?.map((_, i) => (
-                          <OptionsByLevel
-                            form={form}
-                            fields={`optionsByLevel[${i}]`}
-                            index={i}
-                            replaceAtLevel={formAttributes.some(
-                              (attribute) => attribute === Attributes.REPLACE_AT_LEVEL
-                            )}
-                          />
-                        ))
-                      }
-                    </AppField>
-                  </Grid>
-                </Collapsible.Content>
+              <Collapsible
+                props={{
+                  trigger: {
+                    title: 'Select Options By Level',
+                  },
+                }}
+              >
+                <Grid>
+                  <Grid.Col>
+                    <Grid>
+                      <Grid.Col>Level</Grid.Col>
+                      <Grid.Col>Count</Grid.Col>
+                      {formAttributes.some((attribute) => attribute === Attributes.REPLACE_AT_LEVEL) && (
+                        <Grid.Col>Replace Count</Grid.Col>
+                      )}
+                    </Grid>
+                  </Grid.Col>
+                  <AppField name='optionsByLevel' mode='array'>
+                    {({ state }) =>
+                      state.value?.map((_, i) => (
+                        <OptionsByLevel
+                          form={form}
+                          fields={`optionsByLevel[${i}]`}
+                          index={i}
+                          replaceAtLevel={formAttributes.some((attribute) => attribute === Attributes.REPLACE_AT_LEVEL)}
+                        />
+                      ))
+                    }
+                  </AppField>
+                </Grid>
               </Collapsible>
             </Grid.Col>
           )}

@@ -25,14 +25,12 @@ export const createArrayWithMethods = <
 export interface LookupItem {
   id: string
   label: string
-  value: unknown
   [key: string]: unknown
 }
 
 type FlattenDataItem = {
   id: string
   label: string
-  value: string
   [key: string]: unknown
 }
 
@@ -44,7 +42,7 @@ export const flattenData = <U extends FlattenDataItem>(obj: U | U[]): LookupItem
     if (Array.isArray(item)) {
       item.forEach((i) => process(i))
     } else if (typeof item === 'object' && item !== null) {
-      if (item.id && item.value && item.label) {
+      if (item.id && item.label) {
         result.push(item)
       }
       Object.values(item).forEach((val) => {
@@ -93,15 +91,19 @@ export const processArrayValue = (value: unknown[], shouldTruncate: boolean, tru
   }
 }
 
+type RawDataObject = {
+  id: string
+  label: string
+  [key: string]: unknown
+}
+
 // Extract lookup data from raw source data
-export const extractLookupData = (rawData: unknown): LookupItem[] => {
+export const extractLookupData = (rawData: RawDataObject | RawDataObject[]): LookupItem[] => {
   let lookupData: LookupItem[] = []
 
   if (Array.isArray(rawData)) {
     // Always filter to ensure all items have the right structure
-    const filteredRawData = rawData.filter(
-      (item) => !!item && typeof item === 'object' && 'id' in item && 'label' in item && 'value' in item
-    )
+    const filteredRawData = rawData.filter(Boolean)
 
     if (filteredRawData.length) {
       // If all items already have the right structure, no need to flatten
@@ -114,7 +116,7 @@ export const extractLookupData = (rawData: unknown): LookupItem[] => {
     }
   } else if (typeof rawData === 'object' && rawData !== null) {
     // If rawData is an object, flatten it
-    if ('id' in rawData && 'label' in rawData && 'value' in rawData) {
+    if ('id' in rawData && 'label' in rawData) {
       lookupData = [rawData as LookupItem]
     } else {
       lookupData = flattenData(rawData as FlattenDataItem)
@@ -156,4 +158,22 @@ export const getLabelFromId = ({
     return lookupItem.label
   }
   return null
+}
+
+export const convertTypenameToKindInput = (obj: unknown): unknown => {
+  if (Array.isArray(obj)) {
+    return obj.map(convertTypenameToKindInput)
+  }
+  if (obj && typeof obj === 'object') {
+    const result: Record<string, unknown> = {}
+    for (const key in obj) {
+      if (key === '__typename') {
+        result['__kind'] = (obj as Record<string, unknown>)[key] + 'Input'
+      } else {
+        result[key] = convertTypenameToKindInput((obj as Record<string, unknown>)[key])
+      }
+    }
+    return result
+  }
+  return obj
 }

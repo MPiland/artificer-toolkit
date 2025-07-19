@@ -1,0 +1,429 @@
+[
+  {
+    "entity": "AncestryFeature",
+    "table": "ancestryFeatures",
+    "queries": [
+      "getAncestryFeature",
+      "getMasterAncestryFeature"
+    ],
+    "mutations": [
+      "createAncestryFeature",
+      "createMasterAncestryFeature",
+      "updateAncestryFeature",
+      "updateMasterAncestryFeature"
+    ]
+  },
+  {
+    "entity": "AncestryFeatureConnection",
+    "table": "ancestryFeatureConnections",
+    "queries": [
+      "listAncestryFeatures",
+      "listMasterAncestryFeatures"
+    ],
+    "mutations": []
+  },
+  {
+    "entity": "Background",
+    "table": "backgrounds",
+    "queries": [
+      "getBackground",
+      "getMasterBackground"
+    ],
+    "mutations": [
+      "createBackground",
+      "createMasterBackground",
+      "updateBackground",
+      "updateMasterBackground"
+    ]
+  },
+  {
+    "entity": "BackgroundConnection",
+    "table": "backgroundConnections",
+    "queries": [
+      "listBackgrounds",
+      "listMasterBackgrounds"
+    ],
+    "mutations": []
+  },
+  {
+    "entity": "Character",
+    "table": "characters",
+    "queries": [
+      "getCharacter"
+    ],
+    "mutations": [
+      "createCharacter",
+      "updateCharacter"
+    ]
+  },
+  {
+    "entity": "CharacterConnection",
+    "table": "characterConnections",
+    "queries": [
+      "listCharacters"
+    ],
+    "mutations": []
+  },
+  {
+    "entity": "Class",
+    "table": "classs",
+    "queries": [
+      "getClass",
+      "getMasterClass"
+    ],
+    "mutations": [
+      "createClass",
+      "createMasterClass",
+      "updateClass",
+      "updateMasterClass"
+    ]
+  },
+  {
+    "entity": "ClassConnection",
+    "table": "classConnections",
+    "queries": [
+      "listClasses",
+      "listMasterClasses"
+    ],
+    "mutations": []
+  },
+  {
+    "entity": "Equipment",
+    "table": "equipments",
+    "queries": [
+      "getEquipment",
+      "getMasterEquipment"
+    ],
+    "mutations": [
+      "createEquipment",
+      "createMasterEquipment",
+      "updateEquipment",
+      "updateMasterEquipment"
+    ]
+  },
+  {
+    "entity": "EquipmentConnection",
+    "table": "equipmentConnections",
+    "queries": [
+      "listEquipment",
+      "listMasterEquipment"
+    ],
+    "mutations": []
+  },
+  {
+    "entity": "Feat",
+    "table": "feats",
+    "queries": [
+      "getFeat",
+      "getMasterFeat"
+    ],
+    "mutations": [
+      "createFeat",
+      "createMasterFeat",
+      "updateFeat",
+      "updateMasterFeat"
+    ]
+  },
+  {
+    "entity": "FeatConnection",
+    "table": "featConnections",
+    "queries": [
+      "listFeats",
+      "listMasterFeats"
+    ],
+    "mutations": []
+  },
+  {
+    "entity": "Feature",
+    "table": "features",
+    "queries": [
+      "getFeature",
+      "getMasterFeature"
+    ],
+    "mutations": [
+      "createFeature",
+      "createMasterFeature",
+      "updateFeature",
+      "updateMasterFeature"
+    ]
+  },
+  {
+    "entity": "FeatureConnection",
+    "table": "featureConnections",
+    "queries": [
+      "listFeatures",
+      "listMasterFeatures"
+    ],
+    "mutations": []
+  },
+  {
+    "entity": "FeatureExpertise",
+    "table": "featureExpertises",
+    "queries": [
+      "getFeatureExpertise",
+      "getMasterFeatureExpertise"
+    ],
+    "mutations": [
+      "createFeatureExpertise",
+      "createMasterFeatureExpertise",
+      "updateFeatureExpertise",
+      "updateMasterFeatureExpertise"
+    ]
+  },
+  {
+    "entity": "FeatureExpertiseConnection",
+    "table": "featureExpertiseConnections",
+    "queries": [
+      "listFeatureExpertises",
+      "listMasterFeatureExpertises"
+    ],
+    "mutations": []
+  },
+  {
+    "entity": "FeatureFeat",
+    "table": "featureFeats",
+    "queries": [
+      "getFeatureFeat",
+      "getMasterFeatureFeat"
+    ],
+    "mutations": [
+      "createFeatureFeat",
+      "createMasterFeatureFeat",
+      "updateFeatureFeat",
+      "updateMasterFeatureFeat"
+    ]
+  },
+  {
+    "entity": "FeatureFeatConnection",
+    "table": "featureFeatConnections",
+    "queries": [
+      "listFeatureFeats",
+      "listMasterFeatureFeats"
+    ],
+    "mutations": []
+  },
+  {
+    "entity": "FeatureModifier",
+    "table": "featureModifiers",
+    "queries": [
+      "getFeatureModifier",
+      "getMasterFeatureModifier"
+    ],
+    "mutations": [
+      "createFeatureModifier",
+      "createMasterFeatureModifier",
+      "updateFeatureModifier",
+      "updateMasterFeatureModifier"
+    ]
+  },
+  {
+    "entity": "FeatureModifierConnection",
+    "table": "featureModifierConnections",
+    "queries": [
+      "listFeatureModifiers",
+      "listMasterFeatureModifiers"
+    ],
+    "mutations": []
+  },
+  {
+    "entity": "FeatureOption",
+    "table": "featureOptions",
+    "queries": [
+      "getFeatureOption",
+      "getMasterFeatureOption"
+    ],
+    "mutations": [
+      "createFeatureOption",
+      "createMasterFeatureOption",
+      "updateFeatureOption",
+      "updateMasterFeatureOption"
+    ]
+  },
+  {
+    "entity": "FeatureOptionConnection",
+    "table": "featureOptionConnections",
+    "queries": [
+      "listFeatureOptions",
+      "listMasterFeatureOptions"
+    ],
+    "mutations": []
+  },
+  {
+    "entity": "FeatureProficiency",
+    "table": "featureProficiencys",
+    "queries": [
+      "getFeatureProficiency",
+      "getMasterFeatureProficiency"
+    ],
+    "mutations": [
+      "createFeatureProficiency",
+      "createMasterFeatureProficiency",
+      "updateFeatureProficiency",
+      "updateMasterFeatureProficiency"
+    ]
+  },
+  {
+    "entity": "FeatureProficiencyConnection",
+    "table": "featureProficiencyConnections",
+    "queries": [
+      "listFeatureProficiencies",
+      "listMasterFeatureProficiencies"
+    ],
+    "mutations": []
+  },
+  {
+    "entity": "FeatureSense",
+    "table": "featureSenses",
+    "queries": [
+      "getFeatureSense",
+      "getMasterFeatureSense"
+    ],
+    "mutations": [
+      "createFeatureSense",
+      "createMasterFeatureSense",
+      "updateFeatureSense",
+      "updateMasterFeatureSense"
+    ]
+  },
+  {
+    "entity": "FeatureSenseConnection",
+    "table": "featureSenseConnections",
+    "queries": [
+      "listFeatureSenses",
+      "listMasterFeatureSenses"
+    ],
+    "mutations": []
+  },
+  {
+    "entity": "FeatureSpell",
+    "table": "featureSpells",
+    "queries": [
+      "getFeatureSpell",
+      "getMasterFeatureSpell"
+    ],
+    "mutations": [
+      "createFeatureSpell",
+      "createMasterFeatureSpell",
+      "updateFeatureSpell",
+      "updateMasterFeatureSpell"
+    ]
+  },
+  {
+    "entity": "FeatureSpellConnection",
+    "table": "featureSpellConnections",
+    "queries": [
+      "listFeatureSpells",
+      "listMasterFeatureSpells"
+    ],
+    "mutations": []
+  },
+  {
+    "entity": "ID",
+    "table": "iDs",
+    "queries": [],
+    "mutations": [
+      "deleteAncestryFeature",
+      "deleteBackground",
+      "deleteCharacter",
+      "deleteClass",
+      "deleteEquipment",
+      "deleteFeat",
+      "deleteFeature",
+      "deleteFeatureExpertise",
+      "deleteFeatureFeat",
+      "deleteFeatureModifier",
+      "deleteFeatureOption",
+      "deleteFeatureProficiency",
+      "deleteFeatureSense",
+      "deleteFeatureSpell",
+      "deleteMasterAncestryFeature",
+      "deleteMasterBackground",
+      "deleteMasterClass",
+      "deleteMasterEquipment",
+      "deleteMasterFeat",
+      "deleteMasterFeature",
+      "deleteMasterFeatureExpertise",
+      "deleteMasterFeatureFeat",
+      "deleteMasterFeatureModifier",
+      "deleteMasterFeatureOption",
+      "deleteMasterFeatureProficiency",
+      "deleteMasterFeatureSense",
+      "deleteMasterFeatureSpell",
+      "deleteMasterRace",
+      "deleteMasterSpell",
+      "deleteMasterSystem",
+      "deleteRace",
+      "deleteSpell",
+      "deleteSystem"
+    ]
+  },
+  {
+    "entity": "Race",
+    "table": "races",
+    "queries": [
+      "getMasterRace",
+      "getRace"
+    ],
+    "mutations": [
+      "createMasterRace",
+      "createRace",
+      "updateMasterRace",
+      "updateRace"
+    ]
+  },
+  {
+    "entity": "RaceConnection",
+    "table": "raceConnections",
+    "queries": [
+      "listMasterRaces",
+      "listRaces"
+    ],
+    "mutations": []
+  },
+  {
+    "entity": "Spell",
+    "table": "spells",
+    "queries": [
+      "getMasterSpell",
+      "getSpell"
+    ],
+    "mutations": [
+      "createMasterSpell",
+      "createSpell",
+      "updateMasterSpell",
+      "updateSpell"
+    ]
+  },
+  {
+    "entity": "SpellConnection",
+    "table": "spellConnections",
+    "queries": [
+      "listMasterSpells",
+      "listSpells"
+    ],
+    "mutations": []
+  },
+  {
+    "entity": "System",
+    "table": "systems",
+    "queries": [
+      "getMasterSystem",
+      "getSystem"
+    ],
+    "mutations": [
+      "createMasterSystem",
+      "createSystem",
+      "updateMasterSystem",
+      "updateSystem"
+    ]
+  },
+  {
+    "entity": "SystemConnection",
+    "table": "systemConnections",
+    "queries": [
+      "listMasterSystems",
+      "listSystems"
+    ],
+    "mutations": []
+  }
+]

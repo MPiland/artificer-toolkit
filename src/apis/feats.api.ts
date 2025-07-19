@@ -121,7 +121,7 @@ export const fetchFeat = (id: string) => {
           return data.getFeat
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -156,7 +156,7 @@ export const useAddNewFeatMutation = () => {
           return data.createFeat
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -197,7 +197,7 @@ export const useUpdateFeatMutation = () => {
           return data.updateFeat
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -237,7 +237,7 @@ export const useDeleteFeatMutation = () => {
           return data.deleteFeat
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },

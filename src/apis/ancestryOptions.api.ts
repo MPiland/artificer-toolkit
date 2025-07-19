@@ -31,7 +31,7 @@ export const fetchAncestryOptions = (systemPref: string) => {
       }
       let nextToken: string | null = null
 
-      const { client, master } = await getClient()
+      const { featureClient, master } = await getClient()
 
       // Create a union type for the variables
       type ListVariables = QueryListAncestryOptionsArgs | QueryListMasterAncestryOptionsArgs
@@ -56,7 +56,7 @@ export const fetchAncestryOptions = (systemPref: string) => {
 
       try {
         do {
-          const { data } = await client.graphql({
+          const { data } = await featureClient.graphql({
             query: operation,
             variables: variables,
           })
@@ -103,7 +103,7 @@ export const fetchAncestryOption = (id: string) => {
   return queryOptions({
     queryKey: ancestryOptionsKeys.single(id),
     queryFn: async () => {
-      const { client, master } = await getClient()
+      const { featureClient, master } = await getClient()
 
       // Type guard to check which response we got
       function isMaster(data: unknown): data is { getMasterAncestryOption: unknown } {
@@ -113,7 +113,7 @@ export const fetchAncestryOption = (id: string) => {
       const operation = master ? getMasterAncestryOption : getAncestryOption
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await featureClient.graphql({
           query: operation,
           variables: {
             id,
@@ -126,7 +126,7 @@ export const fetchAncestryOption = (id: string) => {
           return data.getAncestryOption
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -138,7 +138,7 @@ export const useAddNewAncestryOptionMutation = () => {
 
   return useMutation<AncestryOption, Error, AncestryOptionInput, unknown>({
     mutationFn: async (ancestryOption: AncestryOptionInput) => {
-      const { client, master } = await getClient()
+      const { featureClient, master } = await getClient()
 
       const operation = master ? createMasterAncestryOption : createAncestryOption
 
@@ -147,7 +147,7 @@ export const useAddNewAncestryOptionMutation = () => {
       }
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await featureClient.graphql({
           query: operation,
           variables: {
             input: ancestryOption,
@@ -160,7 +160,7 @@ export const useAddNewAncestryOptionMutation = () => {
           return data.createAncestryOption
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -178,7 +178,7 @@ export const useUpdateAncestryOptionMutation = () => {
 
   return useMutation<AncestryOption, Error, AncestryOptionInput, unknown>({
     mutationFn: async (ancestryOption: AncestryOptionInput) => {
-      const { client, master } = await getClient()
+      const { featureClient, master } = await getClient()
 
       const operation = master ? updateMasterAncestryOption : updateAncestryOption
 
@@ -188,7 +188,7 @@ export const useUpdateAncestryOptionMutation = () => {
       }
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await featureClient.graphql({
           query: operation,
           variables: {
             input: ancestryOption,
@@ -201,7 +201,7 @@ export const useUpdateAncestryOptionMutation = () => {
           return data.updateAncestryOption
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -220,7 +220,7 @@ export const useDeleteAncestryOptionMutation = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { client, master } = await getClient()
+      const { featureClient, master } = await getClient()
 
       const operation = master ? deleteMasterAncestryOption : deleteAncestryOption
 
@@ -230,7 +230,7 @@ export const useDeleteAncestryOptionMutation = () => {
       }
 
       try {
-        const { data } = await client.graphql({
+        const { data } = await featureClient.graphql({
           query: operation,
           variables: {
             id,
@@ -243,7 +243,7 @@ export const useDeleteAncestryOptionMutation = () => {
           return data.deleteAncestryOption
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },

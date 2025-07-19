@@ -4,7 +4,6 @@ import { app } from '@/css/layers.css'
 export const spinner_container = style({
   '@layer': {
     [app]: {
-      containerType: 'size',
       margin: 'auto auto',
       width: '100%',
       height: '100%',

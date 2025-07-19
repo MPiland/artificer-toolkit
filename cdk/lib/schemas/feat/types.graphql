@@ -22,7 +22,7 @@ type Feat {
   levelAvailable: String
   features: [ID!]
   options: [ID!]
-  ownerId: String!
+  ownerId: ID!
   systemId: ID!
   masterId: String
 }
@@ -41,7 +41,7 @@ type FeatListItem {
   label: String!
   desc: String
   detail: String
-  ownerId: String!
+  ownerId: ID!
   systemId: ID!
   masterId: String
 }

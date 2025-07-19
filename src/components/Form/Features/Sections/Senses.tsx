@@ -4,7 +4,8 @@ import { Grid } from '@mantine/core'
 import { useAppForm } from '@/components/Form'
 import { FeatureSenseInputSchema } from '@/schemas'
 import { SubtypeInput } from '@/types'
-import { useFormStore, useSenseStore } from '@/store'
+import { useFormStore, useFeatureSenseStore } from '@/store'
+import { useEffect } from 'react'
 
 type SensesProps = {
   category?: string
@@ -12,7 +13,7 @@ type SensesProps = {
 }
 
 const Senses = ({ category, subtypes }: SensesProps) => {
-  const senseStore = useSenseStore()
+  const senseStore = useFeatureSenseStore()
 
   const form = useAppForm({
     defaultValues: FeatureSenseInputSchema.parse(senseStore.current),
@@ -32,6 +33,21 @@ const Senses = ({ category, subtypes }: SensesProps) => {
   const { AppField, Subscribe } = form
 
   const { senses, attributes } = useSystemData()
+
+  useEffect(() => {
+    if (!senseStore.formReset) {
+      senseStore.registerFormReset(form.reset)
+    }
+  }, [form.reset, senseStore])
+
+  useEffect(() => {
+    return form.store.subscribe((state) => {
+      const isValid = state.currentVal.isValid
+      if (senseStore.current?.id && senseStore.valid.get(senseStore.current.id) !== isValid) {
+        senseStore.upsertValid(senseStore.current.id, isValid)
+      }
+    })
+  }, [senseStore, form.store])
 
   return (
     <Grid>

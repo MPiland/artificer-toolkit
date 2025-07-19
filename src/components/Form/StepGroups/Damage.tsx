@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react'
-import Collapsible from '@/components/Collapsible'
+import Collapsible from '@/components/Collapse'
 import { Attributes, Damages, Spells } from '@/enums'
 import { row_button } from '../Form.css'
 import { TbPlus, TbX } from 'react-icons/tb'
@@ -526,137 +526,39 @@ const Damage = withFieldGroup({
               secondary?.attribute === Attributes.DIE_PER_LEVEL ||
               bonus?.attribute === Attributes.DIE_PER_LEVEL) && (
               <Grid.Col>
-                <Collapsible>
-                  <Collapsible.Trigger title={`Damage Die By Level`} />
-                  <Collapsible.Content>
-                    <Grid>
-                      <Grid.Col>
-                        <Grid>
-                          <Grid.Col>Level</Grid.Col>
-                          {formDamageTypes.map((type) => {
-                            const damageObject =
-                              type === 'primary' ? primary
-                              : type === 'secondary' ? secondary
-                              : type === 'versatile' ? versatile
-                              : bonus
-                            if (damageObject?.attribute === Attributes.DIE_PER_LEVEL) {
-                              return <Grid.Col key={type}>{`${startCase(type)} Die Roll`}</Grid.Col>
-                            }
-                          })}
-                          <Grid.Col>Remove Row</Grid.Col>
-                          <Grid.Col>Add Row</Grid.Col>
-                        </Grid>
-                      </Grid.Col>
-                      {diePerLevel?.length && (
-                        <AppField name='diePerLevel' mode='array'>
-                          {(field) =>
-                            field.state.value?.map((_, i) => (
-                              <Grid.Col key={`${i}-diePerLevel`}>
-                                <Grid>
-                                  <AppField
-                                    name={`diePerLevel[${i}].level`}
-                                    validators={fieldValidators({
-                                      onBlur: 'Enter a level',
-                                    })}
-                                    listeners={fieldListeners}
-                                  >
-                                    {({ TextField }) => (
-                                      <Grid.Col>
-                                        <TextField />
-                                      </Grid.Col>
-                                    )}
-                                  </AppField>
-                                  {formDamageTypes.map((type) => {
-                                    const damageObject =
-                                      type === 'primary' ? primary
-                                      : type === 'secondary' ? secondary
-                                      : type === 'versatile' ? versatile
-                                      : bonus
-                                    if (type !== 'versatile' && damageObject?.attribute === Attributes.DIE_PER_LEVEL) {
-                                      return (
-                                        <AppField
-                                          name={`diePerLevel[${i}].${type}.dieConfig`}
-                                          validators={fieldValidators({
-                                            onChange: { type: 'string', name: 'Die configuration' },
-                                            onBlur: 'Enter a die configuration (ex: 2d12)',
-                                          })}
-                                          listeners={fieldListeners}
-                                        >
-                                          {({ TextField }) => (
-                                            <Grid.Col>
-                                              <TextField />
-                                            </Grid.Col>
-                                          )}
-                                        </AppField>
-                                      )
-                                    }
-                                  })}
-                                  <Grid.Col>
-                                    <UnstyledButton
-                                      className={row_button}
-                                      onClick={() => {
-                                        field.removeValue(i)
-                                        removeFn({ path: `damage.diePerLevel[${i}]` })
-                                      }}
-                                    >
-                                      <TbX />
-                                    </UnstyledButton>
-                                  </Grid.Col>
-                                  <Grid.Col>
-                                    <UnstyledButton
-                                      className={row_button}
-                                      onClick={() => {
-                                        const damageInputObj = DiePerLevelInputSchema.parse({})
-                                        field.pushValue(damageInputObj)
-                                        updateFn({ path: `damage.diePerLevel[${i + 1}]`, value: damageInputObj })
-                                      }}
-                                    >
-                                      <TbPlus />
-                                    </UnstyledButton>
-                                  </Grid.Col>
-                                </Grid>
-                              </Grid.Col>
-                            ))
+                <Collapsible
+                  props={{
+                    trigger: {
+                      title: 'Damage Die By Level',
+                    },
+                  }}
+                >
+                  <Grid>
+                    <Grid.Col>
+                      <Grid>
+                        <Grid.Col>Level</Grid.Col>
+                        {formDamageTypes.map((type) => {
+                          const damageObject =
+                            type === 'primary' ? primary
+                            : type === 'secondary' ? secondary
+                            : type === 'versatile' ? versatile
+                            : bonus
+                          if (damageObject?.attribute === Attributes.DIE_PER_LEVEL) {
+                            return <Grid.Col key={type}>{`${startCase(type)} Die Roll`}</Grid.Col>
                           }
-                        </AppField>
-                      )}
-                    </Grid>
-                  </Collapsible.Content>
-                </Collapsible>
-              </Grid.Col>
-            )}
-            {(primary?.attribute === Attributes.SET_PER_LEVEL ||
-              secondary?.attribute === Attributes.SET_PER_LEVEL ||
-              bonus?.attribute === Attributes.SET_PER_LEVEL) && (
-              <Grid.Col>
-                <Collapsible>
-                  <Collapsible.Trigger title={`Damage Die By Level`} />
-                  <Collapsible.Content>
-                    <Grid>
-                      <Grid.Col>
-                        <Grid>
-                          <Grid.Col>Level</Grid.Col>
-                          {formDamageTypes.map((type) => {
-                            const damageObject =
-                              type === 'primary' ? primary
-                              : type === 'secondary' ? secondary
-                              : type === 'versatile' ? versatile
-                              : bonus
-                            if (damageObject?.attribute === Attributes.SET_PER_LEVEL) {
-                              return <Grid.Col key={type}>{`${startCase(type)} Die Roll`}</Grid.Col>
-                            }
-                          })}
-                          <Grid.Col>Remove Row</Grid.Col>
-                          <Grid.Col>Add Row</Grid.Col>
-                        </Grid>
-                      </Grid.Col>
-                      <AppField name='setPerLevel' mode='array'>
+                        })}
+                        <Grid.Col>Remove Row</Grid.Col>
+                        <Grid.Col>Add Row</Grid.Col>
+                      </Grid>
+                    </Grid.Col>
+                    {diePerLevel?.length && (
+                      <AppField name='diePerLevel' mode='array'>
                         {(field) =>
                           field.state.value?.map((_, i) => (
-                            <Grid.Col key={`${i}-setPerLevel`}>
+                            <Grid.Col key={`${i}-diePerLevel`}>
                               <Grid>
                                 <AppField
-                                  name={`setPerLevel[${i}].level`}
+                                  name={`diePerLevel[${i}].level`}
                                   validators={fieldValidators({
                                     onBlur: 'Enter a level',
                                   })}
@@ -674,14 +576,13 @@ const Damage = withFieldGroup({
                                     : type === 'secondary' ? secondary
                                     : type === 'versatile' ? versatile
                                     : bonus
-                                  if (type !== 'versatile' && damageObject?.attribute === Attributes.SET_PER_LEVEL) {
+                                  if (type !== 'versatile' && damageObject?.attribute === Attributes.DIE_PER_LEVEL) {
                                     return (
                                       <AppField
-                                        name={`setPerLevel[${i}].${type}`}
-                                        key={type}
+                                        name={`diePerLevel[${i}].${type}.dieConfig`}
                                         validators={fieldValidators({
-                                          onChange: { type: 'integer', name: 'Set amount', min: 1 },
-                                          onBlur: 'Enter a set amount',
+                                          onChange: { type: 'string', name: 'Die configuration' },
+                                          onBlur: 'Enter a die configuration (ex: 2d12)',
                                         })}
                                         listeners={fieldListeners}
                                       >
@@ -699,7 +600,7 @@ const Damage = withFieldGroup({
                                     className={row_button}
                                     onClick={() => {
                                       field.removeValue(i)
-                                      removeFn({ path: `damage.setPerLevel[${i}]` })
+                                      removeFn({ path: `damage.diePerLevel[${i}]` })
                                     }}
                                   >
                                     <TbX />
@@ -709,9 +610,9 @@ const Damage = withFieldGroup({
                                   <UnstyledButton
                                     className={row_button}
                                     onClick={() => {
-                                      const damageInputObj = SetPerLevelInputSchema.parse({})
+                                      const damageInputObj = DiePerLevelInputSchema.parse({})
                                       field.pushValue(damageInputObj)
-                                      updateFn({ path: `damage.setPerLevel[${i + 1}]`, value: damageInputObj })
+                                      updateFn({ path: `damage.diePerLevel[${i + 1}]`, value: damageInputObj })
                                     }}
                                   >
                                     <TbPlus />
@@ -722,8 +623,113 @@ const Damage = withFieldGroup({
                           ))
                         }
                       </AppField>
-                    </Grid>
-                  </Collapsible.Content>
+                    )}
+                  </Grid>
+                </Collapsible>
+              </Grid.Col>
+            )}
+            {(primary?.attribute === Attributes.SET_PER_LEVEL ||
+              secondary?.attribute === Attributes.SET_PER_LEVEL ||
+              bonus?.attribute === Attributes.SET_PER_LEVEL) && (
+              <Grid.Col>
+                <Collapsible
+                  props={{
+                    trigger: {
+                      title: 'Damage Set By Level',
+                    },
+                  }}
+                >
+                  <Grid>
+                    <Grid.Col>
+                      <Grid>
+                        <Grid.Col>Level</Grid.Col>
+                        {formDamageTypes.map((type) => {
+                          const damageObject =
+                            type === 'primary' ? primary
+                            : type === 'secondary' ? secondary
+                            : type === 'versatile' ? versatile
+                            : bonus
+                          if (damageObject?.attribute === Attributes.SET_PER_LEVEL) {
+                            return <Grid.Col key={type}>{`${startCase(type)} Die Roll`}</Grid.Col>
+                          }
+                        })}
+                        <Grid.Col>Remove Row</Grid.Col>
+                        <Grid.Col>Add Row</Grid.Col>
+                      </Grid>
+                    </Grid.Col>
+                    <AppField name='setPerLevel' mode='array'>
+                      {(field) =>
+                        field.state.value?.map((_, i) => (
+                          <Grid.Col key={`${i}-setPerLevel`}>
+                            <Grid>
+                              <AppField
+                                name={`setPerLevel[${i}].level`}
+                                validators={fieldValidators({
+                                  onBlur: 'Enter a level',
+                                })}
+                                listeners={fieldListeners}
+                              >
+                                {({ TextField }) => (
+                                  <Grid.Col>
+                                    <TextField />
+                                  </Grid.Col>
+                                )}
+                              </AppField>
+                              {formDamageTypes.map((type) => {
+                                const damageObject =
+                                  type === 'primary' ? primary
+                                  : type === 'secondary' ? secondary
+                                  : type === 'versatile' ? versatile
+                                  : bonus
+                                if (type !== 'versatile' && damageObject?.attribute === Attributes.SET_PER_LEVEL) {
+                                  return (
+                                    <AppField
+                                      name={`setPerLevel[${i}].${type}`}
+                                      key={type}
+                                      validators={fieldValidators({
+                                        onChange: { type: 'integer', name: 'Set amount', min: 1 },
+                                        onBlur: 'Enter a set amount',
+                                      })}
+                                      listeners={fieldListeners}
+                                    >
+                                      {({ TextField }) => (
+                                        <Grid.Col>
+                                          <TextField />
+                                        </Grid.Col>
+                                      )}
+                                    </AppField>
+                                  )
+                                }
+                              })}
+                              <Grid.Col>
+                                <UnstyledButton
+                                  className={row_button}
+                                  onClick={() => {
+                                    field.removeValue(i)
+                                    removeFn({ path: `damage.setPerLevel[${i}]` })
+                                  }}
+                                >
+                                  <TbX />
+                                </UnstyledButton>
+                              </Grid.Col>
+                              <Grid.Col>
+                                <UnstyledButton
+                                  className={row_button}
+                                  onClick={() => {
+                                    const damageInputObj = SetPerLevelInputSchema.parse({})
+                                    field.pushValue(damageInputObj)
+                                    updateFn({ path: `damage.setPerLevel[${i + 1}]`, value: damageInputObj })
+                                  }}
+                                >
+                                  <TbPlus />
+                                </UnstyledButton>
+                              </Grid.Col>
+                            </Grid>
+                          </Grid.Col>
+                        ))
+                      }
+                    </AppField>
+                  </Grid>
                 </Collapsible>
               </Grid.Col>
             )}

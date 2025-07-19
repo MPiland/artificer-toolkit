@@ -1,7 +1,7 @@
 import { produce } from 'immer'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Class, Equipment, Spell } from '@/types'
+import type { Class, Equipment, Race, Spell } from '@/types'
 import { get, set as lSet } from 'lodash'
 import type { DeepKeys } from '@tanstack/react-form'
 
@@ -10,6 +10,7 @@ export interface FilterState {
   spells?: Partial<Spell>
   equipment?: Partial<Equipment>
   classes?: Partial<Class>
+  races?: Partial<Race>
 }
 
 export type StoreFormType = keyof FilterState
@@ -66,7 +67,9 @@ export const useFilterStore = create<FilterStore>()(
       resetFilters: (context) =>
         set(
           produce((state: FilterStore) => {
-            state.filters[context] = {}
+            if (state.filters[context]) {
+              state.filters[context] = {}
+            }
           })
         ),
 

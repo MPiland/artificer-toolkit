@@ -108,7 +108,7 @@ export const fetchFeatureExpertise = (id: string) => {
           return data.getFeatureExpertise
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -142,7 +142,7 @@ export const useAddNewFeatureExpertiseMutation = () => {
           return data.createFeatureExpertise
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -183,7 +183,7 @@ export const useUpdateFeatureExpertiseMutation = () => {
           return data.updateFeatureExpertise
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -225,7 +225,7 @@ export const useDeleteFeatureExpertiseMutation = () => {
           return data.deleteFeatureExpertise
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },

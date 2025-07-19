@@ -3,6 +3,9 @@ input AncestryOptionInput {
   label: String!
   desc: String
   features: [ID!]
+  ownerId: ID!
+  systemId: ID!
+  masterId: String
 }
 
 input BatchAncestryOptionsInput {

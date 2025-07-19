@@ -5,7 +5,8 @@ import { useSystemData, useEquipmentData } from '@/hooks'
 import type { SubtypeInput } from '@/types'
 import { Grid } from '@mantine/core'
 import { FeatureProficiencyInputSchema } from '@/schemas'
-import { useFormStore, useProficiencyStore } from '@/store'
+import { useFormStore, useFeatureProficiencyStore } from '@/store'
+import { useEffect } from 'react'
 
 type ProficienciesProps = {
   category?: string
@@ -13,7 +14,7 @@ type ProficienciesProps = {
 }
 
 const Proficiencies = ({ category, subtypes }: ProficienciesProps) => {
-  const proficiencyStore = useProficiencyStore()
+  const proficiencyStore = useFeatureProficiencyStore()
 
   const form = useAppForm({
     defaultValues: FeatureProficiencyInputSchema.parse(proficiencyStore.current),
@@ -43,6 +44,21 @@ const Proficiencies = ({ category, subtypes }: ProficienciesProps) => {
     skills: skills,
     languages: languages,
   } as const
+
+  useEffect(() => {
+    if (!proficiencyStore.formReset) {
+      proficiencyStore.registerFormReset(form.reset)
+    }
+  }, [form.reset, proficiencyStore])
+
+  useEffect(() => {
+    return form.store.subscribe((state) => {
+      const isValid = state.currentVal.isValid
+      if (proficiencyStore.current?.id && proficiencyStore.valid.get(proficiencyStore.current.id) !== isValid) {
+        proficiencyStore.upsertValid(proficiencyStore.current.id, isValid)
+      }
+    })
+  }, [proficiencyStore, form.store])
 
   return (
     <Grid>
@@ -211,7 +227,9 @@ const Proficiencies = ({ category, subtypes }: ProficienciesProps) => {
         selector={(state) => ({ formAttributes: state.values.attributes, formCategory: state.values.category })}
       >
         {({ formAttributes, formCategory }) => {
-          const { subtypeSpecific, providesOptions, hasPrerequisites } = getAttributes({ attributes: formAttributes })
+          const { subtypeSpecific, providesOptions, hasPrerequisites } = getAttributes({
+            attributes: formAttributes || [],
+          })
           const sectionCategory = proficiencies.categories.findCategory(formCategory)
           return (
             subtypeSpecific &&

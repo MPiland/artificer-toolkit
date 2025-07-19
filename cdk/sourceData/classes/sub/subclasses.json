@@ -40,7 +40,9 @@
     "label": "Circle of the Land",
     "category": "635bbde6-8c7f-4730-bb83-fb3be8d9006a",
     "parentClass": "cb77cee2-5b6e-4bb9-87ff-3db56eec7db1",
-    "attributes": ["36aeab69-fada-4f08-a4e0-215b34d5b4d5"],
+    "attributes": [
+      "36aeab69-fada-4f08-a4e0-215b34d5b4d5"
+    ],
     "desc": "<p>The Circle of the Land is made up of mystics and sages who safeguard ancient knowledge and rites through a vast oral tradition. These druids meet within sacred circles of trees or standing stones to whisper primal secrets in Druidic. The circle’s wisest members preside as the chief priests of communities that hold to the Old Faith and serve as advisors to the rulers of those folk. As a member of this circle, your magic is influenced by the land where you were initiated into the circle’s mysterious rites.</p>",
     "subtypes": [
       {
@@ -90,7 +92,9 @@
     "label": "Champion",
     "category": "635bbde6-8c7f-4730-bb83-fb3be8d9006a",
     "parentClass": "e9e77ae4-8e96-4681-8005-366c2d40ee7a",
-    "attributes": ["3764d329-dff1-4d17-8d22-ef9a0f5bc60d"],
+    "attributes": [
+      "3764d329-dff1-4d17-8d22-ef9a0f5bc60d"
+    ],
     "desc": "<p>The archetypal Champion focuses on the development of raw physical power honed to deadly perfection. Those who model themselves on this archetype combine rigorous training with physical excellence to deal devastating blows.</p>",
     "features": [
       "dae4c5e1-d355-4004-aa27-243c8ba3a16b",
@@ -127,7 +131,9 @@
     "category": "635bbde6-8c7f-4730-bb83-fb3be8d9006a",
     "parentClass": "e2bd9043-59a0-4977-b414-88afe49eefc9",
     "desc": "<p>The Oath of Devotion binds a paladin to the loftiest ideals of justice, virtue, and order. Sometimes called cavaliers, white knights, or holy warriors, these paladins meet the ideal of the knight in shining armor, acting with honor in pursuit of justice and the greater good. They hold themselves to the highest standards of conduct, and some, for better or worse, hold the rest of the world to the same standards. Many who swear this oath are devoted to gods of law and good and use their gods’ tenets as the measure of their devotion. They hold angels—the perfect servants of good—as their ideals, and incorporate images of angelic wings into their helmets or coats of arms.</p><blockquote><p><strong>TENETS OF DEVOTION</strong></p><p>Though the exact words and strictures of the Oath of Devotion vary, paladins of this oath share these tenets.</p><p><strong>Honesty.</strong> Don’t lie or cheat. Let your word be your promise.</p><p><strong>Courage.</strong> Never fear to act, though caution is wise.</p><p><strong>Compassion.</strong> Aid others, protect the weak, and punish those who threaten them. Show mercy to your foes, but temper it with wis.</p><p><strong>Honor.</strong> Treat others with fairness, and let your honorable deeds be an example to them. Do as much good as possible while causing the least amount of harm.</p><p><strong>Duty.</strong> Be responsible for your actions and their consequences, protect those entrusted to your care, and obey those who have just authority over you.</p></blockquote>",
-    "attributes": ["250a1629-5bd7-486b-a007-be78ac43013d"],
+    "attributes": [
+      "250a1629-5bd7-486b-a007-be78ac43013d"
+    ],
     "resource": {
       "id": "95079a42-8834-46ff-a8be-5b0de9bf3546",
       "label": "Channel Divinity",

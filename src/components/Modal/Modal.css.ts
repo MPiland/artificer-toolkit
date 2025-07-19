@@ -1,20 +1,32 @@
 import { style } from '@vanilla-extract/css'
 import { app } from '@/css/layers.css'
 import { size } from '@/css/size.css'
+import { vars } from '@/css/theme'
 
-export const modal = style({
+export const base = style({
   '@layer': {
     [app]: {
       position: 'fixed',
-      left: '50%',
-      top: '50%',
-      transform: 'translate(-50%, -50%)',
-      zIndex: 300,
+      top: 0,
+      left: 0,
+      width: '100dvw',
+      height: '100dvh',
+      zIndex: 500,
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: vars.colors.gray[5],
+
+      selectors: {
+        [vars.darkSelector]: {
+          backgroundColor: vars.colors.dark[5],
+        },
+      },
     },
   },
 })
 
-export const modal_background = style({
+export const background = style({
   '@layer': {
     [app]: {
       position: 'fixed',
@@ -25,26 +37,30 @@ export const modal_background = style({
       left: 0,
       width: '100dvw',
       height: '100dvh',
-      zIndex: 200,
+      zIndex: 400,
+      pointerEvents: 'none',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
     },
   },
 })
 
-export const modal_dialogue = style({
+export const dialogue = style({
   '@layer': {
     [app]: {
       position: 'relative',
       display: 'flex',
       flexDirection: 'column',
-      width: '400px',
+      maxWidth: '400px',
       zIndex: 500,
       borderRadius: '0.5rem',
       overflow: 'hidden',
       justifyContent: 'center',
+      height: 'fit-content',
+      outline: 'none',
 
       selectors: {
         '&.xs': {
-          'width': '20dvw',
+          'maxWidth': '20dvw',
           'minWidth': '20rem',
           'maxHeight': '80dvh',
 
@@ -58,7 +74,7 @@ export const modal_dialogue = style({
           },
         },
         '&.sm': {
-          'width': '30dvw',
+          'maxWidth': '30dvw',
           'maxHeight': '80dvh',
 
           '@media': {
@@ -71,7 +87,7 @@ export const modal_dialogue = style({
           },
         },
         '&.md': {
-          'width': '60dvw',
+          'maxWidth': '60dvw',
           'maxHeight': '80dvh',
 
           '@media': {
@@ -84,7 +100,7 @@ export const modal_dialogue = style({
           },
         },
         '&.lg': {
-          'width': '90dvw',
+          'maxWidth': '90dvw',
           'height': 'fit-content',
           'maxHeight': '80dvh',
 
@@ -106,7 +122,7 @@ export const modal_dialogue = style({
   },
 })
 
-export const modal_content = style({
+export const content = style({
   '@layer': {
     [app]: {
       'position': 'relative',
@@ -117,6 +133,8 @@ export const modal_content = style({
       'zIndex': '10',
       'padding': `${size['size-7']} 0`,
       'justifyContent': 'center',
+      'height': 'fit-content',
+      'outline': 'none',
 
       'selectors': {
         '&.scrollable': {
@@ -132,7 +150,7 @@ export const modal_content = style({
   },
 })
 
-export const modal_header = style({
+export const header = style({
   '@layer': {
     [app]: {
       'position': 'relative',
@@ -148,7 +166,7 @@ export const modal_header = style({
   },
 })
 
-export const modal_body = style({
+export const body = style({
   '@layer': {
     [app]: {
       'position': 'relative',
@@ -165,7 +183,7 @@ export const modal_body = style({
   },
 })
 
-export const modal_title = style({
+export const title = style({
   '@layer': {
     [app]: {
       fontWeight: 'bold',
@@ -174,7 +192,7 @@ export const modal_title = style({
   },
 })
 
-export const modal_footer = style({
+export const footer = style({
   '@layer': {
     [app]: {
       'position': 'relative',
@@ -192,7 +210,7 @@ export const modal_footer = style({
   },
 })
 
-export const modal_divider = style({
+export const divider = style({
   '@layer': {
     [app]: {
       position: 'relative',

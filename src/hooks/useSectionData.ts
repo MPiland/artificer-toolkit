@@ -90,7 +90,8 @@ const useSectionData = () => {
     featureProficiencies: createArrayWithMethods(featureProficiencies, {
       findFeatureProficiency: (id?: string | null) => {
         if (!id) return null
-        return suspenseQuery(fetchFeatureProficiency(id)).data
+        const data = suspenseQuery(fetchFeatureProficiency(id)).data
+        return data
       },
       findFeatureProficiencies: (ids?: string[] | null) => {
         if (!ids || !ids.length) return null

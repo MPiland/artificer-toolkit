@@ -125,7 +125,7 @@ export const itemsToMeta = (items: Spell[]) => {
   })
 }
 
-export const addToMeta = <T extends Record<string, any>>(
+export const addToMeta = <T extends Record<string, unknown>>(
   metaArray: (MetaObject & T)[],
   keyId: string | number,
   spellId: string,

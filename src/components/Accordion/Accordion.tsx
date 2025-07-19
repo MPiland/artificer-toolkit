@@ -4,13 +4,7 @@ import { closestCenter, DndContext, MouseSensor, TouchSensor, useSensor, useSens
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import clsx from 'clsx'
-import {
-  accordion_item,
-  accordion_header,
-  accordion_content,
-  accordion_header_icon,
-  accordion_header_icon_collapse,
-} from './Accordion.css'
+import { item, header, content, header_icon, header_icon_collapse } from './Accordion.css'
 import { sprinkles } from '@/css/sprinkles.css'
 import { Accordion, Group } from '@mantine/core'
 
@@ -41,7 +35,7 @@ const AccordionItem = ({ className, itemId, children, value, ...props }: Accordi
       style={style}
       value={value}
       {...props}
-      className={clsx(accordion_item, className, { ['dragging']: isDragging }, 'item')}
+      className={clsx(item, className, { ['dragging']: isDragging }, 'item')}
     >
       {children}
     </Accordion.Item>
@@ -49,21 +43,22 @@ const AccordionItem = ({ className, itemId, children, value, ...props }: Accordi
 }
 
 type TriggerProps = {
-  children: ReactNode
+  children?: ReactNode
   className?: string
   removeFn?: () => void
   editFn?: () => void
+  title?: string
 } & ComponentProps<typeof Accordion.Control>
 
-const AccordionTrigger = ({ className, children, removeFn, editFn, ...props }: TriggerProps) => {
+const AccordionTrigger = ({ className, children, removeFn, editFn, title, ...props }: TriggerProps) => {
   return (
-    <Accordion.Control className={clsx(accordion_header, className)} {...props}>
-      <Group justify='space -between' grow>
+    <Accordion.Control className={clsx(header, className)} {...props} onClick={(e) => e.stopPropagation()}>
+      <Group justify='flex-start'>
         <Group>
-          <h3 className={sprinkles({ me: 'space-2' })}>{children}</h3>
+          <h3 className={sprinkles({ my: 'space-x' })}>{title}</h3>
           {editFn && (
             <Pencil
-              className={accordion_header_icon}
+              className={header_icon}
               onClick={(e) => {
                 e.stopPropagation()
                 editFn()
@@ -73,7 +68,7 @@ const AccordionTrigger = ({ className, children, removeFn, editFn, ...props }: T
         </Group>
         {removeFn && (
           <Trash2
-            className={accordion_header_icon}
+            className={header_icon}
             onClick={(e) => {
               e.stopPropagation()
               removeFn()
@@ -81,6 +76,7 @@ const AccordionTrigger = ({ className, children, removeFn, editFn, ...props }: T
           />
         )}
       </Group>
+      {children}
     </Accordion.Control>
   )
 }
@@ -92,7 +88,7 @@ type AccordionContentProps = {
 
 const AccordionContent = ({ className, children, ...props }: AccordionContentProps) => {
   return (
-    <Accordion.Panel className={clsx(accordion_content, className)} {...props}>
+    <Accordion.Panel className={className} {...props}>
       {children}
     </Accordion.Panel>
   )
@@ -101,13 +97,12 @@ const AccordionContent = ({ className, children, ...props }: AccordionContentPro
 export type AccordionProps = {
   dataArray: unknown[]
   onChange: (arg: unknown[]) => void
-  name?: string
   disableSort?: boolean
   children?: ReactNode
 } & Omit<ComponentProps<typeof Accordion>, 'onChange'>
 
 const AccordionBase = Object.assign(
-  ({ name, onChange, disableSort, dataArray, children, ...props }: AccordionProps) => {
+  ({ onChange, disableSort, dataArray, children, ...props }: AccordionProps) => {
     const sensor = useSensors(
       useSensor(TouchSensor, {
         activationConstraint: {
@@ -134,15 +129,13 @@ const AccordionBase = Object.assign(
       const oldIndex = Number(active.id)
       const newIndex = Number(over?.id)
       const newArray = arrayMove(oldArray, oldIndex, newIndex)
-      if (name) {
-        onChange(newArray)
-      }
+      onChange(newArray)
     }
 
     return (
       <Accordion
-        chevron={<PlusIcon className={clsx(accordion_header_icon)} />}
-        classNames={{ chevron: accordion_header_icon_collapse }}
+        chevron={<PlusIcon className={clsx(header_icon)} />}
+        classNames={{ chevron: header_icon_collapse, content: content }}
         {...props}
       >
         <DndContext collisionDetection={closestCenter} sensors={sensor} onDragEnd={onDragEnd}>

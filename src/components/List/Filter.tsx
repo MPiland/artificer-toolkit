@@ -17,7 +17,7 @@ function Filter<T extends FilterDataType, K extends MetaDataType>({
   metaData?: K
   filterConfigs: FilterConfig<T, K>[]
 }) {
-  const filterStore = useFilterStore((state) => state)
+  const filterStore = useFilterStore()
   const { filters, setFilter, resetFilters } = filterStore
   const { getFilterOptions } = useMetaData({ metaData })
 
@@ -53,14 +53,14 @@ function Filter<T extends FilterDataType, K extends MetaDataType>({
   }, [resetFilters, context])
 
   return (
-    <Grid align='flex-end'>
+    <Grid align='flex-end' grow>
       {filterConfigs.map((config) => {
-        const value = get(currentFilters, config.path, '') as string | string[] | null | undefined
+        const value = get(currentFilters, config.path) as string | string[] | null | undefined
 
         switch (config.type) {
           case 'text':
             return (
-              <Grid.Col key={String(config.path)} span={{ sm: 4, lg: 'auto' }}>
+              <Grid.Col key={String(config.path)} span='content'>
                 <TextInput
                   key={String(config.path)}
                   name={config.path}
@@ -78,7 +78,7 @@ function Filter<T extends FilterDataType, K extends MetaDataType>({
             const optionsForConfig = memoizedConfigs.find((c) => c.path === config.path)?.options || []
 
             return (
-              <Grid.Col key={String(config.path)} span={{ sm: 4, lg: 'auto' }}>
+              <Grid.Col key={String(config.path)} span='content'>
                 <Dropdown
                   key={String(config.path)}
                   multiselect={config.type === 'multiSelect'}
@@ -89,9 +89,9 @@ function Filter<T extends FilterDataType, K extends MetaDataType>({
                   all={false}
                   onChange={(value) => {
                     if (value == null) {
-                      return setFilter(context, config.path, null)
+                      setFilter(context, config.path, null)
                     }
-                    return setFilter(context, config.path, value)
+                    setFilter(context, config.path, value)
                   }}
                 />
               </Grid.Col>
@@ -103,8 +103,8 @@ function Filter<T extends FilterDataType, K extends MetaDataType>({
         }
       })}
 
-      <Grid.Col>
-        <Button fullWidth variant='outline' onClick={handleReset}>
+      <Grid.Col span='content'>
+        <Button size='sm' variant='outline' onClick={handleReset}>
           Reset
         </Button>
       </Grid.Col>

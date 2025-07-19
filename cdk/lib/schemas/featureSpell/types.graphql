@@ -19,6 +19,9 @@ type FeatureSpell {
   subtype: ID
   prerequisites: Prerequisite
   charges: Charge
+  ownerId: ID!
+  systemId: ID!
+  masterId: String
 }
 
 type FeatureSpellConnection {

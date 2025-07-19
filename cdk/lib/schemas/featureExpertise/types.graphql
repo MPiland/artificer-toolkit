@@ -10,6 +10,9 @@ type FeatureExpertise {
   properties: ProficiencyProperties
   equipment: ProficiencyProperties
   prerequisites: Prerequisite
+  ownerId: ID!
+  systemId: ID!
+  masterId: String
 }
 
 type FeatureExpertiseConnection {

@@ -1,9 +1,9 @@
 import { style, globalStyle } from '@vanilla-extract/css'
 import { app } from '@/css/layers.css'
 import { size, space } from '@/css/size.css'
-import { fontWeight } from '@/css/typography.css'
+import { vars } from '@/css/theme'
 
-export const form_wrapper = style({
+export const form = style({
   '@layer': {
     [app]: {
       'display': 'flex',
@@ -21,37 +21,11 @@ export const form_wrapper = style({
   },
 })
 
-export const form_header = style({
+export const content = style({
   '@layer': {
     [app]: {
-      padding: `${space['space-4']} 0`,
-      marginBottom: space['space-3'],
-    },
-  },
-})
-
-export const form_content = style({
-  '@layer': {
-    [app]: {
-      position: 'relative',
-      flexGrow: 1,
       width: '100%',
-    },
-  },
-})
-
-export const form_footer = style({
-  '@layer': {
-    [app]: {
-      position: 'sticky',
-      alignItems: 'center',
-      paddingLeft: '.75rem',
-      paddingRight: '.75rem',
-      left: 0,
-      bottom: 0,
-      width: '100%',
-      padding: '.5rem .5rem',
-      marginTop: '.5rem',
+      padding: `0 ${vars.spacing.md}`,
     },
   },
 })
@@ -68,36 +42,7 @@ export const row_button = style({
   },
 })
 
-export const feature_list_button_container = style({
-  '@layer': {
-    [app]: {
-      flexShrink: 0,
-      paddingTop: space['space-4'],
-    },
-  },
-})
-
-export const feature_list = style({
-  '@layer': {
-    [app]: {
-      width: '100%',
-    },
-  },
-})
-
-export const feature_description = style({
-  height: '100%',
-})
-
-export const form_detail_title = style({
-  '@layer': {
-    [app]: {
-      fontWeight: fontWeight['font-weight-7'],
-    },
-  },
-})
-
-export const form_detail_main = style({
+export const detail_main = style({
   '@layer': {
     [app]: {
       position: 'relative',
@@ -110,7 +55,7 @@ export const form_detail_main = style({
   },
 })
 
-export const form_detail_body = style({
+export const detail_body = style({
   '@layer': {
     [app]: {
       position: 'relative',
@@ -122,7 +67,18 @@ export const form_detail_body = style({
   },
 })
 
-globalStyle(`${form_detail_body} td`, {
+export const collapse_grid = style({
+  '@layer': {
+    [app]: {
+      vars: {
+        '--grid-margin': '0',
+      },
+      marginBottom: space['space-3'],
+    },
+  },
+})
+
+globalStyle(`${detail_body} td`, {
   '@layer': {
     [app]: {
       verticalAlign: 'top',
@@ -131,7 +87,7 @@ globalStyle(`${form_detail_body} td`, {
   },
 })
 
-globalStyle(`${form_detail_body} th`, {
+globalStyle(`${detail_body} th`, {
   '@layer': {
     [app]: {
       textAlign: 'start',
@@ -140,20 +96,12 @@ globalStyle(`${form_detail_body} th`, {
   },
 })
 
-globalStyle(`${form_detail_body} blockquote`, {
+globalStyle(`${detail_body} blockquote`, {
   '@layer': {
     [app]: {
       marginLeft: size['size-3'],
       marginTop: size['size-2'],
       padding: size['size-1'],
-    },
-  },
-})
-
-globalStyle(`${feature_description} p:last-of-type`, {
-  '@layer': {
-    [app]: {
-      marginBottom: 0,
     },
   },
 })

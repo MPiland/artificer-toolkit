@@ -23,10 +23,10 @@ export function createUserTables(stack: Stack, type: 'domain' | 'feature'): Enti
   const tables: EntityTable[] = []
   entityOperationMap.forEach((entityOp) => {
     if (!entityOp.entity.includes('Master')) {
-      if (type === 'domain' && !entityOp.entity.includes('Feature') && !entityOp.entity.includes('Option')) {
+      if (type === 'domain' && !entityOp.entity.includes('Feature') && !entityOp.entity.includes('Ancestry')) {
         tables.push({ name: entityOp.entity, table: createEntityTable(stack, entityOp.entity) })
       }
-      if (type === 'feature' && (entityOp.entity.includes('Feature') || entityOp.entity.includes('Option'))) {
+      if (type === 'feature' && (entityOp.entity.includes('Feature') || entityOp.entity.includes('Ancestry'))) {
         tables.push({ name: entityOp.entity, table: createEntityTable(stack, entityOp.entity) })
       }
     }
@@ -38,10 +38,10 @@ export function createMasterTables(stack: Stack, type: 'domain' | 'feature'): En
   const tables: EntityTable[] = []
   entityOperationMap.forEach((entityOp) => {
     if (entityOp.entity.includes('Master')) {
-      if (type === 'domain' && !entityOp.entity.includes('Feature') && !entityOp.entity.includes('Option')) {
+      if (type === 'domain' && !entityOp.entity.includes('Feature') && !entityOp.entity.includes('Ancestry')) {
         tables.push({ name: entityOp.entity, table: createEntityTable(stack, entityOp.entity) })
       }
-      if (type === 'feature' && (entityOp.entity.includes('Feature') || entityOp.entity.includes('Option'))) {
+      if (type === 'feature' && (entityOp.entity.includes('Feature') || entityOp.entity.includes('Ancestry'))) {
         tables.push({ name: entityOp.entity, table: createEntityTable(stack, entityOp.entity) })
       }
     }

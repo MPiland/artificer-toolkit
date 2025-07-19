@@ -1,7 +1,8 @@
 import { useMemo, type ReactNode } from 'react'
 import { withFieldGroup } from '@/components/Form'
 import { useFieldUpdates } from '@/hooks'
-import type { LevelAttributeInput } from 'gql/types'
+import type { LevelAttributeInput, ClassInput } from '@/types'
+import { useTypedFormStore } from '@/store'
 
 const LevelAttributes = withFieldGroup({
   defaultValues: {} as LevelAttributeInput,
@@ -13,9 +14,15 @@ const LevelAttributes = withFieldGroup({
     index: 0,
   },
   render: function Render({ group, isSpellcaster, hasResourcePoints, limitKnownSpells, maxSpellLevel, index }) {
+    const store = useTypedFormStore<ClassInput>()
+    const stepIndex = store((state) => state.stepIndex)
     const { AppField } = group
 
-    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form', path: `levelAttributes[${index}]` })
+    const { fieldListeners, fieldValidators } = useFieldUpdates({
+      data: 'form',
+      path: `levelAttributes[${index}]`,
+      stepIndex,
+    })
 
     const spellSlotFields = useMemo(() => {
       const spellSlotInputs: ReactNode[] = []

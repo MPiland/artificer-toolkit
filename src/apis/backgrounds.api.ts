@@ -121,14 +121,14 @@ export const fetchBackground = (id: string) => {
           return data.getBackground
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
   })
 }
 
-export const useAddBackground = () => {
+export const useAddNewBackgroundMutation = () => {
   const queryClient = useQueryClient()
 
   return useMutation<Background, Error, BackgroundInput, unknown>({
@@ -156,7 +156,7 @@ export const useAddBackground = () => {
           return data.createBackground
         }
       } catch (err) {
-        console.error(err)
+        console.log(err)
         throw err
       }
     },
@@ -169,7 +169,7 @@ export const useAddBackground = () => {
   })
 }
 
-export const useUpdateBackground = () => {
+export const useUpdateBackgroundMutation = () => {
   const queryClient = useQueryClient()
 
   return useMutation<Background, Error, BackgroundInput, unknown>({
@@ -197,7 +197,7 @@ export const useUpdateBackground = () => {
           return data.updateBackground
         }
       } catch (err) {
-        console.error(err)
+        console.log(err)
         throw err
       }
     },
@@ -237,7 +237,7 @@ export const useDeleteBackground = () => {
           return data.deleteBackground
         }
       } catch (err) {
-        console.error(err)
+        console.log(err)
         throw err
       }
     },

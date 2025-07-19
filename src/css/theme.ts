@@ -20,6 +20,7 @@ export const resolver: CSSVariablesResolver = (theme) => ({
   variables: {},
   light: {
     '--border-color': theme.colors.dark[5],
+    '--mantine-color-text': vars.colors.dark[5],
   },
   dark: {
     '--border-color': theme.colors.gray[4],

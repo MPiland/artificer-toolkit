@@ -1,6 +1,6 @@
 import { sprinkles } from '@/css/sprinkles.css'
 import parse from 'html-react-parser'
-import Collapsible from '@/components/Collapsible'
+import Collapsible from '@/components/Collapse'
 import { parseDiceRoll } from '@/components/Dice'
 import { Grid, Button, Tabs } from '@mantine/core'
 import { useSystemData, useClassData, useFeatureData, useGetFeatures, useFieldUpdates } from '@/hooks'
@@ -8,9 +8,9 @@ import { ClassInputSchema } from '@/schemas'
 import {
   withFieldGroup,
   class_title,
-  feature_card_header,
+  card_header,
   option_dropdown,
-  CharacterFeature,
+  CharacterFeatures,
   CharacterProficiencies,
   ClassSpells,
 } from '@/components/Form'
@@ -28,35 +28,23 @@ import type {
 import { Categories } from '@/enums'
 import { useStore } from '@tanstack/react-form'
 
-const defaultValues: {
-  classInput?: CharacterClassInput
-  features?: CharacterFeatureInput[]
-  modifiers?: CharacterModifierInput[]
-  expertise?: CharacterExpertiseInput[]
-  proficiencies?: CharacterProficiencyInput[]
-  senses?: CharacterSenseInput[]
-  feats?: CharacterFeatInput[]
-  spellcasting?: CharacterSpellcastingInput
-  abilities?: CharacterAbilitiesInput
-} = {
-  classInput: undefined,
-  features: [],
-  modifiers: [],
-  expertise: [],
-  proficiencies: [],
-  senses: [],
-  feats: [],
-  spellcasting: undefined,
-  abilities: undefined,
-}
-
 type CharacterClassProps = {
   classIndex: number
   removeFn: () => void
 }
 
 const CharacterClass = withFieldGroup({
-  defaultValues,
+  defaultValues: {
+    classInput: {} as CharacterClassInput | null | undefined,
+    features: [] as CharacterFeatureInput[] | null | undefined,
+    modifiers: [] as CharacterModifierInput[] | null | undefined,
+    expertise: [] as CharacterExpertiseInput[] | null | undefined,
+    proficiencies: [] as CharacterProficiencyInput[] | null | undefined,
+    senses: [] as CharacterSenseInput[] | null | undefined,
+    feats: [] as CharacterFeatInput[] | null | undefined,
+    spellcasting: {} as CharacterSpellcastingInput | null | undefined,
+    abilities: {} as CharacterAbilitiesInput | null | undefined,
+  },
   props: {
     classIndex: 0,
     removeFn: () => undefined,
@@ -134,9 +122,15 @@ const CharacterClass = withFieldGroup({
           <Tabs.Panel value='classFeatures'>
             <Grid>
               <Grid.Col>
-                <Collapsible>
-                  <Collapsible.Trigger title='Hit Points' className={feature_card_header} />
-                  <Collapsible.Content>
+                <Collapsible
+                  props={{
+                    trigger: {
+                      title: 'Hit Points',
+                      className: card_header,
+                    },
+                  }}
+                >
+                  <>
                     {fullClass?.hitpoint?.dieConfig && quantity && die ?
                       <>
                         <div>
@@ -158,7 +152,7 @@ const CharacterClass = withFieldGroup({
                         <strong>Class is missing hit point configuration</strong>
                       </div>
                     }
-                  </Collapsible.Content>
+                  </>
                 </Collapsible>
               </Grid.Col>
               {fullClass?.proficiencies?.length && (
@@ -220,10 +214,8 @@ const CharacterClass = withFieldGroup({
                                   </Subscribe>
                                 </>
                               )}
-                              <CharacterFeature
+                              <CharacterFeatures
                                 uClass={uClass}
-                                classIndex={classIndex}
-                                feature={f}
                                 key={i}
                                 form={group}
                                 fields={{
@@ -246,41 +238,46 @@ const CharacterClass = withFieldGroup({
                     <hr />
                   </Grid.Col>
                   <Grid.Col>
-                    <Collapsible>
-                      <Collapsible.Trigger title='Features Available at Higher Levels' />
-                      <Collapsible.Content>
-                        <Grid>
-                          {features
-                            .filter(
-                              (feature) =>
-                                feature?.level && feature?.level > uClass.level && feature.classId === uClass.id
-                            )
-                            .sort((a, b) => Number(a.level) - Number(b.level))
-                            .map((feature, fIndex) => {
-                              const fullFeature = findFeature(feature.id)
-                              if (fullFeature) {
-                                return (
-                                  <Grid.Col key={feature.id && fIndex}>
-                                    <Collapsible>
-                                      <Collapsible.Trigger
-                                        title={`(${feature.level}) ${fullFeature.label}`}
-                                        className={feature_card_header}
-                                      />
-                                      <Collapsible.Content>
-                                        <Grid>
-                                          {fullFeature.category === Categories.SUBCLASS &&
-                                            fullFeature?.detail &&
-                                            parse(fullFeature?.detail)}
-                                          {fullFeature.desc && parse(fullFeature.desc)}
-                                        </Grid>
-                                      </Collapsible.Content>
-                                    </Collapsible>
-                                  </Grid.Col>
-                                )
-                              }
-                            })}
-                        </Grid>
-                      </Collapsible.Content>
+                    <Collapsible
+                      props={{
+                        trigger: {
+                          title: 'Features Available at Higher Levels',
+                          className: card_header,
+                        },
+                      }}
+                    >
+                      <Grid>
+                        {features
+                          .filter(
+                            (feature) =>
+                              feature?.level && feature?.level > uClass.level && feature.classId === uClass.id
+                          )
+                          .sort((a, b) => Number(a.level) - Number(b.level))
+                          .map((feature, fIndex) => {
+                            const fullFeature = findFeature(feature.id)
+                            if (fullFeature) {
+                              return (
+                                <Grid.Col key={feature.id && fIndex}>
+                                  <Collapsible
+                                    props={{
+                                      trigger: {
+                                        title: `(${feature.level}) ${fullFeature.label}`,
+                                        className: card_header,
+                                      },
+                                    }}
+                                  >
+                                    <Grid>
+                                      {fullFeature.category === Categories.SUBCLASS &&
+                                        fullFeature?.detail &&
+                                        parse(fullFeature?.detail)}
+                                      {fullFeature.desc && parse(fullFeature.desc)}
+                                    </Grid>
+                                  </Collapsible>
+                                </Grid.Col>
+                              )
+                            }
+                          })}
+                      </Grid>
                     </Collapsible>
                   </Grid.Col>
                 </>

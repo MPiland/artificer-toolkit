@@ -1,77 +1,91 @@
-import { Grid, Button } from '@mantine/core'
-import Accordion from '@/components/Accordion'
+import { Grid, Button, Divider } from '@mantine/core'
 import EquipmentOption from './EquipmentOption'
 import { withFieldGroup } from '@/components/Form'
+import { Fragment, useEffect } from 'react'
+import { useTypedFormStore } from '@/store'
+import type { ClassInput, EquipmentOptionItemInput } from '@/types'
 import { EquipmentOptionItemInputSchema } from '@/schemas'
-import { useStore } from '@tanstack/react-form'
-import { useEffect } from 'react'
-import { useFormStore } from '@/store'
-import type { EquipmentOptionItemInput } from 'gql/types'
+import { sprinkles } from '@/css/sprinkles.css'
 
 const EquipmentGroup = withFieldGroup({
-  defaultValues: [[]] as EquipmentOptionItemInput[][],
+  defaultValues: {
+    equipmentOptions: [[]] as EquipmentOptionItemInput[][] | null | undefined,
+  },
   props: {
     index: 0,
-    removeFn: (() => undefined) as () => void,
-    updateFn: (() => undefined) as () => void,
     __kind: '' as 'ClassInput' | 'BackgroundInput',
+    removeFn: (() => {}) as () => void,
   },
-  render: function Render({ group, index, removeFn, updateFn, __kind }) {
-    const { AppField, Subscribe } = group
+  render: function Render({ group, index, __kind, removeFn }) {
+    const store = useTypedFormStore<ClassInput>()
+    const equipment = store((state) => state.current?.equipment)
+    const updateField = store((state) => state.updateField)
 
-    const formStore = useFormStore()
-
-    const equipmentOptions = useStore(group.store, (state) => state.values)
+    const { AppField } = group
 
     useEffect(() => {
-      if (!equipmentOptions?.length) {
-        group.setFieldValue(`[0]`, [])
-        formStore.updateField({ path: `equipment[${index}][0]`, value: [] })
+      if (!equipment?.[index]?.length) {
+        group.setFieldValue(`equipmentOptions[0]`, [])
+        updateField({ path: `equipment[${index}][0]`, value: [] })
       }
-    }, [equipmentOptions, group, formStore, index])
+    }, [group, updateField, equipment, index])
 
     return (
-      <Subscribe selector={(state) => ({ values: state.values })}>
-        {({ values }) => (
-          <Accordion.Item itemId={`${index}-equipment-group`} value={`${index}-equipment-group`}>
-            <Accordion.Trigger removeFn={() => removeFn()}>{`Equipment Group ${index + 1}`}</Accordion.Trigger>
-            <Accordion.Content>
-              <Grid>
-                <Grid.Col span={2}>
-                  <Button variant='outline' onClick={() => updateFn()}>
-                    Add Option
-                  </Button>
-                </Grid.Col>
-                <Grid.Col>
-                  {values?.length > 0 &&
-                    values?.map((_, oI) => (
-                      <AppField name={`[${oI}]`} key={`${oI}-equipment-option`} mode='array'>
-                        {(field) =>
-                          field.state.value?.length && (
-                            <EquipmentOption
-                              fields={`[${oI}]`}
-                              form={group}
-                              index={oI}
-                              __kind={__kind}
-                              removeFn={() => {
-                                if (field.state.value.length === 1) {
-                                  removeFn()
-                                } else {
-                                  field.removeValue(oI)
-                                }
-                              }}
-                              updateFn={() => field.pushValue(EquipmentOptionItemInputSchema.parse({}))}
-                            />
-                          )
-                        }
-                      </AppField>
-                    ))}
-                </Grid.Col>
-              </Grid>
-            </Accordion.Content>
-          </Accordion.Item>
+      <AppField name='equipmentOptions' mode='array'>
+        {(eOptions) => (
+          <Grid>
+            <Grid.Col span={2}>
+              <Button
+                variant='outline'
+                onClick={() => {
+                  const newIndex = eOptions.state.value?.length ?? 0
+                  const equipGroupInputObj = EquipmentOptionItemInputSchema.parse({
+                    __kind: 'EquipmentOptionItemInput',
+                  })
+                  eOptions.pushValue([equipGroupInputObj])
+                  updateField({
+                    path: `equipment[${index}][${newIndex}]`,
+                    value: [equipGroupInputObj],
+                  })
+                }}
+              >
+                Add Option
+              </Button>
+            </Grid.Col>
+            <Grid.Col>
+              {eOptions.state.value?.length &&
+                eOptions.state.value?.map((_, oI) => (
+                  <AppField key={`equipment-option-${oI}`} name={`equipmentOptions[${oI}]`} mode='array'>
+                    {() => (
+                      <Fragment key={`equipment-option-fragment-${oI}`}>
+                        <EquipmentOption
+                          fields={{
+                            equipmentItems: `equipmentOptions[${oI}]`,
+                          }}
+                          groupIndex={index}
+                          index={oI}
+                          key={`equipment-option-${oI}`}
+                          form={group}
+                          __kind={__kind}
+                          removeFn={() => {
+                            if (eOptions.state.value?.length === 1) {
+                              removeFn()
+                            } else {
+                              eOptions.removeValue(oI)
+                            }
+                          }}
+                        />
+                        {oI !== (eOptions.state.value?.length as number) - 1 && (
+                          <Divider label={'OR'} className={sprinkles({ my: 'space-4' })} />
+                        )}
+                      </Fragment>
+                    )}
+                  </AppField>
+                ))}
+            </Grid.Col>
+          </Grid>
         )}
-      </Subscribe>
+      </AppField>
     )
   },
 })

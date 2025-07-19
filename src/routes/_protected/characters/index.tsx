@@ -2,12 +2,17 @@ import { createFileRoute } from '@tanstack/react-router'
 import Characters from '@/pages/characters/Characters'
 import { fetchCharacters } from '@/apis/characters.api'
 import Loading from '@/components/Loading/Loading'
+import { Modal } from '@mantine/core'
 
 export const Route = createFileRoute('/_protected/characters/')({
   beforeLoad: async () => {
     return { form: { type: 'characters' } }
   },
   loader: ({ context }) => context.queryClient.ensureQueryData(fetchCharacters(context.systemPref)),
-  pendingComponent: Loading,
+  pendingComponent: () => (
+    <Modal withCloseButton={false}  opened onClose={() => {}} centered size='auto'>
+      <Loading />
+    </Modal>
+  ),
   component: Characters,
 })

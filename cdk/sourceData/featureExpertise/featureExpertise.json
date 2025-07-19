@@ -14,7 +14,11 @@
     "skills": [
       "all"
     ],
-    "id": "90ead480-f730-444b-a659-1ae9d3f024df"
+    "id": "90ead480-f730-444b-a659-1ae9d3f024df",
+    "ownerId": "master",
+    "createdAt": "2024-09-12T11:05:10.351Z",
+    "updatedAt": "2024-09-12T11:05:10.351Z",
+    "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
     "attributes": [
@@ -25,7 +29,11 @@
     "skills": [
       "all"
     ],
-    "id": "27c9eeb0-a663-46a4-875c-cb7a26eee897"
+    "id": "27c9eeb0-a663-46a4-875c-cb7a26eee897",
+    "ownerId": "master",
+    "createdAt": "2024-09-12T11:05:10.351Z",
+    "updatedAt": "2024-09-12T11:05:10.351Z",
+    "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
     "category": "3d256b38-0c78-4fd6-84a5-94b43c5a024c",
@@ -35,7 +43,11 @@
       ],
       "category": "e13981d6-2b10-4b79-adb6-07b2d85f711e"
     },
-    "id": "a23ecc39-b787-4ba7-b292-9fab0971fc68"
+    "id": "a23ecc39-b787-4ba7-b292-9fab0971fc68",
+    "ownerId": "master",
+    "createdAt": "2024-09-12T11:05:10.351Z",
+    "updatedAt": "2024-09-12T11:05:10.351Z",
+    "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   },
   {
     "attributes": [
@@ -52,6 +64,10 @@
         "2da4575c-bac4-403e-bf66-1360fcdb28b3"
       ]
     },
-    "id": "ebd81d84-a003-4a2d-8fad-bc2880579cfa"
+    "id": "ebd81d84-a003-4a2d-8fad-bc2880579cfa",
+    "ownerId": "master",
+    "createdAt": "2024-09-12T11:05:10.351Z",
+    "updatedAt": "2024-09-12T11:05:10.351Z",
+    "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
   }
 ]

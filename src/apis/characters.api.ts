@@ -46,7 +46,7 @@ export const fetchCharacters = (systemPref: string) => {
 
         return allData
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -69,7 +69,7 @@ export const fetchCharacter = (id: string) => {
 
         return character
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -91,7 +91,7 @@ export const useAddCharacter = () => {
 
         return data.createCharacter
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -118,7 +118,7 @@ export const useUpdateCharacter = () => {
         })
         return data.updateCharacter
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },

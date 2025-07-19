@@ -114,7 +114,7 @@ export const fetchRace = (id: string) => {
           return data.getRace
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -149,7 +149,7 @@ export const useAddNewRaceMutation = () => {
           return data.createRace
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -190,7 +190,7 @@ export const useUpdateRaceMutation = () => {
           return data.updateRace
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -230,7 +230,7 @@ export const useDeleteRaceMutation = () => {
           return data.deleteRace
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },

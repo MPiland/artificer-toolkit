@@ -10,3 +10,4 @@ export {
   getLabelFromId,
 } from './data'
 export { default as domToReact } from './reactParser/reactParser'
+export { convertTypenameToKindInput } from './data'

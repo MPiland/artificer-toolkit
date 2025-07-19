@@ -55,7 +55,7 @@ input EquipmentInput {
   range: EquipmentRangeInput
   contains: [ContainsInput!]
   features: [ID!]
-  ownerId: String
+  ownerId: ID!
   systemId: ID! 
   masterId: String
   rank: Int

@@ -1,43 +1,63 @@
 import { useMemo, useEffect, ReactNode } from 'react'
-import Collapsible from '@/components/Collapsible'
+import Collapsible from '@/components/Collapse'
 import { startCase } from 'lodash'
 import { Attributes, Damages } from '@/enums'
 import { Grid, Divider } from '@mantine/core'
 import { useFieldUpdates, useSystemData } from '@/hooks'
-import { type SystemAttribute, type UpcastInput } from '@/types'
-import { withFieldGroup } from '@/components/Form'
-import { useStore } from '@tanstack/react-form'
-import { UpcastLevelInputSchema } from '@/schemas'
-import { useFormStore } from '@/store'
+import { withFieldGroup, getUpcastOptions } from '@/components/Form'
+import { z } from 'zod/v4'
+import { UpcastLevelInputSchema, type UpcastInputSchema } from '@/schemas'
+import { useTypedFormStore } from '@/store'
+import type { SpellInput } from '@/types'
 
 const Upcast = withFieldGroup({
-  defaultValues: {} as UpcastInput,
-  props: {
-    upcastOptions: [] as SystemAttribute[],
-    damageAttributes: [] as string[],
-  },
-  render: function Render({ group, upcastOptions, damageAttributes }) {
-    const formStore = useFormStore()
+  defaultValues: {} as z.input<typeof UpcastInputSchema>,
+  render: function Render({ group }) {
+    const store = useTypedFormStore<SpellInput>()
+    const upcastAttributes = store((state) => state.current?.upcast?.attributes)
+    const stepIndex = store((state) => state.stepIndex)
+    const levels = store((state) => state.current?.upcast?.levels)
+    const updateField = store((state) => state.updateField)
+    const formAttributes = store((state) => [
+      ...(state.current?.attributes || []),
+      ...(state.current?.damage?.attributes || []),
+      ...(state.current?.saveAbility?.attributes || []),
+    ])
+    const damageAttributes = store((state) => [
+      state.current?.damage?.primary?.attribute || '',
+      state.current?.damage?.secondary?.attribute || '',
+      state.current?.damage?.bonus?.attribute || '',
+      state.current?.damage?.primary?.pool?.attribute || '',
+      state.current?.damage?.secondary?.pool?.attribute || '',
+      state.current?.damage?.bonus?.pool?.attribute || '',
+      ...(state.current?.damage?.attributes || []),
+    ])
+    const duration = store((state) => state.current?.duration)
+    const range = store((state) => state.current?.range)
+    const shape = store((state) => state.current?.shape)
 
     const { setFieldValue, AppField } = group
 
-    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form', path: 'upcast' })
-
-    const { attributes: upcastAttributes, levels } = useStore(group.store, (state) => ({
-      attributes: state.values.attributes,
-      levels: state.values.levels,
-    }))
+    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form', path: 'upcast', stepIndex })
 
     const { attributes, spells, rules, abilities } = useSystemData()
+
+    const upcastOptions = getUpcastOptions({
+      systemAttributes: attributes,
+      formAttributes,
+      shape: shape?.id,
+      range: range?.id,
+      duration: duration?.id,
+    })
 
     // Add/remove Upcast table
     useEffect(() => {
       if (upcastAttributes?.length && !levels) {
         const upcastObject = UpcastLevelInputSchema.parse({})
         setFieldValue('levels[0]', upcastObject)
-        formStore.updateField({ path: 'upcast.levels[0]', value: upcastObject })
+        updateField({ path: 'upcast.levels[0]', value: upcastObject })
       }
-    }, [setFieldValue, upcastAttributes?.length, levels, formStore])
+    }, [setFieldValue, upcastAttributes?.length, levels, updateField])
 
     // Set upcast types based on user selection
     const upcastTypes = useMemo(() => {
@@ -461,28 +481,31 @@ const Upcast = withFieldGroup({
         </AppField>
         {upcastAttributes?.length && (
           <Grid.Col>
-            <Collapsible>
-              <Collapsible.Trigger title='Upcast Table' />
-              <Collapsible.Content>
-                <Grid>
-                  {upcastFields().headers.map((header, i) => (
-                    <Grid.Col key={i}>{header}</Grid.Col>
-                  ))}
-                  <AppField name='levels' mode='array'>
-                    {(field) =>
-                      field.state.value?.map((_, i) => (
-                        <Grid.Col key={i}>
-                          <Grid>
-                            {upcastFields(i).inputs.map((input, fI) => (
-                              <Grid.Col key={fI}>{input}</Grid.Col>
-                            ))}
-                          </Grid>
-                        </Grid.Col>
-                      ))
-                    }
-                  </AppField>
-                </Grid>
-              </Collapsible.Content>
+            <Collapsible
+              props={{
+                trigger: {
+                  title: 'Upcast Table',
+                },
+              }}
+            >
+              <Grid>
+                {upcastFields().headers.map((header, i) => (
+                  <Grid.Col key={i}>{header}</Grid.Col>
+                ))}
+                <AppField name='levels' mode='array'>
+                  {(field) =>
+                    field.state.value?.map((_, i) => (
+                      <Grid.Col key={i}>
+                        <Grid>
+                          {upcastFields(i).inputs.map((input, fI) => (
+                            <Grid.Col key={fI}>{input}</Grid.Col>
+                          ))}
+                        </Grid>
+                      </Grid.Col>
+                    ))
+                  }
+                </AppField>
+              </Grid>
             </Collapsible>
           </Grid.Col>
         )}

@@ -5,6 +5,9 @@ type FeatureFeat {
   selectionCount: Int
   subtype: ID
   prerequisites: Prerequisite
+  ownerId: ID!
+  systemId: ID!
+  masterId: String
 }
 
 type FeatureFeatConnection {

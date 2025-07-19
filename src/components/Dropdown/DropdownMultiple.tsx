@@ -3,14 +3,13 @@ import { Combobox, PillsInput, Pill, Input } from '@mantine/core'
 import type { ReactNode } from 'react'
 import type { DropdownCommonProps } from './Dropdown.types'
 import { ChevronDown } from 'lucide-react'
-import { dropdown_input, dropdown_label, dropdown_wrapper, dropdown_icon, dropdown } from './Dropdown.css'
+import { input, label as input_label, wrapper, icon, base } from './Dropdown.css'
 import clsx from 'clsx'
-import { useClickOutside } from '@mantine/hooks'
 
 type DropdownMultipleProps = {
   value: string[]
   handleValueSelect: (optionId: string) => void
-  activeLabels: (string | ReactNode)[]
+  activeLabels: { id: string; label: string | ReactNode }[]
   toggleDropdown: () => void
   closeDropdown: () => void
   error?: string
@@ -30,45 +29,48 @@ const DropdownMultiple = ({
   error,
   onBlur,
 }: DropdownMultipleProps) => {
-  const labels = activeLabels
-    ?.slice(0, MAX_DISPLAYED_VALUES === value.length ? MAX_DISPLAYED_VALUES : MAX_DISPLAYED_VALUES - 1)
-    .map((item, index) => <Pill key={`pill-${index}`}>{item}</Pill>)
-
-  const ref = useClickOutside(() => closeDropdown())
+  const labels =
+    activeLabels?.length ?
+      activeLabels
+        ?.slice(0, MAX_DISPLAYED_VALUES === value.length ? MAX_DISPLAYED_VALUES : MAX_DISPLAYED_VALUES - 1)
+        .map((item) => (
+          <Pill key={`pill-${item.id}`} withRemoveButton onRemove={() => handleValueSelect(item.id)}>
+            {item.label}
+          </Pill>
+        ))
+    : []
 
   return (
-    <Combobox.DropdownTarget ref={ref}>
+    <Combobox.DropdownTarget>
       <PillsInput
         classNames={{
-          wrapper: clsx(dropdown_wrapper),
-          label: dropdown_label,
-          input: dropdown_input,
-          root: dropdown,
+          wrapper: clsx(wrapper),
+          label: input_label,
+          input: input,
+          root: base,
         }}
         label={label}
         required={required}
         pointer
-        onClick={() => toggleDropdown()}
+        onClick={toggleDropdown}
         onBlur={onBlur}
-        rightSection={
-          !activeLabels.length && (
-            <ChevronDown
-              onClick={(event) => {
-                event.stopPropagation()
-                toggleDropdown()
-              }}
-              className={dropdown_icon}
-            />
-          )
-        }
+        rightSection={<ChevronDown className={icon} />}
+        rightSectionPointerEvents='none'
         error={error}
       >
         <Pill.Group>
-          {labels?.length ? labels : <Input.Placeholder>{placeholder}</Input.Placeholder>}
+          {labels?.length ?
+            <>
+              {labels}
+              {activeLabels.length > MAX_DISPLAYED_VALUES && (
+                <Pill>+{activeLabels.length - (MAX_DISPLAYED_VALUES - 1)} more</Pill>
+              )}
+            </>
+          : <Input.Placeholder>{placeholder}</Input.Placeholder>}
           <Combobox.EventsTarget>
             <PillsInput.Field
               type='hidden'
-              onBlur={closeDropdown}
+              onBlur={() => closeDropdown()}
               onKeyDown={(event) => {
                 if (event.key === 'Backspace') {
                   event.preventDefault()

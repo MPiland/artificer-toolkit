@@ -14,22 +14,19 @@ const AddSection = () => {
   )
 
   return (
-    <Modal.Dialogue size='xs'>
-      <Modal.Header title='Add a section' onClose={hideModal} />
-      <Modal.Content>
-        {sectionStepOptions.map((sectionStep) => (
-          <Button
-            key={sectionStep}
-            onClick={() => {
-              onAddSection(sectionStep, __kind)
-              hideModal()
-            }}
-          >
-            {sectionStep}
-          </Button>
-        ))}
-      </Modal.Content>
-    </Modal.Dialogue>
+    <Modal>
+      {sectionStepOptions.map((sectionStep) => (
+        <Button
+          key={sectionStep}
+          onClick={() => {
+            onAddSection(sectionStep, __kind)
+            hideModal()
+          }}
+        >
+          {sectionStep}
+        </Button>
+      ))}
+    </Modal>
   )
 }
 export default AddSection

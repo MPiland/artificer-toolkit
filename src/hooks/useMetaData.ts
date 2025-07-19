@@ -8,7 +8,11 @@ import { extractLookupData, getLabelFromId } from '@/utils'
 
 export type MetaDataItem = {
   id: string
-  [key: string]: string
+  spellIds?: string[]
+  classIds?: string[]
+  raceIds?: string[]
+  equipmentIds?: string[]
+  [key: string]: unknown
 }
 
 // Define a mapping between metadata types and their ID field names
@@ -52,7 +56,7 @@ const useMetaData = <T extends MetaDataType, K extends keyof T, U extends ListIt
       }
 
       // Get the meta array from the metaData
-      const metaItems = metaData[metaPath]
+      const metaItems = metaData[metaPath] as DropdownOption[]
 
       // If empty, return empty
       if (!Array.isArray(metaItems) || metaItems.length === 0) {
@@ -78,7 +82,6 @@ const useMetaData = <T extends MetaDataType, K extends keyof T, U extends ListIt
 
             return {
               id: item.id,
-              value: lookupItem.value,
               label: lookupItem.label,
             }
           })
@@ -91,7 +94,6 @@ const useMetaData = <T extends MetaDataType, K extends keyof T, U extends ListIt
             if (!!item && typeof item === 'object') {
               return {
                 id: item.id,
-                value: item.id,
                 label: String(item.id),
               }
             }
@@ -136,7 +138,11 @@ const useMetaData = <T extends MetaDataType, K extends keyof T, U extends ListIt
         const sourceData = getSourceData(pathObject.source.type)
         const rawData = pathObject.source.sourcePath ? get(sourceData, pathObject.source.sourcePath) : sourceData
 
-        const lookupData = extractLookupData(rawData)
+        const lookupData = extractLookupData(
+          rawData as
+            | { id: string; label: string; [key: string]: unknown }
+            | { id: string; label: string; [key: string]: unknown }[]
+        )
         return getLabelFromId({ id: value, lookupData, labelKey: pathObject.source.labelKey })
       }
       return get(relevantMeta, pathObject.path)
@@ -195,24 +201,25 @@ const useMetaData = <T extends MetaDataType, K extends keyof T, U extends ListIt
 
   const createItemLabel = ({ metaObjects, stateId }: CreateItemLabelParams): string => {
     const items = Array.isArray(metaObjects) ? metaObjects : [metaObjects]
-
     const itemLabels = items.map((item) => {
       let groupIsInvalid = false
       const pathLabels: string[] = []
 
-      for (const pathObject of item.paths) {
-        const label = resolvePathLabel({
-          pathObject,
-          metaObject: item.metaObject as keyof T,
-          stateId,
-        })
+      if (item.paths?.length) {
+        for (const pathObject of item.paths) {
+          const label = resolvePathLabel({
+            pathObject,
+            metaObject: item.metaObject as keyof T,
+            stateId,
+          })
 
-        if (pathObject.dependents && (!label || label === '')) {
-          groupIsInvalid = true
-          break
+          if (pathObject.dependents && (!label || label === '')) {
+            groupIsInvalid = true
+            break
+          }
+
+          if (label) pathLabels.push(label)
         }
-
-        if (label) pathLabels.push(label)
       }
 
       return groupIsInvalid ? '' : pathLabels.join(' ')
@@ -229,7 +236,7 @@ const useMetaData = <T extends MetaDataType, K extends keyof T, U extends ListIt
         stateId: state.id,
       })
 
-      if (result != null) {
+      if (result != null && result !== '') {
         return result
       }
       return '---'

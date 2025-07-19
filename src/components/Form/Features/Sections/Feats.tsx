@@ -4,7 +4,8 @@ import type { SubtypeInput } from '@/types'
 import { Grid } from '@mantine/core'
 import { FeatureFeatInputSchema } from '@/schemas'
 import { useAppForm, Prerequisites } from '@/components/Form'
-import { useFeatStore } from '@/store'
+import { useFeatureFeatStore } from '@/store'
+import { useEffect } from 'react'
 
 type FeatsProps = {
   category?: string
@@ -13,7 +14,7 @@ type FeatsProps = {
 }
 
 const Feats = ({ category, __kind, subtypes }: FeatsProps) => {
-  const featStore = useFeatStore()
+  const featStore = useFeatureFeatStore()
 
   const form = useAppForm({
     defaultValues: FeatureFeatInputSchema.parse(featStore.current),
@@ -26,6 +27,21 @@ const Feats = ({ category, __kind, subtypes }: FeatsProps) => {
   const { feats } = useFeatData()
 
   const { getAttributes } = useEnumChecks()
+
+  useEffect(() => {
+    if (!featStore.formReset) {
+      featStore.registerFormReset(form.reset)
+    }
+  }, [form.reset, featStore])
+
+  useEffect(() => {
+    return form.store.subscribe((state) => {
+      const isValid = state.currentVal.isValid
+      if (featStore.current?.id && featStore.valid.get(featStore.current.id) !== isValid) {
+        featStore.upsertValid(featStore.current.id, isValid)
+      }
+    })
+  }, [featStore, form.store])
 
   return (
     <Grid>
@@ -61,7 +77,9 @@ const Feats = ({ category, __kind, subtypes }: FeatsProps) => {
       </AppField>
       <Subscribe selector={(store) => store.values.attributes}>
         {(formAttributes) => {
-          const { subtypeSpecific, providesOptions, hasPrerequisites } = getAttributes({ attributes: formAttributes })
+          const { subtypeSpecific, providesOptions, hasPrerequisites } = getAttributes({
+            attributes: formAttributes || [],
+          })
           return (
             <>
               {subtypeSpecific && __kind === 'ClassInput' && category === Categories.SUBCLASS && subtypes?.length && (

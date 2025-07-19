@@ -22,6 +22,9 @@ type Feature {
   saveAbility: SaveAbility
   levelAvailable: String
   options: [ID!]
+  ownerId: ID!
+  systemId: ID!
+  masterId: String
 }
 
 type FeatureConnection {

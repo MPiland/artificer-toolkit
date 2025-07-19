@@ -1,9 +1,8 @@
 import { globalStyle, style } from '@vanilla-extract/css'
 import { app } from '@/css/layers.css'
 import { size, space } from '@/css/size.css'
-import { vars } from 'src/css/theme'
 
-export const accordion_item = style({
+export const item = style({
   '@layer': {
     [app]: {
       position: 'relative',
@@ -11,14 +10,12 @@ export const accordion_item = style({
       flexDirection: 'column',
       width: '100%',
       zIndex: 2,
-      backgroundColor: vars.colors.gray[8],
-      marginTop: '-1px',
-      transition: 'background-color 0.3s ease',
+      backgroundColor: 'transparent',
     },
   },
 })
 
-export const accordion_header = style({
+export const header = style({
   '@layer': {
     [app]: {
       position: 'relative',
@@ -26,11 +23,9 @@ export const accordion_header = style({
       flex: 1,
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: `${space['space-3']} ${space['space-4']}`,
       fontSize: '14px',
       fontWeight: '500',
       cursor: 'pointer',
-      backgroundColor: 'transparent',
       border: 'none',
       transition: 'all 0.3s ease',
 
@@ -38,12 +33,15 @@ export const accordion_header = style({
         '&:focus-visible': {
           outline: 'none',
         },
+        [`${item}:where([data-active]) &`]: {
+          backgroundColor: 'var(--item-filled-color)',
+        },
       },
     },
   },
 })
 
-export const accordion_header_icon_collapse = style({
+export const header_icon_collapse = style({
   '@layer': {
     [app]: {
       position: 'absolute',
@@ -54,7 +52,7 @@ export const accordion_header_icon_collapse = style({
       transformOrigin: '50%',
 
       selectors: {
-        [`${accordion_header}[aria-expanded="true"] > &`]: {
+        [`${header}[aria-expanded="true"] > &`]: {
           rotate: '180deg',
         },
       },
@@ -62,7 +60,7 @@ export const accordion_header_icon_collapse = style({
   },
 })
 
-export const accordion_header_icon = style({
+export const header_icon = style({
   '@layer': {
     [app]: {
       flexShrink: 0,
@@ -73,7 +71,7 @@ export const accordion_header_icon = style({
   },
 })
 
-export const accordion_remove_button = style({
+export const remove_button = style({
   '@layer': {
     [app]: {
       width: '1.5rem',
@@ -86,19 +84,15 @@ export const accordion_remove_button = style({
   },
 })
 
-export const accordion_content = style({
+export const content = style({
   '@layer': {
     [app]: {
-      width: '100%',
-      height: 'auto',
-      overflow: 'hidden',
-      padding: `${space['space-3']} ${space['space-3']}`,
-      transition: 'padding 0.3s ease-in-out',
+      backgroundColor: 'transparent',
     },
   },
 })
 
-export const accordion_footer = style({
+export const footer = style({
   '@layer': {
     [app]: {
       display: 'flex',
@@ -108,7 +102,7 @@ export const accordion_footer = style({
   },
 })
 
-globalStyle(`${accordion_header}[aria-expanded="true"] > ${accordion_header_icon_collapse} > svg > path:last-child`, {
+globalStyle(`${header}[aria-expanded="true"] > ${header_icon_collapse} > svg > path:last-child`, {
   '@layer': {
     [app]: {
       opacity: '0',
@@ -117,7 +111,7 @@ globalStyle(`${accordion_header}[aria-expanded="true"] > ${accordion_header_icon
   },
 })
 
-globalStyle(`${accordion_header_icon_collapse} > svg > path:last-child`, {
+globalStyle(`${header_icon_collapse} > svg > path:last-child`, {
   '@layer': {
     [app]: {
       flexShrink: 0,

@@ -1,6 +1,6 @@
 import { z } from 'zod/v4'
 import { Fragment, useEffect } from 'react'
-import Collapsible from '@/components/Collapsible'
+import Collapsible from '@/components/Collapse'
 import { Grid } from '@mantine/core'
 import { sprinkles } from '@/css/sprinkles.css'
 import { useMediaQuery } from 'usehooks-ts'
@@ -13,7 +13,7 @@ import { useFormStore } from '@/store'
 import { get, isEqual } from 'lodash'
 
 const CharacterCurrency = withFieldGroup({
-  defaultValues: [] as CurrencyGroupInput[],
+  defaultValues: [] as CurrencyGroupInput[] | null | undefined,
   render: function Render({ group }) {
     const { AppField, Subscribe } = group
 
@@ -100,53 +100,50 @@ const CharacterCurrency = withFieldGroup({
 
     return (
       <Grid.Col>
-        <Collapsible>
-          <Collapsible.Trigger title='Currency' titleRight={!sm && currencyTotalsTitle} />
-          <Collapsible.Content>
-            <Grid>
-              <Grid.Col span={6}>
-                <h3>
-                  <u>Currency</u>
-                </h3>
-              </Grid.Col>
-              <Grid.Col span={6}>
-                <h3>
-                  <u>Total</u>
-                </h3>
-              </Grid.Col>
-              <Subscribe selector={(state) => state.values}>
-                {(values) =>
-                  values
-                    ?.filter((group) => group.container == null)
-                    .flatMap((group) => group.currencies)
-                    .map((currency, index) => {
-                      const currencyLabel = currencies.findCurrency(currency?.id)?.label
-                      return (
-                        <Fragment key={index}>
-                          <Grid.Col span={6}>{currencyLabel}</Grid.Col>
-                          <Grid.Col span={6}>
-                            <AppField
-                              name={`[${baglessIndex}].currencies[${index}].amount`}
-                              validators={{
-                                onChange: z
-                                  .number('Amount must be a number')
-                                  .gte(0, 'Amount must be greater than or equal to 0'),
-                              }}
-                              listeners={{
-                                onBlur: ({ value, fieldApi }) =>
-                                  fieldApi.state.meta.isValid && handleBlur({ target: { name: fieldApi.name, value } }),
-                              }}
-                            >
-                              {({ TextField }) => <TextField />}
-                            </AppField>
-                          </Grid.Col>
-                        </Fragment>
-                      )
-                    })
-                }
-              </Subscribe>
-            </Grid>
-          </Collapsible.Content>
+        <Collapsible props={{ trigger: { title: 'Currency', titleRight: !sm && currencyTotalsTitle } }}>
+          <Grid>
+            <Grid.Col span={6}>
+              <h3>
+                <u>Currency</u>
+              </h3>
+            </Grid.Col>
+            <Grid.Col span={6}>
+              <h3>
+                <u>Total</u>
+              </h3>
+            </Grid.Col>
+            <Subscribe selector={(state) => state.values}>
+              {(values) =>
+                values
+                  ?.filter((group) => group.container == null)
+                  .flatMap((group) => group.currencies)
+                  .map((currency, index) => {
+                    const currencyLabel = currencies.findCurrency(currency?.id)?.label
+                    return (
+                      <Fragment key={index}>
+                        <Grid.Col span={6}>{currencyLabel}</Grid.Col>
+                        <Grid.Col span={6}>
+                          <AppField
+                            name={`[${baglessIndex}].currencies[${index}].amount`}
+                            validators={{
+                              onChange: z
+                                .number('Amount must be a number')
+                                .gte(0, 'Amount must be greater than or equal to 0'),
+                            }}
+                            listeners={{
+                              onBlur: ({ value, fieldApi }) =>
+                                fieldApi.state.meta.isValid && handleBlur({ target: { name: fieldApi.name, value } }),
+                            }}
+                          >
+                            {({ TextField }) => <TextField />}
+                          </AppField>
+                        </Grid.Col>
+                      </Fragment>
+                    )
+                  })
+              }
+            </Subscribe>
+          </Grid>
         </Collapsible>
       </Grid.Col>
     )

@@ -126,7 +126,7 @@ export const fetchFeatureOption = (id: string) => {
           return data.getFeatureOption
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -160,7 +160,7 @@ export const useAddNewFeatureOptionMutation = () => {
           return data.createFeatureOption
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -201,7 +201,7 @@ export const useUpdateFeatureOptionMutation = () => {
           return data.updateFeatureOption
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },
@@ -243,7 +243,7 @@ export const useDeleteFeatureOptionMutation = () => {
           return data.deleteFeatureOption
         }
       } catch (err) {
-        console.error({ err })
+        console.log({ err })
         throw err
       }
     },

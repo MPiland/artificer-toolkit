@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, use } from 'react'
 import Modal from '@/components/Modal'
 import Spinner from '@/components/Spinner'
 import { loading_message, loading_wrapper } from './Loading.css'
+import { ModalContext } from '@/components/Modal'
 
 const loadingMessages = [
   'Preparing your adventure...',
@@ -15,6 +16,7 @@ const loadingMessages = [
 
 const Loading = () => {
   const [messageIndex, setMessageIndex] = useState(0)
+  const { setWithCloseButton } = use(ModalContext)
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -24,15 +26,17 @@ const Loading = () => {
     return () => clearInterval(interval)
   }, [])
 
+  useEffect(() => {
+    setWithCloseButton(false)
+  }, [setWithCloseButton])
+
   return (
-    <Modal.Dialogue size='sm'>
-      <Modal.Content>
-        <div className={loading_wrapper}>
-          <Spinner />
-          <div className={loading_message}>{loadingMessages[messageIndex]}</div>
-        </div>
-      </Modal.Content>
-    </Modal.Dialogue>
+    <Modal>
+      <div className={loading_wrapper}>
+        <Spinner />
+        <div className={loading_message}>{loadingMessages[messageIndex]}</div>
+      </div>
+    </Modal>
   )
 }
 
