@@ -719,7 +719,8 @@ const useGetFeatures = () => {
   }, [backgrounds, classes, feats, equipment, races, ancestryOptions, featureData])
 
   const createFeatures = useCallback(
-    ({ data }: { data: Exclude<FormDataType, SystemInput | SpellInput> }): FactoryFeature[] => {
+    ({ data }: { data?: Exclude<FormDataType, SystemInput | SpellInput> }): FactoryFeature[] => {
+      if (!data) return []
       let features: FactoryFeature[] = []
       Object.values(featureProcessor).forEach((processor) => {
         features = [...features, ...processor({ data })]

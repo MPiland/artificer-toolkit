@@ -2,11 +2,15 @@ import { Grid } from '@mantine/core'
 import { Fragment, useCallback, useEffect } from 'react'
 import { Attributes } from '@/enums'
 import { useSystemData, useEquipmentData, useFieldUpdates } from '@/hooks'
-import type { EquipmentOptionItem, StartingEquipmentGroupInput, StartingEquipmentInput } from '@/types'
+import {
+  CharacterInput,
+  type EquipmentOptionItem,
+  type StartingEquipmentGroupInput,
+  type StartingEquipmentInput,
+} from '@/types'
 import { withFieldGroup, starting_equipment_group_option } from '@/components/Form'
 import { StartingEquipmentGroupInputSchema, StartingEquipmentInputSchema } from '@/schemas'
-import { useFormStore } from '@/store'
-import { useStore } from '@tanstack/react-form'
+import { useTypedFormStore } from '@/store'
 
 type CharacterEquipmentSelectionProps = {
   groupIndex: number
@@ -25,7 +29,8 @@ const CharacterEquipmentSelection = withFieldGroup({
   render: function Render({ group, dataSource, groupIndex, formKind }) {
     const { AppField } = group
 
-    const formStore = useFormStore()
+    const store = useTypedFormStore<CharacterInput>()
+    const updateField = store((state) => state.updateField)
 
     const { system } = useSystemData()
     const { equipment } = useEquipmentData()
@@ -34,7 +39,7 @@ const CharacterEquipmentSelection = withFieldGroup({
 
     const { fieldListeners } = useFieldUpdates({ data: 'form', path: `${path}.equipmentGroups` })
 
-    const { equipmentGroups } = useStore(group.store, (state) => ({ equipmentGroups: state.values }))
+    const { equipmentGroups } = store((state) => ({ equipmentGroups: state.current?.[path]?.equipmentGroups }))
 
     const hasOnlyOneOption = dataSource?.length === 1
     const isAlreadySelected = equipmentGroups?.some((g) => g.groupId === groupIndex?.toString())
@@ -212,7 +217,7 @@ const CharacterEquipmentSelection = withFieldGroup({
                       currentGroups[groupArrayIndex] = updatedGroup
 
                       // Update the form data
-                      return formStore.updateField({
+                      return updateField({
                         path: `${path}.equipmentGroups`,
                         value: currentGroups,
                       })
@@ -238,7 +243,7 @@ const CharacterEquipmentSelection = withFieldGroup({
                         // Replace the group in our array
                         currentGroups[groupArrayIndex] = updatedGroup
 
-                        return formStore.updateField({
+                        return updateField({
                           path: `${path}.equipmentGroups`,
                           value: currentGroups,
                         })
@@ -289,12 +294,12 @@ const CharacterEquipmentSelection = withFieldGroup({
 
     useEffect(() => {
       if (hasOnlyOneOption && !isAlreadySelected) {
-        formStore.updateField({
+        updateField({
           path: `${path}.equipmentGroups[${groupIndex}]`,
           value: '0', // Select the first option
         })
       }
-    }, [groupIndex, hasOnlyOneOption, isAlreadySelected, path, formStore])
+    }, [groupIndex, hasOnlyOneOption, isAlreadySelected, path, updateField])
 
     const renderEquipmentGroup = useCallback(() => {
       if (dataSource?.length) {
@@ -339,7 +344,7 @@ const CharacterEquipmentSelection = withFieldGroup({
                   }
 
                   // Update the form data
-                  formStore.updateField({
+                  updateField({
                     path: `${path}.equipmentGroups`,
                     value: currentGroups,
                   })
@@ -349,7 +354,7 @@ const CharacterEquipmentSelection = withFieldGroup({
                   if (equipmentGroups) {
                     const updatedGroups = equipmentGroups.filter((g) => g.groupId !== groupIndex?.toString())
 
-                    formStore.updateField({
+                    updateField({
                       path: `${path}.equipmentGroups`,
                       value: updatedGroups.length ? updatedGroups : null,
                     })
@@ -385,7 +390,7 @@ const CharacterEquipmentSelection = withFieldGroup({
       dataSource,
       AppField,
       equipmentGroups,
-      formStore,
+      updateField,
       fieldListeners,
     ])
 

@@ -8,7 +8,6 @@ import { withForm } from '@/components/Form'
 import { DetailInputSchema, ClassInputSchema } from '@/schemas'
 import { z } from 'zod/v4'
 import { useTypedFormStore } from '@/store'
-import { useEffect } from 'react'
 import type { ClassInput, DetailInput } from '@/types'
 
 const DetailsStep = withForm({
@@ -17,10 +16,8 @@ const DetailsStep = withForm({
     const { AppField } = form
 
     const store = useTypedFormStore<ClassInput>()
-    const steps = store((state) => state.steps)
     const stepIndex = store((state) => state.stepIndex)
     const category = store((state) => state.current?.category)
-    const registerForm = store((state) => state.registerForm)
     const updateField = store((state) => state.updateField)
     const removeField = store((state) => state.removeField)
 
@@ -29,12 +26,6 @@ const DetailsStep = withForm({
     const { categories, currencies, abilities } = useSystemData()
 
     const { baseClasses } = useClassData()
-    
-    useEffect(() => {
-      if (!steps[stepIndex].reset) {
-        registerForm(form.reset)
-      }
-    }, [form.reset, steps, stepIndex, registerForm])
 
     return (
       <Grid>

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { isEqual, get } from 'lodash'
+import { isEqual } from 'lodash'
 import { AbilityGenMethods } from '@/enums'
 import { useSystemData } from '@/hooks'
-import type { CharacterAbilitiesInput, GenerateOption } from '@/types'
+import { CharacterInput, type CharacterAbilitiesInput, type GenerateOption } from '@/types'
 import { Grid } from '@mantine/core'
 import { DistributedInputSchema } from '@/schemas'
 import {
@@ -13,22 +13,23 @@ import {
   point_counter,
   point_counter_label,
 } from '@/components/Form'
-import { useStore } from '@tanstack/react-form'
-import { useFormStore } from '@/store'
+import { useFieldUpdates } from '@/hooks'
+import { useTypedFormStore } from '@/store'
 
 const PointBuy = withFieldGroup({
   defaultValues: {} as CharacterAbilitiesInput,
   render: function Render({ group }) {
     const { AppField } = group
 
-    const formStore = useFormStore()
+    const store = useTypedFormStore<CharacterInput>()
+    const stepIndex = store((state) => state.stepIndex)
+    const updateField = store((state) => state.updateField)
+    const pointBuy = store((state) => state.current?.abilities?.pointBuy)
+    const scores = store((state) => state.current?.abilities?.scores)
+
+    const { fieldListeners } = useFieldUpdates({ data: 'form', path: 'abilities', stepIndex })
 
     const { rules, abilities } = useSystemData()
-
-    const { pointBuy, scores } = useStore(group.store, (state) => ({
-      pointBuy: state.values.pointBuy,
-      scores: state.values.scores,
-    }))
 
     const pointBuyRule = useMemo(() => {
       return rules?.abilityGenerateMethod?.findAbilityGenerateMethod(AbilityGenMethods.POINT_BUY)
@@ -61,7 +62,7 @@ const PointBuy = withFieldGroup({
               emptyArray = false
               if (!isEqual(scores?.[abilityIndex]?.baseScore, scoreValue)) {
                 group.setFieldValue(`scores[${abilityIndex}].baseScore`, scoreValue)
-                formStore.updateField({ path: `abilities.scores[${abilityIndex}].baseScore`, value: scoreValue })
+                updateField({ path: `abilities.scores[${abilityIndex}].baseScore`, value: scoreValue })
               }
             }
           }
@@ -80,9 +81,9 @@ const PointBuy = withFieldGroup({
           return score
         })
         group.setFieldValue('scores', updatedScores)
-        formStore.updateField({ path: 'abilities.scores', value: updatedScores })
+        updateField({ path: 'abilities.scores', value: updatedScores })
       }
-    }, [group, pointBuy, scores, pointBuyRule.options, formStore])
+    }, [group, pointBuy, scores, pointBuyRule.options, updateField])
 
     const pointBuyOptions = useCallback(
       (currentOption?: GenerateOption | null) => {
@@ -140,20 +141,6 @@ const PointBuy = withFieldGroup({
       [pointBuyRule.options, pointsLeft]
     )
 
-    const handleBlur = ({
-      target: { name, value },
-    }: {
-      target: { name: string; value: string | string[] | object | number | null | undefined }
-    }) => {
-      const pathName = 'abilities' + (name.startsWith('[') ? '' : '.') + name
-      const currentValue = get(formStore.current, pathName)
-      if (value != null && !isEqual(currentValue, value)) {
-        formStore.updateField({ path: pathName, value })
-      } else if (currentValue && value == null) {
-        formStore.removeField({ path: pathName })
-      }
-    }
-
     return (
       <>
         <Grid.Col className={point_counter}>
@@ -174,8 +161,7 @@ const PointBuy = withFieldGroup({
                   name={`pointBuy.distributed[${i}]`}
                   key={`${i}-pointBuy-score`}
                   listeners={{
-                    onBlur: ({ value, fieldApi }) =>
-                      fieldApi.state.meta.isValid && handleBlur({ target: { name: fieldApi.name, value } }),
+                    ...fieldListeners.onBlur,
                     onChange: ({ value }) => {
                       if (value == null) {
                         const newPointsLeft = pointsLeft + (currentReduce ?? 0)

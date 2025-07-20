@@ -4,10 +4,10 @@ import Spinner from '@/components/Spinner'
 import { sprinkles } from '@/css/sprinkles.css'
 import { parseDiceRoll, DiceContext } from '@/components/Dice'
 import Collapsible from '@/components/Collapse'
-import { isEqual, get } from 'lodash'
+import { isEqual } from 'lodash'
 import clsx from 'clsx'
-import type { CharacterAbilitiesInput, ManualInput } from '@/types'
-import { useSystemData } from '@/hooks'
+import type { CharacterAbilitiesInput, ManualInput, CharacterInput } from '@/types'
+import { useSystemData, useFieldUpdates } from '@/hooks'
 import { Grid, Group, Button } from '@mantine/core'
 import {
   withFieldGroup,
@@ -20,15 +20,23 @@ import {
   ROLL_CONFIG_REGEX,
 } from '@/components/Form'
 import { ManualInputSchema, RollTypeInputSchema } from '@/schemas'
-import { useStore } from '@tanstack/react-form'
-import { useFormStore } from '@/store'
+import { useTypedFormStore } from '@/store'
 
 const ManualArray = withFieldGroup({
   defaultValues: {} as CharacterAbilitiesInput,
   render: function Render({ group }) {
-    const { AppField, Subscribe } = group
+    const { AppField } = group
 
-    const formStore = useFormStore()
+    const store = useTypedFormStore<CharacterInput>()
+    const stepIndex = store((state) => state.stepIndex)
+    const updateField = store((state) => state.updateField)
+    const manualRolled = store((state) => state.current?.abilities?.manualRolled)
+    const scores = store((state) => state.current?.abilities?.scores)
+    const rollGroups = store((state) => state.current?.abilities?.manualRolled?.rollGroups)
+    const manual = store((state) => state.current?.abilities?.manualRolled?.manual)
+    const configuration = store((state) => state.current?.abilities?.manualRolled?.configuration)
+
+    const { fieldListeners } = useFieldUpdates({ data: 'form', path: 'abilities', stepIndex })
 
     const { abilities } = useSystemData()
 
@@ -59,13 +67,6 @@ const ManualArray = withFieldGroup({
 
     const [rollConfiguration, setRollConfiguration] = useState<string>('4d6dl1r1')
 
-    const { scores, rollGroups, manual, configuration } = useStore(group.store, (state) => ({
-      scores: state.values.scores,
-      rollGroups: state.values.manualRolled?.rollGroups,
-      manual: state.values.manualRolled?.manual,
-      configuration: state.values.manualRolled?.configuration,
-    }))
-
     // Initialize manualRolled object in data to create empty array for rolling Dice or manually setting scores
     useEffect(() => {
       if (scores?.length) {
@@ -78,7 +79,7 @@ const ManualArray = withFieldGroup({
           ]
           updates.push(() => {
             group.setFieldValue('manualRolled.rollGroups', rollGroups)
-            formStore.updateField({ path: 'abilities.manualRolled.rollGroups', value: rollGroups })
+            updateField({ path: 'abilities.manualRolled.rollGroups', value: rollGroups })
           })
         }
 
@@ -89,14 +90,14 @@ const ManualArray = withFieldGroup({
           }
           updates.push(() => {
             group.setFieldValue('manualRolled.manual', rolls)
-            formStore.updateField({ path: 'abilities.manualRolled.manual', value: rolls })
+            updateField({ path: 'abilities.manualRolled.manual', value: rolls })
           })
         }
 
         if (configuration == null) {
           updates.push(() => {
             group.setFieldValue('manualRolled.configuration', rollConfiguration)
-            formStore.updateField({ path: 'abilities.manualRolled.configuration', value: rollConfiguration })
+            updateField({ path: 'abilities.manualRolled.configuration', value: rollConfiguration })
           })
         }
 
@@ -111,7 +112,17 @@ const ManualArray = withFieldGroup({
           updates.forEach((update) => update())
         }
       }
-    }, [configuration, scores, rollGroups, manual, manualGroupInit, rollConfiguration, rollGroupInit, group, formStore])
+    }, [
+      configuration,
+      scores,
+      rollGroups,
+      manual,
+      manualGroupInit,
+      rollConfiguration,
+      rollGroupInit,
+      group,
+      updateField,
+    ])
 
     // Set the ability scores if manualRolled
     useEffect(() => {
@@ -123,14 +134,14 @@ const ManualArray = withFieldGroup({
               const roll = RollTypeInputSchema.parse(rollGroup?.[rollIndex])
               if (!isEqual(scores?.[i]?.baseScore, roll?.score)) {
                 group.setFieldValue(`scores[${i}].baseScore`, roll?.score)
-                formStore.updateField({
+                updateField({
                   path: `abilities.scores[${i}].baseScore`,
                   value: roll?.score,
                 })
               }
             } else {
               group.setFieldValue(`scores[${i}].baseScore`, 0)
-              formStore.updateField({
+              updateField({
                 path: `abilities.scores[${i}].baseScore`,
                 value: 0,
               })
@@ -138,7 +149,7 @@ const ManualArray = withFieldGroup({
           })
         })
       }
-    }, [formStore, group, rollGroups, scores])
+    }, [group, rollGroups, scores, updateField])
 
     useEffect(() => {
       if (manual?.length) {
@@ -148,21 +159,21 @@ const ManualArray = withFieldGroup({
             const manualObject = manual?.[manualIndex]
             if (!isEqual(scores?.[i]?.baseScore, manualObject?.score)) {
               group.setFieldValue(`scores[${i}].baseScore`, manualObject?.score)
-              formStore.updateField({
+              updateField({
                 path: `abilities.scores[${i}].baseScore`,
                 value: manualObject?.score,
               })
             }
           } else {
             group.setFieldValue(`scores[${i}].baseScore`, 0)
-            formStore.updateField({
+            updateField({
               path: `abilities.scores[${i}].baseScore`,
               value: 0,
             })
           }
         })
       }
-    }, [formStore, group, manual, scores])
+    }, [group, manual, scores, updateField])
 
     const handleRoll = async (gI: number, rI: number) => {
       let total: number = 0
@@ -170,7 +181,7 @@ const ManualArray = withFieldGroup({
       roll.rolling = true
       group.setFieldValue(`manualRolled.rollGroups[${gI}][${rI}]`, roll)
       setIsRolling(true)
-      formStore.updateField({ path: `abilities.manualRolled.rollGroups[${gI}][${rI}]`, value: roll })
+      updateField({ path: `abilities.manualRolled.rollGroups[${gI}][${rI}]`, value: roll })
 
       try {
         // Call rollDice function with the input string
@@ -184,7 +195,7 @@ const ManualArray = withFieldGroup({
         roll = { ...roll, rolling: false, score: total, rolled: results.rolled, kept: results.kept }
 
         group.setFieldValue(`manualRolled.rollGroups[${gI}][${rI}]`, roll)
-        formStore.updateField({ path: `abilities.manualRolled.rollGroups[${gI}][${rI}]`, value: roll })
+        updateField({ path: `abilities.manualRolled.rollGroups[${gI}][${rI}]`, value: roll })
       } catch (error: unknown) {
         // Handle invalid input format error
         console.log(error)
@@ -237,7 +248,7 @@ const ManualArray = withFieldGroup({
       }
 
       group.setFieldValue(`manualRolled.rollGroups[${i}]`, rollGroup)
-      formStore.updateField({ path: `abilities.manualRolled.rollGroups[${i}]`, value: rollGroup })
+      updateField({ path: `abilities.manualRolled.rollGroups[${i}]`, value: rollGroup })
     }
 
     const rollResult = (gI: number, rI: number) => {
@@ -289,263 +300,238 @@ const ManualArray = withFieldGroup({
       }
     }
 
-    const handleBlur = ({
-      target: { name, value },
-    }: {
-      target: { name: string; value: string | string[] | number | null | undefined }
-    }) => {
-      const pathName = 'abilities' + (name.startsWith('[') ? '' : '.') + name
-      const currentValue = get(formStore.current, pathName)
-      if (value != null && !isEqual(currentValue, value)) {
-        formStore.updateField({ path: pathName, value })
-      } else if (currentValue && value == null) {
-        formStore.removeField({ path: pathName })
-      }
-    }
-
     return (
-      <Subscribe
-        selector={(state) => ({
-          manualRolled: state.values.manualRolled,
-          scores: state.values.scores,
-        })}
-      >
-        {({ manualRolled, scores }) => (
-          <>
-            <AppField name='manualRolled.manual' mode='array'>
-              {(manualField) =>
-                manualField.state.value?.map((mObject, i) => {
-                  const ability = abilities.findAbility(mObject.ability)
-                  return (
-                    <AppField name={`manualRolled.manual[${i}]`}>
-                      {(manualSubfield) => (
-                        <AppField
-                          name={`scores[${i}].baseScore`}
-                          listeners={{
-                            onBlur: ({ value, fieldApi }) =>
-                              fieldApi.state.meta.isValid && handleBlur({ target: { name: fieldApi.name, value } }),
-                            onChange: ({ value }) => {
-                              const score = scores?.[i]
-                              const ability = score?.ability
-                              const rollGroups = manualRolled?.rollGroups
+      <>
+        <AppField name='manualRolled.manual' mode='array'>
+          {(manualField) =>
+            manualField.state.value?.map((mObject, i) => {
+              const ability = abilities.findAbility(mObject.ability)
+              return (
+                <AppField name={`manualRolled.manual[${i}]`}>
+                  {(manualSubfield) => (
+                    <AppField
+                      name={`scores[${i}].baseScore`}
+                      listeners={{
+                        ...fieldListeners.onBlur,
+                        onChange: ({ value }) => {
+                          const score = scores?.[i]
+                          const ability = score?.ability
+                          const rollGroups = manualRolled?.rollGroups
 
-                              if (rollGroups?.length) {
-                                rollGroups.forEach((rGroup, gI) => {
-                                  if (rGroup.length) {
-                                    rGroup?.forEach((roll, rI) => {
-                                      if (roll.applied) {
-                                        group.setFieldValue(`manualRolled.rollGroups[${gI}][${rI}].applied`, false)
-                                      }
-                                    })
+                          if (rollGroups?.length) {
+                            rollGroups.forEach((rGroup, gI) => {
+                              if (rGroup.length) {
+                                rGroup?.forEach((roll, rI) => {
+                                  if (roll.applied) {
+                                    group.setFieldValue(`manualRolled.rollGroups[${gI}][${rI}].applied`, false)
                                   }
                                 })
                               }
+                            })
+                          }
 
-                              if (score && manualRolled?.manual) {
-                                score.baseScore = Number(value)
-                                manualSubfield.setValue(
-                                  ManualInputSchema.parse({
-                                    ability: ability,
-                                    score: Number(value),
-                                  })
-                                )
-                              }
-                            },
-                          }}
-                        >
-                          {({ TextField }) => (
-                            <Grid.Col key={`${i}-score-baseScore`} span={{ sm: 6, md: 4, lg: 2 }}>
-                              <TextField label={ability?.label} />
-                            </Grid.Col>
-                          )}
-                        </AppField>
+                          if (score && manualRolled?.manual) {
+                            score.baseScore = Number(value)
+                            manualSubfield.setValue(
+                              ManualInputSchema.parse({
+                                ability: ability,
+                                score: Number(value),
+                              })
+                            )
+                          }
+                        },
+                      }}
+                    >
+                      {({ TextField }) => (
+                        <Grid.Col key={`${i}-score-baseScore`} span={{ sm: 6, md: 4, lg: 2 }}>
+                          <TextField label={ability?.label} />
+                        </Grid.Col>
                       )}
                     </AppField>
-                  )
-                })
-              }
-            </AppField>
-            <Grid.Col>
-              <Collapsible
-                props={{
-                  trigger: {
-                    title: 'Dice Roll Groups',
-                  },
-                }}
-              >
-                <Grid>
-                  <AppField name='manualRolled.rollGroups' mode='array'>
-                    {(rollGroupsField) => {
-                      const rollGroups = rollGroupsField.state.value
-                      return rollGroups?.map((rGroup, gI) => {
-                        return (
-                          <Fragment key={gI}>
-                            <Grid.Col>
-                              <Grid>
-                                {gI === 0 && (
-                                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                                    <Button
-                                      color='update'
-                                      onClick={() => {
-                                        const rolls: z.input<typeof RollTypeInputSchema>[] = []
-                                        scores?.forEach((_, aIndex) => {
-                                          rolls[aIndex] = rollGroupInit
-                                        })
-                                        rollGroupsField.pushValue(rolls)
-                                      }}
-                                      disabled={dice.isRolling}
-                                    >
-                                      Add Group
-                                    </Button>
-                                  </Grid.Col>
-                                )}
-                                {rollGroups?.length && rollGroups?.length !== 1 && (
-                                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                                    <Button
-                                      color='danger'
-                                      variant='outline'
-                                      onClick={() => {
-                                        if (scores?.length) {
-                                          rGroup.forEach((roll) => {
-                                            if (roll?.ability) {
-                                              const scoreIndex = scores.findIndex(
-                                                (scores) => scores.ability === roll.ability
-                                              )
-
-                                              if (scoreIndex && scoreIndex !== -1) {
-                                                group.setFieldValue(`scores[${scoreIndex}].baseScore`, 0)
-                                              }
-                                            }
-                                          })
-                                        }
-
-                                        rollGroupsField.removeValue(gI)
-                                      }}
-                                      disabled={dice.isRolling}
-                                    >
-                                      Delete Group
-                                    </Button>
-                                  </Grid.Col>
-                                )}
-                              </Grid>
-                              <Grid>
-                                <AppField name={`manualRolled.rollGroups[${gI}]`} mode='array'>
-                                  {(rollsField) => {
-                                    const rolls = rollsField.state.value
-                                    return rolls?.map((roll, rI) => {
-                                      const { quantity, die } = parseDiceRoll(rollConfiguration)
-                                      return (
-                                        <Grid.Col key={rI} span={{ sm: 6, md: 4, lg: 2 }}>
-                                          <Group justify='flex-start' key={rI}>
-                                            <Group justify='center' wrap='nowrap' className={dice_roll_value_group}>
-                                              {roll?.rolling ?
-                                                <Spinner className={dice_spinner} />
-                                              : <>
-                                                  <div className={dice_roll_value}>{roll.score || '---'}</div>
-                                                  {rollGroups?.[gI]?.[rI]?.rolled?.length && (
-                                                    <div
-                                                      key={`${gI}${rI}${roll.score}-roll-score`}
-                                                      className={roll_score_box}
-                                                    >
-                                                      {rollResult(gI, rI)}
-                                                    </div>
-                                                  )}
-                                                </>
-                                              }
-                                            </Group>
-                                            {roll.score == null ?
-                                              <Button
-                                                name='setRolling'
-                                                color='primary'
-                                                onClick={() => {
-                                                  setTimeout(() => {
-                                                    handleRoll(gI, rI)
-                                                  }, 10)
-                                                }}
-                                                className={sprinkles({ width: 'size-full' })}
-                                                disabled={
-                                                  dice.isRolling ||
-                                                  die == null ||
-                                                  quantity == null ||
-                                                  manualRolled?.configuration === ''
-                                                }
-                                              >
-                                                {dice.isRolling ? 'Rolling' : 'Roll'}
-                                              </Button>
-                                            : <AppField
-                                                name={`manualRolled.rollGroups[${gI}][${rI}].ability`}
-                                                listeners={{
-                                                  onBlur: ({ value, fieldApi }) =>
-                                                    handleBlur({ target: { name: fieldApi.name, value } }),
-                                                  onChange: ({ value }) => {
-                                                    if (value == null) {
-                                                      const rollGroupsUpdated = rollGroups?.[gI].map((roll, index) =>
-                                                        RollTypeInputSchema.parse({
-                                                          ...roll,
-                                                          applied: false,
-                                                          ability: index === rI ? null : roll.ability,
-                                                        })
-                                                      )
-                                                      rollsField.setValue(rollGroupsUpdated)
-                                                    }
-                                                  },
-                                                }}
-                                              >
-                                                {({ DropdownField }) => (
-                                                  <DropdownField
-                                                    options={abilities.filter(
-                                                      (ability) =>
-                                                        !rollGroups?.[gI]?.some(
-                                                          (roll, index) => roll.ability === ability.id && index !== rI
-                                                        )
-                                                    )}
-                                                    className={dice_roll_dropdown}
-                                                  />
-                                                )}
-                                              </AppField>
-                                            }
-                                          </Group>
-                                        </Grid.Col>
-                                      )
-                                    })
-                                  }}
-                                </AppField>
-                              </Grid>
-                            </Grid.Col>
-                            <Grid.Col>
-                              <Button
-                                color='danger'
-                                variant='outline'
-                                disabled={dice.isRolling}
-                                onClick={() => handleResetGroup(gI)}
-                              >
-                                Reset Group
-                              </Button>
-                            </Grid.Col>
-                            <Grid.Col>
-                              <Group justify='flex-end'>
+                  )}
+                </AppField>
+              )
+            })
+          }
+        </AppField>
+        <Grid.Col>
+          <Collapsible
+            props={{
+              trigger: {
+                title: 'Dice Roll Groups',
+              },
+            }}
+          >
+            <Grid>
+              <AppField name='manualRolled.rollGroups' mode='array'>
+                {(rollGroupsField) => {
+                  const rollGroups = rollGroupsField.state.value
+                  return rollGroups?.map((rGroup, gI) => {
+                    return (
+                      <Fragment key={gI}>
+                        <Grid.Col>
+                          <Grid>
+                            {gI === 0 && (
+                              <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
                                 <Button
                                   color='update'
-                                  variant='outline'
-                                  disabled={dice.isRolling || !rollGroups[gI].every((roll) => roll.ability != null)}
-                                  onClick={() => handleApplyRolls(gI)}
+                                  onClick={() => {
+                                    const rolls: z.input<typeof RollTypeInputSchema>[] = []
+                                    scores?.forEach((_, aIndex) => {
+                                      rolls[aIndex] = rollGroupInit
+                                    })
+                                    rollGroupsField.pushValue(rolls)
+                                  }}
+                                  disabled={dice.isRolling}
                                 >
-                                  Apply Rolls
+                                  Add Group
                                 </Button>
-                              </Group>
-                            </Grid.Col>
-                            {rollGroups?.length && rollGroups?.length > 1 && gI !== rollGroups.length - 1 && <hr />}
-                          </Fragment>
-                        )
-                      })
-                    }}
-                  </AppField>
-                </Grid>
-              </Collapsible>
-            </Grid.Col>
-          </>
-        )}
-      </Subscribe>
+                              </Grid.Col>
+                            )}
+                            {rollGroups?.length && rollGroups?.length !== 1 && (
+                              <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
+                                <Button
+                                  color='danger'
+                                  variant='outline'
+                                  onClick={() => {
+                                    if (scores?.length) {
+                                      rGroup.forEach((roll) => {
+                                        if (roll?.ability) {
+                                          const scoreIndex = scores.findIndex(
+                                            (scores) => scores.ability === roll.ability
+                                          )
+
+                                          if (scoreIndex && scoreIndex !== -1) {
+                                            group.setFieldValue(`scores[${scoreIndex}].baseScore`, 0)
+                                          }
+                                        }
+                                      })
+                                    }
+
+                                    rollGroupsField.removeValue(gI)
+                                  }}
+                                  disabled={dice.isRolling}
+                                >
+                                  Delete Group
+                                </Button>
+                              </Grid.Col>
+                            )}
+                          </Grid>
+                          <Grid>
+                            <AppField name={`manualRolled.rollGroups[${gI}]`} mode='array'>
+                              {(rollsField) => {
+                                const rolls = rollsField.state.value
+                                return rolls?.map((roll, rI) => {
+                                  const { quantity, die } = parseDiceRoll(rollConfiguration)
+                                  return (
+                                    <Grid.Col key={rI} span={{ sm: 6, md: 4, lg: 2 }}>
+                                      <Group justify='flex-start' key={rI}>
+                                        <Group justify='center' wrap='nowrap' className={dice_roll_value_group}>
+                                          {roll?.rolling ?
+                                            <Spinner className={dice_spinner} />
+                                          : <>
+                                              <div className={dice_roll_value}>{roll.score || '---'}</div>
+                                              {rollGroups?.[gI]?.[rI]?.rolled?.length && (
+                                                <div
+                                                  key={`${gI}${rI}${roll.score}-roll-score`}
+                                                  className={roll_score_box}
+                                                >
+                                                  {rollResult(gI, rI)}
+                                                </div>
+                                              )}
+                                            </>
+                                          }
+                                        </Group>
+                                        {roll.score == null ?
+                                          <Button
+                                            name='setRolling'
+                                            color='primary'
+                                            onClick={() => {
+                                              setTimeout(() => {
+                                                handleRoll(gI, rI)
+                                              }, 10)
+                                            }}
+                                            className={sprinkles({ width: 'size-full' })}
+                                            disabled={
+                                              dice.isRolling ||
+                                              die == null ||
+                                              quantity == null ||
+                                              manualRolled?.configuration === ''
+                                            }
+                                          >
+                                            {dice.isRolling ? 'Rolling' : 'Roll'}
+                                          </Button>
+                                        : <AppField
+                                            name={`manualRolled.rollGroups[${gI}][${rI}].ability`}
+                                            listeners={{
+                                              ...fieldListeners.onBlur,
+                                              onChange: ({ value }) => {
+                                                if (value == null) {
+                                                  const rollGroupsUpdated = rollGroups?.[gI].map((roll, index) =>
+                                                    RollTypeInputSchema.parse({
+                                                      ...roll,
+                                                      applied: false,
+                                                      ability: index === rI ? null : roll.ability,
+                                                    })
+                                                  )
+                                                  rollsField.setValue(rollGroupsUpdated)
+                                                }
+                                              },
+                                            }}
+                                          >
+                                            {({ DropdownField }) => (
+                                              <DropdownField
+                                                options={abilities.filter(
+                                                  (ability) =>
+                                                    !rollGroups?.[gI]?.some(
+                                                      (roll, index) => roll.ability === ability.id && index !== rI
+                                                    )
+                                                )}
+                                                className={dice_roll_dropdown}
+                                              />
+                                            )}
+                                          </AppField>
+                                        }
+                                      </Group>
+                                    </Grid.Col>
+                                  )
+                                })
+                              }}
+                            </AppField>
+                          </Grid>
+                        </Grid.Col>
+                        <Grid.Col>
+                          <Button
+                            color='danger'
+                            variant='outline'
+                            disabled={dice.isRolling}
+                            onClick={() => handleResetGroup(gI)}
+                          >
+                            Reset Group
+                          </Button>
+                        </Grid.Col>
+                        <Grid.Col>
+                          <Group justify='flex-end'>
+                            <Button
+                              color='update'
+                              variant='outline'
+                              disabled={dice.isRolling || !rollGroups[gI].every((roll) => roll.ability != null)}
+                              onClick={() => handleApplyRolls(gI)}
+                            >
+                              Apply Rolls
+                            </Button>
+                          </Group>
+                        </Grid.Col>
+                        {rollGroups?.length && rollGroups?.length > 1 && gI !== rollGroups.length - 1 && <hr />}
+                      </Fragment>
+                    )
+                  })
+                }}
+              </AppField>
+            </Grid>
+          </Collapsible>
+        </Grid.Col>
+      </>
     )
   },
 })

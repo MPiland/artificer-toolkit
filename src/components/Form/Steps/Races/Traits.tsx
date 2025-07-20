@@ -6,31 +6,23 @@ import { Grid, Button } from '@mantine/core'
 import { withForm } from '@/components/Form'
 import { DetailInputSchema, RaceInputSchema } from '@/schemas'
 import { useTypedFormStore } from '@/store'
-import { useEffect } from 'react'
 import { z } from 'zod/v4'
 import type { RaceInput, DetailInput } from '@/types'
 
 const TraitsStep = withForm({
   defaultValues: {} as z.input<typeof RaceInputSchema>,
   render: function Render({ form }) {
-    const { AppField, Subscribe } = form
+    const { AppField } = form
 
     const store = useTypedFormStore<RaceInput>()
-    const steps = store((state) => state.steps)
     const stepIndex = store((state) => state.stepIndex)
-    const registerForm = store((state) => state.registerForm)
     const updateField = store((state) => state.updateField)
     const removeField = store((state) => state.removeField)
+    const category = store((state) => state.current?.category)
 
-    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form' })
+    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form', stepIndex })
 
     const { sizes } = useSystemData()
-
-    useEffect(() => {
-      if (!steps[stepIndex].reset) {
-        registerForm(form.reset)
-      }
-    }, [form.reset, steps, stepIndex, registerForm])
 
     const handleRemove = () => {
       form.setFieldValue('traits.details', undefined)
@@ -106,83 +98,79 @@ const TraitsStep = withForm({
           )}
         </AppField>
         <Grid>
-          <Subscribe selector={(state) => state.values.category}>
-            {(category) =>
-              category === Categories.BASE && (
-                <>
-                  <AppField
-                    name='traits.size'
-                    validators={fieldValidators({
-                      onBlur: 'Please select a size',
-                    })}
-                    listeners={fieldListeners}
-                  >
-                    {({ DropdownField }) => (
-                      <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                        <DropdownField label='Size' options={sizes} required={true} />
-                      </Grid.Col>
-                    )}
-                  </AppField>
-                  <AppField
-                    name='traits.speeds.walking'
-                    validators={fieldValidators({
-                      onBlur: 'Please enter a walking speed',
-                      onChange: { type: 'integer', min: 1, name: 'Walking speed' },
-                    })}
-                    listeners={fieldListeners}
-                  >
-                    {({ TextField }) => (
-                      <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                        <TextField label='Walking Speed' placeholder='0' />
-                      </Grid.Col>
-                    )}
-                  </AppField>
-                  <AppField
-                    name='traits.speeds.climbing'
-                    validators={fieldValidators({
-                      onBlur: 'Please enter a climbing speed',
-                      onChange: { type: 'integer', min: 1, name: 'Climbing speed' },
-                    })}
-                    listeners={fieldListeners}
-                  >
-                    {({ TextField }) => (
-                      <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                        <TextField label='Climbing Speed' placeholder='0' />
-                      </Grid.Col>
-                    )}
-                  </AppField>
-                  <AppField
-                    name='traits.speeds.swimming'
-                    validators={fieldValidators({
-                      onBlur: 'Please enter a swimming speed',
-                      onChange: { type: 'integer', min: 1, name: 'Swimming speed' },
-                    })}
-                    listeners={fieldListeners}
-                  >
-                    {({ TextField }) => (
-                      <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                        <TextField label='Swimming Speed' placeholder='0' />
-                      </Grid.Col>
-                    )}
-                  </AppField>
-                  <AppField
-                    name='traits.speeds.flying'
-                    validators={fieldValidators({
-                      onBlur: 'Please enter a flying speed',
-                      onChange: { type: 'integer', min: 1, name: 'Flying speed' },
-                    })}
-                    listeners={fieldListeners}
-                  >
-                    {({ TextField }) => (
-                      <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
-                        <TextField label='Flying Speed' placeholder='0' />
-                      </Grid.Col>
-                    )}
-                  </AppField>
-                </>
-              )
-            }
-          </Subscribe>
+          {category === Categories.BASE && (
+            <>
+              <AppField
+                name='traits.size'
+                validators={fieldValidators({
+                  onBlur: 'Please select a size',
+                })}
+                listeners={fieldListeners}
+              >
+                {({ DropdownField }) => (
+                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
+                    <DropdownField label='Size' options={sizes} required={true} />
+                  </Grid.Col>
+                )}
+              </AppField>
+              <AppField
+                name='traits.speeds.walking'
+                validators={fieldValidators({
+                  onBlur: 'Please enter a walking speed',
+                  onChange: { type: 'integer', min: 1, name: 'Walking speed' },
+                })}
+                listeners={fieldListeners}
+              >
+                {({ TextField }) => (
+                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
+                    <TextField label='Walking Speed' placeholder='0' />
+                  </Grid.Col>
+                )}
+              </AppField>
+              <AppField
+                name='traits.speeds.climbing'
+                validators={fieldValidators({
+                  onBlur: 'Please enter a climbing speed',
+                  onChange: { type: 'integer', min: 1, name: 'Climbing speed' },
+                })}
+                listeners={fieldListeners}
+              >
+                {({ TextField }) => (
+                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
+                    <TextField label='Climbing Speed' placeholder='0' />
+                  </Grid.Col>
+                )}
+              </AppField>
+              <AppField
+                name='traits.speeds.swimming'
+                validators={fieldValidators({
+                  onBlur: 'Please enter a swimming speed',
+                  onChange: { type: 'integer', min: 1, name: 'Swimming speed' },
+                })}
+                listeners={fieldListeners}
+              >
+                {({ TextField }) => (
+                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
+                    <TextField label='Swimming Speed' placeholder='0' />
+                  </Grid.Col>
+                )}
+              </AppField>
+              <AppField
+                name='traits.speeds.flying'
+                validators={fieldValidators({
+                  onBlur: 'Please enter a flying speed',
+                  onChange: { type: 'integer', min: 1, name: 'Flying speed' },
+                })}
+                listeners={fieldListeners}
+              >
+                {({ TextField }) => (
+                  <Grid.Col span={{ sm: 6, md: 4, lg: 2 }}>
+                    <TextField label='Flying Speed' placeholder='0' />
+                  </Grid.Col>
+                )}
+              </AppField>
+            </>
+          )}
         </Grid>
       </>
     )

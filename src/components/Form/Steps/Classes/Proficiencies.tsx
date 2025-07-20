@@ -7,7 +7,6 @@ import { withForm } from '@/components/Form'
 import { ClassProficiencyInputSchema, ClassInputSchema } from '@/schemas'
 import type { ClassInput, ClassProficiencyInput, SubtypeInput } from '@/types'
 import { useTypedFormStore } from '@/store'
-import { useEffect } from 'react'
 import { z } from 'zod/v4'
 
 const ProficienciesStep = withForm({
@@ -19,8 +18,6 @@ const ProficienciesStep = withForm({
     const removeField = store((state) => state.removeField)
     const updateField = store((state) => state.updateField)
     const subtypes = store((state) => state.current?.subtypes)
-    const registerForm = store((state) => state.registerForm)
-    const steps = store((state) => state.steps)
     const stepIndex = store((state) => state.stepIndex)
 
     const { fieldValidators, fieldListeners } = useFieldUpdates({ data: 'form', stepIndex })
@@ -34,13 +31,6 @@ const ProficienciesStep = withForm({
     } = useSystemData()
 
     const { equipment } = useEquipmentData()
-
-    // Set current step's form component's reset function
-    useEffect(() => {
-      if (!steps[stepIndex].reset) {
-        registerForm(form.reset)
-      }
-    }, [form.reset, steps, stepIndex, registerForm])
 
     return (
       <AppField name='proficiencies' mode='array'>

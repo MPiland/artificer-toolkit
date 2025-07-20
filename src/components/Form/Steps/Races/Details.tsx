@@ -7,7 +7,6 @@ import { Grid } from '@mantine/core'
 import { withForm } from '@/components/Form'
 import { RaceInputSchema, DetailInputSchema } from '@/schemas'
 import { useTypedFormStore } from '@/store'
-import { useEffect } from 'react'
 import type { RaceInput, DetailInput } from '@/types'
 import { z } from 'zod/v4'
 
@@ -17,10 +16,8 @@ const DetailsStep = withForm({
     const { AppField } = form
 
     const store = useTypedFormStore<RaceInput>()
-    const steps = store((state) => state.steps)
     const stepIndex = store((state) => state.stepIndex)
     const category = store((state) => state.current?.category)
-    const registerForm = store((state) => state.registerForm)
     const updateField = store((state) => state.updateField)
     const removeField = store((state) => state.removeField)
 
@@ -28,12 +25,6 @@ const DetailsStep = withForm({
 
     const { categories } = useSystemData()
     const { races } = useRaceData()
-
-    useEffect(() => {
-      if (!steps[stepIndex].reset) {
-        registerForm(form.reset)
-      }
-    }, [form.reset, steps, stepIndex, registerForm])
 
     return (
       <Grid>

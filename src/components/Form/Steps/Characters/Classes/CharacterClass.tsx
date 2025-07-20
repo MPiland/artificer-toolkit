@@ -24,9 +24,10 @@ import type {
   CharacterSpellcastingInput,
   CharacterAbilitiesInput,
   CharacterClassInput,
-} from 'gql/types'
+  CharacterInput,
+} from '@/types'
 import { Categories } from '@/enums'
-import { useStore } from '@tanstack/react-form'
+import { useTypedFormStore } from '@/store'
 
 type CharacterClassProps = {
   classIndex: number
@@ -52,9 +53,14 @@ const CharacterClass = withFieldGroup({
   render: function Render({ group, classIndex, removeFn }) {
     const { AppField, Subscribe } = group
 
+    const store = useTypedFormStore<CharacterInput>()
+    const stepIndex = store((state) => state.stepIndex)
+    const uClass = store((state) => state.current?.classes?.[classIndex])
+
     const { fieldListeners, fieldValidators } = useFieldUpdates({
       data: 'form',
       replaceFn: (name) => name.replace('classInput', `classes[${classIndex}]`),
+      stepIndex,
     })
 
     const { system } = useSystemData()
@@ -69,9 +75,6 @@ const CharacterClass = withFieldGroup({
     } = useFeatureData()
 
     const { createFeatures } = useGetFeatures()
-    const { uClass } = useStore(group.store, (state) => ({
-      uClass: state.values.classInput,
-    }))
 
     if (!uClass) return <></>
 
@@ -293,6 +296,7 @@ const CharacterClass = withFieldGroup({
                     classInput: 'classInput',
                     spellcasting: 'spellcasting',
                   }}
+                  classIndex={classIndex}
                 />
               </Grid>
             </Tabs.Panel>

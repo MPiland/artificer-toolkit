@@ -4,7 +4,6 @@ import { sprinkles } from '@/css/sprinkles.css'
 import { Grid } from '@mantine/core'
 import { BackgroundInputSchema, DetailInputSchema } from '@/schemas'
 import { useFormStore } from '@/store'
-import { useEffect } from 'react'
 import { useFieldUpdates } from '@/hooks'
 import { z } from 'zod/v4'
 import { withForm } from '@/components/Form'
@@ -15,19 +14,11 @@ const DetailsStep = withForm({
   render: function Render({ form }) {
     const updateField = useFormStore((state) => state.updateField)
     const removeField = useFormStore((state) => state.removeField)
-    const steps = useFormStore((state) => state.steps)
     const stepIndex = useFormStore((state) => state.stepIndex)
-    const registerForm = useFormStore((state) => state.registerForm)
 
     const { AppField } = form
 
     const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form', stepIndex })
-
-    useEffect(() => {
-      if (!steps[stepIndex].reset) {
-        registerForm(form.reset)
-      }
-    }, [form.reset, steps, stepIndex, registerForm])
 
     return (
       <Grid>

@@ -6,7 +6,7 @@ import { ModalContext } from '@/components/Modal'
 import { v4 as uuid } from 'uuid'
 import { useEquipmentData } from '@/hooks'
 import type { Background, CharacterEquipmentInput, CharacterInput, Class } from '@/types'
-import { useFormStore } from '@/store'
+import { useTypedFormStore } from '@/store'
 import { withFieldGroup, CharacterEquipmentSelection } from '@/components/Form'
 import {
   BackgroundStartingEquipmentInputSchema,
@@ -29,9 +29,9 @@ const CharacterEquipmentOptions = withFieldGroup({
     dataSource: undefined,
   } as CharacterEquipmentOptionsProps,
   render: function Render({ group, dataSource }) {
-    const formStore = useFormStore()
-
     const { showModal } = use(ModalContext)
+    const store = useTypedFormStore<CharacterInput>()
+    const updateField = store((state) => state.updateField)
 
     const { equipment } = useEquipmentData()
 
@@ -138,11 +138,11 @@ const CharacterEquipmentOptions = withFieldGroup({
 
         group.setFieldValue(`currencyGroups[${baglessIndex}].currencies[${baglessCurrencyIndex}].amount`, totalGold)
 
-        formStore.updateField({
+        updateField({
           path: `currencyGroups[${baglessIndex}].currencies.${baglessCurrencyIndex}.amount`,
           value: totalGold,
         })
-        formStore.updateField({
+        updateField({
           path: 'classEquipment.addedToCharacter',
           value: true,
         })
@@ -169,11 +169,11 @@ const CharacterEquipmentOptions = withFieldGroup({
         })
 
         group.setFieldValue('equipment.addedToCharacter', true)
-        formStore.updateField({
+        updateField({
           path: 'equipment.inventory',
           value: equipmentArray,
         })
-        formStore.updateField({
+        updateField({
           path: `${path}.addedToCharacter`,
           value: true,
         })
@@ -181,14 +181,14 @@ const CharacterEquipmentOptions = withFieldGroup({
     }
 
     const resetEquipment = () => {
-      formStore.updateField({
+      updateField({
         path: 'equipment',
         value: CharacterEquipmentInputSchema.parse({
           ...equipment,
           inventory: [],
         }),
       })
-      formStore.updateField({
+      updateField({
         path: 'currencyGroups',
         value: [],
       })
@@ -202,7 +202,7 @@ const CharacterEquipmentOptions = withFieldGroup({
           totalGold: 0,
         })
         group.setFieldValue('equipment', classEquipmentObject)
-        formStore.updateField({ path: 'classEquipment', value: classEquipmentObject })
+        updateField({ path: 'classEquipment', value: classEquipmentObject })
       } else {
         const backgroundEquipmentObject = BackgroundStartingEquipmentInputSchema.parse({
           ...formEquipment,
@@ -210,7 +210,7 @@ const CharacterEquipmentOptions = withFieldGroup({
           addedToCharacter: false,
         })
         group.setFieldValue('equipment', backgroundEquipmentObject)
-        formStore.updateField({ path: 'backgroundEquipment', value: backgroundEquipmentObject })
+        updateField({ path: 'backgroundEquipment', value: backgroundEquipmentObject })
       }
     }
 

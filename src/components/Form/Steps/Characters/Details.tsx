@@ -1,88 +1,74 @@
 import { useSystemData, useFieldUpdates } from '@/hooks'
 import { Grid } from '@mantine/core'
-import { useAppForm } from '@/components/Form'
+import { withForm } from '@/components/Form'
 import { CharacterInputSchema } from '@/schemas'
-import { useFormStore } from '@/store'
-import { useEffect } from 'react'
-import { useStore } from '@tanstack/react-form'
+import { useTypedFormStore } from '@/store'
+import { z } from 'zod/v4'
+import type { CharacterInput } from '@/types'
 
-const DetailsStep = () => {
-  const formStore = useFormStore()
+const DetailsStep = withForm({
+  defaultValues: {} as z.input<typeof CharacterInputSchema>,
+  render: function Render({ form }) {
+    const { AppField } = form
 
-  const form = useAppForm({
-    defaultValues: CharacterInputSchema.parse(formStore.current),
-  })
+    const store = useTypedFormStore<CharacterInput>()
+    const stepIndex = store((state) => state.stepIndex)
 
-  const { AppField } = form
+    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form', stepIndex })
 
-  const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form' })
+    const { characters } = useSystemData()
 
-  const { characters } = useSystemData()
-
-  useEffect(() => {
-    if (!formStore.steps[formStore.stepIndex].reset) {
-      formStore.registerForm( form.reset )
-    }
-  }, [form.reset, formStore])
-
-  const { isValid } = useStore(form.store, (state) => ({
-    isValid: state.isValid,
-  }))
-
-  useEffect(() => {
-    formStore.setValidForm(isValid)
-  }, [formStore, isValid])
-
-  return (
-    <Grid>
-      <AppField
-        name='label'
-        validators={fieldValidators({
-          onBlur: 'Please enter a name',
-        })}
-        listeners={fieldListeners}
-      >
-        {({ TextField }) => (
-          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-            <TextField label='Name' required={true} />
-          </Grid.Col>
-        )}
-      </AppField>
-      <AppField
-        name='advancement'
-        validators={fieldValidators({
-          onBlur: 'Please select a level advancement method',
-        })}
-        listeners={fieldListeners}
-      >
-        {({ DropdownField }) => (
-          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-            <DropdownField label='Advancement Type' options={characters.advancementMethods} required={true} />
-          </Grid.Col>
-        )}
-      </AppField>
-      <AppField
-        name='hitpoint.method'
-        validators={fieldValidators({
-          onBlur: 'Please select a hitpoint calculation method',
-        })}
-        listeners={fieldListeners}
-      >
-        {({ DropdownField }) => (
-          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-            <DropdownField label='Hit Point Type' options={characters.hitpointCalcMethods} required={true} />
-          </Grid.Col>
-        )}
-      </AppField>
-      <AppField name='desc' listeners={fieldListeners}>
-        {({ RichTextField }) => (
-          <Grid.Col>
-            <RichTextField label='Description' />
-          </Grid.Col>
-        )}
-      </AppField>
-    </Grid>
-  )
-}
+    return (
+      <Grid>
+        <AppField
+          name='label'
+          validators={fieldValidators({
+            onBlur: 'Please enter a name',
+          })}
+          listeners={fieldListeners}
+        >
+          {({ TextField }) => (
+            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+              <TextField label='Name' required={true} />
+            </Grid.Col>
+          )}
+        </AppField>
+        <AppField
+          name='advancement'
+          validators={fieldValidators({
+            onBlur: 'Please select a level advancement method',
+          })}
+          listeners={fieldListeners}
+        >
+          {({ DropdownField }) => (
+            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+              <DropdownField label='Advancement Type' options={characters.advancementMethods} required={true} />
+            </Grid.Col>
+          )}
+        </AppField>
+        <AppField
+          name='hitpoint.method'
+          validators={fieldValidators({
+            onBlur: 'Please select a hitpoint calculation method',
+          })}
+          listeners={fieldListeners}
+        >
+          {({ DropdownField }) => (
+            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+              <DropdownField label='Hit Point Type' options={characters.hitpointCalcMethods} required={true} />
+            </Grid.Col>
+          )}
+        </AppField>
+        <AppField name='desc' listeners={fieldListeners}>
+          {({ RichTextField }) => (
+            <Grid.Col>
+              <RichTextField label='Description' />
+            </Grid.Col>
+          )}
+        </AppField>
+      </Grid>
+    )
+  },
+})
 
 export default DetailsStep

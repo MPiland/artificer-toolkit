@@ -8,8 +8,8 @@ import { Grid } from '@mantine/core'
 import { Fragment, useMemo, type ReactElement } from 'react'
 import { withFieldGroup } from '@/components/Form'
 import { CharacterProficiencyInputSchema, FeatureProficiencyInputSchema } from '@/schemas'
-import { useStore, type DeepKeys } from '@tanstack/react-form'
-import { useFormStore } from '@/store'
+import { useTypedFormStore } from '@/store'
+import type { DeepKeys } from '@tanstack/react-form'
 
 const ClassProficiencies = withFieldGroup({
   defaultValues: {
@@ -26,14 +26,14 @@ const ClassProficiencies = withFieldGroup({
     } = useClassData()
     const { AppField } = group
 
-    const formStore = useFormStore()
+    const store = useTypedFormStore<CharacterInput>()
+    const classInput = store((state) => state.current?.classes?.[classIndex])
+    const stepIndex = store((state) => state.stepIndex)
+    const formProficiencies = store((state) => state.current?.proficiencies)
+    const updateField = store((state) => state.updateField)
+    const removeField = store((state) => state.removeField)
 
-    const { fieldListeners } = useFieldUpdates({ data: 'form' })
-
-    const { classInput, formProficiencies } = useStore(group.store, (state) => ({
-      classInput: state.values.classInput,
-      formProficiencies: state.values.proficiencies,
-    }))
+    const { fieldListeners } = useFieldUpdates({ data: 'form', stepIndex })
 
     const fullClass = findClass(classInput?.id)!
 
@@ -77,7 +77,7 @@ const ClassProficiencies = withFieldGroup({
                       ...fieldListeners,
                       onChange: ({ value }) => {
                         if (value != null) {
-                          return formStore.updateField({
+                          return updateField({
                             path,
                             value: CharacterProficiencyInputSchema.parse({
                               id: value,
@@ -86,7 +86,7 @@ const ClassProficiencies = withFieldGroup({
                             }),
                           })
                         }
-                        return formStore.removeField({ path })
+                        return removeField({ path })
                       },
                     }}
                   >
@@ -188,7 +188,8 @@ const ClassProficiencies = withFieldGroup({
       AppField,
       proficiencies,
       fieldListeners,
-      formStore,
+      updateField,
+      removeField,
     ])
 
     return (

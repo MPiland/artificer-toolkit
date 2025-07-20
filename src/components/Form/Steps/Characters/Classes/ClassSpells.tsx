@@ -11,19 +11,25 @@ import type {
   CharacterSpellInput,
   CharacterSpellcastingInput,
   ClassSpellListInput,
+  CharacterInput,
 } from '@/types'
 import { withFieldGroup } from '@/components/Form'
 import { CharacterSpellInputSchema, ClassSpellInputSchema, ClassSpellListInputSchema } from '@/schemas'
-import { useStore } from '@tanstack/react-form'
-import { useFormStore } from '@/store'
+import { useTypedFormStore } from '@/store'
 
 const ClassSpells = withFieldGroup({
   defaultValues: {
     classInput: {} as CharacterClassInput | null | undefined,
     spellcasting: {} as CharacterSpellcastingInput | null | undefined,
   },
-  render: function Render({ group }) {
-    const formStore = useFormStore()
+  props: {
+    classIndex: 0,
+  },
+  render: function Render({ group, classIndex }) {
+    const store = useTypedFormStore<CharacterInput>()
+    const classInput = store((state) => state.current?.classes?.[classIndex])
+    const spellcasting = store((state) => state.current?.spellcasting)
+    const updateField = store((state) => state.updateField)
 
     const { getAttributes } = useEnumChecks()
 
@@ -40,11 +46,6 @@ const ClassSpells = withFieldGroup({
     const {
       featureSpells: { findFeatureSpell },
     } = useSectionData()
-
-    const { classInput, spellcasting } = useStore(group.store, (state) => ({
-      classInput: state.values.classInput,
-      spellcasting: state.values.spellcasting,
-    }))
 
     const fullClass = findClass(classInput?.id)!
 
@@ -297,16 +298,16 @@ const ClassSpells = withFieldGroup({
     useEffect(() => {
       if (preparedSpells.length && !isEqual(preparedSpells, spellcasting?.[casterType])) {
         group.setFieldValue(`spellcasting.${casterType}`, preparedSpells)
-        formStore.updateField({ path: `spellcasting.${casterType}`, value: preparedSpells })
+        updateField({ path: `spellcasting.${casterType}`, value: preparedSpells })
       }
-    }, [casterType, group, preparedSpells, spellcasting, formStore])
+    }, [casterType, group, preparedSpells, spellcasting, updateField])
 
     useEffect(() => {
       if (!isEqual(additionalSpells, spellcasting?.additional)) {
         group.setFieldValue('spellcasting.additional', additionalSpells)
-        formStore.updateField({ path: 'spellcasting.additional', value: additionalSpells })
+        updateField({ path: 'spellcasting.additional', value: additionalSpells })
       }
-    }, [additionalSpells, spellcasting, group, formStore])
+    }, [additionalSpells, spellcasting, group, updateField])
 
     const maxPreparedSpells = () => {
       const classLevel = classInput?.level ?? 1
@@ -336,17 +337,17 @@ const ClassSpells = withFieldGroup({
         const updatedKnown = spellcasting?.[casterType]?.filter((listObject) => listObject.level <= maxSpellLevel)
         if (!isEqual(spellcasting?.[casterType], updatedKnown)) {
           group.setFieldValue(`spellcasting.${casterType}`, updatedKnown)
-          formStore.updateField({ path: `spellcasting.${casterType}`, value: updatedKnown })
+          updateField({ path: `spellcasting.${casterType}`, value: updatedKnown })
         }
       }
       if (usesSpellbook && spellcasting?.known?.length) {
         const updatedKnown = spellcasting?.known?.filter((listObject) => listObject.level <= maxSpellLevel)
         if (!isEqual(spellcasting?.known, updatedKnown)) {
           group.setFieldValue('spellcasting.known', updatedKnown)
-          formStore.updateField({ path: 'spellcasting.known', value: updatedKnown })
+          updateField({ path: 'spellcasting.known', value: updatedKnown })
         }
       }
-    }, [maxSpellLevel, spellcasting, group, casterType, usesSpellbook, formStore])
+    }, [maxSpellLevel, spellcasting, group, casterType, usesSpellbook, updateField])
 
     /* Sets how the spells are stored
      Spell book uses the "known" array */
@@ -416,7 +417,7 @@ const ClassSpells = withFieldGroup({
         })
 
       group.setFieldValue(`spellcasting.${type}`, spellList)
-      formStore.updateField({ path: `spellcasting.${type}`, value: spellList })
+      updateField({ path: `spellcasting.${type}`, value: spellList })
     }
 
     const handleRemoveSpell = (spell: SpellListItem, type: 'known' | 'prepared') => {
@@ -431,10 +432,10 @@ const ClassSpells = withFieldGroup({
         }
         const updatedSpellList = spellcasting?.[type]?.filter((_, i) => i !== spellObjectIndex)
         group.setFieldValue(`spellcasting.${type}`, updatedSpellList)
-        return formStore.updateField({ path: `spellcasting.${type}`, value: updatedSpellList })
+        return updateField({ path: `spellcasting.${type}`, value: updatedSpellList })
       }
       group.setFieldValue(`spellcasting.${type}[${spellObjectIndex}].spells`, spellArray)
-      return formStore.updateField({ path: `spellcasting.${type}[${spellObjectIndex}].spells`, value: spellArray })
+      return updateField({ path: `spellcasting.${type}[${spellObjectIndex}].spells`, value: spellArray })
     }
 
     return (

@@ -5,7 +5,7 @@ import { Route } from '@/routes/_protected/classes/$action/$_classId'
 import { useClassData } from '@/hooks'
 import { ClassInputSchema } from '@/schemas'
 import { v4 as uuidv4 } from 'uuid'
-import { useFormStore } from '@/store'
+import { useTypedFormStore } from '@/store'
 import Form, {
   ClassAttributes,
   ClassDetails,
@@ -27,12 +27,15 @@ const ClassForm = () => {
 
   const classData = findClass(classId)
 
-  const current = useFormStore((state) => state.current)
-  const steps = useFormStore((state) => state.steps)
-  const setSteps = useFormStore((state) => state.setSteps)
-  const setCurrent = useFormStore((state) => state.setCurrent)
-  const stepIndex = useFormStore((state) => state.stepIndex)
-  const registerForm = useFormStore((state) => state.registerForm)
+  const store = useTypedFormStore<ClassInput>()
+
+  const current = store((state) => state.current)
+  const steps = store((state) => state.steps)
+  const setSteps = store((state) => state.setSteps)
+  const setCurrent = store((state) => state.setCurrent)
+  const stepIndex = store((state) => state.stepIndex)
+  const registerForm = store((state) => state.registerForm)
+  const formReset = store((state) => state.formReset)
 
   const createDataObject = useCallback(() => {
     if (classData) {
@@ -99,10 +102,10 @@ const ClassForm = () => {
   }, [steps, classSteps, setSteps])
 
   useEffect(() => {
-    if (!steps[stepIndex].reset) {
+    if (!formReset) {
       registerForm(form.reset)
     }
-  }, [form.reset, steps, stepIndex, registerForm])
+  }, [formReset, registerForm, form.reset])
 
   const stepComponentMap = {
     details: <ClassDetails form={form} />,

@@ -1,87 +1,113 @@
-import { z } from 'zod/v4'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useCallback, useLayoutEffect } from 'react'
 import { useAddNewEquipmentMutation, useUpdateEquipmentMutation } from '@/apis/equipment.api'
 import { v4 as uuidv4 } from 'uuid'
 import { Route } from '@/routes/_protected/equipment/$action/$_equipmentId'
-import { useEquipmentData } from '@/hooks'
-import { ContainsInputSchema, EquipmentInputSchema } from '@/schemas'
-import { useFormStore } from '@/store'
+import { useEquipmentData, useSystemPref } from '@/hooks'
+import { EquipmentInputSchema } from '@/schemas'
+import { useTypedFormStore } from '@/store'
 import type { EquipmentInput } from '@/types'
-import Form, { EquipmentDetails, EquipmentAttributes, Contains, Features } from '@/components/Form'
+import Form, { EquipmentDetails, EquipmentAttributes, Contains, Features, useAppForm } from '@/components/Form'
 import { Attributes as AttributesEnum } from '@/enums'
-import { isEqual } from 'lodash'
+import { convertTypenameToKindInput } from '@/utils'
 
 const EquipmentForm = () => {
   const { _equipmentId: equipmentId, action } = Route.useParams()
   const {
     equipment: { findEquipment },
   } = useEquipmentData()
-  const equipment = findEquipment(equipmentId)
-  const formStore = useFormStore((state) => state)
+  const [systemPref] = useSystemPref()
 
-  const data: z.input<typeof EquipmentInputSchema> = useMemo(
-    () =>
-      equipment ?
-        action === 'new' ?
-          EquipmentInputSchema.parse({
-            ...equipment,
+  const equipmentData = findEquipment(equipmentId)
+
+  const store = useTypedFormStore<EquipmentInput>()
+
+  const current = store((state) => state.current)
+  const steps = store((state) => state.steps)
+  const setSteps = store((state) => state.setSteps)
+  const setCurrent = store((state) => state.setCurrent)
+  const stepIndex = store((state) => state.stepIndex)
+  const registerForm = store((state) => state.registerForm)
+  const attributes = store((state) => state.current?.attributes)
+  const formReset = store((state) => state.formReset)
+
+  const createDataObject = useCallback(() => {
+    if (equipmentData) {
+      const equipmentInput = convertTypenameToKindInput(equipmentData)
+      if (equipmentInput) {
+        if (action === 'new') {
+          return EquipmentInputSchema.parse({
+            ...equipmentInput,
             id: uuidv4(),
             label: '',
             masterId: undefined,
+            category: '',
+            systemId: systemPref,
           })
-        : EquipmentInputSchema.parse(equipment)
-      : EquipmentInputSchema.parse({
-          __kind: 'EquipmentInput',
-          id: uuidv4(),
-        }),
-    [equipment, action]
-  )
-
-  useEffect(() => {
-    formStore.setCurrent(data as EquipmentInput)
-  }, [formStore, data])
-
-  const [steps, setSteps] = useState([
-    { id: 'details', label: 'Details' },
-    { id: 'attributes', label: 'Attributes' },
-    {
-      id: 'features',
-      label: 'Features',
-      content: <Features />,
-    },
-  ])
-
-  useEffect(() => {
-    if ((formStore.current as EquipmentInput)?.attributes?.includes(AttributesEnum.CONTAINS_EQUIPMENT)) {
-      if (!steps.includes({ id: 'contains', label: 'Contains' })) {
-        const updatedSteps = [...steps]
-        updatedSteps.push({ id: 'contains', label: 'Contains' })
-        formStore.updateField({ path: 'contains[0]', value: ContainsInputSchema.parse({ id: uuidv4() }) })
-        setSteps(updatedSteps)
-      }
-    } else {
-      const updatedSteps = steps.filter((step) => step.id !== 'contains')
-      setSteps(updatedSteps)
-      if ((formStore.current as EquipmentInput)?.contains?.length) {
-        formStore.removeField({ path: 'contains' })
+        } else {
+          return EquipmentInputSchema.parse({ ...equipmentInput })
+        }
       }
     }
-  }, [steps, formStore])
+    return EquipmentInputSchema.parse({
+      __kind: 'EquipmentInput',
+      id: uuidv4(),
+      category: '',
+      systemId: systemPref,
+      label: '',
+    })
+  }, [action, systemPref, equipmentData])
+
+  const data = useMemo(() => createDataObject(), [createDataObject])
+
+  useLayoutEffect(() => {
+    if (current === null) {
+      setCurrent(data as EquipmentInput)
+    }
+  }, [current, data, setCurrent])
+
+  const form = useAppForm({
+    defaultValues: data,
+  })
+
+  const equipmentSteps = useMemo(() => {
+    if (attributes?.includes(AttributesEnum.CONTAINS_EQUIPMENT)) {
+      return [
+        { id: 'details', label: 'Details', fieldValidation: {}, defaultValues: {} },
+        { id: 'attributes', label: 'Attributes', fieldValidation: {}, defaultValues: {} },
+        { id: 'contains', label: 'Contains', fieldValidation: {}, defaultValues: {} },
+        { id: 'features', label: 'Features', fieldValidation: {}, defaultValues: {} },
+      ]
+    } else {
+      return [
+        { id: 'details', label: 'Details', fieldValidation: {}, defaultValues: {} },
+        { id: 'attributes', label: 'Attributes', fieldValidation: {}, defaultValues: {} },
+        { id: 'features', label: 'Features', fieldValidation: {}, defaultValues: {} },
+      ]
+    }
+  }, [attributes])
+
+  useLayoutEffect(() => {
+    if (!steps.every((step) => equipmentSteps.some((s) => s.id === step.id)) || !steps?.length) {
+      setSteps(equipmentSteps)
+    }
+  }, [steps, equipmentSteps, setSteps])
 
   useEffect(() => {
-    if (!isEqual(formStore.steps, steps)) formStore.setSteps(steps)
-  }, [formStore, steps])
+    if (!formReset) {
+      registerForm(form.reset)
+    }
+  }, [formReset, registerForm, form.reset])
 
   const stepComponentMap = {
-    details: <EquipmentDetails />,
-    attributes: <EquipmentAttributes />,
+    details: <EquipmentDetails form={form} />,
+    attributes: <EquipmentAttributes form={form} />,
     features: <Features />,
-    contains: <Contains />,
+    contains: <Contains form={form} />,
   }
 
   return (
     <Form useUpdateItemMutation={useUpdateEquipmentMutation} useAddNewItemMutation={useAddNewEquipmentMutation}>
-      {stepComponentMap[formStore.steps[formStore.stepIndex].id as keyof typeof stepComponentMap] || null}
+      {stepComponentMap[steps[stepIndex].id as keyof typeof stepComponentMap] || null}
     </Form>
   )
 }

@@ -18,13 +18,13 @@ export interface FormStore<T extends FormDataType> {
   saving: boolean
   stepIndex: number
   steps: (Step & {
-    reset: (values?: Partial<T>) => void
     fieldValidation?: Record<string, boolean>
     defaultValues?: Partial<T>
   })[]
   addClass: boolean
   changeRace: boolean
-  formReset: () => void
+  formReset: (values?: Partial<T>) => void
+  resetStep: () => void
   setCurrent: (arg: T | null) => void
   setAddClass: (arg: boolean) => void
   setChangeRace: (arg: boolean) => void
@@ -49,11 +49,12 @@ export const useFormStore = create<FormStore<FormDataType>>()(
         steps: [],
         addClass: false,
         changeRace: false,
-        formReset: () =>
+        formReset: () => undefined,
+        resetStep: () =>
           set((state) => {
             const values = state.steps[state.stepIndex].defaultValues
             const newCurrentState = { ...state.current, ...values } as FormDataType
-            state.steps[state.stepIndex].reset(newCurrentState)
+            state.formReset(newCurrentState)
             return {
               ...state,
               current: newCurrentState,
@@ -71,7 +72,6 @@ export const useFormStore = create<FormStore<FormDataType>>()(
               if (!stepArray.some((s) => s.id === step.id)) {
                 stepArray.push({
                   ...step,
-                  reset: () => undefined,
                   fieldValidation: undefined,
                   defaultValues: undefined,
                 })
@@ -79,29 +79,20 @@ export const useFormStore = create<FormStore<FormDataType>>()(
             })
             return { ...state, steps: stepArray }
           }),
-        registerForm: (reset) =>
-          set((state) => {
-            const stepArray = state.steps.map((step) => {
-              if (step.id === state.steps[state.stepIndex].id) {
-                return {
-                  ...step,
-                  reset,
-                }
-              }
-              return step
-            })
-            return { ...state, steps: stepArray }
-          }),
+        registerForm: (reset) => set((state) => ({ ...state, formReset: reset })),
         setFieldValidation: ({ fieldName, isValid }) =>
           set((state) => {
             const stepArray = state.steps.map((step) => {
               if (step.id === state.steps[state.stepIndex].id) {
                 return {
                   ...step,
-                  fieldValidation: step.fieldValidation ? {
-                    ...step.fieldValidation,
-                    [fieldName]: isValid,
-                  } : undefined,
+                  fieldValidation:
+                    step.fieldValidation ?
+                      {
+                        ...step.fieldValidation,
+                        [fieldName]: isValid,
+                      }
+                    : undefined,
                 }
               }
               return step
