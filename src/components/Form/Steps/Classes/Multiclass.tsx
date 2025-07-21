@@ -17,9 +17,8 @@ const Multiclass = withFieldGroup({
     const optionalId = store((state) => state.current?.multiclass?.optionalAbility?.id)
     const attributes = store((state) => state.current?.attributes)
     const { AppField } = group
-    const stepIndex = store((state) => state.stepIndex)
 
-    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form', path: 'multiclass', stepIndex })
+    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form', path: 'multiclass' })
 
     const { abilities } = useSystemData()
 

@@ -20,9 +20,8 @@ const AttributesStep = withForm({
     const properties = store((state) => state.current?.properties)
     const formAttributes = store((state) => state.current?.attributes)
     const damage = store((state) => state.current?.damage)
-    const stepIndex = store((state) => state.stepIndex)
 
-    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form', stepIndex })
+    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form' })
 
     const { attributes, abilities } = useSystemData()
 

@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react'
-import Dropdown from '@/components/Dropdown'
+import Dropdown from '@/components/Form/Dropdown'
 import { get, startCase } from 'lodash'
 import { useFilterStore, type FilterState } from '@/store'
 import type { FilterConfig, FilterDataType } from '@/components/List'

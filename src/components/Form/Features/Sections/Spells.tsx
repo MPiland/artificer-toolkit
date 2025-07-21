@@ -5,7 +5,6 @@ import type { SpellListItem, SubtypeInput } from '@/types'
 import { Grid } from '@mantine/core'
 import { LimitUse, Prerequisites, useAppForm } from '@/components/Form'
 import { SpellsByLevelInputSchema, FeatureSpellInputSchema } from '@/schemas'
-import { useStore } from '@tanstack/react-form'
 import { useFormStore, useFeatureSpellStore } from '@/store'
 
 type SpellsProps = {
@@ -14,40 +13,32 @@ type SpellsProps = {
 }
 
 const Spells = ({ category, subtypes }: SpellsProps) => {
-  const spellStore = useFeatureSpellStore()
+  const current = useFeatureSpellStore((state) => state.current)
+  const registerForm = useFeatureSpellStore((state) => state.registerForm)
+  const formReset = useFeatureSpellStore((state) => state.formReset)
+  const updateField = useFeatureSpellStore((state) => state.updateField)
+  const removeField = useFeatureSpellStore((state) => state.removeField)
+  const valid = useFeatureSpellStore((state) => state.valid)
+  const upsertValid = useFeatureSpellStore((state) => state.upsertValid)
+  const formAttributes = useFeatureSpellStore((state) => state.current?.attributes)
+  const formClassLimit = useFeatureSpellStore((state) => state.current?.classLimit)
+  const formLevelLimit = useFeatureSpellStore((state) => state.current?.levelLimit)
+  const formAttributeLimit = useFeatureSpellStore((state) => state.current?.attributeLimit)
+  const formSpellsByLevel = useFeatureSpellStore((state) => state.current?.spellsByLevel)
+
+  const __kind = useFormStore((state) => state.current?.__kind)
 
   const form = useAppForm({
-    defaultValues: FeatureSpellInputSchema.parse(spellStore.current),
+    defaultValues: FeatureSpellInputSchema.parse(current),
   })
 
   const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'spell' })
 
-  const formStore = useFormStore()
-
-  const __kind = formStore.current?.__kind as
-    | 'ClassInput'
-    | 'RaceInput'
-    | 'EquipmentInput'
-    | 'BackgroundInput'
-    | 'FeatInput'
-
   const { AppField } = form
-
-  const { formAttributes, formClassLimit, formLevelLimit, formAttributeLimit, formSpellsByLevel } = useStore(
-    form.store,
-    (state) => ({
-      formAttributes: state.values.attributes,
-      formClassLimit: state.values.classLimit,
-      formLevelLimit: state.values.levelLimit,
-      formAttributeLimit: state.values.attributeLimit,
-      formSpellsByLevel: state.values.spellsByLevel,
-    })
-  )
 
   const { attributes, abilities } = useSystemData()
   const { spells, metaData: spellMetaData } = useSpellData()
   const { classes } = useClassData()
-
   const { getAttributes } = useEnumChecks()
 
   const {
@@ -115,19 +106,19 @@ const Spells = ({ category, subtypes }: SpellsProps) => {
   }, [formSpellsByLevel, spellsByLevel, form])
 
   useEffect(() => {
-    if (!spellStore.formReset) {
-      spellStore.registerFormReset(form.reset)
+    if (!formReset) {
+      registerForm(form.reset)
     }
-  }, [form.reset, spellStore])
+  }, [form.reset, registerForm, formReset])
 
   useEffect(() => {
     return form.store.subscribe((state) => {
       const isValid = state.currentVal.isValid
-      if (spellStore.current?.id && spellStore.valid.get(spellStore.current.id) !== isValid) {
-        spellStore.upsertValid(spellStore.current.id, isValid)
+      if (current?.id && valid.get(current.id) !== isValid) {
+        upsertValid(current.id, isValid)
       }
     })
-  }, [spellStore, form.store])
+  }, [valid, upsertValid, current?.id, form.store])
 
   return (
     <Grid>
@@ -357,8 +348,8 @@ const Spells = ({ category, subtypes }: SpellsProps) => {
             form={form}
             fields='prerequisites'
             __kind='FeatureSpellInput'
-            updateFn={spellStore.updateField}
-            removeFn={spellStore.removeField}
+            updateFn={updateField}
+            removeFn={removeField}
           />
         </Grid.Col>
       )}
@@ -368,8 +359,8 @@ const Spells = ({ category, subtypes }: SpellsProps) => {
             form={form}
             fields='charges'
             __kind='FeatureSpellInput'
-            updateFn={spellStore.updateField}
-            removeFn={spellStore.removeField}
+            updateFn={updateField}
+            removeFn={removeField}
           />
         </Grid.Col>
       )}

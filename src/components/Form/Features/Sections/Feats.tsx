@@ -4,44 +4,56 @@ import type { SubtypeInput } from '@/types'
 import { Grid } from '@mantine/core'
 import { FeatureFeatInputSchema } from '@/schemas'
 import { useAppForm, Prerequisites } from '@/components/Form'
-import { useFeatureFeatStore } from '@/store'
+import { useFeatureFeatStore, useFormStore } from '@/store'
 import { useEffect } from 'react'
 
 type FeatsProps = {
   category?: string
-  __kind?: 'ClassInput' | 'RaceInput' | 'EquipmentInput' | 'BackgroundInput' | 'FeatInput'
   subtypes?: SubtypeInput[]
 }
 
-const Feats = ({ category, __kind, subtypes }: FeatsProps) => {
-  const featStore = useFeatureFeatStore()
+const Feats = ({ category, subtypes }: FeatsProps) => {
+  const current = useFeatureFeatStore((state) => state.current)
+  const registerForm = useFeatureFeatStore((state) => state.registerForm)
+  const formReset = useFeatureFeatStore((state) => state.formReset)
+  const updateField = useFeatureFeatStore((state) => state.updateField)
+  const removeField = useFeatureFeatStore((state) => state.removeField)
+  const valid = useFeatureFeatStore((state) => state.valid)
+  const upsertValid = useFeatureFeatStore((state) => state.upsertValid)
+  const formAttributes = useFeatureFeatStore((state) => state.current?.attributes)
+
+  const __kind = useFormStore((state) => state.current?.__kind)
 
   const form = useAppForm({
-    defaultValues: FeatureFeatInputSchema.parse(featStore.current),
+    defaultValues: FeatureFeatInputSchema.parse(current),
   })
 
   const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'feat' })
 
-  const { AppField, Subscribe } = form
+  const { AppField } = form
+
   const { attributes } = useSystemData()
   const { feats } = useFeatData()
-
   const { getAttributes } = useEnumChecks()
 
   useEffect(() => {
-    if (!featStore.formReset) {
-      featStore.registerFormReset(form.reset)
+    if (!formReset) {
+      registerForm(form.reset)
     }
-  }, [form.reset, featStore])
+  }, [form.reset, registerForm, formReset])
 
   useEffect(() => {
     return form.store.subscribe((state) => {
       const isValid = state.currentVal.isValid
-      if (featStore.current?.id && featStore.valid.get(featStore.current.id) !== isValid) {
-        featStore.upsertValid(featStore.current.id, isValid)
+      if (current?.id && valid.get(current.id) !== isValid) {
+        upsertValid(current.id, isValid)
       }
     })
-  }, [featStore, form.store])
+  }, [valid, upsertValid, current?.id, form.store])
+
+  const { subtypeSpecific, providesOptions, hasPrerequisites } = getAttributes({
+    attributes: formAttributes || [],
+  })
 
   return (
     <Grid>
@@ -75,59 +87,48 @@ const Feats = ({ category, __kind, subtypes }: FeatsProps) => {
           </Grid.Col>
         )}
       </AppField>
-      <Subscribe selector={(store) => store.values.attributes}>
-        {(formAttributes) => {
-          const { subtypeSpecific, providesOptions, hasPrerequisites } = getAttributes({
-            attributes: formAttributes || [],
-          })
-          return (
-            <>
-              {subtypeSpecific && __kind === 'ClassInput' && category === Categories.SUBCLASS && subtypes?.length && (
-                <AppField
-                  name='subtype'
-                  validators={fieldValidators({
-                    onBlur: 'Select a subtype',
-                  })}
-                  listeners={fieldListeners}
-                >
-                  {({ DropdownField }) => (
-                    <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                      <DropdownField options={feats} label='Subtype' required={true} />
-                    </Grid.Col>
-                  )}
-                </AppField>
-              )}
-              {providesOptions && (
-                <AppField
-                  name='selectionCount'
-                  validators={fieldValidators({
-                    onBlur: 'Enter a selection amount allowed',
-                    onChange: { type: 'integer', name: 'Selection amount', min: 1 },
-                  })}
-                  listeners={fieldListeners}
-                >
-                  {({ TextField }) => (
-                    <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                      <TextField label='# of Selections' required={true} />
-                    </Grid.Col>
-                  )}
-                </AppField>
-              )}
-              {hasPrerequisites && (
-                <Grid.Col>
-                  <Prerequisites
-                    form={form}
-                    fields='prerequisites'
-                    __kind='FeatureFeatInput'
-                    updateFn={featStore.updateField}
-                    removeFn={featStore.removeField}
-                  />
-                </Grid.Col>
-              )}
-            </>
-          )
-        }}
-      </Subscribe>
+      {subtypeSpecific && __kind === 'ClassInput' && category === Categories.SUBCLASS && subtypes?.length && (
+        <AppField
+          name='subtype'
+          validators={fieldValidators({
+            onBlur: 'Select a subtype',
+          })}
+          listeners={fieldListeners}
+        >
+          {({ DropdownField }) => (
+            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+              <DropdownField options={feats} label='Subtype' required={true} />
+            </Grid.Col>
+          )}
+        </AppField>
+      )}
+      {providesOptions && (
+        <AppField
+          name='selectionCount'
+          validators={fieldValidators({
+            onBlur: 'Enter a selection amount allowed',
+            onChange: { type: 'integer', name: 'Selection amount', min: 1 },
+          })}
+          listeners={fieldListeners}
+        >
+          {({ TextField }) => (
+            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+              <TextField label='# of Selections' required={true} />
+            </Grid.Col>
+          )}
+        </AppField>
+      )}
+      {hasPrerequisites && (
+        <Grid.Col>
+          <Prerequisites
+            form={form}
+            fields='prerequisites'
+            __kind='FeatureFeatInput'
+            updateFn={updateField}
+            removeFn={removeField}
+          />
+        </Grid.Col>
+      )}
     </Grid>
   )
 }

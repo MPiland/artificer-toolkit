@@ -13,10 +13,18 @@ type ExpertiseProps = {
 }
 
 const Expertise = ({ category, subtypes }: ExpertiseProps) => {
-  const expertiseStore = useFeatureExpertiseStore()
+  const current = useFeatureExpertiseStore((state) => state.current)
+  const registerForm = useFeatureExpertiseStore((state) => state.registerForm)
+  const formReset = useFeatureExpertiseStore((state) => state.formReset)
+  const valid = useFeatureExpertiseStore((state) => state.valid)
+  const upsertValid = useFeatureExpertiseStore((state) => state.upsertValid)
+  const formCategory = useFeatureExpertiseStore((state) => state.current?.category)
+  const formAttributes = useFeatureExpertiseStore((state) => state.current?.attributes)
+  const removeField = useFeatureExpertiseStore((state) => state.removeField)
+  const updateField = useFeatureExpertiseStore((state) => state.updateField)
 
   const form = useAppForm({
-    defaultValues: FeatureExpertiseInputSchema.parse(expertiseStore.current),
+    defaultValues: FeatureExpertiseInputSchema.parse(current),
   })
 
   const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'expertise' })
@@ -33,19 +41,19 @@ const Expertise = ({ category, subtypes }: ExpertiseProps) => {
   const { AppField, Subscribe } = form
 
   useEffect(() => {
-    if (!expertiseStore.formReset) {
-      expertiseStore.registerFormReset(form.reset)
+    if (!formReset) {
+      registerForm(form.reset)
     }
-  }, [form.reset, expertiseStore])
+  }, [form.reset, registerForm, formReset])
 
   useEffect(() => {
     return form.store.subscribe((state) => {
       const isValid = state.currentVal.isValid
-      if (expertiseStore.current?.id && expertiseStore.valid.get(expertiseStore.current.id) !== isValid) {
-        expertiseStore.upsertValid(expertiseStore.current.id, isValid)
+      if (current?.id && valid.get(current.id) !== isValid) {
+        upsertValid(current.id, isValid)
       }
     })
-  }, [expertiseStore, form.store])
+  }, [valid, upsertValid, current?.id, form.store])
 
   const { proficiencies, attributes, abilities, skills, equipment: systemEquipment, languages } = useSystemData()
 
@@ -58,6 +66,13 @@ const Expertise = ({ category, subtypes }: ExpertiseProps) => {
     skills: skills,
     languages: languages,
   } as const
+
+  const sectionCategory = proficiencies.categories.findCategory(formCategory)
+  const path = getKeyFromId(formCategory ?? '', ProfCats)
+
+  const { subtypeSpecific, providesOptions, hasPrerequisites } = getAttributes({
+    attributes: formAttributes || [],
+  })
 
   return (
     <Grid>
@@ -91,19 +106,51 @@ const Expertise = ({ category, subtypes }: ExpertiseProps) => {
           </Grid.Col>
         )}
       </AppField>
-      <Subscribe selector={(state) => state.values.category}>
-        {(formCategory) => {
-          const sectionCategory = proficiencies.categories.find((category) => category.id === formCategory)
-          const path = getKeyFromId(formCategory ?? '', ProfCats)
-          return (
-            <>
-              {sectionCategory != null &&
-                path !== 'initiative' &&
-                (path !== 'equipment' && path !== 'properties' ?
+      {sectionCategory != null &&
+        path !== 'initiative' &&
+        (path !== 'equipment' && path !== 'properties' ?
+          <AppField
+            name={path}
+            validators={fieldValidators({
+              onBlur: 'Select at lease one type',
+            })}
+            listeners={fieldListeners}
+          >
+            {({ DropdownField }) => (
+              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                <DropdownField
+                  multiselect={true}
+                  options={systemOptions[path]}
+                  required={true}
+                  label={`${sectionCategory.label} Type`}
+                />
+              </Grid.Col>
+            )}
+          </AppField>
+        : <>
+            <AppField
+              name={path}
+              validators={fieldValidators({
+                onBlur: 'Select an equipment category',
+              })}
+              listeners={fieldListeners}
+            >
+              {({ DropdownField }) => (
+                <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                  <DropdownField options={systemEquipment.categories} required={true} label='Equipment Category' />
+                </Grid.Col>
+              )}
+            </AppField>
+            <Subscribe selector={(state) => state.values}>
+              {(values) => (
+                <>
                   <AppField
-                    name={path}
+                    name={`${path as 'properties' | 'equipment'}.${
+                      sectionCategory.id === ProfCats.EQUIPMENT ? 'properties' : 'ids'
+                    }`}
                     validators={fieldValidators({
-                      onBlur: 'Select at lease one type',
+                      onBlur: 'Select at leaset one property',
+                      condition: sectionCategory.id === ProfCats.EQUIPMENT,
                     })}
                     listeners={fieldListeners}
                   >
@@ -111,140 +158,79 @@ const Expertise = ({ category, subtypes }: ExpertiseProps) => {
                       <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
                         <DropdownField
                           multiselect={true}
-                          options={systemOptions[path]}
-                          required={true}
-                          label={`${sectionCategory.label} Type`}
+                          options={systemEquipment.properties.filterByCategory(values[path]?.category)}
+                          required={sectionCategory.id === ProfCats.EQUIPMENT ? false : true}
+                          label='Equipment Properties'
                         />
                       </Grid.Col>
                     )}
                   </AppField>
-                : <>
+                  {sectionCategory.id === ProfCats.EQUIPMENT && (
                     <AppField
-                      name={path}
+                      name={`${path as 'equipment'}.ids`}
                       validators={fieldValidators({
-                        onBlur: 'Select an equipment category',
+                        onBlur: 'Select at leaset one equipment',
                       })}
                       listeners={fieldListeners}
                     >
                       {({ DropdownField }) => (
                         <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
                           <DropdownField
-                            options={systemEquipment.categories}
+                            multiselect={true}
+                            options={equipment
+                              .filterByCategory(values[path]?.category)
+                              .filterByEveryProperty(values[path]?.properties)}
                             required={true}
-                            label='Equipment Category'
+                            label='Equipment'
                           />
                         </Grid.Col>
                       )}
                     </AppField>
-                    <Subscribe selector={(state) => state.values}>
-                      {(values) => (
-                        <>
-                          <AppField
-                            name={`${path as 'properties' | 'equipment'}.${
-                              sectionCategory.id === ProfCats.EQUIPMENT ? 'properties' : 'ids'
-                            }`}
-                            validators={fieldValidators({
-                              onBlur: 'Select at leaset one property',
-                              condition: sectionCategory.id === ProfCats.EQUIPMENT,
-                            })}
-                            listeners={fieldListeners}
-                          >
-                            {({ DropdownField }) => (
-                              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                                <DropdownField
-                                  multiselect={true}
-                                  options={systemEquipment.properties.filterByCategory(values[path]?.category)}
-                                  required={sectionCategory.id === ProfCats.EQUIPMENT ? false : true}
-                                  label='Equipment Properties'
-                                />
-                              </Grid.Col>
-                            )}
-                          </AppField>
-                          {sectionCategory.id === ProfCats.EQUIPMENT && (
-                            <AppField
-                              name={`${path as 'equipment'}.ids`}
-                              validators={fieldValidators({
-                                onBlur: 'Select at leaset one equipment',
-                              })}
-                              listeners={fieldListeners}
-                            >
-                              {({ DropdownField }) => (
-                                <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                                  <DropdownField
-                                    multiselect={true}
-                                    options={equipment
-                                      .filterByCategory(values[path]?.category)
-                                      .filterByEveryProperty(values[path]?.properties)}
-                                    required={true}
-                                    label='Equipment'
-                                  />
-                                </Grid.Col>
-                              )}
-                            </AppField>
-                          )}
-                        </>
-                      )}
-                    </Subscribe>
-                  </>)}
-            </>
-          )
-        }}
-      </Subscribe>
-      <Subscribe
-        selector={(state) => ({ formAttributes: state.values.attributes, formCategory: state.values.category })}
-      >
-        {({ formAttributes, formCategory }) => {
-          const { subtypeSpecific, providesOptions, hasPrerequisites } = getAttributes({
-            attributes: formAttributes || [],
-          })
-          const sectionCategory = proficiencies.categories.findCategory(formCategory)
-          return (
-            subtypeSpecific &&
-            __kind === 'ClassInput' &&
-            sectionCategory != null &&
-            subtypes?.length && (
-              <AppField
-                name='subtype'
-                validators={fieldValidators({
-                  onBlur: 'Select a subtype',
-                })}
-              >
-                {({ DropdownField }) => (
-                  <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                    <DropdownField options={subtypes} required={true} label='Subclass Subtype' />
-                  </Grid.Col>
-                )}
-              </AppField>
-            ) &&
-            providesOptions && (
-              <AppField
-                name='selectionCount'
-                validators={fieldValidators({
-                  onBlur: 'Enter a number of selections allowed',
-                  onChange: { type: 'number', min: 1, name: 'selectionCount' },
-                })}
-              >
-                {({ TextField }) => (
-                  <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                    <TextField required={true} label='# of Selections' />
-                  </Grid.Col>
-                )}
-              </AppField>
-            ) &&
-            hasPrerequisites && (
-              <Grid.Col>
-                <Prerequisites
-                  form={form}
-                  fields='prerequisites'
-                  __kind='FeatureExpertiseInput'
-                  updateFn={expertiseStore.updateField}
-                  removeFn={expertiseStore.removeField}
-                />
-              </Grid.Col>
-            )
-          )
-        }}
-      </Subscribe>
+                  )}
+                </>
+              )}
+            </Subscribe>
+          </>)}
+      {subtypeSpecific && __kind === 'ClassInput' && sectionCategory != null && subtypes?.length && (
+        <AppField
+          name='subtype'
+          validators={fieldValidators({
+            onBlur: 'Select a subtype',
+          })}
+        >
+          {({ DropdownField }) => (
+            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+              <DropdownField options={subtypes} required={true} label='Subclass Subtype' />
+            </Grid.Col>
+          )}
+        </AppField>
+      )}
+      {providesOptions && (
+        <AppField
+          name='selectionCount'
+          validators={fieldValidators({
+            onBlur: 'Enter a number of selections allowed',
+            onChange: { type: 'number', min: 1, name: 'selectionCount' },
+          })}
+        >
+          {({ TextField }) => (
+            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+              <TextField required={true} label='# of Selections' />
+            </Grid.Col>
+          )}
+        </AppField>
+      )}
+      {hasPrerequisites && (
+        <Grid.Col>
+          <Prerequisites
+            form={form}
+            fields='prerequisites'
+            __kind='FeatureExpertiseInput'
+            updateFn={updateField}
+            removeFn={removeField}
+          />
+        </Grid.Col>
+      )}
     </Grid>
   )
 }

@@ -22,12 +22,11 @@ const PointBuy = withFieldGroup({
     const { AppField } = group
 
     const store = useTypedFormStore<CharacterInput>()
-    const stepIndex = store((state) => state.stepIndex)
     const updateField = store((state) => state.updateField)
     const pointBuy = store((state) => state.current?.abilities?.pointBuy)
     const scores = store((state) => state.current?.abilities?.scores)
 
-    const { fieldListeners } = useFieldUpdates({ data: 'form', path: 'abilities', stepIndex })
+    const { fieldListeners } = useFieldUpdates({ data: 'form', path: 'abilities' })
 
     const { rules, abilities } = useSystemData()
 

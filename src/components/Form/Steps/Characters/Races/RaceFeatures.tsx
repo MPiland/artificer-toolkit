@@ -14,10 +14,9 @@ const RaceFeatures = withForm({
     const { AppField } = form
 
     const store = useTypedFormStore<CharacterInput>()
-    const stepIndex = store((state) => state.stepIndex)
     const current = store((state) => state.current)
 
-    const { fieldListeners } = useFieldUpdates({ data: 'form', stepIndex })
+    const { fieldListeners } = useFieldUpdates({ data: 'form' })
 
     const {
       races: { findRace, findLineages },

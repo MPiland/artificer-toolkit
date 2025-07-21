@@ -91,14 +91,20 @@ export const processArrayValue = (value: unknown[], shouldTruncate: boolean, tru
   }
 }
 
-type RawDataObject = {
-  id: string
-  label: string
-  [key: string]: unknown
-}
-
 // Extract lookup data from raw source data
-export const extractLookupData = (rawData: RawDataObject | RawDataObject[]): LookupItem[] => {
+export const extractLookupData = (
+  rawData:
+    | {
+        id: string
+        label: string
+        [key: string]: unknown
+      }
+    | {
+        id: string
+        label: string
+        [key: string]: unknown
+      }[]
+): LookupItem[] => {
   let lookupData: LookupItem[] = []
 
   if (Array.isArray(rawData)) {

@@ -24,7 +24,7 @@ export interface FormStore<T extends FormDataType> {
   addClass: boolean
   changeRace: boolean
   formReset: (values?: Partial<T>) => void
-  resetStep: () => void
+  resetStepFields: () => void
   setCurrent: (arg: T | null) => void
   setAddClass: (arg: boolean) => void
   setChangeRace: (arg: boolean) => void
@@ -50,14 +50,14 @@ export const useFormStore = create<FormStore<FormDataType>>()(
         addClass: false,
         changeRace: false,
         formReset: () => undefined,
-        resetStep: () =>
+        resetStepFields: () =>
           set((state) => {
             const values = state.steps[state.stepIndex].defaultValues
-            const newCurrentState = { ...state.current, ...values } as FormDataType
+            const newCurrentState = { ...state.current, ...values }
             state.formReset(newCurrentState)
             return {
               ...state,
-              current: newCurrentState,
+              current: newCurrentState as FormDataType,
             }
           }),
         setCurrent: (value) => set((state) => ({ ...state, current: value })),

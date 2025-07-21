@@ -15,10 +15,9 @@ const Spellcasting = withFieldGroup({
   render: function Render({ group, magicName, preparesSpells }) {
     const store = useTypedFormStore<ClassInput>()
     const prepareLimit = store((state) => state.current?.spellcasting?.prepareLimit)
-    const stepIndex = store((state) => state.stepIndex)
     const { AppField } = group
 
-    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form', path: 'spellcasting', stepIndex })
+    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form', path: 'spellcasting' })
 
     const { charges, abilities, rules, attributes } = useSystemData()
     return (

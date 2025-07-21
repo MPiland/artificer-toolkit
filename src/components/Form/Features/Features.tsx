@@ -24,7 +24,15 @@ import {
 } from '@/schemas'
 import { useFeatureStore, useFormStore, useFeatureOptionStore } from '@/store'
 import { ModalContext } from '@/components/Modal'
-import { useBackgroundData, useFeatData, useEquipmentData, useClassData, useRaceData, useFeatureData } from '@/hooks'
+import {
+  useBackgroundData,
+  useFeatData,
+  useEquipmentData,
+  useClassData,
+  useRaceData,
+  useFeatureData,
+  useSystemPref,
+} from '@/hooks'
 import { v4 as uuidv4 } from 'uuid'
 import { Outlet } from '@tanstack/react-router'
 import Accordion from '@/components/Accordion'
@@ -32,9 +40,21 @@ import { startCase } from 'lodash'
 import parse from 'html-react-parser'
 import { description } from './Feature.css'
 import { convertTypenameToKindInput } from '@/utils'
+import { AuthContext } from '@/pages/auth/AuthContext'
 
 const Features = () => {
-  const formStore = useFormStore()
+  const { user } = use(AuthContext)
+  const [systemPref] = useSystemPref()
+
+  const current = useFormStore((state) => state.current)
+  const removeField = useFormStore((state) => state.removeField)
+
+  const featureCurrent = useFeatureStore((state) => state.current)
+  const featureStep = useFeatureStore((state) => state.step)
+  const featureSetCurrent = useFeatureStore((state) => state.setCurrent)
+  const featureSetStep = useFeatureStore((state) => state.setStep)
+
+  const optionCurrent = useFeatureOptionStore((state) => state.current)
 
   const form = useAppForm({
     defaultValues: z
@@ -46,11 +66,11 @@ const Features = () => {
         BackgroundInputSchema,
         FeatInputSchema,
       ])
-      .parse(formStore.current),
+      .parse(current),
   })
 
-  const category = (formStore.current as RaceInput | ClassInput)?.category
-  const subtypes = (formStore.current as ClassInput)?.subtypes || []
+  const category = (current as RaceInput | ClassInput)?.category
+  const subtypes = (current as ClassInput)?.subtypes || []
 
   const sectionStepComponent: {
     [K in (typeof SECTION_STEPS)[number]]?: ReactElement
@@ -64,9 +84,6 @@ const Features = () => {
   }
 
   const { AppField } = form
-
-  const featureStore = useFeatureStore()
-  const optionStore = useFeatureOptionStore()
   const { showModal } = use(ModalContext)
 
   const { races, metaData: raceMetaData } = useRaceData()
@@ -77,19 +94,22 @@ const Features = () => {
   const { features: featureData, featureOptions: optionData } = useFeatureData()
 
   const featureTitle =
-    featureStore.current?.label != null &&
-    featureStore.current?.label !== '' &&
-    `(${featureStore.step === 'options' ? (optionStore.current?.label ?? '') : ((featureStore.step === 'features' && featureStore.current?.label) ?? '')})`
+    featureCurrent?.label != null &&
+    featureCurrent?.label !== '' &&
+    `(${featureStep === 'options' ? (optionCurrent?.label ?? '') : ((featureStep === 'features' && featureCurrent?.label) ?? '')})`
 
   // Add feature
   const handleAddFeature = () => {
-    featureStore.setCurrent(
-      FeatureInputSchema.parse({
-        id: uuidv4(),
-        __kind: 'FeatureInput',
-      })
-    )
-    featureStore.setStep('features')
+    const featureInputObj = FeatureInputSchema.parse({
+      id: uuidv4(),
+      __kind: 'FeatureInput',
+      label: '',
+      ownerId: user?.userId,
+      systemId: systemPref,
+      masterId: undefined,
+    })
+    featureSetCurrent(featureInputObj)
+    featureSetStep('features')
   }
 
   // Edit feature
@@ -97,14 +117,14 @@ const Features = () => {
     const featureState = featureData.find((feature) => feature.id === id)
     if (!featureState) return
     const featureInput = FeatureInputSchema.parse(convertTypenameToKindInput(featureState))
-    featureStore.setCurrent(featureInput)
-    featureStore.setStep('features')
+    featureSetCurrent(featureInput)
+    featureSetStep('features')
   }
 
   const onCopyConfirm = (selectedFeature: FeatureOutput) => {
     const feature = FeatureInputSchema.parse({ ...selectedFeature, id: uuidv4() })
-    featureStore.setCurrent(feature)
-    featureStore.setStep('features')
+    featureSetCurrent(feature)
+    featureSetStep('features')
   }
 
   // Copy feature
@@ -149,7 +169,7 @@ const Features = () => {
 
   return (
     <Grid>
-      {featureStore.step == null ?
+      {featureStep == null ?
         <>
           <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
             <Button variant='outline' fullWidth onClick={handleAddFeature} className={sprinkles({ me: 'space-4' })}>
@@ -177,7 +197,7 @@ const Features = () => {
                             <Accordion.Trigger
                               removeFn={() => {
                                 features.removeValue(i)
-                                formStore.removeField({ path: `features.${i}` })
+                                removeField({ path: `features.${i}` })
                               }}
                               editFn={() => handleEditFeature(f)}
                               title={feature.label != null && feature.label !== '' ? feature.label : `feature ${i + 1}`}
@@ -231,9 +251,9 @@ const Features = () => {
           <Grid.Col>
             <h2 className={sprinkles({ mb: 'space-2' })}>{featureTitle}</h2>
           </Grid.Col>
-          {featureStore.step === 'options' || featureStore.step === 'features' ?
+          {featureStep === 'options' || featureStep === 'features' ?
             <Feature />
-          : sectionStepComponent[featureStore.step]}
+          : sectionStepComponent[featureStep]}
         </>
       }
     </Grid>

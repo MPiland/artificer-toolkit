@@ -18,9 +18,8 @@ const ProficienciesStep = withForm({
     const removeField = store((state) => state.removeField)
     const updateField = store((state) => state.updateField)
     const subtypes = store((state) => state.current?.subtypes)
-    const stepIndex = store((state) => state.stepIndex)
 
-    const { fieldValidators, fieldListeners } = useFieldUpdates({ data: 'form', stepIndex })
+    const { fieldValidators, fieldListeners } = useFieldUpdates({ data: 'form' })
 
     const {
       proficiencies: systemProficiencies,

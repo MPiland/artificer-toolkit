@@ -54,13 +54,11 @@ const CharacterClass = withFieldGroup({
     const { AppField, Subscribe } = group
 
     const store = useTypedFormStore<CharacterInput>()
-    const stepIndex = store((state) => state.stepIndex)
     const uClass = store((state) => state.current?.classes?.[classIndex])
 
     const { fieldListeners, fieldValidators } = useFieldUpdates({
       data: 'form',
       replaceFn: (name) => name.replace('classInput', `classes[${classIndex}]`),
-      stepIndex,
     })
 
     const { system } = useSystemData()

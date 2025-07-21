@@ -6,19 +6,14 @@ import { useSystemData, useFieldUpdates } from '@/hooks'
 import { Grid } from '@mantine/core'
 import { CharacterInputSchema } from '@/schemas'
 import { withForm, StandardArray, ManualArray, AbilityCard, PointBuy } from '@/components/Form'
-import { useTypedFormStore } from '@/store'
 import { z } from 'zod/v4'
-import type { CharacterInput } from '@/types'
 
 const AbilitiesStep = withForm({
   defaultValues: {} as z.input<typeof CharacterInputSchema>,
   render: function Render({ form }) {
     const { AppField, Subscribe } = form
 
-    const store = useTypedFormStore<CharacterInput>()
-    const stepIndex = store((state) => state.stepIndex)
-
-    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form', stepIndex })
+    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form' })
 
     const {
       rules,

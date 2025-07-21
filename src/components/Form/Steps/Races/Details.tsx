@@ -16,12 +16,11 @@ const DetailsStep = withForm({
     const { AppField } = form
 
     const store = useTypedFormStore<RaceInput>()
-    const stepIndex = store((state) => state.stepIndex)
     const category = store((state) => state.current?.category)
     const updateField = store((state) => state.updateField)
     const removeField = store((state) => state.removeField)
 
-    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form', stepIndex })
+    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form' })
 
     const { categories } = useSystemData()
     const { races } = useRaceData()

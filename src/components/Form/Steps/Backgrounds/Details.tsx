@@ -14,11 +14,10 @@ const DetailsStep = withForm({
   render: function Render({ form }) {
     const updateField = useFormStore((state) => state.updateField)
     const removeField = useFormStore((state) => state.removeField)
-    const stepIndex = useFormStore((state) => state.stepIndex)
 
     const { AppField } = form
 
-    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form', stepIndex })
+    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form' })
 
     return (
       <Grid>

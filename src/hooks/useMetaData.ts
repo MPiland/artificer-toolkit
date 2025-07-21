@@ -2,7 +2,7 @@ import { get } from 'lodash'
 import { useCallback } from 'react'
 import type { ListItemType, MetaDataType } from '@/types'
 import type { FooterObject, FooterConfig, FooterPathObject, FooterPath } from '@/components/List'
-import type { DropdownOption } from '@/components/Dropdown'
+import type { DropdownOption } from '@/components/Form/Dropdown'
 import { useSystemData, useClassData } from '@/hooks'
 import { extractLookupData, getLabelFromId } from '@/utils'
 

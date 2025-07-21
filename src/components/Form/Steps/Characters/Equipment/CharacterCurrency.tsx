@@ -16,7 +16,6 @@ const CharacterCurrency = withFieldGroup({
     const { AppField, Subscribe } = group
 
     const store = useTypedFormStore<CharacterInput>()
-    const stepIndex = store((state) => state.stepIndex)
     const updateField = store((state) => state.updateField)
     const currencyGroups = store((state) => state.current?.currencyGroups)
 
@@ -24,7 +23,7 @@ const CharacterCurrency = withFieldGroup({
 
     const sm = useMediaQuery('(max-width: 567px)')
 
-    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form', path: 'currencyGroups', stepIndex })
+    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form', path: 'currencyGroups' })
 
     // Initialize currencies into data
     useEffect(() => {

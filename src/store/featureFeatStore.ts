@@ -3,6 +3,7 @@ import type { FeatureFeatInput } from '@/types'
 import { persist, type StorageValue } from 'zustand/middleware'
 import { updateField, removeField } from './utils'
 import type { DeepKeys } from '@tanstack/react-form'
+import { set as lSet } from 'lodash'
 
 export interface FeatureFeatStore {
   current: FeatureFeatInput | null
@@ -10,8 +11,13 @@ export interface FeatureFeatStore {
   edited: Map<string, FeatureFeatInput>
   valid: Map<string, boolean>
   removed: Set<string>
-  formReset: (() => void) | null
-  registerFormReset: (reset: () => void) => void
+  fieldValidation?: Record<string, boolean>
+  defaultValues?: Partial<FeatureFeatInput>
+  formReset: (values?: Partial<FeatureFeatInput>) => void
+  resetFormFields: () => void
+  registerForm: (reset: () => void) => void
+  updateDefaultValues: ({ path, value }: { path: string; value: unknown }) => void
+  setFieldValidation: (args: { fieldName: string; isValid: boolean }) => void
   setCurrent: (arg: FeatureFeatInput | null) => void
   upsertAdded: (arg: FeatureFeatInput) => void
   upsertEdited: (arg: FeatureFeatInput) => void
@@ -31,9 +37,32 @@ export const useFeatureFeatStore = create<FeatureFeatStore>()(
         edited: new Map<string, FeatureFeatInput>(),
         valid: new Map<string, boolean>(),
         removed: new Set<string>(),
-        formReset: null,
+        fieldValidation: undefined,
+        defaultValues: undefined,
+        formReset: () => undefined,
+        resetFormFields: () =>
+          set((state) => {
+            const values = state.defaultValues
+            const newCurrentState = { ...state.current, ...values }
+            state.formReset(newCurrentState)
+            return {
+              ...state,
+              current: newCurrentState as FeatureFeatInput,
+            }
+          }),
+        setFieldValidation: ({ fieldName, isValid }) =>
+          set((state) => ({
+            ...state,
+            fieldValidation: { ...state.fieldValidation, [fieldName]: isValid },
+          })),
+        updateDefaultValues: ({ path, value }) =>
+          set((state) => {
+            const defaultValues = { ...state.defaultValues }
+            lSet(defaultValues, path, value)
+            return { ...state, defaultValues }
+          }),
         setCurrent: (value) => set((state) => ({ ...state, current: value })),
-        registerFormReset: (value) => set((state) => ({ ...state, formReset: value })),
+        registerForm: (reset) => set((state) => ({ ...state, formReset: reset })),
         upsertAdded: (feat) =>
           set((state) => {
             const newMap = new Map(state.added)

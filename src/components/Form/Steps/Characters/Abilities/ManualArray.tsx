@@ -28,7 +28,6 @@ const ManualArray = withFieldGroup({
     const { AppField } = group
 
     const store = useTypedFormStore<CharacterInput>()
-    const stepIndex = store((state) => state.stepIndex)
     const updateField = store((state) => state.updateField)
     const manualRolled = store((state) => state.current?.abilities?.manualRolled)
     const scores = store((state) => state.current?.abilities?.scores)
@@ -36,7 +35,7 @@ const ManualArray = withFieldGroup({
     const manual = store((state) => state.current?.abilities?.manualRolled?.manual)
     const configuration = store((state) => state.current?.abilities?.manualRolled?.configuration)
 
-    const { fieldListeners } = useFieldUpdates({ data: 'form', path: 'abilities', stepIndex })
+    const { fieldListeners } = useFieldUpdates({ data: 'form', path: 'abilities' })
 
     const { abilities } = useSystemData()
 

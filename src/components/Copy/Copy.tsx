@@ -1,6 +1,6 @@
 import { use, useEffect, useMemo, useState } from 'react'
 import { startCase } from 'lodash'
-import Dropdown from '@/components/Dropdown'
+import Dropdown from '@/components/Form/Dropdown'
 import { Button } from '@mantine/core'
 import { sprinkles } from '@/css/sprinkles.css'
 import type {

@@ -15,9 +15,8 @@ const DetailsStep = withForm({
     const store = useTypedFormStore<EquipmentInput>()
     const category = store((state) => state.current?.category)
     const properties = store((state) => state.current?.properties)
-    const stepIndex = store((state) => state.stepIndex)
 
-    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form', stepIndex })
+    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form' })
 
     const { equipment, currencies, rules } = useSystemData()
 

@@ -4,20 +4,24 @@ import type { FeatureInput } from '@/types'
 import type { DeepKeys } from '@tanstack/react-form'
 import { updateField, removeField } from './utils'
 import { SECTION_STEPS } from '@/components/Form'
+import { set as lSet } from 'lodash'
 
 export interface FeatureStore {
   current: FeatureInput | null
   step: (typeof SECTION_STEPS)[number] | 'options' | 'features' | null
   added: Map<string, FeatureInput>
   edited: Map<string, FeatureInput>
-  valid: Map<string, boolean>
   removed: Set<string>
-  formReset: () => void
-  registerFormReset: (reset: () => void) => void
+  fieldValidation?: Record<string, boolean>
+  defaultValues?: Partial<FeatureInput>
+  formReset: (values?: Partial<FeatureInput>) => void
+  resetFormFields: () => void
+  registerForm: (reset: () => void) => void
+  updateDefaultValues: ({ path, value }: { path: string; value: unknown }) => void
+  setFieldValidation: (args: { fieldName: string; isValid: boolean }) => void
   setCurrent: (arg: FeatureInput | null) => void
   upsertAdded: (arg: FeatureInput) => void
   upsertEdited: (arg: FeatureInput) => void
-  upsertValid: (arg: string, isValid: boolean) => void
   remove: (id: string) => void
   setStep: (arg: (typeof SECTION_STEPS)[number] | 'options' | 'features' | null) => void
   updateField<T>(arg: { path: DeepKeys<T>; value: unknown }): void
@@ -33,10 +37,32 @@ export const useFeatureStore = create<FeatureStore>()(
         step: null,
         added: new Map<string, FeatureInput>(),
         edited: new Map<string, FeatureInput>(),
-        valid: new Map<string, boolean>(),
         removed: new Set<string>(),
+        fieldValidation: undefined,
+        defaultValues: undefined,
         formReset: () => undefined,
-        registerFormReset: (reset) => set((state) => ({ ...state, formReset: reset })),
+        resetFormFields: () =>
+          set((state) => {
+            const values = state.defaultValues
+            const newCurrentState = { ...state.current, ...values }
+            state.formReset(newCurrentState)
+            return {
+              ...state,
+              current: newCurrentState as FeatureInput,
+            }
+          }),
+        setFieldValidation: ({ fieldName, isValid }) =>
+          set((state) => ({
+            ...state,
+            fieldValidation: { ...state.fieldValidation, [fieldName]: isValid },
+          })),
+        updateDefaultValues: ({ path, value }) =>
+          set((state) => {
+            const defaultValues = { ...state.defaultValues }
+            lSet(defaultValues, path, value)
+            return { ...state, defaultValues }
+          }),
+        registerForm: (reset) => set((state) => ({ ...state, formReset: reset })),
         setCurrent: (value) => set((state) => ({ ...state, current: value })),
         upsertAdded: (feature) =>
           set((state) => {
@@ -49,12 +75,6 @@ export const useFeatureStore = create<FeatureStore>()(
             const newMap = new Map(state.edited)
             newMap.set(feature.id, feature)
             return { edited: newMap }
-          }),
-        upsertValid: (id: string, isValid: boolean) =>
-          set((state) => {
-            const newMap = new Map(state.valid)
-            newMap.set(id, isValid)
-            return { valid: newMap }
           }),
         remove: (id: string) =>
           set((state) => {
@@ -89,7 +109,6 @@ export const useFeatureStore = create<FeatureStore>()(
             step: null,
             added: new Map(),
             edited: new Map(),
-            valid: new Map(),
             removed: new Set(),
             formReset: () => undefined,
           })),
@@ -108,7 +127,6 @@ export const useFeatureStore = create<FeatureStore>()(
               ...existingValue.state,
               added: new Map(existingValue.state.added),
               edited: new Map(existingValue.state.edited),
-              valid: new Map(existingValue.state.valid),
               removed: new Set(existingValue.state.removed),
             },
           }
@@ -120,7 +138,6 @@ export const useFeatureStore = create<FeatureStore>()(
               ...newValue.state,
               added: Array.from(newValue.state.added.entries()),
               edited: Array.from(newValue.state.edited.entries()),
-              valid: Array.from(newValue.state.valid.entries()),
               removed: Array.from(newValue.state.removed.values()),
             },
           })

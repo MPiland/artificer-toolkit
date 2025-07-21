@@ -26,9 +26,8 @@ const AttributesStep = withForm({
     const category = store((state) => state.current?.category)
     const removeField = store((state) => state.removeField)
     const updateField = store((state) => state.updateField)
-    const stepIndex = store((state) => state.stepIndex)
 
-    const { fieldValidators, fieldListeners } = useFieldUpdates({ data: 'form', stepIndex })
+    const { fieldValidators, fieldListeners } = useFieldUpdates({ data: 'form' })
 
     const { attributes } = useSystemData()
 

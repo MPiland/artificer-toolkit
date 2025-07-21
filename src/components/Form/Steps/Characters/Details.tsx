@@ -2,19 +2,14 @@ import { useSystemData, useFieldUpdates } from '@/hooks'
 import { Grid } from '@mantine/core'
 import { withForm } from '@/components/Form'
 import { CharacterInputSchema } from '@/schemas'
-import { useTypedFormStore } from '@/store'
 import { z } from 'zod/v4'
-import type { CharacterInput } from '@/types'
 
 const DetailsStep = withForm({
   defaultValues: {} as z.input<typeof CharacterInputSchema>,
   render: function Render({ form }) {
     const { AppField } = form
 
-    const store = useTypedFormStore<CharacterInput>()
-    const stepIndex = store((state) => state.stepIndex)
-
-    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form', stepIndex })
+    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form' })
 
     const { characters } = useSystemData()
 

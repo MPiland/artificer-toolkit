@@ -28,12 +28,11 @@ const ClassProficiencies = withFieldGroup({
 
     const store = useTypedFormStore<CharacterInput>()
     const classInput = store((state) => state.current?.classes?.[classIndex])
-    const stepIndex = store((state) => state.stepIndex)
     const formProficiencies = store((state) => state.current?.proficiencies)
     const updateField = store((state) => state.updateField)
     const removeField = store((state) => state.removeField)
 
-    const { fieldListeners } = useFieldUpdates({ data: 'form', stepIndex })
+    const { fieldListeners } = useFieldUpdates({ data: 'form' })
 
     const fullClass = findClass(classInput?.id)!
 

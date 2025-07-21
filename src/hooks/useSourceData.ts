@@ -46,7 +46,15 @@ const useSourceData = () => {
 
       // If we have a path, look in that specific path of the source data
       const rawData = item.source.path ? get(sourceData, item.source.path) : sourceData
-      if (!rawData) return null
+      if (
+        !rawData ||
+        typeof rawData === 'string' ||
+        typeof rawData === 'number' ||
+        typeof rawData === 'boolean' ||
+        !('id' in rawData) ||
+        !('label' in rawData)
+      )
+        return null
 
       const lookupData = extractLookupData(rawData)
 

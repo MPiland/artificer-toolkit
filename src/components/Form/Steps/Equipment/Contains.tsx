@@ -2,19 +2,14 @@ import { useEquipmentData, useFieldUpdates } from '@/hooks'
 import { Grid } from '@mantine/core'
 import { withForm } from '@/components/Form'
 import { EquipmentInputSchema } from '@/schemas'
-import { useTypedFormStore } from '@/store'
 import { z } from 'zod/v4'
-import type { EquipmentInput } from '@/types'
 
 const ContainsStep = withForm({
   defaultValues: {} as z.input<typeof EquipmentInputSchema>,
   render: function Render({ form }) {
     const { AppField } = form
 
-    const store = useTypedFormStore<EquipmentInput>()
-    const stepIndex = store((state) => state.stepIndex)
-
-    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form', stepIndex })
+    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form' })
 
     const { equipment } = useEquipmentData()
 

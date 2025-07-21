@@ -14,12 +14,11 @@ const StandardArray = withFieldGroup({
     const { AppField } = group
 
     const store = useTypedFormStore<CharacterInput>()
-    const stepIndex = store((state) => state.stepIndex)
     const updateField = store((state) => state.updateField)
     const standardArray = store((state) => state.current?.abilities?.standardArray)
     const scores = store((state) => state.current?.abilities?.scores)
 
-    const { fieldListeners } = useFieldUpdates({ data: 'form', path: 'abilities', stepIndex })
+    const { fieldListeners } = useFieldUpdates({ data: 'form', path: 'abilities' })
 
     const { rules, abilities } = useSystemData()
 

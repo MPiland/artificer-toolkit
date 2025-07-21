@@ -22,14 +22,13 @@ const AttributesStep = withForm({
     const upcast = store((state) => state.current?.upcast)
     const removeField = store((state) => state.removeField)
     const updateField = store((state) => state.updateField)
-    const stepIndex = store((state) => state.stepIndex)
     const duration = store((state) => state.current?.duration)
     const range = store((state) => state.current?.range)
     const shape = store((state) => state.current?.shape)
 
     const { AppField, setFieldValue } = form
 
-    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form', stepIndex })
+    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form' })
 
     const {
       attributes,

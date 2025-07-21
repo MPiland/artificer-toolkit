@@ -3,6 +3,7 @@ import type { AncestryOptionInput } from '@/types'
 import { persist, type StorageValue } from 'zustand/middleware'
 import { updateField, removeField } from './utils'
 import type { DeepKeys } from '@tanstack/react-form'
+import { set as lSet } from 'lodash'
 
 export interface AncestryOptionStore {
   current: AncestryOptionInput | null
@@ -12,6 +13,13 @@ export interface AncestryOptionStore {
   valid: Map<string, boolean>
   optionIndex: number
   step: 'ancestryOption' | null
+  fieldValidation?: Record<string, boolean>
+  defaultValues?: Partial<AncestryOptionInput>
+  formReset: (values?: Partial<AncestryOptionInput>) => void
+  resetFormFields: () => void
+  registerForm: (reset: () => void) => void
+  updateDefaultValues: ({ path, value }: { path: string; value: unknown }) => void
+  setFieldValidation: (args: { fieldName: string; isValid: boolean }) => void
   setStep: (arg: 'ancestryOption' | null) => void
   setOptionIndex: (arg: number) => void
   setCurrent: (arg: AncestryOptionInput | null) => void
@@ -34,6 +42,31 @@ export const useAncestryOptionStore = create<AncestryOptionStore>()(
         valid: new Map<string, boolean>(),
         removed: new Set<string>(),
         step: null,
+        fieldValidation: undefined,
+        defaultValues: undefined,
+        formReset: () => undefined,
+        resetFormFields: () =>
+          set((state) => {
+            const values = state.defaultValues
+            const newCurrentState = { ...state.current, ...values }
+            state.formReset(newCurrentState)
+            return {
+              ...state,
+              current: newCurrentState as AncestryOptionInput,
+            }
+          }),
+        setFieldValidation: ({ fieldName, isValid }) =>
+          set((state) => ({
+            ...state,
+            fieldValidation: { ...state.fieldValidation, [fieldName]: isValid },
+          })),
+        updateDefaultValues: ({ path, value }) =>
+          set((state) => {
+            const defaultValues = { ...state.defaultValues }
+            lSet(defaultValues, path, value)
+            return { ...state, defaultValues }
+          }),
+        registerForm: (reset) => set((state) => ({ ...state, formReset: reset })),
         setStep: (value) => set((state) => ({ ...state, step: value })),
         optionIndex: 0,
         setOptionIndex: (value) => set((state) => ({ ...state, optionIndex: value })),

@@ -10,8 +10,6 @@ import {
   CharacterCurrency,
 } from '@/components/Form'
 import { CharacterInputSchema } from '@/schemas'
-import { useTypedFormStore } from '@/store'
-import type { CharacterInput } from '@/types'
 import type { z } from 'zod/v4'
 
 const BackgroundStep = withForm({
@@ -19,10 +17,7 @@ const BackgroundStep = withForm({
   render: function Render({ form }) {
     const { AppField } = form
 
-    const store = useTypedFormStore<CharacterInput>()
-    const stepIndex = store((state) => state.stepIndex)
-
-    const { fieldListeners } = useFieldUpdates({ data: 'form', stepIndex })
+    const { fieldListeners } = useFieldUpdates({ data: 'form' })
 
     const { backgrounds } = useBackgroundData()
 

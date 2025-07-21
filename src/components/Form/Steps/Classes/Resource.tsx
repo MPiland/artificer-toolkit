@@ -11,11 +11,10 @@ const Resource = withFieldGroup({
   render: function Render({ group }) {
     const store = useTypedFormStore<ClassInput>()
     const resource = store((state) => state.current?.resource)
-    const stepIndex = store((state) => state.stepIndex)
 
     const { AppField } = group
 
-    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form', path: 'resource', stepIndex })
+    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form', path: 'resource' })
 
     const { charges: systemCharges, abilities } = useSystemData()
     return (

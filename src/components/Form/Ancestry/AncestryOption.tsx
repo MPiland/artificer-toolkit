@@ -6,58 +6,53 @@ import { Grid, Button } from '@mantine/core'
 import { description, useAppForm } from '@/components/Form'
 import { FeatureInputSchema, AncestryOptionInputSchema } from '@/schemas'
 import { useAncestryOptionStore, useFeatureStore } from '@/store'
-import { useStore } from '@tanstack/react-form'
 import { v4 as uuidv4 } from 'uuid'
 import { sprinkles } from '@/css/sprinkles.css'
 import { useFeatureData, useFieldUpdates } from '@/hooks'
 
 const AncestryOption = () => {
-  const ancestryStore = useAncestryOptionStore()
+  const current = useAncestryOptionStore((state) => state.current)
+  const setCurrentFeature = useFeatureStore((state) => state.setCurrent)
+  const setFeatureStep = useFeatureStore((state) => state.setStep)
+  const removeField = useFeatureStore((state) => state.removeField)
+  const label = useAncestryOptionStore((state) => state.current?.label)
+  const features = useAncestryOptionStore((state) => state.current?.features)
 
   const form = useAppForm({
-    defaultValues: AncestryOptionInputSchema.parse(ancestryStore.current),
+    defaultValues: AncestryOptionInputSchema.parse(current),
   })
 
-  const { AppField, Subscribe } = form
+  const { AppField } = form
 
   const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'ancestryOption' })
 
-  const featureStore = useFeatureStore()
-  const {
-    features: { findFeature },
-  } = useFeatureData()
-  const { features } = useStore(form.store, (state) => ({
-    features: state.values.features,
-  }))
+  const { features: featuresData } = useFeatureData()
 
   // Add feature
   const handleAddFeature = () => {
     const newFeature = FeatureInputSchema.parse({
       id: uuidv4(),
-      ancestryId: ancestryStore.current?.id,
+      ancestryId: current?.id,
+      label: '',
     })
-    featureStore.setCurrent(newFeature)
-    featureStore.setStep('features')
+    setCurrentFeature(newFeature)
+    setFeatureStep('features')
   }
 
   // Edit feature
   const handleEditFeature = (i: number) => {
     if (features?.[i]) {
-      const featureInputObj = FeatureInputSchema.parse(features?.[i])
-      featureStore.setCurrent(featureInputObj)
-      featureStore.setStep('features')
+      const featureInputObj = FeatureInputSchema.parse(features[i])
+      setCurrentFeature(featureInputObj)
+      setFeatureStep('features')
     }
   }
 
   return (
     <>
-      <Subscribe selector={(state) => state.values.label}>
-        {(label) => (
-          <Grid.Col>
-            <h2 className={sprinkles({ mb: 'space-2' })}>{label}</h2>
-          </Grid.Col>
-        )}
-      </Subscribe>
+      <Grid.Col>
+        <h2 className={sprinkles({ mb: 'space-2' })}>{label}</h2>
+      </Grid.Col>
       <AppField
         name='label'
         validators={fieldValidators({
@@ -86,16 +81,19 @@ const AncestryOption = () => {
         {(features) =>
           features.state.value?.length && (
             <Grid.Col>
-              <Accordion dataArray={features.state.value} onChange={(dataArray) => features.handleChange(dataArray as string[])}>
+              <Accordion
+                dataArray={features.state.value}
+                onChange={(dataArray) => features.handleChange(dataArray as string[])}
+              >
                 {features.state.value?.map((f, i) => {
-                  const feature = findFeature(f)
+                  const feature = featuresData.find((feature) => feature.id === f)
                   if (feature) {
                     return (
                       <Accordion.Item key={`${i}-ancestry-option-feature`} itemId={String(i)} value={feature.id}>
                         <Accordion.Trigger
                           removeFn={() => {
                             features.removeValue(i)
-                            ancestryStore.removeField({ path: `features.${i}` })
+                            removeField({ path: `features.${i}` })
                           }}
                           editFn={() => handleEditFeature(i)}
                         >

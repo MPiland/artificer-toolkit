@@ -1,24 +1,13 @@
 import { z, ZodNumber, ZodString } from 'zod/v4'
-import {
-  useFeatureExpertiseStore,
-  useFeatureOptionStore,
-  useFeatureProficiencyStore,
-  useFeatureSenseStore,
-  useFeatureStore,
-  useFeatureSpellStore,
-  useFeatureFeatStore,
-  useFeatureModifierStore,
-  useAncestryOptionStore,
-  useFormStore,
-} from '@/store'
 import type { AnyFieldApi } from '@tanstack/react-form'
 import { DIE_REGEX, ROLL_CONFIG_REGEX } from '@/components/Form'
 import { get } from 'lodash'
+import { useStoreFunctions } from '@/hooks'
+import { useFormStore } from '@/store'
 
 export const useFieldUpdates = ({
   data,
   path,
-  stepIndex,
   replaceFn,
 }: {
   data:
@@ -36,33 +25,62 @@ export const useFieldUpdates = ({
   stepIndex?: number
   replaceFn?: (name: string) => string
 }) => {
-  const formUpdateField = useFormStore((state) => state.updateField)
-  const formSetFieldValidation = useFormStore((state) => state.setFieldValidation)
-  const formUpdateDefaultValues = useFormStore((state) => state.updateDefaultValues)
-  const formSteps = useFormStore((state) => state.steps)
-  const formStepIndex = useFormStore((state) => state.stepIndex)
+  const { feature, form, option, ancestry, proficiency, expertise, sense, spell, feat, modifier } = useStoreFunctions()
 
-  const featureUpdateField = useFeatureStore((state) => state.updateField)
-  const optionUpdateField = useFeatureOptionStore((state) => state.updateField)
-  const ancestryOptionUpdateField = useAncestryOptionStore((state) => state.updateField)
-  const proficiencyUpdateField = useFeatureProficiencyStore((state) => state.updateField)
-  const expertiseUpdateField = useFeatureExpertiseStore((state) => state.updateField)
-  const senseUpdateField = useFeatureSenseStore((state) => state.updateField)
-  const spellUpdateField = useFeatureSpellStore((state) => state.updateField)
-  const featUpdateField = useFeatureFeatStore((state) => state.updateField)
-  const modifierUpdateField = useFeatureModifierStore((state) => state.updateField)
+  const stepIndex = useFormStore((state) => state.stepIndex)
+  const steps = useFormStore((state) => state.steps)
 
   const updateMap = {
-    form: formUpdateField,
-    feature: featureUpdateField,
-    option: optionUpdateField,
-    ancestryOption: ancestryOptionUpdateField,
-    proficiency: proficiencyUpdateField,
-    expertise: expertiseUpdateField,
-    sense: senseUpdateField,
-    spell: spellUpdateField,
-    feat: featUpdateField,
-    modifier: modifierUpdateField,
+    form: {
+      update: form.updateField,
+      defaultValues: form.updateDefaultValues,
+      validation: form.setFieldValidation,
+    },
+    feature: {
+      update: feature.updateField,
+      defaultValues: feature.updateDefaultValues,
+      validation: feature.setFieldValidation,
+    },
+    option: {
+      update: option.updateField,
+      defaultValues: option.updateDefaultValues,
+      validation: option.setFieldValidation,
+    },
+    ancestryOption: {
+      update: ancestry.updateField,
+      defaultValues: ancestry.updateDefaultValues,
+      validation: ancestry.setFieldValidation,
+    },
+    proficiency: {
+      update: proficiency.updateField,
+      defaultValues: proficiency.updateDefaultValues,
+      validation: proficiency.setFieldValidation,
+    },
+    expertise: {
+      update: expertise.updateField,
+      defaultValues: expertise.updateDefaultValues,
+      validation: expertise.setFieldValidation,
+    },
+    sense: {
+      update: sense.updateField,
+      defaultValues: sense.updateDefaultValues,
+      validation: sense.setFieldValidation,
+    },
+    spell: {
+      update: spell.updateField,
+      defaultValues: spell.updateDefaultValues,
+      validation: spell.setFieldValidation,
+    },
+    feat: {
+      update: feat.updateField,
+      defaultValues: feat.updateDefaultValues,
+      validation: feat.setFieldValidation,
+    },
+    modifier: {
+      update: modifier.updateField,
+      defaultValues: modifier.updateDefaultValues,
+      validation: modifier.setFieldValidation,
+    },
   }
 
   const handleBlur = ({
@@ -79,9 +97,9 @@ export const useFieldUpdates = ({
       : pathPrefix && pathPrefix !== '' ? '.'
       : '') +
       name
-    updateMap[data]({ path: pathName, value })
-    if (formSteps[formStepIndex].defaultValues && get(formSteps[formStepIndex].defaultValues, pathName) === undefined) {
-      formUpdateDefaultValues({ path: pathName, value: prevValue })
+    updateMap[data].update({ path: pathName, value })
+    if (steps[stepIndex].defaultValues && get(steps[stepIndex].defaultValues, pathName) === undefined && prevValue) {
+      updateMap[data].defaultValues({ path: pathName, value: prevValue })
     }
   }
 
@@ -94,12 +112,10 @@ export const useFieldUpdates = ({
       value: string | string[] | number | object | boolean | null | undefined
       fieldApi: AnyFieldApi
     }) => {
-      if (stepIndex !== undefined && formSteps[stepIndex].fieldValidation) {
-        formSetFieldValidation({ fieldName: fieldApi.name, isValid: fieldApi.state.meta.isValid })
-      }
+      updateMap[data].validation({ fieldName: fieldApi.name, isValid: fieldApi.state.meta.isValid })
       handleBlur({
         target: { name: fieldApi.name, value },
-        prevValue: fieldApi.options.defaultValue
+        prevValue: fieldApi.options.defaultValue,
       })
     },
   }

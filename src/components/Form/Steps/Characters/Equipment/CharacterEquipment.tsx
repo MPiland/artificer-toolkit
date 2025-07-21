@@ -18,12 +18,11 @@ const CharacterEquipmentStep = withForm({
     const { AppField } = form
 
     const store = useTypedFormStore<CharacterInput>()
-    const stepIndex = store((state) => state.stepIndex)
     const updateField = store((state) => state.updateField)
     const classes = store((state) => state.current?.classes)
     const classEquipment = store((state) => state.current?.classEquipment)
 
-    const { fieldListeners } = useFieldUpdates({ data: 'form', stepIndex })
+    const { fieldListeners } = useFieldUpdates({ data: 'form' })
 
     const [random, setRandom] = useState<boolean>(false)
 

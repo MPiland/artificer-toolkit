@@ -15,7 +15,6 @@ const Upcast = withFieldGroup({
   render: function Render({ group }) {
     const store = useTypedFormStore<SpellInput>()
     const upcastAttributes = store((state) => state.current?.upcast?.attributes)
-    const stepIndex = store((state) => state.stepIndex)
     const levels = store((state) => state.current?.upcast?.levels)
     const updateField = store((state) => state.updateField)
     const formAttributes = store((state) => [
@@ -38,7 +37,7 @@ const Upcast = withFieldGroup({
 
     const { setFieldValue, AppField } = group
 
-    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form', path: 'upcast', stepIndex })
+    const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'form', path: 'upcast' })
 
     const { attributes, spells, rules, abilities } = useSystemData()
 
