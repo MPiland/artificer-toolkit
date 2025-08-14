@@ -1,165 +1,129 @@
-import { Attributes, Categories, Sections } from '@/enums'
-import { useFieldUpdates, useSystemData, useEnumChecks } from '@/hooks'
-import { Grid } from '@mantine/core'
-import { useAppForm, Prerequisites } from '@/components/Form'
-import { FeatureSenseInputSchema } from '@/schemas'
-import { SubtypeInput } from '@/types'
-import { useFormStore, useFeatureSenseStore } from '@/store'
-import { useEffect } from 'react'
+import { Categories, Sections } from '~/enums'
+import { useFieldUpdates, useSystemData, useEnumChecks, useFormField } from '~/hooks'
+import { Stack } from '@mantine/core'
+import { Prerequisites } from '~/components/Form'
+import { FormDataType, CharacterInput, SpellInput } from '~/types'
+import { useOptimizedSelector, useTypedFormStore } from '~/store'
+import type { UnionToIntersection, SetOptional } from 'type-fest'
+import { useMemo, useCallback } from 'react'
 
-type SensesProps = {
-  category?: string
-  subtypes?: SubtypeInput[]
-}
+type FeaturePath =
+  | `ancestry.options[${number}].features[${number}].senses[${number}]`
+  | `ancestry.options[${number}].features[${number}].options[${number}].senses[${number}]`
+  | `features[${number}].senses[${number}]`
+  | `features[${number}].options[${number}].senses[${number}]`
 
-const Senses = ({ category, subtypes }: SensesProps) => {
-  const current = useFeatureSenseStore((state) => state.current)
-  const registerForm = useFeatureSenseStore((state) => state.registerForm)
-  const formReset = useFeatureSenseStore((state) => state.formReset)
-  const updateField = useFeatureSenseStore((state) => state.updateField)
-  const removeField = useFeatureSenseStore((state) => state.removeField)
-  const valid = useFeatureSenseStore((state) => state.valid)
-  const upsertValid = useFeatureSenseStore((state) => state.upsertValid)
-  const formAttributes = useFeatureSenseStore((state) => state.current?.attributes)
+type StoreType = UnionToIntersection<SetOptional<Exclude<FormDataType, CharacterInput | SpellInput>, '__kind'>>
 
-  const __kind = useFormStore((state) => state.current?.__kind)
+const Senses = () => {
+  const store = useTypedFormStore<StoreType>()
+  const { category, subtypes, formAttributes, meta, stateKind } = useOptimizedSelector(store, (state) => {
+    const { ancestryOptionIndex, featureIndex, optionIndex, sectionIndex } = state.meta.editing
 
-  const form = useAppForm({
-    defaultValues: FeatureSenseInputSchema.parse(current),
+    const feature =
+      featureIndex !== null ?
+        ancestryOptionIndex !== null && state.current?.__kind === 'RaceInput' ?
+          state.current?.ancestry?.options?.[ancestryOptionIndex]?.features?.[featureIndex]
+        : state.current?.features?.[featureIndex]
+      : undefined
+
+    const option = feature && (optionIndex !== null ? feature?.options?.[optionIndex] : undefined)
+
+    const section = option ? option?.senses?.[sectionIndex || 0] : feature?.senses?.[sectionIndex || 0]
+
+    return {
+      category: feature?.category,
+      subtypes: state.current?.__kind === 'ClassInput' ? state.current?.subtypes : undefined,
+      formAttributes: section?.attributes,
+      meta: state.meta,
+      stateKind: state.current?.__kind,
+    }
   })
 
-  const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'sense' })
-  const { AppField } = form
+  const computePath = useCallback(() => {
+    const segments: string[] = []
+
+    if (meta.editing.ancestryOptionIndex && stateKind === 'RaceInput') {
+      segments.push(`ancestry.options[${meta.editing.ancestryOptionIndex}]`)
+    }
+
+    if (meta.editing.featureIndex !== undefined) {
+      segments.push(`features[${meta.editing.featureIndex}]`)
+    }
+
+    if (meta.editing.optionIndex !== undefined) {
+      segments.push(`options[${meta.editing.optionIndex}]`)
+    }
+    segments.push(`senses[${meta.editing.sectionIndex || 0}]`)
+
+    return segments.join('.') + '.'
+  }, [meta, stateKind])
+
+  const formPath = useMemo(() => {
+    return computePath()
+  }, [computePath]) as FeaturePath
+
+  const { fieldListeners, fieldValidators } = useFieldUpdates()
+
+  const { AppField } = useFormField({ store })
 
   const { senses, attributes } = useSystemData()
   const { getAttributes } = useEnumChecks()
-
-  useEffect(() => {
-    if (!formReset) {
-      registerForm(form.reset)
-    }
-  }, [form.reset, registerForm, formReset])
-
-  useEffect(() => {
-    return form.store.subscribe((state) => {
-      const isValid = state.currentVal.isValid
-      if (current?.id && valid.get(current.id) !== isValid) {
-        upsertValid(current.id, isValid)
-      }
-    })
-  }, [valid, upsertValid, current?.id, form.store])
 
   const { subtypeSpecific, providesOptions, hasPrerequisites } = getAttributes({
     attributes: formAttributes || [],
   })
 
   return (
-    <Grid>
-      <AppField name='attributes' listeners={fieldListeners}>
+    <Stack>
+      <AppField name={`${formPath}.attributes`} listeners={fieldListeners}>
         {({ DropdownField }) => (
-          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-            <DropdownField
-              multiselect={true}
-              options={attributes.filter(
-                (attribute) =>
-                  attribute.sections &&
-                  (attribute.sections.includes(Sections.ALL) ||
-                    (category === Categories.SUBCLASS && attribute.sections.includes(Sections.SUBCLASS)))
-              )}
-              label='Sense Attributes'
-            />
-          </Grid.Col>
+          <DropdownField
+            multiselect={true}
+            options={attributes.filter(
+              (attribute) =>
+                attribute.sections &&
+                (attribute.sections.includes(Sections.ALL) ||
+                  (category === Categories.SUBCLASS && attribute.sections.includes(Sections.SUBCLASS)))
+            )}
+            label='Sense Attributes'
+          />
         )}
       </AppField>
       <AppField
-        name='ids'
+        name={`${formPath}.ids`}
         validators={fieldValidators({
           onBlur: 'Select at least one sense',
         })}
         listeners={fieldListeners}
       >
-        {({ DropdownField }) => (
-          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-            <DropdownField multiselect={true} options={senses} required={true} label='Senses' />
-          </Grid.Col>
-        )}
+        {({ DropdownField }) => <DropdownField multiselect={true} options={senses} required={true} label='Senses' />}
       </AppField>
-      {formAttributes?.some((attribute) => attribute === Attributes.SUBTYPE_SPECIFIC) &&
-        __kind === 'ClassInput' &&
-        subtypes?.length && (
-          <AppField
-            name='subtype'
-            validators={fieldValidators({
-              onBlur: 'Select a subtype',
-            })}
-            listeners={fieldListeners}
-          >
-            {({ DropdownField }) => (
-              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                <DropdownField options={subtypes} required={true} label='Subtype' />
-              </Grid.Col>
-            )}
-          </AppField>
-        )}
-      {formAttributes?.some((attribute) => attribute === Attributes.PROVIDES_OPTIONS) && (
+      {subtypeSpecific && subtypes?.length && (
         <AppField
-          name='selectionCount'
+          name={`${formPath}.subtype`}
+          validators={fieldValidators({
+            onBlur: 'Select a subtype',
+          })}
+          listeners={fieldListeners}
+        >
+          {({ DropdownField }) => <DropdownField options={subtypes} required={true} label='Subtype' />}
+        </AppField>
+      )}
+      {providesOptions && (
+        <AppField
+          name={`${formPath}.selectionCount`}
           validators={fieldValidators({
             onBlur: 'Set an amount of selections allowed',
             onChange: { type: 'number', min: 1, name: 'Selection count' },
           })}
           listeners={fieldListeners}
         >
-          {({ TextField }) => (
-            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-              <TextField required={true} label='# of Selections' />
-            </Grid.Col>
-          )}
+          {({ TextField }) => <TextField required={true} label='# of Selections' />}
         </AppField>
       )}
-      {subtypeSpecific && __kind === 'ClassInput' && subtypes?.length && (
-        <AppField
-          name='subtype'
-          validators={fieldValidators({
-            onBlur: 'Select a subtype',
-          })}
-          listeners={fieldListeners}
-        >
-          {({ DropdownField }) => (
-            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-              <DropdownField options={subtypes} required={true} label='Subclass Subtype' />
-            </Grid.Col>
-          )}
-        </AppField>
-      )}
-      {providesOptions && (
-        <AppField
-          name='selectionCount'
-          validators={fieldValidators({
-            onBlur: 'Enter a number of selections allowed',
-            onChange: { type: 'integer', min: 1, name: 'Selection count' },
-          })}
-          listeners={fieldListeners}
-        >
-          {({ TextField }) => (
-            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-              <TextField required={true} label='# of Selections' />
-            </Grid.Col>
-          )}
-        </AppField>
-      )}
-      {hasPrerequisites && (
-        <Grid.Col>
-          <Prerequisites
-            form={form}
-            fields='prerequisites'
-            __kind='FeatureProficiencyInput'
-            updateFn={updateField}
-            removeFn={removeField}
-          />
-        </Grid.Col>
-      )}
-    </Grid>
+      {hasPrerequisites && <Prerequisites />}
+    </Stack>
   )
 }
 export default Senses

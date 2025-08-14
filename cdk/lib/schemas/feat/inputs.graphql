@@ -11,17 +11,16 @@ input FeatInput {
   range: RangeInput
   shape: ShapeInput
   targets: Int
-  modifiers: [ID!]
-  proficiencies: [ID!]
-  expertise: [ID!]
-  senses: [ID!]
-  spells: [ID!]
+  modifiers: [FeatureModifierInput!]
+  proficiencies: [FeatureProficiencyInput!]
+  expertise: [FeatureExpertiseInput!]
+  senses: [FeatureSenseInput!]
+  spells: [FeatureSpellInput!]
   prerequisites: PrerequisiteInput
   saveAbility: SaveAbilityInput
   selectionCount: Int
   levelAvailable: String
-  features: [ID!]
-  options: [ID!]
+  features: [FeatureInput!]
   ownerId: ID!
   systemId: ID!
   masterId: String

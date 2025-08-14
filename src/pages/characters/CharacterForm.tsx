@@ -1,48 +1,51 @@
-import { useEffect, useMemo, useCallback, useLayoutEffect } from 'react'
-import type { CharacterInput } from '@/types'
-import { useAddCharacter, useUpdateCharacter } from '@/apis/characters.api'
-import { Route } from '@/routes/_protected/characters/$action/$_characterId'
-import { useCharacterData, useSystemPref } from '@/hooks'
-import { CharacterInputSchema } from '@/schemas'
+import { useEffect, useMemo, useLayoutEffect, useCallback } from 'react'
+import type { CharacterInput } from '~/types'
+import { useGetCharacter, useAddCharacter, useUpdateCharacter } from '~/apis'
+import { Route } from '~/routes/_protected/characters/$action/$_characterId'
+import { useSystemPref } from '~/hooks'
+import { CharacterInputSchema } from '~/schemas'
 import { v4 as uuidv4 } from 'uuid'
 import Form, {
   CharacterDetails,
   Background,
   Abilities,
   CharacterEquipment,
-  RaceFeatures,
+  CharacterRace,
   RaceSelection,
-  Classes,
+  CharacterClasses,
   ClassSelection,
-  useAppForm,
-} from '@/components/Form'
-import { useTypedFormStore } from '@/store'
-import { convertTypenameToKindInput } from '@/utils'
+} from '~/components/Form'
+import { useOptimizedSelector, useTypedFormStore } from '~/store'
+import { convertTypenameToKindInput } from '~/utils'
 
 const CharacterForm = () => {
   const { _characterId: characterId, action } = Route.useParams()
-  const {
-    characters: { findCharacter },
-  } = useCharacterData()
+  const characterData = useGetCharacter(characterId)
   const [systemPref] = useSystemPref()
 
-  const characterData = findCharacter(characterId)
+  const { mutateAsync: addCharacter } = useAddCharacter()
+  const { mutateAsync: updateCharacter } = useUpdateCharacter()
 
   const store = useTypedFormStore<CharacterInput>()
 
-  const current = store((state) => state.current)
-  const steps = store((state) => state.steps)
-  const setSteps = store((state) => state.setSteps)
-  const setCurrent = store((state) => state.setCurrent)
-  const stepIndex = store((state) => state.stepIndex)
-  const registerForm = store((state) => state.registerForm)
-  const formReset = store((state) => state.formReset)
-  const addClass = store((state) => state.addClass)
-  const changeRace = store((state) => state.changeRace)
+  const { current, steps, setSteps, setCurrent, stepIndex, registerForm, formSubmit, addClass, changeRace } = useOptimizedSelector(
+    store,
+    (state) => ({
+      current: state.current,
+      steps: state.meta.steps,
+      setSteps: state.setSteps,
+      setCurrent: state.setCurrent,
+      stepIndex: state.meta.stepIndex,
+      registerForm: state.registerForm,
+      formSubmit: state.formSubmit,
+      addClass: state.meta.addClass,
+      changeRace: state.meta.changeRace,
+    })
+  )
 
-  const createDataObject = useCallback(() => {
+  const data = useMemo(() => {
     if (characterData) {
-      const characterInput = convertTypenameToKindInput(characterData)
+      const characterInput = convertTypenameToKindInput(characterData) as CharacterInput
       if (characterInput) {
         if (action === 'new') {
           return CharacterInputSchema.parse({
@@ -65,17 +68,29 @@ const CharacterForm = () => {
     })
   }, [action, systemPref, characterData])
 
-  const data = useMemo(() => createDataObject(), [createDataObject])
+  const handleSubmit = useCallback(async () => {
+    if (action === 'new') {
+      try {
+        const result = await addCharacter(data)
+        console.log({ result })
+      } catch (err) {
+        console.error({ err })
+      }
+    } else {
+      try {
+        const result = await updateCharacter(data)
+        console.log({ result })
+      } catch (err) {
+        console.error({ err })
+      }
+    }
+  }, [action, addCharacter, updateCharacter, data])
 
   useLayoutEffect(() => {
     if (current === null) {
-      setCurrent(data as CharacterInput)
+      setCurrent(data)
     }
   }, [current, data, setCurrent])
-
-  const form = useAppForm({
-    defaultValues: data,
-  })
 
   const characterSteps = useMemo(
     () => [
@@ -96,25 +111,21 @@ const CharacterForm = () => {
   }, [steps, characterSteps, setSteps])
 
   useEffect(() => {
-    if (!formReset) {
-      registerForm(form.reset)
+    if (!formSubmit) {
+      registerForm(handleSubmit)
     }
-  }, [formReset, registerForm, form.reset])
+  }, [formSubmit, handleSubmit, registerForm])
 
   const stepComponentMap = {
-    details: <CharacterDetails form={form} />,
-    race: (current as CharacterInput)?.race && !changeRace ? <RaceFeatures form={form} /> : <RaceSelection form={form} />,
-    class: !(current as CharacterInput)?.classes?.length || addClass ? <ClassSelection form={form} /> : <Classes form={form} />,
-    abilities: <Abilities form={form} />,
-    background: <Background form={form} />,
-    equipment: <CharacterEquipment form={form} />,
+    details: <CharacterDetails />,
+    race: (current as CharacterInput)?.race && !changeRace ? <CharacterRace /> : <RaceSelection />,
+    class: !(current as CharacterInput)?.classes?.length || addClass ? <ClassSelection /> : <CharacterClasses />,
+    abilities: <Abilities />,
+    background: <Background />,
+    equipment: <CharacterEquipment />,
   }
 
-  return (
-    <Form useUpdateItemMutation={useUpdateCharacter} useAddNewItemMutation={useAddCharacter}>
-      {stepComponentMap[steps[stepIndex].id as keyof typeof stepComponentMap] || null}
-    </Form>
-  )
+  return <Form>{stepComponentMap[steps[stepIndex].id as keyof typeof stepComponentMap] || null}</Form>
 }
 
 export default CharacterForm

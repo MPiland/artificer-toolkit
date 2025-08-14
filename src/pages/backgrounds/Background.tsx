@@ -1,19 +1,12 @@
 import parse from 'html-react-parser'
-import Detail from '@/components/Detail'
+import Detail from '~/components/Detail'
 import { Fragment } from 'react'
-import { Route } from '@/routes/_protected/backgrounds/$backgroundId'
-import { useBackgroundData, useFeatureData } from '@/hooks'
+import { Route } from '~/routes/_protected/backgrounds/$backgroundId'
+import { useGetBackground } from '~/apis'
 
 const Background = () => {
   const backgroundId = Route.useParams({ select: (r) => r.backgroundId })
-  const {
-    backgrounds: { findBackground },
-  } = useBackgroundData()
-  const background = findBackground(backgroundId)
-
-  const {
-    features: { findFeature },
-  } = useFeatureData()
+  const { data: background } = useGetBackground(backgroundId)
 
   if (!background) return <div>Invalid or missing background data</div>
 
@@ -21,8 +14,7 @@ const Background = () => {
     <Detail footerSpacing='flex-end' item={background}>
       <div>{background?.desc && parse(background.desc)}</div>
       {background.features?.length &&
-        background.features.map((f, i) => {
-          const feature = findFeature(f)
+        background.features.map((feature, i) => {
           return (
             <Fragment key={`${i}-background-feature}`}>
               <h3>

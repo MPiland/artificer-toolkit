@@ -11,12 +11,12 @@ type FeatureOption {
   range: Range
   shape: Shape
   targets: Int
-  feats: [ID!]
-  modifiers: [ID!]
-  proficiencies: [ID!]
-  expertise: [ID!]
-  senses: [ID!]
-  spells: [ID!]
+  feats: [FeatureFeat!]
+  modifiers: [FeatureModifier!]
+  proficiencies: [FeatureProficiency!]
+  expertise: [FeatureExpertise!]
+  senses: [FeatureSense!]
+  spells: [FeatureSpell!]
   prerequisites: Prerequisite
   saveAbility: SaveAbility
   levelAvailable: String

@@ -12,112 +12,154 @@ import {
 } from '@aws-sdk/lib-dynamodb'
 import type { APIGatewayProxyHandlerV2 } from 'aws-lambda'
 import { v4 as uuidv4 } from 'uuid'
+import { CognitoJwtVerifier } from 'aws-jwt-verify'
 
 const cognitoClient = new CognitoIdentityProviderClient({})
 const client = new DynamoDBClient({})
 const docClient = DynamoDBDocumentClient.from(client)
 
-const commonHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Credentials': true,
-}
+const idTokenVerifier = CognitoJwtVerifier.create({
+  userPoolId: process.env.USER_POOL_ID!,
+  tokenUse: 'id',
+  clientId: process.env.USER_POOL_CLIENT_ID!,
+})
 
 console.log('Lambda cold start init complete')
 
 export const handler: APIGatewayProxyHandlerV2 = async (event) => {
-  try {
-    console.log('Starting handler')
-    if (!event.body) {
-      console.log('Missing request body')
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ message: 'Missing request body' }),
-        headers: commonHeaders,
-      }
-    }
+  const commonHeaders = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Credentials': true,
+  }
 
-    const requestBody = JSON.parse(event.body)
-    const { email, userId } = requestBody
-
-    if (!userId) {
-      console.log('User ID not found')
-      return {
-        statusCode: 404,
-        body: JSON.stringify({ message: 'User ID not found' }),
-        headers: commonHeaders,
-      }
-    }
-
-    const masterTables: Record<string, string> = {}
-    const userTables: Record<string, string> = {}
-
-    for (const [key, value] of Object.entries(process.env)) {
-      if (!key.endsWith('_TABLE_NAME') || !value) continue
-
-      const normalizedKey = key.toUpperCase()
-      const logicalName = normalizedKey.replace('_TABLE_NAME', '').replace(/^MASTER/, '')
-
-      if (normalizedKey.startsWith('MASTER')) {
-        masterTables[logicalName] = value
-      } else {
-        userTables[logicalName] = value
-      }
-    }
-
-    const idMap = new Map<string, string>()
-    const processedDataSets = new Map<string, Record<string, string | object>[]>()
-
-    for (const [logicalName, masterTableName] of Object.entries(masterTables)) {
-      console.log('Processing table:', masterTableName)
-      const masterData = await getMasterData(masterTableName)
-      const processed = createInitialUserData(masterData, userId, idMap)
-      processedDataSets.set(logicalName, processed)
-    }
-
-    // ✅ Update references using type-safe function
-    for (const [logicalName, dataset] of processedDataSets.entries()) {
-      console.log('Updating references for:', logicalName)
-      processedDataSets.set(logicalName, updateReferencesInArray(dataset, idMap))
-    }
-
-    // Save to user tables
-    for (const [logicalName, data] of processedDataSets.entries()) {
-      const userTableName = userTables[logicalName]
-      if (!userTableName) {
-        console.warn(`No user table found for logical name: ${logicalName}. Skipping.`)
-        continue
-      }
-
-      const newItems = await filterExistingItems(userTableName, data, userId)
-      console.log(`Found ${newItems.length} new items to save to table: ${userTableName}`)
-      if (newItems.length > 0) {
-        console.log(`Saving ${newItems.length} items to table: ${userTableName}`)
-        await batchWriteData(userTableName, newItems)
-        const updateAttribute = new AdminUpdateUserAttributesCommand({
-          UserPoolId: process.env.USER_POOL_ID,
-          Username: email,
-          UserAttributes: [
-            {
-              Name: `custom:init_${process.env.type}_data`,
-              Value: 'true',
-            },
-          ],
-        })
-        await cognitoClient.send(updateAttribute)
-      }
-    }
-
+  if (!event.headers?.authorization) {
     return {
-      statusCode: 200,
-      body: JSON.stringify({ message: 'User data initialized successfully' }),
+      statusCode: 401,
+      body: JSON.stringify({ message: 'Missing Authorization header' }),
       headers: commonHeaders,
     }
-  } catch (error) {
-    console.log('Error initializing user data:', error)
+  }
+
+  // Expect: "Authorization: Bearer <idToken>"
+  const token = event.headers.authorization.split(' ')[1]
+  if (!token) {
     return {
-      statusCode: 500,
-      body: JSON.stringify({ message: 'Error initializing user data', error: String(error) }),
+      statusCode: 401,
+      body: JSON.stringify({ message: 'Malformed Authorization header' }),
+      headers: commonHeaders,
+    }
+  }
+
+  try {
+    const decoded = await idTokenVerifier.verify(token)
+
+    if (decoded.aud !== process.env.USER_POOL_CLIENT_ID) {
+      return {
+        statusCode: 401,
+        body: JSON.stringify({ message: 'Invalid client ID' }),
+        headers: commonHeaders,
+      }
+    }
+
+    if (typeof decoded.sub !== 'string' || typeof decoded.email !== 'string') {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ message: 'Invalid token payload' }),
+        headers: commonHeaders,
+      }
+    }
+
+    const userId = decoded.sub
+    const email = decoded.email
+
+    if (!userId || !email) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ message: 'Invalid token payload' }),
+        headers: commonHeaders,
+      }
+    }
+
+    try {
+      console.log('Starting handler')
+      const masterTables: Record<string, string> = {}
+      const userTables: Record<string, string> = {}
+
+      for (const [key, value] of Object.entries(process.env)) {
+        if (!key.endsWith('_TABLE_NAME') || !value) continue
+
+        const normalizedKey = key.toUpperCase()
+        const logicalName = normalizedKey.replace('_TABLE_NAME', '').replace(/^MASTER/, '')
+
+        if (normalizedKey.startsWith('MASTER')) {
+          masterTables[logicalName] = value
+        } else {
+          userTables[logicalName] = value
+        }
+      }
+
+      const idMap = new Map<string, string>()
+      const processedDataSets = new Map<string, Record<string, string | object>[]>()
+
+      for (const [logicalName, masterTableName] of Object.entries(masterTables)) {
+        console.log('Processing table:', masterTableName)
+        const masterData = await getMasterData(masterTableName)
+        const processed = createInitialUserData(masterData, userId, idMap)
+        processedDataSets.set(logicalName, processed)
+      }
+
+      // ✅ Update references using type-safe function
+      for (const [logicalName, dataset] of processedDataSets.entries()) {
+        console.log('Updating references for:', logicalName)
+        processedDataSets.set(logicalName, updateReferencesInArray(dataset, idMap))
+      }
+
+      // Save to user tables
+      for (const [logicalName, data] of processedDataSets.entries()) {
+        const userTableName = userTables[logicalName]
+        if (!userTableName) {
+          console.warn(`No user table found for logical name: ${logicalName}. Skipping.`)
+          continue
+        }
+
+        const newItems = await filterExistingItems(userTableName, data, userId)
+        console.log(`Found ${newItems.length} new items to save to table: ${userTableName}`)
+        if (newItems.length > 0) {
+          console.log(`Saving ${newItems.length} items to table: ${userTableName}`)
+          await batchWriteData(userTableName, newItems)
+          const updateAttribute = new AdminUpdateUserAttributesCommand({
+            UserPoolId: process.env.USER_POOL_ID,
+            Username: email,
+            UserAttributes: [
+              {
+                Name: `custom:init_${process.env.type}_data`,
+                Value: 'true',
+              },
+            ],
+          })
+          await cognitoClient.send(updateAttribute)
+        }
+      }
+
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ message: 'User data initialized successfully' }),
+        headers: commonHeaders,
+      }
+    } catch (error) {
+      console.log('Error initializing user data:', error)
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ message: 'Error initializing user data', error: String(error) }),
+        headers: commonHeaders,
+      }
+    }
+  } catch (err) {
+    console.log('Invalid ID token:', err)
+    return {
+      statusCode: 403,
+      body: JSON.stringify({ message: 'Invalid or expired token' }),
       headers: commonHeaders,
     }
   }

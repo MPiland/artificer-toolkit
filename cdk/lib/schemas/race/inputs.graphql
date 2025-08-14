@@ -2,7 +2,7 @@ input AncestryInput {
   id: ID!
   label: String!
   desc: String
-  options: [ID!]!
+  options: [AncestryOptionInput!]!
 }
 
 input RaceSpeedInput {
@@ -29,7 +29,7 @@ input RaceInput {
   ancestry: AncestryInput
   details: [DetailInput!]
   traits: TraitsInput
-  features: [ID!]
+  features: [FeatureInput!]
   ownerId: ID
   systemId: ID!
   masterId: String

@@ -54,7 +54,7 @@ input EquipmentInput {
   speed: SpeedInput
   range: EquipmentRangeInput
   contains: [ContainsInput!]
-  features: [ID!]
+  features: [FeatureInput!]
   ownerId: ID!
   systemId: ID! 
   masterId: String

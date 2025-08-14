@@ -8,581 +8,215 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-// Import Routes
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as ProtectedRouteImport } from './routes/_protected'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthResetPasswordRouteRouteImport } from './routes/_auth/reset-password/route'
+import { Route as AuthRegisterRouteRouteImport } from './routes/_auth/register/route'
+import { Route as AuthLoginRouteRouteImport } from './routes/_auth/login/route'
+import { Route as ProtectedSpellsIndexRouteImport } from './routes/_protected/spells/index'
+import { Route as ProtectedRacesIndexRouteImport } from './routes/_protected/races/index'
+import { Route as ProtectedHomeIndexRouteImport } from './routes/_protected/home/index'
+import { Route as ProtectedFeatsIndexRouteImport } from './routes/_protected/feats/index'
+import { Route as ProtectedEquipmentIndexRouteImport } from './routes/_protected/equipment/index'
+import { Route as ProtectedClassesIndexRouteImport } from './routes/_protected/classes/index'
+import { Route as ProtectedCharactersIndexRouteImport } from './routes/_protected/characters/index'
+import { Route as ProtectedBackgroundsIndexRouteImport } from './routes/_protected/backgrounds/index'
+import { Route as AuthResetPasswordIndexRouteImport } from './routes/_auth/reset-password/index'
+import { Route as AuthRegisterIndexRouteImport } from './routes/_auth/register/index'
+import { Route as AuthLoginIndexRouteImport } from './routes/_auth/login/index'
+import { Route as ProtectedSpellsSpellIdRouteImport } from './routes/_protected/spells/$spellId'
+import { Route as ProtectedRacesRaceIdRouteImport } from './routes/_protected/races/$raceId'
+import { Route as ProtectedFeatsFeatIdRouteImport } from './routes/_protected/feats/$featId'
+import { Route as ProtectedEquipmentEquipmentIdRouteImport } from './routes/_protected/equipment/$equipmentId'
+import { Route as ProtectedClassesClassIdRouteImport } from './routes/_protected/classes/$classId'
+import { Route as ProtectedCharactersCharacterIdRouteImport } from './routes/_protected/characters/$characterId'
+import { Route as ProtectedBackgroundsBackgroundIdRouteImport } from './routes/_protected/backgrounds/$backgroundId'
+import { Route as AuthResetPasswordConfirmRouteImport } from './routes/_auth/reset-password/confirm'
+import { Route as AuthRegisterConfirmRouteImport } from './routes/_auth/register/confirm'
+import { Route as ProtectedSpellsAction_spellIdRouteImport } from './routes/_protected/spells/$action/$_spellId'
+import { Route as ProtectedRacesAction_raceIdRouteImport } from './routes/_protected/races/$action/$_raceId'
+import { Route as ProtectedFeatsAction_featIdRouteImport } from './routes/_protected/feats/$action/$_featId'
+import { Route as ProtectedEquipmentAction_equipmentIdRouteImport } from './routes/_protected/equipment/$action/$_equipmentId'
+import { Route as ProtectedClassesAction_classIdRouteImport } from './routes/_protected/classes/$action/$_classId'
+import { Route as ProtectedCharactersAction_characterIdRouteImport } from './routes/_protected/characters/$action/$_characterId'
+import { Route as ProtectedBackgroundsAction_backgroundIdRouteImport } from './routes/_protected/backgrounds/$action/$_backgroundId'
 
-import { Route as rootRoute } from './routes/__root'
-import { Route as ProtectedImport } from './routes/_protected'
-import { Route as IndexImport } from './routes/index'
-import { Route as AuthResetPasswordRouteImport } from './routes/_auth/reset-password/route'
-import { Route as AuthRegisterRouteImport } from './routes/_auth/register/route'
-import { Route as AuthLoginRouteImport } from './routes/_auth/login/route'
-import { Route as ProtectedSpellsIndexImport } from './routes/_protected/spells/index'
-import { Route as ProtectedRacesIndexImport } from './routes/_protected/races/index'
-import { Route as ProtectedHomeIndexImport } from './routes/_protected/home/index'
-import { Route as ProtectedFeatsIndexImport } from './routes/_protected/feats/index'
-import { Route as ProtectedEquipmentIndexImport } from './routes/_protected/equipment/index'
-import { Route as ProtectedClassesIndexImport } from './routes/_protected/classes/index'
-import { Route as ProtectedCharactersIndexImport } from './routes/_protected/characters/index'
-import { Route as ProtectedBackgroundsIndexImport } from './routes/_protected/backgrounds/index'
-import { Route as AuthResetPasswordIndexImport } from './routes/_auth/reset-password/index'
-import { Route as AuthRegisterIndexImport } from './routes/_auth/register/index'
-import { Route as AuthLoginIndexImport } from './routes/_auth/login/index'
-import { Route as ProtectedSpellsSpellIdImport } from './routes/_protected/spells/$spellId'
-import { Route as ProtectedRacesRaceIdImport } from './routes/_protected/races/$raceId'
-import { Route as ProtectedFeatsFeatIdImport } from './routes/_protected/feats/$featId'
-import { Route as ProtectedEquipmentEquipmentIdImport } from './routes/_protected/equipment/$equipmentId'
-import { Route as ProtectedClassesClassIdImport } from './routes/_protected/classes/$classId'
-import { Route as ProtectedCharactersCharacterIdImport } from './routes/_protected/characters/$characterId'
-import { Route as ProtectedBackgroundsBackgroundIdImport } from './routes/_protected/backgrounds/$backgroundId'
-import { Route as AuthResetPasswordConfirmImport } from './routes/_auth/reset-password/confirm'
-import { Route as AuthRegisterConfirmImport } from './routes/_auth/register/confirm'
-import { Route as ProtectedSpellsActionspellIdImport } from './routes/_protected/spells/$action/$_spellId'
-import { Route as ProtectedRacesActionraceIdImport } from './routes/_protected/races/$action/$_raceId'
-import { Route as ProtectedFeatsActionfeatIdImport } from './routes/_protected/feats/$action/$_featId'
-import { Route as ProtectedEquipmentActionequipmentIdImport } from './routes/_protected/equipment/$action/$_equipmentId'
-import { Route as ProtectedClassesActionclassIdImport } from './routes/_protected/classes/$action/$_classId'
-import { Route as ProtectedCharactersActioncharacterIdImport } from './routes/_protected/characters/$action/$_characterId'
-import { Route as ProtectedBackgroundsActionbackgroundIdImport } from './routes/_protected/backgrounds/$action/$_backgroundId'
-
-// Create/Update Routes
-
-const ProtectedRoute = ProtectedImport.update({
+const ProtectedRoute = ProtectedRouteImport.update({
   id: '/_protected',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const IndexRoute = IndexImport.update({
+const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const AuthResetPasswordRouteRoute = AuthResetPasswordRouteImport.update({
+const AuthResetPasswordRouteRoute = AuthResetPasswordRouteRouteImport.update({
   id: '/_auth/reset-password',
   path: '/reset-password',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const AuthRegisterRouteRoute = AuthRegisterRouteImport.update({
+const AuthRegisterRouteRoute = AuthRegisterRouteRouteImport.update({
   id: '/_auth/register',
   path: '/register',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const AuthLoginRouteRoute = AuthLoginRouteImport.update({
+const AuthLoginRouteRoute = AuthLoginRouteRouteImport.update({
   id: '/_auth/login',
   path: '/login',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const ProtectedSpellsIndexRoute = ProtectedSpellsIndexImport.update({
+const ProtectedSpellsIndexRoute = ProtectedSpellsIndexRouteImport.update({
   id: '/spells/',
   path: '/spells/',
   getParentRoute: () => ProtectedRoute,
 } as any)
-
-const ProtectedRacesIndexRoute = ProtectedRacesIndexImport.update({
+const ProtectedRacesIndexRoute = ProtectedRacesIndexRouteImport.update({
   id: '/races/',
   path: '/races/',
   getParentRoute: () => ProtectedRoute,
 } as any)
-
-const ProtectedHomeIndexRoute = ProtectedHomeIndexImport.update({
+const ProtectedHomeIndexRoute = ProtectedHomeIndexRouteImport.update({
   id: '/home/',
   path: '/home/',
   getParentRoute: () => ProtectedRoute,
 } as any)
-
-const ProtectedFeatsIndexRoute = ProtectedFeatsIndexImport.update({
+const ProtectedFeatsIndexRoute = ProtectedFeatsIndexRouteImport.update({
   id: '/feats/',
   path: '/feats/',
   getParentRoute: () => ProtectedRoute,
 } as any)
-
-const ProtectedEquipmentIndexRoute = ProtectedEquipmentIndexImport.update({
+const ProtectedEquipmentIndexRoute = ProtectedEquipmentIndexRouteImport.update({
   id: '/equipment/',
   path: '/equipment/',
   getParentRoute: () => ProtectedRoute,
 } as any)
-
-const ProtectedClassesIndexRoute = ProtectedClassesIndexImport.update({
+const ProtectedClassesIndexRoute = ProtectedClassesIndexRouteImport.update({
   id: '/classes/',
   path: '/classes/',
   getParentRoute: () => ProtectedRoute,
 } as any)
-
-const ProtectedCharactersIndexRoute = ProtectedCharactersIndexImport.update({
-  id: '/characters/',
-  path: '/characters/',
-  getParentRoute: () => ProtectedRoute,
-} as any)
-
-const ProtectedBackgroundsIndexRoute = ProtectedBackgroundsIndexImport.update({
-  id: '/backgrounds/',
-  path: '/backgrounds/',
-  getParentRoute: () => ProtectedRoute,
-} as any)
-
-const AuthResetPasswordIndexRoute = AuthResetPasswordIndexImport.update({
+const ProtectedCharactersIndexRoute =
+  ProtectedCharactersIndexRouteImport.update({
+    id: '/characters/',
+    path: '/characters/',
+    getParentRoute: () => ProtectedRoute,
+  } as any)
+const ProtectedBackgroundsIndexRoute =
+  ProtectedBackgroundsIndexRouteImport.update({
+    id: '/backgrounds/',
+    path: '/backgrounds/',
+    getParentRoute: () => ProtectedRoute,
+  } as any)
+const AuthResetPasswordIndexRoute = AuthResetPasswordIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthResetPasswordRouteRoute,
 } as any)
-
-const AuthRegisterIndexRoute = AuthRegisterIndexImport.update({
+const AuthRegisterIndexRoute = AuthRegisterIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthRegisterRouteRoute,
 } as any)
-
-const AuthLoginIndexRoute = AuthLoginIndexImport.update({
+const AuthLoginIndexRoute = AuthLoginIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthLoginRouteRoute,
 } as any)
-
-const ProtectedSpellsSpellIdRoute = ProtectedSpellsSpellIdImport.update({
+const ProtectedSpellsSpellIdRoute = ProtectedSpellsSpellIdRouteImport.update({
   id: '/spells/$spellId',
   path: '/spells/$spellId',
   getParentRoute: () => ProtectedRoute,
 } as any)
-
-const ProtectedRacesRaceIdRoute = ProtectedRacesRaceIdImport.update({
+const ProtectedRacesRaceIdRoute = ProtectedRacesRaceIdRouteImport.update({
   id: '/races/$raceId',
   path: '/races/$raceId',
   getParentRoute: () => ProtectedRoute,
 } as any)
-
-const ProtectedFeatsFeatIdRoute = ProtectedFeatsFeatIdImport.update({
+const ProtectedFeatsFeatIdRoute = ProtectedFeatsFeatIdRouteImport.update({
   id: '/feats/$featId',
   path: '/feats/$featId',
   getParentRoute: () => ProtectedRoute,
 } as any)
-
 const ProtectedEquipmentEquipmentIdRoute =
-  ProtectedEquipmentEquipmentIdImport.update({
+  ProtectedEquipmentEquipmentIdRouteImport.update({
     id: '/equipment/$equipmentId',
     path: '/equipment/$equipmentId',
     getParentRoute: () => ProtectedRoute,
   } as any)
-
-const ProtectedClassesClassIdRoute = ProtectedClassesClassIdImport.update({
+const ProtectedClassesClassIdRoute = ProtectedClassesClassIdRouteImport.update({
   id: '/classes/$classId',
   path: '/classes/$classId',
   getParentRoute: () => ProtectedRoute,
 } as any)
-
 const ProtectedCharactersCharacterIdRoute =
-  ProtectedCharactersCharacterIdImport.update({
+  ProtectedCharactersCharacterIdRouteImport.update({
     id: '/characters/$characterId',
     path: '/characters/$characterId',
     getParentRoute: () => ProtectedRoute,
   } as any)
-
 const ProtectedBackgroundsBackgroundIdRoute =
-  ProtectedBackgroundsBackgroundIdImport.update({
+  ProtectedBackgroundsBackgroundIdRouteImport.update({
     id: '/backgrounds/$backgroundId',
     path: '/backgrounds/$backgroundId',
     getParentRoute: () => ProtectedRoute,
   } as any)
-
-const AuthResetPasswordConfirmRoute = AuthResetPasswordConfirmImport.update({
-  id: '/confirm',
-  path: '/confirm',
-  getParentRoute: () => AuthResetPasswordRouteRoute,
-} as any)
-
-const AuthRegisterConfirmRoute = AuthRegisterConfirmImport.update({
+const AuthResetPasswordConfirmRoute =
+  AuthResetPasswordConfirmRouteImport.update({
+    id: '/confirm',
+    path: '/confirm',
+    getParentRoute: () => AuthResetPasswordRouteRoute,
+  } as any)
+const AuthRegisterConfirmRoute = AuthRegisterConfirmRouteImport.update({
   id: '/confirm',
   path: '/confirm',
   getParentRoute: () => AuthRegisterRouteRoute,
 } as any)
-
-const ProtectedSpellsActionspellIdRoute =
-  ProtectedSpellsActionspellIdImport.update({
+const ProtectedSpellsAction_spellIdRoute =
+  ProtectedSpellsAction_spellIdRouteImport.update({
     id: '/spells/$action/$_spellId',
     path: '/spells/$action/$_spellId',
     getParentRoute: () => ProtectedRoute,
   } as any)
-
-const ProtectedRacesActionraceIdRoute = ProtectedRacesActionraceIdImport.update(
-  {
+const ProtectedRacesAction_raceIdRoute =
+  ProtectedRacesAction_raceIdRouteImport.update({
     id: '/races/$action/$_raceId',
     path: '/races/$action/$_raceId',
     getParentRoute: () => ProtectedRoute,
-  } as any,
-)
-
-const ProtectedFeatsActionfeatIdRoute = ProtectedFeatsActionfeatIdImport.update(
-  {
+  } as any)
+const ProtectedFeatsAction_featIdRoute =
+  ProtectedFeatsAction_featIdRouteImport.update({
     id: '/feats/$action/$_featId',
     path: '/feats/$action/$_featId',
     getParentRoute: () => ProtectedRoute,
-  } as any,
-)
-
-const ProtectedEquipmentActionequipmentIdRoute =
-  ProtectedEquipmentActionequipmentIdImport.update({
+  } as any)
+const ProtectedEquipmentAction_equipmentIdRoute =
+  ProtectedEquipmentAction_equipmentIdRouteImport.update({
     id: '/equipment/$action/$_equipmentId',
     path: '/equipment/$action/$_equipmentId',
     getParentRoute: () => ProtectedRoute,
   } as any)
-
-const ProtectedClassesActionclassIdRoute =
-  ProtectedClassesActionclassIdImport.update({
+const ProtectedClassesAction_classIdRoute =
+  ProtectedClassesAction_classIdRouteImport.update({
     id: '/classes/$action/$_classId',
     path: '/classes/$action/$_classId',
     getParentRoute: () => ProtectedRoute,
   } as any)
-
-const ProtectedCharactersActioncharacterIdRoute =
-  ProtectedCharactersActioncharacterIdImport.update({
+const ProtectedCharactersAction_characterIdRoute =
+  ProtectedCharactersAction_characterIdRouteImport.update({
     id: '/characters/$action/$_characterId',
     path: '/characters/$action/$_characterId',
     getParentRoute: () => ProtectedRoute,
   } as any)
-
-const ProtectedBackgroundsActionbackgroundIdRoute =
-  ProtectedBackgroundsActionbackgroundIdImport.update({
+const ProtectedBackgroundsAction_backgroundIdRoute =
+  ProtectedBackgroundsAction_backgroundIdRouteImport.update({
     id: '/backgrounds/$action/$_backgroundId',
     path: '/backgrounds/$action/$_backgroundId',
     getParentRoute: () => ProtectedRoute,
   } as any)
 
-// Populate the FileRoutesByPath interface
-
-declare module '@tanstack/react-router' {
-  interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexImport
-      parentRoute: typeof rootRoute
-    }
-    '/_protected': {
-      id: '/_protected'
-      path: ''
-      fullPath: ''
-      preLoaderRoute: typeof ProtectedImport
-      parentRoute: typeof rootRoute
-    }
-    '/_auth/login': {
-      id: '/_auth/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof AuthLoginRouteImport
-      parentRoute: typeof rootRoute
-    }
-    '/_auth/register': {
-      id: '/_auth/register'
-      path: '/register'
-      fullPath: '/register'
-      preLoaderRoute: typeof AuthRegisterRouteImport
-      parentRoute: typeof rootRoute
-    }
-    '/_auth/reset-password': {
-      id: '/_auth/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof AuthResetPasswordRouteImport
-      parentRoute: typeof rootRoute
-    }
-    '/_auth/register/confirm': {
-      id: '/_auth/register/confirm'
-      path: '/confirm'
-      fullPath: '/register/confirm'
-      preLoaderRoute: typeof AuthRegisterConfirmImport
-      parentRoute: typeof AuthRegisterRouteImport
-    }
-    '/_auth/reset-password/confirm': {
-      id: '/_auth/reset-password/confirm'
-      path: '/confirm'
-      fullPath: '/reset-password/confirm'
-      preLoaderRoute: typeof AuthResetPasswordConfirmImport
-      parentRoute: typeof AuthResetPasswordRouteImport
-    }
-    '/_protected/backgrounds/$backgroundId': {
-      id: '/_protected/backgrounds/$backgroundId'
-      path: '/backgrounds/$backgroundId'
-      fullPath: '/backgrounds/$backgroundId'
-      preLoaderRoute: typeof ProtectedBackgroundsBackgroundIdImport
-      parentRoute: typeof ProtectedImport
-    }
-    '/_protected/characters/$characterId': {
-      id: '/_protected/characters/$characterId'
-      path: '/characters/$characterId'
-      fullPath: '/characters/$characterId'
-      preLoaderRoute: typeof ProtectedCharactersCharacterIdImport
-      parentRoute: typeof ProtectedImport
-    }
-    '/_protected/classes/$classId': {
-      id: '/_protected/classes/$classId'
-      path: '/classes/$classId'
-      fullPath: '/classes/$classId'
-      preLoaderRoute: typeof ProtectedClassesClassIdImport
-      parentRoute: typeof ProtectedImport
-    }
-    '/_protected/equipment/$equipmentId': {
-      id: '/_protected/equipment/$equipmentId'
-      path: '/equipment/$equipmentId'
-      fullPath: '/equipment/$equipmentId'
-      preLoaderRoute: typeof ProtectedEquipmentEquipmentIdImport
-      parentRoute: typeof ProtectedImport
-    }
-    '/_protected/feats/$featId': {
-      id: '/_protected/feats/$featId'
-      path: '/feats/$featId'
-      fullPath: '/feats/$featId'
-      preLoaderRoute: typeof ProtectedFeatsFeatIdImport
-      parentRoute: typeof ProtectedImport
-    }
-    '/_protected/races/$raceId': {
-      id: '/_protected/races/$raceId'
-      path: '/races/$raceId'
-      fullPath: '/races/$raceId'
-      preLoaderRoute: typeof ProtectedRacesRaceIdImport
-      parentRoute: typeof ProtectedImport
-    }
-    '/_protected/spells/$spellId': {
-      id: '/_protected/spells/$spellId'
-      path: '/spells/$spellId'
-      fullPath: '/spells/$spellId'
-      preLoaderRoute: typeof ProtectedSpellsSpellIdImport
-      parentRoute: typeof ProtectedImport
-    }
-    '/_auth/login/': {
-      id: '/_auth/login/'
-      path: '/'
-      fullPath: '/login/'
-      preLoaderRoute: typeof AuthLoginIndexImport
-      parentRoute: typeof AuthLoginRouteImport
-    }
-    '/_auth/register/': {
-      id: '/_auth/register/'
-      path: '/'
-      fullPath: '/register/'
-      preLoaderRoute: typeof AuthRegisterIndexImport
-      parentRoute: typeof AuthRegisterRouteImport
-    }
-    '/_auth/reset-password/': {
-      id: '/_auth/reset-password/'
-      path: '/'
-      fullPath: '/reset-password/'
-      preLoaderRoute: typeof AuthResetPasswordIndexImport
-      parentRoute: typeof AuthResetPasswordRouteImport
-    }
-    '/_protected/backgrounds/': {
-      id: '/_protected/backgrounds/'
-      path: '/backgrounds'
-      fullPath: '/backgrounds'
-      preLoaderRoute: typeof ProtectedBackgroundsIndexImport
-      parentRoute: typeof ProtectedImport
-    }
-    '/_protected/characters/': {
-      id: '/_protected/characters/'
-      path: '/characters'
-      fullPath: '/characters'
-      preLoaderRoute: typeof ProtectedCharactersIndexImport
-      parentRoute: typeof ProtectedImport
-    }
-    '/_protected/classes/': {
-      id: '/_protected/classes/'
-      path: '/classes'
-      fullPath: '/classes'
-      preLoaderRoute: typeof ProtectedClassesIndexImport
-      parentRoute: typeof ProtectedImport
-    }
-    '/_protected/equipment/': {
-      id: '/_protected/equipment/'
-      path: '/equipment'
-      fullPath: '/equipment'
-      preLoaderRoute: typeof ProtectedEquipmentIndexImport
-      parentRoute: typeof ProtectedImport
-    }
-    '/_protected/feats/': {
-      id: '/_protected/feats/'
-      path: '/feats'
-      fullPath: '/feats'
-      preLoaderRoute: typeof ProtectedFeatsIndexImport
-      parentRoute: typeof ProtectedImport
-    }
-    '/_protected/home/': {
-      id: '/_protected/home/'
-      path: '/home'
-      fullPath: '/home'
-      preLoaderRoute: typeof ProtectedHomeIndexImport
-      parentRoute: typeof ProtectedImport
-    }
-    '/_protected/races/': {
-      id: '/_protected/races/'
-      path: '/races'
-      fullPath: '/races'
-      preLoaderRoute: typeof ProtectedRacesIndexImport
-      parentRoute: typeof ProtectedImport
-    }
-    '/_protected/spells/': {
-      id: '/_protected/spells/'
-      path: '/spells'
-      fullPath: '/spells'
-      preLoaderRoute: typeof ProtectedSpellsIndexImport
-      parentRoute: typeof ProtectedImport
-    }
-    '/_protected/backgrounds/$action/$_backgroundId': {
-      id: '/_protected/backgrounds/$action/$_backgroundId'
-      path: '/backgrounds/$action/$_backgroundId'
-      fullPath: '/backgrounds/$action/$_backgroundId'
-      preLoaderRoute: typeof ProtectedBackgroundsActionbackgroundIdImport
-      parentRoute: typeof ProtectedImport
-    }
-    '/_protected/characters/$action/$_characterId': {
-      id: '/_protected/characters/$action/$_characterId'
-      path: '/characters/$action/$_characterId'
-      fullPath: '/characters/$action/$_characterId'
-      preLoaderRoute: typeof ProtectedCharactersActioncharacterIdImport
-      parentRoute: typeof ProtectedImport
-    }
-    '/_protected/classes/$action/$_classId': {
-      id: '/_protected/classes/$action/$_classId'
-      path: '/classes/$action/$_classId'
-      fullPath: '/classes/$action/$_classId'
-      preLoaderRoute: typeof ProtectedClassesActionclassIdImport
-      parentRoute: typeof ProtectedImport
-    }
-    '/_protected/equipment/$action/$_equipmentId': {
-      id: '/_protected/equipment/$action/$_equipmentId'
-      path: '/equipment/$action/$_equipmentId'
-      fullPath: '/equipment/$action/$_equipmentId'
-      preLoaderRoute: typeof ProtectedEquipmentActionequipmentIdImport
-      parentRoute: typeof ProtectedImport
-    }
-    '/_protected/feats/$action/$_featId': {
-      id: '/_protected/feats/$action/$_featId'
-      path: '/feats/$action/$_featId'
-      fullPath: '/feats/$action/$_featId'
-      preLoaderRoute: typeof ProtectedFeatsActionfeatIdImport
-      parentRoute: typeof ProtectedImport
-    }
-    '/_protected/races/$action/$_raceId': {
-      id: '/_protected/races/$action/$_raceId'
-      path: '/races/$action/$_raceId'
-      fullPath: '/races/$action/$_raceId'
-      preLoaderRoute: typeof ProtectedRacesActionraceIdImport
-      parentRoute: typeof ProtectedImport
-    }
-    '/_protected/spells/$action/$_spellId': {
-      id: '/_protected/spells/$action/$_spellId'
-      path: '/spells/$action/$_spellId'
-      fullPath: '/spells/$action/$_spellId'
-      preLoaderRoute: typeof ProtectedSpellsActionspellIdImport
-      parentRoute: typeof ProtectedImport
-    }
-  }
-}
-
-// Create and export the route tree
-
-interface ProtectedRouteChildren {
-  ProtectedBackgroundsBackgroundIdRoute: typeof ProtectedBackgroundsBackgroundIdRoute
-  ProtectedCharactersCharacterIdRoute: typeof ProtectedCharactersCharacterIdRoute
-  ProtectedClassesClassIdRoute: typeof ProtectedClassesClassIdRoute
-  ProtectedEquipmentEquipmentIdRoute: typeof ProtectedEquipmentEquipmentIdRoute
-  ProtectedFeatsFeatIdRoute: typeof ProtectedFeatsFeatIdRoute
-  ProtectedRacesRaceIdRoute: typeof ProtectedRacesRaceIdRoute
-  ProtectedSpellsSpellIdRoute: typeof ProtectedSpellsSpellIdRoute
-  ProtectedBackgroundsIndexRoute: typeof ProtectedBackgroundsIndexRoute
-  ProtectedCharactersIndexRoute: typeof ProtectedCharactersIndexRoute
-  ProtectedClassesIndexRoute: typeof ProtectedClassesIndexRoute
-  ProtectedEquipmentIndexRoute: typeof ProtectedEquipmentIndexRoute
-  ProtectedFeatsIndexRoute: typeof ProtectedFeatsIndexRoute
-  ProtectedHomeIndexRoute: typeof ProtectedHomeIndexRoute
-  ProtectedRacesIndexRoute: typeof ProtectedRacesIndexRoute
-  ProtectedSpellsIndexRoute: typeof ProtectedSpellsIndexRoute
-  ProtectedBackgroundsActionbackgroundIdRoute: typeof ProtectedBackgroundsActionbackgroundIdRoute
-  ProtectedCharactersActioncharacterIdRoute: typeof ProtectedCharactersActioncharacterIdRoute
-  ProtectedClassesActionclassIdRoute: typeof ProtectedClassesActionclassIdRoute
-  ProtectedEquipmentActionequipmentIdRoute: typeof ProtectedEquipmentActionequipmentIdRoute
-  ProtectedFeatsActionfeatIdRoute: typeof ProtectedFeatsActionfeatIdRoute
-  ProtectedRacesActionraceIdRoute: typeof ProtectedRacesActionraceIdRoute
-  ProtectedSpellsActionspellIdRoute: typeof ProtectedSpellsActionspellIdRoute
-}
-
-const ProtectedRouteChildren: ProtectedRouteChildren = {
-  ProtectedBackgroundsBackgroundIdRoute: ProtectedBackgroundsBackgroundIdRoute,
-  ProtectedCharactersCharacterIdRoute: ProtectedCharactersCharacterIdRoute,
-  ProtectedClassesClassIdRoute: ProtectedClassesClassIdRoute,
-  ProtectedEquipmentEquipmentIdRoute: ProtectedEquipmentEquipmentIdRoute,
-  ProtectedFeatsFeatIdRoute: ProtectedFeatsFeatIdRoute,
-  ProtectedRacesRaceIdRoute: ProtectedRacesRaceIdRoute,
-  ProtectedSpellsSpellIdRoute: ProtectedSpellsSpellIdRoute,
-  ProtectedBackgroundsIndexRoute: ProtectedBackgroundsIndexRoute,
-  ProtectedCharactersIndexRoute: ProtectedCharactersIndexRoute,
-  ProtectedClassesIndexRoute: ProtectedClassesIndexRoute,
-  ProtectedEquipmentIndexRoute: ProtectedEquipmentIndexRoute,
-  ProtectedFeatsIndexRoute: ProtectedFeatsIndexRoute,
-  ProtectedHomeIndexRoute: ProtectedHomeIndexRoute,
-  ProtectedRacesIndexRoute: ProtectedRacesIndexRoute,
-  ProtectedSpellsIndexRoute: ProtectedSpellsIndexRoute,
-  ProtectedBackgroundsActionbackgroundIdRoute:
-    ProtectedBackgroundsActionbackgroundIdRoute,
-  ProtectedCharactersActioncharacterIdRoute:
-    ProtectedCharactersActioncharacterIdRoute,
-  ProtectedClassesActionclassIdRoute: ProtectedClassesActionclassIdRoute,
-  ProtectedEquipmentActionequipmentIdRoute:
-    ProtectedEquipmentActionequipmentIdRoute,
-  ProtectedFeatsActionfeatIdRoute: ProtectedFeatsActionfeatIdRoute,
-  ProtectedRacesActionraceIdRoute: ProtectedRacesActionraceIdRoute,
-  ProtectedSpellsActionspellIdRoute: ProtectedSpellsActionspellIdRoute,
-}
-
-const ProtectedRouteWithChildren = ProtectedRoute._addFileChildren(
-  ProtectedRouteChildren,
-)
-
-interface AuthLoginRouteRouteChildren {
-  AuthLoginIndexRoute: typeof AuthLoginIndexRoute
-}
-
-const AuthLoginRouteRouteChildren: AuthLoginRouteRouteChildren = {
-  AuthLoginIndexRoute: AuthLoginIndexRoute,
-}
-
-const AuthLoginRouteRouteWithChildren = AuthLoginRouteRoute._addFileChildren(
-  AuthLoginRouteRouteChildren,
-)
-
-interface AuthRegisterRouteRouteChildren {
-  AuthRegisterConfirmRoute: typeof AuthRegisterConfirmRoute
-  AuthRegisterIndexRoute: typeof AuthRegisterIndexRoute
-}
-
-const AuthRegisterRouteRouteChildren: AuthRegisterRouteRouteChildren = {
-  AuthRegisterConfirmRoute: AuthRegisterConfirmRoute,
-  AuthRegisterIndexRoute: AuthRegisterIndexRoute,
-}
-
-const AuthRegisterRouteRouteWithChildren =
-  AuthRegisterRouteRoute._addFileChildren(AuthRegisterRouteRouteChildren)
-
-interface AuthResetPasswordRouteRouteChildren {
-  AuthResetPasswordConfirmRoute: typeof AuthResetPasswordConfirmRoute
-  AuthResetPasswordIndexRoute: typeof AuthResetPasswordIndexRoute
-}
-
-const AuthResetPasswordRouteRouteChildren: AuthResetPasswordRouteRouteChildren =
-  {
-    AuthResetPasswordConfirmRoute: AuthResetPasswordConfirmRoute,
-    AuthResetPasswordIndexRoute: AuthResetPasswordIndexRoute,
-  }
-
-const AuthResetPasswordRouteRouteWithChildren =
-  AuthResetPasswordRouteRoute._addFileChildren(
-    AuthResetPasswordRouteRouteChildren,
-  )
-
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '': typeof ProtectedRouteWithChildren
   '/login': typeof AuthLoginRouteRouteWithChildren
   '/register': typeof AuthRegisterRouteRouteWithChildren
   '/reset-password': typeof AuthResetPasswordRouteRouteWithChildren
@@ -606,18 +240,16 @@ export interface FileRoutesByFullPath {
   '/home': typeof ProtectedHomeIndexRoute
   '/races': typeof ProtectedRacesIndexRoute
   '/spells': typeof ProtectedSpellsIndexRoute
-  '/backgrounds/$action/$_backgroundId': typeof ProtectedBackgroundsActionbackgroundIdRoute
-  '/characters/$action/$_characterId': typeof ProtectedCharactersActioncharacterIdRoute
-  '/classes/$action/$_classId': typeof ProtectedClassesActionclassIdRoute
-  '/equipment/$action/$_equipmentId': typeof ProtectedEquipmentActionequipmentIdRoute
-  '/feats/$action/$_featId': typeof ProtectedFeatsActionfeatIdRoute
-  '/races/$action/$_raceId': typeof ProtectedRacesActionraceIdRoute
-  '/spells/$action/$_spellId': typeof ProtectedSpellsActionspellIdRoute
+  '/backgrounds/$action/$_backgroundId': typeof ProtectedBackgroundsAction_backgroundIdRoute
+  '/characters/$action/$_characterId': typeof ProtectedCharactersAction_characterIdRoute
+  '/classes/$action/$_classId': typeof ProtectedClassesAction_classIdRoute
+  '/equipment/$action/$_equipmentId': typeof ProtectedEquipmentAction_equipmentIdRoute
+  '/feats/$action/$_featId': typeof ProtectedFeatsAction_featIdRoute
+  '/races/$action/$_raceId': typeof ProtectedRacesAction_raceIdRoute
+  '/spells/$action/$_spellId': typeof ProtectedSpellsAction_spellIdRoute
 }
-
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '': typeof ProtectedRouteWithChildren
   '/register/confirm': typeof AuthRegisterConfirmRoute
   '/reset-password/confirm': typeof AuthResetPasswordConfirmRoute
   '/backgrounds/$backgroundId': typeof ProtectedBackgroundsBackgroundIdRoute
@@ -638,17 +270,16 @@ export interface FileRoutesByTo {
   '/home': typeof ProtectedHomeIndexRoute
   '/races': typeof ProtectedRacesIndexRoute
   '/spells': typeof ProtectedSpellsIndexRoute
-  '/backgrounds/$action/$_backgroundId': typeof ProtectedBackgroundsActionbackgroundIdRoute
-  '/characters/$action/$_characterId': typeof ProtectedCharactersActioncharacterIdRoute
-  '/classes/$action/$_classId': typeof ProtectedClassesActionclassIdRoute
-  '/equipment/$action/$_equipmentId': typeof ProtectedEquipmentActionequipmentIdRoute
-  '/feats/$action/$_featId': typeof ProtectedFeatsActionfeatIdRoute
-  '/races/$action/$_raceId': typeof ProtectedRacesActionraceIdRoute
-  '/spells/$action/$_spellId': typeof ProtectedSpellsActionspellIdRoute
+  '/backgrounds/$action/$_backgroundId': typeof ProtectedBackgroundsAction_backgroundIdRoute
+  '/characters/$action/$_characterId': typeof ProtectedCharactersAction_characterIdRoute
+  '/classes/$action/$_classId': typeof ProtectedClassesAction_classIdRoute
+  '/equipment/$action/$_equipmentId': typeof ProtectedEquipmentAction_equipmentIdRoute
+  '/feats/$action/$_featId': typeof ProtectedFeatsAction_featIdRoute
+  '/races/$action/$_raceId': typeof ProtectedRacesAction_raceIdRoute
+  '/spells/$action/$_spellId': typeof ProtectedSpellsAction_spellIdRoute
 }
-
 export interface FileRoutesById {
-  __root__: typeof rootRoute
+  __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_protected': typeof ProtectedRouteWithChildren
   '/_auth/login': typeof AuthLoginRouteRouteWithChildren
@@ -674,20 +305,18 @@ export interface FileRoutesById {
   '/_protected/home/': typeof ProtectedHomeIndexRoute
   '/_protected/races/': typeof ProtectedRacesIndexRoute
   '/_protected/spells/': typeof ProtectedSpellsIndexRoute
-  '/_protected/backgrounds/$action/$_backgroundId': typeof ProtectedBackgroundsActionbackgroundIdRoute
-  '/_protected/characters/$action/$_characterId': typeof ProtectedCharactersActioncharacterIdRoute
-  '/_protected/classes/$action/$_classId': typeof ProtectedClassesActionclassIdRoute
-  '/_protected/equipment/$action/$_equipmentId': typeof ProtectedEquipmentActionequipmentIdRoute
-  '/_protected/feats/$action/$_featId': typeof ProtectedFeatsActionfeatIdRoute
-  '/_protected/races/$action/$_raceId': typeof ProtectedRacesActionraceIdRoute
-  '/_protected/spells/$action/$_spellId': typeof ProtectedSpellsActionspellIdRoute
+  '/_protected/backgrounds/$action/$_backgroundId': typeof ProtectedBackgroundsAction_backgroundIdRoute
+  '/_protected/characters/$action/$_characterId': typeof ProtectedCharactersAction_characterIdRoute
+  '/_protected/classes/$action/$_classId': typeof ProtectedClassesAction_classIdRoute
+  '/_protected/equipment/$action/$_equipmentId': typeof ProtectedEquipmentAction_equipmentIdRoute
+  '/_protected/feats/$action/$_featId': typeof ProtectedFeatsAction_featIdRoute
+  '/_protected/races/$action/$_raceId': typeof ProtectedRacesAction_raceIdRoute
+  '/_protected/spells/$action/$_spellId': typeof ProtectedSpellsAction_spellIdRoute
 }
-
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | ''
     | '/login'
     | '/register'
     | '/reset-password'
@@ -721,7 +350,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | ''
     | '/register/confirm'
     | '/reset-password/confirm'
     | '/backgrounds/$backgroundId'
@@ -785,7 +413,6 @@ export interface FileRouteTypes {
     | '/_protected/spells/$action/$_spellId'
   fileRoutesById: FileRoutesById
 }
-
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ProtectedRoute: typeof ProtectedRouteWithChildren
@@ -794,6 +421,333 @@ export interface RootRouteChildren {
   AuthResetPasswordRouteRoute: typeof AuthResetPasswordRouteRouteWithChildren
 }
 
+declare module '@tanstack/react-router' {
+  interface FileRoutesByPath {
+    '/_protected': {
+      id: '/_protected'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof ProtectedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_auth/reset-password': {
+      id: '/_auth/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof AuthResetPasswordRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_auth/register': {
+      id: '/_auth/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof AuthRegisterRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_auth/login': {
+      id: '/_auth/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof AuthLoginRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_protected/spells/': {
+      id: '/_protected/spells/'
+      path: '/spells'
+      fullPath: '/spells'
+      preLoaderRoute: typeof ProtectedSpellsIndexRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/races/': {
+      id: '/_protected/races/'
+      path: '/races'
+      fullPath: '/races'
+      preLoaderRoute: typeof ProtectedRacesIndexRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/home/': {
+      id: '/_protected/home/'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof ProtectedHomeIndexRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/feats/': {
+      id: '/_protected/feats/'
+      path: '/feats'
+      fullPath: '/feats'
+      preLoaderRoute: typeof ProtectedFeatsIndexRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/equipment/': {
+      id: '/_protected/equipment/'
+      path: '/equipment'
+      fullPath: '/equipment'
+      preLoaderRoute: typeof ProtectedEquipmentIndexRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/classes/': {
+      id: '/_protected/classes/'
+      path: '/classes'
+      fullPath: '/classes'
+      preLoaderRoute: typeof ProtectedClassesIndexRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/characters/': {
+      id: '/_protected/characters/'
+      path: '/characters'
+      fullPath: '/characters'
+      preLoaderRoute: typeof ProtectedCharactersIndexRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/backgrounds/': {
+      id: '/_protected/backgrounds/'
+      path: '/backgrounds'
+      fullPath: '/backgrounds'
+      preLoaderRoute: typeof ProtectedBackgroundsIndexRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_auth/reset-password/': {
+      id: '/_auth/reset-password/'
+      path: '/'
+      fullPath: '/reset-password/'
+      preLoaderRoute: typeof AuthResetPasswordIndexRouteImport
+      parentRoute: typeof AuthResetPasswordRouteRoute
+    }
+    '/_auth/register/': {
+      id: '/_auth/register/'
+      path: '/'
+      fullPath: '/register/'
+      preLoaderRoute: typeof AuthRegisterIndexRouteImport
+      parentRoute: typeof AuthRegisterRouteRoute
+    }
+    '/_auth/login/': {
+      id: '/_auth/login/'
+      path: '/'
+      fullPath: '/login/'
+      preLoaderRoute: typeof AuthLoginIndexRouteImport
+      parentRoute: typeof AuthLoginRouteRoute
+    }
+    '/_protected/spells/$spellId': {
+      id: '/_protected/spells/$spellId'
+      path: '/spells/$spellId'
+      fullPath: '/spells/$spellId'
+      preLoaderRoute: typeof ProtectedSpellsSpellIdRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/races/$raceId': {
+      id: '/_protected/races/$raceId'
+      path: '/races/$raceId'
+      fullPath: '/races/$raceId'
+      preLoaderRoute: typeof ProtectedRacesRaceIdRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/feats/$featId': {
+      id: '/_protected/feats/$featId'
+      path: '/feats/$featId'
+      fullPath: '/feats/$featId'
+      preLoaderRoute: typeof ProtectedFeatsFeatIdRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/equipment/$equipmentId': {
+      id: '/_protected/equipment/$equipmentId'
+      path: '/equipment/$equipmentId'
+      fullPath: '/equipment/$equipmentId'
+      preLoaderRoute: typeof ProtectedEquipmentEquipmentIdRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/classes/$classId': {
+      id: '/_protected/classes/$classId'
+      path: '/classes/$classId'
+      fullPath: '/classes/$classId'
+      preLoaderRoute: typeof ProtectedClassesClassIdRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/characters/$characterId': {
+      id: '/_protected/characters/$characterId'
+      path: '/characters/$characterId'
+      fullPath: '/characters/$characterId'
+      preLoaderRoute: typeof ProtectedCharactersCharacterIdRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/backgrounds/$backgroundId': {
+      id: '/_protected/backgrounds/$backgroundId'
+      path: '/backgrounds/$backgroundId'
+      fullPath: '/backgrounds/$backgroundId'
+      preLoaderRoute: typeof ProtectedBackgroundsBackgroundIdRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_auth/reset-password/confirm': {
+      id: '/_auth/reset-password/confirm'
+      path: '/confirm'
+      fullPath: '/reset-password/confirm'
+      preLoaderRoute: typeof AuthResetPasswordConfirmRouteImport
+      parentRoute: typeof AuthResetPasswordRouteRoute
+    }
+    '/_auth/register/confirm': {
+      id: '/_auth/register/confirm'
+      path: '/confirm'
+      fullPath: '/register/confirm'
+      preLoaderRoute: typeof AuthRegisterConfirmRouteImport
+      parentRoute: typeof AuthRegisterRouteRoute
+    }
+    '/_protected/spells/$action/$_spellId': {
+      id: '/_protected/spells/$action/$_spellId'
+      path: '/spells/$action/$_spellId'
+      fullPath: '/spells/$action/$_spellId'
+      preLoaderRoute: typeof ProtectedSpellsAction_spellIdRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/races/$action/$_raceId': {
+      id: '/_protected/races/$action/$_raceId'
+      path: '/races/$action/$_raceId'
+      fullPath: '/races/$action/$_raceId'
+      preLoaderRoute: typeof ProtectedRacesAction_raceIdRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/feats/$action/$_featId': {
+      id: '/_protected/feats/$action/$_featId'
+      path: '/feats/$action/$_featId'
+      fullPath: '/feats/$action/$_featId'
+      preLoaderRoute: typeof ProtectedFeatsAction_featIdRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/equipment/$action/$_equipmentId': {
+      id: '/_protected/equipment/$action/$_equipmentId'
+      path: '/equipment/$action/$_equipmentId'
+      fullPath: '/equipment/$action/$_equipmentId'
+      preLoaderRoute: typeof ProtectedEquipmentAction_equipmentIdRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/classes/$action/$_classId': {
+      id: '/_protected/classes/$action/$_classId'
+      path: '/classes/$action/$_classId'
+      fullPath: '/classes/$action/$_classId'
+      preLoaderRoute: typeof ProtectedClassesAction_classIdRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/characters/$action/$_characterId': {
+      id: '/_protected/characters/$action/$_characterId'
+      path: '/characters/$action/$_characterId'
+      fullPath: '/characters/$action/$_characterId'
+      preLoaderRoute: typeof ProtectedCharactersAction_characterIdRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/backgrounds/$action/$_backgroundId': {
+      id: '/_protected/backgrounds/$action/$_backgroundId'
+      path: '/backgrounds/$action/$_backgroundId'
+      fullPath: '/backgrounds/$action/$_backgroundId'
+      preLoaderRoute: typeof ProtectedBackgroundsAction_backgroundIdRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+  }
+}
+
+interface ProtectedRouteChildren {
+  ProtectedBackgroundsBackgroundIdRoute: typeof ProtectedBackgroundsBackgroundIdRoute
+  ProtectedCharactersCharacterIdRoute: typeof ProtectedCharactersCharacterIdRoute
+  ProtectedClassesClassIdRoute: typeof ProtectedClassesClassIdRoute
+  ProtectedEquipmentEquipmentIdRoute: typeof ProtectedEquipmentEquipmentIdRoute
+  ProtectedFeatsFeatIdRoute: typeof ProtectedFeatsFeatIdRoute
+  ProtectedRacesRaceIdRoute: typeof ProtectedRacesRaceIdRoute
+  ProtectedSpellsSpellIdRoute: typeof ProtectedSpellsSpellIdRoute
+  ProtectedBackgroundsIndexRoute: typeof ProtectedBackgroundsIndexRoute
+  ProtectedCharactersIndexRoute: typeof ProtectedCharactersIndexRoute
+  ProtectedClassesIndexRoute: typeof ProtectedClassesIndexRoute
+  ProtectedEquipmentIndexRoute: typeof ProtectedEquipmentIndexRoute
+  ProtectedFeatsIndexRoute: typeof ProtectedFeatsIndexRoute
+  ProtectedHomeIndexRoute: typeof ProtectedHomeIndexRoute
+  ProtectedRacesIndexRoute: typeof ProtectedRacesIndexRoute
+  ProtectedSpellsIndexRoute: typeof ProtectedSpellsIndexRoute
+  ProtectedBackgroundsAction_backgroundIdRoute: typeof ProtectedBackgroundsAction_backgroundIdRoute
+  ProtectedCharactersAction_characterIdRoute: typeof ProtectedCharactersAction_characterIdRoute
+  ProtectedClassesAction_classIdRoute: typeof ProtectedClassesAction_classIdRoute
+  ProtectedEquipmentAction_equipmentIdRoute: typeof ProtectedEquipmentAction_equipmentIdRoute
+  ProtectedFeatsAction_featIdRoute: typeof ProtectedFeatsAction_featIdRoute
+  ProtectedRacesAction_raceIdRoute: typeof ProtectedRacesAction_raceIdRoute
+  ProtectedSpellsAction_spellIdRoute: typeof ProtectedSpellsAction_spellIdRoute
+}
+
+const ProtectedRouteChildren: ProtectedRouteChildren = {
+  ProtectedBackgroundsBackgroundIdRoute: ProtectedBackgroundsBackgroundIdRoute,
+  ProtectedCharactersCharacterIdRoute: ProtectedCharactersCharacterIdRoute,
+  ProtectedClassesClassIdRoute: ProtectedClassesClassIdRoute,
+  ProtectedEquipmentEquipmentIdRoute: ProtectedEquipmentEquipmentIdRoute,
+  ProtectedFeatsFeatIdRoute: ProtectedFeatsFeatIdRoute,
+  ProtectedRacesRaceIdRoute: ProtectedRacesRaceIdRoute,
+  ProtectedSpellsSpellIdRoute: ProtectedSpellsSpellIdRoute,
+  ProtectedBackgroundsIndexRoute: ProtectedBackgroundsIndexRoute,
+  ProtectedCharactersIndexRoute: ProtectedCharactersIndexRoute,
+  ProtectedClassesIndexRoute: ProtectedClassesIndexRoute,
+  ProtectedEquipmentIndexRoute: ProtectedEquipmentIndexRoute,
+  ProtectedFeatsIndexRoute: ProtectedFeatsIndexRoute,
+  ProtectedHomeIndexRoute: ProtectedHomeIndexRoute,
+  ProtectedRacesIndexRoute: ProtectedRacesIndexRoute,
+  ProtectedSpellsIndexRoute: ProtectedSpellsIndexRoute,
+  ProtectedBackgroundsAction_backgroundIdRoute:
+    ProtectedBackgroundsAction_backgroundIdRoute,
+  ProtectedCharactersAction_characterIdRoute:
+    ProtectedCharactersAction_characterIdRoute,
+  ProtectedClassesAction_classIdRoute: ProtectedClassesAction_classIdRoute,
+  ProtectedEquipmentAction_equipmentIdRoute:
+    ProtectedEquipmentAction_equipmentIdRoute,
+  ProtectedFeatsAction_featIdRoute: ProtectedFeatsAction_featIdRoute,
+  ProtectedRacesAction_raceIdRoute: ProtectedRacesAction_raceIdRoute,
+  ProtectedSpellsAction_spellIdRoute: ProtectedSpellsAction_spellIdRoute,
+}
+
+const ProtectedRouteWithChildren = ProtectedRoute._addFileChildren(
+  ProtectedRouteChildren,
+)
+
+interface AuthLoginRouteRouteChildren {
+  AuthLoginIndexRoute: typeof AuthLoginIndexRoute
+}
+
+const AuthLoginRouteRouteChildren: AuthLoginRouteRouteChildren = {
+  AuthLoginIndexRoute: AuthLoginIndexRoute,
+}
+
+const AuthLoginRouteRouteWithChildren = AuthLoginRouteRoute._addFileChildren(
+  AuthLoginRouteRouteChildren,
+)
+
+interface AuthRegisterRouteRouteChildren {
+  AuthRegisterConfirmRoute: typeof AuthRegisterConfirmRoute
+  AuthRegisterIndexRoute: typeof AuthRegisterIndexRoute
+}
+
+const AuthRegisterRouteRouteChildren: AuthRegisterRouteRouteChildren = {
+  AuthRegisterConfirmRoute: AuthRegisterConfirmRoute,
+  AuthRegisterIndexRoute: AuthRegisterIndexRoute,
+}
+
+const AuthRegisterRouteRouteWithChildren =
+  AuthRegisterRouteRoute._addFileChildren(AuthRegisterRouteRouteChildren)
+
+interface AuthResetPasswordRouteRouteChildren {
+  AuthResetPasswordConfirmRoute: typeof AuthResetPasswordConfirmRoute
+  AuthResetPasswordIndexRoute: typeof AuthResetPasswordIndexRoute
+}
+
+const AuthResetPasswordRouteRouteChildren: AuthResetPasswordRouteRouteChildren =
+  {
+    AuthResetPasswordConfirmRoute: AuthResetPasswordConfirmRoute,
+    AuthResetPasswordIndexRoute: AuthResetPasswordIndexRoute,
+  }
+
+const AuthResetPasswordRouteRouteWithChildren =
+  AuthResetPasswordRouteRoute._addFileChildren(
+    AuthResetPasswordRouteRouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ProtectedRoute: ProtectedRouteWithChildren,
@@ -801,182 +755,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRegisterRouteRoute: AuthRegisterRouteRouteWithChildren,
   AuthResetPasswordRouteRoute: AuthResetPasswordRouteRouteWithChildren,
 }
-
-export const routeTree = rootRoute
+export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-/* ROUTE_MANIFEST_START
-{
-  "routes": {
-    "__root__": {
-      "filePath": "__root.tsx",
-      "children": [
-        "/",
-        "/_protected",
-        "/_auth/login",
-        "/_auth/register",
-        "/_auth/reset-password"
-      ]
-    },
-    "/": {
-      "filePath": "index.tsx"
-    },
-    "/_protected": {
-      "filePath": "_protected.tsx",
-      "children": [
-        "/_protected/backgrounds/$backgroundId",
-        "/_protected/characters/$characterId",
-        "/_protected/classes/$classId",
-        "/_protected/equipment/$equipmentId",
-        "/_protected/feats/$featId",
-        "/_protected/races/$raceId",
-        "/_protected/spells/$spellId",
-        "/_protected/backgrounds/",
-        "/_protected/characters/",
-        "/_protected/classes/",
-        "/_protected/equipment/",
-        "/_protected/feats/",
-        "/_protected/home/",
-        "/_protected/races/",
-        "/_protected/spells/",
-        "/_protected/backgrounds/$action/$_backgroundId",
-        "/_protected/characters/$action/$_characterId",
-        "/_protected/classes/$action/$_classId",
-        "/_protected/equipment/$action/$_equipmentId",
-        "/_protected/feats/$action/$_featId",
-        "/_protected/races/$action/$_raceId",
-        "/_protected/spells/$action/$_spellId"
-      ]
-    },
-    "/_auth/login": {
-      "filePath": "_auth/login/route.tsx",
-      "children": [
-        "/_auth/login/"
-      ]
-    },
-    "/_auth/register": {
-      "filePath": "_auth/register/route.tsx",
-      "children": [
-        "/_auth/register/confirm",
-        "/_auth/register/"
-      ]
-    },
-    "/_auth/reset-password": {
-      "filePath": "_auth/reset-password/route.tsx",
-      "children": [
-        "/_auth/reset-password/confirm",
-        "/_auth/reset-password/"
-      ]
-    },
-    "/_auth/register/confirm": {
-      "filePath": "_auth/register/confirm.tsx",
-      "parent": "/_auth/register"
-    },
-    "/_auth/reset-password/confirm": {
-      "filePath": "_auth/reset-password/confirm.tsx",
-      "parent": "/_auth/reset-password"
-    },
-    "/_protected/backgrounds/$backgroundId": {
-      "filePath": "_protected/backgrounds/$backgroundId.tsx",
-      "parent": "/_protected"
-    },
-    "/_protected/characters/$characterId": {
-      "filePath": "_protected/characters/$characterId.tsx",
-      "parent": "/_protected"
-    },
-    "/_protected/classes/$classId": {
-      "filePath": "_protected/classes/$classId.tsx",
-      "parent": "/_protected"
-    },
-    "/_protected/equipment/$equipmentId": {
-      "filePath": "_protected/equipment/$equipmentId.tsx",
-      "parent": "/_protected"
-    },
-    "/_protected/feats/$featId": {
-      "filePath": "_protected/feats/$featId.tsx",
-      "parent": "/_protected"
-    },
-    "/_protected/races/$raceId": {
-      "filePath": "_protected/races/$raceId.tsx",
-      "parent": "/_protected"
-    },
-    "/_protected/spells/$spellId": {
-      "filePath": "_protected/spells/$spellId.tsx",
-      "parent": "/_protected"
-    },
-    "/_auth/login/": {
-      "filePath": "_auth/login/index.tsx",
-      "parent": "/_auth/login"
-    },
-    "/_auth/register/": {
-      "filePath": "_auth/register/index.tsx",
-      "parent": "/_auth/register"
-    },
-    "/_auth/reset-password/": {
-      "filePath": "_auth/reset-password/index.tsx",
-      "parent": "/_auth/reset-password"
-    },
-    "/_protected/backgrounds/": {
-      "filePath": "_protected/backgrounds/index.tsx",
-      "parent": "/_protected"
-    },
-    "/_protected/characters/": {
-      "filePath": "_protected/characters/index.tsx",
-      "parent": "/_protected"
-    },
-    "/_protected/classes/": {
-      "filePath": "_protected/classes/index.tsx",
-      "parent": "/_protected"
-    },
-    "/_protected/equipment/": {
-      "filePath": "_protected/equipment/index.tsx",
-      "parent": "/_protected"
-    },
-    "/_protected/feats/": {
-      "filePath": "_protected/feats/index.tsx",
-      "parent": "/_protected"
-    },
-    "/_protected/home/": {
-      "filePath": "_protected/home/index.tsx",
-      "parent": "/_protected"
-    },
-    "/_protected/races/": {
-      "filePath": "_protected/races/index.tsx",
-      "parent": "/_protected"
-    },
-    "/_protected/spells/": {
-      "filePath": "_protected/spells/index.tsx",
-      "parent": "/_protected"
-    },
-    "/_protected/backgrounds/$action/$_backgroundId": {
-      "filePath": "_protected/backgrounds/$action/$_backgroundId.tsx",
-      "parent": "/_protected"
-    },
-    "/_protected/characters/$action/$_characterId": {
-      "filePath": "_protected/characters/$action/$_characterId.tsx",
-      "parent": "/_protected"
-    },
-    "/_protected/classes/$action/$_classId": {
-      "filePath": "_protected/classes/$action/$_classId.tsx",
-      "parent": "/_protected"
-    },
-    "/_protected/equipment/$action/$_equipmentId": {
-      "filePath": "_protected/equipment/$action/$_equipmentId.tsx",
-      "parent": "/_protected"
-    },
-    "/_protected/feats/$action/$_featId": {
-      "filePath": "_protected/feats/$action/$_featId.tsx",
-      "parent": "/_protected"
-    },
-    "/_protected/races/$action/$_raceId": {
-      "filePath": "_protected/races/$action/$_raceId.tsx",
-      "parent": "/_protected"
-    },
-    "/_protected/spells/$action/$_spellId": {
-      "filePath": "_protected/spells/$action/$_spellId.tsx",
-      "parent": "/_protected"
-    }
-  }
-}
-ROUTE_MANIFEST_END */

@@ -54,7 +54,7 @@ type Equipment {
   speed: Speed
   range: EquipmentRange
   contains: [Contains!]
-  features: [ID!]
+  features: [Feature!]
   ownerId: ID!
   systemId: ID!
   masterId: String

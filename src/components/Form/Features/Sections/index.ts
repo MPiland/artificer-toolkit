@@ -6,3 +6,5 @@ export { default as SectionsList } from './SectionsList'
 export { default as Senses } from './Senses'
 export { default as Spells } from './Spells'
 export { default as AddSection } from './AddSection'
+export { default as Options } from './Options'
+

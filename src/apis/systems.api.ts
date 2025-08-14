@@ -1,6 +1,6 @@
 import { queryOptions } from '@tanstack/react-query'
-import { listSystems, getSystem, listMasterSystems, getMasterSystem } from '@/queries'
-import type { QueryListMasterSystemsArgs, QueryListSystemsArgs, SystemListItem } from '@/types'
+import { listSystems, getSystem, listMasterSystems, getMasterSystem } from '~/queries'
+import type { QueryListMasterSystemsArgs, QueryListSystemsArgs, SystemListItem } from '~/types'
 import { getClient } from './utils'
 
 const systemsKeys = {

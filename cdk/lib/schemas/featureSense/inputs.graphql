@@ -6,6 +6,9 @@ input FeatureSenseInput {
   ids: [ID!]
   prerequisites: PrerequisiteInput
   charges: ChargeInput
+  ownerId: ID!
+  systemId: ID!
+  masterId: String
 }
 
 input BatchFeatureSensesInput {

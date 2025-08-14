@@ -1,20 +1,25 @@
-import type { DropdownProps, DropdownOption } from '@/components/Form/Dropdown'
-import Dropdown from '@/components/Form/Dropdown'
-import { useFieldContext } from '@/components/Form'
+import type { DropdownProps, DropdownOption } from '~/components/Dropdown'
+import Dropdown from '~/components/Dropdown'
+import { useFieldContext } from './FieldContext'
 
 type DropdownFieldProps = {
   label?: string
   placeholder?: string
   options: DropdownOption[]
   exist?: string
-} & Omit<DropdownProps, 'label' | 'value' | 'onChange' | 'error' | 'name' | 'onBlur'>
+  multiselect?: boolean
+} & Omit<DropdownProps, 'label' | 'value' | 'onChange' | 'error' | 'name' | 'onBlur' | 'multiselect'>
 
-const DropdownField = ({ label, placeholder, options, exist, ...props }: DropdownFieldProps) => {
-  // The `Field` infers that it should have a `value` type of `string`
+const DropdownField = ({ label, placeholder, options, exist, multiselect, ...props }: DropdownFieldProps) => {
+  // Use union type to handle both single and multi-select cases
   const { state, name, handleBlur, handleChange, setValue } = useFieldContext<string | string[] | undefined | null>()
 
   if (exist != null) {
-    setValue(exist)
+    if (multiselect === true) {
+      setValue([exist])
+    } else {
+      setValue(exist)
+    }
   }
 
   return (
@@ -26,7 +31,8 @@ const DropdownField = ({ label, placeholder, options, exist, ...props }: Dropdow
       onBlur={handleBlur}
       placeholder={placeholder}
       options={options}
-      error={state.meta.errors.join(', ')}
+      error={state.meta.errors?.join(', ')}
+      multiselect={multiselect}
       {...props}
     />
   )

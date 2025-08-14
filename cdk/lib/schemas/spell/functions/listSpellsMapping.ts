@@ -1,6 +1,6 @@
 import { Context, AppSyncIdentityCognito, util } from '@aws-appsync/utils'
 import { DynamoDBQueryRequest } from '@aws-appsync/utils'
-import { itemsToMeta, metaData } from './utils/util'
+import { itemsToMeta, metaData } from './util'
 
 export function request(ctx: Context & { identity: AppSyncIdentityCognito }) {
   const { systemId, limit = 1000, nextToken }: { systemId: string; limit?: number; nextToken?: string } = ctx.args

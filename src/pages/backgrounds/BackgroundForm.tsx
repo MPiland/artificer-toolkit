@@ -1,36 +1,42 @@
-import { useEffect, useMemo, useCallback, useLayoutEffect } from 'react'
-import { useAddNewBackgroundMutation, useUpdateBackgroundMutation } from '@/apis/backgrounds.api'
-import type { BackgroundInput } from '@/types'
-import { Route } from '@/routes/_protected/backgrounds/$action/$_backgroundId'
-import { useBackgroundData, useSystemPref } from '@/hooks'
-import { BackgroundInputSchema } from '@/schemas'
+import { useEffect, useMemo, useLayoutEffect, useCallback } from 'react'
+import { useGetBackground, useAddBackground, useUpdateBackground } from '~/apis'
+import type { BackgroundInput } from '~/types'
+import { Route } from '~/routes/_protected/backgrounds/$action/$_backgroundId'
+import { useSystemPref } from '~/hooks'
+import { BackgroundInputSchema } from '~/schemas'
 import { v4 as uuidv4 } from 'uuid'
-import { useTypedFormStore } from '@/store'
-import Form, { BackgroundDetails, Features, useAppForm } from '@/components/Form'
-import { convertTypenameToKindInput } from '@/utils'
+import { useOptimizedSelector, useTypedFormStore } from '~/store'
+import Form, { BackgroundDetails, Features } from '~/components/Form'
+import { convertTypenameToKindInput } from '~/utils'
+import { isEqual } from 'lodash-es'
 
 const BackgroundForm = () => {
   const { _backgroundId: backgroundId, action } = Route.useParams()
-  const {
-    backgrounds: { findBackground },
-  } = useBackgroundData()
   const [systemPref] = useSystemPref()
 
-  const backgroundData = findBackground(backgroundId)
+  const { mutateAsync: addBackground } = useAddBackground()
+  const { mutateAsync: updateBackground } = useUpdateBackground()
+
+  const backgroundData = useGetBackground(backgroundId)
 
   const store = useTypedFormStore<BackgroundInput>()
 
-  const current = store((state) => state.current)
-  const steps = store((state) => state.steps)
-  const setSteps = store((state) => state.setSteps)
-  const setCurrent = store((state) => state.setCurrent)
-  const stepIndex = store((state) => state.stepIndex)
-  const registerForm = store((state) => state.registerForm)
-  const formReset = store((state) => state.formReset)
+  const { current, steps, setSteps, setCurrent, stepIndex, registerForm, formSubmit } = useOptimizedSelector(
+    store,
+    (state) => ({
+      current: state.current,
+      steps: state.meta.steps,
+      setSteps: state.setSteps,
+      setCurrent: state.setCurrent,
+      stepIndex: state.meta.stepIndex,
+      registerForm: state.registerForm,
+      formSubmit: state.formSubmit,
+    })
+  )
 
-  const createDataObject = useCallback(() => {
+  const data = useMemo(() => {
     if (backgroundData) {
-      const backgroundInput = convertTypenameToKindInput(backgroundData)
+      const backgroundInput = convertTypenameToKindInput(backgroundData) as BackgroundInput
       if (backgroundInput) {
         if (action === 'new') {
           return BackgroundInputSchema.parse({
@@ -53,17 +59,29 @@ const BackgroundForm = () => {
     })
   }, [action, backgroundData, systemPref])
 
-  const data = useMemo(() => createDataObject(), [createDataObject])
+  const handleSubmit = useCallback(async () => {
+    if (action === 'new') {
+      try {
+        const result = await addBackground(data)
+        console.log({ result })
+      } catch (err) {
+        console.error({ err })
+      }
+    } else {
+      try {
+        const result = await updateBackground(data)
+        console.log({ result })
+      } catch (err) {
+        console.error({ err })
+      }
+    }
+  }, [action, addBackground, updateBackground, data])
 
   useLayoutEffect(() => {
     if (current === null) {
-      setCurrent(data as BackgroundInput)
+      setCurrent(data)
     }
   }, [current, data, setCurrent])
-
-  const form = useAppForm({
-    defaultValues: data,
-  })
 
   const backgroundSteps = useMemo(
     () => [
@@ -73,28 +91,22 @@ const BackgroundForm = () => {
     []
   )
 
-  useLayoutEffect(() => {
-    if (!steps.every((step) => backgroundSteps.some((s) => s.id === step.id)) || !steps?.length) {
-      setSteps(backgroundSteps)
-    }
-  }, [steps, backgroundSteps, setSteps])
+  useEffect(() => {
+    if (!isEqual(backgroundSteps, backgroundSteps)) setSteps(backgroundSteps)
+  }, [backgroundSteps, setSteps])
 
   useEffect(() => {
-    if (!formReset) {
-      registerForm(form.reset)
+    if (!formSubmit) {
+      registerForm(handleSubmit)
     }
-  }, [formReset, registerForm, form.reset])
+  }, [formSubmit, handleSubmit, registerForm])
 
   const stepComponentMap = {
-    details: <BackgroundDetails form={form} />,
+    details: <BackgroundDetails />,
     features: <Features />,
   }
 
-  return (
-    <Form useAddNewItemMutation={useAddNewBackgroundMutation} useUpdateItemMutation={useUpdateBackgroundMutation}>
-      {stepComponentMap[steps[stepIndex].id as keyof typeof stepComponentMap] || null}
-    </Form>
-  )
+  return <Form>{stepComponentMap[steps[stepIndex].id as keyof typeof stepComponentMap] || null}</Form>
 }
 
 export default BackgroundForm

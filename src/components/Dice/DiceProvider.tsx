@@ -5,7 +5,7 @@ import { generateRandomLinearVelocity, generateRandomRotation, generateRandomPoi
 import Dice from './Dice'
 import { Vector3Tuple } from '@react-three/rapier'
 import { DiceContext } from './DiceContext'
-import { useDiceStore } from '@/store'
+import { useDiceStore } from '~/store'
 import { ROLL_CONFIG_REGEX } from '../Form'
 
 const useDiceOptions = () => {

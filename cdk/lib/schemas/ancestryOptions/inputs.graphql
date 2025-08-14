@@ -2,7 +2,7 @@ input AncestryOptionInput {
   id: ID!
   label: String!
   desc: String
-  features: [ID!]
+  features: [FeatureInput!]
   ownerId: ID!
   systemId: ID!
   masterId: String

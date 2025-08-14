@@ -1,17 +1,12 @@
 import parse from 'html-react-parser'
-import Detail, { DetailConfig } from '@/components/Detail'
-import { Route } from '@/routes/_protected/spells/$spellId'
-import { useSpellData } from '@/hooks'
-import type { Spell } from '@/types'
+import Detail, { DetailConfig } from '~/components/Detail'
+import { Route } from '~/routes/_protected/spells/$spellId'
+import { useGetSpell } from '~/apis'
+import type { Spell } from '~/types'
 
 const Spell = () => {
   const spellId = Route.useParams({ select: (r) => r.spellId })
-  const {
-    spells: { findSpell },
-  } = useSpellData()
-  const spell = findSpell(spellId)
-
-  if (!spell) return <div>Invalid or missing spell data</div>
+  const { data: spell } = useGetSpell(spellId)
 
   const materialDesc = () => {
     if (spell && 'materialDesc' in spell && spell.materialDesc != null) {
@@ -92,7 +87,7 @@ const Spell = () => {
   const footer = materialDesc()
 
   return (
-    <Detail detailConfigs={detailConfigs} footer={footer} item={spell}>
+    <Detail detailConfigs={detailConfigs} footer={footer} item={spell!}>
       <div>{spell?.desc && parse(spell?.desc)}</div>
     </Detail>
   )

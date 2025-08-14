@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
-import Background from '@/pages/backgrounds/Background'
-import { fetchBackground } from '@/apis/backgrounds.api'
-import Loading from '@/components/Loading/Loading'
+import Background from '~/pages/backgrounds/Background'
+import { fetchBackground } from '~/apis'
+import Loading from '~/components/Loading/Loading'
 import { Modal } from '@mantine/core'
 
 export const Route = createFileRoute('/_protected/backgrounds/$backgroundId')({
@@ -10,7 +10,7 @@ export const Route = createFileRoute('/_protected/backgrounds/$backgroundId')({
   },
   loader: ({ context, params }) => context.queryClient.ensureQueryData(fetchBackground(params.backgroundId)),
   pendingComponent: () => (
-    <Modal withCloseButton={false}  opened onClose={() => {}} centered size='auto'>
+    <Modal withCloseButton={false} opened onClose={() => {}} centered size='auto'>
       <Loading />
     </Modal>
   ),

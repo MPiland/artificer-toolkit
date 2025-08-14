@@ -1,11 +1,13 @@
-import List, { type FooterConfig } from '@/components/List'
-import ICategory from '@/assets/Icons/ICategory'
-import { useDeleteClassMutation } from '@/apis/classes.api'
-import type { ClassMeta } from '@/types'
-import { useClassData } from '@/hooks'
+import List, { type FooterConfig } from '~/components/List'
+import ICategory from '~/assets/Icons/ICategory'
+import { useDeleteClass, useListClasses } from '~/apis'
+import type { ClassMeta } from '~/types'
 
 const Classes = () => {
-  const { classes, metaData } = useClassData()
+  const {
+    data: { classes, metaData },
+  } = useListClasses()
+
   const footerConfigs: FooterConfig<ClassMeta>[] = [
     {
       icon: <ICategory />,
@@ -23,7 +25,7 @@ const Classes = () => {
   ]
 
   return (
-    <List data={classes} metaData={metaData} useDeleteItem={useDeleteClassMutation} footerConfigs={footerConfigs} />
+    <List data={classes} metaData={metaData} useDeleteItem={useDeleteClass} footerConfigs={footerConfigs} />
   )
 }
 export default Classes

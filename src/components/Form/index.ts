@@ -1,7 +1,6 @@
 export * from './utils/utils'
 export { default } from './Form'
 export * from './Fields'
-export * from './utils/factory'
 export * from './Form.css'
 export * from './StepGroups'
 export * from './Features'

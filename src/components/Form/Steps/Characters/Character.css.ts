@@ -1,7 +1,7 @@
 import { style } from '@vanilla-extract/css'
-import { app } from '@/css/layers.css'
-import { size, space } from '@/css/size.css'
-import { fontSize } from '@/css/typography.css'
+import { app } from '~/css/layers.css'
+import { size, space } from '~/css/size.css'
+import { fontSize } from '~/css/typography.css'
 
 export const option_dropdown = style({
   '@layer': {

@@ -1,10 +1,11 @@
-import List from '@/components/List'
-import { useDeleteFeatMutation } from '@/apis/feats.api'
-import { useFeatData } from '@/hooks'
+import List from '~/components/List'
+import { useDeleteFeat, useListFeats } from '~/apis'
 
 const Feats = () => {
-  const { feats } = useFeatData()
-  return <List data={feats} useDeleteItem={useDeleteFeatMutation} />
+  const {
+    data: { feats },
+  } = useListFeats()
+  return <List data={feats} useDeleteItem={useDeleteFeat} />
 }
 
 export default Feats

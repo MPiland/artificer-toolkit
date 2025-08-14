@@ -1,8 +1,8 @@
 import { useRouteContext } from '@tanstack/react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { fetchSystem } from '@/apis/systems.api'
-import { createArrayWithMethods } from '@/utils'
-import type { System, GenericType } from '@/types'
+import { fetchSystem } from '~/apis'
+import { createArrayWithMethods } from '~/utils'
+import type { System, GenericType } from '~/types'
 
 type ModifierMethod = System['modifiers']['methods'][number]
 
@@ -212,11 +212,14 @@ const useSystemData = () => {
         },
       }),
       properties: createArrayWithMethods(system.equipment.properties, {
-        findProperty: (id?: string | null) => {
+        findProperty: (id?: string | null | undefined) => {
           if (!id) return null
           system.equipment.properties.find((p) => p.id === id)
         },
-        filterByCategory(this: System['equipment']['properties'] & EquipmentPropertyMethods, id?: string | null) {
+        filterByCategory(
+          this: System['equipment']['properties'] & EquipmentPropertyMethods,
+          id?: string | null | undefined
+        ) {
           if (!id || id === '') return system.equipment.properties
           return this.filter((property) =>
             system.equipment.categoryProperties.some(
@@ -226,7 +229,7 @@ const useSystemData = () => {
         },
       }),
       rarities: createArrayWithMethods(system.equipment.rarities, {
-        findRarity: (id?: string | null) => {
+        findRarity: (id?: string | null | undefined) => {
           if (!id) return null
           return system.equipment.rarities.find((r) => r.id === id)
         },
@@ -240,17 +243,17 @@ const useSystemData = () => {
     }),
     modifiers: {
       categories: createArrayWithMethods(system.modifiers.categories, {
-        findCategory: (id?: string | null) => {
+        findCategory: (id?: string | null | undefined) => {
           if (!id) return null
           return system.modifiers.categories.find((c) => c.id === id)
         },
       }),
       types: createArrayWithMethods(system.modifiers.types, {
-        findType: (id?: string | null) => {
+        findType: (id?: string | null | undefined) => {
           if (!id) return null
           return system.modifiers.types.find((t) => t.id === id)
         },
-        filterByCategory: (categoryId?: string | null) => {
+        filterByCategory: (categoryId?: string | null | undefined) => {
           if (!categoryId) return system.modifiers.types
           return system.modifiers.types.filter((type) =>
             system.modifiers.categoryTypes
@@ -261,7 +264,7 @@ const useSystemData = () => {
       }),
       methods: createArrayWithMethods(system.modifiers.methods, modMethodMethods),
       spellCategories: createArrayWithMethods(system.modifiers.spellCategories, {
-        findSpellCategory: (id?: string | null) => {
+        findSpellCategory: (id?: string | null | undefined) => {
           if (!id) return null
           return system.modifiers.spellCategories.find((s) => s.id === id)
         },
@@ -287,7 +290,7 @@ const useSystemData = () => {
         },
       }),
       categories: createArrayWithMethods(system.proficiencies.categories, {
-        findCategory: (id?: string | null) => {
+        findCategory: (id?: string | null | undefined) => {
           if (!id) return null
           return system.proficiencies.categories.find((c) => c.id === id)
         },
@@ -296,13 +299,13 @@ const useSystemData = () => {
     rules: {
       measurements: {
         amount: createArrayWithMethods(system.rules.measurements.amount, {
-          findAmount: (id?: string | null) => {
+          findAmount: (id?: string | null | undefined) => {
             if (!id) return null
             return system.rules.measurements.amount.find((a) => a.id === id)
           },
         }),
         rounding: createArrayWithMethods(system.rules.measurements.rounding, {
-          findRounding: (id?: string | null) => {
+          findRounding: (id?: string | null | undefined) => {
             if (!id) return null
             system.rules.measurements.rounding.find((r) => r.id === id)
           },

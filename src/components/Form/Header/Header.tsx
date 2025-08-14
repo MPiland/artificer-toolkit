@@ -1,26 +1,28 @@
 import { Group, Button } from '@mantine/core'
-import { useFormStore } from '@/store'
+import { useOptimizedSelector, useTypedFormStore } from '~/store'
 import Stepper from './Stepper'
 
 const Header = () => {
-  const __kind = useFormStore((state) => state.current?.__kind)
-  const label = useFormStore((state) => state.current?.label)
-  const stepIndex = useFormStore((state) => state.stepIndex)
-  const steps = useFormStore((state) => state.steps)
-  const addClass = useFormStore((state) => state.addClass)
-  const changeRace = useFormStore((state) => state.changeRace)
-  const setChangeRace = useFormStore((state) => state.setChangeRace)
-  const classes = useFormStore((state) =>
-    state.current?.__kind === 'CharacterInput' ? state.current?.classes : undefined
-  )
-  const setAddClass = useFormStore((state) => state.setAddClass)
+  const store = useTypedFormStore()
+  const { __kind, label, stepIndex, steps, addClass, changeRace, setChangeRace, classes, setAddClass } =
+    useOptimizedSelector(store, (state) => ({
+      __kind: state.current?.__kind,
+      label: state.current?.label,
+      stepIndex: state.meta.stepIndex,
+      steps: state.meta.steps,
+      addClass: state.meta.addClass,
+      changeRace: state.meta.changeRace,
+      setChangeRace: state.setChangeRace,
+      classes: state.current?.__kind === 'CharacterInput' ? state.current?.classes : undefined,
+      setAddClass: state.setAddClass,
+    }))
 
   return (
     <>
       {steps.length > 1 && <Stepper />}
       <Group justify='space-between'>
         <h1>
-          {label ? ` ${label}` : `Create ${__kind === 'CharacterInput' ? 'an ' : 'a '} ${__kind}`}
+          {label ? ` ${label}` : `Create ${__kind === 'CharacterInput' ? 'an ' : 'a '} ${__kind?.replace('Input', '')}`}
         </h1>
         {__kind === 'CharacterInput' && (
           <>

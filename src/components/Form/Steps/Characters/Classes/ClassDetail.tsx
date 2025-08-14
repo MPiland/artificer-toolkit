@@ -1,14 +1,15 @@
 import parse from 'html-react-parser'
-import Collapsible from '@/components/Collapse'
-import { startCase } from 'lodash'
-import { numberToWords } from '@/utils'
+import Collapsible from '~/components/Collapse'
+import { startCase } from 'lodash-es'
+import { convertTypenameToKindInput, numberToWords } from '~/utils'
 import { Grid, ScrollArea, Button } from '@mantine/core'
-import { useGetFeatures, useGetProficiencies, useSystemData, useClassData, useFeatureData } from '@/hooks'
-import Modal from '@/components/Modal'
-import type { ClassListItem } from '@/types'
-import { parseDiceRoll } from '@/components/Dice'
-import { ClassInputSchema } from '@/schemas'
-import { useFormStore } from '@/store'
+import { useSystemData, useClassProficiency } from '~/hooks'
+import Modal from '~/components/Modal'
+import type { ClassListItem, FeatureInput } from '~/types'
+import { parseDiceRoll } from '~/components/Dice'
+import { useFormStore } from '~/store'
+import { useGetClass } from '~/apis'
+import { useMemo } from 'react'
 
 const ClassDetail = ({
   formClass,
@@ -20,25 +21,32 @@ const ClassDetail = ({
   addClass: () => void
 }) => {
   const { abilities } = useSystemData()
-  const {
-    classes: { findClass },
-  } = useClassData()
   const { setAddClass } = useFormStore()
-  const { createFeatures } = useGetFeatures()
-  const {
-    features: { findFeature },
-  } = useFeatureData()
 
-  const fullClass = findClass(formClass.id)!
-  const classInput = ClassInputSchema.parse(fullClass)
-  const proficiencies = useGetProficiencies({ fullClass })
+  const { data: fullClass } = useGetClass(formClass.id)
+  const proficiencies = useClassProficiency({ fullClass: fullClass! })
 
   // Memoize the feature array
-  const features = createFeatures({ data: classInput })
+  const features = useMemo(() => {
+    const featureArray: Omit<FeatureInput & { level: number }, 'levelAvailable'>[] = []
+    if (fullClass?.features?.length) {
+      for (const feature of fullClass.features) {
+        const featureState = convertTypenameToKindInput(feature) as FeatureInput
+        const levels = featureState?.levelAvailable?.split(',')
+        levels?.forEach((level) => {
+          featureArray.push({
+            level: parseInt(level),
+            ...featureState,
+          })
+        })
+      }
+    }
+    return featureArray
+  }, [fullClass])
 
-  const hitpointAbility = abilities.find((ability) => ability.id === fullClass.hitpoint?.ability)
+  const hitpointAbility = abilities.find((ability) => ability.id === fullClass?.hitpoint?.ability)
 
-  const { quantity, die } = parseDiceRoll(fullClass.hitpoint?.dieConfig)
+  const { quantity, die } = parseDiceRoll(fullClass?.hitpoint?.dieConfig)
 
   const handleSelect = () => {
     addClass()
@@ -65,7 +73,7 @@ const ClassDetail = ({
                 },
               }}
             >
-              {fullClass.hitpoint?.dieConfig && quantity && die ?
+              {fullClass?.hitpoint?.dieConfig && quantity && die ?
                 <>
                   <div>
                     <strong>{'Hit Dice: '}</strong>
@@ -142,32 +150,28 @@ const ClassDetail = ({
               </Collapsible>
             </Grid.Col>
           )}
-          {features
-            .sort((a, b) => {
-              if (a.level && b.level) {
-                return a?.level - b?.level
-              } else {
-                return 0
-              }
-            })
-            .map((f, i) => {
-              const fullFeature = findFeature(f.id)
-              if (fullFeature) {
-                return (
-                  <Grid.Col key={`${i}-features`}>
-                    <Collapsible
-                      props={{
-                        trigger: {
-                          title: `(${f.level}) ${fullFeature.label}`,
-                        },
-                      }}
-                    >
-                      {fullFeature.desc && parse(fullFeature.desc)}
-                    </Collapsible>
-                  </Grid.Col>
-                )
-              }
-            })}
+          {features?.length &&
+            features
+              .sort((a, b) => {
+                if (a.level && b.level) {
+                  return a?.level - b?.level
+                } else {
+                  return 0
+                }
+              })
+              .map((feature, i) => (
+                <Grid.Col key={`${i}-features`}>
+                  <Collapsible
+                    props={{
+                      trigger: {
+                        title: `(${feature.level}) ${feature.label}`,
+                      },
+                    }}
+                  >
+                    {feature.desc && parse(feature.desc)}
+                  </Collapsible>
+                </Grid.Col>
+              ))}
         </Grid>
       </ScrollArea>
     </Modal>

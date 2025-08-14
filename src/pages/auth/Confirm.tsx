@@ -13,7 +13,7 @@ import {
 } from '@mantine/core'
 import { useNavigate, type ToOptions } from '@tanstack/react-router'
 import { auth_container, auth_title, auth_wrapper } from './Auth.css'
-import { confirmSignUp, resendSignUpCode, confirmResetPassword } from '@/apis/auth.api'
+import { confirmSignUp, resendSignUpCode, confirmResetPassword } from '~/apis'
 import { useState } from 'react'
 import { Info } from 'lucide-react'
 import { useMatches } from '@tanstack/react-router'

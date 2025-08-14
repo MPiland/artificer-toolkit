@@ -5,6 +5,9 @@ type FeatureSense {
   subtype: ID
   ids: [ID!]
   prerequisites: Prerequisite
+  ownerId: ID!
+  systemId: ID!
+  masterId: String
 }
 
 type FeatureSenseConnection {

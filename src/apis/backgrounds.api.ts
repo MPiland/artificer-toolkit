@@ -1,6 +1,6 @@
-import { useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
+import { useMutation, useQueryClient, queryOptions, useSuspenseQuery } from '@tanstack/react-query'
 import { type GraphQLResult } from 'aws-amplify/data'
-import { listMasterBackgrounds, listBackgrounds, getMasterBackground, getBackground } from '@/queries'
+import { listMasterBackgrounds, listBackgrounds, getMasterBackground, getBackground } from '~/queries'
 import {
   createMasterBackground,
   createBackground,
@@ -8,7 +8,7 @@ import {
   deleteBackground,
   updateMasterBackground,
   updateBackground,
-} from '@/mutations'
+} from '~/mutations'
 import type {
   BackgroundInput,
   Background,
@@ -17,8 +17,9 @@ import type {
   BackgroundConnection,
   BackgroundListItem,
   BackgroundMeta,
-} from '@/types'
+} from '~/types'
 import { getClient } from './utils'
+import { useSystemPref } from '~/hooks'
 
 const backgroundsKeys = {
   all: ['backgrounds'] as const,
@@ -128,7 +129,16 @@ export const fetchBackground = (id: string) => {
   })
 }
 
-export const useAddNewBackgroundMutation = () => {
+export const useListBackgrounds = () => {
+  const [systemPref] = useSystemPref()
+  return useSuspenseQuery(fetchBackgrounds(systemPref))
+}
+
+export const useGetBackground = (id: string) => {
+  return useSuspenseQuery(fetchBackground(id))
+}
+
+export const useAddBackground = () => {
   const queryClient = useQueryClient()
 
   return useMutation<Background, Error, BackgroundInput, unknown>({
@@ -169,7 +179,7 @@ export const useAddNewBackgroundMutation = () => {
   })
 }
 
-export const useUpdateBackgroundMutation = () => {
+export const useUpdateBackground = () => {
   const queryClient = useQueryClient()
 
   return useMutation<Background, Error, BackgroundInput, unknown>({

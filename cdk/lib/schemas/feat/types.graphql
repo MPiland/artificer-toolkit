@@ -11,17 +11,16 @@ type Feat {
   range: Range
   shape: Shape
   targets: Int
-  modifiers: [ID!]
-  proficiencies: [ID!]
-  expertise: [ID!]
-  senses: [ID!]
-  spells: [ID!]
+  modifiers: [FeatureModifier!]
+  proficiencies: [FeatureProficiency!]
+  expertise: [FeatureExpertise!]
+  senses: [FeatureSense!]
+  spells: [FeatureSpell!]
   prerequisites: Prerequisite
   saveAbility: SaveAbility
   selectionCount: Int
   levelAvailable: String
-  features: [ID!]
-  options: [ID!]
+  features: [Feature!]
   ownerId: ID!
   systemId: ID!
   masterId: String

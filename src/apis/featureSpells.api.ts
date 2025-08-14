@@ -1,6 +1,6 @@
 import { getClient } from './utils'
-import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query'
-import { listFeatureSpells, listMasterFeatureSpells, getFeatureSpell, getMasterFeatureSpell } from '@/queries'
+import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { listFeatureSpells, listMasterFeatureSpells, getFeatureSpell, getMasterFeatureSpell } from '~/queries'
 import type {
   FeatureSpellInput,
   FeatureSpell,
@@ -14,7 +14,8 @@ import {
   updateMasterFeatureSpell,
   deleteMasterFeatureSpell,
   deleteFeatureSpell,
-} from '@/mutations'
+} from '~/mutations'
+import { useSystemPref } from '~/hooks'
 
 const featureSpellsKeys = {
   all: ['featureSpells'] as const,
@@ -110,7 +111,16 @@ export const fetchFeatureSpell = (id: string) => {
   })
 }
 
-export const useAddNewFeatureSpellMutation = () => {
+export const useListFeatureSpells = () => {
+  const [systemPref] = useSystemPref()
+  return useSuspenseQuery(fetchFeatureSpells(systemPref))
+}
+
+export const useGetFeatureSpell = (id: string) => {
+  return useSuspenseQuery(fetchFeatureSpell(id))
+}
+
+export const useAddFeatureSpell = () => {
   const queryClient = useQueryClient()
 
   return useMutation<FeatureSpell, Error, FeatureSpellInput, unknown>({
@@ -150,7 +160,7 @@ export const useAddNewFeatureSpellMutation = () => {
   })
 }
 
-export const useUpdateFeatureSpellMutation = () => {
+export const useUpdateFeatureSpell = () => {
   const queryClient = useQueryClient()
 
   return useMutation<FeatureSpell, Error, FeatureSpellInput, unknown>({
@@ -190,7 +200,7 @@ export const useUpdateFeatureSpellMutation = () => {
   })
 }
 
-export const useDeleteFeatureSpellMutation = () => {
+export const useDeleteFeatureSpell = () => {
   const queryClient = useQueryClient()
 
   return useMutation({

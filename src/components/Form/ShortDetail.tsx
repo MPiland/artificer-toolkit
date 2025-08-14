@@ -1,6 +1,6 @@
 import { Button } from '@mantine/core'
-import Modal from '@/components/Modal'
-import { startCase } from 'lodash'
+import Modal from '~/components/Modal'
+import { startCase } from 'lodash-es'
 import { ReactNode } from 'react'
 import { Grid, ScrollArea } from '@mantine/core'
 

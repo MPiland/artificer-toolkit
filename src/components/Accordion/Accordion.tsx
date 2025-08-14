@@ -5,7 +5,7 @@ import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } 
 import { CSS } from '@dnd-kit/utilities'
 import clsx from 'clsx'
 import { item, header, content, header_icon, header_icon_collapse } from './Accordion.css'
-import { sprinkles } from '@/css/sprinkles.css'
+import { sprinkles } from '~/css/sprinkles.css'
 import { Accordion, Group } from '@mantine/core'
 
 export type AccordionItemProps = {
@@ -48,11 +48,21 @@ type TriggerProps = {
   removeFn?: () => void
   editFn?: () => void
   title?: string
+  onClick?: () => void
 } & ComponentProps<typeof Accordion.Control>
 
-const AccordionTrigger = ({ className, children, removeFn, editFn, title, ...props }: TriggerProps) => {
+const AccordionTrigger = ({ className, children, removeFn, editFn, title, onClick, ...props }: TriggerProps) => {
   return (
-    <Accordion.Control className={clsx(header, className)} {...props} onClick={(e) => e.stopPropagation()}>
+    <Accordion.Control
+      className={clsx(header, className)}
+      {...props}
+      onClick={(e) => {
+        if (onClick !== undefined) {
+          onClick()
+        }
+        e.stopPropagation()
+      }}
+    >
       <Group justify='flex-start'>
         <Group>
           <h3 className={sprinkles({ my: 'space-x' })}>{title}</h3>
@@ -94,61 +104,91 @@ const AccordionContent = ({ className, children, ...props }: AccordionContentPro
   )
 }
 
-export type AccordionProps = {
+type AccordionSortableProps = {
+  disableSort?: false
   dataArray: unknown[]
   onChange: (arg: unknown[]) => void
-  disableSort?: boolean
   children?: ReactNode
 } & Omit<ComponentProps<typeof Accordion>, 'onChange'>
 
-const AccordionBase = Object.assign(
-  ({ onChange, disableSort, dataArray, children, ...props }: AccordionProps) => {
-    const sensor = useSensors(
-      useSensor(TouchSensor, {
-        activationConstraint: {
-          delay: 300,
-          tolerance: 0,
-        },
-      }),
-      useSensor(MouseSensor, {
-        activationConstraint: {
-          delay: 300,
-          tolerance: 0,
-        },
-      })
-    )
+type AccordionNonSortableProps = {
+  disableSort: true
+  children?: ReactNode
+} & Omit<ComponentProps<typeof Accordion>, 'onChange'>
 
-    const onDragEnd = (event: DragEndEvent) => {
-      const { active, over } = event
-      if (active.id === over?.id) {
-        return
-      }
+export type AccordionProps = AccordionSortableProps | AccordionNonSortableProps
 
-      const oldArray = JSON.parse(JSON.stringify(dataArray))
+const AccordionSortable = ({
+  onChange,
+  dataArray,
+  children,
+  ...props
+}: Omit<AccordionSortableProps, 'disableSort'>) => {
+  const sensor = useSensors(
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 300,
+        tolerance: 0,
+      },
+    }),
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        delay: 300,
+        tolerance: 0,
+      },
+    })
+  )
 
-      const oldIndex = Number(active.id)
-      const newIndex = Number(over?.id)
-      const newArray = arrayMove(oldArray, oldIndex, newIndex)
-      onChange(newArray)
+  const onDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (active.id === over?.id) {
+      return
     }
 
-    return (
-      <Accordion
-        chevron={<PlusIcon className={clsx(header_icon)} />}
-        classNames={{ chevron: header_icon_collapse, content: content }}
-        {...props}
-      >
-        <DndContext collisionDetection={closestCenter} sensors={sensor} onDragEnd={onDragEnd}>
-          <SortableContext
-            items={dataArray.map((_, dataIndex) => String(dataIndex))}
-            disabled={disableSort}
-            strategy={verticalListSortingStrategy}
-          >
-            {children}
-          </SortableContext>
-        </DndContext>
-      </Accordion>
-    )
+    const oldArray = JSON.parse(JSON.stringify(dataArray))
+
+    const oldIndex = Number(active.id)
+    const newIndex = Number(over?.id)
+    const newArray = arrayMove(oldArray, oldIndex, newIndex)
+    onChange(newArray)
+  }
+
+  return (
+    <Accordion
+      chevron={<PlusIcon className={clsx(header_icon)} />}
+      classNames={{ chevron: header_icon_collapse, content: content }}
+      {...props}
+    >
+      <DndContext collisionDetection={closestCenter} sensors={sensor} onDragEnd={onDragEnd}>
+        <SortableContext
+          items={dataArray.map((_, dataIndex) => String(dataIndex))}
+          strategy={verticalListSortingStrategy}
+        >
+          {children}
+        </SortableContext>
+      </DndContext>
+    </Accordion>
+  )
+}
+
+const AccordionNonSortable = ({ children, ...props }: Omit<AccordionNonSortableProps, 'disableSort'>) => {
+  return (
+    <Accordion
+      chevron={<PlusIcon className={clsx(header_icon)} />}
+      classNames={{ chevron: header_icon_collapse, content: content }}
+      {...props}
+    >
+      {children}
+    </Accordion>
+  )
+}
+
+const AccordionBase = Object.assign(
+  (props: AccordionProps) => {
+    if (props.disableSort === true) {
+      return <AccordionNonSortable {...props} />
+    }
+    return <AccordionSortable {...props} />
   },
   {
     Item: AccordionItem,

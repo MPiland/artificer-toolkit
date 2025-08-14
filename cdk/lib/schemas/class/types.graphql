@@ -58,6 +58,7 @@ type Multiclass {
   primaryAbility: MulticlassAbility
   secondaryAbility: MulticlassAbility
   optionalAbility: MulticlassAbility
+  proficiencies: [ClassProficiency!]
 }
 
 type Subtype {
@@ -98,7 +99,7 @@ type Class {
   multiclass: Multiclass
   parentClass: ID
   subtypes: [Subtype!]
-  features: [ID!]
+  features: [Feature!]
   ownerId: ID!
   systemId: ID!
   masterId: String

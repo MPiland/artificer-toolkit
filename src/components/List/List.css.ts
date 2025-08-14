@@ -1,7 +1,7 @@
 import { style, createVar, globalStyle } from '@vanilla-extract/css'
-import { app } from '@/css/layers.css'
-import { size } from '@/css/size.css'
-import { space } from '@/css/size.css'
+import { app } from '~/css/layers.css'
+import { size } from '~/css/size.css'
+import { space } from '~/css/size.css'
 
 export const thumb_height = createVar()
 

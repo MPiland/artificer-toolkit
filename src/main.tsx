@@ -1,8 +1,8 @@
-import '@/css/main.css'
+import '~/css/main.css'
 import '@mantine/notifications/styles.layer.css'
 import '@mantine/core/styles.layer.css'
-import '@mantine/tiptap/styles.layer.css';
-import '@/css/theme.css'
+import '@mantine/tiptap/styles.layer.css'
+import '~/css/theme.css'
 import { StrictMode } from 'react'
 import ReactDOM from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -15,7 +15,7 @@ import { MantineProvider } from '@mantine/core'
 import { Notifications } from '@mantine/notifications'
 import { resolver, theme } from './css/theme'
 import { Amplify } from 'aws-amplify'
-import { ModalProvider } from '@/components/Modal'
+import { ModalProvider } from '~/components/Modal'
 import App from './App'
 
 export const queryClient = new QueryClient()

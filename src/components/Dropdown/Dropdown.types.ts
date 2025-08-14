@@ -15,12 +15,10 @@ export type DropdownCommonProps = {
   onBlur?: (arg: FocusEvent<HTMLInputElement>) => void
 }
 
-export type DropdownProps = {
-  value: string[] | string | null | undefined
-  onChange: (value: string | string[] | undefined | null) => void
+// Base props without value, onChange, and multiselect
+type DropdownBaseProps = {
   className?: string | number | symbol | unknown
   options: DropdownOption[]
-  multiselect?: boolean
   error?: string
   id?: string
   all?: boolean
@@ -28,3 +26,9 @@ export type DropdownProps = {
   name: string
   onBlur?: (arg: FocusEvent<HTMLInputElement>) => void
 } & DropdownCommonProps
+
+export interface DropdownProps extends DropdownBaseProps {
+  multiselect?: boolean
+  value: string | string[] | null | undefined
+  onChange: (value: string | string[] | undefined | null) => void
+}

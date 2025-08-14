@@ -28,7 +28,7 @@ input CharacterSenseInput {
 }
 
 input CharacterFeatInput {
-  id: ID
+  id: ID!
   featId: ID
   featureId: ID
   classId: ID
@@ -42,12 +42,12 @@ input CharacterFeatInput {
 }
 
 input CharacterProficiencyInput {
+  id: ID!
   skill: ID
   language: ID
   saveAbility: ID
   property: ID
   equipment: ID
-  id: ID!
   featureId: ID
   classId: ID
   raceId: ID
@@ -61,12 +61,12 @@ input CharacterProficiencyInput {
 }
 
 input CharacterExpertiseInput {
+  id: ID!
   skill: ID
   language: ID
   saveAbility: ID
   property: ID
   equipment: ID
-  id: ID!
   featureId: ID
   classId: ID
   raceId: ID
@@ -183,13 +183,13 @@ input CharacterAbilitiesInput {
 ## CharacterAncestryInput
 
 input LineageInput {
-  id: ID
-  raceId: ID
+  id: ID!
+  raceId: ID!
 }
 
 input CharacterAncestryInput {
-  id: ID
-  raceId: ID
+  id: ID!
+  raceId: ID!
   lineage: [LineageInput!]
 }
 
@@ -198,7 +198,7 @@ input CharacterAncestryInput {
 ## SubclassInput
 
 input SubclassInput {
-  id: ID
+  id: ID!
   subtype: ID
 }
 
@@ -206,7 +206,7 @@ input SubclassInput {
 
 input ClassSpellInput {
   id: ID!
-  classId: ID
+  classId: ID!
   ability: ID
   isRitual: Boolean
   countAsKnown: Boolean
@@ -339,7 +339,7 @@ input CharacterInput {
   spellcasting: CharacterSpellcastingInput
   classEquipment: ClassStartingEquipmentInput
   backgroundEquipment: BackgroundStartingEquipmentInput
-  equipment: CharacterEquipmentInput!
+  equipment: CharacterEquipmentInput
   currencyGroups: [CurrencyGroupInput!]
   features: [CharacterFeatureInput!]
   feats: [CharacterFeatInput!]
@@ -347,6 +347,6 @@ input CharacterInput {
   expertise: [CharacterExpertiseInput!]
   modifiers: [CharacterModifierInput!]
   senses: [CharacterSenseInput!]
-  ownerId: ID
+  ownerId: ID!
   systemId: String!
 }

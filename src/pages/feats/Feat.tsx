@@ -1,20 +1,17 @@
 import parse from 'html-react-parser'
-import Detail from '@/components/Detail'
-import { Route } from '@/routes/_protected/feats/$featId'
-import { useFeatData } from '@/hooks'
+import Detail from '~/components/Detail'
+import { Route } from '~/routes/_protected/feats/$featId'
+import { useGetFeat } from '~/apis'
 
 const Feat = () => {
   const featId = Route.useParams({ select: (r) => r.featId })
-  const {
-    feats: { findFeat },
-  } = useFeatData()
-  const feat = findFeat(featId)
+  const { data: featData } = useGetFeat(featId)
 
-  if (!feat) return <div>Invalid or missing feat data</div>
+  if (!featData) return <div>Invalid or missing feat data</div>
 
   return (
-    <Detail item={feat}>
-      <div>{feat.desc && parse(feat.desc)}</div>
+    <Detail item={featData}>
+      <div>{featData.desc && parse(featData.desc)}</div>
     </Detail>
   )
 }

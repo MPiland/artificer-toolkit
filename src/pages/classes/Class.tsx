@@ -1,42 +1,73 @@
 import parse from 'html-react-parser'
 import { Fragment } from 'react'
-import Detail from '@/components/Detail'
-import { sprinkles } from '@/css/sprinkles.css'
-import type { Feature, FeatureOption } from '@/types'
-import { Attributes, Categories, Prerequisites } from '@/enums'
-import { Route } from '@/routes/_protected/classes/$classId'
-import { useSystemData, useSpellData, useClassData, useFeatureData } from '@/hooks'
+import Detail from '~/components/Detail'
+import { sprinkles } from '~/css/sprinkles.css'
+import type { Feature, FeatureOption } from '~/types'
+import { Attributes, Categories, Prerequisites } from '~/enums'
+import { Route } from '~/routes/_protected/classes/$classId'
+import {
+  queryClient,
+  useGetClass,
+  useListClasses,
+  fetchClass,
+  useListFeatures,
+  useListSpells,
+  useListFeatureOptions,
+} from '~/apis'
+import { useSystemData } from '~/hooks'
+import { useSuspenseQueries } from '@tanstack/react-query'
 
 const Class = () => {
   const classId = Route.useParams({ select: (r) => r.classId })
 
   const {
-    spells: { findSpell },
-  } = useSpellData()
-
-  const systemData = useSystemData()!
+    data: { classes, metaData },
+  } = useListClasses()
 
   const {
-    classes: { findClass },
-    subclasses: { findByParent },
-  } = useClassData()
+    data: { features },
+  } = useListFeatures()
 
   const {
-    features: { findFeature },
-    featureOptions: { findFeatureOption },
-  } = useFeatureData()
+    data: { spells },
+  } = useListSpells()
 
-  const uClass = findClass(classId)
+  const {
+    data: { featureOptions },
+  } = useListFeatureOptions()
 
-  if (!uClass || uClass.__typename !== 'Class') return <div>Invalid or missing class data</div>
+  const { data: uClass } = useGetClass(classId)
 
-  const subclasses = findByParent(uClass.id)
+  const {
+    system: { abilities, skills },
+  } = useSystemData()
+
+  const subclassIds = classes
+    .filter((c) =>
+      metaData.categories?.some(
+        (cat) =>
+          cat.id === Categories.SUBCLASS &&
+          cat.classIds?.includes(c.id) &&
+          metaData.parentClasses?.some((pc) => pc.id === uClass?.id && pc.classIds?.includes(c.id))
+      )
+    )
+    .map((c) => c.id)
+
+  const { data: subclasses } = useSuspenseQueries({
+    queries: subclassIds.map((id) => ({
+      queryKey: ['class', id],
+      queryFn: () => queryClient.fetchQuery(fetchClass(id)),
+    })),
+    combine: (result) => ({
+      data: result.map((r) => r.data),
+    }),
+  })
 
   const handlePreReq = (parentItem: Feature, childItem: FeatureOption) => {
     const parentLevel = parentItem?.levelAvailable?.split(', ')
     const childLevel = childItem.levelAvailable
     const childReq = childItem.attributes?.some((attribute) => attribute === Attributes.PREREQUISITES)
-    const childReqsText = []
+    const childReqsText: string[] = []
 
     if (childLevel !== parentLevel?.[0]) {
       childReqsText.push(`Class level ${childLevel}`)
@@ -48,7 +79,7 @@ const Class = () => {
         if (childReqOption.skillProficiencies && childReqOption.skillProficiencies?.length > 0) {
           childReqsText.push(
             `Skill(s) Proficiency: ${childReqOption.skillProficiencies?.map((s, i) => {
-              const skill = systemData.skills.findSkill(s)
+              const skill = skills.find((skill) => skill.id === s)
               if (skill) {
                 if (
                   childReqOption.skillProficiencies?.length &&
@@ -66,7 +97,7 @@ const Class = () => {
         if (childReqOption.abilityScore && childReqOption.abilityScore?.abilities?.length) {
           childReqsText.push(
             `Ability Score: ${childReqOption.abilityScore?.abilities.map((a, i) => {
-              const ability = systemData.abilities.findAbility(a)
+              const ability = abilities.find((ability) => ability.id === a)
               if (ability) {
                 if (
                   childReqOption.abilityScore?.abilities &&
@@ -84,7 +115,7 @@ const Class = () => {
         if (childReqOption.spellsObtained && childReqOption.spellsObtained?.length > 0) {
           childReqsText.push(
             `Spell(s) Known: ${childReqOption.spellsObtained?.map((s, i) => {
-              const spell = findSpell(s)
+              const spell = spells.find((spell) => spell.id === s)
               if (spell) {
                 if (
                   childReqOption.spellsObtained?.length &&
@@ -102,14 +133,14 @@ const Class = () => {
         if (childReqOption.featuresObtained && childReqOption.featuresObtained?.length > 0) {
           let featureText = ''
           childReqOption.featuresObtained?.map((f, i) => {
-            const feature = findFeature(f)
+            const feature = features.find((fData) => fData.id === f)
             if (feature) {
               featureText += `${feature.label}`
               const featureLength = childReqOption.featuresObtained?.length
               if (childReqOption.optionsObtained?.length && childReqOption.optionsObtained?.length > 0) {
                 childReqOption.optionsObtained?.map((o, oI) => {
                   const optionLength = childReqOption.optionsObtained?.length
-                  const option = findFeatureOption(o)
+                  const option = featureOptions.find((oData) => oData.id === o)
                   if (option) {
                     if (featureLength && optionLength && featureLength > 1 && oI !== optionLength - 1) {
                       featureText += `: ${option.label}, `
@@ -147,7 +178,7 @@ const Class = () => {
   let resourceShown = false
 
   return (
-    <Detail footerSpacing='flex-end' item={uClass}>
+    <Detail footerSpacing='flex-end' item={uClass!}>
       <div id='quote'>
         <em>{uClass?.desc && parse(uClass?.desc)}</em>
       </div>
@@ -167,8 +198,7 @@ const Class = () => {
                 {uClass?.details?.length &&
                   index === uClass?.details?.length - 1 &&
                   uClass?.features?.length &&
-                  uClass?.features.map((f, fI) => {
-                    const feature = findFeature(f)
+                  uClass?.features.map((feature, fI) => {
                     const featureLevelArray = feature?.levelAvailable?.split(', ')
                     if (featureLevelArray) {
                       const featureLevel = featureLevelArray[0]
@@ -189,8 +219,7 @@ const Class = () => {
                           </h2>
                           {feature?.desc && parse(feature.desc)}
                           {feature?.options?.length &&
-                            feature.options.map((o, oI) => {
-                              const option = findFeatureOption(o)
+                            feature.options.map((option, oI) => {
                               return (
                                 <Fragment key={`${oI}-feature-option`}>
                                   <h3>{option?.label}</h3>
@@ -220,12 +249,10 @@ const Class = () => {
               </Fragment>
             ))}
           {uClass?.features
-            ?.filter((f) => {
-              const feature = findFeature(f)
+            ?.filter((feature) => {
               return feature?.category === Categories.SUBCLASS
             })
-            .map((f, fi) => {
-              const feature = findFeature(f)
+            .map((feature, fi) => {
               const detail = feature?.detail
               return (
                 <div key={`${fi}-sub-feature`} id={`${feature?.label}`}>
@@ -241,8 +268,7 @@ const Class = () => {
             })}
           {subclasses?.length && (
             <>
-              {subclasses.map((s, index) => {
-                const subclass = findClass(s.id)
+              {subclasses.map((subclass, index) => {
                 let subclassResourceShown = false
                 if (subclass) {
                   return (
@@ -256,8 +282,7 @@ const Class = () => {
                       />
                       {subclass.desc && parse(subclass.desc)}
                       {subclass?.features?.length &&
-                        subclass.features.map((f, fI) => {
-                          const feature = findFeature(f)
+                        subclass.features.map((feature, fI) => {
                           const featureLevelArray = feature?.levelAvailable?.split(', ')
                           const featureLevel = featureLevelArray?.[0]
                           return (
@@ -277,8 +302,7 @@ const Class = () => {
                               </h2>
                               {feature?.desc && parse(feature.desc)}
                               {feature?.options?.length &&
-                                feature?.options.map((o, oI) => {
-                                  const option = findFeatureOption(o)
+                                feature?.options.map((option, oI) => {
                                   return (
                                     <Fragment key={`${oI}-subclass-feature-option}`}>
                                       <h3>{option?.label}</h3>
@@ -322,8 +346,7 @@ const Class = () => {
         </>
       : <>
           {uClass?.features?.length &&
-            uClass?.features.map((f, fI) => {
-              const feature = findFeature(f)
+            uClass?.features.map((feature, fI) => {
               const featureLevelArray = feature?.levelAvailable?.split(', ')
               if (featureLevelArray) {
                 const featureLevel = featureLevelArray[0] || 0
@@ -342,8 +365,7 @@ const Class = () => {
                     <h2>{feature?.label}</h2>
                     {feature?.desc && parse(feature.desc)}
                     {feature?.options?.length &&
-                      feature.options.map((o, oI) => {
-                        const option = findFeatureOption(o)
+                      feature.options.map((option, oI) => {
                         return (
                           <Fragment key={`${oI}-subclass-feature-option`}>
                             <h3>{option?.label}</h3>

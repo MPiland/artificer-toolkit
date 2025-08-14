@@ -3,13 +3,13 @@ import { Avatar } from '@mantine/core'
 import { Flex, Group } from '@mantine/core'
 import { Text } from '@mantine/core'
 import { ChevronRight } from 'lucide-react'
-import { signOut } from '@/apis/auth.api'
+import { signOut } from '~/apis'
 import { useNavigate } from '@tanstack/react-router'
 import { LogOut } from 'lucide-react'
 import { base, avatar, avatar_img, chevron, email, label_container, menu, title } from './User.css'
 import SchemeToggle from '../SchemeToggle/SchemeToggle'
 import { use } from 'react'
-import { ModalContext } from '@/components/Modal'
+import { ModalContext } from '~/components/Modal'
 
 type UserProps = {
   toggleColorScheme: () => void

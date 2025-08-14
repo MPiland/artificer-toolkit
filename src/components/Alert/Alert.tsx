@@ -1,4 +1,4 @@
-import Modal, { ModalContext, type AlertModalProps } from '@/components/Modal'
+import Modal, { ModalContext, type AlertModalProps } from '~/components/Modal'
 import { Button } from '@mantine/core'
 import { use, useEffect } from 'react'
 import { Group } from '@mantine/core'
@@ -11,15 +11,15 @@ const Alert = () => {
   useEffect(() => {
     setTitle(title || 'Alert')
   }, [title, setTitle])
-  
+
   return (
     <Modal
       props={{
         footer: {
           children: (
             <Group justify='space-between'>
-              <Button onClick={onCancel || hideModal}>{cancelLabel || 'Cancel'}</Button>
-              <Button onClick={onConfirm}>{confirmLabel || 'Confirm'}</Button>
+              {cancelLabel && <Button onClick={onCancel || hideModal}>{cancelLabel || 'Cancel'}</Button>}
+              {confirmLabel && <Button onClick={onConfirm}>{confirmLabel || 'Confirm'}</Button>}
             </Group>
           ),
         },

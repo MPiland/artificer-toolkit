@@ -1,6 +1,6 @@
-import { app } from '@/css/layers.css'
+import { app } from '~/css/layers.css'
 import {style } from '@vanilla-extract/css'
-import { size, space } from '@/css/size.css'
+import { size, space } from '~/css/size.css'
 
 export const base = style({
   '@layer': {

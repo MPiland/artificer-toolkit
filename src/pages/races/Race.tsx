@@ -1,21 +1,36 @@
 import parse from 'html-react-parser'
-import Detail from '@/components/Detail'
+import Detail from '~/components/Detail'
 import { Fragment } from 'react'
-import { Route } from '@/routes/_protected/races/$raceId'
-import { useFeatureData, useRaceData } from '@/hooks'
-import { sprinkles } from '@/css/sprinkles.css'
+import { Route } from '~/routes/_protected/races/$raceId'
+import { sprinkles } from '~/css/sprinkles.css'
+import { fetchRace, queryClient, useGetRace, useListRaces } from '~/apis'
+import { Categories } from '~/enums'
+import { useSuspenseQueries } from '@tanstack/react-query'
 
 const Race = () => {
   const raceId = Route.useParams({ select: (r) => r.raceId })
   const {
-    races: { findRace },
-    subraces,
-  } = useRaceData()
-  const race = findRace(raceId)
+    data: { races, metaData },
+  } = useListRaces()
+  const { data: race } = useGetRace(raceId)
 
-  const {
-    features: { findFeature },
-  } = useFeatureData()
+  const subraceIds = races
+    .filter(
+      (r) =>
+        metaData.categories?.some((c) => c.id === Categories.SUBRACE && c.raceIds?.includes(r.id)) &&
+        metaData.lineages?.some((l) => l.id === raceId && l.raceIds?.includes(r.id))
+    )
+    .map((r) => r.id)
+
+  const { data: subraces } = useSuspenseQueries({
+    queries: subraceIds.map((id) => ({
+      queryKey: ['subrace', id],
+      queryFn: () => queryClient.fetchQuery(fetchRace(id)),
+    })),
+    combine: (results) => ({
+      data: results.map((result) => result.data),
+    }),
+  })
 
   if (!race) return <div>Invalid or missing race data</div>
 
@@ -58,8 +73,7 @@ const Race = () => {
         </>
       )}
       {race.features?.length &&
-        race.features.map((f, fI) => {
-          const feature = findFeature(f)
+        race.features.map((feature, fI) => {
           return (
             <Fragment key={`${fI}-race-feature`}>
               <h2>{feature?.label}</h2>
@@ -68,8 +82,7 @@ const Race = () => {
           )
         })}
       {subraces?.length &&
-        subraces.map((s, sI) => {
-          const subrace = findRace(s.id)
+        subraces.map((subrace, sI) => {
           return (
             subrace && (
               <Fragment key={`${sI}-subrace`}>
@@ -116,8 +129,7 @@ const Race = () => {
                   </>
                 )}
                 {subrace.features?.length &&
-                  subrace.features.map((f, fI) => {
-                    const feature = findFeature(f)
+                  subrace.features.map((feature, fI) => {
                     return (
                       <Fragment key={`${fI}-subrace-feature`}>
                         <h2>{feature?.label}</h2>

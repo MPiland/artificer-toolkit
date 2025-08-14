@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { ReactElement } from 'react'
-import type { DiceConfig, DiceResult, DiceProps } from '@/components/Dice'
+import type { DiceConfig, DiceResult, DiceProps } from '~/components/Dice'
 import { persist } from 'zustand/middleware'
 
 export interface DiceStore {

@@ -1,73 +1,94 @@
-import { z } from 'zod/v4'
-import { use, useEffect, useMemo } from 'react'
-import { Categories, Ranges, Shapes, Features, Attributes } from '@/enums'
-import { useEnumChecks, useFieldUpdates, useGetSections, useSystemData } from '@/hooks'
-import { useFeatureStore, useFormStore, useFeatureOptionStore } from '@/store'
+import { useEffect, use, useMemo, useCallback } from 'react'
+import { Categories, Ranges, Shapes, Features, Attributes } from '~/enums'
+import { useEnumChecks, useFieldUpdates, useSystemData, useSystemPref, useFormField } from '~/hooks'
+import { useOptimizedSelector, useTypedFormStore } from '~/store'
 import OptionsByLevel from './OptionsByLevel'
-import { Grid, Button } from '@mantine/core'
-import { ModalContext } from '@/components/Modal'
-import Collapsible from '@/components/Collapse'
-import { SECTION_STEPS, SectionsList, Prerequisites, Damage, LimitUse, useAppForm } from '@/components/Form'
-import { FeatureInputSchema, FeatureOptionInputSchema, OptionsByLevelInputSchema } from '@/schemas'
+import { Grid, Card, Stack, SimpleGrid, Group, ActionIcon, Button, ThemeIcon, Badge, Text } from '@mantine/core'
+import Collapsible from '~/components/Collapse'
+import { SectionsList, Prerequisites, Damage, LimitUse, Options, add_option_card, option_card } from '~/components/Form'
+import { OptionsByLevelInputSchema, FeatureOptionInputSchema } from '~/schemas'
+import type { FormDataType, CharacterInput, SpellInput } from '~/types'
+import { sprinkles } from '~/css/sprinkles.css'
+import { PlusIcon, Trash2, ArrowRight } from 'lucide-react'
+import parse from 'html-react-parser'
+import { v4 as uuidv4 } from 'uuid'
+import { AuthContext } from '~/pages/auth/AuthContext'
+import type { UnionToIntersection, SetOptional } from 'type-fest'
+
+type FeaturePath = `ancestry.options[${number}].features[${number}]` | `features[${number}]`
+
+type StoreType = UnionToIntersection<SetOptional<Exclude<FormDataType, CharacterInput | SpellInput>, '__kind'>>
 
 const Feature = () => {
-  const featureCurrent = useFeatureStore((state) => state.current)
-  const featureOptions = useFeatureStore((state) => state.current?.options)
-  const featureAttributes = useFeatureStore((state) => state.current?.attributes)
-  const category = useFeatureStore((state) => state.current?.category)
-  const featureShape = useFeatureStore((state) => state.current?.shape)
-  const featureRange = useFeatureStore((state) => state.current?.range)
-  const featureOptionsByLevel = useFeatureStore((state) => state.current?.optionsByLevel)
-  const featureUpdateField = useFeatureStore((state) => state.updateField)
-  const featureRemoveField = useFeatureStore((state) => state.removeField)
-  const featureStep = useFeatureStore((state) => state.step)
-  const featureSetStep = useFeatureStore((state) => state.setStep)
-  const featureFormReset = useFeatureStore((state) => state.formReset)
-  const featureRegisterForm = useFeatureStore((state) => state.registerForm)
-  const featureValid = useFeatureStore((state) => state.valid)
-  const featureUpsertValid = useFeatureStore((state) => state.upsertValid)
+  const { user } = use(AuthContext)
+  const [systemPref] = useSystemPref()
 
-  const optionCurrent = useFeatureOptionStore((state) => state.current)
-  const optionAttributes = useFeatureOptionStore((state) => state.current?.attributes)
-  const optionShape = useFeatureOptionStore((state) => state.current?.shape)
-  const optionRange = useFeatureOptionStore((state) => state.current?.range)
-  const optionSetCurrent = useFeatureOptionStore((state) => state.setCurrent)
-  const optionUpdateField = useFeatureOptionStore((state) => state.updateField)
-  const optionRemoveField = useFeatureOptionStore((state) => state.removeField)
+  const store = useTypedFormStore<StoreType>()
 
-  const formCurrent = useFormStore((state) => state.current)
-  const formRemoveField = useFormStore((state) => state.removeField)
-  const formUpdateField = useFormStore((state) => state.updateField)
+  const { AppField } = useFormField({ store })
 
-  const { sectionTypeMap } = useGetSections()
+  const {
+    updateField,
+    stateKind,
+    setEditing,
+    optionIndex,
+    category,
+    formAttributes,
+    shape,
+    range,
+    formOptionsByLevel,
+    options,
+    featureTitle,
+    meta,
+  } = useOptimizedSelector(store, (state) => {
+    const { ancestryOptionIndex, featureIndex } = state.meta.editing
 
-  const formKind = formCurrent?.__kind as
-    | 'ClassInput'
-    | 'RaceInput'
-    | 'EquipmentInput'
-    | 'BackgroundInput'
-    | 'FeatInput'
+    const feature =
+      featureIndex !== null ?
+        ancestryOptionIndex !== null && state.current?.__kind === 'RaceInput' ?
+          state.current?.ancestry?.options?.[ancestryOptionIndex]?.features?.[featureIndex]
+        : state.current?.features?.[featureIndex]
+      : undefined
 
-  const defaultValues =
-    featureStep === 'options' ? FeatureOptionInputSchema.parse(optionCurrent) : FeatureInputSchema.parse(featureCurrent)
-
-  const __kind = featureStep === 'options' ? 'FeatureOptionInput' : 'FeatureInput'
-  const formAttributes = featureStep === 'options' ? optionAttributes : featureAttributes
-  const shape = featureStep === 'options' ? optionShape : featureShape
-  const range = featureStep === 'options' ? optionRange : featureRange
-  const formOptionsByLevel = featureOptionsByLevel
-
-  const form = useAppForm({
-    defaultValues,
+    return {
+      updateField: state.updateField,
+      stateKind: state.current?.__kind as
+        | 'ClassInput'
+        | 'RaceInput'
+        | 'EquipmentInput'
+        | 'BackgroundInput'
+        | 'FeatInput'
+        | undefined,
+      optionIndex: state.meta.editing.optionIndex || 0,
+      setEditing: state.setEditing,
+      category: feature?.category,
+      formAttributes: feature?.attributes,
+      shape: feature?.shape,
+      range: feature?.range,
+      formOptionsByLevel: feature?.optionsByLevel,
+      options: feature?.options,
+      featureTitle: feature?.label,
+      meta: state.meta,
+    }
   })
 
-  const { AppField } = form
+  const computePath = useCallback(() => {
+    const segments: string[] = []
 
-  const { fieldListeners, fieldValidators } = useFieldUpdates({
-    data: featureStep === 'options' ? 'option' : 'feature',
-  })
+    if (meta.editing.ancestryOptionIndex && stateKind === 'RaceInput') {
+      segments.push(`ancestry.options[${meta.editing.ancestryOptionIndex}]`)
+    }
 
-  const { showModal } = use(ModalContext)
+    segments.push(`features[${meta.editing.featureIndex || 0}]`)
+
+    return segments.join('.') + '.'
+  }, [meta, stateKind])
+
+  const formPath = useMemo(() => {
+    return computePath()
+  }, [computePath]) as FeaturePath
+
+  const { fieldListeners, fieldValidators } = useFieldUpdates()
 
   const { getAttributes } = useEnumChecks()
 
@@ -76,444 +97,471 @@ const Feature = () => {
   })
 
   useEffect(() => {
-    if (optionsByLevel && !formOptionsByLevel?.length && featureCurrent?.__kind === 'FeatureInput') {
-      form.setFieldValue(`optionsByLevel[${0}]`, OptionsByLevelInputSchema.parse({}))
+    if (optionsByLevel && !formOptionsByLevel?.length) {
+      const optionsByLevelInputObj = OptionsByLevelInputSchema.parse({
+        __kind: 'OptionsByLevelInput',
+      })
+      updateField({ path: `${formPath}.optionsByLevel`, value: [optionsByLevelInputObj] })
     }
     if (!optionsByLevel && formOptionsByLevel?.length) {
-      form.setFieldValue('optionsByLevel', undefined)
+      updateField({ path: `${formPath}.optionsByLevel`, value: undefined })
     }
   })
 
-  useEffect(() => {
-    if (!featureFormReset) {
-      featureRegisterForm(form.reset)
-    }
-  }, [form.reset, featureRegisterForm, featureFormReset])
-
-  useEffect(() => {
-    return form.store.subscribe((state) => {
-      const isValid = state.currentVal.isValid
-      if (featureCurrent?.id && featureValid.get(featureCurrent.id) !== isValid) {
-        featureUpsertValid(featureCurrent.id, isValid)
-      }
-    })
-  }, [featureValid, featureUpsertValid, featureCurrent?.id, form.store])
-
   const { attributes, abilities, categories, spells, actions, rules } = useSystemData()
 
-  const selectSection = (
-    sectionStep: (typeof SECTION_STEPS)[number] | 'options',
-    __kind: 'FeatureInput' | 'AncestryFeatureInput' | 'FeatureOptionInput'
-  ) => {
-    if (sectionStep === 'options' && __kind !== 'FeatureOptionInput') {
-      optionSetCurrent(FeatureOptionInputSchema.parse({}))
-      return featureSetStep('options')
-    } else if (sectionStep !== 'options') {
-      const sectionObject = sectionTypeMap(sectionStep).schema.parse({})
-      sectionTypeMap(sectionStep, sectionObject).setCurrent()
-      return featureSetStep(sectionStep)
-    }
-  }
-
-  const label = formKind === 'FeatInput' ? 'Feat' : 'Feature'
-
-  const updateFn = useMemo(
-    () =>
-      featureStep === 'features' ? featureUpdateField
-      : featureStep === 'options' ? optionUpdateField
-      : formUpdateField,
-    [featureUpdateField, optionUpdateField, formUpdateField, featureStep]
-  )
-
-  const removeFn = useMemo(
-    () =>
-      featureStep === 'features' ? featureRemoveField
-      : featureStep === 'options' ? optionRemoveField
-      : formRemoveField,
-    [featureRemoveField, optionRemoveField, formRemoveField, featureStep]
-  )
-
   return (
-    <Grid>
-      <AppField
-        name='label'
-        validators={fieldValidators({
-          onBlur: 'Enter a name for this feature',
-        })}
-      >
-        {({ TextField }) => {
-          return (
-            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-              <TextField label={`${label} Name`} required={true} />
-            </Grid.Col>
-          )
-        }}
-      </AppField>
-      {__kind === 'FeatureInput' && (
-        <AppField
-          name='category'
-          validators={fieldValidators({
-            onBlur: 'Select a category',
-          })}
-          listeners={fieldListeners}
-        >
-          {({ DropdownField }) => (
-            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-              <DropdownField
-                label='Feature Category'
-                options={categories.filter((category) => category.features)}
-                required={true}
-              />
-            </Grid.Col>
-          )}
-        </AppField>
-      )}
-      {category !== Categories.SUBCLASS ?
-        <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-          <Button
-            onClick={() =>
-              showModal({
-                type: 'addSection',
-                props: {
-                  onAddSection: selectSection,
-                  __kind,
-                },
-              })
-            }
-          >
-            Add Section
-          </Button>
-        </Grid.Col>
-      : <AppField name='detail' listeners={fieldListeners}>
-          {({ RichTextField }) => (
-            <Grid.Col>
-              <RichTextField label='Feature Detail' />
-            </Grid.Col>
-          )}
-        </AppField>
-      }
-      <AppField name='desc' listeners={fieldListeners}>
-        {({ RichTextField }) => (
-          <Grid.Col>
-            <RichTextField label='Feature Description' />
-          </Grid.Col>
-        )}
-      </AppField>
-      <Grid.Col>
+    <>
+      {optionIndex === null ?
         <Grid>
-          {formKind !== 'EquipmentInput' &&
-            formKind !== 'BackgroundInput' &&
-            !(__kind === 'FeatureOptionInput') &&
-            !optionsByLevel && (
+          <Grid.Col span={{ base: 8 }}>
+            <Grid>
+              <Grid.Col>
+                <h2 className={sprinkles({ mb: 'space-2' })}>{featureTitle}</h2>
+              </Grid.Col>
               <AppField
-                name='levelAvailable'
+                name={`${formPath}.label`}
                 validators={fieldValidators({
-                  onBlur: 'Enter a level',
-                  condition: formKind !== 'RaceInput',
+                  onBlur: 'Enter a name for this feature',
                 })}
-                listeners={fieldListeners}
               >
-                {({ TextField }) => (
-                  <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                    <TextField label='Level(s) Available' required={formKind === 'RaceInput' ? false : true} />
-                  </Grid.Col>
-                )}
-              </AppField>
-            )}
-          {category !== Categories.SUBCLASS && (
-            <AppField name='attributes' listeners={fieldListeners}>
-              {({ DropdownField }) => (
-                <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                  <DropdownField
-                    label='Feature Attribute'
-                    multiselect={true}
-                    options={attributes.filter(
-                      (attribute) =>
-                        (attribute?.features?.length &&
-                          ((formKind === 'EquipmentInput' && attribute?.features?.includes(Features.EQUIPMENT)) ||
-                            (__kind === 'FeatureOptionInput' && attribute?.features?.includes(Features.OPTION)))) ||
-                        attribute?.features?.includes(Features.ALL)
-                    )}
-                  />
-                </Grid.Col>
-              )}
-            </AppField>
-          )}
-          {formAttributes?.some((attribute) => attribute === Attributes.IS_ACTION) && (
-            <AppField
-              name='actions.primary.id'
-              validators={fieldValidators({
-                onBlur: 'Select an action type',
-              })}
-              listeners={fieldListeners}
-            >
-              {({ DropdownField }) => (
-                <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                  <DropdownField label='Action' options={actions} required={true} />
-                </Grid.Col>
-              )}
-            </AppField>
-          )}
-        </Grid>
-      </Grid.Col>
-      {formAttributes?.some((attribute) => attribute === Attributes.HAS_RANGE) && (
-        <Grid.Col>
-          <Grid>
-            <AppField
-              name='range.id'
-              validators={fieldValidators({
-                onBlur: 'Select a range type',
-              })}
-              listeners={fieldListeners}
-            >
-              {({ DropdownField }) => (
-                <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                  <DropdownField label='Range' options={spells.ranges} required={true} />
-                </Grid.Col>
-              )}
-            </AppField>
-            {range?.id !== Ranges.TOUCH && range?.id !== Ranges.SIGHT && range?.id !== Ranges.UNLIMITED && (
-              <>
-                {range?.id !== Ranges.SELF && (
-                  <AppField
-                    name='range.minRange'
-                    validators={fieldValidators({
-                      onBlur: 'Enter a minimum range amount',
-                      onChange: { type: 'number', min: 0, name: 'Min. Range' },
-                      condition: range?.id === Ranges.DISTANCE,
-                    })}
-                    listeners={fieldListeners}
-                  >
-                    {({ TextField }) => (
-                      <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                        <TextField label='Min. Range' required={range?.id === Ranges.DISTANCE || false} />
-                      </Grid.Col>
-                    )}
-                  </AppField>
-                )}
-                <AppField
-                  name='range.maxRange'
-                  validators={fieldValidators({
-                    onBlur: 'Enter a maximum range amount',
-                    onChange: { type: 'number', min: 1, name: 'Max. Range' },
-                    condition: range?.id === Ranges.DISTANCE,
-                  })}
-                  listeners={fieldListeners}
-                >
-                  {({ TextField }) => (
+                {({ TextField }) => {
+                  return (
                     <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                      <TextField label='Max Range' required={range?.id === Ranges.DISTANCE || false} />
+                      <TextField label='Feature Name' required={true} />
                     </Grid.Col>
-                  )}
-                </AppField>
-                <AppField
-                  name='range.unit'
-                  validators={{
-                    onBlur: ({ value }) =>
-                      range?.id === Ranges.DISTANCE && !value && 'Select a range unit of measurement',
-                  }}
-                  listeners={fieldListeners}
-                >
-                  {({ DropdownField }) => (
-                    <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                      <DropdownField
-                        label='UoM'
-                        options={rules.measurements.imperial.length}
-                        required={range?.id === Ranges.DISTANCE || false}
-                      />
-                    </Grid.Col>
-                  )}
-                </AppField>
-              </>
-            )}
-            {formAttributes?.some((attribute) => attribute === Attributes.LIMIT_TARGETS) && (
-              <AppField
-                name='targets'
-                validators={{
-                  onChange: z.int('Target count must be a whole number').gte(1, 'Target count must be greater than 0'),
+                  )
                 }}
-                listeners={fieldListeners}
-              >
-                {({ TextField }) => (
-                  <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                    <TextField label='No. of Targets' required={range?.id === Ranges.DISTANCE || false} />
-                  </Grid.Col>
-                )}
               </AppField>
-            )}
-          </Grid>
-          <Grid>
-            <AppField
-              name='shape.id'
-              validators={fieldValidators({
-                onBlur: 'Select a shape type',
-              })}
-              listeners={fieldListeners}
-            >
-              {({ DropdownField }) => (
-                <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                  <DropdownField label='Shape' options={spells.shapes} required={true} />
-                </Grid.Col>
-              )}
-            </AppField>
-            {shape?.id !== Shapes.NONE && shape?.id !== Shapes.WEAPON && shape?.id !== Shapes.CONE && (
-              <>
-                <AppField
-                  name='shape.size'
-                  validators={{
-                    onChange: z.int('Shape size must be a whole number').gte(1, 'Shape size must be greater than 0'),
-                  }}
-                  listeners={fieldListeners}
-                >
-                  {({ TextField }) => (
-                    <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                      <TextField label='Shape Size' required={true} />
-                    </Grid.Col>
-                  )}
-                </AppField>
-                <AppField
-                  name='shape.unit'
-                  validators={fieldValidators({
-                    onBlur: 'Select a shape size unit of measurement',
-                  })}
-                  listeners={fieldListeners}
-                >
-                  {({ DropdownField }) => (
-                    <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                      <DropdownField label='UoM' options={rules.measurements.imperial.length} required={true} />
-                    </Grid.Col>
-                  )}
-                </AppField>
-              </>
-            )}
-          </Grid>
-        </Grid.Col>
-      )}
-      {formAttributes?.some((attribute) => attribute === Attributes.REQUIRES_SAVE) && (
-        <Grid.Col>
-          <Grid>
-            <AppField name='saveAbility.attributes' listeners={fieldListeners}>
-              {({ DropdownField }) => (
-                <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                  <DropdownField
-                    label='Save Attribute'
-                    multiselect={true}
-                    options={attributes.filter(
-                      (attribute) => attribute?.features?.length && attribute?.features?.includes(Features.SAVE_ABILITY)
-                    )}
-                  />
-                </Grid.Col>
-              )}
-            </AppField>
-            <AppField
-              name='saveAbility.id'
-              validators={fieldValidators({
-                onBlur: 'Select a save ability',
-              })}
-              listeners={fieldListeners}
-            >
-              {({ DropdownField }) => (
-                <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                  <DropdownField label='DC Ability' options={abilities} required={true} />
-                </Grid.Col>
-              )}
-            </AppField>
-            {formAttributes?.some((attribute) => attribute === Attributes.ADD_ABILITY_MODIFIER) && (
               <AppField
-                name='saveAbility.abilityModifier'
+                name={`${formPath}.category`}
                 validators={fieldValidators({
-                  onBlur: 'Select a modifier ability',
+                  onBlur: 'Select a category',
                 })}
                 listeners={fieldListeners}
               >
                 {({ DropdownField }) => (
                   <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                    <DropdownField label='Modifier Ability' options={abilities} required={true} />
+                    <DropdownField
+                      label='Feature Category'
+                      options={categories.filter((category) => category.features)}
+                      required={true}
+                    />
                   </Grid.Col>
                 )}
               </AppField>
-            )}
-            <AppField
-              name='saveAbility.minAmount'
-              validators={{
-                onBlur: ({ value }) => formKind !== 'ClassInput' && !value && 'Enter a min amount',
-                onChange: z.int('Min amount must be a whole number').gte(1, 'Min amount must be greater than 0'),
-              }}
-              listeners={fieldListeners}
-            >
-              {({ TextField }) => (
-                <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                  <TextField label='Min amount' required={formKind !== 'ClassInput'} />
+              <AppField name={`${formPath}.detail`} listeners={fieldListeners}>
+                {({ RichTextField }) => (
+                  <Grid.Col>
+                    <RichTextField label='Feature Detail' />
+                  </Grid.Col>
+                )}
+              </AppField>
+              <AppField name={`${formPath}.desc`} listeners={fieldListeners}>
+                {({ RichTextField }) => (
+                  <Grid.Col>
+                    <RichTextField label='Feature Description' />
+                  </Grid.Col>
+                )}
+              </AppField>
+              <Grid.Col>
+                {stateKind !== 'EquipmentInput' && stateKind !== 'BackgroundInput' && !optionsByLevel && (
+                  <AppField
+                    name={`${formPath}.levelAvailable`}
+                    validators={fieldValidators({
+                      onBlur: 'Enter a level',
+                      condition: stateKind !== 'RaceInput',
+                    })}
+                    listeners={fieldListeners}
+                  >
+                    {({ TextField }) => (
+                      <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                        <TextField label='Level(s) Available' required={stateKind === 'RaceInput' ? false : true} />
+                      </Grid.Col>
+                    )}
+                  </AppField>
+                )}
+                {category !== Categories.SUBCLASS && (
+                  <AppField name={`${formPath}.attributes`} listeners={fieldListeners}>
+                    {({ DropdownField }) => (
+                      <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                        <DropdownField
+                          label='Feature Attribute'
+                          multiselect={true}
+                          options={attributes.filter(
+                            (attribute) =>
+                              (attribute?.features?.length &&
+                                stateKind === 'EquipmentInput' &&
+                                attribute?.features?.includes(Features.EQUIPMENT)) ||
+                              attribute?.features?.includes(Features.ALL)
+                          )}
+                        />
+                      </Grid.Col>
+                    )}
+                  </AppField>
+                )}
+                {formAttributes?.some((attribute) => attribute === Attributes.IS_ACTION) && (
+                  <AppField
+                    name={`${formPath}.actions.primary.id`}
+                    validators={fieldValidators({
+                      onBlur: 'Select an action type',
+                    })}
+                    listeners={fieldListeners}
+                  >
+                    {({ DropdownField }) => (
+                      <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                        <DropdownField label='Action' options={actions} required={true} />
+                      </Grid.Col>
+                    )}
+                  </AppField>
+                )}
+              </Grid.Col>
+              {formAttributes?.some((attribute) => attribute === Attributes.HAS_RANGE) && (
+                <Grid.Col>
+                  <Grid>
+                    <AppField
+                      name={`${formPath}.range.id`}
+                      validators={fieldValidators({
+                        onBlur: 'Select a range type',
+                      })}
+                      listeners={fieldListeners}
+                    >
+                      {({ DropdownField }) => (
+                        <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                          <DropdownField label='Range' options={spells.ranges} required={true} />
+                        </Grid.Col>
+                      )}
+                    </AppField>
+                    {range?.id !== Ranges.TOUCH && range?.id !== Ranges.SIGHT && range?.id !== Ranges.UNLIMITED && (
+                      <>
+                        {range?.id !== Ranges.SELF && (
+                          <AppField
+                            name={`${formPath}.range.minRange`}
+                            validators={fieldValidators({
+                              onBlur: 'Enter a minimum range amount',
+                              onChange: { type: 'number', min: 0, name: 'Min. Range' },
+                              condition: range?.id === Ranges.DISTANCE,
+                            })}
+                            listeners={fieldListeners}
+                          >
+                            {({ TextField }) => (
+                              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                                <TextField label='Min. Range' required={range?.id === Ranges.DISTANCE || false} />
+                              </Grid.Col>
+                            )}
+                          </AppField>
+                        )}
+                        <AppField
+                          name={`${formPath}.range.maxRange`}
+                          validators={fieldValidators({
+                            onBlur: 'Enter a maximum range amount',
+                            onChange: { type: 'number', min: 1, name: 'Max. Range' },
+                            condition: range?.id === Ranges.DISTANCE,
+                          })}
+                          listeners={fieldListeners}
+                        >
+                          {({ TextField }) => (
+                            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                              <TextField label='Max Range' required={range?.id === Ranges.DISTANCE || false} />
+                            </Grid.Col>
+                          )}
+                        </AppField>
+                        <AppField
+                          name={`${formPath}.range.unit`}
+                          validators={fieldValidators({
+                            onBlur: range?.id === Ranges.DISTANCE ? 'Select a range unit of measurement' : undefined,
+                          })}
+                          listeners={fieldListeners}
+                        >
+                          {({ DropdownField }) => (
+                            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                              <DropdownField
+                                label='UoM'
+                                options={rules.measurements.imperial.length}
+                                required={range?.id === Ranges.DISTANCE || false}
+                              />
+                            </Grid.Col>
+                          )}
+                        </AppField>
+                      </>
+                    )}
+                    {formAttributes?.some((attribute) => attribute === Attributes.LIMIT_TARGETS) && (
+                      <AppField
+                        name={`${formPath}.targets`}
+                        validators={fieldValidators({
+                          onChange: { type: 'integer', name: 'Target count', min: 1 },
+                        })}
+                        listeners={fieldListeners}
+                      >
+                        {({ TextField }) => (
+                          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                            <TextField label='No. of Targets' required={range?.id === Ranges.DISTANCE || false} />
+                          </Grid.Col>
+                        )}
+                      </AppField>
+                    )}
+                  </Grid>
+                  <Grid>
+                    <AppField
+                      name={`${formPath}.shape.id`}
+                      validators={fieldValidators({
+                        onBlur: 'Select a shape type',
+                      })}
+                      listeners={fieldListeners}
+                    >
+                      {({ DropdownField }) => (
+                        <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                          <DropdownField label='Shape' options={spells.shapes} required={true} />
+                        </Grid.Col>
+                      )}
+                    </AppField>
+                    {shape?.id !== Shapes.NONE && shape?.id !== Shapes.WEAPON && shape?.id !== Shapes.CONE && (
+                      <>
+                        <AppField
+                          name={`${formPath}.shape.size`}
+                          validators={fieldValidators({
+                            onChange: { type: 'number', min: 1, name: 'Shape' },
+                          })}
+                          listeners={fieldListeners}
+                        >
+                          {({ TextField }) => (
+                            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                              <TextField label='Shape Size' required={true} />
+                            </Grid.Col>
+                          )}
+                        </AppField>
+                        <AppField
+                          name={`${formPath}.shape.unit`}
+                          validators={fieldValidators({
+                            onBlur: 'Select a shape size unit of measurement',
+                          })}
+                          listeners={fieldListeners}
+                        >
+                          {({ DropdownField }) => (
+                            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                              <DropdownField label='UoM' options={rules.measurements.imperial.length} required={true} />
+                            </Grid.Col>
+                          )}
+                        </AppField>
+                      </>
+                    )}
+                  </Grid>
                 </Grid.Col>
               )}
-            </AppField>
-          </Grid>
-        </Grid.Col>
-      )}
-      {formAttributes?.some((attribute) => attribute === Attributes.PREREQUISITES) && (
-        <Prerequisites form={form} fields='prerequisites' __kind={__kind} updateFn={updateFn} removeFn={removeFn} />
-      )}
-      {formAttributes?.some((attribute) => attribute === Attributes.LIMIT_USE) && (
-        <LimitUse form={form} fields='charges' __kind={__kind} updateFn={updateFn} removeFn={removeFn} />
-      )}
-      {formAttributes?.some((attribute) => attribute === Attributes.DOES_DAMAGE) && (
-        <Damage form={form} fields='damage' __kind={__kind} updateFn={updateFn} removeFn={removeFn} />
-      )}
-      {formAttributes?.some((attribute) => attribute === Attributes.OPTIONS_BY_LEVEL) && (
-        <Grid.Col>
-          <Collapsible
-            props={{
-              trigger: {
-                title: 'Select Options By Level',
-              },
-            }}
-          >
-            <Grid>
+              {formAttributes?.some((attribute) => attribute === Attributes.REQUIRES_SAVE) && (
+                <Grid.Col>
+                  <Grid>
+                    <AppField name={`${formPath}.saveAbility.attributes`} listeners={fieldListeners}>
+                      {({ DropdownField }) => (
+                        <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                          <DropdownField
+                            label='Save Attribute'
+                            multiselect={true}
+                            options={attributes.filter(
+                              (attribute) =>
+                                attribute?.features?.length && attribute?.features?.includes(Features.SAVE_ABILITY)
+                            )}
+                          />
+                        </Grid.Col>
+                      )}
+                    </AppField>
+                    <AppField
+                      name={`${formPath}.saveAbility.id`}
+                      validators={fieldValidators({
+                        onBlur: 'Select a save ability',
+                      })}
+                      listeners={fieldListeners}
+                    >
+                      {({ DropdownField }) => (
+                        <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                          <DropdownField label='DC Ability' options={abilities} required={true} />
+                        </Grid.Col>
+                      )}
+                    </AppField>
+                    {formAttributes?.some((attribute) => attribute === Attributes.ADD_ABILITY_MODIFIER) && (
+                      <AppField
+                        name={`${formPath}.saveAbility.abilityModifier`}
+                        validators={fieldValidators({
+                          onBlur: 'Select a modifier ability',
+                        })}
+                        listeners={fieldListeners}
+                      >
+                        {({ DropdownField }) => (
+                          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                            <DropdownField label='Modifier Ability' options={abilities} required={true} />
+                          </Grid.Col>
+                        )}
+                      </AppField>
+                    )}
+                    <AppField
+                      name={`${formPath}.saveAbility.minAmount`}
+                      validators={fieldValidators({
+                        onBlur: stateKind !== 'ClassInput' ? 'Enter a min amount' : undefined,
+                        onChange: { type: 'number', min: 1, name: 'Min amount' },
+                      })}
+                      listeners={fieldListeners}
+                    >
+                      {({ TextField }) => (
+                        <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
+                          <TextField label='Min amount' required={stateKind !== 'ClassInput'} />
+                        </Grid.Col>
+                      )}
+                    </AppField>
+                  </Grid>
+                </Grid.Col>
+              )}
+              {formAttributes?.some((attribute) => attribute === Attributes.PREREQUISITES) && <Prerequisites />}
+              {formAttributes?.some((attribute) => attribute === Attributes.LIMIT_USE) && <LimitUse />}
+              {formAttributes?.some((attribute) => attribute === Attributes.DOES_DAMAGE) && <Damage />}
+              {formAttributes?.some((attribute) => attribute === Attributes.OPTIONS_BY_LEVEL) && (
+                <Grid.Col>
+                  <Collapsible
+                    props={{
+                      trigger: {
+                        title: 'Select Options By Level',
+                      },
+                    }}
+                  >
+                    <Grid>
+                      <Grid.Col>
+                        <Grid>
+                          <Grid.Col>Level</Grid.Col>
+                          <Grid.Col>Count</Grid.Col>
+                          {formAttributes.some((attribute) => attribute === Attributes.REPLACE_AT_LEVEL) && (
+                            <Grid.Col>Replace Count</Grid.Col>
+                          )}
+                        </Grid>
+                      </Grid.Col>
+                      <AppField name={`${formPath}.optionsByLevel`} mode='array'>
+                        {(optionsByLevel) =>
+                          optionsByLevel.state.value?.map((_, i) => (
+                            <OptionsByLevel
+                              index={i}
+                              replaceAtLevel={formAttributes.some(
+                                (attribute) => attribute === Attributes.REPLACE_AT_LEVEL
+                              )}
+                            />
+                          ))
+                        }
+                      </AppField>
+                    </Grid>
+                  </Collapsible>
+                </Grid.Col>
+              )}
+              // In your Feature component
               <Grid.Col>
-                <Grid>
-                  <Grid.Col>Level</Grid.Col>
-                  <Grid.Col>Count</Grid.Col>
-                  {formAttributes.some((attribute) => attribute === Attributes.REPLACE_AT_LEVEL) && (
-                    <Grid.Col>Replace Count</Grid.Col>
-                  )}
-                </Grid>
+                <Group justify='space-between' mb='md'>
+                  <Text size='lg' fw={500}>
+                    Feature Options
+                  </Text>
+                  <Text size='sm' c='dimmed'>
+                    {options?.length || 0} options
+                  </Text>
+                </Group>
+
+                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing='md'>
+                  <AppField name={`${formPath}.options`} mode='array'>
+                    {(optionsArray) => (
+                      <>
+                        {optionsArray.state.value?.map((option, i) => (
+                          <Card
+                            key={i}
+                            shadow='sm'
+                            padding='lg'
+                            radius='md'
+                            withBorder
+                            className={option_card} // Hover effects
+                            onClick={() => setEditing({ optionIndex: i })}
+                          >
+                            <Stack gap='sm'>
+                              <Group justify='space-between'>
+                                <Text fw={600} size='md'>
+                                  {option.label || `Option ${i + 1}`}
+                                </Text>
+                                <ActionIcon
+                                  variant='subtle'
+                                  size='sm'
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    optionsArray.removeValue(i)
+                                    updateField({ path: `${formPath}.options[${i}]`, value: undefined })
+                                  }}
+                                >
+                                  <Trash2 />
+                                </ActionIcon>
+                              </Group>
+
+                              {option.category && (
+                                <Badge variant='light' size='sm'>
+                                  {option.category}
+                                </Badge>
+                              )}
+
+                              {option.desc && (
+                                <Text size='sm' c='dimmed' lineClamp={3}>
+                                  {parse(option.desc)}
+                                </Text>
+                              )}
+
+                              <Button
+                                variant='light'
+                                size='xs'
+                                rightSection={<ArrowRight />}
+                                mt='sm'
+                                onClick={() => setEditing({ optionIndex: i })}
+                              >
+                                Edit Option
+                              </Button>
+                            </Stack>
+                          </Card>
+                        ))}
+                        <Card
+                          shadow='sm'
+                          padding='lg'
+                          radius='md'
+                          withBorder
+                          className={add_option_card}
+                          onClick={() => {
+                            const newIndex = optionsArray.state.value?.length || 0
+                            const optionInputObj = FeatureOptionInputSchema.parse({
+                              __kind: 'FeatureOptionInput',
+                              id: uuidv4(),
+                              ownerId: user?.userId,
+                              systemId: systemPref,
+                              masterId: undefined,
+                            })
+                            optionsArray.pushValue(optionInputObj)
+                            updateField({
+                              path: `${formPath}.options[${newIndex}]`,
+                              value: optionInputObj,
+                            })
+                          }}
+                        >
+                          <Stack align='center' justify='center' h='100%' gap='sm'>
+                            <ThemeIcon size='xl' variant='light' radius='xl'>
+                              <PlusIcon />
+                            </ThemeIcon>
+                            <Text fw={500} ta='center'>
+                              Add New Option
+                            </Text>
+                            <Text size='sm' c='dimmed' ta='center'>
+                              Create additional choices for this feature
+                            </Text>
+                          </Stack>
+                        </Card>
+                      </>
+                    )}
+                  </AppField>
+                </SimpleGrid>
               </Grid.Col>
-              <AppField name='optionsByLevel' mode='array'>
-                {({ state }) =>
-                  state.value?.map((_, i) => (
-                    <OptionsByLevel
-                      form={form}
-                      fields={`optionsByLevel[${i}]`}
-                      index={i}
-                      replaceAtLevel={formAttributes.some((attribute) => attribute === Attributes.REPLACE_AT_LEVEL)}
-                    />
-                  ))
-                }
-              </AppField>
             </Grid>
-          </Collapsible>
-        </Grid.Col>
-      )}
-      <>
-        {SECTION_STEPS.some((step) => {
-          return featureStep === 'options' ? optionCurrent?.[step]?.length : featureCurrent?.[step]?.length
-        }) ||
-          (__kind !== 'FeatureOptionInput' && featureOptions?.length && (
-            <SectionsList
-              form={form}
-              fields={{
-                modifiers: 'modifiers',
-                spells: 'spells',
-                senses: 'senses',
-                expertise: 'expertise',
-                proficiencies: 'proficiencies',
-                feats: 'feats',
-                options: 'options',
-              }}
-            />
-          ))}
-      </>
-    </Grid>
+          </Grid.Col>
+          <Grid.Col span={{ base: 4 }}>
+            <SectionsList />
+          </Grid.Col>
+        </Grid>
+      : <Options />}
+    </>
   )
 }
 

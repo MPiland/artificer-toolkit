@@ -1,10 +1,11 @@
-import { get } from 'lodash'
+import { get } from 'lodash-es'
 import { useCallback } from 'react'
-import type { ListItemType, MetaDataType } from '@/types'
-import type { FooterObject, FooterConfig, FooterPathObject, FooterPath } from '@/components/List'
-import type { DropdownOption } from '@/components/Form/Dropdown'
-import { useSystemData, useClassData } from '@/hooks'
-import { extractLookupData, getLabelFromId } from '@/utils'
+import type { ListItemType, MetaDataType } from '~/types'
+import type { FooterObject, FooterConfig, FooterPathObject, FooterPath } from '~/components/List'
+import type { DropdownOption } from '~/components/Dropdown'
+import { useSystemData } from '~/hooks'
+import { extractLookupData, getLabelFromId } from '~/utils'
+import { useListClasses } from '../apis'
 
 export type MetaDataItem = {
   id: string
@@ -32,7 +33,7 @@ const useMetaData = <T extends MetaDataType, K extends keyof T, U extends ListIt
   metaData?: T
 }) => {
   const { system } = useSystemData()
-  const { classes } = useClassData()
+  const { data: classes } = useListClasses()
 
   const getSourceData = useCallback(
     (sourceType: string) => {

@@ -1,9 +1,8 @@
-import List from '@/components/List'
-import { useDeleteCharacter } from '@/apis/characters.api'
-import { useCharacterData } from '@/hooks'
+import List from '~/components/List'
+import { useDeleteCharacter, useListCharacters } from '~/apis'
 
 const Characters = () => {
-  const { characters } = useCharacterData()
+  const characters = useListCharacters()
   return <List data={characters} useDeleteItem={useDeleteCharacter} />
 }
 

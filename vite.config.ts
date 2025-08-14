@@ -1,24 +1,27 @@
 import { defineConfig } from 'vite'
 import { vanillaExtractPlugin } from '@vanilla-extract/vite-plugin'
-import react from '@vitejs/plugin-react'
-import tsconfigPaths from 'vite-tsconfig-paths'
-import { TanStackRouterVite } from '@tanstack/router-plugin/vite'
+import viteReact from '@vitejs/plugin-react'
+import viteTsConfigPaths from 'vite-tsconfig-paths'
+import { tanstackRouter } from '@tanstack/router-plugin/vite'
 
 // https://vitejs.dev/config/
-export default defineConfig(() => {
-  return {
-    plugins: [
-      TanStackRouterVite({ target: 'react', autoCodeSplitting: true }),
-      react(),
-      vanillaExtractPlugin(),
-      tsconfigPaths(),
-    ],
-    server: {
-      port: 3000,
-      open: true,
-    },
-    preview: {
-      port: 3000,
-    },
-  }
+export default defineConfig({
+  plugins: [
+    tanstackRouter({
+      target: 'react',
+      autoCodeSplitting: true,
+    }),
+    vanillaExtractPlugin({
+      unstable_mode: 'inlineCssInDev',
+    }),
+    viteReact(),
+    viteTsConfigPaths(),
+  ],
+  server: {
+    port: 3000,
+    open: true,
+  },
+  preview: {
+    port: 3000,
+  },
 })

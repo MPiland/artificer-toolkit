@@ -5,8 +5,7 @@ import Underline from '@tiptap/extension-underline'
 import TextAlign from '@tiptap/extension-text-align'
 import Superscript from '@tiptap/extension-superscript'
 import SubScript from '@tiptap/extension-subscript'
-import Table from '@tiptap/extension-table'
-import TableRow from '@tiptap/extension-table-row'
+import { TableKit } from '@tiptap/extension-table'
 import Placeholder from '@tiptap/extension-placeholder'
 import CustomTableHeader from './CustomTableHeader'
 import CustomTableCell from './CustomTableCell'
@@ -30,13 +29,14 @@ const RichTextEditor = ({ value, onChange, placeholder, label, onBlur, name }: R
       Superscript,
       SubScript,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
-      Table.configure({
-        HTMLAttributes: {
-          class: editor_table,
+      TableKit.configure({
+        table: {
+          HTMLAttributes: {
+            class: editor_table,
+          },
+          resizable: true,
         },
-        resizable: true,
       }),
-      TableRow,
       CustomTableHeader.configure({
         HTMLAttributes: {
           class: editor_table_th,

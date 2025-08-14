@@ -1,7 +1,7 @@
-import { useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
+import { useMutation, useQueryClient, queryOptions, useSuspenseQuery } from '@tanstack/react-query'
 import { type GraphQLResult } from 'aws-amplify/data'
-import { listMasterRaces, listRaces, getRace, getMasterRace } from '@/queries'
-import { createMasterRace, createRace, deleteMasterRace, deleteRace, updateMasterRace, updateRace } from '@/mutations'
+import { listMasterRaces, listRaces, getRace, getMasterRace } from '~/queries'
+import { createMasterRace, createRace, deleteMasterRace, deleteRace, updateMasterRace, updateRace } from '~/mutations'
 import type {
   RaceInput,
   Race,
@@ -10,8 +10,9 @@ import type {
   RaceListItem,
   RaceMeta,
   RaceConnection,
-} from '@/types'
+} from '~/types'
 import { getClient } from './utils'
+import { useSystemPref } from '~/hooks'
 
 const racesKeys = {
   all: ['races'] as const,
@@ -121,7 +122,16 @@ export const fetchRace = (id: string) => {
   })
 }
 
-export const useAddNewRaceMutation = () => {
+export const useListRaces = () => {
+  const [systemPref] = useSystemPref()
+  return useSuspenseQuery(fetchRaces(systemPref))
+}
+
+export const useGetRace = (id: string) => {
+  return useSuspenseQuery(fetchRace(id))
+}
+
+export const useAddRace = () => {
   const queryClient = useQueryClient()
 
   return useMutation<Race, Error, RaceInput, unknown>({
@@ -162,7 +172,7 @@ export const useAddNewRaceMutation = () => {
   })
 }
 
-export const useUpdateRaceMutation = () => {
+export const useUpdateRace = () => {
   const queryClient = useQueryClient()
 
   return useMutation<Race, Error, RaceInput, unknown>({
@@ -202,7 +212,7 @@ export const useUpdateRaceMutation = () => {
   })
 }
 
-export const useDeleteRaceMutation = () => {
+export const useDeleteRace = () => {
   const queryClient = useQueryClient()
 
   return useMutation({

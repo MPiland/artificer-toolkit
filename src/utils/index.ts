@@ -8,6 +8,7 @@ export {
   extractLookupData,
   getLabelsFromIds,
   getLabelFromId,
+  convertTypenameToKindInput,
+  getModifierProperties,
 } from './data'
 export { default as domToReact } from './reactParser/reactParser'
-export { convertTypenameToKindInput } from './data'

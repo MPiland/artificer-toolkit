@@ -1,36 +1,38 @@
-import { useEffect, useMemo, useLayoutEffect, useCallback } from 'react'
-import { useAddNewSpellMutation, useUpdateSpellMutation } from '@/apis/spells.api'
-import { Route } from '@/routes/_protected/spells/$action/$_spellId'
-import { useSpellData, useSystemPref } from '@/hooks'
-import { SpellInputSchema } from '@/schemas'
+import { useMemo, useLayoutEffect, useEffect, useCallback } from 'react'
+import { useGetSpell, useAddSpell, useUpdateSpell } from '~/apis'
+import { Route } from '~/routes/_protected/spells/$action/$_spellId'
+import { useSystemPref } from '~/hooks'
+import { SpellInputSchema } from '~/schemas'
 import { v4 as uuidv4 } from 'uuid'
-import Form, { SpellAttributes, SpellDetails, useAppForm } from '@/components/Form'
-import { useTypedFormStore } from '@/store'
-import type { SpellInput } from '@/types'
-import { convertTypenameToKindInput } from '@/utils'
-
+import Form, { SpellAttributes, SpellDetails } from '~/components/Form'
+import { useOptimizedSelector, useTypedFormStore } from '~/store'
+import type { SpellInput } from '~/types'
+import { convertTypenameToKindInput } from '~/utils'
 const SpellForm = () => {
   const { _spellId: spellId, action } = Route.useParams()
-  const {
-    spells: { findSpell },
-  } = useSpellData()
   const [systemPref] = useSystemPref()
 
-  const spellData = findSpell(spellId)
+  const spellData = useGetSpell(spellId)
+  const { mutateAsync: addSpell } = useAddSpell()
+  const { mutateAsync: updateSpell } = useUpdateSpell()
 
   const store = useTypedFormStore<SpellInput>()
+  const { current, steps, setSteps, setCurrent, stepIndex, formSubmit, registerForm } = useOptimizedSelector(
+    store,
+    (state) => ({
+      current: state.current,
+      steps: state.meta.steps,
+      setSteps: state.setSteps,
+      setCurrent: state.setCurrent,
+      stepIndex: state.meta.stepIndex,
+      registerForm: state.registerForm,
+      formSubmit: state.formSubmit,
+    })
+  )
 
-  const current = store((state) => state.current)
-  const steps = store((state) => state.steps)
-  const setSteps = store((state) => state.setSteps)
-  const setCurrent = store((state) => state.setCurrent)
-  const stepIndex = store((state) => state.stepIndex)
-  const registerForm = store((state) => state.registerForm)
-  const formReset = store((state) => state.formReset)
-
-  const createDataObject = useCallback(() => {
+  const data = useMemo(() => {
     if (spellData) {
-      const spellInput = convertTypenameToKindInput(spellData)
+      const spellInput = convertTypenameToKindInput(spellData) as SpellInput
       if (spellInput) {
         if (action === 'new') {
           return SpellInputSchema.parse({
@@ -53,17 +55,29 @@ const SpellForm = () => {
     })
   }, [action, systemPref, spellData])
 
-  const data = useMemo(() => createDataObject(), [createDataObject])
+  const handleSubmit = useCallback(async () => {
+    if (action === 'new') {
+      try {
+        const result = await addSpell(data)
+        console.log({ result })
+      } catch (err) {
+        console.error({ err })
+      }
+    } else {
+      try {
+        const result = await updateSpell(data)
+        console.log({ result })
+      } catch (err) {
+        console.error({ err })
+      }
+    }
+  }, [action, addSpell, updateSpell, data])
 
   useLayoutEffect(() => {
     if (current === null) {
-      setCurrent(data as SpellInput)
+      setCurrent(data)
     }
   }, [current, data, setCurrent])
-
-  const form = useAppForm({
-    defaultValues: data,
-  })
 
   const spellSteps = useMemo(
     () => [
@@ -80,21 +94,17 @@ const SpellForm = () => {
   }, [steps, spellSteps, setSteps])
 
   useEffect(() => {
-    if (!formReset) {
-      registerForm(form.reset)
+    if (!formSubmit) {
+      registerForm(handleSubmit)
     }
-  }, [formReset, registerForm, form.reset])
+  }, [formSubmit, handleSubmit, registerForm])
 
   const stepComponentMap = {
-    details: <SpellDetails form={form} />,
-    attributes: <SpellAttributes form={form} />,
+    details: <SpellDetails />,
+    attributes: <SpellAttributes />,
   }
 
-  return (
-    <Form useAddNewItemMutation={useAddNewSpellMutation} useUpdateItemMutation={useUpdateSpellMutation}>
-      {stepComponentMap[steps[stepIndex].id as keyof typeof stepComponentMap] || null}
-    </Form>
-  )
+  return <Form>{stepComponentMap[steps[stepIndex].id as keyof typeof stepComponentMap] || null}</Form>
 }
 
 export default SpellForm

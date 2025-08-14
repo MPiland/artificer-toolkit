@@ -2,12 +2,12 @@ import { useDisclosure, useMediaQuery } from '@mantine/hooks'
 import { AppShell, Modal, useComputedColorScheme, useMantineColorScheme } from '@mantine/core'
 import { Outlet } from '@tanstack/react-router'
 import { use, Suspense, useEffect } from 'react'
-import { AuthContext } from '@/pages/auth/AuthContext'
+import { AuthContext } from '~/pages/auth/AuthContext'
 import * as layout from './Layout.css'
 import * as navbar from './Navbar/Navbar.css'
-import Loading from '@/components/Loading'
+import Loading from '~/components/Loading'
 import clsx from 'clsx'
-import { ModalContext } from '@/components/Modal'
+import { ModalContext } from '~/components/Modal'
 import AuthNavbar from './Navbar/AuthNavbar'
 import UnAuthNavbar from './Navbar/UnAuthNavbar'
 import Header from './Header/Header'
@@ -89,6 +89,7 @@ const Layout = () => {
             </Modal>
           }
         >
+          <></>
           <Outlet />
         </Suspense>
       </AppShell.Main>

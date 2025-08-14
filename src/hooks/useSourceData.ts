@@ -1,13 +1,14 @@
-import { get, truncate } from 'lodash'
-import { useSystemData, useClassData } from '@/hooks'
+import { get, truncate } from 'lodash-es'
+import { useSystemData } from '~/hooks'
 import { useCallback } from 'react'
-import type { DetailConfig, DetailArray, DetailObject } from '@/components/Detail'
-import type { SourceDataType } from '@/types'
-import { extractLookupData, processArrayValue, getLabelsFromIds, getLabelFromId } from '@/utils'
+import type { DetailConfig, DetailArray, DetailObject } from '~/components/Detail'
+import type { SourceDataType } from '~/types'
+import { extractLookupData, processArrayValue, getLabelsFromIds, getLabelFromId } from '~/utils'
+import { useListClasses } from '~/apis'
 
 const useSourceData = () => {
   const { system } = useSystemData()
-  const { classes } = useClassData()
+  const { data: classes } = useListClasses()
 
   const getSourceData = useCallback(
     (sourceType: string) => {

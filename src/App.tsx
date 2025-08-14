@@ -1,6 +1,6 @@
 import { use } from 'react'
-import { AuthContext } from '@/pages/auth/AuthContext'
-import { useSystemPref } from '@/hooks'
+import { AuthContext } from '~/pages/auth/AuthContext'
+import { useSystemPref } from '~/hooks'
 import { RouterProvider, type AnyRouter } from '@tanstack/react-router'
 
 const App = ({ router }: { router: AnyRouter }) => {

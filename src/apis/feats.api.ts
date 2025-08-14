@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
+import { useMutation, useQueryClient, queryOptions, useSuspenseQuery } from '@tanstack/react-query'
 import { type GraphQLResult } from 'aws-amplify/data'
 import { getFeat, getMasterFeat, listFeats, listMasterFeats } from '../../gql/queries'
 import {
@@ -17,8 +17,9 @@ import type {
   FeatConnection,
   FeatListItem,
   FeatMeta,
-} from '@/types'
+} from '~/types'
 import { getClient } from './utils'
+import { useSystemPref } from '~/hooks'
 
 const featsKeys = {
   all: ['feats'] as const,
@@ -128,7 +129,16 @@ export const fetchFeat = (id: string) => {
   })
 }
 
-export const useAddNewFeatMutation = () => {
+export const useListFeats = () => {
+  const [systemPref] = useSystemPref()
+  return useSuspenseQuery(fetchFeats(systemPref))
+}
+
+export const useGetFeat = (id: string) => {
+  return useSuspenseQuery(fetchFeat(id))
+}
+
+export const useAddFeat = () => {
   const queryClient = useQueryClient()
 
   return useMutation<Feat, Error, FeatInput, unknown>({
@@ -169,7 +179,7 @@ export const useAddNewFeatMutation = () => {
   })
 }
 
-export const useUpdateFeatMutation = () => {
+export const useUpdateFeat = () => {
   const queryClient = useQueryClient()
 
   return useMutation<Feat, Error, FeatInput, unknown>({
@@ -209,7 +219,7 @@ export const useUpdateFeatMutation = () => {
   })
 }
 
-export const useDeleteFeatMutation = () => {
+export const useDeleteFeat = () => {
   const queryClient = useQueryClient()
 
   return useMutation({

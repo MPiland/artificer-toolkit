@@ -58,6 +58,7 @@ input MulticlassInput {
   primaryAbility: MulticlassAbilityInput
   secondaryAbility: MulticlassAbilityInput
   optionalAbility: MulticlassAbilityInput
+  proficiencies: [ClassProficiencyInput!]
 }
 
 input SubtypeInput {
@@ -98,8 +99,8 @@ input ClassInput {
   multiclass: MulticlassInput
   parentClass: ID
   subtypes: [SubtypeInput!]
-  features: [ID!]
-  ownerId: ID
+  features: [FeatureInput!]
+  ownerId: ID!
   systemId: ID!
   masterId: String
 }

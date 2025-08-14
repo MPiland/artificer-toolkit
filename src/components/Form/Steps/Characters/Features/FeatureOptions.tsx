@@ -1,111 +1,99 @@
-import type {
-  CharacterFeatureInput,
-  CharacterSpellcastingInput,
-  CharacterAbilitiesInput,
-  CharacterInput,
-} from '@/types'
+import type { CharacterInput } from '~/types'
 import { Grid } from '@mantine/core'
-import { option_dropdown, withFieldGroup } from '@/components/Form'
-import { useFeatureData, useFieldUpdates, useGetFeatures } from '@/hooks'
-import { useMemo, type ReactElement } from 'react'
-import { useFormStore } from '@/store'
+import { useFieldUpdates, useCharacterFeatureOptions, useFormField } from '~/hooks'
+import { useOptimizedSelector, useTypedFormStore } from '~/store'
+import { useMemo } from 'react'
+import { useGetFeature } from '~/apis'
 
-type FeatureOptionProps = {
-  featureIndex?: number
-}
+const FeatureOptions = ({ featureId }: { featureId: string }) => {
+  const store = useTypedFormStore<CharacterInput>()
 
-const FeatureOptions = withFieldGroup({
-  defaultValues: {
-    features: [] as CharacterFeatureInput[] | null | undefined,
-    spellcasting: {} as CharacterSpellcastingInput | null | undefined,
-    abilities: {} as CharacterAbilitiesInput | null | undefined,
-  },
-  props: {
-    featureIndex: undefined,
-  } as FeatureOptionProps,
-  render: function Render({ group, featureIndex }) {
-    const { AppField } = group
+  const { AppField } = useFormField({ store })
 
-    const formStore = useFormStore()
+  // Use optimized selector to batch multiple character properties with shallow comparison
+  const { features, abilities, spellcasting, updateField } = useOptimizedSelector(store, (state) => ({
+    features: state.current?.features,
+    abilities: state.current?.abilities,
+    spellcasting: state.current?.spellcasting,
+    updateField: state.updateField,
+  }))
+  const { fieldListeners } = useFieldUpdates()
 
-    const { features: featuresData } = useFeatureData()
-    const { createFeatures } = useGetFeatures()
-    const { fieldListeners } = useFieldUpdates({ data: 'form' })
+  const feature = features?.find((f) => f?.id === featureId)
 
-    const feature = (formStore.current as CharacterInput)?.features?.[featureIndex ?? 0]
+  const { data: fullFeature } = useGetFeature(feature?.id || '')
 
-    const factoryFeatures = createFeatures({ data: formStore.current as CharacterInput })
+  const optionByLevel = fullFeature?.optionsByLevel?.find((option) => Number(option.level) >= Number(feature?.level))
 
-    const factoryFeature = factoryFeatures?.find((f) => f.id === feature?.id)
+  const selectionCount = optionByLevel?.count || 1
 
-    const optionByLevel = featuresData
-      ?.find((f) => f.id === feature?.id)
-      ?.optionsByLevel?.find((option) => Number(option.level) >= Number(feature?.level))
+  const FeatureOptionField = ({ index, optionIndex }: { index: number; optionIndex: string }) => {
+    const optionQuery = useCharacterFeatureOptions({
+      features: features || [],
+      abilities: abilities || { __kind: 'CharacterAbilitiesInput', scores: [] },
+      spellcasting: spellcasting || { __kind: 'CharacterSpellcastingInput' },
+      optionIndex,
+      featureId,
+    })
 
-    const selectionCount = optionByLevel?.count || 1
+    if (optionQuery.isLoading) {
+      return (
+        <Grid.Col>
+          <div>Loading option {index + 1}...</div>
+        </Grid.Col>
+      )
+    }
 
-    const { getFeatureOptions } = useGetFeatures()
+    if (!optionQuery.data) return null
 
-    const dropdowns = useMemo(() => {
-      if (!factoryFeature) return
-      const elements: ReactElement[] = []
+    const { path, exist, options } = optionQuery.data
 
-      for (let index = 0; index < selectionCount; index++) {
-        const optionIndex = `${index}-${featureIndex}-${feature?.id}`
-
-        const { path, exist, options } = getFeatureOptions({
-          features: (formStore.current as CharacterInput)?.features,
-          abilities: (formStore.current as CharacterInput)?.abilities,
-          spellcasting: (formStore.current as CharacterInput)?.spellcasting,
-          feature: factoryFeature,
-          optionIndex,
-        })
-
-        elements.push(
-          <Grid.Col key={path + optionIndex}>
-            <AppField
-              name={path}
-              listeners={{
-                ...fieldListeners,
-                onChange: ({ value }) => {
-                  if (value == null) return formStore.removeField({ path })
-                  return formStore.updateField({
-                    path,
-                    value: {
-                      id: value,
-                      optionIndex,
-                      featureLevel: factoryFeature.level,
-                    },
-                  })
+    return (
+      <Grid.Col>
+        <AppField
+          name={path}
+          listeners={{
+            ...fieldListeners,
+            onChange: ({ value }) => {
+              if (value == null) return updateField({ path, value: undefined })
+              return updateField({
+                path,
+                value: {
+                  id: value,
+                  optionIndex,
+                  featureLevel: feature?.level,
                 },
-              }}
-            >
-              {({ DropdownField }) => (
-                <DropdownField
-                  label={`${factoryFeature.label} Option`}
-                  options={options}
-                  className={option_dropdown}
-                  exist={exist}
-                />
-              )}
-            </AppField>
-          </Grid.Col>
-        )
-      }
+              })
+            },
+          }}
+        >
+          {({ DropdownField }) => (
+            <DropdownField
+              label={`${fullFeature?.label} Option ${index + 1}`}
+              placeholder='Select an option'
+              options={options || []}
+              exist={exist}
+            />
+          )}
+        </AppField>
+      </Grid.Col>
+    )
+  }
 
-      return elements
-    }, [
-      selectionCount,
-      featureIndex,
-      AppField,
-      factoryFeature,
-      getFeatureOptions,
-      fieldListeners,
-      formStore,
-      feature?.id,
-    ])
+  // Generate array of option indices for mapping
+  const optionIndices = useMemo(() => {
+    return Array.from({ length: selectionCount }, (_, index) => ({
+      index,
+      optionIndex: `${index}-${feature?.id}`,
+    }))
+  }, [selectionCount, feature?.id])
 
-    return <>{dropdowns}</>
-  },
-})
+  return (
+    <>
+      {optionIndices.map(({ index, optionIndex }) => (
+        <FeatureOptionField key={optionIndex} index={index} optionIndex={optionIndex} />
+      ))}
+    </>
+  )
+}
 export default FeatureOptions

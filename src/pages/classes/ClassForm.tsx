@@ -1,83 +1,90 @@
-import { useCallback, useMemo, useLayoutEffect, useEffect } from 'react'
-import { useAddNewClassMutation, useUpdateClassMutation } from '@/apis/classes.api'
-import type { ClassInput } from '@/types'
-import { Route } from '@/routes/_protected/classes/$action/$_classId'
-import { useClassData } from '@/hooks'
-import { ClassInputSchema } from '@/schemas'
+import { useMemo, useLayoutEffect, useEffect, useCallback } from 'react'
+import { useGetClass, useAddClass, useUpdateClass } from '~/apis'
+import type { ClassInput } from '~/types'
+import { Route } from '~/routes/_protected/classes/$action/$_classId'
+import { ClassInputSchema } from '~/schemas'
 import { v4 as uuidv4 } from 'uuid'
-import { useTypedFormStore } from '@/store'
-import Form, {
-  ClassAttributes,
-  ClassDetails,
-  ClassProficiencies,
-  StartingEquipment,
-  Features,
-  useAppForm,
-} from '@/components/Form'
-import { Categories } from '@/enums'
-import { convertTypenameToKindInput } from '@/utils'
-import { useSystemPref } from '@/hooks'
+import { useOptimizedSelector, useTypedFormStore } from '~/store'
+import Form, { ClassAttributes, ClassDetails, ClassProficiencies, StartingEquipment, Features } from '~/components/Form'
+import { Categories } from '~/enums'
+import { convertTypenameToKindInput } from '~/utils'
+import { useSystemPref } from '~/hooks'
 
 const ClassForm = () => {
   const { _classId: classId, action } = Route.useParams()
-  const {
-    classes: { findClass },
-  } = useClassData()
   const [systemPref] = useSystemPref()
 
-  const classData = findClass(classId)
+  const { mutateAsync: addClass } = useAddClass()
+  const { mutateAsync: updateClass } = useUpdateClass()
+
+  const classData = useGetClass(classId)
 
   const store = useTypedFormStore<ClassInput>()
 
-  const current = store((state) => state.current)
-  const steps = store((state) => state.steps)
-  const setSteps = store((state) => state.setSteps)
-  const setCurrent = store((state) => state.setCurrent)
-  const stepIndex = store((state) => state.stepIndex)
-  const registerForm = store((state) => state.registerForm)
-  const formReset = store((state) => state.formReset)
-
-  const createDataObject = useCallback(() => {
-    if (classData) {
-      const classInput = convertTypenameToKindInput(classData)
-      if (classInput) {
-        if (action === 'new') {
-          return ClassInputSchema.parse({
-            ...classInput,
-            id: uuidv4(),
-            label: '',
-            masterId: undefined,
-            category: Categories.BASE,
-            systemId: systemPref,
-          })
-        } else {
-          return ClassInputSchema.parse({ ...classInput })
-        }
-      }
-    }
-    return ClassInputSchema.parse({
-      __kind: 'ClassInput',
-      id: uuidv4(),
-      category: Categories.BASE,
-      systemId: systemPref,
-      label: '',
+  const { current, steps, setSteps, setCurrent, stepIndex, registerForm, formSubmit } = useOptimizedSelector(
+    store,
+    (state) => ({
+      current: state.current,
+      steps: state.meta.steps,
+      setSteps: state.setSteps,
+      setCurrent: state.setCurrent,
+      stepIndex: state.meta.stepIndex,
+      registerForm: state.registerForm,
+      formSubmit: state.formSubmit,
     })
+  )
+
+  const data = useMemo(() => {
+    const classInput = convertTypenameToKindInput(classData) as ClassInput
+    if (action === 'new') {
+      if (classInput) {
+        return ClassInputSchema.parse({
+          ...classInput,
+          id: uuidv4(),
+          label: '',
+          masterId: undefined,
+          category: Categories.BASE,
+          systemId: systemPref,
+        })
+      }
+      return ClassInputSchema.parse({
+        __kind: 'ClassInput',
+        id: uuidv4(),
+        category: Categories.BASE,
+        systemId: systemPref,
+        label: '',
+      })
+    } else {
+      return ClassInputSchema.parse({ ...classInput })
+    }
   }, [action, systemPref, classData])
 
-  const data = useMemo(() => createDataObject(), [createDataObject])
+  const handleSubmit = useCallback(async () => {
+    if (action === 'new') {
+      try {
+        const result = await addClass(data)
+        console.log({ result })
+      } catch (err) {
+        console.error({ err })
+      }
+    } else {
+      try {
+        const result = await updateClass(data)
+        console.log({ result })
+      } catch (err) {
+        console.error({ err })
+      }
+    }
+  }, [action, addClass, updateClass, data])
 
   useLayoutEffect(() => {
     if (current === null) {
-      setCurrent(data as ClassInput)
+      setCurrent(data)
     }
   }, [current, data, setCurrent])
 
-  const form = useAppForm({
-    defaultValues: data,
-  })
-
   const classSteps = useMemo(() => {
-    if ((data as ClassInput)?.category === Categories.SUBCLASS) {
+    if (data?.category === Categories.SUBCLASS) {
       return [
         { id: 'details', label: 'Details', fieldValidation: {}, defaultValues: {} },
         { id: 'proficiencies', label: 'Proficiencies', fieldValidation: {}, defaultValues: {} },
@@ -102,23 +109,19 @@ const ClassForm = () => {
   }, [steps, classSteps, setSteps])
 
   useEffect(() => {
-    if (!formReset) {
-      registerForm(form.reset)
+    if (!formSubmit) {
+      registerForm(handleSubmit)
     }
-  }, [formReset, registerForm, form.reset])
+  }, [formSubmit, registerForm, handleSubmit])
 
   const stepComponentMap = {
-    details: <ClassDetails form={form} />,
-    proficiencies: <ClassProficiencies form={form} />,
-    startingEquipment: <StartingEquipment form={form} />,
-    attributes: <ClassAttributes form={form} />,
+    details: <ClassDetails />,
+    proficiencies: <ClassProficiencies />,
+    startingEquipment: <StartingEquipment />,
+    attributes: <ClassAttributes />,
     features: <Features />,
   }
 
-  return (
-    <Form useAddNewItemMutation={useAddNewClassMutation} useUpdateItemMutation={useUpdateClassMutation}>
-      {stepComponentMap[steps[stepIndex]?.id as keyof typeof stepComponentMap] || null}
-    </Form>
-  )
+  return <Form>{stepComponentMap[steps[stepIndex]?.id as keyof typeof stepComponentMap] || null}</Form>
 }
 export default ClassForm

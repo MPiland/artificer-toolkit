@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import clsx from 'clsx'
-import type { ClassListItem } from '@/types'
+import type { ClassListItem } from '~/types'
 import { Grid, Group } from '@mantine/core'
-import { useClassData, useSystemData } from '@/hooks'
+import { useFormField, useSystemData } from '~/hooks'
 import {
   ClassDetail,
   card_group,
@@ -10,133 +10,141 @@ import {
   card_header_subtext,
   card_header_title,
   main_card,
-  withForm,
-} from '@/components/Form'
-import { CharacterClassInputSchema, CharacterInputSchema } from '@/schemas'
-import { useTypedFormStore } from '@/store'
-import { z } from 'zod/v4'
-import { CharacterInput } from '@/types'
+} from '~/components/Form'
+import { useOptimizedSelector, useTypedFormStore } from '~/store'
+import { CharacterInput } from '~/types'
+import { useListClasses } from '~/apis'
+import { Categories } from '~/enums'
+import { CharacterClassInputSchema } from '~/schemas'
 
-const ClassSelection = withForm({
-  defaultValues: {} as z.input<typeof CharacterInputSchema>,
-  render: function Render({ form }) {
-    const store = useTypedFormStore<CharacterInput>()
-    const classes = store((state) => state.current?.classes)
-    const formAbilities = store((state) => state.current?.abilities)
-    const updateField = store((state) => state.updateField)
+const ClassSelection = () => {
+  const store = useTypedFormStore<CharacterInput>()
 
-    const [formClass, setFormClass] = useState<ClassListItem | null>(null)
+  const { AppField } = useFormField({ store })
 
-    const { baseClasses, metaData } = useClassData()
-    const { abilities } = useSystemData()
+  const { formClasses, formAbilities, updateField } = useOptimizedSelector(store, (state) => ({
+    formClasses: state.current?.classes,
+    formAbilities: state.current?.abilities,
+    updateField: state.updateField,
+  }))
 
-    return (
-      <>
-        <Grid.Col>
-          <Grid>
-            {baseClasses?.map((uClass, index) => {
-              const selected = classes?.some((stateClass) => stateClass.id === uClass.id)
+  const [formClass, setFormClass] = useState<ClassListItem | null>(null)
 
-              const selectedIndex = classes?.findIndex((stateClass) => stateClass.id === uClass.id)
-              const metaPrimary = metaData.primaryAbilities?.find((p) => p.classIds?.includes(uClass.id))
-              const metaSecondary = metaData.secondaryAbilities?.find((p) => p.classIds?.includes(uClass.id))
+  const {
+    data: { classes, metaData },
+  } = useListClasses()
+  const { abilities } = useSystemData()
 
-              const primaryAbility = metaPrimary?.id
-              const primaryScore = metaPrimary?.amount
+  const baseClasses = classes?.filter((c) =>
+    metaData?.categories?.find((cat) => cat.id === Categories.BASE)?.classIds?.includes(c.id)
+  )
 
-              const secondaryAbility = metaSecondary?.id
-              const secondaryScore = metaSecondary?.amount
+  return (
+    <>
+      <Grid.Col>
+        <Grid>
+          {baseClasses?.map((uClass, index) => {
+            const selected = formClasses?.some((stateClass) => stateClass.id === uClass.id)
 
-              const statePrimaryScore =
-                formAbilities?.scores?.find((score) => score.ability === primaryAbility)?.calculatedScore ?? 0
+            const selectedIndex = formClasses?.findIndex((stateClass) => stateClass.id === uClass.id)
+            const metaPrimary = metaData.primaryAbilities?.find((p) => p.classIds?.includes(uClass.id))
+            const metaSecondary = metaData.secondaryAbilities?.find((p) => p.classIds?.includes(uClass.id))
 
-              const stateSecondaryScore =
-                formAbilities?.scores?.find((score) => score.ability === secondaryAbility)?.calculatedScore ?? 0
+            const primaryAbility = metaPrimary?.id
+            const primaryScore = metaPrimary?.amount
 
-              let invalidClass: boolean = false
+            const secondaryAbility = metaSecondary?.id
+            const secondaryScore = metaSecondary?.amount
 
-              if (classes?.length && primaryScore) {
-                if (statePrimaryScore != null && statePrimaryScore < primaryScore) {
-                  invalidClass = true
-                }
+            const statePrimaryScore =
+              formAbilities?.scores?.find((score) => score.ability === primaryAbility)?.calculatedScore ?? 0
 
-                if (secondaryScore && stateSecondaryScore != null && stateSecondaryScore >= secondaryScore) {
-                  invalidClass = false
-                }
+            const stateSecondaryScore =
+              formAbilities?.scores?.find((score) => score.ability === secondaryAbility)?.calculatedScore ?? 0
+
+            let invalidClass: boolean = false
+
+            if (formClasses?.length && primaryScore) {
+              if (statePrimaryScore != null && statePrimaryScore < primaryScore) {
+                invalidClass = true
               }
 
-              const primaryAbilityLabel = abilities.findAbility(primaryAbility)
-
-              let subText = `${primaryAbilityLabel} ${primaryScore} (${statePrimaryScore})`
-
-              if (invalidClass) {
-                subText = 'Character does not meeting class prerequisites: ' + subText
+              if (secondaryScore && stateSecondaryScore != null && stateSecondaryScore >= secondaryScore) {
+                invalidClass = false
               }
+            }
 
-              if (secondaryAbility) {
-                const secondarAbilityLabel = abilities.findAbility(secondaryAbility)
-                subText += ` or ${secondarAbilityLabel} ${secondaryScore} (${stateSecondaryScore})`
-              }
+            const primaryAbilityLabel = abilities.findAbility(primaryAbility)
 
-              return (
-                <Grid.Col className={card_group} key={index}>
-                  <div
-                    className={clsx(
-                      main_card,
-                      {
-                        ['clickable']: !selected && !invalidClass,
-                      },
-                      { ['selected']: selected },
-                      { ['invalid']: invalidClass }
-                    )}
-                    onClick={() => !selected && !invalidClass && setFormClass(uClass)}
-                  >
-                    <span className={clsx(card_header, { ['selected']: selected }, { ['invalid']: invalidClass })}>
+            let subText = `${primaryAbilityLabel} ${primaryScore} (${statePrimaryScore})`
+
+            if (invalidClass) {
+              subText = 'Character does not meeting class prerequisites: ' + subText
+            }
+
+            if (secondaryAbility) {
+              const secondarAbilityLabel = abilities.findAbility(secondaryAbility)
+              subText += ` or ${secondarAbilityLabel} ${secondaryScore} (${stateSecondaryScore})`
+            }
+
+            return (
+              <Grid.Col className={card_group} key={index}>
+                <div
+                  className={clsx(
+                    main_card,
+                    {
+                      ['clickable']: !selected && !invalidClass,
+                    },
+                    { ['selected']: selected },
+                    { ['invalid']: invalidClass }
+                  )}
+                  onClick={() => !selected && !invalidClass && setFormClass(uClass)}
+                >
+                  <span className={clsx(card_header, { ['selected']: selected }, { ['invalid']: invalidClass })}>
+                    <Group>
+                      <h3
+                        className={clsx(card_header_title, { ['invalid']: invalidClass }, { ['selected']: selected })}
+                      >
+                        {uClass.label}
+                      </h3>
+                    </Group>
+                    {selected && selectedIndex && selectedIndex !== -1 && (
                       <Group>
-                        <h3
-                          className={clsx(card_header_title, { ['invalid']: invalidClass }, { ['selected']: selected })}
-                        >
-                          {uClass.label}
-                        </h3>
+                        <span className={card_header_subtext}>{`Level ${formClasses?.[selectedIndex]?.level} ${
+                          selectedIndex === 0 ? ' \u00B7 Starting Class' : ''
+                        }`}</span>
                       </Group>
-                      {selected && selectedIndex && selectedIndex !== -1 && (
-                        <Group>
-                          <span className={card_header_subtext}>{`Level ${classes?.[selectedIndex]?.level} ${
-                            selectedIndex === 0 ? ' \u00B7 Starting Class' : ''
-                          }`}</span>
-                        </Group>
-                      )}
-                      {classes?.length && !selected && (
-                        <span className={clsx(card_header_subtext, { ['invalid']: invalidClass })}>{subText}</span>
-                      )}
-                    </span>
-                  </div>
-                </Grid.Col>
-              )
-            })}
-          </Grid>
-        </Grid.Col>
-        {formClass && (
-          <form.AppField name='classes'>
-            {(field) => (
-              <ClassDetail
-                formClass={formClass}
-                addClass={() => {
-                  const ClassInputObject = CharacterClassInputSchema.parse({ id: formClass.id, level: 1 })
-                  updateField({
-                    path: `classes[${classes?.length}]`,
-                    value: ClassInputObject,
-                  })
-                  field.pushValue(ClassInputObject)
-                }}
-                setClass={() => setFormClass(null)}
-              />
-            )}
-          </form.AppField>
-        )}
-      </>
-    )
-  },
-})
+                    )}
+                    {formClasses?.length && !selected && (
+                      <span className={clsx(card_header_subtext, { ['invalid']: invalidClass })}>{subText}</span>
+                    )}
+                  </span>
+                </div>
+              </Grid.Col>
+            )
+          })}
+        </Grid>
+      </Grid.Col>
+      {formClass && (
+        <AppField name='classes' mode='array'>
+          {(field) => (
+            <ClassDetail
+              formClass={formClass}
+              addClass={() => {
+                const ClassInputObject = CharacterClassInputSchema.parse({ id: formClass.id, level: 1 })
+                updateField({
+                  path: `classes[${formClasses?.length}]`,
+                  value: ClassInputObject,
+                })
+                field.pushValue(ClassInputObject)
+              }}
+              setClass={() => setFormClass(null)}
+            />
+          )}
+        </AppField>
+      )}
+    </>
+  )
+}
 
 export default ClassSelection

@@ -8,17 +8,17 @@ import type {
   HitpointFixedInput,
   CharacterEquipmentObjectInput,
   SystemAttribute,
-} from '@/types'
-import { parseDiceRoll } from '@/components/Dice'
-import { ModCats, ModSpellCats, HPCalcMethods, Spells, Attributes } from '@/enums'
-import { camelCase } from 'lodash'
+} from '~/types'
+import { parseDiceRoll } from '~/components/Dice'
+import { HPCalcMethods, Spells, Attributes } from '~/enums'
+import { camelCase } from 'lodash-es'
 import { CamelCase } from 'type-fest'
 import {
   CharacterHitpointInputSchema,
   HitpointFixedInputSchema,
   HitpointRollInputSchema,
   HitpointRollValuesInputSchema,
-} from '@/schemas'
+} from '~/schemas'
 
 export const PWD_REGEX: RegExp = /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,20}$/
 export const USER_REGEX: RegExp = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -65,40 +65,6 @@ export const formSingularMap = {
   characters: 'CharacterInput',
 } as const
 
-export const getModifierProperties = ({
-  category,
-}: {
-  category: CamelCase<keyof typeof ModCats | keyof typeof ModSpellCats>
-}) => {
-  switch (camelCase(category)) {
-    case 'conditionSave':
-    case 'conditions':
-      return 'conditions'
-    case 'unarmedDamage':
-    case 'meleeDamage':
-    case 'rangeDamage':
-    case 'spellDamage':
-    case 'damageSave':
-    case 'damageTypes':
-      return 'damageTypes'
-    case 'speeds':
-      return 'speeds'
-    case 'spell':
-    case 'spells':
-      return 'spells'
-    case 'saveAbilities':
-      return 'saveAbilities'
-    case 'abilityScores':
-      return 'abilities'
-    case 'spellRange':
-      return 'range'
-    case 'spellDuration':
-      return 'duration'
-    case 'spellShape':
-      return 'shape'
-  }
-}
-
 // This function now returns the key transformed into camelCase at runtime, while preserving type safety
 export const getKeyFromId = <T extends Record<string, string>, K extends keyof T & string>(
   id: string,
@@ -143,9 +109,10 @@ export const calculateModifier = (score: number, type: 'bonus' | 'modifier'): st
   return scoreString
 }
 
-export const calculateHitpoints = (formData: CharacterInput, primaryClass: Class): CharacterHitpointInput => {
+export const calculateHitpoints = (formData?: CharacterInput | null, primaryClass?: Class): CharacterHitpointInput | undefined => {
+  if (!formData || !primaryClass) return
   const abilityScore = formData?.abilities?.scores?.find(
-    (score) => score.ability === primaryClass.hitpoint?.ability
+    (score) => score.ability === primaryClass?.hitpoint?.ability
   )?.calculatedScore
   // Set the Character hitpoints
   const abilityModifierCalc = calculateModifier(abilityScore || 0, 'modifier')
@@ -266,20 +233,6 @@ export const isEquipmentInInventory = (equipmentId: string, inventory: Character
 
   return false
 }
-
-export type SourcePropertyMapReturn = ReturnType<typeof sourcePropertyMap>
-
-export const sourcePropertyMap = (data: CharacterInput) => ({
-  classId: (id: string): boolean | undefined =>
-    data?.__kind === 'CharacterInput' && data?.classes?.some((c) => c?.id === id || c?.subclass?.id === id),
-  raceId: (id: string): boolean | undefined => data?.__kind === 'CharacterInput' && id === data?.race,
-  ancestryId: (id: string): boolean | undefined => data?.__kind === 'CharacterInput' && id === data?.ancestry?.id,
-  featId: (id: string): boolean | undefined =>
-    data?.__kind === 'CharacterInput' && data?.feats?.some((f) => f.featId === id),
-  equipmentId: (id: string): boolean | undefined =>
-    data?.__kind === 'CharacterInput' && isEquipmentInInventory(id, data?.equipment?.inventory || []),
-  backgroundId: (id: string): boolean | undefined => data?.__kind === 'CharacterInput' && data?.background === id,
-})
 
 export const getUpcastOptions = ({
   systemAttributes,

@@ -1,6 +1,6 @@
-import { useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
+import { useMutation, useQueryClient, queryOptions, useSuspenseQuery } from '@tanstack/react-query'
 import { type GraphQLResult } from 'aws-amplify/data'
-import { listClasses, getClass, listMasterClasses, getMasterClass } from '@/queries'
+import { listClasses, getClass, listMasterClasses, getMasterClass } from '~/queries'
 import {
   createClass,
   createMasterClass,
@@ -8,7 +8,7 @@ import {
   deleteMasterClass,
   updateClass,
   updateMasterClass,
-} from '@/mutations'
+} from '~/mutations'
 import type {
   Class,
   QueryListClassesArgs,
@@ -17,8 +17,9 @@ import type {
   ClassListItem,
   ClassMeta,
   ClassConnection,
-} from '@/types'
+} from '~/types'
 import { getClient } from './utils'
+import { useSystemPref } from '~/hooks'
 
 const classesKeys = {
   all: ['classes'] as const,
@@ -131,7 +132,16 @@ export const fetchClass = (id: string) => {
   })
 }
 
-export const useAddNewClassMutation = () => {
+export const useListClasses = () => {
+  const [systemPref] = useSystemPref()
+  return useSuspenseQuery(fetchClasses(systemPref))
+}
+
+export const useGetClass = (id: string) => {
+  return useSuspenseQuery(fetchClass(id))
+}
+
+export const useAddClass = () => {
   const queryClient = useQueryClient()
 
   return useMutation<Class, Error, ClassInput, unknown>({
@@ -172,7 +182,7 @@ export const useAddNewClassMutation = () => {
   })
 }
 
-export const useUpdateClassMutation = () => {
+export const useUpdateClass = () => {
   const queryClient = useQueryClient()
 
   return useMutation<Class, Error, ClassInput, unknown>({
@@ -212,7 +222,7 @@ export const useUpdateClassMutation = () => {
   })
 }
 
-export const useDeleteClassMutation = () => {
+export const useDeleteClass = () => {
   const queryClient = useQueryClient()
 
   return useMutation({

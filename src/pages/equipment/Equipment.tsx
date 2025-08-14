@@ -1,16 +1,14 @@
 import parse from 'html-react-parser'
-import Detail from '@/components/Detail'
-import { Route } from '@/routes/_protected/equipment/$equipmentId'
-import { useEquipmentData } from '@/hooks'
-import type { DetailConfig } from '@/components/Detail'
-import type { Equipment } from '@/types'
+import Detail from '~/components/Detail'
+import { Route } from '~/routes/_protected/equipment/$equipmentId'
+import type { DetailConfig } from '~/components/Detail'
+import type { Equipment } from '~/types'
+import {useGetEquipment} from '~/apis'
 
 const Equipment = () => {
   const equipmentId = Route.useParams({ select: (r) => r.equipmentId })
-  const {
-    equipment: { findEquipment },
-  } = useEquipmentData()
-  const equipment = findEquipment(equipmentId)
+
+  const { data: equipment } = useGetEquipment(equipmentId)
 
   if (!equipment) return <div>Invalid or missing equipment data</div>
 

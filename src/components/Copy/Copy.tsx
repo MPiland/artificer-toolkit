@@ -1,8 +1,8 @@
 import { use, useEffect, useMemo, useState } from 'react'
-import { startCase } from 'lodash'
-import Dropdown from '@/components/Form/Dropdown'
+import { startCase } from 'lodash-es'
+import Dropdown from '~/components/Dropdown'
 import { Button } from '@mantine/core'
-import { sprinkles } from '@/css/sprinkles.css'
+import { sprinkles } from '~/css/sprinkles.css'
 import type {
   FeatureFormDataType,
   FormDataType,
@@ -11,10 +11,9 @@ import type {
   RaceListItem,
   BackgroundListItem,
   FeatListItem,
-} from '@/types'
-import Modal, { ModalContext, type CopyModalProps } from '@/components/Modal'
+} from '~/types'
+import Modal, { ModalContext, type CopyModalProps } from '~/components/Modal'
 import { Grid } from '@mantine/core'
-import type { DeepKeys } from '@tanstack/react-form'
 
 type ValidFilterBy = 'races' | 'classes' | 'equipment' | 'backgrounds' | 'feats'
 
@@ -51,7 +50,7 @@ const Copy = () => {
     setTitle(`Copy ${startCase(form)}`)
   }, [form, setTitle, setSize])
 
-  const handleOnChange = (value: string | string[] | null | undefined, path: DeepKeys<Selection>) => {
+  const handleOnChange = (value: unknown, path: string) => {
     if (value != null) {
       return setSelection((prev) => ({ ...prev, [path]: value }))
     }

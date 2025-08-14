@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
-import BackgroundForm from '@/pages/backgrounds/BackgroundForm'
-import { fetchBackground } from '@/apis/backgrounds.api'
-import Loading from '@/components/Loading/Loading'
+import BackgroundForm from '~/pages/backgrounds/BackgroundForm'
+import { fetchBackground } from '~/apis'
+import Loading from '~/components/Loading/Loading'
 import { Modal } from '@mantine/core'
 
 export const Route = createFileRoute('/_protected/backgrounds/$action/$_backgroundId')({
@@ -15,7 +15,7 @@ export const Route = createFileRoute('/_protected/backgrounds/$action/$_backgrou
     }
   },
   pendingComponent: () => (
-    <Modal withCloseButton={false}  opened onClose={() => {}} centered size='auto'>
+    <Modal withCloseButton={false} opened onClose={() => {}} centered size='auto'>
       <Loading />
     </Modal>
   ),

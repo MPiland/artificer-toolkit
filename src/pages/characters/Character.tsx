@@ -1,31 +1,38 @@
-import { Route } from '@/routes/_protected/characters/$characterId'
-import { useCharacterData, useRaceData, useClassData } from '@/hooks'
+import { Route } from '~/routes/_protected/characters/$characterId'
+import { fetchClass, queryClient, useGetCharacter, useGetRace } from '~/apis'
+import { useSuspenseQueries } from '@tanstack/react-query'
 
 const Character = () => {
   const characterId = Route.useParams({ select: (r) => r.characterId })
-  const {
-    characters: { findCharacter },
-  } = useCharacterData()
-  const {
-    classes: { findClass },
-  } = useClassData()
-  const character = findCharacter(characterId)
-  const {
-    races: { findRace },
-  } = useRaceData()
+  const character = useGetCharacter(characterId)
 
-  if (!character) return <div>Invalid or missing character data</div>
+  const { data: charRace } = useGetRace(character?.race || '')
 
-  const charRace = findRace(character?.race)
   let charClass = ''
   let totalLevel = 0
 
+  const charStateClasses = [
+    ...(character?.classes || []),
+    ...(character?.classes?.filter((cClass) => cClass.subclass?.id != null).map((cClass) => cClass.subclass) || []),
+  ]
+
+  const { data: charClasses } = useSuspenseQueries({
+    queries:
+      charStateClasses?.map((uClass) => ({
+        queryKey: ['character-classes', uClass?.id],
+        queryFn: async () => await queryClient.fetchQuery(fetchClass(uClass?.id || '')),
+      })) || [],
+    combine: (result) => ({
+      data: result.map((res) => res.data),
+    }),
+  })
+
   character?.classes?.forEach((cClass, index) => {
-    const uClass = findClass(cClass.id)
+    const uClass = charClasses?.find((uClass) => uClass?.id === cClass?.id)
     totalLevel += cClass.level
     charClass = `(${cClass.level}) ${uClass?.label}`
     if (cClass?.subclass?.id != null) {
-      const subclass = findClass(cClass.subclass?.id)
+      const subclass = charClasses?.find((uClass) => uClass?.id === cClass.subclass?.id)
       charClass += ` / ${subclass?.label}`
     }
     if (index > 0) {
@@ -53,7 +60,7 @@ const Character = () => {
           </div>
           <div className='col m-1'>
             <div className='card-body'>
-              <h5 className='card-title'>{character.label}</h5>
+              <h5 className='card-title'>{character?.label}</h5>
               <p className='card-text'>{charRace?.label}</p>
               <p className='card-text'>{`Level ${totalLevel} - ${charClass}`}</p>
             </div>

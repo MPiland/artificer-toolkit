@@ -1,66 +1,54 @@
 import { Grid } from '@mantine/core'
 import EquipmentOptionItem from './EquipmentOptionItem'
-import { withFieldGroup } from '@/components/Form'
-import type { EquipmentOptionItemInput } from '@/types'
-import { EquipmentOptionItemInputSchema } from '@/schemas'
+import type { BackgroundInput, ClassInput } from '~/types'
+import { EquipmentOptionItemInputSchema } from '~/schemas'
+import {  useTypedFormStore } from '~/store'
+import { useFormField } from '~/hooks'
 
-const EquipmentOption = withFieldGroup({
-  defaultValues: {
-    equipmentItems: [] as EquipmentOptionItemInput[] | null | undefined,
-  },
-  props: {
-    __kind: '' as 'ClassInput' | 'BackgroundInput',
-    index: 0 as number,
-    groupIndex: 0 as number,
-    removeFn: (() => {}) as () => void,
-  },
-  render: function Render({ group, __kind, removeFn, index, groupIndex }) {
-    const { AppField } = group
-    return (
-      <AppField name='equipmentItems' mode='array'>
-        {(eItems) =>
-          eItems.state.value?.length && (
-            <Grid align='center'>
-              {eItems.state.value?.map(
-                (_, i) =>
-                  group && (
-                    <EquipmentOptionItem
-                      key={`equipment-option-item-${i}`}
-                      index={i}
-                      optionIndex={index}
-                      groupIndex={groupIndex}
-                      fields={{
-                        attributes: `equipmentItems[${i}].attributes`,
-                        category: `equipmentItems[${i}].category`,
-                        equipmentOptionItem: `equipmentItems[${i}]`,
-                        properties: `equipmentItems[${i}].properties`,
-                        selectionCount: `equipmentItems[${i}].selectionCount`,
-                        quantity: `equipmentItems[${i}].quantity`,
-                        currencies: `equipmentItems[${i}].currencies`,
-                        equipment: `equipmentItems[${i}].equipment`,
-                      }}
-                      form={group}
-                      __kind={__kind}
-                      addFn={() => {
-                        const eItemObject = EquipmentOptionItemInputSchema.parse({})
-                        eItems.pushValue(eItemObject)
-                      }}
-                      removeFn={() => {
-                        if (eItems.state.value?.length === 1) {
-                          removeFn()
-                        } else {
-                          eItems.removeValue(i)
-                        }
-                      }}
-                    />
-                  )
-              )}
-            </Grid>
-          )
-        }
-      </AppField>
-    )
-  },
-})
+const EquipmentOption = ({
+  index,
+  groupIndex,
+  removeFn,
+}: {
+  index: number
+  groupIndex: number
+  removeFn: () => void
+}) => {
+  const store = useTypedFormStore<ClassInput | BackgroundInput>()
+
+  const { AppField } = useFormField({ store })
+  return (
+    <AppField name={`equipment[${groupIndex}][${index}]`} mode='array'>
+      {(eItems) =>
+        eItems.state.value?.length && (
+          <Grid align='center'>
+            {eItems.state.value?.map(
+              (item, i) =>
+                item && (
+                  <EquipmentOptionItem
+                    key={`equipment-option-item-${i}`}
+                    index={i}
+                    optionIndex={index}
+                    groupIndex={groupIndex}
+                    addFn={() => {
+                      const eItemObject = EquipmentOptionItemInputSchema.parse({})
+                      eItems.pushValue(eItemObject)
+                    }}
+                    removeFn={() => {
+                      if (eItems.state.value?.length === 1) {
+                        removeFn()
+                      } else {
+                        eItems.removeValue(i)
+                      }
+                    }}
+                  />
+                )
+            )}
+          </Grid>
+        )
+      }
+    </AppField>
+  )
+}
 
 export default EquipmentOption

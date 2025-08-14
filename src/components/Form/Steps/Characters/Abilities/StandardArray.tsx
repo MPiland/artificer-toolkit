@@ -1,97 +1,97 @@
 import { useEffect } from 'react'
-import { AbilityGenMethods } from '@/enums'
-import { isEqual } from 'lodash'
+import { AbilityGenMethods } from '~/enums'
+import { isEqual } from 'lodash-es'
 import { Grid } from '@mantine/core'
-import { useSystemData, useFieldUpdates } from '@/hooks'
-import { withFieldGroup } from '@/components/Form'
-import { StandardArrayInputSchema } from '@/schemas'
-import { useTypedFormStore } from '@/store'
-import type { CharacterAbilitiesInput, CharacterInput } from '@/types'
+import { useSystemData, useFieldUpdates, useFormField } from '~/hooks'
+import { StandardArrayInputSchema } from '~/schemas'
+import { useOptimizedSelector, useTypedFormStore } from '~/store'
+import type { CharacterInput } from '~/types'
 
-const StandardArray = withFieldGroup({
-  defaultValues: {} as CharacterAbilitiesInput,
-  render: function Render({ group }) {
-    const { AppField } = group
+const StandardArray = () => {
+  const store = useTypedFormStore<CharacterInput>()
 
-    const store = useTypedFormStore<CharacterInput>()
-    const updateField = store((state) => state.updateField)
-    const standardArray = store((state) => state.current?.abilities?.standardArray)
-    const scores = store((state) => state.current?.abilities?.scores)
+  const { AppField } = useFormField({ store })
 
-    const { fieldListeners } = useFieldUpdates({ data: 'form', path: 'abilities' })
+  // Use optimized selector to batch standard array data with shallow comparison
+  const { updateField, standardArray, scores } = useOptimizedSelector(store, (state) => ({
+    updateField: state.updateField,
+    standardArray: state.current?.abilities?.standardArray,
+    scores: state.current?.abilities?.scores,
+  }))
 
-    const { rules, abilities } = useSystemData()
+  const { fieldListeners } = useFieldUpdates()
 
-    const pointSystemRules = rules.abilityGenerateMethod.findAbilityGenerateMethod(AbilityGenMethods.STANDARD_ARRAY)
+  const { rules, abilities } = useSystemData()
 
-    useEffect(() => {
-      if (standardArray?.length) {
-        scores?.forEach((aScore, i) => {
-          const arrayObject = standardArray?.find((arrayValue) => aScore.ability === arrayValue?.ability)
+  const pointSystemRules = rules.abilityGenerateMethod.findAbilityGenerateMethod(AbilityGenMethods.STANDARD_ARRAY)
 
-          if (arrayObject?.score) {
-            const score = pointSystemRules?.options?.find((option) => option.id === arrayObject.score)?.label
+  useEffect(() => {
+    if (standardArray?.length) {
+      scores?.forEach((aScore, i) => {
+        const arrayObject = standardArray?.find((arrayValue) => aScore.ability === arrayValue?.ability)
 
-            if (!isEqual(score, arrayObject.score)) {
-              group.setFieldValue(`scores[${i}].baseScore`, Number(score))
-              updateField({ path: `abilities.scores[${i}].score`, value: score })
-            }
-          } else {
-            group.setFieldValue(`scores[${i}].baseScore`, 0)
-            updateField({ path: `abilities.scores[${i}].score`, value: 0 })
+        if (arrayObject?.score) {
+          const score = pointSystemRules?.options?.find((option) => option.id === arrayObject.score)?.label
+
+          if (!isEqual(score, arrayObject.score)) {
+            updateField({ path: `abilities.scores[${i}].score`, value: score })
+          }
+        } else {
+          updateField({ path: `abilities.scores[${i}].score`, value: 0 })
+        }
+      })
+    }
+  }, [standardArray, pointSystemRules, scores, updateField])
+
+  return (
+    <AppField name='abilities.standardArray' mode='array'>
+      {(standardArray) => {
+        const scoreArray = standardArray.state.value
+        return scores?.map((score, i) => {
+          const ability = abilities.findAbility(score.ability)
+          const currentIndex = scoreArray?.findIndex((sAbility) => sAbility?.ability === score.ability)
+          if (currentIndex && currentIndex !== -1 && pointSystemRules?.options?.length) {
+            return (
+              <AppField
+                name={`abilities.standardArray[${i}].score`}
+                listeners={{
+                  ...fieldListeners.onBlur,
+                  onChange: ({ value }) => {
+                    if (value == null) {
+                      updateField({ path: `abilities.standardArray[${i}]`, value: undefined })
+                      return standardArray.removeValue(i)
+                    }
+                    const standardArrayObject = StandardArrayInputSchema.parse({
+                      ability: score.ability,
+                      score: value,
+                    })
+                    updateField({ path: `abilities.standardArray[${i}]`, value: standardArrayObject })
+                    return standardArray.replaceValue(i, standardArrayObject)
+                  },
+                }}
+              >
+                {({ DropdownField }) => (
+                  <Grid.Col key={`score-baseScore-${i}`} span={{ sm: 6, md: 4, lg: 2 }}>
+                    <DropdownField
+                      key={i}
+                      label={`${ability?.label}`}
+                      options={
+                        pointSystemRules?.options?.filter(
+                          (option) =>
+                            !scoreArray?.some(
+                              (sAbility) => sAbility?.score === option.id && sAbility.ability !== ability?.id
+                            )
+                        ) ?? []
+                      }
+                    />
+                  </Grid.Col>
+                )}
+              </AppField>
+            )
           }
         })
-      }
-    }, [standardArray, group, pointSystemRules, scores, updateField])
-
-    return (
-      <AppField name='standardArray' mode='array'>
-        {(standardArray) => {
-          const scoreArray = standardArray.state.value
-          return scores?.map((score, i) => {
-            const ability = abilities.findAbility(score.ability)
-            const currentIndex = scoreArray?.findIndex((sAbility) => sAbility?.ability === score.ability)
-            if (currentIndex && currentIndex !== -1 && pointSystemRules?.options?.length) {
-              return (
-                <AppField
-                  name={`standardArray[${i}].score`}
-                  listeners={{
-                    ...fieldListeners.onBlur,
-                    onChange: ({ value }) => {
-                      if (value == null) {
-                        return standardArray.removeValue(i)
-                      }
-                      const standardArrayObject = StandardArrayInputSchema.parse({
-                        ability: score.ability,
-                        score: value,
-                      })
-                      return standardArray.replaceValue(i, standardArrayObject)
-                    },
-                  }}
-                >
-                  {({ DropdownField }) => (
-                    <Grid.Col key={`${i}-score-baseScore`} span={{ sm: 6, md: 4, lg: 2 }}>
-                      <DropdownField
-                        key={i}
-                        label={`${ability?.label}`}
-                        options={
-                          pointSystemRules?.options?.filter(
-                            (option) =>
-                              !scoreArray?.some(
-                                (sAbility) => sAbility?.score === option.id && sAbility.ability !== ability?.id
-                              )
-                          ) ?? []
-                        }
-                      />
-                    </Grid.Col>
-                  )}
-                </AppField>
-              )
-            }
-          })
-        }}
-      </AppField>
-    )
-  },
-})
+      }}
+    </AppField>
+  )
+}
 export default StandardArray

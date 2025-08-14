@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
-import Classes from '@/pages/classes/Classes'
-import { fetchClasses } from '@/apis/classes.api'
-import Loading from '@/components/Loading/Loading'
+import Classes from '~/pages/classes/Classes'
+import { fetchClasses } from '~/apis'
+import Loading from '~/components/Loading/Loading'
 import { Modal } from '@mantine/core'
 
 export const Route = createFileRoute('/_protected/classes/')({
@@ -10,7 +10,7 @@ export const Route = createFileRoute('/_protected/classes/')({
   },
   loader: ({ context }) => context.queryClient.ensureQueryData(fetchClasses(context.systemPref)),
   pendingComponent: () => (
-    <Modal withCloseButton={false}  opened onClose={() => {}} centered size='auto'>
+    <Modal withCloseButton={false} opened onClose={() => {}} centered size='auto'>
       <Loading />
     </Modal>
   ),

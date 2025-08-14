@@ -1,11 +1,11 @@
 import { getClient } from './utils'
-import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query'
+import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import {
   listFeatureModifiers,
   listMasterFeatureModifiers,
   getFeatureModifier,
   getMasterFeatureModifier,
-} from '@/queries'
+} from '~/queries'
 import type {
   FeatureModifierInput,
   FeatureModifier,
@@ -19,7 +19,8 @@ import {
   updateMasterFeatureModifier,
   deleteMasterFeatureModifier,
   deleteFeatureModifier,
-} from '@/mutations'
+} from '~/mutations'
+import { useSystemPref } from '~/hooks'
 
 const featureModifiersKeys = {
   all: ['featureModifiers'] as const,
@@ -115,7 +116,16 @@ export const fetchFeatureModifier = (id: string) => {
   })
 }
 
-export const useAddNewFeatureModifierMutation = () => {
+export const useListFeatureModifiers = () => {
+  const [systemPref] = useSystemPref()
+  return useSuspenseQuery(fetchFeatureModifiers(systemPref))
+}
+
+export const useGetFeatureModifier = (id: string) => {
+  return useSuspenseQuery(fetchFeatureModifier(id))
+}
+
+export const useAddFeatureModifier = () => {
   const queryClient = useQueryClient()
 
   return useMutation<FeatureModifier, Error, FeatureModifierInput, unknown>({
@@ -155,7 +165,7 @@ export const useAddNewFeatureModifierMutation = () => {
   })
 }
 
-export const useUpdateFeatureModifierMutation = () => {
+export const useUpdateFeatureModifier = () => {
   const queryClient = useQueryClient()
 
   return useMutation<FeatureModifier, Error, FeatureModifierInput, unknown>({
@@ -197,7 +207,7 @@ export const useUpdateFeatureModifierMutation = () => {
   })
 }
 
-export const useDeleteFeatureModifierMutation = () => {
+export const useDeleteFeatureModifier = () => {
   const queryClient = useQueryClient()
 
   return useMutation({

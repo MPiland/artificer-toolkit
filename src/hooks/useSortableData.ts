@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react'
-import { PropertyPath, get, isObject, uniq } from 'lodash'
+import { PropertyPath, get, isObject, uniq } from 'lodash-es'
 
 type SortConfig = {
   key: {

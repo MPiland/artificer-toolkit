@@ -1,324 +1,203 @@
-import { useMemo, type ReactNode } from 'react'
+import { useMemo } from 'react'
 import type {
-  CharacterModifierInput,
+  FeatureModifier,
+  FeatureFeat,
+  FeatureSense,
+  FeatureSpell,
+  FeatureProficiency,
+  FeatureExpertise,
+  FeatureModifierInput,
+  FeatureExpertiseInput,
+  FeatureProficiencyInput,
+  FeatureSenseInput,
+  FeatureFeatInput,
+  FeatureSpellInput,
+  CharacterInput,
   CharacterExpertiseInput,
   CharacterProficiencyInput,
-  CharacterSenseInput,
   CharacterFeatInput,
-  CharacterSpellcastingInput,
-  CharacterFeatureInput,
-  CharacterInput,
-} from '@/types'
-import { useGetSections, useFieldUpdates, useGetFeatures, useFeatureData } from '@/hooks'
+  CharacterSpellInput,
+  CharacterSenseInput,
+  CharacterModifierInput,
+} from '~/types'
+import { useFieldUpdates, useCharacterFeatureSectionOptions, useFormField } from '~/hooks'
 import { Grid, Group } from '@mantine/core'
-import { proficiencyKey, kind } from '@/utils'
-import { getKeyFromId, option_dropdown, withFieldGroup, SECTION_STEPS } from '@/components/Form'
-import { Attributes, ProfCats } from '@/enums'
+import { proficiencyKey, kind, convertTypenameToKindInput } from '~/utils'
+import { getKeyFromId, option_dropdown, SECTION_STEPS } from '~/components/Form'
+import { ProfCats } from '~/enums'
 import type { CamelCase } from 'type-fest'
-import { useFormStore } from '@/store'
+import { useGetFeature, useGetFeatureOption } from '~/apis'
+import { useOptimizedSelector, useTypedFormStore } from '~/store'
 
-type FeatureOptionProps = {
-  featureIndex: number
+const FeatureSections = ({
+  featureId,
+  classId,
+  raceId,
+  backgroundId,
+  equipmentId,
+  featId,
+  optionId,
+  ancestryId,
+}: {
+  featureId: string
   classId?: string
   raceId?: string
   backgroundId?: string
   equipmentId?: string
   featId?: string
   optionId?: string
-}
+  ancestryId?: string
+}) => {
+  const store = useTypedFormStore<CharacterInput>()
 
-const FeatureSections = withFieldGroup({
-  defaultValues: {
-    features: [] as CharacterFeatureInput[] | null | undefined,
-    modifiers: [] as CharacterModifierInput[] | null | undefined,
-    expertise: [] as CharacterExpertiseInput[] | null | undefined,
-    proficiencies: [] as CharacterProficiencyInput[] | null | undefined,
-    senses: [] as CharacterSenseInput[] | null | undefined,
-    feats: [] as CharacterFeatInput[] | null | undefined,
-    spellcasting: {} as CharacterSpellcastingInput | null | undefined,
-  },
-  props: {
-    classId: undefined,
-    raceId: undefined,
-    backgroundId: undefined,
-    equipmentId: undefined,
-    featId: undefined,
-    optionId: undefined,
-    featureIndex: 0,
-  } as FeatureOptionProps,
-  render: function Render({ group, featureIndex, classId, raceId, backgroundId, equipmentId, featId, optionId }) {
-    const { AppField } = group
+  const { AppField } = useFormField({ store })
 
-    const formStore = useFormStore()
-    const { featureOptions } = useFeatureData()
-    const { createFeatures } = useGetFeatures()
-    const { getSectionOptions, sectionTypeMap } = useGetSections()
+  const { updateField, characterFeature } = useOptimizedSelector(store, (state) => ({
+    updateField: state.updateField,
+    characterFeature: state.current?.features?.find((f) => f.id === featureId),
+  }))
 
-    const { fieldListeners } = useFieldUpdates({ data: 'form' })
-    const factoryFeatures = createFeatures({ data: formStore.current as CharacterInput })
+  const { data: option } = useGetFeatureOption(optionId || '')
+  const { data: feature } = useGetFeature(featureId || '')!
 
-    const values = useMemo(
-      () => ({
-        modifiers: (formStore.current as CharacterInput)?.modifiers || [],
-        expertise: (formStore.current as CharacterInput)?.expertise || [],
-        proficiencies: (formStore.current as CharacterInput)?.proficiencies || [],
-        senses: (formStore.current as CharacterInput)?.senses || [],
-        feats: (formStore.current as CharacterInput)?.feats || [],
-        spellcasting: (formStore.current as CharacterInput)?.spellcasting || { __kind: 'CharacterSpellcastingInput' },
-        features: (formStore.current as CharacterInput)?.features || [],
-      }),
-      [formStore]
+  const data = !option ? feature : option
+
+  const { fieldListeners } = useFieldUpdates()
+
+  const SectionWrapper = () => {
+    return SECTION_STEPS.map(
+      (sectionStep: (typeof SECTION_STEPS)[number]) =>
+        data?.[sectionStep]?.length &&
+        data?.[sectionStep].map((section, sIndex) => {
+          return <SectionOption key={section.id} section={section} sIndex={sIndex} sectionStep={sectionStep} />
+        })
     )
+  }
 
-    const dropdowns = useMemo(() => {
-      const option = optionId != null ? featureOptions.find((f) => f.id === optionId) : undefined
-      const feature = factoryFeatures?.find(
-        (f) => f.id === (formStore.current as CharacterInput)?.features?.[featureIndex]?.id
-      )
-      if (!feature) return
-      const elements: ReactNode[] = []
+  const SectionOption = ({
+    section,
+    sIndex,
+    sectionStep,
+  }: {
+    section: FeatureModifier | FeatureFeat | FeatureSense | FeatureSpell | FeatureProficiency | FeatureExpertise
+    sIndex: number
+    sectionStep: (typeof SECTION_STEPS)[number]
+  }) => {
+    const optionIndices = useMemo(() => {
+      return Array.from({ length: section?.selectionCount || 1 }, (_, index) => ({
+        index,
+        optionIndex: `${section?.__typename}-${optionId || featureId}-${sIndex}-${index}`,
+      }))
+    }, [sIndex, section])
 
-      SECTION_STEPS.map(
-        (sectionStep: (typeof SECTION_STEPS)[number]) =>
-          feature?.[sectionStep]?.length &&
-          feature?.[sectionStep].map((sectionId, sIndex) => {
-            const sectionMap = sectionTypeMap(sectionStep)
-            const section = sectionMap.schema.parse(sectionMap.get(sectionId))
-            if (
-              section?.attributes?.some((attribute) => attribute === Attributes.PROVIDES_OPTIONS) &&
-              section?.__kind !== 'FeatureOptionInput'
-            ) {
-              // Check if selectionCount exists and is greater than 0
-              const selectionCount = section?.selectionCount || 1
+    const sectionInput = convertTypenameToKindInput(section) as
+      | FeatureModifierInput
+      | FeatureFeatInput
+      | FeatureSenseInput
+      | FeatureSpellInput
+      | FeatureProficiencyInput
+      | FeatureExpertiseInput
 
-              for (let index = 0; index < selectionCount; index++) {
-                const optionIndex = `${section?.__kind}-${featureIndex}-${sIndex}-${index}`
+    return (
+      <>
+        {optionIndices.map(({ optionIndex }) => {
+          return (
+            <SectionOptionField
+              key={optionIndex}
+              section={sectionInput}
+              sectionStep={sectionStep}
+              optionIndex={optionIndex}
+            />
+          )
+        })}
+      </>
+    )
+  }
 
-                const { options, label, path, exist } = getSectionOptions({
-                  data: values,
-                  section,
-                  sectionStep,
+  const SectionOptionField = ({
+    section,
+    sectionStep,
+    optionIndex,
+  }: {
+    section:
+      | FeatureModifierInput
+      | FeatureFeatInput
+      | FeatureSenseInput
+      | FeatureSpellInput
+      | FeatureProficiencyInput
+      | FeatureExpertiseInput
+    sectionStep: (typeof SECTION_STEPS)[number]
+    optionIndex: string
+  }) => {
+    const { options, label, path, exist } = useCharacterFeatureSectionOptions({
+      section,
+      sectionStep,
+      optionIndex,
+    })
+    return (
+      <Grid.Col>
+        <Group justify='center'>
+          <AppField
+            name={path}
+            listeners={{
+              ...fieldListeners,
+              onChange: ({ value }) => {
+                if (value == null || typeof value === 'boolean') return updateField({ path, value: undefined })
+                const valueObject:
+                  | CharacterExpertiseInput
+                  | CharacterModifierInput
+                  | CharacterProficiencyInput
+                  | CharacterFeatInput
+                  | CharacterSpellInput
+                  | CharacterSenseInput = {
+                  id: value as string,
                   optionIndex,
-                })
-
-                elements.push(
-                  <Grid.Col key={path + optionIndex}>
-                    <Group justify='center'>
-                      <AppField
-                        name={path}
-                        listeners={{
-                          ...fieldListeners,
-                          onChange: ({ value }) => {
-                            if (value == null || typeof value === 'boolean') return formStore.removeField({ path })
-                            const valueObject: {
-                              id: string
-                              optionIndex: string
-                              featureId?: string
-                              featureLevel?: number
-                              classId?: string
-                              raceId?: string
-                              backgroundId?: string
-                              featId?: string
-                              equipmentId?: string
-                              optionId?: string
-                              equipment?: string
-                              skill?: string
-                              property?: string
-                              language?: string
-                              saveAbility?: string
-                              __kind:
-                                | 'CharacterExpertiseInput'
-                                | 'CharacterProficiencyInput'
-                                | 'CharacterModifierInput'
-                                | 'CharacterSenseInput'
-                                | 'CharacterSpellInput'
-                                | 'CharacterFeatInput'
-                            } = {
-                              id: value as string,
-                              optionIndex,
-                              featureId: feature.id!,
-                              __kind: kind(sectionStep as Exclude<(typeof SECTION_STEPS)[number], 'spells'>, '__kind'),
-                            }
-
-                            // Add prop properties
-                            if (feature.level && feature.level >= 1) {
-                              valueObject.featureLevel = feature.level
-                            }
-                            if (classId) valueObject.classId = classId
-                            if (raceId) valueObject.raceId = raceId
-                            if (backgroundId) valueObject.backgroundId = backgroundId
-                            if (featId) valueObject.featId = featId
-                            if (equipmentId) valueObject.equipmentId = equipmentId
-
-                            // Add category-specific properties for proficiencies and expertise
-                            if (
-                              section.__kind === 'FeatureProficiencyInput' ||
-                              section.__kind === 'FeatureExpertiseInput'
-                            ) {
-                              const categoryId = section.category
-                              const categoryName = getKeyFromId(categoryId, ProfCats)
-
-                              // If we have a valid category, add the appropriate property
-                              if (categoryName && categoryName !== 'initiative') {
-                                // Use the proficiencyKey helper to get the correct property name
-                                const propertyName = proficiencyKey(
-                                  categoryName as Exclude<CamelCase<keyof typeof ProfCats>, 'initiative'>
-                                )
-                                if (propertyName) {
-                                  // Set the property using the selected value
-                                  valueObject[propertyName] = value as string
-                                }
-                              }
-                            }
-
-                            return formStore.updateField({ path, value: valueObject })
-                          },
-                        }}
-                      >
-                        {({ DropdownField }) => (
-                          <DropdownField label={label} options={options} className={option_dropdown} exist={exist} />
-                        )}
-                      </AppField>
-                    </Group>
-                  </Grid.Col>
-                )
-              }
-            }
-          })
-      )
-
-      if (option) {
-        SECTION_STEPS.map(
-          (sectionStep: (typeof SECTION_STEPS)[number]) =>
-            option?.[sectionStep]?.length &&
-            option?.[sectionStep].map((sectionId, sIndex) => {
-              const sectionMap = sectionTypeMap(sectionStep)
-              const section = sectionMap.schema.parse(sectionMap.get(sectionId))
-              if (
-                section?.attributes?.some((attribute) => attribute === Attributes.PROVIDES_OPTIONS) &&
-                section?.__kind !== 'FeatureOptionInput'
-              ) {
-                // Check if selectionCount exists and is greater than 0
-                const selectionCount = section?.selectionCount || 1
-
-                for (let index = 0; index < selectionCount; index++) {
-                  const optionIndex = `${section?.__kind}-${featureIndex}-${sIndex}-${index}-${classId || raceId || backgroundId || featId || equipmentId}`
-
-                  const { options, label, path, exist } = getSectionOptions({
-                    data: values,
-                    section,
-                    sectionStep,
-                    optionIndex,
-                  })
-
-                  elements.push(
-                    <Grid.Col key={path + optionIndex}>
-                      <Group justify='center'>
-                        <AppField
-                          name={path}
-                          listeners={{
-                            ...fieldListeners,
-                            onChange: ({ value }) => {
-                              if (value == null || typeof value === 'boolean') return formStore.removeField({ path })
-                              const valueObject: {
-                                id: string
-                                optionIndex: string
-                                featureId?: string
-                                featureLevel?: number
-                                classId?: string
-                                raceId?: string
-                                backgroundId?: string
-                                featId?: string
-                                equipmentId?: string
-                                optionId?: string
-                                equipment?: string
-                                skill?: string
-                                property?: string
-                                language?: string
-                                saveAbility?: string
-                                __kind:
-                                  | 'CharacterExpertiseInput'
-                                  | 'CharacterProficiencyInput'
-                                  | 'CharacterModifierInput'
-                                  | 'CharacterSenseInput'
-                                  | 'CharacterSpellInput'
-                                  | 'CharacterFeatInput'
-                              } = {
-                                id: value as string,
-                                optionIndex,
-                                optionId: option.id,
-                                featureId: feature.id!,
-                                __kind: kind(
-                                  sectionStep as Exclude<(typeof SECTION_STEPS)[number], 'spells'>,
-                                  '__kind'
-                                ),
-                              }
-
-                              // Add prop properties
-                              if (classId) valueObject.classId = classId
-                              if (raceId) valueObject.raceId = raceId
-                              if (backgroundId) valueObject.backgroundId = backgroundId
-                              if (featId) valueObject.featId = featId
-                              if (equipmentId) valueObject.equipmentId = equipmentId
-
-                              // Add category-specific properties for proficiencies and expertise
-                              if (
-                                section.__kind === 'FeatureProficiencyInput' ||
-                                section.__kind === 'FeatureExpertiseInput'
-                              ) {
-                                const categoryId = section.category
-                                const categoryName = getKeyFromId(categoryId, ProfCats)
-
-                                // If we have a valid category, add the appropriate property
-                                if (categoryName && categoryName !== 'initiative') {
-                                  // Use the proficiencyKey helper to get the correct property name
-                                  const propertyName = proficiencyKey(
-                                    categoryName as Exclude<CamelCase<keyof typeof ProfCats>, 'initiative'>
-                                  )
-                                  if (propertyName) {
-                                    // Set the property using the selected value
-                                    valueObject[propertyName] = value as string
-                                  }
-                                }
-                              }
-
-                              return formStore.updateField({ path, value: valueObject })
-                            },
-                          }}
-                        >
-                          {({ DropdownField }) => (
-                            <DropdownField label={label} options={options} className={option_dropdown} exist={exist} />
-                          )}
-                        </AppField>
-                      </Group>
-                    </Grid.Col>
-                  )
+                  featureId: feature?.id,
+                  __kind: kind(sectionStep as Exclude<(typeof SECTION_STEPS)[number], 'spells'>, '__kind'),
                 }
-              }
-            })
-        )
-      }
 
-      return elements
-    }, [
-      featureIndex,
-      getSectionOptions,
-      values,
-      AppField,
-      backgroundId,
-      classId,
-      raceId,
-      featId,
-      optionId,
-      equipmentId,
-      fieldListeners,
-      formStore,
-      factoryFeatures,
-      sectionTypeMap,
-      featureOptions,
-    ])
+                // Add prop properties
+                if (characterFeature?.level && characterFeature.level >= 1) {
+                  valueObject.featureLevel = characterFeature.level
+                }
+                if (classId) valueObject.classId = classId
+                if (raceId) valueObject.raceId = raceId
+                if (backgroundId) valueObject.backgroundId = backgroundId
+                if (featId) valueObject.featId = featId
+                if (equipmentId) valueObject.equipmentId = equipmentId
+                if (ancestryId) valueObject.ancestryId = ancestryId
 
-    return <>{dropdowns}</>
-  },
-})
+                // Add category-specific properties for proficiencies and expertise
+                if (section.__kind === 'FeatureProficiencyInput' || section.__kind === 'FeatureExpertiseInput') {
+                  const categoryId = section.category
+                  const categoryName = getKeyFromId(categoryId, ProfCats)
+
+                  // If we have a valid category, add the appropriate property
+                  if (categoryName && categoryName !== 'initiative') {
+                    // Use the proficiencyKey helper to get the correct property name
+                    const propertyName = proficiencyKey(
+                      categoryName as Exclude<CamelCase<keyof typeof ProfCats>, 'initiative'>
+                    )
+                    if (propertyName) {
+                      // Set the property using the selected value
+                      valueObject[propertyName] = value as string
+                    }
+                  }
+                }
+
+                return updateField({ path, value: valueObject })
+              },
+            }}
+          >
+            {({ DropdownField }) => (
+              <DropdownField label={label} options={options} className={option_dropdown} exist={exist} />
+            )}
+          </AppField>
+        </Group>
+      </Grid.Col>
+    )
+  }
+
+  return <SectionWrapper />
+}
 export default FeatureSections

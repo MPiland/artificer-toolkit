@@ -1,5 +1,5 @@
 import type { ComponentPropsWithoutRef } from 'react'
-import { vars } from '@/css/theme'
+import { vars } from '~/css/theme'
 
 const ITwitter = (props: ComponentPropsWithoutRef<'svg'>) => {
   return (

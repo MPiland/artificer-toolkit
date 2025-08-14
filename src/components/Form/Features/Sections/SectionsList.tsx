@@ -1,119 +1,95 @@
-import type { SectionFormDataType, FeatureOptionInput, FeatureInput } from '@/types'
-import Accordion from '@/components/Accordion'
-import { sprinkles } from '@/css/sprinkles.css'
-import { startCase } from 'lodash'
-import { SECTION_STEPS, withFieldGroup } from '@/components/Form'
-import parse from 'html-react-parser'
-import { useFeatureStore } from '@/store'
-import { Group, Grid } from '@mantine/core'
-import { useGetSections } from '@/hooks'
-import { description } from '../Feature.css'
+import type { FormDataType, CharacterInput, SpellInput } from '~/types'
+import Accordion from '~/components/Accordion'
+import { startCase } from 'lodash-es'
+import { SECTION_STEPS, Modifiers, Proficiencies, Expertise, Senses, Spells, Feats } from '~/components/Form'
+import { ScrollArea } from '@mantine/core'
+import { useOptimizedSelector, useTypedFormStore } from '~/store'
+import type { UnionToIntersection, SetOptional } from 'type-fest'
+import { useFormField } from '~/hooks'
+import { useMemo, useCallback } from 'react'
 
-type SectionsListProps = {
-  __kind?: 'FeatureInput' | 'FeatureOptionInput' | 'AncestryFeatureInput'
-}
+type FeaturePath =
+  | `ancestry.options[${number}].features[${number}]`
+  | `ancestry.options[${number}].features[${number}].options[${number}]`
+  | `features[${number}]`
+  | `features[${number}].options[${number}]`
 
-const defaultValues: {
-  modifiers?: FeatureInput['modifiers']
-  spells?: FeatureInput['spells']
-  proficiencies?: FeatureInput['proficiencies']
-  expertise?: FeatureInput['expertise']
-  senses?: FeatureInput['senses']
-  feats?: FeatureInput['feats']
-  options?: FeatureInput['options']
-} = {
-  modifiers: undefined,
-  spells: undefined,
-  proficiencies: undefined,
-  expertise: undefined,
-  senses: undefined,
-  feats: undefined,
-  options: undefined,
-}
+type StoreType = UnionToIntersection<SetOptional<Exclude<FormDataType, CharacterInput | SpellInput>, '__kind'>>
 
-const SectionsList = withFieldGroup({
-  defaultValues,
-  props: {
-    __kind: undefined,
-  } as SectionsListProps,
-  render: function Render({ group, __kind }) {
-    const { AppField } = group
-    const featureStore = useFeatureStore()
-    const { sectionTypeMap } = useGetSections()
+const SectionsList = () => {
+  const store = useTypedFormStore<StoreType>()
 
-    const handleEdit = (
-      sectionStep: (typeof SECTION_STEPS)[number] | 'options',
-      sectionItem: SectionFormDataType | FeatureOptionInput
-    ) => {
-      const sectionObject = sectionTypeMap(sectionStep).schema.parse(sectionItem)
-      sectionTypeMap(sectionStep, sectionObject).setCurrent()
-      featureStore.setStep(sectionStep)
+  const { AppField } = useFormField({ store })
+
+  const { sectionIndex, setEditing, meta, stateKind } = useOptimizedSelector(store, (state) => ({
+    sectionIndex: state.meta.editing.sectionIndex || 0,
+    setEditing: state.setEditing,
+    meta: state.meta,
+    stateKind: state.current?.__kind,
+  }))
+
+  const computePath = useCallback(() => {
+    const segments: string[] = []
+
+    if (meta.editing.ancestryOptionIndex && stateKind === 'RaceInput') {
+      segments.push(`ancestry.options[${meta.editing.ancestryOptionIndex}]`)
     }
 
-    const sectionsAndOptions = [...SECTION_STEPS, 'options'] as const
+    if (meta.editing.featureIndex !== undefined) {
+      segments.push(`features[${meta.editing.featureIndex}]`)
+    }
 
-    return (
-      <>
-        {sectionsAndOptions.map((sectionStep, i) => {
+    if (meta.editing.optionIndex !== undefined) {
+      segments.push(`options[${meta.editing.optionIndex}]`)
+    }
+
+    return segments.join('.') + '.'
+  }, [meta, stateKind])
+
+  const formPath = useMemo(() => {
+    return computePath()
+  }, [computePath]) as FeaturePath
+
+  const sectionMap = {
+    modifiers: <Modifiers />,
+    spells: <Spells />,
+    proficiencies: <Proficiencies />,
+    expertise: <Expertise />,
+    senses: <Senses />,
+    feats: <Feats />,
+  }
+
+  return (
+    <ScrollArea scrollbars='y'>
+      <Accordion disableSort={true}>
+        {SECTION_STEPS.map((sectionStep, i) => {
           return (
-            <AppField name={sectionStep} key={`${i}-${sectionStep}`} mode='array'>
-              {(sectionArray) =>
-                sectionArray.state.value?.length && (
-                  <Grid.Col>
-                    <Accordion dataArray={sectionArray.state.value} onChange={(dataArray) => sectionArray.handleChange(dataArray as string[])} disableSort={__kind !== 'FeatureOptionInput'}>
-                      {sectionArray.state.value?.map((s, sI) => {
-                        const sectionData = sectionTypeMap(sectionStep).get(s)
-                        const section = sectionTypeMap(sectionStep).schema.parse(sectionData)
-                        return (
-                          section && (
-                            <Accordion.Item key={`${i}-${sI}-${sectionStep}`} itemId={String(sI)} value={section.id}>
-                              <Accordion.Trigger
-                                key={sI}
-                                removeFn={() => sectionArray.removeValue(sI)}
-                                editFn={() => handleEdit(sectionStep, section)}
-                              >
-                                {`${startCase(sectionStep)} ${sI + 1}`}
-                                {section.__kind === 'FeatureOptionInput' && (
-                                  <>
-                                    {section?.label}
-                                    <Accordion.Content>
-                                      <div className={description}>{section?.desc && parse(section?.desc)}</div>
-                                    </Accordion.Content>
-                                    <Group>
-                                      {SECTION_STEPS.map((fSectionStep, fSIndex) => {
-                                        return (
-                                          <span
-                                            key={fSIndex}
-                                            className={sprinkles({
-                                              me: 'space-3',
-                                            })}
-                                          >
-                                            {section?.[fSectionStep]?.length ?
-                                              <strong key={fSIndex}>
-                                                {startCase(fSectionStep.charAt(0))}:{section[fSectionStep]?.length}
-                                              </strong>
-                                            : `${startCase(fSectionStep.charAt(0))}: 0`}
-                                          </span>
-                                        )
-                                      })}
-                                    </Group>
-                                  </>
-                                )}
-                              </Accordion.Trigger>
-                            </Accordion.Item>
-                          )
-                        )
-                      })}
+            <Accordion.Item key={`${sectionStep}-${i}`} itemId={String(i)} value={String(i)}>
+              <AppField name={`${formPath}.${sectionStep}`} key={`${sectionStep}-${i}`} mode='array'>
+                {(sectionArray) =>
+                  sectionArray.state.value?.length && (
+                    <Accordion disableSort={true}>
+                      {sectionArray.state.value?.map((section, sI) => (
+                        <Accordion.Item key={`${sectionStep}-${i}-${sI}`} itemId={String(sI)} value={section.id}>
+                          <Accordion.Trigger
+                            key={sI}
+                            removeFn={() => sectionArray.removeValue(sI)}
+                            title={`${startCase(sectionStep)} ${sI + 1}`}
+                            onClick={() => setEditing({ sectionIndex: sI, sectionType: sectionStep })}
+                          />
+                          <Accordion.Content>{sectionIndex === sI && sectionMap[sectionStep]}</Accordion.Content>
+                        </Accordion.Item>
+                      ))}
                     </Accordion>
-                  </Grid.Col>
-                )
-              }
-            </AppField>
+                  )
+                }
+              </AppField>
+            </Accordion.Item>
           )
         })}
-      </>
-    )
-  },
-})
+      </Accordion>
+    </ScrollArea>
+  )
+}
 
 export default SectionsList

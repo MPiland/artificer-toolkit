@@ -1,6 +1,6 @@
-import { useMutation, queryOptions, useQueryClient } from '@tanstack/react-query'
+import { useMutation, queryOptions, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { type GraphQLResult } from 'aws-amplify/data'
-import { listMasterSpells, listSpells, getMasterSpell, getSpell } from '@/queries'
+import { listMasterSpells, listSpells, getMasterSpell, getSpell } from '~/queries'
 import {
   createMasterSpell,
   createSpell,
@@ -8,7 +8,7 @@ import {
   deleteSpell,
   updateMasterSpell,
   updateSpell,
-} from '@/mutations'
+} from '~/mutations'
 import type {
   SpellInput,
   Spell,
@@ -17,8 +17,9 @@ import type {
   SpellListItem,
   SpellMeta,
   SpellConnection,
-} from '@/types'
+} from '~/types'
 import { getClient } from './utils'
+import { useSystemPref } from '~/hooks'
 
 const spellsKeys = {
   all: ['spells'] as const,
@@ -128,7 +129,16 @@ export const fetchSpell = (id: string) => {
   })
 }
 
-export const useAddNewSpellMutation = () => {
+export const useListSpells = () => {
+  const [systemPref] = useSystemPref()
+  return useSuspenseQuery(fetchSpells(systemPref))
+}
+
+export const useGetSpell = (id: string) => {
+  return useSuspenseQuery(fetchSpell(id))
+}
+
+export const useAddSpell = () => {
   const queryClient = useQueryClient()
 
   return useMutation<Spell, Error, SpellInput, unknown>({
@@ -169,7 +179,7 @@ export const useAddNewSpellMutation = () => {
   })
 }
 
-export const useUpdateSpellMutation = () => {
+export const useUpdateSpell = () => {
   const queryClient = useQueryClient()
 
   return useMutation<Spell, Error, SpellInput, unknown>({
@@ -209,7 +219,7 @@ export const useUpdateSpellMutation = () => {
   })
 }
 
-export const useDeleteSpellMutation = () => {
+export const useDeleteSpell = () => {
   const queryClient = useQueryClient()
 
   return useMutation({

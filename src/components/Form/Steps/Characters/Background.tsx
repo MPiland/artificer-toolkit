@@ -1,102 +1,81 @@
-import Collapsible from '@/components/Collapse'
+import Collapsible from '~/components/Collapse'
 import parse from 'html-react-parser'
-import { useBackgroundData, useFieldUpdates } from '@/hooks'
+import { useFieldUpdates, useFormField } from '~/hooks'
+import { useOptimizedSelector, useTypedFormStore } from '~/store'
+import { useListBackgrounds, useGetBackground } from '~/apis'
 import { Grid } from '@mantine/core'
-import {
-  withForm,
-  option_dropdown,
-  CharacterEquipmentOptions,
-  CharacterFeatures,
-  CharacterCurrency,
-} from '@/components/Form'
-import { CharacterInputSchema } from '@/schemas'
-import type { z } from 'zod/v4'
+import { option_dropdown, CharacterEquipmentOptions, CharacterFeatures, CharacterCurrency } from '~/components/Form'
+import type { CharacterInput } from '~/types'
 
-const BackgroundStep = withForm({
-  defaultValues: {} as z.input<typeof CharacterInputSchema>,
-  render: function Render({ form }) {
-    const { AppField } = form
+const BackgroundStep = () => {
+  const store = useTypedFormStore<CharacterInput>()
 
-    const { fieldListeners } = useFieldUpdates({ data: 'form' })
+  const { AppField } = useFormField({ store })
 
-    const { backgrounds } = useBackgroundData()
+  const backgroundId = useOptimizedSelector(store, (state) => state.current?.background)
 
-    return (
-      <Grid>
-        <AppField name='background' listeners={fieldListeners}>
-          {({ DropdownField, state }) => {
-            const backgroundData = backgrounds.findBackground(state.value)
-            return (
-              <>
-                <Grid.Col>
-                  <DropdownField label='Background' options={backgrounds} className={option_dropdown} />
-                </Grid.Col>
-                {backgroundData && (
-                  <>
-                    {backgroundData?.desc && (
-                      <Grid.Col>
-                        <Collapsible
-                          props={{
-                            trigger: {
-                              title: 'Description',
-                            },
-                          }}
-                        >
-                          {backgroundData?.desc && parse(backgroundData?.desc)}
-                        </Collapsible>
-                      </Grid.Col>
-                    )}
-                    <AppField name='features' mode='array'>
-                      {(featuresArray) =>
-                        featuresArray.state.value?.length && (
-                          <CharacterFeatures
-                            form={form}
-                            fields={{
-                              features: 'features',
-                              modifiers: 'modifiers',
-                              expertise: 'expertise',
-                              proficiencies: 'proficiencies',
-                              senses: 'senses',
-                              feats: 'feats',
-                              spellcasting: 'spellcasting',
-                              abilities: 'abilities',
-                            }}
-                            backgroundId={backgroundData.id}
-                          />
-                        )
-                      }
-                    </AppField>
+  const { fieldListeners } = useFieldUpdates()
+
+  // Get list of all backgrounds for dropdown
+  const {
+    data: { backgrounds },
+  } = useListBackgrounds()
+
+  // Get specific background data if ID exists
+  const backgroundQuery = useGetBackground(backgroundId || '')
+  const backgroundData = backgroundId ? backgroundQuery.data : null
+
+  return (
+    <Grid>
+      <AppField name='background' listeners={fieldListeners}>
+        {({ DropdownField }) => {
+          return (
+            <>
+              <Grid.Col>
+                <DropdownField label='Background' options={backgrounds} className={option_dropdown} />
+              </Grid.Col>
+              {backgroundData && (
+                <>
+                  {backgroundData?.desc && (
                     <Grid.Col>
                       <Collapsible
                         props={{
                           trigger: {
-                            title: 'Starting Equipment',
+                            title: 'Description',
                           },
                         }}
                       >
-                        <Grid>
-                          <CharacterEquipmentOptions
-                            form={form}
-                            dataSource={backgroundData}
-                            fields={{
-                              equipment: 'backgroundEquipment',
-                              currencyGroups: 'currencyGroups',
-                              characterInventory: 'equipment.inventory',
-                            }}
-                          />
-                        </Grid>
+                        {backgroundData?.desc && parse(backgroundData?.desc)}
                       </Collapsible>
                     </Grid.Col>
-                    <CharacterCurrency form={form} fields='currencyGroups' />
-                  </>
-                )}
-              </>
-            )
-          }}
-        </AppField>
-      </Grid>
-    )
-  },
-})
+                  )}
+                  <AppField name='features' mode='array'>
+                    {(featuresArray) =>
+                      featuresArray.state.value?.length && <CharacterFeatures backgroundId={backgroundData.id} />
+                    }
+                  </AppField>
+                  <Grid.Col>
+                    <Collapsible
+                      props={{
+                        trigger: {
+                          title: 'Starting Equipment',
+                        },
+                      }}
+                    >
+                      <Grid>
+                        <CharacterEquipmentOptions dataSource={backgroundData} />
+                      </Grid>
+                    </Collapsible>
+                  </Grid.Col>
+                  <CharacterCurrency />
+                </>
+              )}
+            </>
+          )
+        }}
+      </AppField>
+    </Grid>
+  )
+}
 
 export default BackgroundStep

@@ -1,38 +1,42 @@
-import { useEffect, useMemo, useCallback, useLayoutEffect } from 'react'
-import { useAddNewEquipmentMutation, useUpdateEquipmentMutation } from '@/apis/equipment.api'
+import { useEffect, useMemo, useLayoutEffect, useCallback } from 'react'
+import { useGetEquipment, useAddEquipment, useUpdateEquipment } from '~/apis'
 import { v4 as uuidv4 } from 'uuid'
-import { Route } from '@/routes/_protected/equipment/$action/$_equipmentId'
-import { useEquipmentData, useSystemPref } from '@/hooks'
-import { EquipmentInputSchema } from '@/schemas'
-import { useTypedFormStore } from '@/store'
-import type { EquipmentInput } from '@/types'
-import Form, { EquipmentDetails, EquipmentAttributes, Contains, Features, useAppForm } from '@/components/Form'
-import { Attributes as AttributesEnum } from '@/enums'
-import { convertTypenameToKindInput } from '@/utils'
+import { Route } from '~/routes/_protected/equipment/$action/$_equipmentId'
+import { useSystemPref } from '~/hooks'
+import { EquipmentInputSchema } from '~/schemas'
+import { useOptimizedSelector, useTypedFormStore } from '~/store'
+import type { EquipmentInput } from '~/types'
+import Form, { EquipmentDetails, EquipmentAttributes, Contains, Features } from '~/components/Form'
+import { Attributes as AttributesEnum } from '~/enums'
+import { convertTypenameToKindInput } from '~/utils'
 
 const EquipmentForm = () => {
   const { _equipmentId: equipmentId, action } = Route.useParams()
-  const {
-    equipment: { findEquipment },
-  } = useEquipmentData()
+
   const [systemPref] = useSystemPref()
 
-  const equipmentData = findEquipment(equipmentId)
+  const { data: equipmentData } = useGetEquipment(equipmentId)
+
+  const { mutateAsync: addEquipment } = useAddEquipment()
+  const { mutateAsync: updateEquipment } = useUpdateEquipment()
 
   const store = useTypedFormStore<EquipmentInput>()
 
-  const current = store((state) => state.current)
-  const steps = store((state) => state.steps)
-  const setSteps = store((state) => state.setSteps)
-  const setCurrent = store((state) => state.setCurrent)
-  const stepIndex = store((state) => state.stepIndex)
-  const registerForm = store((state) => state.registerForm)
-  const attributes = store((state) => state.current?.attributes)
-  const formReset = store((state) => state.formReset)
+  const { current, steps, setSteps, setCurrent, stepIndex, registerForm, formSubmit, attributes } =
+    useOptimizedSelector(store, (state) => ({
+      current: state.current,
+      steps: state.meta.steps,
+      setSteps: state.setSteps,
+      setCurrent: state.setCurrent,
+      stepIndex: state.meta.stepIndex,
+      registerForm: state.registerForm,
+      attributes: state.current?.attributes,
+      formSubmit: state.formSubmit,
+    }))
 
-  const createDataObject = useCallback(() => {
+  const data = useMemo(() => {
     if (equipmentData) {
-      const equipmentInput = convertTypenameToKindInput(equipmentData)
+      const equipmentInput = convertTypenameToKindInput(equipmentData) as EquipmentInput
       if (equipmentInput) {
         if (action === 'new') {
           return EquipmentInputSchema.parse({
@@ -57,17 +61,29 @@ const EquipmentForm = () => {
     })
   }, [action, systemPref, equipmentData])
 
-  const data = useMemo(() => createDataObject(), [createDataObject])
+  const handleSubmit = useCallback(async () => {
+    if (action === 'new') {
+      try {
+        const result = await addEquipment(data)
+        console.log({ result })
+      } catch (err) {
+        console.error({ err })
+      }
+    } else {
+      try {
+        const result = await updateEquipment(data)
+        console.log({ result })
+      } catch (err) {
+        console.error({ err })
+      }
+    }
+  }, [action, addEquipment, updateEquipment, data])
 
   useLayoutEffect(() => {
     if (current === null) {
-      setCurrent(data as EquipmentInput)
+      setCurrent(data)
     }
   }, [current, data, setCurrent])
-
-  const form = useAppForm({
-    defaultValues: data,
-  })
 
   const equipmentSteps = useMemo(() => {
     if (attributes?.includes(AttributesEnum.CONTAINS_EQUIPMENT)) {
@@ -93,23 +109,19 @@ const EquipmentForm = () => {
   }, [steps, equipmentSteps, setSteps])
 
   useEffect(() => {
-    if (!formReset) {
-      registerForm(form.reset)
+    if (!formSubmit) {
+      registerForm(handleSubmit)
     }
-  }, [formReset, registerForm, form.reset])
+  }, [formSubmit, registerForm, handleSubmit])
 
   const stepComponentMap = {
-    details: <EquipmentDetails form={form} />,
-    attributes: <EquipmentAttributes form={form} />,
+    details: <EquipmentDetails />,
+    attributes: <EquipmentAttributes />,
     features: <Features />,
-    contains: <Contains form={form} />,
+    contains: <Contains />,
   }
 
-  return (
-    <Form useUpdateItemMutation={useUpdateEquipmentMutation} useAddNewItemMutation={useAddNewEquipmentMutation}>
-      {stepComponentMap[steps[stepIndex].id as keyof typeof stepComponentMap] || null}
-    </Form>
-  )
+  return <Form>{stepComponentMap[steps[stepIndex].id as keyof typeof stepComponentMap] || null}</Form>
 }
 
 export default EquipmentForm

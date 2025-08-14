@@ -1,11 +1,12 @@
-import List, { FooterConfig } from '@/components/List'
-import { useDeleteRaceMutation } from '@/apis/races.api'
-import ICategory from '@/assets/Icons/ICategory'
-import type { RaceMeta } from '@/types'
-import { useRaceData } from '@/hooks'
+import List, { FooterConfig } from '~/components/List'
+import { useDeleteRace, useListRaces } from '~/apis'
+import ICategory from '~/assets/Icons/ICategory'
+import type { RaceMeta } from '~/types'
 
 const Races = () => {
-  const { races, metaData } = useRaceData()
+  const {
+    data: { races, metaData },
+  } = useListRaces()
   const footerConfigs: FooterConfig<RaceMeta>[] = [
     {
       icon: <ICategory />,
@@ -21,7 +22,7 @@ const Races = () => {
       value: 'Category',
     },
   ]
-  return <List data={races} metaData={metaData} useDeleteItem={useDeleteRaceMutation} footerConfigs={footerConfigs} />
+  return <List data={races} metaData={metaData} useDeleteItem={useDeleteRace} footerConfigs={footerConfigs} />
 }
 
 export default Races

@@ -1,4 +1,4 @@
-import type { GenericType, ScoresInput } from '@/types'
+import type { GenericType, ScoresInput } from '~/types'
 import {
   ability_card_header,
   ability_card,
@@ -6,7 +6,7 @@ import {
   ability_card_info_value,
   ability_card_info,
   calculateModifier,
-} from '@/components/Form'
+} from '~/components/Form'
 import { Grid } from '@mantine/core'
 
 const AbilityCard = ({ ability, score }: { ability: GenericType; score: ScoresInput }) => {

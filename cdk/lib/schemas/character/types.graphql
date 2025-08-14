@@ -13,7 +13,7 @@ type CharacterModifier {
 }
 
 type CharacterSense {
-  id: ID
+  id: ID!
   senseId: ID!
   featureId: ID
   classId: ID
@@ -28,7 +28,7 @@ type CharacterSense {
 }
 
 type CharacterFeat {
-  id: ID
+  id: ID!
   featId: ID!
   featureId: ID
   classId: ID
@@ -42,12 +42,12 @@ type CharacterFeat {
 }
 
 type CharacterProficiency {
+  id: ID!
   skill: ID
   language: ID
   saveAbility: ID
   property: ID
   equipment: ID
-  id: ID!
   featureId: ID
   classId: ID
   raceId: ID
@@ -61,12 +61,12 @@ type CharacterProficiency {
 }
 
 type CharacterExpertise {
+  id: ID!
   skill: ID
   language: ID
   saveAbility: ID
   property: ID
   equipment: ID
-  id: ID!
   featureId: ID
   classId: ID
   raceId: ID
@@ -183,8 +183,8 @@ type CharacterAbilities {
 ## CharacterAncestry
 
 type CharacterAncestry {
-  id: ID
-  raceId: ID
+  id: ID!
+  raceId: ID!
   lineages: [ID!]
 }
 
@@ -193,7 +193,7 @@ type CharacterAncestry {
 ## Subclass
 
 type Subclass {
-  id: ID
+  id: ID!
   subtype: ID
 }
 

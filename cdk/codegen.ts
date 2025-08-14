@@ -9,6 +9,7 @@ const config: CodegenConfig = {
           enumValues: 'keep',
         },
         nonOptionalTypename: true,
+        maybeValue: 'T | null | undefined',
         inputMaybeValue: 'T | null | undefined',
         useMembers: true,
       },
@@ -23,5 +24,3 @@ const config: CodegenConfig = {
 }
 
 export default config
-
-/// && npx ts-node codegenScripts/genZod.ts

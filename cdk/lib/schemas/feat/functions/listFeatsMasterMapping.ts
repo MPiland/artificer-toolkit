@@ -1,5 +1,5 @@
 import { Context } from '@aws-appsync/utils'
-import { itemsToMeta, metaData } from './utils/util'
+import { itemsToMeta, metaData } from './util'
 
 export function request(ctx: Context) {
   const { limit = 1000, nextToken } = ctx.args

@@ -1,25 +1,45 @@
 import parse from 'html-react-parser'
-import Collapsible from '@/components/Collapse'
-import { Categories } from '@/enums'
-import { useGetFeatures, useRaceData } from '@/hooks'
-import Modal from '@/components/Modal'
+import Collapsible from '~/components/Collapse'
+import { Categories } from '~/enums'
+import Modal from '~/components/Modal'
 import { Grid, ScrollArea, Button } from '@mantine/core'
-import type { RaceListItem } from '@/types'
-import { RaceInputSchema } from '@/schemas'
-import { useFormStore } from '@/store'
+import { CharacterInput, type RaceListItem } from '~/types'
+import { useOptimizedSelector } from '~/store'
+import { fetchRace, queryClient, useGetRace, useListRaces } from '~/apis'
+import { useSuspenseQueries } from '@tanstack/react-query'
 
 const RaceDetail = ({ race, addRace, setRace }: { race: RaceListItem; setRace: () => void; addRace: () => void }) => {
   const {
-    races: { findLineages, findRace },
-  } = useRaceData()
+    data: { races, metaData },
+  } = useListRaces()
+  const { data: fullRace } = useGetRace(race.id)
 
-  const { setChangeRace } = useFormStore()
+  const { setChangeRace } = useOptimizedSelector<
+    CharacterInput,
+    {
+      setChangeRace: (value: boolean) => void
+    }
+  >((state) => ({
+    setChangeRace: state.setChangeRace,
+  }))
 
-  const fullRace = findRace(race.id)
-  const { createFeatures } = useGetFeatures()
-  const raceLineages = findLineages(race.id)
+  const raceLineageIds = races
+    .filter((rL) => metaData.lineages.find((l) => l.raceIds?.includes(race.id) && l.id === rL.id))
+    ?.map((rL) => rL.id)
+
+  const { data: raceLineages } = useSuspenseQueries({
+    queries: raceLineageIds.map((id) => ({
+      queryKey: ['race-lineage', id],
+      queryFn: () => queryClient.fetchQuery(fetchRace(id)),
+    })),
+    combine: (result) => ({
+      data: result.map((r) => r.data),
+    }),
+  })
+
   const ancestry = fullRace?.ancestry
-  const features = createFeatures({ data: RaceInputSchema.parse(fullRace)! })
+
+  const features = [...(fullRace?.features || []), ...(raceLineages?.flatMap((r) => r?.features || []) || [])]
 
   const handleSelect = () => {
     addRace()
@@ -62,8 +82,7 @@ const RaceDetail = ({ race, addRace, setRace }: { race: RaceListItem; setRace: (
               </Grid.Col>
             ))}
           {raceLineages?.length &&
-            raceLineages?.map((r) => {
-              const race = findRace(r.id)
+            raceLineages?.map((race) => {
               return (
                 race?.traits?.details?.length &&
                 race.traits.details.map((detail, index) => (

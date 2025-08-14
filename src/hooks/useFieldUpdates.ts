@@ -1,121 +1,33 @@
 import { z, ZodNumber, ZodString } from 'zod/v4'
-import type { AnyFieldApi } from '@tanstack/react-form'
-import { DIE_REGEX, ROLL_CONFIG_REGEX } from '@/components/Form'
-import { get } from 'lodash'
-import { useStoreFunctions } from '@/hooks'
-import { useFormStore } from '@/store'
+import { DIE_REGEX, ROLL_CONFIG_REGEX } from '~/components/Form'
+import { useOptimizedSelector, useTypedFormStore } from '~/store'
 
-export const useFieldUpdates = ({
-  data,
-  path,
-  replaceFn,
-}: {
-  data:
-    | 'feature'
-    | 'option'
-    | 'ancestryOption'
-    | 'proficiency'
-    | 'expertise'
-    | 'sense'
-    | 'spell'
-    | 'feat'
-    | 'form'
-    | 'modifier'
-  path?: string
-  stepIndex?: number
-  replaceFn?: (name: string) => string
-}) => {
-  const { feature, form, option, ancestry, proficiency, expertise, sense, spell, feat, modifier } = useStoreFunctions()
-
-  const stepIndex = useFormStore((state) => state.stepIndex)
-  const steps = useFormStore((state) => state.steps)
-
-  const updateMap = {
-    form: {
-      update: form.updateField,
-      defaultValues: form.updateDefaultValues,
-      validation: form.setFieldValidation,
-    },
-    feature: {
-      update: feature.updateField,
-      defaultValues: feature.updateDefaultValues,
-      validation: feature.setFieldValidation,
-    },
-    option: {
-      update: option.updateField,
-      defaultValues: option.updateDefaultValues,
-      validation: option.setFieldValidation,
-    },
-    ancestryOption: {
-      update: ancestry.updateField,
-      defaultValues: ancestry.updateDefaultValues,
-      validation: ancestry.setFieldValidation,
-    },
-    proficiency: {
-      update: proficiency.updateField,
-      defaultValues: proficiency.updateDefaultValues,
-      validation: proficiency.setFieldValidation,
-    },
-    expertise: {
-      update: expertise.updateField,
-      defaultValues: expertise.updateDefaultValues,
-      validation: expertise.setFieldValidation,
-    },
-    sense: {
-      update: sense.updateField,
-      defaultValues: sense.updateDefaultValues,
-      validation: sense.setFieldValidation,
-    },
-    spell: {
-      update: spell.updateField,
-      defaultValues: spell.updateDefaultValues,
-      validation: spell.setFieldValidation,
-    },
-    feat: {
-      update: feat.updateField,
-      defaultValues: feat.updateDefaultValues,
-      validation: feat.setFieldValidation,
-    },
-    modifier: {
-      update: modifier.updateField,
-      defaultValues: modifier.updateDefaultValues,
-      validation: modifier.setFieldValidation,
-    },
-  }
+export const useFieldUpdates = () => {
+  const store = useTypedFormStore()
+  const { updateField } = useOptimizedSelector(store, (state) => ({
+    updateField: state.updateField,
+  }))
 
   const handleBlur = ({
     target: { name, value },
-    prevValue,
   }: {
     target: { name: string; value: string | string[] | number | boolean | object | null | undefined }
-    prevValue: string | string[] | number | boolean | object | null | undefined
   }) => {
-    const pathPrefix = replaceFn ? replaceFn(name) : path || ''
-    const pathName =
-      pathPrefix +
-      (name.startsWith('[') ? ''
-      : pathPrefix && pathPrefix !== '' ? '.'
-      : '') +
-      name
-    updateMap[data].update({ path: pathName, value })
-    if (steps[stepIndex].defaultValues && get(steps[stepIndex].defaultValues, pathName) === undefined && prevValue) {
-      updateMap[data].defaultValues({ path: pathName, value: prevValue })
-    }
+    const pathName = name
+    updateField({ path: pathName, value })
   }
 
   const fieldListeners = {
     // onBlurDebounceMs: 300,
     onBlur: ({
       value,
-      fieldApi,
+      name,
     }: {
       value: string | string[] | number | object | boolean | null | undefined
-      fieldApi: AnyFieldApi
+      name: string
     }) => {
-      updateMap[data].validation({ fieldName: fieldApi.name, isValid: fieldApi.state.meta.isValid })
       handleBlur({
-        target: { name: fieldApi.name, value },
-        prevValue: fieldApi.options.defaultValue,
+        target: { name: name, value },
       })
     },
   }

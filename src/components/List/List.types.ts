@@ -1,4 +1,4 @@
-import type { DeepKeyOf, MetaDataType, SourceTypeMap, Spell, Equipment, Class } from '@/types'
+import type { DeepKeyOf, MetaDataType, SourceTypeMap, Spell, Equipment, Class } from '~/types'
 import type { ReactElement } from 'react'
 
 // For a path within a metadata object at T[K]

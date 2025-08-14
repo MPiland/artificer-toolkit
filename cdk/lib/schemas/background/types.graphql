@@ -5,7 +5,7 @@ type Background {
   details: [Detail!]
   equipment: [[[EquipmentOptionItem!]!]!]
   proficiencies: [FeatureProficiency!]
-  features: [ID!]
+  features: [Feature!]
   ownerId: ID!
   systemId: ID!
   masterId: String

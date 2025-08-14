@@ -19,6 +19,8 @@
 			"editor.defaultFormatter": "esbenp.prettier-vscode"
 		},
 		"geminicodeassist.inlineSuggestions.enableAuto": true,
-		"cloudcode.apigee.gemini.enable": false
+		"cloudcode.apigee.gemini.enable": false,
+		"js/ts.hover.maximumLength": 200,
+		"typescript.experimental.expandableHover": false
 	}
 }

@@ -8,21 +8,21 @@ import * as schemas from './schemas'
 export const inputTypeToSchemaMap = {
   "SystemInput": "SystemInputSchema",
   "SpellInput": "SpellInputSchema",
-  "RaceInput": "RaceInputSchema",
-  "FeatureSpellInput": "FeatureSpellInputSchema",
-  "FeatureSenseInput": "FeatureSenseInputSchema",
-  "FeatureProficiencyInput": "FeatureProficiencyInputSchema",
-  "FeatureOptionInput": "FeatureOptionInputSchema",
-  "FeatureModifierInput": "FeatureModifierInputSchema",
   "FeatureFeatInput": "FeatureFeatInputSchema",
+  "FeatureModifierInput": "FeatureModifierInputSchema",
+  "FeatureProficiencyInput": "FeatureProficiencyInputSchema",
   "FeatureExpertiseInput": "FeatureExpertiseInputSchema",
+  "FeatureSenseInput": "FeatureSenseInputSchema",
+  "FeatureSpellInput": "FeatureSpellInputSchema",
+  "FeatureOptionInput": "FeatureOptionInputSchema",
   "FeatureInput": "FeatureInputSchema",
+  "AncestryOptionInput": "AncestryOptionInputSchema",
+  "RaceInput": "RaceInputSchema",
   "FeatInput": "FeatInputSchema",
   "EquipmentInput": "EquipmentInputSchema",
   "ClassInput": "ClassInputSchema",
   "CharacterInput": "CharacterInputSchema",
-  "BackgroundInput": "BackgroundInputSchema",
-  "AncestryOptionInput": "AncestryOptionInputSchema"
+  "BackgroundInput": "BackgroundInputSchema"
 } as const
 
 /**
@@ -49,13 +49,13 @@ export type DomainInputTypeToInferredType = {
 
 export const DomainInputTypeToInferredType = {
     "SpellInput": schemas.SpellInputSchema,
+  "AncestryOptionInput": schemas.AncestryOptionInputSchema,
   "RaceInput": schemas.RaceInputSchema,
   "FeatInput": schemas.FeatInputSchema,
   "EquipmentInput": schemas.EquipmentInputSchema,
   "ClassInput": schemas.ClassInputSchema,
   "CharacterInput": schemas.CharacterInputSchema,
-  "BackgroundInput": schemas.BackgroundInputSchema,
-  "AncestryOptionInput": schemas.AncestryOptionInputSchema
+  "BackgroundInput": schemas.BackgroundInputSchema
 } as const
 
 export type FeatureInputTypeToInferredType = {
@@ -63,13 +63,13 @@ export type FeatureInputTypeToInferredType = {
 }
 
 export const FeatureInputTypeToInferredType = {
-    "FeatureSpellInput": schemas.FeatureSpellInputSchema,
-  "FeatureSenseInput": schemas.FeatureSenseInputSchema,
-  "FeatureProficiencyInput": schemas.FeatureProficiencyInputSchema,
-  "FeatureOptionInput": schemas.FeatureOptionInputSchema,
+    "FeatureFeatInput": schemas.FeatureFeatInputSchema,
   "FeatureModifierInput": schemas.FeatureModifierInputSchema,
-  "FeatureFeatInput": schemas.FeatureFeatInputSchema,
+  "FeatureProficiencyInput": schemas.FeatureProficiencyInputSchema,
   "FeatureExpertiseInput": schemas.FeatureExpertiseInputSchema,
+  "FeatureSenseInput": schemas.FeatureSenseInputSchema,
+  "FeatureSpellInput": schemas.FeatureSpellInputSchema,
+  "FeatureOptionInput": schemas.FeatureOptionInputSchema,
   "FeatureInput": schemas.FeatureInputSchema
 } as const
 
@@ -87,13 +87,13 @@ export const discriminatedDomainInputSchema = z.discriminatedUnion('__kind', [
 ])
 
 export const discriminatedFeatureInputSchema = z.discriminatedUnion('__kind', [
-  schemas.FeatureSpellInputSchema,
-  schemas.FeatureSenseInputSchema,
-  schemas.FeatureProficiencyInputSchema,
-  schemas.FeatureOptionInputSchema,
-  schemas.FeatureModifierInputSchema,
   schemas.FeatureFeatInputSchema,
+  schemas.FeatureModifierInputSchema,
+  schemas.FeatureProficiencyInputSchema,
   schemas.FeatureExpertiseInputSchema,
+  schemas.FeatureSenseInputSchema,
+  schemas.FeatureSpellInputSchema,
+  schemas.FeatureOptionInputSchema,
   schemas.FeatureInputSchema,
   schemas.AncestryOptionInputSchema
 ])

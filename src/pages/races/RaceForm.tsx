@@ -1,37 +1,40 @@
-import { useCallback, useEffect, useMemo, useLayoutEffect } from 'react'
-import { useAddNewRaceMutation, useUpdateRaceMutation } from '@/apis/races.api'
-import type { RaceInput } from '@/types'
-import { Route } from '@/routes/_protected/races/$action/$_raceId'
-import { useRaceData, useSystemPref } from '@/hooks'
-import { RaceInputSchema } from '@/schemas'
+import { useEffect, useMemo, useLayoutEffect, useCallback } from 'react'
+import { useGetRace, useAddRace, useUpdateRace } from '~/apis'
+import type { RaceInput } from '~/types'
+import { Route } from '~/routes/_protected/races/$action/$_raceId'
+import { useSystemPref } from '~/hooks'
+import { RaceInputSchema } from '~/schemas'
 import { v4 as uuidv4 } from 'uuid'
-import Form, { RaceDetails, Traits, Features, Ancestries, useAppForm } from '@/components/Form'
-import { useTypedFormStore } from '@/store'
-import { convertTypenameToKindInput } from '@/utils'
-import { Categories } from '@/enums'
+import Form, { RaceDetails, Traits, Features, Ancestry } from '~/components/Form'
+import { useOptimizedSelector, useTypedFormStore } from '~/store'
+import { convertTypenameToKindInput } from '~/utils'
+import { Categories } from '~/enums'
 
 const RaceForm = () => {
   const { _raceId: raceId, action } = Route.useParams()
-  const {
-    races: { findRace },
-  } = useRaceData()
+  const raceData = useGetRace(raceId)
   const [systemPref] = useSystemPref()
 
-  const raceData = findRace(raceId)
+  const { mutateAsync: addRace } = useAddRace()
+  const { mutateAsync: updateRace } = useUpdateRace()
 
   const store = useTypedFormStore<RaceInput>()
+  const { current, steps, setSteps, setCurrent, stepIndex, registerForm, formSubmit } = useOptimizedSelector(
+    store,
+    (state) => ({
+      current: state.current,
+      steps: state.meta.steps,
+      setSteps: state.setSteps,
+      setCurrent: state.setCurrent,
+      stepIndex: state.meta.stepIndex,
+      registerForm: state.registerForm,
+      formSubmit: state.formSubmit,
+    })
+  )
 
-  const current = store((state) => state.current)
-  const steps = store((state) => state.steps)
-  const setSteps = store((state) => state.setSteps)
-  const setCurrent = store((state) => state.setCurrent)
-  const stepIndex = store((state) => state.stepIndex)
-  const registerForm = store((state) => state.registerForm)
-  const formReset = store((state) => state.formReset)
-
-  const createDataObject = useCallback(() => {
+  const data = useMemo(() => {
     if (raceData) {
-      const raceInput = convertTypenameToKindInput(raceData)
+      const raceInput = convertTypenameToKindInput(raceData) as RaceInput
       if (raceInput) {
         if (action === 'new') {
           return RaceInputSchema.parse({
@@ -56,17 +59,29 @@ const RaceForm = () => {
     })
   }, [action, systemPref, raceData])
 
-  const data = useMemo(() => createDataObject(), [createDataObject])
+  const handleSubmit = useCallback(async () => {
+    if (action === 'new') {
+      try {
+        const result = await addRace(data)
+        console.log({ result })
+      } catch (err) {
+        console.error({ err })
+      }
+    } else {
+      try {
+        const result = await updateRace(data)
+        console.log({ result })
+      } catch (err) {
+        console.error({ err })
+      }
+    }
+  }, [action, addRace, updateRace, data])
 
   useLayoutEffect(() => {
     if (current === null) {
-      setCurrent(data as RaceInput)
+      setCurrent(data)
     }
   }, [current, data, setCurrent])
-
-  const form = useAppForm({
-    defaultValues: data,
-  })
 
   const raceSteps = useMemo(
     () => [
@@ -85,23 +100,19 @@ const RaceForm = () => {
   }, [steps, raceSteps, setSteps])
 
   useEffect(() => {
-    if (!formReset) {
-      registerForm(form.reset)
+    if (!formSubmit) {
+      registerForm(handleSubmit)
     }
-  }, [formReset, registerForm, form.reset])
+  }, [registerForm, handleSubmit, formSubmit])
 
   const stepComponentMap = {
-    details: <RaceDetails form={form} />,
-    traits: <Traits form={form} />,
-    ancestry: <Ancestries form={form} />,
+    details: <RaceDetails />,
+    traits: <Traits />,
+    ancestry: <Ancestry />,
     features: <Features />,
   }
 
-  return (
-    <Form useUpdateItemMutation={useUpdateRaceMutation} useAddNewItemMutation={useAddNewRaceMutation}>
-      {stepComponentMap[raceSteps[stepIndex].id as keyof typeof stepComponentMap] || null}
-    </Form>
-  )
+  return <Form>{stepComponentMap[raceSteps[stepIndex].id as keyof typeof stepComponentMap] || null}</Form>
 }
 
 export default RaceForm

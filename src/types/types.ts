@@ -43,7 +43,8 @@ import type {
   FeatureSense,
   FeatureFeat,
   FeatureExpertise,
-} from '@/types'
+  CharacterSpellInput,
+} from '~/types'
 import { Paths } from 'type-fest'
 
 export type SourceTypeMap = {
@@ -104,12 +105,17 @@ export type CharacterSectionData =
   | CharacterProficiencyInput
   | CharacterExpertiseInput
   | CharacterModifierInput
+  | CharacterSpellInput
 
 export type DeepKeyOf<T> = Extract<Paths<T>, string>
 
 export type Step = {
   id: string
   label: string
-  fieldValidation?: Record<string, boolean>
-  defaultValues?: Partial<FormDataType>
+  substeps?: [
+    {
+      id: string
+      label: string
+    },
+  ]
 }

@@ -1,8 +1,8 @@
 import { ReactElement, ReactNode, useState } from 'react'
 import { ModalContext } from './ModalContext'
-import Alert from '@/components/Alert'
-import Delete from '@/components/Delete'
-import Copy from '@/components/Copy'
+import Alert from '~/components/Alert'
+import Delete from '~/components/Delete'
+import Copy from '~/components/Copy'
 import type {
   ListItemType,
   BackgroundListItem,
@@ -10,8 +10,8 @@ import type {
   EquipmentListItem,
   FeatListItem,
   RaceListItem,
-} from '@/types'
-import { AddSection, SECTION_STEPS } from '@/components/Form'
+} from '~/types'
+import { AddSection, SECTION_STEPS } from '~/components/Form'
 import Loading from '../Loading'
 import Hitpoints from '../Hitpoints/Hitpoints'
 import { Modal } from '@mantine/core'
@@ -41,11 +41,11 @@ export interface CopyModalProps {
         raceIds?: string[]
         classIds?: string[]
         equipmentIds?: string[]
-        featIds?: string[]
         backgroundIds?: string[]
+        featIds?: string[]
       }[]
     | undefined
-  onCopy: (() => void) | ((arg: unknown) => void)
+  onCopy: (arg: unknown) => void
   filters?: {
     races: RaceListItem[]
     classes: ClassListItem[]
@@ -56,11 +56,7 @@ export interface CopyModalProps {
 }
 
 export interface AddSectionModalProps {
-  __kind: 'FeatureInput' | 'AncestryFeatureInput' | 'FeatureOptionInput'
-  onAddSection: (
-    arg: (typeof SECTION_STEPS)[number] | 'options',
-    __kind: 'FeatureInput' | 'AncestryFeatureInput' | 'FeatureOptionInput'
-  ) => void
+  onAddSection: (arg: (typeof SECTION_STEPS)[number] | 'options') => void
 }
 
 export interface LoadingModalProps {

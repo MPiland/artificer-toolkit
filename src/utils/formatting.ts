@@ -1,7 +1,7 @@
-import { FormDataType } from '@/types'
+import { FormDataType } from '~/types'
 import { CamelCase } from 'type-fest'
-import { ProfCats } from '@/enums'
-import { SECTION_STEPS } from '@/components/Form'
+import { ProfCats } from '~/enums'
+import { SECTION_STEPS } from '~/components/Form'
 
 export const numberToWords = (number: number): string => {
   const units = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']
@@ -93,7 +93,7 @@ export const routeRoot = (__kind: FormDataType['__kind'] | undefined): string =>
   return routeString
 }
 
-export const sectionIdKey = (sectionStep: Exclude<(typeof SECTION_STEPS)[number], 'options'>) => {
+export const sectionIdKey = (sectionStep: (typeof SECTION_STEPS)[number]) => {
   const idMap = {
     feats: 'featId',
     proficiencies: 'proficiencyId',

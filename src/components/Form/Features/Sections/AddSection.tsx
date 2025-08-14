@@ -1,6 +1,6 @@
 import { use, useMemo } from 'react'
-import Modal, { ModalContext, type AddSectionModalProps } from '@/components/Modal'
-import { SECTION_STEPS } from '@/components/Form'
+import Modal, { ModalContext, type AddSectionModalProps } from '~/components/Modal'
+import { SECTION_STEPS } from '~/components/Form'
 import { Button } from '@mantine/core'
 
 const AddSection = () => {

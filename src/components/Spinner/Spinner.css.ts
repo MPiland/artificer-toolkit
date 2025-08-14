@@ -1,5 +1,5 @@
 import { style } from '@vanilla-extract/css'
-import { app } from '@/css/layers.css'
+import { app } from '~/css/layers.css'
 
 export const spinner_container = style({
   '@layer': {

@@ -1,18 +1,38 @@
-import {
-  signIn as AWSSignIn,
-  signUp as AWSSignUp,
-  confirmSignUp as AWSConfirmSignUp,
-  autoSignIn,
-  resendSignUpCode as AWSResendSignUpCode,
-  resetPassword as AWSResetPassword,
-  confirmResetPassword as AWSConfirmResetPassword,
-  confirmSignIn as AWSConfirmSignIn,
-  signOut as AWSSignOut,
-} from 'aws-amplify/auth'
-import { cognitoUserPoolsTokenProvider } from 'aws-amplify/auth/cognito'
-import { defaultStorage, sessionStorage } from 'aws-amplify/utils'
 import type { ToOptions } from '@tanstack/react-router'
-import { post } from 'aws-amplify/data'
+import {
+  InitiateAuthCommand,
+  CognitoIdentityProviderClient,
+  SignUpCommand,
+  ConfirmSignUpCommand,
+  type InitiateAuthCommandInput,
+  ResendConfirmationCodeCommand,
+  ForgotPasswordCommand,
+  ConfirmForgotPasswordCommand,
+  GlobalSignOutCommand,
+} from '@aws-sdk/client-cognito-identity-provider'
+import { CognitoJwtVerifier } from 'aws-jwt-verify'
+
+const getStorage = () => (localStorage.getItem('cognito-persist') === 'true' ? localStorage : sessionStorage)
+
+export const getToken = (key: string) => getStorage().getItem(key)
+const setToken = (key: string, value: string) => getStorage().setItem(key, value)
+const clearStorage = () => getStorage().clear()
+
+const client = new CognitoIdentityProviderClient({
+  region: import.meta.env.VITE_AWS_DEFAULT_REGION,
+})
+
+export const idTokenVerifier = CognitoJwtVerifier.create({
+  userPoolId: import.meta.env.VITE_COGNITO_USER_POOL_ID,
+  tokenUse: 'id',
+  clientId: import.meta.env.VITE_COGNITO_USER_POOL_CLIENT_ID,
+})
+
+export const accessTokenVerifier = CognitoJwtVerifier.create({
+  userPoolId: import.meta.env.VITE_COGNITO_USER_POOL_ID,
+  tokenUse: 'access',
+  clientId: import.meta.env.VITE_COGNITO_USER_POOL_CLIENT_ID,
+})
 
 export const getFriendlyErrorMessage = (error: { name: string }): { error: number; message: string } => {
   switch (error.name) {
@@ -94,34 +114,28 @@ export const getFriendlyAuthMessage = (message?: string): { success: number; lin
     default: {
       return {
         success: 0,
-        link: '',
+        link: '.',
       }
     }
   }
 }
 
-export const signUp = async ({ email, password, persist }: { email: string; password: string; persist: boolean }) => {
+export const signUp = async ({ email, password }: { email: string; password: string; persist: boolean }) => {
+  const command = new SignUpCommand({
+    ClientId: import.meta.env.VITE_COGNITO_USER_POOL_CLIENT_ID,
+    Username: email,
+    Password: password,
+  })
+
   try {
-    const { nextStep } = await AWSSignUp({
-      username: email,
-      password,
-      options: {
-        userAttributes: {
-          email,
-        },
-        autoSignIn: true,
-      },
-    })
-
-    console.log('next step successful')
-
-    if (persist) {
-      cognitoUserPoolsTokenProvider.setKeyValueStorage(defaultStorage)
+    const response = await client.send(command)
+    if (response.UserConfirmed) {
+      const signInResponse = await signIn({ email, password })
+      return signInResponse
     } else {
-      cognitoUserPoolsTokenProvider.setKeyValueStorage(sessionStorage)
+      // User needs to confirm signup
+      return getFriendlyAuthMessage('CONFIRM_SIGN_UP')
     }
-
-    return getFriendlyAuthMessage(nextStep?.signUpStep)
   } catch (err) {
     if (import.meta.env.DEV) {
       console.log('Error signing up:', err)
@@ -130,79 +144,15 @@ export const signUp = async ({ email, password, persist }: { email: string; pass
   }
 }
 
-export const signIn = async ({ email, password, persist }: { email: string; password: string; persist: boolean }) => {
-  try {
-    const { nextStep } = await AWSSignIn({
-      username: email,
-      password,
-    })
-
-    if (persist) {
-      cognitoUserPoolsTokenProvider.setKeyValueStorage(defaultStorage)
-    } else {
-      cognitoUserPoolsTokenProvider.setKeyValueStorage(sessionStorage)
-    }
-
-    return getFriendlyAuthMessage(nextStep?.signInStep)
-  } catch (err) {
-    if (import.meta.env.DEV) {
-      console.log('Error signing in:', err)
-    }
-    return getFriendlyErrorMessage(err as { name: string })
-  }
-}
-
-export const confirmSignUp = async ({ email, confirmationCode }: { email: string; confirmationCode: string }) => {
-  try {
-    const { isSignUpComplete, nextStep } = await AWSConfirmSignUp({
-      username: email,
-      confirmationCode,
-    })
-
-    if (isSignUpComplete) {
-      if (nextStep?.signUpStep === 'COMPLETE_AUTO_SIGN_IN') {
-        try {
-          await autoSignIn()
-          return {
-            success: 4,
-            link: '/home',
-          } as { success: number; link: ToOptions['to'] }
-        } catch (err) {
-          if (import.meta.env.DEV) {
-            console.log('Error signing in after sign up:', err)
-          }
-          return getFriendlyErrorMessage(err as { name: string })
-        }
-      } else {
-        return getFriendlyAuthMessage(nextStep?.signUpStep)
-      }
-    } else {
-      return getFriendlyAuthMessage(nextStep?.signUpStep)
-    }
-  } catch (err) {
-    if (import.meta.env.DEV) {
-      console.log('Error confirming sign up:', err)
-    }
-    return getFriendlyErrorMessage(err as { name: string })
-  }
-}
-
-export const confirmSignIn = async ({ challengeResponse }: { challengeResponse: string }) => {
-  try {
-    const { nextStep } = await AWSConfirmSignIn({ challengeResponse })
-    return getFriendlyAuthMessage(nextStep?.signInStep)
-  } catch (err) {
-    if (import.meta.env.DEV) {
-      console.log('Error confirming sign in:', err)
-    }
-    return getFriendlyErrorMessage(err as { name: string })
-  }
-}
-
 export const resendSignUpCode = async ({ email }: { email: string }) => {
   try {
-    await AWSResendSignUpCode({ username: email })
-    return getFriendlyAuthMessage()
+    const command = new ResendConfirmationCodeCommand({
+      ClientId: import.meta.env.VITE_COGNITO_USER_POOL_CLIENT_ID,
+      Username: email,
+    })
+
+    await client.send(command)
+    return getFriendlyAuthMessage('CONFIRM_SIGN_UP')
   } catch (err) {
     if (import.meta.env.DEV) {
       console.log('Error resending confirmation code:', err)
@@ -211,16 +161,116 @@ export const resendSignUpCode = async ({ email }: { email: string }) => {
   }
 }
 
+export const confirmSignUp = async ({
+  email,
+  confirmationCode,
+}: {
+  email: string
+  confirmationCode: string
+  persist: boolean
+}) => {
+  const command = new ConfirmSignUpCommand({
+    ClientId: import.meta.env.VITE_COGNITO_USER_POOL_CLIENT_ID,
+    Username: email,
+    ConfirmationCode: confirmationCode,
+  })
+
+  try {
+    const result = await client.send(command)
+    if (result.Session) {
+      const idToken = (await signIn({ email, session: result.Session })) as string
+      if (idToken) {
+        const userAttributes = await idTokenVerifier.verify(idToken!)
+        const initDomainData = userAttributes['custom: init_domain_data']
+        const initFeatureData = userAttributes['custom: init_feature_data']
+        if (!initDomainData) {
+          console.log({ userAttributes })
+          // await initUserDomainData({ userId: userAttributes.sub as string, email })
+        }
+        if (!initFeatureData) {
+          console.log({ userAttributes })
+          // await initUserFeatureData({ userId: userAttributes.sub as string, email })
+        }
+      }
+      return getFriendlyAuthMessage()
+    }
+    return getFriendlyAuthMessage()
+  } catch (err) {
+    if (import.meta.env.DEV) {
+      console.log('Error confirming sign up:', err)
+    }
+    return getFriendlyErrorMessage(err as { name: string })
+  }
+}
+
+export const signIn = async ({ email, password, session }: { email: string; password?: string; session?: string }) => {
+  let authParams: InitiateAuthCommandInput['AuthParameters']
+  let authFlow: InitiateAuthCommandInput['AuthFlow']
+  if (password) {
+    authFlow = 'USER_PASSWORD_AUTH'
+    authParams = {
+      USERNAME: email,
+      PASSWORD: password,
+    }
+  } else if (session) {
+    authFlow = 'USER_SRP_AUTH'
+    authParams = {
+      USERNAME: email,
+      SESSION: session,
+    }
+  }
+
+  const command = new InitiateAuthCommand({
+    AuthFlow: authFlow,
+    ClientId: import.meta.env.VITE_COGNITO_USER_POOL_CLIENT_ID,
+    AuthParameters: authParams,
+  })
+
+  try {
+    const response = await client.send(command)
+    if (response.AuthenticationResult) {
+      const { AccessToken, RefreshToken, IdToken } = response.AuthenticationResult
+      if (!AccessToken || !RefreshToken || !IdToken) {
+        throw new Error('No authentication result')
+      }
+
+      setToken('cognito-access-token', AccessToken)
+      setToken('cognito-refresh-token', RefreshToken)
+      setToken('cognito-id-token', IdToken)
+
+      if (session) {
+        const userAttributes = await idTokenVerifier.verify(IdToken!)
+        const initDomainData = userAttributes['custom: init_domain_data']
+        const initFeatureData = userAttributes['custom: init_feature_data']
+        console.log({ userAttributes })
+        console.log({ userAttributes })
+        if (!initDomainData) {
+          // await initUserDomainData({ IdToken })
+        }
+        if (!initFeatureData) {
+          // await initUserFeatureData({ IdToken })
+        }
+        return IdToken
+      } else {
+        return getFriendlyAuthMessage()
+      }
+    }
+  } catch (err) {
+    if (import.meta.env.DEV) {
+      console.log('Error signing up:', err)
+    }
+    return getFriendlyErrorMessage(err as { name: string })
+  }
+}
 export const resetPassword = async ({ email }: { email: string }) => {
   try {
-    const { nextStep } = await AWSResetPassword({
-      username: email,
-      options: {
-        autoSignIn: true,
-      },
+    const command = new ForgotPasswordCommand({
+      ClientId: import.meta.env.VITE_COGNITO_USER_POOL_CLIENT_ID,
+      Username: email,
     })
 
-    return getFriendlyAuthMessage(nextStep?.resetPasswordStep)
+    await client.send(command)
+    return getFriendlyAuthMessage('CONFIRM_RESET_PASSWORD_WITH_CODE')
   } catch (err) {
     if (import.meta.env.DEV) {
       console.log('Error resetting password:', err)
@@ -239,11 +289,15 @@ export const confirmResetPassword = async ({
   confirmationCode: string
 }) => {
   try {
-    await AWSConfirmResetPassword({
-      username: email,
-      newPassword: password,
-      confirmationCode,
+    const command = new ConfirmForgotPasswordCommand({
+      ClientId: import.meta.env.VITE_COGNITO_USER_POOL_CLIENT_ID,
+      Username: email,
+      Password: password,
+      ConfirmationCode: confirmationCode,
     })
+
+    await client.send(command)
+
     return {
       success: 5,
       link: '/login',
@@ -258,7 +312,16 @@ export const confirmResetPassword = async ({
 
 export const signOut = async () => {
   try {
-    await AWSSignOut()
+    const accessToken = localStorage.getItem('cognito-access-token')
+    if (accessToken) {
+      const command = new GlobalSignOutCommand({
+        AccessToken: accessToken,
+      })
+
+      await client.send(command)
+
+      clearStorage()
+    }
   } catch (err) {
     if (import.meta.env.DEV) {
       console.log('Error signing out:', err)
@@ -266,21 +329,12 @@ export const signOut = async () => {
   }
 }
 
-export const initUserDomainData = async ({ userId, email }: { userId: string; email: string }) => {
+export const initUserDomainData = async ({ idToken }: { idToken: string }) => {
   try {
-    await post({
-      apiName: 'InitUserDomainData',
-      path: '/init-user-domain-data',
-      options: {
-        retryStrategy: {
-          strategy: 'no-retry',
-        },
-        body: {
-          userId,
-          email,
-        },
-      },
-    }).response
+    await fetch(import.meta.env.VITE_AWS_INIT_USER_DOMAIN_DATA_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+    })
   } catch (err) {
     if (import.meta.env.DEV) {
       console.log('Error initializing user data:', err)
@@ -289,25 +343,85 @@ export const initUserDomainData = async ({ userId, email }: { userId: string; em
   }
 }
 
-export const initUserFeatureData = async ({ userId, email }: { userId: string; email: string }) => {
+export const initUserFeatureData = async ({ idToken }: { idToken: string }) => {
   try {
-    await post({
-      apiName: 'InitUserFeatureData',
-      path: '/init-user-feature-data',
-      options: {
-        retryStrategy: {
-          strategy: 'no-retry',
-        },
-        body: {
-          userId,
-          email,
-        },
+    await fetch(import.meta.env.VITE_AWS_INIT_USER_FEATURE_DATA_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`, // ✅ pass the token here
       },
-    }).response
+    })
   } catch (err) {
     if (import.meta.env.DEV) {
       console.log('Error initializing user data:', err)
     }
     return getFriendlyErrorMessage(err as { name: string })
   }
+}
+
+export const verifyUser = async () => {
+  const accessToken = getToken('cognito-access-token')
+  const idToken = getToken('cognito-id-token')
+  const refreshToken = getToken('cognito-refresh-token')
+
+  if (!accessToken || !idToken) {
+    return { user: null, tokens: null }
+  }
+
+  const now = Math.floor(Date.now() / 1000)
+
+  const verifyToken = async (token: string, verifier: typeof idTokenVerifier | typeof accessTokenVerifier) => {
+    try {
+      const decoded = await verifier.verify(token)
+      const expired = decoded.exp && decoded.exp < now
+      return { decoded, expired }
+    } catch (err) {
+      if (import.meta.env.DEV) console.log('Token verification failed:', err)
+      return { decoded: null, expired: true }
+    }
+  }
+
+  const [idTokenResult, accessTokenResult] = await Promise.all([
+    verifyToken(idToken, idTokenVerifier),
+    verifyToken(accessToken, accessTokenVerifier),
+  ])
+
+  // If either token is expired, attempt refresh
+  if ((idTokenResult.expired || accessTokenResult.expired) && refreshToken) {
+    try {
+      const refreshCommand = new InitiateAuthCommand({
+        AuthFlow: 'REFRESH_TOKEN_AUTH',
+        ClientId: import.meta.env.VITE_COGNITO_USER_POOL_CLIENT_ID,
+        AuthParameters: { REFRESH_TOKEN: refreshToken },
+      })
+
+      const refreshResponse = await client.send(refreshCommand)
+      if (!refreshResponse.AuthenticationResult?.AccessToken || !refreshResponse.AuthenticationResult?.IdToken) {
+        throw new Error('Failed to refresh tokens')
+      }
+
+      const newIdToken = refreshResponse.AuthenticationResult.IdToken
+      const newAccesToken = refreshResponse.AuthenticationResult.AccessToken
+
+      setToken('cognito-access-token', newAccesToken)
+      setToken('cognito-id-token', newIdToken)
+
+      const decodedIdToken = await idTokenVerifier.verify(newIdToken)
+
+      return { user: decodedIdToken, tokens: refreshResponse.AuthenticationResult.AccessToken }
+    } catch (err) {
+      if (import.meta.env.DEV) console.log('Error refreshing tokens:', err)
+      await signOut()
+      return { user: null, tokens: null }
+    }
+  }
+
+  if (!idTokenResult.decoded) {
+    await signOut()
+    return { user: null, tokens: null }
+  }
+
+  // Tokens valid, return decoded ID token and current access token
+  return { user: idTokenResult.decoded, tokens: accessToken }
 }

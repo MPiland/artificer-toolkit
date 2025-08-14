@@ -1,11 +1,11 @@
 import { getClient } from './utils'
-import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query'
+import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import {
   listFeatureExpertises,
   listMasterFeatureExpertises,
   getFeatureExpertise,
   getMasterFeatureExpertise,
-} from '@/queries'
+} from '~/queries'
 import type {
   FeatureExpertiseInput,
   FeatureExpertise,
@@ -19,7 +19,8 @@ import {
   updateMasterFeatureExpertise,
   deleteMasterFeatureExpertise,
   deleteFeatureExpertise,
-} from '@/mutations'
+} from '~/mutations'
+import { useSystemPref } from '~/hooks'
 
 const featureExpertiseKeys = {
   all: ['featureExpertise'] as const,
@@ -115,7 +116,16 @@ export const fetchFeatureExpertise = (id: string) => {
   })
 }
 
-export const useAddNewFeatureExpertiseMutation = () => {
+export const useListFeatureExpertise = () => {
+  const [systemPref] = useSystemPref()
+  return useSuspenseQuery(fetchFeatureExpertises(systemPref))
+}
+
+export const useGetFeatureExpertise = (id: string) => {
+  return useSuspenseQuery(fetchFeatureExpertise(id))
+}
+
+export const useAddFeatureExpertise = () => {
   const queryClient = useQueryClient()
 
   return useMutation<FeatureExpertise, Error, FeatureExpertiseInput, unknown>({
@@ -155,7 +165,7 @@ export const useAddNewFeatureExpertiseMutation = () => {
   })
 }
 
-export const useUpdateFeatureExpertiseMutation = () => {
+export const useUpdateFeatureExpertise = () => {
   const queryClient = useQueryClient()
 
   return useMutation<FeatureExpertise, Error, FeatureExpertiseInput, unknown>({
@@ -197,7 +207,7 @@ export const useUpdateFeatureExpertiseMutation = () => {
   })
 }
 
-export const useDeleteFeatureExpertiseMutation = () => {
+export const useDeleteFeatureExpertise = () => {
   const queryClient = useQueryClient()
 
   return useMutation({

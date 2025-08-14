@@ -1,6 +1,6 @@
 import { getClient } from './utils'
-import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query'
-import { listAncestryOptions, listMasterAncestryOptions, getAncestryOption, getMasterAncestryOption } from '@/queries'
+import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { listAncestryOptions, listMasterAncestryOptions, getAncestryOption, getMasterAncestryOption } from '~/queries'
 import type {
   AncestryOptionInput,
   AncestryOption,
@@ -14,7 +14,9 @@ import {
   updateMasterAncestryOption,
   deleteMasterAncestryOption,
   deleteAncestryOption,
-} from '@/mutations'
+} from '~/mutations'
+import { useSystemPref } from '~/hooks'
+import request from 'graphql-request'
 
 const ancestryOptionsKeys = {
   all: ['ancestryOptions'] as const,
@@ -26,12 +28,12 @@ export const fetchAncestryOptions = (systemPref: string) => {
   return queryOptions({
     queryKey: ancestryOptionsKeys.lists(),
     queryFn: async () => {
+      const { featureEndpoint, master } = await getClient()
+      if (!featureEndpoint) return []
       let allData: { ancestryOptions: AncestryOption[] } = {
         ancestryOptions: [],
       }
       let nextToken: string | null = null
-
-      const { featureClient, master } = await getClient()
 
       // Create a union type for the variables
       type ListVariables = QueryListAncestryOptionsArgs | QueryListMasterAncestryOptionsArgs
@@ -56,10 +58,11 @@ export const fetchAncestryOptions = (systemPref: string) => {
 
       try {
         do {
-          const { data } = await featureClient.graphql({
-            query: operation,
-            variables: variables,
-          })
+          const { data } = await request<(typeof operation)['__generatedQueryOutput']>(
+            featureEndpoint,
+            master ? listMasterAncestryOptions : listAncestryOptions,
+            variables
+          )
 
           const result = isMaster(data) ? data.listMasterAncestryOptions : data.listAncestryOptions
 
@@ -133,7 +136,16 @@ export const fetchAncestryOption = (id: string) => {
   })
 }
 
-export const useAddNewAncestryOptionMutation = () => {
+export const useListAncestryOptions = () => {
+  const [systemPref] = useSystemPref()
+  return useSuspenseQuery(fetchAncestryOptions(systemPref))
+}
+
+export const useGetAncestryOption = (id: string) => {
+  return useSuspenseQuery(fetchAncestryOption(id))
+}
+
+export const useAddAncestryOption = () => {
   const queryClient = useQueryClient()
 
   return useMutation<AncestryOption, Error, AncestryOptionInput, unknown>({
@@ -173,7 +185,7 @@ export const useAddNewAncestryOptionMutation = () => {
   })
 }
 
-export const useUpdateAncestryOptionMutation = () => {
+export const useUpdateAncestryOption = () => {
   const queryClient = useQueryClient()
 
   return useMutation<AncestryOption, Error, AncestryOptionInput, unknown>({
@@ -215,7 +227,7 @@ export const useUpdateAncestryOptionMutation = () => {
   })
 }
 
-export const useDeleteAncestryOptionMutation = () => {
+export const useDeleteAncestryOption = () => {
   const queryClient = useQueryClient()
 
   return useMutation({

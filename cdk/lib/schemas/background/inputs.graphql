@@ -5,8 +5,8 @@ input BackgroundInput {
   details: [DetailInput!]
   equipment: [[[EquipmentOptionItemInput!]!]!]
   proficiencies: [FeatureProficiencyInput!]
-  features: [ID!]
-  ownerId: ID
+  features: [FeatureInput!]
+  ownerId: ID!
   systemId: ID!
   masterId: String
 }

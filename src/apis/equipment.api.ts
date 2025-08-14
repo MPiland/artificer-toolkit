@@ -1,6 +1,6 @@
-import { useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
+import { useMutation, useQueryClient, queryOptions, useSuspenseQuery } from '@tanstack/react-query'
 import { type GraphQLResult } from 'aws-amplify/data'
-import { getEquipment, getMasterEquipment, listEquipment, listMasterEquipment } from '@/queries'
+import { getEquipment, getMasterEquipment, listEquipment, listMasterEquipment } from '~/queries'
 import {
   createEquipment,
   createMasterEquipment,
@@ -8,7 +8,7 @@ import {
   deleteMasterEquipment,
   updateEquipment,
   updateMasterEquipment,
-} from '@/mutations'
+} from '~/mutations'
 import type {
   Equipment,
   QueryListMasterEquipmentArgs,
@@ -17,8 +17,9 @@ import type {
   EquipmentConnection,
   EquipmentListItem,
   EquipmentMeta,
-} from '@/types'
+} from '~/types'
 import { getClient } from './utils'
+import { useSystemPref } from '~/hooks'
 
 const equipmentKeys = {
   all: ['equipment'] as const,
@@ -128,7 +129,16 @@ export const fetchSingleEquipment = (id: string) => {
   })
 }
 
-export const useAddNewEquipmentMutation = () => {
+export const useListEquipment = () => {
+  const [systemPref] = useSystemPref()
+  return useSuspenseQuery(fetchAllEquipment(systemPref))
+}
+
+export const useGetEquipment = (id: string) => {
+  return useSuspenseQuery(fetchSingleEquipment(id))
+}
+
+export const useAddEquipment = () => {
   const queryClient = useQueryClient()
 
   return useMutation<Equipment, Error, EquipmentInput, unknown>({
@@ -169,7 +179,7 @@ export const useAddNewEquipmentMutation = () => {
   })
 }
 
-export const useUpdateEquipmentMutation = () => {
+export const useUpdateEquipment = () => {
   const queryClient = useQueryClient()
 
   return useMutation<Equipment, Error, EquipmentInput, unknown>({
@@ -209,7 +219,7 @@ export const useUpdateEquipmentMutation = () => {
   })
 }
 
-export const useDeleteEquipmentMutation = () => {
+export const useDeleteEquipment = () => {
   const queryClient = useQueryClient()
 
   return useMutation({

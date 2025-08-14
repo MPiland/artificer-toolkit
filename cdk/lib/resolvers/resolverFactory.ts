@@ -1,5 +1,6 @@
 import { GraphqlApi, Code, FunctionRuntime, Resolver, AppsyncFunction } from 'aws-cdk-lib/aws-appsync'
 import { Table } from 'aws-cdk-lib/aws-dynamodb'
+import { Function as LambdaFunction, Runtime, Code as LambdaCode } from 'aws-cdk-lib/aws-lambda'
 import { join } from 'path'
 import { createFunctions } from './functionFactory'
 import { entityOperationMap } from '../schemas/entityMap'
@@ -30,6 +31,28 @@ const listMappingsByPrefix: Partial<Record<string, string>> = {
   System: 'listSystemsMapping.js',
 }
 
+// Operations that need Lambda aggregation (user domain only)
+const LAMBDA_GET_OPERATIONS = [
+  'getClass',
+  'getRace',
+  'getBackground',
+  'getEquipment',
+  'getFeat',
+  'getAncestryOption',
+  'getFeatureOption',
+  'getFeature',
+]
+const LAMBDA_UPDATE_OPERATIONS = [
+  'updateClass',
+  'updateRace',
+  'updateBackground',
+  'updateEquipment',
+  'updateFeat',
+  'updateAncestryOption',
+  'updateFeatureOption',
+  'updateFeature',
+]
+
 const defaultMasterMapping = 'listItemsMasterMapping.js'
 const defaultMapping = 'listItemsMapping.js'
 
@@ -43,7 +66,7 @@ export function createTableResolvers(api: GraphqlApi, table: Table, name: string
   const opsToCreate = { queries: [...queries], mutations: [...mutations] }
   const isMaster = name.includes('Master')
 
-  // Create the functions
+  // Create the functions for standard DynamoDB operations
   const functions = createFunctions(api, table, name, {
     get: 'getItemMapping.js',
     list: () => listMappingsByPrefix[name] ?? (isMaster ? defaultMasterMapping : defaultMapping),
@@ -73,12 +96,40 @@ export function createTableResolvers(api: GraphqlApi, table: Table, name: string
 
   const opsArray = [...opsToCreate.queries, ...opsToCreate.mutations]
 
-  // Create only the resolvers that are needed
+  // Create resolvers
   for (const opName of opsArray) {
     const capitalizedOpString = capitalize(opName)
     const config = resolverConfig[capitalizedOpString]
-    if (config && functions[capitalizedOpString]) {
-      const resolverId = `${opName}Resolver`
+
+    if (!config) continue
+
+    const resolverId = `${opName}Resolver`
+
+    // Check if this operation needs Lambda aggregation
+    if (!isMaster && LAMBDA_GET_OPERATIONS.includes(opName)) {
+      // Create Lambda data source for this operation
+      const lambdaDataSource = createLambdaGetDataSource(api, table, config, name)
+
+      // Create resolver using Lambda data source
+      new Resolver(api, resolverId, {
+        api,
+        typeName: config.typeName,
+        fieldName: config.fieldName,
+        dataSource: lambdaDataSource,
+      })
+    } else if (!isMaster && LAMBDA_UPDATE_OPERATIONS.includes(opName)) {
+      // Create Lambda data source for this operation
+      const lambdaDataSource = createLambdaUpdateDataSource(api, table, config, name)
+
+      // Create resolver using Lambda data source
+      new Resolver(api, resolverId, {
+        api,
+        typeName: config.typeName,
+        fieldName: config.fieldName,
+        dataSource: lambdaDataSource,
+      })
+    } else if (functions[capitalizedOpString]) {
+      // Use standard DynamoDB resolver with pipeline functions
       new Resolver(api, resolverId, {
         api,
         typeName: config.typeName,
@@ -89,4 +140,44 @@ export function createTableResolvers(api: GraphqlApi, table: Table, name: string
       })
     }
   }
+}
+
+function createLambdaGetDataSource(api: GraphqlApi, table: Table, config: ResolverConfig, entityName: string) {
+  // Create Lambda function for this specific entity
+  const lambdaGetFunction = new LambdaFunction(api, `${config.fieldName}Lambda`, {
+    runtime: Runtime.NODEJS_18_X,
+    handler: 'getData.handler',
+    code: LambdaCode.fromAsset(join(__dirname, '../../lambda')),
+    environment: {
+      // Pass the specific table name for this entity
+      [`${entityName.toUpperCase()}_TABLE`]: table.tableName,
+      // TODO: Add feature table names as needed
+    },
+  })
+
+  // Grant permissions to the main table
+  table.grantReadData(lambdaGetFunction)
+
+  // Create and return Lambda data source
+  return api.addLambdaDataSource(`${config.fieldName}DataSource`, lambdaGetFunction)
+}
+
+function createLambdaUpdateDataSource(api: GraphqlApi, table: Table, config: ResolverConfig, entityName: string) {
+  // Create Lambda function for this specific entity
+  const lambdaUpdateFunction = new LambdaFunction(api, `${config.fieldName}Lambda`, {
+    runtime: Runtime.NODEJS_18_X,
+    handler: 'updateData.handler',
+    code: LambdaCode.fromAsset(join(__dirname, '../../lambda')),
+    environment: {
+      // Pass the specific table name for this entity
+      [`${entityName.toUpperCase()}_TABLE`]: table.tableName,
+      // TODO: Add feature table names as needed
+    },
+  })
+
+  // Grant permissions to the main table
+  table.grantReadWriteData(lambdaUpdateFunction)
+
+  // Create and return Lambda data source
+  return api.addLambdaDataSource(`${config.fieldName}DataSource`, lambdaUpdateFunction)
 }

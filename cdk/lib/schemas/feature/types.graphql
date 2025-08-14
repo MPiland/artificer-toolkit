@@ -1,6 +1,6 @@
 type Feature {
   id: ID!
-  label: String
+  label: String!
   desc: String
   detail: String
   category: ID
@@ -12,22 +12,32 @@ type Feature {
   range: Range
   shape: Shape
   targets: Int
-  feats: [ID!]
-  modifiers: [ID!]
-  proficiencies: [ID!]
-  expertise: [ID!]
-  senses: [ID!]
-  spells: [ID!]
+  feats: [FeatureFeat!]
+  modifiers: [FeatureModifier!]
+  proficiencies: [FeatureProficiency!]
+  expertise: [FeatureExpertise!]
+  senses: [FeatureSense!]
+  spells: [FeatureSpell!]
   prerequisites: Prerequisite
   saveAbility: SaveAbility
   levelAvailable: String
-  options: [ID!]
+  options: [FeatureOption!]
+  ownerId: ID!
+  systemId: ID!
+  masterId: String
+}
+
+type FeatureListItem {
+  id: ID!
+  label: String!
+  desc: String
+  detail: String
   ownerId: ID!
   systemId: ID!
   masterId: String
 }
 
 type FeatureConnection {
-  items: [Feature!]!
+  items: [FeatureListItem!]!
   nextToken: String
 }

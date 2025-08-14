@@ -2,7 +2,7 @@ type Ancestry {
   id: ID!
   label: String!
   desc: String
-  options: [ID!]!
+  options: [AncestryOption!]!
 }
 
 type RaceSpeed {
@@ -29,7 +29,7 @@ type Race {
   ancestry: Ancestry
   details: [Detail!]
   traits: Traits
-  features: [ID!]
+  features: [Feature!]
   ownerId: ID!
   systemId: ID!
   masterId: String

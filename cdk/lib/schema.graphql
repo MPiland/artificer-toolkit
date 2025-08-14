@@ -466,7 +466,7 @@ type Ancestry {
   id: ID!
   label: String!
   desc: String
-  options: [ID!]!
+  options: [AncestryOption!]!
 }
 
 type RaceSpeed {
@@ -493,7 +493,7 @@ type Race {
   ancestry: Ancestry
   details: [Detail!]
   traits: Traits
-  features: [ID!]
+  features: [Feature!]
   ownerId: ID!
   systemId: ID!
   masterId: String
@@ -717,6 +717,9 @@ type FeatureSense {
   subtype: ID
   ids: [ID!]
   prerequisites: Prerequisite
+  ownerId: ID!
+  systemId: ID!
+  masterId: String
 }
 
 type FeatureSenseConnection {
@@ -761,12 +764,12 @@ type FeatureOption {
   range: Range
   shape: Shape
   targets: Int
-  feats: [ID!]
-  modifiers: [ID!]
-  proficiencies: [ID!]
-  expertise: [ID!]
-  senses: [ID!]
-  spells: [ID!]
+  feats: [FeatureFeat!]
+  modifiers: [FeatureModifier!]
+  proficiencies: [FeatureProficiency!]
+  expertise: [FeatureExpertise!]
+  senses: [FeatureSense!]
+  spells: [FeatureSpell!]
   prerequisites: Prerequisite
   saveAbility: SaveAbility
   levelAvailable: String
@@ -877,7 +880,7 @@ type FeatureExpertiseConnection {
 
 type Feature {
   id: ID!
-  label: String
+  label: String!
   desc: String
   detail: String
   category: ID
@@ -889,23 +892,33 @@ type Feature {
   range: Range
   shape: Shape
   targets: Int
-  feats: [ID!]
-  modifiers: [ID!]
-  proficiencies: [ID!]
-  expertise: [ID!]
-  senses: [ID!]
-  spells: [ID!]
+  feats: [FeatureFeat!]
+  modifiers: [FeatureModifier!]
+  proficiencies: [FeatureProficiency!]
+  expertise: [FeatureExpertise!]
+  senses: [FeatureSense!]
+  spells: [FeatureSpell!]
   prerequisites: Prerequisite
   saveAbility: SaveAbility
   levelAvailable: String
-  options: [ID!]
+  options: [FeatureOption!]
+  ownerId: ID!
+  systemId: ID!
+  masterId: String
+}
+
+type FeatureListItem {
+  id: ID!
+  label: String!
+  desc: String
+  detail: String
   ownerId: ID!
   systemId: ID!
   masterId: String
 }
 
 type FeatureConnection {
-  items: [Feature!]!
+  items: [FeatureListItem!]!
   nextToken: String
 }
 
@@ -922,17 +935,16 @@ type Feat {
   range: Range
   shape: Shape
   targets: Int
-  modifiers: [ID!]
-  proficiencies: [ID!]
-  expertise: [ID!]
-  senses: [ID!]
-  spells: [ID!]
+  modifiers: [FeatureModifier!]
+  proficiencies: [FeatureProficiency!]
+  expertise: [FeatureExpertise!]
+  senses: [FeatureSense!]
+  spells: [FeatureSpell!]
   prerequisites: Prerequisite
   saveAbility: SaveAbility
   selectionCount: Int
   levelAvailable: String
-  features: [ID!]
-  options: [ID!]
+  features: [Feature!]
   ownerId: ID!
   systemId: ID!
   masterId: String
@@ -1019,7 +1031,7 @@ type Equipment {
   speed: Speed
   range: EquipmentRange
   contains: [Contains!]
-  features: [ID!]
+  features: [Feature!]
   ownerId: ID!
   systemId: ID!
   masterId: String
@@ -1134,6 +1146,7 @@ type Multiclass {
   primaryAbility: MulticlassAbility
   secondaryAbility: MulticlassAbility
   optionalAbility: MulticlassAbility
+  proficiencies: [ClassProficiency!]
 }
 
 type Subtype {
@@ -1174,7 +1187,7 @@ type Class {
   multiclass: Multiclass
   parentClass: ID
   subtypes: [Subtype!]
-  features: [ID!]
+  features: [Feature!]
   ownerId: ID!
   systemId: ID!
   masterId: String
@@ -1230,7 +1243,7 @@ type CharacterModifier {
 }
 
 type CharacterSense {
-  id: ID
+  id: ID!
   senseId: ID!
   featureId: ID
   classId: ID
@@ -1245,7 +1258,7 @@ type CharacterSense {
 }
 
 type CharacterFeat {
-  id: ID
+  id: ID!
   featId: ID!
   featureId: ID
   classId: ID
@@ -1259,12 +1272,12 @@ type CharacterFeat {
 }
 
 type CharacterProficiency {
+  id: ID!
   skill: ID
   language: ID
   saveAbility: ID
   property: ID
   equipment: ID
-  id: ID!
   featureId: ID
   classId: ID
   raceId: ID
@@ -1278,12 +1291,12 @@ type CharacterProficiency {
 }
 
 type CharacterExpertise {
+  id: ID!
   skill: ID
   language: ID
   saveAbility: ID
   property: ID
   equipment: ID
-  id: ID!
   featureId: ID
   classId: ID
   raceId: ID
@@ -1400,8 +1413,8 @@ type CharacterAbilities {
 ## CharacterAncestry
 
 type CharacterAncestry {
-  id: ID
-  raceId: ID
+  id: ID!
+  raceId: ID!
   lineages: [ID!]
 }
 
@@ -1410,7 +1423,7 @@ type CharacterAncestry {
 ## Subclass
 
 type Subclass {
-  id: ID
+  id: ID!
   subtype: ID
 }
 
@@ -1575,7 +1588,7 @@ type Background {
   details: [Detail!]
   equipment: [[[EquipmentOptionItem!]!]!]
   proficiencies: [FeatureProficiency!]
-  features: [ID!]
+  features: [Feature!]
   ownerId: ID!
   systemId: ID!
   masterId: String
@@ -1610,7 +1623,7 @@ type AncestryOption {
   id: ID!
   label: String!
   desc: String
-  features: [ID!]
+  features: [Feature!]
   ownerId: ID!
   systemId: ID!
   masterId: String
@@ -2004,7 +2017,7 @@ input AncestryInput {
   id: ID!
   label: String!
   desc: String
-  options: [ID!]!
+  options: [AncestryOptionInput!]!
 }
 
 input RaceSpeedInput {
@@ -2031,7 +2044,7 @@ input RaceInput {
   ancestry: AncestryInput
   details: [DetailInput!]
   traits: TraitsInput
-  features: [ID!]
+  features: [FeatureInput!]
   ownerId: ID
   systemId: ID!
   masterId: String
@@ -2226,6 +2239,9 @@ input FeatureSenseInput {
   ids: [ID!]
   prerequisites: PrerequisiteInput
   charges: ChargeInput
+  ownerId: ID!
+  systemId: ID!
+  masterId: String
 }
 
 input BatchFeatureSensesInput {
@@ -2270,12 +2286,12 @@ input FeatureOptionInput {
   range: RangeInput
   shape: ShapeInput
   targets: Int
-  feats: [ID!]
-  modifiers: [ID!]
-  proficiencies: [ID!]
-  expertise: [ID!]
-  senses: [ID!]
-  spells: [ID!]
+  feats: [FeatureFeatInput!]
+  modifiers: [FeatureModifierInput!]
+  proficiencies: [FeatureProficiencyInput!]
+  expertise: [FeatureExpertiseInput!]
+  senses: [FeatureSenseInput!]
+  spells: [FeatureSpellInput!]
   prerequisites: PrerequisiteInput
   saveAbility: SaveAbilityInput
   levelAvailable: String
@@ -2394,7 +2410,7 @@ input OptionsByLevelInput {
 
 input FeatureInput {
   id: ID!
-  label: String
+  label: String!
   desc: String
   detail: String
   category: ID
@@ -2406,16 +2422,16 @@ input FeatureInput {
   range: RangeInput
   shape: ShapeInput
   targets: Int
-  feats: [ID!]
-  modifiers: [ID!]
-  proficiencies: [ID!]
-  expertise: [ID!]
-  senses: [ID!]
-  spells: [ID!]
+  feats: [FeatureFeatInput!]
+  modifiers: [FeatureModifierInput!]
+  proficiencies: [FeatureProficiencyInput!]
+  expertise: [FeatureExpertiseInput!]
+  senses: [FeatureSenseInput!]
+  spells: [FeatureSpellInput!]
   prerequisites: PrerequisiteInput
   saveAbility: SaveAbilityInput
   levelAvailable: String
-  options: [ID!]
+  options: [FeatureOptionInput!]
   ownerId: ID!
   systemId: ID!
   masterId: String
@@ -2439,17 +2455,16 @@ input FeatInput {
   range: RangeInput
   shape: ShapeInput
   targets: Int
-  modifiers: [ID!]
-  proficiencies: [ID!]
-  expertise: [ID!]
-  senses: [ID!]
-  spells: [ID!]
+  modifiers: [FeatureModifierInput!]
+  proficiencies: [FeatureProficiencyInput!]
+  expertise: [FeatureExpertiseInput!]
+  senses: [FeatureSenseInput!]
+  spells: [FeatureSpellInput!]
   prerequisites: PrerequisiteInput
   saveAbility: SaveAbilityInput
   selectionCount: Int
   levelAvailable: String
-  features: [ID!]
-  options: [ID!]
+  features: [FeatureInput!]
   ownerId: ID!
   systemId: ID!
   masterId: String
@@ -2516,7 +2531,7 @@ input EquipmentInput {
   speed: SpeedInput
   range: EquipmentRangeInput
   contains: [ContainsInput!]
-  features: [ID!]
+  features: [FeatureInput!]
   ownerId: ID!
   systemId: ID! 
   masterId: String
@@ -2588,6 +2603,7 @@ input MulticlassInput {
   primaryAbility: MulticlassAbilityInput
   secondaryAbility: MulticlassAbilityInput
   optionalAbility: MulticlassAbilityInput
+  proficiencies: [ClassProficiencyInput!]
 }
 
 input SubtypeInput {
@@ -2628,8 +2644,8 @@ input ClassInput {
   multiclass: MulticlassInput
   parentClass: ID
   subtypes: [SubtypeInput!]
-  features: [ID!]
-  ownerId: ID
+  features: [FeatureInput!]
+  ownerId: ID!
   systemId: ID!
   masterId: String
 }
@@ -2669,7 +2685,7 @@ input CharacterSenseInput {
 }
 
 input CharacterFeatInput {
-  id: ID
+  id: ID!
   featId: ID
   featureId: ID
   classId: ID
@@ -2683,12 +2699,12 @@ input CharacterFeatInput {
 }
 
 input CharacterProficiencyInput {
+  id: ID!
   skill: ID
   language: ID
   saveAbility: ID
   property: ID
   equipment: ID
-  id: ID!
   featureId: ID
   classId: ID
   raceId: ID
@@ -2702,12 +2718,12 @@ input CharacterProficiencyInput {
 }
 
 input CharacterExpertiseInput {
+  id: ID!
   skill: ID
   language: ID
   saveAbility: ID
   property: ID
   equipment: ID
-  id: ID!
   featureId: ID
   classId: ID
   raceId: ID
@@ -2824,13 +2840,13 @@ input CharacterAbilitiesInput {
 ## CharacterAncestryInput
 
 input LineageInput {
-  id: ID
-  raceId: ID
+  id: ID!
+  raceId: ID!
 }
 
 input CharacterAncestryInput {
-  id: ID
-  raceId: ID
+  id: ID!
+  raceId: ID!
   lineage: [LineageInput!]
 }
 
@@ -2839,7 +2855,7 @@ input CharacterAncestryInput {
 ## SubclassInput
 
 input SubclassInput {
-  id: ID
+  id: ID!
   subtype: ID
 }
 
@@ -2847,7 +2863,7 @@ input SubclassInput {
 
 input ClassSpellInput {
   id: ID!
-  classId: ID
+  classId: ID!
   ability: ID
   isRitual: Boolean
   countAsKnown: Boolean
@@ -2980,7 +2996,7 @@ input CharacterInput {
   spellcasting: CharacterSpellcastingInput
   classEquipment: ClassStartingEquipmentInput
   backgroundEquipment: BackgroundStartingEquipmentInput
-  equipment: CharacterEquipmentInput!
+  equipment: CharacterEquipmentInput
   currencyGroups: [CurrencyGroupInput!]
   features: [CharacterFeatureInput!]
   feats: [CharacterFeatInput!]
@@ -2988,7 +3004,7 @@ input CharacterInput {
   expertise: [CharacterExpertiseInput!]
   modifiers: [CharacterModifierInput!]
   senses: [CharacterSenseInput!]
-  ownerId: ID
+  ownerId: ID!
   systemId: String!
 }
 
@@ -2999,8 +3015,8 @@ input BackgroundInput {
   details: [DetailInput!]
   equipment: [[[EquipmentOptionItemInput!]!]!]
   proficiencies: [FeatureProficiencyInput!]
-  features: [ID!]
-  ownerId: ID
+  features: [FeatureInput!]
+  ownerId: ID!
   systemId: ID!
   masterId: String
 }
@@ -3014,7 +3030,7 @@ input AncestryOptionInput {
   id: ID!
   label: String!
   desc: String
-  features: [ID!]
+  features: [FeatureInput!]
   ownerId: ID!
   systemId: ID!
   masterId: String

@@ -1,38 +1,28 @@
-import { fetchAuthSession } from 'aws-amplify/auth'
-import { generateClient } from 'aws-amplify/data'
+import { QueryClient } from '@tanstack/react-query'
+import { accessTokenVerifier, getToken } from './auth.api'
 
-export const adminDomainClient = generateClient({
-  endpoint: import.meta.env.VITE_AWS_ADMIN_DOMAIN_GRAPHQL_ENDPOINT,
-  region: import.meta.env.VITE_AWS_DEFAULT_REGION,
-  authMode: 'userPool',
-})
-
-export const adminFeatureClient = generateClient({
-  endpoint: import.meta.env.VITE_AWS_ADMIN_FEATURE_GRAPHQL_ENDPOINT,
-  region: import.meta.env.VITE_AWS_DEFAULT_REGION,
-  authMode: 'userPool',
-})
-
-export const userDomainClient = generateClient({
-  endpoint: import.meta.env.VITE_AWS_USER_DOMAIN_GRAPHQL_ENDPOINT,
-  region: import.meta.env.VITE_AWS_DEFAULT_REGION,
-  authMode: 'userPool',
-})
-
-export const userFeatureClient = generateClient({
-  endpoint: import.meta.env.VITE_AWS_USER_FEATURE_GRAPHQL_ENDPOINT,
-  region: import.meta.env.VITE_AWS_DEFAULT_REGION,
-  authMode: 'userPool',
-})
+export const queryClient = new QueryClient()
 
 export const getClient = async () => {
-  const { tokens } = await fetchAuthSession()
-  const groups = tokens?.accessToken?.payload?.['cognito:groups'] as string[]
-  const master = groups?.includes('Admins') || false
+  const accessToken = getToken('cognito-access-token')
+  if (!accessToken) return { domainClient: null, featureClient: null, master: false }
+  try {
+    const decodedAccessToken = await accessTokenVerifier.verify(accessToken)
+    const groups = decodedAccessToken['cognito:groups'] as string[]
+    const master = groups?.includes('Admins') || false
 
-  return {
-    domainClient: master ? adminDomainClient : userDomainClient,
-    master,
-    featureClient: master ? adminFeatureClient : userFeatureClient,
+    return {
+      domainEndpoint:
+        master ?
+          import.meta.env.VITE_AWS_ADMIN_DOMAIN_GRAPHQL_ENDPOINT
+        : import.meta.env.VITE_AWS_USER_DOMAIN_GRAPHQL_ENDPOINT,
+      featureEndpoint:
+        master ?
+          import.meta.env.VITE_AWS_ADMIN_FEATURE_GRAPHQL_ENDPOINT
+        : import.meta.env.VITE_AWS_USER_FEATURE_GRAPHQL_ENDPOINT,
+      master,
+    }
+  } catch {
+    return { domainClient: null, featureClient: null, master: false }
   }
 }

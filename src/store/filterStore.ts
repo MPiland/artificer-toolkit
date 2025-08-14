@@ -1,8 +1,8 @@
 import { produce } from 'immer'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Class, Equipment, Race, Spell } from '@/types'
-import { get, set as lSet } from 'lodash'
+import type { Class, Equipment, Race, Spell } from '~/types'
+import { get, set as lSet } from 'lodash-es'
 import type { DeepKeys } from '@tanstack/react-form'
 
 // Define the overall filter state

@@ -9,17 +9,17 @@ import {
   detail_link_icon,
   detail_title,
 } from './Detail.css'
-import Loading from '@/components/Loading'
+import Loading from '~/components/Loading'
 import { useMatches } from '@tanstack/react-router'
-import type { FormType, Character, SourceDataType } from '@/types'
-import { useRouteNavigation, useSourceData } from '@/hooks'
+import type { FormType, Character, SourceDataType } from '~/types'
+import { useRouteNavigation, useSourceData } from '~/hooks'
 import type { DetailConfig } from './Detail.types'
-import { useFormStore } from '@/store'
+import { useFormStore } from '~/store'
 import { Group, Grid, ScrollArea, Modal } from '@mantine/core'
 import { CopyIcon, Pencil, ChevronLeft } from 'lucide-react'
-import Link from '@/components/Link'
-import { discriminatedDomainInputSchema } from '@/schemas'
-import { sprinkles } from '@/css/sprinkles.css'
+import Link from '~/components/Link'
+import { discriminatedDomainInputSchema } from '~/schemas'
+import { sprinkles } from '~/css/sprinkles.css'
 
 interface DetailProps<T extends SourceDataType> {
   detailConfigs?: DetailConfig<T>[]

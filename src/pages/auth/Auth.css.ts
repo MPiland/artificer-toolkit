@@ -1,6 +1,6 @@
 import { style } from '@vanilla-extract/css'
-import { vars } from '@/css/theme'
-import { app } from '@/css/layers.css'
+import { vars } from '~/css/theme'
+import { app } from '~/css/layers.css'
 
 export const auth_container = style({
   '@layer': {

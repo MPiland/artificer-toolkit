@@ -1,44 +1,102 @@
-import { useEffect, useState } from 'react'
-import { Categories, Sections } from '@/enums'
-import { useEnumChecks, useSystemData, useSpellData, useClassData, useFieldUpdates } from '@/hooks'
-import type { SpellListItem, SubtypeInput } from '@/types'
-import { Grid } from '@mantine/core'
-import { LimitUse, Prerequisites, useAppForm } from '@/components/Form'
-import { SpellsByLevelInputSchema, FeatureSpellInputSchema } from '@/schemas'
-import { useFormStore, useFeatureSpellStore } from '@/store'
+import { Fragment, useEffect, useState, useMemo, useCallback } from 'react'
+import { Categories, Sections } from '~/enums'
+import { useEnumChecks, useSystemData, useFieldUpdates, useFormField } from '~/hooks'
+import type { SpellListItem, FormDataType, CharacterInput, SpellInput } from '~/types'
+import { Stack, Text } from '@mantine/core'
+import { LimitUse, Prerequisites } from '~/components/Form'
+import { SpellsByLevelInputSchema } from '~/schemas'
+import { useOptimizedSelector, useTypedFormStore } from '~/store'
+import { useListSpells, useListClasses } from '~/apis'
+import { v4 as uuidv4 } from 'uuid'
+import type { UnionToIntersection, SetOptional } from 'type-fest'
 
-type SpellsProps = {
-  category?: string
-  subtypes?: SubtypeInput[]
-}
+type FeaturePath =
+  | `ancestry.options[${number}].features[${number}].spells[${number}]`
+  | `ancestry.options[${number}].features[${number}].options[${number}].spells[${number}]`
+  | `features[${number}].spells[${number}]`
+  | `features[${number}].options[${number}].spells[${number}]`
 
-const Spells = ({ category, subtypes }: SpellsProps) => {
-  const current = useFeatureSpellStore((state) => state.current)
-  const registerForm = useFeatureSpellStore((state) => state.registerForm)
-  const formReset = useFeatureSpellStore((state) => state.formReset)
-  const updateField = useFeatureSpellStore((state) => state.updateField)
-  const removeField = useFeatureSpellStore((state) => state.removeField)
-  const valid = useFeatureSpellStore((state) => state.valid)
-  const upsertValid = useFeatureSpellStore((state) => state.upsertValid)
-  const formAttributes = useFeatureSpellStore((state) => state.current?.attributes)
-  const formClassLimit = useFeatureSpellStore((state) => state.current?.classLimit)
-  const formLevelLimit = useFeatureSpellStore((state) => state.current?.levelLimit)
-  const formAttributeLimit = useFeatureSpellStore((state) => state.current?.attributeLimit)
-  const formSpellsByLevel = useFeatureSpellStore((state) => state.current?.spellsByLevel)
+type StoreType = UnionToIntersection<SetOptional<Exclude<FormDataType, CharacterInput | SpellInput>, '__kind'>>
 
-  const __kind = useFormStore((state) => state.current?.__kind)
+const Spells = () => {
+  const store = useTypedFormStore<StoreType>()
 
-  const form = useAppForm({
-    defaultValues: FeatureSpellInputSchema.parse(current),
+  const { AppField } = useFormField({ store })
+
+  const {
+    updateField,
+    category,
+    subtypes,
+    formAttributes,
+    formClassLimit,
+    formAttributeLimit,
+    formSpellsByLevel,
+    formLevelLimit,
+    meta,
+    stateKind,
+  } = useOptimizedSelector(store, (state) => {
+    const { ancestryOptionIndex, featureIndex, optionIndex, sectionIndex } = state.meta.editing
+
+    const feature =
+      featureIndex !== null ?
+        ancestryOptionIndex !== null && state.current?.__kind === 'RaceInput' ?
+          state.current?.ancestry?.options?.[ancestryOptionIndex]?.features?.[featureIndex]
+        : state.current?.features?.[featureIndex]
+      : undefined
+
+    const option = feature && (optionIndex !== null ? feature?.options?.[optionIndex] : undefined)
+
+    const section = option ? option?.spells?.[sectionIndex || 0] : feature?.spells?.[sectionIndex || 0]
+
+    return {
+      updateField: state.updateField,
+      category: feature?.category,
+      subtypes: state.current?.__kind === 'ClassInput' ? state.current?.subtypes : undefined,
+      formAttributes: section?.attributes,
+      formClassLimit: section?.classLimit,
+      formAttributeLimit: section?.attributeLimit,
+      formSpellsByLevel: section?.spellsByLevel,
+      formLevelLimit: section?.levelLimit,
+      meta: state.meta,
+      stateKind: state.current?.__kind,
+    }
   })
 
-  const { fieldListeners, fieldValidators } = useFieldUpdates({ data: 'spell' })
+  const computePath = useCallback(() => {
+    const segments: string[] = []
 
-  const { AppField } = form
+    if (meta.editing.ancestryOptionIndex && stateKind === 'RaceInput') {
+      segments.push(`ancestry.options[${meta.editing.ancestryOptionIndex}]`)
+    }
+
+    if (meta.editing.featureIndex !== undefined) {
+      segments.push(`features[${meta.editing.featureIndex}]`)
+    }
+
+    if (meta.editing.optionIndex !== undefined) {
+      segments.push(`options[${meta.editing.optionIndex}]`)
+    }
+    segments.push(`spells[${meta.editing.sectionIndex || 0}]`)
+
+    return segments.join('.') + '.'
+  }, [meta, stateKind])
+
+  const formPath = useMemo(() => {
+    return computePath()
+  }, [computePath]) as FeaturePath
+
+  const { fieldListeners, fieldValidators } = useFieldUpdates()
 
   const { attributes, abilities } = useSystemData()
-  const { spells, metaData: spellMetaData } = useSpellData()
-  const { classes } = useClassData()
+
+  const {
+    data: { spells, metaData: spellMetaData },
+  } = useListSpells()
+
+  const {
+    data: { classes },
+  } = useListClasses()
+
   const { getAttributes } = useEnumChecks()
 
   const {
@@ -97,274 +155,198 @@ const Spells = ({ category, subtypes }: SpellsProps) => {
   // Add/Remove Spells By Level Data
   useEffect(() => {
     if (!spellsByLevel && formSpellsByLevel) {
-      form.setFieldValue('spellsByLevel', undefined)
+      updateField({ path: `${formPath}.spellsByLevel`, value: undefined })
     }
     if (spellsByLevel && !formSpellsByLevel) {
-      const spellsByLevelObject = SpellsByLevelInputSchema.parse({})
-      form.setFieldValue('spellsByLevel', [spellsByLevelObject])
+      const spellsByLevelObject = SpellsByLevelInputSchema.parse({
+        id: uuidv4(),
+        __kind: 'SpellsByLevelInput',
+      })
+      updateField({ path: `${formPath}.spellsByLevel`, value: [spellsByLevelObject] })
     }
-  }, [formSpellsByLevel, spellsByLevel, form])
-
-  useEffect(() => {
-    if (!formReset) {
-      registerForm(form.reset)
-    }
-  }, [form.reset, registerForm, formReset])
-
-  useEffect(() => {
-    return form.store.subscribe((state) => {
-      const isValid = state.currentVal.isValid
-      if (current?.id && valid.get(current.id) !== isValid) {
-        upsertValid(current.id, isValid)
-      }
-    })
-  }, [valid, upsertValid, current?.id, form.store])
+  }, [formSpellsByLevel, spellsByLevel, formPath, updateField])
 
   return (
-    <Grid>
-      <AppField name='attributes' listeners={fieldListeners}>
+    <Stack>
+      <AppField name={`${formPath}.attributes`} listeners={fieldListeners}>
         {({ DropdownField }) => (
-          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-            <DropdownField
-              multiselect={true}
-              options={attributes.filter(
-                (attribute) =>
-                  attribute?.sections?.length &&
-                  (attribute.sections.includes(Sections.SPELL) ||
-                    attribute.sections.includes(Sections.ALL) ||
-                    (category === Categories.SUBCLASS && attribute.sections.includes(Sections.SUBCLASS)))
-              )}
-              label='Spell Attributes'
-            />
-          </Grid.Col>
+          <DropdownField
+            multiselect={true}
+            options={attributes.filter(
+              (attribute) =>
+                attribute?.sections?.length &&
+                (attribute.sections.includes(Sections.SPELL) ||
+                  attribute.sections.includes(Sections.ALL) ||
+                  (category === Categories.SUBCLASS && attribute.sections.includes(Sections.SUBCLASS)))
+            )}
+            label='Spell Attributes'
+          />
         )}
       </AppField>
       {classLimit && (
         <AppField
-          name='classLimit'
+          name={`${formPath}.classLimit`}
           validators={fieldValidators({
             onBlur: 'Select a class limit',
           })}
           listeners={fieldListeners}
         >
           {({ DropdownField }) => (
-            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-              <DropdownField multiselect={true} options={classes} label='Class Limit' required={true} />
-            </Grid.Col>
+            <DropdownField multiselect={true} options={classes} label='Class Limit' required={true} />
           )}
         </AppField>
       )}
       {levelLimit && (
         <AppField
-          name='levelLimit'
+          name={`${formPath}.levelLimit`}
           validators={fieldValidators({
             onBlur: 'Select a level limit',
           })}
           listeners={fieldListeners}
         >
           {({ DropdownField }) => (
-            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-              <DropdownField
-                multiselect={true}
-                options={spellMetaData?.levels.map((l) => ({
-                  id: String(l.id),
-                  label: l.id,
-                  value: l.id,
-                }))}
-                label='Level Limit'
-                required={true}
-              />
-            </Grid.Col>
+            <DropdownField
+              multiselect={true}
+              options={spellMetaData?.levels.map((l) => ({
+                id: String(l.id),
+                label: l.id,
+                value: l.id,
+              }))}
+              label='Level Limit'
+              required={true}
+            />
           )}
         </AppField>
       )}
       {attributeLimit && (
         <AppField
-          name='attributeLimit'
+          name={`${formPath}.attributeLimit`}
           validators={fieldValidators({
             onBlur: 'Select an attribute limit',
           })}
           listeners={fieldListeners}
         >
           {({ DropdownField }) => (
-            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-              <DropdownField
-                multiselect={true}
-                options={attributes.filter(
-                  (attribute) => attribute?.sections?.length && attribute.sections.includes(Sections.SPELL)
-                )}
-                label='Attribute Limit'
-                required={true}
-              />
-            </Grid.Col>
+            <DropdownField
+              multiselect={true}
+              options={attributes.filter(
+                (attribute) => attribute?.sections?.length && attribute.sections.includes(Sections.SPELL)
+              )}
+              label='Attribute Limit'
+              required={true}
+            />
           )}
         </AppField>
       )}
-      {subtypeSpecific && __kind === 'ClassInput' && subtypes?.length && (
+      {subtypeSpecific && subtypes?.length && (
         <AppField
-          name='subtype'
+          name={`${formPath}.subtype`}
           validators={fieldValidators({
             onBlur: 'Select a subtype',
           })}
           listeners={fieldListeners}
         >
-          {({ DropdownField }) => (
-            <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-              <DropdownField options={subtypes} label='Subtype' required={true} />
-            </Grid.Col>
-          )}
+          {({ DropdownField }) => <DropdownField options={subtypes} label='Subtype' required={true} />}
         </AppField>
       )}
       {!spellsByLevel && (
         <>
           <AppField
-            name='ids'
+            name={`${formPath}.ids`}
             validators={fieldValidators({
               onBlur: 'Select at least one spell',
             })}
             listeners={fieldListeners}
           >
             {({ DropdownField }) => (
-              <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                <DropdownField multiselect={true} options={spellsArray} label='Spells' required={true} />
-              </Grid.Col>
+              <DropdownField multiselect={true} options={spellsArray} label='Spells' required={true} />
             )}
           </AppField>
           {castAtLevel && (
             <AppField
-              name='spellLevel'
+              name={`${formPath}.spellLevel`}
               validators={fieldValidators({
                 onBlur: 'Please set a spell level to cast the spell at',
                 onChange: { type: 'integer', name: 'Spell level', min: 1 },
               })}
               listeners={fieldListeners}
             >
-              {({ TextField }) => (
-                <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                  <TextField label='Spell Level' required={true} />
-                </Grid.Col>
-              )}
+              {({ TextField }) => <TextField label='Spell Level' required={true} />}
             </AppField>
           )}
           {optionalAbility && (
             <AppField
-              name='ability'
+              name={`${formPath}.ability`}
               validators={fieldValidators({
                 onBlur: 'Select the optional ability',
               })}
               listeners={fieldListeners}
             >
-              {({ DropdownField }) => (
-                <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                  <DropdownField options={abilities} label='Ability' required={true} />
-                </Grid.Col>
-              )}
+              {({ DropdownField }) => <DropdownField options={abilities} label='Ability' required={true} />}
             </AppField>
           )}
           {providesOptions && (
             <AppField
-              name='selectionCount'
+              name={`${formPath}.selectionCount`}
               validators={fieldValidators({
                 onBlur: 'Please set an amount of allowed selections',
                 onChange: { type: 'integer', name: 'Selection count', min: 1 },
               })}
               listeners={fieldListeners}
             >
-              {({ TextField }) => (
-                <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                  <TextField label='# of Selections' required={true} />
-                </Grid.Col>
-              )}
+              {({ TextField }) => <TextField label='# of Selections' required={true} />}
             </AppField>
           )}
         </>
       )}
       {spellsByLevel && (
         <>
-          <Grid.Col>
-            <Grid>
-              <Grid.Col>Level</Grid.Col>
-              <Grid.Col>Spell</Grid.Col>
-              {castAtLevel && <Grid.Col>Die Value</Grid.Col>}
-            </Grid>
-          </Grid.Col>
-          <AppField name='spellsByLevel' mode='array'>
+          <Text>Level</Text>
+          <Text>Spell</Text>
+          {castAtLevel && <Text>Die Value</Text>}
+          <AppField name={`${formPath}.spellsByLevel`} mode='array'>
             {({ state }) =>
               state.value?.map((_, i) => (
-                <Grid.Col key={`${i}-spellsByLevel`}>
-                  <Grid>
+                <Fragment key={`spellsByLevel-${i}`}>
+                  <AppField
+                    name={`${formPath}.spellsByLevel[${i}].level`}
+                    validators={fieldValidators({
+                      onBlur: 'Select a spell level',
+                    })}
+                    listeners={fieldListeners}
+                  >
+                    {({ DropdownField }) => <DropdownField options={spells} required={true} />}
+                  </AppField>
+                  <AppField
+                    name={`${formPath}.spellsByLevel[${i}].ids`}
+                    validators={fieldValidators({
+                      onBlur: 'Select at least one spell',
+                    })}
+                    listeners={fieldListeners}
+                  >
+                    {({ DropdownField }) => <DropdownField multiselect={true} options={spells} required={true} />}
+                  </AppField>
+                  {castAtLevel && (
                     <AppField
-                      name={`spellsByLevel[${i}].level`}
+                      name={`${formPath}.spellsByLevel[${i}].spellLevel`}
                       validators={fieldValidators({
-                        onBlur: 'Select a spell level',
+                        onBlur: 'Please set a spell level to cast the spell at',
+                        onChange: { type: 'integer', name: 'Spell level', min: 1 },
                       })}
                       listeners={fieldListeners}
                     >
-                      {({ DropdownField }) => (
-                        <Grid.Col>
-                          <DropdownField options={spells} required={true} />
-                        </Grid.Col>
-                      )}
+                      {({ TextField }) => <TextField label='Spell Level' required={true} />}
                     </AppField>
-                    <AppField
-                      name={`spellsByLevel[${i}].ids`}
-                      validators={fieldValidators({
-                        onBlur: 'Select at least one spell',
-                      })}
-                      listeners={fieldListeners}
-                    >
-                      {({ DropdownField }) => (
-                        <Grid.Col>
-                          <DropdownField multiselect={true} options={spells} required={true} />
-                        </Grid.Col>
-                      )}
-                    </AppField>
-                    {castAtLevel && (
-                      <AppField
-                        name={`spellsByLevel[${i}].spellLevel`}
-                        validators={fieldValidators({
-                          onBlur: 'Please set a spell level to cast the spell at',
-                          onChange: { type: 'integer', name: 'Spell level', min: 1 },
-                        })}
-                        listeners={fieldListeners}
-                      >
-                        {({ TextField }) => (
-                          <Grid.Col span={{ base: 6, md: 4, lg: 2 }}>
-                            <TextField label='Spell Level' required={true} />
-                          </Grid.Col>
-                        )}
-                      </AppField>
-                    )}
-                  </Grid>
-                </Grid.Col>
+                  )}
+                </Fragment>
               ))
             }
           </AppField>
         </>
       )}
-      {hasPrerequisites && (
-        <Grid.Col>
-          <Prerequisites
-            form={form}
-            fields='prerequisites'
-            __kind='FeatureSpellInput'
-            updateFn={updateField}
-            removeFn={removeField}
-          />
-        </Grid.Col>
-      )}
-      {limitUse && (
-        <Grid.Col>
-          <LimitUse
-            form={form}
-            fields='charges'
-            __kind='FeatureSpellInput'
-            updateFn={updateField}
-            removeFn={removeField}
-          />
-        </Grid.Col>
-      )}
-    </Grid>
+      {hasPrerequisites && <Prerequisites />}
+      {limitUse && <LimitUse />}
+    </Stack>
   )
 }
 

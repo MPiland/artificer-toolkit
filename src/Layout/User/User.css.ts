@@ -1,6 +1,6 @@
 import { style } from '@vanilla-extract/css'
-import { app } from '@/css/layers.css'
-import { vars } from '@/css/theme'
+import { app } from '~/css/layers.css'
+import { vars } from '~/css/theme'
 import { base as layout } from '../Layout.css'
 
 export const base = style({

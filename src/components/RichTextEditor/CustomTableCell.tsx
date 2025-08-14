@@ -31,7 +31,7 @@ const CustomTableCell = TableCell.extend({
     let fixedWidth = true
 
     if (HTMLAttributes.colwidth) {
-      HTMLAttributes.colwidth.forEach((col: any) => {
+      HTMLAttributes.colwidth.forEach((col: number) => {
         if (!col) {
           fixedWidth = false
         } else {

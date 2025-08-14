@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
-import ClassForm from '@/pages/classes/ClassForm'
-import { fetchClass } from '@/apis/classes.api'
-import Loading from '@/components/Loading/Loading'
+import ClassForm from '~/pages/classes/ClassForm'
+import { fetchClass } from '~/apis'
+import Loading from '~/components/Loading/Loading'
 import { Modal } from '@mantine/core'
 
 export const Route = createFileRoute('/_protected/classes/$action/$_classId')({

@@ -1,6 +1,6 @@
 import { globalStyle, style } from '@vanilla-extract/css'
-import { app } from '@/css/layers.css'
-import { size, space } from '@/css/size.css'
+import { app } from '~/css/layers.css'
+import { size, space } from '~/css/size.css'
 
 export const item = style({
   '@layer': {

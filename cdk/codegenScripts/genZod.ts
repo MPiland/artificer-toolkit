@@ -26,16 +26,6 @@ const scalarMap = {
   Date: 'z.string().datetime().transform((val) => new Date(val))',
 } as const
 
-// const scalarDefaultMap = {
-//   String: '""',
-//   Int: '0',
-//   Float: '0',
-//   Boolean: 'false',
-//   ID: '""',
-//   DateTime: 'new Date().toISOString()',
-//   Date: 'new Date().toISOString()',
-// } as const
-
 const toConstEnumArrayName = (enumName: string): string => {
   return enumName
     .replace(/([a-z0-9])([A-Z])/g, '$1_$2') // camelCase → snake_case
@@ -54,17 +44,14 @@ const unwrapType = (
   let listDepth = 0
   let isListItemNonNull = false
 
-  // Check if the root type is NonNull
   if (isNonNullType(type)) {
     isNonNull = true
     type = type.ofType
   }
 
-  // Count nested lists depth and track nullability
   while (isListType(type)) {
     listDepth++
     type = type.ofType
-    // Check if list items are NonNull
     if (isNonNullType(type)) {
       isListItemNonNull = true
       type = type.ofType
@@ -78,7 +65,6 @@ const createZodType = ({ type }: { type: GraphQLInputType | GraphQLOutputType })
   const { type: unwrappedType, isNonNull, listDepth, isListItemNonNull } = unwrapType(type)
   let zodType: string
 
-  // Base type mapping
   if (isScalarType(unwrappedType)) {
     zodType = scalarMap[unwrappedType.name as keyof typeof scalarMap] || 'z.unknown()'
   } else if (isEnumType(unwrappedType)) {
@@ -90,7 +76,6 @@ const createZodType = ({ type }: { type: GraphQLInputType | GraphQLOutputType })
     zodType = 'z.unknown()'
   }
 
-  // Wrap in arrays
   for (let i = 0; i < listDepth; i++) {
     if (isListItemNonNull) {
       zodType = `z.array(${zodType})`
@@ -99,65 +84,17 @@ const createZodType = ({ type }: { type: GraphQLInputType | GraphQLOutputType })
     }
   }
 
-  // Handle nullability and defaults
-  if (listDepth > 0) {
-    // Required array → optional with default
-    if (!isNonNull) {
-      zodType += `.nullish()`
-    }
-  } else {
-    // Non-array field
-    if (isInputObjectType(unwrappedType) || isObjectType(unwrappedType)) {
-      if (!isNonNull) {
-        // Optional object → nullish with null default
-        zodType += `.nullish()`
-      }
-    } else {
-      // Scalar and enum types
-      if (!isNonNull) {
-        // Optional field → nullish with null default
-        zodType += `.nullish()`
-      }
-    }
+  if (!isNonNull) {
+    zodType = `${zodType}.nullish()`
   }
 
   return zodType
 }
 
-const createZodInputObject = (type: GraphQLInputObjectType): string => {
-  const fields = type.getFields()
-  const objectName = type.name.charAt(0).toLowerCase() + type.name.slice(1)
-  let content = `export const ${objectName}Object = {\n`
-
-  // Add __kind discriminator for input types
-  content += `    __kind: z.literal('${type.name}'),\n`
-
-  for (const [name, field] of Object.entries(fields)) {
-    const zodType = createZodType({
-      type: field.type,
-    })
-    content += `    ${name}: ${zodType},\n`
-  }
-
-  content += `} satisfies Properties<${type.name}>\n\n`
-
-  const schema = `export const ${type.name}Schema = z.object(${objectName}Object)\n\n`
-
-  content += schema
-
-  const schemaType = `export type ${type.name}Infer = z.infer<typeof ${type.name}Schema>\n\n`
-
-  content += schemaType
-  return content
-}
-
-// --- Dependency Graph and Topological Sort ---
-
 const getInputTypeDependencies = (type: GraphQLInputObjectType): string[] => {
   const deps: string[] = []
   for (const field of Object.values(type.getFields())) {
     let t = field.type
-    // Unwrap NonNull and List
     while (isNonNullType(t) || isListType(t)) {
       t = t.ofType
     }
@@ -166,6 +103,39 @@ const getInputTypeDependencies = (type: GraphQLInputObjectType): string[] => {
     }
   }
   return deps
+}
+
+const findLazyTypes = (types: GraphQLInputObjectType[]): Set<string> => {
+  const refCount: Record<string, Set<string>> = {}
+  const lazySet = new Set<string>()
+
+  // Helper recursive visitor to detect recursion
+  const visit = (parent: string, current: GraphQLInputObjectType, seen: Set<string>) => {
+    if (seen.has(current.name)) {
+      lazySet.add(current.name) // recursive type detected
+      return
+    }
+    seen.add(current.name)
+    for (const depName of getInputTypeDependencies(current)) {
+      if (!refCount[depName]) {
+        refCount[depName] = new Set()
+      }
+      refCount[depName].add(parent)
+    }
+  }
+
+  for (const parent of types) {
+    visit(parent.name, parent, new Set())
+  }
+
+  // Mark multi-referenced types as lazy as well
+  for (const [typeName, parents] of Object.entries(refCount)) {
+    if (parents.size > 1) {
+      lazySet.add(typeName)
+    }
+  }
+
+  return lazySet
 }
 
 const topologicalSortTypes = (types: GraphQLInputObjectType[]): GraphQLInputObjectType[] => {
@@ -190,63 +160,68 @@ const topologicalSortTypes = (types: GraphQLInputObjectType[]): GraphQLInputObje
   return sorted
 }
 
-// --- Main Generation Function ---
+const createZodInputSchema = (type: GraphQLInputObjectType, lazyTypes: Set<string>): string => {
+  const fields = type.getFields()
+  const isLazy = lazyTypes.has(type.name)
+
+  let schemaBody = `{\n`
+  schemaBody += `  __kind: z.literal('${type.name}'),\n`
+  for (const [name, field] of Object.entries(fields)) {
+    const zodType = createZodType({ type: field.type })
+    schemaBody += `  ${name}: ${zodType},\n`
+  }
+  schemaBody += `}`
+
+  const schemaCode = isLazy ? `z.lazy(() => z.object(${schemaBody}))` : `z.object(${schemaBody})`
+
+  return (
+    `export const ${type.name}Schema = ${schemaCode}\n\n` +
+    `export type ${type.name} = z.infer<typeof ${type.name}Schema>\n\n`
+  )
+}
 
 const generateZodSchemas = async (schemaPath: string) => {
   const schema: GraphQLSchema = await loadSchema(schemaPath, {
     loaders: [new GraphQLFileLoader()],
   })
 
-  const typeNames: string[] = []
-  let inputObjects = ''
-
-  // Find input object types (exclude Batch types as in original)
+  // Get input object types (filter out introspection and batch types)
   const inputTypes = Object.values(schema.getTypeMap()).filter(
     (type): type is GraphQLInputObjectType =>
       isInputObjectType(type) && !type.name.startsWith('__') && !type.name.startsWith('Batch')
   )
 
-  // Topologically sort input types so dependencies come first
+  // Compute which types need lazy due to recursion or multiple references
+  const lazyTypes = findLazyTypes(inputTypes)
+
+  // Sort input types topologically
   const sortedInputTypes = topologicalSortTypes(inputTypes)
 
-  // Find enum types
+  // Find enums ending with 'Input' for import
   const enumTypes = Object.values(schema.getTypeMap()).filter(
     (type): type is GraphQLEnumType => isEnumType(type) && !type.name.startsWith('__') && type.name.endsWith('Input')
   )
 
-  // Generate input object schemas in sorted order
-  for (const inputType of sortedInputTypes) {
-    typeNames.push(inputType.name)
-    inputObjects += createZodInputObject(inputType)
-  }
-
-  // Combine imports - import both types and enums
-  const allTypes = [...typeNames, ...enumTypes.map((e) => toConstEnumArrayName(e.name))].join(', ')
   let output = `import { z } from 'zod/v4'\n`
-
-  if (allTypes) {
-    output += `import { ${allTypes} } from '@/types'\n\n`
+  if (enumTypes.length) {
+    const enumNames = enumTypes.map((e) => toConstEnumArrayName(e.name))
+    output += `import { ${enumNames.join(', ')} } from '@/types'\n\n`
   }
 
-  output += `type Properties<T> = Required<{\n`
-  output += `  [K in keyof T]: z.ZodType<T[K]>\n`
-  output += `}>\n\n`
-
-  if (inputObjects) {
-    output += inputObjects
+  for (const inputType of sortedInputTypes) {
+    output += createZodInputSchema(inputType, lazyTypes)
   }
 
   return output
 }
 
-// --- Script Entrypoint ---
+// --- Entrypoint ---
 
 const schemaPath = path.resolve(__dirname, '../lib/schema.graphql')
 
 generateZodSchemas(schemaPath).then((code) => {
   const outputPath = path.resolve(__dirname, '../../src/zod/schemas.ts')
 
-  // Ensure directory exists
   const outputDir = path.dirname(outputPath)
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true })

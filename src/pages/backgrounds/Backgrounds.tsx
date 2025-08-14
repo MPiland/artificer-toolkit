@@ -1,9 +1,10 @@
-import List from '@/components/List'
-import { useDeleteBackground } from '@/apis/backgrounds.api'
-import { useBackgroundData } from '@/hooks'
+import List from '~/components/List'
+import { useDeleteBackground, useListBackgrounds } from '~/apis'
 
 const Backgrounds = () => {
-  const { backgrounds } = useBackgroundData()
+  const {
+    data: { backgrounds },
+  } = useListBackgrounds()
   return <List data={backgrounds} useDeleteItem={useDeleteBackground} />
 }
 

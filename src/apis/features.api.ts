@@ -1,7 +1,7 @@
 import { getClient } from './utils'
-import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query'
-import { listFeatures, listMasterFeatures, getFeature, getMasterFeature } from '@/queries'
-import type { FeatureInput, Feature, QueryListFeaturesArgs, QueryListMasterFeaturesArgs } from 'gql/types'
+import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { listFeatures, listMasterFeatures, getFeature, getMasterFeature } from '~/queries'
+import type { FeatureInput, Feature, QueryListFeaturesArgs, QueryListMasterFeaturesArgs, FeatureListItem } from 'gql/types'
 import {
   createFeature,
   createMasterFeature,
@@ -9,7 +9,8 @@ import {
   updateMasterFeature,
   deleteMasterFeature,
   deleteFeature,
-} from '@/mutations'
+} from '~/mutations'
+import { useSystemPref } from '~/hooks'
 
 const featuresKeys = {
   all: ['features'] as const,
@@ -21,7 +22,7 @@ export const fetchFeatures = (systemPref: string) => {
   return queryOptions({
     queryKey: featuresKeys.lists(),
     queryFn: async () => {
-      let allData: { features: Feature[] } = {
+      let allData: { features: FeatureListItem[] } = {
         features: [],
       }
       let nextToken: string | null = null
@@ -128,7 +129,16 @@ export const fetchFeature = (id: string) => {
   })
 }
 
-export const useAddNewFeatureMutation = () => {
+export const useListFeatures = () => {
+  const [systemPref] = useSystemPref()
+  return useSuspenseQuery(fetchFeatures(systemPref))
+}
+
+export const useGetFeature = (id: string) => {
+  return useSuspenseQuery(fetchFeature(id))
+}
+
+export const useAddFeature = () => {
   const queryClient = useQueryClient()
 
   return useMutation<Feature, Error, FeatureInput, unknown>({
@@ -168,7 +178,7 @@ export const useAddNewFeatureMutation = () => {
   })
 }
 
-export const useUpdateFeatureMutation = () => {
+export const useUpdateFeature = () => {
   const queryClient = useQueryClient()
 
   return useMutation<Feature, Error, FeatureInput, unknown>({
@@ -208,7 +218,7 @@ export const useUpdateFeatureMutation = () => {
   })
 }
 
-export const useDeleteFeatureMutation = () => {
+export const useDeleteFeature = () => {
   const queryClient = useQueryClient()
 
   return useMutation({

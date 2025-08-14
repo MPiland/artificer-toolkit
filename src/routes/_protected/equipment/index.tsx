@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
-import Equipments from '@/pages/equipment/Equipments'
-import { fetchAllEquipment } from '@/apis/equipment.api'
-import Loading from '@/components/Loading/Loading'
+import Equipments from '~/pages/equipment/Equipments'
+import { fetchAllEquipment } from '~/apis'
+import Loading from '~/components/Loading/Loading'
 import { Modal } from '@mantine/core'
 
 export const Route = createFileRoute('/_protected/equipment/')({
@@ -10,7 +10,7 @@ export const Route = createFileRoute('/_protected/equipment/')({
   },
   loader: ({ context }) => context.queryClient.ensureQueryData(fetchAllEquipment(context.systemPref)),
   pendingComponent: () => (
-    <Modal withCloseButton={false}  opened onClose={() => {}} centered size='auto'>
+    <Modal withCloseButton={false} opened onClose={() => {}} centered size='auto'>
       <Loading />
     </Modal>
   ),

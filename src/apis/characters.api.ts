@@ -1,8 +1,9 @@
-import { useMutation, useQueryClient, queryOptions } from '@tanstack/react-query'
-import { getCharacter, listCharacters } from '@/queries'
-import { createCharacter, deleteCharacter, updateCharacter } from '@/mutations'
-import type { Character, QueryListCharactersArgs, CharacterInput } from '@/types'
+import { useMutation, useQueryClient, queryOptions, useSuspenseQuery } from '@tanstack/react-query'
+import { getCharacter, listCharacters } from '~/queries'
+import { createCharacter, deleteCharacter, updateCharacter } from '~/mutations'
+import type { Character, QueryListCharactersArgs, CharacterInput } from '~/types'
 import { userDomainClient } from './utils'
+import { useSystemPref } from '~/hooks'
 
 const charactersKeys = {
   all: ['characters'] as const,
@@ -74,6 +75,19 @@ export const fetchCharacter = (id: string) => {
       }
     },
   })
+}
+
+export const useListCharacters = () => {
+  const [systemPref] = useSystemPref()
+  const { data } = useSuspenseQuery(fetchCharacters(systemPref))
+
+  return data
+}
+
+export const useGetCharacter = (id: string) => {
+  const { data } = useSuspenseQuery(fetchCharacter(id))
+
+  return data
 }
 
 export const useAddCharacter = () => {

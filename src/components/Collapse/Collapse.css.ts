@@ -1,7 +1,7 @@
 import { style } from '@vanilla-extract/css'
-import { theme, vars } from '@/css/theme'
-import { space } from '@/css/size.css'
-import { app } from '@/css/layers.css'
+import { theme, vars } from '~/css/theme'
+import { space } from '~/css/size.css'
+import { app } from '~/css/layers.css'
 
 export const base = style({
   '@layer': {

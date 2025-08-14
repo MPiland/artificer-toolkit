@@ -1,5 +1,42 @@
-import { truncate } from 'lodash'
-import type { MetaDataItem } from '../hooks/useMetaData'
+import { truncate } from 'lodash-es'
+import type { MetaDataItem } from '~/hooks'
+import type { CamelCase } from 'type-fest'
+import { camelCase } from 'lodash-es'
+import {  ModCats, ModSpellCats } from '~/enums'
+
+export const getModifierProperties = ({
+  category,
+}: {
+  category: CamelCase<keyof typeof ModCats | keyof typeof ModSpellCats>
+}) => {
+  switch (camelCase(category)) {
+    case 'conditionSave':
+    case 'conditions':
+      return 'conditions'
+    case 'unarmedDamage':
+    case 'meleeDamage':
+    case 'rangeDamage':
+    case 'spellDamage':
+    case 'damageSave':
+    case 'damageTypes':
+      return 'damageTypes'
+    case 'speeds':
+      return 'speeds'
+    case 'spell':
+    case 'spells':
+      return 'spells'
+    case 'saveAbilities':
+      return 'saveAbilities'
+    case 'abilityScores':
+      return 'abilities'
+    case 'spellRange':
+      return 'range'
+    case 'spellDuration':
+      return 'duration'
+    case 'spellShape':
+      return 'shape'
+  }
+}
 
 // Function to create an array with methods
 export const createArrayWithMethods = <
