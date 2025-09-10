@@ -2,9 +2,7 @@ import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/_protected')({
   beforeLoad: async ({ context, location }) => {
-    const { isAuthenticating, user, isLoading } = context.auth
-
-    if (!isAuthenticating && !user && !isLoading) {
+    if (!context.session) {
       throw redirect({
         to: '/login',
         search: {

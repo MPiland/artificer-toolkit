@@ -1,27 +1,42 @@
-import { Box, Center, Container, Group, Paper, Text, Title, Alert, Stack, Button, TextInput } from '@mantine/core'
+import { Box, Center, Container, Group, Paper, Text, Title, Stack, Button, PasswordInput } from '@mantine/core'
 import { ArrowLeft } from 'lucide-react'
-import { resetPassword } from '~/apis'
-import { Info } from 'lucide-react'
 import Link from '~/components/Link'
 import { auth_container, auth_title, fp_controls, fp_control, fp_arrow, auth_wrapper, auth_subtitle } from './Auth.css'
-import { useState } from 'react'
 import { useForm } from '@tanstack/react-form'
+import { supabase } from '~/supabase'
+import { notifications } from '@mantine/notifications'
+import { useNavigate } from '@tanstack/react-router'
 
 const ResetPassword = () => {
-  const [formMessage, setFormMessage] = useState<string | null>(null)
+  const navigate = useNavigate()
 
   const form = useForm({
     defaultValues: {
-      email: '',
+      password: '',
     },
-    onSubmit: async ({ value: { email } }) => {
-      setFormMessage(null)
-      await resetPassword({ email })
-      return setFormMessage('If an account with this email exists, a confirmation code will be sent.')
+    onSubmit: async ({ value: { password } }) => {
+      const { error } = await supabase.auth.updateUser({ password })
+      if (error) {
+        console.error(error.message)
+        return notifications.show({
+          message: 'Something went wrong',
+          color: 'red',
+          position: 'top-center',
+          autoClose: 2500,
+        })
+      } else {
+        navigate({ to: '/' })
+        return notifications.show({
+          message: 'Password reset successfully!',
+          color: 'green',
+          position: 'top-center',
+          autoClose: 2500,
+        })
+      }
     },
   })
 
-  const { handleSubmit, reset, state } = form
+  const { handleSubmit, reset } = form
 
   return (
     <Container
@@ -35,38 +50,31 @@ const ResetPassword = () => {
     >
       <Stack className={auth_wrapper}>
         <Title className={auth_title} ta='center'>
-          Forgot your password?
+          Reset Password
         </Title>
         <Text c='dimmed' fz='sm' ta='center' className={auth_subtitle}>
-          Enter your email to get a reset confirmation code email
+          Enter your new password
         </Text>
         <Paper withBorder shadow='md' p={30} radius='md'>
-          {formMessage && (
-            <Alert variant='light' color='blue' icon={<Info />} mb='sm'>
-              {formMessage}{' '}
-              <Link size='sm' type='anchor' to='/reset-password/confirm' search={{ email: state.values.email }}>
-                Confirm now
-              </Link>
-            </Alert>
-          )}
           <form.Field
-            name='email'
+            name='password'
             validators={{
-              onChange: ({ value }) => {
-                if (!value) return null
-                return /^\S+@\S+$/.test(value) ? null : 'Enter a valid email address.'
-              },
-              onSubmit: ({ value }) => (value && /^\S+@\S+$/.test(value) ? null : 'Enter a valid email address.'),
+              onBlur: ({ value }) =>
+                value &&
+                (value.length <= 8 || value.length >= 20 ? 'Password should include at least 8-20 characters'
+                : /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,20}$/.test(value) ? null
+                : 'Password should include at least one uppercase letter, one number and one special character'),
+              onSubmit: ({ value }) => (!value || value === '') && 'Password is required',
             }}
           >
             {(field) => (
-              <TextInput
-                label='Email'
-                placeholder={'user@email.com'}
+              <PasswordInput
+                label='Password'
+                placeholder='Password...'
                 value={field.state.value}
+                onBlur={field.handleBlur}
                 onChange={(e) => field.handleChange(e.target.value)}
                 error={!field.state.meta.isValid && field.state.meta.errors.join(', ')}
-                autoComplete='username'
               />
             )}
           </form.Field>

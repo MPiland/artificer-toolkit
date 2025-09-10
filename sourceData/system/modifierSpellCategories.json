@@ -1,0 +1,22 @@
+[
+  {
+    "id": "4e160791-f35b-4673-8d18-7fcf40f0ab2d",
+    "tooltip": "Modify the spell damage of the selected spell(s).",
+    "label": "Spell Damage"
+  },
+  {
+    "id": "69da6ffc-75cc-423f-b4df-d25761887059",
+    "tooltip": "Modify the spell range of the selected spell(s).",
+    "label": "Spell Range"
+  },
+  {
+    "id": "9ec47cfe-5a3d-422e-8766-6a14567e3847",
+    "tooltip": "Modify the spell shape of the selected spell(s).",
+    "label": "Spell Shape"
+  },
+  {
+    "id": "c28701c5-ecd4-4499-9c2d-69ec5497c009",
+    "tooltip": "Modify the spell duration of the selected spell(s).",
+    "label": "Spell Duration"
+  }
+]

@@ -1,0 +1,52 @@
+[
+  {
+    "id": "96d0ab53-c63e-47d3-a873-d2b5af119bb6",
+    "label": "Huge",
+    "owner": "master"
+  },
+  {
+    "id": "52d0c137-c7a2-406b-9706-00c5d1f7b058",
+    "label": "Giant",
+    "owner": "master"
+  },
+  {
+    "id": "c5796805-1672-478b-b59f-7eaeef42f6ac",
+    "label": "Tiny",
+    "owner": "master"
+  },
+  {
+    "id": "de6183d7-ded2-4a05-b0fe-dfb7cac5dcf1",
+    "label": "Fine",
+    "owner": "master"
+  },
+  {
+    "id": "36dac0d3-5d75-46a3-a81b-5c2b0fca177d",
+    "label": "Dimunitive",
+    "owner": "master"
+  },
+  {
+    "id": "10910065-c17e-4994-93d3-f030d9b4c649",
+    "label": "Medium",
+    "owner": "master"
+  },
+  {
+    "id": "63a14559-5fe0-4695-8a38-4fe04f490ada",
+    "label": "Colossal",
+    "owner": "master"
+  },
+  {
+    "id": "c6dcfa53-da6e-4258-8857-37eea7135c52",
+    "label": "Small",
+    "owner": "master"
+  },
+  {
+    "id": "4a7594b9-ad03-4065-9e89-b17d17685de1",
+    "label": "Gargantuan",
+    "owner": "master"
+  },
+  {
+    "id": "a21fdef5-470f-4f2b-a233-0408e3e331f2",
+    "label": "Large",
+    "owner": "master"
+  }
+]

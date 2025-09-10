@@ -1,0 +1,26 @@
+[
+  {
+    "description": "<p>You’ve developed the skills necessary to hold your own in close-quarters grappling. You gain the following benefits:</p><ul><li><p>You have advantage on attack rolls against a creature you are grappling.</p></li><li><p>You can use your action to try to pin a creature grappled by you. To do so, make another grapple check. If you succeed, you and the creature are both restrained until the grapple ends.</p></li></ul>",
+    "attributes": [
+      "40a91f3a-8909-4593-8a5f-b66b364602bb",
+      "84916f75-92c2-4ee6-abe0-cc038128f0fc"
+    ],
+    "prerequisites": {
+      "abilityScore": {
+        "ability": [
+          "93607465-de3d-4788-a5e0-df290fda7959"
+        ],
+        "score": 13
+      },
+      "option": [
+        "096cf44a-60ec-4f6c-b42c-3c46e12530bb"
+      ]
+    },
+    "label": "Grappler",
+    "id": "4231dd90-895f-457b-b2f5-ef9dc8c4af91",
+    "is_master": true,
+    "created_at": "2024-09-12T11:05:10.351Z",
+    "updated_at": "2024-09-12T11:05:10.351Z",
+    "system_id": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  }
+]

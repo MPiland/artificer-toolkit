@@ -1,0 +1,284 @@
+[
+  {
+    "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb", "40a91f3a-8909-4593-8a5f-b66b364602bb"],
+    "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
+    "level": "cb68f387-1e4f-4bbf-87af-34fca3ef4937",
+    "rounding": "7a7dc0de-c6bb-4afe-9507-5446c1b85a67",
+    "skills": ["all"],
+    "prerequisites": {
+      "options": ["3e8abd1f-614c-4b5e-9429-e5819a868c8d"]
+    },
+    "id": "ebcd4791-c5ef-4082-b7ca-1536747003c0",
+    "created_at": "2024-09-12T11:05:10.351Z",
+    "updated_at": "2024-09-12T11:05:10.351Z",
+    "system_id": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "category": "7328d22a-8c29-45de-a08f-5987fac2d6d1",
+    "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+    "save_abilities": ["all"],
+    "id": "9178f4be-cdc3-4720-b1eb-7d9823c0cabb",
+    "created_at": "2024-09-12T11:05:10.351Z",
+    "updated_at": "2024-09-12T11:05:10.351Z",
+    "system_id": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "category": "7328d22a-8c29-45de-a08f-5987fac2d6d1",
+    "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+    "save_abilities": ["458fdf58-0496-4701-86d0-7bc234009276"],
+    "id": "12e2dea0-d410-4e45-95e8-eb327e0f6911",
+    "created_at": "2024-09-12T11:05:10.351Z",
+    "updated_at": "2024-09-12T11:05:10.351Z",
+    "system_id": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
+    "skills": ["1382f52c-2281-441f-8fb2-608a274a13d3", "7377834f-6811-4151-bdf0-a621409221db"],
+    "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+    "id": "fd202076-0c46-4dbb-8676-c6c1ce769985",
+    "created_at": "2024-09-12T11:05:10.351Z",
+    "updated_at": "2024-09-12T11:05:10.351Z",
+    "system_id": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
+    "selection_count": 3,
+    "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
+    "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+    "skills": ["all"],
+    "id": "174394b5-8ee1-4787-b596-7cc29cf44329",
+    "created_at": "2024-09-12T11:05:10.351Z",
+    "updated_at": "2024-09-12T11:05:10.351Z",
+    "system_id": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
+    "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+    "properties": {
+      "ids": ["f0de1c52-9141-4d5a-bc4b-76110edf8e3e"],
+      "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
+    },
+    "id": "9cbd2533-595c-4dc0-968c-9758bf7f6f72",
+    "created_at": "2024-09-12T11:05:10.351Z",
+    "updated_at": "2024-09-12T11:05:10.351Z",
+    "system_id": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "category": "43780ab4-fe83-4477-bd6a-4d3343044f8c",
+    "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+    "languages": ["6e3d198f-d6bc-4853-8a00-cf45d1a454e4"],
+    "id": "95f30373-5cc0-491a-860c-7811216ccfc7",
+    "created_at": "2024-09-12T11:05:10.351Z",
+    "updated_at": "2024-09-12T11:05:10.351Z",
+    "system_id": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "category": "43780ab4-fe83-4477-bd6a-4d3343044f8c",
+    "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+    "languages": ["db87560d-891d-41f8-904c-e3051e36db03", "6e3d198f-d6bc-4853-8a00-cf45d1a454e4"],
+    "id": "6a065ac8-6286-49ed-897e-c1ade59698a4",
+    "created_at": "2024-09-12T11:05:10.351Z",
+    "updated_at": "2024-09-12T11:05:10.351Z",
+    "system_id": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "category": "3d256b38-0c78-4fd6-84a5-94b43c5a024c",
+    "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+    "equipment": {
+      "ids": [
+        "1d321187-3004-4d1b-a1d4-9aa7062f36e4",
+        "ef0694d9-5b4a-4a70-8a85-94adb0ad00e5",
+        "b9021b26-6bf7-482e-ad61-2b3d1ebcb425",
+        "4a178514-8c41-4b37-bf1d-2837125ef3fe"
+      ],
+      "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
+    },
+    "id": "8f6b0989-216b-4c3c-a3d3-3ebd92c766a0",
+    "created_at": "2024-09-12T11:05:10.351Z",
+    "updated_at": "2024-09-12T11:05:10.351Z",
+    "system_id": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
+    "selection_count": 1,
+    "category": "3d256b38-0c78-4fd6-84a5-94b43c5a024c",
+    "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+    "equipment": {
+      "ids": [
+        "d4eff270-6869-41d0-afaf-50ba7329ea53",
+        "573d387a-0d48-4fd1-8fcc-a4fe7219e063",
+        "63268050-f5f5-4cf1-9e99-5e9018f4da96"
+      ],
+      "properties": ["112f51e4-cee6-4fd0-8207-163da4cbd397"],
+      "category": "e13981d6-2b10-4b79-adb6-07b2d85f711e"
+    },
+    "id": "6b8f59fd-c078-499b-8ea9-dd35c18d3dd7",
+    "created_at": "2024-09-12T11:05:10.351Z",
+    "updated_at": "2024-09-12T11:05:10.351Z",
+    "system_id": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "category": "43780ab4-fe83-4477-bd6a-4d3343044f8c",
+    "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+    "languages": ["db87560d-891d-41f8-904c-e3051e36db03", "20a64bbc-470e-417f-b70f-dd08c12043cd"],
+    "id": "467895d7-3659-46a7-976a-32ff34c8f631",
+    "created_at": "2024-09-12T11:05:10.351Z",
+    "updated_at": "2024-09-12T11:05:10.351Z",
+    "system_id": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
+    "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+    "skills": ["1fc0087a-7532-4023-be0b-6c50fe577d60"],
+    "id": "66a778f5-675c-437c-ad85-6983f5b5d7f9",
+    "created_at": "2024-09-12T11:05:10.351Z",
+    "updated_at": "2024-09-12T11:05:10.351Z",
+    "system_id": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "category": "43780ab4-fe83-4477-bd6a-4d3343044f8c",
+    "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+    "languages": ["db87560d-891d-41f8-904c-e3051e36db03", "a568967d-1708-40f0-a9e5-3f5c1a9cbd0b"],
+    "id": "b37adbff-98d7-4117-b5b0-fcdee8928c3b",
+    "created_at": "2024-09-12T11:05:10.351Z",
+    "updated_at": "2024-09-12T11:05:10.351Z",
+    "system_id": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "category": "3d256b38-0c78-4fd6-84a5-94b43c5a024c",
+    "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+    "equipment": {
+      "ids": [
+        "3e5c9945-ea1e-4545-a478-a53f0359750e",
+        "1eee2672-52a8-4b22-9a51-ecbda8ea64d7",
+        "9032bc94-d197-4d8e-a44e-1b4949ebdfc7",
+        "9ff1b5f1-c373-41ee-9c60-8ab423338796"
+      ],
+      "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
+    },
+    "id": "fcfd6606-5599-4e20-85c7-cd833558fa76",
+    "created_at": "2024-09-12T11:05:10.351Z",
+    "updated_at": "2024-09-12T11:05:10.351Z",
+    "system_id": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
+    "selection_count": 1,
+    "category": "43780ab4-fe83-4477-bd6a-4d3343044f8c",
+    "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+    "languages": ["all"],
+    "id": "d2df9114-4e0b-40ed-86e5-314c4796ecb4",
+    "created_at": "2024-09-12T11:05:10.351Z",
+    "updated_at": "2024-09-12T11:05:10.351Z",
+    "system_id": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "category": "43780ab4-fe83-4477-bd6a-4d3343044f8c",
+    "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+    "languages": ["db87560d-891d-41f8-904c-e3051e36db03", "154a78f7-c188-46a0-92a1-14b4676564ea"],
+    "id": "f88a328e-d4fc-4abc-b2c0-c356ae1e67b8",
+    "created_at": "2024-09-12T11:05:10.351Z",
+    "updated_at": "2024-09-12T11:05:10.351Z",
+    "system_id": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "category": "43780ab4-fe83-4477-bd6a-4d3343044f8c",
+    "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+    "languages": ["db87560d-891d-41f8-904c-e3051e36db03"],
+    "id": "eb2691a7-7c2f-46e8-afe7-74eabb5a82b4",
+    "created_at": "2024-09-12T11:05:10.351Z",
+    "updated_at": "2024-09-12T11:05:10.351Z",
+    "system_id": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
+    "selection_count": 1,
+    "category": "43780ab4-fe83-4477-bd6a-4d3343044f8c",
+    "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+    "languages": ["all"],
+    "id": "27d509a0-9df4-4fc6-bf01-71362a680185",
+    "created_at": "2024-09-12T11:05:10.351Z",
+    "updated_at": "2024-09-12T11:05:10.351Z",
+    "system_id": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "category": "43780ab4-fe83-4477-bd6a-4d3343044f8c",
+    "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+    "languages": ["db87560d-891d-41f8-904c-e3051e36db03", "d45bfcd1-c814-4eb8-b453-d9df76aecda6"],
+    "id": "9090c2bd-34f7-44fc-a836-bdfc9cc53bac",
+    "created_at": "2024-09-12T11:05:10.351Z",
+    "updated_at": "2024-09-12T11:05:10.351Z",
+    "system_id": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "category": "3d256b38-0c78-4fd6-84a5-94b43c5a024c",
+    "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+    "equipment": {
+      "ids": ["f0d8ebcb-2d79-46c4-9b3b-68f8b22eceaa"],
+      "category": "e13981d6-2b10-4b79-adb6-07b2d85f711e",
+      "properties": ["112f51e4-cee6-4fd0-8207-163da4cbd397"]
+    },
+    "id": "763126f2-e8b9-4193-9009-093f34bb5274",
+    "created_at": "2024-09-12T11:05:10.351Z",
+    "updated_at": "2024-09-12T11:05:10.351Z",
+    "system_id": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
+    "selection_count": 2,
+    "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
+    "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+    "skills": ["all"],
+    "id": "426ae018-91eb-4224-8c7b-0248dd1485ea",
+    "created_at": "2024-09-12T11:05:10.351Z",
+    "updated_at": "2024-09-12T11:05:10.351Z",
+    "system_id": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "category": "43780ab4-fe83-4477-bd6a-4d3343044f8c",
+    "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+    "languages": ["db87560d-891d-41f8-904c-e3051e36db03", "a568967d-1708-40f0-a9e5-3f5c1a9cbd0b"],
+    "id": "f563f14e-2653-4452-a981-edf09cb6d944",
+    "created_at": "2024-09-12T11:05:10.351Z",
+    "updated_at": "2024-09-12T11:05:10.351Z",
+    "system_id": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "attributes": ["3fadd608-c46e-4718-a2b5-10d50fffbbdb"],
+    "selection_count": 1,
+    "category": "43780ab4-fe83-4477-bd6a-4d3343044f8c",
+    "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+    "languages": ["all"],
+    "id": "dc0cf254-bdb2-4989-8e14-39d1899e030e",
+    "created_at": "2024-09-12T11:05:10.351Z",
+    "updated_at": "2024-09-12T11:05:10.351Z",
+    "system_id": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
+    "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+    "skills": ["dba004ae-16aa-40ac-8df1-2f2c47775f6c"],
+    "id": "70c701c2-c26b-4d73-ba67-1701d518bf61",
+    "created_at": "2024-09-12T11:05:10.351Z",
+    "updated_at": "2024-09-12T11:05:10.351Z",
+    "system_id": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "category": "43780ab4-fe83-4477-bd6a-4d3343044f8c",
+    "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+    "languages": ["db87560d-891d-41f8-904c-e3051e36db03", "7dd47e8b-1508-4e4b-9416-b3a38657ee69"],
+    "id": "a66db299-0bd4-4188-b711-bd50ee55e994",
+    "created_at": "2024-09-12T11:05:10.351Z",
+    "updated_at": "2024-09-12T11:05:10.351Z",
+    "system_id": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "category": "43780ab4-fe83-4477-bd6a-4d3343044f8c",
+    "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+    "languages": ["db87560d-891d-41f8-904c-e3051e36db03", "ffdc6925-bf9a-45a7-bbbc-3e8251ba7c93"],
+    "id": "f854d6b7-16cb-4eea-a334-c13ccdb13175",
+    "created_at": "2024-09-12T11:05:10.351Z",
+    "updated_at": "2024-09-12T11:05:10.351Z",
+    "system_id": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  }
+]

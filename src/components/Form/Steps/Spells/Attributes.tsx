@@ -337,7 +337,7 @@ const AttributesStep = () => {
                       options={attributes.filter(
                         (attribute) => attribute.features && attribute.features.includes(Features.SAVE_ABILITY)
                       )}
-                      label='DC Ability'
+                      label='DC Attributes'
                     />
                   )}
                 </AppField>

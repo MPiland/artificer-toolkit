@@ -8,121 +8,73 @@ import {
   Stack,
   Text,
   Title,
-  Checkbox,
   TextInput,
   PasswordInput,
+  UnstyledButton,
 } from '@mantine/core'
-import { useNavigate, useMatches, type ToOptions } from '@tanstack/react-router'
+import { useNavigate, useMatches } from '@tanstack/react-router'
 import Link from '~/components/Link'
 import { auth_container, auth_link, auth_subtitle, auth_title, auth_wrapper, social_icon } from './Auth.css'
-import { signUp, signIn } from '~/apis'
 import IGoogle from '~/assets/Icons/IGoogle'
 import ITwitter from '~/assets/Icons/ITwitter'
 import { useEffect, useState } from 'react'
 import { Info } from 'lucide-react'
 import { useForm } from '@tanstack/react-form'
-import { usePersist } from '~/hooks'
-
-const AUTH_SUCCESSES = {
-  USER_NOT_CONFIRMED: 2,
-} as const
+import { supabase } from '~/supabase'
+import { notifications } from '@mantine/notifications'
 
 const AuthForm = () => {
-  const [setPersist] = usePersist()
   const matches = useMatches()
   const routeMatch = matches[matches.length - 1]
   const registerPath = routeMatch.pathname === '/register/'
   const navigate = useNavigate()
-  const [formMessage, setFormMessage] = useState<{ success: number; link: ToOptions['to'] } | null>(null)
+  const [formMessage, setFormMessage] = useState<{ message: string } | null>(null)
 
-  const isSignUpResponse = (
-    response: { success: number; link: ToOptions['to'] } | { error: number; message: string }
-  ): response is { success: number; link: ToOptions['to'] } => {
-    return !('error' in response)
-  }
-
-  const isSignInResponse = (
-    response: { success: number; link: ToOptions['to'] } | { error: number; message: string }
-  ): response is { success: number; link: ToOptions['to'] } => {
-    return !('error' in response)
-  }
-
-  const AuthSuccessHint = ({
-    successCode,
-    linkTo,
-    email,
-  }: {
-    successCode?: number
-    linkTo?: ToOptions['to']
-    email: string
-  }) => {
-    switch (successCode) {
-      case AUTH_SUCCESSES.USER_NOT_CONFIRMED: {
-        let message: string = ''
-        if (registerPath) {
-          message = 'If an account with this email exists, a confirmation or login link will be sent.'
-        } else {
-          message = 'You must confirm your account before logging in.'
-        }
-        return (
-          <Alert variant='light' color='blue' icon={<Info />}>
-            <Text size='sm'>
-              {`${message} `}
-              <Link type='anchor' size='sm' to={linkTo} search={{ email }}>
-                Confirm now
-              </Link>
-            </Text>
-          </Alert>
-        )
-      }
-    }
+  const AuthHint = ({ message }: { message: string }) => {
+    return (
+      <Alert variant='light' color='blue' icon={<Info />}>
+        <Text size='sm'>{message}</Text>
+      </Alert>
+    )
   }
 
   const form = useForm({
     defaultValues: {
       email: '',
       password: '',
-      persist: false,
     },
     validators: {
-      onSubmitAsync: async ({ value: { email, password, persist } }) => {
+      onSubmitAsync: async ({ value: { email, password } }) => {
         if (registerPath) {
-          const result = await signUp({ email, password, persist })
-          if (isSignUpResponse(result)) {
-            return setFormMessage(result)
-          } else if (result.error === 2) {
-            return setFormMessage({ success: 2, link: '/register/confirm' })
-          } else {
-            console.log('error', result)
-            return {
-              form: {
-                error: result.error,
-                message: result.message,
-              },
-            }
-          }
+          await supabase.auth.signUp({ email, password, options: { emailRedirectTo: 'http://localhost:3000/' } })
+          return navigate({ to: '/confirm', search: { email } })
         } else {
-          const result = await signIn({ email, password, persist })
-          if (isSignInResponse(result)) {
-            if (result.success === 0) {
-              return navigate({ to: '/home' })
-            } else {
-              return setFormMessage(result)
-            }
-          } else {
-            return {
-              form: {
-                error: result.error,
-                message: result.message,
-              },
+          const { error } = await supabase.auth.signInWithPassword({ email, password })
+          if (error) {
+            switch (error.code) {
+              case 'email_not_confirmed':
+                return setFormMessage({
+                  message:
+                    'Email for this account has not been confirmed. Please check your email for a confirmation link.',
+                })
+              case 'user_not_found':
+              case 'invalid_credentials':
+                return setFormMessage({
+                  message: 'Invalid email and/or password',
+                })
+              default: {
+                // This ensures we don't silently ignore new codes
+                throw new Error(`Unhandled Supabase auth error code: ${error.code}`)
+              }
             }
           }
+          return navigate({ to: '/' })
         }
       },
     },
   })
 
-  const { handleSubmit, state, reset } = form
+  const { handleSubmit, reset } = form
 
   useEffect(() => {
     reset()
@@ -171,26 +123,7 @@ const AuthForm = () => {
 
           <Divider label='Or continue with email' labelPosition='center' my='lg' />
           <Stack>
-            <form.Subscribe selector={(state) => [state.errorMap]}>
-              {([errorMap]) => {
-                let errorMessage = ''
-                if (errorMap?.onSubmit?.form?.message) {
-                  errorMessage = errorMap.onSubmit.form.message
-                } else if (errorMap.onSubmit && 'message' in errorMap.onSubmit) {
-                  errorMessage = errorMap.onSubmit.message as string
-                }
-                return (
-                  errorMessage && (
-                    <Alert variant='light' color='red' icon={<Info />}>
-                      {errorMessage}
-                    </Alert>
-                  )
-                )
-              }}
-            </form.Subscribe>
-            {formMessage && (
-              <AuthSuccessHint successCode={formMessage.success} linkTo={formMessage.link} email={state.values.email} />
-            )}
+            {formMessage && <AuthHint message={formMessage.message} />}
             <form.Field
               name='email'
               validators={{
@@ -235,23 +168,6 @@ const AuthForm = () => {
                 />
               )}
             </form.Field>
-            <Group justify='space-between'>
-              <form.Field name='persist'>
-                {(field) => (
-                  <Checkbox
-                    label='Remember me'
-                    checked={field.state.value}
-                    onChange={(e) => setPersist(e.target.checked)}
-                    onBlur={field.handleBlur}
-                  />
-                )}
-              </form.Field>
-              {!registerPath && (
-                <Link type='anchor' size='sm' to='/reset-password'>
-                  Forgot password?
-                </Link>
-              )}
-            </Group>
           </Stack>
           <Group justify='flex-end' mt='xl'>
             <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
@@ -263,6 +179,40 @@ const AuthForm = () => {
             </form.Subscribe>
           </Group>
         </Paper>
+        {!registerPath && (
+          <Text size='sm' c='dimmed'>
+            Need to reset your password?{' '}
+            <UnstyledButton
+              type='button'
+              size='sm'
+              color='blue'
+              onClick={async () => {
+                const { error } = await supabase.auth.resetPasswordForEmail(form.state.values.email, {
+                  redirectTo: 'http://localhost:3000/reset-password',
+                })
+                if (error) {
+                  console.error(error.message)
+                  return notifications.show({
+                    message: 'Something went wrong',
+                    color: 'red',
+                    position: 'top-center',
+                    autoClose: 2500,
+                  })
+                } else {
+                  return notifications.show({
+                    message: 'Confirmation link sent!',
+                    color: 'green',
+                    position: 'top-center',
+                    autoClose: 2500,
+                  })
+                }
+              }}
+            >
+              Click here
+            </UnstyledButton>{' '}
+            to receive a reset link.
+          </Text>
+        )}
       </Stack>
     </Container>
   )

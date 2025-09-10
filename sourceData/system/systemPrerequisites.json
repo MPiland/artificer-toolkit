@@ -1,0 +1,147 @@
+[
+  {
+    "label": "Has Equipped",
+    "id": "ef32cce6-78ec-47e6-a9d2-9be64074a76b",
+    "features": [
+      "ALL"
+    ],
+    "sections": [
+      "ALL"
+    ],
+    "equipment": [
+      "ALL"
+    ]
+  },
+  {
+    "label": "Not Equipped",
+    "id": "68fb064f-ea56-4fd0-b7cf-64cdbdeef95d",
+    "features": [
+      "ALL"
+    ],
+    "sections": [
+      "ALL"
+    ],
+    "equipment": [
+      "ALL"
+    ]
+  },
+  {
+    "label": "Skill Proficiency",
+    "id": "b7d0a3c3-7b6f-4c0d-9e9f-0d6d8c8c8c8c",
+    "features": [
+      "ALL"
+    ],
+    "sections": [
+      "ALL"
+    ],
+    "equipment": [
+      "ALL"
+    ]
+  },
+  {
+    "label": "Equipment Proficiency",
+    "id": "f603f26f-6cb6-4995-82f3-ba4cdefd4e55",
+    "features": [
+      "ALL"
+    ],
+    "sections": [
+      "ALL"
+    ],
+    "equipment": [
+      "ALL"
+    ]
+  },
+  {
+    "label": "Ability Score",
+    "id": "096cf44a-60ec-4f6c-b42c-3c46e12530bb",
+    "features": [
+      "ALL"
+    ],
+    "sections": [
+      "ALL"
+    ],
+    "equipment": [
+      "ALL"
+    ]
+  },
+  {
+    "label": "Not Proficient",
+    "id": "3e8abd1f-614c-4b5e-9429-e5819a868c8d",
+    "sections": [
+      "ALL"
+    ],
+    "features": [
+      "ALL"
+    ]
+  },
+  {
+    "label": "Proficient",
+    "id": "2da4575c-bac4-403e-bf66-1360fcdb28b3",
+    "sections": [
+      "ALL"
+    ],
+    "features": [
+      "ALL"
+    ]
+  },
+  {
+    "label": "Spells Obtained",
+    "id": "de774c82-b1d6-4f6c-b73c-84cf370c60ff",
+    "sections": [
+      "SPELL"
+    ],
+    "features": [
+      "ALL"
+    ]
+  },
+  {
+    "label": "Can Cast Level",
+    "id": "2b2cac99-dfc5-45a0-b4a6-1970179ebcd9",
+    "sections": [
+      "SPELL"
+    ]
+  },
+  {
+    "label": "Option Not Obtained",
+    "id": "3fe944fc-a9d5-4afa-929a-c8b2805d70e3",
+    "sections": [
+      "ALL"
+    ],
+    "features": [
+      "OPTION"
+    ]
+  },
+  {
+    "id": "293010e4-fe1f-4982-8a80-6a232eafe19f",
+    "label": "Features Obtained",
+    "sections": [
+      "ALL"
+    ],
+    "features": [
+      "ALL"
+    ]
+  },
+  {
+    "id": "5d93f79b-230e-464e-bef3-50bcd68f4b9f",
+    "label": "Options Obtained",
+    "sections": [
+      "ALL"
+    ],
+    "features": [
+      "ALL"
+    ]
+  },
+  {
+    "label": "Character Size",
+    "id": "d5def5fd-4b6e-411b-994d-3e830912093e",
+    "sections": [
+      "ALL"
+    ],
+    "features": [
+      "EQUIPMENT"
+    ],
+    "equipment": [
+      "ALL"
+    ]
+  }
+]

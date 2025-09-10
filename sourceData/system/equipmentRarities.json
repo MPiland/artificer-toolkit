@@ -1,0 +1,34 @@
+[
+  {
+    "id": "d5ec2b7b-99f0-4c0a-9cd4-8c339dc4148d",
+    "label": "Very Rare"
+  },
+  {
+    "id": "d4d36dac-7365-44e7-a911-650a3696e9c4",
+    "label": "Common"
+  },
+  {
+    "id": "25434798-4c9d-48c8-841f-24ef738b319c",
+    "label": "Varies"
+  },
+  {
+    "id": "a57bb2d8-56f4-4f4d-b000-bbdc76d423f0",
+    "label": "Rare"
+  },
+  {
+    "id": "d923f227-b5c6-4340-822a-ede0a242a4c3",
+    "label": "Artifact"
+  },
+  {
+    "id": "97c761f3-7cbd-4cfc-9bd2-657bbf7e6d21",
+    "label": "Uncommon"
+  },
+  {
+    "id": "3f09a99c-6510-4de3-a09b-035b18046260",
+    "label": "Legendary"
+  },
+  {
+    "id": "93a48ede-1e2d-4ecc-b4ec-9b9094cc1b30",
+    "label": "Unknown Rarity"
+  }
+]

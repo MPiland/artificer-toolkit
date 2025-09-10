@@ -1,0 +1,110 @@
+[
+  {
+    "id": "8800b4eb-8fbc-47bc-a6a8-c71fd8afd6cc",
+    "label": "Acrobatics",
+    "description": "<p>Your Dexterity (Acrobatics) check covers your attempt to stay on your feet in a tricky situation, such as when you're trying to run across a sheet of ice, balance on a tightrope, or stay upright on a rocking ship's deck. The GM might also call for a Dexterity (Acrobatics) check to see if you can perform acrobatic stunts, including dives, rolls, somersaults, and flips.</p>",
+    "abilityId": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc"
+  },
+  {
+    "id": "f6ac4c05-edf8-4d25-9098-2c3603f328b1",
+    "label": "Animal Handling",
+    "description": "<p>When there is any question whether you can calm down a domesticated animal, keep a mount from getting spooked, or intuit an animal's intentions, the GM might call for a Wisdom (Animal Handling) check. You also make a Wisdom (Animal Handling) check to control your mount when you attempt a risky maneuver.</p>",
+    "abilityId": "458fdf58-0496-4701-86d0-7bc234009276"
+  },
+  {
+    "id": "7c9ea3de-9d0b-4518-b5ff-b02af5b87b1f",
+    "label": "Arcana",
+    "description": "<p>Your Intelligence (Arcana) check measures your ability to recall lore about spells, magic items, eldritch symbols, magical traditions, the planes of existence, and the inhabitants of those planes.</p>",
+    "abilityId": "d0cd6776-ef2c-4589-8a18-175a160b8ef4"
+  },
+  {
+    "id": "58f04f10-8886-401a-8c5e-06279154f148",
+    "label": "Athletics",
+    "description": "<p>Your Strength (Athletics) check covers difficult situations you encounter while climbing, jumping, or swimming.</p>",
+    "abilityId": "93607465-de3d-4788-a5e0-df290fda7959"
+  },
+  {
+    "id": "1382f52c-2281-441f-8fb2-608a274a13d3",
+    "label": "Deception",
+    "description": "<p>Your Charisma (Deception) check determines whether you can convincingly hide the truth, either verbally or through your actions. This deception can encompass everything from misleading others through ambiguity to telling outright lies. Typical situations include trying to fast- talk a guard, con a merchant, earn money through gambling, pass yourself off in a disguise, dull someone's suspicions with false assurances, or maintain a straight face while telling a blatant lie.</p>",
+    "abilityId": "def276fe-3fa5-4af7-95ad-a37113815cc7"
+  },
+  {
+    "id": "f01f2fbd-d1a7-4e7e-8645-fbdc743cd55b",
+    "label": "History",
+    "description": "<p>Your Intelligence (History) check measures your ability to recall lore about historical events, legendary people, ancient kingdoms, past disputes, recent wars, and lost civilizations.</p>",
+    "abilityId": "d0cd6776-ef2c-4589-8a18-175a160b8ef4"
+  },
+  {
+    "id": "882113b0-b4ab-4904-95d7-ad2231bef7d4",
+    "label": "Insight",
+    "description": "<p>Your Wisdom (Insight) check decides whether you can determine the true intentions of a creature, such as when searching out a lie or predicting someone's next move. Doing so involves gleaning clues from body language, speech habits, and changes in mannerisms.</p>",
+    "abilityId": "458fdf58-0496-4701-86d0-7bc234009276"
+  },
+  {
+    "id": "dba004ae-16aa-40ac-8df1-2f2c47775f6c",
+    "label": "Intimidation",
+    "description": "<p>When you attempt to influence someone through overt threats, hostile actions, and physical violence, the GM might ask you to make a Charisma (Intimidation) check. Examples include trying to pry information out of a prisoner, convincing street thugs to back down from a confrontation, or using the edge of a broken bottle to convince a sneering vizier to reconsider a decision.</p>",
+    "abilityId": "def276fe-3fa5-4af7-95ad-a37113815cc7"
+  },
+  {
+    "id": "97347fe6-1b4c-43df-832c-f07403dc076e",
+    "label": "Investigation",
+    "description": "<p>When you look around for clues and make deductions based on those clues, you make an Intelligence (Investigation) check. You might deduce the location of a hidden object, discern from the appearance of a wound what kind of weapon dealt it, or determine the weakest point in a tunnel that could cause it to collapse. Poring through ancient scrolls in search of a hidden fragment of knowledge might also call for an Intelligence (Investigation) check.</p>",
+    "abilityId": "d0cd6776-ef2c-4589-8a18-175a160b8ef4"
+  },
+  {
+    "id": "0e26ef5e-d29f-4b66-a1fe-da82f3d800b1",
+    "label": "Medicine",
+    "description": "<p>A Wisdom (Medicine) check lets you try to stabilize a dying companion or diagnose an illness.</p>",
+    "abilityId": "458fdf58-0496-4701-86d0-7bc234009276"
+  },
+  {
+    "id": "521debf5-9212-49db-8fa1-5ee9e01861c3",
+    "label": "Nature",
+    "description": "<p>Your Intelligence (Nature) check measures your ability to recall lore about terrain, plants and animals, the weather, and natural cycles.</p>",
+    "abilityId": "d0cd6776-ef2c-4589-8a18-175a160b8ef4"
+  },
+  {
+    "id": "1fc0087a-7532-4023-be0b-6c50fe577d60",
+    "label": "Perception",
+    "description": "<p>Your Wisdom (Perception) check lets you spot, hear, or otherwise detect the presence of something. It measures your general awareness of your surroundings and the keenness of your senses. For example, you might try to hear a conversation through a closed door, eavesdrop under an open window, or hear monsters moving stealthily in the forest. Or you might try to spot things that are obscured or easy to miss, whether they are orcs lying in ambush on a road, thugs hiding in the shadows of an alley, or candlelight under a closed secret door.</p>",
+    "abilityId": "458fdf58-0496-4701-86d0-7bc234009276"
+  },
+  {
+    "id": "4f30c82e-25f8-4918-ada5-614ddf3c1257",
+    "label": "Performance",
+    "description": "<p>Your Charisma (Performance) check determines how well you can delight an audience with music, dance, acting, storytelling, or some other form of entertainment.</p>",
+    "abilityId": "def276fe-3fa5-4af7-95ad-a37113815cc7"
+  },
+  {
+    "id": "7377834f-6811-4151-bdf0-a621409221db",
+    "label": "Persuasion",
+    "description": "<p>When you attempt to influence someone or a group of people with tact, social graces, or good nature, the GM might ask you to make a Charisma (Persuasion) check. Typically, you use persuasion when acting in good faith, to foster friendships, make cordial requests, or exhibit proper etiquette. Examples of persuading others include convincing a chamberlain to let your party see the king, negotiating peace between warring tribes, or inspiring a crowd of townsfolk.</p>",
+    "abilityId": "def276fe-3fa5-4af7-95ad-a37113815cc7"
+  },
+  {
+    "id": "ed704543-3bbc-4026-a611-823a6ac69c5c",
+    "label": "Religion",
+    "description": "<p>Your Intelligence (Religion) check measures your ability to recall lore about deities, rites and prayers, religious hierarchies, holy symbols, and the practices of secret cults.</p>",
+    "abilityId": "d0cd6776-ef2c-4589-8a18-175a160b8ef4"
+  },
+  {
+    "id": "3c2cfcf2-2fb5-464f-839d-f5a9703bcfb7",
+    "label": "Sleight of Hand",
+    "description": "<p>Whenever you attempt an act of legerdemain or manual trickery, such as planting something on someone else or concealing an object on your person, make a Dexterity (Sleight of Hand) check. The GM might also call for a Dexterity (Sleight of Hand) check to determine whether you can lift a coin purse off another person or slip something out of another person's pocket.</p>",
+    "abilityId": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc"
+  },
+  {
+    "id": "b598a80e-d7e8-47fb-8438-f79151223afe",
+    "label": "Stealth",
+    "description": "<p>Make a Dexterity (Stealth) check when you attempt to conceal yourself from enemies, slink past guards, slip away without being noticed, or sneak up on someone without being seen or heard.</p>",
+    "abilityId": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc"
+  },
+  {
+    "id": "34d3640f-ecb8-4107-b140-bb59e2cb1001",
+    "label": "Survival",
+    "description": "<p>The GM might ask you to make a Wisdom (Survival) check to follow tracks, hunt wild game, guide your group through frozen wastelands, identify signs that owlbears live nearby, predict the weather, or avoid quicksand and other natural hazards.</p>",
+    "abilityId": "458fdf58-0496-4701-86d0-7bc234009276"
+  }
+]

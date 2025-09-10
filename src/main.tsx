@@ -8,7 +8,6 @@ import ReactDOM from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createRouter } from '@tanstack/react-router'
 import { routeTree } from './routeTree.gen'
-import AuthProvider from './pages/auth/AuthProvider'
 import { FormDataType, type FormType } from './types/types'
 import ErrorPage from './pages/auth/ErrorPage'
 import { MantineProvider } from '@mantine/core'
@@ -50,12 +49,12 @@ const router = createRouter({
   routeTree,
   context: {
     queryClient,
-    auth: undefined!,
     form: {
       type: undefined,
       id: undefined,
     },
     systemPref: undefined!,
+    session: undefined!,
   },
   scrollRestoration: true,
   defaultNotFoundComponent: ErrorPage,
@@ -79,14 +78,12 @@ if (rootElement && !rootElement.innerHTML) {
   root.render(
     <StrictMode>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <MantineProvider theme={theme} cssVariablesResolver={resolver}>
-            <Notifications />
-            <ModalProvider>
-              <App router={router} />
-            </ModalProvider>
-          </MantineProvider>
-        </AuthProvider>
+        <MantineProvider theme={theme} cssVariablesResolver={resolver}>
+          <Notifications />
+          <ModalProvider>
+            <App router={router} />
+          </ModalProvider>
+        </MantineProvider>
       </QueryClientProvider>
     </StrictMode>
   )

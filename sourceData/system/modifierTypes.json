@@ -1,0 +1,77 @@
+[
+  {
+    "id": "f6478862-a92b-4596-8420-c0fa958db719",
+    "label": "Bonus",
+    "tooltip": "Applies bonus to selected category based on selected method."
+  },
+  {
+    "id": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+    "label": "Penalty",
+    "tooltip": "Applies penalty to selected category based on selected method."
+  },
+  {
+    "id": "3a173c5b-0be0-4c2f-807e-52c5117acc92",
+    "label": "Advantage",
+    "tooltip": "Adds advantage to rolls for selected area"
+  },
+  {
+    "id": "888ee438-a5bb-49a0-baf7-f31283bb92f3",
+    "label": "Disadvantage",
+    "tooltip": "Adds disadvantage to rolls for selected area"
+  },
+  {
+    "id": "6a038302-1ac7-482f-acdc-3e1502e04397",
+    "label": "Set Value",
+    "tooltip": "Sets the label for the selected category."
+  },
+  {
+    "id": "5430dc37-daf9-4a47-b210-5791c3118c50",
+    "label": "Replace Modifier Ability",
+    "tooltip": "Replace the current ability used to determine the bonus applied."
+  },
+  {
+    "id": "e51e28bb-a286-43cb-b9bd-3bb337ac30ef",
+    "label": "Add Optional Modifier Ability",
+    "tooltip": "Adds optional ability used to determine the bonus applied."
+  },
+  {
+    "id": "f4db2cea-b243-485b-8c94-eb007f051d70",
+    "label": "Bonus Die",
+    "tooltip": "Applies bonus die roll to selected category based on selected method."
+  },
+  {
+    "id": "6cb31b79-af1c-48e8-a9a9-b2467ec741d3",
+    "label": "Penalty Die",
+    "tooltip": "Applies penalty die to selected category based on selected method."
+  },
+  {
+    "id": "21c976de-e2c3-4f97-82b1-292c42921332",
+    "label": "Max Damage",
+    "tooltip": "Do the highest possible calculated damage."
+  },
+  {
+    "id": "80c68942-4fdf-4774-8027-8292ce508990",
+    "label": "Set Die",
+    "tooltip": "Sets the die count and type for the selected category."
+  },
+  {
+    "id": "7b202c09-bdd0-43df-8225-6232de134e3d",
+    "label": "Resistance",
+    "tooltip": "Adds resistance to the selected damage type"
+  },
+  {
+    "id": "4d5f63ef-833e-4a65-ab7d-2659f028281a",
+    "label": "Immunity",
+    "tooltip": "Adds imuunity to the selected type"
+  },
+  {
+    "id": "8814744f-d842-49ed-9d99-9505d6a75925",
+    "label": "Vulnerability",
+    "tooltip": "Adds vulnerability to the selected type"
+  },
+  {
+    "id": "6086fb91-0939-4bbd-9f78-dd9d130e4c91",
+    "tooltip": "Modify the Charge properties of a feature",
+    "label": "Use Reset"
+  }
+]

@@ -11,9 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthResetPasswordRouteRouteImport } from './routes/_auth/reset-password/route'
-import { Route as AuthRegisterRouteRouteImport } from './routes/_auth/register/route'
-import { Route as AuthLoginRouteRouteImport } from './routes/_auth/login/route'
+import { Route as AuthResetPasswordRouteImport } from './routes/_auth/reset-password'
+import { Route as AuthRegisterRouteImport } from './routes/_auth/register'
+import { Route as AuthLoginRouteImport } from './routes/_auth/login'
+import { Route as AuthConfirmRouteImport } from './routes/_auth/confirm'
 import { Route as ProtectedSpellsIndexRouteImport } from './routes/_protected/spells/index'
 import { Route as ProtectedRacesIndexRouteImport } from './routes/_protected/races/index'
 import { Route as ProtectedHomeIndexRouteImport } from './routes/_protected/home/index'
@@ -22,9 +23,6 @@ import { Route as ProtectedEquipmentIndexRouteImport } from './routes/_protected
 import { Route as ProtectedClassesIndexRouteImport } from './routes/_protected/classes/index'
 import { Route as ProtectedCharactersIndexRouteImport } from './routes/_protected/characters/index'
 import { Route as ProtectedBackgroundsIndexRouteImport } from './routes/_protected/backgrounds/index'
-import { Route as AuthResetPasswordIndexRouteImport } from './routes/_auth/reset-password/index'
-import { Route as AuthRegisterIndexRouteImport } from './routes/_auth/register/index'
-import { Route as AuthLoginIndexRouteImport } from './routes/_auth/login/index'
 import { Route as ProtectedSpellsSpellIdRouteImport } from './routes/_protected/spells/$spellId'
 import { Route as ProtectedRacesRaceIdRouteImport } from './routes/_protected/races/$raceId'
 import { Route as ProtectedFeatsFeatIdRouteImport } from './routes/_protected/feats/$featId'
@@ -32,8 +30,6 @@ import { Route as ProtectedEquipmentEquipmentIdRouteImport } from './routes/_pro
 import { Route as ProtectedClassesClassIdRouteImport } from './routes/_protected/classes/$classId'
 import { Route as ProtectedCharactersCharacterIdRouteImport } from './routes/_protected/characters/$characterId'
 import { Route as ProtectedBackgroundsBackgroundIdRouteImport } from './routes/_protected/backgrounds/$backgroundId'
-import { Route as AuthResetPasswordConfirmRouteImport } from './routes/_auth/reset-password/confirm'
-import { Route as AuthRegisterConfirmRouteImport } from './routes/_auth/register/confirm'
 import { Route as ProtectedSpellsAction_spellIdRouteImport } from './routes/_protected/spells/$action/$_spellId'
 import { Route as ProtectedRacesAction_raceIdRouteImport } from './routes/_protected/races/$action/$_raceId'
 import { Route as ProtectedFeatsAction_featIdRouteImport } from './routes/_protected/feats/$action/$_featId'
@@ -51,19 +47,24 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthResetPasswordRouteRoute = AuthResetPasswordRouteRouteImport.update({
+const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
   id: '/_auth/reset-password',
   path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthRegisterRouteRoute = AuthRegisterRouteRouteImport.update({
+const AuthRegisterRoute = AuthRegisterRouteImport.update({
   id: '/_auth/register',
   path: '/register',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthLoginRouteRoute = AuthLoginRouteRouteImport.update({
+const AuthLoginRoute = AuthLoginRouteImport.update({
   id: '/_auth/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthConfirmRoute = AuthConfirmRouteImport.update({
+  id: '/_auth/confirm',
+  path: '/confirm',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProtectedSpellsIndexRoute = ProtectedSpellsIndexRouteImport.update({
@@ -108,21 +109,6 @@ const ProtectedBackgroundsIndexRoute =
     path: '/backgrounds/',
     getParentRoute: () => ProtectedRoute,
   } as any)
-const AuthResetPasswordIndexRoute = AuthResetPasswordIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AuthResetPasswordRouteRoute,
-} as any)
-const AuthRegisterIndexRoute = AuthRegisterIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AuthRegisterRouteRoute,
-} as any)
-const AuthLoginIndexRoute = AuthLoginIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AuthLoginRouteRoute,
-} as any)
 const ProtectedSpellsSpellIdRoute = ProtectedSpellsSpellIdRouteImport.update({
   id: '/spells/$spellId',
   path: '/spells/$spellId',
@@ -161,17 +147,6 @@ const ProtectedBackgroundsBackgroundIdRoute =
     path: '/backgrounds/$backgroundId',
     getParentRoute: () => ProtectedRoute,
   } as any)
-const AuthResetPasswordConfirmRoute =
-  AuthResetPasswordConfirmRouteImport.update({
-    id: '/confirm',
-    path: '/confirm',
-    getParentRoute: () => AuthResetPasswordRouteRoute,
-  } as any)
-const AuthRegisterConfirmRoute = AuthRegisterConfirmRouteImport.update({
-  id: '/confirm',
-  path: '/confirm',
-  getParentRoute: () => AuthRegisterRouteRoute,
-} as any)
 const ProtectedSpellsAction_spellIdRoute =
   ProtectedSpellsAction_spellIdRouteImport.update({
     id: '/spells/$action/$_spellId',
@@ -217,11 +192,10 @@ const ProtectedBackgroundsAction_backgroundIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/login': typeof AuthLoginRouteRouteWithChildren
-  '/register': typeof AuthRegisterRouteRouteWithChildren
-  '/reset-password': typeof AuthResetPasswordRouteRouteWithChildren
-  '/register/confirm': typeof AuthRegisterConfirmRoute
-  '/reset-password/confirm': typeof AuthResetPasswordConfirmRoute
+  '/confirm': typeof AuthConfirmRoute
+  '/login': typeof AuthLoginRoute
+  '/register': typeof AuthRegisterRoute
+  '/reset-password': typeof AuthResetPasswordRoute
   '/backgrounds/$backgroundId': typeof ProtectedBackgroundsBackgroundIdRoute
   '/characters/$characterId': typeof ProtectedCharactersCharacterIdRoute
   '/classes/$classId': typeof ProtectedClassesClassIdRoute
@@ -229,9 +203,6 @@ export interface FileRoutesByFullPath {
   '/feats/$featId': typeof ProtectedFeatsFeatIdRoute
   '/races/$raceId': typeof ProtectedRacesRaceIdRoute
   '/spells/$spellId': typeof ProtectedSpellsSpellIdRoute
-  '/login/': typeof AuthLoginIndexRoute
-  '/register/': typeof AuthRegisterIndexRoute
-  '/reset-password/': typeof AuthResetPasswordIndexRoute
   '/backgrounds': typeof ProtectedBackgroundsIndexRoute
   '/characters': typeof ProtectedCharactersIndexRoute
   '/classes': typeof ProtectedClassesIndexRoute
@@ -250,8 +221,10 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/register/confirm': typeof AuthRegisterConfirmRoute
-  '/reset-password/confirm': typeof AuthResetPasswordConfirmRoute
+  '/confirm': typeof AuthConfirmRoute
+  '/login': typeof AuthLoginRoute
+  '/register': typeof AuthRegisterRoute
+  '/reset-password': typeof AuthResetPasswordRoute
   '/backgrounds/$backgroundId': typeof ProtectedBackgroundsBackgroundIdRoute
   '/characters/$characterId': typeof ProtectedCharactersCharacterIdRoute
   '/classes/$classId': typeof ProtectedClassesClassIdRoute
@@ -259,9 +232,6 @@ export interface FileRoutesByTo {
   '/feats/$featId': typeof ProtectedFeatsFeatIdRoute
   '/races/$raceId': typeof ProtectedRacesRaceIdRoute
   '/spells/$spellId': typeof ProtectedSpellsSpellIdRoute
-  '/login': typeof AuthLoginIndexRoute
-  '/register': typeof AuthRegisterIndexRoute
-  '/reset-password': typeof AuthResetPasswordIndexRoute
   '/backgrounds': typeof ProtectedBackgroundsIndexRoute
   '/characters': typeof ProtectedCharactersIndexRoute
   '/classes': typeof ProtectedClassesIndexRoute
@@ -282,11 +252,10 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_protected': typeof ProtectedRouteWithChildren
-  '/_auth/login': typeof AuthLoginRouteRouteWithChildren
-  '/_auth/register': typeof AuthRegisterRouteRouteWithChildren
-  '/_auth/reset-password': typeof AuthResetPasswordRouteRouteWithChildren
-  '/_auth/register/confirm': typeof AuthRegisterConfirmRoute
-  '/_auth/reset-password/confirm': typeof AuthResetPasswordConfirmRoute
+  '/_auth/confirm': typeof AuthConfirmRoute
+  '/_auth/login': typeof AuthLoginRoute
+  '/_auth/register': typeof AuthRegisterRoute
+  '/_auth/reset-password': typeof AuthResetPasswordRoute
   '/_protected/backgrounds/$backgroundId': typeof ProtectedBackgroundsBackgroundIdRoute
   '/_protected/characters/$characterId': typeof ProtectedCharactersCharacterIdRoute
   '/_protected/classes/$classId': typeof ProtectedClassesClassIdRoute
@@ -294,9 +263,6 @@ export interface FileRoutesById {
   '/_protected/feats/$featId': typeof ProtectedFeatsFeatIdRoute
   '/_protected/races/$raceId': typeof ProtectedRacesRaceIdRoute
   '/_protected/spells/$spellId': typeof ProtectedSpellsSpellIdRoute
-  '/_auth/login/': typeof AuthLoginIndexRoute
-  '/_auth/register/': typeof AuthRegisterIndexRoute
-  '/_auth/reset-password/': typeof AuthResetPasswordIndexRoute
   '/_protected/backgrounds/': typeof ProtectedBackgroundsIndexRoute
   '/_protected/characters/': typeof ProtectedCharactersIndexRoute
   '/_protected/classes/': typeof ProtectedClassesIndexRoute
@@ -317,11 +283,10 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/confirm'
     | '/login'
     | '/register'
     | '/reset-password'
-    | '/register/confirm'
-    | '/reset-password/confirm'
     | '/backgrounds/$backgroundId'
     | '/characters/$characterId'
     | '/classes/$classId'
@@ -329,9 +294,6 @@ export interface FileRouteTypes {
     | '/feats/$featId'
     | '/races/$raceId'
     | '/spells/$spellId'
-    | '/login/'
-    | '/register/'
-    | '/reset-password/'
     | '/backgrounds'
     | '/characters'
     | '/classes'
@@ -350,8 +312,10 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/register/confirm'
-    | '/reset-password/confirm'
+    | '/confirm'
+    | '/login'
+    | '/register'
+    | '/reset-password'
     | '/backgrounds/$backgroundId'
     | '/characters/$characterId'
     | '/classes/$classId'
@@ -359,9 +323,6 @@ export interface FileRouteTypes {
     | '/feats/$featId'
     | '/races/$raceId'
     | '/spells/$spellId'
-    | '/login'
-    | '/register'
-    | '/reset-password'
     | '/backgrounds'
     | '/characters'
     | '/classes'
@@ -381,11 +342,10 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_protected'
+    | '/_auth/confirm'
     | '/_auth/login'
     | '/_auth/register'
     | '/_auth/reset-password'
-    | '/_auth/register/confirm'
-    | '/_auth/reset-password/confirm'
     | '/_protected/backgrounds/$backgroundId'
     | '/_protected/characters/$characterId'
     | '/_protected/classes/$classId'
@@ -393,9 +353,6 @@ export interface FileRouteTypes {
     | '/_protected/feats/$featId'
     | '/_protected/races/$raceId'
     | '/_protected/spells/$spellId'
-    | '/_auth/login/'
-    | '/_auth/register/'
-    | '/_auth/reset-password/'
     | '/_protected/backgrounds/'
     | '/_protected/characters/'
     | '/_protected/classes/'
@@ -416,9 +373,10 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ProtectedRoute: typeof ProtectedRouteWithChildren
-  AuthLoginRouteRoute: typeof AuthLoginRouteRouteWithChildren
-  AuthRegisterRouteRoute: typeof AuthRegisterRouteRouteWithChildren
-  AuthResetPasswordRouteRoute: typeof AuthResetPasswordRouteRouteWithChildren
+  AuthConfirmRoute: typeof AuthConfirmRoute
+  AuthLoginRoute: typeof AuthLoginRoute
+  AuthRegisterRoute: typeof AuthRegisterRoute
+  AuthResetPasswordRoute: typeof AuthResetPasswordRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -441,21 +399,28 @@ declare module '@tanstack/react-router' {
       id: '/_auth/reset-password'
       path: '/reset-password'
       fullPath: '/reset-password'
-      preLoaderRoute: typeof AuthResetPasswordRouteRouteImport
+      preLoaderRoute: typeof AuthResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_auth/register': {
       id: '/_auth/register'
       path: '/register'
       fullPath: '/register'
-      preLoaderRoute: typeof AuthRegisterRouteRouteImport
+      preLoaderRoute: typeof AuthRegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_auth/login': {
       id: '/_auth/login'
       path: '/login'
       fullPath: '/login'
-      preLoaderRoute: typeof AuthLoginRouteRouteImport
+      preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_auth/confirm': {
+      id: '/_auth/confirm'
+      path: '/confirm'
+      fullPath: '/confirm'
+      preLoaderRoute: typeof AuthConfirmRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_protected/spells/': {
@@ -514,27 +479,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedBackgroundsIndexRouteImport
       parentRoute: typeof ProtectedRoute
     }
-    '/_auth/reset-password/': {
-      id: '/_auth/reset-password/'
-      path: '/'
-      fullPath: '/reset-password/'
-      preLoaderRoute: typeof AuthResetPasswordIndexRouteImport
-      parentRoute: typeof AuthResetPasswordRouteRoute
-    }
-    '/_auth/register/': {
-      id: '/_auth/register/'
-      path: '/'
-      fullPath: '/register/'
-      preLoaderRoute: typeof AuthRegisterIndexRouteImport
-      parentRoute: typeof AuthRegisterRouteRoute
-    }
-    '/_auth/login/': {
-      id: '/_auth/login/'
-      path: '/'
-      fullPath: '/login/'
-      preLoaderRoute: typeof AuthLoginIndexRouteImport
-      parentRoute: typeof AuthLoginRouteRoute
-    }
     '/_protected/spells/$spellId': {
       id: '/_protected/spells/$spellId'
       path: '/spells/$spellId'
@@ -583,20 +527,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/backgrounds/$backgroundId'
       preLoaderRoute: typeof ProtectedBackgroundsBackgroundIdRouteImport
       parentRoute: typeof ProtectedRoute
-    }
-    '/_auth/reset-password/confirm': {
-      id: '/_auth/reset-password/confirm'
-      path: '/confirm'
-      fullPath: '/reset-password/confirm'
-      preLoaderRoute: typeof AuthResetPasswordConfirmRouteImport
-      parentRoute: typeof AuthResetPasswordRouteRoute
-    }
-    '/_auth/register/confirm': {
-      id: '/_auth/register/confirm'
-      path: '/confirm'
-      fullPath: '/register/confirm'
-      preLoaderRoute: typeof AuthRegisterConfirmRouteImport
-      parentRoute: typeof AuthRegisterRouteRoute
     }
     '/_protected/spells/$action/$_spellId': {
       id: '/_protected/spells/$action/$_spellId'
@@ -707,53 +637,13 @@ const ProtectedRouteWithChildren = ProtectedRoute._addFileChildren(
   ProtectedRouteChildren,
 )
 
-interface AuthLoginRouteRouteChildren {
-  AuthLoginIndexRoute: typeof AuthLoginIndexRoute
-}
-
-const AuthLoginRouteRouteChildren: AuthLoginRouteRouteChildren = {
-  AuthLoginIndexRoute: AuthLoginIndexRoute,
-}
-
-const AuthLoginRouteRouteWithChildren = AuthLoginRouteRoute._addFileChildren(
-  AuthLoginRouteRouteChildren,
-)
-
-interface AuthRegisterRouteRouteChildren {
-  AuthRegisterConfirmRoute: typeof AuthRegisterConfirmRoute
-  AuthRegisterIndexRoute: typeof AuthRegisterIndexRoute
-}
-
-const AuthRegisterRouteRouteChildren: AuthRegisterRouteRouteChildren = {
-  AuthRegisterConfirmRoute: AuthRegisterConfirmRoute,
-  AuthRegisterIndexRoute: AuthRegisterIndexRoute,
-}
-
-const AuthRegisterRouteRouteWithChildren =
-  AuthRegisterRouteRoute._addFileChildren(AuthRegisterRouteRouteChildren)
-
-interface AuthResetPasswordRouteRouteChildren {
-  AuthResetPasswordConfirmRoute: typeof AuthResetPasswordConfirmRoute
-  AuthResetPasswordIndexRoute: typeof AuthResetPasswordIndexRoute
-}
-
-const AuthResetPasswordRouteRouteChildren: AuthResetPasswordRouteRouteChildren =
-  {
-    AuthResetPasswordConfirmRoute: AuthResetPasswordConfirmRoute,
-    AuthResetPasswordIndexRoute: AuthResetPasswordIndexRoute,
-  }
-
-const AuthResetPasswordRouteRouteWithChildren =
-  AuthResetPasswordRouteRoute._addFileChildren(
-    AuthResetPasswordRouteRouteChildren,
-  )
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ProtectedRoute: ProtectedRouteWithChildren,
-  AuthLoginRouteRoute: AuthLoginRouteRouteWithChildren,
-  AuthRegisterRouteRoute: AuthRegisterRouteRouteWithChildren,
-  AuthResetPasswordRouteRoute: AuthResetPasswordRouteRouteWithChildren,
+  AuthConfirmRoute: AuthConfirmRoute,
+  AuthLoginRoute: AuthLoginRoute,
+  AuthRegisterRoute: AuthRegisterRoute,
+  AuthResetPasswordRoute: AuthResetPasswordRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

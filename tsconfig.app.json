@@ -36,8 +36,9 @@
       "~/store": ["src/store/index.ts"],
       "~/mutations": ["gql/mutations"],
       "~/queries": ["gql/queries"],
-      "~/schemas": ["src/zod"]
+      "~/schemas": ["src/zod"],
+      "~/supabase": ["src/supabaseClient.ts"]
     }
   },
-  "include": ["src", "gql/**/*.ts"]
+  "include": ["src"]
 }
