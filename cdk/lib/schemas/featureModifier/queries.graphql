@@ -1,6 +1,0 @@
-type Query {
-  getMasterFeatureModifier(id: ID!): FeatureModifier
-  listMasterFeatureModifiers(limit: Int, nextToken: String): FeatureModifierConnection!
-  getFeatureModifier(id: ID!): FeatureModifier
-  listFeatureModifiers(systemId: ID!, limit: Int, nextToken: String): FeatureModifierConnection!
-}

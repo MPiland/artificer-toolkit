@@ -1,6 +1,0 @@
-type Query {
-  getMasterRace(id: ID!): Race
-  listMasterRaces(limit: Int, nextToken: String): RaceConnection!
-  getRace(id: ID!): Race
-  listRaces(systemId: ID!, limit: Int, nextToken: String): RaceConnection!
-}

@@ -6,21 +6,29 @@
 	],
 	"settings": {
 		"typescript.tsserver.maxTsServerMemory": 8192,
-		"cody.codebase": "https://github.com/MPiland/artificer-toolkit",
 		"typescript.experimental.useTsgo": false,
 		"editor.experimental.preferTreeSitter.typescript": true,
 		"typescript.preferGoToSourceDefinition": true,
 		"typescript.tsserver.enableRegionDiagnostics": false,
-		"typescript.workspaceSymbols.scope": "currentProject",
+		"typescript.workspaceSymbols.scope": "dbaeumer.vscode-eslint",
 		"typescript.tsserver.web.projectWideIntellisense.enabled": false,
-		"editor.defaultFormatter": "esbenp.prettier-vscode",
 		"typescript.tsserver.web.typeAcquisition.enabled": false,
-		"[typescriptreact]": {
-			"editor.defaultFormatter": "esbenp.prettier-vscode"
-		},
-		"geminicodeassist.inlineSuggestions.enableAuto": true,
-		"cloudcode.apigee.gemini.enable": false,
 		"js/ts.hover.maximumLength": 200,
-		"typescript.experimental.expandableHover": false
+		"SQL-Formatter-VSCode.dialect": "postgresql",
+		"editor.codeActionsOnSave": {
+			"source.fixAll.eslint": "explicit"
+		},
+		"eslint.useFlatConfig": true,
+		"[typescript]": {
+			"editor.defaultFormatter": "dbaeumer.vscode-eslint"
+		},
+		"[typescriptreact]": {
+			"editor.defaultFormatter": "dbaeumer.vscode-eslint"
+		},
+		"typescript.tsdk": "node_modules\\typescript\\lib",
+		"eslint.format.enable": true,
+		"editor.formatOnSave": true,
+		"editor.defaultFormatter": "dbaeumer.vscode-eslint",
+		"typescript.updateImportsOnFileMove.enabled": "always"
 	}
 }

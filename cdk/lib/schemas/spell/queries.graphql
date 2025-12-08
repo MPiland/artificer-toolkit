@@ -1,6 +1,0 @@
-type Query {
-  getMasterSpell(id: ID!): Spell
-  listMasterSpells(limit: Int, nextToken: String): SpellConnection!
-  getSpell(id: ID!): Spell
-  listSpells(systemId: ID!, limit: Int, nextToken: String): SpellConnection!
-}

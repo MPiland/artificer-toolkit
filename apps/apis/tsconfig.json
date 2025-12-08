@@ -1,0 +1,31 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    /* ✅ Build output — emits only type declarations */
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "noEmit": false,
+
+    /* ✅ Language + module behavior */
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+
+    /* ✅ Type checking */
+    "strict": true,
+    "skipLibCheck": true,
+
+    /* ✅ Path setup */
+    "paths": {
+      "@shared/*": ["./dist/*"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

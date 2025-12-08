@@ -1,6 +1,0 @@
-type Query {
-  getMasterFeatureProficiency(id: ID!): FeatureProficiency
-  listMasterFeatureProficiencies(limit: Int, nextToken: String): FeatureProficiencyConnection!
-  getFeatureProficiency(id: ID!): FeatureProficiency
-  listFeatureProficiencies(systemId: ID!, limit: Int, nextToken: String): FeatureProficiencyConnection!
-}

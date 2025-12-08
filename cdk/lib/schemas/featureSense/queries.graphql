@@ -1,6 +1,0 @@
-type Query {
-  getMasterFeatureSense(id: ID!): FeatureSense
-  listMasterFeatureSenses(limit: Int, nextToken: String): FeatureSenseConnection!
-  getFeatureSense(id: ID!): FeatureSense
-  listFeatureSenses(systemId: ID!, limit: Int, nextToken: String): FeatureSenseConnection!
-}

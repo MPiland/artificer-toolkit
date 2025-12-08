@@ -1,6 +1,0 @@
-type Query {
-  getMasterFeat(id: ID!): Feat
-  listMasterFeats(limit: Int, nextToken: String): FeatConnection!
-  getFeat(id: ID!): Feat
-  listFeats(systemId: ID!, limit: Int, nextToken: String): FeatConnection!
-}

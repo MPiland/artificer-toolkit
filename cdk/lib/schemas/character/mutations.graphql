@@ -1,5 +1,0 @@
-type Mutation {
-  createCharacter(input: CharacterInput!): Character!
-  updateCharacter(input: CharacterInput!): Character!
-  deleteCharacter(id: ID!): ID!
-}

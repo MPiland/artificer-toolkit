@@ -1,6 +1,0 @@
-type Query {
-  getMasterClass(id: ID!): Class
-  listMasterClasses(limit: Int, nextToken: String): ClassConnection!
-  getClass(id: ID!): Class
-  listClasses(systemId: ID!, limit: Int, nextToken: String): ClassConnection!
-}

@@ -1,0 +1,1149 @@
+[
+  {
+    "id": "13776ae9-a1a1-4d15-83e8-b3947c0ca4f8",
+    "label": "Defense",
+    "description": "<p>While you are wearing armor, you gain a +1 bonus to AC.</p>",
+    "modifiers": [
+      "4d65244d-33d3-490d-a69a-a7e2b6fbc954"
+    ],
+    "prerequisites": [
+      {
+        "id": "56a8f71d-c83d-43b1-a1e6-c68989a620e7",
+        "role": "GATE",
+        "position": 0,
+        "equipment": [
+          {
+            "id": "a1fe98c0-f2ee-42ce-94d3-af894af2a94d"
+          }
+        ],
+        "categoryId": "ef32cce6-78ec-47e6-a9d2-9be64074a76b"
+      }
+    ]
+  },
+  {
+    "id": "2c301c8f-1d5a-46b7-a963-bcde4d40392e",
+    "label": "Dueling",
+    "description": "<p>When you are wielding a melee weapon in one hand and no other weapons, you gain a +2 bonus to damage rolls with that weapon.</p>",
+    "modifiers": [
+      "4d65244d-33d3-490d-a69a-a7e2b6fbc954"
+    ],
+    "prerequisites": [
+      {
+        "id": "770680a7-887f-4937-820e-9d64032af923",
+        "role": "GATE",
+        "position": 0,
+        "equipment": [
+          {
+            "id": "a8355a8d-80ee-4e70-be39-50db005c2f00",
+            "propertyIds": [
+              "72f57c5d-c213-4b1b-887f-1eea56f02fe2"
+            ],
+            "numberEquipped": 1
+          }
+        ],
+        "categoryId": "ef32cce6-78ec-47e6-a9d2-9be64074a76b"
+      },
+      {
+        "id": "8be73faa-db90-4049-9cc6-de0abbf12499",
+        "role": "GATE",
+        "position": 1,
+        "equipment": [
+          {
+            "id": "59bc0b8f-b253-41aa-9d91-51820c776338",
+            "propertyIds": [
+              "71b5b42c-f4bc-4319-85ab-9e888d00743c"
+            ]
+          }
+        ],
+        "categoryId": "68fb064f-ea56-4fd0-b7cf-64cdbdeef95d"
+      }
+    ]
+  },
+  {
+    "id": "d7fd3b6a-923b-45a0-b65a-76316707727a",
+    "label": "Great Weapon Fighting",
+    "description": "<p>When you roll a 1 or 2 on a damage die for an attack you make with a melee weapon that you are wielding with two hands, you can reroll the die and must use the new roll, even if the new roll is a 1 or a 2. The weapon must have the two-handed or versatile property for you to gain this benefit.</p>",
+    "prerequisites": [
+      {
+        "id": "786ee89b-52fd-4575-9e03-bf6730580cdd",
+        "role": "GATE",
+        "position": 0,
+        "equipment": [
+          {
+            "id": "a96f4004-84da-466e-9f0f-2d7dc1102f86",
+            "propertyIds": [
+              "71b5b42c-f4bc-4319-85ab-9e888d00743c",
+              "72f57c5d-c213-4b1b-887f-1eea56f02fe2"
+            ],
+            "numberEquipped": 1
+          }
+        ],
+        "categoryId": "ef32cce6-78ec-47e6-a9d2-9be64074a76b"
+      }
+    ]
+  },
+  {
+    "id": "6a9a3c37-5f6d-4ffe-ab87-6a8976eac5ea",
+    "label": "Protection",
+    "description": "<p>When a creature you can see attacks a target other than you that is within 5 feet of you, you can use your reaction to impose disadvantage on the attack roll. You must be wielding a shield.</p>",
+    "actions": {
+      "primary": {
+        "id": "559d6655-9929-4bfa-8928-bfb02c86f62a",
+        "actionId": "559d6655-9929-4bfa-8928-bfb02c86f62a"
+      }
+    },
+    "prerequisites": [
+      {
+        "id": "fc718aac-956a-40a3-918b-8ef5b20fc892",
+        "role": "GATE",
+        "position": 0,
+        "equipment": [
+          {
+            "id": "c19b8f18-1a83-4487-b072-72db37785b43",
+            "numberEquipped": 1
+          }
+        ],
+        "categoryId": "ef32cce6-78ec-47e6-a9d2-9be64074a76b"
+      }
+    ]
+  },
+  {
+    "id": "b3811918-22ce-46ef-adff-daad542f5618",
+    "label": "Two-Weapon Fighting",
+    "description": "<p>When you engage in two-weapon fighting, you can add your ability modifier to the damage of the second attack.</p>",
+    "prerequisites": [
+      {
+        "id": "22f5bbf3-8327-4eed-9ada-50a5f97141fb",
+        "role": "GATE",
+        "position": 0,
+        "equipment": [
+          {
+            "id": "0bc07dfb-e2f6-4f34-83d6-080f6e843633",
+            "propertyIds": [
+              "72f57c5d-c213-4b1b-887f-1eea56f02fe2"
+            ],
+            "numberEquipped": 2
+          }
+        ],
+        "categoryId": "ef32cce6-78ec-47e6-a9d2-9be64074a76b"
+      },
+      {
+        "id": "7051001e-4eda-442c-92f6-6c3ef44ca963",
+        "role": "GATE",
+        "position": 1,
+        "equipment": [
+          {
+            "id": "60f9f296-3397-4bda-bccc-524e4d909536",
+            "propertyIds": [
+              "71b5b42c-f4bc-4319-85ab-9e888d00743c"
+            ]
+          }
+        ],
+        "categoryId": "68fb064f-ea56-4fd0-b7cf-64cdbdeef95d"
+      }
+    ]
+  },
+  {
+    "id": "d12eef75-5406-4f0a-aec4-7a3081ddcefd",
+    "label": "Two-Weapon Fighting",
+    "description": "<p>When you engage in two-weapon fighting, you can add your ability modifier to the damage of the second attack.</p>",
+    "levelAvailable": "2"
+  },
+  {
+    "id": "73b028f1-fd85-4b63-a343-a490851eec28",
+    "label": "Skills",
+    "description": "<p>Choose two of your skill proficiencies.</p>",
+    "expertise": [
+      "27c9eeb0-a663-46a4-875c-cb7a26eee897",
+      "a23ecc39-b787-4ba7-b292-9fab0971fc68",
+      "ebd81d84-a003-4a2d-8fad-bc2880579cfa"
+    ]
+  },
+  {
+    "id": "85e55750-50b7-4b5e-947d-e6497fed4e7d",
+    "label": "Skill and Tool",
+    "description": "<p>Choose one of your skill proficiencies and Thieves' Tool.</p>",
+    "expertise": [
+      "27c9eeb0-a663-46a4-875c-cb7a26eee897",
+      "a23ecc39-b787-4ba7-b292-9fab0971fc68",
+      "ebd81d84-a003-4a2d-8fad-bc2880579cfa"
+    ]
+  },
+  {
+    "id": "51cb5ee7-f46e-4006-9713-cb81078d6ddd",
+    "label": "Careful Spell",
+    "description": "<p>When you cast a spell that forces other creatures to make a saving throw, you can protect some of those creatures from the spell's full force. To do so, you spend 1 sorcery point and choose a number of those creatures up to your Charisma modifier (minimum of one creature). A chosen creature automatically succeeds on its saving throw against the spell.</p>",
+    "charges": {
+      "id": "2dae3363-af10-4390-9a00-7c4c88899967",
+      "limitId": "c6b4ecb8-9246-4235-8e8a-4648d63a7ebe",
+      "currentPoints": 1
+    },
+    "levelAvailable": "3"
+  },
+  {
+    "id": "7aa9155e-eb0f-4fe5-a4cb-b5b1c9dd6c3a",
+    "label": "Distant Spell",
+    "description": "<p>When you cast a spell that has a range of 5 feet or greater, you can spend 1 sorcery point to double the range of the spell.</p><p>When you cast a spell that has a range of touch, you can spend 1 sorcery point to make the range of the spell 30 feet.</p>",
+    "charges": {
+      "id": "55e6240e-4659-4501-9f34-e48d4f5cf02b",
+      "limitId": "c6b4ecb8-9246-4235-8e8a-4648d63a7ebe",
+      "currentPoints": 1
+    },
+    "levelAvailable": "3"
+  },
+  {
+    "id": "ce095390-6222-4c31-8000-a534271f65ba",
+    "label": "Empowered Spell",
+    "description": "<p>When you roll damage for a spell, you can spend 1 sorcery point to reroll a number of the damage dice up to your Charisma modifier (minimum of one). You must use the new rolls.</p><p>You can use Empowered Spell even if you have already used a different Metamagic option during the casting of the spell.</p>",
+    "charges": {
+      "id": "e6501e35-b1fc-44a6-a6a3-8cb237330281",
+      "limitId": "c6b4ecb8-9246-4235-8e8a-4648d63a7ebe",
+      "currentPoints": 1
+    },
+    "levelAvailable": "3"
+  },
+  {
+    "id": "1272ce56-97f0-4a50-b035-decbe3e11d0f",
+    "label": "Extended Spell",
+    "description": "<p>When you cast a spell that has a duration of 1 minute or longer, you can spend 1 sorcery point to double its duration, to a maximum duration of 24 hours.</p>",
+    "charges": {
+      "id": "7a5e2008-8116-4c5d-91b2-d244da474954",
+      "limitId": "c6b4ecb8-9246-4235-8e8a-4648d63a7ebe",
+      "currentPoints": 1
+    },
+    "levelAvailable": "3"
+  },
+  {
+    "id": "af9539aa-113c-4e32-99be-aebddc09eead",
+    "label": "Heightened Spell",
+    "description": "<p>When you cast a spell that forces a creature to make a saving throw to resist its effects, you can spend 3 sorcery points to give one target of the spell disadvantage on its first saving throw made against the spell.</p>",
+    "charges": {
+      "id": "8afc9b63-b966-40a9-8919-e26b1c66395c",
+      "limitId": "c6b4ecb8-9246-4235-8e8a-4648d63a7ebe",
+      "currentPoints": 3
+    },
+    "levelAvailable": "3"
+  },
+  {
+    "id": "77760d7a-c82c-4fff-965c-3ce45617b06e",
+    "label": "Quickened Spell",
+    "description": "<p>When you cast a spell that has a casting time of 1 action, you can spend 2 sorcery points to change the casting time to 1 bonus action for this casting.</p>",
+    "charges": {
+      "id": "b13ef1d2-a44e-4b67-bda9-f2b63c80cb2c",
+      "limitId": "c6b4ecb8-9246-4235-8e8a-4648d63a7ebe",
+      "currentPoints": 2
+    },
+    "levelAvailable": "3"
+  },
+  {
+    "id": "a074b362-fea6-4898-9d4d-e87b7024f549",
+    "label": "Subtle Spell",
+    "description": "<p>When you cast a spell, you can spend 1 sorcery point to cast it without any somatic or verbal components.</p>",
+    "charges": {
+      "id": "b110c063-28c3-415b-ad2e-cff4b4b357db",
+      "limitId": "c6b4ecb8-9246-4235-8e8a-4648d63a7ebe",
+      "currentPoints": 1
+    },
+    "levelAvailable": "3"
+  },
+  {
+    "id": "75d786ea-c408-4ad5-8324-f815a7cae143",
+    "label": "Twinned Spell",
+    "description": "<p>When you cast a spell that targets only one creature and doesn't have a range of self, you can spend a number of sorcery points equal to the spell's level to target a second creature in range with the same spell (1 sorcery point if the spell is a cantrip).</p><p>To be eligible, a spell must be incapable of targeting more than one creature at the spell's current level. For example, <em>magic missile</em>&nbsp;and <em>scorching ray</em> aren't eligible, but <em>ray of frost</em> and <em>chromatic orb</em> are.</p>",
+    "charges": {
+      "id": "a8051eeb-af64-416f-a391-f6cf8fddd649",
+      "limitId": "c6b4ecb8-9246-4235-8e8a-4648d63a7ebe",
+      "currentPoints": 1
+    },
+    "levelAvailable": "3"
+  },
+  {
+    "id": "ec28ca1f-607f-42d1-9d5b-742547dd960f",
+    "label": "Agonizing Blast",
+    "description": "<p>When you cast <em>eldritch blast</em>, add your Charisma modifier to the damage it deals on a hit.</p>",
+    "modifiers": [
+      "d5081a9b-797e-4060-ba9e-688353c69601",
+      "eeaa713f-fa49-40d9-b322-a2ff2b5238b6",
+      "437564bd-b8f7-4fbb-adeb-65ac0e5e2478"
+    ],
+    "prerequisites": [
+      {
+        "id": "f17ced4c-27ad-4301-b006-472139771313",
+        "role": "GATE",
+        "position": 0,
+        "spellIds": [
+          "0e3d3c41-96f6-41d8-b7fe-ff92b56a16d4"
+        ],
+        "categoryId": "de774c82-b1d6-4f6c-b73c-84cf370c60ff"
+      }
+    ],
+    "levelAvailable": "2"
+  },
+  {
+    "id": "1d52c514-cf47-4a71-8827-ace56fb9f7df",
+    "label": "Armor of Shadows",
+    "description": "<p>You can cast <em>mage armor</em> on yourself at will, without expending a spell slot or material components.</p>",
+    "spells": [
+      "c7c8dde1-0889-4cdc-8a45-1ce621b4d6d7",
+      "9ae5449a-3d5b-4738-923c-3b4d414f6af2",
+      "edb5b6dd-881f-4215-9b42-e8eddd85f361",
+      "2b71d085-73e0-4b36-ad63-1b6ae5540405",
+      "1f0c3aa2-fd83-488a-bdea-782ea28e4d27",
+      "7af1b6de-0386-4901-b24a-ec84349a61bc",
+      "89ac519b-ef16-40b2-bb1f-8044b4229439",
+      "9f197f16-e2d3-4b0b-bc94-b8bc5522ed7c",
+      "71751cac-b6e6-4952-8ee6-472d8716731e",
+      "80f8a51a-a386-4913-a988-28fe26ab2d2d",
+      "c0371b9d-5334-4a43-9146-940b3fffd745",
+      "a425b2db-6e7e-4fee-a362-c109065ad5e7",
+      "541f2049-96db-45ac-b16e-540b2f0a2fdb",
+      "244cbfcd-61bf-4a44-9512-ab16ab4ff0e5",
+      "3c23dac5-6d88-4f77-92ce-33b201cc33da",
+      "dc054179-2608-4c9f-b2d9-1f1abe03191d",
+      "9b5731b8-9035-435c-a842-79810e924ba4",
+      "0aa56743-2538-40df-923a-83eee86bf793",
+      "4704fe4c-a8b9-4e84-863e-2524a39f8827",
+      "66fd3fcb-2be2-4069-9061-4b9c7bc12e1d"
+    ],
+    "levelAvailable": "2"
+  },
+  {
+    "id": "700369d7-92f1-449f-a911-fdbf1ba3a9b6",
+    "label": "Ascendant Step",
+    "description": "<p>You can cast levitate on yourself at will, without expending a spell slot or material components.</p>",
+    "spells": [
+      "c7c8dde1-0889-4cdc-8a45-1ce621b4d6d7",
+      "9ae5449a-3d5b-4738-923c-3b4d414f6af2",
+      "edb5b6dd-881f-4215-9b42-e8eddd85f361",
+      "2b71d085-73e0-4b36-ad63-1b6ae5540405",
+      "1f0c3aa2-fd83-488a-bdea-782ea28e4d27",
+      "7af1b6de-0386-4901-b24a-ec84349a61bc",
+      "89ac519b-ef16-40b2-bb1f-8044b4229439",
+      "9f197f16-e2d3-4b0b-bc94-b8bc5522ed7c",
+      "71751cac-b6e6-4952-8ee6-472d8716731e",
+      "80f8a51a-a386-4913-a988-28fe26ab2d2d",
+      "c0371b9d-5334-4a43-9146-940b3fffd745",
+      "a425b2db-6e7e-4fee-a362-c109065ad5e7",
+      "541f2049-96db-45ac-b16e-540b2f0a2fdb",
+      "244cbfcd-61bf-4a44-9512-ab16ab4ff0e5",
+      "3c23dac5-6d88-4f77-92ce-33b201cc33da",
+      "dc054179-2608-4c9f-b2d9-1f1abe03191d",
+      "9b5731b8-9035-435c-a842-79810e924ba4",
+      "0aa56743-2538-40df-923a-83eee86bf793",
+      "4704fe4c-a8b9-4e84-863e-2524a39f8827",
+      "66fd3fcb-2be2-4069-9061-4b9c7bc12e1d"
+    ],
+    "levelAvailable": "9"
+  },
+  {
+    "id": "1fc44be0-3056-4969-bc81-c572a2932f0b",
+    "label": "Beast Speech",
+    "description": "<p>You can cast speak with animals at will, without expending a spell slot.</p>",
+    "spells": [
+      "c7c8dde1-0889-4cdc-8a45-1ce621b4d6d7",
+      "9ae5449a-3d5b-4738-923c-3b4d414f6af2",
+      "edb5b6dd-881f-4215-9b42-e8eddd85f361",
+      "2b71d085-73e0-4b36-ad63-1b6ae5540405",
+      "1f0c3aa2-fd83-488a-bdea-782ea28e4d27",
+      "7af1b6de-0386-4901-b24a-ec84349a61bc",
+      "89ac519b-ef16-40b2-bb1f-8044b4229439",
+      "9f197f16-e2d3-4b0b-bc94-b8bc5522ed7c",
+      "71751cac-b6e6-4952-8ee6-472d8716731e",
+      "80f8a51a-a386-4913-a988-28fe26ab2d2d",
+      "c0371b9d-5334-4a43-9146-940b3fffd745",
+      "a425b2db-6e7e-4fee-a362-c109065ad5e7",
+      "541f2049-96db-45ac-b16e-540b2f0a2fdb",
+      "244cbfcd-61bf-4a44-9512-ab16ab4ff0e5",
+      "3c23dac5-6d88-4f77-92ce-33b201cc33da",
+      "dc054179-2608-4c9f-b2d9-1f1abe03191d",
+      "9b5731b8-9035-435c-a842-79810e924ba4",
+      "0aa56743-2538-40df-923a-83eee86bf793",
+      "4704fe4c-a8b9-4e84-863e-2524a39f8827",
+      "66fd3fcb-2be2-4069-9061-4b9c7bc12e1d"
+    ],
+    "levelAvailable": "2"
+  },
+  {
+    "id": "0d9dd763-770f-4a98-befc-206f7e923628",
+    "label": "Beguiling Influence",
+    "description": "<p>You gain proficiency in the Deception and Persuasion skills.</p>",
+    "proficiencies": [
+      "fd202076-0c46-4dbb-8676-c6c1ce769985"
+    ],
+    "levelAvailable": "2"
+  },
+  {
+    "id": "2e7d8c5d-f71c-4f98-98c5-6073654ed58b",
+    "label": "Bewitching Whispers",
+    "description": "<p>You can cast compulsion once using a warlock spell slot. You can't do so again until you finish a long rest.</p>",
+    "spells": [
+      "c7c8dde1-0889-4cdc-8a45-1ce621b4d6d7",
+      "9ae5449a-3d5b-4738-923c-3b4d414f6af2",
+      "edb5b6dd-881f-4215-9b42-e8eddd85f361",
+      "2b71d085-73e0-4b36-ad63-1b6ae5540405",
+      "1f0c3aa2-fd83-488a-bdea-782ea28e4d27",
+      "7af1b6de-0386-4901-b24a-ec84349a61bc",
+      "89ac519b-ef16-40b2-bb1f-8044b4229439",
+      "9f197f16-e2d3-4b0b-bc94-b8bc5522ed7c",
+      "71751cac-b6e6-4952-8ee6-472d8716731e",
+      "80f8a51a-a386-4913-a988-28fe26ab2d2d",
+      "c0371b9d-5334-4a43-9146-940b3fffd745",
+      "a425b2db-6e7e-4fee-a362-c109065ad5e7",
+      "541f2049-96db-45ac-b16e-540b2f0a2fdb",
+      "244cbfcd-61bf-4a44-9512-ab16ab4ff0e5",
+      "3c23dac5-6d88-4f77-92ce-33b201cc33da",
+      "dc054179-2608-4c9f-b2d9-1f1abe03191d",
+      "9b5731b8-9035-435c-a842-79810e924ba4",
+      "0aa56743-2538-40df-923a-83eee86bf793",
+      "4704fe4c-a8b9-4e84-863e-2524a39f8827",
+      "66fd3fcb-2be2-4069-9061-4b9c7bc12e1d"
+    ],
+    "levelAvailable": "7"
+  },
+  {
+    "id": "df28ea93-5350-4f87-93e9-9215f0aacc3e",
+    "label": "Book of Ancient Secrets",
+    "description": "<p>You can now inscribe magical rituals in your Book of Shadows. Choose two 1st-level spells that have the ritual tag from any class's spell list (the two needn't be from the same list). The spells appear in the book and don't count against the number of spells you know. With your Book of Shadows in hand, you can cast the chosen spells as rituals. You can't cast the spells except as rituals, unless you've learned them by some other means. You can also cast a warlock spell you know as a ritual if it has the ritual tag.</p><p>On your adventures, you can add other ritual spells to your Book of Shadows. When you find such a spell, you can add it to the book if the spell's level is equal to or less than half your warlock level (rounded up) and if you can spare the time to transcribe the spell. For each level of the spell, the transcription process takes 2 hours and costs 50 gp for the rare inks needed to inscribe it.</p>",
+    "spells": [
+      "c7c8dde1-0889-4cdc-8a45-1ce621b4d6d7",
+      "9ae5449a-3d5b-4738-923c-3b4d414f6af2",
+      "edb5b6dd-881f-4215-9b42-e8eddd85f361",
+      "2b71d085-73e0-4b36-ad63-1b6ae5540405",
+      "1f0c3aa2-fd83-488a-bdea-782ea28e4d27",
+      "7af1b6de-0386-4901-b24a-ec84349a61bc",
+      "89ac519b-ef16-40b2-bb1f-8044b4229439",
+      "9f197f16-e2d3-4b0b-bc94-b8bc5522ed7c",
+      "71751cac-b6e6-4952-8ee6-472d8716731e",
+      "80f8a51a-a386-4913-a988-28fe26ab2d2d",
+      "c0371b9d-5334-4a43-9146-940b3fffd745",
+      "a425b2db-6e7e-4fee-a362-c109065ad5e7",
+      "541f2049-96db-45ac-b16e-540b2f0a2fdb",
+      "244cbfcd-61bf-4a44-9512-ab16ab4ff0e5",
+      "3c23dac5-6d88-4f77-92ce-33b201cc33da",
+      "dc054179-2608-4c9f-b2d9-1f1abe03191d",
+      "9b5731b8-9035-435c-a842-79810e924ba4",
+      "0aa56743-2538-40df-923a-83eee86bf793",
+      "4704fe4c-a8b9-4e84-863e-2524a39f8827",
+      "66fd3fcb-2be2-4069-9061-4b9c7bc12e1d"
+    ],
+    "prerequisites": [
+      {
+        "id": "568b3f0f-14ea-4a54-a19c-ddb86074d521",
+        "role": "GATE",
+        "position": 0,
+        "subfeatureOptionIds": [
+          "e7720a82-404d-4ead-bb98-e0dcd10a277f"
+        ],
+        "categoryId": "293010e4-fe1f-4982-8a80-6a232eafe19f"
+      }
+    ],
+    "levelAvailable": "2"
+  },
+  {
+    "id": "fe0587c4-89a8-4b1e-aac4-e2bf56ffe74c",
+    "label": "Chains of Carceri",
+    "description": "<p>You can cast hold monster at will—targeting a celestial, fiend, or elemental—without expending a spell slot or material components. You must finish a long rest before you can use this invocation on the same creature again.</p>",
+    "spells": [
+      "c7c8dde1-0889-4cdc-8a45-1ce621b4d6d7",
+      "9ae5449a-3d5b-4738-923c-3b4d414f6af2",
+      "edb5b6dd-881f-4215-9b42-e8eddd85f361",
+      "2b71d085-73e0-4b36-ad63-1b6ae5540405",
+      "1f0c3aa2-fd83-488a-bdea-782ea28e4d27",
+      "7af1b6de-0386-4901-b24a-ec84349a61bc",
+      "89ac519b-ef16-40b2-bb1f-8044b4229439",
+      "9f197f16-e2d3-4b0b-bc94-b8bc5522ed7c",
+      "71751cac-b6e6-4952-8ee6-472d8716731e",
+      "80f8a51a-a386-4913-a988-28fe26ab2d2d",
+      "c0371b9d-5334-4a43-9146-940b3fffd745",
+      "a425b2db-6e7e-4fee-a362-c109065ad5e7",
+      "541f2049-96db-45ac-b16e-540b2f0a2fdb",
+      "244cbfcd-61bf-4a44-9512-ab16ab4ff0e5",
+      "3c23dac5-6d88-4f77-92ce-33b201cc33da",
+      "dc054179-2608-4c9f-b2d9-1f1abe03191d",
+      "9b5731b8-9035-435c-a842-79810e924ba4",
+      "0aa56743-2538-40df-923a-83eee86bf793",
+      "4704fe4c-a8b9-4e84-863e-2524a39f8827",
+      "66fd3fcb-2be2-4069-9061-4b9c7bc12e1d"
+    ],
+    "prerequisites": [
+      {
+        "id": "061f4e0e-b8af-4a37-8e7f-1a2adfd678d4",
+        "role": "GATE",
+        "position": 0,
+        "subfeatureOptionIds": [
+          "7436bad8-4e7c-4164-9a6a-d1600388bb21"
+        ],
+        "categoryId": "5d93f79b-230e-464e-bef3-50bcd68f4b9f"
+      }
+    ],
+    "levelAvailable": "15"
+  },
+  {
+    "id": "ad74164e-7547-4eeb-a535-810c725845e5",
+    "label": "Devil's Sight",
+    "description": "<p>You can see normally in darkness, both magical and nonmagical, to a distance of 120 feet.</p>",
+    "senses": [
+      "d68d046a-8984-49b1-8496-8cbea89ce699",
+      "378191b1-5830-4a21-bf8c-ccfd92b0e5e5"
+    ],
+    "levelAvailable": "2"
+  },
+  {
+    "id": "2c60f7ce-a1ce-4e44-8fac-8afdb4138a4d",
+    "label": "Dreadful Word",
+    "description": "<p>You can cast confusion once using a warlock spell slot. You can't do so again until you finish a long rest.</p>",
+    "spells": [
+      "c7c8dde1-0889-4cdc-8a45-1ce621b4d6d7",
+      "9ae5449a-3d5b-4738-923c-3b4d414f6af2",
+      "edb5b6dd-881f-4215-9b42-e8eddd85f361",
+      "2b71d085-73e0-4b36-ad63-1b6ae5540405",
+      "1f0c3aa2-fd83-488a-bdea-782ea28e4d27",
+      "7af1b6de-0386-4901-b24a-ec84349a61bc",
+      "89ac519b-ef16-40b2-bb1f-8044b4229439",
+      "9f197f16-e2d3-4b0b-bc94-b8bc5522ed7c",
+      "71751cac-b6e6-4952-8ee6-472d8716731e",
+      "80f8a51a-a386-4913-a988-28fe26ab2d2d",
+      "c0371b9d-5334-4a43-9146-940b3fffd745",
+      "a425b2db-6e7e-4fee-a362-c109065ad5e7",
+      "541f2049-96db-45ac-b16e-540b2f0a2fdb",
+      "244cbfcd-61bf-4a44-9512-ab16ab4ff0e5",
+      "3c23dac5-6d88-4f77-92ce-33b201cc33da",
+      "dc054179-2608-4c9f-b2d9-1f1abe03191d",
+      "9b5731b8-9035-435c-a842-79810e924ba4",
+      "0aa56743-2538-40df-923a-83eee86bf793",
+      "4704fe4c-a8b9-4e84-863e-2524a39f8827",
+      "66fd3fcb-2be2-4069-9061-4b9c7bc12e1d"
+    ],
+    "levelAvailable": "7"
+  },
+  {
+    "id": "e7c3e572-e58e-4017-a7ac-88c8b36dc49c",
+    "label": "Eldritch Sight",
+    "description": "<p>You can cast detect magic at will, without expending a spell slot.</p>",
+    "spells": [
+      "c7c8dde1-0889-4cdc-8a45-1ce621b4d6d7",
+      "9ae5449a-3d5b-4738-923c-3b4d414f6af2",
+      "edb5b6dd-881f-4215-9b42-e8eddd85f361",
+      "2b71d085-73e0-4b36-ad63-1b6ae5540405",
+      "1f0c3aa2-fd83-488a-bdea-782ea28e4d27",
+      "7af1b6de-0386-4901-b24a-ec84349a61bc",
+      "89ac519b-ef16-40b2-bb1f-8044b4229439",
+      "9f197f16-e2d3-4b0b-bc94-b8bc5522ed7c",
+      "71751cac-b6e6-4952-8ee6-472d8716731e",
+      "80f8a51a-a386-4913-a988-28fe26ab2d2d",
+      "c0371b9d-5334-4a43-9146-940b3fffd745",
+      "a425b2db-6e7e-4fee-a362-c109065ad5e7",
+      "541f2049-96db-45ac-b16e-540b2f0a2fdb",
+      "244cbfcd-61bf-4a44-9512-ab16ab4ff0e5",
+      "3c23dac5-6d88-4f77-92ce-33b201cc33da",
+      "dc054179-2608-4c9f-b2d9-1f1abe03191d",
+      "9b5731b8-9035-435c-a842-79810e924ba4",
+      "0aa56743-2538-40df-923a-83eee86bf793",
+      "4704fe4c-a8b9-4e84-863e-2524a39f8827",
+      "66fd3fcb-2be2-4069-9061-4b9c7bc12e1d"
+    ],
+    "levelAvailable": "2"
+  },
+  {
+    "id": "6797f8ca-8998-4fd0-90c2-b63332ed763c",
+    "label": "Eldritch Spear",
+    "description": "<p>When you cast eldritch blast, its range is 300 feet.</p>",
+    "modifiers": [
+      "d5081a9b-797e-4060-ba9e-688353c69601",
+      "eeaa713f-fa49-40d9-b322-a2ff2b5238b6",
+      "437564bd-b8f7-4fbb-adeb-65ac0e5e2478"
+    ],
+    "prerequisites": [
+      {
+        "id": "2b25084f-d0cc-495d-9ca3-40c7ccd374d7",
+        "role": "GATE",
+        "position": 0,
+        "spellIds": [
+          "0e3d3c41-96f6-41d8-b7fe-ff92b56a16d4"
+        ],
+        "categoryId": "de774c82-b1d6-4f6c-b73c-84cf370c60ff"
+      }
+    ],
+    "levelAvailable": "2"
+  },
+  {
+    "id": "c37e7b34-18a2-4239-9f51-84a89b0fef04",
+    "label": "Eyes of the Rune Keeper",
+    "description": "<p>You can read all writing.</p>",
+    "levelAvailable": "2"
+  },
+  {
+    "id": "ead58838-3121-49b6-ba08-e563fd8bf79d",
+    "label": "Fiendish Vigor",
+    "description": "<p>You can cast false life on yourself at will as a 1st-level spell, without expending a spell slot or material components.</p>",
+    "spells": [
+      "c7c8dde1-0889-4cdc-8a45-1ce621b4d6d7",
+      "9ae5449a-3d5b-4738-923c-3b4d414f6af2",
+      "edb5b6dd-881f-4215-9b42-e8eddd85f361",
+      "2b71d085-73e0-4b36-ad63-1b6ae5540405",
+      "1f0c3aa2-fd83-488a-bdea-782ea28e4d27",
+      "7af1b6de-0386-4901-b24a-ec84349a61bc",
+      "89ac519b-ef16-40b2-bb1f-8044b4229439",
+      "9f197f16-e2d3-4b0b-bc94-b8bc5522ed7c",
+      "71751cac-b6e6-4952-8ee6-472d8716731e",
+      "80f8a51a-a386-4913-a988-28fe26ab2d2d",
+      "c0371b9d-5334-4a43-9146-940b3fffd745",
+      "a425b2db-6e7e-4fee-a362-c109065ad5e7",
+      "541f2049-96db-45ac-b16e-540b2f0a2fdb",
+      "244cbfcd-61bf-4a44-9512-ab16ab4ff0e5",
+      "3c23dac5-6d88-4f77-92ce-33b201cc33da",
+      "dc054179-2608-4c9f-b2d9-1f1abe03191d",
+      "9b5731b8-9035-435c-a842-79810e924ba4",
+      "0aa56743-2538-40df-923a-83eee86bf793",
+      "4704fe4c-a8b9-4e84-863e-2524a39f8827",
+      "66fd3fcb-2be2-4069-9061-4b9c7bc12e1d"
+    ],
+    "levelAvailable": "2"
+  },
+  {
+    "id": "9711663f-f117-48c7-bec6-fd10e6f13606",
+    "label": "Gaze of Two Minds",
+    "description": "<p>You can use your action to touch a willing humanoid and perceive through its senses until the end of your next turn. As long as the creature is on the same plane of existence as you, you can use your action on subsequent turns to maintain this connection, extending the duration until the end of your next turn. While perceiving through the other creature's senses, you benefit from any special senses possessed by that creature, and you are blinded and deafened to your own surroundings.</p>",
+    "actions": {
+      "primary": {
+        "id": "ec034006-0d37-4687-b426-e8c4dc091b27",
+        "actionId": "ec034006-0d37-4687-b426-e8c4dc091b27"
+      }
+    },
+    "levelAvailable": "2"
+  },
+  {
+    "id": "22daa832-4422-422e-a6e8-30f6ab288174",
+    "label": "Lifedrinker",
+    "description": "<p>When you hit a creature with your pact weapon, the creature takes extra necrotic damage equal to your Charisma modifier (minimum 1).</p>",
+    "modifiers": [
+      "d5081a9b-797e-4060-ba9e-688353c69601",
+      "eeaa713f-fa49-40d9-b322-a2ff2b5238b6",
+      "437564bd-b8f7-4fbb-adeb-65ac0e5e2478"
+    ],
+    "prerequisites": [
+      {
+        "id": "e50e023c-4d14-4e10-a6ce-d0e74baee57c",
+        "role": "GATE",
+        "position": 0,
+        "subfeatureOptionIds": [
+          "18667f47-2768-45bf-8b2e-4f7f101180ec"
+        ],
+        "categoryId": "5d93f79b-230e-464e-bef3-50bcd68f4b9f"
+      }
+    ],
+    "levelAvailable": "2"
+  },
+  {
+    "id": "8e83d32d-4163-4cb8-a7e7-5ec7c400ad6e",
+    "label": "Mask of Many Faces",
+    "description": "<p>You can cast disguise self at will, without expending a spell slot.</p>",
+    "spells": [
+      "c7c8dde1-0889-4cdc-8a45-1ce621b4d6d7",
+      "9ae5449a-3d5b-4738-923c-3b4d414f6af2",
+      "edb5b6dd-881f-4215-9b42-e8eddd85f361",
+      "2b71d085-73e0-4b36-ad63-1b6ae5540405",
+      "1f0c3aa2-fd83-488a-bdea-782ea28e4d27",
+      "7af1b6de-0386-4901-b24a-ec84349a61bc",
+      "89ac519b-ef16-40b2-bb1f-8044b4229439",
+      "9f197f16-e2d3-4b0b-bc94-b8bc5522ed7c",
+      "71751cac-b6e6-4952-8ee6-472d8716731e",
+      "80f8a51a-a386-4913-a988-28fe26ab2d2d",
+      "c0371b9d-5334-4a43-9146-940b3fffd745",
+      "a425b2db-6e7e-4fee-a362-c109065ad5e7",
+      "541f2049-96db-45ac-b16e-540b2f0a2fdb",
+      "244cbfcd-61bf-4a44-9512-ab16ab4ff0e5",
+      "3c23dac5-6d88-4f77-92ce-33b201cc33da",
+      "dc054179-2608-4c9f-b2d9-1f1abe03191d",
+      "9b5731b8-9035-435c-a842-79810e924ba4",
+      "0aa56743-2538-40df-923a-83eee86bf793",
+      "4704fe4c-a8b9-4e84-863e-2524a39f8827",
+      "66fd3fcb-2be2-4069-9061-4b9c7bc12e1d"
+    ],
+    "levelAvailable": "2"
+  },
+  {
+    "id": "419c4ba1-4a7c-4121-87e4-cc1519ae2bca",
+    "label": "Master of Myriad Forms",
+    "description": "<p>You can cast alter self at will, without expending a spell slot.</p>",
+    "spells": [
+      "c7c8dde1-0889-4cdc-8a45-1ce621b4d6d7",
+      "9ae5449a-3d5b-4738-923c-3b4d414f6af2",
+      "edb5b6dd-881f-4215-9b42-e8eddd85f361",
+      "2b71d085-73e0-4b36-ad63-1b6ae5540405",
+      "1f0c3aa2-fd83-488a-bdea-782ea28e4d27",
+      "7af1b6de-0386-4901-b24a-ec84349a61bc",
+      "89ac519b-ef16-40b2-bb1f-8044b4229439",
+      "9f197f16-e2d3-4b0b-bc94-b8bc5522ed7c",
+      "71751cac-b6e6-4952-8ee6-472d8716731e",
+      "80f8a51a-a386-4913-a988-28fe26ab2d2d",
+      "c0371b9d-5334-4a43-9146-940b3fffd745",
+      "a425b2db-6e7e-4fee-a362-c109065ad5e7",
+      "541f2049-96db-45ac-b16e-540b2f0a2fdb",
+      "244cbfcd-61bf-4a44-9512-ab16ab4ff0e5",
+      "3c23dac5-6d88-4f77-92ce-33b201cc33da",
+      "dc054179-2608-4c9f-b2d9-1f1abe03191d",
+      "9b5731b8-9035-435c-a842-79810e924ba4",
+      "0aa56743-2538-40df-923a-83eee86bf793",
+      "4704fe4c-a8b9-4e84-863e-2524a39f8827",
+      "66fd3fcb-2be2-4069-9061-4b9c7bc12e1d"
+    ],
+    "levelAvailable": "15"
+  },
+  {
+    "id": "c387232b-1586-4bbd-a46c-854b01473ea4",
+    "label": "Minions of Chaos",
+    "description": "<p>You can cast conjure elemental once using a warlock spell slot. You can't do so again until you finish a long rest.</p>",
+    "spells": [
+      "c7c8dde1-0889-4cdc-8a45-1ce621b4d6d7",
+      "9ae5449a-3d5b-4738-923c-3b4d414f6af2",
+      "edb5b6dd-881f-4215-9b42-e8eddd85f361",
+      "2b71d085-73e0-4b36-ad63-1b6ae5540405",
+      "1f0c3aa2-fd83-488a-bdea-782ea28e4d27",
+      "7af1b6de-0386-4901-b24a-ec84349a61bc",
+      "89ac519b-ef16-40b2-bb1f-8044b4229439",
+      "9f197f16-e2d3-4b0b-bc94-b8bc5522ed7c",
+      "71751cac-b6e6-4952-8ee6-472d8716731e",
+      "80f8a51a-a386-4913-a988-28fe26ab2d2d",
+      "c0371b9d-5334-4a43-9146-940b3fffd745",
+      "a425b2db-6e7e-4fee-a362-c109065ad5e7",
+      "541f2049-96db-45ac-b16e-540b2f0a2fdb",
+      "244cbfcd-61bf-4a44-9512-ab16ab4ff0e5",
+      "3c23dac5-6d88-4f77-92ce-33b201cc33da",
+      "dc054179-2608-4c9f-b2d9-1f1abe03191d",
+      "9b5731b8-9035-435c-a842-79810e924ba4",
+      "0aa56743-2538-40df-923a-83eee86bf793",
+      "4704fe4c-a8b9-4e84-863e-2524a39f8827",
+      "66fd3fcb-2be2-4069-9061-4b9c7bc12e1d"
+    ],
+    "levelAvailable": "9"
+  },
+  {
+    "id": "e9e5c3fa-0d95-40e8-bbca-812f367fd3ab",
+    "label": "Mire the Mind",
+    "description": "<p>You can cast slow once using a warlock spell slot. You can't do so again until you finish a long rest.</p>",
+    "spells": [
+      "c7c8dde1-0889-4cdc-8a45-1ce621b4d6d7",
+      "9ae5449a-3d5b-4738-923c-3b4d414f6af2",
+      "edb5b6dd-881f-4215-9b42-e8eddd85f361",
+      "2b71d085-73e0-4b36-ad63-1b6ae5540405",
+      "1f0c3aa2-fd83-488a-bdea-782ea28e4d27",
+      "7af1b6de-0386-4901-b24a-ec84349a61bc",
+      "89ac519b-ef16-40b2-bb1f-8044b4229439",
+      "9f197f16-e2d3-4b0b-bc94-b8bc5522ed7c",
+      "71751cac-b6e6-4952-8ee6-472d8716731e",
+      "80f8a51a-a386-4913-a988-28fe26ab2d2d",
+      "c0371b9d-5334-4a43-9146-940b3fffd745",
+      "a425b2db-6e7e-4fee-a362-c109065ad5e7",
+      "541f2049-96db-45ac-b16e-540b2f0a2fdb",
+      "244cbfcd-61bf-4a44-9512-ab16ab4ff0e5",
+      "3c23dac5-6d88-4f77-92ce-33b201cc33da",
+      "dc054179-2608-4c9f-b2d9-1f1abe03191d",
+      "9b5731b8-9035-435c-a842-79810e924ba4",
+      "0aa56743-2538-40df-923a-83eee86bf793",
+      "4704fe4c-a8b9-4e84-863e-2524a39f8827",
+      "66fd3fcb-2be2-4069-9061-4b9c7bc12e1d"
+    ],
+    "levelAvailable": "5"
+  },
+  {
+    "id": "cce5c4a3-ba62-4a2f-9fb4-48d45897b705",
+    "label": "Misty Visions",
+    "description": "<p>You can cast silent image at will, without expending a spell slot or material components.</p>",
+    "spells": [
+      "c7c8dde1-0889-4cdc-8a45-1ce621b4d6d7",
+      "9ae5449a-3d5b-4738-923c-3b4d414f6af2",
+      "edb5b6dd-881f-4215-9b42-e8eddd85f361",
+      "2b71d085-73e0-4b36-ad63-1b6ae5540405",
+      "1f0c3aa2-fd83-488a-bdea-782ea28e4d27",
+      "7af1b6de-0386-4901-b24a-ec84349a61bc",
+      "89ac519b-ef16-40b2-bb1f-8044b4229439",
+      "9f197f16-e2d3-4b0b-bc94-b8bc5522ed7c",
+      "71751cac-b6e6-4952-8ee6-472d8716731e",
+      "80f8a51a-a386-4913-a988-28fe26ab2d2d",
+      "c0371b9d-5334-4a43-9146-940b3fffd745",
+      "a425b2db-6e7e-4fee-a362-c109065ad5e7",
+      "541f2049-96db-45ac-b16e-540b2f0a2fdb",
+      "244cbfcd-61bf-4a44-9512-ab16ab4ff0e5",
+      "3c23dac5-6d88-4f77-92ce-33b201cc33da",
+      "dc054179-2608-4c9f-b2d9-1f1abe03191d",
+      "9b5731b8-9035-435c-a842-79810e924ba4",
+      "0aa56743-2538-40df-923a-83eee86bf793",
+      "4704fe4c-a8b9-4e84-863e-2524a39f8827",
+      "66fd3fcb-2be2-4069-9061-4b9c7bc12e1d"
+    ],
+    "levelAvailable": "2"
+  },
+  {
+    "id": "82cac63c-b978-4f23-a941-06862c3e2fe6",
+    "label": "One with Shadows",
+    "description": "<p>When you are in an area of dim light or darkness, you can use your action to become invisible until you move or take an action or a reaction.</p>",
+    "actions": {
+      "primary": {
+        "id": "ec034006-0d37-4687-b426-e8c4dc091b27",
+        "actionId": "ec034006-0d37-4687-b426-e8c4dc091b27"
+      }
+    },
+    "levelAvailable": "5"
+  },
+  {
+    "id": "02d536aa-ffeb-4163-8edb-a3596b90f42f",
+    "label": "Otherworldly Leap",
+    "description": "<p>You can cast jump on yourself at will, without expending a spell slot or material components.</p>",
+    "spells": [
+      "c7c8dde1-0889-4cdc-8a45-1ce621b4d6d7",
+      "9ae5449a-3d5b-4738-923c-3b4d414f6af2",
+      "edb5b6dd-881f-4215-9b42-e8eddd85f361",
+      "2b71d085-73e0-4b36-ad63-1b6ae5540405",
+      "1f0c3aa2-fd83-488a-bdea-782ea28e4d27",
+      "7af1b6de-0386-4901-b24a-ec84349a61bc",
+      "89ac519b-ef16-40b2-bb1f-8044b4229439",
+      "9f197f16-e2d3-4b0b-bc94-b8bc5522ed7c",
+      "71751cac-b6e6-4952-8ee6-472d8716731e",
+      "80f8a51a-a386-4913-a988-28fe26ab2d2d",
+      "c0371b9d-5334-4a43-9146-940b3fffd745",
+      "a425b2db-6e7e-4fee-a362-c109065ad5e7",
+      "541f2049-96db-45ac-b16e-540b2f0a2fdb",
+      "244cbfcd-61bf-4a44-9512-ab16ab4ff0e5",
+      "3c23dac5-6d88-4f77-92ce-33b201cc33da",
+      "dc054179-2608-4c9f-b2d9-1f1abe03191d",
+      "9b5731b8-9035-435c-a842-79810e924ba4",
+      "0aa56743-2538-40df-923a-83eee86bf793",
+      "4704fe4c-a8b9-4e84-863e-2524a39f8827",
+      "66fd3fcb-2be2-4069-9061-4b9c7bc12e1d"
+    ],
+    "levelAvailable": "9"
+  },
+  {
+    "id": "fbd46aa3-bb70-4582-be72-14802a47690e",
+    "label": "Repelling Blast",
+    "description": "<p>When you hit a creature with eldritch blast, you can push the creature up to 10 feet away from you in a straight line.</p>",
+    "prerequisites": [
+      {
+        "id": "e291f69f-9c6e-4337-9b85-6e18b386526e",
+        "role": "GATE",
+        "position": 0,
+        "spellIds": [
+          "0e3d3c41-96f6-41d8-b7fe-ff92b56a16d4"
+        ],
+        "categoryId": "de774c82-b1d6-4f6c-b73c-84cf370c60ff"
+      }
+    ],
+    "levelAvailable": "2"
+  },
+  {
+    "id": "a1144ee2-3e27-452f-8403-58e3c55da2c5",
+    "label": "Sculptor of Flesh",
+    "description": "<p>You can cast polymorph once using a warlock spell slot. You can't do so again until you finish a long rest.</p>",
+    "spells": [
+      "c7c8dde1-0889-4cdc-8a45-1ce621b4d6d7",
+      "9ae5449a-3d5b-4738-923c-3b4d414f6af2",
+      "edb5b6dd-881f-4215-9b42-e8eddd85f361",
+      "2b71d085-73e0-4b36-ad63-1b6ae5540405",
+      "1f0c3aa2-fd83-488a-bdea-782ea28e4d27",
+      "7af1b6de-0386-4901-b24a-ec84349a61bc",
+      "89ac519b-ef16-40b2-bb1f-8044b4229439",
+      "9f197f16-e2d3-4b0b-bc94-b8bc5522ed7c",
+      "71751cac-b6e6-4952-8ee6-472d8716731e",
+      "80f8a51a-a386-4913-a988-28fe26ab2d2d",
+      "c0371b9d-5334-4a43-9146-940b3fffd745",
+      "a425b2db-6e7e-4fee-a362-c109065ad5e7",
+      "541f2049-96db-45ac-b16e-540b2f0a2fdb",
+      "244cbfcd-61bf-4a44-9512-ab16ab4ff0e5",
+      "3c23dac5-6d88-4f77-92ce-33b201cc33da",
+      "dc054179-2608-4c9f-b2d9-1f1abe03191d",
+      "9b5731b8-9035-435c-a842-79810e924ba4",
+      "0aa56743-2538-40df-923a-83eee86bf793",
+      "4704fe4c-a8b9-4e84-863e-2524a39f8827",
+      "66fd3fcb-2be2-4069-9061-4b9c7bc12e1d"
+    ],
+    "levelAvailable": "7"
+  },
+  {
+    "id": "efce2b56-ae73-406d-a8e4-18d556e315b7",
+    "label": "Sign of Ill Omen",
+    "description": "<p>You can cast bestow curse once using a warlock spell slot. You can't do so again until you finish a long rest.</p>",
+    "spells": [
+      "c7c8dde1-0889-4cdc-8a45-1ce621b4d6d7",
+      "9ae5449a-3d5b-4738-923c-3b4d414f6af2",
+      "edb5b6dd-881f-4215-9b42-e8eddd85f361",
+      "2b71d085-73e0-4b36-ad63-1b6ae5540405",
+      "1f0c3aa2-fd83-488a-bdea-782ea28e4d27",
+      "7af1b6de-0386-4901-b24a-ec84349a61bc",
+      "89ac519b-ef16-40b2-bb1f-8044b4229439",
+      "9f197f16-e2d3-4b0b-bc94-b8bc5522ed7c",
+      "71751cac-b6e6-4952-8ee6-472d8716731e",
+      "80f8a51a-a386-4913-a988-28fe26ab2d2d",
+      "c0371b9d-5334-4a43-9146-940b3fffd745",
+      "a425b2db-6e7e-4fee-a362-c109065ad5e7",
+      "541f2049-96db-45ac-b16e-540b2f0a2fdb",
+      "244cbfcd-61bf-4a44-9512-ab16ab4ff0e5",
+      "3c23dac5-6d88-4f77-92ce-33b201cc33da",
+      "dc054179-2608-4c9f-b2d9-1f1abe03191d",
+      "9b5731b8-9035-435c-a842-79810e924ba4",
+      "0aa56743-2538-40df-923a-83eee86bf793",
+      "4704fe4c-a8b9-4e84-863e-2524a39f8827",
+      "66fd3fcb-2be2-4069-9061-4b9c7bc12e1d"
+    ],
+    "levelAvailable": "5"
+  },
+  {
+    "id": "10606fbf-c451-4c9c-96d3-81b8a7ccfd54",
+    "label": "Thief of Five Fates",
+    "description": "<p>You can cast bane once using a warlock spell slot. You can't do so again until you finish a long rest.</p>",
+    "spells": [
+      "c7c8dde1-0889-4cdc-8a45-1ce621b4d6d7",
+      "9ae5449a-3d5b-4738-923c-3b4d414f6af2",
+      "edb5b6dd-881f-4215-9b42-e8eddd85f361",
+      "2b71d085-73e0-4b36-ad63-1b6ae5540405",
+      "1f0c3aa2-fd83-488a-bdea-782ea28e4d27",
+      "7af1b6de-0386-4901-b24a-ec84349a61bc",
+      "89ac519b-ef16-40b2-bb1f-8044b4229439",
+      "9f197f16-e2d3-4b0b-bc94-b8bc5522ed7c",
+      "71751cac-b6e6-4952-8ee6-472d8716731e",
+      "80f8a51a-a386-4913-a988-28fe26ab2d2d",
+      "c0371b9d-5334-4a43-9146-940b3fffd745",
+      "a425b2db-6e7e-4fee-a362-c109065ad5e7",
+      "541f2049-96db-45ac-b16e-540b2f0a2fdb",
+      "244cbfcd-61bf-4a44-9512-ab16ab4ff0e5",
+      "3c23dac5-6d88-4f77-92ce-33b201cc33da",
+      "dc054179-2608-4c9f-b2d9-1f1abe03191d",
+      "9b5731b8-9035-435c-a842-79810e924ba4",
+      "0aa56743-2538-40df-923a-83eee86bf793",
+      "4704fe4c-a8b9-4e84-863e-2524a39f8827",
+      "66fd3fcb-2be2-4069-9061-4b9c7bc12e1d"
+    ],
+    "levelAvailable": "2"
+  },
+  {
+    "id": "4a724f86-0110-462f-8fcb-b07dca531236",
+    "label": "Thirsting Blade",
+    "description": "<p>You can attack with your pact weapon twice, instead of once, whenever you take the Attack action on your turn.</p>",
+    "prerequisites": [
+      {
+        "id": "e7836cea-cf67-4717-90ae-acf94f4a95d6",
+        "role": "GATE",
+        "position": 0,
+        "subfeatureOptionIds": [
+          "18667f47-2768-45bf-8b2e-4f7f101180ec"
+        ],
+        "categoryId": "5d93f79b-230e-464e-bef3-50bcd68f4b9f"
+      }
+    ],
+    "levelAvailable": "5"
+  },
+  {
+    "id": "d44cfeda-7d5e-46a8-921f-ec490d910b09",
+    "label": "Visions of Distant Realms",
+    "description": "<p>You can cast arcane eye at will, without expending a spell slot.</p>",
+    "spells": [
+      "c7c8dde1-0889-4cdc-8a45-1ce621b4d6d7",
+      "9ae5449a-3d5b-4738-923c-3b4d414f6af2",
+      "edb5b6dd-881f-4215-9b42-e8eddd85f361",
+      "2b71d085-73e0-4b36-ad63-1b6ae5540405",
+      "1f0c3aa2-fd83-488a-bdea-782ea28e4d27",
+      "7af1b6de-0386-4901-b24a-ec84349a61bc",
+      "89ac519b-ef16-40b2-bb1f-8044b4229439",
+      "9f197f16-e2d3-4b0b-bc94-b8bc5522ed7c",
+      "71751cac-b6e6-4952-8ee6-472d8716731e",
+      "80f8a51a-a386-4913-a988-28fe26ab2d2d",
+      "c0371b9d-5334-4a43-9146-940b3fffd745",
+      "a425b2db-6e7e-4fee-a362-c109065ad5e7",
+      "541f2049-96db-45ac-b16e-540b2f0a2fdb",
+      "244cbfcd-61bf-4a44-9512-ab16ab4ff0e5",
+      "3c23dac5-6d88-4f77-92ce-33b201cc33da",
+      "dc054179-2608-4c9f-b2d9-1f1abe03191d",
+      "9b5731b8-9035-435c-a842-79810e924ba4",
+      "0aa56743-2538-40df-923a-83eee86bf793",
+      "4704fe4c-a8b9-4e84-863e-2524a39f8827",
+      "66fd3fcb-2be2-4069-9061-4b9c7bc12e1d"
+    ],
+    "levelAvailable": "15"
+  },
+  {
+    "id": "be1104cb-d246-4779-aec8-3c16776b6d92",
+    "label": "Voice of the Chain Master",
+    "description": "<p>You can communicate telepathically with your familiar and perceive through your familiar's senses as long as you are on the same plane of existence. Additionally, while perceiving through your familiar's senses, you can also speak through your familiar in your own voice, even if your familiar is normally incapable of speech.</p>",
+    "prerequisites": [
+      {
+        "id": "580efbb3-0bf5-4816-8a31-c5714121e0ba",
+        "role": "GATE",
+        "position": 0,
+        "subfeatureOptionIds": [
+          "18667f47-2768-45bf-8b2e-4f7f101180ec"
+        ],
+        "categoryId": "5d93f79b-230e-464e-bef3-50bcd68f4b9f"
+      }
+    ],
+    "levelAvailable": "2"
+  },
+  {
+    "id": "5b16544a-735f-4991-8a27-eb17eb52e7e5",
+    "label": "Whispers of the Grave",
+    "description": "<p>You can cast speak with dead at will, without expending a spell slot.</p>",
+    "spells": [
+      "c7c8dde1-0889-4cdc-8a45-1ce621b4d6d7",
+      "9ae5449a-3d5b-4738-923c-3b4d414f6af2",
+      "edb5b6dd-881f-4215-9b42-e8eddd85f361",
+      "2b71d085-73e0-4b36-ad63-1b6ae5540405",
+      "1f0c3aa2-fd83-488a-bdea-782ea28e4d27",
+      "7af1b6de-0386-4901-b24a-ec84349a61bc",
+      "89ac519b-ef16-40b2-bb1f-8044b4229439",
+      "9f197f16-e2d3-4b0b-bc94-b8bc5522ed7c",
+      "71751cac-b6e6-4952-8ee6-472d8716731e",
+      "80f8a51a-a386-4913-a988-28fe26ab2d2d",
+      "c0371b9d-5334-4a43-9146-940b3fffd745",
+      "a425b2db-6e7e-4fee-a362-c109065ad5e7",
+      "541f2049-96db-45ac-b16e-540b2f0a2fdb",
+      "244cbfcd-61bf-4a44-9512-ab16ab4ff0e5",
+      "3c23dac5-6d88-4f77-92ce-33b201cc33da",
+      "dc054179-2608-4c9f-b2d9-1f1abe03191d",
+      "9b5731b8-9035-435c-a842-79810e924ba4",
+      "0aa56743-2538-40df-923a-83eee86bf793",
+      "4704fe4c-a8b9-4e84-863e-2524a39f8827",
+      "66fd3fcb-2be2-4069-9061-4b9c7bc12e1d"
+    ],
+    "levelAvailable": "9"
+  },
+  {
+    "id": "676310c3-da16-4ec7-8c37-9cb4ba9af49d",
+    "label": "Witch Sight",
+    "description": "<p>You can see the true form of any shapechanger or creature concealed by illusion or transmutation magic while the creature is within 30 feet of you and within line of sight.</p>",
+    "senses": [
+      "d68d046a-8984-49b1-8496-8cbea89ce699",
+      "378191b1-5830-4a21-bf8c-ccfd92b0e5e5"
+    ],
+    "levelAvailable": "15"
+  },
+  {
+    "id": "18667f47-2768-45bf-8b2e-4f7f101180ec",
+    "label": "Pact of the Blade",
+    "description": "<p>You can use your action to create a pact weapon in your empty hand. You can choose the form that this melee weapon takes each time you create it (see the Weapons section&nbsp;for weapon options). You are proficient with it while you wield it. This weapon counts as magical for the purpose of overcoming resistance and immunity to nonmagical attacks and damage.</p><p>Your pact weapon disappears if it is more than 5 feet away from you for 1 minute or more. It also disappears if you use this feature again, if you dismiss the weapon (no action required), or if you die.</p><p>You can transform one magic weapon into your pact weapon by performing a special ritual while you hold the weapon. You perform the ritual over the course of 1 hour, which can be done during a short rest. You can then dismiss the weapon, shunting it into an extradimensional space, and it appears whenever you create your pact weapon thereafter. You can't affect an artifact or a sentient weapon in this way. The weapon ceases being your pact weapon if you die, if you perform the 1-hour ritual on a different weapon, or if you use a 1-hour ritual to break your bond to it. The weapon appears at your feet if it is in the extradimensional space when the bond breaks.</p>",
+    "actions": {
+      "primary": {
+        "id": "ec034006-0d37-4687-b426-e8c4dc091b27",
+        "actionId": "ec034006-0d37-4687-b426-e8c4dc091b27"
+      }
+    },
+    "levelAvailable": "3"
+  },
+  {
+    "id": "7436bad8-4e7c-4164-9a6a-d1600388bb21",
+    "label": "Pact of the Chain",
+    "description": "<p>You learn the <em>find familiar</em> spell and can cast it as a ritual. The spell doesn't count against your number of spells known.</p><p>When you cast the spell, you can choose one of the normal forms for your familiar or one of the following special forms: imp, pseudodragon, quasit, or sprite.</p><p>Additionally, when you take the Attack action, you can forgo one of your own attacks to allow your familiar to make one attack with its reaction.</p>",
+    "levelAvailable": "3"
+  },
+  {
+    "id": "e7720a82-404d-4ead-bb98-e0dcd10a277f",
+    "label": "Pact of the Tome",
+    "description": "<p>Your patron gives you a grimoire called a Book of Shadows. When you gain this feature, choose three cantrips from any class's spell list (the three needn't be from the same list). While the book is on your person, you can cast those cantrips at will. They don't count against your number of cantrips known. If they don't appear on the warlock spell list, they are nonetheless warlock spells for you.</p><p>If you lose your Book of Shadows, you can perform a 1-hour ceremony to receive a replacement from your patron. This ceremony can be performed during a short or long rest, and it destroys the previous book. The book turns to ash when you die.</p>",
+    "levelAvailable": "3"
+  },
+  {
+    "id": "77b313f8-4a49-481f-93cf-d1e05a7d5011",
+    "label": "Archery",
+    "description": "<p>You gain a +2 bonus to attack rolls you make with ranged weapons.</p>",
+    "modifiers": [
+      "4d65244d-33d3-490d-a69a-a7e2b6fbc954"
+    ]
+  },
+  {
+    "id": "bf18b841-2ba2-4255-9b58-f790b5f1bde0",
+    "label": "Colossus Slayer",
+    "description": "<p>Your tenacity can wear down the most potent foes. When you hit a creature with a weapon attack, the creature takes an extra 1d8 damage if it's below its hit point maximum. You can deal this extra damage only once per turn.</p>",
+    "levelAvailable": "3"
+  },
+  {
+    "id": "10b3605b-510b-4c73-8dec-cf3374c548ee",
+    "label": "Giant Killer",
+    "description": "<p>When a Large or larger creature within 5 feet of you hits or misses you with an attack, you can use your reaction to attack that creature immediately after its attack, provided that you can see the creature.</p>",
+    "actions": {
+      "primary": {
+        "id": "559d6655-9929-4bfa-8928-bfb02c86f62a",
+        "actionId": "559d6655-9929-4bfa-8928-bfb02c86f62a"
+      }
+    },
+    "levelAvailable": "3"
+  },
+  {
+    "id": "6f1a1abf-2887-4c8e-96af-fcf006bcf337",
+    "label": "Horde Breaker",
+    "description": "<p>Once on each of your turns when you make a weapon attack, you can make another attack with the same weapon against a different creature that is within 5 feet of the original target and within range of your weapon.</p>",
+    "levelAvailable": "3"
+  },
+  {
+    "id": "c6d19178-fb96-4430-bad1-39eed5b3703b",
+    "label": "Escape the Horde",
+    "description": "<p>Opportunity attacks against you are made with disadvantage.</p>",
+    "levelAvailable": "7"
+  },
+  {
+    "id": "f933690a-f071-4234-a1bd-c9e09eef926e",
+    "label": "Multiattack Defense",
+    "description": "<p>When a creature hits you with an attack, you gain a +4 bonus to AC against all subsequent attacks made by that creature for the rest of the turn.</p>",
+    "levelAvailable": "7"
+  },
+  {
+    "id": "2703989b-7be6-4924-8e49-fca33645efaa",
+    "label": "Steel Will",
+    "description": "<p>You have advantage on saving throws against being frightened.</p>",
+    "modifiers": [
+      "256e2a4a-4454-490c-a6fa-285bb41ec895"
+    ],
+    "levelAvailable": "7"
+  },
+  {
+    "id": "66e31a25-93c5-4916-9183-380a1599496f",
+    "label": "Volley",
+    "description": "<p>You can use your action to make a ranged attack against any number of creatures within 10 feet of a point you can see within your weapon's range. You must have ammunition for each target, as normal, and you make a separate attack roll for each target.</p>",
+    "actions": {
+      "primary": {
+        "id": "ec034006-0d37-4687-b426-e8c4dc091b27",
+        "actionId": "ec034006-0d37-4687-b426-e8c4dc091b27"
+      }
+    },
+    "levelAvailable": "11"
+  },
+  {
+    "id": "4a6a58f7-5fa2-4553-bc2a-e89975463a17",
+    "label": "Whirlwind Attack",
+    "description": "<p>You can use your action to make a melee attack against any number of creatures within 5 feet of you, with a separate attack roll for each target.</p>",
+    "actions": {
+      "primary": {
+        "id": "ec034006-0d37-4687-b426-e8c4dc091b27",
+        "actionId": "ec034006-0d37-4687-b426-e8c4dc091b27"
+      }
+    },
+    "levelAvailable": "11"
+  },
+  {
+    "id": "ac47a9ec-9d07-4241-8999-f0f313ab343c",
+    "label": "Evasion",
+    "description": "<p>When you are subjected to an effect, such as a red dragon's fiery breath or a <em>lightning bolt</em> spell, that allows you to make a Dexterity saving throw to take only half damage, you instead take no damage if you succeed on the saving throw, and only half damage if you fail.</p>",
+    "levelAvailable": "15"
+  },
+  {
+    "id": "54683a97-335c-4756-89c7-10d2511fd9db",
+    "label": "Stand Against the Tide",
+    "description": "<p>When a hostile creature misses you with a melee attack, you can use your reaction to force that creature to repeat the same attack against another creature (other than itself) of your choice.</p>",
+    "actions": {
+      "primary": {
+        "id": "559d6655-9929-4bfa-8928-bfb02c86f62a",
+        "actionId": "559d6655-9929-4bfa-8928-bfb02c86f62a"
+      }
+    },
+    "levelAvailable": "15"
+  },
+  {
+    "id": "9b224ee4-821d-48aa-a407-3d05f7030945",
+    "label": "Uncanny Dodge",
+    "description": "<p>When an attacker that you can see hits you with an attack, you can use your reaction to halve the attack's damage against you.</p>",
+    "actions": {
+      "primary": {
+        "id": "559d6655-9929-4bfa-8928-bfb02c86f62a",
+        "actionId": "559d6655-9929-4bfa-8928-bfb02c86f62a"
+      }
+    },
+    "levelAvailable": "15"
+  }
+]

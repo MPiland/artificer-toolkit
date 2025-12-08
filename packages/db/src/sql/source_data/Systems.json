@@ -1,0 +1,5048 @@
+[
+  {
+    "id": "4045f389-f0a7-48e7-bb9e-3822d526d9d4",
+    "label": "DND5e2014",
+    "description": "DND 5th Edition - 2014",
+    "abilities": [
+      {
+        "id": "492f208f-6e7a-4a69-bbf2-047389576246",
+        "label": "Constitution",
+        "abbreviation": "con",
+        "description": "<p>A Constitution checks are uncommon, and no skills apply to Constitution checks, because the endurance this ability represents is largely passive rather than involving a specific effort on the part of a character or monster.",
+        "tooltip": "Constitution measures health, stamina, and vital force.</p>",
+        "code": "CONSTITUTION"
+      },
+      {
+        "id": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc",
+        "label": "Dexterity",
+        "description": "<p>A Dexterity check can model any attempt to move nimbly, quickly, or quietly, or to keep from falling on tricky footing. The Acrobatics, Sleight of Hand, and Stealth skills reflect aptitude in certain kinds of Dexterity checks.<p>",
+        "tooltip": "Dexterity measures agility, reflexes, and balance.",
+        "code": "DEXTERITY"
+      },
+      {
+        "id": "458fdf58-0496-4701-86d0-7bc234009276",
+        "label": "Wisdom",
+        "description": "<p>A Wisdom check might reflect an effort to read body language, understand someone's feelings, notice things about the environment, or care for an injured person. The Animal Handling, Insight, Medicine, Perception, and Survival skills reflect aptitude in certain kinds of Wisdom checks.</p>",
+        "tooltip": "Wisdom reflects how attuned you are to the world around you and represents perceptiveness and intuition.",
+        "code": "WISDOM"
+      },
+      {
+        "id": "93607465-de3d-4788-a5e0-df290fda7959",
+        "label": "Strength",
+        "description": "<p>A Strength check can model any attempt to lift, push, pull, or break something, to force your body through a space, or to otherwise apply brute force to a situation. The Athletics skill reflects aptitude in certain kinds of Strength checks.</p>",
+        "tooltip": "Strength measures bodily power, athletic training, and the extent to which you can exert raw physical force.",
+        "code": "STRENGTH"
+      },
+      {
+        "id": "d0cd6776-ef2c-4589-8a18-175a160b8ef4",
+        "label": "Intelligence",
+        "description": "<p>An Intelligence check comes into play when you need to draw on logic, education, memory, or deductive reasoning. The Arcana, History, Investigation, Nature, and Religion skills reflect aptitude in certain kinds of Intelligence checks.",
+        "tooltip": "<p>Intelligence measures mental acuity, accuracy of recall, and the ability to reason.</p>",
+        "code": "INTELLIGENCE"
+      },
+      {
+        "id": "def276fe-3fa5-4af7-95ad-a37113815cc7",
+        "label": "Charisma",
+        "description": "<p>A Charisma check might arise when you try to influence or entertain others, when you try to make an impression or tell a convincing lie, or when you are navigating a tricky social situation. The Deception, Intimidation, Performance, and Persuasion skills reflect aptitude in certain kinds of Charisma checks.<p>",
+        "tooltip": "<p>Charisma measures your ability to interact effectively with others. It includes such factors as confidence and eloquence, and it can represent a charming or commanding personality.</p>",
+        "code": "CHARISMA"
+      }
+    ],
+    "actions": [
+      {
+        "id": "e35ec180-335c-4630-8f4c-9858ee8823fb",
+        "label": "Bonus Action",
+        "code": "BONUS_ACTION"
+      },
+      {
+        "id": "cb1b5c45-5ca3-4822-ab16-28a446947df5",
+        "label": "Special",
+        "code": "SPECIAL"
+      },
+      {
+        "id": "de8f279a-22c0-4087-ba46-922a60caa433",
+        "label": "Hour",
+        "code": "HOUR"
+      },
+      {
+        "id": "41208ceb-837c-4af5-9a8a-0f92acf31237",
+        "label": "Attack",
+        "code": "ATTACK"
+      },
+      {
+        "id": "559d6655-9929-4bfa-8928-bfb02c86f62a",
+        "label": "Reaction",
+        "code": "REACTION"
+      },
+      {
+        "id": "ec034006-0d37-4687-b426-e8c4dc091b27",
+        "label": "Action",
+        "code": "ACTION"
+      },
+      {
+        "id": "abecb36b-c245-4342-ac8b-a6448b70a079",
+        "label": "Minute",
+        "code": "MINUTE"
+      }
+    ],
+    "alignments": [
+      {
+        "id": "3ccbc183-c125-43fc-94b4-9aeb1af88f94",
+        "label": "Neutral",
+        "description": "Neutral (N) is the alignment of those who prefer to steer clear of moral questions and don't take sides, doing what seems best at the time. Lizardfolk, most druids, and many humans are neutral.",
+        "code": "NEUTRAL"
+      },
+      {
+        "id": "5a04ea40-f91a-4f09-bebe-d123cc79e595",
+        "label": "Lawful Neutral",
+        "description": "Lawful neutral (LN) individuals act in accordance with law, tradition, or personal codes. Many monks and some wizards are lawful neutral.",
+        "code": "LAWFUL_NEUTRAL"
+      },
+      {
+        "id": "f95b0f41-d0af-4579-bc30-5a325d748491",
+        "label": "Chaotic Neutral",
+        "description": "Chaotic neutral (CN) creatures follow their whims, holding their personal freedom above all else. Many barbarians and rogues, and some bards, are chaotic neutral.",
+        "code": "CHAOTIC_NEUTRAL"
+      },
+      {
+        "id": "32a3f29f-8db8-447a-b9d1-d07349e69e07",
+        "label": "Lawful Good",
+        "description": "Lawful good (LG) creatures can be counted on to do the right thing as expected by society. Gold dragons, paladins, and most dwarves are lawful good.",
+        "code": "LAWFUL_GOOD"
+      },
+      {
+        "id": "e8d3d5ad-1bd7-4bbc-a282-1d3ac3e1b289",
+        "label": "Chaotic Good",
+        "description": "Chaotic good (CG) creatures act as their conscience directs, with little regard for what others expect. Copper dragons, many elves, and unicorns are chaotic good.",
+        "code": "CHAOTIC_GOOD"
+      },
+      {
+        "id": "c4d8c7fd-6562-46f1-a15a-14b13a660523",
+        "label": "Chaotic Evil",
+        "description": "Chaotic evil (CE) creatures act with arbitrary violence, spurred by their greed, hatred, or bloodlust. Demons, red dragons, and orcs are chaotic evil.",
+        "code": "CHAOTIC_EVIL"
+      },
+      {
+        "id": "f5b23c3d-9273-4af8-afb1-c07c32b03c68",
+        "label": "Lawful Evil",
+        "description": "Lawful evil (LE) creatures methodically take what they want, within the limits of a code of tradition, loyalty, or order. Devils, blue dragons, and hobgoblins are lawful evil.",
+        "code": "LAWFUL_EVIL"
+      },
+      {
+        "id": "85f617e8-6923-4c6d-9d06-3384e8885010",
+        "label": "Neutral Good",
+        "description": "Neutral good (NG) folk do the best they can to help others according to their needs. Many celestials, some cloud giants, and most gnomes are neutral good.",
+        "code": "NEUTRAL_GOOD"
+      },
+      {
+        "id": "0381d5c9-2399-4a46-9ebb-57fd9212cf36",
+        "label": "Neutral Evil",
+        "description": "Neutral evil (NE) is the alignment of those who do whatever they can get away with, without compassion or qualms. Many drow, some cloud giants, and goblins are neutral evil.",
+        "code": "NEUTRAL_EVIL"
+      }
+    ],
+    "attributes": [
+      {
+        "id": "736ee797-e8a8-481a-83c0-ec166a027614",
+        "label": "Hide On Sheet",
+        "tags": [
+          "FEATURES"
+        ],
+        "code": "HIDE_ON_SHEET"
+      },
+      {
+        "id": "02918555-68f6-4041-b051-87da14b44279",
+        "label": "Show As Attack",
+        "tags": [
+          "DAMAGE"
+        ],
+        "code": "SHOW_AS_ATTACK"
+      },
+      {
+        "id": "5ad88a48-ca9e-4bb5-b005-6600effbc620",
+        "label": "Add to Weapon Attack",
+        "tags": [
+          "DAMAGE"
+        ],
+        "code": "ADD_TO_WEAPON_ATTACK"
+      },
+      {
+        "id": "d409bef0-5b16-41d5-af77-d91cd202fd19",
+        "label": "Limit Targets",
+        "tags": [
+          "FEATURES"
+        ],
+        "code": "LIMIT_TARGETS"
+      },
+      {
+        "id": "408bd86e-2ed9-4da6-9932-0e99a6e40e17",
+        "label": "Limit Use",
+        "tags": [
+          "FEATURES",
+          "SECTION_SPELLS"
+        ],
+        "code": "LIMIT_USE"
+      },
+      {
+        "id": "a5a64799-6105-4d1f-a849-cb6ef41b0823",
+        "label": "Self Only",
+        "tags": [
+          "SECTION_SPELLS"
+        ],
+        "code": "SELF_ONLY"
+      },
+      {
+        "id": "84916f75-92c2-4ee6-abe0-cc038128f0fc",
+        "label": "Action Type",
+        "tags": [
+          "FEATURES"
+        ],
+        "code": "ACTION_TYPE"
+      },
+      {
+        "id": "348c49e2-a25e-42d6-8357-390530243929",
+        "label": "Inflicts Damage",
+        "tags": [
+          "FEATURES",
+          "SPELLS",
+          "ADVENTURING_GEAR",
+          "TOOLS",
+          "SHIELDS"
+        ],
+        "code": "INFLICTS_DAMAGE"
+      },
+      {
+        "id": "96a72204-a97a-4a55-845a-077120c95d6e",
+        "label": "Ranged",
+        "tags": [
+          "FEATURES"
+        ],
+        "code": "RANGED"
+      },
+      {
+        "id": "40a91f3a-8909-4593-8a5f-b66b364602bb",
+        "label": "Prerequisites",
+        "tags": [
+          "FEATURES",
+          "FEATS"
+        ],
+        "code": "PREREQUISITES"
+      },
+      {
+        "id": "99d19345-51a7-4364-ad26-fb1dbf9c0342",
+        "label": "Add Proficiency Bonus",
+        "tags": [
+          "SAVE_DC"
+        ],
+        "code": "ADD_PROFICIENCY_BONUS"
+      },
+      {
+        "id": "a6a71a7a-6951-4441-90be-73fc779d0aee",
+        "label": "Add Ability Modifier",
+        "tags": [
+          "SAVE_DC"
+        ],
+        "code": "ADD_ABILITY_MODIFIER"
+      },
+      {
+        "id": "60cb5190-54c0-430d-88f1-c34e7ba7ec01",
+        "label": "Spell DC",
+        "tags": [
+          "SAVE_DC"
+        ],
+        "code": "SPELL_DC"
+      },
+      {
+        "id": "2eec6a5e-a7b3-4263-84dd-d977cce4cc79",
+        "label": "Replace Options at Level",
+        "tags": [
+          "FEATURES"
+        ],
+        "code": "REPLACE_OPTIONS_AT_LEVEL"
+      },
+      {
+        "id": "87e26eca-3d18-4858-aa3e-c6efc6d15a59",
+        "label": "Select Count By Level",
+        "tags": [
+          "FEATURES"
+        ],
+        "code": "SELECT_COUNT_BY_LEVEL"
+      },
+      {
+        "id": "3fadd608-c46e-4718-a2b5-10d50fffbbdb",
+        "label": "Provides Options",
+        "tags": [
+          "SECTIONS",
+          "CLASS_EQUIPMENT",
+          "BACKGROUND_EQUIPMENT"
+        ],
+        "code": "PROVIDES_OPTIONS"
+      },
+      {
+        "id": "5dd4f91e-074d-47c0-8c34-db750ea75b05",
+        "label": "Cast as Ritual",
+        "tags": [
+          "SECTION_SPELLS",
+          "SPELLS"
+        ],
+        "code": "CAST_AS_RITUAL"
+      },
+      {
+        "id": "854fdc5a-6168-4b35-96af-d3b3713edf4c",
+        "label": "Requires Concentration",
+        "tags": [
+          "SECTION_SPELLS",
+          "SPELLS"
+        ],
+        "code": "REQUIRES_CONCENTRATION"
+      },
+      {
+        "id": "fd1e8360-da3b-45cf-ac35-b4ad4ab53bcd",
+        "label": "Optional Spell Ability",
+        "tags": [
+          "SECTION_SPELLS"
+        ],
+        "code": "OPTIONAL_SPELL_ABILITY"
+      },
+      {
+        "id": "cabe9cde-c846-426f-8f55-e23a40e0367b",
+        "label": "Always Prepared",
+        "tags": [
+          "SECTION_SPELLS"
+        ],
+        "code": "ALWAYS_PREPARED"
+      },
+      {
+        "id": "4b29c54a-b258-42ec-a877-4fbd6873f760",
+        "label": "Add Spells By Level",
+        "tags": [
+          "SECTION_SPELLS"
+        ],
+        "code": "ADD_SPELLS_BY_LEVEL"
+      },
+      {
+        "id": "1bec624b-14c4-4fe7-baa5-277277394bbf",
+        "label": "Limit By Class",
+        "tags": [
+          "SECTION_SPELLS"
+        ],
+        "code": "LIMIT_BY_CLASS"
+      },
+      {
+        "id": "3028c7fb-536a-4a6e-8b77-dea57ff51214",
+        "label": "Limit By Attribute",
+        "tags": [
+          "SECTION_SPELLS"
+        ],
+        "code": "LIMIT_BY_ATTRIBUTE"
+      },
+      {
+        "id": "a354fe6c-c7e0-4551-b444-756e62fd672c",
+        "label": "Limit By Level",
+        "tags": [
+          "SECTION_SPELLS"
+        ],
+        "code": "LIMIT_BY_LEVEL"
+      },
+      {
+        "id": "ecee08e1-2f04-404b-bdc7-7eadcb9656e1",
+        "label": "Cast at Level",
+        "tags": [
+          "SECTION_SPELLS"
+        ],
+        "code": "CAST_AT_LEVEL"
+      },
+      {
+        "id": "f481b458-1b44-4d15-80b0-e2b758576c04",
+        "label": "Requires Proficiency",
+        "tags": [
+          "CLASS_EQUIPMENT"
+        ],
+        "code": "REQUIRES_PROFICIENCY"
+      },
+      {
+        "id": "ab6aa1a2-8cd6-438b-9060-079a4c3d07df",
+        "label": "Subtype Specific",
+        "tags": [
+          "CLASS_SECTIONS"
+        ],
+        "code": "SUBTYPE_SPECIFIC"
+      },
+      {
+        "id": "c88dafe7-0494-4913-83d9-34fcf7904196",
+        "label": "Equippable",
+        "tags": [
+          "EQUIPMENT"
+        ],
+        "code": "EQUIPPABLE"
+      },
+      {
+        "id": "6baf01cd-59bc-4dfd-9874-40b3aebe7170",
+        "label": "Magic",
+        "tags": [
+          "EQUIPMENT"
+        ],
+        "code": "MAGIC"
+      },
+      {
+        "id": "5bfaaaf4-f5d0-40de-9c07-ec441d75bf51",
+        "label": "Stackable",
+        "tags": [
+          "EQUIPMENT"
+        ],
+        "code": "STACKABLE"
+      },
+      {
+        "id": "b5d460e5-3443-49e5-b736-77cf4d2dfb21",
+        "label": "Attunement Required",
+        "tags": [
+          "EQUIPMENT"
+        ],
+        "code": "ATTUNEMENT_REQUIRED"
+      },
+      {
+        "id": "265c6cc0-1de4-40b7-be69-4cacd43b77fe",
+        "label": "Max Bonus",
+        "tags": [
+          "EQUIPMENT"
+        ],
+        "code": "MAX_BONUS"
+      },
+      {
+        "id": "d8a46d89-3e37-4a79-862f-8f503bcecd8a",
+        "label": "Contains Items",
+        "tags": [
+          "EQUIPMENT"
+        ],
+        "code": "CONTAINS_ITEMS"
+      },
+      {
+        "id": "4662b9f7-cf83-404a-8d33-a046c6441dae",
+        "label": "Applies Condition",
+        "tags": [
+          "SPELLS"
+        ],
+        "code": "APPLIES_CONDITION"
+      },
+      {
+        "id": "bb8315e1-6f48-4ab5-b650-0e3af7c670a2",
+        "label": "Secondary Action",
+        "tags": [
+          "SPELLS"
+        ],
+        "code": "SECONDARY_ACTION"
+      },
+      {
+        "id": "59c97c68-d773-4434-925f-ca9c1be3d2d8",
+        "label": "Spellcasters",
+        "tags": [
+          "CLASSES"
+        ],
+        "code": "SPELLCASTERS"
+      },
+      {
+        "id": "36aeab69-fada-4f08-a4e0-215b34d5b4d5",
+        "label": "Subtypes",
+        "tags": [
+          "CLASSES"
+        ],
+        "code": "SUBTYPES"
+      },
+      {
+        "id": "becce5cb-5f1e-4de8-9aca-74324f507063",
+        "label": "Ritual Caster",
+        "tags": [
+          "SPELLCASTERS"
+        ],
+        "code": "RITUAL_CASTER"
+      },
+      {
+        "id": "9b919427-7c38-4ccd-aecd-6c032a047b57",
+        "label": "Limit Known Spells",
+        "tags": [
+          "SPELLCASTERS"
+        ],
+        "code": "LIMIT_KNOWN_SPELLS"
+      },
+      {
+        "id": "b7ad7cc0-736d-416b-aed6-a374857adcd0",
+        "label": "Prepares Spells",
+        "tags": [
+          "SPELLCASTERS"
+        ],
+        "code": "PREPARES_SPELLS"
+      },
+      {
+        "id": "01965583-8b20-4b30-8b9f-ffe5fe8d10a1",
+        "label": "Custom Magic Name",
+        "tags": [
+          "SPELLCASTERS"
+        ],
+        "code": "CUSTOM_MAGIC_NAME"
+      },
+      {
+        "id": "ee9294ea-90a0-4c70-92d6-6ee8f4d31f15",
+        "label": "Uses Spellbook",
+        "tags": [
+          "SPELLCASTERS"
+        ],
+        "code": "USES_SPELLBOOK"
+      },
+      {
+        "id": "cb47b615-2a96-4617-870a-9051ab4b95cf",
+        "label": "Primary Damage",
+        "tags": [
+          "UPCAST"
+        ],
+        "code": "PRIMARY_DAMAGE"
+      },
+      {
+        "id": "412e4b5f-f202-4519-851f-03965749051a",
+        "label": "Bonus Damage",
+        "tags": [
+          "DAMAGE",
+          "UPCAST",
+          "SPELL_DAMAGE"
+        ],
+        "code": "BONUS_DAMAGE"
+      },
+      {
+        "id": "80a52d60-b644-4623-b87a-88c70799cdb4",
+        "label": "Range",
+        "tags": [
+          "UPCAST"
+        ],
+        "code": "RANGE"
+      },
+      {
+        "id": "c4611274-295d-453a-8441-4d41ba519777",
+        "label": "Targets",
+        "tags": [
+          "UPCAST"
+        ],
+        "code": "TARGETS"
+      },
+      {
+        "id": "24d16527-d6b2-4f85-b8ee-906ed3238d47",
+        "label": "Shape",
+        "tags": [
+          "UPCAST"
+        ],
+        "code": "SHAPE"
+      },
+      {
+        "id": "075fc5db-1dcd-404b-9d75-8c776e2db96a",
+        "label": "Duration",
+        "tags": [
+          "UPCAST"
+        ],
+        "code": "DURATION"
+      },
+      {
+        "id": "90ed849a-a870-419c-b58b-451afeeff7bb",
+        "label": "Secondary Damage",
+        "tags": [
+          "DAMAGE",
+          "UPCAST",
+          "SPELL_DAMAGE"
+        ],
+        "code": "SECONDARY_DAMAGE"
+      },
+      {
+        "id": "119789c9-909c-499a-8936-6777efb9b990",
+        "label": "Set Value",
+        "tags": [
+          "DAMAGE_MAIN",
+          "DAMAGE_POOL",
+          "RESOURCES"
+        ],
+        "code": "SET_VALUE"
+      },
+      {
+        "id": "9b8224bf-1c64-4399-b7b0-428cc2443b37",
+        "label": "Damage Pool",
+        "tags": [
+          "DAMAGE_MAIN"
+        ],
+        "code": "DAMAGE_POOL"
+      },
+      {
+        "id": "281ec9af-79ff-41d2-b2aa-c9a6ea1f5ed5",
+        "label": "Die Per Level",
+        "tags": [
+          "DAMAGE_MAIN"
+        ],
+        "code": "DIE_PER_LEVEL"
+      },
+      {
+        "id": "2518eb43-581a-4611-a45d-95f75ad449cc",
+        "label": "Set Per Level",
+        "tags": [
+          "DAMAGE_MAIN"
+        ],
+        "code": "SET_PER_LEVEL"
+      },
+      {
+        "id": "3fd3a5ba-33fb-48ee-9dd9-086f859e6c8a",
+        "label": "Proficiency",
+        "tags": [
+          "DAMAGE_MAIN"
+        ],
+        "code": "PROFICIENCY"
+      },
+      {
+        "id": "b5857657-75a7-4290-aef9-85a3f87fd8c6",
+        "label": "Spellcasting Ability",
+        "tags": [
+          "DAMAGE_BONUS"
+        ],
+        "code": "SPELLCASTING_ABILITY"
+      },
+      {
+        "id": "0c6a576c-ce1f-4b19-8c80-f0780d80de8f",
+        "label": "abilityId",
+        "tags": [
+          "DAMAGE_BONUS"
+        ],
+        "code": "ABILITYID"
+      },
+      {
+        "id": "5c8b45be-9612-48a9-848a-4665fec0b22c",
+        "label": "Level",
+        "tags": [
+          "DAMAGE_POOL"
+        ],
+        "code": "LEVEL"
+      },
+      {
+        "id": "22936831-1dd1-49a8-a4af-08e0746eb9b4",
+        "label": "Spell Ability",
+        "tags": [
+          "PREPARE_LIMIT"
+        ],
+        "code": "SPELL_ABILITY"
+      },
+      {
+        "id": "384bdd3d-dece-4e71-88b0-c1fc44130987",
+        "label": "Class Level",
+        "tags": [
+          "PREPARE_LIMIT"
+        ],
+        "code": "CLASS_LEVEL"
+      },
+      {
+        "id": "13e4400f-aeed-4a6a-a2f3-9f661862ddd9",
+        "label": "DC Required",
+        "tags": [
+          "SPELLS",
+          "FEATURES",
+          "EQUIPMENT"
+        ],
+        "code": "DC_REQUIRED"
+      },
+      {
+        "id": "af40a76d-56cb-4c32-9b61-110847edc481",
+        "label": "Can Upcast",
+        "tags": [
+          "SPELLS"
+        ],
+        "code": "CAN_UPCAST"
+      },
+      {
+        "id": "14b3ca23-2b10-4bfc-a763-f543a72fa3e2",
+        "label": "Weight",
+        "tags": [
+          "EQUIPMENT"
+        ],
+        "code": "WEIGHT"
+      },
+      {
+        "id": "cfbc3740-2afc-448e-a7d4-0cd1ad530fef",
+        "label": "Ability Bonus",
+        "tags": [
+          "FEATURES"
+        ],
+        "code": "ABILITY_BONUS"
+      },
+      {
+        "id": "63ed8641-6ff4-4807-a61d-d43a0c2b6926",
+        "label": "Alternate Type",
+        "tags": [
+          "SPELLS"
+        ],
+        "code": "ALTERNATE_TYPE"
+      },
+      {
+        "id": "57351a56-9b66-46cf-8c85-be7702172185",
+        "label": "Expands Spell List",
+        "tags": [
+          "SECTION_SPELLS"
+        ],
+        "code": "EXPANDS_SPELL_LIST"
+      },
+      {
+        "id": "3764d329-dff1-4d17-8d22-ef9a0f5bc60d",
+        "label": "Has Class Style",
+        "tags": [
+          "SUBCLASSES"
+        ],
+        "code": "HAS_CLASS_STYLE"
+      },
+      {
+        "id": "0fb2aae6-f606-46de-94fd-b0f4d9fa9be0",
+        "label": "Cast At Will",
+        "tags": [
+          "SECTION_SPELLS"
+        ],
+        "code": "CAST_AT_WILL"
+      },
+      {
+        "id": "f4a91a84-5bc2-4cc3-aad9-7b9551a43b32",
+        "label": "Contains Currency",
+        "tags": [
+          "CLASS_EQUIPMENT",
+          "BACKGROUND_EQUIPMENT"
+        ],
+        "code": "CONTAINS_CURRENCY"
+      },
+      {
+        "id": "250a1629-5bd7-486b-a007-be78ac43013d",
+        "label": "Has Resource Points",
+        "tags": [
+          "CLASSES"
+        ],
+        "code": "HAS_RESOURCE_POINTS"
+      }
+    ],
+    "categories": [
+      {
+        "id": "bbebfe35-d275-4fb3-a5cf-83209335307d",
+        "label": "Resource",
+        "code": "RESOURCE"
+      },
+      {
+        "id": "b62cef0d-a4be-4cfe-94ee-c80a7aaaabc7",
+        "label": "Base",
+        "code": "BASE"
+      },
+      {
+        "id": "75a580dc-6990-4c05-9853-1534c5be77f7",
+        "label": "Subrace",
+        "code": "SUBRACE"
+      },
+      {
+        "id": "a857f226-e09b-441f-9a09-f25c85beca1a",
+        "label": "Variant",
+        "code": "VARIANT"
+      },
+      {
+        "id": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
+        "label": "Feature",
+        "code": "FEATURE"
+      },
+      {
+        "id": "635bbde6-8c7f-4730-bb83-fb3be8d9006a",
+        "label": "Subclass",
+        "code": "SUBCLASS"
+      }
+    ],
+    "characterSettings": {
+      "advancementMethods": [
+        {
+          "label": "Milestone",
+          "id": "24e31dc8-43ab-43de-89fe-15c878951d48",
+          "code": "MILESTONE"
+        },
+        {
+          "label": "Experience",
+          "id": "0bdb9b1a-cc40-40f5-95cf-390506b256d8",
+          "code": "EXPERIENCE"
+        }
+      ],
+      "hitpointCalcMethods": [
+        {
+          "label": "Fixed",
+          "id": "567dff1c-e39e-4faa-a544-42fcf3970e66",
+          "code": "FIXED"
+        },
+        {
+          "label": "Manual",
+          "id": "e99940d3-4a67-475a-8c41-860744111557",
+          "code": "MANUAL"
+        }
+      ],
+      "spellPointCalcMethods": [
+        {
+          "label": "Spell Ability",
+          "id": "478991e3-ca27-4f9e-96b5-60efe9b29058",
+          "code": "SPELL_ABILITY"
+        },
+        {
+          "label": "Class Level",
+          "id": "dad0ee93-c507-4c93-80de-39275cd94c98",
+          "code": "CLASS_LEVEL"
+        }
+      ],
+      "startingEquipmentOptions": [
+        {
+          "label": "Gold",
+          "id": "d748d1e1-17aa-40d4-af18-612c8f513fcf",
+          "code": "GOLD"
+        },
+        {
+          "label": "Equipment",
+          "id": "67d370d9-80e4-47ac-9741-4cb7c17c1ec1",
+          "code": "EQUIPMENT"
+        }
+      ]
+    },
+    "charges": {
+      "resets": [
+        {
+          "id": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
+          "label": "Long Rest",
+          "tags": [
+            "EQUIPMENT",
+            "FEATURES",
+            "SECTION_OPTIONS",
+            "SAVE_DC",
+            "SPELLCASTERS"
+          ],
+          "code": "LONG_REST"
+        },
+        {
+          "id": "c245fd8b-f343-4fb1-a6c4-5bc35ca43ac7",
+          "label": "Short Rest",
+          "tags": [
+            "EQUIPMENT",
+            "FEATURES",
+            "SECTION_OPTIONS",
+            "SAVE_DC",
+            "SPELLCASTERS"
+          ],
+          "code": "SHORT_REST"
+        },
+        {
+          "id": "97f4a2d5-c88b-43d8-8255-330e5aa04684",
+          "label": "Manual",
+          "tags": [
+            "EQUIPMENT",
+            "FEATURES",
+            "SECTION_OPTIONS",
+            "SAVE_DC"
+          ],
+          "code": "MANUAL"
+        },
+        {
+          "id": "e9538ede-8a61-4901-bc56-507257189712",
+          "label": "None",
+          "tags": [
+            "EQUIPMENT",
+            "FEATURES",
+            "SECTION_OPTIONS",
+            "SAVE_DC"
+          ],
+          "code": "NONE"
+        }
+      ],
+      "limits": [
+        {
+          "id": "b014c7d9-8a98-48a9-91f2-aa55345c93c9",
+          "label": "Proficiency",
+          "tags": [
+            "EQUIPMENT",
+            "FEATURES",
+            "SECTION_OPTIONS",
+            "SAVE_DC"
+          ],
+          "code": "PROFICIENCY"
+        },
+        {
+          "id": "0bc73f5e-e99a-470d-b95d-bbdc4005331f",
+          "label": "Ability Score Modifier",
+          "tags": [
+            "EQUIPMENT",
+            "FEATURES",
+            "SECTION_OPTIONS",
+            "RESOURCES",
+            "SAVE_DC"
+          ],
+          "code": "ABILITY_SCORE_MODIFIER"
+        },
+        {
+          "id": "f21220f9-96db-4369-ba11-88c87d631fac",
+          "label": "Set Amount",
+          "tags": [
+            "EQUIPMENT",
+            "FEATURES",
+            "SECTION_OPTIONS",
+            "RESOURCES",
+            "SAVE_DC"
+          ],
+          "code": "SET_AMOUNT"
+        },
+        {
+          "id": "ce085d90-e051-4d80-855c-b9c421b6ed8b",
+          "label": "Pool Amount",
+          "tags": [
+            "EQUIPMENT",
+            "FEATURES",
+            "SECTION_OPTIONS",
+            "SAVE_DC"
+          ],
+          "code": "POOL_AMOUNT"
+        },
+        {
+          "id": "c6b4ecb8-9246-4235-8e8a-4648d63a7ebe",
+          "label": "Resource Points",
+          "tags": [
+            "EQUIPMENT",
+            "FEATURES",
+            "SECTION_OPTIONS",
+            "SAVE_DC"
+          ],
+          "code": "RESOURCE_POINTS"
+        },
+        {
+          "id": "0a010337-44d9-491e-9fb2-bc94961fe2a2",
+          "label": "Set Per Level",
+          "tags": [
+            "EQUIPMENT",
+            "FEATURES",
+            "SECTION_OPTIONS",
+            "RESOURCES",
+            "SAVE_DC"
+          ],
+          "code": "SET_PER_LEVEL"
+        },
+        {
+          "id": "19d5f00e-c246-4478-9eb9-7b7ec2b942ed",
+          "label": "Uses Per Level",
+          "tags": [
+            "BASE",
+            "EQUIPMENT",
+            "FEATURES",
+            "SECTION_OPTIONS",
+            "PREPARE_LIMIT",
+            "RESOURCES",
+            "SAVE_DC",
+            "SPELLCASTERS",
+            "SUBCLASSES"
+          ],
+          "code": "USES_PER_LEVEL"
+        }
+      ]
+    },
+    "conditions": [
+      {
+        "id": "ea08e0fd-5547-4274-a7db-6a8797fea20e",
+        "label": "Deafened",
+        "description": "<ul><li>A deafened creature can't hear and automatically fails any ability check that requires hearing.</li></ul>",
+        "code": "DEAFENED"
+      },
+      {
+        "id": "5692845d-057f-4bef-bf66-7d74bd580efc",
+        "label": "Frightened",
+        "description": "<ul><li>A frightened creature has disadvantage on ability checks and attack rolls while the source of its fear is within line of sight.</li><li>The creature can't willingly move closer to the source of its fear.</li></ul>",
+        "code": "FRIGHTENED"
+      },
+      {
+        "id": "783f6505-82e5-4904-a833-76b326665473",
+        "label": "Grappled",
+        "description": "<ul><li>A grappled creature's speed becomes 0, and it can't benefit from any bonus to its speed.</li><li>The condition ends if the grappler is incapacitated (see the condition).</li><li>The condition also ends if an effect removes the grappled creature from the reach of the grappler or grappling effect, such as when a creature is hurled away by the thunderwave spell.</li></ul>",
+        "code": "GRAPPLED"
+      },
+      {
+        "id": "f34fddd2-3e6f-4591-9b57-961f325ad956",
+        "label": "Exhaustion",
+        "description": "<p>Some special abilities and environmental hazards, such as starvation and the long-term effects of freezing or scorching temperatures, can lead to a special condition called exhaustion. Exhaustion is measured in six levels. An effect can give a creature one or more levels of exhaustion, as specified in the effect's description.</p><table><thead><tr><th style={{width: 'auto'}}>Level></th><th style={{width: 'auto'}}>Description</th></tr></thead><tbody><tr><td>1</td><td>Disadvantage on ability checks</td></tr><tr><td>2</td><td>Speed halved</td></tr><tr><td>3</td><td>Disadvantage on attack rolls and saving throws</td></tr><tr><td>4</td><td>Hit point maximum halved</td></tr><tr><td>5</td><td>Speed reduced to 0</td></tr><tr><td>6</td><td>Death</td></tr></tbody></table><p>If an already exhausted creature suffers another effect that causes exhaustion, its current level of exhaustion increases by the amount specified in the effect's description.</p><p>A creature suffers the effect of its current level of exhaustion as well as all lower levels. For example, a creature suffering level 2 exhaustion has its speed halved and has disadvantage on ability checks.</p><p>An effect that removes exhaustion reduces its level as specified in the effect's description, with all exhaustion effects ending if a creature's exhaustion level is reduced below 1.</p><p>Finishing a long rest reduces a creature's exhaustion level by 1, provided that the creature has also ingested some food and drink.</p>",
+        "code": "EXHAUSTION"
+      },
+      {
+        "id": "d3693c1b-6fcd-47ee-a8db-27e1a35be976",
+        "label": "Charmed",
+        "description": "<ul><li>A charmed creature can't attack the charmer or target the charmer with harmful abilities or magical effects.</li><li>The charmer has advantage on any ability check to interact socially with the creature.</li></ul>",
+        "code": "CHARMED"
+      },
+      {
+        "id": "196071b6-8e7d-4996-9e78-c0d274e797f8",
+        "label": "Paralyzed",
+        "description": "<ul><li>A paralyzed creature is incapacitated (see the condition) and can't move or speak.</li><li>The creature automatically fails Strength and Dexterity saving throws.</li><li>Attack rolls against the creature have advantage.</li><li>Any attack that hits the creature is a critical hit if the attacker is within 5 feet of the creature.</li></ul>",
+        "code": "PARALYZED"
+      },
+      {
+        "id": "f3a65935-1a6b-4783-a6a9-6c077706506b",
+        "label": "Stunned",
+        "description": "<ul><li>A stunned creature is incapacitated (see the condition), can't move, and can speak only falteringly.</li><li>The creature automatically fails Strength and Dexterity saving throws.</li><li>Attack rolls against the creature have advantage.</li></ul>",
+        "code": "STUNNED"
+      },
+      {
+        "id": "7fa41acb-bbed-4d4d-844c-a818d4ff5037",
+        "label": "Invisible",
+        "description": "<ul><li>An invisible creature is impossible to see without the aid of magic or a special sense. For the purpose of hiding, the creature is heavily obscured. The creature's location can be detected by any noise it makes or any tracks it leaves.</li><li>Attack rolls against the creature have disadvantage, and the creature's attack rolls have advantage.</li></ul>",
+        "code": "INVISIBLE"
+      },
+      {
+        "id": "02b1093c-6deb-4850-883d-806f66ab8498",
+        "label": "Restrained",
+        "description": "<ul><li>A restrained creature's speed becomes 0, and it can't benefit from any bonus to its speed.</li><li>Attack rolls against the creature have advantage, and the creature's attack rolls have disadvantage.</li><li>The creature has disadvantage on Dexterity saving throws.</li></ul>",
+        "code": "RESTRAINED"
+      },
+      {
+        "id": "08769de5-8833-443a-8510-dce83df11c59",
+        "label": "Petrified",
+        "description": "<ul><li>A petrified creature is transformed, along with any nonmagical object it is wearing or carrying, into a solid inanimate substance (usually stone). Its weight increases by a factor of ten, and it ceases aging.</li><li>The creature is incapacitated (see the condition), can't move or speak, and is unaware of its surroundings.</li><li>Attack rolls against the creature have advantage.</li><li>The creature automatically fails Strength and Dexterity saving throws.</li><li>The creature has resistance to all damage.</li><li>The creature is immune to poison and disease, although a poison or disease already in its system is suspended, not neutralized.</li></ul>",
+        "code": "PETRIFIED"
+      },
+      {
+        "id": "a2cd151a-5692-458b-93d3-18db995f9030",
+        "label": "Incapacitated",
+        "description": "<ul><li>An incapacitated creature can't take actions or reactions.</li></ul>",
+        "code": "INCAPACITATED"
+      },
+      {
+        "id": "07fae8d9-e005-4bcf-8e34-a25e4422277f",
+        "label": "Prone",
+        "description": "<ul><li>A prone creature's only movement option is to crawl, unless it stands up and thereby ends the condition.</li><li>The creature has disadvantage on attack rolls.</li><li>An attack roll against the creature has advantage if the attacker is within 5 feet of the creature. Otherwise, the attack roll has disadvantage.</li></ul>",
+        "code": "PRONE"
+      },
+      {
+        "id": "2941670c-0595-4304-bb10-9198e17c0ca1",
+        "label": "Unconscious",
+        "description": "<ul><li>An unconscious creature is incapacitated (see the condition), can't move or speak, and is unaware of its surroundings.</li><li>The creature drops whatever it's holding and falls prone.</li><li>The creature automatically fails Strength and Dexterity saving throws.</li><li>Attack rolls against the creature have advantage.</li><li>Any attack that hits the creature is a critical hit if the attacker is within 5 feet of the creature.</li></ul>",
+        "code": "UNCONSCIOUS"
+      },
+      {
+        "id": "e7feae3a-6ca4-4599-a7fe-92daefc620a4",
+        "label": "Blinded",
+        "description": "<ul><li>A blinded creature can't see and automatically fails any ability check that requires sight.</li><li>Attack rolls against the creature have advantage, and the creature's attack rolls have disadvantage.</li></ul>",
+        "code": "BLINDED"
+      },
+      {
+        "id": "0a21062b-d7b5-48c7-a7d9-7546c2f69223",
+        "label": "Poisoned",
+        "description": "<ul><li>A poisoned creature has disadvantage on attack rolls and ability checks.</li></ul>",
+        "code": "POISONED"
+      }
+    ],
+    "currencies": [
+      {
+        "id": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
+        "label": "Gold",
+        "abbreviation": "gp",
+        "conversions": {
+          "gold": 1,
+          "copper": 1000,
+          "electrum": 10,
+          "platinum": 0.1,
+          "silver": 100
+        }
+      },
+      {
+        "id": "622c63f5-041a-429a-8cc5-ac17fb13d160",
+        "label": "Copper",
+        "abbreviation": "cp",
+        "conversions": {
+          "gold": 0.001,
+          "copper": 1,
+          "electrum": 0.01,
+          "platinum": 0.0001,
+          "silver": 0.1
+        }
+      },
+      {
+        "id": "e14508e4-a326-444f-8ee8-d253ee7b18a9",
+        "label": "Electrum",
+        "abbreviation": "ep",
+        "conversions": {
+          "gold": 0.1,
+          "copper": 100,
+          "electrum": 1,
+          "platinum": 0.01,
+          "silver": 10
+        }
+      },
+      {
+        "id": "563e0322-3cc3-4fcc-8cfa-2253383e5daf",
+        "label": "Silver",
+        "abbreviation": "sp",
+        "conversions": {
+          "gold": 0.01,
+          "copper": 10,
+          "electrum": 0.1,
+          "platinum": 0.001,
+          "silver": 1
+        }
+      },
+      {
+        "id": "d9447a5b-c73c-4aa1-85ea-2fbc827bcecf",
+        "label": "Platinum",
+        "abbreviation": "pp",
+        "conversions": {
+          "gold": 10,
+          "copper": 10000,
+          "electrum": 100,
+          "platinum": 1,
+          "silver": 1000
+        }
+      }
+    ],
+    "damageTypes": [
+      {
+        "id": "d28827d8-177f-4e9f-9570-df37003e1c6f",
+        "label": "Lightning",
+        "description": "<p>A lightning bolt spell and a blue dragon's breath deal lightning damage.</p>",
+        "code": "LIGHTNING"
+      },
+      {
+        "id": "22e6119f-fad5-44b1-92e7-be0bd9b8333d",
+        "label": "Acid",
+        "description": "<p>The corrosive spray of a black dragon's breath and the dissolving enzymes secreted by a black pudding deal acid damage.</p>",
+        "code": "ACID"
+      },
+      {
+        "id": "13ebcaa8-8789-4ce1-8a44-9bcc58c3c9fe",
+        "label": "Cold",
+        "description": "<p>The infernal chill radiating from an ice devil's spear and the frigid blast of a white dragon's breath deal cold damage.</p>",
+        "code": "COLD"
+      },
+      {
+        "id": "e33319c6-2e67-4e54-901d-9f9af4e271ed",
+        "label": "Psychic",
+        "description": "<p>Mental abilities such as a psionic blast deal psychic damage.</p>",
+        "code": "PSYCHIC"
+      },
+      {
+        "id": "d5fe15a7-2c6e-4153-a7a3-259ac1dbe759",
+        "label": "Necrotic",
+        "description": "<p>Necrotic damage, dealt by certain undead and a spell such as chill touch, withers matter and even the soul.</p>",
+        "code": "NECROTIC"
+      },
+      {
+        "id": "cb8cef81-ccd8-4084-b7a5-7dc39149873f",
+        "label": "Radiant",
+        "description": "<p>Radiant damage, dealt by a cleric's flame strike spell or an angel's smiting weapon, sears the flesh like fire and overloads the spirit with power.</p>",
+        "code": "RADIANT"
+      },
+      {
+        "id": "24e79760-06ca-4378-8cf4-6f96ba98b3af",
+        "label": "Force",
+        "description": "<p>Force is pure magical energy focused into a damaging form. Most effects that deal force damage are spells, including magic missile and spiritual weapon.</p>",
+        "code": "FORCE"
+      },
+      {
+        "id": "f8473724-d388-4387-8e2b-967ed5c90934",
+        "label": "Poison",
+        "description": "<p>Venomous stings and the toxic gas of a green dragon's breath deal poison damage.</p>",
+        "code": "POISON"
+      },
+      {
+        "id": "a8d594fd-6ac9-49c8-aa26-8f6ac8d5320d",
+        "label": "Healing",
+        "description": "<p>When a creature receives healing of any kind, hit points regained are added to its current hit points.</p>",
+        "code": "HEALING"
+      },
+      {
+        "id": "e72e5731-29c3-4e78-ab14-ba93296a3ac4",
+        "label": "Fire",
+        "description": "<p>Red dragons breathe fire, and many spells conjure flames to deal fire damage.</p>",
+        "code": "FIRE"
+      },
+      {
+        "id": "95f7686e-17f7-42ec-b20f-ba2cb4d25af2",
+        "label": "Slashing",
+        "description": "<p>Swords, axes, and monsters' claws deal slashing damage.</p>",
+        "code": "SLASHING"
+      },
+      {
+        "id": "9da11bac-04f3-4136-8ec6-292889129320",
+        "label": "Thunder",
+        "description": "<p>A concussive burst of sound, such as the effect of the thunderwave spell, deals thunder damage.</p>",
+        "code": "THUNDER"
+      },
+      {
+        "id": "0140d436-010e-4705-b65b-0a87e3c04d03",
+        "label": "Piercing",
+        "description": "<p>Puncturing and impaling attacks, including spears and monsters' bites, deal piercing damage.</p>",
+        "code": "PIERCING"
+      },
+      {
+        "id": "f0e1a4c8-6663-4c53-a4f2-da1dedbe2ead",
+        "label": "Bludgeoning",
+        "description": "<p>Blunt force attacks, falling, constriction, and the like deal bludgeoning damage.</p>",
+        "code": "BLUDGEONING"
+      }
+    ],
+    "equipment": {
+      "categories": [
+        {
+          "id": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea",
+          "label": "Armor",
+          "code": "ARMOR"
+        },
+        {
+          "id": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
+          "label": "Weapon",
+          "code": "WEAPON"
+        },
+        {
+          "id": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
+          "label": "Adventuring Gear",
+          "code": "ADVENTURING_GEAR"
+        },
+        {
+          "id": "e13981d6-2b10-4b79-adb6-07b2d85f711e",
+          "label": "Tool",
+          "code": "TOOL"
+        },
+        {
+          "id": "81990afe-e34a-48cb-aece-5e7c46088615",
+          "label": "Shield",
+          "code": "SHIELD"
+        },
+        {
+          "id": "00e0cca8-b2a4-4b48-bf54-d7db7d0ed5da",
+          "label": "Currency",
+          "code": "CURRENCY"
+        }
+      ],
+      "properties": [
+        {
+          "id": "f0de1c52-9141-4d5a-bc4b-76110edf8e3e",
+          "label": "Heavy Armor",
+          "code": "HEAVY_ARMOR"
+        },
+        {
+          "id": "df5b0efb-0ab4-44e8-845a-13f109331d9b",
+          "label": "Medium Armor",
+          "code": "MEDIUM_ARMOR"
+        },
+        {
+          "id": "786e4da5-d0a7-4d30-9232-864950691654",
+          "label": "Light Armor",
+          "code": "LIGHT_ARMOR"
+        },
+        {
+          "id": "6833776a-26c0-4143-b367-39f81a2fdad7",
+          "label": "Versatile",
+          "tooltip": "<p>This weapon can be used with one or two hands. A damage value in parentheses appears with the property—the damage when the weapon is used with two hands to make a melee attack.</p>",
+          "code": "VERSATILE"
+        },
+        {
+          "id": "cd909c00-7311-4643-be4d-497b095f7c72",
+          "label": "Light",
+          "tooltip": "<p>A light weapon is small and easy to handle, making it ideal for use when fighting with two weapons.</p>",
+          "code": "LIGHT"
+        },
+        {
+          "id": "1ce89a34-1e5e-4773-af2a-212df276371b",
+          "label": "Heavy",
+          "tooltip": "<p>Small creatures have disadvantage on attack rolls with heavy weapons. A heavy weapon's size and bulk make it too large for a Small reature to use effectively.</p>",
+          "code": "HEAVY"
+        },
+        {
+          "id": "71b5b42c-f4bc-4319-85ab-9e888d00743c",
+          "label": "Two Handed",
+          "tooltip": "<p>This weapon requires two hands when you attack with it.</p>",
+          "code": "TWO_HANDED"
+        },
+        {
+          "id": "dc9ee927-f81e-4966-bfce-6e12813fedb6",
+          "label": "Loading",
+          "tooltip": "<p>Because of the time required to load this weapon, you can fire only one piece of ammunition from it when you use an action, bonus action, or reaction to fire it, regardless of the number of attacks you can normally make.</p>",
+          "code": "LOADING"
+        },
+        {
+          "id": "ab95948e-73af-4cd6-ac18-a22841fb5773",
+          "label": "Simple",
+          "code": "SIMPLE"
+        },
+        {
+          "id": "756bfbbe-e9a4-4080-abdf-613fe2443fcf",
+          "label": "Ranged",
+          "tooltip": "<p>. A weapon that can be used to make a ranged attack has a range in parentheses after the ammunition or thrown property. The range lists two numbers. The first is the weapon's normal range in feet, and the second indicates the weapon's long range. When attacking a target beyond normal range, you have disadvantage on the attack roll. You can't attack a target beyond the weapon's long range.</p>",
+          "code": "RANGED"
+        },
+        {
+          "id": "c3797121-b46d-4b04-9dfd-71a0ba0a7945",
+          "label": "Reach",
+          "tooltip": "<p>This weapon adds 5 feet to your reach when you attack with it, as well as when determining your reach for opportunity attacks with it.</p>",
+          "code": "REACH"
+        },
+        {
+          "id": "cb8f55bc-c9e5-4406-b408-e8caf6d5bd5b",
+          "label": "Thrown",
+          "tooltip": "<p>If a weapon has the thrown property, you can throw the weapon to make a ranged attack. If the weapon is a melee weapon, you use the same ability modifier for that attack roll and damage roll that you would use for a melee attack with the weapon. For example, if you throw a handaxe, you use your Strength, but if you throw a dagger, you can use either your Strength or your Dexterity, since the dagger has the finesse property.</p>",
+          "CODE": "THROWN",
+          "code": "THROWN"
+        },
+        {
+          "id": "f2db5999-dba0-4e27-a260-7153aee16335",
+          "label": "Finesse",
+          "code": "FINESSE"
+        },
+        {
+          "id": "9fa816b5-a0cd-474f-9dee-f7de93e22803",
+          "label": "Martial",
+          "code": "MARTIAL"
+        },
+        {
+          "id": "859a1a8a-bf82-4bd0-b45a-65386ec068be",
+          "label": "Special",
+          "tooltip": "<p>This weapon requires two hands when you attack with it.</p>",
+          "code": "SPECIAL"
+        },
+        {
+          "id": "72f57c5d-c213-4b1b-887f-1eea56f02fe2",
+          "label": "Melee",
+          "code": "MELEE"
+        },
+        {
+          "id": "b3429a94-145d-4cdd-9842-78a826056942",
+          "label": "Vial",
+          "code": "VIAL"
+        },
+        {
+          "id": "993c120c-05c3-4d56-b2a3-2e0c073c082a",
+          "label": "Flask",
+          "code": "FLASK"
+        },
+        {
+          "id": "be798ea9-2db6-4eb9-89ce-1073e09f9fe6",
+          "label": "Ammunition",
+          "code": "AMMUNITION"
+        },
+        {
+          "id": "7e27efc4-7b48-48b1-913b-c48cd500b020",
+          "label": "Container",
+          "code": "CONTAINER"
+        },
+        {
+          "id": "6ee3e6eb-8d3b-46bc-aacf-18d657bd1913",
+          "label": "Improvised Weapon",
+          "code": "IMPROVISED_WEAPON"
+        },
+        {
+          "id": "f8473724-d388-4387-8e2b-967ed5c90934",
+          "label": "Poison",
+          "code": "POISON"
+        },
+        {
+          "id": "0bed3288-ee9a-46f3-9205-ad223baaaddb",
+          "label": "Potion",
+          "code": "POTION"
+        },
+        {
+          "id": "93e6f0d0-a106-404d-94c6-0e7ea0f1ff94",
+          "label": "Scroll",
+          "code": "SCROLL"
+        },
+        {
+          "id": "5d0f456e-4f79-4a39-a98b-b5a7c51ae914",
+          "label": "Wondrous Item",
+          "code": "WONDROUS_ITEM"
+        },
+        {
+          "id": "d012faee-75b7-4cee-a4ba-55246289c6c2",
+          "label": "Arcane Focus",
+          "code": "ARCANE_FOCUS"
+        },
+        {
+          "id": "d6d3c7a1-e868-44e4-bb25-ad169e6186c9",
+          "label": "Clothing",
+          "code": "CLOTHING"
+        },
+        {
+          "id": "68163324-bcb2-45c1-b465-7ac1976e49fb",
+          "label": "Druidic Focus",
+          "code": "DRUIDIC_FOCUS"
+        },
+        {
+          "id": "5f5ac5fa-2602-4104-8abd-86a2c413056f",
+          "label": "Holy Symbol",
+          "code": "HOLY_SYMBOL"
+        },
+        {
+          "id": "78354594-9697-4237-a0c3-9cad5521a025",
+          "label": "Food",
+          "code": "FOOD"
+        },
+        {
+          "id": "ec5423a7-4e9f-474c-bb31-55d783b82714",
+          "label": "Drink",
+          "code": "DRINK"
+        },
+        {
+          "id": "112f51e4-cee6-4fd0-8207-163da4cbd397",
+          "label": "Artisan Tool",
+          "code": "ARTISAN_TOOL"
+        },
+        {
+          "id": "51ec3d3a-6ade-4ad3-9dfc-8efecdeeb4ba",
+          "label": "Gaming Set",
+          "code": "GAMING_SET"
+        },
+        {
+          "id": "96ae55ee-79fa-44e8-9fb8-c96d713a6424",
+          "label": "Musical Instrument",
+          "code": "MUSICAL_INSTRUMENT"
+        },
+        {
+          "id": "98da1d55-0445-4927-ac40-cd05fc14fe6d",
+          "label": "Profession Tool",
+          "code": "PROFESSION_TOOL"
+        },
+        {
+          "id": "44478ef1-2c6f-4b7c-8b49-c364a77e5bb9",
+          "label": "Wood",
+          "code": "WOOD"
+        },
+        {
+          "id": "a6cf86fd-8553-41a6-a6bf-24110e1e91f1",
+          "label": "Metal",
+          "code": "METAL"
+        },
+        {
+          "id": "bab18227-0a76-4963-b1c3-44760b810fea",
+          "label": "Magic",
+          "code": "MAGIC"
+        }
+      ],
+      "categoryProperties": [
+        {
+          "id": "5aaa20d0-407e-42bf-b997-372383680831",
+          "propertyId": "f0de1c52-9141-4d5a-bc4b-76110edf8e3e",
+          "categoryId": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
+        },
+        {
+          "id": "078633aa-2c4f-4a87-8ed8-01f679278b7d",
+          "propertyId": "df5b0efb-0ab4-44e8-845a-13f109331d9b",
+          "categoryId": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
+        },
+        {
+          "id": "77100056-a2da-4789-8021-33524ee6bfe4",
+          "propertyId": "786e4da5-d0a7-4d30-9232-864950691654",
+          "categoryId": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
+        },
+        {
+          "id": "b23a5974-01a1-4d56-8608-870498886617",
+          "propertyId": "bab18227-0a76-4963-b1c3-44760b810fea",
+          "categoryId": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
+        },
+        {
+          "id": "ac72540c-b675-457f-b761-f6c3b79784de",
+          "propertyId": "6833776a-26c0-4143-b367-39f81a2fdad7",
+          "categoryId": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
+        },
+        {
+          "id": "7fbc4b58-2f92-481b-9dc1-c688290ede5a",
+          "propertyId": "cd909c00-7311-4643-be4d-497b095f7c72",
+          "categoryId": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
+        },
+        {
+          "id": "7199044f-c19e-4891-8e56-117ddfdd38be",
+          "propertyId": "1ce89a34-1e5e-4773-af2a-212df276371b",
+          "categoryId": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
+        },
+        {
+          "id": "f01353d1-4d1d-4b53-a84f-7129ae2c603c",
+          "propertyId": "71b5b42c-f4bc-4319-85ab-9e888d00743c",
+          "categoryId": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
+        },
+        {
+          "id": "aac39f45-ee3f-4d8b-8794-e04bf412a29c",
+          "propertyId": "dc9ee927-f81e-4966-bfce-6e12813fedb6",
+          "categoryId": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
+        },
+        {
+          "id": "f2adec66-b729-42da-a39f-87276d4dee9b",
+          "propertyId": "ab95948e-73af-4cd6-ac18-a22841fb5773",
+          "categoryId": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
+        },
+        {
+          "id": "bfc4cc4c-f697-4c62-b3ed-781521674715",
+          "propertyId": "756bfbbe-e9a4-4080-abdf-613fe2443fcf",
+          "categoryId": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
+        },
+        {
+          "id": "8ea6d687-4bbd-4a8b-8664-bac93362341d",
+          "propertyId": "c3797121-b46d-4b04-9dfd-71a0ba0a7945",
+          "categoryId": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
+        },
+        {
+          "id": "04e10dd8-5762-4809-8801-66db491ab5cc",
+          "propertyId": "cb8f55bc-c9e5-4406-b408-e8caf6d5bd5b",
+          "categoryId": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
+        },
+        {
+          "id": "4fb52b87-a4de-489f-b2d7-0d5e4f241caf",
+          "propertyId": "f2db5999-dba0-4e27-a260-7153aee16335",
+          "categoryId": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
+        },
+        {
+          "id": "e124f051-6761-4b1f-8f47-8feecf5ab5e2",
+          "propertyId": "9fa816b5-a0cd-474f-9dee-f7de93e22803",
+          "categoryId": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
+        },
+        {
+          "id": "424a768f-e203-4f26-8080-1e0b816d7383",
+          "propertyId": "859a1a8a-bf82-4bd0-b45a-65386ec068be",
+          "categoryId": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
+        },
+        {
+          "id": "0d1867aa-0dde-4297-90e2-24f4a988ce88",
+          "propertyId": "72f57c5d-c213-4b1b-887f-1eea56f02fe2",
+          "categoryId": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
+        },
+        {
+          "id": "b2ee392c-134a-4af6-96d9-1f9227d93538",
+          "propertyId": "bab18227-0a76-4963-b1c3-44760b810fea",
+          "categoryId": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
+        },
+        {
+          "id": "a31d2710-d2d2-4e3b-a14a-6e5f654d4f75",
+          "propertyId": "b3429a94-145d-4cdd-9842-78a826056942",
+          "categoryId": "c9af75e8-fff6-4247-8db4-31f63f16b3d9"
+        },
+        {
+          "id": "a5c0d8d2-01ed-47cb-b106-661177cca41e",
+          "propertyId": "993c120c-05c3-4d56-b2a3-2e0c073c082a",
+          "categoryId": "c9af75e8-fff6-4247-8db4-31f63f16b3d9"
+        },
+        {
+          "id": "5763e0d2-ade7-4eb1-ba69-c61ee48c5626",
+          "propertyId": "be798ea9-2db6-4eb9-89ce-1073e09f9fe6",
+          "categoryId": "c9af75e8-fff6-4247-8db4-31f63f16b3d9"
+        },
+        {
+          "id": "9bcff837-eca3-40a6-a3e8-bf0baa1601d3",
+          "propertyId": "cb8f55bc-c9e5-4406-b408-e8caf6d5bd5b",
+          "categoryId": "c9af75e8-fff6-4247-8db4-31f63f16b3d9"
+        },
+        {
+          "id": "6ff81cb9-c76c-47ac-b93a-4e3509018dde",
+          "propertyId": "756bfbbe-e9a4-4080-abdf-613fe2443fcf",
+          "categoryId": "c9af75e8-fff6-4247-8db4-31f63f16b3d9"
+        },
+        {
+          "id": "4365ab4e-7a21-4c56-8a77-fdeeec9428f1",
+          "propertyId": "7e27efc4-7b48-48b1-913b-c48cd500b020",
+          "categoryId": "c9af75e8-fff6-4247-8db4-31f63f16b3d9"
+        },
+        {
+          "id": "3b906522-4b4b-4958-b1e4-9f812c45f783",
+          "propertyId": "6ee3e6eb-8d3b-46bc-aacf-18d657bd1913",
+          "categoryId": "c9af75e8-fff6-4247-8db4-31f63f16b3d9"
+        },
+        {
+          "id": "f9670132-510d-4423-a7b4-bb2154691acc",
+          "propertyId": "f8473724-d388-4387-8e2b-967ed5c90934",
+          "categoryId": "c9af75e8-fff6-4247-8db4-31f63f16b3d9"
+        },
+        {
+          "id": "663d6f64-41d4-47ae-89c2-fa3d5149ef19",
+          "propertyId": "0bed3288-ee9a-46f3-9205-ad223baaaddb",
+          "categoryId": "c9af75e8-fff6-4247-8db4-31f63f16b3d9"
+        },
+        {
+          "id": "e0111230-52bb-4c88-aa96-e528355da95c",
+          "propertyId": "93e6f0d0-a106-404d-94c6-0e7ea0f1ff94",
+          "categoryId": "c9af75e8-fff6-4247-8db4-31f63f16b3d9"
+        },
+        {
+          "id": "78e55f7e-9791-4715-b048-ac129931669a",
+          "propertyId": "5d0f456e-4f79-4a39-a98b-b5a7c51ae914",
+          "categoryId": "c9af75e8-fff6-4247-8db4-31f63f16b3d9"
+        },
+        {
+          "id": "b8d09f5f-aca1-45c8-b00e-0271c7818382",
+          "propertyId": "d012faee-75b7-4cee-a4ba-55246289c6c2",
+          "categoryId": "c9af75e8-fff6-4247-8db4-31f63f16b3d9"
+        },
+        {
+          "id": "ea965edf-eeda-49c4-9c5f-ff2cbca70974",
+          "propertyId": "d6d3c7a1-e868-44e4-bb25-ad169e6186c9",
+          "categoryId": "c9af75e8-fff6-4247-8db4-31f63f16b3d9"
+        },
+        {
+          "id": "eb6f0fb9-312f-4c67-9762-ca0588dcacd3",
+          "propertyId": "68163324-bcb2-45c1-b465-7ac1976e49fb",
+          "categoryId": "c9af75e8-fff6-4247-8db4-31f63f16b3d9"
+        },
+        {
+          "id": "f0053174-07fe-485b-8185-3c53c559d300",
+          "propertyId": "5f5ac5fa-2602-4104-8abd-86a2c413056f",
+          "categoryId": "c9af75e8-fff6-4247-8db4-31f63f16b3d9"
+        },
+        {
+          "id": "8e4394ed-27c5-4be9-b075-606c9350d44c",
+          "propertyId": "78354594-9697-4237-a0c3-9cad5521a025",
+          "categoryId": "c9af75e8-fff6-4247-8db4-31f63f16b3d9"
+        },
+        {
+          "id": "2544f5d7-01a1-448f-9818-c501363e9d4c",
+          "propertyId": "ec5423a7-4e9f-474c-bb31-55d783b82714",
+          "categoryId": "c9af75e8-fff6-4247-8db4-31f63f16b3d9"
+        },
+        {
+          "id": "10ca8f8c-3511-4e22-b6ba-1be1edf6e3a6",
+          "propertyId": "bab18227-0a76-4963-b1c3-44760b810fea",
+          "categoryId": "c9af75e8-fff6-4247-8db4-31f63f16b3d9"
+        },
+        {
+          "id": "0c4e4880-52f3-43f3-a292-3b201a8d791f",
+          "propertyId": "112f51e4-cee6-4fd0-8207-163da4cbd397",
+          "categoryId": "e13981d6-2b10-4b79-adb6-07b2d85f711e"
+        },
+        {
+          "id": "a69ed56c-e775-4ddb-9052-b82f4458ac60",
+          "propertyId": "51ec3d3a-6ade-4ad3-9dfc-8efecdeeb4ba",
+          "categoryId": "e13981d6-2b10-4b79-adb6-07b2d85f711e"
+        },
+        {
+          "id": "94dc6497-34e6-4eed-962f-0e38570c5ec5",
+          "propertyId": "96ae55ee-79fa-44e8-9fb8-c96d713a6424",
+          "categoryId": "e13981d6-2b10-4b79-adb6-07b2d85f711e"
+        },
+        {
+          "id": "95bc0b17-a7ca-472e-b730-e06c5fb8c0fd",
+          "propertyId": "98da1d55-0445-4927-ac40-cd05fc14fe6d",
+          "categoryId": "e13981d6-2b10-4b79-adb6-07b2d85f711e"
+        },
+        {
+          "id": "fdd93bf4-8df2-410f-b280-42501140861f",
+          "propertyId": "bab18227-0a76-4963-b1c3-44760b810fea",
+          "categoryId": "e13981d6-2b10-4b79-adb6-07b2d85f711e"
+        },
+        {
+          "id": "3b1d238b-4eb6-4a20-a6f6-a6dc83d7b347",
+          "propertyId": "44478ef1-2c6f-4b7c-8b49-c364a77e5bb9",
+          "categoryId": "81990afe-e34a-48cb-aece-5e7c46088615"
+        },
+        {
+          "id": "3989f752-aabf-4eaf-8b0a-bf6c9b8266d8",
+          "propertyId": "a6cf86fd-8553-41a6-a6bf-24110e1e91f1",
+          "categoryId": "81990afe-e34a-48cb-aece-5e7c46088615"
+        },
+        {
+          "id": "d1535d57-53aa-4b4c-aaf0-a9c03d3981a2",
+          "propertyId": "bab18227-0a76-4963-b1c3-44760b810fea",
+          "categoryId": "81990afe-e34a-48cb-aece-5e7c46088615"
+        }
+      ],
+      "rarities": [
+        {
+          "id": "d5ec2b7b-99f0-4c0a-9cd4-8c339dc4148d",
+          "label": "Very Rare",
+          "code": "VERY_RARE"
+        },
+        {
+          "id": "d4d36dac-7365-44e7-a911-650a3696e9c4",
+          "label": "Common",
+          "code": "COMMON"
+        },
+        {
+          "id": "25434798-4c9d-48c8-841f-24ef738b319c",
+          "label": "Varies",
+          "code": "VARIES"
+        },
+        {
+          "id": "a57bb2d8-56f4-4f4d-b000-bbdc76d423f0",
+          "label": "Rare",
+          "code": "RARE"
+        },
+        {
+          "id": "d923f227-b5c6-4340-822a-ede0a242a4c3",
+          "label": "Artifact",
+          "code": "ARTIFACT"
+        },
+        {
+          "id": "97c761f3-7cbd-4cfc-9bd2-657bbf7e6d21",
+          "label": "Uncommon",
+          "code": "UNCOMMON"
+        },
+        {
+          "id": "3f09a99c-6510-4de3-a09b-035b18046260",
+          "label": "Legendary",
+          "code": "LEGENDARY"
+        },
+        {
+          "id": "93a48ede-1e2d-4ecc-b4ec-9b9094cc1b30",
+          "label": "Unknown Rarity",
+          "code": "UNKNOWN_RARITY"
+        }
+      ]
+    },
+    "languages": [
+      {
+        "id": "f13e252e-c2fd-42c8-b63f-0a125a4c0e63",
+        "label": "Giant",
+        "code": "GIANT"
+      },
+      {
+        "id": "7dd47e8b-1508-4e4b-9416-b3a38657ee69",
+        "label": "Orc",
+        "description": "<p>Orc is a harsh, grating language with hard consonants. It has no script of its own but is written in the Dwarvish script.</p>",
+        "code": "ORC"
+      },
+      {
+        "id": "a568967d-1708-40f0-a9e5-3f5c1a9cbd0b",
+        "label": "Elvish",
+        "description": "<p>Elvish is fluid, with subtle intonations and intricate grammar. Elven literature is rich and varied, and their songs and poems are famous among other races. Many bards learn their language so they can add Elvish ballads to their repertoires.</p>",
+        "code": "ELVISH"
+      },
+      {
+        "id": "ccdd3dd4-8c48-4544-be9b-5e8bac41ec0b",
+        "label": "Sylvan",
+        "code": "SYLVAN"
+      },
+      {
+        "id": "401235d2-3b5b-488e-8201-88c304d9aad3",
+        "label": "Goblin",
+        "code": "GOBLIN"
+      },
+      {
+        "id": "6e3d198f-d6bc-4853-8a00-cf45d1a454e4",
+        "label": "Draconic",
+        "description": "<p>Draconic is thought to be one of the oldest languages and is often used in the study of magic. The language sounds harsh to most other creatures and includes numerous hard consonants and sibilants.</p>",
+        "code": "DRACONIC"
+      },
+      {
+        "id": "0295b98c-0e01-4502-b73b-0f15387f42e8",
+        "label": "Undercommon",
+        "code": "UNDERCOMMON"
+      },
+      {
+        "id": "ffdc6925-bf9a-45a7-bbbc-3e8251ba7c93",
+        "label": "Infernal",
+        "code": "INFERNAL"
+      },
+      {
+        "id": "4f4de489-a8a9-4b1a-b7f5-ab03e5fa7303",
+        "label": "Abyssal",
+        "code": "ABYSSAL"
+      },
+      {
+        "id": "241166fc-30fa-4071-ab0a-03353b019e7e",
+        "label": "Celestial",
+        "code": "CELESTIAL"
+      },
+      {
+        "id": "154a78f7-c188-46a0-92a1-14b4676564ea",
+        "label": "Halfling",
+        "description": "<p>The Halfling language isn't secret, but halflings are loath to share it with others. They write very little, so they don't have a rich body of literature. Their oral tradition, however, is very strong.</p>",
+        "code": "HALFLING"
+      },
+      {
+        "id": "d45bfcd1-c814-4eb8-b453-d9df76aecda6",
+        "label": "Gnomish",
+        "description": "<p>The Gnomish language, which uses the Dwarvish script, is renowned for its technical treatises and its catalogs of knowledge about the natural world.</p>",
+        "code": "GNOMISH"
+      },
+      {
+        "id": "20a64bbc-470e-417f-b70f-dd08c12043cd",
+        "label": "Dwarvish",
+        "description": "<p>Dwarvish is full of hard consonants and guttural sounds.</p>",
+        "code": "DWARVISH"
+      },
+      {
+        "id": "c8ca6a56-b101-4361-ac27-4fa22776adba",
+        "label": "Primordial",
+        "code": "PRIMORDIAL"
+      },
+      {
+        "id": "c8ed77fb-af28-4b81-bc1c-fed9b49a01a5",
+        "label": "Deep Speech",
+        "code": "DEEP_SPEECH"
+      },
+      {
+        "id": "db87560d-891d-41f8-904c-e3051e36db03",
+        "label": "Common",
+        "code": "COMMON"
+      }
+    ],
+    "modifiers": {
+      "categories": [
+        {
+          "id": "971fbd66-c149-4bc5-80bf-ee4eeab053b2",
+          "label": "Save Ability",
+          "tooltip": "Modify the ability save scores for the character.",
+          "code": "SAVE_ABILITY"
+        },
+        {
+          "id": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
+          "label": "Armor Class",
+          "tooltip": "Modify how the armor class is calculated for the character",
+          "code": "ARMOR_CLASS"
+        },
+        {
+          "id": "9ae9aef6-5442-495e-bcf3-216b0e1a4c58",
+          "label": "Skill",
+          "tooltip": "Modify the skill check scores for the chosen skill that characters can perform",
+          "code": "SKILL"
+        },
+        {
+          "id": "b35b941f-8ad6-461f-8640-7540dc8e4934",
+          "label": "Unarmed Attack",
+          "tooltip": "Unarmed attack modifier of the character",
+          "code": "UNARMED_ATTACK"
+        },
+        {
+          "id": "7218423b-56cf-44b8-bac9-8c62a6cb2e55",
+          "label": "Unarmed Damage",
+          "tooltip": "Unarmed attack damage of the character",
+          "code": "UNARMED_DAMAGE"
+        },
+        {
+          "id": "6387fe43-b305-4121-bfb4-b337df754868",
+          "label": "Melee Attack",
+          "tooltip": "Melee attack modifier of the character",
+          "code": "MELEE_ATTACK"
+        },
+        {
+          "id": "50f3cf5c-47f9-4f61-9bc5-b4464bbd8bd1",
+          "label": "Melee Damage",
+          "tooltip": "Damage of a melee attack",
+          "code": "MELEE_DAMAGE"
+        },
+        {
+          "id": "105a7606-28ac-4bc6-88ef-11d0be9ec6bd",
+          "label": "Range Attack",
+          "tooltip": "Range attack modifier of the character",
+          "code": "RANGE_ATTACK"
+        },
+        {
+          "id": "7b294017-f4bf-43e4-803f-b11f002273b1",
+          "label": "Range Damage",
+          "tooltip": "Damage of a range attack",
+          "code": "RANGE_DAMAGE"
+        },
+        {
+          "id": "bf17f1cf-8fa5-4372-b17d-93106bde8eef",
+          "label": "Spell Attack",
+          "tooltip": "Spell attack modifier of the character",
+          "code": "SPELL_ATTACK"
+        },
+        {
+          "id": "07c9be79-c207-4fee-92e4-7842126a73c5",
+          "label": "Spell DC",
+          "tooltip": "Spell difficulty class amount of the character",
+          "code": "SPELL_DC"
+        },
+        {
+          "id": "f03223d4-22ee-4866-8abf-1757791d356c",
+          "label": "Damage Type",
+          "tooltip": "Modify either the damage done of the chosen type or the defenses of that damage for the character.",
+          "code": "DAMAGE_TYPE"
+        },
+        {
+          "id": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
+          "label": "Ability Score",
+          "tooltip": "Modify the ability score of the chosen ability for the character",
+          "code": "ABILITY_SCORE"
+        },
+        {
+          "id": "0168aa65-99ea-4381-9997-11f12f7adbfc",
+          "label": "Speed",
+          "tooltip": "Speed at which character travels such as walk",
+          "code": "SPEED"
+        },
+        {
+          "id": "ecb7dc40-c822-4178-ac75-bb3ad1eb1236",
+          "label": "Condition",
+          "tooltip": "Conditions character can possess such as poison",
+          "code": "CONDITION"
+        },
+        {
+          "id": "c723554f-7e53-49c6-aa62-74e33b7736ad",
+          "label": "Proficiency Bonus",
+          "tooltip": "Proficiency bonus added to rolls with proficient skills",
+          "code": "PROFICIENCY_BONUS"
+        },
+        {
+          "id": "2d619720-5819-4dee-aec2-4f13f5c72c5c",
+          "label": "Initiative",
+          "tooltip": "Initiative modifier added to initiative roll",
+          "code": "INITIATIVE"
+        },
+        {
+          "id": "e33fba7e-27f1-4562-a270-90baa234e1aa",
+          "label": "Hit Points",
+          "tooltip": "Modify how the health is calculated for the character.",
+          "code": "HIT_POINTS"
+        },
+        {
+          "id": "526b7457-00b0-40b9-a163-e1f598a0d8b5",
+          "label": "Spell Damage",
+          "tooltip": "Modify the damage of the chosen spell.",
+          "code": "SPELL_DAMAGE"
+        },
+        {
+          "id": "1c2b4037-ba93-4edc-8299-323e60dc934e",
+          "label": "Damage Save",
+          "tooltip": "Modify the DC for a damage save.",
+          "code": "DAMAGE_SAVE"
+        },
+        {
+          "id": "e7012bf9-4e83-4e31-888f-d4674d4ef865",
+          "label": "Condition Save",
+          "tooltip": "Modify the DC for a condition save.",
+          "code": "CONDITION_SAVE"
+        },
+        {
+          "id": "fa7b799a-a26b-4ca2-b0eb-1cbf6f700730",
+          "label": "Charge Limit",
+          "tooltip": "Modify the charge limit for a feature or resource.",
+          "code": "CHARGE_LIMIT"
+        },
+        {
+          "id": "6d346b7a-77a9-4b3e-bf45-d9ebe1544818",
+          "label": "Charge Reset",
+          "tooltip": "Modify the charge reset for a feature or resource.",
+          "code": "CHARGE_RESET"
+        },
+        {
+          "id": "c0ea7ecb-1dd9-419a-8220-32a0db629401",
+          "label": "Spell",
+          "tooltip": "Modify an aspect of the selected spell(s).",
+          "code": "SPELL"
+        }
+      ],
+      "types": [
+        {
+          "id": "f6478862-a92b-4596-8420-c0fa958db719",
+          "label": "Bonus",
+          "tooltip": "Applies bonus to selected category based on selected method.",
+          "code": "BONUS"
+        },
+        {
+          "id": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "label": "Penalty",
+          "tooltip": "Applies penalty to selected category based on selected method.",
+          "code": "PENALTY"
+        },
+        {
+          "id": "3a173c5b-0be0-4c2f-807e-52c5117acc92",
+          "label": "Advantage",
+          "tooltip": "Adds advantage to rolls for selected area",
+          "code": "ADVANTAGE"
+        },
+        {
+          "id": "888ee438-a5bb-49a0-baf7-f31283bb92f3",
+          "label": "Disadvantage",
+          "tooltip": "Adds disadvantage to rolls for selected area",
+          "code": "DISADVANTAGE"
+        },
+        {
+          "id": "6a038302-1ac7-482f-acdc-3e1502e04397",
+          "label": "Set Value",
+          "tooltip": "Sets the label for the selected category.",
+          "code": "SET_VALUE"
+        },
+        {
+          "id": "5430dc37-daf9-4a47-b210-5791c3118c50",
+          "label": "Replace Modifier Ability",
+          "tooltip": "Replace the current ability used to determine the bonus applied.",
+          "code": "REPLACE_MODIFIER_ABILITY"
+        },
+        {
+          "id": "e51e28bb-a286-43cb-b9bd-3bb337ac30ef",
+          "label": "Add Optional Modifier Ability",
+          "tooltip": "Adds optional ability used to determine the bonus applied.",
+          "code": "ADD_OPTIONAL_MODIFIER_ABILITY"
+        },
+        {
+          "id": "f4db2cea-b243-485b-8c94-eb007f051d70",
+          "label": "Bonus Die",
+          "tooltip": "Applies bonus die roll to selected category based on selected method.",
+          "code": "BONUS_DIE"
+        },
+        {
+          "id": "6cb31b79-af1c-48e8-a9a9-b2467ec741d3",
+          "label": "Penalty Die",
+          "tooltip": "Applies penalty die to selected category based on selected method.",
+          "code": "PENALTY_DIE"
+        },
+        {
+          "id": "21c976de-e2c3-4f97-82b1-292c42921332",
+          "label": "Max Damage",
+          "tooltip": "Do the highest possible calculated damage.",
+          "code": "MAX_DAMAGE"
+        },
+        {
+          "id": "80c68942-4fdf-4774-8027-8292ce508990",
+          "label": "Set Die",
+          "tooltip": "Sets the die count and type for the selected category.",
+          "code": "SET_DIE"
+        },
+        {
+          "id": "7b202c09-bdd0-43df-8225-6232de134e3d",
+          "label": "Resistance",
+          "tooltip": "Adds resistance to the selected damage type",
+          "code": "RESISTANCE"
+        },
+        {
+          "id": "4d5f63ef-833e-4a65-ab7d-2659f028281a",
+          "label": "Immunity",
+          "tooltip": "Adds imuunity to the selected type",
+          "code": "IMMUNITY"
+        },
+        {
+          "id": "8814744f-d842-49ed-9d99-9505d6a75925",
+          "label": "Vulnerability",
+          "tooltip": "Adds vulnerability to the selected type",
+          "code": "VULNERABILITY"
+        },
+        {
+          "id": "6086fb91-0939-4bbd-9f78-dd9d130e4c91",
+          "label": "Use Reset",
+          "tooltip": "Modify the Charge properties of a feature",
+          "code": "USE_RESET"
+        }
+      ],
+      "methods": [
+        {
+          "id": "dc943fe2-04be-4bfe-a935-4bc70fecac3d",
+          "label": "Ability Score Modifier",
+          "tooltip": "The value applied is equal to the chosen ability score modifer.",
+          "code": "ABILITY_SCORE_MODIFIER"
+        },
+        {
+          "id": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+          "label": "Set Globally",
+          "tooltip": "Set the value applied for the modifier type globally.",
+          "code": "SET_GLOBALLY"
+        },
+        {
+          "id": "064697c0-eb11-4b6a-81b9-f2ecdd722194",
+          "label": "Set Per Level",
+          "tooltip": "Set the value applied per level for the modifier type.",
+          "code": "SET_PER_LEVEL"
+        },
+        {
+          "id": "38539453-736e-417a-905e-573cc654ae19",
+          "label": "Skill Modifier",
+          "tooltip": "The value applied is equal to the chosen skill modifier.",
+          "code": "SKILL_MODIFIER"
+        },
+        {
+          "id": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91",
+          "label": "Proficiency Bonus",
+          "tooltip": "The value applied is equal to the current proficiency bonus.",
+          "code": "PROFICIENCY_BONUS"
+        },
+        {
+          "id": "a919adf5-4526-4472-b9af-31e400ef6f52",
+          "label": "Spell level",
+          "tooltip": "The value applied is equal to the spell level.",
+          "code": "SPELL_LEVEL"
+        }
+      ],
+      "spellCategories": [
+        {
+          "id": "4e160791-f35b-4673-8d18-7fcf40f0ab2d",
+          "label": "Spell Damage",
+          "tooltip": "Modify the spell damage of the selected spell(s).",
+          "code": "SPELL_DAMAGE"
+        },
+        {
+          "id": "69da6ffc-75cc-423f-b4df-d25761887059",
+          "label": "Spell Range",
+          "tooltip": "Modify the spell range of the selected spell(s).",
+          "code": "SPELL_RANGE"
+        },
+        {
+          "id": "9ec47cfe-5a3d-422e-8766-6a14567e3847",
+          "label": "Spell Shape",
+          "tooltip": "Modify the spell shape of the selected spell(s).",
+          "code": "SPELL_SHAPE"
+        },
+        {
+          "id": "c28701c5-ecd4-4499-9c2d-69ec5497c009",
+          "label": "Spell Duration",
+          "tooltip": "Modify the spell duration of the selected spell(s).",
+          "code": "SPELL_DURATION"
+        }
+      ],
+      "categoryTypes": [
+        {
+          "id": "7f9b4467-71ee-4f31-aef3-92369f55f865",
+          "categoryId": "0168aa65-99ea-4381-9997-11f12f7adbfc",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf"
+        },
+        {
+          "id": "24e2cb9b-850f-46d0-876a-9ba50f859c67",
+          "categoryId": "0168aa65-99ea-4381-9997-11f12f7adbfc",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397"
+        },
+        {
+          "id": "b19919bf-8e48-4683-9232-d08b6ab65f98",
+          "categoryId": "0168aa65-99ea-4381-9997-11f12f7adbfc",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719"
+        },
+        {
+          "id": "d09aa6a3-466a-465c-b8a4-1617acd9ccd5",
+          "categoryId": "07c9be79-c207-4fee-92e4-7842126a73c5",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf"
+        },
+        {
+          "id": "3dc6fca6-cfd5-4dcb-8291-2b58a1223e4a",
+          "categoryId": "07c9be79-c207-4fee-92e4-7842126a73c5",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719"
+        },
+        {
+          "id": "c1a64255-4f3e-4e57-9595-23d404e6a512",
+          "categoryId": "105a7606-28ac-4bc6-88ef-11d0be9ec6bd",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf"
+        },
+        {
+          "id": "c1b9868b-234c-4f5b-a86b-aeaa842692a1",
+          "categoryId": "105a7606-28ac-4bc6-88ef-11d0be9ec6bd",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719"
+        },
+        {
+          "id": "7c134c4c-660b-4ce3-8a09-2963ec6473d6",
+          "categoryId": "2d619720-5819-4dee-aec2-4f13f5c72c5c",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf"
+        },
+        {
+          "id": "b50ffbb7-d412-4e6a-9613-06d18570df07",
+          "categoryId": "2d619720-5819-4dee-aec2-4f13f5c72c5c",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719"
+        },
+        {
+          "id": "254d42fa-2755-4ea3-8873-a24901e6f294",
+          "categoryId": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf"
+        },
+        {
+          "id": "47557540-63bb-4a2f-a5b6-1a770a6589ea",
+          "categoryId": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397"
+        },
+        {
+          "id": "953eeffa-5bfe-4cd1-ae23-b8ac1d09c1e8",
+          "categoryId": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719"
+        },
+        {
+          "id": "821f40f1-e6cd-415e-9581-230ca9896526",
+          "categoryId": "50f3cf5c-47f9-4f61-9bc5-b4464bbd8bd1",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf"
+        },
+        {
+          "id": "362cab67-7fa6-41d9-932b-0e34d28a524a",
+          "categoryId": "50f3cf5c-47f9-4f61-9bc5-b4464bbd8bd1",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719"
+        },
+        {
+          "id": "f7383000-9988-4278-89b2-648b981ccf97",
+          "categoryId": "526b7457-00b0-40b9-a163-e1f598a0d8b5",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf"
+        },
+        {
+          "id": "5e6efaee-a901-48a5-89c5-889609a6ea7c",
+          "categoryId": "526b7457-00b0-40b9-a163-e1f598a0d8b5",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719"
+        },
+        {
+          "id": "3c19e5e3-e03a-459a-908c-0e9493eb56e1",
+          "categoryId": "6387fe43-b305-4121-bfb4-b337df754868",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf"
+        },
+        {
+          "id": "5b83b5da-fcf7-4414-b214-bff1f6398acc",
+          "categoryId": "6387fe43-b305-4121-bfb4-b337df754868",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719"
+        },
+        {
+          "id": "496b6f52-24ab-4b17-8980-0cd6d7ba8228",
+          "categoryId": "7218423b-56cf-44b8-bac9-8c62a6cb2e55",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf"
+        },
+        {
+          "id": "7439eca3-e0c6-421f-ab49-d25365b47ffb",
+          "categoryId": "7218423b-56cf-44b8-bac9-8c62a6cb2e55",
+          "typeId": "21c976de-e2c3-4f97-82b1-292c42921332"
+        },
+        {
+          "id": "d98779af-8a02-49f1-92ea-09b98ff27cac",
+          "categoryId": "7218423b-56cf-44b8-bac9-8c62a6cb2e55",
+          "typeId": "5430dc37-daf9-4a47-b210-5791c3118c50"
+        },
+        {
+          "id": "0ab43c1e-7198-47b9-9d86-d5319fa9f3a8",
+          "categoryId": "7218423b-56cf-44b8-bac9-8c62a6cb2e55",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397"
+        },
+        {
+          "id": "1b542d7e-55e0-4aa8-a53a-875ee23ecaa5",
+          "categoryId": "7218423b-56cf-44b8-bac9-8c62a6cb2e55",
+          "typeId": "6cb31b79-af1c-48e8-a9a9-b2467ec741d3"
+        },
+        {
+          "id": "08d616a5-15bc-40da-b35c-952cd8dcad13",
+          "categoryId": "7218423b-56cf-44b8-bac9-8c62a6cb2e55",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719"
+        },
+        {
+          "id": "0f521fa8-2d5c-4192-9249-884826ac783a",
+          "categoryId": "7b294017-f4bf-43e4-803f-b11f002273b1",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf"
+        },
+        {
+          "id": "23b119d4-b54e-46b0-a6b2-16d53a149618",
+          "categoryId": "7b294017-f4bf-43e4-803f-b11f002273b1",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719"
+        },
+        {
+          "id": "ab860c44-f8a2-4941-8eb0-fb69b23671e5",
+          "categoryId": "971fbd66-c149-4bc5-80bf-ee4eeab053b2",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf"
+        },
+        {
+          "id": "d8ab7b03-bb76-4022-8fc1-20e7c5e31c16",
+          "categoryId": "971fbd66-c149-4bc5-80bf-ee4eeab053b2",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719"
+        },
+        {
+          "id": "256cee71-2d99-43fb-ba46-5104861ff06a",
+          "categoryId": "9ae9aef6-5442-495e-bcf3-216b0e1a4c58",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf"
+        },
+        {
+          "id": "c2c4376e-2663-411d-bfe2-f258feb2c0e5",
+          "categoryId": "9ae9aef6-5442-495e-bcf3-216b0e1a4c58",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719"
+        },
+        {
+          "id": "b72c421e-db14-4453-bb7b-7a4bd49bedd0",
+          "categoryId": "b35b941f-8ad6-461f-8640-7540dc8e4934",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf"
+        },
+        {
+          "id": "bf7bb6b0-e2f2-4307-84d1-4604467ffa65",
+          "categoryId": "b35b941f-8ad6-461f-8640-7540dc8e4934",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719"
+        },
+        {
+          "id": "8d6d1763-33ad-471e-a40e-2ae7b75f7f9a",
+          "categoryId": "bf17f1cf-8fa5-4372-b17d-93106bde8eef",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf"
+        },
+        {
+          "id": "335fc12a-f96b-4939-a57d-5209e8f291e1",
+          "categoryId": "bf17f1cf-8fa5-4372-b17d-93106bde8eef",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719"
+        },
+        {
+          "id": "b24d3e64-79ca-408f-a015-ed9bdcb10e1e",
+          "categoryId": "c723554f-7e53-49c6-aa62-74e33b7736ad",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397"
+        },
+        {
+          "id": "010342d3-683d-4e5f-bf0d-e900e8c225b5",
+          "categoryId": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf"
+        },
+        {
+          "id": "d05c8aa5-a5d4-4b05-b64d-41e815cf18e0",
+          "categoryId": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397"
+        },
+        {
+          "id": "dbe9000a-3392-4615-bde8-6ac3b1684a36",
+          "categoryId": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719"
+        },
+        {
+          "id": "6e22ae5a-98c5-4a0f-9214-88527af9b6a1",
+          "categoryId": "e33fba7e-27f1-4562-a270-90baa234e1aa",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf"
+        },
+        {
+          "id": "713603b2-3038-4777-a1b8-49102879bf36",
+          "categoryId": "e33fba7e-27f1-4562-a270-90baa234e1aa",
+          "typeId": "5430dc37-daf9-4a47-b210-5791c3118c50"
+        },
+        {
+          "id": "359e583e-c21b-4e4d-9e1a-abb4cef7f4af",
+          "categoryId": "e33fba7e-27f1-4562-a270-90baa234e1aa",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397"
+        },
+        {
+          "id": "c2c0cfee-e60c-4e6c-99ad-453fbbd8735b",
+          "categoryId": "e33fba7e-27f1-4562-a270-90baa234e1aa",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719"
+        },
+        {
+          "id": "ac8f09c2-ca45-4c3e-a98b-927c0e613ab2",
+          "categoryId": "f03223d4-22ee-4866-8abf-1757791d356c",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf"
+        },
+        {
+          "id": "dd8fae9c-0739-4aa4-b878-d47bd2e80fcc",
+          "categoryId": "f03223d4-22ee-4866-8abf-1757791d356c",
+          "typeId": "21c976de-e2c3-4f97-82b1-292c42921332"
+        },
+        {
+          "id": "7e76cea5-78ad-4d6b-b75f-4f8ca48ccdb3",
+          "categoryId": "f03223d4-22ee-4866-8abf-1757791d356c",
+          "typeId": "6cb31b79-af1c-48e8-a9a9-b2467ec741d3"
+        },
+        {
+          "id": "ba64b21f-4618-431d-82eb-71e3c3a89d5c",
+          "categoryId": "f03223d4-22ee-4866-8abf-1757791d356c",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719"
+        },
+        {
+          "id": "a7b2662b-3dd7-4330-ab9e-3f450650b83f",
+          "categoryId": "f03223d4-22ee-4866-8abf-1757791d356c",
+          "typeId": "7b202c09-bdd0-43df-8225-6232de134e3d"
+        },
+        {
+          "id": "4b9d030e-9692-4082-a527-12694cd5d092",
+          "categoryId": "f03223d4-22ee-4866-8abf-1757791d356c",
+          "typeId": "4d5f63ef-833e-4a65-ab7d-2659f028281a"
+        },
+        {
+          "id": "6154477b-5939-4201-83cf-e71ce2644d71",
+          "categoryId": "f03223d4-22ee-4866-8abf-1757791d356c",
+          "typeId": "8814744f-d842-49ed-9d99-9505d6a75925"
+        },
+        {
+          "id": "1bb9e834-2e2b-4e14-8bee-cbf09ab2e38f",
+          "categoryId": "f03223d4-22ee-4866-8abf-1757791d356c",
+          "typeId": "f4db2cea-b243-485b-8c94-eb007f051d70"
+        },
+        {
+          "id": "8a2b56af-116a-4def-b4e4-c00a7b0f669d",
+          "categoryId": "ecb7dc40-c822-4178-ac75-bb3ad1eb1236",
+          "typeId": "7b202c09-bdd0-43df-8225-6232de134e3d"
+        },
+        {
+          "id": "9793ca23-069b-4117-9221-d3da27e77887",
+          "categoryId": "ecb7dc40-c822-4178-ac75-bb3ad1eb1236",
+          "typeId": "4d5f63ef-833e-4a65-ab7d-2659f028281a"
+        },
+        {
+          "id": "8ad4216b-402f-46c0-85f9-9ebf5a686a87",
+          "categoryId": "ecb7dc40-c822-4178-ac75-bb3ad1eb1236",
+          "typeId": "8814744f-d842-49ed-9d99-9505d6a75925"
+        },
+        {
+          "id": "1bcbaca0-af81-47bd-8bc3-468c099abb5d",
+          "categoryId": "4e160791-f35b-4673-8d18-7fcf40f0ab2d",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719"
+        },
+        {
+          "id": "b429833a-2ed1-4891-a3a4-1b82823d5cc0",
+          "categoryId": "4e160791-f35b-4673-8d18-7fcf40f0ab2d",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf"
+        },
+        {
+          "id": "10a3d3a8-57fa-4ceb-852d-00a7432ce4b9",
+          "categoryId": "4e160791-f35b-4673-8d18-7fcf40f0ab2d",
+          "typeId": "21c976de-e2c3-4f97-82b1-292c42921332"
+        },
+        {
+          "id": "b09a4a13-f70b-4334-8bfe-e2922a107d30",
+          "categoryId": "69da6ffc-75cc-423f-b4df-d25761887059",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719"
+        },
+        {
+          "id": "1b50345e-040c-410b-8216-ea5828974c92",
+          "categoryId": "69da6ffc-75cc-423f-b4df-d25761887059",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf"
+        },
+        {
+          "id": "ba9a4c54-877b-4431-8e4d-d106f46d6655",
+          "categoryId": "69da6ffc-75cc-423f-b4df-d25761887059",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397"
+        },
+        {
+          "id": "21fbf370-e0df-4a91-b8d7-7c0d41cafab7",
+          "categoryId": "9ec47cfe-5a3d-422e-8766-6a14567e3847",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719"
+        },
+        {
+          "id": "95eab3d1-e3e9-4d6a-ae68-0aa9906b1e87",
+          "categoryId": "9ec47cfe-5a3d-422e-8766-6a14567e3847",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf"
+        },
+        {
+          "id": "3ff631b4-51a9-4db5-8429-052b92e57cdf",
+          "categoryId": "9ec47cfe-5a3d-422e-8766-6a14567e3847",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397"
+        },
+        {
+          "id": "4aaf7b20-b5c1-4d33-aeca-41d932ab5d53",
+          "categoryId": "c28701c5-ecd4-4499-9c2d-69ec5497c009",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719"
+        },
+        {
+          "id": "6ed60cee-efa5-4361-973d-9b1ab9e19ff2",
+          "categoryId": "c28701c5-ecd4-4499-9c2d-69ec5497c009",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf"
+        },
+        {
+          "id": "3b5b34f1-7b4e-4be9-a234-207b32f311e7",
+          "categoryId": "c28701c5-ecd4-4499-9c2d-69ec5497c009",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397"
+        },
+        {
+          "id": "a30c569c-c852-436b-8e1d-4e0ac75aa9e3",
+          "categoryId": "fa7b799a-a26b-4ca2-b0eb-1cbf6f700730",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719"
+        },
+        {
+          "id": "09acf498-35fc-40ed-a159-6720334e4c81",
+          "categoryId": "fa7b799a-a26b-4ca2-b0eb-1cbf6f700730",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397"
+        },
+        {
+          "id": "ef3ea6dd-ea71-4399-95e9-164f53fece0c",
+          "categoryId": "fa7b799a-a26b-4ca2-b0eb-1cbf6f700730",
+          "typeId": "6086fb91-0939-4bbd-9f78-dd9d130e4c91"
+        }
+      ],
+      "typeMethods": [
+        {
+          "id": "4e379a1c-1abb-4676-8c2f-3042ec3179dd",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "494fe0d5-efe8-45f8-b498-6cff4b11efcd",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "84986e91-24a2-4cdc-9a0a-0f7ba38bd3b8",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "97ba9c81-280d-427b-9b52-cb7af855991b",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "1dc7e8c7-aa0e-4bab-9b5c-a60b66a3d579",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "628a2a60-1a3c-468f-8a35-d2aaffc252a4",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "d168c668-ea11-482a-a89d-8cdef3196ce8",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "1390d88f-528e-43d8-a42c-57f068a8f4f1",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "ab0853ae-0a96-4965-9d69-5a5d0809c43f",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "eec69a5b-6460-4f52-b0f4-07727b1d08b8",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "0ea7ffed-3ebb-4a19-af6a-7c17b8e7f81b",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "5979a4b3-94eb-4b70-9e8f-31a225927446",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "657823f4-6586-4c2c-8f29-462ba70aa931",
+          "typeId": "f4db2cea-b243-485b-8c94-eb007f051d70",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "2879f41b-b066-4abb-94f8-84b54b286c8d",
+          "typeId": "f4db2cea-b243-485b-8c94-eb007f051d70",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "bd8372eb-1a2d-4227-abae-c347e717fa12",
+          "typeId": "6cb31b79-af1c-48e8-a9a9-b2467ec741d3",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "fe8bc60e-8f92-4e91-8773-c7f51ea339c8",
+          "typeId": "6cb31b79-af1c-48e8-a9a9-b2467ec741d3",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "2d9c08bb-65c3-4da6-b63b-b800806fb6c1",
+          "typeId": "80c68942-4fdf-4774-8027-8292ce508990",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "f2537c15-3d1d-4107-b405-9935d6803c00",
+          "typeId": "80c68942-4fdf-4774-8027-8292ce508990",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "0f2d5570-58a3-4032-b700-bfbe78b5e85c",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "a919adf5-4526-4472-b9af-31e400ef6f52"
+        },
+        {
+          "id": "4f01483f-ca4c-43f9-8ad7-c1b1137ffa66",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "a919adf5-4526-4472-b9af-31e400ef6f52"
+        }
+      ],
+      "categoryMethods": [
+        {
+          "id": "f9284d28-2a40-4253-bb01-3478eaa3d5a4",
+          "categoryId": "0168aa65-99ea-4381-9997-11f12f7adbfc",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "deade080-c0cb-4b93-b591-7562d009c35e",
+          "categoryId": "0168aa65-99ea-4381-9997-11f12f7adbfc",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "125ebc13-d5a3-4135-8d8a-c786e21fd360",
+          "categoryId": "0168aa65-99ea-4381-9997-11f12f7adbfc",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "11b5a02f-f13e-4917-a6c9-0e84c6ea9f0c",
+          "categoryId": "0168aa65-99ea-4381-9997-11f12f7adbfc",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "2ef3884c-51c5-4b01-af45-9091d70e1898",
+          "categoryId": "0168aa65-99ea-4381-9997-11f12f7adbfc",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "8cdd7f63-42c6-4d1c-9fa6-1d36ade6879f",
+          "categoryId": "0168aa65-99ea-4381-9997-11f12f7adbfc",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "09da9735-41c9-4d83-9c5a-a0dc8eba95db",
+          "categoryId": "0168aa65-99ea-4381-9997-11f12f7adbfc",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "913b5984-3583-41c9-85b6-fa4697538822",
+          "categoryId": "0168aa65-99ea-4381-9997-11f12f7adbfc",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "fe4a9e1a-412b-4ea5-9c1e-158be8c72a38",
+          "categoryId": "0168aa65-99ea-4381-9997-11f12f7adbfc",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "6c502b5b-93ce-4ddc-86fa-6119dad78dca",
+          "categoryId": "0168aa65-99ea-4381-9997-11f12f7adbfc",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "8085a98b-7091-4e16-8fa4-b92d88c1a4e3",
+          "categoryId": "0168aa65-99ea-4381-9997-11f12f7adbfc",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "9e705b51-4b69-410c-8b59-e6efb66f03ff",
+          "categoryId": "0168aa65-99ea-4381-9997-11f12f7adbfc",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "d7100c76-0d35-4bfb-87f8-81fc89f6f288",
+          "categoryId": "07c9be79-c207-4fee-92e4-7842126a73c5",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "e6a358a2-7ce2-4556-9743-1a44954d5290",
+          "categoryId": "07c9be79-c207-4fee-92e4-7842126a73c5",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "d9e66997-28ab-478e-bf18-d350b7d5e45b",
+          "categoryId": "07c9be79-c207-4fee-92e4-7842126a73c5",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "5a151516-60e5-47e6-8672-e501ff14e474",
+          "categoryId": "07c9be79-c207-4fee-92e4-7842126a73c5",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "746997fe-5e17-443d-b56a-cfeba2ce45ed",
+          "categoryId": "07c9be79-c207-4fee-92e4-7842126a73c5",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "dec66454-5626-4e3d-a479-76ae307357d5",
+          "categoryId": "07c9be79-c207-4fee-92e4-7842126a73c5",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "e8455a83-78e5-4ab5-ada5-6cbf2aef0dbc",
+          "categoryId": "07c9be79-c207-4fee-92e4-7842126a73c5",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "094826ac-ce5f-41a9-a749-a38baa5499ba",
+          "categoryId": "07c9be79-c207-4fee-92e4-7842126a73c5",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "ba106145-fa1e-4490-a0cb-f375cf3b3d11",
+          "categoryId": "07c9be79-c207-4fee-92e4-7842126a73c5",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "a390a2f6-2e9d-4d06-9a68-bcfad9db3ab6",
+          "categoryId": "07c9be79-c207-4fee-92e4-7842126a73c5",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "f662864b-1d51-4da9-8512-da3dae7871a0",
+          "categoryId": "105a7606-28ac-4bc6-88ef-11d0be9ec6bd",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "b8f27d0e-0518-4a87-b0c8-9034105bb113",
+          "categoryId": "105a7606-28ac-4bc6-88ef-11d0be9ec6bd",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "9c89c742-3608-47a1-a145-fbd7c35bce39",
+          "categoryId": "105a7606-28ac-4bc6-88ef-11d0be9ec6bd",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "2254fbc3-aac6-4875-9f87-82423b00f828",
+          "categoryId": "105a7606-28ac-4bc6-88ef-11d0be9ec6bd",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "4b1583ab-cd91-4120-a581-67587326880d",
+          "categoryId": "105a7606-28ac-4bc6-88ef-11d0be9ec6bd",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "efc01e01-d6eb-4963-8594-3261cbaaacbd",
+          "categoryId": "105a7606-28ac-4bc6-88ef-11d0be9ec6bd",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "cd170804-e2f1-4a4c-81b2-3a488dd0f643",
+          "categoryId": "105a7606-28ac-4bc6-88ef-11d0be9ec6bd",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "fe75886d-c7d7-4ad1-8490-bd02f97be848",
+          "categoryId": "105a7606-28ac-4bc6-88ef-11d0be9ec6bd",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "a9d5b62f-34fd-46c5-a6df-a63af39641d2",
+          "categoryId": "105a7606-28ac-4bc6-88ef-11d0be9ec6bd",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "731c34f4-7e98-4066-81e2-11f8b726c416",
+          "categoryId": "105a7606-28ac-4bc6-88ef-11d0be9ec6bd",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "34af1ce9-3141-4079-8404-21df09dad595",
+          "categoryId": "2d619720-5819-4dee-aec2-4f13f5c72c5c",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "48fc2768-031d-465c-9fdb-a5ae0bb2970c",
+          "categoryId": "2d619720-5819-4dee-aec2-4f13f5c72c5c",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "b00f1aed-1d7e-4fe7-aa13-86ac6086e3c3",
+          "categoryId": "2d619720-5819-4dee-aec2-4f13f5c72c5c",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "5b636a9a-7ebe-4caa-89b2-3b51e5b96e0d",
+          "categoryId": "2d619720-5819-4dee-aec2-4f13f5c72c5c",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "08347d57-d704-4041-a2dd-8d061171e7aa",
+          "categoryId": "2d619720-5819-4dee-aec2-4f13f5c72c5c",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "f474a0fd-4fc2-4bc4-8ae7-755cf1fd672d",
+          "categoryId": "2d619720-5819-4dee-aec2-4f13f5c72c5c",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "2cd8e1fb-0eb3-4efe-9769-e300e7b4b644",
+          "categoryId": "2d619720-5819-4dee-aec2-4f13f5c72c5c",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "79590bee-eb25-42c9-94f2-640555439150",
+          "categoryId": "2d619720-5819-4dee-aec2-4f13f5c72c5c",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "8c88379e-69fa-4acc-a8b2-c8ea5f400c07",
+          "categoryId": "2d619720-5819-4dee-aec2-4f13f5c72c5c",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "591b9e56-2e91-48d8-b7b5-5e905ae39b05",
+          "categoryId": "2d619720-5819-4dee-aec2-4f13f5c72c5c",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "aa84eedb-0a40-4987-98fb-4801e1410cdd",
+          "categoryId": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "ca36857a-d60b-4406-ac49-dbad849b0e3a",
+          "categoryId": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "85caa45c-a829-4aa2-a758-fce789bb8970",
+          "categoryId": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "db559d7b-b54e-476e-ba5a-8e8c6bd5c71f",
+          "categoryId": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "e5a65cea-e37e-4cad-afbf-39dca161f110",
+          "categoryId": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "2b6a4d27-fe9a-4b1f-8020-2bde312d11d2",
+          "categoryId": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "cfb7a36c-c4c2-4d29-92b7-e8e19d371958",
+          "categoryId": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "f7ea2dab-67f2-4f3a-b0ee-e30c20587fc1",
+          "categoryId": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "6fb9600d-2a07-42df-88c7-c331e29a9186",
+          "categoryId": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "43939202-f684-43ee-892f-65775186fc88",
+          "categoryId": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "359f6939-23fc-4f29-a38b-6fa0d81541ee",
+          "categoryId": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "e5be7adb-5ef6-4da0-80b8-eb68803353eb",
+          "categoryId": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "ce792a17-cddd-42df-981f-ede8b7915882",
+          "categoryId": "50f3cf5c-47f9-4f61-9bc5-b4464bbd8bd1",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "4b6d6e17-d7ea-4cbc-81e3-55d5437600e0",
+          "categoryId": "50f3cf5c-47f9-4f61-9bc5-b4464bbd8bd1",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "fb05a4cc-09f1-4f48-8c9f-5975e91ef9db",
+          "categoryId": "50f3cf5c-47f9-4f61-9bc5-b4464bbd8bd1",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "ae407576-f896-4349-af66-08849a583ba2",
+          "categoryId": "50f3cf5c-47f9-4f61-9bc5-b4464bbd8bd1",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "40d94762-9788-468a-88d5-87f0d5882b13",
+          "categoryId": "50f3cf5c-47f9-4f61-9bc5-b4464bbd8bd1",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "9b8a85a7-7d81-4a59-9a20-13609cf8835b",
+          "categoryId": "50f3cf5c-47f9-4f61-9bc5-b4464bbd8bd1",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "5b226cca-247e-4359-8a3a-46a49d1c7e6f",
+          "categoryId": "50f3cf5c-47f9-4f61-9bc5-b4464bbd8bd1",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "871c1707-698e-4ac6-8970-36865cf71764",
+          "categoryId": "50f3cf5c-47f9-4f61-9bc5-b4464bbd8bd1",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "2ddea1f4-e8b4-47fb-b159-8758c7ca8c31",
+          "categoryId": "50f3cf5c-47f9-4f61-9bc5-b4464bbd8bd1",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "2053a969-9279-4c02-9e82-162ab7566eb6",
+          "categoryId": "50f3cf5c-47f9-4f61-9bc5-b4464bbd8bd1",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "1741bdfb-bb5d-49dd-afe6-2a4b3f85dfce",
+          "categoryId": "526b7457-00b0-40b9-a163-e1f598a0d8b5",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "7fac0f70-66bc-499d-84db-1683e73acbdf",
+          "categoryId": "526b7457-00b0-40b9-a163-e1f598a0d8b5",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "1ecf72bb-0b58-4b9b-a1f4-8734798e5f7b",
+          "categoryId": "526b7457-00b0-40b9-a163-e1f598a0d8b5",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "e076d46d-4da6-41fc-9a06-c0abdbd10458",
+          "categoryId": "526b7457-00b0-40b9-a163-e1f598a0d8b5",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "a919adf5-4526-4472-b9af-31e400ef6f52"
+        },
+        {
+          "id": "31e39f38-ee33-4bdf-ae42-a13258100491",
+          "categoryId": "526b7457-00b0-40b9-a163-e1f598a0d8b5",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "41a14baa-cfe4-4774-9d38-a706d501eaf9",
+          "categoryId": "526b7457-00b0-40b9-a163-e1f598a0d8b5",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "c9f5a7a9-5458-460e-8457-6983575245ef",
+          "categoryId": "526b7457-00b0-40b9-a163-e1f598a0d8b5",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "bd52c24c-91ca-46ea-a19b-79099e62c06c",
+          "categoryId": "526b7457-00b0-40b9-a163-e1f598a0d8b5",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "453aae47-01c0-4bbb-b24d-123844f0f893",
+          "categoryId": "526b7457-00b0-40b9-a163-e1f598a0d8b5",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "94a004c1-ed82-4fa5-85e4-ca20d3e9ccef",
+          "categoryId": "526b7457-00b0-40b9-a163-e1f598a0d8b5",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "a919adf5-4526-4472-b9af-31e400ef6f52"
+        },
+        {
+          "id": "06c38a24-cdc0-47c1-86c7-01c56829f5f1",
+          "categoryId": "526b7457-00b0-40b9-a163-e1f598a0d8b5",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "3a03b6a3-9318-4cb7-80b1-20766eb17050",
+          "categoryId": "526b7457-00b0-40b9-a163-e1f598a0d8b5",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "7604572f-d5c7-44e8-b831-e6c26acf0d8c",
+          "categoryId": "6387fe43-b305-4121-bfb4-b337df754868",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "14714cbc-2308-452f-a8d5-fd06a1ded459",
+          "categoryId": "6387fe43-b305-4121-bfb4-b337df754868",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "305ff206-3b22-4346-b420-923bcd12804f",
+          "categoryId": "6387fe43-b305-4121-bfb4-b337df754868",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "f6455844-cd1e-4b65-8542-51ff1f0d91c2",
+          "categoryId": "6387fe43-b305-4121-bfb4-b337df754868",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "c69f0cc9-9bd9-437d-a5d8-ee9a936a71a8",
+          "categoryId": "6387fe43-b305-4121-bfb4-b337df754868",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "723cc5c2-f02d-4068-b3ce-bea063ab5f92",
+          "categoryId": "6387fe43-b305-4121-bfb4-b337df754868",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "1a1b155d-022f-403e-b0f9-6a0f7e84fb07",
+          "categoryId": "6387fe43-b305-4121-bfb4-b337df754868",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "70c8eb2f-80fa-4d4b-91ec-ea543ab77cca",
+          "categoryId": "6387fe43-b305-4121-bfb4-b337df754868",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "73a14766-6931-4d10-9114-4c21541f37cc",
+          "categoryId": "6387fe43-b305-4121-bfb4-b337df754868",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "e27fdc6b-ca3d-435e-96dd-1993aab6a5e0",
+          "categoryId": "6387fe43-b305-4121-bfb4-b337df754868",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "0a6f5cd3-95d5-4aca-af0a-f7abf9e3c045",
+          "categoryId": "7218423b-56cf-44b8-bac9-8c62a6cb2e55",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "5b48bb8a-7dfd-47cf-ab88-ada98b10240f",
+          "categoryId": "7218423b-56cf-44b8-bac9-8c62a6cb2e55",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "9d7a4692-f30a-4783-8b86-20e7bc3d01ac",
+          "categoryId": "7218423b-56cf-44b8-bac9-8c62a6cb2e55",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "60c6d964-6503-444a-aabf-bcfb3e8916c0",
+          "categoryId": "7218423b-56cf-44b8-bac9-8c62a6cb2e55",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "7d73f0e3-09a4-47ab-ab68-88475c16ef2f",
+          "categoryId": "7218423b-56cf-44b8-bac9-8c62a6cb2e55",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "5f0db17d-1930-446e-a4ab-838eac925719",
+          "categoryId": "7218423b-56cf-44b8-bac9-8c62a6cb2e55",
+          "typeId": "21c976de-e2c3-4f97-82b1-292c42921332",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "cc4db127-019a-43d9-b7dc-e30da1ff5cfc",
+          "categoryId": "7218423b-56cf-44b8-bac9-8c62a6cb2e55",
+          "typeId": "21c976de-e2c3-4f97-82b1-292c42921332",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "d41689fb-144d-4782-bb20-0a02536fd873",
+          "categoryId": "7218423b-56cf-44b8-bac9-8c62a6cb2e55",
+          "typeId": "5430dc37-daf9-4a47-b210-5791c3118c50",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "35b29528-32fd-49f6-bfbd-18ed52d695c5",
+          "categoryId": "7218423b-56cf-44b8-bac9-8c62a6cb2e55",
+          "typeId": "5430dc37-daf9-4a47-b210-5791c3118c50",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "ce4bcb18-a653-4824-bf49-fea269c688b0",
+          "categoryId": "7218423b-56cf-44b8-bac9-8c62a6cb2e55",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "2766991a-6534-4986-8569-2cf4a26a77a6",
+          "categoryId": "7218423b-56cf-44b8-bac9-8c62a6cb2e55",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "02d4e812-0aa9-4f2b-be88-661428092c90",
+          "categoryId": "7218423b-56cf-44b8-bac9-8c62a6cb2e55",
+          "typeId": "6cb31b79-af1c-48e8-a9a9-b2467ec741d3",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "3c3a3c3a-5b9e-4e48-a526-528b70d6a2e8",
+          "categoryId": "7218423b-56cf-44b8-bac9-8c62a6cb2e55",
+          "typeId": "6cb31b79-af1c-48e8-a9a9-b2467ec741d3",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "fb20448f-27c8-4d3a-94b7-a611cefa82fd",
+          "categoryId": "7218423b-56cf-44b8-bac9-8c62a6cb2e55",
+          "typeId": "f4db2cea-b243-485b-8c94-eb007f051d70",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "4010b6f7-4cef-471c-850f-a3a2929c2be9",
+          "categoryId": "7218423b-56cf-44b8-bac9-8c62a6cb2e55",
+          "typeId": "f4db2cea-b243-485b-8c94-eb007f051d70",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "a5ddab73-52aa-4e37-8393-4989744ebf4b",
+          "categoryId": "7218423b-56cf-44b8-bac9-8c62a6cb2e55",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "efcf9619-f5d5-44a9-a7e9-58f93f945583",
+          "categoryId": "7218423b-56cf-44b8-bac9-8c62a6cb2e55",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "e7fb7f0c-d7c4-4c04-a0ae-8ff4166280c7",
+          "categoryId": "7218423b-56cf-44b8-bac9-8c62a6cb2e55",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "cf2f2475-4d8e-4d57-a28b-ef829a8b5cee",
+          "categoryId": "7218423b-56cf-44b8-bac9-8c62a6cb2e55",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "a812d8a3-c80c-4da0-a963-58a43ffd2da7",
+          "categoryId": "7218423b-56cf-44b8-bac9-8c62a6cb2e55",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "bc05a5d7-6bff-4f20-a9ab-39741e69cbaa",
+          "categoryId": "7b294017-f4bf-43e4-803f-b11f002273b1",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "d7706b9b-4894-4ec3-95ea-1c93b0f75442",
+          "categoryId": "7b294017-f4bf-43e4-803f-b11f002273b1",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "7a98f194-f7d2-4871-bdc7-96d5ec8ed6a8",
+          "categoryId": "7b294017-f4bf-43e4-803f-b11f002273b1",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "06e0f188-485f-4ef0-9bd0-66725ff80c1d",
+          "categoryId": "7b294017-f4bf-43e4-803f-b11f002273b1",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "ef9f85e2-4545-4798-9372-0bc38a69f62c",
+          "categoryId": "7b294017-f4bf-43e4-803f-b11f002273b1",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "3df58533-059b-4779-9752-4702b8d8314d",
+          "categoryId": "7b294017-f4bf-43e4-803f-b11f002273b1",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "f0664aea-ee15-40de-becc-c2f1d0255fc5",
+          "categoryId": "7b294017-f4bf-43e4-803f-b11f002273b1",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "68655e85-f689-4b86-8f66-8da7bc6c0871",
+          "categoryId": "7b294017-f4bf-43e4-803f-b11f002273b1",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "955c23d4-7823-40aa-8e65-edd71761d849",
+          "categoryId": "7b294017-f4bf-43e4-803f-b11f002273b1",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "38b39469-017b-4ab6-bb98-7ff8a3133fe5",
+          "categoryId": "7b294017-f4bf-43e4-803f-b11f002273b1",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "8cffc5e4-8dc1-4dc0-b25a-e82ba9586f73",
+          "categoryId": "971fbd66-c149-4bc5-80bf-ee4eeab053b2",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "8d95ba88-e8ff-4b54-bc56-29d6f51ac233",
+          "categoryId": "971fbd66-c149-4bc5-80bf-ee4eeab053b2",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "0ed12c88-0820-497e-bad6-6cd46648755b",
+          "categoryId": "971fbd66-c149-4bc5-80bf-ee4eeab053b2",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "3d34c2e4-92a0-4eaf-9bee-a4ab4cec87a4",
+          "categoryId": "971fbd66-c149-4bc5-80bf-ee4eeab053b2",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "cd7ffe55-dbf1-405a-ba14-71cd0cc9cc5e",
+          "categoryId": "971fbd66-c149-4bc5-80bf-ee4eeab053b2",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "5bad140d-51a9-483f-9ecc-54154793287f",
+          "categoryId": "971fbd66-c149-4bc5-80bf-ee4eeab053b2",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "a7aabc5a-d179-42fd-ac15-0c81d1379033",
+          "categoryId": "971fbd66-c149-4bc5-80bf-ee4eeab053b2",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "2cad38e0-9104-4b91-8775-0c0442995b0a",
+          "categoryId": "971fbd66-c149-4bc5-80bf-ee4eeab053b2",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "4626df7d-d24e-4b83-a261-16661ab32478",
+          "categoryId": "971fbd66-c149-4bc5-80bf-ee4eeab053b2",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "2b794cc0-3dbd-4c8b-bac7-7727a2d3458c",
+          "categoryId": "971fbd66-c149-4bc5-80bf-ee4eeab053b2",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "9ad595fc-3219-43a8-a2ae-b603c9a04794",
+          "categoryId": "9ae9aef6-5442-495e-bcf3-216b0e1a4c58",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "1f871b14-2d9b-4bb7-8bd2-59674a742556",
+          "categoryId": "9ae9aef6-5442-495e-bcf3-216b0e1a4c58",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "897454a8-2edf-45b3-9890-aee3b96dde95",
+          "categoryId": "9ae9aef6-5442-495e-bcf3-216b0e1a4c58",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "34bc95a0-c4ba-4f38-9e05-70ecf40c7d89",
+          "categoryId": "9ae9aef6-5442-495e-bcf3-216b0e1a4c58",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "33a6b3dd-b3f9-4a76-a233-0ef4ccbf7b9e",
+          "categoryId": "9ae9aef6-5442-495e-bcf3-216b0e1a4c58",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "684c285d-043d-4ae6-ba78-ada712002cf6",
+          "categoryId": "9ae9aef6-5442-495e-bcf3-216b0e1a4c58",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "b4e8422d-8d36-4c52-9a94-89470c41cdaf",
+          "categoryId": "b35b941f-8ad6-461f-8640-7540dc8e4934",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "3df2c964-8c92-40ab-9600-058cfee47786",
+          "categoryId": "b35b941f-8ad6-461f-8640-7540dc8e4934",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "43d3f123-9e6d-4470-999a-9f7dc785dadc",
+          "categoryId": "b35b941f-8ad6-461f-8640-7540dc8e4934",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "15f67eb2-60eb-4a70-8168-d5913e89b817",
+          "categoryId": "b35b941f-8ad6-461f-8640-7540dc8e4934",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "7cc5d24c-1ad7-4d0e-b174-3ce1457e3db1",
+          "categoryId": "b35b941f-8ad6-461f-8640-7540dc8e4934",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "cc00bf9e-bd59-4a72-bc6a-c36fd67134cb",
+          "categoryId": "b35b941f-8ad6-461f-8640-7540dc8e4934",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "3d49cadc-399c-463c-9ede-62e42e2c3271",
+          "categoryId": "b35b941f-8ad6-461f-8640-7540dc8e4934",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "2a5c8fab-7a9c-4bbf-94dc-fd7208e62bde",
+          "categoryId": "b35b941f-8ad6-461f-8640-7540dc8e4934",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "7568649f-f4c9-4457-bb3d-aa397e331154",
+          "categoryId": "b35b941f-8ad6-461f-8640-7540dc8e4934",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "1e5c15f6-7a1a-4bae-af2a-29671fe80ae9",
+          "categoryId": "b35b941f-8ad6-461f-8640-7540dc8e4934",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "bc585e1c-4f3e-4f28-a1b5-93098e9e4b39",
+          "categoryId": "bf17f1cf-8fa5-4372-b17d-93106bde8eef",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "322c8c90-ab81-41e0-ab51-1f67bb0f8662",
+          "categoryId": "bf17f1cf-8fa5-4372-b17d-93106bde8eef",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "1630ad4d-3b6f-4bd0-8987-c8e011cd3e66",
+          "categoryId": "bf17f1cf-8fa5-4372-b17d-93106bde8eef",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "5ee5ddab-3b6f-448b-9ccd-7e06159763b3",
+          "categoryId": "bf17f1cf-8fa5-4372-b17d-93106bde8eef",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "89583ff3-c8e4-4cef-aa4e-00620eb008eb",
+          "categoryId": "bf17f1cf-8fa5-4372-b17d-93106bde8eef",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "2279f605-4c30-487b-bf1d-a6855f4f0ce9",
+          "categoryId": "bf17f1cf-8fa5-4372-b17d-93106bde8eef",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "fb514040-f4d2-4edf-8771-f1cbd18c6f9c",
+          "categoryId": "bf17f1cf-8fa5-4372-b17d-93106bde8eef",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "00b0e774-5019-426a-90cd-a52862702409",
+          "categoryId": "bf17f1cf-8fa5-4372-b17d-93106bde8eef",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "6e56a54c-9848-4276-8d5b-a2c9894922af",
+          "categoryId": "bf17f1cf-8fa5-4372-b17d-93106bde8eef",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "734467ae-a4c6-41ab-9516-77f8b0811b49",
+          "categoryId": "bf17f1cf-8fa5-4372-b17d-93106bde8eef",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "24035379-dc6f-4449-a8d7-faaf7fd99ba0",
+          "categoryId": "c723554f-7e53-49c6-aa62-74e33b7736ad",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "c93e669e-e24b-43e7-9ccb-8e6dc2e201a2",
+          "categoryId": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "5d91b94b-0808-4f81-9c9f-6e4cded2cfbf",
+          "categoryId": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "c9aec5d4-2655-4d38-9a80-5e7581679a5d",
+          "categoryId": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "8531be50-f533-49f2-8dc3-516dcef31a27",
+          "categoryId": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "166228ac-e717-43c7-8e1e-e790dc1c2542",
+          "categoryId": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "30c8617f-3e89-49e0-97bc-5c70f152b273",
+          "categoryId": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "95c3cfa2-ff23-4c95-b533-6e110a97e582",
+          "categoryId": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "f8f4b3c5-c80f-4341-92b3-62844e3ba9bd",
+          "categoryId": "e33fba7e-27f1-4562-a270-90baa234e1aa",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "77ca684c-6f48-480f-a4d1-2c3d0aeb8383",
+          "categoryId": "e33fba7e-27f1-4562-a270-90baa234e1aa",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "8221b6c7-2b6e-4f7e-a698-ab146be5af3f",
+          "categoryId": "e33fba7e-27f1-4562-a270-90baa234e1aa",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "02ae2f57-1d1d-4e41-a6f3-991695e49f39",
+          "categoryId": "e33fba7e-27f1-4562-a270-90baa234e1aa",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "f0de7271-5576-4968-a8a5-3518cb2424e6",
+          "categoryId": "e33fba7e-27f1-4562-a270-90baa234e1aa",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "dae0c155-e478-4fd2-ba26-0cf34d195244",
+          "categoryId": "e33fba7e-27f1-4562-a270-90baa234e1aa",
+          "typeId": "5430dc37-daf9-4a47-b210-5791c3118c50",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "318dc2cc-fade-45e1-b833-326bc0cc087a",
+          "categoryId": "e33fba7e-27f1-4562-a270-90baa234e1aa",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "041e6817-e9f3-413c-bdcc-19b8bbbd3540",
+          "categoryId": "e33fba7e-27f1-4562-a270-90baa234e1aa",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "6f5a0b36-4ca2-4c77-bc75-e8905240ccb8",
+          "categoryId": "e33fba7e-27f1-4562-a270-90baa234e1aa",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "240256a1-bc83-493e-9b29-02b723a027f0",
+          "categoryId": "e33fba7e-27f1-4562-a270-90baa234e1aa",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "5e60b1fc-2e6d-488b-9e05-fdd456c44061",
+          "categoryId": "e33fba7e-27f1-4562-a270-90baa234e1aa",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "4ff6ed64-ff2b-49db-89c6-5f97c1efc5b4",
+          "categoryId": "e33fba7e-27f1-4562-a270-90baa234e1aa",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "66297d59-2820-43c0-bf15-b92cde6655fe",
+          "categoryId": "e33fba7e-27f1-4562-a270-90baa234e1aa",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "42f24fb3-654f-4462-9aa5-66723a1c8232",
+          "categoryId": "f03223d4-22ee-4866-8abf-1757791d356c",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "45fe79f4-a4c0-42ce-8c61-e73a4f82aaac",
+          "categoryId": "f03223d4-22ee-4866-8abf-1757791d356c",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "1cb773f1-0a5c-4f46-8ae8-c46dfac21b95",
+          "categoryId": "f03223d4-22ee-4866-8abf-1757791d356c",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "647e4b43-123d-4244-8775-c50a724daf83",
+          "categoryId": "f03223d4-22ee-4866-8abf-1757791d356c",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "d17fbace-00cd-439e-a6de-10a471f4b292",
+          "categoryId": "f03223d4-22ee-4866-8abf-1757791d356c",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "3d9eb07b-86f1-486d-8f9f-d135edd82ee4",
+          "categoryId": "f03223d4-22ee-4866-8abf-1757791d356c",
+          "typeId": "21c976de-e2c3-4f97-82b1-292c42921332",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "8f91fe4b-3c24-46b4-b14a-eaef35e89fab",
+          "categoryId": "f03223d4-22ee-4866-8abf-1757791d356c",
+          "typeId": "21c976de-e2c3-4f97-82b1-292c42921332",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "63c3ffd4-4c37-489b-b107-64aa649bfa23",
+          "categoryId": "f03223d4-22ee-4866-8abf-1757791d356c",
+          "typeId": "6cb31b79-af1c-48e8-a9a9-b2467ec741d3",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "190514f2-4ba8-4157-9855-f55b052af14b",
+          "categoryId": "f03223d4-22ee-4866-8abf-1757791d356c",
+          "typeId": "6cb31b79-af1c-48e8-a9a9-b2467ec741d3",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "58b3b8dd-b8ef-448e-8336-56be0b42b342",
+          "categoryId": "f03223d4-22ee-4866-8abf-1757791d356c",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "6b897bb7-a6e1-48f3-bd07-016bb733fa22",
+          "categoryId": "f03223d4-22ee-4866-8abf-1757791d356c",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "a546321f-2dc9-425d-aec9-a666c5dc7d31",
+          "categoryId": "f03223d4-22ee-4866-8abf-1757791d356c",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "1085479e-93b6-4ca5-92ff-5296cee283d5",
+          "categoryId": "f03223d4-22ee-4866-8abf-1757791d356c",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "15a8c040-8a5d-4f05-b152-98618f27bd86",
+          "categoryId": "f03223d4-22ee-4866-8abf-1757791d356c",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "c1117999-e146-4b27-a00c-fe1fe172c82a",
+          "categoryId": "f03223d4-22ee-4866-8abf-1757791d356c",
+          "typeId": "f4db2cea-b243-485b-8c94-eb007f051d70",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "8ff67325-1786-4ee2-bbdb-3ba2cfd90488",
+          "categoryId": "f03223d4-22ee-4866-8abf-1757791d356c",
+          "typeId": "f4db2cea-b243-485b-8c94-eb007f051d70",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "17e3a592-e49c-4ce2-a4f9-d5c236a36755",
+          "categoryId": "4e160791-f35b-4673-8d18-7fcf40f0ab2d",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "8ee2af8d-664c-4e3d-b8da-5fed84be4336",
+          "categoryId": "4e160791-f35b-4673-8d18-7fcf40f0ab2d",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "6c28cd13-bff0-4c0e-a630-2324ac9f32da",
+          "categoryId": "4e160791-f35b-4673-8d18-7fcf40f0ab2d",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "cb2ed2c7-bc5f-4ac7-94a4-a545b8ab0b3a",
+          "categoryId": "4e160791-f35b-4673-8d18-7fcf40f0ab2d",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "a57c1d09-eed1-4dbe-b4ab-b14365bc01c3",
+          "categoryId": "4e160791-f35b-4673-8d18-7fcf40f0ab2d",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "a919adf5-4526-4472-b9af-31e400ef6f52"
+        },
+        {
+          "id": "92d67d51-8a4c-4825-824a-16d60fdfd313",
+          "categoryId": "4e160791-f35b-4673-8d18-7fcf40f0ab2d",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "4a5bcac1-9e4e-48c6-8a66-38dae811a06d",
+          "categoryId": "4e160791-f35b-4673-8d18-7fcf40f0ab2d",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "2b2bfdba-6b30-403a-b9e6-5c9964bc57d0",
+          "categoryId": "4e160791-f35b-4673-8d18-7fcf40f0ab2d",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "2332ffea-659b-4e95-b2cd-561b85b00928",
+          "categoryId": "4e160791-f35b-4673-8d18-7fcf40f0ab2d",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "fb5b28d4-60c0-48e9-bccc-8220cb89c8a4",
+          "categoryId": "4e160791-f35b-4673-8d18-7fcf40f0ab2d",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "a919adf5-4526-4472-b9af-31e400ef6f52"
+        },
+        {
+          "id": "2d9c08bb-65c3-4da6-b63b-b800806fb6c1",
+          "categoryId": "4e160791-f35b-4673-8d18-7fcf40f0ab2d",
+          "typeId": "80c68942-4fdf-4774-8027-8292ce508990",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "f2537c15-3d1d-4107-b405-9935d6803c00",
+          "categoryId": "4e160791-f35b-4673-8d18-7fcf40f0ab2d",
+          "typeId": "80c68942-4fdf-4774-8027-8292ce508990",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "c77313e4-b468-4aad-ba2f-237c48f1600e",
+          "categoryId": "69da6ffc-75cc-423f-b4df-d25761887059",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "b08fca99-fcd5-41d4-95d2-b8731161cf3f",
+          "categoryId": "69da6ffc-75cc-423f-b4df-d25761887059",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "5fbc5a0f-c4f8-4593-9b85-1e09a9df9dac",
+          "categoryId": "69da6ffc-75cc-423f-b4df-d25761887059",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "2b20e9f2-88a9-403d-b7bb-646d8325c648",
+          "categoryId": "69da6ffc-75cc-423f-b4df-d25761887059",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "aee5bda1-7ab1-4188-b442-82c9d8a06f7a",
+          "categoryId": "69da6ffc-75cc-423f-b4df-d25761887059",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "d11d9963-7849-4ab3-9b15-127fffda0186",
+          "categoryId": "69da6ffc-75cc-423f-b4df-d25761887059",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "2974b7e0-1700-4964-8015-9d31aab37cea",
+          "categoryId": "69da6ffc-75cc-423f-b4df-d25761887059",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "ce9f39c1-253b-40e2-98de-7346e4d06ced",
+          "categoryId": "69da6ffc-75cc-423f-b4df-d25761887059",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "e8348ce8-11ab-410b-88bc-039b418c101a",
+          "categoryId": "69da6ffc-75cc-423f-b4df-d25761887059",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "d8efea25-83de-4fa4-b406-ae93eef2a5e1",
+          "categoryId": "69da6ffc-75cc-423f-b4df-d25761887059",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "9e8cd8af-7c2f-4ffb-b258-40e078d10652",
+          "categoryId": "69da6ffc-75cc-423f-b4df-d25761887059",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "5f04048a-3e86-4b33-857a-f3d920087933",
+          "categoryId": "69da6ffc-75cc-423f-b4df-d25761887059",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "0275c534-8399-4f11-bc10-26832eea0d90",
+          "categoryId": "9ec47cfe-5a3d-422e-8766-6a14567e3847",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "4633612c-a23a-4dea-a8bd-01334a783e85",
+          "categoryId": "9ec47cfe-5a3d-422e-8766-6a14567e3847",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "ef23e9fc-3421-4e49-a82d-354b6a10b789",
+          "categoryId": "9ec47cfe-5a3d-422e-8766-6a14567e3847",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "e896ead4-bd41-4d6a-a237-75e4e4396ffa",
+          "categoryId": "9ec47cfe-5a3d-422e-8766-6a14567e3847",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "2c3637cf-bd8b-42fc-b0c6-855f2572caaa",
+          "categoryId": "9ec47cfe-5a3d-422e-8766-6a14567e3847",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "db69fb35-32cf-4d7d-9b49-58a6e3f1945c",
+          "categoryId": "9ec47cfe-5a3d-422e-8766-6a14567e3847",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "1fbfebc4-5096-45a3-9e21-ce87e5161e6d",
+          "categoryId": "9ec47cfe-5a3d-422e-8766-6a14567e3847",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "4f99e7e3-f6c0-4713-ab11-6a67e26e7f50",
+          "categoryId": "9ec47cfe-5a3d-422e-8766-6a14567e3847",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "820e1804-7af8-428d-bf72-9e65ed226670",
+          "categoryId": "9ec47cfe-5a3d-422e-8766-6a14567e3847",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "3508c3de-669d-4b55-b804-a6e66dbce296",
+          "categoryId": "9ec47cfe-5a3d-422e-8766-6a14567e3847",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "0a87ac6f-4a9b-42c4-b211-efbc3b94c29e",
+          "categoryId": "9ec47cfe-5a3d-422e-8766-6a14567e3847",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "ec7440c5-3e33-42a1-ac37-aadfdfd841b8",
+          "categoryId": "9ec47cfe-5a3d-422e-8766-6a14567e3847",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "b7f6b1ba-cc0f-4773-b90c-531e7bbdebec",
+          "categoryId": "c28701c5-ecd4-4499-9c2d-69ec5497c009",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "cf1fffed-c974-46d4-8490-6125d27c633e",
+          "categoryId": "c28701c5-ecd4-4499-9c2d-69ec5497c009",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "0d1c1dd3-c64c-44c8-ba9d-10146cff878e",
+          "categoryId": "c28701c5-ecd4-4499-9c2d-69ec5497c009",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "f6be89cd-5908-4789-b074-0d430c593807",
+          "categoryId": "c28701c5-ecd4-4499-9c2d-69ec5497c009",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "1b26af02-5c6d-4a40-8acc-2b2b79ecaffb",
+          "categoryId": "c28701c5-ecd4-4499-9c2d-69ec5497c009",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "f0cb9f52-90b6-4bce-ba1d-09c595bd8857",
+          "categoryId": "c28701c5-ecd4-4499-9c2d-69ec5497c009",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "8c939c22-8d23-4a45-8a1b-e43f9484b1db",
+          "categoryId": "c28701c5-ecd4-4499-9c2d-69ec5497c009",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "920cbc22-9fc7-45be-9279-c8fe598929d2",
+          "categoryId": "c28701c5-ecd4-4499-9c2d-69ec5497c009",
+          "typeId": "0ef0e6a9-184d-4e59-bb36-de6672c18dbf",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "93ce2fcd-5c98-405a-80d9-30188388f54c",
+          "categoryId": "c28701c5-ecd4-4499-9c2d-69ec5497c009",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "59001371-438d-41c6-a021-1aa80b5c751c",
+          "categoryId": "c28701c5-ecd4-4499-9c2d-69ec5497c009",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "fcac356f-a383-45b4-bd56-4f6b261f09f4",
+          "categoryId": "c28701c5-ecd4-4499-9c2d-69ec5497c009",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "5b52bdba-3711-4d14-bd85-e1424e38828d",
+          "categoryId": "c28701c5-ecd4-4499-9c2d-69ec5497c009",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "352342be-dff1-4243-835d-1d65e76ffa92",
+          "categoryId": "fa7b799a-a26b-4ca2-b0eb-1cbf6f700730",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "9e96a3a4-bbc4-4da0-86bd-fcd96a77036f",
+          "categoryId": "fa7b799a-a26b-4ca2-b0eb-1cbf6f700730",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "e830e77c-aa01-4694-a235-c978ce0d6c06",
+          "categoryId": "fa7b799a-a26b-4ca2-b0eb-1cbf6f700730",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "56ca5f55-6d81-4aae-a216-512b31674d03",
+          "categoryId": "fa7b799a-a26b-4ca2-b0eb-1cbf6f700730",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "89ac163a-d54f-4cc4-aa49-3a6184a67d78",
+          "categoryId": "fa7b799a-a26b-4ca2-b0eb-1cbf6f700730",
+          "typeId": "f6478862-a92b-4596-8420-c0fa958db719",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        },
+        {
+          "id": "70c03bfb-a0ee-43b8-b65e-ef64f21b9d1d",
+          "categoryId": "fa7b799a-a26b-4ca2-b0eb-1cbf6f700730",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397",
+          "methodId": "dc943fe2-04be-4bfe-a935-4bc70fecac3d"
+        },
+        {
+          "id": "a1617b73-65b9-43cd-9f71-43870d3bf99d",
+          "categoryId": "fa7b799a-a26b-4ca2-b0eb-1cbf6f700730",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397",
+          "methodId": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140"
+        },
+        {
+          "id": "f858f632-53b7-452c-baaf-7ccef7ffbb1d",
+          "categoryId": "fa7b799a-a26b-4ca2-b0eb-1cbf6f700730",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397",
+          "methodId": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        },
+        {
+          "id": "fa239237-af6c-4fea-850a-19eb2b38c964",
+          "categoryId": "fa7b799a-a26b-4ca2-b0eb-1cbf6f700730",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397",
+          "methodId": "38539453-736e-417a-905e-573cc654ae19"
+        },
+        {
+          "id": "3c2e012e-02bd-4719-8d3e-9cce10266e38",
+          "categoryId": "fa7b799a-a26b-4ca2-b0eb-1cbf6f700730",
+          "typeId": "6a038302-1ac7-482f-acdc-3e1502e04397",
+          "methodId": "f4e93274-0ebe-4357-9c1e-8c57fc31cc91"
+        }
+      ]
+    },
+    "passives": [
+      {
+        "id": "f521e94b-962a-44ca-9104-63cd60712bcd",
+        "label": "Wisdom",
+        "code": "WISDOM"
+      },
+      {
+        "id": "34f99384-ae6a-4914-87ba-7a4c787c05df",
+        "label": "Insight",
+        "code": "INSIGHT"
+      },
+      {
+        "id": "3ceecabc-ab94-4418-99c6-18e64e32b9b6",
+        "label": "Perception",
+        "code": "PERCEPTION"
+      },
+      {
+        "id": "1b1b5f1e-4428-4e7f-9df2-5b2000171d12",
+        "label": "Investigation",
+        "code": "INVESTIGATION"
+      }
+    ],
+    "prerequisites": [
+      {
+        "id": "ef32cce6-78ec-47e6-a9d2-9be64074a76b",
+        "label": "Has Equipped",
+        "tags": [
+          "ADVENTURING_GEAR",
+          "ARMOR",
+          "BACKGROUNDS",
+          "CLASSES",
+          "EQUIPMENT",
+          "FEATURES",
+          "SECTION_OPTIONS",
+          "SAVE_DC",
+          "SHIELDS",
+          "SPELLS",
+          "SUBCLASSES",
+          "TOOL",
+          "WEAPONS"
+        ],
+        "code": "HAS_EQUIPPED"
+      },
+      {
+        "id": "68fb064f-ea56-4fd0-b7cf-64cdbdeef95d",
+        "label": "Not Equipped",
+        "tags": [
+          "ADVENTURING_GEAR",
+          "ARMOR",
+          "BACKGROUNDS",
+          "CLASSES",
+          "EQUIPMENT",
+          "FEATURES",
+          "SECTION_OPTIONS",
+          "SAVE_DC",
+          "SHIELDS",
+          "SPELLS",
+          "SUBCLASSES",
+          "TOOL",
+          "WEAPONS"
+        ],
+        "code": "NOT_EQUIPPED"
+      },
+      {
+        "id": "b7d0a3c3-7b6f-4c0d-9e9f-0d6d8c8c8c8c",
+        "label": "Skill Proficiency",
+        "tags": [
+          "ADVENTURING_GEAR",
+          "ARMOR",
+          "BACKGROUNDS",
+          "CLASSES",
+          "EQUIPMENT",
+          "FEATURES",
+          "SECTION_OPTIONS",
+          "SAVE_DC",
+          "SHIELDS",
+          "SPELLS",
+          "SUBCLASSES",
+          "TOOL",
+          "WEAPONS"
+        ],
+        "code": "SKILL_PROFICIENCY"
+      },
+      {
+        "id": "f603f26f-6cb6-4995-82f3-ba4cdefd4e55",
+        "label": "Equipment Proficiency",
+        "tags": [
+          "ADVENTURING_GEAR",
+          "ARMOR",
+          "BACKGROUNDS",
+          "CLASSES",
+          "EQUIPMENT",
+          "FEATURES",
+          "SECTION_OPTIONS",
+          "SAVE_DC",
+          "SHIELDS",
+          "SPELLS",
+          "SUBCLASSES",
+          "TOOL",
+          "WEAPONS"
+        ],
+        "code": "EQUIPMENT_PROFICIENCY"
+      },
+      {
+        "id": "67fca2bc-8782-4970-9a2b-f4a67bdecbf7",
+        "label": "Equipment Property Proficiency",
+        "tags": [
+          "ADVENTURING_GEAR",
+          "ARMOR",
+          "BACKGROUNDS",
+          "CLASSES",
+          "EQUIPMENT",
+          "FEATURES",
+          "SECTION_OPTIONS",
+          "SAVE_DC",
+          "SHIELDS",
+          "SPELLS",
+          "SUBCLASSES",
+          "TOOL",
+          "WEAPONS"
+        ],
+        "code": "EQUIPMENT_PROPERTY_PROFICIENCY"
+      },
+      {
+        "id": "096cf44a-60ec-4f6c-b42c-3c46e12530bb",
+        "label": "Ability Score",
+        "tags": [
+          "ADVENTURING_GEAR",
+          "ARMOR",
+          "BACKGROUNDS",
+          "CLASSES",
+          "EQUIPMENT",
+          "FEATURES",
+          "SECTION_OPTIONS",
+          "SAVE_DC",
+          "SHIELDS",
+          "SPELLS",
+          "SUBCLASSES",
+          "TOOL",
+          "WEAPONS"
+        ],
+        "code": "ABILITY_SCORE"
+      },
+      {
+        "id": "3e8abd1f-614c-4b5e-9429-e5819a868c8d",
+        "label": "Not Proficient",
+        "tags": [
+          "EQUIPMENT",
+          "FEATURES",
+          "SECTION_OPTIONS",
+          "SAVE_DC",
+          "SPELLS",
+          "SUBCLASSES"
+        ],
+        "code": "NOT_PROFICIENT"
+      },
+      {
+        "id": "2da4575c-bac4-403e-bf66-1360fcdb28b3",
+        "label": "Proficient",
+        "tags": [
+          "EQUIPMENT",
+          "FEATURES",
+          "SECTION_OPTIONS",
+          "SAVE_DC",
+          "SPELLS",
+          "SUBCLASSES"
+        ],
+        "code": "PROFICIENT"
+      },
+      {
+        "id": "de774c82-b1d6-4f6c-b73c-84cf370c60ff",
+        "label": "Spells Obtained",
+        "tags": [
+          "EQUIPMENT",
+          "FEATURES",
+          "SECTION_OPTIONS",
+          "SAVE_DC",
+          "SPELLS"
+        ],
+        "code": "SPELLS_OBTAINED"
+      },
+      {
+        "id": "2b2cac99-dfc5-45a0-b4a6-1970179ebcd9",
+        "label": "Can Cast Level",
+        "tags": [
+          "SPELLS"
+        ],
+        "code": "CAN_CAST_LEVEL"
+      },
+      {
+        "id": "3fe944fc-a9d5-4afa-929a-c8b2805d70e3",
+        "label": "Option Not Obtained",
+        "tags": [
+          "SECTION_OPTIONS",
+          "SPELLS",
+          "SUBCLASSES"
+        ],
+        "code": "OPTION_NOT_OBTAINED"
+      },
+      {
+        "id": "293010e4-fe1f-4982-8a80-6a232eafe19f",
+        "label": "Features Obtained",
+        "tags": [
+          "EQUIPMENT",
+          "FEATURES",
+          "SECTION_OPTIONS",
+          "SAVE_DC",
+          "SPELLS",
+          "SUBCLASSES"
+        ],
+        "code": "FEATURES_OBTAINED"
+      },
+      {
+        "id": "5d93f79b-230e-464e-bef3-50bcd68f4b9f",
+        "label": "Options Obtained",
+        "tags": [
+          "EQUIPMENT",
+          "FEATURES",
+          "SECTION_OPTIONS",
+          "SAVE_DC",
+          "SPELLS",
+          "SUBCLASSES"
+        ],
+        "code": "OPTIONS_OBTAINED"
+      },
+      {
+        "id": "d5def5fd-4b6e-411b-994d-3e830912093e",
+        "label": "Character Size",
+        "tags": [
+          "ADVENTURING_GEAR",
+          "ARMOR",
+          "BACKGROUNDS",
+          "CLASSES",
+          "EQUIPMENT",
+          "SHIELDS",
+          "SPELLS",
+          "SUBCLASSES",
+          "TOOL",
+          "WEAPONS"
+        ],
+        "code": "CHARACTER_SIZE"
+      }
+    ],
+    "proficiencies": {
+      "levels": [
+        {
+          "id": "cb68f387-1e4f-4bbf-87af-34fca3ef4937",
+          "label": "Half Proficient",
+          "multiplier": 0.5,
+          "code": "HALF_PROFICIENT"
+        },
+        {
+          "id": "c591641c-1da9-4d0e-83b8-1caec9d23ae7",
+          "label": "Expert",
+          "multiplier": 2,
+          "code": "EXPERT"
+        },
+        {
+          "id": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+          "label": "Proficient",
+          "multiplier": 1,
+          "code": "PROFICIENT"
+        }
+      ],
+      "categories": [
+        {
+          "id": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
+          "label": "Skills",
+          "code": "SKILLS"
+        },
+        {
+          "id": "7328d22a-8c29-45de-a08f-5987fac2d6d1",
+          "label": "Save Ability",
+          "code": "SAVE_ABILITY"
+        },
+        {
+          "id": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
+          "label": "Equipment Properties",
+          "code": "EQUIPMENT_PROPERTIES"
+        },
+        {
+          "id": "3d256b38-0c78-4fd6-84a5-94b43c5a024c",
+          "label": "Equipment",
+          "code": "EQUIPMENT"
+        },
+        {
+          "id": "43780ab4-fe83-4477-bd6a-4d3343044f8c",
+          "label": "Languages",
+          "code": "LANGUAGES"
+        },
+        {
+          "id": "5a8d9e8c-508c-4175-866e-f57925ba41e6",
+          "label": "Initiative",
+          "code": "INITIATIVE"
+        }
+      ]
+    },
+    "ranges": [
+      {
+        "id": "621c3456-b626-4114-a216-77d873d1bf0c",
+        "label": "Touch",
+        "code": "TOUCH"
+      },
+      {
+        "id": "802209e7-f09e-4c8d-b9b6-5cb49ebde9d2",
+        "label": "Self",
+        "code": "SELF"
+      },
+      {
+        "id": "0a02ce70-1f0e-4779-83d6-d1cbc0b95d68",
+        "label": "Distance",
+        "code": "DISTANCE"
+      },
+      {
+        "id": "bb413b61-0940-4bf4-ba52-58295c150956",
+        "label": "Sight",
+        "code": "SIGHT"
+      },
+      {
+        "id": "f26b3629-ef8b-46dc-a9c6-5b672885f420",
+        "label": "Unlimited",
+        "code": "UNLIMITED"
+      },
+      {
+        "id": "1358e872-e297-40f0-975d-89266252af45",
+        "label": "Special",
+        "code": "SPECIAL"
+      }
+    ],
+    "rules": {
+      "measureUnits": [
+        {
+          "id": "70f69d1c-525a-4404-a287-25cb005d8e2e",
+          "label": "Pounds",
+          "short": "lb",
+          "measurementSystem": "IMPERIAL",
+          "type": [
+            "WEIGHT"
+          ],
+          "code": "POUNDS"
+        },
+        {
+          "id": "6156d3be-429c-4143-b92a-81dd9a07cbcc",
+          "label": "Gallons",
+          "short": "gal",
+          "measurementSystem": "IMPERIAL",
+          "type": [
+            "VOLUME"
+          ],
+          "code": "GALLONS"
+        },
+        {
+          "id": "23312286-9800-437a-9fa2-1f88dc93e181",
+          "label": "Ounces",
+          "short": "oz",
+          "measurementSystem": "IMPERIAL",
+          "type": [
+            "VOLUME",
+            "WEIGHT"
+          ],
+          "code": "OUNCES"
+        },
+        {
+          "id": "2705eb49-bd03-4b82-8655-930e560a8b43",
+          "label": "Pints",
+          "short": "pt",
+          "measurementSystem": "IMPERIAL",
+          "type": [
+            "VOLUME"
+          ],
+          "code": "PINTS"
+        },
+        {
+          "id": "18656a9f-f4b1-4741-ae38-54ed710710ca",
+          "label": "Quarts",
+          "short": "qt",
+          "measurementSystem": "IMPERIAL",
+          "type": [
+            "VOLUME"
+          ],
+          "code": "QUARTS"
+        },
+        {
+          "id": "5de01c03-566c-4e01-824a-6fc8f8f3771e",
+          "label": "Feet",
+          "short": "ft",
+          "measurementSystem": "IMPERIAL",
+          "type": [
+            "LENGTH"
+          ],
+          "code": "FEET"
+        },
+        {
+          "id": "30bd36a3-aca1-4286-a49f-6ce2f9f79ac2",
+          "label": "Miles",
+          "short": "mi",
+          "measurementSystem": "IMPERIAL",
+          "type": [
+            "LENGTH"
+          ],
+          "code": "MILES"
+        }
+      ],
+      "measureAmounts": [
+        {
+          "id": "c01064bc-eea0-48d1-824a-3fb0ae983822",
+          "label": "Full",
+          "code": "FULL"
+        },
+        {
+          "id": "88789395-3e9a-4ff3-bf69-bd13be9cdaf8",
+          "label": "Half",
+          "code": "HALF"
+        }
+      ],
+      "measureRounding": [
+        {
+          "id": "7a7dc0de-c6bb-4afe-9507-5446c1b85a67",
+          "label": "Down",
+          "code": "DOWN"
+        },
+        {
+          "id": "9fbbeab4-0a0a-403a-94a1-dbbbe93471c5",
+          "label": "Up",
+          "code": "UP"
+        }
+      ],
+      "abilityGenerateMethods": [
+        {
+          "id": "3c634a28-ada5-40f4-b79d-ef239ec0f70a",
+          "label": "Standard Array",
+          "options": [
+            {
+              "id": "7de4884c-aaa3-482f-8dbb-5b56e362111e",
+              "label": "8",
+              "code": "8"
+            },
+            {
+              "id": "f929110c-30d7-449b-8ecc-58549a606aa9",
+              "label": "10",
+              "code": "10"
+            },
+            {
+              "id": "f2590397-f24c-4259-87ee-3cf1384be242",
+              "label": "12",
+              "code": "12"
+            },
+            {
+              "id": "ec6f0bee-a4d5-48ad-8c44-d8b18d4284da",
+              "label": "13",
+              "code": "13"
+            },
+            {
+              "id": "03421f5f-2584-4a35-a6b7-d258ca665736",
+              "label": "14",
+              "code": "14"
+            },
+            {
+              "id": "f03620f9-6df0-4059-85d6-ff0b3e478a37",
+              "label": "15",
+              "code": "15"
+            }
+          ],
+          "code": "STANDARD_ARRAY"
+        },
+        {
+          "id": "10e22411-2e4f-4f46-a487-aeda49f8b5e2",
+          "label": "Manual / Rolled",
+          "code": "MANUAL_ROLLED"
+        },
+        {
+          "id": "258a046e-a301-4280-965e-67d228362871",
+          "label": "Point Buy",
+          "total": 27,
+          "options": [
+            {
+              "id": "c64ac9d8-305a-4b96-b2d5-ae9d4e612825",
+              "label": "8",
+              "reduce": 0,
+              "code": "8"
+            },
+            {
+              "id": "36b113bd-1896-48ae-a4d9-8cabe7bd45ba",
+              "label": "9",
+              "reduce": 1,
+              "code": "9"
+            },
+            {
+              "id": "cd643402-dd71-4355-8306-26655a6835f2",
+              "label": "10",
+              "reduce": 2,
+              "code": "10"
+            },
+            {
+              "id": "fe8e8df2-7512-49a6-af78-cceb7365157d",
+              "label": "11",
+              "reduce": 3,
+              "code": "11"
+            },
+            {
+              "id": "7c99f6ad-013c-44a7-a758-da2a2e473a99",
+              "label": "12",
+              "reduce": 4,
+              "code": "12"
+            },
+            {
+              "id": "f8a95f45-d610-4cf1-a6ce-6a962f93dad2",
+              "label": "13",
+              "reduce": 5,
+              "code": "13"
+            },
+            {
+              "id": "b166fa94-c614-4855-b271-e4ffab4bb788",
+              "label": "14",
+              "reduce": 7,
+              "code": "14"
+            },
+            {
+              "id": "1fbe7693-2553-4d4b-a1ac-6445ad870507",
+              "label": "15",
+              "reduce": 9,
+              "code": "15"
+            }
+          ],
+          "code": "POINT_BUY"
+        }
+      ]
+    },
+    "senses": [
+      {
+        "id": "fdd0773b-9e65-4339-8c60-fa26d721dbec",
+        "label": "Tremorsense",
+        "monsterDescription": "<p>A monster with truesight can, out to a specific range, see in normal and magical darkness, see invisible creatures and objects,  automatically detect visual illusions and succeed on saving throws against them, and perceive the original form of a shapechanger or a creature that is transformed by magic. Furthermore, the monster can see into the Ethereal Plane within the same range.</p>",
+        "tags": [
+          "MONSTERS"
+        ],
+        "code": "TREMORSENSE"
+      },
+      {
+        "id": "912be860-e026-4c39-b837-4f6895a5e7bd",
+        "label": "BlindSight",
+        "creatureDescription": "<p>A creature with blindsight can perceive its surroundings without relying on sight, within a specific radius. Creatures without eyes, such as oozes, and creatures with echolocation or heightened senses, such as bats and true dragons, have this sense.</p>",
+        "monsterDescription": "<p>A monster with blindsight can perceive its surroundings without relying on sight, within a specific radius.</p><p>Creatures without eyes, such as grimlocks and gray oozes, typically have this special sense, as do creatures with echolocation or heightened senses, such as bats and true dragons.</p><p>If a monster is naturally blind, it has a parenthetical note to this effect, indicating that the radius of its blindsight defines the maximum range of its perception.</p>",
+        "tags": [
+          "CREATURES",
+          "MONSTERS"
+        ],
+        "code": "BLINDSIGHT"
+      },
+      {
+        "id": "eb76ceef-8b5f-4f9f-bb6d-d872db5dd347",
+        "label": "Darkvision",
+        "creatureDescription": "<p>Many creatures in fantasy gaming worlds, especially those that dwell underground, have darkvision. Within a specified range, a creature with darkvision can see in darkness as if the darkness were dim light, so areas of darkness are only lightly obscured as far as that creature is concerned. However, the creature can't discern color in darkness, only shades of gray.</p>",
+        "monsterDescription": "<p>A monster with darkvision can see in the dark within a specific radius. The monster can see in dim light within the radius as if it were bright light, and in darkness as if it were dim light. The monster can't discern color in darkness, only shades of gray. Many creatures that live underground have this special sense.</p>",
+        "tags": [
+          "CREATURES",
+          "MONSTERS"
+        ],
+        "code": "DARKVISION"
+      },
+      {
+        "id": "203e83d0-08c2-4baa-a9c6-b1309aaadab9",
+        "label": "Truesight",
+        "creatureDescription": "<p>Many creatures in fantasy gaming worlds, especially those that dwell underground, have darkvision. Within a specified range, a creature with darkvision can see in darkness as if the darkness were dim light, so areas of darkness are only lightly obscured as far as that creature is concerned. However, the creature can't discern color in darkness, only shades of gray.</p>",
+        "monsterDescription": "<p>A monster with truesight can, out to a specific range, see in normal and magical darkness, see invisible creatures and objects, automatically detect visual illusions and succeed on saving throws against them, and perceive the original form of a shapechanger or a creature that is transformed by magic. Furthermore, the monster can see into the Ethereal Plane within the same range.</p>",
+        "tags": [
+          "CREATURES",
+          "MONSTERS"
+        ],
+        "code": "TRUESIGHT"
+      },
+      {
+        "id": "0c3b869f-7dda-4049-aa57-368c412c089c",
+        "label": "Devil's Sight",
+        "creatureDescription": "<p>A creature with Devil's Sight can see normally in darkness, both magical and nonmagical, to a distance of 120 feet.</p>",
+        "monsterDescription": "<p>A monster with Devil's Sight can see normally in darkness, both magical and nonmagical, to a distance of 120 feet.</p>",
+        "tags": [
+          "CREATURES",
+          "MONSTERS"
+        ],
+        "code": "DEVIL_S_SIGHT"
+      },
+      {
+        "id": "c148efc1-4188-4510-a819-b6f12ce987dc",
+        "label": "Witch Sight",
+        "creatureDescription": "<p>A creature with Witch Sight can see the true form of any shapechanger or creature concealed by illusion or transmutation magic for any creature within 30 feet and within line of sight.</p>",
+        "tags": [
+          "CREATURES"
+        ],
+        "code": "WITCH_SIGHT"
+      }
+    ],
+    "sizes": [
+      {
+        "id": "96d0ab53-c63e-47d3-a873-d2b5af119bb6",
+        "label": "Huge",
+        "code": "HUGE"
+      },
+      {
+        "id": "52d0c137-c7a2-406b-9706-00c5d1f7b058",
+        "label": "Giant",
+        "code": "GIANT"
+      },
+      {
+        "id": "c5796805-1672-478b-b59f-7eaeef42f6ac",
+        "label": "Tiny",
+        "code": "TINY"
+      },
+      {
+        "id": "de6183d7-ded2-4a05-b0fe-dfb7cac5dcf1",
+        "label": "Fine",
+        "code": "FINE"
+      },
+      {
+        "id": "36dac0d3-5d75-46a3-a81b-5c2b0fca177d",
+        "label": "Dimunitive",
+        "code": "DIMUNITIVE"
+      },
+      {
+        "id": "10910065-c17e-4994-93d3-f030d9b4c649",
+        "label": "Medium",
+        "code": "MEDIUM"
+      },
+      {
+        "id": "63a14559-5fe0-4695-8a38-4fe04f490ada",
+        "label": "Colossal",
+        "code": "COLOSSAL"
+      },
+      {
+        "id": "c6dcfa53-da6e-4258-8857-37eea7135c52",
+        "label": "Small",
+        "code": "SMALL"
+      },
+      {
+        "id": "4a7594b9-ad03-4065-9e89-b17d17685de1",
+        "label": "Gargantuan",
+        "code": "GARGANTUAN"
+      },
+      {
+        "id": "a21fdef5-470f-4f2b-a233-0408e3e331f2",
+        "label": "Large",
+        "code": "LARGE"
+      }
+    ],
+    "skills": [
+      {
+        "id": "8800b4eb-8fbc-47bc-a6a8-c71fd8afd6cc",
+        "label": "Acrobatics",
+        "description": "<p>Your Dexterity (Acrobatics) check covers your attempt to stay on your feet in a tricky situation, such as when you're trying to run across a sheet of ice, balance on a tightrope, or stay upright on a rocking ship's deck. The GM might also call for a Dexterity (Acrobatics) check to see if you can perform acrobatic stunts, including dives, rolls, somersaults, and flips.</p>",
+        "abilityId": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc",
+        "code": "ACROBATICS"
+      },
+      {
+        "id": "f6ac4c05-edf8-4d25-9098-2c3603f328b1",
+        "label": "Animal Handling",
+        "description": "<p>When there is any question whether you can calm down a domesticated animal, keep a mount from getting spooked, or intuit an animal's intentions, the GM might call for a Wisdom (Animal Handling) check. You also make a Wisdom (Animal Handling) check to control your mount when you attempt a risky maneuver.</p>",
+        "abilityId": "458fdf58-0496-4701-86d0-7bc234009276",
+        "code": "ANIMAL_HANDLING"
+      },
+      {
+        "id": "7c9ea3de-9d0b-4518-b5ff-b02af5b87b1f",
+        "label": "Arcana",
+        "description": "<p>Your Intelligence (Arcana) check measures your ability to recall lore about spells, magic items, eldritch symbols, magical traditions, the planes of existence, and the inhabitants of those planes.</p>",
+        "abilityId": "d0cd6776-ef2c-4589-8a18-175a160b8ef4",
+        "code": "ARCANA"
+      },
+      {
+        "id": "58f04f10-8886-401a-8c5e-06279154f148",
+        "label": "Athletics",
+        "description": "<p>Your Strength (Athletics) check covers difficult situations you encounter while climbing, jumping, or swimming.</p>",
+        "abilityId": "93607465-de3d-4788-a5e0-df290fda7959",
+        "code": "ATHLETICS"
+      },
+      {
+        "id": "1382f52c-2281-441f-8fb2-608a274a13d3",
+        "label": "Deception",
+        "description": "<p>Your Charisma (Deception) check determines whether you can convincingly hide the truth, either verbally or through your actions. This deception can encompass everything from misleading others through ambiguity to telling outright lies. Typical situations include trying to fast- talk a guard, con a merchant, earn money through gambling, pass yourself off in a disguise, dull someone's suspicions with false assurances, or maintain a straight face while telling a blatant lie.</p>",
+        "abilityId": "def276fe-3fa5-4af7-95ad-a37113815cc7",
+        "code": "DECEPTION"
+      },
+      {
+        "id": "f01f2fbd-d1a7-4e7e-8645-fbdc743cd55b",
+        "label": "History",
+        "description": "<p>Your Intelligence (History) check measures your ability to recall lore about historical events, legendary people, ancient kingdoms, past disputes, recent wars, and lost civilizations.</p>",
+        "abilityId": "d0cd6776-ef2c-4589-8a18-175a160b8ef4",
+        "code": "HISTORY"
+      },
+      {
+        "id": "882113b0-b4ab-4904-95d7-ad2231bef7d4",
+        "label": "Insight",
+        "description": "<p>Your Wisdom (Insight) check decides whether you can determine the true intentions of a creature, such as when searching out a lie or predicting someone's next move. Doing so involves gleaning clues from body language, speech habits, and changes in mannerisms.</p>",
+        "abilityId": "458fdf58-0496-4701-86d0-7bc234009276",
+        "code": "INSIGHT"
+      },
+      {
+        "id": "dba004ae-16aa-40ac-8df1-2f2c47775f6c",
+        "label": "Intimidation",
+        "description": "<p>When you attempt to influence someone through overt threats, hostile actions, and physical violence, the GM might ask you to make a Charisma (Intimidation) check. Examples include trying to pry information out of a prisoner, convincing street thugs to back down from a confrontation, or using the edge of a broken bottle to convince a sneering vizier to reconsider a decision.</p>",
+        "abilityId": "def276fe-3fa5-4af7-95ad-a37113815cc7",
+        "code": "INTIMIDATION"
+      },
+      {
+        "id": "97347fe6-1b4c-43df-832c-f07403dc076e",
+        "label": "Investigation",
+        "description": "<p>When you look around for clues and make deductions based on those clues, you make an Intelligence (Investigation) check. You might deduce the location of a hidden object, discern from the appearance of a wound what kind of weapon dealt it, or determine the weakest point in a tunnel that could cause it to collapse. Poring through ancient scrolls in search of a hidden fragment of knowledge might also call for an Intelligence (Investigation) check.</p>",
+        "abilityId": "d0cd6776-ef2c-4589-8a18-175a160b8ef4",
+        "code": "INVESTIGATION"
+      },
+      {
+        "id": "0e26ef5e-d29f-4b66-a1fe-da82f3d800b1",
+        "label": "Medicine",
+        "description": "<p>A Wisdom (Medicine) check lets you try to stabilize a dying companion or diagnose an illness.</p>",
+        "abilityId": "458fdf58-0496-4701-86d0-7bc234009276",
+        "code": "MEDICINE"
+      },
+      {
+        "id": "521debf5-9212-49db-8fa1-5ee9e01861c3",
+        "label": "Nature",
+        "description": "<p>Your Intelligence (Nature) check measures your ability to recall lore about terrain, plants and animals, the weather, and natural cycles.</p>",
+        "abilityId": "d0cd6776-ef2c-4589-8a18-175a160b8ef4",
+        "code": "NATURE"
+      },
+      {
+        "id": "1fc0087a-7532-4023-be0b-6c50fe577d60",
+        "label": "Perception",
+        "description": "<p>Your Wisdom (Perception) check lets you spot, hear, or otherwise detect the presence of something. It measures your general awareness of your surroundings and the keenness of your senses. For example, you might try to hear a conversation through a closed door, eavesdrop under an open window, or hear monsters moving stealthily in the forest. Or you might try to spot things that are obscured or easy to miss, whether they are orcs lying in ambush on a road, thugs hiding in the shadows of an alley, or candlelight under a closed secret door.</p>",
+        "abilityId": "458fdf58-0496-4701-86d0-7bc234009276",
+        "code": "PERCEPTION"
+      },
+      {
+        "id": "4f30c82e-25f8-4918-ada5-614ddf3c1257",
+        "label": "Performance",
+        "description": "<p>Your Charisma (Performance) check determines how well you can delight an audience with music, dance, acting, storytelling, or some other form of entertainment.</p>",
+        "abilityId": "def276fe-3fa5-4af7-95ad-a37113815cc7",
+        "code": "PERFORMANCE"
+      },
+      {
+        "id": "7377834f-6811-4151-bdf0-a621409221db",
+        "label": "Persuasion",
+        "description": "<p>When you attempt to influence someone or a group of people with tact, social graces, or good nature, the GM might ask you to make a Charisma (Persuasion) check. Typically, you use persuasion when acting in good faith, to foster friendships, make cordial requests, or exhibit proper etiquette. Examples of persuading others include convincing a chamberlain to let your party see the king, negotiating peace between warring tribes, or inspiring a crowd of townsfolk.</p>",
+        "abilityId": "def276fe-3fa5-4af7-95ad-a37113815cc7",
+        "code": "PERSUASION"
+      },
+      {
+        "id": "ed704543-3bbc-4026-a611-823a6ac69c5c",
+        "label": "Religion",
+        "description": "<p>Your Intelligence (Religion) check measures your ability to recall lore about deities, rites and prayers, religious hierarchies, holy symbols, and the practices of secret cults.</p>",
+        "abilityId": "d0cd6776-ef2c-4589-8a18-175a160b8ef4",
+        "code": "RELIGION"
+      },
+      {
+        "id": "3c2cfcf2-2fb5-464f-839d-f5a9703bcfb7",
+        "label": "Sleight of Hand",
+        "description": "<p>Whenever you attempt an act of legerdemain or manual trickery, such as planting something on someone else or concealing an object on your person, make a Dexterity (Sleight of Hand) check. The GM might also call for a Dexterity (Sleight of Hand) check to determine whether you can lift a coin purse off another person or slip something out of another person's pocket.</p>",
+        "abilityId": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc",
+        "code": "SLEIGHT_OF_HAND"
+      },
+      {
+        "id": "b598a80e-d7e8-47fb-8438-f79151223afe",
+        "label": "Stealth",
+        "description": "<p>Make a Dexterity (Stealth) check when you attempt to conceal yourself from enemies, slink past guards, slip away without being noticed, or sneak up on someone without being seen or heard.</p>",
+        "abilityId": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc",
+        "code": "STEALTH"
+      },
+      {
+        "id": "34d3640f-ecb8-4107-b140-bb59e2cb1001",
+        "label": "Survival",
+        "description": "<p>The GM might ask you to make a Wisdom (Survival) check to follow tracks, hunt wild game, guide your group through frozen wastelands, identify signs that owlbears live nearby, predict the weather, or avoid quicksand and other natural hazards.</p>",
+        "abilityId": "458fdf58-0496-4701-86d0-7bc234009276",
+        "code": "SURVIVAL"
+      }
+    ],
+    "speeds": [
+      {
+        "id": "ae1dbc1f-edd2-4404-b1a9-33c6b6a64258",
+        "label": "Climbing",
+        "code": "CLIMBING"
+      },
+      {
+        "id": "90475eca-c659-4556-9c5c-35f322788ed0",
+        "label": "Walking",
+        "code": "WALKING"
+      },
+      {
+        "id": "f317a924-5dfd-46a1-ba1e-9e2ad0f7b8b5",
+        "label": "Flying",
+        "code": "FLYING"
+      },
+      {
+        "id": "81cb34b6-0466-44f7-b6e2-dd3386bb1d8c",
+        "label": "Swimming",
+        "code": "SWIMMING"
+      }
+    ],
+    "spells": {
+      "categories": [
+        {
+          "id": "fdffb7ef-9a13-4ae2-b39d-53d499597aa7",
+          "label": "Control",
+          "code": "CONTROL"
+        },
+        {
+          "id": "1260e591-7094-46d3-9495-42cc7cb36a73",
+          "label": "Utility",
+          "code": "UTILITY"
+        },
+        {
+          "id": "75eaa6fc-d65f-4aa0-b39f-a6ce5f4e8623",
+          "label": "Invisible",
+          "code": "INVISIBLE"
+        },
+        {
+          "id": "36a69e52-6bb8-4fdd-93a5-1adf6fc51897",
+          "label": "Damage",
+          "code": "DAMAGE"
+        }
+      ],
+      "durations": [
+        {
+          "id": "58df1eeb-dc60-4405-aeb8-a46d782387c6",
+          "label": "Round",
+          "code": "ROUND"
+        },
+        {
+          "id": "2566365b-405c-4a6a-95d6-51a05eaf3049",
+          "label": "Minute",
+          "code": "MINUTE"
+        },
+        {
+          "id": "2a9cebe3-c9e6-4320-b8ba-aced476181b5",
+          "label": "Hour",
+          "code": "HOUR"
+        },
+        {
+          "id": "ddab6622-f448-486d-870d-8eabe2d14d3c",
+          "label": "Day",
+          "code": "DAY"
+        },
+        {
+          "id": "9274bba6-fcd0-43af-a174-f35d5ae033f3",
+          "label": "Year",
+          "code": "YEAR"
+        },
+        {
+          "id": "738134fc-50af-4aa7-8893-e58248097854",
+          "label": "Instantaneous",
+          "code": "INSTANTANEOUS"
+        },
+        {
+          "id": "a0b373d7-31a1-46e9-a7e7-dd086f3b6e1f",
+          "label": "Until Dispelled",
+          "code": "UNTIL_DISPELLED"
+        },
+        {
+          "id": "9e8d0be7-f199-4b88-92a7-7b55af6d06d2",
+          "label": "Special",
+          "code": "SPECIAL"
+        }
+      ],
+      "schools": [
+        {
+          "id": "7f8dadd1-3c8b-4780-be80-719f6f828a40",
+          "label": "Illusion",
+          "tooltip": "<p>Illusion spells deceive the senses or minds of others. They cause people to see things that are not there, to miss things that are there, to hear phantom noises, or to remember things that never happened. Some illusions create phantom images that any creature can see, but the most insidious illusions plant an image directly in the mind of a creature.</p>",
+          "code": "ILLUSION"
+        },
+        {
+          "id": "4e106d8e-fad2-42c3-875c-f5a233fd3cdc",
+          "label": "Necromancy",
+          "tooltip": "<p>Necromancy spells manipulate the energies of life and death. Such spells can grant an extra reserve of life force, drain the life energy from another creature, create the undead, or even bring the dead back to life.</p>",
+          "code": "NECROMANCY"
+        },
+        {
+          "id": "0822755b-b093-4aba-b160-243c88933ca0",
+          "label": "Transmutation",
+          "tooltip": "<p>Transmutation spells change the properties of a creature, object, or environment. They might turn an enemy into a harmless creature, bolster the strength of an ally, make an object move at the caster's command, or enhance a creature's innate healing abilities to rapidly recover from injury.</p>",
+          "code": "TRANSMUTATION"
+        },
+        {
+          "id": "e2b9980f-3fa3-447a-8562-79983534dc87",
+          "label": "Evocation",
+          "tooltip": "<p>Evocation spells manipulate magical energy to produce a desired effect. Some call up blasts of fire or lightning. Others channel positive energy to heal wounds.</p>",
+          "code": "EVOCATION"
+        },
+        {
+          "id": "50d3b872-7a17-4709-9d67-d9f2c7620b04",
+          "label": "Abjuration",
+          "tooltip": "<p>Abjuration spells are protective in nature, though some of them have aggressive uses. They create magical barriers, negate harmful effects, harm trespassers, or banish creatures to other planes of existence.</p>",
+          "code": "ABJURATION"
+        },
+        {
+          "id": "a61c392d-6e3d-4017-be0c-2c760726edcd",
+          "label": "Enchantment",
+          "tooltip": "<p>Enchantment spells affect the minds of others, influencing or controlling their behavior. Such spells can make enemies see the caster as a friend, force creatures to take a course of action, or even control another creature like a puppet.</p>",
+          "code": "ENCHANTMENT"
+        },
+        {
+          "id": "c2d6a258-f4d0-4b26-b82e-7f03a8c4db33",
+          "label": "Divination",
+          "tooltip": "<p>Divination spells reveal information, whether in the form of secrets long forgotten, glimpses of the future, the locations of hidden things, the truth behind illusions, or visions of distant people or places.</p>",
+          "code": "DIVINATION"
+        },
+        {
+          "id": "48052524-f895-48e5-aed3-34ab873bcbc6",
+          "label": "Conjuration",
+          "tooltip": "<p>Conjuration spells involve the transportation of objects and creatures from one location to another. Some spells summon creatures or objects to the caster's side, whereas others allow the caster to teleport to another location. Some conjurations create objects or effects out of nothing.</p>",
+          "code": "CONJURATION"
+        }
+      ],
+      "shapes": [
+        {
+          "id": "1e2044d0-639d-4537-b3d0-edf4cfee3e3a",
+          "label": "Sphere",
+          "code": "SPHERE"
+        },
+        {
+          "id": "b17d04fe-411e-4bef-96c1-4d88cbc35261",
+          "label": "Cone",
+          "code": "CONE"
+        },
+        {
+          "id": "dab56229-deac-4dbd-87e0-a2fac9cb137b",
+          "label": "Cube",
+          "code": "CUBE"
+        },
+        {
+          "id": "db8561cd-ba0b-4c8f-b162-8c5acc524b66",
+          "label": "Beam",
+          "code": "BEAM"
+        },
+        {
+          "id": "043a6c80-e33a-41b6-b31d-3c04dbdb5042",
+          "label": "Weapon",
+          "code": "WEAPON"
+        },
+        {
+          "id": "fbda8bf2-d2fe-4ac3-8c23-bbb9e42b8500",
+          "label": "None",
+          "code": "NONE"
+        },
+        {
+          "id": "8166a305-6091-4f77-907e-36ea9833739f",
+          "label": "Wall",
+          "code": "WALL"
+        },
+        {
+          "id": "a2a01a4f-a95a-4b76-8367-cb4eeb779c1c",
+          "label": "Cylinder",
+          "code": "CYLINDER"
+        },
+        {
+          "id": "62b4316f-0b73-4f54-8d60-ba825f0f6b3d",
+          "label": "Circle",
+          "code": "CIRCLE"
+        },
+        {
+          "id": "0777087a-7aef-4465-96a8-18a10871bde5",
+          "label": "Square",
+          "code": "SQUARE"
+        }
+      ],
+      "requirements": [
+        {
+          "id": "462168cd-ad9c-4150-8a28-8854ff22ea3e",
+          "label": "Verbal",
+          "code": "VERBAL"
+        },
+        {
+          "id": "cd128433-b9c4-464a-a534-14a7e572a831",
+          "label": "Somatic",
+          "code": "SOMATIC"
+        },
+        {
+          "id": "53d3d905-7caf-4d03-95d2-738b175dafd1",
+          "label": "Material",
+          "code": "MATERIAL"
+        }
+      ]
+    },
+    "tags": [
+      "FEATURES",
+      "SECTION_OPTIONS",
+      "SECTION_SPELLS",
+      "DAMAGE",
+      "DAMAGE_POOL",
+      "DAMAGE_MAIN",
+      "DAMAGE_BONUS",
+      "FEATS",
+      "SECTIONS",
+      "SPELLS",
+      "SPELL_DAMAGE",
+      "EQUIPMENT",
+      "CLASSES",
+      "CLASS_EQUIPMENT",
+      "CLASS_SECTIONS",
+      "SPELLCASTERS",
+      "SUBCLASSES",
+      "RESOURCES",
+      "PREPARE_LIMIT",
+      "SAVE_DC",
+      "UPCAST",
+      "SHIELDS",
+      "ADVENTURING_GEAR",
+      "WEAPONS",
+      "ARMOR",
+      "TOOLS",
+      "BACKGROUNDS",
+      "BACKGROUND_EQUIPMENT",
+      "BASE",
+      "RACES",
+      "MONSTERS",
+      "CREATURES"
+    ],
+    "terrains": [
+      {
+        "id": "1297bea1-4de3-4e38-9484-5313d92aee70",
+        "label": "Coast",
+        "code": "COAST"
+      },
+      {
+        "id": "1201ab99-e0ee-4026-938d-cb491fa45635",
+        "label": "Forest",
+        "code": "FOREST"
+      },
+      {
+        "id": "dfedf88c-e41b-43ff-8a79-d35050693714",
+        "label": "Grassland",
+        "code": "GRASSLAND"
+      },
+      {
+        "id": "844e7f70-45ca-4b5b-bc61-5cbade60d569",
+        "label": "Arctic",
+        "code": "ARCTIC"
+      },
+      {
+        "id": "9243c7f2-886c-4cdb-b97e-9ca15e9780c1",
+        "label": "Swamp",
+        "code": "SWAMP"
+      },
+      {
+        "id": "d17eebcf-13e4-484a-9ff8-95ce67aca5ee",
+        "label": "Mountain",
+        "code": "MOUNTAIN"
+      },
+      {
+        "id": "fe2a8a37-a855-40fa-9909-090d2444f9a8",
+        "label": "Desert",
+        "code": "DESERT"
+      }
+    ],
+    "userId": "master"
+  }
+]

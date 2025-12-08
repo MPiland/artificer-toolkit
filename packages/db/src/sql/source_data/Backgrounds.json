@@ -1,0 +1,188 @@
+[
+  {
+    "id": "22584465-336f-4d11-8923-9f42087dcced",
+    "label": "Acolyte",
+    "description": "<p>You have spent your life in the service of a temple to a specific god or pantheon of gods. You act as an intermediary between the realm of the holy and the mortal world, performing sacred rites and offering sacrifices in order to conduct worshipers into the presence of the divine. You are not necessarily a cleric—performing sacred rites is not the same thing as channeling divine power.</p><p>Choose a god, a pantheon of gods, or some other quasi-divine being from among those listed in \"Fantasy-Historical Pantheons\" or those specified by your GM, and work with your GM to detail the nature of your religious service. Were you a lesser functionary in a temple, raised from childhood to assist the priests in the sacred rites? Or were you a high priest who suddenly experienced a call to serve your god in a different way? Perhaps you were the leader of a small cult outside of any established temple structure, or even an occult group that served a fiendish master that you now deny.</p>",
+    "equipment": {
+      "id": "2b0711a5-2916-4f2b-a9cd-376b26395357",
+      "sets": [
+        {
+          "id": "12aefdfb-f9e0-4943-aec3-37c1923143cc",
+          "position": 1,
+          "groups": [
+            {
+              "id": "c20af643-419f-4aa1-9b19-656338e73282",
+              "position": 1,
+              "options": [
+                {
+                  "id": "d95cfda1-a729-4061-a4db-8afa33d5cbb0",
+                  "position": 1,
+                  "items": [
+                    {
+                      "id": "ec9922e9-b102-4c3e-b624-f798554e7d9f",
+                      "position": 1,
+                      "selectionCount": 1,
+                      "selectionAttributeIds": [
+                        "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
+                      ],
+                      "categoryId": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
+                      "equipmentIds": [
+                        "all"
+                      ],
+                      "quantity": 1
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "e6d6b35d-74be-4aae-aee8-52e6deea212a",
+              "position": 2,
+              "options": [
+                {
+                  "id": "5cbcd611-991e-476b-a617-9a931f681835",
+                  "position": 1,
+                  "items": [
+                    {
+                      "id": "e38fde81-f855-4ac7-8892-28f404f929cb",
+                      "position": 1,
+                      "selectionCount": 1,
+                      "categoryId": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
+                      "equipmentIds": [
+                        "7a80b5dd-8be9-43b6-acf4-ed69a2fcb866"
+                      ],
+                      "quantity": 1
+                    }
+                  ]
+                },
+                {
+                  "id": "cb2adebe-2c66-4bc6-bd8b-8c733dfc259c",
+                  "position": 2,
+                  "items": [
+                    {
+                      "id": "3ca8fc44-a8a7-4126-97e3-84326aaf572b",
+                      "position": 1,
+                      "selectionCount": 1,
+                      "categoryId": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
+                      "equipmentIds": [
+                        "1307dc9e-6378-4444-9b6d-f3af74a1f9ba"
+                      ],
+                      "quantity": 1
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "f43dccc4-cccb-4098-9673-d6a41da9d80d",
+              "position": 3,
+              "options": [
+                {
+                  "id": "bc624558-1b2f-471b-be53-309bb93ac0a4",
+                  "position": 1,
+                  "items": [
+                    {
+                      "id": "8dfbcc60-ae4c-47ad-89d8-3e743b877f25",
+                      "position": 1,
+                      "selectionCount": 1,
+                      "categoryId": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
+                      "equipmentIds": [
+                        "5e188409-6443-422e-b88f-5e8fc4edeeb7"
+                      ],
+                      "quantity": 5
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "8a377af8-81f7-487f-b83d-e1c55b694982",
+              "position": 4,
+              "options": [
+                {
+                  "id": "16c7b11c-f14a-4ab5-abe3-71157ecfca44",
+                  "position": 1,
+                  "items": [
+                    {
+                      "id": "ff15363b-6d87-431f-a514-c588618ae4dc",
+                      "position": 1,
+                      "selectionCount": 1,
+                      "categoryId": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
+                      "equipmentIds": [
+                        "e5e10940-9c3a-4d0f-8d49-ba5af5f1f664"
+                      ],
+                      "quantity": 1
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "ed042a41-bb08-4fed-815e-2bc3113cf11a",
+              "position": 5,
+              "options": [
+                {
+                  "id": "4e247c65-a0eb-4381-8fac-5a4859d5cc8b",
+                  "position": 1,
+                  "items": [
+                    {
+                      "id": "fdf23f8c-369c-4606-8c1a-b61fcba2891b",
+                      "position": 1,
+                      "selectionCount": 1,
+                      "categoryId": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
+                      "equipmentIds": [
+                        "3079b26b-2583-4c03-9afe-3be15116d161"
+                      ],
+                      "quantity": 1
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "220001be-67f4-4a77-9cb8-dd9035e07555",
+              "position": 6,
+              "options": [
+                {
+                  "id": "147e7554-d85b-4f62-a7a8-f71405b2b86a",
+                  "position": 1,
+                  "items": [
+                    {
+                      "id": "7bd3bff2-3b0f-4e94-9aad-c7c3114dccbb",
+                      "position": 1,
+                      "selectionCount": 1,
+                      "selectionAttributeIds": [
+                        "f4a91a84-5bc2-4cc3-aad9-7b9551a43b32"
+                      ],
+                      "categoryId": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
+                      "equipmentIds": [
+                        "85bd76ea-2d08-4e89-b8bb-eb3248de7200"
+                      ],
+                      "quantity": 1,
+                      "currencies": [
+                        {
+                          "id": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
+                          "amount": 15
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "features": [
+      {
+        "id": "12dedd0e-3ba8-400d-9d01-cf56cbb93e49",
+        "label": "Shelter of the Faithful",
+        "description": "<p>As an acolyte, you command the respect of those who share your faith, and you can perform the religious ceremonies of your deity. You and your adventuring companions can expect to receive free healing and care at a temple, shrine, or other established presence of your faith, though you must provide any material components needed for spells. Those who share your religion will support you (but only you) at a modest lifestyle.</p><p>You might also have ties to a specific temple dedicated to your chosen deity or pantheon, and you have a residence there. This could be the temple where you used to serve, if you remain on good terms with it, or a temple where you have found a new home. While near your temple, you can call upon the priests for assistance, provided the assistance you ask for is not hazardous and you remain in good standing with your temple.</p>",
+        "targets": 1
+      }
+    ],
+    "userId": "master",
+    "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  }
+]

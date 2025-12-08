@@ -1,6 +1,0 @@
-type Query {
-  getMasterFeature(id: ID!): Feature
-  listMasterFeatures(limit: Int, nextToken: String): FeatureConnection!
-  getFeature(id: ID!): Feature
-  listFeatures(systemId: ID!, limit: Int, nextToken: String): FeatureConnection!
-}

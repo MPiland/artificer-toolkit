@@ -1,0 +1,27 @@
+{
+  "name": "@artificer/db",
+  "private": true,
+  "version": "0.0.1",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "gen:types": "supabase gen types typescript --project-id cvxfhtkksdeiycxpryhy --schema public,storage > src/types/database.ts"
+  },
+  "dependencies": {
+    "kysely": "^0.28.8",
+    "kysely-supabase": "^0.2.1",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "@types/pg": "^8",
+    "typescript": "^5.9.3"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  }
+}

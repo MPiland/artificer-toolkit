@@ -1,6 +1,0 @@
-type Query {
-  getMasterAncestryOption(id: ID!): AncestryOption
-  listMasterAncestryOptions(limit: Int, nextToken: String): AncestryOptionConnection!
-  getAncestryOption(id: ID!): AncestryOption
-  listAncestryOptions(systemId: ID!, limit: Int, nextToken: String): AncestryOptionConnection!
-}

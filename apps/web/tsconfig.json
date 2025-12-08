@@ -1,0 +1,37 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    /* 🧠 Build behavior */
+    "composite": true,
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "noEmit": true,
+
+    /* 🧭 Frontend specifics */
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "types": ["vite/client"],
+    "useDefineForClassFields": true,
+    "allowImportingTsExtensions": true,
+    "moduleDetection": "force",
+
+    /* 🎯 Path aliases */
+    "paths": {
+      "~auth": ["./src/auth/index.ts"],
+      "~components/*": ["./src/components/*"],
+      "~pages/*": ["src/domains/*"],
+      "~enums": ["./src/enums/index.ts"],
+      "~hooks": ["./src/hooks/index.ts"],
+      "~utils": ["./src/utils/index.ts"],
+      "~css/*": ["./src/css/*"],
+      "~routes/*": ["./src/routes/*"],
+      "~apis": ["./src/apis/index.ts"],
+      "~assets/*": ["./src/assets/*"],
+      "~theme/*": ["./src/theme/*"],
+      "~store": ["./src/store/index.ts"],
+      "~server": ["./src/server/index.ts"],
+      "~server/*": ["./src/server/*"],
+      "~supabase": ["./src/supabaseClient.ts"]
+    }
+  },
+  "include": ["src", "vite.config.ts", "vite-env.d.ts", "server/auth/serverFns.tsx"]
+}

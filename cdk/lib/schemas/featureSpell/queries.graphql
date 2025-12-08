@@ -1,6 +1,0 @@
-type Query {
-  getMasterFeatureSpell(id: ID!): FeatureSpell
-  listMasterFeatureSpells(limit: Int, nextToken: String): FeatureSpellConnection!
-  getFeatureSpell(id: ID!): FeatureSpell
-  listFeatureSpells(systemId: ID!, limit: Int, nextToken: String): FeatureSpellConnection!
-}

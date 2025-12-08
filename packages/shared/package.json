@@ -1,0 +1,29 @@
+{
+  "name": "@artificer/shared",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "generate:zod": "ts-to-zod --config zod.config.js \"src/types/**/*.ts\""
+  },
+  "dependencies": {
+    "@artificer/functions": "workspace:*",
+    "ts-to-zod": "^5.0.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  },
+  "exports": {
+    "./types": {
+      "types": "./dist/types/index.d.ts"
+    },
+    "./types/*": {
+      "types": "./dist/types/*.d.ts"
+    },
+    "./zod/*": {
+      "types": "./dist/zod/*"
+    }
+  }
+}
