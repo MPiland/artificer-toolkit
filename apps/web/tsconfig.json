@@ -1,37 +1,74 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    /* 🧠 Build behavior */
-    "composite": true,
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
-    "noEmit": true,
-
-    /* 🧭 Frontend specifics */
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "jsx": "react-jsx",
-    "types": ["vite/client"],
+    "types": [
+      "vite/client"
+    ],
+    "noEmit": true,
     "useDefineForClassFields": true,
-    "allowImportingTsExtensions": true,
-    "moduleDetection": "force",
-
-    /* 🎯 Path aliases */
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "paths": {
-      "~auth": ["./src/auth/index.ts"],
-      "~components/*": ["./src/components/*"],
-      "~pages/*": ["src/domains/*"],
-      "~enums": ["./src/enums/index.ts"],
-      "~hooks": ["./src/hooks/index.ts"],
-      "~utils": ["./src/utils/index.ts"],
-      "~css/*": ["./src/css/*"],
-      "~routes/*": ["./src/routes/*"],
-      "~apis": ["./src/apis/index.ts"],
-      "~assets/*": ["./src/assets/*"],
-      "~theme/*": ["./src/theme/*"],
-      "~store": ["./src/store/index.ts"],
-      "~server": ["./src/server/index.ts"],
-      "~server/*": ["./src/server/*"],
-      "~supabase": ["./src/supabaseClient.ts"]
+      "@auth": [
+        "./src/domains/auth"
+      ],
+      "@css/*": [
+        "./src/css/*"
+      ],
+      "@components/*": [
+        "./src/components/*"
+      ],
+      "@pages/*": [
+        "./src/domains/*"
+      ],
+      "@enums/*": [
+        "./src/enums/*"
+      ],
+      "@hooks": [
+        "./src/hooks"
+      ],
+      "@utils/*": [
+        "./src/utils/*"
+      ],
+      "@routes/*": [
+        "./src/routes/*"
+      ],
+      "@assets/*": [
+        "./src/assets/*"
+      ],
+      "@theme/*": [
+        "./src/theme/*"
+      ],
+      "@store": [
+        "./src/store"
+      ],
+      "@server/*": [
+        "./src/server/*"
+      ],
+      "@supabase": [
+        "./src/supabase"
+      ],
+      "@utils": [
+        "./src/utils"
+      ],
+      "@data/*": [
+        "./src/data/*"
+      ],
+      "@types": [
+        "./src/types"
+      ]
     }
   },
-  "include": ["src", "vite.config.ts", "vite-env.d.ts", "server/auth/serverFns.tsx"]
+  "include": [
+    "src",
+    "vite.config.ts",
+    "vite-env.d.ts",
+    "server/auth/serverFns.tsx"
+  ]
 }

@@ -1,6 +1,0 @@
-export * from './Backgrounds'
-export * from './Classes'
-export * from './Races'
-export * from './Spells'
-export * from './Equipment'
-export * from './Characters'

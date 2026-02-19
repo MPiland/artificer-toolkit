@@ -7,19 +7,19 @@ import {
   detail_footer,
   detail_link,
   detail_link_icon,
-  detail_title,
+  detail_title
 } from './Detail.css'
-import Loading from '~components/Loading'
+import Loading from '@components/Loading'
 import { useMatches } from '@tanstack/react-router'
-import type { FormType, Character, SourceDataType } from '~types'
-import { useRouteNavigation, useSourceData } from '~hooks'
+import type { FormType, Character, SourceDataType } from '@types'
+import { useRouteNavigation, useSourceData } from '@hooks'
 import type { DetailConfig } from './Detail.types'
-import { useFormStore } from '~store'
+import { useFormStore } from '@store'
 import { Group, Grid, ScrollArea, Modal } from '@mantine/core'
 import { CopyIcon, Pencil, ChevronLeft } from 'lucide-react'
-import Link from '~components/Link'
-import { discriminatedDomainInputSchema } from '~schemas'
-import { sprinkles } from '~css/sprinkles.css'
+import Link from '@components/Link'
+import { discriminatedDomainInputSchema } from '@artificer-toolkit/shared/schemas'
+import { sprinkles } from '@css/sprinkles.css'
 
 interface DetailProps<T extends SourceDataType> {
   detailConfigs?: DetailConfig<T>[]
@@ -34,7 +34,7 @@ const Detail = <T extends SourceDataType>({
   children,
   footer,
   footerSpacing = 'space-between',
-  item,
+  item
 }: DetailProps<T>) => {
   const getSourceText = useSourceData()
   const formStore = useFormStore()
@@ -46,19 +46,19 @@ const Detail = <T extends SourceDataType>({
 
   return (
     <Suspense
-      fallback={
+      fallback={(
         <Modal opened onClose={() => {}}>
           <Loading />
         </Modal>
-      }
+      )}
     >
-      <Group justify='space-between'>
-        <ChevronLeft onClick={() => <Link to={'..'} />} cursor={'pointer'} />
-        <Group justify='space-between'>
+      <Group justify="space-between">
+        <ChevronLeft onClick={() => <Link to=".." />} cursor="pointer" />
+        <Group justify="space-between">
           <Link
             {...itemNav.copy}
             className={detail_link}
-            type='unstyled'
+            type="unstyled"
             onClick={(e: MouseEvent<HTMLElement>) => {
               const kind = `${item.__typename}Input`
               const itemCopy = discriminatedDomainInputSchema.parse({
@@ -66,24 +66,28 @@ const Detail = <T extends SourceDataType>({
                 ...item,
                 id: '',
                 label: '',
-                value: '',
+                value: ''
               })
               formStore.setCurrent(itemCopy)
               e.stopPropagation()
             }}
           >
-            {<CopyIcon className={detail_link_icon} />} Copy
+            <CopyIcon className={detail_link_icon} />
+            {' '}
+            Copy
           </Link>
           {(item as Exclude<SourceDataType, Character>).masterId == null && (
             <Link
-              type='unstyled'
+              type="unstyled"
               {...itemNav.edit}
               className={detail_link}
               onClick={(e: MouseEvent<HTMLElement>) => {
                 e.stopPropagation()
               }}
             >
-              {<Pencil className={detail_link_icon} />} Edit
+              <Pencil className={detail_link_icon} />
+              {' '}
+              Edit
             </Link>
           )}
         </Group>
@@ -93,10 +97,10 @@ const Detail = <T extends SourceDataType>({
       </div>
       <hr
         className={sprinkles({
-          width: 'size-full',
+          width: 'size-full'
         })}
       />
-      <ScrollArea scrollbars='y' offsetScrollbars='present'>
+      <ScrollArea scrollbars="y" offsetScrollbars="present">
         {detailConfigs && (
           <>
             <div className={detail_col_section}>
@@ -109,7 +113,7 @@ const Detail = <T extends SourceDataType>({
                         {getSourceText({
                           input: detail,
                           state: item,
-                          truncateNum: detail?.truncate,
+                          truncateNum: detail?.truncate
                         })}
                       </div>
                     </Grid.Col>
@@ -119,14 +123,14 @@ const Detail = <T extends SourceDataType>({
             </div>
             <hr
               className={sprinkles({
-                width: 'size-full',
+                width: 'size-full'
               })}
             />
           </>
         )}
         <div className={detail_body}>{children}</div>
         <div className={detail_footer}>
-          <Group justify={footerSpacing} align='end' grow>
+          <Group justify={footerSpacing} align="end" grow>
             {footer != null && <span>{footer}</span>}
           </Group>
         </div>

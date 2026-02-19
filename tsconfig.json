@@ -1,29 +1,21 @@
 {
-  // Root/base config — shared across all apps and packages
   "files": [],
   "references": [
     {
-      "path": "./apps/web"
+      "path": "./packages/shared"
     },
     {
       "path": "./packages/db"
     },
     {
-      "path": "./packages/shared"
+      "path": "./packages/functions"
     },
     {
-      "path": "./packages/functions"
+      "path": "./apps/web"
+    },
+    {
+      "path": "./apps/apis"
     }
   ],
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "ES2022",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "strict": true,
-    "skipLibCheck": true,
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-  }
+  "extends": "./tsconfig.base.json"
 }

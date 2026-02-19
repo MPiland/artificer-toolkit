@@ -1,31 +1,39 @@
 {
-  "name": "@artificer/functions",
+  "name": "@artificer-toolkit/functions",
   "private": true,
   "version": "0.0.1",
   "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
-  },
   "scripts": {
-    "build": "tsc -b tsconfig.json",
-    "dev": "tsx src/index.ts"
+    "clean": "rimraf dist",
+    "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
-    "@artificer/db": "workspace:*",
-    "@artificer/shared": "workspace:*",
-    "@supabase/supabase-js": "^2.43.0",
-    "kysely": "^0.28.8"
+    "@artificer-toolkit/db": "workspace:*",
+    "@artificer-toolkit/shared": "workspace:*",
+    "@supabase/supabase-js": "^2.87.1"
   },
-  "devDependencies": {
-    "tsx": "^4.7.0",
-    "typescript": "^5.4.0"
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./*": {
+      "types": "./dist/*/index.d.ts",
+      "default": "./dist/*/index.js"
+    }
   },
-  "files": [
-    "dist"
-  ]
+  "imports": {
+    "#queries/*": {
+      "types": "./dist/queries/*/index.d.ts",
+      "default": "./dist/queries/*/index.js"
+    },
+    "#runtime": {
+      "types": "./dist/runtime/index.d.ts",
+      "default": "./dist/runtime/index.js"
+    },
+    "#utils": {
+      "types": "./dist/utils/index.d.ts",
+      "default": "./dist/utils/index.js"
+    }
+  }
 }

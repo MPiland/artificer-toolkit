@@ -1,14 +1,14 @@
 import { ReactNode } from 'react'
 import type { NavigateOptions, ToOptions } from '@tanstack/react-router'
 import { link_icon } from './Navbar/Navbar.css'
-import CharactersIcon from '~assets/Icons/IChar'
-import ClassesIcon from '~assets/Icons/IClass'
-import RacesIcon from '~assets/Icons/IRaces'
-import ScrollIcon from '~assets/Icons/IScroll'
-import SackIcon from '~assets/Icons/ISack'
-import FeatsIcon from '~assets/Icons/IFeat'
-import BackstoryIcon from '~assets/Icons/IBackstory'
-import type { FormType } from '~types'
+import CharactersIcon from '@assets/Icons/IChar'
+import ClassesIcon from '@assets/Icons/IClass'
+import RacesIcon from '@assets/Icons/IRaces'
+import ScrollIcon from '@assets/Icons/IScroll'
+import SackIcon from '@assets/Icons/ISack'
+import FeatsIcon from '@assets/Icons/IFeat'
+import BackstoryIcon from '@assets/Icons/IBackstory'
+import type { FormType } from '@types'
 
 export const noAuthLinks: { to: ToOptions['to']; params?: NavigateOptions['params']; title: string }[] = [
   {

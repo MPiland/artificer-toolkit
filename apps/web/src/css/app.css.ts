@@ -8,9 +8,9 @@ globalStyle('*:where(:not(html, iframe, canvas, img, svg, video, audio):not(svg 
     [app]: {
       fontFamily: '"Roboto", sans-serif',
       margin: '0',
-      boxSizing: 'border-box',
-    },
-  },
+      boxSizing: 'border-box'
+    }
+  }
 })
 
 globalStyle(
@@ -22,11 +22,11 @@ globalStyle(
 
         '@media': {
           'screen and (max-width: 567px)': {
-            fontSize: fontSize['font-size-1'],
-          },
-        },
-      },
-    },
+            fontSize: fontSize['font-size-1']
+          }
+        }
+      }
+    }
   }
 )
 
@@ -38,23 +38,23 @@ globalStyle('html, body, #root', {
       padding: 0,
       margin: 0,
       boxSizing: 'border-box',
-      overflow: 'hidden',
-    },
-  },
+      overflow: 'hidden'
+    }
+  }
 })
 
 globalStyle('p, blockquote, table, .tableWrapper', {
   '@layer': {
     [app]: {
-      marginBottom: size['size-3'],
-    },
-  },
+      marginBottom: size['size-3']
+    }
+  }
 })
 
 globalStyle('table', {
   '@layer': {
     [app]: {
-      marginTop: size['size-3'],
-    },
-  },
+      marginTop: size['size-3']
+    }
+  }
 })

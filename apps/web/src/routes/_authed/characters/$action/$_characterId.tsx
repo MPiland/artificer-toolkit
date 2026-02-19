@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
-import CharacterForm from '../../../../domains/characters/CharacterForm'
-import { fetchCharacter } from '~apis'
-import Loading from '~components/Loading/Loading'
+import CharacterForm from '../../../../domains/characters/form/CharacterForm'
+import { fetchCharacter } from '@apis'
+import Loading from '@components/Loading/Loading'
 import { Modal } from '@mantine/core'
 
 export const Route = createFileRoute('/_authed/characters/$action/$_characterId')({
@@ -15,9 +15,9 @@ export const Route = createFileRoute('/_authed/characters/$action/$_characterId'
     }
   },
   pendingComponent: () => (
-    <Modal withCloseButton={false} opened onClose={() => {}} centered size='auto'>
+    <Modal withCloseButton={false} opened onClose={() => {}} centered size="auto">
       <Loading />
     </Modal>
   ),
-  component: CharacterForm,
+  component: CharacterForm
 })

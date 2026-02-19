@@ -1,7 +1,7 @@
-import { Class, type System } from '~types'
-import { useSystemData } from '~hooks'
-import { ProfCats } from '~enums'
-import { useListEquipment } from '~apis'
+import { Class, type System } from '@types'
+import { useSystemData } from '@hooks'
+import { ProfCats } from '@enums'
+import { useListEquipment } from '@apis'
 
 export type ClassProficiencyOption = {
   type: { id: string; label: string }[]

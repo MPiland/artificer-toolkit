@@ -1,6 +1,6 @@
 import { Kysely, PostgresDialect, sql } from 'kysely'
 import { Pool } from 'pg'
-import type { Database } from './types'
+import type { Database } from '#types'
 
 export function createDb() {
   return new Kysely<Database>({
@@ -18,9 +18,14 @@ export async function withUserContext<T>(
   userId: string,
   fn: (ctx: Kysely<Database>) => Promise<T>
 ) {
-  return db.transaction().execute(async (trx) => {
+  try {
+    return db.transaction().execute(async (trx) => {
     // ✅ Works and is type-safe
-    await sql`SET request.jwt.claim.sub = ${userId}`.execute(trx)
-    return fn(trx)
-  })
+      await sql`SET request.jwt.claim.sub = ${userId}`.execute(trx)
+      return fn(trx)
+    })
+  } catch (err) {
+    console.error(err)
+    throw new Error('Failed to load data')
+  }
 }

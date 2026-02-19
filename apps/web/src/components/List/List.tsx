@@ -6,27 +6,27 @@ import { useMediaQuery } from 'usehooks-ts'
 import { type UseMutationResult } from '@tanstack/react-query'
 import { Outlet, useNavigate, useMatches } from '@tanstack/react-router'
 import { startCase } from 'lodash-es'
-import type { Maybe, FormDataType, FormType, ListItemType, MetaDataType, SourceDataType } from '~types'
+import type { Maybe, FormDataType, FormType, ListItemType, MetaDataType, SourceDataType } from '@types'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Categories } from '~enums'
+import { Categories } from '@types'
 import Filter from './Filter'
-import { sprinkles } from '~css/sprinkles.css'
-import { ModalContext } from '~components/Modal'
-import { useFormStore, type FilterState } from '~store'
-import { useRouteNavigation, useFilteredList } from '~hooks'
+import { sprinkles } from '@css/sprinkles.css'
+import { ModalContext } from '@components/Modal'
+import { useFormStore, type FilterState } from '@store'
+import { useRouteNavigation, useFilteredList } from '@hooks'
 import VirtualList from './VirtualList'
 import { PlusIcon, Copy, LayoutGrid, List as ListIcon } from 'lucide-react'
 import { Group, ScrollArea, Divider } from '@mantine/core'
 import { Button } from '@mantine/core'
-import { discriminatedDomainInputSchema } from '~schemas'
-import Link from '~components/Link'
+import { discriminatedDomainInputSchema } from '@artificer-toolkit/shared/schemas'
+import Link from '@components/Link'
 import { useMantineColorScheme } from '@mantine/core'
-import { vars } from '~css/theme'
+import { vars } from '@css/theme'
 
 interface ListProps<T extends ListItemType, K extends MetaDataType, U extends FilterDataType> {
   className?: string
   visibility?: 'hidden' | 'visible' | 'always'
-  useDeleteItem: () => UseMutationResult<string, Error, string, unknown>
+  useDeleteItem: () => UseMutationResult<boolean, Error, string, unknown>
   data: Maybe<T[]>
   metaData?: K
   footerConfigs?: FooterConfig<K>[]
@@ -39,7 +39,7 @@ const List = <T extends ListItemType, K extends MetaDataType, U extends FilterDa
   metaData,
   useDeleteItem,
   footerConfigs,
-  filterConfigs,
+  filterConfigs
 }: ListProps<T, K, U>) => {
   const navigate = useNavigate()
   const { colorScheme } = useMantineColorScheme()
@@ -65,7 +65,7 @@ const List = <T extends ListItemType, K extends MetaDataType, U extends FilterDa
       __kind: kind,
       id: '',
       label: '',
-      value: '',
+      value: ''
     }) as FormDataType
     const itemNav = routeNav.forItem(item.id, item.label).copy
     formStore.setCurrent(data)
@@ -79,10 +79,10 @@ const List = <T extends ListItemType, K extends MetaDataType, U extends FilterDa
         form: form,
         data: data?.map((item) => ({
           label: item.label,
-          id: item.id,
+          id: item.id
         })),
-        onCopy: (item) => handleCopyConfirmed(item as SourceDataType),
-      },
+        onCopy: (item) => handleCopyConfirmed(item as SourceDataType)
+      }
     })
   }
 
@@ -107,7 +107,7 @@ const List = <T extends ListItemType, K extends MetaDataType, U extends FilterDa
     count: Math.ceil(filteredData?.length / (view === 'grid' ? 3 : 1)),
     getScrollElement: () => parentRef.current,
     estimateSize: () => 100,
-    overscan: 2,
+    overscan: 2
   })
 
   const nonSubItems = useMemo(() => filteredData.filter((item) => !isSub(item, 'false')), [filteredData, isSub])
@@ -145,7 +145,9 @@ const List = <T extends ListItemType, K extends MetaDataType, U extends FilterDa
               onClick={handleCopy}
               size='compact-md'
             >
-              <Copy /> {!sm && <span className={sprinkles({ ms: 'space-2' })}> Copy</span>}
+              <Copy />
+              {' '}
+              {!sm && <span className={sprinkles({ ms: 'space-2' })}> Copy</span>}
             </Button>
             <Link
               {...routeNav.new}
@@ -154,7 +156,9 @@ const List = <T extends ListItemType, K extends MetaDataType, U extends FilterDa
               color={colorScheme === 'dark' ? vars.colors.blue[3] : vars.colors.dark[4]}
               size='compact-md'
             >
-              <PlusIcon /> {!sm && <span className={sprinkles({ ms: 'space-2' })}> Create</span>}
+              <PlusIcon />
+              {' '}
+              {!sm && <span className={sprinkles({ ms: 'space-2' })}> Create</span>}
             </Link>
           </Group>
         </Group>
@@ -171,7 +175,7 @@ const List = <T extends ListItemType, K extends MetaDataType, U extends FilterDa
           ref={listRef}
           className={clsx({ [className || '']: className }, base, view)}
           style={{
-            height: `${rowVirtualizer.getTotalSize()}px`,
+            height: `${rowVirtualizer.getTotalSize()}px`
           }}
         >
           {rowVirtualizer.getVirtualItems().map((virtualItem) => {

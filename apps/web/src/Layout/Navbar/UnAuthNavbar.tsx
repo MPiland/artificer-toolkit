@@ -3,7 +3,7 @@ import { link_label, link as navbar_link } from './Navbar.css'
 import * as header from '../Header/Header.css'
 import clsx from 'clsx'
 import { startCase } from 'lodash-es'
-import Link from '~components/Link'
+import Link from '@components/Link'
 import { noAuthLinks } from '../utils'
 
 const UnAuthNavbar = ({ toggleMobile, mobileOpened }: { toggleMobile: () => void; mobileOpened: boolean }) => {

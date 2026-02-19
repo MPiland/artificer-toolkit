@@ -1,8 +1,8 @@
 import { AppShell, Group, Burger } from '@mantine/core'
-import ILogo from '~assets/Icons/ILogo'
+import ILogo from '@assets/Icons/ILogo'
 import { base, groups, left_group, links, link, logo_icon, right_group, title } from './Header.css'
 import SchemeToggle from '../SchemeToggle/SchemeToggle'
-import Link from '~components/Link'
+import Link from '@components/Link'
 import { noAuthLinks } from '../utils'
 
 const Header = ({

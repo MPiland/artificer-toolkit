@@ -1,4 +1,4 @@
-import { DeepKeyOf, SourceTypeMap, SourceDataType } from '~types'
+import { DeepKeyOf, SourceTypeMap, SourceDataType } from '@types'
 
 export type DetailObject<T extends SourceDataType> = {
   path: DeepKeyOf<T>

@@ -1,9 +1,9 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { Auth } from '../domains/auth/Auth'
-import { useAuth } from '~hooks'
+import { useAuth } from '@hooks'
 import { useState } from 'react'
 import { notifications } from '@mantine/notifications'
-import { resendCodeFn } from '~server/auth'
+import { resendCodeFn } from '@server/auth'
 import { useServerFn } from '@tanstack/react-start'
 
 export const Route = createFileRoute('/login')({

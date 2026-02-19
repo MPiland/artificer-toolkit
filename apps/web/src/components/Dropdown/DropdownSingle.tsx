@@ -9,7 +9,7 @@ import clsx from 'clsx'
 type DropdownSingleProps = {
   value: string | null | undefined
   handleRemoveValue: () => void
-  activeLabel: { id: string; label: string | ReactNode }
+  activeLabel: { id: string, label: string | ReactNode }
   toggleDropdown: () => void
   error?: string
 } & DropdownCommonProps
@@ -22,7 +22,7 @@ const DropdownSingle = ({
   label,
   required,
   error,
-  onBlur,
+  onBlur
 }: DropdownSingleProps) => {
   return (
     <Combobox.DropdownTarget>
@@ -31,7 +31,7 @@ const DropdownSingle = ({
           wrapper: clsx(wrapper),
           label: input_label,
           input: input,
-          root: base,
+          root: base
         }}
         label={label}
         required={required}
@@ -39,21 +39,23 @@ const DropdownSingle = ({
         type='button'
         pointer
         rightSection={
-          activeLabel === null || (Array.isArray(activeLabel) && !activeLabel?.length) ?
-            <ChevronDown className={icon} />
-          : <X
-              className={icon}
-              onClick={(event) => {
-                event.stopPropagation()
-                handleRemoveValue()
-              }}
-              aria-label='Clear value'
-            />
+          activeLabel === null || (Array.isArray(activeLabel) && !activeLabel?.length)
+            ? <ChevronDown className={icon} />
+            : (
+                <X
+                  className={icon}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    handleRemoveValue()
+                  }}
+                  aria-label='Clear value'
+                />
+              )
         }
         rightSectionPointerEvents={activeLabel != null ? 'all' : 'none'}
         wrapperProps={{
           onClick: () => toggleDropdown(),
-          onMouseDown: (event: MouseEvent<HTMLDivElement>) => event.stopPropagation(),
+          onMouseDown: (event: MouseEvent<HTMLDivElement>) => event.stopPropagation()
         }}
         onBlur={onBlur as ((arg: FocusEvent<HTMLButtonElement>) => void) | undefined}
         error={error}

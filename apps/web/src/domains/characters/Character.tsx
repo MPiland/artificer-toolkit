@@ -1,5 +1,5 @@
-import { Route } from '~routes/_authed/characters/$characterId'
-import { fetchClass, queryClient, useGetCharacter, useGetRace } from '~apis'
+import { Route } from '@routes/_authed/characters/$characterId'
+import { fetchClass, queryClient, useGetCharacter, useGetRace } from '@data/character'
 import { useSuspenseQueries } from '@tanstack/react-query'
 
 const Character = () => {
@@ -13,18 +13,18 @@ const Character = () => {
 
   const charStateClasses = [
     ...(character?.classes || []),
-    ...(character?.classes?.filter((cClass) => cClass.subclass?.id != null).map((cClass) => cClass.subclass) || []),
+    ...(character?.classes?.filter((cClass) => cClass.subclass?.id != null).map((cClass) => cClass.subclass) || [])
   ]
 
   const { data: charClasses } = useSuspenseQueries({
     queries:
       charStateClasses?.map((uClass) => ({
         queryKey: ['character-classes', uClass?.id],
-        queryFn: async () => await queryClient.fetchQuery(fetchClass(uClass?.id || '')),
+        queryFn: async () => await queryClient.fetchQuery(fetchClass(uClass?.id || ''))
       })) || [],
     combine: (result) => ({
-      data: result.map((res) => res.data),
-    }),
+      data: result.map((res) => res.data)
+    })
   })
 
   character?.classes?.forEach((cClass, index) => {

@@ -1,27 +1,40 @@
 {
-  "name": "@artificer/db",
-  "private": true,
+  "name": "@artificer-toolkit/db",
   "version": "0.0.1",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "private": true,
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/types/index.js"
+    }
+  },
+  "imports": {
+    "#types": {
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/types/index.js"
+    }
+  },
   "scripts": {
-    "build": "tsc -b tsconfig.json",
+    "clean": "rimraf dist",
+    "build": "tsc -p tsconfig.build.json",
     "gen:types": "supabase gen types typescript --project-id cvxfhtkksdeiycxpryhy --schema public,storage > src/types/database.ts"
   },
   "dependencies": {
-    "kysely": "^0.28.8",
+    "@artificer-toolkit/functions": "workspace:*",
+    "@artificer-toolkit/shared": "workspace:*",
     "kysely-supabase": "^0.2.1",
-    "pg": "^8.16.3"
+    "pg": "^8.16.3",
+    "supabase": "^2.72.8"
   },
   "devDependencies": {
-    "@types/pg": "^8",
-    "typescript": "^5.9.3"
-  },
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
+    "@types/pg": "^8.15.6",
+    "uuid": "^13.0.0"
   }
 }

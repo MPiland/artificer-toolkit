@@ -1,8 +1,8 @@
 import { useRouteContext } from '@tanstack/react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { fetchSystem } from '~apis'
-import { createArrayWithMethods } from '~utils'
-import type { System, GenericType } from '~types'
+import { fetchSystem } from '@apis'
+import { createArrayWithMethods } from '@utils'
+import type { System, GenericType } from '@types'
 
 type ModifierMethod = System['modifiers']['methods'][number]
 

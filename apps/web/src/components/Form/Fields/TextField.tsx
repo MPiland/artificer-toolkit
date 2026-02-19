@@ -1,6 +1,6 @@
 import { TextInput, type TextInputProps } from '@mantine/core'
 import { useFieldContext } from './FieldContext'
-import { sprinkles } from '~css/sprinkles.css'
+import { sprinkles } from '@css/sprinkles.css'
 
 type TextFieldProps = {
   label?: string

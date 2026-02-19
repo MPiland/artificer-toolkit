@@ -5,7 +5,7 @@ import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } 
 import { CSS } from '@dnd-kit/utilities'
 import clsx from 'clsx'
 import { item, header, content, header_icon, header_icon_collapse } from './Accordion.css'
-import { sprinkles } from '~css/sprinkles.css'
+import { sprinkles } from '@css/sprinkles.css'
 import { Accordion, Group } from '@mantine/core'
 
 export type AccordionItemProps = {

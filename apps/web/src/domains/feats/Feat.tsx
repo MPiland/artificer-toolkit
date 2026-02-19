@@ -1,7 +1,7 @@
 import parse from 'html-react-parser'
-import Detail from '~components/Detail'
-import { Route } from '~routes/_authed/feats/$featId'
-import { useGetFeat } from '~apis'
+import Detail from '@components/Detail'
+import { Route } from '@routes/_authed/feats/$featId'
+import { useGetFeat } from '@apis'
 
 const Feat = () => {
   const featId = Route.useParams({ select: (r) => r.featId })
@@ -11,7 +11,7 @@ const Feat = () => {
 
   return (
     <Detail item={featData}>
-      <div>{featData.desc && parse(featData.desc)}</div>
+      <div>{featData.description && parse(featData.description)}</div>
     </Detail>
   )
 }

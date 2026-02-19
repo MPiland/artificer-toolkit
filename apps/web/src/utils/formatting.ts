@@ -1,7 +1,7 @@
-import { FormDataType } from '~types'
+import { FormDataType } from '@types'
 import { CamelCase } from 'type-fest'
-import { ProfCats } from '~enums'
-import { SECTION_STEPS } from '~components/Form'
+import { ProfCats } from '@enums'
+import { SECTION_STEPS } from '@components/Form'
 
 export const numberToWords = (number: number): string => {
   const units = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']

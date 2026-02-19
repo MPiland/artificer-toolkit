@@ -8,9 +8,9 @@ import { LogOut } from 'lucide-react'
 import { base, avatar, avatar_img, chevron, email, label_container, menu, title } from './User.css'
 import SchemeToggle from '../SchemeToggle/SchemeToggle'
 import { use } from 'react'
-import { ModalContext } from '~components/Modal'
+import { ModalContext } from '@components/Modal'
 import { useServerFn } from '@tanstack/react-start'
-import { logoutFn } from '~server/auth'
+import { logoutFn } from '@server/auth'
 import { useAuth } from '../../auth/AuthContext'
 
 type UserProps = {

@@ -1,5 +1,5 @@
 import { useFieldContext } from './FieldContext'
-import RichTextEditor, { type RichTextEditorProps } from '~components/RichTextEditor'
+import RichTextEditor, { type RichTextEditorProps } from '@components/RichTextEditor'
 
 type RichTextFieldProps = Omit<RichTextEditorProps, 'value' | 'onChange' | 'name' | 'onBlur'>
 

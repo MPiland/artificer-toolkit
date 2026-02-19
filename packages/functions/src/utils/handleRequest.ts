@@ -1,15 +1,18 @@
-import { createDb, withUserContext } from '@artificer/db'
-import { createSupabaseClient } from '../clients/supabaseClient'
+import type { DB } from '@artificer-toolkit/functions/types'
+import { createDb, withUserContext } from '@artificer-toolkit/db'
+import { createSupabaseClient } from '../clients/supabaseClient.js'
 
 /**
  * Generic wrapper for authenticated RLS-safe requests.
- *
- * @param queryFn A function that receives a Kysely instance and returns a Promise of query results.
  */
-export function handleRequest<T>(queryFn: (ctx: any, userId: string) => Promise<T>) {
+// packages/functions/src/utils/handleRequest.ts
+export function handleRequest<TArgs extends unknown[], TResult>(
+  queryFn: (db: DB, ...args: TArgs) => Promise<TResult>,
+  getArgs: (req: Request) => TArgs
+) {
   return async (req: Request): Promise<Response> => {
     try {
-      // Extract and verify JWT
+      // 1. Auth
       const jwt = req.headers.get('authorization')?.replace('Bearer ', '')
       if (!jwt) return new Response('Missing token', { status: 401 })
 
@@ -17,18 +20,25 @@ export function handleRequest<T>(queryFn: (ctx: any, userId: string) => Promise<
       const { data, error } = await supabase.auth.getUser(jwt)
       if (error || !data.user) return new Response('Unauthorized', { status: 401 })
 
-      // Run the query inside RLS context
+      const userId = data.user.id
+
+      // 2. Extract typed args for this route
+      const args = getArgs(req)
+
+      // 3. Create DB + run inside RLS-impersonated session
       const db = createDb()
+
       try {
-        const result = await withUserContext(db, data.user.id, (ctx) => queryFn(ctx, data.user.id))
+        const result = await withUserContext(db, userId, (ctx) => queryFn(ctx, ...args))
+
         return new Response(JSON.stringify(result), {
           status: 200,
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json' }
         })
       } finally {
         await db.destroy()
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error(err)
       return new Response('Internal Server Error', { status: 500 })
     }

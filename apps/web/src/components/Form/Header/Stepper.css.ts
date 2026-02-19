@@ -1,4 +1,4 @@
-import { app } from '~css/layers.css'
+import { app } from '@css/layers.css'
 import { style } from '@vanilla-extract/css'
 
 export const label = style({

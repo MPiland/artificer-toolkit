@@ -4,10 +4,10 @@ import { links, link_icon_wrapper, link as navbar_link, link_label, link_tooltip
 import * as header from '../Header/Header.css'
 import clsx from 'clsx'
 import { startCase } from 'lodash-es'
-import Link from '~components/Link'
+import Link from '@components/Link'
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { fetchSystems } from '~apis'
-import { useSystemPref } from '~hooks'
+import { fetchSystems } from '@apis'
+import { useSystemPref } from '@hooks'
 import User from '../User/User'
 import { authLinks } from '../utils'
 

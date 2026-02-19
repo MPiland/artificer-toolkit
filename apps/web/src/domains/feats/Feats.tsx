@@ -1,5 +1,5 @@
-import List from '~components/List'
-import { useDeleteFeat, useListFeats } from '~apis'
+import List from '@components/List'
+import { useDeleteFeat, useListFeats } from '@apis'
 
 const Feats = () => {
   const {

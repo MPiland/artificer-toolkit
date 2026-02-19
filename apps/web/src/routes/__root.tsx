@@ -6,16 +6,17 @@ import { createServerFn } from '@tanstack/react-start'
 import { ReactNode } from 'react'
 import { MantineProvider } from '@mantine/core'
 import { Notifications } from '@mantine/notifications'
-import { ModalProvider } from '~components/Modal'
-import { theme, resolver } from '~css/theme'
-import '~css/main.css'
+import { ModalProvider } from '@components/Modal'
+import { theme, resolver } from '@css/theme'
+import '@css/main.css'
 import '@mantine/notifications/styles.layer.css'
 import '@mantine/core/styles.layer.css'
 import '@mantine/tiptap/styles.layer.css'
-import '~css/theme.css'
+import '@css/theme.css'
 import Layout from '../Layout/Layout'
-import { getSupabaseServerClient } from '~utils'
+import { getSupabaseServerClient } from '@supabase'
 import type { QueryClient } from '@tanstack/react-query'
+import type { User } from '@supabase/supabase-js'
 
 const fetchUser = createServerFn({ method: 'GET' }).handler(async () => {
   const supabase = getSupabaseServerClient()
@@ -23,7 +24,7 @@ const fetchUser = createServerFn({ method: 'GET' }).handler(async () => {
   return data.user ?? null
 })
 
-export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+export const Route = createRootRouteWithContext<{ queryClient: QueryClient, user: User | null }>()({
   beforeLoad: async () => {
     const user = await fetchUser()
     return { user }
@@ -31,15 +32,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       {
-        charSet: 'utf-8',
+        charSet: 'utf-8'
       },
       {
         name: 'viewport',
-        content: 'width=device-width, initial-scale=1',
+        content: 'width=device-width, initial-scale=1'
       },
       {
         name: 'mobile-web-app-capable',
-        content: 'yes',
+        content: 'yes'
       },
       { name: 'apple-mobile-web-app-capable', content: 'yes' },
       { name: 'application-name', content: 'Artificer Toolkit' },
@@ -48,15 +49,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: 'msapplication-starturl', content: '/' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
       {
-        title: 'Artificer Toolkit',
+        title: 'Artificer Toolkit'
       },
       {
         name: 'description',
-        content: 'Application for building custom TTRPG content',
-      },
-    ],
+        content: 'Application for building custom TTRPG content'
+      }
+    ]
   }),
-  component: RootComponent,
+  component: RootComponent
 })
 
 function RootComponent() {
@@ -78,8 +79,8 @@ function RootDocument({ children }: { children: ReactNode }) {
           <Notifications />
           <ModalProvider>{children}</ModalProvider>
         </MantineProvider>
-        <TanStackRouterDevtools position='bottom-right' />
-        <ReactQueryDevtools buttonPosition='bottom-left' />
+        <TanStackRouterDevtools position="bottom-right" />
+        <ReactQueryDevtools buttonPosition="bottom-left" />
         <Scripts />
       </body>
     </html>

@@ -1,18 +1,22 @@
 {
-  "name": "@artificer/apis",
+  "name": "@artificer-toolkit/apis",
   "private": true,
   "version": "0.0.1",
   "type": "module",
-  "main": "src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "dev": "tsx src/index.ts"
+    "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
-    "@artificer/functions": "workspace:*"
+    "@artificer-toolkit/functions": "workspace:*",
+    "@artificer-toolkit/shared": "workspace:*",
+    "@supabase/supabase-js": "^2.87.1"
   },
-  "devDependencies": {
-    "tsx": "^4.7.0",
-    "typescript": "^5.4.0"
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
   }
 }

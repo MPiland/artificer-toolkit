@@ -1,0 +1,175 @@
+/* ──────────────────────────────────────────────
+ * SPELLS — ROOT
+ *
+ * Intent:
+ *   Spell is a top-level authored subject that defines
+ *   a castable magical effect with level, school,
+ *   casting time, and owned effects.
+ *
+ * Cardinality:
+ *   systems 1 ──▶ N spells
+ *
+ * Ownership:
+ *   spells → spell_effects (owned)
+ *   spells → spell_traits (authoritative)
+ *
+ * References:
+ *   spells → magic_schools
+ *   spells → classes (many-to-many)
+ * ────────────────────────────────────────────── */
+
+CREATE TABLE IF NOT EXISTS public.spells (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  system_id uuid NOT NULL
+    REFERENCES public.systems(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+
+  label text NOT NULL,
+  description text NOT NULL,
+
+  level integer NOT NULL,
+
+  magic_school_id uuid NOT NULL
+    REFERENCES public.magic_schools(id)
+    ON DELETE RESTRICT
+    DEFERRABLE INITIALLY DEFERRED,
+
+  concentration_type text,      -- ConcentrationType
+
+  casting_time_unit text NOT NULL,  -- CastingTimeUnit
+  casting_time_amount integer NOT NULL,
+
+  material_description text,
+
+  is_master boolean,
+
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+SELECT public.apply_system_derived_policies('spells');
+
+ALTER TABLE public.spells ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_spells_system
+  ON public.spells(system_id);
+
+CREATE INDEX IF NOT EXISTS idx_spells_user
+  ON public.spells(user_id);
+
+CREATE INDEX IF NOT EXISTS idx_spells_level
+  ON public.spells(level);
+
+CREATE INDEX IF NOT EXISTS idx_spells_school
+  ON public.spells(magic_school_id);
+
+/* ──────────────────────────────────────────────
+ * SPELL — TRAITS
+ *
+ * Intent:
+ *   Engine-core TraitCode[] applied to the spell.
+ *
+ * Ownership:
+ *   Fully owned by spells (authoritative array).
+ * ────────────────────────────────────────────── */
+
+CREATE TABLE IF NOT EXISTS public.spell_traits (
+  spell_id uuid NOT NULL
+    REFERENCES public.spells(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  trait_code text NOT NULL,
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (spell_id, trait_code)
+);
+
+CREATE INDEX IF NOT EXISTS idx_spell_traits_spell
+  ON public.spell_traits(spell_id);
+
+ALTER TABLE public.spell_traits ENABLE ROW LEVEL SECURITY;
+
+/* ──────────────────────────────────────────────
+ * SPELL — CLASSES
+ *
+ * Intent:
+ *   Declares which classes can cast this spell.
+ *
+ * Ownership:
+ *   NOT owned. Classes are vocabulary-level entities.
+ * ────────────────────────────────────────────── */
+
+CREATE TABLE IF NOT EXISTS public.spell_classes (
+  spell_id uuid NOT NULL
+    REFERENCES public.spells(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  class_id uuid NOT NULL
+    REFERENCES public.classes(id)
+    ON DELETE RESTRICT
+    DEFERRABLE INITIALLY DEFERRED,
+
+  PRIMARY KEY (spell_id, class_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_spell_classes_spell
+  ON public.spell_classes(spell_id);
+
+CREATE INDEX IF NOT EXISTS idx_spell_classes_class
+  ON public.spell_classes(class_id);
+
+ALTER TABLE public.spell_classes ENABLE ROW LEVEL SECURITY;
+
+/* ──────────────────────────────────────────────
+ * SPELL — EFFECTS (OWNED)
+ *
+ * Intent:
+ *   Associates authored effects to the spell.
+ *   Effects may scale by SPELL_SLOT_LEVEL.
+ *
+ * Ownership:
+ *   spell_effects owns effect rows.
+ * ────────────────────────────────────────────── */
+
+CREATE TABLE IF NOT EXISTS public.spell_effects (
+  spell_id uuid NOT NULL
+    REFERENCES public.spells(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  effect_id uuid NOT NULL
+    REFERENCES public.effects(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (spell_id, effect_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_spell_effects_spell
+  ON public.spell_effects(spell_id);
+
+ALTER TABLE public.spell_effects ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'trg_cleanup_spell_effects_owned'
+  ) THEN
+    CREATE TRIGGER trg_cleanup_spell_effects_owned
+    AFTER DELETE ON public.spell_effects
+    FOR EACH ROW
+    EXECUTE FUNCTION public.cleanup_owned_rows('[
+      { "table": "public.effects", "columns": ["effect_id"] }
+    ]');
+  END IF;
+END;
+$$;

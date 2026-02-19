@@ -1,8 +1,8 @@
 import { use, useEffect, useMemo, useState } from 'react'
 import { startCase } from 'lodash-es'
-import Dropdown from '~components/Dropdown'
+import Dropdown from '@components/Dropdown'
 import { Button } from '@mantine/core'
-import { sprinkles } from '~css/sprinkles.css'
+import { sprinkles } from '@css/sprinkles.css'
 import type {
   FeatureFormDataType,
   FormDataType,
@@ -11,8 +11,8 @@ import type {
   RaceListItem,
   BackgroundListItem,
   FeatListItem,
-} from '~types'
-import Modal, { ModalContext, type CopyModalProps } from '~components/Modal'
+} from '@types'
+import Modal, { ModalContext, type CopyModalProps } from '@components/Modal'
 import { Grid } from '@mantine/core'
 
 type ValidFilterBy = 'races' | 'classes' | 'equipment' | 'backgrounds' | 'feats'

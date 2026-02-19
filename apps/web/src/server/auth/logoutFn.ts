@@ -1,6 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 import { redirect } from '@tanstack/react-router'
-import { getSupabaseServerClient } from '~utils'
+import { getSupabaseServerClient } from '@utils'
 
 export const logoutFn = createServerFn({ method: 'POST' }).handler(async () => {
   const supabase = getSupabaseServerClient()
@@ -10,11 +10,11 @@ export const logoutFn = createServerFn({ method: 'POST' }).handler(async () => {
   if (error) {
     return {
       error: true,
-      message: error.message,
+      message: error.message
     }
   }
 
   throw redirect({
-    href: '/',
+    href: '/'
   })
 })

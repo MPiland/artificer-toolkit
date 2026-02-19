@@ -1,5 +1,15 @@
-import { handleRequest } from '@artificer/functions'
-import { getBackgroundListQuery, getBackgroundQuery } from '@artificer/functions'
+import { handleRequest, getBackgroundListQuery, getBackgroundQuery } from '@artificer-toolkit/functions'
+import type { Background, BackgroundListItem } from '@artificer-toolkit/shared'
 
-export const getBackgroundList = handleRequest(getBackgroundListQuery)
-export const getBackground = handleRequest(getBackgroundQuery)
+// list
+export const getBackgroundList = handleRequest<[], BackgroundListItem[] | []>(getBackgroundListQuery, () => [])
+
+// single
+export const getBackground = handleRequest<[string], Background | null>(getBackgroundQuery, (req) => {
+  const url = new URL(req.url)
+  const segments = url.pathname.split('/').filter(Boolean)
+  const id = segments[segments.length - 1]
+  return [
+    id
+  ]
+})

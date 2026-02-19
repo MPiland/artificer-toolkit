@@ -1,4 +1,4 @@
-import { useOptimizedSelector } from '~store'
+import { useOptimizedSelector } from '@store'
 import { Stepper as MantineStepper, Progress } from '@mantine/core'
 import { CircleX } from 'lucide-react'
 import { useMediaQuery } from '@mantine/hooks'

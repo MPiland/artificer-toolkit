@@ -1,12 +1,12 @@
-import List, { type FilterConfig, type FooterConfig } from '~components/List'
-import IFlame from '~assets/Icons/IFlame'
-import IClass from '~assets/Icons/IClass'
-import IBook from '~assets/Icons/IBook'
-import IClock from '~assets/Icons/IClock'
-import IRange from '~assets/Icons/IRange'
-import IMortPest from '~assets/Icons/IMortPest'
-import type { Spell, SpellMeta } from '~types'
-import { useListSpells, useDeleteSpell } from '~apis'
+import List, { type FilterConfig, type FooterConfig } from '@components/List'
+import IFlame from '@assets/Icons/IFlame'
+import IClass from '@assets/Icons/IClass'
+import IBook from '@assets/Icons/IBook'
+import IClock from '@assets/Icons/IClock'
+import IRange from '@assets/Icons/IRange'
+import IMortPest from '@assets/Icons/IMortPest'
+import type { Spell, SpellMeta } from '@types'
+import { useListSpells, useDeleteSpell } from '@apis'
 
 const Spells = () => {
   const {

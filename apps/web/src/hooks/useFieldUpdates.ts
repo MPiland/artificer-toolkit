@@ -1,6 +1,6 @@
 import { z, ZodNumber, ZodString } from 'zod/v4'
-import { DIE_REGEX, ROLL_CONFIG_REGEX } from '~components/Form'
-import { useOptimizedSelector, useTypedFormStore } from '~store'
+import { DIE_REGEX, ROLL_CONFIG_REGEX } from '@components/Form'
+import { useOptimizedSelector, useTypedFormStore } from '@store'
 
 export const useFieldUpdates = () => {
   const store = useTypedFormStore()

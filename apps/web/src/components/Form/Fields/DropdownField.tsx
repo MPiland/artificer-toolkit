@@ -1,5 +1,5 @@
-import type { DropdownProps, DropdownOption } from '~components/Dropdown'
-import Dropdown from '~components/Dropdown'
+import type { DropdownProps, DropdownOption } from '@components/Dropdown'
+import Dropdown from '@components/Dropdown'
 import { useFieldContext } from './FieldContext'
 
 type DropdownFieldProps = {

@@ -1,10 +1,10 @@
 import { get, truncate } from 'lodash-es'
-import { useSystemData } from '~hooks'
+import { useSystemData } from '@hooks'
 import { useCallback } from 'react'
-import type { DetailConfig, DetailArray, DetailObject } from '~components/Detail'
-import type { SourceDataType } from '~types'
-import { extractLookupData, processArrayValue, getLabelsFromIds, getLabelFromId } from '~utils'
-import { useListClasses } from '~apis'
+import type { DetailConfig, DetailArray, DetailObject } from '@components/Detail'
+import type { SourceDataType } from '@types'
+import { extractLookupData, processArrayValue, getLabelsFromIds, getLabelFromId } from '@utils'
+import { useListClasses } from '@apis'
 
 const useSourceData = () => {
   const { system } = useSystemData()

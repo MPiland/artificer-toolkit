@@ -7,18 +7,18 @@ import type {
   HitpointRollInput,
   HitpointFixedInput,
   CharacterEquipmentObjectInput,
-  SystemAttribute,
-} from '~types'
-import { parseDiceRoll } from '~components/Dice'
-import { HPCalcMethods, Spells, Attributes } from '~enums'
+  SystemAttribute
+} from '@types'
+import { parseDiceRoll } from '@components/Dice'
+import { HPCalcMethods, Spells, Attributes } from '@enums'
 import { camelCase } from 'lodash-es'
 import { CamelCase } from 'type-fest'
 import {
   CharacterHitpointInputSchema,
   HitpointFixedInputSchema,
   HitpointRollInputSchema,
-  HitpointRollValuesInputSchema,
-} from '~schemas'
+  HitpointRollValuesInputSchema
+} from '@artificer-toolkit/shared/schemas'
 
 export const PWD_REGEX: RegExp = /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,20}$/
 export const USER_REGEX: RegExp = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -26,10 +26,12 @@ export const DEL_REGEX: RegExp = /^DELETE$/
 export const NUM_REGEX = /^(\d+)(, ?\d+)*(,)?$/
 export const CUR_REGEX = /^\d*\.?\d*$/
 export const DIE_REGEX = /^(\d+)d(4|6|8|10|12|20|100)?$/
-export const ROLL_CONFIG_REGEX =
-  /(?<quantity>\d+)?(?:d(?<die>(4|6|8|10|12|20|100))?)?(?<keep>(?<keepType>(?:kl|kh))?(?<keepCount>\d+))?(?<drop>(?<dropType>(?:dl|dh))?(?<dropCount>\d+))?(?<reroll>(?<rerollType>(?:ro|r))?(?<rerollCondition>[<>])?(?<rerollValue>\d+)?)?/
+export const ROLL_CONFIG_REGEX
+  = /(?<quantity>\d+)?(?:d(?<die>(4|6|8|10|12|20|100))?)?(?<keep>(?<keepType>(?:kl|kh))?(?<keepCount>\d+))?(?<drop>(?<dropType>(?:dl|dh))?(?<dropCount>\d+))?(?<reroll>(?<rerollType>(?:ro|r))?(?<rerollCondition>[<>])?(?<rerollValue>\d+)?)?/
 
-export const SECTION_STEPS = ['modifiers', 'spells', 'proficiencies', 'expertise', 'senses', 'feats'] as const
+export const SECTION_STEPS = [
+  'modifiers', 'spells', 'proficiencies', 'expertise', 'senses', 'feats'
+] as const
 
 function isNonNullable<T>(value: T): value is NonNullable<T> {
   return value !== null && value !== undefined
@@ -50,7 +52,7 @@ export const createFilterOptions = <T>(
     .map((item) => ({
       value: getValue(item),
       label: getLabel(item),
-      id: getId(item),
+      id: getId(item)
     }))
     .sort((a, b) => a.label.localeCompare(b.label))
 }
@@ -62,7 +64,7 @@ export const formSingularMap = {
   races: 'RaceInput',
   classes: 'ClassInput',
   backgrounds: 'BackgroundInput',
-  characters: 'CharacterInput',
+  characters: 'CharacterInput'
 } as const
 
 // This function now returns the key transformed into camelCase at runtime, while preserving type safety
@@ -128,7 +130,7 @@ export const calculateHitpoints = (formData?: CharacterInput | null, primaryClas
     method: formData?.hitpoint?.method || HPCalcMethods.MANUAL,
     temp: formData?.hitpoint?.temp || null,
     bonus: formData?.hitpoint?.bonus || null,
-    maxHitpoints: formData?.hitpoint?.maxHitpoints || null,
+    maxHitpoints: formData?.hitpoint?.maxHitpoints || null
   })
 
   const { die = null } = parseDiceRoll(primaryClass?.hitpoint?.dieConfig || '') || {}
@@ -153,7 +155,7 @@ export const calculateHitpoints = (formData?: CharacterInput | null, primaryClas
       values.push(
         HitpointRollValuesInputSchema.parse({
           level: i,
-          value: levelValue,
+          value: levelValue
         })
       )
     }
@@ -161,12 +163,12 @@ export const calculateHitpoints = (formData?: CharacterInput | null, primaryClas
     const rolled: HitpointRollInput = HitpointRollInputSchema.parse({
       values: [...(formData?.hitpoint?.rolled?.values || [])],
       total: formData?.hitpoint?.rolled?.total || null,
-      current: formData?.hitpoint?.rolled?.current || null,
+      current: formData?.hitpoint?.rolled?.current || null
     })
 
     const fixed: HitpointFixedInput = HitpointFixedInputSchema.parse({
       current: formData?.hitpoint?.fixed?.current || null,
-      total: formData?.hitpoint?.fixed?.total || null,
+      total: formData?.hitpoint?.fixed?.total || null
     })
 
     if (!rolled.values?.length) {
@@ -179,7 +181,7 @@ export const calculateHitpoints = (formData?: CharacterInput | null, primaryClas
         rolled.values.push(
           HitpointRollValuesInputSchema.parse({
             level: i,
-            value: levelValue,
+            value: levelValue
           })
         )
       }
@@ -239,7 +241,7 @@ export const getUpcastOptions = ({
   formAttributes,
   range,
   duration,
-  shape,
+  shape
 }: {
   systemAttributes: SystemAttribute[]
   formAttributes: string[] | undefined | null
@@ -247,9 +249,7 @@ export const getUpcastOptions = ({
   duration: string | undefined
   shape: string | undefined
 }) => {
-  const options = [
-    ...systemAttributes.filter((attribute) => attribute?.spells?.length && attribute?.spells.includes(Spells.UPCAST)),
-  ]
+  const options = [...systemAttributes.filter((attribute) => attribute?.spells?.length && attribute?.spells.includes(Spells.UPCAST))]
 
   if (!formAttributes?.some((attribute) => attribute === Attributes.DOES_DAMAGE)) {
     options.filter((option) => option.id !== Attributes.PRIMARY_DAMAGE)

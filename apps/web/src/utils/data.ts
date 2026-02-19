@@ -1,39 +1,39 @@
 import { truncate } from 'lodash-es'
-import type { MetaDataItem } from '~hooks'
+import type { MetaDataItem } from '@hooks'
 import type { CamelCase } from 'type-fest'
 import { camelCase } from 'lodash-es'
-import {  ModCats, ModSpellCats } from '~enums'
+import { ModCats, ModSpellCats } from '@types'
 
 export interface CharacterGrantRef {
-  featureId?: string; // FK → Feature.id
-  classId?: string; // FK → Class.id
-  raceId?: string; // FK → Race.id
-  ancestryId?: string; // FK → RaceAncestry.id (if chosen)
-  equipmentId?: string; // FK → Equipment.id
-  backgroundId?: string; // FK → Background.id
-  featId?: string; // FK → Feat.id
-  subfeatureOptionId?: string; // FK → FeatureOption.id (if from an option)
-  uiKey?: string; // Stable, deterministic UI key ("typename-parent-sIndex-i")
-  grantedAtLevel?: number; // int — level of the parent class/feature when granted
+  featureId?: string // FK → Feature.id
+  classId?: string // FK → Class.id
+  raceId?: string // FK → Race.id
+  ancestryId?: string // FK → RaceAncestry.id (if chosen)
+  equipmentId?: string // FK → Equipment.id
+  backgroundId?: string // FK → Background.id
+  featId?: string // FK → Feat.id
+  subfeatureOptionId?: string // FK → FeatureOption.id (if from an option)
+  uiKey?: string // Stable, deterministic UI key ("typename-parent-sIndex-i")
+  grantedAtLevel?: number // int — level of the parent class/feature when granted
 }
 
-export type CharacterGrantKind =
-  | 'modifier'
-  | 'sense'
-  | 'feat'
-  | 'proficiency'
-  | 'expertise'
-  | 'spell';
+export type CharacterGrantKind
+  = | 'modifier'
+    | 'sense'
+    | 'feat'
+    | 'proficiency'
+    | 'expertise'
+    | 'spell'
 
 export interface CharacterGrantView extends CharacterGrantRef {
-  kind: CharacterGrantKind;
-  id: string;        // subfeature id (e.g. subfeatureModifierId)
-  targetId?: string; // senseId, spellId, skillId, etc.
-  featureLevel?: number; // optional level granted
+  kind: CharacterGrantKind
+  id: string // subfeature id (e.g. subfeatureModifierId)
+  targetId?: string // senseId, spellId, skillId, etc.
+  featureLevel?: number // optional level granted
 }
 
 function buildCharacterGrants(character: Character): CharacterGrantView[] {
-  const grants: CharacterGrantView[] = [];
+  const grants: CharacterGrantView[] = []
 
   const add = <T extends CharacterGrantRef>(
     kind: CharacterGrantKind,
@@ -41,32 +41,31 @@ function buildCharacterGrants(character: Character): CharacterGrantView[] {
     getId: (item: T) => string,
     getTarget?: (item: T) => string | undefined
   ) => {
-    if (!array) return;
+    if (!array) return
     for (const item of array) {
       grants.push({
         kind,
         id: getId(item),
         targetId: getTarget?.(item),
         featureLevel: (item as any).featureLevel,
-        ...item,
-      });
+        ...item
+      })
     }
-  };
+  }
 
-  add('modifier', character.modifiers, m => m.subfeatureModifierId);
-  add('sense', character.senses, s => s.subfeatureSenseId, s => s.senseId);
-  add('feat', character.feats, f => f.subfeatureFeatId);
-  add('proficiency', character.proficiencies, p => p.subfeatureProficiencyId);
-  add('expertise', character.expertise, e => e.subfeatureExpertiseId);
+  add('modifier', character.modifiers, (m) => m.subfeatureModifierId)
+  add('sense', character.senses, (s) => s.subfeatureSenseId, (s) => s.senseId)
+  add('feat', character.feats, (f) => f.subfeatureFeatId)
+  add('proficiency', character.proficiencies, (p) => p.subfeatureProficiencyId)
+  add('expertise', character.expertise, (e) => e.subfeatureExpertiseId)
   // Optional:
-  add('spell', character.spellcasting?.additional, s => s.subfeatureSpellId, s => s.spellId);
+  add('spell', character.spellcasting?.additional, (s) => s.subfeatureSpellId, (s) => s.spellId)
 
-  return grants;
+  return grants
 }
 
-
 export const getModifierProperties = ({
-  category,
+  category
 }: {
   category: CamelCase<keyof typeof ModCats | keyof typeof ModSpellCats>
 }) => {
@@ -104,7 +103,7 @@ export const createArrayWithMethods = <
   T,
   M extends {
     [K in keyof M]: (this: T[] & M) => unknown
-  },
+  }
 >(
   array: T[],
   methods: M
@@ -161,10 +160,10 @@ export const processArrayValue = (value: unknown[], shouldTruncate: boolean, tru
     return null
   } else if (value.length === 1) {
     const stringValue = String(value[0])
-    return shouldTruncate ?
-        truncate(stringValue, {
+    return shouldTruncate
+      ? truncate(stringValue, {
           length: truncateNum || 0,
-          omission: '',
+          omission: ''
         })
       : stringValue
   } else {
@@ -173,15 +172,15 @@ export const processArrayValue = (value: unknown[], shouldTruncate: boolean, tru
 
     return sortedValues
       .map((nestedValue) => {
-        const nameValue =
-          typeof nestedValue === 'object' && nestedValue !== null && 'name' in nestedValue ?
-            (nestedValue.name as string) || String(nestedValue)
-          : String(nestedValue)
+        const nameValue
+          = typeof nestedValue === 'object' && nestedValue !== null && 'name' in nestedValue
+            ? (nestedValue.name as string) || String(nestedValue)
+            : String(nestedValue)
 
-        return shouldTruncate ?
-            truncate(nameValue, {
+        return shouldTruncate
+          ? truncate(nameValue, {
               length: truncateNum || 0,
-              omission: '',
+              omission: ''
             })
           : nameValue
       })
@@ -193,15 +192,15 @@ export const processArrayValue = (value: unknown[], shouldTruncate: boolean, tru
 export const extractLookupData = (
   rawData:
     | {
-        id: string
-        label: string
-        [key: string]: unknown
-      }
+      id: string
+      label: string
+      [key: string]: unknown
+    }
     | {
-        id: string
-        label: string
-        [key: string]: unknown
-      }[]
+      id: string
+      label: string
+      [key: string]: unknown
+    }[]
 ): LookupItem[] => {
   let lookupData: LookupItem[] = []
 
@@ -231,7 +230,7 @@ export const extractLookupData = (
 }
 
 // Process array of IDs to find matching labels from lookup data
-export const getLabelsFromIds = ({ ids, lookupData }: { ids: string[]; lookupData: LookupItem[] }): string | null => {
+export const getLabelsFromIds = ({ ids, lookupData }: { ids: string[], lookupData: LookupItem[] }): string | null => {
   const labelValues = ids
     .map((id) => {
       const lookupItem = lookupData.find((item) => item.id === id)
@@ -248,7 +247,7 @@ export const getLabelsFromIds = ({ ids, lookupData }: { ids: string[]; lookupDat
 export const getLabelFromId = ({
   id,
   lookupData,
-  labelKey,
+  labelKey
 }: {
   id: MetaDataItem['id']
   lookupData: LookupItem[]
@@ -262,22 +261,4 @@ export const getLabelFromId = ({
     return lookupItem.label
   }
   return null
-}
-
-export const convertTypenameToKindInput = (obj: unknown): unknown => {
-  if (Array.isArray(obj)) {
-    return obj.map(convertTypenameToKindInput)
-  }
-  if (obj && typeof obj === 'object') {
-    const result: Record<string, unknown> = {}
-    for (const key in obj) {
-      if (key === '__typename') {
-        result['__kind'] = (obj as Record<string, unknown>)[key] + 'Input'
-      } else {
-        result[key] = convertTypenameToKindInput((obj as Record<string, unknown>)[key])
-      }
-    }
-    return result
-  }
-  return obj
 }

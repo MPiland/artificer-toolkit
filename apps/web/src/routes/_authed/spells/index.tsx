@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import Spells from '../../../domains/spells/Spells'
-import { fetchSpells } from '~apis'
-import Loading from '~components/Loading/Loading'
+import { fetchSpells } from '@apis'
+import Loading from '@components/Loading/Loading'
 import { Modal } from '@mantine/core'
 
 export const Route = createFileRoute('/_authed/spells/')({

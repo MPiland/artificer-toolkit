@@ -1,29 +1,58 @@
 {
-  "name": "@artificer/shared",
-  "private": true,
+  "name": "@artificer-toolkit/shared",
   "version": "0.0.1",
+  "private": true,
   "type": "module",
-  "types": "dist/index.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/types/index.js"
+    },
+    "./schemas": {
+      "types": "./dist/schemas/index.d.ts",
+      "default": "./dist/schemas/index.js"
+    }
+  },
+  "imports": {
+    "#core": {
+      "types": "./dist/barrels/core/index.d.ts",
+      "default": "./dist/barrels/core/index.js"
+    },
+    "#authored": {
+      "types": "./dist/barrels/authored/index.d.ts",
+      "default": "./dist/barrels/authored/index.js"
+    },
+    "#compiler": {
+      "types": "./dist/barrels/compiler/index.d.ts",
+      "default": "./dist/barrels/compiler/index.js"
+    },
+    "#util": {
+      "types": "./dist/util/index.d.ts",
+      "default": "./dist/util/index.js"
+    },
+    "#maps": {
+      "types": "./dist/barrels/maps/index.d.ts",
+      "default": "./dist/barrels/maps/index.js"
+    }
+  },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "clean": "rimraf dist",
+    "build": "tsc -p tsconfig.build.json",
     "generate:zod": "ts-to-zod --config zod.config.js \"src/types/**/*.ts\""
   },
   "dependencies": {
-    "@artificer/functions": "workspace:*",
-    "ts-to-zod": "^5.0.1"
+    "@artificer-toolkit/functions": "workspace:*",
+    "@artificer-toolkit/db": "workspace:*"
   },
   "devDependencies": {
-    "typescript": "^5.9.3"
-  },
-  "exports": {
-    "./types": {
-      "types": "./dist/types/index.d.ts"
-    },
-    "./types/*": {
-      "types": "./dist/types/*.d.ts"
-    },
-    "./zod/*": {
-      "types": "./dist/zod/*"
-    }
+    "ts-to-zod": "^5.1.0",
+    "type-fest": "^5.4.3",
+    "zod": "^4.1.13"
   }
 }

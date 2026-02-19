@@ -19,7 +19,6 @@ export default [
       globals: globals.node,
     },
     rules: {
-      'no-unused-vars': 'off',
       '@stylistic/newline-per-chained-call': [
         'error',
         { ignoreChainWithDepth: 2 },
@@ -27,22 +26,32 @@ export default [
       '@stylistic/implicit-arrow-linebreak': ['error', 'beside'],
       '@stylistic/arrow-parens': ['error', 'always'],
       '@stylistic/brace-style': ['error', '1tbs'],
-      '@stylistic/array-bracket-newline': ['error', { minItems: 1 }],
+      '@stylistic/array-bracket-newline': ['error', { minItems: 4, multiline: true }],
       '@stylistic/array-element-newline': [
         'error',
         {
           ArrayExpression: 'consistent',
-          ArrayPattern: { minItems: 2, multiline: true },
+          ArrayPattern: { minItems: 4, multiline: true },
         },
       ],
       '@stylistic/function-call-argument-newline': ['error', 'consistent'],
       '@stylistic/function-paren-newline': ['error', 'multiline-arguments'],
       '@stylistic/comma-dangle': ['error', 'never'],
       '@stylistic/multiline-ternary': ['error', 'always-multiline'],
+      '@stylistic/jsx-quotes': ['error', 'prefer-single'],
       '@typescript-eslint/no-unused-vars': [
         'warn',
-        { argsIgnorePattern: '^_' },
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
+    },
+  },
+  {
+    files: ['**/zod.config.cjs'],
+    env: {
+      node: true,
+    },
+    rules: {
+      'no-undef': 'off',
     },
   },
 ]

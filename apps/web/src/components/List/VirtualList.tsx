@@ -1,7 +1,7 @@
 import type { FooterConfig } from './List.types'
 import { Fragment, memo } from 'react'
-import type { ListItemType, MetaDataType } from '~types'
-import { type ListNavigationResult } from '~hooks'
+import type { ListItemType, MetaDataType } from '@types'
+import { type ListNavigationResult } from '@hooks'
 import type { UseMutationResult } from '@tanstack/react-query'
 import VirtualItem from './VirtualItem'
 

@@ -1,19 +1,19 @@
 import { ReactElement, ReactNode, useState } from 'react'
 import { ModalContext } from './ModalContext'
-import Alert from '~components/Alert'
-import Delete from '~components/Delete'
-import Copy from '~components/Copy'
+import Alert from '@components/Alert'
+import Delete from '@components/Delete'
+import Copy from '@components/Copy'
 import type {
   ListItemType,
   BackgroundListItem,
   ClassListItem,
   EquipmentListItem,
   FeatListItem,
-  RaceListItem,
-} from '~types'
-import { AddSection, SECTION_STEPS } from '~components/Form'
+  RaceListItem
+} from '@artificer-toolkit/shared'
+import { AddSection, SECTION_STEPS } from '@components/Form'
 import Loading from '../Loading'
-import Hitpoints from '../Hitpoints/Hitpoints'
+import Hitpoints from '../../domains/characters/Hitpoints/Hitpoints'
 import { Modal } from '@mantine/core'
 
 type ModalType = 'alert' | 'delete' | 'copy' | 'addSection' | 'loading' | 'hitpoints'
@@ -36,14 +36,14 @@ export interface CopyModalProps {
   form: string
   data:
     | {
-        id: string
-        label: string
-        raceIds?: string[]
-        classIds?: string[]
-        equipmentIds?: string[]
-        backgroundIds?: string[]
-        featIds?: string[]
-      }[]
+      id: string
+      label: string
+      raceIds?: string[]
+      classIds?: string[]
+      equipmentIds?: string[]
+      backgroundIds?: string[]
+      featIds?: string[]
+    }[]
     | undefined
   onCopy: (arg: unknown) => void
   filters?: {
@@ -68,13 +68,13 @@ export interface HitpointModalProps {
   onCancel?: () => void
 }
 
-export type ModalConfig =
-  | { type: 'alert'; props: AlertModalProps }
-  | { type: 'delete'; props: DeleteModalProps }
-  | { type: 'copy'; props: CopyModalProps }
-  | { type: 'addSection'; props: AddSectionModalProps }
-  | { type: 'loading'; props: LoadingModalProps }
-  | { type: 'hitpoints'; props: HitpointModalProps }
+export type ModalConfig
+  = | { type: 'alert', props: AlertModalProps }
+    | { type: 'delete', props: DeleteModalProps }
+    | { type: 'copy', props: CopyModalProps }
+    | { type: 'addSection', props: AddSectionModalProps }
+    | { type: 'loading', props: LoadingModalProps }
+    | { type: 'hitpoints', props: HitpointModalProps }
 
 export type ShowModal<T> = {
   type: T
@@ -113,7 +113,7 @@ const useModalOptions = () => {
     copy: <Copy />,
     addSection: <AddSection />,
     loading: <Loading />,
-    hitpoints: <Hitpoints />,
+    hitpoints: <Hitpoints />
   }
 
   return {
@@ -128,7 +128,7 @@ const useModalOptions = () => {
     title,
     setTitle,
     withCloseButton,
-    setWithCloseButton,
+    setWithCloseButton
   }
 }
 
@@ -162,4 +162,4 @@ const ModalProvider = ({ children }: { children: ReactNode }) => {
 
 export default ModalProvider
 
-export type ModalOptionsType = ReturnType<typeof useModalOptions>
+export type ModalOptions = ReturnType<typeof useModalOptions>

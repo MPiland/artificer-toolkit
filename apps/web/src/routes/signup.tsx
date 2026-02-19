@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { Auth } from '../domains/auth/Auth'
-import { useAuth } from '~hooks'
+import { useAuth } from '@hooks'
 
 export const Route = createFileRoute('/signup')({
   component: SignupComp

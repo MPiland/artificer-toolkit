@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
-import RaceForm from '../../../../domains/races/RaceForm'
-import { fetchRace } from '~apis'
-import Loading from '~components/Loading/Loading'
+import RaceForm from '../../../../domains/races/form/RaceForm'
+import { fetchRace } from '@apis'
+import Loading from '@components/Loading/Loading'
 import { Modal } from '@mantine/core'
 
 export const Route = createFileRoute('/_authed/races/$action/$_raceId')({
@@ -15,9 +15,9 @@ export const Route = createFileRoute('/_authed/races/$action/$_raceId')({
     }
   },
   pendingComponent: () => (
-    <Modal withCloseButton={false} opened onClose={() => {}} centered size='auto'>
+    <Modal withCloseButton={false} opened onClose={() => {}} centered size="auto">
       <Loading />
     </Modal>
   ),
-  component: RaceForm,
+  component: RaceForm
 })

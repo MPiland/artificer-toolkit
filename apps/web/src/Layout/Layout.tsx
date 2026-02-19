@@ -2,19 +2,25 @@ import { useDisclosure, useMediaQuery } from '@mantine/hooks'
 import { AppShell, Modal, useComputedColorScheme, useMantineColorScheme } from '@mantine/core'
 import { Outlet } from '@tanstack/react-router'
 import { use, Suspense, useEffect } from 'react'
-import { AuthContext } from '../auth/AuthContext'
+import { AuthContext } from '@auth'
 import * as layout from './Layout.css'
 import * as navbar from './Navbar/Navbar.css'
-import Loading from '~components/Loading'
+import Loading from '@components/Loading'
 import clsx from 'clsx'
-import { ModalContext } from '~components/Modal'
+import { ModalContext } from '@components/Modal'
 import AuthNavbar from './Navbar/AuthNavbar'
 import UnAuthNavbar from './Navbar/UnAuthNavbar'
 import Header from './Header/Header'
 
 const Layout = () => {
-  const [mobileOpened, { toggle: toggleMobile }] = useDisclosure()
-  const [desktopOpened, { toggle: toggleDesktop }] = useDisclosure(true)
+  const [
+    mobileOpened,
+    { toggle: toggleMobile }
+  ] = useDisclosure()
+  const [
+    desktopOpened,
+    { toggle: toggleDesktop }
+  ] = useDisclosure(true)
   const { setColorScheme } = useMantineColorScheme()
   const computedColorScheme = useComputedColorScheme('light', { getInitialValueInEffect: true })
   const { showModal, hideModal } = use(ModalContext)
@@ -26,13 +32,15 @@ const Layout = () => {
   useEffect(() => {
     if (isLoading) {
       showModal({
-        type: 'loading',
+        type: 'loading'
       })
     }
     if (!isLoading) {
       hideModal()
     }
-  }, [hideModal, showModal, isLoading])
+  }, [
+    hideModal, showModal, isLoading
+  ])
 
   const toggleColorScheme = () => {
     setColorScheme(computedColorScheme === 'light' ? 'dark' : 'light')
@@ -45,7 +53,9 @@ const Layout = () => {
     if (desktopOpened && (!lg || !signedIn)) {
       toggleDesktop()
     }
-  }, [lg, mobileOpened, desktopOpened, toggleDesktop, toggleMobile, signedIn])
+  }, [
+    lg, mobileOpened, desktopOpened, toggleDesktop, toggleMobile, signedIn
+  ])
 
   return (
     <AppShell
@@ -54,10 +64,10 @@ const Layout = () => {
       navbar={{
         width: '16rem',
         breakpoint: 'xs',
-        collapsed: { mobile: !mobileOpened, desktop: !desktopOpened },
+        collapsed: { mobile: !mobileOpened, desktop: !desktopOpened }
       }}
-      padding='md'
-      id='app-shell'
+      padding="md"
+      id="app-shell"
       className={clsx(layout.base, { ['unAuth']: !signedIn }, { ['collapsed']: !desktopOpened && !mobileOpened })}
     >
       <Header
@@ -70,24 +80,26 @@ const Layout = () => {
         signedIn={signedIn}
       />
       <AppShell.Navbar className={navbar.base}>
-        {signedIn ?
-          <AuthNavbar
-            toggleMobile={toggleMobile}
-            mobileOpened={mobileOpened}
-            desktopOpened={desktopOpened}
-            authUser={authUser}
-            toggleColorScheme={toggleColorScheme}
-            lg={lg ?? false}
-          />
-        : <UnAuthNavbar toggleMobile={toggleMobile} mobileOpened={mobileOpened} />}
+        {signedIn
+          ? (
+              <AuthNavbar
+                toggleMobile={toggleMobile}
+                mobileOpened={mobileOpened}
+                desktopOpened={desktopOpened}
+                authUser={authUser}
+                toggleColorScheme={toggleColorScheme}
+                lg={lg ?? false}
+              />
+            )
+          : <UnAuthNavbar toggleMobile={toggleMobile} mobileOpened={mobileOpened} />}
       </AppShell.Navbar>
       <AppShell.Main className={layout.main}>
         <Suspense
-          fallback={
-            <Modal opened onClose={() => {}} centered size='auto' withCloseButton={false}>
+          fallback={(
+            <Modal opened onClose={() => {}} centered size="auto" withCloseButton={false}>
               <Loading />
             </Modal>
-          }
+          )}
         >
           <></>
           <Outlet />

@@ -1,7 +1,7 @@
-import List, { FooterConfig } from '~components/List'
-import { useDeleteRace, useListRaces } from '~apis'
-import ICategory from '~assets/Icons/ICategory'
-import type { RaceMeta } from '~types'
+import List, { FooterConfig } from '@components/List'
+import { useDeleteRace, useListRaces } from '@apis'
+import ICategory from '@assets/Icons/ICategory'
+import type { RaceMeta } from '@types'
 
 const Races = () => {
   const {

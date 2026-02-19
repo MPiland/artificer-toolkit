@@ -1,2 +1,2 @@
-export type { Database as SupabaseDatabase } from './database'
-export * from './types'
+export type { Database as SupabaseDatabase } from './supabase.database.js'
+export * from './types.js'

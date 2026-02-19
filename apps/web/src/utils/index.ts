@@ -9,8 +9,6 @@ export {
   getLabelsFromIds,
   getLabelFromId,
   convertTypenameToKindInput,
-  getModifierProperties,
+  getModifierProperties
 } from './data'
 export { default as domToReact } from './reactParser/reactParser'
-export * from './supabase'
-

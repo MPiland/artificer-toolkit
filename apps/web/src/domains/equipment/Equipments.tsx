@@ -1,12 +1,12 @@
-import { useDeleteEquipment, useListEquipment } from '~apis'
-import IFlame from '~assets/Icons/IFlame'
-import ICategory from '~assets/Icons/ICategory'
-import IProps from '~assets/Icons/IProps'
-import IShield from '~assets/Icons/IShield'
-import IWeight from '~assets/Icons/IWeight'
-import IDollar from '~assets/Icons/IDollar'
-import type { EquipmentMeta } from '~types'
-import List, { type FooterConfig } from '~components/List'
+import { useDeleteEquipment, useListEquipment } from '@apis'
+import IFlame from '@assets/Icons/IFlame'
+import ICategory from '@assets/Icons/ICategory'
+import IProps from '@assets/Icons/IProps'
+import IShield from '@assets/Icons/IShield'
+import IWeight from '@assets/Icons/IWeight'
+import IDollar from '@assets/Icons/IDollar'
+import type { EquipmentMeta } from '@types'
+import List, { type FooterConfig } from '@components/List'
 
 const Equipments = () => {
   const {

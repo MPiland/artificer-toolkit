@@ -1,10 +1,10 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { ResetPassword } from '../domains/auth/ResetPassword'
-import { resetPasswordFn } from '~server/auth'
+import { resetPasswordFn } from '@server/auth'
 import { useServerFn } from '@tanstack/react-start'
 import { notifications } from '@mantine/notifications'
-import { getSupabaseServerClient } from '~utils'
-import { useMutation } from '~hooks'
+import { getSupabaseServerClient } from '@utils'
+import { useMutation } from '@hooks'
 
 export const Route = createFileRoute('/reset-password')({
   beforeLoad: async () => {

@@ -1,4 +1,4 @@
-import { getSupabaseServerClient } from '~utils'
+import { getSupabaseServerClient } from '@utils'
 import { createServerFn } from '@tanstack/react-start'
 
 export const resendCodeFn = createServerFn({ method: 'POST' })

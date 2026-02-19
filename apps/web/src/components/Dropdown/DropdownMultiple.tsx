@@ -9,7 +9,7 @@ import clsx from 'clsx'
 type DropdownMultipleProps = {
   value: string[]
   handleValueSelect: (optionId: string) => void
-  activeLabels: { id: string; label: string | ReactNode }[]
+  activeLabels: { id: string, label: string | ReactNode }[]
   toggleDropdown: () => void
   closeDropdown: () => void
   error?: string
@@ -27,18 +27,18 @@ const DropdownMultiple = ({
   toggleDropdown,
   closeDropdown,
   error,
-  onBlur,
+  onBlur
 }: DropdownMultipleProps) => {
-  const labels =
-    activeLabels?.length ?
-      activeLabels
-        ?.slice(0, MAX_DISPLAYED_VALUES === value.length ? MAX_DISPLAYED_VALUES : MAX_DISPLAYED_VALUES - 1)
-        .map((item) => (
-          <Pill key={`pill-${item.id}`} withRemoveButton onRemove={() => handleValueSelect(item.id)}>
-            {item.label}
-          </Pill>
-        ))
-    : []
+  const labels
+    = activeLabels?.length
+      ? activeLabels
+          ?.slice(0, MAX_DISPLAYED_VALUES === value.length ? MAX_DISPLAYED_VALUES : MAX_DISPLAYED_VALUES - 1)
+          .map((item) => (
+            <Pill key={`pill-${item.id}`} withRemoveButton onRemove={() => handleValueSelect(item.id)}>
+              {item.label}
+            </Pill>
+          ))
+      : []
 
   return (
     <Combobox.DropdownTarget>
@@ -47,7 +47,7 @@ const DropdownMultiple = ({
           wrapper: clsx(wrapper),
           label: input_label,
           input: input,
-          root: base,
+          root: base
         }}
         label={label}
         required={required}
@@ -59,14 +59,21 @@ const DropdownMultiple = ({
         error={error}
       >
         <Pill.Group>
-          {labels?.length ?
-            <>
-              {labels}
-              {activeLabels.length > MAX_DISPLAYED_VALUES && (
-                <Pill>+{activeLabels.length - (MAX_DISPLAYED_VALUES - 1)} more</Pill>
-              )}
-            </>
-          : <Input.Placeholder>{placeholder}</Input.Placeholder>}
+          {labels?.length
+            ? (
+                <>
+                  {labels}
+                  {activeLabels.length > MAX_DISPLAYED_VALUES && (
+                    <Pill>
+                      +
+                      {activeLabels.length - (MAX_DISPLAYED_VALUES - 1)}
+                      {' '}
+                      more
+                    </Pill>
+                  )}
+                </>
+              )
+            : <Input.Placeholder>{placeholder}</Input.Placeholder>}
           <Combobox.EventsTarget>
             <PillsInput.Field
               type='hidden'

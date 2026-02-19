@@ -11,12 +11,12 @@ import {
   PasswordInput,
   Alert,
 } from '@mantine/core'
-import Link from '~components/Link'
+import Link from '@components/Link'
 import { auth_container, auth_link, auth_subtitle, auth_title, auth_wrapper, social_icon } from './Auth.css'
-import IGoogle from '~assets/Icons/IGoogle'
-import ITwitter from '~assets/Icons/ITwitter'
+import IGoogle from '@assets/Icons/IGoogle'
+import ITwitter from '@assets/Icons/ITwitter'
 import type { ReactNode } from 'react'
-import { useFormField } from '~hooks'
+import { useFormField } from '@hooks'
 import { Info } from 'lucide-react'
 
 function AuthHint({ message }: { message: ReactNode }) {

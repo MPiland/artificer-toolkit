@@ -1,2 +1,2 @@
-export * from './utils'
-export * from './backgrounds'
+export * from './utils/index.js'
+export * from './queries/index.js'

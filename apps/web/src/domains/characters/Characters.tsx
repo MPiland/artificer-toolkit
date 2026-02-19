@@ -1,5 +1,5 @@
-import List from '~components/List'
-import { useDeleteCharacter, useListCharacters } from '~apis'
+import List from '@components/List'
+import { useDeleteCharacter, useListCharacters } from '@apis'
 
 const Characters = () => {
   const characters = useListCharacters()

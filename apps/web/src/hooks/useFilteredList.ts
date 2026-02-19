@@ -1,8 +1,8 @@
 import { useMemo } from 'react'
 import { get } from 'lodash-es'
-import { useFilterStore, type StoreFormType } from '~store'
-import type { ListItemType, MetaDataType } from '~types'
-import type { FilterConfig, FilterDataType } from '~components/List'
+import { useFilterStore, type StoreFormType } from '@store'
+import type { ListItemType, MetaDataType } from '@types'
+import type { FilterConfig, FilterDataType } from '@components/List'
 import type { MetaDataItem } from './useMetaData'
 
 interface UseFilteredListProps<T extends FilterDataType, K extends MetaDataType> {

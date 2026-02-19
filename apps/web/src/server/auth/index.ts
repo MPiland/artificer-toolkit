@@ -1,3 +1,3 @@
-export * from './resendCodeFn.ts'
-export * from './resetPasswordFn.ts'
-export * from './logoutFn.ts'
+export * from './resendCodeFn'
+export * from './resetPasswordFn'
+export * from './logoutFn'

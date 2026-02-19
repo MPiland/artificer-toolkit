@@ -1,1 +1,2 @@
-export * from './handleRequest'
+export * from './handleRequest.js'
+export * from './assertNever.js'

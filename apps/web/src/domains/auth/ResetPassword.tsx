@@ -1,8 +1,8 @@
 import { Box, Center, Container, Group, Paper, Text, Title, Stack, Button, PasswordInput } from '@mantine/core'
 import { ArrowLeft } from 'lucide-react'
-import Link from '~components/Link'
+import Link from '@components/Link'
 import { auth_container, auth_title, fp_controls, fp_control, fp_arrow, auth_wrapper, auth_subtitle } from './Auth.css'
-import { useFormField } from '~hooks'
+import { useFormField } from '@hooks'
 
 export function ResetPassword({
   status,

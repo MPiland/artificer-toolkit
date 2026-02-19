@@ -1,4 +1,4 @@
-import { Actions, Attributes, ChargesLimits, ChargesResets, EquipCats, EquipProps, Prerequisites } from '~enums'
+import { Actions, Attributes, ChargesLimits, ChargesResets, EquipCats, EquipProps, Prerequisites } from '@enums'
 import type { ActionGroupInput, ActionGroup } from 'gql/types'
 
 const useEnumChecks = () => {

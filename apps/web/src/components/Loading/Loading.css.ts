@@ -1,6 +1,6 @@
 import { style } from '@vanilla-extract/css'
-import { app } from '~css/layers.css'
-import { space } from '~css/size.css'
+import { app } from '@css/layers.css'
+import { space } from '@css/size.css'
 
 export const loading_wrapper = style({
   '@layer': {

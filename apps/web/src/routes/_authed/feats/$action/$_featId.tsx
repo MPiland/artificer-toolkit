@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
-import FeatForm from '../../../../domains/feats/FeatForm'
-import { fetchFeat } from '~apis'
-import Loading from '~components/Loading/Loading'
+import FeatForm from '../../../../domains/feats/form/FeatForm'
+import { fetchFeat } from '@apis'
+import Loading from '@components/Loading/Loading'
 import { Modal } from '@mantine/core'
 
 export const Route = createFileRoute('/_authed/feats/$action/$_featId')({
@@ -15,9 +15,9 @@ export const Route = createFileRoute('/_authed/feats/$action/$_featId')({
     }
   },
   pendingComponent: () => (
-    <Modal withCloseButton={false} opened onClose={() => {}} centered size='auto'>
+    <Modal withCloseButton={false} opened onClose={() => {}} centered size="auto">
       <Loading />
     </Modal>
   ),
-  component: FeatForm,
+  component: FeatForm
 })

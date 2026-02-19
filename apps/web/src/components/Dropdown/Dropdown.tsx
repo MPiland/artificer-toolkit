@@ -8,6 +8,8 @@ import DropdownSingle from './DropdownSingle'
 import { Check } from 'lucide-react'
 import { ScrollArea } from '@mantine/core'
 
+// TODO: Update to use the ALL code as a custom function instead.
+
 const Dropdown = ({
   label,
   required,
@@ -19,14 +21,14 @@ const Dropdown = ({
   all = true,
   disableRemove = false,
   error,
-  onBlur,
+  onBlur
 }: DropdownProps) => {
   const [settingOption, setSettingOption] = useState<boolean>(false)
   const [selectedOptions, setSelectedOptions] = useState<string[] | string | null | undefined>(null)
 
   const combobox = useCombobox({
     onDropdownClose: () => combobox.resetSelectedOption(),
-    onDropdownOpen: () => combobox.updateSelectedOptionIndex('active'),
+    onDropdownOpen: () => combobox.updateSelectedOptionIndex('active')
   })
 
   const filteredArray = useCallback(() => {
@@ -92,7 +94,9 @@ const Dropdown = ({
         setSelectedOptions(value)
       }
     }
-  }, [value, selectedOptions, settingOption, options?.length, filteredOptions?.length])
+  }, [
+    value, selectedOptions, settingOption, options?.length, filteredOptions?.length
+  ])
 
   const activeOptions = useMemo(() => {
     if (!selectedOptions) return null
@@ -103,8 +107,8 @@ const Dropdown = ({
     return selectedOptions
   }, [filteredOptions, selectedOptions])
 
-  const activeLabels: { id: string; label: string | ReactNode } | { id: string; label: string | ReactNode }[] =
-    useMemo(() => {
+  const activeLabels: { id: string, label: string | ReactNode } | { id: string, label: string | ReactNode }[]
+    = useMemo(() => {
       if (!activeOptions || !filteredOptions?.length) return []
       if (Array.isArray(activeOptions)) {
         return activeOptions.map((id) => {
@@ -189,31 +193,34 @@ const Dropdown = ({
       width='target'
       offset={8}
     >
-      {multiselect ?
-        <DropdownMultiple
-          value={(value as string[]) || []}
-          placeholder={placeholder}
-          handleValueSelect={handleValueSelect}
-          activeLabels={(activeLabels as { id: string; label: string | ReactNode }[]) || []}
-          label={label}
-          required={required}
-          toggleDropdown={combobox.toggleDropdown}
-          closeDropdown={combobox.closeDropdown}
-          error={error}
-          onBlur={onBlur}
-        />
-      : <DropdownSingle
-          value={value as string}
-          placeholder={placeholder}
-          handleRemoveValue={handleValueRemove}
-          activeLabel={activeLabels as { id: string; label: string | ReactNode }}
-          label={label}
-          required={required}
-          toggleDropdown={combobox.toggleDropdown}
-          error={error}
-          onBlur={onBlur}
-        />
-      }
+      {multiselect
+        ? (
+            <DropdownMultiple
+              value={(value as string[]) || []}
+              placeholder={placeholder}
+              handleValueSelect={handleValueSelect}
+              activeLabels={(activeLabels as { id: string, label: string | ReactNode }[]) || []}
+              label={label}
+              required={required}
+              toggleDropdown={combobox.toggleDropdown}
+              closeDropdown={combobox.closeDropdown}
+              error={error}
+              onBlur={onBlur}
+            />
+          )
+        : (
+            <DropdownSingle
+              value={value as string}
+              placeholder={placeholder}
+              handleRemoveValue={handleValueRemove}
+              activeLabel={activeLabels as { id: string, label: string | ReactNode }}
+              label={label}
+              required={required}
+              toggleDropdown={combobox.toggleDropdown}
+              error={error}
+              onBlur={onBlur}
+            />
+          )}
 
       <Combobox.Dropdown>
         <Combobox.Options>

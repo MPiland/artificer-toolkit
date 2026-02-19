@@ -1,0 +1,265 @@
+import {
+  type DurationAuthored,
+  type RangeAuthored,
+  type ShapeAuthored
+} from '@artificer-toolkit/shared'
+import type { SupabaseDatabase, DBLike } from '#types'
+import { assertNever } from '@artificer-toolkit/functions'
+
+export function mapRangeToRow(
+  json_data: RangeAuthored,
+  characteristic_id: string
+): Omit<
+  SupabaseDatabase['public']['Tables']['characteristic_ranges']['Row'],
+  'created_at' | 'updated_at'
+> {
+  switch (json_data.rangeKind) {
+    case 'DISTANCE':
+      return {
+        characteristic_id,
+        kind: 'DISTANCE',
+        min: json_data.min,
+        max: json_data.max || null,
+        unit_code: json_data.unit
+      }
+
+    case 'SELF':
+    case 'SIGHT':
+    case 'TOUCH':
+    case 'UNLIMITED':
+      return {
+        characteristic_id,
+        kind: json_data.rangeKind,
+        min: null,
+        max: null,
+        unit_code: null
+      }
+
+    default:
+      assertNever(json_data)
+  }
+}
+
+export async function upsertRange(db: DBLike, json_data: RangeAuthored) {
+  const characteristic = await db
+    .insertInto('characteristics')
+    .values({
+      id: json_data.id,
+      code: 'RANGE'
+    })
+    .returning('id')
+    .executeTakeFirstOrThrow()
+
+  const row = mapRangeToRow(json_data, characteristic.id)
+
+  await db
+    .insertInto('characteristic_ranges')
+    .values(row)
+    .onConflict((oc) => oc.column('characteristic_id')
+      .doUpdateSet((eb) => ({
+        kind: eb.ref('excluded.kind'),
+        min: eb.ref('excluded.min'),
+        max: eb.ref('excluded.max'),
+        unit_code: eb.ref('excluded.unit_code')
+      })))
+    .returning('characteristic_id')
+    .executeTakeFirstOrThrow()
+}
+
+export function mapDurationToRow(
+  json_data: DurationAuthored,
+  characteristic_id: string
+): Omit<
+  SupabaseDatabase['public']['Tables']['characteristic_durations']['Row'],
+  'created_at' | 'updated_at'
+> {
+  switch (json_data.durationKind) {
+    case 'INSTANTANEOUS':
+      return {
+        characteristic_id,
+        kind: 'INSTANTANEOUS',
+        amount: null
+      }
+
+    case 'DAY':
+    case 'HOUR':
+    case 'MINUTE':
+    case 'MONTH':
+    case 'ROUND':
+    case 'TURN':
+    case 'WEEK':
+    case 'YEAR':
+      return {
+        characteristic_id,
+        kind: json_data.durationKind,
+        amount: json_data.amount ?? null
+      }
+
+    default:
+      throw new Error('Invalid duration kind')
+  }
+}
+
+export async function upsertDuration(db: DBLike, json_data: DurationAuthored) {
+  const characteristic = await db
+    .insertInto('characteristics')
+    .values({
+      id: json_data.id,
+      code: 'DURATION'
+    })
+    .onConflict((oc) => oc.column('id').doNothing())
+    .returning('id')
+    .executeTakeFirstOrThrow()
+
+  const row = mapDurationToRow(json_data, characteristic.id)
+
+  await db
+    .insertInto('characteristic_durations')
+    .values(row)
+    .onConflict((oc) => oc.column('characteristic_id')
+      .doUpdateSet((eb) => ({
+        kind: eb.ref('excluded.kind'),
+        amount: eb.ref('excluded.amount')
+      })))
+    .returning('characteristic_id')
+    .executeTakeFirstOrThrow()
+}
+
+export function mapShapeDimensionsToRow(
+  json_data: ShapeAuthored,
+  characteristic_id: string
+): Omit<
+  SupabaseDatabase['public']['Tables']['characteristic_shape_dimensions']['Row'],
+  'created_at' | 'updated_at'
+>[] {
+  switch (json_data.shapeKind) {
+    case 'LINE':
+    case 'CONE':
+      return [
+        {
+          characteristic_id,
+          dimension: 'LENGTH',
+          amount: json_data.length.amount,
+          unit_code: json_data.length.unit
+        }
+      ]
+
+    case 'CUBE':
+      return [
+        {
+          characteristic_id,
+          dimension: 'EDGE_LENGTH',
+          amount: json_data.edgeLength.amount,
+          unit_code: json_data.edgeLength.unit
+        }
+      ]
+    case 'CYLINDER': {
+      const array = [
+        {
+          characteristic_id,
+          dimension: 'RADIUS',
+          amount: json_data.radius.amount,
+          unit_code: json_data.radius.unit
+        }
+      ]
+
+      if (json_data.height) {
+        array.push({
+          characteristic_id,
+          dimension: 'HEIGHT',
+          amount: json_data.height.amount,
+          unit_code: json_data.height.unit
+        })
+      }
+      return array
+    }
+
+    case 'CIRCLE':
+    case 'SPHERE':
+    case 'DOME':
+      return [
+        {
+          characteristic_id,
+          dimension: 'RADIUS',
+          amount: json_data.radius.amount,
+          unit_code: json_data.radius.unit
+        }
+      ]
+    case 'WALL': {
+      const array = [
+        {
+          characteristic_id,
+          dimension: 'LENGTH',
+          amount: json_data.length.amount,
+          unit_code: json_data.length.unit
+        },
+        {
+          characteristic_id,
+          dimension: 'HEIGHT',
+          amount: json_data.height.amount,
+          unit_code: json_data.height.unit
+        }
+      ]
+
+      if (json_data.thickness) {
+        array.push({
+          characteristic_id,
+          dimension: 'THICKNESS',
+          amount: json_data.thickness.amount,
+          unit_code: json_data.thickness.unit
+        })
+      }
+      return array
+    }
+
+    default:
+      assertNever(json_data)
+  }
+}
+
+export async function upsertShape(db: DBLike, json_data: ShapeAuthored) {
+  const characteristic = await db
+    .insertInto('characteristics')
+    .values({
+      id: json_data.id,
+      code: 'SHAPE'
+    })
+    .onConflict((oc) => oc.column('id').doNothing())
+    .returning('id')
+    .executeTakeFirstOrThrow()
+
+  await db
+    .insertInto('characteristic_shapes')
+    .values({
+      characteristic_id: characteristic.id,
+      kind: json_data.shapeKind
+    })
+    .onConflict((oc) => oc.column('characteristic_id')
+      .doUpdateSet((eb) => ({
+        kind: eb.ref('excluded.kind')
+      })))
+    .returning('characteristic_id')
+    .executeTakeFirstOrThrow()
+
+  const rows = mapShapeDimensionsToRow(json_data, characteristic.id)
+  const dimensions = rows.map((r) => r.dimension)
+
+  await db
+    .deleteFrom('characteristic_shape_dimensions')
+    .where((eb) => eb.and([
+      eb('characteristic_id', '=', characteristic.id),
+      eb('dimension', 'not in', dimensions)
+    ]))
+    .execute()
+
+  await db
+    .insertInto('characteristic_shape_dimensions')
+    .values(rows)
+    .onConflict((oc) => oc.columns(['characteristic_id', 'dimension'])
+      .doUpdateSet((eb) => ({
+        amount: eb.ref('excluded.amount'),
+        unit_code: eb.ref('excluded.unit_code')
+      })))
+    .returning('characteristic_id')
+    .executeTakeFirstOrThrow()
+}

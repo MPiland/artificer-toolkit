@@ -4,11 +4,26 @@ export function useMutation<TVariables, TData, TError = Error>(opts: {
   fn: (variables: TVariables) => Promise<TData>
   onSuccess?: (ctx: { data: TData }) => void | Promise<void>
 }) {
-  const [submittedAt, setSubmittedAt] = useState<number | undefined>()
-  const [variables, setVariables] = useState<TVariables | undefined>()
-  const [error, setError] = useState<TError | undefined>()
-  const [data, setData] = useState<TData | undefined>()
-  const [status, setStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle')
+  const [
+    submittedAt,
+    setSubmittedAt
+  ] = useState<number | undefined>()
+  const [
+    variables,
+    setVariables
+  ] = useState<TVariables | undefined>()
+  const [
+    error,
+    setError
+  ] = useState<TError | undefined>()
+  const [
+    data,
+    setData
+  ] = useState<TData | undefined>()
+  const [
+    status,
+    setStatus
+  ] = useState<'idle' | 'pending' | 'success' | 'error'>('idle')
   const { fn, onSuccess } = opts
 
   const mutate = useCallback(
@@ -29,7 +44,9 @@ export function useMutation<TVariables, TData, TError = Error>(opts: {
         setError(err as TError)
       }
     },
-    [fn, onSuccess]
+    [
+      fn, onSuccess
+    ]
   )
 
   return {
@@ -38,6 +55,6 @@ export function useMutation<TVariables, TData, TError = Error>(opts: {
     submittedAt,
     mutate,
     error,
-    data,
+    data
   }
 }

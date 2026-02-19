@@ -1,7 +1,7 @@
-import List, { type FooterConfig } from '~components/List'
-import ICategory from '~assets/Icons/ICategory'
-import { useDeleteClass, useListClasses } from '~apis'
-import type { ClassMeta } from '~types'
+import List, { type FooterConfig } from '@components/List'
+import ICategory from '@assets/Icons/ICategory'
+import { useDeleteClass, useListClasses } from '@apis'
+import type { ClassMeta } from '@types'
 
 const Classes = () => {
   const {

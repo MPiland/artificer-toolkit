@@ -1,10 +1,10 @@
 import { useCallback, useMemo } from 'react'
-import Dropdown from '~components/Dropdown'
+import Dropdown from '@components/Dropdown'
 import { get, startCase } from 'lodash-es'
-import { useFilterStore, type FilterState } from '~store'
-import type { FilterConfig, FilterDataType } from '~components/List'
-import type { MetaDataType } from '~types'
-import { useMetaData } from '~hooks'
+import { useFilterStore, type FilterState } from '@store'
+import type { FilterConfig, FilterDataType } from '@components/List'
+import type { MetaDataType } from '@types'
+import { useMetaData } from '@hooks'
 import { Grid, Button, TextInput } from '@mantine/core'
 
 // This is a wrapper component that maintains the same API as before

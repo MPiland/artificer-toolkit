@@ -7,5 +7,5 @@ export {
   type CopyModalProps,
   type AlertModalProps,
   type DeleteModalProps,
-  type AddSectionModalProps,
+  type AddSectionModalProps
 } from './ModalProvider'

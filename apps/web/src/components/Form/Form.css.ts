@@ -1,7 +1,7 @@
 import { style, globalStyle } from '@vanilla-extract/css'
-import { app } from '~css/layers.css'
-import { size, space } from '~css/size.css'
-import { vars } from '~css/theme'
+import { app } from '@css/layers.css'
+import { size, space } from '@css/size.css'
+import { vars } from '@css/theme'
 
 export const form = style({
   '@layer': {

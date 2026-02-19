@@ -1,5 +1,5 @@
 import { Group, Button } from '@mantine/core'
-import { useOptimizedSelector, useTypedFormStore } from '~store'
+import { useOptimizedSelector, useTypedFormStore } from '@store'
 import Stepper from './Stepper'
 
 const Header = () => {

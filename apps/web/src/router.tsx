@@ -4,21 +4,22 @@ import { QueryClient } from '@tanstack/react-query'
 import { setupRouterSsrQueryIntegration } from '@tanstack/react-router-ssr-query'
 import { DefaultCatchBoundary } from './components/DefaultCatchBoundary'
 import { NotFound } from './components/NotFound'
+import type { User } from '@supabase/supabase-js'
 
-export function getRouter() {
+export function getRouter(user: User | null) {
   const queryClient = new QueryClient()
 
   const router = createRouter({
     routeTree,
-    context: { queryClient },
+    context: { queryClient, user },
     defaultPreload: 'intent',
     defaultErrorComponent: DefaultCatchBoundary,
     defaultNotFoundComponent: () => <NotFound />,
-    scrollRestoration: true,
+    scrollRestoration: true
   })
   setupRouterSsrQueryIntegration({
     router,
-    queryClient,
+    queryClient
   })
 
   return router

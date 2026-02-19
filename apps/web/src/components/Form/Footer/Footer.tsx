@@ -1,9 +1,9 @@
 import { base } from './Footer.css'
 import { Button } from '@mantine/core'
-import { sprinkles } from '~css/sprinkles.css'
+import { sprinkles } from '@css/sprinkles.css'
 import { Group } from '@mantine/core'
-import { useOptimizedSelector, useTypedFormStore } from '~store'
-import { ModalContext } from '~components/Modal'
+import { useOptimizedSelector, useTypedFormStore } from '@store'
+import { ModalContext } from '@components/Modal'
 import { use } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 
@@ -22,7 +22,7 @@ const Footer = () => {
     ancestryOptionIndex,
     reset,
     formSubmit,
-    isValid,
+    isValid
   } = useOptimizedSelector(store, (state) => ({
     stepIndex: state.meta.stepIndex,
     steps: state.meta.steps,
@@ -34,15 +34,15 @@ const Footer = () => {
     ancestryOptionIndex: state.meta.editing.ancestryOptionIndex,
     reset: state.reset,
     formSubmit: state.formSubmit!,
-    isValid: state.meta.isValid,
+    isValid: state.meta.isValid
   }))
 
   const { showModal } = use(ModalContext)
 
   const isLastStep = stepIndex === steps.length - 1
   const isFirstStep = stepIndex === 0
-  const isNonStep =
-    featureIndex !== null || optionIndex !== null || sectionIndex !== null || ancestryOptionIndex !== null
+  const isNonStep
+    = featureIndex !== null || optionIndex !== null || sectionIndex !== null || ancestryOptionIndex !== null
 
   const handleCancel = () => {
     navigate({ to: '..' })
@@ -58,8 +58,8 @@ const Footer = () => {
           message: 'There are changes that are not saved. Please update or submit to save these changes',
           cancelLabel: 'Cancel',
           confirmLabel: 'Ok',
-          onConfirm: () => handleCancel(),
-        },
+          onConfirm: () => handleCancel()
+        }
       })
     } else {
       setStepIndex(stepIndex - 1)
@@ -74,8 +74,8 @@ const Footer = () => {
           props: {
             title: 'Errors',
             message: 'Please fix the errors before submitting.',
-            confirmLabel: 'OK',
-          },
+            confirmLabel: 'OK'
+          }
         })
       }
       formSubmit()
@@ -91,8 +91,8 @@ const Footer = () => {
         props: {
           title: 'Errors',
           message: 'Please fix the errors before submitting.',
-          confirmLabel: 'OK',
-        },
+          confirmLabel: 'OK'
+        }
       })
     }
     formSubmit()
@@ -102,22 +102,22 @@ const Footer = () => {
   const forwardLabel = stepIndex === steps.length - 1 ? 'Submit' : 'Next'
 
   return (
-    <Group className={base} justify='space-between'>
+    <Group className={base} justify="space-between">
       <Group>
-        <Button color='red' type='button' onClick={handleBack} className={sprinkles({ marginRight: 'space-2' })}>
+        <Button color="red" type="button" onClick={handleBack} className={sprinkles({ marginRight: 'space-2' })}>
           {backLabel}
         </Button>
-        <Button color='yellow' type='button' onClick={stepReset}>
+        <Button color="yellow" type="button" onClick={stepReset}>
           Reset
         </Button>
       </Group>
       <Group>
         {(!isLastStep || (isLastStep && !isNonStep)) && (
-          <Button color='green' type='button' onClick={handleSubmit} className={sprinkles({ marginRight: 'space-2' })}>
+          <Button color="green" type="button" onClick={handleSubmit} className={sprinkles({ marginRight: 'space-2' })}>
             Update
           </Button>
         )}
-        <Button type='button' onClick={handleForward}>
+        <Button type="button" onClick={handleForward}>
           {forwardLabel}
         </Button>
       </Group>
