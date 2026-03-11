@@ -1,6 +1,6 @@
 import { CHARGE_NODE_MAP, EFFECT_NODE_MAP, FEATURE_NODE_MAP } from '../../../../dist/maps/maps.js'
 import { FEATURE_CATEGORY_REGISTRY } from '#core'
-import type { NodeMap } from '#util'
+import type { NodeMap } from '#utils'
 
 export type FeatNodePayloads = {
   features: { featureIds?: string[] }

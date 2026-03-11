@@ -4,7 +4,7 @@ import {
   type CastingTimeUnitCode,
   type SpellAttribute
 } from '#core'
-import { type NodeMap } from '#util'
+import { type NodeMap } from '#utils'
 import { EFFECT_NODE_MAP } from '../../../../dist/maps/maps.js'
 
 export type SpellNodePayloads = {

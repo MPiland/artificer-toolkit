@@ -45,4 +45,4 @@ export const RANGE_REGISTRY: Record<RangeKind, RangeOption> = {
   }
 }
 
-export const RANGE_KIND_OPTIONS = Object.values(RANGE_REGISTRY) as RangeOption[]
+export const RANGE_OPTIONS = Object.values(RANGE_REGISTRY) as RangeOption[]

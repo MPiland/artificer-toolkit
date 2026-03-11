@@ -7,7 +7,7 @@ import {
   ACTIVATION_OPTIONS,
   TRIGGER_OPTIONS
 } from '#core'
-import { buildNodeMap, type NodeMap } from '#util'
+import { buildNodeMap, type NodeMap } from '#utils'
 import {
   RANGE_NODE_MAP,
   SHAPE_NODE_MAP,
@@ -18,7 +18,7 @@ import {
 const activation = buildNodeMap<ActivationAuthored>()
 
 export const ACTIVATION_NODE_MAP
-  = activation.define((map, { not, field }) => map({
+  = activation.define((map, { not, local }) => map({
     code: {
       kind: 'INPUT',
       label: 'Activation',
@@ -34,7 +34,7 @@ export const ACTIVATION_NODE_MAP
       label: 'Amount',
       requiredIf: true,
       type: 'NUMBER',
-      showIf: not(field('code').eq('FREE'))
+      showIf: not(local('code').eq('FREE'))
     }
   }))
 
@@ -43,7 +43,7 @@ const invoction = buildNodeMap<InvocationAuthored>()
 type InvocationNodeMap = NodeMap<InvocationAuthored>
 
 export const INVOCATION_NODE_MAP: InvocationNodeMap
-  = invoction.define((map, { field }) => map({
+  = invoction.define((map, { local }) => map({
     triggerCode: {
       kind: 'INPUT',
       label: 'Trigger',
@@ -57,7 +57,7 @@ export const INVOCATION_NODE_MAP: InvocationNodeMap
     savingThrow: {
       kind: 'GROUP',
       nodes: SAVING_THROW_NODE_MAP,
-      showIf: field('triggerCode').eq('SAVING_THROW')
+      showIf: local('triggerCode').eq('SAVING_THROW')
     },
     activation: {
       kind: 'GROUP',

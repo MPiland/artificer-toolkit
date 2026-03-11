@@ -1,6 +1,6 @@
 import type { SpeedAuthored } from '#authored'
 import { MEASUREMENT_UNIT_OPTIONS } from '#core'
-import { buildNodeMap } from '#util'
+import { buildNodeMap } from '#utils'
 
 const speed = buildNodeMap<SpeedAuthored>()
 
@@ -13,8 +13,9 @@ export const SPEED_NODE_MAP = speed.define((map) => map({
     source: {
       kind: 'DATA',
       relationship: {
-        kind: 'ROOT',
-        table: 'speeds'
+        kind: 'TABLE',
+        table: 'speeds',
+        selectColumns: ['id']
       }
     }
   },

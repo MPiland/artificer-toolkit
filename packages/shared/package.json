@@ -28,13 +28,13 @@
       "types": "./dist/barrels/authored/index.d.ts",
       "default": "./dist/barrels/authored/index.js"
     },
-    "#compiler": {
-      "types": "./dist/barrels/compiler/index.d.ts",
-      "default": "./dist/barrels/compiler/index.js"
+    "#compilers": {
+      "types": "./dist/barrels/compilers/index.d.ts",
+      "default": "./dist/barrels/compilers/index.js"
     },
-    "#util": {
-      "types": "./dist/util/index.d.ts",
-      "default": "./dist/util/index.js"
+    "#utils": {
+      "types": "./dist/utils/index.d.ts",
+      "default": "./dist/utils/index.js"
     },
     "#maps": {
       "types": "./dist/barrels/maps/index.d.ts",
@@ -47,12 +47,12 @@
     "generate:zod": "ts-to-zod --config zod.config.js \"src/types/**/*.ts\""
   },
   "dependencies": {
-    "@artificer-toolkit/functions": "workspace:*",
-    "@artificer-toolkit/db": "workspace:*"
+    "@artificer-toolkit/db": "workspace:^",
+    "@artificer-toolkit/functions": "workspace:^"
   },
   "devDependencies": {
     "ts-to-zod": "^5.1.0",
-    "type-fest": "^5.4.3",
-    "zod": "^4.1.13"
+    "type-fest": "^5.4.4",
+    "zod": "^4.3.6"
   }
 }

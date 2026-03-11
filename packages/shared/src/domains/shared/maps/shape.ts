@@ -1,6 +1,6 @@
 import type { ShapeAuthored } from '#authored'
 import { MEASUREMENT_UNIT_OPTIONS, SHAPE_KIND_OPTIONS, type ShapeMeasurementAuthored } from '#core'
-import { buildNodeMap } from '#util'
+import { buildNodeMap } from '#utils'
 
 const shapeMeasurement = buildNodeMap<ShapeMeasurementAuthored>()
 
@@ -24,7 +24,7 @@ export const SHAPE_MEASUREMENT_NODE_MAP = shapeMeasurement.define((map) => map({
 
 const shape = buildNodeMap<ShapeAuthored>()
 
-export const SHAPE_NODE_MAP = shape.define((map, { field, or }) => map({
+export const SHAPE_NODE_MAP = shape.define((map, { local, or }) => map({
   shapeKind: {
     kind: 'INPUT',
     label: 'Shape',
@@ -39,37 +39,37 @@ export const SHAPE_NODE_MAP = shape.define((map, { field, or }) => map({
     kind: 'GROUP',
     nodes: SHAPE_MEASUREMENT_NODE_MAP,
     showIf: or([
-      field('shapeKind').eq('LINE'),
-      field('shapeKind').eq('CONE'),
-      field('shapeKind').eq('WALL')
+      local('shapeKind').eq('LINE'),
+      local('shapeKind').eq('CONE'),
+      local('shapeKind').eq('WALL')
     ])
   },
   radius: {
     kind: 'GROUP',
     nodes: SHAPE_MEASUREMENT_NODE_MAP,
     showIf: or([
-      field('shapeKind').eq('CYLINDER'),
-      field('shapeKind').eq('SPHERE'),
-      field('shapeKind').eq('DOME'),
-      field('shapeKind').eq('CIRCLE')
+      local('shapeKind').eq('CYLINDER'),
+      local('shapeKind').eq('SPHERE'),
+      local('shapeKind').eq('DOME'),
+      local('shapeKind').eq('CIRCLE')
     ])
   },
   height: {
     kind: 'GROUP',
     nodes: SHAPE_MEASUREMENT_NODE_MAP,
     showIf: or([
-      field('shapeKind').eq('CYLINDER'),
-      field('shapeKind').eq('WALL')
+      local('shapeKind').eq('CYLINDER'),
+      local('shapeKind').eq('WALL')
     ])
   },
   thickness: {
     kind: 'GROUP',
     nodes: SHAPE_MEASUREMENT_NODE_MAP,
-    showIf: field('shapeKind').eq('WALL')
+    showIf: local('shapeKind').eq('WALL')
   },
   edgeLength: {
     kind: 'GROUP',
     nodes: SHAPE_MEASUREMENT_NODE_MAP,
-    showIf: field('shapeKind').eq('CUBE')
+    showIf: local('shapeKind').eq('CUBE')
   }
 }))

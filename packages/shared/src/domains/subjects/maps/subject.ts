@@ -6,9 +6,8 @@ import {
   FEAT_NODE_MAP,
   RACE_NODE_PATH,
   SPELL_NODE_MAP
-} from '../../../../dist/maps/maps.js'
-import type { EnabledPathMap, Enables, NodeOptions } from '#util'
-import type { EmptyObject } from 'type-fest'
+} from '#maps'
+import type { EnabledPathMap, Enables, NodeOptions, EmptyObject } from '#utils'
 
 // -----------------------------------------------------------------------------
 // Subject: A subject node is an entry point and MUST enable a PATH.

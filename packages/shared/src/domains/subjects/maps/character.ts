@@ -8,7 +8,7 @@ import {
   type EquipmentCategoryCode,
   type EquipmentPropertyCode
 } from '#core'
-import { type NodeMap } from '#util'
+import { type NodeMap } from '#utils'
 
 export type CharacterNodePayloads = {
   featObtained: { featIds: string[] }

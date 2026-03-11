@@ -5,8 +5,7 @@ import type {
   SpellGrantAuthored,
   EffectAuthored,
   FeatureAuthored,
-  ChargeAuthored,
-  TargetGroupsAuthored
+  ChargeAuthored
 } from '#authored'
 
 export interface FeatAuthored {
@@ -22,7 +21,6 @@ export interface FeatAuthored {
     senses?: SenseGrantAuthored[]
     spells?: SpellGrantAuthored[]
   }
-  restrictionGroups?: TargetGroupsAuthored<'FEAT'>
   features?: FeatureAuthored[]
   userId: string
   systemId: string

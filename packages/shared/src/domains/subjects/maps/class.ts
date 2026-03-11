@@ -6,9 +6,8 @@ import {
   SUBCLASS_ATTRIBUTE_REGISTRY,
   type AbilityCode
 } from '#core'
-import { CHARGE_NODE_MAP, FEATURE_NODE_MAP, PROFICIENCY_NODE_MAP } from '../../../../dist/maps/maps.js'
-import type { NodeMap } from '#util'
-import type { EmptyObject } from 'type-fest'
+import { CHARGE_NODE_MAP, FEATURE_NODE_MAP, PROFICIENCY_NODE_MAP } from '#maps'
+import type { NodeMap, EmptyObject } from '#utils'
 
 export type ClassSpellcastingNodePayloads = {
   ability: { ability: AbilityCode }

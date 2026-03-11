@@ -4,7 +4,6 @@ export const SPELL_GRANT_ATTRIBUTE = {
   CONCENTRATION: 'CONCENTRATION',
   RITUAL: 'RITUAL',
   LIMITED_USE: 'LIMITED_USE',
-  HIDE_ON_SHEET: 'HIDE_ON_SHEET',
   /** how it’s acquired */
   PREPARED: 'PREPARED',
   KNOWN: 'KNOWN',
@@ -47,13 +46,6 @@ export const SPELL_GRANT_ATTRIBUTE_REGISTRY: Record<
     tooltip:
       'The spell requires a ritual to cast which requires the character to remain casting for a longer time.',
     description: 'The spell requires a ritual to cast.'
-  },
-
-  HIDE_ON_SHEET: {
-    code: SPELL_GRANT_ATTRIBUTE.HIDE_ON_SHEET,
-    label: 'Hide on Sheet',
-    tooltip: 'This feature or action should be hidden on the character sheet.',
-    description: 'Hidden on the character sheet.'
   },
 
   PREPARED: {

@@ -1,10 +1,10 @@
 import type { DurationAuthored } from '#authored'
 import { DURATION_OPTIONS } from '#core'
-import { buildNodeMap } from '#util'
+import { buildNodeMap } from '#utils'
 
 const duration = buildNodeMap<DurationAuthored>()
 
-export const DURATION_NODE_MAP = duration.define((map, { not, and, field }) => map({
+export const DURATION_NODE_MAP = duration.define((map, { not, and, local }) => map({
   durationKind: {
     kind: 'INPUT',
     label: 'Duration Kind',
@@ -20,8 +20,8 @@ export const DURATION_NODE_MAP = duration.define((map, { not, and, field }) => m
     label: 'Amount',
     type: 'NUMBER',
     showIf: and([
-      not(field('durationKind').eq('INSTANTANEOUS')),
-      not(field('durationKind').empty())
+      not(local('durationKind').eq('INSTANTANEOUS')),
+      not(local('durationKind').empty())
     ])
   }
 }))

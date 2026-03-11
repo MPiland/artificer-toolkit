@@ -1,4 +1,4 @@
-import { type NodeMap } from '#util'
+import { buildNodeMap, type NodeMap } from '#utils'
 import type { CostAuthored, EquipmentAuthored, EquipmentVariantAuthored, WeightAuthored } from '#authored'
 import { EQUIPMENT_ATTRIBUTE_OPTIONS, MEASUREMENT_UNIT_OPTIONS } from '#core'
 import { CHARGE_NODE_MAP } from '../../../../dist/maps/maps.js'
@@ -6,14 +6,12 @@ import { Merge } from 'type-fest'
 
 export const WEIGHT_NODE_MAP: NodeMap<WeightAuthored> = {
   amount: {
-    id: 'amount',
     label: 'Amount',
     input: {
       type: 'NUMBER'
     }
   },
   unit: {
-    id: 'unit',
     label: 'Currency',
     input: {
       type: 'SELECT_SINGLE',
@@ -28,14 +26,12 @@ export const WEIGHT_NODE_MAP: NodeMap<WeightAuthored> = {
 
 export const COST_NODE_MAP: NodeMap<CostAuthored> = {
   amount: {
-    id: 'amount',
     label: 'Amount',
     input: {
       type: 'NUMBER'
     }
   },
   currencyId: {
-    id: 'currencyId',
     label: 'Currency',
     input: {
       type: 'SELECT_SINGLE',
@@ -51,43 +47,30 @@ export const COST_NODE_MAP: NodeMap<CostAuthored> = {
   }
 }
 
-export const EQUIPMENT_NODE_MAP: NodeMap<Merge<EquipmentVariantAuthored, EquipmentAuthored>> = {
+type MergedEquipment = Merge<EquipmentVariantAuthored, EquipmentAuthored>
+
+const equipment = buildNodeMap<MergedEquipment>()
+
+type EquipmentNodeMap = NodeMap<MergedEquipment>
+
+export const EQUIPMENT_NODE_MAP: EquipmentNodeMap = equipment.define((map) => map({
   label: {
-    id: 'label',
     label: 'Label',
-    input: { type: 'TEXT' }
+    kind: 'INPUT',
+    type: 'TEXT'
   },
   description: {
-    id: 'description',
     label: 'Description',
-    input: { type: 'TEXT' }
+    kind: 'INPUT',
+    type: 'TEXT'
   },
   attributes: {
-    id: 'attributes',
     label: 'Attributes',
-    input: {
-      type: 'multi-select-optional',
-      source: {
-        kind: 'INLINE',
-        options: EQUIPMENT_ATTRIBUTE_OPTIONS
-      }
+    kind: 'INPUT',
+    type: 'SELECT_MULTI',
+    source: {
+      kind: 'INLINE',
+      options: EQUIPMENT_ATTRIBUTE_OPTIONS
     }
-  },
-  quote: {
-    id: 'quote',
-    label: 'Quote',
-    input: { type: 'richText' }
-  },
-  cost: {
-    id: 'cost',
-    nodes: COST_NODE_MAP
-  },
-  weight: {
-    id: 'weight',
-    nodes: WEIGHT_NODE_MAP
-  },
-  charges: {
-    id: 'charges',
-    nodes: CHARGE_NODE_MAP
   }
-}
+}))

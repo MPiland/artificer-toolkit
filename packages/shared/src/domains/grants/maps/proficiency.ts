@@ -8,14 +8,14 @@ import {
   ROUNDING_OPTIONS,
   SCALING_AMOUNT_OPTIONS
 } from '#core'
-import { buildNodeMap } from '#util'
+import { buildNodeMap } from '#utils'
 import type { AllUnionFields } from 'type-fest'
 
 const proficiencyNodeMap
   = buildNodeMap<AllUnionFields<ProficiencyGrantAuthored>>()
 
 export const PROFICIENCY_NODE_MAP = proficiencyNodeMap.define(
-  (map, { field, and, or }) => map({
+  (map, { local, and, or }) => map({
     proficiencyKind: {
       kind: 'INPUT',
       label: 'Proficiency Kind',
@@ -55,7 +55,7 @@ export const PROFICIENCY_NODE_MAP = proficiencyNodeMap.define(
         kind: 'INLINE',
         options: ROUNDING_OPTIONS
       },
-      showIf: field('level').eq('HALF')
+      showIf: local('level').eq('HALF')
     },
     skillIds: {
       kind: 'INPUT',
@@ -65,13 +65,13 @@ export const PROFICIENCY_NODE_MAP = proficiencyNodeMap.define(
       source: {
         kind: 'DATA',
         relationship: {
-          kind: 'ROOT',
+          kind: 'TABLE',
           table: 'skills'
         }
       },
       showIf: and([
-        field('authoringModeKind').eq('SELECTED'),
-        field('proficiencyKind').eq('SKILL')
+        local('authoringModeKind').eq('SELECTED'),
+        local('proficiencyKind').eq('SKILL')
       ])
     },
     abilities: {
@@ -84,8 +84,8 @@ export const PROFICIENCY_NODE_MAP = proficiencyNodeMap.define(
         options: ABILITY_OPTIONS
       },
       showIf: and([
-        field('authoringModeKind').eq('SELECTED'),
-        field('proficiencyKind').eq('SAVE_ABILITY')
+        local('authoringModeKind').eq('SELECTED'),
+        local('proficiencyKind').eq('SAVE_ABILITY')
       ])
     },
     languageIds: {
@@ -96,13 +96,13 @@ export const PROFICIENCY_NODE_MAP = proficiencyNodeMap.define(
       source: {
         kind: 'DATA',
         relationship: {
-          kind: 'ROOT',
+          kind: 'TABLE',
           table: 'languages'
         }
       },
       showIf: and([
-        field('authoringModeKind').eq('SELECTED'),
-        field('proficiencyKind').eq('LANGUAGE')
+        local('authoringModeKind').eq('SELECTED'),
+        local('proficiencyKind').eq('LANGUAGE')
       ])
     },
     equipmentIds: {
@@ -113,32 +113,32 @@ export const PROFICIENCY_NODE_MAP = proficiencyNodeMap.define(
       source: {
         kind: 'DATA',
         relationship: {
-          kind: 'ROOT',
+          kind: 'TABLE',
           table: 'equipment'
         }
       },
       showIf: and([
-        field('authoringModeKind').eq('SELECTED'),
-        field('proficiencyKind').eq('EQUIPMENT')
+        local('authoringModeKind').eq('SELECTED'),
+        local('proficiencyKind').eq('EQUIPMENT')
       ])
     },
     category: {
       kind: 'INPUT',
       label: 'Category',
       type: 'SELECT_SINGLE',
-      requiredIf: field('proficiencyKind').eq('EQUIPMENT_PROPERTY'),
+      requiredIf: local('proficiencyKind').eq('EQUIPMENT_PROPERTY'),
       source: {
         kind: 'INLINE',
         options: EQUIPMENT_CATEGORY_OPTIONS
       },
       showIf: or([
         and([
-          field('authoringModeKind').eq('SELECTED'),
-          field('proficiencyKind').eq('EQUIPMENT_PROPERTY')
+          local('authoringModeKind').eq('SELECTED'),
+          local('proficiencyKind').eq('EQUIPMENT_PROPERTY')
         ]),
         and([
-          field('authoringModeKind').eq('SELECTED'),
-          field('proficiencyKind').eq('EQUIPMENT')
+          local('authoringModeKind').eq('SELECTED'),
+          local('proficiencyKind').eq('EQUIPMENT')
         ])
       ])
     },
@@ -146,17 +146,17 @@ export const PROFICIENCY_NODE_MAP = proficiencyNodeMap.define(
       kind: 'INPUT',
       label: 'Properties',
       type: 'SELECT_MULTI',
-      requiredIf: field('proficiencyKind').eq('EQUIPMENT_PROPERTY'),
+      requiredIf: local('proficiencyKind').eq('EQUIPMENT_PROPERTY'),
       source: {
         kind: 'INLINE',
         options: EQUIPMENT_PROPERTY_OPTIONS
       },
       showIf: or([
         and([
-          field('authoringModeKind').eq('SELECTED'),
-          field('proficiencyKind').eq('EQUIPMENT_PROPERTY')
+          local('authoringModeKind').eq('SELECTED'),
+          local('proficiencyKind').eq('EQUIPMENT_PROPERTY')
         ]),
-        field('proficiencyKind').eq('EQUIPMENT')
+        local('proficiencyKind').eq('EQUIPMENT')
       ])
     }
   })

@@ -5,31 +5,101 @@
 		}
 	],
 	"settings": {
-		"typescript.tsserver.maxTsServerMemory": 8192,
-		"typescript.experimental.useTsgo": false,
-		"editor.experimental.preferTreeSitter.typescript": true,
-		"typescript.preferGoToSourceDefinition": true,
-		"typescript.tsserver.enableRegionDiagnostics": false,
-		"typescript.workspaceSymbols.scope": "dbaeumer.vscode-eslint",
-		"typescript.tsserver.web.projectWideIntellisense.enabled": false,
-		"typescript.tsserver.web.typeAcquisition.enabled": false,
-		"js/ts.hover.maximumLength": 200,
-		"SQL-Formatter-VSCode.dialect": "postgresql",
-		"editor.codeActionsOnSave": {
-			"source.fixAll.eslint": "explicit"
-		},
-		"eslint.useFlatConfig": true,
-		"[typescript]": {
-			"editor.defaultFormatter": "dbaeumer.vscode-eslint"
-		},
-		"[typescriptreact]": {
-			"editor.defaultFormatter": "dbaeumer.vscode-eslint"
-		},
-		"typescript.tsdk": "node_modules\\typescript\\lib",
-		"eslint.format.enable": true,
-		"editor.formatOnSave": true,
-		"editor.defaultFormatter": "dbaeumer.vscode-eslint",
-		"typescript.updateImportsOnFileMove.enabled": "always",
-		"editor.tabSize": 2
-	}
+			"editor.minimap.enabled": false,
+			"terminal.integrated.defaultProfile.windows": "PowerShell",
+			"[python]": {
+				"editor.formatOnType": true
+			},
+			"explorer.confirmDragAndDrop": false,
+			"explorer.confirmDelete": false,
+			"workbench.tree.renderIndentGuides": "always",
+			"react-native-tools.networkInspector.consoleLogsColorTheme": "Dark",
+			"workbench.settings.editor": "ui",
+			"workbench.settings.useSplitJSON": true,
+			"workbench.startupEditor": "none",
+			"editor.wordWrap": "bounded",
+			"diffEditor.codeLens": true,
+			"reactSnippets.settings.importReactOnTop": false,
+			"reactSnippets.settings.typescriptPropsStatePrefix": "interface",
+			"files.associations": {
+				"*.tsx": "typescriptreact"
+			},
+			"editor.inlineSuggest.suppressSuggestions": true,
+			"java.completion.filteredTypes": [
+				"java.awt.*",
+				"com.sun.*",
+				"sun.*",
+				"jdk.*",
+				"org.graalvm.*",
+				"io.micrometer.shaded.*"
+			],
+			"eslint.workingDirectories": [],
+			"workbench.editorAssociations": {
+				"{git,gitlens,conflictResolution,vscode-local-history}:/**/*.tc.json": "default",
+				"*.svg": "default"
+			},
+			"files.readonlyInclude": {
+				"**/routeTree.gen.ts": true
+			},
+			"files.watcherExclude": {
+				"**/routeTree.gen.ts": true
+			},
+			"search.exclude": {
+				"**/routeTree.gen.ts": true
+			},
+			"vsicons.dontShowNewVersionMessage": true,
+			"editor.inlineSuggest.edits.showCollapsed": true,
+			"js/ts.hover.maximumLength": 200,
+			"SQL-Formatter-VSCode.dialect": "postgresql",
+			"draw.folder.structure.exclude": [
+				"**/node_modules",
+				"**/dist",
+				"**/.git",
+				"**/.venv",
+				"**/__pycache__",
+				"**/*.d.ts",
+				"**/*.js",
+				"**/*.jsx",
+				"**/*.json",
+				"**/*.md",
+				"**/*.html",
+				"**/*.css",
+				"**/*.scss"
+			],
+			"eslint.format.enable": true,
+			"editor.codeActionsOnSave": {
+				"source.fixAll.eslint": "explicit"
+			},
+			"eslint.useFlatConfig": true,
+			"[typescript]": {
+				"editor.defaultFormatter": "dbaeumer.vscode-eslint"
+			},
+			"[typescriptreact]": {
+				"editor.defaultFormatter": "dbaeumer.vscode-eslint"
+			},
+			"editor.formatOnSave": true,
+			"editor.defaultFormatter": "dbaeumer.vscode-eslint",
+			"pgsql.serverGroups": [
+				{
+					"name": "Servers",
+					"id": "CEFBD9E3-289F-4889-ABF0-53BBDAD6AD4E",
+					"isDefault": true
+				}
+			],
+			"vscode-uuid-generator.decorationStyle": "surroundSingleQuotes",
+			"editor.tabSize": 2,
+			"chat.tools.terminal.outputLocation": "chat",
+			"js/ts.preferences.preferTypeOnlyAutoImports": true,
+			"js/ts.format.insertSpaceBeforeFunctionParenthesis": true,
+			"js/ts.preferGoToSourceDefinition": true,
+			"js/ts.updateImportsOnFileMove.enabled": "always",
+			"js/ts.tsserver.web.projectWideIntellisense.suppressSemanticErrors": true,
+			"js/ts.tsdk.promptToUseWorkspaceVersion": true,
+			"js/ts.tsserver.tracing.enabled": true,
+			"js/ts.implementationsCodeLens.enabled": true,
+			"js/ts.tsserver.experimental.enableProjectDiagnostics": true,
+			"js/ts.suggest.autoImports": true,
+			"js/ts.tsserver.web.projectWideIntellisense.enabled": true,
+			"js/ts.tsserver.web.typeAcquisition.enabled": true,
+		}
 }

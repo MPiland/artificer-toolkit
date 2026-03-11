@@ -12,7 +12,7 @@ import {
   EQUIPMENT_PROPERTY_OPTIONS,
   STARTING_EQUIPMENT_KIND_OPTIONS
 } from '#core'
-import { buildNodeMap, type NodeMap } from '#util'
+import { buildNodeMap } from '#utils'
 
 const startingEquipmentOptionCurrency = buildNodeMap<StartingEquipmentCurrencyAuthored>()
 
@@ -26,7 +26,7 @@ export const STARTING_EQUIPMENT_CURRENCY_NODE_MAP
       source: {
         kind: 'DATA',
         relationship: {
-          kind: 'ROOT',
+          kind: 'TABLE',
           table: 'currencies'
         }
       }
@@ -41,7 +41,7 @@ export const STARTING_EQUIPMENT_CURRENCY_NODE_MAP
 const startEquipmentItem = buildNodeMap<StartingEquipmentItemAuthored>()
 
 export const STARTING_EQUIPMENT_ITEM_NODE_MAP
-  = startEquipmentItem.define((map, { and, field }) => map({
+  = startEquipmentItem.define((map, { and, local }) => map({
     startingEquipmentKind: {
       kind: 'INPUT',
       label: 'Equipment Kind',
@@ -60,7 +60,7 @@ export const STARTING_EQUIPMENT_ITEM_NODE_MAP
         kind: 'INLINE',
         options: EQUIPMENT_CATEGORY_OPTIONS
       },
-      showIf: field('startingEquipmentKind').eq('EQUIPMENT')
+      showIf: local('startingEquipmentKind').eq('EQUIPMENT')
     },
     properties: {
       kind: 'INPUT',
@@ -70,7 +70,7 @@ export const STARTING_EQUIPMENT_ITEM_NODE_MAP
         kind: 'INLINE',
         options: EQUIPMENT_PROPERTY_OPTIONS
       },
-      showIf: field('startingEquipmentKind').eq('EQUIPMENT')
+      showIf: local('startingEquipmentKind').eq('EQUIPMENT')
     },
     authoringModeKind: {
       kind: 'INPUT',
@@ -81,7 +81,7 @@ export const STARTING_EQUIPMENT_ITEM_NODE_MAP
         kind: 'INLINE',
         options: AUTHORING_MODE_KIND_OPTIONS
       },
-      showIf: field('startingEquipmentKind').eq('EQUIPMENT')
+      showIf: local('startingEquipmentKind').eq('EQUIPMENT')
     },
     equipmentIds: {
       kind: 'INPUT',
@@ -91,19 +91,20 @@ export const STARTING_EQUIPMENT_ITEM_NODE_MAP
       source: {
         kind: 'DATA',
         relationship: {
-          kind: 'ROOT',
-          table: 'equipment'
+          kind: 'TABLE',
+          table: 'equipment',
+          selectColumns: ['id']
         }
       },
       showIf: and([
-        field('startingEquipmentKind').eq('EQUIPMENT'),
-        field('authoringModeKind').eq('SELECTED')
+        local('startingEquipmentKind').eq('EQUIPMENT'),
+        local('authoringModeKind').eq('SELECTED')
       ])
     },
     currencies: {
       kind: 'GROUP',
       nodes: STARTING_EQUIPMENT_CURRENCY_NODE_MAP,
-      showIf: field('startingEquipmentKind').eq('CURRENCY')
+      showIf: local('startingEquipmentKind').eq('CURRENCY')
     }
   }))
 
@@ -119,9 +120,7 @@ export const STARTING_EQUIPMENT_OPTION_NODE_MAP
 
 const startingEquipmentGroup = buildNodeMap<StartingEquipmentGroupAuthored>()
 
-type StartingEquipmentGroupNodeMap = NodeMap<StartingEquipmentGroupAuthored>
-
-export const STARTING_EQUIPMENT_GROUP_NODE_MAP: StartingEquipmentGroupNodeMap
+export const STARTING_EQUIPMENT_GROUP_NODE_MAP
   = startingEquipmentGroup.define((map) => map({
     options: {
       kind: 'GROUP',
@@ -131,9 +130,7 @@ export const STARTING_EQUIPMENT_GROUP_NODE_MAP: StartingEquipmentGroupNodeMap
 
 const startingEquipmentSet = buildNodeMap<StartingEquipmentSetAuthored>()
 
-type StartingEquipmentSetNodeMap = NodeMap<StartingEquipmentSetAuthored>
-
-export const STARTING_EQUIPMENT_SET_NODE_MAP: StartingEquipmentSetNodeMap
+export const STARTING_EQUIPMENT_SET_NODE_MAP
   = startingEquipmentSet.define((map) => map({
     groups: {
       kind: 'GROUP',
@@ -143,9 +140,7 @@ export const STARTING_EQUIPMENT_SET_NODE_MAP: StartingEquipmentSetNodeMap
 
 const startingEquipment = buildNodeMap<StartingEquipmentAuthored>()
 
-type StartingEquipmentNodeMap = NodeMap<StartingEquipmentAuthored>
-
-export const STARTING_EQUIPMENT_NODE_MAP: StartingEquipmentNodeMap = startingEquipment.define((map) => map({
+export const STARTING_EQUIPMENT_NODE_MAP = startingEquipment.define((map) => map({
   sets: {
     kind: 'GROUP',
     nodes: STARTING_EQUIPMENT_SET_NODE_MAP

@@ -34,7 +34,7 @@ export default [
           ArrayPattern: { minItems: 4, multiline: true },
         },
       ],
-      '@stylistic/function-call-argument-newline': ['error', 'consistent'],
+      '@stylistic/function-call-argument-newline': ['error', 'never'],
       '@stylistic/function-paren-newline': ['error', 'multiline-arguments'],
       '@stylistic/comma-dangle': ['error', 'never'],
       '@stylistic/multiline-ternary': ['error', 'always-multiline'],

@@ -1,5 +1,5 @@
 import type { CharacterAcquisitionTiming, CharacterFeatureSelectionRecord, CharacterFeatureSource, CharacterResourceGrantSource, CharacterSpellSelectionSource } from '#authored'
-import type { CompiledModifierGrant } from '#compiler'
+import type { CompiledModifierGrant } from '#compilers'
 
 /**
  * A feature that exists on the character *right now*

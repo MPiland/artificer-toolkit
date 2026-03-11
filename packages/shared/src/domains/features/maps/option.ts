@@ -1,6 +1,5 @@
-import { CHARGE_NODE_MAP, EFFECT_NODE_MAP } from '../../../../dist/maps/maps.js'
-import type { NodeMap } from '#util'
-import type { EmptyObject } from 'type-fest'
+import { CHARGE_NODE_MAP, EFFECT_NODE_MAP } from '#maps'
+import type { NodeMap, EmptyObject } from '#utils'
 
 export type OptionNodePayloads = EmptyObject
 

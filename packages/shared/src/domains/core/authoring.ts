@@ -1,3 +1,4 @@
+import { valuesOf } from '#utils'
 import type { CoreMeta } from './core.js'
 
 export const AUTHORING_MODE_KIND = {
@@ -64,6 +65,10 @@ export const AUTHORING_CONSTRAINT_REGISTRY: Record<
   }
 } as const
 
+export const AUTHORING_CONSTRAINT_OPTIONS = valuesOf(
+  AUTHORING_CONSTRAINT_REGISTRY
+)
+
 export const AUTHORING_SELECTION_KIND = {
   GRANTED: 'GRANTED', // Automatically applied
   CHOSEN: 'CHOSEN' // Player chooses
@@ -73,7 +78,7 @@ export type AuthoringSelectionKind = keyof typeof AUTHORING_SELECTION_KIND
 
 export type AuthoringSelectionOption = CoreMeta<AuthoringSelectionKind>
 
-export const GRANT_SELECTION_REGISTRY: Record<
+export const AUTHORING_SELECTION_REGISTRY: Record<
   AuthoringSelectionKind,
   AuthoringSelectionOption
 > = {
@@ -94,3 +99,7 @@ export const GRANT_SELECTION_REGISTRY: Record<
       'The player must select which option(s) to gain from the available choices.'
   }
 } as const
+
+export const AUTHORING_SELECTION_OPTIONS = valuesOf(
+  AUTHORING_SELECTION_REGISTRY
+)

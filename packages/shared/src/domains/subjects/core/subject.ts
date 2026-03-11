@@ -23,8 +23,9 @@ export type SubjectOptions = CoreMeta<Subject>
 /* ──────────────────────────────────────────────
  * Subject Registry (single source of truth)
  * ────────────────────────────────────────────── */
+type SubjectRegistry = { [K in Subject]: CoreMeta<K> }
 
-export const SUBJECT_REGISTRY: Record<Subject, SubjectOptions> = {
+export const SUBJECT_REGISTRY: SubjectRegistry = {
   SPELL: {
     code: SUBJECT.SPELL,
     label: 'Spell',

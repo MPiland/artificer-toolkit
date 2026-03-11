@@ -1,13 +1,14 @@
 import type {
   AUTHORING_MODE_KIND,
-  AUTHORING_SELECTION_KIND
+  AUTHORING_SELECTION_KIND,
+  NodeSubjectCode
 } from '#core'
-import type { LevelScaledValue, TargetGroupsAuthored } from '#authored'
+import type { FacetAuthored, LevelScaledValue } from '#authored'
 import type { SCALING } from '#core'
 
-export type GrantBaseAuthored = {
+export type GrantBaseAuthored<N extends NodeSubjectCode = NodeSubjectCode> = {
   id: string
-  restrictionGroups?: TargetGroupsAuthored
+  restrictions?: FacetAuthored<N>
   order: number
 }
 
@@ -52,13 +53,13 @@ export type GrantedGrant<TPayload> = {
   selectionKind: typeof AUTHORING_SELECTION_KIND.GRANTED
 } & GrantScaling<TPayload>
 
-export type ScalingGrant<TPayload> = (
+export type ScalingGrant<TPayload, N extends NodeSubjectCode = NodeSubjectCode> = (
   | ChosenGrant<GrantPayloadAuthored<TPayload>>
   | GrantedGrant<GrantPayloadAuthored<TPayload>>
 )
-& GrantBaseAuthored
+& GrantBaseAuthored<N>
 
-export type StaticGrant<TPayload> = GrantScalingNone<
+export type StaticGrant<TPayload, N extends NodeSubjectCode = NodeSubjectCode> = GrantScalingNone<
   GrantPayloadAuthored<TPayload>
 >
-& GrantBaseAuthored
+& GrantBaseAuthored<N>

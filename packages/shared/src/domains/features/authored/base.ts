@@ -6,11 +6,11 @@ import type {
   SenseGrantAuthored,
   SpellGrantAuthored,
   ChargeAuthored,
-  TargetGroupsAuthored
+  FacetAuthored
 } from '#authored'
-import type { FeatureAttribute } from '#core'
+import type { FeatureAttribute, NodeSubjectCode } from '#core'
 
-export interface FeatureBaseAuthored {
+export interface FeatureBaseAuthored<N extends NodeSubjectCode = NodeSubjectCode> {
   id: string
   label: string
   description: string
@@ -19,12 +19,12 @@ export interface FeatureBaseAuthored {
   effects?: EffectAuthored[]
   charges?: ChargeAuthored
   grants?: {
-    feats?: FeatGrantAuthored[]
-    modifiers?: ModifierGrantAuthored[]
-    proficiencies?: ProficiencyGrantAuthored[]
-    senses?: SenseGrantAuthored[]
-    spells?: SpellGrantAuthored[]
+    feats?: FeatGrantAuthored<N>[]
+    modifiers?: ModifierGrantAuthored<N>[]
+    proficiencies?: ProficiencyGrantAuthored<N>[]
+    senses?: SenseGrantAuthored<N>[]
+    spells?: SpellGrantAuthored<N>[]
   }
-  restrictionsGroups?: TargetGroupsAuthored
+  restrictions?: FacetAuthored
   order: number // int
 }

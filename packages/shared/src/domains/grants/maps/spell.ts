@@ -1,6 +1,6 @@
 import type { ChargeAuthored } from '#authored'
 import { SPELL_GRANT_ATTRIBUTE_REGISTRY } from '#core'
-import type { NodeMap } from '#util'
+import type { NodeMap } from '#utils'
 
 export type SpellGrantNodePayloads = {
   limitedUse: ChargeAuthored

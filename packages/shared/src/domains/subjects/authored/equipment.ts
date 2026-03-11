@@ -6,7 +6,8 @@ import {
   type AbilityCode,
   type EquipmentPropertyCode,
   type EquipmentCategoryCode,
-  type EquipmentAttribute
+  type EquipmentAttribute,
+  type NodeSubjectCode
 } from '#core'
 import {
   type SpeedAuthored,
@@ -14,7 +15,7 @@ import {
   type ModifierGrantAuthored,
   type ChargeAuthored,
   type FeatureAuthored,
-  type TargetGroupsAuthored
+  type FacetAuthored
 } from '#authored'
 
 /** Item weight for encumbrance or transport calculations */
@@ -63,9 +64,9 @@ export type EquipmentBaseAuthored = {
   rarityId: string
   maxBonus?: number
   armorClass?: number
-  restrictions?: TargetGroupsAuthored<'EQUIPMENT'>
   contains?: ContainsAuthored[]
-  features?: FeatureAuthored[]
+  features?: FeatureAuthored<Extract<NodeSubjectCode, 'EQUIPMENT'>>[]
+  restrictions?: FacetAuthored<Extract<NodeSubjectCode, 'EQUIPMENT'>>
   userId: string
   systemId: string
 }

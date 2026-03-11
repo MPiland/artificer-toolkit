@@ -1,6 +1,6 @@
 import type { ChargeAuthored } from '#authored'
 import { CHARGE_LIMIT_OPTIONS, CHARGE_RESET_OPTIONS } from '#core'
-import { buildNodeMap } from '#util'
+import { buildNodeMap } from '#utils'
 
 const charges = buildNodeMap<ChargeAuthored>()
 
@@ -15,6 +15,7 @@ export const CHARGE_NODE_MAP = charges.define((map) => map({
       options: CHARGE_RESET_OPTIONS
     }
   },
+
   limitKind: {
     kind: 'INPUT',
     label: 'Limit Kind',

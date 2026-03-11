@@ -9,9 +9,9 @@
     "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
-    "@artificer-toolkit/functions": "workspace:*",
-    "@artificer-toolkit/shared": "workspace:*",
-    "@supabase/supabase-js": "^2.87.1"
+    "@artificer-toolkit/functions": "workspace:^",
+    "@artificer-toolkit/shared": "workspace:^",
+    "@supabase/supabase-js": "^2.97.0"
   },
   "exports": {
     ".": {

@@ -1,4 +1,5 @@
 import type { FeatureBaseAuthored, OptionAuthored } from '#authored'
+import type { NodeSubjectCode } from '#core'
 
 export interface OptionsByLevel {
   level: number // int
@@ -6,8 +7,8 @@ export interface OptionsByLevel {
   replaceCount?: number | null // int
 }
 
-export type FeatureAuthored = FeatureBaseAuthored & {
+export type FeatureAuthored<N extends NodeSubjectCode = NodeSubjectCode> = FeatureBaseAuthored<N> & {
   optionsPerLevel?: OptionsByLevel[]
-  options?: OptionAuthored[]
+  options?: OptionAuthored<N>[]
   levelAvailable?: string
 }

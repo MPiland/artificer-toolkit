@@ -1,4 +1,4 @@
-import type { NodeMap } from '#util'
+import type { NodeMap } from '#utils'
 
 export type SpeedNodePayloads = {
   speeds: {

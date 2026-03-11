@@ -3,11 +3,11 @@ import {
   ABILITY_OPTIONS,
   SAVING_THROW_KIND_OPTIONS
 } from '#core'
-import { buildNodeMap } from '#util'
+import { buildNodeMap } from '#utils'
 
 const savingThrow = buildNodeMap<SavingThrowAuthored>()
 
-export const SAVING_THROW_NODE_MAP = savingThrow.define((map, { field }) => map({
+export const SAVING_THROW_NODE_MAP = savingThrow.define((map, { local }) => map({
   savingThrowKind: {
     kind: 'INPUT',
     label: 'Saving Throw Kind',
@@ -27,12 +27,12 @@ export const SAVING_THROW_NODE_MAP = savingThrow.define((map, { field }) => map(
       kind: 'INLINE',
       options: ABILITY_OPTIONS
     },
-    showIf: field('savingThrowKind').eq('FIXED_VALUE')
+    showIf: local('savingThrowKind').eq('FIXED_VALUE')
   },
   dc: {
     kind: 'INPUT',
     label: 'Difficulty Class',
     type: 'NUMBER',
-    showIf: field('savingThrowKind').eq('FIXED_VALUE')
+    showIf: local('savingThrowKind').eq('FIXED_VALUE')
   }
 }))

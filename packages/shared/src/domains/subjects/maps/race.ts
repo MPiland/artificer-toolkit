@@ -5,7 +5,7 @@ import {
   type SizeCode
 } from '#core'
 import { FEATURE_NODE_MAP } from '../../../../dist/maps/maps.js'
-import type { NodeMap } from '#util'
+import type { NodeMap } from '#utils'
 
 export type BaseRaceNodePayloads = {
   features: { featureIds?: string[] }

@@ -1,10 +1,10 @@
 import type { RangeAuthored } from '#authored'
-import { MEASUREMENT_UNIT_OPTIONS, RANGE_KIND_OPTIONS } from '#core'
-import { buildNodeMap } from '#util'
+import { MEASUREMENT_UNIT_OPTIONS, RANGE_OPTIONS } from '#core'
+import { buildNodeMap } from '#utils'
 
 const range = buildNodeMap<RangeAuthored>()
 
-export const RANGE_NODE_MAP = range.define((map, { field }) => map({
+export const RANGE_NODE_MAP = range.define((map, { local }) => map({
   rangeKind: {
     kind: 'INPUT',
     label: 'Range Type',
@@ -12,14 +12,14 @@ export const RANGE_NODE_MAP = range.define((map, { field }) => map({
     requiredIf: true,
     source: {
       kind: 'INLINE',
-      options: RANGE_KIND_OPTIONS
+      options: RANGE_OPTIONS
     }
   },
   amount: {
     kind: 'INPUT',
     label: 'Distance Amount',
     type: 'NUMBER',
-    showIf: field('rangeKind').eq('DISTANCE')
+    showIf: local('rangeKind').eq('DISTANCE')
   },
   unit: {
     kind: 'INPUT',
@@ -30,6 +30,6 @@ export const RANGE_NODE_MAP = range.define((map, { field }) => map({
       kind: 'INLINE',
       options: MEASUREMENT_UNIT_OPTIONS
     },
-    showIf: field('rangeKind').eq('DISTANCE')
+    showIf: local('rangeKind').eq('DISTANCE')
   }
 }))

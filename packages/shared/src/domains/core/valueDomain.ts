@@ -1,4 +1,6 @@
-import type { CoreMeta } from './core.js'
+import type { AbilityCode, ChargeLimitKind, ChargeResetKind, DurationKind, RangeKind, ShapeKind, CoreMeta } from '#core'
+import type { SenseCode } from '../vocabulary/authored/sense.js'
+import type { EmptyObject } from '#utils'
 
 export const VALUE_DOMAIN_CODE = {
   SPEED: 'SPEED',
@@ -35,7 +37,28 @@ export const VALUE_DOMAIN_CODE = {
 
 export type ValueDomainCode = keyof typeof VALUE_DOMAIN_CODE
 
-export type ValueDomainOption = CoreMeta<ValueDomainCode>
+export const PARAMETERIZED_VALUE_DOMAINS = {
+  ATTACK_ROLL_BONUS: true,
+  SAVING_THROW_BONUS: true,
+  SKILL_BONUS: true,
+  ABILITY_SCORE: true,
+  SPEED: true,
+  SENSE_RANGE: true,
+  DAMAGE: true,
+  SPELL_SLOT_COUNT: true
+} as const
+
+export type ParameterizedValueDomainCode = keyof typeof PARAMETERIZED_VALUE_DOMAINS
+
+// Helper: attach isParameterized based on membership in PARAMETERIZED_VALUE_DOMAINS
+type WithParameterizedFlag<V extends ValueDomainCode>
+  = V extends ParameterizedValueDomainCode
+    ? { isParameterized: true }
+    : { isParameterized?: never }
+
+// Update your option type so the flag is *correct by construction*
+export type ValueDomainOption<V extends ValueDomainCode = ValueDomainCode>
+  = CoreMeta<V> & WithParameterizedFlag<V>
 
 export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> = {
   [VALUE_DOMAIN_CODE.HIT_POINTS_MAX]: {
@@ -322,5 +345,138 @@ export const ATTACK_DOMAIN_REGISTRY: Record<AttackDomainCode, AttackDomainOption
     description:
     'Represents a spell attack using a spell such as a fireball or lightning bolt.'
   }
+}
 
+export type ValueDomainParamByCode = {
+  /* ──────────────────────────────────────────────
+   * CORE NUMERIC VALUES
+   * ────────────────────────────────────────────── */
+
+  HIT_POINTS_MAX: EmptyObject
+  ARMOR_CLASS: EmptyObject
+  INITIATIVE_BONUS: EmptyObject
+  PROFICIENCY_BONUS: EmptyObject
+
+  /* ──────────────────────────────────────────────
+   * ROLL SURFACES (parameterized)
+   * ────────────────────────────────────────────── */
+
+  // Attack bonus is usually different for melee/ranged/spell/unarmed
+  ATTACK_ROLL_BONUS: { attackDomain: AttackDomainCode }
+
+  // Save bonus is per ability (STR/DEX/etc)
+  SAVING_THROW_BONUS: { ability: AbilityCode }
+
+  // Skill bonus is per skill
+  SKILL_BONUS: { skillId: string }
+
+  // Save DC is often contextual; if you want per-spellcasting ability later,
+  // keep it global for MVP:
+  SAVE_DC: EmptyObject
+
+  /* ──────────────────────────────────────────────
+   * ABILITIES / SCORES
+   * ────────────────────────────────────────────── */
+
+  ABILITY_SCORE: { ability: AbilityCode }
+
+  /* ──────────────────────────────────────────────
+   * MOVEMENT & SENSES
+   * ────────────────────────────────────────────── */
+
+  // Speed is per speed type (walk/fly/climb). Use id/code consistent with your vocab.
+  SPEED: { speedId: string }
+
+  // Set-like: movement modes (fly, swim...). Treat as per-mode set, no param needed.
+  MOVEMENT_MODE: EmptyObject
+
+  // Sense range is per sense type
+  SENSE_RANGE: { senseCode: SenseCode }
+
+  /* ──────────────────────────────────────────────
+   * DAMAGE (parameterized by “attack domain” for sheet-style bonuses)
+   * ────────────────────────────────────────────── */
+
+  // For MVP, mirror ATTACK_ROLL_BONUS and keep it by attackDomain.
+  // If you want “spell damage” separate from “weapon damage”, this works.
+  DAMAGE: { attackDomain: AttackDomainCode }
+  DAMAGE_RESISTANCE: EmptyObject
+  DAMAGE_IMMUNITY: EmptyObject
+  DAMAGE_VULNERABILITY: EmptyObject
+
+  /* ──────────────────────────────────────────────
+   * SPELL STRUCTURE
+   * ────────────────────────────────────────────── */
+
+  RANGE: EmptyObject
+  DURATION: EmptyObject
+  SHAPE: EmptyObject
+
+  /* ──────────────────────────────────────────────
+   * SPELLCASTING LIMITS (parameterized by spell slot level)
+   * ────────────────────────────────────────────── */
+
+  SPELL_SLOT_COUNT: { spellLevel: number } // 1..9
+  SPELL_SLOT_LEVEL_MAX: EmptyObject
+  SPELLS_KNOWN: EmptyObject
+  SPELLS_PREPARED: EmptyObject
+
+  /* ──────────────────────────────────────────────
+   * ACTION ECONOMY
+   * ────────────────────────────────────────────── */
+
+  ACTION_COUNT: EmptyObject
+  BONUS_ACTION_COUNT: EmptyObject
+  REACTION_COUNT: EmptyObject
+
+  /* ──────────────────────────────────────────────
+   * CHARGES / RESOURCES
+   * ────────────────────────────────────────────── */
+
+  CHARGE_LIMIT: EmptyObject
+  CHARGE_RESET: EmptyObject
+
+  /* ──────────────────────────────────────────────
+   * CONDITIONS / ATTRIBUTES (set-like)
+   * ────────────────────────────────────────────── */
+
+  CONDITION: EmptyObject
+  ATTRIBUTE: EmptyObject
+}
+
+export type ValueDomainParam<V extends ValueDomainCode>
+  = V extends keyof ValueDomainParamByCode ? ValueDomainParamByCode[V] : EmptyObject
+
+/* ============================================================================
+ * 2) Domain-correlated payloads for option-like modifier kinds
+ * ============================================================================
+ *
+ * Goal:
+ * - Replace `{ optionId: string }` with domain-specific payloads.
+ * - Keep modifier kinds the same.
+ */
+
+export type ValueDomainOptionPayloadByDomain = {
+  DAMAGE_RESISTANCE: { damageTypeId: string }
+  DAMAGE_IMMUNITY: { damageTypeId: string }
+  DAMAGE_VULNERABILITY: { damageTypeId: string }
+
+  // Your CONDITION domain is “applied conditions on character”.
+  // If you model as conditionTypeId, use that. If you model as conditionId, switch.
+  CONDITION: { conditionTypeId: string }
+
+  // Attribute is likely from a registry (ritual, concentration, etc.)
+  ATTRIBUTE: { attributeId: string }
+
+  // Movement mode is a registry
+  MOVEMENT_MODE: { movementModeId: string }
+
+  // Replace option for charge reset should use the actual enum/kind, not a random id
+  CHARGE_RESET: { resetKind: ChargeResetKind }
+  CHARGE_LIMIT: { chargeLimitKind: ChargeLimitKind }
+
+  // Replace option for duration/shape/range should use the actual enum/kind.
+  RANGE: { rangeKind: RangeKind }
+  DURATION: { durationKind: DurationKind }
+  SHAPE: { shapeKind: ShapeKind }
 }

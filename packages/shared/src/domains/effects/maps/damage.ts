@@ -1,11 +1,11 @@
 import { type DamageAuthored, type DamageBonusAuthored, type DamageDicePayload, type DamageFixedPayload } from '#authored'
 import { ABILITY_OPTIONS, DAMAGE_BONUS_OPTIONS } from '#core'
-import { buildNodeMap, type ArrayElementAt } from '#util'
+import { buildNodeMap, type ArrayElementAt } from '#utils'
 import { type AllUnionFields } from 'type-fest'
 
 const damageBonus = buildNodeMap<DamageBonusAuthored>()
 
-export const DAMAGE_BONUS_NODE_MAP = damageBonus.define((map, { field }) => map({
+export const DAMAGE_BONUS_NODE_MAP = damageBonus.define((map, { local }) => map({
   bonusKind: {
     kind: 'INPUT',
     label: 'Bonus Kind',
@@ -25,7 +25,7 @@ export const DAMAGE_BONUS_NODE_MAP = damageBonus.define((map, { field }) => map(
       kind: 'INLINE',
       options: ABILITY_OPTIONS
     },
-    showIf: field('bonusKind').eq('ABILITY_BONUS')
+    showIf: local('bonusKind').eq('ABILITY_BONUS')
   },
   skillId: {
     kind: 'INPUT',
@@ -35,11 +35,11 @@ export const DAMAGE_BONUS_NODE_MAP = damageBonus.define((map, { field }) => map(
     source: {
       kind: 'DATA',
       relationship: {
-        kind: 'ROOT',
+        kind: 'TABLE',
         table: 'skills'
       }
     },
-    showIf: field('bonusKind').eq('SKILL_BONUS')
+    showIf: local('bonusKind').eq('SKILL_BONUS')
   },
   min: {
     kind: 'INPUT',
@@ -64,25 +64,25 @@ type DamageUnioned = AllUnionFields<DamageAuthored>
 
 const damageLevelScalingEntry = buildNodeMap<DamageArrayElement, DamageUnioned>()
 
-export const DAMAGE_LEVEL_SCALING_ENTRY_NODE_MAP = damageLevelScalingEntry.define((map, { field }) => map({
+export const DAMAGE_LEVEL_SCALING_ENTRY_NODE_MAP = damageLevelScalingEntry.define((map, { context }) => map({
   level: {
     kind: 'INPUT',
     label: 'Level',
-    required: true,
+    requiredIf: true,
     type: 'NUMBER'
   },
   diceConfig: {
     kind: 'INPUT',
     label: 'Damage Dice',
-    required: true,
+    requiredIf: true,
     type: 'NUMBER',
-    showIf: field('valueKind').eq('DICE')
+    showIf: context('valueKind').eq('DICE')
   },
   amount: {
     kind: 'INPUT',
     label: 'Damage Amount',
-    required: true,
+    requiredIf: true,
     type: 'NUMBER',
-    showIf: field('valueKind').eq('FIXED')
+    showIf: context('valueKind').eq('FIXED')
   }
 }))

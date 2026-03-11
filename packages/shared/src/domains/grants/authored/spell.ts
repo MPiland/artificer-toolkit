@@ -1,15 +1,22 @@
-import type { GRANT_KIND, SUBJECT } from '#core'
+import type { GRANT_KIND, NodeSubjectCode, SpellGrantAttribute } from '#core'
 import type {
   ScalingGrant,
   ChargeAuthored,
-  TargetGroupsAuthored
+  FacetAuthored
 } from '#authored'
-import type { SpellGrantAttribute } from '../core/spell.js'
 
-export type SpellGrantAuthored = ScalingGrant<{ spellIds: string[] }> & {
-  grantKind: typeof GRANT_KIND.SPELL_GRANT
-  castAtLevel?: number
-  charges?: ChargeAuthored
-  attributes?: SpellGrantAttribute[]
-  filterGroups?: TargetGroupsAuthored<typeof SUBJECT.SPELL>
-}
+export type SpellGrantAuthored<N extends NodeSubjectCode = NodeSubjectCode> = ScalingGrant<{ spellIds: string[] }, N>
+  & (
+    | {
+      grantKind: typeof GRANT_KIND.SPELL_GRANT
+      castAtLevel?: number
+      attributes?: Exclude<SpellGrantAttribute, 'LIMITED_USE'>[]
+      filters?: FacetAuthored<Extract<NodeSubjectCode, 'SPELL'>>
+    } | {
+      grantKind: typeof GRANT_KIND.SPELL_GRANT
+      castAtLevel?: number
+      charges?: ChargeAuthored
+      attributes?: SpellGrantAttribute[]
+      filters?: FacetAuthored<Extract<NodeSubjectCode, 'SPELL'>>
+    }
+  )

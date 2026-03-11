@@ -1,27 +1,37 @@
-import { CHARGE_NODE_MAP } from '../../../../dist/maps/maps.js'
-import { FEATURE_ATTRIBUTE_OPTIONS, FEATURE_ATTRIBUTE_REGISTRY } from '#core'
-import type { NodeMap } from '#util'
+import { FEATURE_ATTRIBUTE_OPTIONS } from '#core'
+import { buildNodeMap } from '#utils'
 import type { FeatureAuthored } from '#authored'
+import { EFFECT_NODE_MAP, CHARGE_NODE_MAP } from '#maps'
 
-export const FEATURE_NODE_MAP: NodeMap<FeatureAuthored> = {
+const feature = buildNodeMap<FeatureAuthored>()
+
+export const FEATURE_NODE_MAP = feature.define((map, { local }) => map({
+  description: {
+    label: 'Description',
+    kind: 'INPUT',
+    type: 'TEXT'
+  },
   attributes: {
-    id: 'attributes',
     label: 'Attributes',
-    input: {
-      type: 'multi-select-optional',
-      source: {
-        kind: 'INLINE',
-        options: FEATURE_ATTRIBUTE_OPTIONS
-      }
+    kind: 'INPUT',
+    type: 'SELECT_SINGLE',
+    source: {
+      kind: 'INLINE',
+      options: FEATURE_ATTRIBUTE_OPTIONS
     }
   },
+  detail: {
+    label: 'Detail',
+    kind: 'INPUT',
+    type: 'TEXT'
+  },
+  effects: {
+    kind: 'GROUP',
+    nodes: EFFECT_NODE_MAP
+  },
   charges: {
-    id: 'charges',
-    nodes: CHARGE_NODE_MAP,
-    showIf: {
-      field: 'attributes',
-      op: 'contains',
-      value: typeof FEATURE_ATTRIBUTE_REGISTRY.LIMITED_USE
-    }
+    kind: 'GROUP',
+    showIf: local('attributes').contains('LIMITED_USE'),
+    nodes: CHARGE_NODE_MAP
   }
-} as const
+}))

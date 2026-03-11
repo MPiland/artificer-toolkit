@@ -18,16 +18,15 @@ import {
   DAMAGE_LEVEL_SCALING_ENTRY_NODE_MAP,
   DURATION_NODE_MAP
 } from '#maps'
-import { buildNodeMap, type NodeMap } from '#util'
-import type { AllUnionFields } from 'type-fest'
+import { buildNodeMap, type NodeMap } from '#utils'
 
 const momentRollTableEntry = buildNodeMap<
-  MomentRollTableEntry & AllUnionFields<MomentEffectPayload>,
+  MomentRollTableEntry & MomentEffectPayload,
   Omit<MomentRollTable, 'table'>
 >()
 
 export const MOMENT_ROLL_TABLE_ENTRY_NODE_MAP = momentRollTableEntry.define(
-  (map, { field, and, or, not }) => map({
+  (map, { context, local, and, or, not }) => map({
     description: {
       kind: 'INPUT',
       label: 'Description',
@@ -40,23 +39,23 @@ export const MOMENT_ROLL_TABLE_ENTRY_NODE_MAP = momentRollTableEntry.define(
     ['rollRange.0']: {
       kind: 'INPUT',
       label: 'Roll Min',
-      required: true,
+      requiredIf: true,
       type: 'NUMBER',
-      showIf: field('rollTableKind').eq('RANGE')
+      showIf: context('rollTableKind').eq('RANGE')
     },
     ['rollRange.1']: {
       kind: 'INPUT',
       label: 'Roll Max',
-      required: true,
+      requiredIf: true,
       type: 'NUMBER',
-      showIf: field('rollTableKind').eq('RANGE')
+      showIf: context('rollTableKind').eq('RANGE')
     },
     rollValue: {
       kind: 'INPUT',
       label: 'Roll Value',
-      required: true,
+      requiredIf: true,
       type: 'NUMBER',
-      showIf: field('rollTableKind').eq('EXACT')
+      showIf: context('rollTableKind').eq('EXACT')
     },
     effectKind: {
       kind: 'INPUT',
@@ -71,7 +70,7 @@ export const MOMENT_ROLL_TABLE_ENTRY_NODE_MAP = momentRollTableEntry.define(
     bonuses: {
       kind: 'GROUP',
       nodes: DAMAGE_BONUS_NODE_MAP,
-      showIf: field('effectKind').eq('DAMAGE')
+      showIf: local('effectKind').eq('DAMAGE')
     },
     damageTypeId: {
       kind: 'INPUT',
@@ -81,11 +80,11 @@ export const MOMENT_ROLL_TABLE_ENTRY_NODE_MAP = momentRollTableEntry.define(
       source: {
         kind: 'DATA',
         relationship: {
-          kind: 'ROOT',
+          kind: 'TABLE',
           table: 'damage_types'
         }
       },
-      showIf: field('effectKind').eq('DAMAGE')
+      showIf: local('effectKind').eq('DAMAGE')
     },
     valueKind: {
       kind: 'INPUT',
@@ -96,31 +95,31 @@ export const MOMENT_ROLL_TABLE_ENTRY_NODE_MAP = momentRollTableEntry.define(
         kind: 'INLINE',
         options: DAMAGE_VALUE_OPTIONS
       },
-      showIf: field('effectKind').eq('DAMAGE')
+      showIf: local('effectKind').eq('DAMAGE')
     },
     amount: {
       kind: 'INPUT',
       label: 'Damage Amount',
       requiredIf: not(
         and([
-          field('valueKind').eq('POOL'),
-          field('scalingKind').eq('PER_LEVEL')
+          local('valueKind').eq('POOL'),
+          local('scalingKind').eq('PER_LEVEL')
         ])
       ),
       type: 'NUMBER',
       showIf: and([
-        field('effectKind').eq('DAMAGE'),
+        local('effectKind').eq('DAMAGE'),
         or([
           and([
-            field('scalingKind').eq('NONE'),
+            local('scalingKind').eq('NONE'),
             or([
-              field('valueKind').eq('FIXED'),
-              field('valueKind').eq('POOL')
+              local('valueKind').eq('FIXED'),
+              local('valueKind').eq('POOL')
             ])
           ]),
           and([
-            field('scalingKind').eq('PER_LEVEL'),
-            field('valueKind').eq('POOL')
+            local('scalingKind').eq('PER_LEVEL'),
+            local('valueKind').eq('POOL')
           ])
         ])
       ])
@@ -130,10 +129,10 @@ export const MOMENT_ROLL_TABLE_ENTRY_NODE_MAP = momentRollTableEntry.define(
       label: 'Damage Multiplier',
       type: 'NUMBER',
       showIf: and([
-        field('effectKind').eq('DAMAGE'),
+        local('effectKind').eq('DAMAGE'),
         and([
-          field('scalingKind').eq('PER_LEVEL'),
-          field('valueKind').eq('POOL')
+          local('scalingKind').eq('PER_LEVEL'),
+          local('valueKind').eq('POOL')
         ])
       ])
     },
@@ -142,10 +141,10 @@ export const MOMENT_ROLL_TABLE_ENTRY_NODE_MAP = momentRollTableEntry.define(
       label: 'Damage Min',
       type: 'NUMBER',
       showIf: and([
-        field('effectKind').eq('DAMAGE'),
+        local('effectKind').eq('DAMAGE'),
         and([
-          field('scalingKind').eq('PER_LEVEL'),
-          field('valueKind').eq('POOL')
+          local('scalingKind').eq('PER_LEVEL'),
+          local('valueKind').eq('POOL')
         ])
       ])
     },
@@ -154,10 +153,10 @@ export const MOMENT_ROLL_TABLE_ENTRY_NODE_MAP = momentRollTableEntry.define(
       label: 'Damage Max',
       type: 'NUMBER',
       showIf: and([
-        field('effectKind').eq('DAMAGE'),
+        local('effectKind').eq('DAMAGE'),
         and([
-          field('scalingKind').eq('PER_LEVEL'),
-          field('valueKind').eq('POOL')
+          local('scalingKind').eq('PER_LEVEL'),
+          local('valueKind').eq('POOL')
         ])
       ])
     },
@@ -167,10 +166,10 @@ export const MOMENT_ROLL_TABLE_ENTRY_NODE_MAP = momentRollTableEntry.define(
       requiredIf: true,
       type: 'NUMBER',
       showIf: and([
-        field('effectKind').eq('DAMAGE'),
+        local('effectKind').eq('DAMAGE'),
         and([
-          field('scalingKind').eq('NONE'),
-          field('valueKind').eq('DICE')
+          local('scalingKind').eq('NONE'),
+          local('valueKind').eq('DICE')
         ])
       ])
     },
@@ -178,9 +177,9 @@ export const MOMENT_ROLL_TABLE_ENTRY_NODE_MAP = momentRollTableEntry.define(
       kind: 'GROUP',
       nodes: DAMAGE_LEVEL_SCALING_ENTRY_NODE_MAP,
       showIf: and([
-        field('effectKind').eq('DAMAGE'),
-        field('scalingKind').eq('PER_LEVEL'),
-        not(field('valueKind').eq('POOL'))
+        local('effectKind').eq('DAMAGE'),
+        local('scalingKind').eq('PER_LEVEL'),
+        not(local('valueKind').eq('POOL'))
       ])
     },
     scalingSource: {
@@ -193,9 +192,9 @@ export const MOMENT_ROLL_TABLE_ENTRY_NODE_MAP = momentRollTableEntry.define(
         options: SCALING_SOURCE_OPTIONS
       },
       showIf: and([
-        field('effectKind').eq('DAMAGE'),
-        field('scalingKind').eq('PER_LEVEL'),
-        not(field('valueKind').eq('POOL'))
+        local('effectKind').eq('DAMAGE'),
+        local('scalingKind').eq('PER_LEVEL'),
+        not(local('valueKind').eq('POOL'))
       ])
     },
     classId: {
@@ -206,15 +205,15 @@ export const MOMENT_ROLL_TABLE_ENTRY_NODE_MAP = momentRollTableEntry.define(
       source: {
         kind: 'DATA',
         relationship: {
-          kind: 'ROOT',
+          kind: 'TABLE',
           table: 'classes'
         }
       },
       showIf: and([
-        field('effectKind').eq('DAMAGE'),
-        field('scalingKind').eq('PER_LEVEL'),
-        not(field('valueKind').eq('POOL')),
-        field('scalingSource').eq('CLASS_LEVEL')
+        local('effectKind').eq('DAMAGE'),
+        local('scalingKind').eq('PER_LEVEL'),
+        not(local('valueKind').eq('POOL')),
+        local('scalingSource').eq('CLASS_LEVEL')
       ])
     },
     spellId: {
@@ -225,15 +224,15 @@ export const MOMENT_ROLL_TABLE_ENTRY_NODE_MAP = momentRollTableEntry.define(
       source: {
         kind: 'DATA',
         relationship: {
-          kind: 'ROOT',
+          kind: 'TABLE',
           table: 'spells'
         }
       },
       showIf: and([
-        field('effectKind').eq('DAMAGE'),
-        field('scalingKind').eq('PER_LEVEL'),
-        not(field('valueKind').eq('POOL')),
-        field('scalingSource').eq('SPELL_LEVEL')
+        local('effectKind').eq('DAMAGE'),
+        local('scalingKind').eq('PER_LEVEL'),
+        not(local('valueKind').eq('POOL')),
+        local('scalingSource').eq('SPELL_LEVEL')
       ])
     },
     conditionId: {
@@ -244,11 +243,11 @@ export const MOMENT_ROLL_TABLE_ENTRY_NODE_MAP = momentRollTableEntry.define(
       source: {
         kind: 'DATA',
         relationship: {
-          kind: 'ROOT',
+          kind: 'TABLE',
           table: 'condition_types'
         }
       },
-      showIf: field('effectKind').eq('CONDITION')
+      showIf: local('effectKind').eq('CONDITION')
     }
   })
 )
@@ -257,7 +256,7 @@ const moment = buildNodeMap<MomentAuthored>()
 
 type MomentNodeMap = NodeMap<MomentAuthored>
 
-export const MOMENT_NODE_MAP: MomentNodeMap = moment.define((map, { field }) => map({
+export const MOMENT_NODE_MAP: MomentNodeMap = moment.define((map, { local }) => map({
   moment: {
     kind: 'INPUT',
     label: 'Moment',
@@ -283,7 +282,7 @@ export const MOMENT_NODE_MAP: MomentNodeMap = moment.define((map, { field }) => 
     label: 'Die Configuration',
     requiredIf: true,
     type: 'TEXT',
-    showIf: field('resolutionKind').eq('ROLL_TABLE')
+    showIf: local('resolutionKind').eq('ROLL_TABLE')
   },
   groupType: {
     kind: 'INPUT',
@@ -308,7 +307,7 @@ export const MOMENT_NODE_MAP: MomentNodeMap = moment.define((map, { field }) => 
       kind: 'INLINE',
       options: MOMENT_ROLL_TABLE_KIND_OPTIONS
     },
-    showIf: field('resolutionKind').eq('ROLL_TABLE')
+    showIf: local('resolutionKind').eq('ROLL_TABLE')
   },
   table: {
     kind: 'GROUP',

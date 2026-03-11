@@ -1,4 +1,5 @@
 import type { CoreMeta } from '#core'
+import { valuesOf } from '#utils'
 
 // How scaling is determined
 export const SCALING_SOURCE = {
@@ -125,4 +126,4 @@ export const SCALING_AMOUNT_REGISTRY: Record<
   }
 } as const
 
-export const SCALING_AMOUNT_OPTIONS = Object.values(SCALING_AMOUNT_REGISTRY) as readonly ScalingAmountOption[]
+export const SCALING_AMOUNT_OPTIONS = valuesOf(SCALING_AMOUNT_REGISTRY)
