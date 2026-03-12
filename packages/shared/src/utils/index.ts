@@ -1,6 +1,6 @@
 export { assertNever } from './assertNever.js'
 export * from './allOrSelected.js'
-export { buildNodeMap, NODE_KIND } from './nodeDefinition.js'
+export { buildNodeMap, NODE_KIND, buildRegistryOptionGroups } from './nodeDefinition.js'
 export * from './valuesOf.js'
 
 export type {

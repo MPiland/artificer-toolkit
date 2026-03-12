@@ -1,3 +1,4 @@
+import { valuesOf } from '#utils'
 import type { CoreMeta } from './core.js'
 
 export const MEASUREMENT_SYSTEM_CODE = {
@@ -190,4 +191,4 @@ export type MeasurementUnitValue
   = (typeof MEASUREMENT_UNIT_REGISTRY)[keyof typeof MEASUREMENT_UNIT_REGISTRY]
 
 export const MEASUREMENT_UNIT_OPTIONS
-  = Object.values(MEASUREMENT_UNIT_REGISTRY) as readonly MeasurementUnitValue[]
+  = valuesOf(MEASUREMENT_UNIT_REGISTRY) as readonly MeasurementUnitOption[]

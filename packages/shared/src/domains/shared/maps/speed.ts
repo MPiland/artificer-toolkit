@@ -4,34 +4,28 @@ import { buildNodeMap } from '#utils'
 
 const speed = buildNodeMap<SpeedAuthored>()
 
-export const SPEED_NODE_MAP = speed.define((map) => map({
-  speedId: {
-    kind: 'INPUT',
-    label: 'Speed',
-    type: 'SELECT_SINGLE',
-    requiredIf: true,
-    source: {
+export const SPEED_NODE_MAP = speed.define('speed', ({ map, nodes, data }) => {
+  const { number, selectSingle } = nodes
+  const { table } = data
+  map
+    .set('speedId', selectSingle(['speedId'], 'Speed', {
       kind: 'DATA',
-      relationship: {
-        kind: 'TABLE',
-        table: 'speeds',
-        selectColumns: ['id']
-      }
-    }
-  },
-  amount: {
-    kind: 'INPUT',
-    label: 'Distance Amount',
-    type: 'NUMBER'
-  },
-  unit: {
-    kind: 'INPUT',
-    label: 'Distance Unit',
-    type: 'SELECT_SINGLE',
-    requiredIf: true,
-    source: {
+      relationship: table('speeds', {
+        selectColumns: ['id', 'label', 'tooltip']
+      })
+    }, {
+      order: 1,
+      requiredIf: true
+    }))
+    .set('amount', number(['amount'], 'Amount', {
+      order: 2,
+      requiredIf: true
+    }))
+    .set('unit', selectSingle(['unit'], 'Unit', {
       kind: 'INLINE',
       options: MEASUREMENT_UNIT_OPTIONS
-    }
-  }
-}))
+    }, {
+      order: 3,
+      requiredIf: true
+    }))
+})

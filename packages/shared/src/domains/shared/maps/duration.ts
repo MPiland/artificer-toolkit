@@ -4,24 +4,19 @@ import { buildNodeMap } from '#utils'
 
 const duration = buildNodeMap<DurationAuthored>()
 
-export const DURATION_NODE_MAP = duration.define((map, { not, and, local }) => map({
-  durationKind: {
-    kind: 'INPUT',
-    label: 'Duration Kind',
-    type: 'SELECT_SINGLE',
-    requiredIf: true,
-    source: {
+export const DURATION_NODE_MAP = duration.define('duration', ({ map, nodes, cond, logic }) => {
+  const local = cond.local()
+  const { not } = logic
+
+  const { selectSingle, number } = nodes
+
+  map
+    .set('durationKind', selectSingle(['durationKind'], 'Duration Kind', {
       kind: 'INLINE',
       options: DURATION_OPTIONS
-    }
-  },
-  amount: {
-    kind: 'INPUT',
-    label: 'Amount',
-    type: 'NUMBER',
-    showIf: and([
-      not(local('durationKind').eq('INSTANTANEOUS')),
-      not(local('durationKind').empty())
-    ])
-  }
-}))
+    }))
+    .set('amount', number(['amount'], 'Amount', {
+      order: 2,
+      showIf: not(local.field(['durationKind']).eq('INSTANTANEOUS'))
+    }))
+})

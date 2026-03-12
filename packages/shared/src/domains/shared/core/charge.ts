@@ -1,4 +1,5 @@
 import type { CoreMeta } from '#core'
+import { valuesOf } from '#utils'
 
 export const CHARGE_SCALING = {
   NONE: 'NONE',
@@ -29,6 +30,8 @@ export const CHARGE_SCALING_REGISTRY: Record<
       'The charge content varies as the character gains levels, using level-based rules.'
   }
 } as const
+
+export const CHARGE_SCALING_OPTIONS = valuesOf(CHARGE_SCALING_REGISTRY) as readonly ChargeScalingOption[]
 
 export const CHARGE_RESET_KIND = {
   LONG_REST: 'LONG_REST',
@@ -69,15 +72,14 @@ export const CHARGE_RESET_REGISTRY: Record<
   }
 } as const
 
-export const CHARGE_RESET_OPTIONS = Object.values(
+export const CHARGE_RESET_OPTIONS = valuesOf(
   CHARGE_RESET_REGISTRY
 ) as readonly ChargeResetOption[]
 
 export const CHARGE_LIMIT_KIND = {
   FIXED_AMOUNT: 'FIXED_AMOUNT',
   CHARACTER_LEVEL: 'CHARACTER_LEVEL',
-  CLASS_LEVEL: 'CLASS_LEVEL',
-  SPELL_LEVEL: 'SPELL_LEVEL'
+  SOURCE_LEVEL: 'SOURCE_LEVEL'
 } as const
 
 export type ChargeLimitKind = keyof typeof CHARGE_LIMIT_KIND
@@ -102,24 +104,16 @@ export const CHARGE_LIMIT_REGISTRY: Record<ChargeLimitKind, ChargeLimitOption>
         'The number of uses increases based on the character\'s overall level.'
     },
 
-    [CHARGE_LIMIT_KIND.CLASS_LEVEL]: {
-      code: CHARGE_LIMIT_KIND.CLASS_LEVEL,
-      label: 'Class Level',
-      tooltip: 'Uses a class\' level.',
+    [CHARGE_LIMIT_KIND.SOURCE_LEVEL]: {
+      code: CHARGE_LIMIT_KIND.SOURCE_LEVEL,
+      label: 'Source Level',
+      tooltip: 'Uses the source\'s level.',
       description:
-        'The number of uses increases based on the character\'s level in the chosen class.'
-    },
-
-    [CHARGE_LIMIT_KIND.SPELL_LEVEL]: {
-      code: CHARGE_LIMIT_KIND.SPELL_LEVEL,
-      label: 'Spell Level',
-      tooltip: 'Uses the level of the associated spell.',
-      description:
-        'The number of uses increases based on the level of the associated spell.'
+        'The number of uses increases based on the source\'s level.'
     }
   } as const
 
-export const CHARGE_LIMIT_OPTIONS = Object.values(
+export const CHARGE_LIMIT_OPTIONS = valuesOf(
   CHARGE_LIMIT_REGISTRY
 ) as readonly ChargeLimitOption[]
 
@@ -159,3 +153,5 @@ export const CHARGE_BONUS_REGISTRY: Record<ChargeBonusKind, ChargeBonusOption>
         'The number of uses increases based on the character’s bonus in a chosen skill.'
     }
   } as const
+
+export const CHARGE_BONUS_OPTIONS = valuesOf(CHARGE_BONUS_REGISTRY) as readonly ChargeBonusOption[]

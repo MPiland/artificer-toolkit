@@ -96,11 +96,17 @@ function createLogic(): Logic {
  * ID Refs (serializable, shallow)
  * ────────────────────────────────────────────────────────────── */
 
-type IdList = readonly string[] | string[] | undefined
+type InputRefSupported
+  = | string
+    | readonly string[]
+    | string[]
+    | undefined
 
 type IdPathFor<T extends object> = {
   [K in NKey<T>]:
-  NonNullable<NormalizeForAccess<T>[K]> extends IdList ? readonly [K] : never
+  NonNullable<NormalizeForAccess<T>[K]> extends InputRefSupported
+    ? readonly [K]
+    : never
 }[NKey<T>]
 
 export type IdRef
@@ -186,19 +192,33 @@ type FieldHandle<TScope extends object, P extends ShallowPath> = {
   onlyValues(value: readonly ContainsArg<ValueAtPath<TScope, P>>[]): ConditionIfExpr
 }
 
-type HasAuthoringMode = { authoringModeKind: 'ALL' | 'SELECTED' }
-export type ScopeFlags = { selected: ConditionIfExpr, all: ConditionIfExpr, allOrMissing: ConditionIfExpr }
+type HasAuthoringMode = { authoringModeKind?: 'ALL' | 'SELECTED' }
 
-type FrameBinder<TScope extends object & HasAuthoringMode> = {
+export type ScopeFlags = {
+  selected: ConditionIfExpr
+  all: ConditionIfExpr
+  allOrMissing: ConditionIfExpr
+}
+
+type BaseFrameBinder<TScope extends object> = {
   field<P extends CondPathFor<TScope>>(path: P): FieldHandle<TScope, Extract<P, ShallowPath>>
-  scope<P extends CondPathFor<TScope>>(path: P): ScopeFlags
   id<P extends IdPathFor<TScope>>(path: P): IdRef
 }
 
+type ScopeFrameBinder<TScope extends object>
+  = TScope extends HasAuthoringMode
+    ? {
+        scope<P extends CondPathFor<TScope>>(path: P): ScopeFlags
+      }
+    : EmptyObject
+
+type FrameBinder<TScope extends object>
+  = BaseFrameBinder<TScope> & ScopeFrameBinder<TScope>
+
 export type ConditionIfBuilder<NLocal extends object> = {
-  local(): FrameBinder<NLocal & HasAuthoringMode>
-  parent<TScope extends object & HasAuthoringMode>(): FrameBinder<TScope>
-  ancestor<TScope extends object & HasAuthoringMode>(up: number): FrameBinder<TScope>
+  local(): FrameBinder<NLocal>
+  parent<TScope extends object>(): FrameBinder<TScope>
+  ancestor<TScope extends object>(up: number): FrameBinder<TScope>
 }
 
 function createConditionIfBuilder<NLocal extends object>(): ConditionIfBuilder<NLocal> {
@@ -238,7 +258,11 @@ function createConditionIfBuilder<NLocal extends object>(): ConditionIfBuilder<N
   const MODE_SELECTED: HasAuthoringMode['authoringModeKind'] = 'SELECTED'
   const MODE_ALL: HasAuthoringMode['authoringModeKind'] = 'ALL'
 
-  const mkScope = (from: 'LOCAL' | 'PARENT' | 'ANCESTOR', path: ShallowPath, up?: number): ScopeFlags => {
+  const mkScope = (
+    from: 'LOCAL' | 'PARENT' | 'ANCESTOR',
+    path: ShallowPath,
+    up?: number
+  ): ScopeFlags => {
     const f
       = from === 'LOCAL'
         ? handle<object, ShallowPath>('LOCAL', path)
@@ -263,42 +287,34 @@ function createConditionIfBuilder<NLocal extends object>(): ConditionIfBuilder<N
         : handle('ANCESTOR', ['authoringModeKind'] as const, up).empty()
     )
 
-    const modeAllOrMissing: ConditionIfExpr = logic.or([
-      modeAll,
-      modeEmpty
-    ])
-
     return {
       selected: logic.and([modeSelected, logic.not(f.empty())]),
       all: modeAll,
-      allOrMissing: modeAllOrMissing
+      allOrMissing: logic.or([modeAll, modeEmpty])
     }
   }
 
+  const makeFrameBinder = <TScope extends object>(
+    from: 'LOCAL' | 'PARENT' | 'ANCESTOR',
+    up?: number
+  ): FrameBinder<TScope> => {
+    return {
+      field: <P extends CondPathFor<TScope>>(path: P) => handle<TScope, Extract<P, ShallowPath>>(from, path as Extract<P, ShallowPath>, up),
+
+      id: <P extends IdPathFor<TScope>>(path: P) => (from === 'LOCAL'
+        ? { from: 'LOCAL', path: path as Extract<P, ShallowPath> }
+        : from === 'PARENT'
+          ? { from: 'PARENT', path: path as Extract<P, ShallowPath> }
+          : { from: 'ANCESTOR', up: up!, path: path as Extract<P, ShallowPath> }) as IdRef,
+
+      scope: <P extends CondPathFor<Extract<TScope, HasAuthoringMode>>>(path: P) => mkScope(from, path as Extract<P, ShallowPath>, up)
+    } as unknown as FrameBinder<TScope>
+  }
+
   return {
-    local: () => ({
-      field: <P extends CondPathFor<NLocal & HasAuthoringMode>>(path: P) => handle<NLocal & HasAuthoringMode, Extract<P, ShallowPath>>('LOCAL', path as Extract<P, ShallowPath>),
-
-      scope: <P extends CondPathFor<NLocal & HasAuthoringMode>>(path: P) => mkScope('LOCAL', path as Extract<P, ShallowPath>),
-
-      id: <P extends IdPathFor<NLocal & HasAuthoringMode>>(path: P) => ({ from: 'LOCAL', path: path as Extract<P, ShallowPath> } as IdRef)
-    }),
-
-    parent: <TScope extends object & HasAuthoringMode>() => ({
-      field: <P extends CondPathFor<TScope>>(path: P) => handle<TScope, Extract<P, ShallowPath>>('PARENT', path as Extract<P, ShallowPath>),
-
-      scope: <P extends CondPathFor<TScope>>(path: P) => mkScope('PARENT', path as Extract<P, ShallowPath>),
-
-      id: <P extends IdPathFor<TScope>>(path: P) => ({ from: 'PARENT', path: path as Extract<P, ShallowPath> } as IdRef)
-    }),
-
-    ancestor: <TScope extends object & HasAuthoringMode>(up: number) => ({
-      field: <P extends CondPathFor<TScope>>(path: P) => handle<TScope, Extract<P, ShallowPath>>('ANCESTOR', path as Extract<P, ShallowPath>, up),
-
-      scope: <P extends CondPathFor<TScope>>(path: P) => mkScope('ANCESTOR', path as Extract<P, ShallowPath>, up),
-
-      id: <P extends IdPathFor<TScope>>(path: P) => ({ from: 'ANCESTOR', up, path: path as Extract<P, ShallowPath> } as IdRef)
-    })
+    local: () => makeFrameBinder<NLocal>('LOCAL'),
+    parent: <TScope extends object>() => makeFrameBinder<TScope>('PARENT'),
+    ancestor: <TScope extends object>(up: number) => makeFrameBinder<TScope>('ANCESTOR', up)
   }
 }
 
@@ -1222,7 +1238,7 @@ export type NodeMap<NLocal extends object> = {
  * ────────────────────────────────────────────────────────────── */
 
 type NodeMetaSpec = Pick<NodeMetaBase, 'order' | 'hiddenBehavior' | 'showIf' | 'requiredIf'>
-type GroupMetaSpec = Pick<NodeMetaBase, 'order' | 'hiddenBehavior' | 'showIf'>
+type GroupMetaSpec = Pick<NodeMetaBase, 'order' | 'hiddenBehavior' | 'showIf' | 'requiredIf'>
 
 export type NodeBuilder<NLocal extends object> = {
   text(path: InputPathFor<NLocal>, label: string, meta?: NodeMetaSpec): NodeInput<NLocal>
@@ -1398,4 +1414,39 @@ export function buildNodeMap<NLocalIn extends object = EmptyObject>(): BuildNode
     data,
     nodes
   }
+}
+
+/* ──────────────────────────────────────────────────────────────
+ * Helpers
+ * ────────────────────────────────────────────────────────────── */
+
+export type OptionWithCode = CoreMeta<string>
+
+export function buildRegistryOptionGroups<
+  TCode extends string,
+  TOption extends CoreMeta<TCode>,
+  TMap extends Record<string, readonly TCode[]>
+>(
+  registry: Record<TCode, TOption>,
+  byCategory: TMap,
+  showIfForCategory: (category: keyof TMap & string) => ConditionIfExpr,
+  fallbackShowIf?: ConditionIfExpr
+): readonly {
+  showIf: ConditionIfExpr
+  options: readonly TOption[]
+}[] {
+  const groups = Object.entries(byCategory).map(([category, codes]) => ({
+    showIf: showIfForCategory(category),
+    options: codes.map((code) => registry[code as TCode])
+  }))
+
+  return fallbackShowIf
+    ? [
+        ...groups,
+        {
+          showIf: fallbackShowIf,
+          options: Object.values(registry)
+        }
+      ]
+    : groups
 }

@@ -29,6 +29,7 @@ import {
   SCALING_AMOUNT_OPTIONS,
   SELECTABLE_PREDICATE_CODES
 } from '#core'
+import type { AllUnionFields } from 'type-fest'
 
 const facetBodyGroupNode = buildNodeMap<FacetBodyGroupAuthored>()
 
@@ -354,11 +355,11 @@ export const FACET_SCOPED_NODE_MAP = facetScopedNode.define('facetBody', (api) =
 
 const facetExistsNode = buildNodeMap<ExistsConditionAuthored>()
 
-type FacetExistMin = (
+type FacetExistMin = AllUnionFields<(
   | Pick<ExistsConditionAuthored, 'relationCode'>
   | Pick<FacetContextAuthored, 'subject'>
 )
-& SubjectSelectionAuthored
+& SubjectSelectionAuthored>
 
 const FACET_EXISTS_NODE_MAP = facetExistsNode.define('facetExists', ({ map, logic, cond, data, nodes }) => {
   const { or } = logic
@@ -1741,19 +1742,21 @@ const FACET_CONTEXT_NODE_MAP = facetContext.define('facetContext', ({ map, nodes
   const { groupArray } = nodes
 
   map
-    .set('conditions', groupArray(['conditions'], 'Conditions', FACET_CONDITION_NODE_MAP))
+    .set('conditions', groupArray(['conditions'], 'Conditions', () => FACET_CONDITION_NODE_MAP))
 })
 
 const facetGroup = buildNodeMap<FacetGroupAuthored>()
 
 const FACET_GROUP_NODE_MAP = facetGroup.define('facetGroup', ({ map, nodes }) => {
   const { groupArray } = nodes
-  map.set('contexts', groupArray(['contexts'], 'Context', FACET_CONTEXT_NODE_MAP))
+
+  map.set('contexts', groupArray(['contexts'], 'Context', () => FACET_CONTEXT_NODE_MAP))
 })
 
 const facet = buildNodeMap<FacetAuthored>()
 
 export const FACET_NODE_MAP = facet.define('facet', ({ map, nodes }) => {
   const { groupArray } = nodes
-  map.set('groups', groupArray(['groups'], 'Groups', FACET_GROUP_NODE_MAP))
+
+  map.set('groups', groupArray(['groups'], 'Groups', () => FACET_GROUP_NODE_MAP))
 })

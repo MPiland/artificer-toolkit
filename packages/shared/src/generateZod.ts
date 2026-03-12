@@ -38,10 +38,7 @@ async function run() {
 
   for (const tsFile of files) {
     const relative = path.relative(SRC_DIR, tsFile)
-    const outFile = path.join(
-      OUT_DIR,
-      relative.replace(/\.ts$/, '.zod.ts')
-    )
+    const outFile = path.join(OUT_DIR, relative.replace(/\.ts$/, '.zod.ts'))
 
     const sourceText = fs.readFileSync(tsFile, 'utf8')
 

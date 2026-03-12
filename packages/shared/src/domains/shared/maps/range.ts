@@ -4,32 +4,28 @@ import { buildNodeMap } from '#utils'
 
 const range = buildNodeMap<RangeAuthored>()
 
-export const RANGE_NODE_MAP = range.define((map, { local }) => map({
-  rangeKind: {
-    kind: 'INPUT',
-    label: 'Range Type',
-    type: 'SELECT_SINGLE',
-    requiredIf: true,
-    source: {
+export const RANGE_NODE_MAP = range.define('range', ({ map, cond, nodes }) => {
+  const local = cond.local()
+  const { selectSingle, number } = nodes
+  map
+    .set('rangeKind', selectSingle(['rangeKind'], 'Range Kind', {
       kind: 'INLINE',
       options: RANGE_OPTIONS
-    }
-  },
-  amount: {
-    kind: 'INPUT',
-    label: 'Distance Amount',
-    type: 'NUMBER',
-    showIf: local('rangeKind').eq('DISTANCE')
-  },
-  unit: {
-    kind: 'INPUT',
-    label: 'Distance Unit',
-    type: 'SELECT_SINGLE',
-    requiredIf: true,
-    source: {
+    }, {
+      order: 1,
+      requiredIf: true
+    }))
+    .set('amount', number(['amount'], 'Amount', {
+      order: 2,
+      requiredIf: true,
+      showIf: local.field(['rangeKind']).eq('DISTANCE')
+    }))
+    .set('unit', selectSingle(['unit'], 'Unit', {
       kind: 'INLINE',
       options: MEASUREMENT_UNIT_OPTIONS
-    },
-    showIf: local('rangeKind').eq('DISTANCE')
-  }
-}))
+    }, {
+      order: 3,
+      requiredIf: true,
+      showIf: local.field(['rangeKind']).eq('DISTANCE')
+    }))
+})

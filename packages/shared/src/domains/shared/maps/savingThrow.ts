@@ -7,32 +7,29 @@ import { buildNodeMap } from '#utils'
 
 const savingThrow = buildNodeMap<SavingThrowAuthored>()
 
-export const SAVING_THROW_NODE_MAP = savingThrow.define((map, { local }) => map({
-  savingThrowKind: {
-    kind: 'INPUT',
-    label: 'Saving Throw Kind',
-    type: 'SELECT_SINGLE',
-    requiredIf: true,
-    source: {
+export const SAVING_THROW_NODE_MAP = savingThrow.define('savingThrow', ({ map, cond, nodes }) => {
+  const { selectSingle, number } = nodes
+  const local = cond.local()
+
+  map
+    .set('savingThrowKind', selectSingle(['savingThrowKind'], 'Saving Throw Kind', {
       kind: 'INLINE',
       options: SAVING_THROW_KIND_OPTIONS
-    }
-  },
-  ability: {
-    kind: 'INPUT',
-    label: 'Ability',
-    type: 'SELECT_SINGLE',
-    requiredIf: true,
-    source: {
+    }, {
+      order: 1,
+      requiredIf: true
+    }))
+    .set('ability', selectSingle(['ability'], 'Ability', {
       kind: 'INLINE',
       options: ABILITY_OPTIONS
-    },
-    showIf: local('savingThrowKind').eq('FIXED_VALUE')
-  },
-  dc: {
-    kind: 'INPUT',
-    label: 'Difficulty Class',
-    type: 'NUMBER',
-    showIf: local('savingThrowKind').eq('FIXED_VALUE')
-  }
-}))
+    }, {
+      order: 2,
+      requiredIf: true,
+      showIf: local.field(['savingThrowKind']).eq('FIXED_VALUE')
+    }))
+    .set('dc', number(['dc'], 'DC Amount', {
+      order: 3,
+      requiredIf: true,
+      showIf: local.field(['savingThrowKind']).eq('FIXED_VALUE')
+    }))
+})

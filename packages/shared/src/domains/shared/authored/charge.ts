@@ -4,24 +4,27 @@ import {
   type AbilityCode,
   type ChargeResetKind
 } from '#core'
-import type { LevelScaledValue } from './scaling.js'
 
-export type ChargeLimitPayload = {
-  CHARACTER_LEVEL: {
+export type ChargeLimitPayload
+  = | {
+    limitKind: 'CHARACTER_LEVEL' | 'SOURCE_LEVEL'
+    scalingKind: 'NONE'
     multiplier?: number
-  }
-  CLASS_LEVEL: {
-    classId: string
-    multiplier?: number
-  }
-  SPELL_LEVEL: {
-    spellId: string
-    multiplier?: number
-  }
-  FIXED_AMOUNT: {
+    min?: number
+    max?: number
+  } | {
+    limitKind: 'FIXED_AMOUNT'
+    scalingKind: 'NONE'
     amount: number
+  } | {
+    limitKind: 'FIXED_AMOUNT'
+    scalingKind: typeof SCALING.PER_LEVEL
+    levels: {
+      id: string
+      level: number
+      amount: number
+    }[]
   }
-}
 
 export type ChargeBonusAuthored
   = | {
@@ -51,19 +54,8 @@ export type ChargeBonusAuthored
     order: number
   }
 
-export type ChargeBaseAuthored<TPayload>
-  = | ({
-    scalingKind: typeof SCALING.NONE
-  } & TPayload)
-  | ({
-    scalingKind: typeof SCALING.PER_LEVEL
-  } & LevelScaledValue<TPayload>)
-
 export type ChargeAuthored = {
-  [L in keyof ChargeLimitPayload]: {
-    id: string
-    resetKind: ChargeResetKind
-    limitKind: L
-    bonuses?: ChargeBonusAuthored[]
-  } & ChargeBaseAuthored<ChargeLimitPayload[L]>
-}[keyof ChargeLimitPayload]
+  id: string
+  resetKind: ChargeResetKind
+  bonuses?: ChargeBonusAuthored[]
+} & ChargeLimitPayload

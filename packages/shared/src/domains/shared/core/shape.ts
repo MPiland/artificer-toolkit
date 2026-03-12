@@ -1,4 +1,5 @@
 import type { CoreMeta, MEASUREMENT_UNIT_CODE } from '#core'
+import { valuesOf } from '#utils'
 
 export const SHAPE_KIND = {
   LINE: 'LINE',
@@ -66,7 +67,7 @@ export const SHAPE_REGISTRY: Record<ShapeKind, ShapeOption> = {
   }
 } as const
 
-export const SHAPE_KIND_OPTIONS = Object.values(SHAPE_REGISTRY) as ShapeOption[]
+export const SHAPE_KIND_OPTIONS = valuesOf(SHAPE_REGISTRY) as ShapeOption[]
 
 export type ShapeMeasurementAuthored = { amount: number, unit: keyof typeof MEASUREMENT_UNIT_CODE }
 
