@@ -29,7 +29,7 @@ export const CLASS_CATEGORY_REGISTRY: Record<
   }
 } as const
 
-export const CLASS_CATEGORY_OPTIONS = Object.values(
+export const CLASS_CATEGORY_OPTIONS = valuesOf(
   CLASS_CATEGORY_REGISTRY
 ) as readonly ClassCategoryOption[]
 
@@ -81,7 +81,7 @@ export const SUBCLASS_ATTRIBUTE_REGISTRY: Record<SubclassAttribute, SubclassAttr
   }
 } as const
 
-export const SUBCLASS_ATTRIBUTE_OPTIONS = Object.values(
+export const SUBCLASS_ATTRIBUTE_OPTIONS = valuesOf(
   SUBCLASS_ATTRIBUTE_REGISTRY
 ) as readonly SubclassAttributeOption[]
 
@@ -142,7 +142,7 @@ export const SPELLCASTING_ATTRIBUTE_REGISTRY: Record<
   }
 } as const
 
-export const SPELLCASTING_ATTRIBUTE_OPTIONS = Object.values(
+export const SPELLCASTING_ATTRIBUTE_OPTIONS = valuesOf(
   SPELLCASTING_ATTRIBUTE_REGISTRY
 ) as readonly SpellcastingAttributeOption[]
 

@@ -1,4 +1,5 @@
 import type { CoreMeta } from '#core'
+import { valuesOf } from '#utils'
 
 export const DURATION_KIND = {
   INSTANTANEOUS: 'INSTANTANEOUS',
@@ -73,4 +74,4 @@ export const DURATION_REGISTRY: Record<DurationKind, DurationOption> = {
   }
 } as const
 
-export const DURATION_OPTIONS = Object.values(DURATION_REGISTRY) as DurationOption[]
+export const DURATION_OPTIONS = valuesOf(DURATION_REGISTRY) as DurationOption[]

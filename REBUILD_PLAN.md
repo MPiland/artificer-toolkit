@@ -2,305 +2,117 @@
 
 ## Summary
 
-This project should be treated as a salvage-and-stabilize refactor, not a greenfield rewrite. The codebase already contains substantial domain, persistence, service, API, and frontend logic, but the workspace boundaries and public contracts are unstable. The rebuild should first establish clean backend package responsibilities and stable interfaces, then rebuild the domain kernel, persistence layer, application layer, and API. The frontend is frozen until those backend layers are complete.
+This project should be treated as a salvage-and-stabilize refactor, not a greenfield rewrite. The codebase already contains substantial domain, persistence, service, API, and frontend logic. The rebuild establishes clean backend package responsibilities and stable interfaces, then repairs the domain kernel, persistence layer, application layer, and API. The frontend is frozen until those backend layers are complete.
+
+## Phase 0 Decision
+
+Phase 0 is complete and closed. The package-boundary guardrails remain active through Phase 7, but Phase 0 should not be reopened as a major implementation phase unless a newly discovered backend-only boundary issue directly blocks Phase 1.
 
 ## Current Reality
 
 - The monorepo already has meaningful code in `packages/shared`, `packages/db`, `packages/functions`, `apps/apis`, and `apps/web`.
-- The highest-value logic already exists in the shared workspace, especially the node-map DSL and domain model scaffolding.
-- Most current failures come from stale exports, mismatched authored/core/compiled contracts, broken map implementations, and frontend/server code depending on unstable package surfaces.
-- The correct strategy is to stabilize architecture first, then rebuild the broken layers on top of those stable seams.
+- The highest-value logic already exists: the node-map DSL, domain model scaffolding, compilers, and SQL schema are largely complete.
+- The active blocker is compiler drift in `packages/shared`; the map layer is now materially stabilized enough to move on.
+- Secondary gaps are: missing TypeScript upsert wrappers, an empty `packages/schema`, no character engine, and no API validation.
+
+## Actual Current State
+
+| Component | Status | Notes |
+|---|---|---|
+| Node maps - new API | Complete | Root authored coverage and nesting are materially in place |
+| Node maps - old callback API | Complete | Callback migrations are done |
+| Node maps - pre-DSL relics | Complete | Legacy `BRANCH` / `LEAF` / `KNOT` / `PATH` refs are gone |
+| Compilers | Present | All domains have compiler coverage |
+| Core types | Complete | Domain surface is large and already established |
+| DB schema | Complete | SQL assets are present across domains |
+| DB upserts (SQL) | Complete | Raw SQL procedures exist |
+| DB upserts (TS) | Partial | Only a subset of wrappers exists |
+| Query functions | Complete | The functions workspace already has broad coverage |
+| `packages/schema` | Scaffold only | Exists, but is intentionally minimal |
+| Character assemblers | Present | Need later reorganization into server/application + engine |
+| Rule engine | Missing | Still a future phase |
+| API routes | Minimal | Need validation and stabilization later |
+| SRD data | Missing | Database content still needs seed/import work |
+| `apps/web` | Frozen | Reference-only until backend is complete |
 
 ## Target Workspace Architecture
 
-The monorepo stays intact, but the package responsibilities need to be clarified and partially renamed.
-
-### Target package roles
-
-- `packages/shared` becomes `packages/domain` or is split into `packages/domain` and `packages/schema`
-  - Domain-authored types
-  - Compiled types
-  - Node-map DSL and node definitions
-  - Compiler pipeline
-  - Resolver contracts and implementations
-  - Character engine and pure rules logic
-
-- `packages/schema`
-  - Zod schemas
-  - API DTO validation
-  - Shared transport contracts
-  - Serialization-safe boundaries for web, mobile, and API
-
-- `packages/db`
-  - Kysely client
-  - Repositories
-  - Upserts and query functions
-  - SQL ETL assets and DB-specific mappers
-
-- `packages/functions` becomes `packages/server` or `packages/application`
-  - Use-case orchestration
-  - Authoring workflows
-  - Compiler and resolver orchestration
-  - Character assembly and state services
-  - Future tRPC backing logic
-
-- `apps/apis` becomes `apps/api`
-  - Thin transport layer only
-  - HTTP and/or tRPC surface over `packages/server`
-
-- `apps/web`
-  - Frozen legacy frontend during backend rebuild
-  - Reference-only until backend/domain/API contracts stabilize
-  - Will be heavily refactored after the backend rebuild is complete
-
-- `apps/mobile`
-  - Future companion app
-  - Uses the same transport/application contracts as web
-  - Does not use Kysely directly
-
-## Dependency Order
-
-The implementation order must follow actual architectural dependencies.
-
-1. Workspace boundaries and public package contracts
-2. Domain kernel stabilization
-3. Node maps
-4. Compilers
-5. Schemas and transport contracts
-6. Kysely repositories and DB layer
-7. Server/application services
-8. Character engine completion
-9. API stabilization
-10. Frontend rewrite and reattachment
-
-## Phase 0: Architecture Stabilization
-
-### Objective
-
-Create clean backend workspace boundaries and stable public exports so later phases stop fighting stale package contracts.
-
-### Tasks
-
-1. Define final workspace responsibilities
-2. Plan package renames and splits
-3. Replace broad barrel surfaces with intentional public APIs
-4. Clean up backend tsconfig aliases and package import paths
-5. Remove circular package assumptions
-6. Define package-level dependency rules
-
-### Deliverables
-
-- Architecture subplan with workspace ownership rules
-- Final package naming strategy
-- Import/export cleanup strategy
-- Alias and contract stabilization checklist
-
-## Phase 1: Node Map Stabilization
-
-### Objective
-
-Stabilize and standardize the node-map system that already exists in the shared workspace.
-
-### Key principle
-
-Do not invent a second map system. Use the current `buildNodeMap().define(...)` DSL as the canonical pattern.
-
-### Tasks
-
-1. Normalize authored payloads used by maps
-2. Standardize the map authoring pattern across domains
-3. Repair broken map exports and broken imports
-4. Add validation rules for map structure and references
-5. Define resolver contracts for later phases
-6. Bring maps back into alignment with compiler expectations
-
-### Deliverables
-
-- Rewritten node-map subplan
-- Canonical map authoring pattern
-- Domain-by-domain rollout order
-- Validation and success criteria
-
-## Phase 2: Compiler Rebuild
-
-### Objective
-
-Rebuild compilers around clean authored and compiled contracts.
-
-### Tasks
-
-1. Define authored-to-compiled boundaries per domain
-2. Separate validation from transformation
-3. Add explicit compile result and error types
-4. Restore or redefine missing compiler exports
-5. Standardize compiler entrypoints and orchestration
-
-### Deliverables
-
-- Compiler subplan
-- Compiler contract definitions
-- Validation and error model
-- Domain rollout order
-
-## Phase 3: Schema and Contract Layer
-
-### Objective
-
-Introduce a clean schema layer for transport-safe validation without overfitting every internal type to Zod.
-
-### Tasks
-
-1. Define what belongs in Zod
-2. Define what remains internal TS-only
-3. Create DTO schemas for API, web, mobile, and persistence boundaries
-4. Separate internal domain generics from transport contracts
-
-### Deliverables
-
-- Schema subplan
-- DTO boundary definitions
-- Zod adoption rules
-- Contract-sharing strategy
-
-## Phase 4: Database Layer
-
-### Objective
-
-Make `packages/db` the Kysely-first persistence layer for reads, writes, and ETL integration.
-
-### Tasks
-
-1. Reconcile domain types with DB representations
-2. Establish repository and mapper boundaries
-3. Rebuild upserts by domain
-4. Build query functions for read models
-5. Preserve SQL ETL files as raw persistence assets under typed wrappers
-
-### Deliverables
-
-- DB subplan
-- Repository architecture
-- Upsert and query rollout order
-- ETL integration strategy
-
-## Phase 5: Server/Application Layer
-
-### Objective
-
-Turn the current functions workspace into a real application layer that orchestrates domain logic and persistence.
-
-### Tasks
-
-1. Separate queries from use cases
-2. Add authoring services and orchestration flows
-3. Add compile-preview and compile-persist flows
-4. Add character assembly services
-5. Make this layer the future home for tRPC procedures
-
-### Deliverables
-
-- Server/application subplan
-- Service boundaries
-- Orchestration patterns
-- Future tRPC alignment
-
-## Phase 6: Character Engine
-
-### Objective
-
-Complete the character engine as a pure domain subsystem that can drive web and future mobile behavior consistently.
-
-### Tasks
-
-1. Define state and intent models
-2. Define deterministic resolution order
-3. Apply feature, grant, modifier, and effect resolution
-4. Calculate derived values and state transitions
-5. Keep persistence outside the engine boundary
-
-### Deliverables
-
-- Engine subplan
-- State model
-- Resolution pipeline
-- Persistence integration points
-
-## Phase 7: API Transport Stabilization
-
-### Objective
-
-Complete the API transport layer over the stabilized backend architecture. Frontend reattachment is intentionally deferred until the backend is complete.
-
-### Tasks
-
-1. Keep API thin over the server/application layer
-2. Restore route contracts against schema-backed DTOs
-3. Keep the surface compatible with future tRPC clients and a mobile companion app
-4. Produce stable backend contracts for the later frontend rewrite
-
-### Deliverables
-
-- API transport subplan
-- Route strategy
-- Stable backend contract notes for the later frontend rewrite
-- Transport compatibility notes for future tRPC/mobile support
-
-## Phase 8: Frontend Rewrite and Reattachment
-
-### Objective
-
-Rewrite and reattach the frontend only after the backend, engine, and API contracts are stable.
-
-### Tasks
-
-1. Redesign folder structure and component organization
-2. Replace legacy enum-driven assumptions with const-map-driven contracts
-3. Redesign form and input rendering around the new domain/schema contracts
-4. Reconnect character and authoring flows to the stabilized API
-5. Remove legacy UI assumptions that no longer match the backend
-
-### Deliverables
-
-- Frontend rewrite subplan
-- New client architecture
-- Stable UI data flow over finalized backend contracts
+Package responsibilities stay as-is during the backend rebuild. Physical renames happen after Phase 7.
+
+| Current name | Future name | Role |
+|---|---|---|
+| `packages/shared` | `packages/domain` | Domain types, node maps, compilers, engine |
+| `packages/schema` | `packages/schema` | Zod DTOs and transport contracts |
+| `packages/db` | `packages/db` | Kysely client, repositories, upserts, SQL assets |
+| `packages/functions` | `packages/server` | Use-case services, character assembly, orchestration |
+| `apps/apis` | `apps/api` | Thin transport layer only |
+| `apps/web` | `apps/web` | Frozen during backend rebuild |
+
+## Package Dependency Rules
+
+- `shared` must not depend on `functions`, `apis`, or `web`
+- `shared` may temporarily depend on `db` where the map DSL requires DB column typing
+- `schema` may depend on `shared`
+- `db` may depend on `shared` and `schema`
+- `functions` may depend on `shared`, `schema`, and `db`
+- `apis` may depend on `functions` and `schema`
+- `web` depends on `schema` and client-facing contracts only, but remains frozen during backend work
+
+## Phase Sequence
+
+1. Phase 0 - Architecture boundaries (complete, closed)
+2. Phase 1 - Root authored node-map coverage (complete)
+3. Phase 2 - Compiler hardening (current blocker)
+4. Phase 3 - Schema layer and `shared -> db` decoupling
+5. Phase 4 - DB TypeScript wrappers and SRD seed data
+6. Phase 5 - Server/application layer reorganization
+7. Phase 6 - Character engine
+8. Phase 7 - API transport stabilization and validation
+9. Phase 8 - Frontend rewrite
+
+## Phase Status Tracker
+
+| Phase | Status | Handoff note |
+|---|---|---|
+| Phase 0 - Architecture boundaries | Complete | Closed. Reopen only for a backend-only blocker that directly blocks Phase 1 |
+| Phase 1 - Root authored node-map coverage | Complete | Closed. Remaining `shared` failures are compiler drift, not map-layer coverage |
+| Phase 2 - Compiler hardening | In progress | Active blocker after Phase 1 completion |
+| Phase 3 - Schema layer and `shared -> db` decoupling | Pending | Depends on Phase 1 and Phase 2 outcomes |
+| Phase 4 - DB TypeScript wrappers and SRD seed data | Pending | Persistence phase |
+| Phase 5 - Server/application layer reorganization | Pending | Future tRPC backing layer |
+| Phase 6 - Character engine | Pending | Pure deterministic rules/runtime phase |
+| Phase 7 - API transport stabilization and validation | Pending | Backend transport only |
+| Phase 8 - Frontend rewrite | Pending | Starts only after backend/API phases are stable |
 
 ## Guiding Principles
 
-1. Stabilize seams before rebuilding behavior
-2. Preserve and standardize good existing abstractions
-3. Keep domain logic pure and transport-agnostic
-4. Keep persistence server-side and Kysely-first
-5. Share contracts across future web and mobile through schema and service boundaries
-6. Keep API thin and replaceable by future tRPC transport
-
-## Success Criteria
-
-### Architectural
-
-- Clear responsibilities for each workspace
-- Stable public exports per package
-- No circular workspace assumptions
-- Backend packages depending on intentional contracts instead of internal implementation details
-
-### Technical
-
-- Package-by-package typecheck recovery
-- Stable node-map DSL usage across domains
-- Compilers aligned with authored and compiled types
-- Kysely-first repositories covering app persistence needs
-- Character engine producing deterministic, reusable state
-
-### Product
-
-- Content authoring flows can be rebuilt on stable contracts
-- Character sheet state changes can be driven by a real engine
-- Future web and mobile can use the same API and application semantics
-- The architecture is ready for future tRPC adoption without redoing the persistence layer
+1. Stabilize seams before rebuilding behavior.
+2. Preserve and standardize good existing abstractions.
+3. Keep domain logic pure and transport-agnostic.
+4. Keep persistence server-side and Kysely-first.
+5. Share contracts across future web and mobile through `packages/schema`.
+6. Keep API thin and replaceable by future tRPC transport.
+7. The engine must be system-agnostic; D&D 5e 2014 SRD is the first implementation, not a hardcoded assumption.
+8. Use `vitest` as the standard backend and domain test runner across `shared`, `db`, and `functions`.
 
 ## Immediate Next Steps
 
-1. Complete the Phase 0 architecture subplan
-2. Replace the current Phase 1 subplan with a node-map stabilization plan
-3. Draft the remaining phase subplans in dependency order
-4. Keep `apps/web` frozen until backend and API phases are complete
+- [ ] Resolve the remaining `packages/shared` compiler/type-contract errors in `effects`, `shared`, and `subjects` compilers.
+- [ ] Run `tsc --noEmit` on `packages/shared` to confirm clean typecheck.
+- [ ] Decide whether the first Phase 2 compiler target is `effects`, `shared`, or `subjects`.
+
+## Testing Standard
+
+Backend and domain testing uses `vitest` as the default runner.
+
+Priority order:
+- `packages/shared` first: map completeness, compiler behavior, scaling behavior, and later engine tests
+- `packages/db` second: repository wrappers and transaction tests
+- `packages/functions` second: service orchestration tests
+- frontend testing remains deferred until Phase 8
+
+Typecheck is necessary but not sufficient. SRD-baseline behavior and homebrew flexibility should both be covered by tests where scaling, branching, or filtered selections matter.
+
+## Handoff Rule
+
+Whenever work is completed, update the relevant checklist or status table in this file and the active phase subplan in the same change. This file is the top-level handoff snapshot.

@@ -1,4 +1,5 @@
 import type { CoreMeta } from '#core'
+import { valuesOf } from '#utils'
 
 export const EFFECT_KIND = {
   DAMAGE: 'DAMAGE',
@@ -24,6 +25,6 @@ export const EFFECT_KIND_REGISTRY: Record<EffectKind, EffectKindOption> = {
   }
 } as const
 
-export const EFFECT_KIND_OPTIONS = Object.values(
+export const EFFECT_KIND_OPTIONS = valuesOf(
   EFFECT_KIND_REGISTRY
 ) as readonly EffectKindOption[]

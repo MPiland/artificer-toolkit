@@ -156,7 +156,7 @@ export const RELATION_SUBJECTS = Object.keys(RELATIONS) as SubjectWithRelations[
 
 export const RELATION_CODES = Array.from(
   new Set(
-    Object.values(RELATIONS).flatMap((m) => Object.keys(m))
+    valuesOf(RELATIONS).flatMap((m) => Object.keys(m))
   )
 ) as RelationCode<SubjectWithRelations>[]
 
@@ -759,7 +759,8 @@ export function getRelatedSubjectOptions<S extends NodeSubjectCode>(
   const rel = RELATIONS[subject as SubjectWithRelations]
   if (!rel) return []
 
-  const codes = Array.from(new Set(Object.values(rel).map((x) => x.to))) as RelatedSubjectCodes<S>[]
+  const relationValues = valuesOf(rel) as unknown as ReadonlyArray<{ to: RelatedSubjectCodes<S> }>
+  const codes = Array.from(new Set(relationValues.map((x) => x.to))) as RelatedSubjectCodes<S>[]
   return codes.map((c) => NODE_SUBJECT[c]) as readonly NodeSubjectOption<RelatedSubjectCodes<S>>[]
 }
 

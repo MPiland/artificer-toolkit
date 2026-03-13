@@ -38,7 +38,7 @@ export const SCALING_SOURCE_REGISTRY: Record<
   }
 } as const
 
-export const SCALING_SOURCE_OPTIONS = Object.values(SCALING_SOURCE_REGISTRY) as readonly ScalingSourceOption[]
+export const SCALING_SOURCE_OPTIONS = valuesOf(SCALING_SOURCE_REGISTRY) as readonly ScalingSourceOption[]
 
 export type ScalingSourcePayload = {
   [SCALING_SOURCE.CHARACTER_LEVEL]: {
@@ -86,7 +86,7 @@ export const SCALING_REGISTRY: Record<
   }
 } as const
 
-export const SCALING_OPTIONS = Object.values(SCALING_REGISTRY) as readonly ScalingOption[]
+export const SCALING_OPTIONS = valuesOf(SCALING_REGISTRY) as readonly ScalingOption[]
 
 export type ScalingSourceAuthored = ScalingSourcePayload[keyof ScalingSourcePayload]
 

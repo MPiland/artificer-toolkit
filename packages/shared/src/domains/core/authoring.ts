@@ -33,7 +33,7 @@ export const AUTHORING_MODE_KIND_REGISTRY: Record<
   }
 }
 
-export const AUTHORING_MODE_KIND_OPTIONS = Object.values(
+export const AUTHORING_MODE_KIND_OPTIONS = valuesOf(
   AUTHORING_MODE_KIND_REGISTRY
 ) as AuthoringModeOption[]
 

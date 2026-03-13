@@ -1,4 +1,5 @@
 import type { CoreMeta } from '#core'
+import { valuesOf } from '#utils'
 
 export const RANGE_KIND = {
   SELF: 'SELF',
@@ -45,4 +46,4 @@ export const RANGE_REGISTRY: Record<RangeKind, RangeOption> = {
   }
 }
 
-export const RANGE_OPTIONS = Object.values(RANGE_REGISTRY) as RangeOption[]
+export const RANGE_OPTIONS = valuesOf(RANGE_REGISTRY) as RangeOption[]

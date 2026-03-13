@@ -1,4 +1,5 @@
 import type { CoreMeta } from './core.js'
+import { valuesOf } from '#utils'
 
 export const TRIGGER = {
   MELEE_WEAPON_ATTACK: 'MELEE_WEAPON_ATTACK',
@@ -58,4 +59,4 @@ export const TRIGGER_REGISTRY: Record<Trigger, TriggerOption> = {
   }
 }
 
-export const TRIGGER_OPTIONS = Object.values(TRIGGER_REGISTRY) as TriggerOption[]
+export const TRIGGER_OPTIONS = valuesOf(TRIGGER_REGISTRY) as TriggerOption[]

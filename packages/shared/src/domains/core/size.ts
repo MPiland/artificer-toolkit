@@ -1,4 +1,5 @@
 import type { CoreMeta } from './core.js'
+import { valuesOf } from '#utils'
 
 export const SIZE_CODE = {
   COLOSSAL: 'COLOSSAL',
@@ -89,6 +90,6 @@ export const SIZE_REGISTRY: Record<SizeCode, SizeOption> = {
 export type SizeRegistryValue
   = (typeof SIZE_REGISTRY)[keyof typeof SIZE_REGISTRY]
 
-export const SIZE_OPTIONS = Object.values(
+export const SIZE_OPTIONS = valuesOf(
   SIZE_REGISTRY
 ) as readonly SizeRegistryValue[]

@@ -1,159 +1,77 @@
 # Phase 0 Architecture Audit
 
-## Summary
+## Status: Complete
 
-This document captures the current architectural state of the repo at the start of Phase 0 and turns the approved rebuild plan into concrete transition work. The main conclusion is that the codebase already contains most of the needed layers, but those layers are not cleanly separated. The frontend is now frozen and should be treated as reference-only until backend and API work is complete.
+This document captures the architectural state of the repo at the start of Phase 0 and the decisions made. All Phase 0 work is done.
+
+Phase 0 is now a closed reference record. Keep it for context and constraints, but do not treat it as an active phase unless a new backend-only blocker forces a targeted correction.
 
 ## Current Workspace Inventory
 
 ### `packages/shared`
 
-- Current role in practice:
-  - domain-authored types
-  - domain core types
-  - compiled output types
-  - node-map DSL and map definitions
-  - compiler implementations
-  - utility helpers
-  - traces of schema generation
-- Main issues:
-  - overloaded public surface
-  - dependency pressure from persistence and service layers
-  - stale exports causing downstream breakage
-  - mixed authored/core/compiled/schema concerns in one package
+- Current role: domain-authored types, core types, compiled output types, node-map DSL and maps, compiler implementations, utility helpers
+- Key issue: temporary dependency on `packages/db` for DB column type metadata used in the map DSL. This is an allowed temporary exception and is scheduled for Phase 3 resolution.
 
 ### `packages/db`
 
-- Current role in practice:
-  - Kysely client and types
-  - SQL ETL assets
-  - partial TS upsert helpers
-- Main issues:
-  - TS helpers are out of sync with current domain contracts
-  - missing helper exports expected by downstream packages
-  - no clear repository boundary yet
+- Current role: Kysely client and types, SQL ETL assets, TypeScript upsert helpers
+- Key issue: TypeScript upsert wrappers are incomplete; SQL procedures exist more broadly than the TS wrapper layer
 
 ### `packages/functions`
 
-- Current role in practice:
-  - query modules
-  - Supabase client helpers
-  - runtime assemblers for character data
-  - request handling utilities
-- Main issues:
-  - package name does not reflect actual responsibility
-  - query logic and application orchestration are mixed together
-  - acts as a server/application layer without being structured like one
+- Current role: query modules, character assemblers, request handling utilities
+- Key issue: query logic and application orchestration are mixed. Phase 5 separates them internally.
+
+### `packages/schema`
+
+- Current role: placeholder scaffold
+- State: exists with valid package metadata and root project references; `src/index.ts` intentionally remains minimal until Phase 3
 
 ### `apps/apis`
 
-- Current role in practice:
-  - thin route wrappers over functions/query logic
-- Main issues:
-  - package name should be singular to match role
-  - route contracts depend on unstable shared exports
+- Current role: thin route wrappers over query functions
+- Key issue: no input validation and limited error-handling strategy. Phase 7 addresses this.
 
 ### `apps/web`
 
-- Current role in practice:
-  - main frontend
-  - route loaders and UI flows
-  - authoring forms
-  - character flows
-  - local aliases and some server-facing integration code
-- Main issues:
-  - broad alias surface with drift
-  - depends on missing or stale package exports
-  - mixes frontend concerns with some server-facing assumptions
-- Current handling decision:
-  - no implementation work during backend phases
-  - preserve only as migration reference
+- Current role: main frontend
+- Current handling: no implementation work during backend phases; preserve as migration reference only
 
-## Current Dependency Problems
+## Dependency Violations Identified
 
 ### Structural
 
-- `packages/shared` currently depends on `@artificer-toolkit/db`
-- `packages/shared` currently depends on `@artificer-toolkit/functions`
-- this means the intended domain layer is not pure
+- `packages/shared` depends on `@artificer-toolkit/db` in the map DSL; this remains the only allowed temporary exception
+- no `shared -> functions` dependencies remain, and none should be introduced
+- no `db -> functions` dependencies remain, and none should be introduced
 
-### Export surface drift
+### Node Map DSL Migration in Progress
 
-- `apps/apis` imports many domain types directly from `@artificer-toolkit/shared`
-- `packages/functions` imports many `@artificer-toolkit/shared/types` contracts that no longer line up with live exports
-- `apps/web` relies on package exports and aliases that no longer map cleanly to current files
+The `codex/refactor` branch is mid-migration from an old node-map API to the current `buildNodeMap().define(mapId, api)` API. Several maps still use one of three pre-migration forms:
 
-### Alias drift
+1. old callback signature
+2. pre-DSL relic kinds such as `BRANCH`, `LEAF`, `KNOT`, and `PATH`
+3. ad hoc object literals not using the DSL at all
 
-- `apps/web` has many local aliases such as `@types`, `@hooks`, `@utils`, `@components/*`, and `@enums/*`
-- some aliases point at folders that no longer provide the exports callers expect
-- `@apis` is used widely in `apps/web`, but the current TypeScript path config does not define it
-- this drift is intentionally deferred until the frontend rewrite
+This remains the Phase 1 blocker.
 
-## Target Transition State
+## Decisions Made
 
-### New or clarified workspaces
+- Keep the monorepo intact.
+- Use a moderate workspace split, not aggressive decomposition.
+- Keep `packages/schema` as the Phase 3 schema target.
+- Delay physical package renames until after Phase 7.
+- Use Kysely only in server-side workspaces.
+- Plan for future tRPC over the server/application layer, not over direct DB access from clients.
+- The character engine must be system-agnostic; D&D 5e 2014 SRD is the first implementation.
+- `apps/web` remains frozen for the duration of the backend rebuild.
 
-- `packages/schema`
-  - Zod schemas
-  - DTO contracts
-  - transport-safe validation
+## Phase 0 Exit Criteria - Met
 
-- `packages/shared`
-  - temporary home of the future domain package
-  - should move toward pure domain responsibility
-
-- `packages/functions`
-  - temporary home of the future server/application package
-  - should move toward use-case orchestration responsibility
-
-### Later renames
-
-- `packages/shared` -> `packages/domain`
-- `packages/functions` -> `packages/server`
-- `apps/apis` -> `apps/api`
-
-## Immediate Phase 0 Work
-
-### 1. Introduce schema workspace
-
-- create `packages/schema`
-- wire it into root workspaces and TS references
-- keep it minimal until contract migration starts
-
-### 2. Stabilize package contracts
-
-- document intended exports for each package
-- reduce accidental root-barrel usage where practical
-- stop introducing new imports against unstable internals
-
-### 3. Backend-only alias strategy
-
-- audit backend and API alias usage
-- define which imports should become workspace package imports
-- defer `apps/web` alias cleanup until the frontend rewrite phase
-
-### 4. Prepare domain purification
-
-- identify imports that make `packages/shared` depend on persistence or server layers
-- move those responsibilities out over later phases
-- keep new code from increasing those cross-layer dependencies
-
-## Initial Decisions
-
-- keep the monorepo
-- use a moderate workspace split
-- add `packages/schema` now
-- delay physical package renames until public surfaces are stabilized
-- use Kysely only in server-side workspaces
-- plan for future tRPC over the server/application layer, not over direct DB access from clients
-
-## Exit Criteria For Phase 0
-
-- `packages/schema` exists and is wired into the repo
+- `packages/schema` exists and is referenced in root `tsconfig.json`
 - target workspace responsibilities are documented
-- current dependency violations are identified
-- alias cleanup targets are identified
+- dependency violations are identified
 - package rename sequence is defined
-- implementation of Phase 1 can proceed without redefining ownership boundaries
+- Phase 1 can proceed without redefining ownership boundaries
 - no new backend work requires modifying `apps/web`

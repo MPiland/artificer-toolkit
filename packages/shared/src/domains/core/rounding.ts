@@ -1,4 +1,5 @@
 import type { CoreMeta } from './core.js'
+import { valuesOf } from '#utils'
 
 export const ROUNDING_CODE = {
   UP: 'UP',
@@ -36,4 +37,4 @@ export const ROUNDING_REGISTRY: Record<
   }
 } as const
 
-export const ROUNDING_OPTIONS = Object.values(ROUNDING_REGISTRY) as RoundingOption[]
+export const ROUNDING_OPTIONS = valuesOf(ROUNDING_REGISTRY) as RoundingOption[]

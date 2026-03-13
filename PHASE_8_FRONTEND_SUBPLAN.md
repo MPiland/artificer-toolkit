@@ -2,51 +2,57 @@
 
 ## Objective
 
-Rewrite the frontend after backend and API work is complete, using the stabilized domain, schema, server, and API contracts as the source of truth.
+Rewrite and reattach the frontend only after the backend, engine, and API contracts are stable. The frontend is frozen during Phases 0–7 and treated as reference-only.
+
+## Prerequisite
+
+Phase 8 cannot begin until Phase 7 is complete and API contracts are stable.
 
 ## Rules
 
-- do not preserve legacy enum-centric assumptions
-- use const-map-driven contracts where domain vocabularies need stable registries
-- redesign folder structure, component boundaries, and input rendering around the new backend contracts
-- do not let legacy frontend structure constrain backend design retroactively
+- Do not preserve legacy enum-centric assumptions — replace with const-map-driven contracts where domain vocabularies need stable registries
+- Do not let legacy frontend structure constrain backend design retroactively
+- The new frontend architecture must match the rebuilt backend, not the pre-refactor app
 
 ## Workstreams
 
-### 1. Client architecture rewrite
+### 1. Client Architecture Rewrite
 
-- redesign folder and feature boundaries
-- define new client-side data flow
-- define how the frontend consumes schema-backed transport contracts
+- Redesign folder and feature boundaries
+- Define new client-side data flow
+- Define how the frontend consumes `packages/schema`-backed transport contracts
+- Remove stale aliases (`@types`, `@hooks`, `@utils`, `@components/*`, `@enums/*`, `@apis`)
 
-### 2. Input and form rendering rewrite
+### 2. Input and Form Rendering Rewrite
 
-- replace legacy form assumptions
-- redesign how inputs are rendered from backend/domain metadata
-- align UI flows with the new node-map/compiler/engine-backed contracts where appropriate
+- Replace legacy form assumptions
+- Redesign how inputs are rendered — align with node-map/compiler-backed contracts where appropriate
+- Remove legacy enum imports and compatibility layers
+- Do not rebuild the old enum-driven form system
 
-### 3. Feature reattachment
+### 3. Feature Reattachment
 
-- reconnect authoring flows to the stabilized API
-- reconnect character sheet flows to the finalized character engine outputs
-- rework any list/detail pages against the new DTOs
+- Reconnect authoring flows (race, class, spell, feat, equipment, background) to the stabilized API
+- Reconnect character sheet flows to the Phase 6 engine outputs
+- Rework list/detail pages against the new Phase 3/7 DTOs
 
-### 4. Client cleanup
+### 4. Client Cleanup
 
-- remove stale aliases
-- remove obsolete enum imports and compatibility layers
-- remove legacy type shims that existed only for the old frontend
+- Remove legacy type shims that existed only for the pre-refactor frontend
+- Remove obsolete enum imports
+- Remove aliases that no longer map to real exports
+- Remove any server-facing assumptions that were embedded in frontend code
 
 ## Deliverables
 
-- new frontend architecture
-- rewritten form/input strategy
-- stable API consumption layer
-- migration notes from the frozen legacy frontend
+- New frontend architecture
+- Rewritten form/input strategy
+- Stable API consumption layer against Phase 7 contracts
+- Migration notes from the frozen legacy frontend
 
-## Success Criteria
+## Exit Criteria
 
-- the frontend compiles against finalized backend contracts
-- no legacy enum-centric assumptions remain
-- the client architecture matches the rebuilt backend instead of the pre-refactor app
-- web is ready to share transport semantics with a future mobile companion app
+- Frontend compiles against finalized backend contracts from Phase 7
+- No legacy enum-centric assumptions remain
+- Client architecture matches the rebuilt backend
+- Web is ready to share transport semantics with a future mobile companion app

@@ -1,4 +1,5 @@
 import type { CoreMeta } from '#core'
+import { valuesOf } from '#utils'
 
 export const SAVING_THROW_KIND = {
   SPELL_SAVE_DC: 'SPELL_SAVE_DC',
@@ -24,4 +25,4 @@ export const SAVING_THROW_REGISTRY: Record<typeof SAVING_THROW_KIND[keyof typeof
   }
 }
 
-export const SAVING_THROW_KIND_OPTIONS = Object.values(SAVING_THROW_REGISTRY) as SavingThrowOption[]
+export const SAVING_THROW_KIND_OPTIONS = valuesOf(SAVING_THROW_REGISTRY) as SavingThrowOption[]

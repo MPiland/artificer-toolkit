@@ -23,7 +23,7 @@ export const CASTING_TIME_NODE_MAP = castingTimeNode.define('castingTime', ({ ma
 // Spell Node Map - Complete map with ALL SpellAuthored properties
 const spellNode = buildNodeMap<SpellAuthored>()
 export const SPELL_NODE_MAP = spellNode.define('spell', ({ map, nodes, data }) => {
-  const { text, number, selectMulti, selectSingle } = nodes
+  const { text, number, selectMulti, selectSingle, groupObject, groupArray } = nodes
   const { table } = data
   map
     .set('kind', text(['kind'], 'Kind'))
@@ -50,4 +50,6 @@ export const SPELL_NODE_MAP = spellNode.define('spell', ({ map, nodes, data }) =
         selectColumns: ['id', 'label']
       })
     }))
+    .set('castingTime', groupObject(['castingTime'], 'Casting Time', () => CASTING_TIME_NODE_MAP))
+    .set('effects', groupArray(['effects'], 'Effects', () => EFFECT_NODE_MAP))
 })

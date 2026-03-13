@@ -65,7 +65,7 @@ export const EQUIPMENT_CATEGORY_REGISTRY: Record<
 export type EquipmentCategoryValue
   = (typeof EQUIPMENT_CATEGORY_REGISTRY)[keyof typeof EQUIPMENT_CATEGORY_REGISTRY]
 
-export const EQUIPMENT_CATEGORY_OPTIONS = Object.values(
+export const EQUIPMENT_CATEGORY_OPTIONS = valuesOf(
   EQUIPMENT_CATEGORY_REGISTRY
 ) as readonly EquipmentCategoryValue[]
 

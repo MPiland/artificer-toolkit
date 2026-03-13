@@ -20,297 +20,204 @@ import {
 } from '#maps'
 import { buildNodeMap, type NodeMap } from '#utils'
 
-const momentRollTableEntry = buildNodeMap<
-  MomentRollTableEntry & MomentEffectPayload,
-  Omit<MomentRollTable, 'table'>
->()
+const momentRollTableEntry = buildNodeMap<MomentRollTableEntry & MomentEffectPayload>()
 
 export const MOMENT_ROLL_TABLE_ENTRY_NODE_MAP = momentRollTableEntry.define(
-  (map, { context, local, and, or, not }) => map({
-    description: {
-      kind: 'INPUT',
-      label: 'Description',
-      type: 'TEXT'
-    },
-    duration: {
-      kind: 'GROUP',
-      nodes: DURATION_NODE_MAP
-    },
-    ['rollRange.0']: {
-      kind: 'INPUT',
-      label: 'Roll Min',
-      requiredIf: true,
-      type: 'NUMBER',
-      showIf: context('rollTableKind').eq('RANGE')
-    },
-    ['rollRange.1']: {
-      kind: 'INPUT',
-      label: 'Roll Max',
-      requiredIf: true,
-      type: 'NUMBER',
-      showIf: context('rollTableKind').eq('RANGE')
-    },
-    rollValue: {
-      kind: 'INPUT',
-      label: 'Roll Value',
-      requiredIf: true,
-      type: 'NUMBER',
-      showIf: context('rollTableKind').eq('EXACT')
-    },
-    effectKind: {
-      kind: 'INPUT',
-      label: 'Effect Kind',
-      type: 'SELECT_SINGLE',
-      requiredIf: true,
-      source: {
+  'momentRollTableEntry',
+  ({ map, nodes, cond, logic, data }) => {
+    const { text, number, selectSingle, groupObject, groupArray } = nodes
+    const { and, or, not } = logic
+    const local = cond.local()
+    const parent = cond.parent<Omit<MomentRollTable, 'table'>>()
+    const { table } = data
+
+    map
+      .set('description', text(['description'], 'Description'))
+      .set('duration', groupObject(['duration'], 'Duration', () => DURATION_NODE_MAP))
+      .set('rollRangeMin', number(['rollRange', 0], 'Roll Min', {
+        requiredIf: true,
+        showIf: parent.field(['rollTableKind']).eq('RANGE')
+      }))
+      .set('rollRangeMax', number(['rollRange', 1], 'Roll Max', {
+        requiredIf: true,
+        showIf: parent.field(['rollTableKind']).eq('RANGE')
+      }))
+      .set('rollValue', number(['rollValue'], 'Roll Value', {
+        requiredIf: true,
+        showIf: parent.field(['rollTableKind']).eq('EXACT')
+      }))
+      .set('effectKind', selectSingle(['effectKind'], 'Effect Kind', {
         kind: 'INLINE',
         options: EFFECT_KIND_OPTIONS
-      }
-    },
-    bonuses: {
-      kind: 'GROUP',
-      nodes: DAMAGE_BONUS_NODE_MAP,
-      showIf: local('effectKind').eq('DAMAGE')
-    },
-    damageTypeId: {
-      kind: 'INPUT',
-      label: 'Damage Type',
-      type: 'SELECT_SINGLE',
-      requiredIf: true,
-      source: {
+      }, {
+        requiredIf: true
+      }))
+      .set('bonuses', groupArray(['bonuses'], 'Bonuses', () => DAMAGE_BONUS_NODE_MAP, {
+        showIf: local.field(['effectKind']).eq('DAMAGE')
+      }))
+      .set('damageTypeId', selectSingle(['damageTypeId'], 'Damage Type', {
         kind: 'DATA',
-        relationship: {
-          kind: 'TABLE',
-          table: 'damage_types'
-        }
-      },
-      showIf: local('effectKind').eq('DAMAGE')
-    },
-    valueKind: {
-      kind: 'INPUT',
-      label: 'Damage Value Kind',
-      type: 'SELECT_SINGLE',
-      requiredIf: true,
-      source: {
+        relationship: table('damage_types', {
+          selectColumns: ['id', 'label', 'tooltip']
+        })
+      }, {
+        requiredIf: true,
+        showIf: local.field(['effectKind']).eq('DAMAGE')
+      }))
+      .set('valueKind', selectSingle(['valueKind'], 'Damage Value Kind', {
         kind: 'INLINE',
         options: DAMAGE_VALUE_OPTIONS
-      },
-      showIf: local('effectKind').eq('DAMAGE')
-    },
-    amount: {
-      kind: 'INPUT',
-      label: 'Damage Amount',
-      requiredIf: not(
-        and([
-          local('valueKind').eq('POOL'),
-          local('scalingKind').eq('PER_LEVEL')
-        ])
-      ),
-      type: 'NUMBER',
-      showIf: and([
-        local('effectKind').eq('DAMAGE'),
-        or([
-          and([
-            local('scalingKind').eq('NONE'),
-            or([
-              local('valueKind').eq('FIXED'),
-              local('valueKind').eq('POOL')
+      }, {
+        requiredIf: true,
+        showIf: local.field(['effectKind']).eq('DAMAGE')
+      }))
+      .set('amount', number(['amount'], 'Damage Amount', {
+        requiredIf: not(and([
+          local.field(['valueKind']).eq('POOL'),
+          local.field(['scalingKind']).eq('PER_LEVEL')
+        ])),
+        showIf: and([
+          local.field(['effectKind']).eq('DAMAGE'),
+          or([
+            and([
+              local.field(['scalingKind']).eq('NONE'),
+              or([
+                local.field(['valueKind']).eq('FIXED'),
+                local.field(['valueKind']).eq('POOL')
+              ])
+            ]),
+            and([
+              local.field(['scalingKind']).eq('PER_LEVEL'),
+              local.field(['valueKind']).eq('POOL')
             ])
-          ]),
-          and([
-            local('scalingKind').eq('PER_LEVEL'),
-            local('valueKind').eq('POOL')
           ])
         ])
-      ])
-    },
-    multiplier: {
-      kind: 'INPUT',
-      label: 'Damage Multiplier',
-      type: 'NUMBER',
-      showIf: and([
-        local('effectKind').eq('DAMAGE'),
-        and([
-          local('scalingKind').eq('PER_LEVEL'),
-          local('valueKind').eq('POOL')
+      }))
+      .set('multiplier', number(['multiplier'], 'Damage Multiplier', {
+        showIf: and([
+          local.field(['effectKind']).eq('DAMAGE'),
+          local.field(['scalingKind']).eq('PER_LEVEL'),
+          local.field(['valueKind']).eq('POOL')
         ])
-      ])
-    },
-    min: {
-      kind: 'INPUT',
-      label: 'Damage Min',
-      type: 'NUMBER',
-      showIf: and([
-        local('effectKind').eq('DAMAGE'),
-        and([
-          local('scalingKind').eq('PER_LEVEL'),
-          local('valueKind').eq('POOL')
+      }))
+      .set('min', number(['min'], 'Damage Min', {
+        showIf: and([
+          local.field(['effectKind']).eq('DAMAGE'),
+          local.field(['scalingKind']).eq('PER_LEVEL'),
+          local.field(['valueKind']).eq('POOL')
         ])
-      ])
-    },
-    max: {
-      kind: 'INPUT',
-      label: 'Damage Max',
-      type: 'NUMBER',
-      showIf: and([
-        local('effectKind').eq('DAMAGE'),
-        and([
-          local('scalingKind').eq('PER_LEVEL'),
-          local('valueKind').eq('POOL')
+      }))
+      .set('max', number(['max'], 'Damage Max', {
+        showIf: and([
+          local.field(['effectKind']).eq('DAMAGE'),
+          local.field(['scalingKind']).eq('PER_LEVEL'),
+          local.field(['valueKind']).eq('POOL')
         ])
-      ])
-    },
-    diceConfig: {
-      kind: 'INPUT',
-      label: 'Damage Dice',
-      requiredIf: true,
-      type: 'NUMBER',
-      showIf: and([
-        local('effectKind').eq('DAMAGE'),
-        and([
-          local('scalingKind').eq('NONE'),
-          local('valueKind').eq('DICE')
+      }))
+      .set('diceConfig', number(['diceConfig'], 'Damage Dice', {
+        requiredIf: true,
+        showIf: and([
+          local.field(['effectKind']).eq('DAMAGE'),
+          local.field(['scalingKind']).eq('NONE'),
+          local.field(['valueKind']).eq('DICE')
         ])
-      ])
-    },
-    levels: {
-      kind: 'GROUP',
-      nodes: DAMAGE_LEVEL_SCALING_ENTRY_NODE_MAP,
-      showIf: and([
-        local('effectKind').eq('DAMAGE'),
-        local('scalingKind').eq('PER_LEVEL'),
-        not(local('valueKind').eq('POOL'))
-      ])
-    },
-    scalingSource: {
-      kind: 'INPUT',
-      label: 'Scaling Source',
-      type: 'SELECT_SINGLE',
-      requiredIf: true,
-      source: {
+      }))
+      .set('levels', groupArray(['levels'], 'Levels', () => DAMAGE_LEVEL_SCALING_ENTRY_NODE_MAP, {
+        showIf: and([
+          local.field(['effectKind']).eq('DAMAGE'),
+          local.field(['scalingKind']).eq('PER_LEVEL'),
+          not(local.field(['valueKind']).eq('POOL'))
+        ])
+      }))
+      .set('scalingSource', selectSingle(['scalingSource'], 'Scaling Source', {
         kind: 'INLINE',
         options: SCALING_SOURCE_OPTIONS
-      },
-      showIf: and([
-        local('effectKind').eq('DAMAGE'),
-        local('scalingKind').eq('PER_LEVEL'),
-        not(local('valueKind').eq('POOL'))
-      ])
-    },
-    classId: {
-      kind: 'INPUT',
-      label: 'Class',
-      type: 'SELECT_SINGLE',
-      requiredIf: true,
-      source: {
+      }, {
+        requiredIf: true,
+        showIf: and([
+          local.field(['effectKind']).eq('DAMAGE'),
+          local.field(['scalingKind']).eq('PER_LEVEL'),
+          not(local.field(['valueKind']).eq('POOL'))
+        ])
+      }))
+      .set('classId', selectSingle(['classId'], 'Class', {
         kind: 'DATA',
-        relationship: {
-          kind: 'TABLE',
-          table: 'classes'
-        }
-      },
-      showIf: and([
-        local('effectKind').eq('DAMAGE'),
-        local('scalingKind').eq('PER_LEVEL'),
-        not(local('valueKind').eq('POOL')),
-        local('scalingSource').eq('CLASS_LEVEL')
-      ])
-    },
-    spellId: {
-      kind: 'INPUT',
-      label: 'Spell',
-      type: 'SELECT_SINGLE',
-      requiredIf: true,
-      source: {
+        relationship: table('classes', {
+          selectColumns: ['id', 'label']
+        })
+      }, {
+        requiredIf: true,
+        showIf: and([
+          local.field(['effectKind']).eq('DAMAGE'),
+          local.field(['scalingKind']).eq('PER_LEVEL'),
+          not(local.field(['valueKind']).eq('POOL')),
+          local.field(['scalingSource']).eq('CLASS_LEVEL')
+        ])
+      }))
+      .set('spellId', selectSingle(['spellId'], 'Spell', {
         kind: 'DATA',
-        relationship: {
-          kind: 'TABLE',
-          table: 'spells'
-        }
-      },
-      showIf: and([
-        local('effectKind').eq('DAMAGE'),
-        local('scalingKind').eq('PER_LEVEL'),
-        not(local('valueKind').eq('POOL')),
-        local('scalingSource').eq('SPELL_LEVEL')
-      ])
-    },
-    conditionId: {
-      kind: 'INPUT',
-      label: 'Condition',
-      type: 'SELECT_SINGLE',
-      requiredIf: true,
-      source: {
+        relationship: table('spells', {
+          selectColumns: ['id', 'label']
+        })
+      }, {
+        requiredIf: true,
+        showIf: and([
+          local.field(['effectKind']).eq('DAMAGE'),
+          local.field(['scalingKind']).eq('PER_LEVEL'),
+          not(local.field(['valueKind']).eq('POOL')),
+          local.field(['scalingSource']).eq('SPELL_LEVEL')
+        ])
+      }))
+      .set('conditionId', selectSingle(['conditionId'], 'Condition', {
         kind: 'DATA',
-        relationship: {
-          kind: 'TABLE',
-          table: 'condition_types'
-        }
-      },
-      showIf: local('effectKind').eq('CONDITION')
-    }
-  })
+        relationship: table('condition_types', {
+          selectColumns: ['id', 'label', 'tooltip']
+        })
+      }, {
+        requiredIf: true,
+        showIf: local.field(['effectKind']).eq('CONDITION')
+      }))
+  }
 )
 
 const moment = buildNodeMap<MomentAuthored>()
 
 type MomentNodeMap = NodeMap<MomentAuthored>
 
-export const MOMENT_NODE_MAP: MomentNodeMap = moment.define((map, { local }) => map({
-  moment: {
-    kind: 'INPUT',
-    label: 'Moment',
-    type: 'SELECT_SINGLE',
-    requiredIf: true,
-    source: {
+export const MOMENT_NODE_MAP: MomentNodeMap = moment.define('moment', ({ map, nodes, cond }) => {
+  const { selectSingle, text, groupObject, groupArray } = nodes
+  const local = cond.local()
+
+  map
+    .set('moment', selectSingle(['moment'], 'Moment', {
       kind: 'INLINE',
       options: MOMENT_OPTIONS
-    }
-  },
-  resolutionKind: {
-    kind: 'INPUT',
-    label: 'Resolution Kind',
-    type: 'SELECT_SINGLE',
-    requiredIf: true,
-    source: {
+    }, {
+      requiredIf: true
+    }))
+    .set('resolutionKind', selectSingle(['resolutionKind'], 'Resolution Kind', {
       kind: 'INLINE',
       options: MOMENT_RESOLUTION_KIND_OPTIONS
-    }
-  },
-  dieConfig: {
-    kind: 'INPUT',
-    label: 'Die Configuration',
-    requiredIf: true,
-    type: 'TEXT',
-    showIf: local('resolutionKind').eq('ROLL_TABLE')
-  },
-  groupType: {
-    kind: 'INPUT',
-    label: 'Group Type',
-    type: 'SELECT_SINGLE',
-    requiredIf: true,
-    source: {
+    }, {
+      requiredIf: true
+    }))
+    .set('dieConfig', text(['dieConfig'], 'Die Configuration', {
+      requiredIf: true,
+      showIf: local.field(['resolutionKind']).eq('ROLL_TABLE')
+    }))
+    .set('groupType', selectSingle(['groupType'], 'Group Type', {
       kind: 'INLINE',
       options: MOMENT_GROUP_TYPE_OPTIONS
-    }
-  },
-  duration: {
-    kind: 'GROUP',
-    nodes: DURATION_NODE_MAP
-  },
-  rollTableKind: {
-    kind: 'INPUT',
-    label: 'Roll Table Kind',
-    type: 'SELECT_SINGLE',
-    requiredIf: true,
-    source: {
+    }, {
+      requiredIf: true
+    }))
+    .set('duration', groupObject(['duration'], 'Duration', () => DURATION_NODE_MAP))
+    .set('rollTableKind', selectSingle(['rollTableKind'], 'Roll Table Kind', {
       kind: 'INLINE',
       options: MOMENT_ROLL_TABLE_KIND_OPTIONS
-    },
-    showIf: local('resolutionKind').eq('ROLL_TABLE')
-  },
-  table: {
-    kind: 'GROUP',
-    nodes: MOMENT_ROLL_TABLE_ENTRY_NODE_MAP
-  }
-}))
+    }, {
+      requiredIf: true,
+      showIf: local.field(['resolutionKind']).eq('ROLL_TABLE')
+    }))
+    .set('table', groupArray(['table'], 'Table', () => MOMENT_ROLL_TABLE_ENTRY_NODE_MAP))
+})

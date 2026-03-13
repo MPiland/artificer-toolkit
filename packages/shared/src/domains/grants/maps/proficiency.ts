@@ -1,163 +1,142 @@
-import { ProficiencyGrantAuthored } from '#authored'
+import type { ProficiencyGrantAuthored } from '#authored'
 import {
   ABILITY_OPTIONS,
   AUTHORING_MODE_KIND_OPTIONS,
+  AUTHORING_SELECTION_OPTIONS,
   EQUIPMENT_CATEGORY_OPTIONS,
   EQUIPMENT_PROPERTY_OPTIONS,
   PROFICIENCY_KIND_OPTIONS,
   ROUNDING_OPTIONS,
   SCALING_AMOUNT_OPTIONS
 } from '#core'
-import { buildNodeMap } from '#utils'
+import { FACET_NODE_MAP } from '#maps'
+import { buildNodeMap, type NodeMap } from '#utils'
 import type { AllUnionFields } from 'type-fest'
 
-const proficiencyNodeMap
-  = buildNodeMap<AllUnionFields<ProficiencyGrantAuthored>>()
+type ProficiencyGrantUnion = AllUnionFields<ProficiencyGrantAuthored>
+
+const PROFICIENCY_RESTRICTIONS_NODE_MAP = FACET_NODE_MAP as NodeMap<NonNullable<ProficiencyGrantUnion['restrictions']>>
+
+const proficiencyNodeMap = buildNodeMap<ProficiencyGrantUnion>()
 
 export const PROFICIENCY_NODE_MAP = proficiencyNodeMap.define(
-  (map, { local, and, or }) => map({
-    proficiencyKind: {
-      kind: 'INPUT',
-      label: 'Proficiency Kind',
-      type: 'SELECT_SINGLE',
-      requiredIf: true,
-      source: {
+  'proficiencyGrant',
+  ({ map, nodes, cond, logic, data }) => {
+    const { text, number, selectSingle, selectMulti, groupObject } = nodes
+    const { and, or } = logic
+    const local = cond.local()
+    const { table } = data
+
+    map
+      .set('id', text(['id'], 'ID'))
+      .set('order', number(['order'], 'Order'))
+      .set('selectionKind', selectSingle(['selectionKind'], 'Selection Kind', {
+        kind: 'INLINE',
+        options: AUTHORING_SELECTION_OPTIONS
+      }))
+      .set('count', number(['count'], 'Count', {
+        showIf: local.field(['selectionKind']).eq('CHOSEN')
+      }))
+      .set('proficiencyKind', selectSingle(['proficiencyKind'], 'Proficiency Kind', {
         kind: 'INLINE',
         options: PROFICIENCY_KIND_OPTIONS
-      }
-    },
-    authoringModeKind: {
-      kind: 'INPUT',
-      label: 'Authoring Mode',
-      type: 'SELECT_SINGLE',
-      requiredIf: true,
-      source: {
+      }, {
+        requiredIf: true
+      }))
+      .set('authoringModeKind', selectSingle(['authoringModeKind'], 'Authoring Mode', {
         kind: 'INLINE',
         options: AUTHORING_MODE_KIND_OPTIONS
-      }
-    },
-    level: {
-      kind: 'INPUT',
-      label: 'Level',
-      type: 'SELECT_SINGLE',
-      requiredIf: true,
-      source: {
+      }, {
+        requiredIf: true
+      }))
+      .set('level', selectSingle(['level'], 'Level', {
         kind: 'INLINE',
         options: SCALING_AMOUNT_OPTIONS
-      }
-    },
-    rounding: {
-      kind: 'INPUT',
-      label: 'Rounding',
-      type: 'SELECT_SINGLE',
-      requiredIf: true,
-      source: {
+      }, {
+        requiredIf: true
+      }))
+      .set('rounding', selectSingle(['rounding'], 'Rounding', {
         kind: 'INLINE',
         options: ROUNDING_OPTIONS
-      },
-      showIf: local('level').eq('HALF')
-    },
-    skillIds: {
-      kind: 'INPUT',
-      label: 'Skills',
-      type: 'SELECT_MULTI',
-      requiredIf: true,
-      source: {
+      }, {
+        requiredIf: true,
+        showIf: local.field(['level']).eq('HALF')
+      }))
+      .set('skillIds', selectMulti(['skillIds'], 'Skills', {
         kind: 'DATA',
-        relationship: {
-          kind: 'TABLE',
-          table: 'skills'
-        }
-      },
-      showIf: and([
-        local('authoringModeKind').eq('SELECTED'),
-        local('proficiencyKind').eq('SKILL')
-      ])
-    },
-    abilities: {
-      kind: 'INPUT',
-      label: 'Abilities',
-      type: 'SELECT_MULTI',
-      requiredIf: true,
-      source: {
+        relationship: table('skills', {
+          selectColumns: ['id', 'label', 'tooltip']
+        })
+      }, {
+        requiredIf: true,
+        showIf: and([
+          local.field(['authoringModeKind']).eq('SELECTED'),
+          local.field(['proficiencyKind']).eq('SKILL')
+        ])
+      }))
+      .set('abilities', selectMulti(['abilities'], 'Abilities', {
         kind: 'INLINE',
         options: ABILITY_OPTIONS
-      },
-      showIf: and([
-        local('authoringModeKind').eq('SELECTED'),
-        local('proficiencyKind').eq('SAVE_ABILITY')
-      ])
-    },
-    languageIds: {
-      kind: 'INPUT',
-      label: 'Languages',
-      type: 'SELECT_MULTI',
-      requiredIf: true,
-      source: {
+      }, {
+        requiredIf: true,
+        showIf: and([
+          local.field(['authoringModeKind']).eq('SELECTED'),
+          local.field(['proficiencyKind']).eq('SAVE_ABILITY')
+        ])
+      }))
+      .set('languageIds', selectMulti(['languageIds'], 'Languages', {
         kind: 'DATA',
-        relationship: {
-          kind: 'TABLE',
-          table: 'languages'
-        }
-      },
-      showIf: and([
-        local('authoringModeKind').eq('SELECTED'),
-        local('proficiencyKind').eq('LANGUAGE')
-      ])
-    },
-    equipmentIds: {
-      kind: 'INPUT',
-      label: 'Equipment',
-      type: 'SELECT_MULTI',
-      requiredIf: true,
-      source: {
+        relationship: table('languages', {
+          selectColumns: ['id', 'label', 'tooltip']
+        })
+      }, {
+        requiredIf: true,
+        showIf: and([
+          local.field(['authoringModeKind']).eq('SELECTED'),
+          local.field(['proficiencyKind']).eq('LANGUAGE')
+        ])
+      }))
+      .set('equipmentIds', selectMulti(['equipmentIds'], 'Equipment', {
         kind: 'DATA',
-        relationship: {
-          kind: 'TABLE',
-          table: 'equipment'
-        }
-      },
-      showIf: and([
-        local('authoringModeKind').eq('SELECTED'),
-        local('proficiencyKind').eq('EQUIPMENT')
-      ])
-    },
-    category: {
-      kind: 'INPUT',
-      label: 'Category',
-      type: 'SELECT_SINGLE',
-      requiredIf: local('proficiencyKind').eq('EQUIPMENT_PROPERTY'),
-      source: {
+        relationship: table('equipment', {
+          selectColumns: ['id', 'label']
+        })
+      }, {
+        requiredIf: true,
+        showIf: and([
+          local.field(['authoringModeKind']).eq('SELECTED'),
+          local.field(['proficiencyKind']).eq('EQUIPMENT')
+        ])
+      }))
+      .set('category', selectSingle(['category'], 'Category', {
         kind: 'INLINE',
         options: EQUIPMENT_CATEGORY_OPTIONS
-      },
-      showIf: or([
-        and([
-          local('authoringModeKind').eq('SELECTED'),
-          local('proficiencyKind').eq('EQUIPMENT_PROPERTY')
-        ]),
-        and([
-          local('authoringModeKind').eq('SELECTED'),
-          local('proficiencyKind').eq('EQUIPMENT')
+      }, {
+        requiredIf: local.field(['proficiencyKind']).eq('EQUIPMENT_PROPERTY'),
+        showIf: or([
+          and([
+            local.field(['authoringModeKind']).eq('SELECTED'),
+            local.field(['proficiencyKind']).eq('EQUIPMENT_PROPERTY')
+          ]),
+          and([
+            local.field(['authoringModeKind']).eq('SELECTED'),
+            local.field(['proficiencyKind']).eq('EQUIPMENT')
+          ])
         ])
-      ])
-    },
-    properties: {
-      kind: 'INPUT',
-      label: 'Properties',
-      type: 'SELECT_MULTI',
-      requiredIf: local('proficiencyKind').eq('EQUIPMENT_PROPERTY'),
-      source: {
+      }))
+      .set('properties', selectMulti(['properties'], 'Properties', {
         kind: 'INLINE',
         options: EQUIPMENT_PROPERTY_OPTIONS
-      },
-      showIf: or([
-        and([
-          local('authoringModeKind').eq('SELECTED'),
-          local('proficiencyKind').eq('EQUIPMENT_PROPERTY')
-        ]),
-        local('proficiencyKind').eq('EQUIPMENT')
-      ])
-    }
-  })
+      }, {
+        requiredIf: local.field(['proficiencyKind']).eq('EQUIPMENT_PROPERTY'),
+        showIf: or([
+          and([
+            local.field(['authoringModeKind']).eq('SELECTED'),
+            local.field(['proficiencyKind']).eq('EQUIPMENT_PROPERTY')
+          ]),
+          local.field(['proficiencyKind']).eq('EQUIPMENT')
+        ])
+      }))
+      .set('restrictions', groupObject(['restrictions'], 'Restrictions', () => PROFICIENCY_RESTRICTIONS_NODE_MAP))
+  }
 )

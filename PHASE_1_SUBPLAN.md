@@ -1,214 +1,124 @@
-# Phase 1: Node Map Stabilization and DSL Standardization
+# Phase 1: Root Authored Node Map Coverage
+
+## Status: Complete
+
+This is the active implementation phase. Update this checklist in the same change as the code so handoff stays accurate.
 
 ## Objective
 
-Stabilize the existing node-map system in the shared workspace and standardize every map implementation around the current `buildNodeMap().define(...)` DSL.
+Make every content-graph authored root completely representable by node maps, with nested authored substructures mapped where they actually live in the authored model.
 
-This phase is not a greenfield map project. The node-map foundation already exists and should be preserved. The work is to normalize the authored payloads, repair broken map definitions, align map outputs with compiler expectations, and define the validation rules that later resolver work will depend on.
+Phase 1 is no longer just the old DSL migration. That migration work is done enough to move forward, but the real blocker is coverage and nesting completeness.
 
-## Why This Phase Exists
+## Phase Rules
 
-The shared workspace already contains a sophisticated node-map DSL in `packages/shared/src/utils/nodeDefinition.ts`. Current failures come from inconsistent usage of that DSL, stale map exports, authored-type mismatches, and drift between maps and compiler assumptions.
-
-This phase exists to make node maps a stable domain primitive before deeper compiler and resolver work begins.
-
-## Current Reality
-
-### Existing assets to preserve
-
-- `buildNodeMap().define(...)`
-- `NodeBuilder`
-- `ConditionIfBuilder`
-- relationship/data builder helpers
-- current domain map directories:
-  - `effects/maps`
-  - `grants/maps`
-  - `shared/maps`
-  - `subjects/maps`
-  - `features/maps`
-
-### Current failure modes from shared typecheck
-
-- Broken exports in map barrels
-- Maps written in shapes that do not match `NodeMap<T>`
-- Incorrect DSL usage in several domain map files
-- Implicit `any` parameters around map builder callbacks
-- Authored types that no longer match map payload assumptions
-- Missing or stale properties expected by compilers
-- Broken import paths and stale module references
-
-## Canonical Pattern
-
-All node maps should follow one consistent authoring pattern.
-
-```ts
-const exampleNode = buildNodeMap<ExampleAuthored>()
-
-export const EXAMPLE_NODE_MAP = exampleNode.define('example', ({ map, nodes, cond, data, logic }) => {
-  map.set('name', nodes.text(['name'], 'Name'))
-})
-```
-
-### Rules
-
-- Use `buildNodeMap<T>().define(mapId, callback)` for every map
-- Use `map.set(...)` or `map.merge(...)` only inside the callback
-- Use node helpers from `nodes`, never ad hoc object literals
-- Use `cond`, `logic`, and `data` from the DSL helpers instead of custom condition/query shapes
-- Keep node IDs stable and semantic
-- Every map file must export one canonical map constant and any explicitly intended helper maps
+- Every root authored type in `effects`, `shared`, `grants`, `features`, and `subjects` must be fully traversable through a node map tree.
+- Parent maps must include their owned nested authored structures all the way down.
+- Helper authored types may stay private local maps if the parent is still complete.
+- No authored property should be silently dropped unless the phase doc explicitly marks it non-authorable.
+- DnD 5e SRD is the baseline rules reference for this version of the app, but the map and domain model must stay flexible enough for homebrew extensions.
 
 ## Scope
 
-### In scope
+### In Scope
 
-- Node-map payload normalization
-- Node-map file rewrites where DSL usage is wrong
-- Map barrel repair
-- Import/export repair for map modules
-- Validation rules for map structure and references
-- Resolver contracts needed by later phases
+- Complete root coverage for content-graph authored types.
+- Shared nested grant ownership under features, options, feats, and other content roots where applicable.
+- Completeness review for `showIf`, branch ownership, and filtered option behavior.
+- Remaining DSL cleanup only where it directly blocks root coverage.
 
-### Out of scope
+### Out of Scope
 
-- Full runtime resolver execution
-- Full compiler rebuild
-- Frontend form rewrites
-- API integration changes
+- Vocabulary authored models as root maps.
+- Frontend rendering or form work.
+- Runtime resolver execution.
+- Full compiler hardening beyond what is needed to verify map-layer coverage.
 
-## Target Domain Rollout Order
+## Current Repo Truth
 
-Implement the fixes in this order so the simplest shared primitives stabilize first.
+- The old callback / legacy node-kind migration is effectively complete.
+- Root map coverage is now materially complete for the content-graph authored roots in scope.
+- Grant map coverage is now materially complete for the authored grant types currently nested under content roots.
+- The active blocker has shifted from map coverage to downstream compiler drift in `packages/shared`.
+- Scaling already appears in authored and compiler layers and should not be flattened just to simplify authoring maps.
 
-1. `shared/maps`
-2. `grants/maps`
-3. `features/maps`
-4. `subjects/maps`
-5. `effects/maps`
+## Implementation Checklist
 
-This order lets common reusable structures settle before more complex subject and effect maps are rebuilt.
+### Foundation
 
-## Workstreams
+- [x] Remove old `BRANCH` / `LEAF` / `KNOT` / `PATH` node-kind usage from `packages/shared/src`
+- [x] Migrate legacy `define()` callback signatures to `define(mapId, api)`
+- [x] Rewrite or update root maps to match authored ownership rather than placeholder coverage
+- [ ] Add Vitest map completeness and nesting tests for completed root maps (deferred follow-up; not blocking Phase 1 exit)
 
-### 1. DSL normalization
+### Grant coverage and nesting
 
-- Audit every map file for the canonical builder pattern
-- Replace invalid static object map definitions
-- Remove custom shapes that bypass the current helper API
-- Add explicit callback typing where inference is currently failing
+- [x] Add a shared grants-owner node map for `FeatureBaseAuthored['grants']`
+- [x] Add or finish `FeatGrantAuthored` node map
+- [x] Add or finish `ModifierGrantAuthored` node map
+- [x] Add or finish `ProficiencyGrantAuthored` node map
+- [x] Add or finish `SenseGrantAuthored` node map
+- [x] Add or finish `SpellGrantAuthored` node map
+- [x] Nest shared grant ownership into `FeatureAuthored`
+- [x] Nest shared grant ownership into `OptionAuthored`
+- [x] Add feat grant ownership into `FeatAuthored`
 
-### 2. Payload alignment
+### Feature roots
 
-- Verify each map's payload type matches the authored type it is meant to edit
-- Remove stale properties from maps that no longer exist
-- Add missing authored properties only if they are truly part of the domain model and required by later compiler phases
-- Avoid temporary widening with `any`
+- [x] `FEATURE_NODE_MAP` fully covers `FeatureAuthored`
+- [x] `OPTION_NODE_MAP` fully covers `OptionAuthored`
 
-### 3. Export and import repair
+### Subject roots
 
-- Fix domain map barrel files
-- Ensure each map module is reachable from `packages/shared/src/barrels/maps/index.ts`
-- Replace stale direct `dist/...` references with package-local or import-map references
-- Make the shared package export surface consistent for map consumers
+- [x] `FEAT_NODE_MAP` fully covers `FeatAuthored`
+- [x] `BACKGROUND_NODE_MAP` fully covers `BackgroundAuthored`
+- [x] `CLASS_NODE_MAP` fully covers `ClassAuthored`
+- [x] `RACE_NODE_MAP` fully covers `RaceAuthored`
+- [x] `SPELL_NODE_MAP` fully covers `SpellAuthored`
+- [x] `EQUIPMENT_NODE_MAP` fully covers `EquipmentAuthored | EquipmentVariantAuthored`
 
-### 4. Validation contract
+### Completeness audit
 
-Define the validation checks that map tooling or tests must eventually enforce.
+- [x] Every root map accounts for every authored property
+- [x] Every nested authored child is represented in the node tree
+- [x] Discriminated branches have correct `showIf` behavior
+- [x] Filtered option inputs are narrowed where parent selections constrain them
+- [x] Export barrels only expose canonical roots and reusable helper maps
+- [x] `packages/shared` map-layer type errors are eliminated before compiler hardening continues
+- [x] Update `REBUILD_PLAN.md` tracker when Phase 1 exits
 
-- input path exists on payload type
-- group path exists and points to object/array payloads
-- node type matches payload field shape
-- select nodes use a valid inline or data source
-- condition paths point to legal fields
-- id references point to legal ID-capable fields
-- no unreachable or duplicate node IDs within a map
-- no broken lazy child-map references
+## Exit Criteria
 
-### 5. Resolver preparation
+- Every content-graph root authored type is fully represented by a node map tree.
+- Grant ownership is nested consistently where it belongs in authored roots.
+- No empty placeholder map files remain in `packages/shared/src/domains/*/maps`.
+- `packages/shared` no longer has map-layer type errors.
+- Phase 2 starts only after the Phase 1 checklist reflects the real completion state.
 
-This phase should define the contracts required for resolver work later, even if full resolvers are not implemented yet.
+## Handoff Note
 
-- standard node traversal expectations
-- child group traversal behavior
-- conditional visibility semantics
-- hidden behavior semantics
-- data-backed select source contract
-- stable map ID usage for lookup and diagnostics
+If work stops mid-phase:
 
-## Known Current Blockers
+- update the checklist above in the same change
+- note which root map or helper map was being audited
+- record whether the current blocker is map completeness, filtering behavior, or downstream compiler drift
 
-These are the current blockers already visible from the shared workspace typecheck and should drive task ordering.
+Locked decisions for handoff:
 
-### Effects maps and compilers
+- Phase 0 stays closed unless a backend package-boundary issue directly blocks this phase
+- `apps/web` remains frozen
+- use `vitest` for Phase 1 verification when tests are added
+- SRD is the baseline rules reference for this app version, but map and domain design should preserve homebrew flexibility
 
-- `effects/maps/index.ts` references missing map exports
-- `effects/maps/moment.ts` uses an outdated builder signature
-- effect and damage compilers reference stale authored/compiled shapes
+Current handoff status:
 
-### Features and grants maps
-
-- `features/maps/feature.ts` uses the wrong callback shape
-- `features/maps/option.ts` defines properties that do not match `NodeMap<T>`
-- `grants/maps/proficiency.ts` uses outdated DSL expectations
-- `grants/maps/spell.ts` includes stale node properties
-
-### Shared map/compiler alignment
-
-- `shared/core/speed.ts` and related types no longer match map expectations
-- charge and starting-equipment compilers drift from authored payloads
-- several map consumers expect properties that no longer exist
-
-### Subject compiler dependencies
-
-- subject compilers reference missing compiler exports and stale authored properties
-- map payloads and compiled subject shapes need to be brought back into alignment
-
-## Deliverables
-
-- Canonical node-map authoring rules documented and enforced in code changes
-- Correctly shaped node maps for the target domains
-- Repaired map barrel exports
-- Type-safe payload alignment between authored types and map definitions
-- Resolver contract notes for later implementation
-- Shared workspace map typecheck failures reduced to issues outside the map layer
-
-## Success Criteria
-
-### Functional
-
-- All targeted map files use the DSL consistently
-- Map barrels resolve correctly
-- No map file depends on ad hoc map object shapes
-- No map builder callback relies on implicit `any`
-
-### Type safety
-
-- Node paths line up with authored payloads
-- Group nodes point to valid object or array payloads
-- Select nodes use valid source definitions
-- Shared typecheck no longer reports map-structure errors for the completed domains
-
-### Architectural
-
-- Node maps are clearly separated from compilers and resolvers
-- Later phases can consume maps through stable exports
-- The project has one node-map system, not competing patterns
-
-## Implementation Sequence
-
-1. Audit and normalize `shared/maps`
-2. Repair map barrels and imports
-3. Fix `grants/maps`
-4. Fix `features/maps`
-5. Fix `subjects/maps`
-6. Fix `effects/maps`
-7. Define validation helper/test targets
-8. Hand off cleanly to the compiler phase
-
-## Notes For Implementation
-
-- Prefer fixing the domain model if a map is correct but the authored type has drifted incorrectly
-- Prefer fixing the map if it is bypassing the established DSL
-- Do not widen types just to quiet the compiler
-- Do not create a separate "temporary map format"
-- Keep this phase focused on map correctness and contracts, not full runtime resolution
+- `FEATURE_GRANTS_NODE_MAP` now exists and is nested into feature, option, and feat roots
+- `FeatGrantAuthored`, `SenseGrantAuthored`, `ProficiencyGrantAuthored`, and `SpellGrantAuthored` now cover shared grant-base fields consistently enough for Phase 1, including restrictions / selection / scaling structure
+- `ModifierGrantAuthored` now covers the authored replacement and charge-limit payload branches more completely, including `grantKind`, range/duration/shape/reset replacement fields, and charge-limit payload structure
+- `FEATURE_NODE_MAP`, `OPTION_NODE_MAP`, `FEAT_NODE_MAP`, `BACKGROUND_NODE_MAP`, `SPELL_NODE_MAP`, `EQUIPMENT_NODE_MAP`, `RACE_NODE_MAP`, and `CLASS_NODE_MAP` now cover their root authored fields materially better than before
+- `RACE_NODE_MAP` currently represents the boolean `playable` field using a text input because the current node DSL does not appear to expose a boolean-native input node
+- `packages/shared` still fails typecheck, but the remaining failures are in compiler drift rather than the map layer:
+- `effects/compilers/damage.ts` and `effects/compilers/effect.ts` still have outdated payload/scaling assumptions
+- `shared/compilers/charge.ts`, `range.ts`, and `startingEquipment.ts` still drift from current authored/core types
+- `subjects/compilers/equipment.ts` still has the feature-grant generic mismatch, and `subjects/compilers/feat.ts` still references removed target/restriction helpers
+- `vitest` map-completeness tests are still deferred until the first actual backend test harness step; that follow-up is no longer blocking Phase 1 exit

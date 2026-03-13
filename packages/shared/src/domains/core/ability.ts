@@ -1,4 +1,5 @@
 import type { CoreMeta } from './core.js'
+import { valuesOf } from '#utils'
 
 export const ABILITY_CODE = {
   CHARISMA: 'CHARISMA',
@@ -65,4 +66,4 @@ export const ABILITIES: Record<AbilityCode, AbilityOption> = {
   }
 } as const
 
-export const ABILITY_OPTIONS = Object.values(ABILITIES) as readonly AbilityOption[]
+export const ABILITY_OPTIONS = valuesOf(ABILITIES) as readonly AbilityOption[]

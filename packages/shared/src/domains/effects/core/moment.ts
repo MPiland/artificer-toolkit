@@ -1,5 +1,6 @@
 import type { CoreMeta, Trigger } from '#core'
 import { TRIGGER } from '#core'
+import { valuesOf } from '#utils'
 
 export const MOMENT = {
   PASSIVE: 'PASSIVE',
@@ -96,7 +97,7 @@ export const MOMENT_REGISTRY: Record<MomentCode, MomentOption> = {
   }
 } as const
 
-export const MOMENT_OPTIONS = Object.values(MOMENT_REGISTRY) as MomentOption[]
+export const MOMENT_OPTIONS = valuesOf(MOMENT_REGISTRY) as MomentOption[]
 
 export const MOMENT_ROLL_TABLE_KIND = {
   RANGE: 'RANGE',
@@ -126,7 +127,7 @@ export const MOMENT_ROLL_TABLE_KIND_REGISTRY: Record<
   }
 }
 
-export const MOMENT_ROLL_TABLE_KIND_OPTIONS = Object.values(
+export const MOMENT_ROLL_TABLE_KIND_OPTIONS = valuesOf(
   MOMENT_ROLL_TABLE_KIND_REGISTRY
 ) as MomentRollTableKindOption[]
 
@@ -158,7 +159,7 @@ export const MOMENT_RESOLUTION_KIND_REGISTRY: Record<
   }
 } as const
 
-export const MOMENT_RESOLUTION_KIND_OPTIONS = Object.values(
+export const MOMENT_RESOLUTION_KIND_OPTIONS = valuesOf(
   MOMENT_RESOLUTION_KIND_REGISTRY
 ) as MomentResolutionKindOption[]
 
@@ -199,7 +200,7 @@ export const MOMENT_GROUP_TYPE_REGISTRY: Record<
   }
 } as const
 
-export const MOMENT_GROUP_TYPE_OPTIONS = Object.values(
+export const MOMENT_GROUP_TYPE_OPTIONS = valuesOf(
   MOMENT_GROUP_TYPE_REGISTRY
 ) as MomentGroupTypeOption[]
 

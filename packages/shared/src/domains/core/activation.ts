@@ -1,4 +1,5 @@
 import type { CoreMeta } from './core.js'
+import { valuesOf } from '#utils'
 
 export const ACTIVATION_CODE = {
   ACTION: 'ACTION',
@@ -38,4 +39,4 @@ export const ACTIVATION_REGISTRY: Record<ActivationCode, ActivationOption> = {
   }
 } as const
 
-export const ACTIVATION_OPTIONS = Object.values(ACTIVATION_REGISTRY) as ActivationOption[]
+export const ACTIVATION_OPTIONS = valuesOf(ACTIVATION_REGISTRY) as ActivationOption[]

@@ -1,4 +1,5 @@
 import type { CoreMeta } from './core.js'
+import { valuesOf } from '#utils'
 
 export const OPTIONAL_LOGIC_CODE = {
   AND: 'AND',
@@ -81,3 +82,7 @@ export const OPERATIONS_REGISTRY: Record<OperationCode, OperationOption> = {
     tooltip: 'Replace an existing value.'
   }
 } as const
+
+export const OPERATIONS_OPTIONS = valuesOf(
+  OPERATIONS_REGISTRY
+) as readonly OperationOption[]

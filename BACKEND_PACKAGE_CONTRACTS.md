@@ -4,7 +4,7 @@
 
 This document defines the intended backend package boundaries for the rebuild. It is the working contract for Phase 0 through Phase 7 and should be used to decide where new code belongs.
 
-The frontend is intentionally out of scope until the backend and API phases are complete.
+The frontend is intentionally out of scope until the backend and API phases are complete. Phase 0 is complete; this document remains the operational source of truth for boundary decisions in Phases 1 through 7.
 
 ## Package Roles
 
@@ -128,8 +128,8 @@ The frontend is intentionally out of scope until the backend and API phases are 
 
 ## Enforcement Priorities
 
-1. Remove cross-layer utility imports
-2. Reduce accidental root-barrel coupling
-3. Move DTO concerns into `packages/schema`
-4. Move server orchestration responsibility fully into `packages/functions`
-5. Rename packages only after boundaries are stable
+1. Remove cross-layer utility imports.
+2. Reduce accidental root-barrel coupling.
+3. Move DTO concerns into `packages/schema`.
+4. Move server orchestration responsibility fully into `packages/functions`.
+5. Rename packages only after boundaries are stable.

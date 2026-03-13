@@ -1,34 +1,74 @@
-# Phase 3: Schema and DTO Boundary Plan
+# Phase 3: Schema Layer and shared→db Decoupling
 
 ## Objective
 
-Create a dedicated schema layer for runtime validation and transport-safe contracts without forcing all internal domain types through Zod.
+Two tasks are bundled in this phase because they are structurally related: populate `packages/schema` with Zod DTOs for transport boundaries, and remove the runtime dependency that `packages/shared` currently has on `packages/db`.
 
-## Scope
+## Task 1: Decouple shared→db
 
-### Put in Zod
+### The Problem
 
-- authored inputs that cross API or persistence boundaries
-- API request and response DTOs
+`packages/shared/src/utils/nodeDefinition.ts` line 2 imports `ColumnOf`, `ColumnValueOf`, `TableName` from `@artificer-toolkit/db`. This makes the pure domain DSL — which should have no server-side dependencies — coupled to Kysely at the package level. This blocks any future use of the DSL outside a server context (browser rendering, workers, tests without a DB).
+
+### The Fix
+
+1. Create `packages/db/src/types/column-meta.ts` — a type-only file that re-exports `ColumnOf`, `ColumnValueOf`, and `TableName` as pure TypeScript types (no runtime Kysely coupling)
+2. Update `nodeDefinition.ts` line 2 to `import type { ColumnOf, ColumnValueOf, TableName } from '@artificer-toolkit/db/types/column-meta'` (or equivalent path)
+3. Verify there is no remaining runtime import from `packages/shared` to `packages/db`
+4. Confirm the build graph is acyclic after the change
+
+## Task 2: Populate packages/schema
+
+### What Belongs in Zod
+
+Zod schemas live at boundaries where runtime validation is necessary:
+
+- authored inputs received over the API (request bodies)
+- API response shapes returned to clients
 - server-to-client data contracts
-- form-facing validation schemas where shared validation is valuable
+- persistence-boundary inputs where external data enters the system
 
-### Keep as TS-only
+### What Stays TypeScript-Only
 
-- internal generic helpers
+Internal types that never cross a process or network boundary stay as plain TypeScript:
+
 - internal compiler utility types
-- internal map DSL types
-- deep internal engine implementation details
+- map DSL types and node entry shapes
+- internal engine implementation details
+- compiled domain types used only within the server
 
-## Goals
+### Rollout Order
 
-- separate internal domain types from transport DTOs
-- support web and future mobile clients with shared contracts
-- make future tRPC adoption straightforward
+Start with the subjects domain — these are the most-used API surfaces:
 
-## Deliverables
+1. Race authored input DTO
+2. Class authored input DTO
+3. Spell authored input DTO
+4. Feat authored input DTO
+5. Equipment authored input DTO
+6. Background authored input DTO
 
-- schema package responsibilities
-- DTO inventory by domain
-- Zod adoption rules
-- migration strategy from current ad hoc schema usage
+Then grants and features authored inputs as Phase 7 API work requires them.
+
+### Package Structure
+
+`packages/schema/src/` organized by domain mirroring `packages/shared/src/domains/`:
+
+```
+packages/schema/src/
+  subjects/
+    race.ts
+    class.ts
+    spell.ts
+    feat.ts
+    equipment.ts
+    background.ts
+  index.ts   ← re-exports all public DTO schemas
+```
+
+## Exit Criteria
+
+- `packages/shared` has no runtime import from `packages/db`
+- `packages/schema` exports at least subject-level DTO schemas
+- Build graph is confirmed acyclic (`tsc --build` succeeds across all packages)
+- Phase 4 and Phase 7 can consume `packages/schema` DTOs without importing `packages/shared` internals

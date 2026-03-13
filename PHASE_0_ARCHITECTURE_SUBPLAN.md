@@ -1,32 +1,28 @@
 # Phase 0: Workspace Architecture and Contract Stabilization
 
-## Objective
+## Status: Complete
 
-Create stable backend workspace boundaries, package responsibilities, and public contracts before deeper domain and feature refactors begin.
+Phase 0 work is done. `BACKEND_PACKAGE_CONTRACTS.md` defines the package dependency rules, and `packages/schema` exists and is referenced in the root `tsconfig.json` project references.
 
-This is the real first implementation phase because the current repo failures are amplified by unclear package roles and unstable export surfaces.
+This phase is closed. Use it as a guardrail reference, not as an active implementation backlog.
 
-## Why This Phase Comes First
+## Handoff Note
 
-Current problems are not isolated to one feature area. They are structural:
+If a small backend-only correction is needed later, record it in the active phase subplan and `REBUILD_PLAN.md` instead of reopening Phase 0 as a live checklist.
 
-- the shared workspace currently carries multiple layers of responsibility
-- API code consumes unstable shared exports
-- the functions workspace is acting as both query library and application layer
-- tsconfig aliases do not reflect a clean architectural model
+## Remaining Verification
 
-Later phases will keep breaking if package seams are not stabilized first.
+- Confirm `tsc --build packages/schema` succeeds end-to-end.
+- The `ColumnOf` / `TableName` extraction strategy remains a Phase 3 decision.
 
-## Target Workspace Strategy
+## What Was Established
 
-Use a moderate split rather than a minimal cleanup or an aggressive many-package decomposition.
+### Target Package Roles
 
-### Target workspaces
-
-- `packages/domain`
-  - authored types
-  - compiled types
-  - node-map DSL and maps
+- `packages/shared` (future `packages/domain`)
+  - authored domain types
+  - compiled domain types
+  - node-map DSL and node maps
   - compilers
   - resolvers
   - character engine
@@ -35,142 +31,66 @@ Use a moderate split rather than a minimal cleanup or an aggressive many-package
 - `packages/schema`
   - Zod schemas
   - DTO contracts
-  - transport-safe validation
+  - transport-safe validation boundaries
 
 - `packages/db`
-  - Kysely client
+  - Kysely client and types
   - repositories
-  - upserts
-  - queries
+  - upserts and queries
   - SQL ETL assets
   - DB mappers
 
-- `packages/server`
+- `packages/functions` (future `packages/server`)
   - use-case and orchestration logic
   - authoring services
   - character assembly services
   - future tRPC backing logic
 
-- `apps/api`
-  - thin transport layer
+- `apps/apis` (future `apps/api`)
+  - thin transport layer only
 
 - `apps/web`
-  - frozen legacy frontend
-  - explicitly out of scope for implementation during backend rebuild
-
-- future `apps/mobile`
-  - client of API/contracts, not DB code
-
-## Rename and Transition Plan
-
-### Planned renames
-
-- `packages/shared` -> `packages/domain` or split into `packages/domain` + `packages/schema`
-- `packages/functions` -> `packages/server`
-- `apps/apis` -> `apps/api`
-
-### Transition policy
-
-- Do not rename everything at once if that would block all implementation work
-- First stabilize public surfaces and alias strategy
-- Then perform workspace renames or splits in a controlled sequence
-- Favor compatibility shims only when they reduce migration risk and are clearly temporary
+  - frozen during backend rebuild
 
 ## Package Dependency Rules
 
-These rules should guide all later implementation.
+- `shared` must not depend on `functions`, `apis`, or `web`
+- `shared` may temporarily depend on `db` where the map DSL requires DB column typing; this is scheduled for removal in Phase 3
+- `schema` may depend on `shared`
+- `db` may depend on `shared` and `schema`
+- `functions` may depend on `shared`, `schema`, and `db`
+- `apis` may depend on `functions` and `schema`
+- `web` depends on `schema` and client-facing contracts only, but remains frozen during backend work
 
-- `domain` must not depend on `db`, `server`, `api`, or `web`
-- `schema` may depend on `domain`
-- `db` may depend on `domain` and `schema`
-- `server` may depend on `domain`, `schema`, and `db`
-- `api` may depend on `server` and `schema`
-- `web` may depend on `schema` and client-facing contracts later, but is frozen during backend work
+## Rename and Transition Plan
 
-## Public Export Strategy
+Physical renames are deferred until after Phase 7 is complete. The trigger is: API routes are stable and consuming services, and no consumers are importing internal package paths.
 
-### Goals
+Planned renames:
 
-- shrink overly broad barrel exports
-- create intentional public surfaces
-- stop API and backend code from importing unstable internals
+- `packages/shared` -> `packages/domain`
+- `packages/functions` -> `packages/server`
+- `apps/apis` -> `apps/api`
 
-### Required public surfaces
+Transitional policy: package names that still use `shared`, `functions`, and `apis` are allowed during the backend rebuild phases.
 
-- domain-authored exports
-- domain-compiled exports
-- map and resolver contracts
-- engine contracts
-- schema DTO exports
-- db repository exports
-- server service exports
+## Key Structural Issue Catalogued
 
-### Anti-goals
+`nodeDefinition.ts` imports `ColumnOf`, `ColumnValueOf`, and `TableName` from `@artificer-toolkit/db`. This makes the domain DSL depend on Kysely at the package level. That is an allowed temporary exception and is scheduled for resolution in Phase 3.
 
-- exporting all internal files through one root barrel
-- exposing persistence or server internals to client packages
-- forcing future client code to import internal domain implementation details
+## What Does Not Reopen Phase 0
 
-## Path Alias and Import Cleanup
+- Physical package renames
+- Frontend alias or enum cleanup
+- Client compatibility work
+- Deep export-surface redesign beyond current backend needs
+- Trying to make all packages typecheck before the Phase 1 DSL blocker is resolved
 
-### Problems to address
+## Exit Criteria - Met
 
-- mismatches between package exports and tsconfig paths
-- imports that target build output paths or unstable internals
-
-### Required cleanup
-
-- align package imports with actual public package surfaces
-- replace stale internal aliases with stable workspace-level imports where appropriate
-- remove direct `dist/...` imports from source code
-- ensure server and domain imports use package boundaries, not deep internals unless intentionally allowed
-- defer all frontend alias cleanup until the frontend rewrite phase
-
-## Implementation Workstreams
-
-### 1. Workspace inventory
-
-- document current responsibilities of each workspace
-- identify misplacements of code by concern
-- identify circular dependency pressure
-
-### 2. Contract definition
-
-- define what each workspace is allowed to export
-- define temporary compatibility exports if needed
-- define migration targets for stale import sites
-
-### 3. Alias normalization
-
-- clean tsconfig path aliases
-- standardize package import usage
-- reduce ambiguous alias naming
-
-### 4. Rename preparation
-
-- prepare package metadata, import maps, and build references for eventual rename/split
-- sequence rename operations to minimize churn during implementation phases
-
-## Deliverables
-
-- approved target workspace layout
-- package dependency rules
-- export-surface strategy
-- alias cleanup strategy
-- rename/split transition sequence
-
-## Success Criteria
-
-- each workspace has one primary responsibility
-- domain logic is isolated from persistence and transport
-- backend work can proceed without modifying `apps/web`
-- the repo has a documented migration path from current names to target names
-- later phases can proceed without redefining package ownership
-
-## Implementation Sequence
-
-1. Audit current public exports and alias usage
-2. Define stable package surfaces
-3. Define rename and split sequence
-4. Update tsconfig/package import strategy
-5. Start Phase 1 node-map stabilization against those rules
+- Target workspace responsibilities are documented
+- Package dependency rules are documented in `BACKEND_PACKAGE_CONTRACTS.md`
+- `packages/schema` exists and is referenced in root `tsconfig.json`
+- Dependency violations are catalogued
+- Rename sequence is defined
+- Phase 1 can proceed without redefining ownership boundaries

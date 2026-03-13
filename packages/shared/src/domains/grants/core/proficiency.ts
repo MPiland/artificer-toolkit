@@ -1,4 +1,5 @@
 import type { CoreMeta } from '#core'
+import { valuesOf } from '#utils'
 
 export const PROFICIENCY_KIND = {
   SKILL: 'SKILL',
@@ -57,6 +58,6 @@ export const PROFICIENCY_KIND_REGISTRY: Record<
   }
 } as const
 
-export const PROFICIENCY_KIND_OPTIONS = Object.values(
+export const PROFICIENCY_KIND_OPTIONS = valuesOf(
   PROFICIENCY_KIND_REGISTRY
 ) as readonly ProficiencyTypeOption[]
