@@ -4,7 +4,7 @@ import {
   type ShapeAuthored
 } from '@artificer-toolkit/shared'
 import type { SupabaseDatabase, DBLike } from '#types'
-import { assertNever } from '@artificer-toolkit/functions'
+import { assertNever } from '../../../utils/index.js'
 
 export function mapRangeToRow(
   json_data: RangeAuthored,

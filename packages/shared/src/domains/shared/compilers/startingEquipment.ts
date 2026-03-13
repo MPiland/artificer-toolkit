@@ -1,4 +1,4 @@
-import { assertNever } from '@artificer-toolkit/functions/utils'
+import { assertNever } from '#utils'
 
 import type { StartingEquipmentGroupAuthored, StartingEquipmentOptionAuthored, StartingEquipmentItemAuthored, StartingEquipmentSetAuthored, StartingEquipmentAuthored } from '#authored'
 import { AUTHORING_MODE_KIND, AUTHORING_SELECTION_KIND, STARTING_EQUIPMENT_KIND } from '#core'

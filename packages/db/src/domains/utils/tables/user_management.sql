@@ -1,0 +1,345 @@
+/* ──────────────────────────────────────────────
+ * USER MANAGEMENT
+ *
+ * Defines:
+ *   - profiles              (public user profile, mirrors auth.users)
+ *   - admins                (admin flag table for set_admin_claims)
+ *   - handle_new_user()     (trigger: auto-create profile on signup)
+ *   - set_admin_claims()    (auth hook: injects admin flag into JWT)
+ *   - apply_direct_ownership_policies()
+ *       Policy helper for tables owned directly by a user
+ *       (user_id column, is_master flag).
+ *       Used by: characters
+ *   - apply_system_derived_policies()
+ *       Policy helper for content scoped to a system row.
+ *       (system_id column, is_master flag).
+ *       Used by: classes, spells, feats, equipment, races, backgrounds, etc.
+ *
+ * Storage:
+ *   - avatars bucket
+ * ────────────────────────────────────────────── */
+
+
+/* ──────────────────────────────────────────────
+ * PROFILES
+ * ────────────────────────────────────────────── */
+
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id uuid PRIMARY KEY
+    REFERENCES auth.users ON DELETE CASCADE NOT NULL,
+
+  updated_at timestamptz,
+  username   text UNIQUE,
+  full_name  text,
+  avatar_url text,
+  website    text,
+
+  CONSTRAINT username_length CHECK (char_length(username) >= 3)
+);
+
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public profiles are viewable by everyone." ON public.profiles;
+CREATE POLICY "Public profiles are viewable by everyone."
+  ON public.profiles FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Users can insert their own profile." ON public.profiles;
+CREATE POLICY "Users can insert their own profile."
+  ON public.profiles FOR INSERT
+  WITH CHECK ((SELECT auth.uid()) = id);
+
+DROP POLICY IF EXISTS "Users can update own profile." ON public.profiles;
+CREATE POLICY "Users can update own profile."
+  ON public.profiles FOR UPDATE
+  USING ((SELECT auth.uid()) = id);
+
+
+/* ──────────────────────────────────────────────
+ * ADMINS
+ *
+ * Stores which users have admin privileges.
+ * Referenced by set_admin_claims().
+ * ────────────────────────────────────────────── */
+
+CREATE TABLE IF NOT EXISTS public.admins (
+  user_id  uuid PRIMARY KEY
+    REFERENCES auth.users ON DELETE CASCADE,
+  is_admin boolean NOT NULL DEFAULT true
+);
+
+ALTER TABLE public.admins ENABLE ROW LEVEL SECURITY;
+
+
+/* ──────────────────────────────────────────────
+ * TRIGGER: auto-create profile on signup
+ * ────────────────────────────────────────────── */
+
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+SET search_path = pg_catalog, public
+LANGUAGE plpgsql SECURITY DEFINER
+AS $$
+BEGIN
+  INSERT INTO public.profiles (id, full_name, avatar_url)
+  VALUES (
+    NEW.id,
+    NEW.raw_user_meta_data ->> 'full_name',
+    NEW.raw_user_meta_data ->> 'avatar_url'
+  );
+  RETURN NEW;
+END;
+$$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'on_auth_user_created'
+      AND tgrelid = 'auth.users'::regclass
+  ) THEN
+    CREATE TRIGGER on_auth_user_created
+    AFTER INSERT ON auth.users
+    FOR EACH ROW
+    EXECUTE PROCEDURE public.handle_new_user();
+  END IF;
+END;
+$$;
+
+
+/* ──────────────────────────────────────────────
+ * AUTH HOOK: inject admin flag into JWT
+ * ────────────────────────────────────────────── */
+
+CREATE OR REPLACE FUNCTION public.set_admin_claims(event jsonb)
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public, pg_catalog
+AS $$
+DECLARE
+  claims   jsonb;
+  is_admin boolean;
+BEGIN
+  claims := COALESCE(event -> 'claims', '{}');
+
+  SELECT EXISTS(
+    SELECT 1 FROM public.admins
+    WHERE user_id = (event ->> 'user_id')::uuid
+      AND is_admin = true
+  ) INTO is_admin;
+
+  IF is_admin THEN
+    claims := jsonb_set(
+      claims,
+      '{app_metadata}',
+      COALESCE(claims -> 'app_metadata', '{}')
+        || jsonb_build_object('admin', 'true')
+    );
+  END IF;
+
+  event := jsonb_set(event, '{claims}', claims);
+  RETURN event;
+END;
+$$;
+
+
+/* ──────────────────────────────────────────────
+ * POLICY HELPER: direct ownership
+ *
+ * For tables with (user_id, is_master).
+ * Users can only read/write their own non-master rows.
+ * Admins (JWT app_metadata.admin = 'true') bypass.
+ *
+ * Usage: SELECT public.apply_direct_ownership_policies('characters');
+ * ────────────────────────────────────────────── */
+
+CREATE OR REPLACE FUNCTION public.apply_direct_ownership_policies(target_table text)
+RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public, pg_catalog
+AS $$
+DECLARE
+  safe_table  text := pg_catalog.quote_ident(target_table);
+  admin_check text := '(auth.jwt()::jsonb -> ''app_metadata'' ->> ''admin'') = ''true''';
+BEGIN
+  EXECUTE format('ALTER TABLE public.%s ENABLE ROW LEVEL SECURITY', safe_table);
+
+  EXECUTE format('DROP POLICY IF EXISTS "Users can select own rows" ON public.%s', safe_table);
+  EXECUTE format('DROP POLICY IF EXISTS "Users can insert own rows" ON public.%s', safe_table);
+  EXECUTE format('DROP POLICY IF EXISTS "Users can update own rows" ON public.%s', safe_table);
+  EXECUTE format('DROP POLICY IF EXISTS "Users can delete own rows" ON public.%s', safe_table);
+
+  -- SELECT
+  EXECUTE format(
+    $fmt$
+      CREATE POLICY "Users can select own rows" ON public.%s
+      FOR SELECT TO authenticated
+      USING (user_id = auth.uid() OR (%s));
+    $fmt$,
+    safe_table, admin_check
+  );
+
+  -- INSERT
+  EXECUTE format(
+    $fmt$
+      CREATE POLICY "Users can insert own rows" ON public.%s
+      FOR INSERT TO authenticated
+      WITH CHECK (
+        (user_id = auth.uid() AND COALESCE(is_master, false) = false)
+        OR (%s)
+      );
+    $fmt$,
+    safe_table, admin_check
+  );
+
+  -- UPDATE
+  EXECUTE format(
+    $fmt$
+      CREATE POLICY "Users can update own rows" ON public.%s
+      FOR UPDATE TO authenticated
+      USING (
+        (user_id = auth.uid() AND COALESCE(is_master, false) = false)
+        OR (%s)
+      )
+      WITH CHECK (
+        (user_id = auth.uid() AND COALESCE(is_master, false) = false)
+        OR (%s)
+      );
+    $fmt$,
+    safe_table, admin_check, admin_check
+  );
+
+  -- DELETE
+  EXECUTE format(
+    $fmt$
+      CREATE POLICY "Users can delete own rows" ON public.%s
+      FOR DELETE TO authenticated
+      USING (
+        (user_id = auth.uid() AND COALESCE(is_master, false) = false)
+        OR (%s)
+      );
+    $fmt$,
+    safe_table, admin_check
+  );
+END;
+$$;
+
+
+/* ──────────────────────────────────────────────
+ * POLICY HELPER: system-derived ownership
+ *
+ * For tables with (system_id, is_master).
+ * Rows are readable if: they are master content,
+ * or the system belongs to the current user,
+ * or the user is an admin.
+ * Write access requires the system to belong to the
+ * current user and the row to not be master content.
+ *
+ * Usage: SELECT public.apply_system_derived_policies('classes');
+ * ────────────────────────────────────────────── */
+
+CREATE OR REPLACE FUNCTION public.apply_system_derived_policies(target_table text)
+RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public, pg_catalog
+AS $$
+DECLARE
+  safe_table  text := pg_catalog.quote_ident(target_table);
+  admin_check text := '(auth.jwt()::jsonb -> ''app_metadata'' ->> ''admin'') = ''true''';
+BEGIN
+  EXECUTE format('ALTER TABLE public.%s ENABLE ROW LEVEL SECURITY', safe_table);
+
+  EXECUTE format('DROP POLICY IF EXISTS "System rows readable"          ON public.%s', safe_table);
+  EXECUTE format('DROP POLICY IF EXISTS "Users insert into own systems" ON public.%s', safe_table);
+  EXECUTE format('DROP POLICY IF EXISTS "Users update own systems"      ON public.%s', safe_table);
+  EXECUTE format('DROP POLICY IF EXISTS "Users delete own systems"      ON public.%s', safe_table);
+
+  -- SELECT
+  EXECUTE format(
+    $sql$
+      CREATE POLICY "System rows readable" ON public.%s
+      FOR SELECT TO authenticated
+      USING (
+        EXISTS (
+          SELECT 1 FROM systems s
+          WHERE s.id = %s.system_id
+            AND (
+              %s.is_master = true
+              OR s.user_id = auth.uid()
+              OR %s
+            )
+        )
+      );
+    $sql$,
+    safe_table, safe_table, safe_table, admin_check
+  );
+
+  -- INSERT
+  EXECUTE format(
+    $sql$
+      CREATE POLICY "Users insert into own systems" ON public.%s
+      FOR INSERT TO authenticated
+      WITH CHECK (
+        EXISTS (
+          SELECT 1 FROM systems s
+          WHERE s.id = %s.system_id
+            AND s.user_id = auth.uid()
+            AND %s.is_master = false
+        )
+      );
+    $sql$,
+    safe_table, safe_table, safe_table
+  );
+
+  -- UPDATE
+  EXECUTE format(
+    $sql$
+      CREATE POLICY "Users update own systems" ON public.%s
+      FOR UPDATE TO authenticated
+      USING (
+        EXISTS (
+          SELECT 1 FROM systems s
+          WHERE s.id = %s.system_id
+            AND s.user_id = auth.uid()
+            AND %s.is_master = false
+        )
+      )
+      WITH CHECK (
+        EXISTS (
+          SELECT 1 FROM systems s
+          WHERE s.id = %s.system_id
+            AND s.user_id = auth.uid()
+            AND %s.is_master = false
+        )
+      );
+    $sql$,
+    safe_table, safe_table, safe_table, safe_table, safe_table
+  );
+
+  -- DELETE
+  EXECUTE format(
+    $sql$
+      CREATE POLICY "Users delete own systems" ON public.%s
+      FOR DELETE TO authenticated
+      USING (
+        EXISTS (
+          SELECT 1 FROM systems s
+          WHERE s.id = %s.system_id
+            AND s.user_id = auth.uid()
+            AND %s.is_master = false
+        )
+      );
+    $sql$,
+    safe_table, safe_table, safe_table
+  );
+END;
+$$;
+
+
+/* ──────────────────────────────────────────────
+ * STORAGE: avatars bucket
+ * ────────────────────────────────────────────── */
+
+INSERT INTO storage.buckets (id, name)
+VALUES ('avatars', 'avatars')
+ON CONFLICT (id) DO NOTHING;

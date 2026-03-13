@@ -14,7 +14,7 @@ import {
   type ScalingSource,
   type MomentGroupType
 } from '#core'
-import { assertNever } from '@artificer-toolkit/functions/utils'
+import { assertNever } from '#utils'
 
 import {} from '#core'
 import {

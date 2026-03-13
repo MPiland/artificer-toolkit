@@ -1,4 +1,4 @@
-import { assertNever } from '@artificer-toolkit/functions/utils'
+import { assertNever } from '#utils'
 import type { ModifierGrantAuthored } from '#authored'
 import { AUTHORING_SELECTION_KIND, GRANT_KIND } from '#core'
 import type {

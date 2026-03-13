@@ -1,5 +1,5 @@
 import type { DBLike } from '#types'
-import { assertNever } from '@artificer-toolkit/functions'
+import { assertNever } from '../../../utils/index.js'
 import type { SavingThrowAuthored } from '@artificer-toolkit/shared'
 
 export async function upsertSavingThrow(db: DBLike, json_data: SavingThrowAuthored) {

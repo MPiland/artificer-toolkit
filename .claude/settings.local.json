@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -rn \"SPELL_GRANT_ATTRIBUTE_REGISTRY\\\\|MODIFIER_KIND_REGISTRY\\\\|VALUE_DOMAIN_REGISTRY\\\\|GRANT_KIND\\\\b\" C:UserspilanDesktopartificer-toolkitpackagessharedsrcdomains --include=*.ts -l)",
+      "Bash(yarn tsc:*)",
+      "Bash(grep -r import.*@artificer-toolkit/db /c/Users/pilan/Desktop/artificer-toolkit/packages/shared/src/ --include=*.ts -l)"
+    ]
+  }
+}

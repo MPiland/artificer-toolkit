@@ -4,90 +4,44 @@ import {
   SIZE_OPTIONS,
   type SizeCode
 } from '#core'
-import { FEATURE_NODE_MAP } from '../../../../dist/maps/maps.js'
-import type { NodeMap } from '#utils'
+import { FEATURE_NODE_MAP } from '#maps'
+import { buildNodeMap, type NodeMap } from '#utils'
+import type { RaceBaseAuthored, ParentRaceAuthored, SubraceAuthored } from '#authored'
 
-export type BaseRaceNodePayloads = {
-  features: { featureIds?: string[] }
-  sizes: { sizes: SizeCode[] }
-}
+// Base Race Node Map - Fixed with proper DSL
+const baseRaceNode = buildNodeMap<RaceBaseAuthored>()
+export const BASE_RACE_NODE_MAP = baseRaceNode.define('baseRace', ({ map, nodes }) => {
+  const { text } = nodes
+  map
+    .set('id', text(['id'], 'ID'))
+    .set('label', text(['label'], 'Label'))
+    .set('quote', text(['quote'], 'Quote'))
+    .set('description', text(['description'], 'Description'))
+})
 
-export const BASE_RACE_NODE_MAP: NodeMap<BaseRaceNodePayloads> = {
-  features: {
-    kind: 'BRANCH',
-    meta: {
-      ...FEATURE_CATEGORY_REGISTRY.FEATURE,
-      label: 'Features'
-    },
-    payload: 'features',
-    enables: {
-      kind: 'PATH',
-      map: FEATURE_NODE_MAP
-    },
-    options: [
-      {
-        kind: 'DATA',
-        relationship: {
-          kind: 'BRIDGE',
-          table: 'class_features',
-          parentColumn: 'class_id',
-          childColumn: 'feature_id'
-        },
-        selection: 'MULTI_OPTIONAL',
-        order: 0
-      }
-    ]
-  },
-  sizes: {
-    kind: 'BRANCH',
-    meta: {
-      label: 'Sizes',
-      code: 'SIZES',
-      tooltip: 'Sizes of the selected race(s).'
-    },
-    payload: 'sizes',
-    options: [
-      {
-        kind: 'INLINE',
-        options: SIZE_OPTIONS,
-        selection: 'MULTI_REQUIRED',
-        order: 0
-      }
-    ]
-  }
-}
+// Parent Race Node Map - Fixed with proper DSL
+const parentRaceNode = buildNodeMap<ParentRaceAuthored>()
+export const PARENT_RACE_NODE_MAP = parentRaceNode.define('parentRace', ({ map, nodes }) => {
+  const { text, selectSingle } = nodes
+  map
+    .set('size', selectSingle(['size'], 'Size', {
+      kind: 'INLINE',
+      options: SIZE_OPTIONS
+    }))
+})
 
-export type SubraceNodePayloads = BaseRaceNodePayloads
+// Subrace Node Map - Fixed with proper DSL
+const subraceNode = buildNodeMap<SubraceAuthored>()
+export const SUBRACE_NODE_MAP = subraceNode.define('subrace', ({ map, nodes, data }) => {
+  const { text, selectSingle } = nodes
+  const { table } = data
+  map
+    .set('parentRaceId', selectSingle(['parentRaceId'], 'Parent Race', {
+      kind: 'DATA',
+      relationship: table('races', {
+        selectColumns: ['id', 'label'],
+        where: (col) => col('category').eq('BASE')
+      })
+    }))
+})
 
-export const SUBRACE_NODE_MAP: NodeMap<SubraceNodePayloads> = {
-  ...BASE_RACE_NODE_MAP
-}
-
-export type RaceNodePayloads = BaseRaceNodePayloads & {
-  subraces: { subraceIds?: string[] }
-}
-
-export const RACE_NODE_PATH: NodeMap<RaceNodePayloads> = {
-  ...BASE_RACE_NODE_MAP,
-  subraces: {
-    kind: 'BRANCH',
-    meta: {
-      ...RACE_CATEGORY_REGISTRY.SUBRACE,
-      label: 'Subraces'
-    },
-    payload: 'subraces',
-    options: [
-      {
-        kind: 'DATA',
-        selection: 'MULTI_OPTIONAL',
-        relationship: {
-          kind: 'CONDITION',
-          table: 'races',
-          column: 'category',
-          condition: 'SUBRACE'
-        },
-        order: 0
-      }
-    ]
-  }
-}

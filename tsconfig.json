@@ -2,6 +2,9 @@
   "files": [],
   "references": [
     {
+      "path": "./packages/schema"
+    },
+    {
       "path": "./packages/shared"
     },
     {

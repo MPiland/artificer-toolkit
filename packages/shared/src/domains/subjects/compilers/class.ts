@@ -1,4 +1,4 @@
-import { assertNever } from '@artificer-toolkit/functions'
+import { assertNever } from '#utils'
 
 import type {
   ClassAuthored,

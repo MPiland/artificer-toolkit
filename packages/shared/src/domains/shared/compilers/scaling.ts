@@ -1,5 +1,5 @@
 import { SCALING_SOURCE, type ScalingSourceAuthored } from '#core'
-import { assertNever } from '@artificer-toolkit/functions/utils'
+import { assertNever } from '#utils'
 
 export type CompiledScalingSource = ScalingSourceAuthored
 

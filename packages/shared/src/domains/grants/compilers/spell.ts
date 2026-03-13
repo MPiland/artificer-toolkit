@@ -1,4 +1,4 @@
-import { assertNever } from '@artificer-toolkit/functions/utils'
+import { assertNever } from '#utils'
 
 import type { GrantPayloadAuthored, SpellGrantAuthored } from '#authored'
 import {

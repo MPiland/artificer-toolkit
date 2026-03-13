@@ -3,7 +3,7 @@ import {
   type ChargeBonusAuthored
 } from '@artificer-toolkit/shared'
 import type { DBLike } from '@artificer-toolkit/db/types'
-import { assertNever } from '@artificer-toolkit/functions/utils'
+import { assertNever } from '../../../utils/index.js'
 import type { SupabaseDatabase } from '@artificer-toolkit/db/types'
 
 export function mapChargeBonusToRow(

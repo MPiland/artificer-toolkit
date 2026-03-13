@@ -47,8 +47,7 @@
     "generate:zod": "ts-to-zod --config zod.config.js \"src/types/**/*.ts\""
   },
   "dependencies": {
-    "@artificer-toolkit/db": "workspace:^",
-    "@artificer-toolkit/functions": "workspace:^"
+    "@artificer-toolkit/db": "workspace:^"
   },
   "devDependencies": {
     "ts-to-zod": "^5.1.0",

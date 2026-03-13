@@ -1,193 +1,95 @@
 import {
-  CLASS_CATEGORY_REGISTRY,
-  CLASS_ATTRIBUTE_REGISTRY,
-  FEATURE_CATEGORY_REGISTRY,
-  PREPARE_LIMIT_METHOD_REGISTRY,
-  SUBCLASS_ATTRIBUTE_REGISTRY,
-  type AbilityCode
+  ABILITY_OPTIONS,
+  type AbilityCode,
+  CLASS_ATTRIBUTE_OPTIONS,
+  PREPARE_LIMIT_METHOD_OPTIONS
 } from '#core'
 import { CHARGE_NODE_MAP, FEATURE_NODE_MAP, PROFICIENCY_NODE_MAP } from '#maps'
-import type { NodeMap, EmptyObject } from '#utils'
+import { buildNodeMap, type NodeMap, EmptyObject } from '#utils'
+import type { ClassSpellcastingAuthored, ClassPrepareLimitAuthored, ClassResourceAuthored, ClassBaseAuthored, ParentClassAuthored, ClassAuthored } from '#authored'
 
-export type ClassSpellcastingNodePayloads = {
-  ability: { ability: AbilityCode }
-  maxSpellLevel: { spellLevel: number }
-}
+// Class Spellcasting Node Map - Fixed with proper DSL
+const classSpellcastingNode = buildNodeMap<ClassSpellcastingAuthored>()
+export const CLASS_SPELLCASTING_NODE_MAP = classSpellcastingNode.define('classSpellcasting', ({ map, nodes, data }) => {
+  const { selectSingle, number, text } = nodes
+  const { table } = data
+  map
+    .set('ability', selectSingle(['ability'], 'Spellcasting Ability', {
+      kind: 'INLINE',
+      options: ABILITY_OPTIONS
+    }))
+    .set('maxSpellLevel', number(['maxSpellLevel'], 'Max Spell Level'))
+    .set('magicName', text(['magicName'], 'Magic Name'))
+})
 
-export const CLASS_SPELLCASTING_NODE_MAP: NodeMap<ClassSpellcastingNodePayloads> = {
-  ability: {
-    kind: 'LEAF',
-    meta: {
-      label: 'Spellcasting Ability',
-      code: 'SPELLCASTING_ABILITY',
-      tooltip: 'Spellcasting ability of the class.'
-    },
-    payload: 'ability'
-  },
-  maxSpellLevel: {
-    kind: 'LEAF',
-    meta: {
-      label: 'Max Spell Level',
-      code: 'MAX_SPELL_LEVEL',
-      tooltip: 'Max spell level of the class.'
-    },
-    payload: 'maxSpellLeve'
-  }
-}
+// Class Prepare Limit Node Map - Fixed with proper DSL
+const classPrepareLimitNode = buildNodeMap<ClassPrepareLimitAuthored>()
+export const CLASS_PREPARE_LIMIT_NODE_MAP = classPrepareLimitNode.define('classPrepareLimit', ({ map, nodes }) => {
+  const { selectMulti, selectSingle } = nodes
+  map.set('methodKinds', selectMulti(['methodKinds'], 'Method Kinds', {
+    kind: 'INLINE',
+    options: PREPARE_LIMIT_METHOD_OPTIONS
+  }))
+})
 
-export type ClassPrepareLimitNodePayloads = {
-  spellCastingAbility: { ability: AbilityCode }
-  classLevel: { multiplier?: number }
-  perLevelTable: { perLevel: { classLevel: number, amount: number }[] }
-}
+// Class Resource Node Map - Fixed with proper DSL
+const classResourceNode = buildNodeMap<ClassResourceAuthored>()
+export const CLASS_RESOURCE_NODE_MAP = classResourceNode.define('classResource', ({ map, nodes }) => {
+  const { text, number } = nodes
+  map
+    .set('id', text(['id'], 'ID'))
+    .set('label', text(['label'], 'Label'))
+    .set('description', text(['description'], 'Description'))
+    .set('levelAvailable', number(['levelAvailable'], 'Level Available'))
+})
 
-export const CLASS_PREPARE_LIMIT_NODE_PATH: NodeMap<ClassPrepareLimitNodePayloads>
-  = {
-    spellCastingAbility: {
-      kind: 'LEAF',
-      meta: PREPARE_LIMIT_METHOD_REGISTRY.SPELLCASTING_ABILITY,
-      payload: 'spellCastingAbility'
-    },
-    classLevel: {
-      kind: 'LEAF',
-      meta: PREPARE_LIMIT_METHOD_REGISTRY.CLASS_LEVEL,
-      payload: 'classLevel'
-    },
-    perLevelTable: {
-      kind: 'LEAF',
-      meta: PREPARE_LIMIT_METHOD_REGISTRY.PER_LEVEL,
-      payload: 'perLevelTable'
-    }
-  }
+// Class Base Node Map - Fixed with proper DSL to match full ClassBaseAuthored
+const classBaseNode = buildNodeMap<ClassBaseAuthored>()
+export const CLASS_BASE_NODE_MAP = classBaseNode.define('classBase', ({ map, nodes }) => {
+  const { text } = nodes
+  map
+    .set('id', text(['id'], 'ID'))
+    .set('label', text(['label'], 'Label'))
+    .set('description', text(['description'], 'Description'))
+})
 
-export type ClassResourceNodePayload = {
-  charges: EmptyObject
-}
+// Parent Class Node Map - Fixed with proper DSL to match full ParentClassAuthored
+const parentClassNode = buildNodeMap<ParentClassAuthored>()
+export const PARENT_CLASS_NODE_MAP = parentClassNode.define('parentClass', ({ map, nodes }) => {
+  const { text, number } = nodes
+  map
+    .set('startingGold', text(['startingGold'], 'Starting Gold'))
+    .set('hitpoint', text(['hitpoint'], 'Hitpoint'))
+})
 
-export const CLASS_RESOURCE_NODE_MAP: NodeMap<ClassResourceNodePayload> = {
-  charges: {
-    kind: 'BRANCH',
-    enables: {
-      kind: 'PATH',
-      map: CHARGE_NODE_MAP
-    }
-  }
-}
-
-export type BaseClassNodePayloads = {
-  features: { featureIds?: string[] }
-  resources: { resourceIds?: string[] }
-}
-
-export const BASE_CLASS_NODE_MAP: NodeMap<BaseClassNodePayloads> = {
-  features: {
-    kind: 'BRANCH',
-    meta: {
-      ...FEATURE_CATEGORY_REGISTRY.FEATURE,
-      label: 'Features'
-    },
-    payload: 'features',
-    enables: {
-      kind: 'PATH',
-      map: FEATURE_NODE_MAP
-    },
-    options: [
-      {
-        kind: 'DATA',
-        relationship: {
-          kind: 'BRIDGE',
-          table: 'class_features',
-          parentColumn: 'class_id',
-          childColumn: 'feature_id'
-        },
-        selection: 'MULTI_OPTIONAL',
-        order: 0
-      }
-    ]
-  },
-  resources: {
-    kind: 'BRANCH',
-    meta: {
-      ...CLASS_ATTRIBUTE_REGISTRY.RESOURCE,
-      label: 'Resources'
-    },
-    payload: 'resources',
-    enables: {
-      kind: 'PATH',
-      map: CLASS_RESOURCE_NODE_MAP
-    },
-    options: [
-      {
-        kind: 'DATA',
-        relationship: {
-          kind: 'FOREIGN_KEY',
-          parent: {
-            table: 'classes',
-            column: 'id'
-          },
-          child: {
-            table: 'class_resources',
-            column: 'class_id'
-          }
-        },
-        selection: 'MULTI_OPTIONAL',
-        order: 0
-      }
-    ]
-  }
-}
-
-export type SubclassNodePayload = BaseClassNodePayloads & {
-  subtypes: { subtypes: string[] }
-}
-
-export const SUBCLASS_NODE_MAP: NodeMap<SubclassNodePayload> = {
-  ...BASE_CLASS_NODE_MAP,
-  subtypes: {
-    kind: 'LEAF',
-    meta: {
-      ...SUBCLASS_ATTRIBUTE_REGISTRY.SUBTYPE,
-      label: 'Subtypes'
-    },
-    payload: 'subtypes'
-  }
-}
-
-export type ClassNodePayloads = BaseClassNodePayloads & {
-  subclasses: { subclassIds: string[] }
-}
-
-export const CLASS_NODE_MAP: NodeMap<ClassNodePayloads> = {
-  subclasses: {
-    kind: 'BRANCH',
-    meta: {
-      ...CLASS_CATEGORY_REGISTRY.SUBCLASS,
-      label: 'Subclasses'
-    },
-    enables: {
-      kind: 'PATH',
-      map: SUBCLASS_NODE_MAP
-    },
-    payload: 'subclasses',
-    options: [
-      {
-        kind: 'DATA',
-        relationship: {
-          kind: 'CONDITION',
-          table: 'classes',
-          column: 'category',
-          condition: 'SUBCLASS'
-        },
-        selection: 'MULTI_REQUIRED',
-        order: 0
-      }
-    ]
-  },
-  proficiencies: {
-    kind: 'BRANCH',
-    enables: {
-      kind: 'PATH',
-      map: PROFICIENCY_NODE_MAP
-    }
-  }
-}
+// Class Node Map - Complete map for ClassAuthored with all properties
+const classNode = buildNodeMap<ClassAuthored>()
+export const CLASS_NODE_MAP = classNode.define('class', ({ map, nodes, data }) => {
+  const { text, number, selectMulti, selectSingle } = nodes
+  const { table } = data
+  map
+    .set('id', text(['id'], 'ID'))
+    .set('label', text(['label'], 'Label'))
+    .set('description', text(['description'], 'Description'))
+    .set('category', selectSingle(['category'], 'Category', {
+      kind: 'INLINE',
+      options: [
+        { code: 'BASE', label: 'Base Class' },
+        { code: 'SUBCLASS', label: 'Subclass' }
+      ]
+    }))
+    .set('parentClassId', selectSingle(['parentClassId'], 'Parent Class', {
+      kind: 'DATA',
+      relationship: table('classes', {
+        selectColumns: ['id', 'label'],
+        where: (col) => col('category').eq('BASE')
+      })
+    }))
+    .set('attributes', selectMulti(['attributes'], 'Attributes', {
+      kind: 'INLINE',
+      options: CLASS_ATTRIBUTE_OPTIONS
+    }))
+    .set('startingGold', text(['startingGold'], 'Starting Gold'))
+    .set('hitpoint', text(['hitpoint'], 'Hitpoint'))
+    .set('multiclass', text(['multiclass'], 'Multiclass'))
+})
