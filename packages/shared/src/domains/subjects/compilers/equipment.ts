@@ -91,7 +91,7 @@ export function compileEquipment(
 
   const features
     = authored.features && authored.features.length
-      ? authored.features.map(compileFeature)
+      ? authored.features.map((feature) => compileFeature(feature as Parameters<typeof compileFeature>[0]))
       : undefined
 
   const charges = authored.charges ? compileCharge(authored.charges) : undefined
@@ -109,7 +109,6 @@ export function compileEquipment(
     capacity: authored.capacity,
     charges,
     effects,
-    restrictionGroups,
     features,
     rarityId: authored.rarityId,
     maxBonus: authored.maxBonus,

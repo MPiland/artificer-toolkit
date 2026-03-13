@@ -1,4 +1,9 @@
-import { assertNever } from '#utils'
+import {
+  assertNever,
+  compileSuccess,
+  unwrapCompileResult,
+  type CompileResult
+} from '#utils'
 
 import type {
   GrantPayloadAuthored,
@@ -41,9 +46,9 @@ function compileFeatTarget(
   }
 }
 
-export function compileFeatGrant(
+export function compileFeatGrantResult(
   authored: FeatGrantAuthored
-): CompiledFeatGrant {
+): CompileResult<CompiledFeatGrant> {
   const base = {
     id: authored.id,
     order: authored.order
@@ -55,19 +60,19 @@ export function compileFeatGrant(
     case SCALING.NONE: {
       switch (authored.selectionKind) {
         case AUTHORING_SELECTION_KIND.GRANTED: {
-          return {
+          return compileSuccess({
             ...base,
             grantKind: GRANT_KIND.FEAT_GRANT,
             charges,
             selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
             scalingKind: SCALING.NONE,
             ...compileFeatTarget(authored)
-          }
+          })
         }
 
         case AUTHORING_SELECTION_KIND.CHOSEN: {
           // count stays inside payload in your CompiledGrantScalingNone<...> type
-          return {
+          return compileSuccess({
             ...base,
             grantKind: GRANT_KIND.FEAT_GRANT,
             charges,
@@ -75,7 +80,7 @@ export function compileFeatGrant(
             scalingKind: SCALING.NONE,
             ...compileFeatTarget(authored),
             count: authored.count
-          }
+          })
         }
 
         default:
@@ -86,7 +91,7 @@ export function compileFeatGrant(
     case SCALING.PER_LEVEL: {
       switch (authored.selectionKind) {
         case AUTHORING_SELECTION_KIND.GRANTED: {
-          return {
+          return compileSuccess({
             ...base,
             grantKind: GRANT_KIND.FEAT_GRANT,
             charges,
@@ -98,12 +103,12 @@ export function compileFeatGrant(
               ...compileFeatTarget(entry),
               order: entry.order
             }))
-          }
+          })
         }
 
         case AUTHORING_SELECTION_KIND.CHOSEN: {
           // count is inside entry.payload (and compileFeatTarget preserves it)
-          return {
+          return compileSuccess({
             ...base,
             grantKind: GRANT_KIND.FEAT_GRANT,
             charges,
@@ -116,7 +121,7 @@ export function compileFeatGrant(
               order: entry.order,
               count: entry.count
             }))
-          }
+          })
         }
 
         default:
@@ -127,4 +132,10 @@ export function compileFeatGrant(
     default:
       return assertNever(authored)
   }
+}
+
+export function compileFeatGrant(
+  authored: FeatGrantAuthored
+): CompiledFeatGrant {
+  return unwrapCompileResult(compileFeatGrantResult(authored))
 }

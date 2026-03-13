@@ -1,12 +1,32 @@
-import type { MeasurementUnitCode, RangeKind, RangePayloadByType } from '#core'
+import type { MeasurementUnitCode, RangeKind } from '#core'
+import type { RangeAuthored } from '#authored'
 
-export type CompiledRange = {
-  [K in RangeKind]: K extends keyof RangePayloadByType ? {
-    rangeKind: K
-    unit: MeasurementUnitCode
-    min: number
-    max?: number
-  } & RangePayloadByType[K] : {
-    rangeKind: K
+export type CompiledRange
+  = | {
+    id: string
+    rangeKind: Exclude<RangeKind, 'DISTANCE'>
   }
-}[RangeKind]
+    | {
+      id: string
+      rangeKind: 'DISTANCE'
+      amount: number
+      unit: MeasurementUnitCode
+    }
+
+export function compileRange(authored: RangeAuthored): CompiledRange {
+  switch (authored.rangeKind) {
+    case 'DISTANCE':
+      return {
+        id: authored.id,
+        rangeKind: authored.rangeKind,
+        amount: authored.amount,
+        unit: authored.unit
+      }
+
+    default:
+      return {
+        id: authored.id,
+        rangeKind: authored.rangeKind
+      }
+  }
+}

@@ -63,6 +63,35 @@ export interface CompiledEquipmentCurrency {
   amount: number // int
 }
 
+type CurrencyStartingEquipmentItem = StartingEquipmentItemAuthored & {
+  startingEquipmentKind: typeof STARTING_EQUIPMENT_KIND.CURRENCY
+  currencies: CompiledEquipmentCurrency[]
+}
+
+type EquipmentStartingEquipmentItem = StartingEquipmentItemAuthored & {
+  startingEquipmentKind: typeof STARTING_EQUIPMENT_KIND.EQUIPMENT
+  category?: EquipmentCategoryCode
+  properties?: EquipmentPropertyCode[]
+  selectionKind: typeof AUTHORING_SELECTION_KIND.CHOSEN | typeof AUTHORING_SELECTION_KIND.GRANTED
+} & (
+    | {
+      selectionKind: typeof AUTHORING_SELECTION_KIND.CHOSEN
+      count: number
+    }
+    | {
+      selectionKind: typeof AUTHORING_SELECTION_KIND.GRANTED
+      quantity: number
+    }
+  ) & (
+    | {
+      authoringModeKind: typeof AUTHORING_MODE_KIND.ALL
+    }
+    | {
+      authoringModeKind: typeof AUTHORING_MODE_KIND.SELECTED
+      equipmentIds: string[]
+    }
+  )
+
 export function compileStartingEquipmentSet(set: StartingEquipmentSetAuthored): CompiledEquipmentSet {
   return {
     id: set.id,
@@ -94,41 +123,44 @@ export function compileStartingEquipmentItem(item: StartingEquipmentItemAuthored
   }
 
   switch (item.startingEquipmentKind) {
-    case STARTING_EQUIPMENT_KIND.CURRENCY:
+    case STARTING_EQUIPMENT_KIND.CURRENCY: {
+      const currencyItem = item as CurrencyStartingEquipmentItem
       return {
         ...base,
-        startingEquipmentKind: item.startingEquipmentKind,
-        currencies: item.currencies
+        startingEquipmentKind: currencyItem.startingEquipmentKind,
+        currencies: currencyItem.currencies
       }
+    }
 
     case STARTING_EQUIPMENT_KIND.EQUIPMENT: {
+      const equipmentItem = item as EquipmentStartingEquipmentItem
       const itemBase = {
         ...base,
-        startingEquipmentKind: item.startingEquipmentKind,
-        properties: item.properties,
-        category: item.category
+        startingEquipmentKind: equipmentItem.startingEquipmentKind,
+        properties: equipmentItem.properties,
+        category: equipmentItem.category
       }
 
       const selectionBase = (() => {
-        switch (item.selectionKind) {
+        switch (equipmentItem.selectionKind) {
           case AUTHORING_SELECTION_KIND.CHOSEN:
             return {
               ...itemBase,
-              selectionKind: item.selectionKind,
-              count: item.count
+              selectionKind: equipmentItem.selectionKind,
+              count: equipmentItem.count
             }
           case AUTHORING_SELECTION_KIND.GRANTED:
             return {
               ...itemBase,
-              selectionKind: item.selectionKind,
-              quantity: item.quantity
+              selectionKind: equipmentItem.selectionKind,
+              quantity: equipmentItem.quantity
             }
           default:
-            return assertNever(item)
+            return assertNever(equipmentItem as never)
         }
       })()
 
-      switch (item.authoringModeKind) {
+      switch (equipmentItem.authoringModeKind) {
         case AUTHORING_MODE_KIND.ALL:
           return {
             ...selectionBase,
@@ -139,14 +171,14 @@ export function compileStartingEquipmentItem(item: StartingEquipmentItemAuthored
           return {
             ...selectionBase,
             authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-            equipmentIds: item.equipmentIds
+            equipmentIds: equipmentItem.equipmentIds
           }
         default:
-          return assertNever(item)
+          return assertNever(equipmentItem as never)
       }
     }
     default:
-      return assertNever(item)
+      return assertNever(item as never)
   }
 }
 

@@ -1,22 +1,23 @@
-import {
-  EffectAuthored,
+import type {
   DurationAuthored,
-  type EffectPayloadAuthored
+  EffectAuthored,
+  MomentAuthored
 } from '#authored'
 import {
-  MOMENT_RESOLUTION_KIND,
   EFFECT_KIND,
-  MOMENT_ROLL_TABLE_KIND,
   MOMENT_GROUP_TYPE,
+  MOMENT_ROLL_TABLE_KIND,
+  MOMENT_RESOLUTION_KIND,
   type MomentCode,
-  MOMENTS_BY_TRIGGER,
-  type Trigger,
-  type ScalingSource,
-  type MomentGroupType
+  type MomentGroupType,
+  type Trigger
 } from '#core'
-import { assertNever } from '#utils'
-
-import {} from '#core'
+import {
+  assertNever,
+  compileSuccess,
+  unwrapCompileResult,
+  type CompileResult
+} from '#utils'
 import {
   compileConditionEffect,
   compileDamageEffect,
@@ -97,64 +98,44 @@ export type CompilerMomentMap<TPayload> = Partial<
   Record<MomentCode, CompilerMomentEntry<TPayload>>
 >
 
-export function compileMomentMap(
-  moments: Partial<
-    Record<MomentCode, CompilerMomentEntry<EffectPayloadAuthored>>
-  >
-): CompilerMomentMap<EffectPayloadAuthored> {
-  return moments
-}
-
 export type CompiledMomentOutcome
   = | CompiledDamageEffect
     | CompiledConditionEffect
 
-export function compileEffect<
-  TScaling extends ScalingSource = ScalingSource,
-  TTrigger extends Trigger = Trigger
->(effect: EffectAuthored<TScaling, TTrigger>): CompiledEffectGroup {
-  const trigger = effect.invocation.triggerCode
-  const allowedMoments = MOMENTS_BY_TRIGGER[trigger]
-  const moments = compileMomentMap(effect.moments)
+function compileMomentPayload(
+  moment: Extract<MomentAuthored<Trigger>, { resolutionKind: typeof MOMENT_RESOLUTION_KIND.DIRECT }> | Extract<MomentAuthored<Trigger>, { resolutionKind: typeof MOMENT_RESOLUTION_KIND.ROLL_TABLE }>['table'][number]
+): CompiledMomentOutcome[] {
+  switch (moment.effectKind) {
+    case EFFECT_KIND.CONDITION:
+      return compileConditionEffect(moment)
+    case EFFECT_KIND.DAMAGE:
+      return compileDamageEffect(moment)
+    default:
+      return assertNever(moment)
+  }
+}
 
+export function compileEffectResult<
+  TTrigger extends Trigger = Trigger
+>(effect: EffectAuthored<TTrigger>): CompileResult<CompiledEffectGroup> {
   const rules: CompiledEffect[] = []
 
-  for (const momentCode of allowedMoments) {
-    const moment = moments[momentCode]
-    if (!moment) {
-      continue
-    }
-
+  for (const moment of effect.moments) {
     switch (moment.resolutionKind) {
       case MOMENT_RESOLUTION_KIND.DIRECT: {
-        const effects: (CompiledConditionEffect | CompiledDamageEffect)[] = []
-        const ruleBase = {
-          moment: momentCode,
-          resolutionKind: moment.resolutionKind,
-          groupKind: moment.groupType
-        }
-        switch (moment.effectKind) {
-          case EFFECT_KIND.CONDITION: {
-            effects.push(...compileConditionEffect(moment))
-            break
-          }
-          case EFFECT_KIND.DAMAGE: {
-            effects.push(...compileDamageEffect(moment))
-            break
-          }
-          default:
-            assertNever(moment)
-        }
+        const compiledOutcomes = compileMomentPayload(moment)
+        const duration = moment.duration
+          ? compileDuration(moment.duration)
+          : undefined
 
-        for (const effect of effects) {
-          const duration = moment.duration
-            ? compileDuration(moment.duration)
-            : undefined
+        for (const outcome of compiledOutcomes) {
           rules.push({
-            ...ruleBase,
-            id: effect.id,
+            id: outcome.id,
+            moment: moment.moment,
+            resolutionKind: MOMENT_RESOLUTION_KIND.DIRECT,
+            groupKind: moment.groupType,
+            outcome,
             order: rules.length,
-            outcome: effect,
             duration
           })
         }
@@ -164,38 +145,21 @@ export function compileEffect<
       case MOMENT_RESOLUTION_KIND.ROLL_TABLE: {
         switch (moment.rollTableKind) {
           case MOMENT_ROLL_TABLE_KIND.RANGE: {
-            for (const t of moment.table) {
-              const effects: (
-                | CompiledConditionEffect
-                | CompiledDamageEffect
-              )[] = []
-              const duration = t.duration
-                ? compileDuration(t.duration)
+            for (const entry of moment.table) {
+              const compiledOutcomes = compileMomentPayload(entry)
+              const duration = entry.duration
+                ? compileDuration(entry.duration)
                 : undefined
-              switch (t.effectKind) {
-                case EFFECT_KIND.CONDITION: {
-                  effects.push(...compileConditionEffect(t))
-                  break
-                }
 
-                case EFFECT_KIND.DAMAGE: {
-                  effects.push(...compileDamageEffect(t))
-                  break
-                }
-
-                default:
-                  assertNever(t)
-              }
-
-              for (const effect of effects) {
+              for (const outcome of compiledOutcomes) {
                 rules.push({
-                  id: effect.id,
-                  moment: momentCode,
-                  rollTableKind: moment.rollTableKind,
-                  resolutionKind: moment.resolutionKind,
-                  outcome: effect,
-                  die: moment.die,
-                  rollRange: t.rollRange,
+                  id: outcome.id,
+                  moment: moment.moment,
+                  resolutionKind: MOMENT_RESOLUTION_KIND.ROLL_TABLE,
+                  rollTableKind: MOMENT_ROLL_TABLE_KIND.RANGE,
+                  die: moment.dieConfig,
+                  rollRange: entry.rollRange,
+                  outcome,
                   order: rules.length,
                   duration
                 })
@@ -203,41 +167,23 @@ export function compileEffect<
             }
             break
           }
+
           case MOMENT_ROLL_TABLE_KIND.EXACT: {
-            for (const t of moment.table) {
-              const effects: (
-                | CompiledConditionEffect
-                | CompiledDamageEffect
-              )[] = []
-              const duration = t.duration
-                ? compileDuration(t.duration)
+            for (const entry of moment.table) {
+              const compiledOutcomes = compileMomentPayload(entry)
+              const duration = entry.duration
+                ? compileDuration(entry.duration)
                 : undefined
-              switch (t.effectKind) {
-                case EFFECT_KIND.CONDITION: {
-                  effects.push(...compileConditionEffect(t))
 
-                  break
-                }
-
-                case EFFECT_KIND.DAMAGE: {
-                  effects.push(...compileDamageEffect(t))
-
-                  break
-                }
-
-                default:
-                  assertNever(t)
-              }
-
-              for (const effect of effects) {
+              for (const outcome of compiledOutcomes) {
                 rules.push({
-                  id: effect.id,
-                  moment: momentCode,
-                  rollTableKind: moment.rollTableKind,
-                  resolutionKind: moment.resolutionKind,
-                  outcome: effect,
-                  die: moment.die,
-                  rollValue: t.rollValue,
+                  id: outcome.id,
+                  moment: moment.moment,
+                  resolutionKind: MOMENT_RESOLUTION_KIND.ROLL_TABLE,
+                  rollTableKind: MOMENT_ROLL_TABLE_KIND.EXACT,
+                  die: moment.dieConfig,
+                  rollValue: entry.rollValue,
+                  outcome,
                   order: rules.length,
                   duration
                 })
@@ -245,15 +191,23 @@ export function compileEffect<
             }
             break
           }
+
           default:
-            assertNever(moment)
+            return assertNever(moment)
         }
         break
       }
+
       default:
-        assertNever(moment)
+        return assertNever(moment)
     }
   }
 
-  return rules
+  return compileSuccess(rules)
+}
+
+export function compileEffect<
+  TTrigger extends Trigger = Trigger
+>(effect: EffectAuthored<TTrigger>): CompiledEffectGroup {
+  return unwrapCompileResult(compileEffectResult(effect))
 }

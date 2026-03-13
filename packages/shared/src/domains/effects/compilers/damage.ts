@@ -169,7 +169,7 @@ export function compileDamageEffect(
             effectKind: EFFECT_KIND.DAMAGE,
             damageTypeId: authored.damageTypeId,
             valueKind: authored.valueKind,
-            dice: authored.dice,
+            dice: authored.diceConfig,
             bonuses,
             scalingKind: authored.scalingKind
           })
@@ -217,12 +217,6 @@ export function compileDamageEffect(
             }
           }
 
-          case SCALING_SOURCE.SPELL_SLOT_LEVEL: {
-            return {
-              scalingSource: SCALING_SOURCE.SPELL_SLOT_LEVEL
-            }
-          }
-
           default:
             return assertNever(authored)
         }
@@ -255,7 +249,7 @@ export function compileDamageEffect(
               valueKind: DAMAGE_VALUE_KIND.DICE,
               level: entry.level,
               order: entry.order,
-              dice: entry.dice,
+              dice: entry.diceConfig,
               bonuses,
               scalingKind: SCALING.PER_LEVEL,
               ...scaling

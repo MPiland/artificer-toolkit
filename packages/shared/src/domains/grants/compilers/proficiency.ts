@@ -1,4 +1,9 @@
-import { assertNever } from '#utils'
+import {
+  assertNever,
+  compileSuccess,
+  unwrapCompileResult,
+  type CompileResult
+} from '#utils'
 import type {
   ProficiencyGrantAuthored,
   ProficiencyScaling,
@@ -59,9 +64,9 @@ function compileProficiencyMode<T extends ProficiencyKind>(
   }
 }
 
-export function compileProficiencyGrant(
+export function compileProficiencyGrantResult(
   authored: ProficiencyGrantAuthored
-): CompiledProficiencyGrant {
+): CompileResult<CompiledProficiencyGrant> {
   const base = {
     id: authored.id,
     order: authored.order,
@@ -70,27 +75,33 @@ export function compileProficiencyGrant(
 
   switch (authored.selectionKind) {
     case AUTHORING_SELECTION_KIND.GRANTED: {
-      return {
+      return compileSuccess({
         ...base,
         grantKind: GRANT_KIND.PROFICIENCY_GRANT,
         selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
         ...compileProficiencyMode(authored),
         ...compileProficiencyLevel(authored)
-      }
+      })
     }
 
     case AUTHORING_SELECTION_KIND.CHOSEN: {
-      return {
+      return compileSuccess({
         ...base,
         grantKind: GRANT_KIND.PROFICIENCY_GRANT,
         selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
         ...compileProficiencyMode(authored),
         count: authored.count,
         ...compileProficiencyLevel(authored)
-      }
+      })
     }
 
     default:
       return assertNever(authored)
   }
+}
+
+export function compileProficiencyGrant(
+  authored: ProficiencyGrantAuthored
+): CompiledProficiencyGrant {
+  return unwrapCompileResult(compileProficiencyGrantResult(authored))
 }

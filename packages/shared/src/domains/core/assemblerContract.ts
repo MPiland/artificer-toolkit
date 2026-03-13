@@ -1,63 +1,129 @@
-import type { CharacterAcquisitionTiming, CharacterFeatureSelectionRecord, CharacterFeatureSource, CharacterResourceGrantSource, CharacterSpellSelectionSource } from '#authored'
-import type { CompiledModifierGrant } from '#compilers'
+import type {
+  CharacterAcquisitionTiming,
+  CharacterFeatureSelectionRecord,
+  CharacterFeatureSource,
+  CharacterResourceGrantSource,
+  CharacterSpellSelectionSource
+} from '#authored'
+import type {
+  CompiledCharacter,
+  CompiledCharacterIntent,
+  CompiledCharacterState,
+  CompiledModifierGrant
+} from '#compilers'
 
 /**
- * A feature that exists on the character *right now*
+ * Phase 2 compile -> assemble -> engine contract
+ *
+ * These types define the handoff boundaries between:
+ * 1. compiler output
+ * 2. application/service assembly
+ * 3. runtime engine evaluation
+ *
+ * Keep this contract explicit so later phases do not invent ad hoc
+ * intermediate payloads between compiled character data and the engine.
+ */
+
+export interface CompileToAssembleContract {
+  compiledCharacter: CompiledCharacter
+  compiledIntent: CompiledCharacterIntent
+  compiledState: CompiledCharacterState
+}
+
+export interface AssemblerCharacterInput {
+  characterId: string
+  systemId: string
+  userId: string
+  label: string
+  description?: string
+  intent: CompiledCharacterIntent
+  state: CompiledCharacterState
+}
+
+/**
+ * A feature that exists on the character right now.
  */
 export interface AssembledCharacterFeature {
-  /** Stable runtime id (character-unique) */
   id: string
-
-  /** System feature id */
   featureId: string
-
-  /** Why it exists */
   source: CharacterFeatureSource
-
-  /** When it exists */
   timing: CharacterAcquisitionTiming
-
-  /** Player choices */
   selections?: CharacterFeatureSelectionRecord[]
 }
 
 export interface AssembledCharacterResource {
-  /** Character-unique id */
   id: string
-
-  /** System resource id */
   resourceId: string
-
-  /** Why it exists */
   source: CharacterResourceGrantSource
-  /** When it becomes available */
   timing: CharacterAcquisitionTiming
 }
 
 export interface AssembledCharacterSpellAccess {
-  /** Character-unique id */
   id: string
-
-  /** System spell id */
   spellId: string
-
-  /** Why this spell exists */
   source: CharacterSpellSelectionSource
-
-  /** When it becomes available */
   timing: CharacterAcquisitionTiming
 }
 
 export interface AssembledCharacterModifierGrant {
-  /** Stable character-unique runtime id */
   id: string
-
-  /** Provenance (why this exists) */
   source: CharacterFeatureSource
-
-  /** When it exists */
   timing: CharacterAcquisitionTiming
-
-  /** The compiled modifier grant definition */
   grant: CompiledModifierGrant
+}
+
+export interface AssembledCharacterSnapshot {
+  characterId: string
+  systemId: string
+  userId: string
+  label: string
+  description?: string
+  intent: CompiledCharacterIntent
+  state: CompiledCharacterState
+  features: AssembledCharacterFeature[]
+  resources: AssembledCharacterResource[]
+  spellAccess: AssembledCharacterSpellAccess[]
+  modifierGrants: AssembledCharacterModifierGrant[]
+}
+
+/**
+ * The engine consumes assembled runtime state plus mutable character state.
+ * Keep engine input narrow and deterministic.
+ */
+export interface EngineCharacterInput {
+  assembled: AssembledCharacterSnapshot
+  state: CompiledCharacterState
+}
+
+export function buildAssemblerCharacterInput(
+  compiledCharacter: CompiledCharacter
+): AssemblerCharacterInput {
+  return {
+    characterId: compiledCharacter.id,
+    systemId: compiledCharacter.systemId,
+    userId: compiledCharacter.userId,
+    label: compiledCharacter.label,
+    description: compiledCharacter.description,
+    intent: compiledCharacter.intent,
+    state: compiledCharacter.state
+  }
+}
+
+export function buildCompileToAssembleContract(
+  compiledCharacter: CompiledCharacter
+): CompileToAssembleContract {
+  return {
+    compiledCharacter,
+    compiledIntent: compiledCharacter.intent,
+    compiledState: compiledCharacter.state
+  }
+}
+
+export function buildEngineCharacterInput(
+  assembled: AssembledCharacterSnapshot
+): EngineCharacterInput {
+  return {
+    assembled,
+    state: assembled.state
+  }
 }

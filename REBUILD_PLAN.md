@@ -22,7 +22,7 @@ Phase 0 is complete and closed. The package-boundary guardrails remain active th
 | Node maps - new API | Complete | Root authored coverage and nesting are materially in place |
 | Node maps - old callback API | Complete | Callback migrations are done |
 | Node maps - pre-DSL relics | Complete | Legacy `BRANCH` / `LEAF` / `KNOT` / `PATH` refs are gone |
-| Compilers | Present | All domains have compiler coverage |
+| Compilers | Present | Drift repaired enough for `packages/shared` to typecheck cleanly |
 | Core types | Complete | Domain surface is large and already established |
 | DB schema | Complete | SQL assets are present across domains |
 | DB upserts (SQL) | Complete | Raw SQL procedures exist |
@@ -32,7 +32,7 @@ Phase 0 is complete and closed. The package-boundary guardrails remain active th
 | Character assemblers | Present | Need later reorganization into server/application + engine |
 | Rule engine | Missing | Still a future phase |
 | API routes | Minimal | Need validation and stabilization later |
-| SRD data | Missing | Database content still needs seed/import work |
+| SRD data | Missing | Canonical baseline authored source data and DB seed/import pipeline still need to be created |
 | `apps/web` | Frozen | Reference-only until backend is complete |
 
 ## Target Workspace Architecture
@@ -62,9 +62,9 @@ Package responsibilities stay as-is during the backend rebuild. Physical renames
 
 1. Phase 0 - Architecture boundaries (complete, closed)
 2. Phase 1 - Root authored node-map coverage (complete)
-3. Phase 2 - Compiler hardening (current blocker)
+3. Phase 2 - Compiler hardening (complete)
 4. Phase 3 - Schema layer and `shared -> db` decoupling
-5. Phase 4 - DB TypeScript wrappers and SRD seed data
+5. Phase 4 - DB wrappers, canonical source data, and SRD seed pipeline
 6. Phase 5 - Server/application layer reorganization
 7. Phase 6 - Character engine
 8. Phase 7 - API transport stabilization and validation
@@ -76,9 +76,9 @@ Package responsibilities stay as-is during the backend rebuild. Physical renames
 |---|---|---|
 | Phase 0 - Architecture boundaries | Complete | Closed. Reopen only for a backend-only blocker that directly blocks Phase 1 |
 | Phase 1 - Root authored node-map coverage | Complete | Closed. Remaining `shared` failures are compiler drift, not map-layer coverage |
-| Phase 2 - Compiler hardening | In progress | Active blocker after Phase 1 completion |
+| Phase 2 - Compiler hardening | Complete | Compiler drift repaired, result-wrapper pattern established, baseline compiler tests added; detailed diagnostics deferred to later authoring-validation work |
 | Phase 3 - Schema layer and `shared -> db` decoupling | Pending | Depends on Phase 1 and Phase 2 outcomes |
-| Phase 4 - DB TypeScript wrappers and SRD seed data | Pending | Persistence phase |
+| Phase 4 - DB wrappers, canonical source data, and SRD seed pipeline | Pending | Persistence phase and baseline content import |
 | Phase 5 - Server/application layer reorganization | Pending | Future tRPC backing layer |
 | Phase 6 - Character engine | Pending | Pure deterministic rules/runtime phase |
 | Phase 7 - API transport stabilization and validation | Pending | Backend transport only |
@@ -94,12 +94,20 @@ Package responsibilities stay as-is during the backend rebuild. Physical renames
 6. Keep API thin and replaceable by future tRPC transport.
 7. The engine must be system-agnostic; D&D 5e 2014 SRD is the first implementation, not a hardcoded assumption.
 8. Use `vitest` as the standard backend and domain test runner across `shared`, `db`, and `functions`.
+9. Canonical baseline SRD content lives in authored/domain-shaped TypeScript source files; the database is the persisted source of truth after import.
+10. Repository hydration and compiler transformation are separate layers: DB rows are mapped back into authored/domain or DTO shapes by repositories, and compilers only handle authored to compiled transformations.
 
 ## Immediate Next Steps
 
-- [ ] Resolve the remaining `packages/shared` compiler/type-contract errors in `effects`, `shared`, and `subjects` compilers.
-- [ ] Run `tsc --noEmit` on `packages/shared` to confirm clean typecheck.
-- [ ] Decide whether the first Phase 2 compiler target is `effects`, `shared`, or `subjects`.
+- [x] Resolve the remaining `packages/shared` compiler/type-contract errors in `effects`, `shared`, and `subjects` compilers.
+- [x] Run `tsc --noEmit` on `packages/shared` to confirm clean typecheck.
+- [x] Decide whether the first Phase 2 compiler target is `effects`, `shared`, or `subjects`.
+- [x] Add `CompileResult<T>` and apply it to at least one compiler.
+- [x] Document the compile-to-assemble-to-engine contract types.
+- [x] Add the first Vitest compiler tests, including scaling coverage.
+- [x] Expand `CompileResult<T>` adoption beyond the initial feature compiler seed.
+- [x] Add more compiler tests for discriminated branches beyond the current scaling slice.
+- [x] Close Phase 2 and defer explicit diagnostics/failure rules to later authoring-validation work.
 
 ## Testing Standard
 
