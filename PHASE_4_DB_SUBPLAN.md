@@ -136,3 +136,13 @@ Current handoff rule for this phase:
 - repository hydration maps rows back into authored/domain or DTO shapes
 - compilers are not used for DB row hydration
 - if any domain requires a SQL-first fixture exception, document the reason directly in this phase doc when that work lands
+- add selective JSDoc or short intent comments for repository interfaces, hydration boundaries, transaction helpers, and any SRD-generalized seed/import logic that would be easy to misuse later
+
+Current blocker discovered during Supabase recreation:
+
+- the repo's current table SQL is not yet ordered for a true empty-database rebuild
+- `shared`/other tables reference later tables such as `classes`, `spells`, `equipment`, `features`, and `options` before those tables exist
+- a reference audit now shows this is a real cross-domain cycle, not just a bad include order
+- before full recreation or seed work continues, Phase 4 needs a two-pass schema bootstrap plan:
+  split cyclic foreign-key creation into a later constraint pass instead of relying on reorder alone
+- see `PHASE_4_BOOTSTRAP_AUDIT.md` for the confirmed cycle clusters

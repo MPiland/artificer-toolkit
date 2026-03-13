@@ -70,6 +70,11 @@ CREATE TABLE IF NOT EXISTS public.admins (
 
 ALTER TABLE public.admins ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Admins can view admin flags." ON public.admins;
+CREATE POLICY "Admins can view admin flags."
+  ON public.admins FOR SELECT TO authenticated
+  USING ((auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true');
+
 
 /* ──────────────────────────────────────────────
  * TRIGGER: auto-create profile on signup
@@ -331,6 +336,118 @@ BEGIN
       );
     $sql$,
     safe_table, safe_table, safe_table
+  );
+END;
+$$;
+
+
+/* --------------------------------------------------
+ * POLICY HELPER: system vocabulary ownership
+ *
+ * For lookup tables with (system_id) and no is_master column.
+ * Rows are readable when their owning system is visible.
+ * Writes are limited to the owner of the system or admins.
+ *
+ * Usage: SELECT public.apply_system_vocabulary_policies('skills');
+ * -------------------------------------------------- */
+
+CREATE OR REPLACE FUNCTION public.apply_system_vocabulary_policies(target_table text)
+RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public, pg_catalog
+AS $$
+DECLARE
+  safe_table  text := pg_catalog.quote_ident(target_table);
+  admin_check text := '(auth.jwt()::jsonb -> ''app_metadata'' ->> ''admin'') = ''true''';
+BEGIN
+  EXECUTE format('ALTER TABLE public.%s ENABLE ROW LEVEL SECURITY', safe_table);
+
+  EXECUTE format('DROP POLICY IF EXISTS "System vocabulary readable" ON public.%s', safe_table);
+  EXECUTE format('DROP POLICY IF EXISTS "Users insert into own vocabulary systems" ON public.%s', safe_table);
+  EXECUTE format('DROP POLICY IF EXISTS "Users update own vocabulary systems" ON public.%s', safe_table);
+  EXECUTE format('DROP POLICY IF EXISTS "Users delete own vocabulary systems" ON public.%s', safe_table);
+
+  EXECUTE format(
+    $sql$
+      CREATE POLICY "System vocabulary readable" ON public.%s
+      FOR SELECT TO authenticated
+      USING (
+        EXISTS (
+          SELECT 1 FROM public.systems s
+          WHERE s.id = %s.system_id
+            AND (
+              s.user_id IS NULL
+              OR s.user_id = auth.uid()
+              OR %s
+            )
+        )
+      );
+    $sql$,
+    safe_table, safe_table, admin_check
+  );
+
+  EXECUTE format(
+    $sql$
+      CREATE POLICY "Users insert into own vocabulary systems" ON public.%s
+      FOR INSERT TO authenticated
+      WITH CHECK (
+        EXISTS (
+          SELECT 1 FROM public.systems s
+          WHERE s.id = %s.system_id
+            AND (
+              s.user_id = auth.uid()
+              OR %s
+            )
+        )
+      );
+    $sql$,
+    safe_table, safe_table, admin_check
+  );
+
+  EXECUTE format(
+    $sql$
+      CREATE POLICY "Users update own vocabulary systems" ON public.%s
+      FOR UPDATE TO authenticated
+      USING (
+        EXISTS (
+          SELECT 1 FROM public.systems s
+          WHERE s.id = %s.system_id
+            AND (
+              s.user_id = auth.uid()
+              OR %s
+            )
+        )
+      )
+      WITH CHECK (
+        EXISTS (
+          SELECT 1 FROM public.systems s
+          WHERE s.id = %s.system_id
+            AND (
+              s.user_id = auth.uid()
+              OR %s
+            )
+        )
+      );
+    $sql$,
+    safe_table, safe_table, admin_check, safe_table, admin_check
+  );
+
+  EXECUTE format(
+    $sql$
+      CREATE POLICY "Users delete own vocabulary systems" ON public.%s
+      FOR DELETE TO authenticated
+      USING (
+        EXISTS (
+          SELECT 1 FROM public.systems s
+          WHERE s.id = %s.system_id
+            AND (
+              s.user_id = auth.uid()
+              OR %s
+            )
+        )
+      );
+    $sql$,
+    safe_table, safe_table, admin_check
   );
 END;
 $$;

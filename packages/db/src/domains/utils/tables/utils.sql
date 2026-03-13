@@ -123,7 +123,11 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.apply_updated_at_triggers (p_schema text DEFAULT 'public') RETURNS void LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION public.apply_updated_at_triggers (p_schema text DEFAULT 'public')
+RETURNS void
+LANGUAGE plpgsql
+SET search_path = pg_catalog, public
+AS $$
 DECLARE
     r RECORD;
     v_trigger_name text;

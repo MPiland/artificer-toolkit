@@ -43,14 +43,12 @@
   },
   "scripts": {
     "clean": "rimraf dist",
-    "build": "tsc -p tsconfig.build.json",
-    "generate:zod": "ts-to-zod --config zod.config.js \"src/types/**/*.ts\""
+    "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
     "@artificer-toolkit/db": "workspace:^"
   },
   "devDependencies": {
-    "ts-to-zod": "^5.1.0",
     "type-fest": "^5.4.4",
     "zod": "^4.3.6"
   }

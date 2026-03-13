@@ -13,9 +13,13 @@
   },
   "scripts": {
     "clean": "rimraf dist",
-    "build": "tsc -p tsconfig.build.json"
+    "build": "tsc -p tsconfig.build.json",
+    "generate:zod": "tsx generateZod.ts"
   },
   "dependencies": {
     "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "ts-to-zod": "^5.1.0"
   }
 }

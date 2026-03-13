@@ -1,3 +1,7 @@
-// Phase 0 scaffold for shared transport schemas and DTO contracts.
-// This package starts intentionally small and will be populated in Phase 3.
-export {}
+export * from './shared/index.js'
+export * from './effects/index.js'
+export * from './grants/index.js'
+export * from './features/index.js'
+export * from './subjects/index.js'
+export * from './vocabulary/index.js'
+export * from './api/index.js'

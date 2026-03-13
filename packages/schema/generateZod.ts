@@ -6,8 +6,16 @@ import { generate } from 'ts-to-zod'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-const SRC_DIR = path.resolve(__dirname, './types')
-const OUT_DIR = path.resolve(__dirname, './schemas')
+const SHARED_ROOT = path.resolve(__dirname, '../shared/src/domains')
+const OUT_DIR = path.resolve(__dirname, './src/generated')
+
+const SOURCE_GROUPS = [
+  'shared/authored',
+  'effects/authored',
+  'grants/authored',
+  'features/authored',
+  'subjects/authored'
+] as const
 
 function walk(dir: string): string[] {
   return fs.readdirSync(dir).flatMap((file) => {
@@ -23,25 +31,25 @@ function ensureDir(file: string) {
 function getImportPath(tsFile: string, outFile: string): string {
   const tsJsPath = tsFile.replace(/\.ts$/, '.js')
   let relative = path.relative(path.dirname(outFile), tsJsPath)
-  relative = relative.replace(/\\/g, '/') // Windows-safe
+  relative = relative.replace(/\\/g, '/')
 
-  // Ensure it starts with "./" or "../"
   if (!relative.startsWith('.')) {
-    relative = './' + relative
+    relative = `./${relative}`
   }
 
   return relative
 }
 
 async function run() {
-  const files = walk(SRC_DIR).filter((f) => f.endsWith('.ts'))
+  const files = SOURCE_GROUPS
+    .flatMap((group) => walk(path.join(SHARED_ROOT, group)))
+    .filter((file) => file.endsWith('.ts'))
 
   for (const tsFile of files) {
-    const relative = path.relative(SRC_DIR, tsFile)
+    const relative = path.relative(SHARED_ROOT, tsFile)
     const outFile = path.join(OUT_DIR, relative.replace(/\.ts$/, '.zod.ts'))
 
     const sourceText = fs.readFileSync(tsFile, 'utf8')
-
     const result = generate({
       sourceText,
       keepComments: true
@@ -56,7 +64,6 @@ async function run() {
 
     ensureDir(outFile)
     fs.writeFileSync(outFile, zodFileText, 'utf8')
-
     console.log('Generated:', outFile)
   }
 }

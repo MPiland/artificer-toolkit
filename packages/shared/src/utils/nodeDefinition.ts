@@ -1,5 +1,9 @@
 import { type CoreMeta } from '#core'
-import type { ColumnOf, ColumnValueOf, TableName } from '@artificer-toolkit/db'
+import type {
+  ColumnOf,
+  ColumnValueOf,
+  TableName
+} from '@artificer-toolkit/db/types'
 import type { AllUnionFields } from 'type-fest'
 import { valuesOf } from './valuesOf.js'
 

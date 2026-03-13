@@ -1,0 +1,16 @@
+import { z } from 'zod'
+
+export const savingThrowDtoSchema = z.union([
+  z.object({
+    id: z.string(),
+    savingThrowKind: z.literal('SPELL_SAVE_DC')
+  }),
+  z.object({
+    id: z.string(),
+    savingThrowKind: z.literal('FIXED_VALUE'),
+    ability: z.string(),
+    dc: z.number().int()
+  })
+])
+
+export type SavingThrowDto = z.infer<typeof savingThrowDtoSchema>

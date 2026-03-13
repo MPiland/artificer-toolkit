@@ -13,6 +13,10 @@
     "./types": {
       "types": "./dist/types/index.d.ts",
       "default": "./dist/types/index.js"
+    },
+    "./types/column-meta": {
+      "types": "./dist/types/column-meta.d.ts",
+      "default": "./dist/types/column-meta.js"
     }
   },
   "imports": {

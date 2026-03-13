@@ -12,8 +12,8 @@ Phase 0 is complete and closed. The package-boundary guardrails remain active th
 
 - The monorepo already has meaningful code in `packages/shared`, `packages/db`, `packages/functions`, `apps/apis`, and `apps/web`.
 - The highest-value logic already exists: the node-map DSL, domain model scaffolding, compilers, and SQL schema are largely complete.
-- The active blocker is compiler drift in `packages/shared`; the map layer is now materially stabilized enough to move on.
-- Secondary gaps are: missing TypeScript upsert wrappers, an empty `packages/schema`, no character engine, and no API validation.
+- The active blocker has moved to persistence and transport work: `packages/shared` is stable, while `packages/db` still has TypeScript drift and the SQL bootstrap order is not yet safe for empty-database recreation.
+- Secondary gaps are: incomplete API DTO coverage, missing TypeScript upsert wrappers, no character engine, and no authored SRD source-data seed pipeline yet.
 
 ## Actual Current State
 
@@ -28,7 +28,7 @@ Phase 0 is complete and closed. The package-boundary guardrails remain active th
 | DB upserts (SQL) | Complete | Raw SQL procedures exist |
 | DB upserts (TS) | Partial | Only a subset of wrappers exists |
 | Query functions | Complete | The functions workspace already has broad coverage |
-| `packages/schema` | Scaffold only | Exists, but is intentionally minimal |
+| `packages/schema` | Complete | Runtime DTO coverage now spans subjects/shared/effects/grants/features/vocabulary/api; correlated modifier/facet payload validation is in place and schema tests pass |
 | Character assemblers | Present | Need later reorganization into server/application + engine |
 | Rule engine | Missing | Still a future phase |
 | API routes | Minimal | Need validation and stabilization later |
@@ -77,8 +77,8 @@ Package responsibilities stay as-is during the backend rebuild. Physical renames
 | Phase 0 - Architecture boundaries | Complete | Closed. Reopen only for a backend-only blocker that directly blocks Phase 1 |
 | Phase 1 - Root authored node-map coverage | Complete | Closed. Remaining `shared` failures are compiler drift, not map-layer coverage |
 | Phase 2 - Compiler hardening | Complete | Compiler drift repaired, result-wrapper pattern established, baseline compiler tests added; detailed diagnostics deferred to later authoring-validation work |
-| Phase 3 - Schema layer and `shared -> db` decoupling | Pending | Depends on Phase 1 and Phase 2 outcomes |
-| Phase 4 - DB wrappers, canonical source data, and SRD seed pipeline | Pending | Persistence phase and baseline content import |
+| Phase 3 - Schema layer and `shared -> db` decoupling | Complete | `shared` runtime coupling removed; lower-level DTOs and API contracts are in place, correlated payload validation is tightened, and remaining build/bootstrap work belongs to Phase 4 |
+| Phase 4 - DB wrappers, canonical source data, and SRD seed pipeline | Pending | Persistence phase and baseline content import; bootstrap audit now shows a real FK cycle, so empty-DB recreate needs a two-pass DDL strategy rather than reorder alone |
 | Phase 5 - Server/application layer reorganization | Pending | Future tRPC backing layer |
 | Phase 6 - Character engine | Pending | Pure deterministic rules/runtime phase |
 | Phase 7 - API transport stabilization and validation | Pending | Backend transport only |
@@ -97,17 +97,37 @@ Package responsibilities stay as-is during the backend rebuild. Physical renames
 9. Canonical baseline SRD content lives in authored/domain-shaped TypeScript source files; the database is the persisted source of truth after import.
 10. Repository hydration and compiler transformation are separate layers: DB rows are mapped back into authored/domain or DTO shapes by repositories, and compilers only handle authored to compiled transformations.
 
+## Documentation Standard
+
+Markdown planning docs are the primary project-memory layer.
+
+- Every active phase doc must record status, decisions, blockers, and handoff notes.
+- Architecture, migration, and bootstrap decisions must be written into repo docs, not left only in chat history.
+- Code comments should be sparse and intentional. Add short intent comments where logic is non-obvious, especially for SRD-baseline vs homebrew-flexibility decisions, cross-package boundaries, and tricky domain rules.
+- Do not add boilerplate comments that merely restate the code.
+- Use JSDoc selectively for high-value public surfaces:
+  - public package exports
+  - reusable helpers with non-obvious contracts
+  - generic or correlated utilities that are easy to misuse
+  - compiler handoff contracts, repository hydration boundaries, and later engine interfaces
+
+Review rule for each phase:
+
+- confirm the handoff note was updated when work landed
+- check whether the new abstraction needs a short intent comment or JSDoc to prevent misuse
+- prefer clarity without comment noise
+
 ## Immediate Next Steps
 
-- [x] Resolve the remaining `packages/shared` compiler/type-contract errors in `effects`, `shared`, and `subjects` compilers.
-- [x] Run `tsc --noEmit` on `packages/shared` to confirm clean typecheck.
-- [x] Decide whether the first Phase 2 compiler target is `effects`, `shared`, or `subjects`.
-- [x] Add `CompileResult<T>` and apply it to at least one compiler.
-- [x] Document the compile-to-assemble-to-engine contract types.
-- [x] Add the first Vitest compiler tests, including scaling coverage.
-- [x] Expand `CompileResult<T>` adoption beyond the initial feature compiler seed.
-- [x] Add more compiler tests for discriminated branches beyond the current scaling slice.
-- [x] Close Phase 2 and defer explicit diagnostics/failure rules to later authoring-validation work.
+- [x] Move Zod generation ownership from `packages/shared` into `packages/schema`.
+- [x] Create lower-level schema folders for shared, effects, grants, and features.
+- [x] Add initial Vitest coverage for `packages/schema`.
+- [x] Tighten the first pass of lower-level discriminated schemas for scaling, charges, effects, grants, and starting equipment.
+- [x] Tighten the remaining intentionally broad correlated schemas, especially predicate-specific facet payloads and deeply correlated modifier payloads.
+- [x] Add the first Phase 3 API request/response DTOs for transport.
+- [x] Expand API DTO coverage beyond the initial common/system slice.
+- [x] Decide that generated drafts under `packages/schema/src/generated` remain scaffolding unless intentionally reviewed and exported.
+- [ ] Begin Phase 4 by repairing the DB bootstrap order so an empty-database recreate can succeed.
 
 ## Testing Standard
 
@@ -120,6 +140,14 @@ Priority order:
 - frontend testing remains deferred until Phase 8
 
 Typecheck is necessary but not sufficient. SRD-baseline behavior and homebrew flexibility should both be covered by tests where scaling, branching, or filtered selections matter.
+
+## Schema Generation Rule
+
+Generated Zod is allowed as a helper, not as the source of truth.
+
+- generation belongs to `packages/schema`, not `packages/shared`
+- generated output is draft material for `packages/schema/src/generated`
+- hand-authored schemas in `packages/schema/src` remain the canonical exported contracts
 
 ## Handoff Rule
 
