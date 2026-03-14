@@ -32,8 +32,8 @@ CREATE TABLE IF NOT EXISTS public.damages (
   scaling_kind text NOT NULL,      -- SCALING_KIND: NONE | PER_LEVEL
 
   scaling_source text,             -- SCALING_SOURCE: CHARACTER_LEVEL | CLASS_LEVEL | SPELL_LEVEL
-  class_id uuid REFERENCES public.classes(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,                   -- CLASS_LEVEL only
-  spell_id uuid REFERENCES public.spells(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,                   -- SPELL_LEVEL only
+  class_id uuid,                   -- CLASS_LEVEL only; deferred FK added in bootstrap/constraints/cross_domain_foreign_keys.sql
+  spell_id uuid,                   -- SPELL_LEVEL only; deferred FK added in bootstrap/constraints/cross_domain_foreign_keys.sql
 
   sort_order integer NOT NULL DEFAULT 0,
 

@@ -96,6 +96,17 @@ CREATE INDEX IF NOT EXISTS idx_option_traits_option ON public.option_traits (opt
 
 ALTER TABLE public.option_traits ENABLE ROW LEVEL SECURITY;
 
+CREATE TABLE IF NOT EXISTS public.option_attributes (
+  option_id uuid NOT NULL REFERENCES public.options (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  attribute_code text NOT NULL,
+  sort_order integer NOT NULL,
+  PRIMARY KEY (option_id, attribute_code)
+);
+
+CREATE INDEX IF NOT EXISTS idx_option_attributes_option ON public.option_attributes (option_id);
+
+ALTER TABLE public.option_attributes ENABLE ROW LEVEL SECURITY;
+
 /* ──────────────────────────────────────────────
 * FEATURE OPTION — EFFECTS (OWNED)
 *
@@ -150,7 +161,7 @@ $$;
 * ────────────────────────────────────────────── */
 CREATE TABLE IF NOT EXISTS public.option_feat_grants (
   option_id uuid NOT NULL REFERENCES public.options (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  feat_grant_id uuid NOT NULL REFERENCES public.feat_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  feat_grant_id uuid NOT NULL,
   sort_order integer NOT NULL,
   PRIMARY KEY (option_id, feat_grant_id)
 );
@@ -177,7 +188,7 @@ $$;
 
 CREATE TABLE IF NOT EXISTS public.option_modifier_grants (
   option_id uuid NOT NULL REFERENCES public.options (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  modifier_grant_id uuid NOT NULL REFERENCES public.modifier_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  modifier_grant_id uuid NOT NULL,
   sort_order integer NOT NULL,
   PRIMARY KEY (option_id, modifier_grant_id)
 );
@@ -204,7 +215,7 @@ $$;
 
 CREATE TABLE IF NOT EXISTS public.option_proficiency_grants (
   option_id uuid NOT NULL REFERENCES public.options (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  proficiency_grant_id uuid NOT NULL REFERENCES public.proficiency_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  proficiency_grant_id uuid NOT NULL,
   sort_order integer NOT NULL,
   PRIMARY KEY (option_id, proficiency_grant_id)
 );
@@ -231,7 +242,7 @@ $$;
 
 CREATE TABLE IF NOT EXISTS public.option_sense_grants (
   option_id uuid NOT NULL REFERENCES public.options (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  sense_grant_id uuid NOT NULL REFERENCES public.sense_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  sense_grant_id uuid NOT NULL,
   sort_order integer NOT NULL,
   PRIMARY KEY (option_id, sense_grant_id)
 );
@@ -258,7 +269,7 @@ $$;
 
 CREATE TABLE IF NOT EXISTS public.option_spell_grants (
   option_id uuid NOT NULL REFERENCES public.options (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  spell_grant_id uuid NOT NULL REFERENCES public.spell_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  spell_grant_id uuid NOT NULL,
   sort_order integer NOT NULL,
   PRIMARY KEY (option_id, spell_grant_id)
 );

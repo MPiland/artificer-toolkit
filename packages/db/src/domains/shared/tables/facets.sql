@@ -162,20 +162,20 @@ CREATE TABLE IF NOT EXISTS public.facet_body_selection_items (
     DEFERRABLE INITIALLY DEFERRED,
 
   /* One-of subject payload identifiers */
-  class_id uuid REFERENCES public.classes (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  feature_id uuid REFERENCES public.features (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  spell_id uuid REFERENCES public.spells (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  equipment_id uuid REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  feat_id uuid REFERENCES public.feats (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  race_id uuid REFERENCES public.races (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  background_id uuid REFERENCES public.backgrounds (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  option_id uuid REFERENCES public.options (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  class_id uuid,
+  feature_id uuid,
+  spell_id uuid,
+  equipment_id uuid,
+  feat_id uuid,
+  race_id uuid,
+  background_id uuid,
+  option_id uuid,
 
   /* Modeled as IDs in existing tables */
-  subrace_id uuid REFERENCES public.races (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  subclass_id uuid REFERENCES public.classes (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  resource_id uuid REFERENCES public.class_resources (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  ancestry_option_id uuid REFERENCES public.race_ancestry_options (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  subrace_id uuid,
+  subclass_id uuid,
+  resource_id uuid,
+  ancestry_option_id uuid,
 
   created_at timestamptz NOT NULL DEFAULT now(),
 
@@ -301,19 +301,19 @@ CREATE TABLE IF NOT EXISTS public.facet_exists_selection_items (
     DEFERRABLE INITIALLY DEFERRED,
 
   /* One-of related-subject identifiers */
-  class_id uuid REFERENCES public.classes (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  feature_id uuid REFERENCES public.features (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  spell_id uuid REFERENCES public.spells (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  equipment_id uuid REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  feat_id uuid REFERENCES public.feats (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  race_id uuid REFERENCES public.races (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  background_id uuid REFERENCES public.backgrounds (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  option_id uuid REFERENCES public.options (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  class_id uuid,
+  feature_id uuid,
+  spell_id uuid,
+  equipment_id uuid,
+  feat_id uuid,
+  race_id uuid,
+  background_id uuid,
+  option_id uuid,
 
-  subrace_id uuid REFERENCES public.races (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  subclass_id uuid REFERENCES public.classes (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  resource_id uuid REFERENCES public.class_resources (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  ancestry_option_id uuid REFERENCES public.race_ancestry_options (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  subrace_id uuid,
+  subclass_id uuid,
+  resource_id uuid,
+  ancestry_option_id uuid,
 
   created_at timestamptz NOT NULL DEFAULT now(),
 
@@ -621,10 +621,7 @@ CREATE TABLE IF NOT EXISTS public.facet_predicate_spell_items (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  spell_id uuid NOT NULL
-    REFERENCES public.spells (id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
+  spell_id uuid NOT NULL,
 
   PRIMARY KEY (facet_condition_id, spell_id)
 );
@@ -641,10 +638,7 @@ CREATE TABLE IF NOT EXISTS public.facet_predicate_feat_items (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  feat_id uuid NOT NULL
-    REFERENCES public.feats (id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
+  feat_id uuid NOT NULL,
 
   PRIMARY KEY (facet_condition_id, feat_id)
 );
@@ -661,10 +655,7 @@ CREATE TABLE IF NOT EXISTS public.facet_predicate_feature_items (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  feature_id uuid NOT NULL
-    REFERENCES public.features (id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
+  feature_id uuid NOT NULL,
 
   PRIMARY KEY (facet_condition_id, feature_id)
 );
@@ -681,10 +672,7 @@ CREATE TABLE IF NOT EXISTS public.facet_predicate_option_items (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  option_id uuid NOT NULL
-    REFERENCES public.options (id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
+  option_id uuid NOT NULL,
 
   PRIMARY KEY (facet_condition_id, option_id)
 );
@@ -701,10 +689,7 @@ CREATE TABLE IF NOT EXISTS public.facet_predicate_equipment_items (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  equipment_id uuid NOT NULL
-    REFERENCES public.equipment (id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
+  equipment_id uuid NOT NULL,
 
   PRIMARY KEY (facet_condition_id, equipment_id)
 );

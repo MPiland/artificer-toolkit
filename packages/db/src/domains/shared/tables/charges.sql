@@ -46,20 +46,10 @@ CREATE TABLE IF NOT EXISTS public.charge_limits (
   /* FIXED_AMOUNT */
   amount integer,
 
-  /* CLASS_LEVEL */
-  class_id uuid
-    REFERENCES public.classes(id)
-    ON DELETE SET NULL
-    DEFERRABLE INITIALLY DEFERRED,
-
-  /* SPELL_LEVEL */
-  spell_id uuid
-    REFERENCES public.spells(id)
-    ON DELETE SET NULL
-    DEFERRABLE INITIALLY DEFERRED,
-
-  /* shared */
-  multiplier numeric
+  /* CHARACTER_LEVEL | SOURCE_LEVEL */
+  multiplier numeric,
+  min integer,
+  max integer
 );
 
 ALTER TABLE public.charge_limits ENABLE ROW LEVEL SECURITY;

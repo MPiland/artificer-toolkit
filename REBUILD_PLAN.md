@@ -25,14 +25,14 @@ Phase 0 is complete and closed. The package-boundary guardrails remain active th
 | Compilers | Present | Drift repaired enough for `packages/shared` to typecheck cleanly |
 | Core types | Complete | Domain surface is large and already established |
 | DB schema | Complete | SQL assets are present across domains |
-| DB upserts (SQL) | Complete | Raw SQL procedures exist |
-| DB upserts (TS) | Partial | Only a subset of wrappers exists |
+| DB upserts (SQL) | Being removed | `.sql` files are shifting to schema/bootstrap only; legacy `upsert_*` procedures are being retired in favor of Kysely writes |
+| DB upserts (TS) | Partial | Shared + subject + grant + feature write modules exist, but Phase 4 now requires porting them to Kysely-owned writes instead of SQL-procedure wrappers |
 | Query functions | Complete | The functions workspace already has broad coverage |
 | `packages/schema` | Complete | Runtime DTO coverage now spans subjects/shared/effects/grants/features/vocabulary/api; correlated modifier/facet payload validation is in place and schema tests pass |
 | Character assemblers | Present | Need later reorganization into server/application + engine |
 | Rule engine | Missing | Still a future phase |
 | API routes | Minimal | Need validation and stabilization later |
-| SRD data | Missing | Canonical baseline authored source data and DB seed/import pipeline still need to be created |
+| SRD data | Partial | Canonical source-data contracts, an initial SRD bundle file, and seed orchestration exist; real SRD content population is still pending |
 | `apps/web` | Frozen | Reference-only until backend is complete |
 
 ## Target Workspace Architecture
@@ -78,7 +78,7 @@ Package responsibilities stay as-is during the backend rebuild. Physical renames
 | Phase 1 - Root authored node-map coverage | Complete | Closed. Remaining `shared` failures are compiler drift, not map-layer coverage |
 | Phase 2 - Compiler hardening | Complete | Compiler drift repaired, result-wrapper pattern established, baseline compiler tests added; detailed diagnostics deferred to later authoring-validation work |
 | Phase 3 - Schema layer and `shared -> db` decoupling | Complete | `shared` runtime coupling removed; lower-level DTOs and API contracts are in place, correlated payload validation is tightened, and remaining build/bootstrap work belongs to Phase 4 |
-| Phase 4 - DB wrappers, canonical source data, and SRD seed pipeline | Pending | Persistence phase and baseline content import; bootstrap audit now shows a real FK cycle, so empty-DB recreate needs a two-pass DDL strategy rather than reorder alone |
+| Phase 4 - DB wrappers, canonical source data, and SRD seed pipeline | In progress | `packages/db` now typechecks, the deferred-constraint path covers shared/effects/features/grants/subjects cross-domain FKs, and the next blockers are the Kysely-first write migration, empty-DB recreate verification, DB type regeneration, and then broader seed/repository work |
 | Phase 5 - Server/application layer reorganization | Pending | Future tRPC backing layer |
 | Phase 6 - Character engine | Pending | Pure deterministic rules/runtime phase |
 | Phase 7 - API transport stabilization and validation | Pending | Backend transport only |
@@ -96,6 +96,8 @@ Package responsibilities stay as-is during the backend rebuild. Physical renames
 8. Use `vitest` as the standard backend and domain test runner across `shared`, `db`, and `functions`.
 9. Canonical baseline SRD content lives in authored/domain-shaped TypeScript source files; the database is the persisted source of truth after import.
 10. Repository hydration and compiler transformation are separate layers: DB rows are mapped back into authored/domain or DTO shapes by repositories, and compilers only handle authored to compiled transformations.
+11. Serious SRD seed population is gated on a full normalization audit of all persisted authored-data tables.
+12. `.sql` files are schema/bootstrap only. Kysely owns application writes and seed upserts.
 
 ## Documentation Standard
 
@@ -127,7 +129,25 @@ Review rule for each phase:
 - [x] Add the first Phase 3 API request/response DTOs for transport.
 - [x] Expand API DTO coverage beyond the initial common/system slice.
 - [x] Decide that generated drafts under `packages/schema/src/generated` remain scaffolding unless intentionally reviewed and exported.
-- [ ] Begin Phase 4 by repairing the DB bootstrap order so an empty-database recreate can succeed.
+- [x] Complete `PHASE_4_NORMALIZATION_AUDIT.md` for all persisted authored-data tables.
+- [x] Record first-pass verdicts for shared authored infrastructure.
+- [x] Record grant-table verdicts, including the modifier/proficiency hotspots.
+- [x] Record feature/option-table verdicts.
+- [x] Record subject-root verdicts.
+- [x] Record effect-table verdicts.
+- [x] Record character-persistence verdicts.
+- [x] Land the first Phase 4 SQL normalization refactor tranche for grant tables (`modifiers.sql` and `proficiencies.sql`).
+- [x] Land the second Phase 4 SQL normalization refactor tranche for the feature domain (`features.sql`, `options.sql`, and aligned feature upserts).
+- [x] Lock the Phase 4 rule that SQL `upsert_*` functions are being retired and Kysely owns writes going forward.
+- [x] Remove the legacy character SQL upsert functions from [`packages/db/src/domains/subjects/upserts/character.sql`](c:/Users/pilan/Desktop/artificer-toolkit/packages/db/src/domains/subjects/upserts/character.sql).
+- [x] Fix the DB type-generation script to target the canonical generated file at [`packages/db/src/types/supabase.database.ts`](c:/Users/pilan/Desktop/artificer-toolkit/packages/db/src/types/supabase.database.ts).
+- [ ] Refactor all Phase 4 `Refactor before seed` SQL table groups before recreate/populate.
+- [ ] Verify the empty-database bootstrap against Supabase main and record the next failing cluster if recreate still fails.
+- [ ] Regenerate DB types immediately after the recreated database matches the normalized schema.
+- [ ] Standardize the Kysely DB surface on the regenerated canonical type file only.
+- [ ] Port the remaining subject/grant/feature/effect/system write modules from SQL-procedure wrappers to typed Kysely writes.
+- [ ] Add more repository hydration implementations beyond systems.
+- [ ] Start filling the canonical baseline source-data bundle with real SRD content.
 
 ## Testing Standard
 

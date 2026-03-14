@@ -112,7 +112,7 @@ CREATE INDEX IF NOT EXISTS idx_feat_grant_traits_grant ON public.feat_grant_trai
 * ────────────────────────────────────────────── */
 CREATE TABLE IF NOT EXISTS public.feat_grant_feats (
   feat_grant_id uuid NOT NULL REFERENCES public.feat_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  feat_id uuid NOT NULL REFERENCES public.feats (id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
+  feat_id uuid NOT NULL,
   PRIMARY KEY (feat_grant_id, feat_id)
 );
 
@@ -165,7 +165,7 @@ CREATE INDEX IF NOT EXISTS idx_feat_grant_scaling_levels_grant ON public.feat_gr
 * ────────────────────────────────────────────── */
 CREATE TABLE IF NOT EXISTS public.feat_grant_scaling_level_feats (
   scaling_level_id uuid NOT NULL REFERENCES public.feat_grant_scaling_levels (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  feat_id uuid NOT NULL REFERENCES public.feats (id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
+  feat_id uuid NOT NULL,
   PRIMARY KEY (scaling_level_id, feat_id)
 );
 

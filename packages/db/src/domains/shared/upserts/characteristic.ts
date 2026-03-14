@@ -18,8 +18,8 @@ export function mapRangeToRow(
       return {
         characteristic_id,
         kind: 'DISTANCE',
-        min: json_data.min,
-        max: json_data.max || null,
+        min: json_data.amount,
+        max: null,
         unit_code: json_data.unit
       }
 
@@ -56,11 +56,11 @@ export async function upsertRange(db: DBLike, json_data: RangeAuthored) {
     .insertInto('characteristic_ranges')
     .values(row)
     .onConflict((oc) => oc.column('characteristic_id')
-      .doUpdateSet((eb) => ({
-        kind: eb.ref('excluded.kind'),
-        min: eb.ref('excluded.min'),
-        max: eb.ref('excluded.max'),
-        unit_code: eb.ref('excluded.unit_code')
+      .doUpdateSet(({ ref }) => ({
+        kind: ref('excluded.kind'),
+        min: ref('excluded.min'),
+        max: ref('excluded.max'),
+        unit_code: ref('excluded.unit_code')
       })))
     .returning('characteristic_id')
     .executeTakeFirstOrThrow()
@@ -117,9 +117,9 @@ export async function upsertDuration(db: DBLike, json_data: DurationAuthored) {
     .insertInto('characteristic_durations')
     .values(row)
     .onConflict((oc) => oc.column('characteristic_id')
-      .doUpdateSet((eb) => ({
-        kind: eb.ref('excluded.kind'),
-        amount: eb.ref('excluded.amount')
+      .doUpdateSet(({ ref }) => ({
+        kind: ref('excluded.kind'),
+        amount: ref('excluded.amount')
       })))
     .returning('characteristic_id')
     .executeTakeFirstOrThrow()
@@ -235,8 +235,8 @@ export async function upsertShape(db: DBLike, json_data: ShapeAuthored) {
       kind: json_data.shapeKind
     })
     .onConflict((oc) => oc.column('characteristic_id')
-      .doUpdateSet((eb) => ({
-        kind: eb.ref('excluded.kind')
+      .doUpdateSet(({ ref }) => ({
+        kind: ref('excluded.kind')
       })))
     .returning('characteristic_id')
     .executeTakeFirstOrThrow()
@@ -256,9 +256,9 @@ export async function upsertShape(db: DBLike, json_data: ShapeAuthored) {
     .insertInto('characteristic_shape_dimensions')
     .values(rows)
     .onConflict((oc) => oc.columns(['characteristic_id', 'dimension'])
-      .doUpdateSet((eb) => ({
-        amount: eb.ref('excluded.amount'),
-        unit_code: eb.ref('excluded.unit_code')
+      .doUpdateSet(({ ref }) => ({
+        amount: ref('excluded.amount'),
+        unit_code: ref('excluded.unit_code')
       })))
     .returning('characteristic_id')
     .executeTakeFirstOrThrow()

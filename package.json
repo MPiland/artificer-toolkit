@@ -21,6 +21,8 @@
     "test:shared:watch": "vitest packages/shared/src/__tests__",
     "test:schema": "vitest run packages/schema/src/__tests__",
     "test:schema:watch": "vitest packages/schema/src/__tests__",
+    "test:db": "vitest run packages/db/src/__tests__",
+    "test:db:watch": "vitest packages/db/src/__tests__",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:shared": "eslint packages/shared --ext ts",
     "lint:web": "eslint apps/web --ext ts,tsx",

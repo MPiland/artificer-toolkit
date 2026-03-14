@@ -103,10 +103,7 @@ CREATE TABLE IF NOT EXISTS public.background_proficiency_grants (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  proficiency_grant_id uuid NOT NULL
-    REFERENCES public.proficiency_grants(id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
+  proficiency_grant_id uuid NOT NULL,
 
   sort_order integer NOT NULL,
 
@@ -144,10 +141,7 @@ CREATE TABLE IF NOT EXISTS public.background_features (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  feature_id uuid NOT NULL
-    REFERENCES public.features(id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
+  feature_id uuid NOT NULL,
 
   sort_order integer NOT NULL,
 

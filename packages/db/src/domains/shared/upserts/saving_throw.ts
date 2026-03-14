@@ -1,6 +1,6 @@
 import type { DBLike } from '#types'
-import { assertNever } from '../../../utils/index.js'
 import type { SavingThrowAuthored } from '@artificer-toolkit/shared'
+import { assertNever } from '../../../utils/index.js'
 
 export async function upsertSavingThrow(db: DBLike, json_data: SavingThrowAuthored) {
   const trx = await db.startTransaction().execute()
@@ -10,7 +10,7 @@ export async function upsertSavingThrow(db: DBLike, json_data: SavingThrowAuthor
       case 'FIXED_VALUE':
         return {
           id: json_data.id,
-          ability: json_data.ability,
+          ability_code: json_data.ability,
           saving_throw_kind: json_data.savingThrowKind,
           dc: json_data.dc
         }
@@ -18,8 +18,9 @@ export async function upsertSavingThrow(db: DBLike, json_data: SavingThrowAuthor
       case 'SPELL_SAVE_DC':
         return {
           id: json_data.id,
-          ability: json_data.ability,
-          saving_throw_kind: json_data.savingThrowKind
+          ability_code: 'SPELLCASTING',
+          saving_throw_kind: json_data.savingThrowKind,
+          dc: null
         }
 
       default:
@@ -28,14 +29,15 @@ export async function upsertSavingThrow(db: DBLike, json_data: SavingThrowAuthor
   })()
 
   try {
-    await trx.insertInto('saving_throws')
+    await trx
+      .insertInto('saving_throws')
       .values(savingThrow)
       .onConflict((oc) => oc.column('id')
-        .doUpdateSet({
-          ability: (eb) => eb.ref('excluded.ability'),
-          saving_throw_kind: (eb) => eb.ref('excluded.saving_throw_kind'),
-          dc: (eb) => eb.ref('excluded.dc')
-        }))
+        .doUpdateSet(({ ref }) => ({
+          ability_code: ref('excluded.ability_code'),
+          saving_throw_kind: ref('excluded.saving_throw_kind'),
+          dc: ref('excluded.dc')
+        })))
       .executeTakeFirstOrThrow()
 
     await trx.commit().execute()

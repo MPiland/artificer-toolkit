@@ -28,7 +28,7 @@ BEGIN
   /* starting equipment (owned, optional) */
   IF json_data ? 'startingEquipment' THEN
     v_starting_equipment_id :=
-      public.upsert_starting_equipment(json_data -> 'startingEquipment', p_system_id);
+      public.upsert_starting_equipment(json_data -> 'startingEquipment');
   ELSE
     v_starting_equipment_id := NULL;
   END IF;

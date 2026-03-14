@@ -137,7 +137,8 @@ CREATE TABLE IF NOT EXISTS public.starting_equipment_option_item_equipment (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  equipment_id uuid NOT NULL REFERENCES public.equipment(id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
+  -- Deferred FK added in bootstrap/constraints/cross_domain_foreign_keys.sql
+  equipment_id uuid NOT NULL,
 
   PRIMARY KEY (option_item_id, equipment_id)
 );

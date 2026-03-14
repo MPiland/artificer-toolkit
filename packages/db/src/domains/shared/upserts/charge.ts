@@ -4,15 +4,38 @@ import {
 } from '@artificer-toolkit/shared'
 import type { DBLike } from '@artificer-toolkit/db/types'
 import { assertNever } from '../../../utils/index.js'
-import type { SupabaseDatabase } from '@artificer-toolkit/db/types'
+
+type ChargeBonusRow = {
+  charge_id: string
+  bonus_kind: string
+  ability_code: string | null
+  skill_id: string | null
+  multiplier: number | null
+  min: number | null
+  max: number | null
+  sort_order: number
+}
+
+type ChargeLimitRow = {
+  charge_id: string
+  limit_kind: string
+  amount: number | null
+  multiplier: number | null
+  min: number | null
+  max: number | null
+}
+
+type ChargeScalingLevelRow = {
+  charge_id: string
+  level: number
+  sort_order: number
+  amount: number
+}
 
 export function mapChargeBonusToRow(
   json_data: ChargeBonusAuthored,
   charge_id: string
-): Omit<
-  SupabaseDatabase['public']['Tables']['charge_bonuses']['Row'],
-  'created_at' | 'updated_at'
-> {
+): ChargeBonusRow {
   switch (json_data.bonusKind) {
     case 'ABILITY_MODIFIER': {
       return {
@@ -62,31 +85,19 @@ export function mapChargeBonusToRow(
 export function mapChargeLimitToRow(
   json_data: ChargeAuthored,
   charge_id: string
-): Omit<
-  SupabaseDatabase['public']['Tables']['charge_limits']['Row'],
-  'created_at' | 'updated_at'
-> | null {
+): ChargeLimitRow | null {
   if (json_data.scalingKind !== 'NONE') return null
 
   switch (json_data.limitKind) {
     case 'CHARACTER_LEVEL':
+    case 'SOURCE_LEVEL':
       return {
         charge_id,
-        limit_kind: 'CHARACTER_LEVEL',
+        limit_kind: json_data.limitKind,
         multiplier: json_data.multiplier ?? null,
         amount: null,
-        class_id: null,
-        spell_id: null
-      }
-
-    case 'CLASS_LEVEL':
-      return {
-        charge_id,
-        limit_kind: 'CLASS_LEVEL',
-        class_id: json_data.classId,
-        multiplier: json_data.multiplier ?? null,
-        amount: null,
-        spell_id: null
+        min: json_data.min ?? null,
+        max: json_data.max ?? null
       }
 
     case 'FIXED_AMOUNT':
@@ -95,18 +106,8 @@ export function mapChargeLimitToRow(
         limit_kind: 'FIXED_AMOUNT',
         amount: json_data.amount,
         multiplier: null,
-        class_id: null,
-        spell_id: null
-      }
-
-    case 'SPELL_LEVEL':
-      return {
-        charge_id,
-        limit_kind: 'SPELL_LEVEL',
-        spell_id: json_data.spellId,
-        multiplier: json_data.multiplier ?? null,
-        amount: null,
-        class_id: null
+        min: null,
+        max: null
       }
 
     default: {
@@ -118,16 +119,13 @@ export function mapChargeLimitToRow(
 export function mapChargeScalingToRow(
   json_data: ChargeAuthored,
   charge_id: string
-): Omit<
-  SupabaseDatabase['public']['Tables']['charge_scaling_levels']['Row'],
-  'created_at' | 'updated_at'
->[] {
+): ChargeScalingLevelRow[] {
   if (json_data.scalingKind !== 'PER_LEVEL') return []
 
   return json_data.levels.map((entry) => ({
     charge_id,
     level: entry.level,
-    sort_order: entry.order,
+    sort_order: entry.level,
     amount: entry.amount
   }))
 }
@@ -142,10 +140,10 @@ export async function upsertCharge(db: DBLike, json_data: ChargeAuthored) {
         scaling_kind: json_data.scalingKind,
         reset_kind: json_data.resetKind
       })
-      .onConflict((oc) => oc.column('id').doUpdateSet({
-        scaling_kind: (eb) => eb.ref('excluded.scaling_kind'),
-        reset_kind: (eb) => eb.ref('excluded.reset_kind')
-      }))
+      .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
+        scaling_kind: ref('excluded.scaling_kind'),
+        reset_kind: ref('excluded.reset_kind')
+      })))
       .returning('id')
       .executeTakeFirstOrThrow()
 
@@ -165,13 +163,7 @@ export async function upsertCharge(db: DBLike, json_data: ChargeAuthored) {
             await trx
               .insertInto('charge_limits')
               .values(limit)
-              .onConflict((oc) => oc.column('charge_id').doUpdateSet({
-                limit_kind: (eb) => eb.ref('excluded.limit_kind'),
-                class_id: (eb) => eb.ref('excluded.class_id'),
-                spell_id: (eb) => eb.ref('excluded.spell_id'),
-                amount: (eb) => eb.ref('excluded.amount'),
-                multiplier: (eb) => eb.ref('excluded.multiplier')
-              }))
+              .onConflict((oc) => oc.column('charge_id').doUpdateSet(limit as never))
               .executeTakeFirstOrThrow()
           }
         } catch (error) {
@@ -202,10 +194,10 @@ export async function upsertCharge(db: DBLike, json_data: ChargeAuthored) {
           await trx
             .insertInto('charge_scaling_levels')
             .values(levels)
-            .onConflict((oc) => oc.columns(['charge_id', 'level']).doUpdateSet({
-              sort_order: (eb) => eb.ref('excluded.sort_order'),
-              amount: (eb) => eb.ref('excluded.amount')
-            }))
+            .onConflict((oc) => oc.columns(['charge_id', 'level']).doUpdateSet(({ ref }) => ({
+              sort_order: ref('excluded.sort_order'),
+              amount: ref('excluded.amount')
+            })))
             .executeTakeFirstOrThrow()
         } catch (error) {
           await trxAfterCharge.rollbackToSavepoint('after_charge').execute()
@@ -235,14 +227,14 @@ export async function upsertCharge(db: DBLike, json_data: ChargeAuthored) {
         await trx
           .insertInto('charge_bonuses')
           .values(bonuses)
-          .onConflict((oc) => oc.columns(['charge_id', 'bonus_kind']).doUpdateSet({
-            ability_code: (eb) => eb.ref('excluded.ability_code'),
-            skill_id: (eb) => eb.ref('excluded.skill_id'),
-            multiplier: (eb) => eb.ref('excluded.multiplier'),
-            min: (eb) => eb.ref('excluded.min'),
-            max: (eb) => eb.ref('excluded.max'),
-            sort_order: (eb) => eb.ref('excluded.sort_order')
-          }))
+          .onConflict((oc) => oc.columns(['charge_id', 'bonus_kind']).doUpdateSet(({ ref }) => ({
+            ability_code: ref('excluded.ability_code'),
+            skill_id: ref('excluded.skill_id'),
+            multiplier: ref('excluded.multiplier'),
+            min: ref('excluded.min'),
+            max: ref('excluded.max'),
+            sort_order: ref('excluded.sort_order')
+          })))
           .executeTakeFirstOrThrow()
       } catch (error) {
         await trxAfterCharge.rollbackToSavepoint('after_charge').execute()

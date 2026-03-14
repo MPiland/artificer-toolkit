@@ -67,6 +67,23 @@ CREATE INDEX IF NOT EXISTS idx_spells_level
 CREATE INDEX IF NOT EXISTS idx_spells_school
   ON public.spells(magic_school_id);
 
+CREATE TABLE IF NOT EXISTS public.spell_attributes (
+  spell_id uuid NOT NULL
+    REFERENCES public.spells(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  attribute_code text NOT NULL,
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (spell_id, attribute_code)
+);
+
+CREATE INDEX IF NOT EXISTS idx_spell_attributes_spell
+  ON public.spell_attributes(spell_id);
+
+ALTER TABLE public.spell_attributes ENABLE ROW LEVEL SECURITY;
+
 /* ──────────────────────────────────────────────
  * SPELL — TRAITS
  *
@@ -110,10 +127,7 @@ CREATE TABLE IF NOT EXISTS public.spell_classes (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  class_id uuid NOT NULL
-    REFERENCES public.classes(id)
-    ON DELETE RESTRICT
-    DEFERRABLE INITIALLY DEFERRED,
+  class_id uuid NOT NULL,
 
   PRIMARY KEY (spell_id, class_id)
 );
@@ -143,10 +157,7 @@ CREATE TABLE IF NOT EXISTS public.spell_effects (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  effect_id uuid NOT NULL
-    REFERENCES public.effects(id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
+  effect_id uuid NOT NULL,
 
   sort_order integer NOT NULL,
 

@@ -182,15 +182,18 @@ SET search_path = pg_catalog, public
 AS $$
 DECLARE
   v_id uuid := (json_data ->> 'id')::uuid;
-  v_mode text := json_data ->> 'mode';
+  v_mode text := COALESCE(
+    json_data ->> 'authoringModeKind',
+    json_data ->> 'mode'
+  );
 BEGIN
   INSERT INTO public.starting_equipment_option_items (
     id,
     equipment_option_id,
-    item_type,
-    mode,
-    selection_type,
-    category,
+    starting_equipment_kind,
+    authoring_mode_kind,
+    selection_kind,
+    category_code,
     count,
     quantity,
     sort_order
@@ -198,19 +201,28 @@ BEGIN
   VALUES (
     v_id,
     p_option_id,
-    json_data ->> 'type',
+    COALESCE(
+      json_data ->> 'startingEquipmentKind',
+      json_data ->> 'type'
+    ),
     v_mode,
-    json_data ->> 'selectionType',
-    json_data ->> 'category',
+    COALESCE(
+      json_data ->> 'selectionKind',
+      json_data ->> 'selectionType'
+    ),
+    COALESCE(
+      json_data ->> 'categoryCode',
+      json_data ->> 'category'
+    ),
     (json_data ->> 'count')::int,
     (json_data ->> 'quantity')::int,
     (json_data ->> 'order')::int
   )
   ON CONFLICT (id) DO UPDATE SET
-    item_type      = excluded.item_type,
-    mode           = excluded.mode,
-    selection_type = excluded.selection_type,
-    category       = excluded.category,
+    starting_equipment_kind = excluded.starting_equipment_kind,
+    authoring_mode_kind     = excluded.authoring_mode_kind,
+    selection_kind          = excluded.selection_kind,
+    category_code           = excluded.category_code,
     count          = excluded.count,
     quantity       = excluded.quantity,
     sort_order     = excluded.sort_order;

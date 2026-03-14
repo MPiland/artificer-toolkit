@@ -26,8 +26,8 @@ CREATE TABLE IF NOT EXISTS public.spell_grants (
   authoring_mode_kind text NOT NULL, -- ALL | SELECTED
   selection_count integer, -- CHOSEN + NONE only
   scaling_source text, -- ScalingSource
-  class_id uuid REFERENCES public.classes (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
-  spell_id uuid REFERENCES public.spells (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
+  class_id uuid,
+  spell_id uuid,
   charge_id uuid NOT NULL REFERENCES public.charges (id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
   restriction_id uuid REFERENCES public.facets (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   filter_id uuid REFERENCES public.facets (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
@@ -93,7 +93,7 @@ CREATE INDEX IF NOT EXISTS idx_spell_grant_traits_grant ON public.spell_grant_tr
 * ────────────────────────────────────────────── */
 CREATE TABLE IF NOT EXISTS public.spell_grant_spells (
   spell_grant_id uuid NOT NULL REFERENCES public.spell_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  spell_id uuid NOT NULL REFERENCES public.spells (id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
+  spell_id uuid NOT NULL,
   PRIMARY KEY (spell_grant_id, spell_id)
 );
 
@@ -124,7 +124,7 @@ CREATE INDEX IF NOT EXISTS idx_spell_grant_scaling_levels_grant ON public.spell_
 * ────────────────────────────────────────────── */
 CREATE TABLE IF NOT EXISTS public.spell_grant_scaling_level_spells (
   scaling_level_id uuid NOT NULL REFERENCES public.spell_grant_scaling_levels (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  spell_id uuid NOT NULL REFERENCES public.spells (id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
+  spell_id uuid NOT NULL,
   PRIMARY KEY (scaling_level_id, spell_id)
 );
 

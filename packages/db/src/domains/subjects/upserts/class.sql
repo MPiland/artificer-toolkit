@@ -36,7 +36,7 @@ BEGIN
 
   IF v_category = 'BASE' AND json_data ? 'startingEquipment' AND (json_data -> 'startingEquipment') IS NOT NULL THEN
     v_starting_equipment_id :=
-      public.upsert_starting_equipment(json_data -> 'startingEquipment', p_system_id);
+      public.upsert_starting_equipment(json_data -> 'startingEquipment');
   ELSE
     v_starting_equipment_id := NULL;
   END IF;
@@ -78,19 +78,19 @@ BEGIN
    * TRAITS (authoritative array)
    * ───────────────────────────── */
 
-  DELETE FROM public.class_traits ct
+  DELETE FROM public.class_attributes ct
   WHERE ct.class_id = v_id
     AND NOT EXISTS (
       SELECT 1
-      FROM jsonb_array_elements_text(COALESCE(json_data -> 'traits','[]'::jsonb)) t(x)
-      WHERE t.x = ct.trait_code
-    );
+      FROM jsonb_array_elements_text(COALESCE(json_data -> 'attributes','[]'::jsonb)) t(x)
+        WHERE t.x = ct.attribute_code
+      );
 
-  INSERT INTO public.class_traits (class_id, trait_code, sort_order)
+  INSERT INTO public.class_attributes (class_id, attribute_code, sort_order)
   SELECT v_id, x, ord
-  FROM jsonb_array_elements_text(COALESCE(json_data -> 'traits','[]'::jsonb))
+  FROM jsonb_array_elements_text(COALESCE(json_data -> 'attributes','[]'::jsonb))
   WITH ORDINALITY AS t(x, ord)
-  ON CONFLICT (class_id, trait_code) DO UPDATE
+  ON CONFLICT (class_id, attribute_code) DO UPDATE
   SET sort_order = excluded.sort_order;
 
   /* ─────────────────────────────
@@ -264,13 +264,13 @@ BEGIN
       WHERE sct.spellcasting_id = v_spellcasting_id
         AND NOT EXISTS (
           SELECT 1
-          FROM jsonb_array_elements_text(COALESCE(json_data #> '{spellcasting,traits}','[]'::jsonb)) t(x)
+          FROM jsonb_array_elements_text(COALESCE(json_data #> '{spellcasting,attributes}','[]'::jsonb)) t(x)
           WHERE t.x = sct.trait_code
         );
 
       INSERT INTO public.class_spellcasting_traits (spellcasting_id, trait_code, sort_order)
       SELECT v_spellcasting_id, x, ord
-      FROM jsonb_array_elements_text(COALESCE(json_data #> '{spellcasting,traits}','[]'::jsonb))
+      FROM jsonb_array_elements_text(COALESCE(json_data #> '{spellcasting,attributes}','[]'::jsonb))
       WITH ORDINALITY AS t(x, ord)
       ON CONFLICT (spellcasting_id, trait_code) DO UPDATE
       SET sort_order = excluded.sort_order;
@@ -292,13 +292,13 @@ BEGIN
         WHERE m.spellcasting_id = v_spellcasting_id
           AND NOT EXISTS (
             SELECT 1
-            FROM jsonb_array_elements_text(COALESCE(json_data #> '{spellcasting,prepareLimit,methods}','[]'::jsonb)) t(x)
+            FROM jsonb_array_elements_text(COALESCE(json_data #> '{spellcasting,prepareLimit,methodKinds}','[]'::jsonb)) t(x)
             WHERE t.x = m.method_code
           );
 
         INSERT INTO public.class_spellcasting_prepare_limit_methods (spellcasting_id, method_code, sort_order)
         SELECT v_spellcasting_id, x, ord
-        FROM jsonb_array_elements_text(COALESCE(json_data #> '{spellcasting,prepareLimit,methods}','[]'::jsonb))
+        FROM jsonb_array_elements_text(COALESCE(json_data #> '{spellcasting,prepareLimit,methodKinds}','[]'::jsonb))
         WITH ORDINALITY AS t(x, ord)
         ON CONFLICT (spellcasting_id, method_code) DO UPDATE
         SET sort_order = excluded.sort_order;

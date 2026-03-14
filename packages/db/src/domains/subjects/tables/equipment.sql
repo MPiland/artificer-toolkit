@@ -55,6 +55,17 @@ CREATE INDEX IF NOT EXISTS idx_equipment_system ON public.equipment (system_id);
 
 CREATE INDEX IF NOT EXISTS idx_equipment_parent ON public.equipment (parent_equipment_id);
 
+CREATE TABLE IF NOT EXISTS public.equipment_attributes (
+  equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  attribute_code text NOT NULL,
+  sort_order integer NOT NULL,
+  PRIMARY KEY (equipment_id, attribute_code)
+);
+
+ALTER TABLE public.equipment_attributes ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_equipment_attributes_equipment ON public.equipment_attributes (equipment_id);
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -155,7 +166,7 @@ ALTER TABLE public.equipment_contains ENABLE ROW LEVEL SECURITY;
 * ────────────────────────────────────────────── */
 CREATE TABLE IF NOT EXISTS public.equipment_effects (
   equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  effect_id uuid NOT NULL REFERENCES public.effects (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  effect_id uuid NOT NULL,
   sort_order integer NOT NULL,
   PRIMARY KEY (equipment_id, effect_id)
 );
@@ -186,7 +197,7 @@ $$;
 * ────────────────────────────────────────────── */
 CREATE TABLE IF NOT EXISTS public.equipment_modifier_grants (
   equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  modifier_grant_id uuid NOT NULL REFERENCES public.modifier_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  modifier_grant_id uuid NOT NULL,
   sort_order integer NOT NULL,
   PRIMARY KEY (equipment_id, modifier_grant_id)
 );
@@ -217,7 +228,7 @@ $$;
 * ────────────────────────────────────────────── */
 CREATE TABLE IF NOT EXISTS public.equipment_features (
   equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  feature_id uuid NOT NULL REFERENCES public.features (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  feature_id uuid NOT NULL,
   sort_order integer NOT NULL,
   PRIMARY KEY (equipment_id, feature_id)
 );

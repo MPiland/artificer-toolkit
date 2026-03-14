@@ -24,8 +24,8 @@ CREATE TABLE IF NOT EXISTS public.sense_grants (
   authoring_mode_kind text NOT NULL, -- ALL | SELECTED
   selection_count integer, -- CHOSEN + NONE only
   scaling_source text, -- SCALING_SOURCE
-  class_id uuid REFERENCES public.classes (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
-  spell_id uuid REFERENCES public.spells (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
+  class_id uuid,
+  spell_id uuid,
   charge_id uuid NOT NULL REFERENCES public.charges (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   restriction_id uuid REFERENCES public.facets (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   created_at timestamptz NOT NULL DEFAULT now(),

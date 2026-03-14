@@ -28,7 +28,7 @@
   "scripts": {
     "clean": "rimraf dist",
     "build": "tsc -p tsconfig.build.json",
-    "gen:types": "supabase gen types typescript --project-id cvxfhtkksdeiycxpryhy --schema public,storage > src/types/database.ts"
+    "gen:types": "supabase gen types typescript --project-id cvxfhtkksdeiycxpryhy --schema public,storage > src/types/supabase.database.ts"
   },
   "dependencies": {
     "@artificer-toolkit/shared": "workspace:^",

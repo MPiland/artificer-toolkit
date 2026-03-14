@@ -73,6 +73,23 @@ CREATE INDEX IF NOT EXISTS idx_classes_system
 CREATE INDEX IF NOT EXISTS idx_classes_parent
   ON public.classes(parent_class_id);
 
+CREATE TABLE IF NOT EXISTS public.class_attributes (
+  class_id uuid NOT NULL
+    REFERENCES public.classes(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  attribute_code text NOT NULL,
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (class_id, attribute_code)
+);
+
+CREATE INDEX IF NOT EXISTS idx_class_attributes_class
+  ON public.class_attributes(class_id);
+
+ALTER TABLE public.class_attributes ENABLE ROW LEVEL SECURITY;
+
 /* ──────────────────────────────────────────────
  * CLASS — TRAITS (CODES)
  * ────────────────────────────────────────────── */
@@ -148,10 +165,7 @@ CREATE TABLE IF NOT EXISTS public.class_proficiency_grants (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  proficiency_grant_id uuid NOT NULL
-    REFERENCES public.proficiency_grants(id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
+  proficiency_grant_id uuid NOT NULL,
 
   sort_order integer NOT NULL,
 
@@ -191,10 +205,7 @@ CREATE TABLE IF NOT EXISTS public.class_features (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  feature_id uuid NOT NULL
-    REFERENCES public.features(id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
+  feature_id uuid NOT NULL,
 
   sort_order integer NOT NULL,
 
@@ -597,10 +608,7 @@ CREATE TABLE IF NOT EXISTS public.class_multiclass_proficiency_grants (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  proficiency_grant_id uuid NOT NULL
-    REFERENCES public.proficiency_grants(id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
+  proficiency_grant_id uuid NOT NULL,
 
   sort_order integer NOT NULL,
 
