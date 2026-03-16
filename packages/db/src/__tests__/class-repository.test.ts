@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createClassRepository } from '../repositories/class.js'
+import { createClassRepository } from '../repositories/index.js'
 
 type RowMap = Record<string, unknown[]>
 

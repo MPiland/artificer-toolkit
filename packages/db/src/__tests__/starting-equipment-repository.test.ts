@@ -4,7 +4,7 @@ vi.mock('../domains/shared/upserts/starting_equipment.js', () => ({
   upsertStartingEquipment: vi.fn(async () => {})
 }))
 
-import { createStartingEquipmentRepository } from '../repositories/starting-equipment.js'
+import { createStartingEquipmentRepository } from '../repositories/index.js'
 
 type RowMap = Record<string, unknown[]>
 

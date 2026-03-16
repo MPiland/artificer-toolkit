@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createEffectRepository } from '../repositories/effect.js'
+import { createEffectRepository } from '../repositories/index.js'
 import { InMemoryDb } from './helpers/in-memory-db.js'
 
 describe('createEffectRepository', () => {

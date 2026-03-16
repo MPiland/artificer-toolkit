@@ -4,7 +4,7 @@ vi.mock('../domains/grants/upserts/proficiency.js', () => ({
   upsertProficiencyGrant: vi.fn(async () => {})
 }))
 
-import { createProficiencyGrantRepository } from '../repositories/proficiency-grant.js'
+import { createProficiencyGrantRepository } from '../repositories/index.js'
 
 type RowMap = Record<string, unknown[]>
 

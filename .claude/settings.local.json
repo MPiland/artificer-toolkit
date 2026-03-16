@@ -14,7 +14,8 @@
       "Bash(grep -rn \"not yet implemented\\\\|placeholder\" packages/db/src/domains/*/upserts/*.ts)",
       "Bash(grep -rn \"throw new Error\" packages/db/src/domains/subjects/upserts/*.ts packages/db/src/domains/shared/upserts/starting_equipment.ts)",
       "Bash(ls packages/db/src/repositories/*.ts packages/db/src/__tests__/*.test.ts)",
-      "Bash(yarn workspace:*)"
+      "Bash(yarn workspace:*)",
+      "Bash(find /c/Users/pilan/Desktop/artificer-toolkit/packages/shared/src/domains -type f -name *deserialize* -o -name *fromDb* -o -name *assemble*)"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -4,7 +4,7 @@ vi.mock('../domains/subjects/upserts/background.js', () => ({
   upsertBackground: vi.fn(async () => {})
 }))
 
-import { createBackgroundRepository } from '../repositories/background.js'
+import { createBackgroundRepository } from '../repositories/index.js'
 
 type RowMap = Record<string, unknown[]>
 

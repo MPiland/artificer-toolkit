@@ -1,15 +1,28 @@
-import { handleRequest, getSpellListQuery, getSpellQuery } from '@artificer-toolkit/functions'
-import type { Spell, SpellListItem } from '@artificer-toolkit/shared'
+import { handleRequest, handleAuthoringRequest, createSpellSubjectAuthoringService } from '@artificer-toolkit/functions'
+import { getSpellListQuery } from '@artificer-toolkit/db'
+import { createSpellRepository } from '@artificer-toolkit/db'
+import type { SpellAuthored } from '@artificer-toolkit/shared'
 
-// list
-export const getSpellList = handleRequest<[], SpellListItem[] | []>(getSpellListQuery, () => [])
-
-// single
-export const getSpell = handleRequest<[string], Spell | null>(getSpellQuery, (req) => {
+function extractId(req: Request): string {
   const url = new URL(req.url)
   const segments = url.pathname.split('/').filter(Boolean)
-  const id = segments[segments.length - 1]
-  return [
-    id
-  ]
-})
+  return segments[segments.length - 1]
+}
+
+// list
+export const getSpellList = handleRequest(getSpellListQuery, () => [] as [])
+
+// single
+export const getSpell = handleRequest<[string], SpellAuthored | null>(
+  (db, id) => createSpellRepository(db).findById(id),
+  (req) => [extractId(req)]
+)
+
+// create/update
+export const createSpell = handleAuthoringRequest(
+  async (db, body) => {
+    const service = createSpellSubjectAuthoringService(db)
+    return service.execute(body)
+  },
+  (raw) => raw
+)

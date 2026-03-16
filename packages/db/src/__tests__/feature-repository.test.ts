@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createFeatureRepository } from '../repositories/feature.js'
+import { createFeatureRepository } from '../repositories/index.js'
 import { InMemoryDb } from './helpers/in-memory-db.js'
 
 type RowMap = Record<string, unknown[]>

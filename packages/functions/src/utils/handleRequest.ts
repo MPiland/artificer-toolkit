@@ -1,4 +1,4 @@
-import type { DB } from '@artificer-toolkit/functions/types'
+import type { DBLike } from '@artificer-toolkit/db'
 import { createDb, withUserContext } from '@artificer-toolkit/db'
 import { createSupabaseClient } from '../clients/supabaseClient.js'
 
@@ -7,7 +7,7 @@ import { createSupabaseClient } from '../clients/supabaseClient.js'
  */
 // packages/functions/src/utils/handleRequest.ts
 export function handleRequest<TArgs extends unknown[], TResult>(
-  queryFn: (db: DB, ...args: TArgs) => Promise<TResult>,
+  queryFn: (db: DBLike, ...args: TArgs) => Promise<TResult>,
   getArgs: (req: Request) => TArgs
 ) {
   return async (req: Request): Promise<Response> => {

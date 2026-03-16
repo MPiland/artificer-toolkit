@@ -1,7 +1,11 @@
+import type { RepositoryFindAllOptions } from '@artificer-toolkit/db'
+
 export interface GrantAuthoringPipelineDeps<TInput, TAuthored, TCompiled, TPersisted> {
   validate: (input: TInput) => TAuthored
   compile: (authored: TAuthored) => TCompiled
   persist: (payload: { authored: TAuthored, compiled: TCompiled }) => Promise<TPersisted> | TPersisted
+  findById: (id: string) => Promise<TAuthored | null>
+  findAll: (filter?: RepositoryFindAllOptions) => Promise<TAuthored[]>
 }
 
 export interface GrantAuthoringPipelineResult<TAuthored, TCompiled, TPersisted> {
@@ -24,6 +28,14 @@ export function createGrantAuthoringService<TInput, TAuthored, TCompiled, TPersi
         compiled,
         persisted
       }
+    },
+
+    findById(id: string): Promise<TAuthored | null> {
+      return deps.findById(id)
+    },
+
+    findAll(filter?: RepositoryFindAllOptions): Promise<TAuthored[]> {
+      return deps.findAll(filter)
     }
   }
 }

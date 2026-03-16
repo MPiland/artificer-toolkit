@@ -1,1 +1,7 @@
 export * from './pipeline.js'
+export * from './backgroundAuthoring.js'
+export * from './classAuthoring.js'
+export * from './equipmentAuthoring.js'
+export * from './featAuthoring.js'
+export * from './raceAuthoring.js'
+export * from './spellAuthoring.js'

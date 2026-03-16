@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createModifierGrantRepository } from '../repositories/modifier-grant.js'
+import { createModifierGrantRepository } from '../repositories/index.js'
 
 type RowMap = Record<string, unknown[]>
 

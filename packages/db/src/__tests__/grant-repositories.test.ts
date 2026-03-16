@@ -12,9 +12,9 @@ vi.mock('../domains/grants/upserts/spell.js', () => ({
   upsertSpellGrant: vi.fn(async () => {})
 }))
 
-import { createFeatGrantRepository } from '../repositories/feat-grant.js'
-import { createSenseGrantRepository } from '../repositories/sense-grant.js'
-import { createSpellGrantRepository } from '../repositories/spell-grant.js'
+import { createFeatGrantRepository } from '../repositories/index.js'
+import { createSenseGrantRepository } from '../repositories/index.js'
+import { createSpellGrantRepository } from '../repositories/index.js'
 
 type RowMap = Record<string, unknown[]>
 

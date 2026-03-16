@@ -4,7 +4,7 @@ vi.mock('../domains/shared/upserts/detail.js', () => ({
   upsertDetail: vi.fn(async () => {})
 }))
 
-import { createDetailRepository } from '../repositories/detail.js'
+import { createDetailRepository } from '../repositories/index.js'
 
 function createFakeDb(rows: unknown[]) {
   return {

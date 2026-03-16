@@ -4,7 +4,7 @@ vi.mock('../domains/subjects/upserts/system.js', () => ({
   upsertSystem: vi.fn(async () => {})
 }))
 
-import { createSystemRepository } from '../repositories/system.js'
+import { createSystemRepository } from '../repositories/index.js'
 
 type RowMap = Record<string, unknown[]>
 
