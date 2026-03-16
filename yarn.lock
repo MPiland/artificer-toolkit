@@ -43,6 +43,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@artificer-toolkit/schema@workspace:packages/schema"
   dependencies:
+    ts-to-zod: "npm:^5.1.0"
     zod: "npm:^4.3.6"
   languageName: unknown
   linkType: soft
@@ -51,8 +52,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@artificer-toolkit/shared@workspace:packages/shared"
   dependencies:
-    "@artificer-toolkit/db": "workspace:^"
-    ts-to-zod: "npm:^5.1.0"
     type-fest: "npm:^5.4.4"
     zod: "npm:^4.3.6"
   languageName: unknown

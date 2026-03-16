@@ -2,7 +2,6 @@ import type { DBLike } from '@db-types'
 import {
   ADVANCEMENT_METHOD_CODE,
   CHARACTER_ABILITY_GENERATION_METHOD,
-  HITPOINT_CALCULATION_METHOD_CODE,
   type CharacterAuthored
 } from '@artificer-toolkit/shared'
 import { assertNever } from '../../../utils/index.js'

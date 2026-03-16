@@ -202,13 +202,13 @@ Review rule for each phase:
 - [x] Tighten modifier/proficiency grant Kysely reads/writes so `count` only applies on `CHOSEN`, and proficiency `rounding` only applies on `HALF`.
 - [x] Tighten starting-equipment Kysely reads/writes so `count` only applies on `CHOSEN` and `quantity` only applies on `GRANTED`.
 - [x] Fix proficiency-grant TExtra applicability: `Selectable<TSelected, TExtra>` allows TExtra fields on BOTH `ALL` and `SELECTED` branches; for `EQUIPMENT` grants `category`/`properties` are TExtra (valid on ALL), and for `EQUIPMENT_PROPERTY` grants `category` is TExtra (valid on ALL); upsert and hydrator no longer reject these fields on ALL mode, and the test suite was updated to replace the incorrect negative assertions with a positive round-trip test.
-  - [ ] Refactor all Phase 4 `Refactor before seed` SQL table groups before recreate/populate.
+  - [x] Refactor all Phase 4 `Refactor before seed` SQL table groups before recreate/populate.
 - [x] Verify the empty-database bootstrap against Supabase main; the linked project accepted the regenerated bootstrap bundle end to end after a destructive `public` reset and migration-history repair, so no new recreate failure cluster remains at this checkpoint.
 - [x] Regenerate DB types immediately after the recreated database matches the normalized schema.
-- [ ] Standardize the Kysely DB surface on the regenerated canonical type file only.
-- [ ] Port the remaining subject/grant/feature/effect/system write modules from SQL-procedure wrappers to typed Kysely writes.
-- [ ] Add more repository hydration implementations beyond systems.
-- [ ] Start filling the canonical baseline source-data bundle with real SRD content.
+- [x] Standardize the Kysely DB surface on the regenerated canonical type file only.
+- [x] Port the remaining subject/grant/feature/effect/system write modules from SQL-procedure wrappers to typed Kysely writes.
+- [x] Add more repository hydration implementations beyond systems.
+- [x] Start filling the canonical baseline source-data bundle with real SRD content.
 
 Latest Phase 4 implementation note:
 
@@ -231,7 +231,7 @@ Latest Phase 4 implementation note:
   - `npx tsc -p packages/db/tsconfig.build.json --noEmit`
   - `npm --prefix packages/db run build`
   - `npx vitest run packages/db/src/__tests__`
-  - DB suite currently passes at `19 files / 159 tests`
+  - DB suite currently passes at `20 files / 160 tests`
 
 ## Testing Standard
 

@@ -45,7 +45,6 @@
     "clean": "rimraf dist",
     "build": "tsc -p tsconfig.build.json"
   },
-  "dependencies": {},
   "devDependencies": {
     "type-fest": "^5.4.4",
     "zod": "^4.3.6"
