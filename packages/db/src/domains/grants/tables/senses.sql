@@ -11,7 +11,6 @@
 * Ownership:
 *   sense_grants → sense_grant_restrictions (owned restrictions)
 *   sense_grants → sense_grant_charges     (owned charges, optional 1:1)
-*   sense_grants → sense_grant_traits      (trait codes)
 *   sense_grants → sense_grant_senses      (sense references)
 *   sense_grants → sense_grant_scaling_levels
 *   sense_grant_scaling_levels → sense_grant_scaling_level_senses
@@ -23,13 +22,41 @@ CREATE TABLE IF NOT EXISTS public.sense_grants (
   scaling_kind text NOT NULL, -- NONE | PER_LEVEL
   authoring_mode_kind text NOT NULL, -- ALL | SELECTED
   selection_count integer, -- CHOSEN + NONE only
-  scaling_source text, -- SCALING_SOURCE
+  scaling_source text, -- SCALING_SOURCE (CHARACTER_LEVEL | CLASS_LEVEL | SPELL_CAST_LEVEL)
   class_id uuid,
-  spell_id uuid,
-  charge_id uuid NOT NULL REFERENCES public.charges (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  charge_id uuid REFERENCES public.charges (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   restriction_id uuid REFERENCES public.facets (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT sense_grants_root_sort_order_chk CHECK (
+    sort_order > 0
+  ),
+  CONSTRAINT sense_grants_root_selection_kind_chk CHECK (
+    selection_kind IN ('GRANTED', 'CHOSEN')
+  ),
+  CONSTRAINT sense_grants_root_scaling_kind_chk CHECK (
+    scaling_kind IN ('NONE', 'PER_LEVEL')
+  ),
+  CONSTRAINT sense_grants_root_selection_count_chk CHECK (
+    (scaling_kind <> 'NONE' AND selection_count IS NULL)
+    OR (scaling_kind = 'NONE' AND selection_kind <> 'CHOSEN' AND selection_count IS NULL)
+    OR (scaling_kind = 'NONE' AND selection_kind = 'CHOSEN' AND selection_count IS NOT NULL AND selection_count > 0)
+  ),
+  CONSTRAINT sense_grants_root_authoring_mode_chk CHECK (
+    authoring_mode_kind IN ('ALL', 'SELECTED')
+  ),
+  CONSTRAINT sense_grants_root_scaling_source_chk CHECK (
+    (scaling_kind = 'PER_LEVEL' AND scaling_source IN ('CHARACTER_LEVEL', 'CLASS_LEVEL', 'PARENT_CLASS_LEVEL', 'SPELL_CAST_LEVEL'))
+    OR (scaling_kind = 'NONE' AND scaling_source IS NULL)
+  ),
+  CONSTRAINT sense_grants_root_scaling_class_chk CHECK (
+    (scaling_source = 'CLASS_LEVEL' AND class_id IS NOT NULL)
+    OR ((scaling_source IS NULL OR scaling_source <> 'CLASS_LEVEL') AND class_id IS NULL)
+  ),
+  CONSTRAINT sense_grants_root_mode_usage_chk CHECK (
+    (scaling_kind = 'NONE' AND authoring_mode_kind IN ('ALL', 'SELECTED'))
+    OR (scaling_kind = 'PER_LEVEL' AND authoring_mode_kind = 'ALL')
+  )
 );
 
 ALTER TABLE public.sense_grants ENABLE ROW LEVEL SECURITY;
@@ -71,23 +98,6 @@ END;
 $$;
 
 /* ──────────────────────────────────────────────
-* SENSE GRANT — TRAITS (CODES)
-*
-* Intent:
-*   Authoring traits applied to the grant.
-* ────────────────────────────────────────────── */
-CREATE TABLE IF NOT EXISTS public.sense_grant_traits (
-  sense_grant_id uuid NOT NULL REFERENCES public.sense_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  trait_code text NOT NULL,
-  sort_order integer NOT NULL,
-  PRIMARY KEY (sense_grant_id, trait_code)
-);
-
-ALTER TABLE public.sense_grant_traits ENABLE ROW LEVEL SECURITY;
-
-CREATE INDEX IF NOT EXISTS idx_sense_grant_traits_grant ON public.sense_grant_traits (sense_grant_id);
-
-/* ──────────────────────────────────────────────
 * SENSE GRANT — ROOT PAYLOAD (SELECTED, NONE)
 * ────────────────────────────────────────────── */
 CREATE TABLE IF NOT EXISTS public.sense_grant_senses (
@@ -111,12 +121,27 @@ CREATE TABLE IF NOT EXISTS public.sense_grant_scaling_levels (
   authoring_mode_kind text NOT NULL, -- ALL | SELECTED
   selection_count integer, -- CHOSEN per-level
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT sense_grant_scaling_levels_level_chk CHECK (
+    level > 0
+  ),
+  CONSTRAINT sense_grant_scaling_levels_sort_order_chk CHECK (
+    sort_order > 0
+  ),
+  CONSTRAINT sense_grant_scaling_levels_mode_chk CHECK (
+    authoring_mode_kind IN ('ALL', 'SELECTED')
+  ),
+  CONSTRAINT sense_grant_scaling_levels_selection_count_chk CHECK (
+    selection_count IS NULL OR selection_count > 0
+  )
 );
 
 ALTER TABLE public.sense_grant_scaling_levels ENABLE ROW LEVEL SECURITY;
 
 CREATE INDEX IF NOT EXISTS idx_sense_grant_scaling_levels_grant ON public.sense_grant_scaling_levels (sense_grant_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_sense_grant_scaling_levels_grant_level
+  ON public.sense_grant_scaling_levels (sense_grant_id, level);
 
 /* ──────────────────────────────────────────────
 * SENSE GRANT — SCALING LEVEL PAYLOAD

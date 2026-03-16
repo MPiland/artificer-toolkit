@@ -1,7 +1,9 @@
 /* ──────────────────────────────────────────────
  * MOMENTS — TABLES
  * NOTE:
- * - Moment containers have no authored IDs, so we use a composite key:
+ * - Moment containers do have authored IDs.
+ * - We keep the authored id on the row, while also preserving the composite
+ *   parent key shape that the existing payload tables already reference:
  *     (effect_id, trigger_code, moment_code)
  * - Payload is NOT stored here. Payload tables will FK to:
  *     - DIRECT: (effect_id, trigger_code, moment_code)
@@ -9,6 +11,7 @@
  * ────────────────────────────────────────────── */
 
 CREATE TABLE IF NOT EXISTS public.effect_moments (
+  id uuid NOT NULL UNIQUE,
   effect_id uuid NOT NULL REFERENCES public.effects(id) DEFERRABLE INITIALLY DEFERRED,
   trigger_code text NOT NULL,
   moment_code text NOT NULL,
@@ -86,7 +89,7 @@ CREATE TABLE IF NOT EXISTS public.moment_roll_table_entries (
   trigger_code text NOT NULL,
   moment_code text NOT NULL,
 
-  label text NOT NULL,
+  description text,
   sort_order integer NOT NULL,
 
   duration_id uuid REFERENCES public.characteristics(id) DEFERRABLE INITIALLY DEFERRED,

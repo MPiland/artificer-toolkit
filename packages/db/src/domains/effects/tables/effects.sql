@@ -9,9 +9,8 @@ CREATE TABLE IF NOT EXISTS public.effects (
   -- Authoring order within parent container
   sort_order integer NOT NULL,
 
-  -- Traits are flat vocabulary references (no payload)
-  -- Stored as join table, not array (added later if needed)
-  -- traits are optional, so nothing inline here
+  -- No additional inline payload lives on the effect root.
+  -- Nested invocation and moment trees are persisted in owned child tables.
 
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()

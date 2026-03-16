@@ -1,42 +1,35 @@
-import type { DBLike } from '#types'
+import type { DBLike } from '@db-types'
 import type { SavingThrowAuthored } from '@artificer-toolkit/shared'
-import { assertNever } from '../../../utils/index.js'
 
 export async function upsertSavingThrow(db: DBLike, json_data: SavingThrowAuthored) {
   const trx = await db.startTransaction().execute()
 
-  const savingThrow = (() => {
-    switch (json_data.savingThrowKind) {
-      case 'FIXED_VALUE':
-        return {
-          id: json_data.id,
-          ability_code: json_data.ability,
-          saving_throw_kind: json_data.savingThrowKind,
-          dc: json_data.dc
-        }
-
-      case 'SPELL_SAVE_DC':
-        return {
-          id: json_data.id,
-          ability_code: 'SPELLCASTING',
-          saving_throw_kind: json_data.savingThrowKind,
-          dc: null
-        }
-
-      default:
-        return assertNever(json_data)
-    }
-  })()
+  // Generated DB types are still pre-recreate. Keep this wrapper aligned to the
+  // authored contract now, then let the Phase 4 type-regeneration checkpoint
+  // remove the fallback casts once `saving_throws` is regenerated.
+  const savingThrow = ('ability' in json_data)
+    ? {
+        id: json_data.id,
+        ability_code: json_data.ability,
+        saving_throw_kind: json_data.savingThrowKind,
+        dc: json_data.dc
+      }
+    : {
+        id: json_data.id,
+        ability_code: null,
+        saving_throw_kind: json_data.savingThrowKind,
+        dc: null
+      }
 
   try {
     await trx
       .insertInto('saving_throws')
-      .values(savingThrow)
+      .values(savingThrow as never)
       .onConflict((oc) => oc.column('id')
         .doUpdateSet(({ ref }) => ({
-          ability_code: ref('excluded.ability_code'),
-          saving_throw_kind: ref('excluded.saving_throw_kind'),
-          dc: ref('excluded.dc')
+          ability_code: ref('excluded.ability_code') as never,
+          saving_throw_kind: ref('excluded.saving_throw_kind') as never,
+          dc: ref('excluded.dc') as never
         })))
       .executeTakeFirstOrThrow()
 

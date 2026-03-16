@@ -8,9 +8,7 @@
  *
  * Notes:
  * - Uses stale deletes for child tables to remain idempotent.
- * - Uses a single ROOT upsert that chains child upserts.
- * - Assumes you already have:
- *   - public.upsert_json_array(...) helper (array upsert helper)
+ * - Schema/bootstrap only. Application writes are handled later through Kysely.
  *************************************************/
 
 -- =========================================================
@@ -31,9 +29,8 @@ CREATE TABLE IF NOT EXISTS public.damages (
   value_kind text NOT NULL,        -- DAMAGE_VALUE_KIND: FIXED | DICE | POOL
   scaling_kind text NOT NULL,      -- SCALING_KIND: NONE | PER_LEVEL
 
-  scaling_source text,             -- SCALING_SOURCE: CHARACTER_LEVEL | CLASS_LEVEL | SPELL_LEVEL
+  scaling_source text,             -- SCALING_SOURCE: CHARACTER_LEVEL | CLASS_LEVEL | SPELL_CAST_LEVEL
   class_id uuid,                   -- CLASS_LEVEL only; deferred FK added in bootstrap/constraints/cross_domain_foreign_keys.sql
-  spell_id uuid,                   -- SPELL_LEVEL only; deferred FK added in bootstrap/constraints/cross_domain_foreign_keys.sql
 
   sort_order integer NOT NULL DEFAULT 0,
 

@@ -62,11 +62,11 @@ export const seedBaselineContent: SeedBaselineContent = async (
   }
 
   for (const feature of bundle.features.features) {
-    await upsertFeature(context.db, feature)
+    await upsertFeature(context.db, feature, context.systemId)
   }
 
   for (const option of bundle.features.options) {
-    await upsertOption(context.db, option)
+    await upsertOption(context.db, option, context.systemId)
   }
 
   for (const featGrant of bundle.grants.feats) {
@@ -74,7 +74,7 @@ export const seedBaselineContent: SeedBaselineContent = async (
   }
 
   for (const modifierGrant of bundle.grants.modifiers) {
-    await upsertModifierGrant(context.db, modifierGrant)
+    await upsertModifierGrant(context.db, modifierGrant, context.systemId)
   }
 
   for (const proficiencyGrant of bundle.grants.proficiencies) {

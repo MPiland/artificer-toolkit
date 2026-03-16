@@ -9,7 +9,7 @@
  *   - apply_direct_ownership_policies()
  *       Policy helper for tables owned directly by a user
  *       (user_id column, is_master flag).
- *       Used by: characters
+ *       Used by: user-owned master-aware tables.
  *   - apply_system_derived_policies()
  *       Policy helper for content scoped to a system row.
  *       (system_id column, is_master flag).
@@ -155,7 +155,7 @@ $$;
  * Users can only read/write their own non-master rows.
  * Admins (JWT app_metadata.admin = 'true') bypass.
  *
- * Usage: SELECT public.apply_direct_ownership_policies('characters');
+ * Usage: SELECT public.apply_direct_ownership_policies('<table_name>');
  * ────────────────────────────────────────────── */
 
 CREATE OR REPLACE FUNCTION public.apply_direct_ownership_policies(target_table text)

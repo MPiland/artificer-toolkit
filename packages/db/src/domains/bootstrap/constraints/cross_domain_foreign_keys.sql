@@ -32,18 +32,6 @@ $$;
 
 DO $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'damages_spell_id_fkey') THEN
-    ALTER TABLE public.damages
-      ADD CONSTRAINT damages_spell_id_fkey
-      FOREIGN KEY (spell_id) REFERENCES public.spells(id)
-      ON DELETE SET NULL
-      DEFERRABLE INITIALLY DEFERRED;
-  END IF;
-END;
-$$;
-
-DO $$
-BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'facet_body_selection_items_class_id_fkey') THEN
     ALTER TABLE public.facet_body_selection_items
       ADD CONSTRAINT facet_body_selection_items_class_id_fkey
@@ -464,18 +452,6 @@ $$;
 
 DO $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'feature_option_level_links_option_id_fkey') THEN
-    ALTER TABLE public.feature_option_level_links
-      ADD CONSTRAINT feature_option_level_links_option_id_fkey
-      FOREIGN KEY (option_id) REFERENCES public.options(id)
-      ON DELETE CASCADE
-      DEFERRABLE INITIALLY DEFERRED;
-  END IF;
-END;
-$$;
-
-DO $$
-BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'option_feat_grants_feat_grant_id_fkey') THEN
     ALTER TABLE public.option_feat_grants
       ADD CONSTRAINT option_feat_grants_feat_grant_id_fkey
@@ -572,18 +548,6 @@ $$;
 
 DO $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'spell_grants_spell_id_fkey') THEN
-    ALTER TABLE public.spell_grants
-      ADD CONSTRAINT spell_grants_spell_id_fkey
-      FOREIGN KEY (spell_id) REFERENCES public.spells(id)
-      ON DELETE SET NULL
-      DEFERRABLE INITIALLY DEFERRED;
-  END IF;
-END;
-$$;
-
-DO $$
-BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'spell_grant_spells_spell_id_fkey') THEN
     ALTER TABLE public.spell_grant_spells
       ADD CONSTRAINT spell_grant_spells_spell_id_fkey
@@ -612,18 +576,6 @@ BEGIN
     ALTER TABLE public.sense_grants
       ADD CONSTRAINT sense_grants_class_id_fkey
       FOREIGN KEY (class_id) REFERENCES public.classes(id)
-      ON DELETE SET NULL
-      DEFERRABLE INITIALLY DEFERRED;
-  END IF;
-END;
-$$;
-
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'sense_grants_spell_id_fkey') THEN
-    ALTER TABLE public.sense_grants
-      ADD CONSTRAINT sense_grants_spell_id_fkey
-      FOREIGN KEY (spell_id) REFERENCES public.spells(id)
       ON DELETE SET NULL
       DEFERRABLE INITIALLY DEFERRED;
   END IF;

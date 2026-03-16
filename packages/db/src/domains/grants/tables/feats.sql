@@ -10,7 +10,6 @@
 *
 * Ownership:
 *   feat_grants → feat_grant_charges     (owned rows in public.charges)
-*   feat_grants → feat_grant_traits      (codes only; not owned entities)
 *   feat_grants → feat_grant_feats       (references feats; not owned entities)
 *   feat_grants → feat_grant_scaling_levels
 *   feat_grant_scaling_levels → feat_grant_scaling_level_feats
@@ -23,17 +22,45 @@ CREATE TABLE IF NOT EXISTS public.feat_grants (
   selection_kind text NOT NULL, -- AuthoringSelectionType (GRANTED | CHOSEN)
   scaling_kind text NOT NULL, -- ScalingType (NONE | PER_LEVEL)
   /* payload discriminator */
-  authoring_mode_kind text NOT NULL, -- AuthoringMode (ALL | SELECTED)
+  authoring_mode_kind text NOT NULL, -- ALL | SELECTED
   /* CHOSEN (scaling NONE) only */
   selection_count integer, -- payload.count when CHOSEN + scaling NONE
   /* PER_LEVEL scaling source (only relevant when scaling_kind = PER_LEVEL) */
-  scaling_source text, -- ScalingSource (CHARACTER_LEVEL | CLASS_LEVEL | SPELL_LEVEL)
+  scaling_source text, -- ScalingSource (CHARACTER_LEVEL | CLASS_LEVEL | SPELL_CAST_LEVEL)
   class_id uuid, -- CLASS_LEVEL
-  spell_id uuid, -- SPELL_LEVEL
-  charge_id uuid NOT NULL REFERENCES public.charges (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  charge_id uuid REFERENCES public.charges (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   restriction_id uuid REFERENCES public.facets (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT feat_grants_root_sort_order_chk CHECK (
+    sort_order > 0
+  ),
+  CONSTRAINT feat_grants_root_selection_kind_chk CHECK (
+    selection_kind IN ('GRANTED', 'CHOSEN')
+  ),
+  CONSTRAINT feat_grants_root_scaling_kind_chk CHECK (
+    scaling_kind IN ('NONE', 'PER_LEVEL')
+  ),
+  CONSTRAINT feat_grants_root_selection_count_chk CHECK (
+    (scaling_kind <> 'NONE' AND selection_count IS NULL)
+    OR (scaling_kind = 'NONE' AND selection_kind <> 'CHOSEN' AND selection_count IS NULL)
+    OR (scaling_kind = 'NONE' AND selection_kind = 'CHOSEN' AND selection_count IS NOT NULL AND selection_count > 0)
+  ),
+  CONSTRAINT feat_grants_root_authoring_mode_chk CHECK (
+    authoring_mode_kind IN ('ALL', 'SELECTED')
+  ),
+  CONSTRAINT feat_grants_root_scaling_source_chk CHECK (
+    (scaling_kind = 'PER_LEVEL' AND scaling_source IN ('CHARACTER_LEVEL', 'CLASS_LEVEL', 'PARENT_CLASS_LEVEL', 'SPELL_CAST_LEVEL'))
+    OR (scaling_kind = 'NONE' AND scaling_source IS NULL)
+  ),
+  CONSTRAINT feat_grants_root_scaling_class_chk CHECK (
+    (scaling_source = 'CLASS_LEVEL' AND class_id IS NOT NULL)
+    OR ((scaling_source IS NULL OR scaling_source <> 'CLASS_LEVEL') AND class_id IS NULL)
+  ),
+  CONSTRAINT feat_grants_root_mode_usage_chk CHECK (
+    (scaling_kind = 'NONE' AND authoring_mode_kind IN ('ALL', 'SELECTED'))
+    OR (scaling_kind = 'PER_LEVEL' AND authoring_mode_kind = 'ALL')
+  )
 );
 
 ALTER TABLE public.feat_grants ENABLE ROW LEVEL SECURITY;
@@ -73,29 +100,6 @@ BEGIN
   END IF;
 END;
 $$;
-
-/* ──────────────────────────────────────────────
-* FEAT GRANT — TRAITS (CODES)
-*
-* Intent:
-*   Authoring traits applied to the grant.
-*
-* Cardinality:
-*   feat_grants 1 ──▶ N trait codes
-*
-* Ownership:
-*   Owned by feat_grants (rows only).
-* ────────────────────────────────────────────── */
-CREATE TABLE IF NOT EXISTS public.feat_grant_traits (
-  feat_grant_id uuid NOT NULL REFERENCES public.feat_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  trait_code text NOT NULL, -- TraitCode (string)
-  sort_order integer NOT NULL,
-  PRIMARY KEY (feat_grant_id, trait_code)
-);
-
-ALTER TABLE public.feat_grant_traits ENABLE ROW LEVEL SECURITY;
-
-CREATE INDEX IF NOT EXISTS idx_feat_grant_traits_grant ON public.feat_grant_traits (feat_grant_id);
 
 /* ──────────────────────────────────────────────
 * FEAT GRANT — FEATS (ROOT PAYLOAD, SELECTED ONLY)
@@ -143,12 +147,27 @@ CREATE TABLE IF NOT EXISTS public.feat_grant_scaling_levels (
   authoring_mode_kind text NOT NULL, -- ALL | SELECTED (per-level payload)
   selection_count integer, -- value.count when selection_kind = CHOSEN (per-level)
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT feat_grant_scaling_levels_level_chk CHECK (
+    level > 0
+  ),
+  CONSTRAINT feat_grant_scaling_levels_sort_order_chk CHECK (
+    sort_order > 0
+  ),
+  CONSTRAINT feat_grant_scaling_levels_mode_chk CHECK (
+    authoring_mode_kind IN ('ALL', 'SELECTED')
+  ),
+  CONSTRAINT feat_grant_scaling_levels_selection_count_chk CHECK (
+    selection_count IS NULL OR selection_count > 0
+  )
 );
 
 ALTER TABLE public.feat_grant_scaling_levels ENABLE ROW LEVEL SECURITY;
 
 CREATE INDEX IF NOT EXISTS idx_feat_grant_scaling_levels_grant ON public.feat_grant_scaling_levels (feat_grant_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_feat_grant_scaling_levels_grant_level
+  ON public.feat_grant_scaling_levels (feat_grant_id, level);
 
 /* ──────────────────────────────────────────────
 * FEAT GRANT — SCALING LEVEL FEATS (SELECTED ONLY)

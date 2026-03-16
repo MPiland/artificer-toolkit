@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS public.proficiency_grants (
   sort_order integer NOT NULL,
   proficiency_kind text NOT NULL,
   selection_kind text NOT NULL,
-  authoring_mode_kind text NOT NULL,
+  authoring_mode_kind text NOT NULL, -- ALL | SELECTED
   count integer,
   level text NOT NULL,
   rounding text,
@@ -27,6 +27,9 @@ CREATE TABLE IF NOT EXISTS public.proficiency_grants (
   CONSTRAINT proficiency_grants_count_chk CHECK (
     (selection_kind <> 'CHOSEN' AND count IS NULL)
     OR (selection_kind = 'CHOSEN' AND count IS NOT NULL AND count > 0)
+  ),
+  CONSTRAINT proficiency_grants_authoring_mode_chk CHECK (
+    authoring_mode_kind IN ('ALL', 'SELECTED')
   ),
   CONSTRAINT proficiency_grants_rounding_chk CHECK (
     (level = 'HALF' AND rounding IS NOT NULL)
@@ -69,17 +72,6 @@ BEGIN
   END IF;
 END;
 $$;
-
-CREATE TABLE IF NOT EXISTS public.proficiency_grant_traits (
-  proficiency_grant_id uuid NOT NULL REFERENCES public.proficiency_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  trait_code text NOT NULL,
-  sort_order integer NOT NULL,
-  PRIMARY KEY (proficiency_grant_id, trait_code)
-);
-
-ALTER TABLE public.proficiency_grant_traits ENABLE ROW LEVEL SECURITY;
-
-CREATE INDEX IF NOT EXISTS idx_proficiency_grant_traits_grant ON public.proficiency_grant_traits (proficiency_grant_id);
 
 CREATE TABLE IF NOT EXISTS public.proficiency_grant_skills (
   proficiency_grant_id uuid NOT NULL REFERENCES public.proficiency_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,

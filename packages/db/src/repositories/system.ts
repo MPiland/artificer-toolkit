@@ -8,7 +8,7 @@ import type { SystemRepository } from './contracts.js'
 
 type VocabularyTableName =
   | 'alignments'
-  | 'conditions'
+  | 'condition_types'
   | 'currencies'
   | 'damage_types'
   | 'languages'
@@ -72,7 +72,7 @@ async function hydrateSystemById(
     terrains
   ] = await Promise.all([
     readVocabularyRows(db, 'alignments', row.id),
-    readVocabularyRows(db, 'conditions', row.id),
+    readVocabularyRows(db, 'condition_types', row.id),
     readVocabularyRows(db, 'currencies', row.id),
     readVocabularyRows(db, 'damage_types', row.id),
     readVocabularyRows(db, 'languages', row.id),

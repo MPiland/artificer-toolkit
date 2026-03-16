@@ -16,9 +16,9 @@ SET LOCAL search_path = public, pg_catalog;
 SET CONSTRAINTS ALL DEFERRED;
 
 -- 1) Shared primitives (types/functions/views used by others)
-\i :etl_root'/subjects/tables/systems.sql'
 \i :etl_root'/utils/tables/utils.sql'
 \i :etl_root'/utils/tables/user_management.sql'
+\i :etl_root'/subjects/tables/systems.sql'
 \i :etl_root'/shared/tables/charges.sql'
 \i :etl_root'/shared/tables/details.sql'
 \i :etl_root'/shared/tables/characteristics.sql'
@@ -40,6 +40,7 @@ SET CONSTRAINTS ALL DEFERRED;
 \i :etl_root'/grants/tables/senses.sql'
 \i :etl_root'/grants/tables/spells.sql'
 \i :etl_root'/subjects/tables/backgrounds.sql'
+\i :etl_root'/subjects/tables/characters.sql'
 \i :etl_root'/subjects/tables/classes.sql'
 \i :etl_root'/subjects/tables/equipment.sql'
 \i :etl_root'/subjects/tables/feats.sql'

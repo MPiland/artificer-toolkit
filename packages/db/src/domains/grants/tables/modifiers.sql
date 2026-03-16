@@ -94,17 +94,6 @@ CREATE INDEX IF NOT EXISTS idx_modifier_grant_domain_params_domain ON public.mod
 CREATE INDEX IF NOT EXISTS idx_modifier_grant_domain_params_skill ON public.modifier_grant_domain_params (skill_id);
 CREATE INDEX IF NOT EXISTS idx_modifier_grant_domain_params_speed ON public.modifier_grant_domain_params (speed_id);
 
-CREATE TABLE IF NOT EXISTS public.modifier_grant_traits (
-  modifier_grant_id uuid NOT NULL REFERENCES public.modifier_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  trait_code text NOT NULL,
-  sort_order integer NOT NULL,
-  PRIMARY KEY (modifier_grant_id, trait_code)
-);
-
-ALTER TABLE public.modifier_grant_traits ENABLE ROW LEVEL SECURITY;
-
-CREATE INDEX IF NOT EXISTS idx_modifier_grant_traits_grant ON public.modifier_grant_traits (modifier_grant_id);
-
 CREATE TABLE IF NOT EXISTS public.modifier_grant_payloads (
   modifier_grant_id uuid PRIMARY KEY REFERENCES public.modifier_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   modifier_kind text NOT NULL,
@@ -149,7 +138,9 @@ CREATE TABLE IF NOT EXISTS public.modifier_grant_payloads (
   ),
   CONSTRAINT modifier_grant_payloads_charge_level_scaled_chk CHECK (
     charge_limit_kind IS DISTINCT FROM 'CHARACTER_LEVEL'
-    AND charge_limit_kind IS DISTINCT FROM 'SOURCE_LEVEL'
+    AND charge_limit_kind IS DISTINCT FROM 'CLASS_LEVEL'
+    AND charge_limit_kind IS DISTINCT FROM 'PARENT_CLASS_LEVEL'
+    AND charge_limit_kind IS DISTINCT FROM 'SPELL_CAST_LEVEL'
     OR (
       charge_scaling_kind = 'NONE'
       AND charge_amount IS NULL

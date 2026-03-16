@@ -19,15 +19,10 @@
       "default": "./dist/types/column-meta.js"
     }
   },
-  "imports": {
-    "#types": {
-      "types": "./dist/types/index.d.ts",
-      "default": "./dist/types/index.js"
-    }
-  },
   "scripts": {
     "clean": "rimraf dist",
     "build": "tsc -p tsconfig.build.json",
+    "build:create-db-bundle": "node ./scripts/build-create-database-bundle.mjs",
     "gen:types": "supabase gen types typescript --project-id cvxfhtkksdeiycxpryhy --schema public,storage > src/types/supabase.database.ts"
   },
   "dependencies": {

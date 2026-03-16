@@ -10,7 +10,6 @@
  *
  * Ownership:
  *   races → details (owned)
- *   races → traits (codes)
  *   races → features (owned via bridge)
  *   races → speeds (owned)
  *   races → ancestry (owned subtree, BASE only)
@@ -43,7 +42,14 @@ CREATE TABLE IF NOT EXISTS public.races (
 
   size_code text,                      -- SizeCode
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT races_category_chk CHECK (
+    category IN ('BASE', 'SUBRACE')
+  ),
+  CONSTRAINT races_category_payload_chk CHECK (
+    (category = 'BASE' AND parent_race_id IS NULL AND playable IS NOT NULL AND size_code IS NOT NULL)
+    OR (category = 'SUBRACE' AND parent_race_id IS NOT NULL AND playable IS NULL)
+  )
 );
 
 ALTER TABLE public.races ENABLE ROW LEVEL SECURITY;
@@ -99,27 +105,6 @@ BEGIN
   END IF;
 END;
 $$;
-
-/* ──────────────────────────────────────────────
- * RACE — TRAITS
- * ────────────────────────────────────────────── */
-
-CREATE TABLE IF NOT EXISTS public.race_traits (
-  race_id uuid NOT NULL
-    REFERENCES public.races(id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
-
-  trait_code text NOT NULL,
-  sort_order integer NOT NULL,
-
-  PRIMARY KEY (race_id, trait_code)
-);
-
-ALTER TABLE public.race_traits ENABLE ROW LEVEL SECURITY;
-
-CREATE INDEX IF NOT EXISTS idx_race_traits_race
-  ON public.race_traits(race_id);
 
 /* ──────────────────────────────────────────────
  * RACE — FEATURES (OWNED)

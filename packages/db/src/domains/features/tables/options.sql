@@ -3,7 +3,7 @@
 *
 * Intent:
 *   A Feature Option is an authored feature-like container that can
-*   carry traits, restrictions, charges, effects, and grants.
+*   carry attributes, restrictions, charges, effects, and grants.
 *
 *   This table represents the option itself; all child content is stored
 *   in owned/authoritative child tables and bridge tables.
@@ -72,29 +72,6 @@ BEGIN
   END IF;
 END;
 $$;
-
-/* ──────────────────────────────────────────────
-* FEATURE OPTION — TRAITS
-*
-* Intent:
-*   Stores TraitCode[] for the option (engine-core codes).
-*
-* Cardinality:
-*   options 1 ──▶ N option_traits
-*
-* Ownership:
-*   Fully owned by options (authoritative array surface).
-* ────────────────────────────────────────────── */
-CREATE TABLE IF NOT EXISTS public.option_traits (
-  option_id uuid NOT NULL REFERENCES public.options (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  trait_code text NOT NULL,
-  sort_order integer NOT NULL,
-  PRIMARY KEY (option_id, trait_code)
-);
-
-CREATE INDEX IF NOT EXISTS idx_option_traits_option ON public.option_traits (option_id);
-
-ALTER TABLE public.option_traits ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE IF NOT EXISTS public.option_attributes (
   option_id uuid NOT NULL REFERENCES public.options (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,

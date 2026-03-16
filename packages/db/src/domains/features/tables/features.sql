@@ -3,17 +3,17 @@
 *
 * Intent:
 *   A Feature is an authored container that groups
-*   traits, restrictions, effects, grants, and
+*   attributes, restrictions, effects, grants, and
 *   selectable feature options.
 *
 *   Features may optionally expose Feature Options
-*   gated by level via optionsByLevel.
+*   gated by level via optionChoices.
 *
 * Cardinality:
 *   systems 1 ──▶ N features
 *
 * Ownership:
-*   features → traits
+*   features → attributes
 *   features → restrictions (owned)
 *   features → effects (owned)
 *   features → <typed grant bridges>
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS public.features (
   charge_id uuid REFERENCES public.charges (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   restriction_id uuid REFERENCES public.facets (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   sort_order integer NOT NULL,
-  level_available text, -- authored string (e.g. "4, 8, 12")
+  available_at_level integer,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -70,26 +70,6 @@ BEGIN
   END IF;
 END;
 $$;
-
-/* ──────────────────────────────────────────────
-* FEATURE — TRAITS
-*
-* Intent:
-*   Stores TraitCode[] applied to the feature.
-*
-* Ownership:
-*   Fully owned by features (authoritative array).
-* ────────────────────────────────────────────── */
-CREATE TABLE IF NOT EXISTS public.feature_traits (
-  feature_id uuid NOT NULL REFERENCES public.features (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  trait_code text NOT NULL,
-  sort_order integer NOT NULL,
-  PRIMARY KEY (feature_id, trait_code)
-);
-
-CREATE INDEX IF NOT EXISTS idx_feature_traits_feature ON public.feature_traits (feature_id);
-
-ALTER TABLE public.feature_traits ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE IF NOT EXISTS public.feature_attributes (
   feature_id uuid NOT NULL REFERENCES public.features (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
@@ -318,10 +298,3 @@ CREATE TABLE IF NOT EXISTS public.feature_option_levels (
 
 ALTER TABLE public.feature_option_levels ENABLE ROW LEVEL SECURITY;
 
-CREATE TABLE IF NOT EXISTS public.feature_option_level_links (
-  option_level_id uuid NOT NULL REFERENCES public.feature_option_levels (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  option_id uuid NOT NULL,
-  PRIMARY KEY (option_level_id, option_id)
-);
-
-ALTER TABLE public.feature_option_level_links ENABLE ROW LEVEL SECURITY;

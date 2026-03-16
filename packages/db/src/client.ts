@@ -1,6 +1,6 @@
 import { Kysely, PostgresDialect, sql } from 'kysely'
 import { Pool } from 'pg'
-import type { Database } from '#types'
+import type { Database } from '@db-types'
 
 export function createDb() {
   return new Kysely<Database>({
