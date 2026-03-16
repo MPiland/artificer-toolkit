@@ -99,7 +99,7 @@ Character tables must therefore be classified as:
 
 ### 6. Character persistence
 
-- `subjects/upserts/character.sql`
+- `subjects/tables/characters.sql`
 - every table defined there must be classified as `intent`, `state`, `derived`, or `mixed`
 
 ## Known Hotspots
@@ -145,12 +145,26 @@ This audit is complete only when:
 - Audit complete for all persisted authored-data table groups
 - Serious SRD seed population remains gated on resolution of all `Refactor before seed` items
 - SQL refactor pass is now in progress
+- stale feature, option, and grant trait persistence has been removed from the schema and legacy SQL upsert sources, reducing drift against the settled authored contracts before recreate
 - Kysely-first write migration is now part of the Phase 4 execution path; `.sql` files are being reduced to schema/bootstrap only
+- legacy SQL grant procedures for `feat`, `proficiency`, `sense`, and `spell` have been removed, and the matching TS write exports now fail explicitly as placeholders until post-recreate Kysely implementations land
+- legacy SQL feature and option procedures have also been removed, with matching explicit-placeholder TS write exports
+- legacy SQL effect procedures and nested effect-payload procedures have also been removed, with `effect.ts` now failing explicitly as a placeholder
+- the legacy SQL starting-equipment procedure tree has also been removed, with `starting_equipment.ts` now failing explicitly as a placeholder
+- the remaining subject-root and system SQL procedures have also been removed, and their TS write exports now fail explicitly as placeholders until post-recreate Kysely implementations land
+- the SQL `upsert_charge(...)` helper and the old `upsert_json_array(...)` write helper are now gone as well, leaving no intended SQL write API in the repo
+- the latest schema audit pass has tightened several authored-alignment issues directly in the table SQL:
+  - defaultable `authoringModeKind` is now represented honestly in starting-equipment, grant, and facet selection tables
+  - optional grant charges are nullable where the authored contracts make them optional
+  - class spellcasting now requires charges when that subtree exists
+  - race root persistence now encodes base-vs-subrace rules more explicitly and no longer includes the stale `race_traits` table
+  - required equipment vocabulary references now use delete behavior that matches their non-null authored role
+  - effect moments now preserve authored ids and roll-table entry descriptions instead of older storage-oriented assumptions
 - First refactor tranche landed for:
   - `grants/tables/modifiers.sql`
   - `grants/tables/proficiencies.sql`
 - Character persistence has started that migration:
-  - legacy SQL `upsert_character*` functions were removed from `subjects/upserts/character.sql`
+  - legacy SQL `upsert_character*` functions were removed from `subjects/tables/characters.sql`
   - the table layer is being reshaped toward `intent` and mutable `state`
 - Next execution step is to continue the SQL refactor pass with features/options and then subject roots, followed by bootstrap regeneration and empty-db verification
 
@@ -189,6 +203,7 @@ This audit is a Phase 4 gate, not optional cleanup. Do not begin broad SRD conte
 - Target shape: reshape `charge_limits` and related tables around the current authored discriminated union so DB rows hydrate back to `ChargeAuthored` without source-specific hacks.
 - Why clearer: charge semantics become authored-first again instead of mixing old source-driven persistence with new scaling contracts.
 - Must happen before seed: yes.
+- Progress note: root/source-level drift is now reduced. The table shape has been tightened with authored-aligned limit checks, stable child IDs for scaling levels and bonuses, removal of the old one-bonus-per-kind restriction, and explicit support for `CLASS_LEVEL`, `PARENT_CLASS_LEVEL`, and `SPELL_CAST_LEVEL` in `charge_limits`. Kysely writes and regenerated DB types still need to catch up after recreate.
 
 #### `shared/tables/starting_equipment.sql`
 
@@ -197,6 +212,7 @@ This audit is a Phase 4 gate, not optional cleanup. Do not begin broad SRD conte
 - Target shape: keep the decomposed set/group/option/item structure, but tighten the ownership model so every subtree has a clear parent chain and adjust item payload checks to match `StartingEquipmentAuthored`.
 - Why clearer: this preserves authored ownership and avoids seeding data into a helper model that looks more reusable than it really is.
 - Must happen before seed: yes.
+- Progress note: the subtree structure remains intact, and item-level checks now enforce the equipment-vs-currency split plus chosen-vs-granted payload rules. Remaining work is bootstrap verification and downstream Kysely/type regeneration.
 
 ### 2. Correlated and polymorphic grant structures
 
@@ -212,16 +228,19 @@ This audit is a Phase 4 gate, not optional cleanup. Do not begin broad SRD conte
 
 - Verdict: `Keep with adjustments`
 - Rationale: root/scaling-level decomposition aligns well with `FeatGrantAuthored`, but it still needs tighter discriminator checks around `selection_kind`, `authoring_mode_kind`, `selection_count`, and `scaling_source`.
+- Progress note: stale scaling `spell_id` storage has been removed from the root grant row so per-level progression now follows the settled authored scaling refs more closely. Root/scaling-level enum and positive-order checks are now tightened as well, including a neutral-root sentinel rule for `PER_LEVEL` rows and unique per-grant level enforcement. Remaining work is recreate validation.
 
 #### `grants/tables/spells.sql`
 
 - Verdict: `Keep with adjustments`
 - Rationale: overall shape tracks `SpellGrantAuthored` well enough, including filters and per-level payloads, but it needs stricter authored-invariant checks and a review of whether `charge_id` should stay required when charges are optional in the authored contract.
+- Progress note: stale scaling `spell_id` storage has been removed from the root grant row so scaling now reflects `SPELL_CAST_LEVEL` semantics instead of a base spell identity. Root/scaling-level enum and positive-order checks are now tighter, `PER_LEVEL` rows no longer allow stale root-selected mode values, and spell-grant attributes / `cast_at_level` now have authored-aligned value checks. Remaining work is recreate validation plus any deeper cross-table applicability checks that bootstrap still exposes.
 
 #### `grants/tables/senses.sql`
 
 - Verdict: `Keep with adjustments`
 - Rationale: structure is close to `SenseGrantAuthored`, but it shares the same discriminator/check issues as the other scaling grants and should verify whether its owned `charge_id` is truly optional in storage.
+- Progress note: stale scaling `spell_id` storage has been removed from the root grant row so scaling now reflects the settled authored scaling refs more honestly. Root/scaling-level enum and positive-order checks are now tightened as well, including the neutral-root sentinel rule for `PER_LEVEL` rows and unique per-grant level enforcement. Remaining work is recreate validation.
 
 #### `grants/tables/proficiencies.sql`
 
@@ -240,6 +259,7 @@ This audit is a Phase 4 gate, not optional cleanup. Do not begin broad SRD conte
 - Target shape: preserve owned bridges for effects/grants/options, but add the missing authored-root persistence surfaces and tighten option-level tables to reflect `optionsPerLevel` exactly.
 - Why clearer: features are central authored containers and should persist the full authored root, not a partial approximation.
 - Must happen before seed: yes.
+- Progress note: root `available_at_level` now matches the settled authored timing language, stale trait persistence has been removed, and per-level option persistence now follows `optionChoices` directly instead of a stale `optionsPerLevel + optionIds` shape. Remaining work is recreate validation and downstream Kysely/type regeneration.
 
 #### `features/tables/options.sql`
 
@@ -263,6 +283,7 @@ This audit is a Phase 4 gate, not optional cleanup. Do not begin broad SRD conte
 - Target shape: keep the owned-subtree approach for spellcasting, multiclass, starting equipment, and related helpers, but add the missing authored-root/subtree fields and tighten category-specific invariants for base classes vs subclasses.
 - Why clearer: classes are one of the richest authored roots, so partial persistence here would force hydration hacks immediately.
 - Must happen before seed: yes.
+- Progress note: stale root `class_traits` storage has been removed, the class row now enforces the valid BASE-vs-SUBCLASS parent/starting-equipment split, class spellcasting now persists authored `prepareLimit.perLevel` rows instead of dropping them, spellcasting attributes now persist through an explicit owned `class_spellcasting_attributes` table instead of a stale trait surface, and multiclass persistence now follows authored `requirementGroups -> requirements` instead of the older recursive tree. Remaining work is recreate validation and downstream Kysely/type regeneration.
 
 #### `subjects/tables/equipment.sql`
 
@@ -271,6 +292,7 @@ This audit is a Phase 4 gate, not optional cleanup. Do not begin broad SRD conte
 - Target shape: preserve the decomposed ownership pattern for effects/modifiers/features/contains, but add the missing authored-root data and enforce base-vs-variant rules explicitly.
 - Why clearer: equipment is a large authored surface and should persist as a semantically exact root, not a partially inferred one.
 - Must happen before seed: yes.
+- Progress note: stale `equipment_traits` storage is removed from both the table layer and the legacy subject upsert source, capacity is now truly optional at the root, and the base-vs-variant parent rule is enforced. Remaining work is to confirm helper subtrees and recreate against the normalized root shape.
 
 #### `subjects/tables/feats.sql`
 
@@ -279,6 +301,7 @@ This audit is a Phase 4 gate, not optional cleanup. Do not begin broad SRD conte
 - Target shape: align feat persistence exactly to `FeatAuthored`, keeping owned bridges for effects/grants/features but removing or replacing stale root assumptions that are no longer authored.
 - Why clearer: feats should hydrate directly from persistence without inheriting leftover feature-like fields that no longer belong.
 - Must happen before seed: yes.
+- Progress note: stale root `restriction_id` and `feat_traits` storage have been removed from both the table layer and the legacy subject upsert source. Remaining work is recreate validation and downstream Kysely/type regeneration.
 
 #### `subjects/tables/races.sql`
 
@@ -292,6 +315,7 @@ This audit is a Phase 4 gate, not optional cleanup. Do not begin broad SRD conte
 - Target shape: keep the spell root plus owned effects/classes structure, but align the root columns to the current authored spell contract and move any non-authored semantics behind explicit helper surfaces only if they are still needed.
 - Why clearer: spells are canonical seed content and should not require special-case hydration logic to reconcile stale root columns.
 - Must happen before seed: yes.
+- Progress note: stale root `concentration_type` and `spell_traits` storage have been removed from both the table layer and the legacy subject upsert source. Remaining work is recreate validation and downstream Kysely/type regeneration.
 
 ### 5. Effects
 
@@ -309,6 +333,7 @@ This audit is a Phase 4 gate, not optional cleanup. Do not begin broad SRD conte
 
 - Verdict: `Keep with adjustments`
 - Rationale: the fixed/dice/pool split and scaling tables are broadly compatible with `DamageAuthored`, but this table still carries older source-specific columns (`class_id`, `spell_id`) and should tighten its scaling-source invariants before seed.
+- Progress note: stale root `spell_id` scaling storage has been removed, so damage scaling now lines up more closely with the settled `SPELL_CAST_LEVEL` authored meaning. Remaining work is tighter scaling-source invariants and recreate validation.
 
 #### `effects/tables/conditions.sql`
 
@@ -322,7 +347,7 @@ This audit is a Phase 4 gate, not optional cleanup. Do not begin broad SRD conte
 
 ### 6. Character persistence
 
-#### `subjects/upserts/character.sql`
+#### `subjects/tables/characters.sql`
 
 - Verdict: `Refactor before seed`
 - Current issue: the current character schema mixes intent, mutable current state, and clearly derived/runtime projection tables in one persistence layer. It also references older content-model names (`subfeature_*`, `character_feature_options`, `character_spells`, etc.) that do not match the current `CharacterIntent` and `CharacterState` contracts.
@@ -333,6 +358,7 @@ This audit is a Phase 4 gate, not optional cleanup. Do not begin broad SRD conte
   and then remove or redesign stale projection tables that persist recomputable feature/modifier/spell structures.
 - Why clearer: character persistence should answer `what was chosen` and `what is currently mutable`, while the engine answers `what does that mean`.
 - Must happen before seed: yes.
+- Progress note: the table layer is moving toward the authored contracts. `character_spell_slots` has now been removed because spell-slot usage is not part of the current `CharacterState` contract, hitpoint intent no longer allows the stale `ROLLED` method code, the point-buy / standard-array tables now persist the authored `ability + option` choice shape instead of derived leftovers, `character_abilities` now stores an explicit `method_code` instead of a generic `selected_system` reference, manual-rolled assignments now live in `character_abilities_manual_assignments` instead of the misleading `manual_overrides` name, starting-equipment choice rows now reference the selected authored option items directly, starting-equipment session rows now use authored `applied` wording, manual-rolled ability persistence now stores assignment/progress at the roll-group level where the authored model expects it, class-spell state no longer stores a redundant `class_level`, resource usage now points at persisted `character_resource_grants` instead of class resource definitions, ancestry option persistence has been removed from `character_race` so ancestry stays owned by `character_ancestry_acquisitions`, all character `subclassId` provenance references now point at subclass class rows instead of subtype rows, option-derived provenance now persists `acquired_parent_id` so parent acquisition chains survive hydration, and feature-selection values now enforce payload-column correlation by `value_kind`. Remaining work is recreate validation against the normalized character schema and then DB type regeneration.
 
 Character-specific classification guidance from the current SQL:
 
@@ -349,7 +375,6 @@ Character-specific classification guidance from the current SQL:
   - `character_attuned`
   - `character_currency_groups`
   - `character_currencies`
-  - `character_spell_slots`
   - `character_resources`
   - parts of hitpoint usage state
 
@@ -380,4 +405,4 @@ Resolve `Refactor before seed` items in this order:
   - `subjects/tables/spells.sql`
 
 4. Character persistence
-  - `subjects/upserts/character.sql`
+  - `subjects/tables/characters.sql`

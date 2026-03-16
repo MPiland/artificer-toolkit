@@ -9,6 +9,15 @@ The repo needs a two-pass bootstrap strategy:
 1. create tables without the cross-domain foreign keys that participate in cycles
 2. add those foreign keys in a later constraint pass after all root tables exist
 
+## Validation Result
+
+The two-pass bootstrap strategy is now implemented and has been validated against the linked Supabase project.
+
+- the project `public` schema was destructively reset
+- the generated bootstrap bundle was pushed as the authoritative recreate migration
+- the recreate completed successfully without surfacing a new failing cluster
+- DB types were regenerated immediately afterward from the recreated live schema
+
 ## Confirmed Cycle Clusters
 
 ### Shared <-> Subjects
@@ -123,4 +132,4 @@ The important handoff decision is already made by the audit:
 
 - do not spend more time trying to fix bootstrap only by reshuffling file order
 - treat the bootstrap blocker as a schema-structure issue
-- Phase 4 should now implement a two-pass DDL strategy
+- the two-pass DDL strategy is the validated recreate path going forward

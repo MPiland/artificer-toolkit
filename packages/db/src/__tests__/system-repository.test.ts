@@ -55,7 +55,7 @@ describe('createSystemRepository', () => {
         }
       ],
       alignments: [{ id: 'a-1', system_id: 'system-1', code: 'LG', label: 'Lawful Good', description: null, tooltip: null, short: 'LG' }],
-      conditions: [{ id: 'c-1', system_id: 'system-1', code: 'BLINDED', label: 'Blinded', description: null, tooltip: null, short: null }],
+      condition_types: [{ id: 'c-1', system_id: 'system-1', code: 'BLINDED', label: 'Blinded', description: null, tooltip: null, short: null }],
       currencies: [{ id: 'cur-1', system_id: 'system-1', code: 'GP', label: 'Gold Piece', description: null, tooltip: null, short: 'gp' }],
       damage_types: [{ id: 'd-1', system_id: 'system-1', code: 'FIRE', label: 'Fire', description: null, tooltip: null, short: null }],
       languages: [{ id: 'l-1', system_id: 'system-1', code: 'COMMON', label: 'Common', description: null, tooltip: null, short: null }],
