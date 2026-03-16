@@ -1,4 +1,4 @@
-import type { DBLike } from '@db-types'
+import type { DBLike } from '#types'
 import {
   ABILITY_CODE,
   CLASS_ATTRIBUTE,
@@ -354,13 +354,11 @@ export async function upsertClass(
     : []
 
   const spellSlotRows: ClassSpellSlotRow[] = json_data.spellcasting
-    ? json_data.spellcasting.spellLimits.flatMap((limit) =>
-        limit.slots.map((slot) => ({
-          spell_limit_id: `${spellcastingId}::limit::${limit.classLevel}`,
-          spell_level: slot.spellLevel,
-          slot_count: slot.slotCount
-        }))
-      )
+    ? json_data.spellcasting.spellLimits.flatMap((limit) => limit.slots.map((slot) => ({
+        spell_limit_id: `${spellcastingId}::limit::${limit.classLevel}`,
+        spell_level: slot.spellLevel,
+        slot_count: slot.slotCount
+      })))
     : []
 
   const trx = await db.startTransaction().execute()
@@ -416,16 +414,24 @@ export async function upsertClass(
       })))
       .execute()
 
-    await trx.deleteFrom('class_features').where('class_id', '=', json_data.id).execute()
-    await trx.deleteFrom('class_details').where('class_id', '=', json_data.id).execute()
-    await trx.deleteFrom('class_proficiency_grants').where('class_id', '=', json_data.id).execute()
-    await trx.deleteFrom('class_attributes').where('class_id', '=', json_data.id).execute()
-    await trx.deleteFrom('class_subtypes').where('class_id', '=', json_data.id).execute()
-    await trx.deleteFrom('class_resources').where('class_id', '=', json_data.id).execute()
-    await trx.deleteFrom('class_spellcasting').where('class_id', '=', json_data.id).execute()
+    await trx.deleteFrom('class_features').where('class_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('class_details').where('class_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('class_proficiency_grants').where('class_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('class_attributes').where('class_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('class_subtypes').where('class_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('class_resources').where('class_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('class_spellcasting').where('class_id', '=', json_data.id)
+      .execute()
 
     if (detailRows.length > 0) {
-      await trx.insertInto('class_details').values(detailRows).execute()
+      await trx.insertInto('class_details').values(detailRows)
+        .execute()
     }
 
     const featureRows = (json_data.features ?? []).map((feature) => ({
@@ -435,42 +441,52 @@ export async function upsertClass(
     }))
 
     if (featureRows.length > 0) {
-      await trx.insertInto('class_features').values(featureRows).execute()
+      await trx.insertInto('class_features').values(featureRows)
+        .execute()
     }
 
     if (proficiencyRows.length > 0) {
-      await trx.insertInto('class_proficiency_grants').values(proficiencyRows).execute()
+      await trx.insertInto('class_proficiency_grants').values(proficiencyRows)
+        .execute()
     }
 
     if (resourceRow) {
-      await trx.insertInto('class_resources').values(resourceRow).execute()
+      await trx.insertInto('class_resources').values(resourceRow)
+        .execute()
     }
 
     if (spellcastingRow) {
-      await trx.insertInto('class_spellcasting').values(spellcastingRow).execute()
+      await trx.insertInto('class_spellcasting').values(spellcastingRow)
+        .execute()
 
       if (spellcastingAttributeRows.length > 0) {
-        await trx.insertInto('class_spellcasting_attributes').values(spellcastingAttributeRows).execute()
+        await trx.insertInto('class_spellcasting_attributes').values(spellcastingAttributeRows)
+          .execute()
       }
 
       if (prepareLimitRow) {
-        await trx.insertInto('class_spellcasting_prepare_limit').values(prepareLimitRow).execute()
+        await trx.insertInto('class_spellcasting_prepare_limit').values(prepareLimitRow)
+          .execute()
       }
 
       if (prepareLimitMethodRows.length > 0) {
-        await trx.insertInto('class_spellcasting_prepare_limit_methods').values(prepareLimitMethodRows).execute()
+        await trx.insertInto('class_spellcasting_prepare_limit_methods').values(prepareLimitMethodRows)
+          .execute()
       }
 
       if (prepareLimitLevelRows.length > 0) {
-        await trx.insertInto('class_spellcasting_prepare_limit_levels').values(prepareLimitLevelRows).execute()
+        await trx.insertInto('class_spellcasting_prepare_limit_levels').values(prepareLimitLevelRows)
+          .execute()
       }
 
       if (spellLimitRows.length > 0) {
-        await trx.insertInto('class_spell_limits').values(spellLimitRows).execute()
+        await trx.insertInto('class_spell_limits').values(spellLimitRows)
+          .execute()
       }
 
       if (spellSlotRows.length > 0) {
-        await trx.insertInto('class_spell_slots').values(spellSlotRows).execute()
+        await trx.insertInto('class_spell_slots').values(spellSlotRows)
+          .execute()
       }
     }
 
@@ -482,7 +498,8 @@ export async function upsertClass(
       }))
 
       if (attributeRows.length > 0) {
-        await trx.insertInto('class_attributes').values(attributeRows).execute()
+        await trx.insertInto('class_attributes').values(attributeRows)
+          .execute()
       }
 
       await trx
@@ -513,7 +530,8 @@ export async function upsertClass(
         })))
         .execute()
 
-      await trx.deleteFrom('class_multiclass').where('class_id', '=', json_data.id).execute()
+      await trx.deleteFrom('class_multiclass').where('class_id', '=', json_data.id)
+        .execute()
 
       await trx
         .insertInto('class_multiclass')
@@ -530,21 +548,21 @@ export async function upsertClass(
       }))
 
       if (multiclassGroupRows.length > 0) {
-        await trx.insertInto('class_multiclass_requirement_groups').values(multiclassGroupRows).execute()
+        await trx.insertInto('class_multiclass_requirement_groups').values(multiclassGroupRows)
+          .execute()
       }
 
-      const multiclassRequirementRows: ClassMulticlassRequirementRow[] = json_data.multiclass.requirementGroups.groups.flatMap((group) =>
-        group.requirements.map((requirement, index) => ({
-          id: requirement.id,
-          requirement_group_id: group.id,
-          ability_code: requireAbilityCode(requirement.id, requirement.ability, 'Class multiclass requirement'),
-          min: requirement.min,
-          sort_order: index + 1
-        }))
-      )
+      const multiclassRequirementRows: ClassMulticlassRequirementRow[] = json_data.multiclass.requirementGroups.groups.flatMap((group) => group.requirements.map((requirement, index) => ({
+        id: requirement.id,
+        requirement_group_id: group.id,
+        ability_code: requireAbilityCode(requirement.id, requirement.ability, 'Class multiclass requirement'),
+        min: requirement.min,
+        sort_order: index + 1
+      })))
 
       if (multiclassRequirementRows.length > 0) {
-        await trx.insertInto('class_multiclass_requirements').values(multiclassRequirementRows).execute()
+        await trx.insertInto('class_multiclass_requirements').values(multiclassRequirementRows)
+          .execute()
       }
 
       const multiclassProficiencyRows: ClassMulticlassProficiencyGrantRow[] = (json_data.multiclass.proficiencies ?? []).map((grant) => ({
@@ -554,7 +572,8 @@ export async function upsertClass(
       }))
 
       if (multiclassProficiencyRows.length > 0) {
-        await trx.insertInto('class_multiclass_proficiency_grants').values(multiclassProficiencyRows).execute()
+        await trx.insertInto('class_multiclass_proficiency_grants').values(multiclassProficiencyRows)
+          .execute()
       }
     } else {
       const attributeRows: ClassAttributeRow[] = (json_data.attributes ?? []).map((attribute, index) => ({
@@ -564,12 +583,16 @@ export async function upsertClass(
       }))
 
       if (attributeRows.length > 0) {
-        await trx.insertInto('class_attributes').values(attributeRows).execute()
+        await trx.insertInto('class_attributes').values(attributeRows)
+          .execute()
       }
 
-      await trx.deleteFrom('class_hitpoints').where('class_id', '=', json_data.id).execute()
-      await trx.deleteFrom('class_starting_gold').where('class_id', '=', json_data.id).execute()
-      await trx.deleteFrom('class_multiclass').where('class_id', '=', json_data.id).execute()
+      await trx.deleteFrom('class_hitpoints').where('class_id', '=', json_data.id)
+        .execute()
+      await trx.deleteFrom('class_starting_gold').where('class_id', '=', json_data.id)
+        .execute()
+      await trx.deleteFrom('class_multiclass').where('class_id', '=', json_data.id)
+        .execute()
 
       const subtypeRows: ClassSubtypeRow[] = (json_data.subtypes ?? []).map((subtype) => ({
         id: subtype.id,
@@ -579,7 +602,8 @@ export async function upsertClass(
       }))
 
       if (subtypeRows.length > 0) {
-        await trx.insertInto('class_subtypes').values(subtypeRows).execute()
+        await trx.insertInto('class_subtypes').values(subtypeRows)
+          .execute()
       }
     }
 

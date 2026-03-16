@@ -1,4 +1,4 @@
-import type { DBLike } from '@db-types'
+import type { DBLike } from '#types'
 import type { DetailAuthored } from '@artificer-toolkit/shared'
 
 export async function upsertDetail(db: DBLike, json_data: DetailAuthored) {

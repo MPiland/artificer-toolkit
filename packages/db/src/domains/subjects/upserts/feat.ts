@@ -1,4 +1,4 @@
-import type { DBLike } from '@db-types'
+import type { DBLike } from '#types'
 import type { FeatAuthored } from '@artificer-toolkit/shared'
 import { upsertCharge } from '../../shared/upserts/index.js'
 import {

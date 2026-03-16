@@ -1,4 +1,4 @@
-import type { DBLike } from '@db-types'
+import type { DBLike } from '#types'
 import type { SavingThrowAuthored } from '@artificer-toolkit/shared'
 
 export async function upsertSavingThrow(db: DBLike, json_data: SavingThrowAuthored) {

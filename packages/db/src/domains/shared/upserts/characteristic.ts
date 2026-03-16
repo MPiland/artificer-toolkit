@@ -3,7 +3,7 @@ import {
   type RangeAuthored,
   type ShapeAuthored
 } from '@artificer-toolkit/shared'
-import type { SupabaseDatabase, DBLike } from '@db-types'
+import type { SupabaseDatabase, DBLike } from '#types'
 import { assertNever } from '../../../utils/index.js'
 
 export function mapRangeToRow(

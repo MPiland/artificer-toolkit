@@ -1,4 +1,4 @@
-import type { DBLike } from '@db-types'
+import type { DBLike } from '#types'
 import {
   MEASUREMENT_UNIT_CODE,
   RACE_CATEGORY_CODE,
@@ -157,13 +157,11 @@ export async function upsertRace(
     : []
 
   const ancestryOptionFeatureRows: RaceAncestryOptionFeatureRow[] = json_data.category === RACE_CATEGORY_CODE.BASE && json_data.ancestry
-    ? json_data.ancestry.options.flatMap((option) =>
-        (option.features ?? []).map((feature) => ({
-          ancestry_option_id: option.id,
-          feature_id: feature.id,
-          sort_order: feature.order
-        }))
-      )
+    ? json_data.ancestry.options.flatMap((option) => (option.features ?? []).map((feature) => ({
+        ancestry_option_id: option.id,
+        feature_id: feature.id,
+        sort_order: feature.order
+      })))
     : []
 
   const trx = await db.startTransaction().execute()

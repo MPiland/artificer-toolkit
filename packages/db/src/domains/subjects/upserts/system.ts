@@ -1,19 +1,19 @@
-import type { DBLike } from '@db-types'
+import type { DBLike } from '#types'
 import type { SystemSeedRecord } from '../../../source-data/content.js'
 
-type VocabularyTableName =
-  | 'alignments'
-  | 'condition_types'
-  | 'currencies'
-  | 'damage_types'
-  | 'languages'
-  | 'magic_schools'
-  | 'passives'
-  | 'rarities'
-  | 'senses'
-  | 'skills'
-  | 'speeds'
-  | 'terrains'
+type VocabularyTableName
+  = | 'alignments'
+    | 'condition_types'
+    | 'currencies'
+    | 'damage_types'
+    | 'languages'
+    | 'magic_schools'
+    | 'passives'
+    | 'rarities'
+    | 'senses'
+    | 'skills'
+    | 'speeds'
+    | 'terrains'
 
 type VocabularyRow = {
   id: string

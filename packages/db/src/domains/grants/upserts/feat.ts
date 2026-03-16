@@ -1,4 +1,4 @@
-import type { DBLike } from '@db-types'
+import type { DBLike } from '#types'
 import type { FeatGrantAuthored } from '@artificer-toolkit/shared'
 import { upsertFacet } from '../../shared/facets.js'
 import { upsertCharge } from '../../shared/upserts/charge.js'
@@ -171,11 +171,7 @@ function mapRootFeatRows(json_data: FeatGrantAuthored) {
 
   if (json_data.authoringModeKind !== 'SELECTED') {
     if ('featIds' in json_data) {
-      rejectAllModeFeatIds(
-        json_data.id,
-        (json_data as { featIds?: string[] }).featIds,
-        'root'
-      )
+      rejectAllModeFeatIds(json_data.id, (json_data as { featIds?: string[] }).featIds, 'root')
     }
     return []
   }
@@ -215,11 +211,7 @@ function mapScalingLevelFeatRows(json_data: FeatGrantAuthored): FeatGrantScaling
   return progression.levels.flatMap((level) => {
     if (level.authoringModeKind !== 'SELECTED') {
       if ('featIds' in level) {
-        rejectAllModeFeatIds(
-          json_data.id,
-          (level as { featIds?: string[] }).featIds,
-          level.id
-        )
+        rejectAllModeFeatIds(json_data.id, (level as { featIds?: string[] }).featIds, level.id)
       }
       return []
     }
@@ -235,10 +227,7 @@ export async function upsertFeatGrant(
   db: DBLike,
   json_data: FeatGrantAuthored
 ) {
-  const root = mapFeatGrantRootRow(
-    json_data,
-    json_data.charges?.id ?? null
-  )
+  const root = mapFeatGrantRootRow(json_data, json_data.charges?.id ?? null)
   const rootFeats = mapRootFeatRows(json_data)
   const scalingLevels = mapScalingLevelRows(json_data)
   const scalingLevelFeats = mapScalingLevelFeatRows(json_data)
@@ -253,7 +242,8 @@ export async function upsertFeatGrant(
       .executeTakeFirst()
 
     if (existingGrant?.restriction_id && existingGrant.restriction_id !== json_data.restrictions?.id) {
-      await trx.deleteFrom('facets').where('id', '=', existingGrant.restriction_id).execute()
+      await trx.deleteFrom('facets').where('id', '=', existingGrant.restriction_id)
+        .execute()
     }
 
     if (json_data.charges) {

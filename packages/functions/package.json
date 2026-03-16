@@ -27,6 +27,10 @@
       "types": "./dist/queries/*/index.d.ts",
       "default": "./dist/queries/*/index.js"
     },
+    "#services": {
+      "types": "./dist/services/index.d.ts",
+      "default": "./dist/services/index.js"
+    },
     "#runtime": {
       "types": "./dist/runtime/index.d.ts",
       "default": "./dist/runtime/index.js"

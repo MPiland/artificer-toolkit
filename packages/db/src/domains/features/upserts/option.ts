@@ -1,4 +1,4 @@
-import type { DBLike } from '@db-types'
+import type { DBLike } from '#types'
 import {
   FEATURE_ATTRIBUTE,
   type NodeSubjectCode,
@@ -141,7 +141,8 @@ export async function upsertOption<N extends NodeSubjectCode>(
       .execute()
 
     if (existingOption?.restriction_id && existingOption.restriction_id !== json_data.restrictions?.id) {
-      await trx.deleteFrom('facets').where('id', '=', existingOption.restriction_id).execute()
+      await trx.deleteFrom('facets').where('id', '=', existingOption.restriction_id)
+        .execute()
     }
 
     if (json_data.charges) {
@@ -189,12 +190,18 @@ export async function upsertOption<N extends NodeSubjectCode>(
       })))
       .execute()
 
-    await trx.deleteFrom('option_attributes').where('option_id', '=', json_data.id).execute()
-    await trx.deleteFrom('option_feat_grants').where('option_id', '=', json_data.id).execute()
-    await trx.deleteFrom('option_modifier_grants').where('option_id', '=', json_data.id).execute()
-    await trx.deleteFrom('option_proficiency_grants').where('option_id', '=', json_data.id).execute()
-    await trx.deleteFrom('option_sense_grants').where('option_id', '=', json_data.id).execute()
-    await trx.deleteFrom('option_spell_grants').where('option_id', '=', json_data.id).execute()
+    await trx.deleteFrom('option_attributes').where('option_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('option_feat_grants').where('option_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('option_modifier_grants').where('option_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('option_proficiency_grants').where('option_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('option_sense_grants').where('option_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('option_spell_grants').where('option_id', '=', json_data.id)
+      .execute()
 
     for (const previousEffect of previousEffectRows) {
       if (!nextEffectIds.has(previousEffect.effect_id)) {
@@ -218,27 +225,33 @@ export async function upsertOption<N extends NodeSubjectCode>(
     }
 
     if (attributeRows.length > 0) {
-      await trx.insertInto('option_attributes').values(attributeRows).execute()
+      await trx.insertInto('option_attributes').values(attributeRows)
+        .execute()
     }
 
     if (featGrantRows.length > 0) {
-      await trx.insertInto('option_feat_grants').values(featGrantRows).execute()
+      await trx.insertInto('option_feat_grants').values(featGrantRows)
+        .execute()
     }
 
     if (modifierGrantRows.length > 0) {
-      await trx.insertInto('option_modifier_grants').values(modifierGrantRows).execute()
+      await trx.insertInto('option_modifier_grants').values(modifierGrantRows)
+        .execute()
     }
 
     if (proficiencyGrantRows.length > 0) {
-      await trx.insertInto('option_proficiency_grants').values(proficiencyGrantRows).execute()
+      await trx.insertInto('option_proficiency_grants').values(proficiencyGrantRows)
+        .execute()
     }
 
     if (senseGrantRows.length > 0) {
-      await trx.insertInto('option_sense_grants').values(senseGrantRows).execute()
+      await trx.insertInto('option_sense_grants').values(senseGrantRows)
+        .execute()
     }
 
     if (spellGrantRows.length > 0) {
-      await trx.insertInto('option_spell_grants').values(spellGrantRows).execute()
+      await trx.insertInto('option_spell_grants').values(spellGrantRows)
+        .execute()
     }
 
     await trx.commit().execute()

@@ -1,4 +1,4 @@
-import type { DBLike } from '@db-types'
+import type { DBLike } from '#types'
 import {
   ABILITY_CODE,
   EQUIPMENT_CATEGORY_CODE,
@@ -175,11 +175,7 @@ function mapProficiencyGrantRow(json_data: ProficiencyGrantAuthored): Proficienc
   }
 
   if (json_data.level !== 'HALF' && 'rounding' in json_data) {
-    rejectNonHalfRounding(
-      json_data.id,
-      (json_data as { rounding?: string }).rounding,
-      json_data.level
-    )
+    rejectNonHalfRounding(json_data.id, (json_data as { rounding?: string }).rounding, json_data.level)
   }
 
   return {
@@ -221,11 +217,7 @@ export async function upsertProficiencyGrant(
           skill_id: skillId
         }))
       } else {
-        requireAbsentSelectedValues(
-          json_data.id,
-          ('skillIds' in json_data ? json_data.skillIds : undefined) as string[] | undefined,
-          'skillIds'
-        )
+        requireAbsentSelectedValues(json_data.id, ('skillIds' in json_data ? json_data.skillIds : undefined) as string[] | undefined, 'skillIds')
       }
       break
     }
@@ -237,11 +229,7 @@ export async function upsertProficiencyGrant(
           ability_code: requireAbilityCode(json_data.id, ability)
         }))
       } else {
-        requireAbsentSelectedValues(
-          json_data.id,
-          ('abilities' in json_data ? json_data.abilities : undefined) as string[] | undefined,
-          'abilities'
-        )
+        requireAbsentSelectedValues(json_data.id, ('abilities' in json_data ? json_data.abilities : undefined) as string[] | undefined, 'abilities')
       }
       break
     }
@@ -253,11 +241,7 @@ export async function upsertProficiencyGrant(
           language_id: languageId
         }))
       } else {
-        requireAbsentSelectedValues(
-          json_data.id,
-          ('languageIds' in json_data ? json_data.languageIds : undefined) as string[] | undefined,
-          'languageIds'
-        )
+        requireAbsentSelectedValues(json_data.id, ('languageIds' in json_data ? json_data.languageIds : undefined) as string[] | undefined, 'languageIds')
       }
       break
     }
@@ -280,11 +264,7 @@ export async function upsertProficiencyGrant(
         }))
       } else {
         // ALL mode: equipmentIds must not be present, but category and properties are valid extras on ALL per Selectable<TSelected, TExtra>
-        requireAbsentSelectedValues(
-          json_data.id,
-          ('equipmentIds' in equipmentGrant ? equipmentGrant.equipmentIds : undefined) as string[] | undefined,
-          'equipmentIds'
-        )
+        requireAbsentSelectedValues(json_data.id, ('equipmentIds' in equipmentGrant ? equipmentGrant.equipmentIds : undefined) as string[] | undefined, 'equipmentIds')
       }
 
       if (category || properties.length > 0) {
@@ -316,11 +296,7 @@ export async function upsertProficiencyGrant(
         }))
       } else {
         // ALL mode: properties must not be present, but category is a valid extra on ALL per Selectable<TSelected, TExtra>
-        requireAbsentSelectedValues(
-          json_data.id,
-          ('properties' in equipmentPropertyGrant ? equipmentPropertyGrant.properties : undefined) as string[] | undefined,
-          'properties'
-        )
+        requireAbsentSelectedValues(json_data.id, ('properties' in equipmentPropertyGrant ? equipmentPropertyGrant.properties : undefined) as string[] | undefined, 'properties')
       }
 
       if (category) {
@@ -348,7 +324,8 @@ export async function upsertProficiencyGrant(
       .executeTakeFirst()
 
     if (existingGrant?.restriction_id && existingGrant.restriction_id !== json_data.restrictions?.id) {
-      await trx.deleteFrom('facets').where('id', '=', existingGrant.restriction_id).execute()
+      await trx.deleteFrom('facets').where('id', '=', existingGrant.restriction_id)
+        .execute()
     }
 
     if (json_data.restrictions) {

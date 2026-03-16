@@ -1,4 +1,4 @@
-import type { DBLike } from '@db-types'
+import type { DBLike } from '#types'
 import type { BackgroundAuthored } from '@artificer-toolkit/shared'
 import {
   upsertDetail,

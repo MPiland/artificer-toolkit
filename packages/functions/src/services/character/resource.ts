@@ -1,7 +1,9 @@
-import type { CompiledCharacter, AssembledCharacterResource } from '@artificer-toolkit/shared'
+import type { AssembledCharacterResource } from '@artificer-toolkit/shared'
+
+import type { CharacterAssemblyInput } from './contract.js'
 
 export function assembleCharacterResources(
-  character: CompiledCharacter
+  character: CharacterAssemblyInput
 ): AssembledCharacterResource[] {
   const resources: AssembledCharacterResource[] = []
 

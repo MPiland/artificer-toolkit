@@ -3,7 +3,7 @@ import {
   type ChargeAuthored,
   type ChargeBonusAuthored
 } from '@artificer-toolkit/shared'
-import type { DBLike } from '@db-types'
+import type { DBLike } from '#types'
 import { assertNever } from '../../../utils/index.js'
 
 type ChargeAuthoredWrite = ChargeAuthored | ({
@@ -277,9 +277,9 @@ export async function upsertCharge(db: DBLike, json_data: ChargeAuthored) {
         reset_kind: resetKind
       })
       .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
-            scaling_kind: ref('excluded.scaling_kind'),
-            reset_kind: ref('excluded.reset_kind')
-          })))
+        scaling_kind: ref('excluded.scaling_kind'),
+        reset_kind: ref('excluded.reset_kind')
+      })))
       .execute()
 
     switch (scalingKind) {

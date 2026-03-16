@@ -1,4 +1,4 @@
-import type { DBLike } from '@db-types'
+import type { DBLike } from '#types'
 import {
   ABILITY_CODE,
   ATTACK_DOMAIN_CODE,
@@ -286,10 +286,7 @@ function mapModifierGrantDomainRow(
       return {
         modifier_grant_id: json_data.id,
         value_domain_code: json_data.valueDomainCode,
-        attack_domain_code: requireAttackDomainCode(
-          json_data.id,
-          (json_data.domain as { attackDomain?: string }).attackDomain ?? ''
-        ),
+        attack_domain_code: requireAttackDomainCode(json_data.id, (json_data.domain as { attackDomain?: string }).attackDomain ?? ''),
         ability_code: null,
         skill_id: null,
         speed_id: null,
@@ -303,11 +300,7 @@ function mapModifierGrantDomainRow(
         modifier_grant_id: json_data.id,
         value_domain_code: json_data.valueDomainCode,
         attack_domain_code: null,
-        ability_code: requireAbilityCode(
-          json_data.id,
-          (json_data.domain as { ability?: string }).ability ?? '',
-          'domain ability'
-        ),
+        ability_code: requireAbilityCode(json_data.id, (json_data.domain as { ability?: string }).ability ?? '', 'domain ability'),
         skill_id: null,
         speed_id: null,
         sense_code: null,
@@ -442,10 +435,7 @@ function mapModifierGrantPayload(
     case 'PENALTY': {
       const payload = requirePayload(json_data.id, json_data.payload, json_data.modifierKind)
       const row = createEmptyPayloadRow(json_data)
-      const valueKind = requireNumericValueKind(
-        json_data.id,
-        (payload as { valueKind?: string }).valueKind
-      )
+      const valueKind = requireNumericValueKind(json_data.id, (payload as { valueKind?: string }).valueKind)
       row.numeric_value_kind = valueKind
 
       switch (valueKind) {
@@ -460,11 +450,7 @@ function mapModifierGrantPayload(
           break
 
         case 'ABILITY_MODIFIER':
-          row.numeric_ability_code = requireAbilityCode(
-            json_data.id,
-            (payload as { ability?: string }).ability ?? '',
-            'payload ability'
-          )
+          row.numeric_ability_code = requireAbilityCode(json_data.id, (payload as { ability?: string }).ability ?? '', 'payload ability')
           row.numeric_multiplier = (payload as { multiplier?: number }).multiplier ?? null
           break
 
@@ -602,10 +588,7 @@ function mapModifierGrantPayload(
       return {
         payload: {
           ...createEmptyPayloadRow(json_data),
-          range_kind: requireRangeKind(
-            json_data.id,
-            (payload as { rangeKind?: string }).rangeKind ?? ''
-          )
+          range_kind: requireRangeKind(json_data.id, (payload as { rangeKind?: string }).rangeKind ?? '')
         },
         chargeLevels,
         optionalAbilities
@@ -617,10 +600,7 @@ function mapModifierGrantPayload(
       return {
         payload: {
           ...createEmptyPayloadRow(json_data),
-          duration_kind: requireDurationKind(
-            json_data.id,
-            (payload as { durationKind?: string }).durationKind ?? ''
-          )
+          duration_kind: requireDurationKind(json_data.id, (payload as { durationKind?: string }).durationKind ?? '')
         },
         chargeLevels,
         optionalAbilities
@@ -632,10 +612,7 @@ function mapModifierGrantPayload(
       return {
         payload: {
           ...createEmptyPayloadRow(json_data),
-          shape_kind: requireShapeKind(
-            json_data.id,
-            (payload as { shapeKind?: string }).shapeKind ?? ''
-          )
+          shape_kind: requireShapeKind(json_data.id, (payload as { shapeKind?: string }).shapeKind ?? '')
         },
         chargeLevels,
         optionalAbilities
@@ -647,10 +624,7 @@ function mapModifierGrantPayload(
       return {
         payload: {
           ...createEmptyPayloadRow(json_data),
-          reset_kind: requireChargeResetKind(
-            json_data.id,
-            (payload as { resetKind?: string }).resetKind ?? ''
-          )
+          reset_kind: requireChargeResetKind(json_data.id, (payload as { resetKind?: string }).resetKind ?? '')
         },
         chargeLevels,
         optionalAbilities
@@ -677,14 +651,8 @@ function mapModifierGrantPayload(
     case 'MODIFY_CHARGE_LIMIT': {
       const payload = requirePayload(json_data.id, json_data.payload, json_data.modifierKind)
       const row = createEmptyPayloadRow(json_data)
-      const limitKind = requireChargeLimitKind(
-        json_data.id,
-        (payload as { limitKind?: string }).limitKind ?? ''
-      )
-      const scalingKind = requireChargeScalingKind(
-        json_data.id,
-        (payload as { scalingKind?: string }).scalingKind ?? ''
-      )
+      const limitKind = requireChargeLimitKind(json_data.id, (payload as { limitKind?: string }).limitKind ?? '')
+      const scalingKind = requireChargeScalingKind(json_data.id, (payload as { scalingKind?: string }).scalingKind ?? '')
 
       row.charge_limit_kind = limitKind
       row.charge_scaling_kind = scalingKind
@@ -755,7 +723,8 @@ export async function upsertModifierGrant(
       .executeTakeFirst()
 
     if (existingGrant?.restriction_id && existingGrant.restriction_id !== json_data.restrictions?.id) {
-      await trx.deleteFrom('facets').where('id', '=', existingGrant.restriction_id).execute()
+      await trx.deleteFrom('facets').where('id', '=', existingGrant.restriction_id)
+        .execute()
     }
 
     if (json_data.restrictions) {

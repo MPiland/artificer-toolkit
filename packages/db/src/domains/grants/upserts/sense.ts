@@ -1,4 +1,4 @@
-import type { DBLike } from '@db-types'
+import type { DBLike } from '#types'
 import type { SenseGrantAuthored } from '@artificer-toolkit/shared'
 import { upsertFacet } from '../../shared/facets.js'
 import { upsertCharge } from '../../shared/upserts/charge.js'
@@ -171,11 +171,7 @@ function mapRootSenseRows(json_data: SenseGrantAuthored) {
 
   if (json_data.authoringModeKind !== 'SELECTED') {
     if ('senseIds' in json_data) {
-      rejectAllModeSenseIds(
-        json_data.id,
-        (json_data as { senseIds?: string[] }).senseIds,
-        'root'
-      )
+      rejectAllModeSenseIds(json_data.id, (json_data as { senseIds?: string[] }).senseIds, 'root')
     }
     return []
   }
@@ -215,11 +211,7 @@ function mapScalingLevelSenseRows(json_data: SenseGrantAuthored): SenseGrantScal
   return progression.levels.flatMap((level) => {
     if (level.authoringModeKind !== 'SELECTED') {
       if ('senseIds' in level) {
-        rejectAllModeSenseIds(
-          json_data.id,
-          (level as { senseIds?: string[] }).senseIds,
-          level.id
-        )
+        rejectAllModeSenseIds(json_data.id, (level as { senseIds?: string[] }).senseIds, level.id)
       }
       return []
     }
@@ -235,10 +227,7 @@ export async function upsertSenseGrant(
   db: DBLike,
   json_data: SenseGrantAuthored
 ) {
-  const root = mapSenseGrantRootRow(
-    json_data,
-    json_data.charges?.id ?? null
-  )
+  const root = mapSenseGrantRootRow(json_data, json_data.charges?.id ?? null)
   const rootSenses = mapRootSenseRows(json_data)
   const scalingLevels = mapScalingLevelRows(json_data)
   const scalingLevelSenses = mapScalingLevelSenseRows(json_data)
@@ -253,7 +242,8 @@ export async function upsertSenseGrant(
       .executeTakeFirst()
 
     if (existingGrant?.restriction_id && existingGrant.restriction_id !== json_data.restrictions?.id) {
-      await trx.deleteFrom('facets').where('id', '=', existingGrant.restriction_id).execute()
+      await trx.deleteFrom('facets').where('id', '=', existingGrant.restriction_id)
+        .execute()
     }
 
     if (json_data.charges) {

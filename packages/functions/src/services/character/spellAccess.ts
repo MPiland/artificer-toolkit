@@ -1,7 +1,9 @@
-import type { CompiledCharacter, AssembledCharacterSpellAccess } from '@artificer-toolkit/shared'
+import type { AssembledCharacterSpellAccess } from '@artificer-toolkit/shared'
+
+import type { CharacterAssemblyInput } from './contract.js'
 
 export function assembleCharacterSpellAccess(
-  character: CompiledCharacter
+  character: CharacterAssemblyInput
 ): AssembledCharacterSpellAccess[] {
   const spells: AssembledCharacterSpellAccess[] = []
 

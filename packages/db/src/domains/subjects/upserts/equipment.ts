@@ -1,4 +1,4 @@
-import type { DBLike } from '@db-types'
+import type { DBLike } from '#types'
 import {
   ABILITY_CODE,
   EQUIPMENT_ATTRIBUTE,
@@ -201,14 +201,12 @@ export async function upsertEquipment(
   const nextEffectIds = new Set((json_data.effects ?? []).map((effect) => effect.id))
 
   const abilityRows: EquipmentAbilityRow[] = isBaseEquipment(json_data)
-    ? json_data.abilities.flatMap((entry, groupIndex) =>
-        entry.abilities.map((ability, abilityIndex) => ({
-          equipment_id: json_data.id,
-          operation: requireOperation(json_data.id, entry.op),
-          ability_code: requireAbility(json_data.id, ability.ability),
-          sort_order: groupIndex * 100 + abilityIndex + 1
-        }))
-      )
+    ? json_data.abilities.flatMap((entry, groupIndex) => entry.abilities.map((ability, abilityIndex) => ({
+        equipment_id: json_data.id,
+        operation: requireOperation(json_data.id, entry.op),
+        ability_code: requireAbility(json_data.id, ability.ability),
+        sort_order: groupIndex * 100 + abilityIndex + 1
+      })))
     : []
 
   const containsRows: EquipmentContainsRow[] = (json_data.contains ?? []).map((entry) => ({
@@ -232,7 +230,8 @@ export async function upsertEquipment(
       .execute()
 
     if (existingEquipment?.restriction_id && existingEquipment.restriction_id !== json_data.restrictions?.id) {
-      await trx.deleteFrom('facets').where('id', '=', existingEquipment.restriction_id).execute()
+      await trx.deleteFrom('facets').where('id', '=', existingEquipment.restriction_id)
+        .execute()
     }
 
     if (json_data.charges) {
@@ -285,12 +284,18 @@ export async function upsertEquipment(
       })))
       .execute()
 
-    await trx.deleteFrom('equipment_modifier_grants').where('equipment_id', '=', json_data.id).execute()
-    await trx.deleteFrom('equipment_features').where('equipment_id', '=', json_data.id).execute()
-    await trx.deleteFrom('equipment_attributes').where('equipment_id', '=', json_data.id).execute()
-    await trx.deleteFrom('equipment_properties').where('equipment_id', '=', json_data.id).execute()
-    await trx.deleteFrom('equipment_abilities').where('equipment_id', '=', json_data.id).execute()
-    await trx.deleteFrom('equipment_contains').where('equipment_id', '=', json_data.id).execute()
+    await trx.deleteFrom('equipment_modifier_grants').where('equipment_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('equipment_features').where('equipment_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('equipment_attributes').where('equipment_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('equipment_properties').where('equipment_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('equipment_abilities').where('equipment_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('equipment_contains').where('equipment_id', '=', json_data.id)
+      .execute()
 
     for (const previousEffect of previousEffectRows) {
       if (!nextEffectIds.has(previousEffect.effect_id)) {
@@ -314,19 +319,23 @@ export async function upsertEquipment(
     }
 
     if (attributeRows.length > 0) {
-      await trx.insertInto('equipment_attributes').values(attributeRows).execute()
+      await trx.insertInto('equipment_attributes').values(attributeRows)
+        .execute()
     }
 
     if (propertyRows.length > 0) {
-      await trx.insertInto('equipment_properties').values(propertyRows).execute()
+      await trx.insertInto('equipment_properties').values(propertyRows)
+        .execute()
     }
 
     if (abilityRows.length > 0) {
-      await trx.insertInto('equipment_abilities').values(abilityRows).execute()
+      await trx.insertInto('equipment_abilities').values(abilityRows)
+        .execute()
     }
 
     if (containsRows.length > 0) {
-      await trx.insertInto('equipment_contains').values(containsRows).execute()
+      await trx.insertInto('equipment_contains').values(containsRows)
+        .execute()
     }
 
     const modifierRows: EquipmentModifierGrantRow[] = (json_data.modifiers ?? []).map((grant) => ({
@@ -336,7 +345,8 @@ export async function upsertEquipment(
     }))
 
     if (modifierRows.length > 0) {
-      await trx.insertInto('equipment_modifier_grants').values(modifierRows).execute()
+      await trx.insertInto('equipment_modifier_grants').values(modifierRows)
+        .execute()
     }
 
     const featureRows = (json_data.features ?? []).map((feature) => ({
@@ -346,7 +356,8 @@ export async function upsertEquipment(
     }))
 
     if (featureRows.length > 0) {
-      await trx.insertInto('equipment_features').values(featureRows).execute()
+      await trx.insertInto('equipment_features').values(featureRows)
+        .execute()
     }
 
     await trx.commit().execute()

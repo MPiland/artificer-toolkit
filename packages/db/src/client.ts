@@ -1,6 +1,6 @@
 import { Kysely, PostgresDialect, sql } from 'kysely'
 import { Pool } from 'pg'
-import type { Database } from '@db-types'
+import type { Database } from '#types'
 
 export function createDb() {
   return new Kysely<Database>({
@@ -26,6 +26,6 @@ export async function withUserContext<T>(
     })
   } catch (err) {
     console.error(err)
-    throw new Error('Failed to load data')
+    throw new Error('Failed to load data', { cause: err })
   }
 }

@@ -4,11 +4,6 @@
         "composite": true,
         "module": "NodeNext",
         "moduleResolution": "NodeNext",
-        "paths": {
-            "@db-types": [
-                "./src/types/index.ts"
-            ]
-        },
         "declaration": true,
         "declarationMap": true,
         "sourceMap": true,

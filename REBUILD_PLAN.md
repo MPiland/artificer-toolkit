@@ -79,7 +79,7 @@ Package responsibilities stay as-is during the backend rebuild. Physical renames
 | Phase 2 - Compiler hardening | Complete | Compiler drift repaired, result-wrapper pattern established, baseline compiler tests added; detailed diagnostics deferred to later authoring-validation work |
 | Phase 3 - Schema layer and `shared -> db` decoupling | Complete | `shared` runtime coupling removed; lower-level DTOs and API contracts are in place, correlated payload validation is tightened, and remaining build/bootstrap work belongs to Phase 4 |
 | Phase 4 - DB wrappers, canonical source data, and SRD seed pipeline | In progress | `packages/db` now typechecks and the deferred-constraint path covers shared/effects/features/grants/subjects cross-domain FKs, but persistence-shape work is now gated on a full authored-contract audit before more table-shape decisions land |
-| Phase 5 - Server/application layer reorganization | Pending | Future tRPC backing layer |
+| Phase 5 - Server/application layer reorganization | In progress | Initial `packages/functions/src/services` layer is in place with character assembly moved under services and baseline authoring pipelines scaffolded for subjects/grants/features |
 | Phase 6 - Character engine | Pending | Pure deterministic rules/runtime phase |
 | Phase 7 - API transport stabilization and validation | Pending | Backend transport only |
 | Phase 8 - Frontend rewrite | Pending | Starts only after backend/API phases are stable |

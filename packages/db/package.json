@@ -19,6 +19,12 @@
       "default": "./dist/types/column-meta.js"
     }
   },
+  "imports": {
+    "#types": {
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/types/index.js"
+    }
+  },
   "scripts": {
     "clean": "rimraf dist",
     "build": "tsc -p tsconfig.build.json",

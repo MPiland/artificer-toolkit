@@ -1,4 +1,4 @@
-import type { DBLike } from '@db-types'
+import type { DBLike } from '#types'
 import {
   SPELL_GRANT_ATTRIBUTE,
   type SpellGrantAuthored
@@ -218,11 +218,7 @@ function mapRootSpellRows(json_data: SpellGrantAuthored) {
 
   if (json_data.authoringModeKind !== 'SELECTED') {
     if ('spellIds' in json_data) {
-      rejectAllModeSpellIds(
-        json_data.id,
-        (json_data as { spellIds?: string[] }).spellIds,
-        'root'
-      )
+      rejectAllModeSpellIds(json_data.id, (json_data as { spellIds?: string[] }).spellIds, 'root')
     }
     return []
   }
@@ -262,11 +258,7 @@ function mapScalingLevelSpellRows(json_data: SpellGrantAuthored): SpellGrantScal
   return progression.levels.flatMap((level) => {
     if (level.authoringModeKind !== 'SELECTED') {
       if ('spellIds' in level) {
-        rejectAllModeSpellIds(
-          json_data.id,
-          (level as { spellIds?: string[] }).spellIds,
-          level.id
-        )
+        rejectAllModeSpellIds(json_data.id, (level as { spellIds?: string[] }).spellIds, level.id)
       }
       return []
     }
@@ -296,10 +288,7 @@ export async function upsertSpellGrant(
     ? json_data.charges
     : undefined
 
-  const root = mapSpellGrantRootRow(
-    json_data,
-    charges?.id ?? null
-  )
+  const root = mapSpellGrantRootRow(json_data, charges?.id ?? null)
   const attributes = mapAttributeRows(json_data)
   const rootSpells = mapRootSpellRows(json_data)
   const scalingLevels = mapScalingLevelRows(json_data)
@@ -315,11 +304,13 @@ export async function upsertSpellGrant(
       .executeTakeFirst()
 
     if (existingGrant?.restriction_id && existingGrant.restriction_id !== json_data.restrictions?.id) {
-      await trx.deleteFrom('facets').where('id', '=', existingGrant.restriction_id).execute()
+      await trx.deleteFrom('facets').where('id', '=', existingGrant.restriction_id)
+        .execute()
     }
 
     if (existingGrant?.filter_id && existingGrant.filter_id !== json_data.filters?.id) {
-      await trx.deleteFrom('facets').where('id', '=', existingGrant.filter_id).execute()
+      await trx.deleteFrom('facets').where('id', '=', existingGrant.filter_id)
+        .execute()
     }
 
     if (charges) {

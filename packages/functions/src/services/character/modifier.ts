@@ -1,12 +1,12 @@
 import type {
-  CompiledContentRegistry,
-  AssembledCharacterModifierGrant,
-  AssembledCharacterFeature
+  AssembledCharacterFeature,
+  AssembledCharacterModifierGrant
 } from '@artificer-toolkit/shared'
+import type { CharacterAssemblyRegistry } from './types.js'
 
 export function assembleCharacterModifierGrants(
   features: AssembledCharacterFeature[],
-  registry: CompiledContentRegistry
+  registry: CharacterAssemblyRegistry
 ): AssembledCharacterModifierGrant[] {
   const out: AssembledCharacterModifierGrant[] = []
 

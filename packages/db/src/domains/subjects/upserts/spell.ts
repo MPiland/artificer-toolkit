@@ -1,4 +1,4 @@
-import type { DBLike } from '@db-types'
+import type { DBLike } from '#types'
 import {
   CASTING_TIME_UNIT_CODE,
   SPELL_ATTRIBUTE,

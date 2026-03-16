@@ -1,7 +1,6 @@
-import type {
-  CompiledCharacter,
-  AssembledCharacterFeature
-} from '@artificer-toolkit/shared'
+import type { AssembledCharacterFeature } from '@artificer-toolkit/shared'
+
+import type { CharacterAssemblyInput } from './contract.js'
 
 /**
  * Collects all features that currently exist on the character.
@@ -12,7 +11,7 @@ import type {
  * - mutate state
  */
 export function assembleCharacterFeatures(
-  character: CompiledCharacter
+  character: CharacterAssemblyInput
 ): AssembledCharacterFeature[] {
   const features: AssembledCharacterFeature[] = []
 
@@ -28,7 +27,7 @@ export function assembleCharacterFeatures(
   }
 
   // 2. (Later) implicit features from race / class / ancestry
-  // DO NOT add yet — that’s the next step
+  // DO NOT add yet - that's the next step
 
   return features
 }

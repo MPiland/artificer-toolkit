@@ -60,6 +60,9 @@ Recent Phase 4 progress against the settled authored contracts:
 - character ability-generation persistence is now more authored-aligned:
   - `character_abilities` stores explicit `method_code` instead of a generic `selected_system` reference
   - manual-rolled assignments now live in `character_abilities_manual_assignments`, which matches the authored `assignments` concept instead of the misleading `manual_overrides` name
+- large upsert modules were split into orchestration-plus-helper structure to improve maintainability without changing behavior:
+  - effect upserts now separate orchestration (`effect.ts`), row mapping/validation (`effect.mappers.ts`), and delete/nested persistence helpers (`effect.persistence.ts`)
+  - character upserts now separate orchestration (`character.ts`) from mapping/dependency/delete helpers (`character.helpers.ts`)
 - the earlier recreate/type-regeneration auth blocker is resolved for this session:
   - the linked project now reflects the normalized schema bundle
   - the checked-in generated DB types have been refreshed from that live recreated schema
