@@ -1,12 +1,12 @@
 import { FEATURE_ATTRIBUTE_OPTIONS } from '#core'
 import { buildNodeMap } from '#utils'
-import type { FeatureAuthored, OptionsByLevel } from '#authored'
+import type { FeatureAuthored, FeatureOptionChoice } from '#authored'
 import { EFFECT_NODE_MAP, CHARGE_NODE_MAP, FACET_NODE_MAP, FEATURE_GRANTS_NODE_MAP } from '#maps'
 import { OPTION_NODE_MAP } from './option.js'
 
-const optionsByLevel = buildNodeMap<OptionsByLevel>()
+const optionChoice = buildNodeMap<FeatureOptionChoice>()
 
-const OPTIONS_BY_LEVEL_NODE_MAP = optionsByLevel.define('optionsByLevel', ({ map, nodes }) => {
+const FEATURE_OPTION_CHOICE_NODE_MAP = optionChoice.define('featureOptionChoice', ({ map, nodes }) => {
   const { number } = nodes
 
   map
@@ -37,7 +37,7 @@ export const FEATURE_NODE_MAP = feature.define('feature', ({ map, nodes, cond })
     .set('grants', groupObject(['grants'], 'Grants', () => FEATURE_GRANTS_NODE_MAP))
     .set('restrictions', groupObject(['restrictions'], 'Restrictions', () => FACET_NODE_MAP))
     .set('order', number(['order'], 'Order'))
-    .set('levelAvailable', text(['levelAvailable'], 'Level Available'))
-    .set('optionsPerLevel', groupArray(['optionsPerLevel'], 'Options Per Level', () => OPTIONS_BY_LEVEL_NODE_MAP))
+    .set('availableAtLevel', number(['availableAtLevel'], 'Available At Level'))
+    .set('optionChoices', groupArray(['optionChoices'], 'Option Choices', () => FEATURE_OPTION_CHOICE_NODE_MAP))
     .set('options', groupArray(['options'], 'Options', () => OPTION_NODE_MAP))
 })

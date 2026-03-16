@@ -37,7 +37,10 @@ function compileSenseTarget(
   authored: GrantPayloadAuthored<{ senseIds: string[] }>
 ): CompiledGrantTarget<{ senseIds: string[] }> {
   switch (authored.authoringModeKind) {
+    case undefined:
     case AUTHORING_MODE_KIND.ALL:
+      return { authoringModeKind: AUTHORING_MODE_KIND.ALL }
+
     case AUTHORING_MODE_KIND.SELECTED:
       return authored
 
@@ -96,8 +99,8 @@ export function compileSenseGrantResult(
             charges,
             selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
             scalingKind: SCALING.PER_LEVEL,
-            ...compileScalingSource(authored.scaling),
-            levels: authored.scaling.levels.map((entry) => ({
+            ...compileScalingSource(authored.progression),
+            levels: authored.progression.levels.map((entry) => ({
               level: entry.level,
               ...compileSenseTarget(entry),
               order: entry.order
@@ -113,8 +116,8 @@ export function compileSenseGrantResult(
             charges,
             selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
             scalingKind: SCALING.PER_LEVEL,
-            ...compileScalingSource(authored.scaling),
-            levels: authored.scaling.levels.map((entry) => ({
+            ...compileScalingSource(authored.progression),
+            levels: authored.progression.levels.map((entry) => ({
               level: entry.level,
               ...compileSenseTarget(entry),
               order: entry.order,

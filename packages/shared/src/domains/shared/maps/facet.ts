@@ -54,8 +54,7 @@ const FACET_BODY_NODE_MAP = facetBodyNode.define('facetBody', ({ map, logic, con
       kind: 'INLINE',
       options: AUTHORING_MODE_KIND_OPTIONS
     }, {
-      order: 2,
-      requiredIf: true
+      order: 2
     }))
     .set('featureIds', selectMulti(['featureIds'], 'Features', {
       kind: 'DATA',
@@ -176,7 +175,6 @@ export const FACET_SCOPED_NODE_MAP = facetScopedNode.define('facetBody', (api) =
       options: AUTHORING_MODE_KIND_OPTIONS
     }, {
       order: 2,
-      requiredIf: true,
       showIf: not(local.field(['subject']).eq('CHARACTER'))
     }))
     .set('classIds', selectMulti(['classIds'], 'Classes', {
@@ -393,7 +391,7 @@ const FACET_EXISTS_NODE_MAP = facetExistsNode.define('facetExists', ({ map, logi
     .set('authoringModeKind', selectSingle(['authoringModeKind'], 'Authoring Mode', {
       kind: 'INLINE',
       options: AUTHORING_MODE_KIND_OPTIONS
-    }, { order: 3, requiredIf: true }))
+    }, { order: 3 }))
     .set('featureIds', selectMulti(['featureIds'], 'Features', {
       kind: 'DATA',
       relationship: chain((s) => s
@@ -670,7 +668,7 @@ const FACET_PREDICATE_NODE_MAP = facetPredicateNode.define('facePredicate', ({ m
     .set('authoringModeKind', selectSingle(['authoringModeKind'], 'Authoring Mode', {
       kind: 'INLINE',
       options: AUTHORING_MODE_KIND_OPTIONS
-    }, { order: 2, requiredIf: true, showIf: showAuthoringMode }))
+    }, { order: 2, showIf: showAuthoringMode }))
     .set('subtypeIds', selectMulti(['subtypeIds'], 'Subclass Subtypes', {
       kind: 'DATA',
       relationship: mapValues('class_subtypes', {

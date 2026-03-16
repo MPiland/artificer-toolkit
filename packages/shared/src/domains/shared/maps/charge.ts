@@ -93,8 +93,22 @@ export const CHARGE_NODE_MAP = charges.define('charges', ({ map, nodes, logic, c
       order: 4,
       showIf: or([
         local.field(['limitKind']).eq('CHARACTER_LEVEL'),
-        local.field(['limitKind']).eq('SOURCE_LEVEL')
+        local.field(['limitKind']).eq('CLASS_LEVEL'),
+        local.field(['limitKind']).eq('PARENT_CLASS_LEVEL'),
+        local.field(['limitKind']).eq('SPELL_CAST_LEVEL')
       ])
+    }))
+    .set('classId', selectSingle(['classId'], 'Class', {
+      kind: 'DATA',
+      relationship: {
+        kind: 'TABLE',
+        table: 'classes',
+        selectColumns: ['id', 'label']
+      }
+    }, {
+      order: 4,
+      requiredIf: true,
+      showIf: local.field(['limitKind']).eq('CLASS_LEVEL')
     }))
     .set('scalingKind', selectSingle(['scalingKind'], 'Scaling', {
       kind: 'INLINE',

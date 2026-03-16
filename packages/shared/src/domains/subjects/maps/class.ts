@@ -142,7 +142,7 @@ export const CLASS_RESOURCE_NODE_MAP = classResourceNode.define('classResource',
     .set('id', text(['id'], 'ID'))
     .set('label', text(['label'], 'Label'))
     .set('description', text(['description'], 'Description'))
-    .set('levelAvailable', number(['levelAvailable'], 'Level Available'))
+    .set('availableAtLevel', number(['availableAtLevel'], 'Available At Level'))
     .set('charges', groupObject(['charges'], 'Charges', () => CHARGE_NODE_MAP))
 })
 

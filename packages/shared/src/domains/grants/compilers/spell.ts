@@ -33,7 +33,10 @@ function compileSpellTarget(
   authored: GrantPayloadAuthored<{ spellIds: string[] }>
 ): CompiledGrantTarget<{ spellIds: string[] }> {
   switch (authored.authoringModeKind) {
+    case undefined:
     case AUTHORING_MODE_KIND.ALL:
+      return { authoringModeKind: AUTHORING_MODE_KIND.ALL }
+
     case AUTHORING_MODE_KIND.SELECTED:
       return authored
 
@@ -90,8 +93,8 @@ export function compileSpellGrantResult(
             grantKind: GRANT_KIND.SPELL_GRANT,
             selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
             scalingKind: SCALING.PER_LEVEL,
-            ...compileScalingSource(authored.scaling),
-            levels: authored.scaling.levels.map((entry) => ({
+            ...compileScalingSource(authored.progression),
+            levels: authored.progression.levels.map((entry) => ({
               level: entry.level,
               count: entry.count,
               order: entry.order,
@@ -106,8 +109,8 @@ export function compileSpellGrantResult(
             grantKind: GRANT_KIND.SPELL_GRANT,
             selectionKind: AUTHORING_SELECTION_KIND.GRANTED, // <- literal
             scalingKind: SCALING.PER_LEVEL,
-            ...compileScalingSource(authored.scaling),
-            levels: authored.scaling.levels.map((entry) => ({
+            ...compileScalingSource(authored.progression),
+            levels: authored.progression.levels.map((entry) => ({
               level: entry.level,
               order: entry.order,
               ...compileSpellTarget(entry)

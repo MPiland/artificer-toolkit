@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { abilityCodeSchema, scalingKindSchema, scalingSourceSchema } from '../shared/enums.js'
-import { levelScaledValueLevelDtoSchema, poolScaledValueDtoSchema } from '../shared/scaling.js'
+import { levelScaledValueLevelDtoSchema } from '../shared/scaling.js'
 
 export const damageBonusDtoSchema = z.union([
   z.object({
@@ -46,15 +46,10 @@ const damageFixedDtoSchema = z.union([
       })
     ),
     scalingSource: scalingSourceSchema,
-    classId: z.string().optional(),
-    spellId: z.string().optional()
+    classId: z.string().optional()
   }).superRefine((value, ctx) => {
     if (value.scalingSource === 'CLASS_LEVEL' && !value.classId) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'classId is required for CLASS_LEVEL scaling' })
-    }
-
-    if (value.scalingSource === 'SPELL_LEVEL' && !value.spellId) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'spellId is required for SPELL_LEVEL scaling' })
     }
   })
 ])
@@ -74,15 +69,10 @@ const damageDiceDtoSchema = z.union([
       })
     ),
     scalingSource: scalingSourceSchema,
-    classId: z.string().optional(),
-    spellId: z.string().optional()
+    classId: z.string().optional()
   }).superRefine((value, ctx) => {
     if (value.scalingSource === 'CLASS_LEVEL' && !value.classId) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'classId is required for CLASS_LEVEL scaling' })
-    }
-
-    if (value.scalingSource === 'SPELL_LEVEL' && !value.spellId) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'spellId is required for SPELL_LEVEL scaling' })
     }
   })
 ])
@@ -95,8 +85,18 @@ const damagePoolDtoSchema = z.union([
   }),
   z.object({
     valueKind: z.literal('POOL'),
-    scalingKind: z.literal(scalingKindSchema.enum.PER_LEVEL)
-  }).and(poolScaledValueDtoSchema)
+    scalingKind: z.literal(scalingKindSchema.enum.PER_LEVEL),
+    scalingSource: scalingSourceSchema,
+    classId: z.string().optional(),
+    amount: z.number().optional(),
+    multiplier: z.number().optional(),
+    min: z.number().optional(),
+    max: z.number().optional()
+  }).superRefine((value, ctx) => {
+    if (value.scalingSource === 'CLASS_LEVEL' && !value.classId) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'classId is required for CLASS_LEVEL scaling' })
+    }
+  })
 ])
 
 export const damageDtoSchema = z.object({

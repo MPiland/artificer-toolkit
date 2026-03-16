@@ -154,20 +154,6 @@ export const MOMENT_ROLL_TABLE_ENTRY_NODE_MAP = momentRollTableEntry.define(
           local.field(['scalingSource']).eq('CLASS_LEVEL')
         ])
       }))
-      .set('spellId', selectSingle(['spellId'], 'Spell', {
-        kind: 'DATA',
-        relationship: table('spells', {
-          selectColumns: ['id', 'label']
-        })
-      }, {
-        requiredIf: true,
-        showIf: and([
-          local.field(['effectKind']).eq('DAMAGE'),
-          local.field(['scalingKind']).eq('PER_LEVEL'),
-          not(local.field(['valueKind']).eq('POOL')),
-          local.field(['scalingSource']).eq('SPELL_LEVEL')
-        ])
-      }))
       .set('conditionId', selectSingle(['conditionId'], 'Condition', {
         kind: 'DATA',
         relationship: table('condition_types', {

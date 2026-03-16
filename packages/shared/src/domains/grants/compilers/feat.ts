@@ -37,7 +37,10 @@ function compileFeatTarget(
   authored: GrantPayloadAuthored<{ featIds: string[] }>
 ): CompiledGrantTarget<{ featIds: string[] }> {
   switch (authored.authoringModeKind) {
+    case undefined:
     case AUTHORING_MODE_KIND.ALL:
+      return { authoringModeKind: AUTHORING_MODE_KIND.ALL }
+
     case AUTHORING_MODE_KIND.SELECTED:
       return authored
 
@@ -97,8 +100,8 @@ export function compileFeatGrantResult(
             charges,
             selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
             scalingKind: SCALING.PER_LEVEL,
-            ...compileScalingSource(authored.scaling),
-            levels: authored.scaling.levels.map((entry) => ({
+            ...compileScalingSource(authored.progression),
+            levels: authored.progression.levels.map((entry) => ({
               level: entry.level,
               ...compileFeatTarget(entry),
               order: entry.order
@@ -114,8 +117,8 @@ export function compileFeatGrantResult(
             charges,
             selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
             scalingKind: SCALING.PER_LEVEL,
-            ...compileScalingSource(authored.scaling),
-            levels: authored.scaling.levels.map((entry) => ({
+            ...compileScalingSource(authored.progression),
+            levels: authored.progression.levels.map((entry) => ({
               level: entry.level,
               ...compileFeatTarget(entry),
               order: entry.order,

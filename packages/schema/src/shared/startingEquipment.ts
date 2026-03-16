@@ -23,10 +23,10 @@ const startingEquipmentEquipmentItemBaseDtoSchema = z.object({
 const grantedEquipmentItemDtoSchema = startingEquipmentEquipmentItemBaseDtoSchema.extend({
   selectionKind: z.literal(authoringSelectionKindSchema.enum.GRANTED),
   quantity: z.number().int(),
-  authoringModeKind: authoringModeKindSchema
+  authoringModeKind: authoringModeKindSchema.optional()
 }).and(z.union([
   z.object({
-    authoringModeKind: z.literal(authoringModeKindSchema.enum.ALL)
+    authoringModeKind: z.literal(authoringModeKindSchema.enum.ALL).optional()
   }),
   z.object({
     authoringModeKind: z.literal(authoringModeKindSchema.enum.SELECTED),
@@ -37,10 +37,10 @@ const grantedEquipmentItemDtoSchema = startingEquipmentEquipmentItemBaseDtoSchem
 const chosenEquipmentItemDtoSchema = startingEquipmentEquipmentItemBaseDtoSchema.extend({
   selectionKind: z.literal(authoringSelectionKindSchema.enum.CHOSEN),
   count: z.number().int(),
-  authoringModeKind: authoringModeKindSchema
+  authoringModeKind: authoringModeKindSchema.optional()
 }).and(z.union([
   z.object({
-    authoringModeKind: z.literal(authoringModeKindSchema.enum.ALL)
+    authoringModeKind: z.literal(authoringModeKindSchema.enum.ALL).optional()
   }),
   z.object({
     authoringModeKind: z.literal(authoringModeKindSchema.enum.SELECTED),

@@ -18,7 +18,18 @@ export type CompiledChargeLimitPayloadByKind = {
     min?: number
     max?: number
   }
-  SOURCE_LEVEL: {
+  CLASS_LEVEL: {
+    classId: string
+    multiplier?: number
+    min?: number
+    max?: number
+  }
+  PARENT_CLASS_LEVEL: {
+    multiplier?: number
+    min?: number
+    max?: number
+  }
+  SPELL_CAST_LEVEL: {
     multiplier?: number
     min?: number
     max?: number
@@ -134,11 +145,23 @@ export function compileCharge(authored: ChargeAuthored): CompiledCharge {
 
   switch (authored.limitKind) {
     case 'CHARACTER_LEVEL':
-    case 'SOURCE_LEVEL':
+    case 'PARENT_CLASS_LEVEL':
+    case 'SPELL_CAST_LEVEL':
       return {
         ...base,
         limitKind: authored.limitKind,
         scalingKind: SCALING.NONE,
+        multiplier: authored.multiplier,
+        min: authored.min,
+        max: authored.max
+      }
+
+    case 'CLASS_LEVEL':
+      return {
+        ...base,
+        limitKind: authored.limitKind,
+        scalingKind: SCALING.NONE,
+        classId: authored.classId,
         multiplier: authored.multiplier,
         min: authored.min,
         max: authored.max

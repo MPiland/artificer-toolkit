@@ -11,16 +11,16 @@ import {
   type CompileResult
 } from '#utils'
 
-export interface CompiledOptionsByLevel {
+export interface CompiledFeatureOptionChoice {
   level: number // int
   count: number // int
   replaceCount?: number | null // int
 }
 
 export type CompiledFeature = CompiledFeatureBase & {
-  optionsPerLevel?: CompiledOptionsByLevel[]
-  options?: CompiledFeatureOption[]
-  levelAvailable?: string
+  optionChoices?: CompiledFeatureOptionChoice[]
+  options?: CompiledFeatureOption[] 
+  availableAtLevel?: number
 }
 
 export function compileFeatureResult(authored: FeatureAuthored): CompileResult<CompiledFeature> {
@@ -32,9 +32,9 @@ export function compileFeatureResult(authored: FeatureAuthored): CompileResult<C
 
   return compileSuccess({
     ...base,
-    optionsPerLevel: authored.optionsPerLevel,
+    optionChoices: authored.optionChoices,
     options,
-    levelAvailable: authored.levelAvailable,
+    availableAtLevel: authored.availableAtLevel,
     order: authored.order
   })
 }

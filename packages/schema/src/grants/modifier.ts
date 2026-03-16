@@ -87,12 +87,19 @@ const modifyChargeLimitPayloadDtoSchema = z.union([
   z.object({
     limitKind: z.enum([
       chargeLimitKindSchema.enum.CHARACTER_LEVEL,
-      chargeLimitKindSchema.enum.SOURCE_LEVEL
+      chargeLimitKindSchema.enum.CLASS_LEVEL,
+      chargeLimitKindSchema.enum.PARENT_CLASS_LEVEL,
+      chargeLimitKindSchema.enum.SPELL_CAST_LEVEL
     ]),
     scalingKind: z.literal(scalingKindSchema.enum.NONE),
+    classId: z.string().optional(),
     multiplier: z.number().optional(),
     min: z.number().optional(),
     max: z.number().optional()
+  }).superRefine((value, ctx) => {
+    if (value.limitKind === 'CLASS_LEVEL' && !value.classId) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'classId is required for CLASS_LEVEL charge-limit modifiers' })
+    }
   }),
   z.object({
     limitKind: z.literal(chargeLimitKindSchema.enum.FIXED_AMOUNT),

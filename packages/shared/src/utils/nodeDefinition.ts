@@ -1,11 +1,10 @@
 import { type CoreMeta } from '#core'
-import type {
-  ColumnOf,
-  ColumnValueOf,
-  TableName
-} from '@artificer-toolkit/db/types'
 import type { AllUnionFields } from 'type-fest'
 import { valuesOf } from './valuesOf.js'
+
+type TableName = string
+type ColumnOf<K extends TableName> = string
+type ColumnValueOf<K extends TableName, C extends ColumnOf<K>> = unknown
 
 /* ──────────────────────────────────────────────────────────────
  * Normalization (run once per map)
@@ -294,7 +293,7 @@ function createConditionIfBuilder<NLocal extends object>(): ConditionIfBuilder<N
     return {
       selected: logic.and([modeSelected, logic.not(f.empty())]),
       all: modeAll,
-      allOrMissing: logic.or([modeAll, modeEmpty])
+      allOrMissing: modeAll
     }
   }
 

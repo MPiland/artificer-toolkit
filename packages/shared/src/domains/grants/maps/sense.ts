@@ -8,8 +8,8 @@ import {
 import { FACET_NODE_MAP, CHARGE_NODE_MAP } from '#maps'
 import { buildNodeMap } from '#utils'
 
-type SenseGrantScaling = Extract<SenseGrantAuthored, { scalingKind: 'PER_LEVEL' }>['scaling']
-type SenseGrantLevel = SenseGrantScaling['levels'][number]
+type SenseGrantProgression = Extract<SenseGrantAuthored, { scalingKind: 'PER_LEVEL' }>['progression']
+type SenseGrantLevel = SenseGrantProgression['levels'][number]
 
 const senseGrantLevel = buildNodeMap<SenseGrantLevel>()
 
@@ -40,9 +40,9 @@ const SENSE_GRANT_LEVEL_NODE_MAP = senseGrantLevel.define('senseGrantLevel', ({ 
     }))
 })
 
-const senseGrantScaling = buildNodeMap<SenseGrantScaling>()
+const senseGrantProgression = buildNodeMap<SenseGrantProgression>()
 
-const SENSE_GRANT_SCALING_NODE_MAP = senseGrantScaling.define('senseGrantScaling', ({ map, nodes, cond, data }) => {
+const SENSE_GRANT_PROGRESSION_NODE_MAP = senseGrantProgression.define('senseGrantProgression', ({ map, nodes, cond, data }) => {
   const { selectSingle, groupArray } = nodes
   const local = cond.local()
   const { table } = data
@@ -59,14 +59,6 @@ const SENSE_GRANT_SCALING_NODE_MAP = senseGrantScaling.define('senseGrantScaling
       })
     }, {
       showIf: local.field(['scalingSource']).eq('CLASS_LEVEL')
-    }))
-    .set('spellId', selectSingle(['spellId'], 'Spell', {
-      kind: 'DATA',
-      relationship: table('spells', {
-        selectColumns: ['id', 'label']
-      })
-    }, {
-      showIf: local.field(['scalingSource']).eq('SPELL_LEVEL')
     }))
     .set('levels', groupArray(['levels'], 'Levels', () => SENSE_GRANT_LEVEL_NODE_MAP))
 })
@@ -109,7 +101,7 @@ export const SENSE_GRANT_NODE_MAP = senseGrant.define('senseGrant', ({ map, node
     }))
     .set('charges', groupObject(['charges'], 'Charges', () => CHARGE_NODE_MAP))
     .set('restrictions', groupObject(['restrictions'], 'Restrictions', () => FACET_NODE_MAP))
-    .set('scaling', groupObject(['scaling'], 'Scaling', () => SENSE_GRANT_SCALING_NODE_MAP, {
+    .set('progression', groupObject(['progression'], 'Progression', () => SENSE_GRANT_PROGRESSION_NODE_MAP, {
       showIf: local.field(['scalingKind']).eq('PER_LEVEL')
     }))
 })

@@ -4,7 +4,9 @@ import { chargeDtoSchema } from '../shared/charge.js'
 import { effectDtoSchema } from '../effects/effect.js'
 import { featureDtoSchema } from '../features/feature.js'
 import { facetDtoSchema } from '../shared/facet.js'
+import { featGrantDtoSchema } from '../grants/feat.js'
 import { modifierGrantDtoSchema } from '../grants/modifier.js'
+import { proficiencyGrantDtoSchema } from '../grants/proficiency.js'
 import { startingEquipmentDtoSchema } from '../shared/startingEquipment.js'
 import { backgroundListResponseDtoSchema, featureResponseDtoSchema } from '../api/content.js'
 import { resourceIdParamsDtoSchema, systemAuthoredDtoSchema, systemListResponseDtoSchema } from '../index.js'
@@ -93,6 +95,7 @@ describe('schema package parsing', () => {
             order: 1,
             selectionKind: 'CHOSEN',
             scalingKind: 'NONE',
+            count: 1,
             featIds: ['archery']
           }
         ]
@@ -170,6 +173,38 @@ describe('schema package parsing', () => {
     expect(parsed.groups).toHaveLength(1)
   })
 
+  it('parses explicit ALL facet authoring mode', () => {
+    const parsed = facetDtoSchema.parse({
+      id: 'explicit-all-facet',
+      authoringModeKind: 'ALL',
+      groups: [
+        {
+          id: 'group-1',
+          order: 1,
+          contexts: [
+            {
+              id: 'context-1',
+              order: 1,
+              subject: 'SPELL',
+              conditions: [
+                {
+                  id: 'condition-1',
+                  order: 1,
+                  kind: 'PREDICATE',
+                  constraint: 'INCLUDE',
+                  predicateCode: 'SPELL_LEVEL',
+                  min: 1
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    })
+
+    expect(parsed.groups).toHaveLength(1)
+  })
+
   it('parses correlated modifier grants for parameterized domains', () => {
     const parsed = modifierGrantDtoSchema.parse({
       grantKind: 'MODIFIER_GRANT',
@@ -191,6 +226,56 @@ describe('schema package parsing', () => {
 
     expect(parsed.valueDomainCode).toBe('ATTACK_ROLL_BONUS')
     expect((parsed as { domain: { attackDomain: string } }).domain.attackDomain).toBe('SPELL')
+  })
+
+  it('parses explicit ALL grant authoring mode', () => {
+    const parsed = featGrantDtoSchema.parse({
+      grantKind: 'FEAT_GRANT',
+      id: 'explicit-all-bonus-feat',
+      order: 1,
+      selectionKind: 'GRANTED',
+      scalingKind: 'NONE',
+      authoringModeKind: 'ALL'
+    })
+
+    expect(parsed.id).toBe('explicit-all-bonus-feat')
+  })
+
+  it('rejects selected grant targets that omit their required ids', () => {
+    expect(() => featGrantDtoSchema.parse({
+      grantKind: 'FEAT_GRANT',
+      id: 'bad-selected-feat-grant',
+      order: 1,
+      selectionKind: 'GRANTED',
+      scalingKind: 'NONE',
+      authoringModeKind: 'SELECTED'
+    })).toThrow()
+  })
+
+  it('parses explicit ALL proficiency authoring mode', () => {
+    const parsed = proficiencyGrantDtoSchema.parse({
+      grantKind: 'PROFICIENCY_GRANT',
+      id: 'all-skill-proficiency',
+      order: 1,
+      proficiencyKind: 'SKILL',
+      selectionKind: 'GRANTED',
+      level: 'FULL',
+      authoringModeKind: 'ALL'
+    })
+
+    expect(parsed.id).toBe('all-skill-proficiency')
+  })
+
+  it('rejects selected proficiency targets that omit their required payload ids', () => {
+    expect(() => proficiencyGrantDtoSchema.parse({
+      grantKind: 'PROFICIENCY_GRANT',
+      id: 'bad-selected-proficiency',
+      order: 1,
+      proficiencyKind: 'SKILL',
+      selectionKind: 'GRANTED',
+      level: 'FULL',
+      authoringModeKind: 'SELECTED'
+    })).toThrow()
   })
 
   it('rejects modifier payloads that do not match the selected domain', () => {
@@ -230,9 +315,7 @@ describe('schema package parsing', () => {
                   order: 1,
                   kind: 'PREDICATE',
                   constraint: 'INCLUDE',
-                  predicateCode: 'CHARGE_RESET_KIND',
-                  chargeResetKind: ['LONG_REST'],
-                  min: 1
+                  predicateCode: 'SPELL_LEVEL'
                 }
               ]
             }

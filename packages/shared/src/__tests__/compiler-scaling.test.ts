@@ -42,12 +42,10 @@ describe('shared compiler scaling', () => {
 
     expect(
       compileScalingSource({
-        scalingSource: SCALING_SOURCE.SPELL_LEVEL,
-        spellId: 'magic-missile'
+        scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL
       })
     ).toEqual({
-      scalingSource: SCALING_SOURCE.SPELL_LEVEL,
-      spellId: 'magic-missile'
+      scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL
     })
   })
 
@@ -106,7 +104,7 @@ describe('shared compiler scaling', () => {
             order: 1,
             selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
             scalingKind: SCALING.PER_LEVEL,
-            scaling: {
+            progression: {
               scalingSource: SCALING_SOURCE.CLASS_LEVEL,
               classId: 'wizard',
               levels: [
@@ -177,8 +175,7 @@ describe('shared compiler scaling', () => {
       damageTypeId: 'fire',
       valueKind: DAMAGE_VALUE_KIND.DICE,
       scalingKind: SCALING.PER_LEVEL,
-      scalingSource: SCALING_SOURCE.SPELL_LEVEL,
-      spellId: 'burning-hands',
+      scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,
       levels: [
         {
           id: 'burning-hands-1',
@@ -212,8 +209,7 @@ describe('shared compiler scaling', () => {
         dice: '3d6',
         bonuses: undefined,
         scalingKind: SCALING.PER_LEVEL,
-        scalingSource: SCALING_SOURCE.SPELL_LEVEL,
-        spellId: 'burning-hands'
+        scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL
       },
       {
         id: 'burning-hands-2',
@@ -225,8 +221,7 @@ describe('shared compiler scaling', () => {
         dice: '4d6',
         bonuses: undefined,
         scalingKind: SCALING.PER_LEVEL,
-        scalingSource: SCALING_SOURCE.SPELL_LEVEL,
-        spellId: 'burning-hands'
+        scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL
       },
       {
         id: 'burning-hands-3',
@@ -238,8 +233,7 @@ describe('shared compiler scaling', () => {
         dice: '5d6',
         bonuses: undefined,
         scalingKind: SCALING.PER_LEVEL,
-        scalingSource: SCALING_SOURCE.SPELL_LEVEL,
-        spellId: 'burning-hands'
+        scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL
       }
     ])
   })
@@ -251,7 +245,7 @@ describe('shared compiler scaling', () => {
       order: 1,
       selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
       scalingKind: SCALING.PER_LEVEL,
-      scaling: {
+      progression: {
         scalingSource: SCALING_SOURCE.CLASS_LEVEL,
         classId: 'fighter',
         levels: [
@@ -333,6 +327,28 @@ describe('shared compiler scaling', () => {
         featIds: ['alert']
       })
     )
+  })
+
+  it('preserves explicit ALL grant authoring mode in compiled grant output', () => {
+    const compiled = compileFeatGrant({
+      grantKind: GRANT_KIND.FEAT_GRANT,
+      id: 'explicit-all-bonus-feat',
+      order: 1,
+      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+      scalingKind: SCALING.NONE,
+      charges: undefined,
+      authoringModeKind: AUTHORING_MODE_KIND.ALL
+    })
+
+    expect(compiled).toEqual({
+      grantKind: GRANT_KIND.FEAT_GRANT,
+      id: 'explicit-all-bonus-feat',
+      order: 1,
+      charges: undefined,
+      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+      scalingKind: SCALING.NONE,
+      authoringModeKind: AUTHORING_MODE_KIND.ALL
+    })
   })
 
   it('compiles exact roll-table condition branches through the effect result wrapper', () => {

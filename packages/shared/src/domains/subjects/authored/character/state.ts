@@ -34,9 +34,12 @@ export interface CharacterClassSpellState {
   prepared?: string[]
 }
 
+/**
+ * Mutable class-scoped sheet state only.
+ * Class progression itself lives in CharacterIntent.
+ */
 export interface CharacterClassState {
   classId: string
-  classLevel: number
   spells?: CharacterClassSpellState
 }
 

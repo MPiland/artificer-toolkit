@@ -54,6 +54,7 @@ function compileProficiencyMode<T extends ProficiencyKind>(
   | { authoringModeKind: typeof AUTHORING_MODE_KIND.ALL }
   | ({ authoringModeKind: typeof AUTHORING_MODE_KIND.SELECTED } & ProficiencyKindPayload[T]) {
   switch (authored.authoringModeKind) {
+    case undefined:
     case AUTHORING_MODE_KIND.ALL:
       return { authoringModeKind: AUTHORING_MODE_KIND.ALL }
 

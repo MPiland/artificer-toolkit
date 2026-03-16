@@ -8,8 +8,8 @@ import {
 import { FACET_NODE_MAP, CHARGE_NODE_MAP } from '#maps'
 import { buildNodeMap } from '#utils'
 
-type FeatGrantScaling = Extract<FeatGrantAuthored, { scalingKind: 'PER_LEVEL' }>['scaling']
-type FeatGrantLevel = FeatGrantScaling['levels'][number]
+type FeatGrantProgression = Extract<FeatGrantAuthored, { scalingKind: 'PER_LEVEL' }>['progression']
+type FeatGrantLevel = FeatGrantProgression['levels'][number]
 
 const featGrantLevel = buildNodeMap<FeatGrantLevel>()
 
@@ -40,9 +40,9 @@ const FEAT_GRANT_LEVEL_NODE_MAP = featGrantLevel.define('featGrantLevel', ({ map
     }))
 })
 
-const featGrantScaling = buildNodeMap<FeatGrantScaling>()
+const featGrantProgression = buildNodeMap<FeatGrantProgression>()
 
-const FEAT_GRANT_SCALING_NODE_MAP = featGrantScaling.define('featGrantScaling', ({ map, nodes, cond, data }) => {
+const FEAT_GRANT_PROGRESSION_NODE_MAP = featGrantProgression.define('featGrantProgression', ({ map, nodes, cond, data }) => {
   const { selectSingle, groupArray } = nodes
   const local = cond.local()
   const { table } = data
@@ -59,14 +59,6 @@ const FEAT_GRANT_SCALING_NODE_MAP = featGrantScaling.define('featGrantScaling', 
       })
     }, {
       showIf: local.field(['scalingSource']).eq('CLASS_LEVEL')
-    }))
-    .set('spellId', selectSingle(['spellId'], 'Spell', {
-      kind: 'DATA',
-      relationship: table('spells', {
-        selectColumns: ['id', 'label']
-      })
-    }, {
-      showIf: local.field(['scalingSource']).eq('SPELL_LEVEL')
     }))
     .set('levels', groupArray(['levels'], 'Levels', () => FEAT_GRANT_LEVEL_NODE_MAP))
 })
@@ -110,7 +102,7 @@ export const FEAT_GRANT_NODE_MAP = featGrant.define('featGrant', ({ map, nodes, 
     }))
     .set('charges', groupObject(['charges'], 'Charges', () => CHARGE_NODE_MAP))
     .set('restrictions', groupObject(['restrictions'], 'Restrictions', () => FACET_NODE_MAP))
-    .set('scaling', groupObject(['scaling'], 'Scaling', () => FEAT_GRANT_SCALING_NODE_MAP, {
+    .set('progression', groupObject(['progression'], 'Progression', () => FEAT_GRANT_PROGRESSION_NODE_MAP, {
       showIf: local.field(['scalingKind']).eq('PER_LEVEL')
     }))
 })

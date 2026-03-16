@@ -144,7 +144,8 @@ export const scalingKindSchema = z.enum(['NONE', 'PER_LEVEL'])
 export const scalingSourceSchema = z.enum([
   'CHARACTER_LEVEL',
   'CLASS_LEVEL',
-  'SPELL_LEVEL'
+  'PARENT_CLASS_LEVEL',
+  'SPELL_CAST_LEVEL'
 ])
 export const scalingAmountKindSchema = z.enum(['FULL', 'HALF', 'DOUBLE'])
 
@@ -156,7 +157,9 @@ export const chargeResetKindSchema = z.enum([
 export const chargeLimitKindSchema = z.enum([
   'FIXED_AMOUNT',
   'CHARACTER_LEVEL',
-  'SOURCE_LEVEL'
+  'CLASS_LEVEL',
+  'PARENT_CLASS_LEVEL',
+  'SPELL_CAST_LEVEL'
 ])
 export const chargeBonusKindSchema = z.enum([
   'PROFICIENCY_BONUS',
@@ -170,7 +173,7 @@ export const attackDomainCodeSchema = z.enum([
   'UNARMED'
 ])
 
-export const savingThrowKindSchema = z.enum(['SPELL_SAVE_DC', 'FIXED_VALUE'])
+export const savingThrowKindSchema = z.enum(['SOURCE_SAVE_DC', 'FIXED_VALUE'])
 
 export const grantKindSchema = z.enum([
   'MODIFIER_GRANT',

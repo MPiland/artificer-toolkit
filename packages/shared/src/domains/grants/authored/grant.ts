@@ -1,9 +1,11 @@
 import type {
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
-  NodeSubjectCode
+  NodeSubjectCode,
+  ScalingSource,
+  ScalingSourcePayload
 } from '#core'
-import type { FacetAuthored, LevelScaledValue } from '#authored'
+import type { FacetAuthored } from '#authored'
 import type { SCALING } from '#core'
 
 export type GrantBaseAuthored<N extends NodeSubjectCode = NodeSubjectCode> = {
@@ -33,13 +35,25 @@ export type GrantScalingPerLevel<
   = | {
     selectionKind: typeof AUTHORING_SELECTION_KIND.GRANTED
     scalingKind: typeof SCALING.PER_LEVEL
-    scaling: LevelScaledValue<TPayload>
+    progression: GrantProgression<TPayload>
   }
   | {
     selectionKind: typeof AUTHORING_SELECTION_KIND.CHOSEN
     scalingKind: typeof SCALING.PER_LEVEL
-    scaling: LevelScaledValue<TPayload & { count: number }>
+    progression: GrantProgression<TPayload & { count: number }>
   }
+
+export type GrantProgressionLevel<TPayload = object> = {
+  id: string
+  level: number
+  order: number
+} & TPayload
+
+export type GrantProgression<TPayload = object> = {
+  [S in ScalingSource]: {
+    levels: GrantProgressionLevel<TPayload>[]
+  } & ScalingSourcePayload[S]
+}[ScalingSource]
 
 export type GrantScaling<TPayload>
   = | GrantScalingNone<TPayload>

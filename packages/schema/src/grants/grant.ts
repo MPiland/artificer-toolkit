@@ -16,7 +16,7 @@ export const staticGrantBaseDtoSchema = z.object({
 
 export const grantPayloadDtoSchema = z.discriminatedUnion('authoringModeKind', [
   z.object({
-    authoringModeKind: z.literal(authoringModeKindSchema.enum.ALL)
+    authoringModeKind: z.literal(authoringModeKindSchema.enum.ALL).optional()
   }),
   z.object({
     authoringModeKind: z.literal(authoringModeKindSchema.enum.SELECTED)
@@ -32,20 +32,43 @@ export const scalingLevelDtoSchema = z.object({
 export const scalingGrantBaseDtoSchema = staticGrantBaseDtoSchema.extend({
   selectionKind: authoringSelectionKindSchema,
   scalingKind: scalingKindSchema,
-  count: z.number().int().optional(),
-  scalingSource: scalingSourceSchema.optional(),
-  classId: z.string().optional(),
-  spellId: z.string().optional()
+  count: z.number().int().optional()
 }).superRefine((value, ctx) => {
-  if (value.scalingKind === 'PER_LEVEL' && !value.scalingSource) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'scalingSource is required when scalingKind is PER_LEVEL' })
+  if (
+    value.selectionKind === 'CHOSEN'
+    && value.scalingKind === 'NONE'
+    && value.count === undefined
+  ) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'count is required when selectionKind is CHOSEN and scalingKind is NONE' })
   }
+})
 
-  if (value.scalingSource === 'CLASS_LEVEL' && !value.classId) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'classId is required for CLASS_LEVEL scaling' })
-  }
+export const grantProgressionLevelDtoSchema = scalingLevelDtoSchema
 
-  if (value.scalingSource === 'SPELL_LEVEL' && !value.spellId) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'spellId is required for SPELL_LEVEL scaling' })
+export const grantProgressionDtoSchema = z.discriminatedUnion('scalingSource', [
+  z.object({
+    scalingSource: z.literal('CHARACTER_LEVEL'),
+    levels: z.array(grantProgressionLevelDtoSchema)
+  }),
+  z.object({
+    scalingSource: z.literal('CLASS_LEVEL'),
+    classId: z.string(),
+    levels: z.array(grantProgressionLevelDtoSchema)
+  }),
+  z.object({
+    scalingSource: z.literal('PARENT_CLASS_LEVEL'),
+    levels: z.array(grantProgressionLevelDtoSchema)
+  }),
+  z.object({
+    scalingSource: z.literal('SPELL_CAST_LEVEL'),
+    levels: z.array(grantProgressionLevelDtoSchema)
+  })
+])
+
+export const grantProgressionFieldsDtoSchema = z.object({
+  progression: grantProgressionDtoSchema.optional()
+}).superRefine((value, ctx) => {
+  if (!value.progression) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'progression is required when scalingKind is PER_LEVEL' })
   }
 })

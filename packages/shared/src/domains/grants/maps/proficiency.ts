@@ -46,8 +46,6 @@ export const PROFICIENCY_NODE_MAP = proficiencyNodeMap.define(
       .set('authoringModeKind', selectSingle(['authoringModeKind'], 'Authoring Mode', {
         kind: 'INLINE',
         options: AUTHORING_MODE_KIND_OPTIONS
-      }, {
-        requiredIf: true
       }))
       .set('level', selectSingle(['level'], 'Level', {
         kind: 'INLINE',

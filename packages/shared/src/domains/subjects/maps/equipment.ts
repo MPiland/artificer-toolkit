@@ -12,8 +12,7 @@ import {
   EFFECT_NODE_MAP,
   FACET_NODE_MAP,
   FEATURE_NODE_MAP,
-  MODIFIER_GRANT_NODE_MAP,
-  SPEED_NODE_MAP
+  MODIFIER_GRANT_NODE_MAP
 } from '#maps'
 import type {
   CapacityAuthored,
@@ -182,9 +181,6 @@ export const EQUIPMENT_NODE_MAP = equipment.define('equipment', ({ map, nodes, c
       showIf: isBaseEquipment
     }))
     .set('abilities', groupArray(['abilities'], 'Abilities', () => EQUIPMENT_ABILITIES_NODE_MAP, {
-      showIf: isBaseEquipment
-    }))
-    .set('speed', groupObject(['speed'], 'Speed', () => SPEED_NODE_MAP, {
       showIf: isBaseEquipment
     }))
 })

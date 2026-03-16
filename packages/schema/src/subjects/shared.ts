@@ -42,7 +42,7 @@ export const classResourceDtoSchema = z.object({
   id: z.string(),
   label: z.string(),
   description: z.string().optional(),
-  levelAvailable: z.number().int(),
+  availableAtLevel: z.number().int(),
   charges: chargeDtoSchema
 })
 

@@ -175,9 +175,13 @@ export enum CharacterStartingEquipmentSource {
   BACKGROUND = 'BACKGROUND'
 }
 
+/**
+ * Stable authored IDs keep character decisions resilient if option arrays are
+ * reordered during content edits or later seed migrations.
+ */
 export interface CharacterStartingEquipmentGroupSelection {
-  groupIndex: number
-  optionIndex: number
+  groupId: string
+  optionId: string
   selections?: {
     selectionKey: string
     equipmentId: string

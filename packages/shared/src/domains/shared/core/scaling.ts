@@ -5,7 +5,8 @@ import { valuesOf } from '#utils'
 export const SCALING_SOURCE = {
   CHARACTER_LEVEL: 'CHARACTER_LEVEL',
   CLASS_LEVEL: 'CLASS_LEVEL',
-  SPELL_LEVEL: 'SPELL_LEVEL'
+  PARENT_CLASS_LEVEL: 'PARENT_CLASS_LEVEL',
+  SPELL_CAST_LEVEL: 'SPELL_CAST_LEVEL'
 } as const
 
 export type ScalingSource = keyof typeof SCALING_SOURCE
@@ -30,11 +31,18 @@ export const SCALING_SOURCE_REGISTRY: Record<
     description: 'The level scaling is based on the class level.'
   },
 
-  [SCALING_SOURCE.SPELL_LEVEL]: {
-    code: SCALING_SOURCE.SPELL_LEVEL,
-    label: 'Spell Level',
-    tooltip: 'Spell level as source.',
-    description: 'The level scaling is based on the spell level.'
+  [SCALING_SOURCE.PARENT_CLASS_LEVEL]: {
+    code: SCALING_SOURCE.PARENT_CLASS_LEVEL,
+    label: 'Parent Class Level',
+    tooltip: 'Owning class level as source.',
+    description: 'The level scaling is based on the owning class progression.'
+  },
+
+  [SCALING_SOURCE.SPELL_CAST_LEVEL]: {
+    code: SCALING_SOURCE.SPELL_CAST_LEVEL,
+    label: 'Spell Cast Level',
+    tooltip: 'Actual cast level as source.',
+    description: 'The level scaling is based on the actual spell cast or upcast level.'
   }
 } as const
 
@@ -48,9 +56,11 @@ export type ScalingSourcePayload = {
     scalingSource: typeof SCALING_SOURCE.CLASS_LEVEL
     classId: string
   }
-  [SCALING_SOURCE.SPELL_LEVEL]: {
-    scalingSource: typeof SCALING_SOURCE.SPELL_LEVEL
-    spellId: string
+  [SCALING_SOURCE.PARENT_CLASS_LEVEL]: {
+    scalingSource: typeof SCALING_SOURCE.PARENT_CLASS_LEVEL
+  }
+  [SCALING_SOURCE.SPELL_CAST_LEVEL]: {
+    scalingSource: typeof SCALING_SOURCE.SPELL_CAST_LEVEL
   }
 }
 

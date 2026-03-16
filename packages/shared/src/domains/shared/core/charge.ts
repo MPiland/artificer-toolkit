@@ -79,7 +79,9 @@ export const CHARGE_RESET_OPTIONS = valuesOf(
 export const CHARGE_LIMIT_KIND = {
   FIXED_AMOUNT: 'FIXED_AMOUNT',
   CHARACTER_LEVEL: 'CHARACTER_LEVEL',
-  SOURCE_LEVEL: 'SOURCE_LEVEL'
+  CLASS_LEVEL: 'CLASS_LEVEL',
+  PARENT_CLASS_LEVEL: 'PARENT_CLASS_LEVEL',
+  SPELL_CAST_LEVEL: 'SPELL_CAST_LEVEL'
 } as const
 
 export type ChargeLimitKind = keyof typeof CHARGE_LIMIT_KIND
@@ -104,12 +106,28 @@ export const CHARGE_LIMIT_REGISTRY: Record<ChargeLimitKind, ChargeLimitOption>
         'The number of uses increases based on the character\'s overall level.'
     },
 
-    [CHARGE_LIMIT_KIND.SOURCE_LEVEL]: {
-      code: CHARGE_LIMIT_KIND.SOURCE_LEVEL,
-      label: 'Source Level',
-      tooltip: 'Uses the source\'s level.',
+    [CHARGE_LIMIT_KIND.CLASS_LEVEL]: {
+      code: CHARGE_LIMIT_KIND.CLASS_LEVEL,
+      label: 'Class Level',
+      tooltip: 'Uses a specific class level.',
       description:
-        'The number of uses increases based on the source\'s level.'
+        'The number of uses increases based on a specific class progression.'
+    },
+
+    [CHARGE_LIMIT_KIND.PARENT_CLASS_LEVEL]: {
+      code: CHARGE_LIMIT_KIND.PARENT_CLASS_LEVEL,
+      label: 'Parent Class Level',
+      tooltip: 'Uses the owning class level.',
+      description:
+        'The number of uses increases based on the owning class progression.'
+    },
+
+    [CHARGE_LIMIT_KIND.SPELL_CAST_LEVEL]: {
+      code: CHARGE_LIMIT_KIND.SPELL_CAST_LEVEL,
+      label: 'Spell Cast Level',
+      tooltip: 'Uses the actual cast level.',
+      description:
+        'The number of uses increases based on the actual spell cast or upcast level.'
     }
   } as const
 

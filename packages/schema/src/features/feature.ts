@@ -3,16 +3,16 @@ import { z } from 'zod'
 import { featureBaseDtoSchema } from './base.js'
 import { featureOptionDtoSchema } from './option.js'
 
-export const optionsByLevelDtoSchema = z.object({
+export const featureOptionChoiceDtoSchema = z.object({
   level: z.number().int(),
   count: z.number().int(),
   replaceCount: z.number().int().nullable().optional()
 })
 
 export const featureDtoSchema = featureBaseDtoSchema.extend({
-  optionsPerLevel: z.array(optionsByLevelDtoSchema).optional(),
+  optionChoices: z.array(featureOptionChoiceDtoSchema).optional(),
   options: z.array(featureOptionDtoSchema).optional(),
-  levelAvailable: z.string().optional()
+  availableAtLevel: z.number().int().optional()
 })
 
 export type FeatureDto = z.infer<typeof featureDtoSchema>

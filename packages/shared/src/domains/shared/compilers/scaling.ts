@@ -16,10 +16,14 @@ export function compileScalingSource(
         classId: authored.classId
       }
 
-    case SCALING_SOURCE.SPELL_LEVEL:
+    case SCALING_SOURCE.PARENT_CLASS_LEVEL:
       return {
-        scalingSource: SCALING_SOURCE.SPELL_LEVEL,
-        spellId: authored.spellId
+        scalingSource: SCALING_SOURCE.PARENT_CLASS_LEVEL
+      }
+
+    case SCALING_SOURCE.SPELL_CAST_LEVEL:
+      return {
+        scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL
       }
 
     default:

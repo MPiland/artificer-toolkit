@@ -6,7 +6,7 @@ import type {
 export type SavingThrowAuthored
   = | {
     id: string
-    savingThrowKind: typeof SAVING_THROW_KIND.SPELL_SAVE_DC
+    savingThrowKind: typeof SAVING_THROW_KIND.SOURCE_SAVE_DC
   } | {
     id: string
     ability: AbilityCode // what the SCOPE rolls

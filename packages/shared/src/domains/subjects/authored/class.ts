@@ -20,7 +20,7 @@ export interface ClassResourceAuthored {
   id: string
   label: string
   description?: string
-  levelAvailable: number
+  availableAtLevel: number
   charges: ChargeAuthored
 }
 

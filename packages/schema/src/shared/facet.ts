@@ -22,7 +22,7 @@ export const unknownObjectSchema = z.record(z.string(), z.unknown())
 export const unknownObjectArraySchema = z.array(unknownObjectSchema)
 
 const selectableRootSchema = z.object({
-  authoringModeKind: authoringModeKindSchema
+  authoringModeKind: authoringModeKindSchema.optional()
 })
 
 const subjectSelectionSchema = selectableRootSchema.extend({
@@ -46,7 +46,7 @@ const selectableSchema = (
   extraSchema?: z.ZodObject<z.ZodRawShape>
 ) => z.union([
   z.object({
-    authoringModeKind: z.literal(authoringModeKindSchema.enum.ALL)
+    authoringModeKind: z.literal(authoringModeKindSchema.enum.ALL).optional()
   }).merge(extraSchema ?? z.object({})),
   z.object({
     authoringModeKind: z.literal(authoringModeKindSchema.enum.SELECTED)

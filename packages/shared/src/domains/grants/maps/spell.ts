@@ -9,8 +9,8 @@ import {
 import { CHARGE_NODE_MAP, FACET_NODE_MAP } from '#maps'
 import { buildNodeMap, type NodeMap } from '#utils'
 
-type SpellGrantScaling = Extract<SpellGrantAuthored, { scalingKind: 'PER_LEVEL' }>['scaling']
-type SpellGrantLevel = SpellGrantScaling['levels'][number]
+type SpellGrantProgression = Extract<SpellGrantAuthored, { scalingKind: 'PER_LEVEL' }>['progression']
+type SpellGrantLevel = SpellGrantProgression['levels'][number]
 
 const SPELL_FILTER_NODE_MAP = FACET_NODE_MAP as NodeMap<FacetAuthored<'SPELL'>>
 
@@ -43,9 +43,9 @@ const SPELL_GRANT_LEVEL_NODE_MAP = spellGrantLevel.define('spellGrantLevel', ({ 
     }))
 })
 
-const spellGrantScaling = buildNodeMap<SpellGrantScaling>()
+const spellGrantProgression = buildNodeMap<SpellGrantProgression>()
 
-const SPELL_GRANT_SCALING_NODE_MAP = spellGrantScaling.define('spellGrantScaling', ({ map, nodes, cond, data }) => {
+const SPELL_GRANT_PROGRESSION_NODE_MAP = spellGrantProgression.define('spellGrantProgression', ({ map, nodes, cond, data }) => {
   const { selectSingle, groupArray } = nodes
   const local = cond.local()
   const { table } = data
@@ -62,14 +62,6 @@ const SPELL_GRANT_SCALING_NODE_MAP = spellGrantScaling.define('spellGrantScaling
       })
     }, {
       showIf: local.field(['scalingSource']).eq('CLASS_LEVEL')
-    }))
-    .set('spellId', selectSingle(['spellId'], 'Spell', {
-      kind: 'DATA',
-      relationship: table('spells', {
-        selectColumns: ['id', 'label']
-      })
-    }, {
-      showIf: local.field(['scalingSource']).eq('SPELL_LEVEL')
     }))
     .set('levels', groupArray(['levels'], 'Levels', () => SPELL_GRANT_LEVEL_NODE_MAP))
 })
@@ -122,7 +114,7 @@ export const SPELL_GRANT_NODE_MAP = spellGrant.define('spellGrant', ({ map, node
     }))
     .set('filters', groupObject(['filters'], 'Spell Filters', () => SPELL_FILTER_NODE_MAP))
     .set('restrictions', groupObject(['restrictions'], 'Restrictions', () => FACET_NODE_MAP))
-    .set('scaling', groupObject(['scaling'], 'Scaling', () => SPELL_GRANT_SCALING_NODE_MAP, {
+    .set('progression', groupObject(['progression'], 'Progression', () => SPELL_GRANT_PROGRESSION_NODE_MAP, {
       showIf: local.field(['scalingKind']).eq('PER_LEVEL')
     }))
 })
