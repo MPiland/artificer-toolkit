@@ -16,21 +16,22 @@ SET LOCAL search_path = public, pg_catalog;
 SET CONSTRAINTS ALL DEFERRED;
 
 -- 1) Shared primitives (types/functions/views used by others)
-\i :etl_root'/subjects/tables/systems.sql'
 \i :etl_root'/utils/tables/utils.sql'
+\i :etl_root'/utils/tables/user_management.sql'
+\i :etl_root'/subjects/tables/systems.sql'
 \i :etl_root'/shared/tables/charges.sql'
 \i :etl_root'/shared/tables/details.sql'
 \i :etl_root'/shared/tables/characteristics.sql'
 \i :etl_root'/shared/tables/facets.sql'
 \i :etl_root'/shared/tables/saving_throws.sql'
 \i :etl_root'/shared/tables/starting_equipment.sql'
-\i :etl_root'/effects/tables/moments/direct.sql'
-\i :etl_root'/effects/tables/moments/moments.sql'
-\i :etl_root'/effects/tables/moments/roll_tables.sql'
+\i :etl_root'/effects/tables/effects.sql'
 \i :etl_root'/effects/tables/conditions.sql'
 \i :etl_root'/effects/tables/damages.sql'
-\i :etl_root'/effects/tables/effects.sql'
 \i :etl_root'/effects/tables/invocations.sql'
+\i :etl_root'/effects/tables/moments/moments.sql'
+\i :etl_root'/effects/tables/moments/roll_tables.sql'
+\i :etl_root'/effects/tables/moments/direct.sql'
 \i :etl_root'/features/tables/features.sql'
 \i :etl_root'/features/tables/options.sql'
 \i :etl_root'/grants/tables/feats.sql'
@@ -39,11 +40,15 @@ SET CONSTRAINTS ALL DEFERRED;
 \i :etl_root'/grants/tables/senses.sql'
 \i :etl_root'/grants/tables/spells.sql'
 \i :etl_root'/subjects/tables/backgrounds.sql'
+\i :etl_root'/subjects/tables/characters.sql'
 \i :etl_root'/subjects/tables/classes.sql'
+\i :etl_root'/subjects/tables/creatures.sql'
 \i :etl_root'/subjects/tables/equipment.sql'
 \i :etl_root'/subjects/tables/feats.sql'
 \i :etl_root'/subjects/tables/races.sql'
 \i :etl_root'/subjects/tables/spells.sql'
+\i :etl_root'/subjects/tables/vehicles.sql'
+\i :etl_root'/bootstrap/constraints/cross_domain_foreign_keys.sql'
 
 SELECT
   public.apply_updated_at_triggers ();

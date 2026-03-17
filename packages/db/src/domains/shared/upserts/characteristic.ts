@@ -4,7 +4,7 @@ import {
   type ShapeAuthored
 } from '@artificer-toolkit/shared'
 import type { SupabaseDatabase, DBLike } from '#types'
-import { assertNever } from '@artificer-toolkit/functions'
+import { assertNever } from '../../../utils/index.js'
 
 export function mapRangeToRow(
   json_data: RangeAuthored,
@@ -18,8 +18,8 @@ export function mapRangeToRow(
       return {
         characteristic_id,
         kind: 'DISTANCE',
-        min: json_data.min,
-        max: json_data.max || null,
+        min: json_data.amount,
+        max: null,
         unit_code: json_data.unit
       }
 
@@ -41,26 +41,30 @@ export function mapRangeToRow(
 }
 
 export async function upsertRange(db: DBLike, json_data: RangeAuthored) {
-  const characteristic = await db
+  await db
     .insertInto('characteristics')
     .values({
       id: json_data.id,
       code: 'RANGE'
     })
+    .onConflict((oc) => oc.column('id')
+      .doUpdateSet(({ ref }) => ({
+        code: ref('excluded.code')
+      })))
     .returning('id')
     .executeTakeFirstOrThrow()
 
-  const row = mapRangeToRow(json_data, characteristic.id)
+  const row = mapRangeToRow(json_data, json_data.id)
 
   await db
     .insertInto('characteristic_ranges')
     .values(row)
     .onConflict((oc) => oc.column('characteristic_id')
-      .doUpdateSet((eb) => ({
-        kind: eb.ref('excluded.kind'),
-        min: eb.ref('excluded.min'),
-        max: eb.ref('excluded.max'),
-        unit_code: eb.ref('excluded.unit_code')
+      .doUpdateSet(({ ref }) => ({
+        kind: ref('excluded.kind'),
+        min: ref('excluded.min'),
+        max: ref('excluded.max'),
+        unit_code: ref('excluded.unit_code')
       })))
     .returning('characteristic_id')
     .executeTakeFirstOrThrow()
@@ -101,25 +105,28 @@ export function mapDurationToRow(
 }
 
 export async function upsertDuration(db: DBLike, json_data: DurationAuthored) {
-  const characteristic = await db
+  await db
     .insertInto('characteristics')
     .values({
       id: json_data.id,
       code: 'DURATION'
     })
-    .onConflict((oc) => oc.column('id').doNothing())
+    .onConflict((oc) => oc.column('id')
+      .doUpdateSet(({ ref }) => ({
+        code: ref('excluded.code')
+      })))
     .returning('id')
     .executeTakeFirstOrThrow()
 
-  const row = mapDurationToRow(json_data, characteristic.id)
+  const row = mapDurationToRow(json_data, json_data.id)
 
   await db
     .insertInto('characteristic_durations')
     .values(row)
     .onConflict((oc) => oc.column('characteristic_id')
-      .doUpdateSet((eb) => ({
-        kind: eb.ref('excluded.kind'),
-        amount: eb.ref('excluded.amount')
+      .doUpdateSet(({ ref }) => ({
+        kind: ref('excluded.kind'),
+        amount: ref('excluded.amount')
       })))
     .returning('characteristic_id')
     .executeTakeFirstOrThrow()
@@ -218,48 +225,45 @@ export function mapShapeDimensionsToRow(
 }
 
 export async function upsertShape(db: DBLike, json_data: ShapeAuthored) {
-  const characteristic = await db
+  await db
     .insertInto('characteristics')
     .values({
       id: json_data.id,
       code: 'SHAPE'
     })
-    .onConflict((oc) => oc.column('id').doNothing())
+    .onConflict((oc) => oc.column('id')
+      .doUpdateSet(({ ref }) => ({
+        code: ref('excluded.code')
+      })))
     .returning('id')
     .executeTakeFirstOrThrow()
 
   await db
     .insertInto('characteristic_shapes')
     .values({
-      characteristic_id: characteristic.id,
+      characteristic_id: json_data.id,
       kind: json_data.shapeKind
     })
     .onConflict((oc) => oc.column('characteristic_id')
-      .doUpdateSet((eb) => ({
-        kind: eb.ref('excluded.kind')
+      .doUpdateSet(({ ref }) => ({
+        kind: ref('excluded.kind')
       })))
-    .returning('characteristic_id')
-    .executeTakeFirstOrThrow()
+    .execute()
 
-  const rows = mapShapeDimensionsToRow(json_data, characteristic.id)
-  const dimensions = rows.map((r) => r.dimension)
+  const rows = mapShapeDimensionsToRow(json_data, json_data.id)
 
   await db
     .deleteFrom('characteristic_shape_dimensions')
-    .where((eb) => eb.and([
-      eb('characteristic_id', '=', characteristic.id),
-      eb('dimension', 'not in', dimensions)
-    ]))
+    .where('characteristic_id', '=', json_data.id)
     .execute()
 
   await db
     .insertInto('characteristic_shape_dimensions')
     .values(rows)
     .onConflict((oc) => oc.columns(['characteristic_id', 'dimension'])
-      .doUpdateSet((eb) => ({
-        amount: eb.ref('excluded.amount'),
-        unit_code: eb.ref('excluded.unit_code')
+      .doUpdateSet(({ ref }) => ({
+        amount: ref('excluded.amount'),
+        unit_code: ref('excluded.unit_code')
       })))
-    .returning('characteristic_id')
-    .executeTakeFirstOrThrow()
+    .execute()
 }

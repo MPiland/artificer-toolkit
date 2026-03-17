@@ -1,4 +1,9 @@
-import { assertNever } from '@artificer-toolkit/functions/utils'
+import {
+  assertNever,
+  compileSuccess,
+  unwrapCompileResult,
+  type CompileResult
+} from '#utils'
 import type { ModifierGrantAuthored } from '#authored'
 import { AUTHORING_SELECTION_KIND, GRANT_KIND } from '#core'
 import type {
@@ -25,9 +30,9 @@ export type CompiledModifierGrant<
  * Compiler
  * ────────────────────────────────────────────── */
 
-export function compileModifierGrant(
+export function compileModifierGrantResult(
   authored: ModifierGrantAuthored
-): CompiledModifierGrant {
+): CompileResult<CompiledModifierGrant> {
   const base = {
     id: authored.id,
     order: authored.order,
@@ -39,24 +44,30 @@ export function compileModifierGrant(
   switch (authored.selectionKind) {
     case AUTHORING_SELECTION_KIND.GRANTED: {
       const { id: _id, ...rest } = authored
-      return {
+      return compileSuccess({
         ...base,
         ...rest
-      }
+      })
     }
 
     case AUTHORING_SELECTION_KIND.CHOSEN: {
       const { id: _id, ...rest } = authored
-      return {
+      return compileSuccess({
         ...base,
         ...rest,
 
         // invariant: count only on CHOSEN
         count: authored.count
-      }
+      })
     }
 
     default:
       return assertNever(authored)
   }
+}
+
+export function compileModifierGrant(
+  authored: ModifierGrantAuthored
+): CompiledModifierGrant {
+  return unwrapCompileResult(compileModifierGrantResult(authored))
 }

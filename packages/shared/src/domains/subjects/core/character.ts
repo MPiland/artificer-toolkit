@@ -1,4 +1,5 @@
 import type { CoreMeta } from '#core'
+import { valuesOf } from '#utils'
 
 export const CHARACTER_ABILITY_GENERATION_METHOD = {
   STANDARD_ARRAY: 'STANDARD_ARRAY',
@@ -32,7 +33,7 @@ export const ABILITY_GENERATION_METHOD_REGISTRY: Record<
   }
 } as const
 
-export const CHARACTER_ABILITY_GENERATION_METHOD_OPTIONS = Object.values(
+export const CHARACTER_ABILITY_GENERATION_METHOD_OPTIONS = valuesOf(
   ABILITY_GENERATION_METHOD_REGISTRY
 ) as readonly CharacterAbilityGenerationMethodOption[]
 
@@ -84,9 +85,9 @@ export const STANDARD_ARRAY_SCORE_REGISTRY: Record<
   }
 } as const
 
-export const STANDARD_ARRAY_SCORE_OPTIONS = Object.values(
+export const STANDARD_ARRAY_SCORE_OPTIONS = [...valuesOf(
   STANDARD_ARRAY_SCORE_REGISTRY
-).sort((a, b) => Number(a.code) - Number(b.code)) as readonly StandardArrayScoreOption[]
+)].sort((a, b) => Number(a.code) - Number(b.code)) as readonly StandardArrayScoreOption[]
 
 export const POINT_BUY_SCORES = [
   '8',
@@ -156,9 +157,9 @@ export const POINT_BUY_SCORE_REGISTRY: Record<
   }
 } as const
 
-export const POINT_BUY_SCORE_OPTIONS = Object.values(
+export const POINT_BUY_SCORE_OPTIONS = [...valuesOf(
   POINT_BUY_SCORE_REGISTRY
-).sort((a, b) => Number(a.code) - Number(b.code)) as readonly PointBuyScoreOption[]
+)].sort((a, b) => Number(a.code) - Number(b.code)) as readonly PointBuyScoreOption[]
 
 export const POINT_BUY_TOTAL_POINTS = 27 as const
 
@@ -186,7 +187,7 @@ export const ADVANCEMENT_METHOD_REGISTRY: Record<
   }
 } as const
 
-export const ADVANCEMENT_METHOD_OPTIONS = Object.values(
+export const ADVANCEMENT_METHOD_OPTIONS = valuesOf(
   ADVANCEMENT_METHOD_REGISTRY
 ) as readonly AdvancementMethodOption[]
 
@@ -216,6 +217,6 @@ export const HITPOINT_CALC_METHOD_REGISTRY: Record<
   }
 } as const
 
-export const HITPOINT_CALC_METHOD_OPTIONS = Object.values(
+export const HITPOINT_CALC_METHOD_OPTIONS = valuesOf(
   HITPOINT_CALC_METHOD_REGISTRY
 ) as readonly HitpointCalculationMethodOption[]

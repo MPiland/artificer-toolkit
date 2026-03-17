@@ -2,9 +2,22 @@ import type { AbilityCode, SCALING } from '#core'
 import {
   DAMAGE_BONUS_KIND,
   DAMAGE_VALUE_KIND,
-  EFFECT_KIND
+  EFFECT_KIND,
+  type ScalingSource,
+  type ScalingSourcePayload
 } from '#core'
-import type { LevelScaledValue, PoolScaledValue } from '#authored'
+
+export type DamageProgressionLevel<TPayload = object> = {
+  id: string
+  level: number
+  order: number
+} & TPayload
+
+export type DamageProgression<TPayload = object> = {
+  [S in ScalingSource]: {
+    levels: DamageProgressionLevel<TPayload>[]
+  } & ScalingSourcePayload[S]
+}[ScalingSource]
 
 export type DamageBonusAuthored
   = | {
@@ -43,7 +56,7 @@ export type DamageFixedPayload
         {
           valueKind: typeof DAMAGE_VALUE_KIND.FIXED
           scalingKind: typeof SCALING.PER_LEVEL
-        } & LevelScaledValue<{ amount: number }>
+        } & DamageProgression<{ amount: number }>
       )
 
 export type DamageDicePayload
@@ -55,7 +68,7 @@ export type DamageDicePayload
         {
           valueKind: typeof DAMAGE_VALUE_KIND.DICE
           scalingKind: typeof SCALING.PER_LEVEL
-        } & LevelScaledValue<{ diceConfig: string }>
+        } & DamageProgression<{ diceConfig: string }>
       )
 
 export type DamagePoolPayload
@@ -67,7 +80,15 @@ export type DamagePoolPayload
         {
           valueKind: typeof DAMAGE_VALUE_KIND.POOL
           scalingKind: typeof SCALING.PER_LEVEL
-        } & PoolScaledValue
+          scalingSource: 'CHARACTER_LEVEL' | 'CLASS_LEVEL' | 'PARENT_CLASS_LEVEL' | 'SPELL_CAST_LEVEL'
+          amount?: number
+          multiplier?: number
+          min?: number
+          max?: number
+        } & (
+          | { scalingSource: 'CLASS_LEVEL', classId: string }
+          | { scalingSource: 'CHARACTER_LEVEL' | 'PARENT_CLASS_LEVEL' | 'SPELL_CAST_LEVEL' }
+        )
       )
 
 export type DamagePayload

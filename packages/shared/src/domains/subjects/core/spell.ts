@@ -1,4 +1,5 @@
 import { CoreMeta } from '#core'
+import { valuesOf } from '#utils'
 
 export const SPELL_ATTRIBUTE = {
   CONCENTRATION: 'CONCENTRATION',
@@ -39,7 +40,7 @@ export const SPELL_ATTRIBUTE_REGISTRY: Record<
   }
 } as const
 
-export const SPELL_ATTRIBUTE_OPTIONS = Object.values(
+export const SPELL_ATTRIBUTE_OPTIONS = valuesOf(
   SPELL_ATTRIBUTE_REGISTRY
 ) as readonly SpellAttributeOption[]
 
@@ -77,7 +78,7 @@ export const CASTING_TIME_UNIT_REGISTRY: Record<
   }
 }
 
-export const CASTING_TIME_UNIT_OPTIONS = Object.values(
+export const CASTING_TIME_UNIT_OPTIONS = valuesOf(
   CASTING_TIME_UNIT_REGISTRY
 ) as readonly CastingTimeUnitOption[]
 
@@ -119,6 +120,6 @@ export const CONCENTRATION_TYPE_REGISTRY: Record<
   }
 } as const
 
-export const CONCENTRATION_TYPE_OPTIONS = Object.values(
+export const CONCENTRATION_TYPE_OPTIONS = valuesOf(
   CONCENTRATION_TYPE_REGISTRY
 ) as readonly ConcentrationTypeOption[]

@@ -13,6 +13,10 @@
     "./types": {
       "types": "./dist/types/index.d.ts",
       "default": "./dist/types/index.js"
+    },
+    "./types/column-meta": {
+      "types": "./dist/types/column-meta.d.ts",
+      "default": "./dist/types/column-meta.js"
     }
   },
   "imports": {
@@ -24,10 +28,10 @@
   "scripts": {
     "clean": "rimraf dist",
     "build": "tsc -p tsconfig.build.json",
-    "gen:types": "supabase gen types typescript --project-id cvxfhtkksdeiycxpryhy --schema public,storage > src/types/database.ts"
+    "build:create-db-bundle": "node ./scripts/build-create-database-bundle.mjs",
+    "gen:types": "supabase gen types typescript --project-id cvxfhtkksdeiycxpryhy --schema public,storage > src/types/supabase.database.ts"
   },
   "dependencies": {
-    "@artificer-toolkit/functions": "workspace:^",
     "@artificer-toolkit/shared": "workspace:^",
     "kysely": "^0.28.11",
     "kysely-supabase": "^0.2.1",

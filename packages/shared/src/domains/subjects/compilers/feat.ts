@@ -13,9 +13,7 @@ import {
   compileFeature,
   type CompiledFeature,
   compileEffect,
-  type CompiledEffectGroup,
-  type CompiledTargetGroups,
-  compileTargetGroups
+  type CompiledEffectGroup
 } from '#compilers'
 
 export type CompiledFeat = {
@@ -26,7 +24,6 @@ export type CompiledFeat = {
   proficiencies?: CompiledProficiencyGrant[]
   senses?: CompiledSenseGrant[]
   spells?: CompiledSpellGrant[]
-  restrictionGroups?: CompiledTargetGroups<'FEAT'>
   features?: CompiledFeature[]
 }
 
@@ -56,11 +53,6 @@ export function compileFeat(authored: FeatAuthored): CompiledFeat {
       ? authored.grants.spells.map(compileSpellGrant)
       : undefined
 
-  const restrictionGroups
-    = authored.restrictionGroups
-      ? compileTargetGroups(authored.restrictionGroups)
-      : undefined
-
   const features
     = authored.features && authored.features.length
       ? authored.features.map(compileFeature)
@@ -76,7 +68,6 @@ export function compileFeat(authored: FeatAuthored): CompiledFeat {
     senses,
     features,
     effects,
-    restrictionGroups,
     charges
   }
 }

@@ -1,4 +1,4 @@
-import { assertNever } from '@artificer-toolkit/functions'
+import { assertNever } from '#utils'
 
 import type {
   ClassAuthored,
@@ -30,7 +30,7 @@ import {
 
 export interface CompiledClassResource {
   id: string
-  levelAvailable: number
+  availableAtLevel: number
   charges: CompiledCharge
 }
 
@@ -49,6 +49,10 @@ export type CompiledPrepareLimit = {
   methodKinds: PrepareLimitMethodKind[]
   scaling?: ScalingAmountKind
   rounding?: RoundingCode
+  perLevel?: {
+    classLevel: number
+    amount: number
+  }[]
 }
 
 export interface CompiledSpellSlot {
@@ -129,7 +133,7 @@ export function compileResource(
 ): CompiledClassResource {
   return {
     id: authored.id,
-    levelAvailable: authored.levelAvailable,
+    availableAtLevel: authored.availableAtLevel,
     charges: compileCharge(authored.charges)
   }
 }
@@ -140,7 +144,8 @@ export function compilePrepareLimit(
   return {
     methodKinds: authored.methodKinds,
     scaling: authored.scaling,
-    rounding: authored.rounding
+    rounding: authored.rounding,
+    perLevel: authored.perLevel
   }
 }
 

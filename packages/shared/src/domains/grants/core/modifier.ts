@@ -1,5 +1,6 @@
 import type { ChargeLimitPayload } from '#authored'
 import type { AbilityCode, ValueDomainCode, CoreMeta, ValueDomainOptionPayloadByDomain } from '#core'
+import { valuesOf } from '#utils'
 
 export const MODIFIER_KIND = {
   // Numeric
@@ -180,6 +181,10 @@ export const MODIFIER_SCOPE_REGISTRY: Record<
     description: 'Applies to only this source for the character.'
   }
 }
+
+export const MODIFIER_SCOPE_OPTIONS = valuesOf(
+  MODIFIER_SCOPE_REGISTRY
+) as readonly ModifierScopeOption[]
 
 export const MODIFIER_KINDS_BY_DOMAIN: Record<ValueDomainCode, readonly ModifierKind[]>
   = {
@@ -397,6 +402,14 @@ export const MODIFIER_VALUE_SOURCE_REGISTRY: Record<
     tooltip: 'Higher spell slots result in higher values.'
   }
 } as const
+
+export const MODIFIER_KIND_OPTIONS = valuesOf(
+  MODIFIER_KIND_REGISTRY
+) as readonly ModifierTypeOption[]
+
+export const MODIFIER_VALUE_SOURCE_OPTIONS = valuesOf(
+  MODIFIER_VALUE_SOURCE_REGISTRY
+) as readonly ModifierValueSourceOption[]
 
 export type ModifierScalarValueAuthored
   = | { valueKind: 'FIXED', amount: number }

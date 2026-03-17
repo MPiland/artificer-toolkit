@@ -1,4 +1,5 @@
 import type { CoreMeta } from '#core'
+import { valuesOf } from '#utils'
 
 /* ──────────────────────────────────────────────
  * Subject Codes
@@ -76,4 +77,4 @@ export const SUBJECT_REGISTRY: SubjectRegistry = {
   }
 } as const
 
-export const SUBJECT_OPTIONS = Object.values(SUBJECT_REGISTRY) as SubjectOptions[]
+export const SUBJECT_OPTIONS = valuesOf(SUBJECT_REGISTRY) as SubjectOptions[]

@@ -169,7 +169,7 @@ export function compileDamageEffect(
             effectKind: EFFECT_KIND.DAMAGE,
             damageTypeId: authored.damageTypeId,
             valueKind: authored.valueKind,
-            dice: authored.dice,
+            dice: authored.diceConfig,
             bonuses,
             scalingKind: authored.scalingKind
           })
@@ -210,16 +210,14 @@ export function compileDamageEffect(
             }
           }
 
-          case SCALING_SOURCE.SPELL_LEVEL: {
+          case SCALING_SOURCE.PARENT_CLASS_LEVEL:
             return {
-              scalingSource: SCALING_SOURCE.SPELL_LEVEL,
-              spellId: authored.spellId
+              scalingSource: SCALING_SOURCE.PARENT_CLASS_LEVEL
             }
-          }
 
-          case SCALING_SOURCE.SPELL_SLOT_LEVEL: {
+          case SCALING_SOURCE.SPELL_CAST_LEVEL: {
             return {
-              scalingSource: SCALING_SOURCE.SPELL_SLOT_LEVEL
+              scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL
             }
           }
 
@@ -255,7 +253,7 @@ export function compileDamageEffect(
               valueKind: DAMAGE_VALUE_KIND.DICE,
               level: entry.level,
               order: entry.order,
-              dice: entry.dice,
+              dice: entry.diceConfig,
               bonuses,
               scalingKind: SCALING.PER_LEVEL,
               ...scaling

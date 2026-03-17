@@ -1,0 +1,287 @@
+import type { SystemSeedRecord } from '../content.js'
+
+export const SRD_SYSTEM_ID = '00000000-0000-0000-0000-000000000001'
+export const SRD_USER_ID = '00000000-0000-0000-0000-000000000000'
+
+// ─── Vocabulary ID helpers ────────────────────────────────────────────────────
+// IDs are stable UUIDs derived from a simple prefix+index scheme so they are
+// deterministic and never require a live DB round-trip to resolve.
+
+function vocabId(domain: string, index: number): string {
+  const hex = index.toString(16).padStart(4, '0')
+  return `00000000-0000-0000-${domain}-${hex}00000000`
+}
+
+// Domain codes (encoded in the UUID clock_seq_hi field) — kept short:
+const D = {
+  alignment:       '0001',
+  conditionType:   '0002',
+  currency:        '0003',
+  damageType:      '0004',
+  language:        '0005',
+  magicSchool:     '0006',
+  passive:         '0007',
+  rarity:          '0008',
+  sense:           '0009',
+  skill:           '000a',
+  speed:           '000b',
+  terrain:         '000c',
+  challengeRating: '000d',
+  creatureType:    '000e',
+} as const
+
+// ─── Alignments ───────────────────────────────────────────────────────────────
+
+export const SRD_ALIGNMENTS = [
+  { id: vocabId(D.alignment, 1),  code: 'LAWFUL_GOOD',      label: 'Lawful Good' },
+  { id: vocabId(D.alignment, 2),  code: 'NEUTRAL_GOOD',     label: 'Neutral Good' },
+  { id: vocabId(D.alignment, 3),  code: 'CHAOTIC_GOOD',     label: 'Chaotic Good' },
+  { id: vocabId(D.alignment, 4),  code: 'LAWFUL_NEUTRAL',   label: 'Lawful Neutral' },
+  { id: vocabId(D.alignment, 5),  code: 'TRUE_NEUTRAL',     label: 'True Neutral' },
+  { id: vocabId(D.alignment, 6),  code: 'CHAOTIC_NEUTRAL',  label: 'Chaotic Neutral' },
+  { id: vocabId(D.alignment, 7),  code: 'LAWFUL_EVIL',      label: 'Lawful Evil' },
+  { id: vocabId(D.alignment, 8),  code: 'NEUTRAL_EVIL',     label: 'Neutral Evil' },
+  { id: vocabId(D.alignment, 9),  code: 'CHAOTIC_EVIL',     label: 'Chaotic Evil' },
+  { id: vocabId(D.alignment, 10), code: 'UNALIGNED',        label: 'Unaligned' },
+]
+
+// ─── Condition Types ──────────────────────────────────────────────────────────
+
+export const SRD_CONDITION_TYPES = [
+  { id: vocabId(D.conditionType, 1),  code: 'BLINDED',       label: 'Blinded',       description: 'A blinded creature can\'t see and automatically fails any ability check that requires sight.' },
+  { id: vocabId(D.conditionType, 2),  code: 'CHARMED',       label: 'Charmed',       description: 'A charmed creature can\'t attack the charmer or target the charmer with harmful abilities or magical effects.' },
+  { id: vocabId(D.conditionType, 3),  code: 'DEAFENED',      label: 'Deafened',      description: 'A deafened creature can\'t hear and automatically fails any ability check that requires hearing.' },
+  { id: vocabId(D.conditionType, 4),  code: 'EXHAUSTION',    label: 'Exhaustion',    description: 'Some special abilities and environmental hazards cause a special condition called exhaustion.' },
+  { id: vocabId(D.conditionType, 5),  code: 'FRIGHTENED',    label: 'Frightened',    description: 'A frightened creature has disadvantage on ability checks and attack rolls while the source of its fear is within line of sight.' },
+  { id: vocabId(D.conditionType, 6),  code: 'GRAPPLED',      label: 'Grappled',      description: 'A grappled creature\'s speed becomes 0, and it can\'t benefit from any bonus to its speed.' },
+  { id: vocabId(D.conditionType, 7),  code: 'INCAPACITATED', label: 'Incapacitated', description: 'An incapacitated creature can\'t take actions or reactions.' },
+  { id: vocabId(D.conditionType, 8),  code: 'INVISIBLE',     label: 'Invisible',     description: 'An invisible creature is impossible to see without the aid of magic or a special sense.' },
+  { id: vocabId(D.conditionType, 9),  code: 'PARALYZED',     label: 'Paralyzed',     description: 'A paralyzed creature is incapacitated and can\'t move or speak.' },
+  { id: vocabId(D.conditionType, 10), code: 'PETRIFIED',     label: 'Petrified',     description: 'A petrified creature is transformed, along with any nonmagical object it is wearing or carrying, into a solid inanimate substance.' },
+  { id: vocabId(D.conditionType, 11), code: 'POISONED',      label: 'Poisoned',      description: 'A poisoned creature has disadvantage on attack rolls and ability checks.' },
+  { id: vocabId(D.conditionType, 12), code: 'PRONE',         label: 'Prone',         description: 'A prone creature\'s only movement option is to crawl, unless it stands up and thereby ends the condition.' },
+  { id: vocabId(D.conditionType, 13), code: 'RESTRAINED',    label: 'Restrained',    description: 'A restrained creature\'s speed becomes 0, and it can\'t benefit from any bonus to its speed.' },
+  { id: vocabId(D.conditionType, 14), code: 'STUNNED',       label: 'Stunned',       description: 'A stunned creature is incapacitated, can\'t move, and can speak only falteringly.' },
+  { id: vocabId(D.conditionType, 15), code: 'UNCONSCIOUS',   label: 'Unconscious',   description: 'An unconscious creature is incapacitated, can\'t move or speak, and is unaware of its surroundings.' },
+]
+
+// ─── Currencies ───────────────────────────────────────────────────────────────
+
+export const SRD_CURRENCIES = [
+  { id: vocabId(D.currency, 1), code: 'CP', label: 'Copper Piece',   short: 'cp' },
+  { id: vocabId(D.currency, 2), code: 'SP', label: 'Silver Piece',   short: 'sp' },
+  { id: vocabId(D.currency, 3), code: 'EP', label: 'Electrum Piece', short: 'ep' },
+  { id: vocabId(D.currency, 4), code: 'GP', label: 'Gold Piece',     short: 'gp' },
+  { id: vocabId(D.currency, 5), code: 'PP', label: 'Platinum Piece', short: 'pp' },
+]
+
+// ─── Damage Types ─────────────────────────────────────────────────────────────
+
+export const SRD_DAMAGE_TYPES = [
+  { id: vocabId(D.damageType, 1),  code: 'ACID',        label: 'Acid',        description: 'The corrosive spray of a black dragon\'s breath and the dissolving enzymes secreted by a black pudding deal acid damage.' },
+  { id: vocabId(D.damageType, 2),  code: 'BLUDGEONING', label: 'Bludgeoning', description: 'Blunt force attacks—hammers, falling, constriction, and the like—deal bludgeoning damage.' },
+  { id: vocabId(D.damageType, 3),  code: 'COLD',        label: 'Cold',        description: 'The infernal chill radiating from an ice devil\'s spear and the frigid blast of a white dragon\'s breath deal cold damage.' },
+  { id: vocabId(D.damageType, 4),  code: 'FIRE',        label: 'Fire',        description: 'Red dragons breathe fire, and many spells conjure flames to deal fire damage.' },
+  { id: vocabId(D.damageType, 5),  code: 'FORCE',       label: 'Force',       description: 'Force is pure magical energy focused into a damaging form. Most effects that deal force damage are spells.' },
+  { id: vocabId(D.damageType, 6),  code: 'LIGHTNING',   label: 'Lightning',   description: 'A lightning bolt spell and a blue dragon\'s breath deal lightning damage.' },
+  { id: vocabId(D.damageType, 7),  code: 'NECROTIC',    label: 'Necrotic',    description: 'Necrotic damage, dealt by certain undead and a spell such as chill touch, withers matter and even the soul.' },
+  { id: vocabId(D.damageType, 8),  code: 'PIERCING',    label: 'Piercing',    description: 'Puncturing and impaling attacks, including spears and monsters\' bites, deal piercing damage.' },
+  { id: vocabId(D.damageType, 9),  code: 'POISON',      label: 'Poison',      description: 'Venomous stings and the toxic gas of a green dragon\'s breath deal poison damage.' },
+  { id: vocabId(D.damageType, 10), code: 'PSYCHIC',     label: 'Psychic',     description: 'Mental abilities such as a mind flayer\'s psionic blast deal psychic damage.' },
+  { id: vocabId(D.damageType, 11), code: 'RADIANT',     label: 'Radiant',     description: 'Radiant damage, dealt by a cleric\'s flame strike spell or an angel\'s smiting weapon, sears the flesh like fire and overloads the spirit with power.' },
+  { id: vocabId(D.damageType, 12), code: 'SLASHING',    label: 'Slashing',    description: 'Swords, axes, and monsters\' claws deal slashing damage.' },
+  { id: vocabId(D.damageType, 13), code: 'THUNDER',     label: 'Thunder',     description: 'A concussive burst of sound, such as the effect of the thunderwave spell, deals thunder damage.' },
+]
+
+// ─── Languages ────────────────────────────────────────────────────────────────
+
+export const SRD_LANGUAGES = [
+  // Standard languages
+  { id: vocabId(D.language, 1),  code: 'COMMON',      label: 'Common',      description: 'Standard language spoken across most of the world.' },
+  { id: vocabId(D.language, 2),  code: 'DWARVISH',    label: 'Dwarvish',    description: 'Language of the dwarves, with a runic script.' },
+  { id: vocabId(D.language, 3),  code: 'ELVISH',      label: 'Elvish',      description: 'Language of the elves, with flowing script.' },
+  { id: vocabId(D.language, 4),  code: 'GIANT',       label: 'Giant',       description: 'Language of giants and giant-kin.' },
+  { id: vocabId(D.language, 5),  code: 'GNOMISH',     label: 'Gnomish',     description: 'Language of the gnomes.' },
+  { id: vocabId(D.language, 6),  code: 'GOBLIN',      label: 'Goblin',      description: 'Language of goblinoids.' },
+  { id: vocabId(D.language, 7),  code: 'HALFLING',    label: 'Halfling',    description: 'Language of halflings.' },
+  { id: vocabId(D.language, 8),  code: 'ORC',         label: 'Orc',         description: 'Language of orcs.' },
+  // Exotic languages
+  { id: vocabId(D.language, 9),  code: 'ABYSSAL',     label: 'Abyssal',     description: 'Language of demons.' },
+  { id: vocabId(D.language, 10), code: 'CELESTIAL',   label: 'Celestial',   description: 'Language of celestials.' },
+  { id: vocabId(D.language, 11), code: 'DRACONIC',    label: 'Draconic',    description: 'Language of dragons and dragonborn.' },
+  { id: vocabId(D.language, 12), code: 'DEEP_SPEECH', label: 'Deep Speech', description: 'Language of aberrations.' },
+  { id: vocabId(D.language, 13), code: 'INFERNAL',    label: 'Infernal',    description: 'Language of devils.' },
+  { id: vocabId(D.language, 14), code: 'PRIMORDIAL',  label: 'Primordial',  description: 'Language of elementals.' },
+  { id: vocabId(D.language, 15), code: 'SYLVAN',      label: 'Sylvan',      description: 'Language of fey creatures.' },
+  { id: vocabId(D.language, 16), code: 'UNDERCOMMON', label: 'Undercommon', description: 'Trade language of the Underdark.' },
+]
+
+// ─── Magic Schools ────────────────────────────────────────────────────────────
+
+export const SRD_MAGIC_SCHOOLS = [
+  { id: vocabId(D.magicSchool, 1), code: 'ABJURATION',    label: 'Abjuration',    description: 'Spells of protection, blocking, and banishing.' },
+  { id: vocabId(D.magicSchool, 2), code: 'CONJURATION',   label: 'Conjuration',   description: 'Spells that produce objects and creatures out of thin air.' },
+  { id: vocabId(D.magicSchool, 3), code: 'DIVINATION',    label: 'Divination',    description: 'Spells that enable the caster to learn secrets of the past, present, and future.' },
+  { id: vocabId(D.magicSchool, 4), code: 'ENCHANTMENT',   label: 'Enchantment',   description: 'Spells that affect the minds of others.' },
+  { id: vocabId(D.magicSchool, 5), code: 'EVOCATION',     label: 'Evocation',     description: 'Spells that manipulate magical energy to produce a desired effect.' },
+  { id: vocabId(D.magicSchool, 6), code: 'ILLUSION',      label: 'Illusion',      description: 'Spells that deceive the senses or minds of others.' },
+  { id: vocabId(D.magicSchool, 7), code: 'NECROMANCY',    label: 'Necromancy',    description: 'Spells that manipulate the energies of life and death.' },
+  { id: vocabId(D.magicSchool, 8), code: 'TRANSMUTATION', label: 'Transmutation', description: 'Spells that change the properties of a creature, object, or environment.' },
+]
+
+// ─── Passives ─────────────────────────────────────────────────────────────────
+
+export const SRD_PASSIVES = [
+  { id: vocabId(D.passive, 1), code: 'PASSIVE_PERCEPTION',    label: 'Passive Perception',    description: '10 + Perception modifier.' },
+  { id: vocabId(D.passive, 2), code: 'PASSIVE_INVESTIGATION', label: 'Passive Investigation', description: '10 + Investigation modifier.' },
+  { id: vocabId(D.passive, 3), code: 'PASSIVE_INSIGHT',       label: 'Passive Insight',       description: '10 + Insight modifier.' },
+]
+
+// ─── Rarities ─────────────────────────────────────────────────────────────────
+
+export const SRD_RARITIES = [
+  { id: vocabId(D.rarity, 1), code: 'COMMON',    label: 'Common' },
+  { id: vocabId(D.rarity, 2), code: 'UNCOMMON',  label: 'Uncommon' },
+  { id: vocabId(D.rarity, 3), code: 'RARE',      label: 'Rare' },
+  { id: vocabId(D.rarity, 4), code: 'VERY_RARE', label: 'Very Rare' },
+  { id: vocabId(D.rarity, 5), code: 'LEGENDARY', label: 'Legendary' },
+  { id: vocabId(D.rarity, 6), code: 'ARTIFACT',  label: 'Artifact' },
+]
+
+// ─── Senses ───────────────────────────────────────────────────────────────────
+
+export const SRD_SENSES = [
+  { id: vocabId(D.sense, 1), code: 'DARKVISION',       label: 'Darkvision',       description: 'A creature with darkvision can see in dim light within a specified range as if it were bright light, and in darkness as if it were dim light.' },
+  { id: vocabId(D.sense, 2), code: 'BLINDSIGHT',       label: 'Blindsight',       description: 'A creature with blindsight can perceive its surroundings without relying on sight.' },
+  { id: vocabId(D.sense, 3), code: 'TREMORSENSE',      label: 'Tremorsense',      description: 'A creature with tremorsense can detect and pinpoint the origin of vibrations within a specific range.' },
+  { id: vocabId(D.sense, 4), code: 'TRUESIGHT',        label: 'Truesight',        description: 'A creature with truesight can see in normal and magical darkness, see invisible creatures and objects, automatically detect visual illusions, and see into the Ethereal Plane.' },
+]
+
+// ─── Skills ───────────────────────────────────────────────────────────────────
+
+export const SRD_SKILLS = [
+  { id: vocabId(D.skill, 1),  code: 'ACROBATICS',      label: 'Acrobatics',      tooltip: 'DEX', description: 'Your Dexterity (Acrobatics) check covers attempts to stay on your feet in a tricky situation.' },
+  { id: vocabId(D.skill, 2),  code: 'ANIMAL_HANDLING', label: 'Animal Handling', tooltip: 'WIS', description: 'When there is any question whether you can calm a domesticated animal, keep a mount from getting spooked, or intuit an animal\'s intentions, the GM might call for a Wisdom (Animal Handling) check.' },
+  { id: vocabId(D.skill, 3),  code: 'ARCANA',          label: 'Arcana',          tooltip: 'INT', description: 'Your Intelligence (Arcana) check measures your ability to recall lore about spells, magic items, eldritch symbols, magical traditions, the planes of existence, and the inhabitants of those planes.' },
+  { id: vocabId(D.skill, 4),  code: 'ATHLETICS',       label: 'Athletics',       tooltip: 'STR', description: 'Your Strength (Athletics) check covers difficult situations you encounter while climbing, jumping, or swimming.' },
+  { id: vocabId(D.skill, 5),  code: 'DECEPTION',       label: 'Deception',       tooltip: 'CHA', description: 'Your Charisma (Deception) check determines whether you can convincingly hide the truth, either verbally or through your actions.' },
+  { id: vocabId(D.skill, 6),  code: 'HISTORY',         label: 'History',         tooltip: 'INT', description: 'Your Intelligence (History) check measures your ability to recall lore about historical events, legendary people, ancient kingdoms, past disputes, recent wars, and lost civilizations.' },
+  { id: vocabId(D.skill, 7),  code: 'INSIGHT',         label: 'Insight',         tooltip: 'WIS', description: 'Your Wisdom (Insight) check decides whether you can determine the true intentions of a creature.' },
+  { id: vocabId(D.skill, 8),  code: 'INTIMIDATION',    label: 'Intimidation',    tooltip: 'CHA', description: 'When you attempt to influence someone through overt threats, hostile actions, and physical violence, the GM might ask you to make a Charisma (Intimidation) check.' },
+  { id: vocabId(D.skill, 9),  code: 'INVESTIGATION',   label: 'Investigation',   tooltip: 'INT', description: 'When you look around for clues and make deductions based on those clues, you make an Intelligence (Investigation) check.' },
+  { id: vocabId(D.skill, 10), code: 'MEDICINE',        label: 'Medicine',        tooltip: 'WIS', description: 'A Wisdom (Medicine) check lets you try to stabilize a dying companion or diagnose an illness.' },
+  { id: vocabId(D.skill, 11), code: 'NATURE',          label: 'Nature',          tooltip: 'INT', description: 'Your Intelligence (Nature) check measures your ability to recall lore about terrain, plants and animals, the weather, and natural cycles.' },
+  { id: vocabId(D.skill, 12), code: 'PERCEPTION',      label: 'Perception',      tooltip: 'WIS', description: 'Your Wisdom (Perception) check lets you spot, hear, or otherwise detect the presence of something.' },
+  { id: vocabId(D.skill, 13), code: 'PERFORMANCE',     label: 'Performance',     tooltip: 'CHA', description: 'Your Charisma (Performance) check determines how well you can delight an audience with music, dance, acting, storytelling, or some other form of entertainment.' },
+  { id: vocabId(D.skill, 14), code: 'PERSUASION',      label: 'Persuasion',      tooltip: 'CHA', description: 'When you attempt to influence someone or a group of people with tact, social graces, or good nature, the GM might ask you to make a Charisma (Persuasion) check.' },
+  { id: vocabId(D.skill, 15), code: 'RELIGION',        label: 'Religion',        tooltip: 'INT', description: 'Your Intelligence (Religion) check measures your ability to recall lore about deities, rites and prayers, religious hierarchies, holy symbols, and the practices of secret cults.' },
+  { id: vocabId(D.skill, 16), code: 'SLEIGHT_OF_HAND', label: 'Sleight of Hand', tooltip: 'DEX', description: 'Whenever you attempt an act of legerdemain or manual trickery, such as planting something on someone else or concealing an object on your person, make a Dexterity (Sleight of Hand) check.' },
+  { id: vocabId(D.skill, 17), code: 'STEALTH',         label: 'Stealth',         tooltip: 'DEX', description: 'Make a Dexterity (Stealth) check when you attempt to conceal yourself from enemies, slink past guards, slip away without being noticed, or sneak up on someone without being seen or heard.' },
+  { id: vocabId(D.skill, 18), code: 'SURVIVAL',        label: 'Survival',        tooltip: 'WIS', description: 'The GM might ask you to make a Wisdom (Survival) check to follow tracks, hunt wild game, guide your group through frozen wastelands, identify signs that owlbears live nearby, predict the weather, or avoid quicksand and other natural hazards.' },
+]
+
+// ─── Speeds ───────────────────────────────────────────────────────────────────
+
+export const SRD_SPEEDS = [
+  { id: vocabId(D.speed, 1), code: 'WALK',   label: 'Walking Speed',   description: 'Base movement speed on foot.' },
+  { id: vocabId(D.speed, 2), code: 'SWIM',   label: 'Swimming Speed',  description: 'Speed while swimming.' },
+  { id: vocabId(D.speed, 3), code: 'CLIMB',  label: 'Climbing Speed',  description: 'Speed while climbing.' },
+  { id: vocabId(D.speed, 4), code: 'FLY',    label: 'Flying Speed',    description: 'Speed while flying.' },
+  { id: vocabId(D.speed, 5), code: 'BURROW', label: 'Burrowing Speed', description: 'Speed while burrowing.' },
+]
+
+// ─── Terrains ─────────────────────────────────────────────────────────────────
+
+export const SRD_TERRAINS = [
+  { id: vocabId(D.terrain, 1),  code: 'ARCTIC',       label: 'Arctic' },
+  { id: vocabId(D.terrain, 2),  code: 'COAST',        label: 'Coast' },
+  { id: vocabId(D.terrain, 3),  code: 'DESERT',       label: 'Desert' },
+  { id: vocabId(D.terrain, 4),  code: 'FOREST',       label: 'Forest' },
+  { id: vocabId(D.terrain, 5),  code: 'GRASSLAND',    label: 'Grassland' },
+  { id: vocabId(D.terrain, 6),  code: 'MOUNTAIN',     label: 'Mountain' },
+  { id: vocabId(D.terrain, 7),  code: 'SWAMP',        label: 'Swamp' },
+  { id: vocabId(D.terrain, 8),  code: 'UNDERDARK',    label: 'Underdark' },
+  { id: vocabId(D.terrain, 9),  code: 'UNDERWATER',   label: 'Underwater' },
+  { id: vocabId(D.terrain, 10), code: 'URBAN',        label: 'Urban' },
+]
+
+// ─── Challenge Ratings ────────────────────────────────────────────────────────
+
+export const SRD_CHALLENGE_RATINGS = [
+  { id: vocabId(D.challengeRating,  1), code: 'CR_0',   label: '0',    short: 'CR 0',    description: '0 XP' },
+  { id: vocabId(D.challengeRating,  2), code: 'CR_1_8', label: '1/8',  short: 'CR 1/8',  description: '25 XP' },
+  { id: vocabId(D.challengeRating,  3), code: 'CR_1_4', label: '1/4',  short: 'CR 1/4',  description: '50 XP' },
+  { id: vocabId(D.challengeRating,  4), code: 'CR_1_2', label: '1/2',  short: 'CR 1/2',  description: '100 XP' },
+  { id: vocabId(D.challengeRating,  5), code: 'CR_1',   label: '1',    short: 'CR 1',    description: '200 XP' },
+  { id: vocabId(D.challengeRating,  6), code: 'CR_2',   label: '2',    short: 'CR 2',    description: '450 XP' },
+  { id: vocabId(D.challengeRating,  7), code: 'CR_3',   label: '3',    short: 'CR 3',    description: '700 XP' },
+  { id: vocabId(D.challengeRating,  8), code: 'CR_4',   label: '4',    short: 'CR 4',    description: '1100 XP' },
+  { id: vocabId(D.challengeRating,  9), code: 'CR_5',   label: '5',    short: 'CR 5',    description: '1800 XP' },
+  { id: vocabId(D.challengeRating, 10), code: 'CR_6',   label: '6',    short: 'CR 6',    description: '2300 XP' },
+  { id: vocabId(D.challengeRating, 11), code: 'CR_7',   label: '7',    short: 'CR 7',    description: '2900 XP' },
+  { id: vocabId(D.challengeRating, 12), code: 'CR_8',   label: '8',    short: 'CR 8',    description: '3900 XP' },
+  { id: vocabId(D.challengeRating, 13), code: 'CR_9',   label: '9',    short: 'CR 9',    description: '5000 XP' },
+  { id: vocabId(D.challengeRating, 14), code: 'CR_10',  label: '10',   short: 'CR 10',   description: '5900 XP' },
+  { id: vocabId(D.challengeRating, 15), code: 'CR_11',  label: '11',   short: 'CR 11',   description: '7200 XP' },
+  { id: vocabId(D.challengeRating, 16), code: 'CR_12',  label: '12',   short: 'CR 12',   description: '8400 XP' },
+  { id: vocabId(D.challengeRating, 17), code: 'CR_13',  label: '13',   short: 'CR 13',   description: '10000 XP' },
+  { id: vocabId(D.challengeRating, 18), code: 'CR_14',  label: '14',   short: 'CR 14',   description: '11500 XP' },
+  { id: vocabId(D.challengeRating, 19), code: 'CR_15',  label: '15',   short: 'CR 15',   description: '13000 XP' },
+  { id: vocabId(D.challengeRating, 20), code: 'CR_16',  label: '16',   short: 'CR 16',   description: '15000 XP' },
+  { id: vocabId(D.challengeRating, 21), code: 'CR_17',  label: '17',   short: 'CR 17',   description: '18000 XP' },
+  { id: vocabId(D.challengeRating, 22), code: 'CR_18',  label: '18',   short: 'CR 18',   description: '20000 XP' },
+  { id: vocabId(D.challengeRating, 23), code: 'CR_19',  label: '19',   short: 'CR 19',   description: '22000 XP' },
+  { id: vocabId(D.challengeRating, 24), code: 'CR_20',  label: '20',   short: 'CR 20',   description: '25000 XP' },
+  { id: vocabId(D.challengeRating, 25), code: 'CR_21',  label: '21',   short: 'CR 21',   description: '33000 XP' },
+  { id: vocabId(D.challengeRating, 26), code: 'CR_22',  label: '22',   short: 'CR 22',   description: '41000 XP' },
+  { id: vocabId(D.challengeRating, 27), code: 'CR_23',  label: '23',   short: 'CR 23',   description: '50000 XP' },
+  { id: vocabId(D.challengeRating, 28), code: 'CR_24',  label: '24',   short: 'CR 24',   description: '62000 XP' },
+  { id: vocabId(D.challengeRating, 29), code: 'CR_25',  label: '25',   short: 'CR 25',   description: '75000 XP' },
+  { id: vocabId(D.challengeRating, 30), code: 'CR_26',  label: '26',   short: 'CR 26',   description: '90000 XP' },
+  { id: vocabId(D.challengeRating, 31), code: 'CR_27',  label: '27',   short: 'CR 27',   description: '105000 XP' },
+  { id: vocabId(D.challengeRating, 32), code: 'CR_28',  label: '28',   short: 'CR 28',   description: '120000 XP' },
+  { id: vocabId(D.challengeRating, 33), code: 'CR_29',  label: '29',   short: 'CR 29',   description: '135000 XP' },
+  { id: vocabId(D.challengeRating, 34), code: 'CR_30',  label: '30',   short: 'CR 30',   description: '155000 XP' },
+]
+
+// ─── Creature Types ───────────────────────────────────────────────────────────
+
+export const SRD_CREATURE_TYPES = [
+  { id: vocabId(D.creatureType,  1), code: 'ABERRATION',   label: 'Aberration',   description: 'Utterly alien beings from beyond the known planes.' },
+  { id: vocabId(D.creatureType,  2), code: 'BEAST',        label: 'Beast',        description: 'Nonhumanoid creatures that are a natural part of the fantasy ecology.' },
+  { id: vocabId(D.creatureType,  3), code: 'CELESTIAL',    label: 'Celestial',    description: 'Creatures native to the Upper Planes.' },
+  { id: vocabId(D.creatureType,  4), code: 'CONSTRUCT',    label: 'Construct',    description: 'Made, not born — programmed or imbued with purpose.' },
+  { id: vocabId(D.creatureType,  5), code: 'DRAGON',       label: 'Dragon',       description: 'Large reptilian creatures of ancient origin and tremendous power.' },
+  { id: vocabId(D.creatureType,  6), code: 'ELEMENTAL',    label: 'Elemental',    description: 'Creatures native to the elemental planes.' },
+  { id: vocabId(D.creatureType,  7), code: 'FEY',          label: 'Fey',          description: 'Magical creatures closely tied to the forces of nature.' },
+  { id: vocabId(D.creatureType,  8), code: 'FIEND',        label: 'Fiend',        description: 'Wicked creatures from the Lower Planes.' },
+  { id: vocabId(D.creatureType,  9), code: 'GIANT',        label: 'Giant',        description: 'Humanlike creatures that tower over humanoids.' },
+  { id: vocabId(D.creatureType, 10), code: 'HUMANOID',     label: 'Humanoid',     description: 'The main peoples of the D&D world, both civilized and savage.' },
+  { id: vocabId(D.creatureType, 11), code: 'MONSTROSITY',  label: 'Monstrosity',  description: 'Frightening creatures that are not natural and almost never benign.' },
+  { id: vocabId(D.creatureType, 12), code: 'OOZE',         label: 'Ooze',         description: 'Gelatinous creatures that rarely have a fixed shape.' },
+  { id: vocabId(D.creatureType, 13), code: 'PLANT',        label: 'Plant',        description: 'Vegetable creatures, not ordinary flora.' },
+  { id: vocabId(D.creatureType, 14), code: 'UNDEAD',       label: 'Undead',       description: 'Once-living creatures brought to undeath through necromancy or unholy curse.' },
+]
+
+// ─── Full system record ───────────────────────────────────────────────────────
+
+export const srdSystemRecord: SystemSeedRecord = {
+  id: SRD_SYSTEM_ID,
+  label: 'D&D 5e SRD 5.1',
+  description: 'Baseline SRD content bundle for Artificer Toolkit.',
+  userId: SRD_USER_ID,
+  alignments:      SRD_ALIGNMENTS,
+  challengeRatings: SRD_CHALLENGE_RATINGS,
+  conditionTypes:  SRD_CONDITION_TYPES,
+  creatureTypes:   SRD_CREATURE_TYPES,
+  currencies:      SRD_CURRENCIES,
+  damageTypes:   SRD_DAMAGE_TYPES,
+  languages:     SRD_LANGUAGES,
+  magicSchools:  SRD_MAGIC_SCHOOLS,
+  passives:      SRD_PASSIVES,
+  rarities:      SRD_RARITIES,
+  senses:        SRD_SENSES,
+  skills:        SRD_SKILLS,
+  speeds:        SRD_SPEEDS,
+  terrains:      SRD_TERRAINS,
+}

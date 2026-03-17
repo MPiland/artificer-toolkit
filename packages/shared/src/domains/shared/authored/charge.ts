@@ -7,7 +7,20 @@ import {
 
 export type ChargeLimitPayload
   = | {
-    limitKind: 'CHARACTER_LEVEL' | 'SOURCE_LEVEL'
+    limitKind: 'CHARACTER_LEVEL'
+    scalingKind: 'NONE'
+    multiplier?: number
+    min?: number
+    max?: number
+  } | {
+    limitKind: 'CLASS_LEVEL'
+    scalingKind: 'NONE'
+    classId: string
+    multiplier?: number
+    min?: number
+    max?: number
+  } | {
+    limitKind: 'PARENT_CLASS_LEVEL' | 'SPELL_CAST_LEVEL'
     scalingKind: 'NONE'
     multiplier?: number
     min?: number

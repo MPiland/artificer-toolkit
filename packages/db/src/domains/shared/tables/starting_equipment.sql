@@ -118,7 +118,42 @@ CREATE TABLE IF NOT EXISTS public.starting_equipment_option_items (
   sort_order integer NOT NULL,
 
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+
+  CONSTRAINT starting_equipment_option_items_kind_chk CHECK (
+    starting_equipment_kind IN ('EQUIPMENT', 'CURRENCY')
+  ),
+  CONSTRAINT starting_equipment_option_items_equipment_payload_chk CHECK (
+    (
+      starting_equipment_kind = 'EQUIPMENT'
+      AND authoring_mode_kind IN ('ALL', 'SELECTED')
+      AND selection_kind IN ('CHOSEN', 'GRANTED')
+    )
+    OR (
+      starting_equipment_kind = 'CURRENCY'
+      AND authoring_mode_kind IS NULL
+      AND selection_kind IS NULL
+      AND category_code IS NULL
+      AND count IS NULL
+      AND quantity IS NULL
+    )
+  ),
+  CONSTRAINT starting_equipment_option_items_selection_payload_chk CHECK (
+    (
+      selection_kind = 'CHOSEN'
+      AND count IS NOT NULL
+      AND quantity IS NULL
+    )
+    OR (
+      selection_kind = 'GRANTED'
+      AND quantity IS NOT NULL
+      AND count IS NULL
+    )
+    OR selection_kind IS NULL
+  ),
+  CONSTRAINT starting_equipment_option_items_selected_mode_chk CHECK (
+    authoring_mode_kind IN ('ALL', 'SELECTED')
+  )
 );
 
 CREATE INDEX IF NOT EXISTS idx_starting_equipment_option_items_option
@@ -137,7 +172,8 @@ CREATE TABLE IF NOT EXISTS public.starting_equipment_option_item_equipment (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  equipment_id uuid NOT NULL REFERENCES public.equipment(id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
+  -- Deferred FK added in bootstrap/constraints/cross_domain_foreign_keys.sql
+  equipment_id uuid NOT NULL,
 
   PRIMARY KEY (option_item_id, equipment_id)
 );

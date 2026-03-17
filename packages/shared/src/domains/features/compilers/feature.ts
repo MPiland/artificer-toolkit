@@ -5,31 +5,40 @@ import {
   CompiledFeatureOption,
   compileFeatureBase
 } from '#compilers'
+import {
+  compileSuccess,
+  unwrapCompileResult,
+  type CompileResult
+} from '#utils'
 
-export interface CompiledOptionsByLevel {
+export interface CompiledFeatureOptionChoice {
   level: number // int
   count: number // int
   replaceCount?: number | null // int
 }
 
 export type CompiledFeature = CompiledFeatureBase & {
-  optionsPerLevel?: CompiledOptionsByLevel[]
-  options?: CompiledFeatureOption[]
-  levelAvailable?: string
+  optionChoices?: CompiledFeatureOptionChoice[]
+  options?: CompiledFeatureOption[] 
+  availableAtLevel?: number
 }
 
-export function compileFeature(authored: FeatureAuthored): CompiledFeature {
+export function compileFeatureResult(authored: FeatureAuthored): CompileResult<CompiledFeature> {
   const base = compileFeatureBase(authored)
 
   const options = authored.options?.length
     ? authored.options.map(compileFeatureOption)
     : undefined
 
-  return {
+  return compileSuccess({
     ...base,
-    optionsPerLevel: authored.optionsPerLevel,
+    optionChoices: authored.optionChoices,
     options,
-    levelAvailable: authored.levelAvailable,
+    availableAtLevel: authored.availableAtLevel,
     order: authored.order
-  }
+  })
+}
+
+export function compileFeature(authored: FeatureAuthored): CompiledFeature {
+  return unwrapCompileResult(compileFeatureResult(authored))
 }

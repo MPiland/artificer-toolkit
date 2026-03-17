@@ -10,7 +10,6 @@ import {
   type NodeSubjectCode
 } from '#core'
 import {
-  type SpeedAuthored,
   type EffectAuthored,
   type ModifierGrantAuthored,
   type ChargeAuthored,
@@ -76,7 +75,6 @@ export type EquipmentAuthored = {
   properties: EquipmentPropertyCode[]
   category: Exclude<EquipmentCategoryCode, typeof EQUIPMENT_CATEGORY_CODE.VARIANT>
   abilities: EquipmentAbilitiesAuthored[]
-  speed?: SpeedAuthored
 } & EquipmentBaseAuthored
 
 export type EquipmentVariantAuthored = {

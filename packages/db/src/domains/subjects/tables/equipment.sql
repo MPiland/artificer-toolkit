@@ -27,13 +27,13 @@ CREATE TABLE IF NOT EXISTS public.equipment (
   description text,
   quote text,
   category text NOT NULL, -- EquipmentCategoryCode
-  rarity_id uuid NOT NULL REFERENCES public.rarities (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
+  rarity_id uuid NOT NULL REFERENCES public.rarities (id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
   cost_amount integer NOT NULL,
-  cost_currency_id uuid NOT NULL REFERENCES public.currencies (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
+  cost_currency_id uuid NOT NULL REFERENCES public.currencies (id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
   weight_amount numeric NOT NULL,
   weight_unit text NOT NULL,
   capacity_amount numeric,
-  capacity_unit text NOT NULL,
+  capacity_unit text,
   max_stack integer,
   max_bonus integer,
   armor_class integer,
@@ -43,7 +43,15 @@ CREATE TABLE IF NOT EXISTS public.equipment (
   parent_equipment_id uuid REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   is_master boolean,
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT equipment_variant_parent_chk CHECK (
+    (category = 'VARIANT' AND parent_equipment_id IS NOT NULL)
+    OR (category <> 'VARIANT' AND parent_equipment_id IS NULL)
+  ),
+  CONSTRAINT equipment_capacity_chk CHECK (
+    (capacity_amount IS NULL AND capacity_unit IS NULL)
+    OR (capacity_amount IS NOT NULL AND capacity_unit IS NOT NULL)
+  )
 );
 
 ALTER TABLE public.equipment ENABLE ROW LEVEL SECURITY;
@@ -54,6 +62,17 @@ SELECT
 CREATE INDEX IF NOT EXISTS idx_equipment_system ON public.equipment (system_id);
 
 CREATE INDEX IF NOT EXISTS idx_equipment_parent ON public.equipment (parent_equipment_id);
+
+CREATE TABLE IF NOT EXISTS public.equipment_attributes (
+  equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  attribute_code text NOT NULL,
+  sort_order integer NOT NULL,
+  PRIMARY KEY (equipment_id, attribute_code)
+);
+
+ALTER TABLE public.equipment_attributes ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_equipment_attributes_equipment ON public.equipment_attributes (equipment_id);
 
 DO $$
 BEGIN
@@ -92,18 +111,6 @@ END;
 $$;
 
 /* ──────────────────────────────────────────────
-* EQUIPMENT — TRAITS
-* ────────────────────────────────────────────── */
-CREATE TABLE IF NOT EXISTS public.equipment_traits (
-  equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  trait_code text NOT NULL,
-  sort_order integer NOT NULL,
-  PRIMARY KEY (equipment_id, trait_code)
-);
-
-ALTER TABLE public.equipment_traits ENABLE ROW LEVEL SECURITY;
-
-/* ──────────────────────────────────────────────
 * EQUIPMENT — PROPERTIES
 * ────────────────────────────────────────────── */
 CREATE TABLE IF NOT EXISTS public.equipment_properties (
@@ -130,14 +137,6 @@ ALTER TABLE public.equipment_abilities ENABLE ROW LEVEL SECURITY;
 /* ──────────────────────────────────────────────
 * EQUIPMENT — SPEED
 * ────────────────────────────────────────────── */
-CREATE TABLE IF NOT EXISTS public.equipment_speed (
-  equipment_id uuid PRIMARY KEY REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  amount numeric NOT NULL,
-  unit_code text NOT NULL
-);
-
-ALTER TABLE public.equipment_speed ENABLE ROW LEVEL SECURITY;
-
 /* ──────────────────────────────────────────────
 * EQUIPMENT — CONTAINS
 * ────────────────────────────────────────────── */
@@ -155,7 +154,7 @@ ALTER TABLE public.equipment_contains ENABLE ROW LEVEL SECURITY;
 * ────────────────────────────────────────────── */
 CREATE TABLE IF NOT EXISTS public.equipment_effects (
   equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  effect_id uuid NOT NULL REFERENCES public.effects (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  effect_id uuid NOT NULL,
   sort_order integer NOT NULL,
   PRIMARY KEY (equipment_id, effect_id)
 );
@@ -186,7 +185,7 @@ $$;
 * ────────────────────────────────────────────── */
 CREATE TABLE IF NOT EXISTS public.equipment_modifier_grants (
   equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  modifier_grant_id uuid NOT NULL REFERENCES public.modifier_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  modifier_grant_id uuid NOT NULL,
   sort_order integer NOT NULL,
   PRIMARY KEY (equipment_id, modifier_grant_id)
 );
@@ -217,7 +216,7 @@ $$;
 * ────────────────────────────────────────────── */
 CREATE TABLE IF NOT EXISTS public.equipment_features (
   equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  feature_id uuid NOT NULL REFERENCES public.features (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  feature_id uuid NOT NULL,
   sort_order integer NOT NULL,
   PRIMARY KEY (equipment_id, feature_id)
 );

@@ -145,7 +145,10 @@ CREATE TABLE IF NOT EXISTS public.facet_body_selections (
   authoring_mode_kind text NOT NULL, -- ALL | SELECTED
 
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT facet_body_selections_mode_chk CHECK (
+    authoring_mode_kind IN ('ALL', 'SELECTED')
+  )
 );
 
 ALTER TABLE public.facet_body_selections ENABLE ROW LEVEL SECURITY;
@@ -162,20 +165,22 @@ CREATE TABLE IF NOT EXISTS public.facet_body_selection_items (
     DEFERRABLE INITIALLY DEFERRED,
 
   /* One-of subject payload identifiers */
-  class_id uuid REFERENCES public.classes (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  feature_id uuid REFERENCES public.features (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  spell_id uuid REFERENCES public.spells (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  equipment_id uuid REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  feat_id uuid REFERENCES public.feats (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  race_id uuid REFERENCES public.races (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  background_id uuid REFERENCES public.backgrounds (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  option_id uuid REFERENCES public.options (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  class_id uuid,
+  feature_id uuid,
+  spell_id uuid,
+  equipment_id uuid,
+  feat_id uuid,
+  race_id uuid,
+  background_id uuid,
+  option_id uuid,
 
   /* Modeled as IDs in existing tables */
-  subrace_id uuid REFERENCES public.races (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  subclass_id uuid REFERENCES public.classes (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  resource_id uuid REFERENCES public.class_resources (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  ancestry_option_id uuid REFERENCES public.race_ancestry_options (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  subrace_id uuid,
+  subclass_id uuid,
+  resource_id uuid,
+  ancestry_option_id uuid,
+  proficiency_kind text,
+  sort_order integer NOT NULL,
 
   created_at timestamptz NOT NULL DEFAULT now(),
 
@@ -192,6 +197,7 @@ CREATE TABLE IF NOT EXISTS public.facet_body_selection_items (
     + (subclass_id IS NOT NULL)::int
     + (resource_id IS NOT NULL)::int
     + (ancestry_option_id IS NOT NULL)::int
+    + (proficiency_kind IS NOT NULL)::int
     = 1
   )
 );
@@ -286,7 +292,10 @@ CREATE TABLE IF NOT EXISTS public.facet_exists_selections (
   authoring_mode_kind text NOT NULL, -- ALL | SELECTED
 
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT facet_exists_selections_mode_chk CHECK (
+    authoring_mode_kind IN ('ALL', 'SELECTED')
+  )
 );
 
 ALTER TABLE public.facet_exists_selections ENABLE ROW LEVEL SECURITY;
@@ -301,19 +310,21 @@ CREATE TABLE IF NOT EXISTS public.facet_exists_selection_items (
     DEFERRABLE INITIALLY DEFERRED,
 
   /* One-of related-subject identifiers */
-  class_id uuid REFERENCES public.classes (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  feature_id uuid REFERENCES public.features (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  spell_id uuid REFERENCES public.spells (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  equipment_id uuid REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  feat_id uuid REFERENCES public.feats (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  race_id uuid REFERENCES public.races (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  background_id uuid REFERENCES public.backgrounds (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  option_id uuid REFERENCES public.options (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  class_id uuid,
+  feature_id uuid,
+  spell_id uuid,
+  equipment_id uuid,
+  feat_id uuid,
+  race_id uuid,
+  background_id uuid,
+  option_id uuid,
 
-  subrace_id uuid REFERENCES public.races (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  subclass_id uuid REFERENCES public.classes (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  resource_id uuid REFERENCES public.class_resources (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  ancestry_option_id uuid REFERENCES public.race_ancestry_options (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  subrace_id uuid,
+  subclass_id uuid,
+  resource_id uuid,
+  ancestry_option_id uuid,
+  proficiency_kind text,
+  sort_order integer NOT NULL,
 
   created_at timestamptz NOT NULL DEFAULT now(),
 
@@ -330,6 +341,7 @@ CREATE TABLE IF NOT EXISTS public.facet_exists_selection_items (
     + (subclass_id IS NOT NULL)::int
     + (resource_id IS NOT NULL)::int
     + (ancestry_option_id IS NOT NULL)::int
+    + (proficiency_kind IS NOT NULL)::int
     = 1
   )
 );
@@ -355,7 +367,10 @@ CREATE TABLE IF NOT EXISTS public.facet_predicate_selectables (
   authoring_mode_kind text NOT NULL, -- ALL | SELECTED
 
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT facet_predicate_selectables_mode_chk CHECK (
+    authoring_mode_kind IN ('ALL', 'SELECTED')
+  )
 );
 
 ALTER TABLE public.facet_predicate_selectables ENABLE ROW LEVEL SECURITY;
@@ -389,7 +404,7 @@ CREATE TABLE IF NOT EXISTS public.facet_predicate_ranges (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  range_kind text NOT NULL, -- RangeKind
+  range_kind text, -- RangeKind
   min_distance integer,
   max_distance integer,
   unit_code text, -- MeasurementUnitCode
@@ -399,7 +414,14 @@ CREATE TABLE IF NOT EXISTS public.facet_predicate_ranges (
 
   CONSTRAINT facet_predicate_ranges_distance_chk CHECK (
     (
+      range_kind IS NULL
+      AND min_distance IS NOT NULL
+      AND unit_code IS NOT NULL
+    )
+    OR
+    (
       range_kind <> 'DISTANCE'
+      AND range_kind IS NOT NULL
       AND min_distance IS NULL
       AND max_distance IS NULL
       AND unit_code IS NULL
@@ -418,6 +440,24 @@ ALTER TABLE public.facet_predicate_ranges ENABLE ROW LEVEL SECURITY;
 CREATE INDEX IF NOT EXISTS idx_facet_predicate_ranges_kind
   ON public.facet_predicate_ranges (range_kind);
 
+/* Selected RangeKind list payload */
+CREATE TABLE IF NOT EXISTS public.facet_predicate_range_kind_items (
+  facet_condition_id uuid NOT NULL
+    REFERENCES public.facet_conditions (id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  range_kind text NOT NULL, -- RangeKind
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (facet_condition_id, range_kind)
+);
+
+ALTER TABLE public.facet_predicate_range_kind_items ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_facet_predicate_range_kind_items_condition
+  ON public.facet_predicate_range_kind_items (facet_condition_id);
+
 /* DurationKind payload (+ optional bounds) */
 CREATE TABLE IF NOT EXISTS public.facet_predicate_durations (
   facet_condition_id uuid PRIMARY KEY
@@ -425,7 +465,7 @@ CREATE TABLE IF NOT EXISTS public.facet_predicate_durations (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  duration_kind text NOT NULL, -- DurationKind
+  duration_kind text, -- DurationKind
   min_amount integer,
   max_amount integer,
 
@@ -434,6 +474,10 @@ CREATE TABLE IF NOT EXISTS public.facet_predicate_durations (
 
   CONSTRAINT facet_predicate_durations_inst_chk CHECK (
     (
+      duration_kind IS NULL
+      AND min_amount IS NOT NULL
+    )
+    OR (
       duration_kind = 'INSTANTANEOUS'
       AND min_amount IS NULL
       AND max_amount IS NULL
@@ -449,6 +493,24 @@ ALTER TABLE public.facet_predicate_durations ENABLE ROW LEVEL SECURITY;
 
 CREATE INDEX IF NOT EXISTS idx_facet_predicate_durations_kind
   ON public.facet_predicate_durations (duration_kind);
+
+/* Selected DurationKind list payload */
+CREATE TABLE IF NOT EXISTS public.facet_predicate_duration_kind_items (
+  facet_condition_id uuid NOT NULL
+    REFERENCES public.facet_conditions (id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  duration_kind text NOT NULL, -- DurationKind
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (facet_condition_id, duration_kind)
+);
+
+ALTER TABLE public.facet_predicate_duration_kind_items ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_facet_predicate_duration_kind_items_condition
+  ON public.facet_predicate_duration_kind_items (facet_condition_id);
 
 /* Equipment category payload */
 CREATE TABLE IF NOT EXISTS public.facet_predicate_equipment_categories (
@@ -488,6 +550,7 @@ CREATE TABLE IF NOT EXISTS public.facet_predicate_ability_items (
     DEFERRABLE INITIALLY DEFERRED,
 
   ability_code text NOT NULL, -- AbilityCode
+  sort_order integer NOT NULL,
 
   PRIMARY KEY (facet_condition_id, ability_code)
 );
@@ -505,6 +568,7 @@ CREATE TABLE IF NOT EXISTS public.facet_predicate_equipment_property_items (
     DEFERRABLE INITIALLY DEFERRED,
 
   property_code text NOT NULL, -- EquipmentPropertyCode
+  sort_order integer NOT NULL,
 
   PRIMARY KEY (facet_condition_id, property_code)
 );
@@ -525,6 +589,7 @@ CREATE TABLE IF NOT EXISTS public.facet_predicate_skill_items (
     REFERENCES public.skills (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
+  sort_order integer NOT NULL,
 
   PRIMARY KEY (facet_condition_id, skill_id)
 );
@@ -545,6 +610,7 @@ CREATE TABLE IF NOT EXISTS public.facet_predicate_language_items (
     REFERENCES public.languages (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
+  sort_order integer NOT NULL,
 
   PRIMARY KEY (facet_condition_id, language_id)
 );
@@ -565,6 +631,7 @@ CREATE TABLE IF NOT EXISTS public.facet_predicate_magic_school_items (
     REFERENCES public.magic_schools (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
+  sort_order integer NOT NULL,
 
   PRIMARY KEY (facet_condition_id, magic_school_id)
 );
@@ -585,6 +652,7 @@ CREATE TABLE IF NOT EXISTS public.facet_predicate_damage_type_items (
     REFERENCES public.damage_types (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
+  sort_order integer NOT NULL,
 
   PRIMARY KEY (facet_condition_id, damage_type_id)
 );
@@ -605,6 +673,7 @@ CREATE TABLE IF NOT EXISTS public.facet_predicate_condition_type_items (
     REFERENCES public.condition_types (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
+  sort_order integer NOT NULL,
 
   PRIMARY KEY (facet_condition_id, condition_type_id)
 );
@@ -614,6 +683,78 @@ ALTER TABLE public.facet_predicate_condition_type_items ENABLE ROW LEVEL SECURIT
 CREATE INDEX IF NOT EXISTS idx_facet_predicate_condition_type_items_condition
   ON public.facet_predicate_condition_type_items (facet_condition_id);
 
+/* Subclass subtype list payload */
+CREATE TABLE IF NOT EXISTS public.facet_predicate_subclass_subtype_items (
+  facet_condition_id uuid NOT NULL
+    REFERENCES public.facet_conditions (id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  subtype_id text NOT NULL,
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (facet_condition_id, subtype_id)
+);
+
+ALTER TABLE public.facet_predicate_subclass_subtype_items ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_facet_predicate_subclass_subtype_items_condition
+  ON public.facet_predicate_subclass_subtype_items (facet_condition_id);
+
+/* Size list payload */
+CREATE TABLE IF NOT EXISTS public.facet_predicate_size_items (
+  facet_condition_id uuid NOT NULL
+    REFERENCES public.facet_conditions (id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  size_code text NOT NULL, -- SizeCode
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (facet_condition_id, size_code)
+);
+
+ALTER TABLE public.facet_predicate_size_items ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_facet_predicate_size_items_condition
+  ON public.facet_predicate_size_items (facet_condition_id);
+
+/* Charge limit kind list payload */
+CREATE TABLE IF NOT EXISTS public.facet_predicate_charge_limit_kind_items (
+  facet_condition_id uuid NOT NULL
+    REFERENCES public.facet_conditions (id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  charge_limit_kind text NOT NULL, -- ChargeLimitKind
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (facet_condition_id, charge_limit_kind)
+);
+
+ALTER TABLE public.facet_predicate_charge_limit_kind_items ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_facet_predicate_charge_limit_kind_items_condition
+  ON public.facet_predicate_charge_limit_kind_items (facet_condition_id);
+
+/* Charge reset kind list payload */
+CREATE TABLE IF NOT EXISTS public.facet_predicate_charge_reset_kind_items (
+  facet_condition_id uuid NOT NULL
+    REFERENCES public.facet_conditions (id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  charge_reset_kind text NOT NULL, -- ChargeResetKind
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (facet_condition_id, charge_reset_kind)
+);
+
+ALTER TABLE public.facet_predicate_charge_reset_kind_items ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_facet_predicate_charge_reset_kind_items_condition
+  ON public.facet_predicate_charge_reset_kind_items (facet_condition_id);
+
 /* Spell list payload */
 CREATE TABLE IF NOT EXISTS public.facet_predicate_spell_items (
   facet_condition_id uuid NOT NULL
@@ -621,10 +762,8 @@ CREATE TABLE IF NOT EXISTS public.facet_predicate_spell_items (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  spell_id uuid NOT NULL
-    REFERENCES public.spells (id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
+  spell_id uuid NOT NULL,
+  sort_order integer NOT NULL,
 
   PRIMARY KEY (facet_condition_id, spell_id)
 );
@@ -641,10 +780,8 @@ CREATE TABLE IF NOT EXISTS public.facet_predicate_feat_items (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  feat_id uuid NOT NULL
-    REFERENCES public.feats (id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
+  feat_id uuid NOT NULL,
+  sort_order integer NOT NULL,
 
   PRIMARY KEY (facet_condition_id, feat_id)
 );
@@ -661,10 +798,8 @@ CREATE TABLE IF NOT EXISTS public.facet_predicate_feature_items (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  feature_id uuid NOT NULL
-    REFERENCES public.features (id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
+  feature_id uuid NOT NULL,
+  sort_order integer NOT NULL,
 
   PRIMARY KEY (facet_condition_id, feature_id)
 );
@@ -681,10 +816,8 @@ CREATE TABLE IF NOT EXISTS public.facet_predicate_option_items (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  option_id uuid NOT NULL
-    REFERENCES public.options (id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
+  option_id uuid NOT NULL,
+  sort_order integer NOT NULL,
 
   PRIMARY KEY (facet_condition_id, option_id)
 );
@@ -701,10 +834,8 @@ CREATE TABLE IF NOT EXISTS public.facet_predicate_equipment_items (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  equipment_id uuid NOT NULL
-    REFERENCES public.equipment (id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
+  equipment_id uuid NOT NULL,
+  sort_order integer NOT NULL,
 
   PRIMARY KEY (facet_condition_id, equipment_id)
 );

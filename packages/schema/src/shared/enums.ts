@@ -1,0 +1,351 @@
+import { z } from 'zod'
+
+export const abilityCodeSchema = z.enum([
+  'CHARISMA',
+  'CONSTITUTION',
+  'DEXTERITY',
+  'INTELLIGENCE',
+  'STRENGTH',
+  'WISDOM',
+  'SPELLCASTING'
+])
+
+export const activationCodeSchema = z.enum([
+  'ACTION',
+  'BONUS_ACTION',
+  'REACTION',
+  'FREE'
+])
+
+export const triggerCodeSchema = z.enum([
+  'MELEE_WEAPON_ATTACK',
+  'RANGED_WEAPON_ATTACK',
+  'UNARMED_ATTACK',
+  'SPELL_ATTACK',
+  'SAVING_THROW',
+  'ENTER_AREA'
+])
+
+export const nodeSubjectCodeSchema = z.enum([
+  'CLASS',
+  'FEATURE',
+  'SPELL',
+  'EQUIPMENT',
+  'FEAT',
+  'RACE',
+  'BACKGROUND',
+  'PROFICIENCY_GRANT',
+  'OPTION',
+  'SUBRACE',
+  'SUBCLASS',
+  'RESOURCE',
+  'RACE_ANCESTRY_OPTION',
+  'CHARACTER'
+])
+
+export const relationCodeSchema = z.enum([
+  'FEATURE',
+  'SUBCLASS',
+  'RESOURCE',
+  'PROFICIENCY_GRANT',
+  'OPTION',
+  'SUBRACE',
+  'RACE_ANCESTRY_OPTION'
+])
+
+export const predicateCodeSchema = z.enum([
+  'SUBCLASS_SUBTYPE',
+  'SPELLCASTING',
+  'RANGE',
+  'DURATION',
+  'CONCENTRATION',
+  'RITUAL',
+  'SIZE',
+  'MAGIC_SCHOOL',
+  'SPELLCASTING_ABILITY',
+  'SPELL_LEVEL',
+  'SAVING_THROW_ABILITY',
+  'SAVING_THROW_DC',
+  'EQUIPMENT_CATEGORY',
+  'EQUIPMENT_PROPERTY',
+  'ARMOR_CLASS',
+  'DAMAGE_TYPE',
+  'CONDITION_TYPE',
+  'CHARGE_LIMIT_KIND',
+  'CHARGE_RESET_KIND',
+  'CAN_CAST_SPELL',
+  'CHARACTER_LEVEL',
+  'CLASS_LEVEL',
+  'SPELL_OBTAINED',
+  'FEAT_OBTAINED',
+  'FEATURE_OBTAINED',
+  'OPTION_OBTAINED',
+  'EQUIPMENT_PROFICIENCY',
+  'EQUIPMENT_PROPERTY_PROFICIENCY',
+  'LANGUAGE_PROFICIENCY',
+  'SAVE_ABILITY_PROFICIENCY',
+  'SKILL_PROFICIENCY',
+  'EQUIPMENT_EQUIPPED',
+  'SKILL_SCORE',
+  'ABILITY_SCORE',
+  'SAVING_THROW_ABILITY_BONUS',
+  'WHILE_SOURCE_CARRIED',
+  'WHILE_SOURCE_EQUIPPED',
+  'WHILE_SOURCE_ATTUNED'
+])
+
+export const rangeKindSchema = z.enum([
+  'SELF',
+  'TOUCH',
+  'SIGHT',
+  'UNLIMITED',
+  'DISTANCE'
+])
+
+export const durationKindSchema = z.enum([
+  'INSTANTANEOUS',
+  'TURN',
+  'ROUND',
+  'MINUTE',
+  'HOUR',
+  'DAY',
+  'WEEK',
+  'MONTH',
+  'YEAR'
+])
+
+export const shapeKindSchema = z.enum([
+  'LINE',
+  'CONE',
+  'CUBE',
+  'CYLINDER',
+  'SPHERE',
+  'WALL',
+  'CIRCLE',
+  'DOME'
+])
+
+export const measurementUnitCodeSchema = z.enum([
+  'POUNDS',
+  'GALLONS',
+  'INCHES',
+  'FEET',
+  'YARDS',
+  'MILES',
+  'OUNCES',
+  'CUPS',
+  'TABLESPOONS',
+  'TEASPOONS',
+  'LITERS',
+  'QUARTS'
+])
+
+export const scalingKindSchema = z.enum(['NONE', 'PER_LEVEL'])
+export const scalingSourceSchema = z.enum([
+  'CHARACTER_LEVEL',
+  'CLASS_LEVEL',
+  'PARENT_CLASS_LEVEL',
+  'SPELL_CAST_LEVEL'
+])
+export const scalingAmountKindSchema = z.enum(['FULL', 'HALF', 'DOUBLE'])
+
+export const chargeResetKindSchema = z.enum([
+  'LONG_REST',
+  'SHORT_REST',
+  'MANUAL'
+])
+export const chargeLimitKindSchema = z.enum([
+  'FIXED_AMOUNT',
+  'CHARACTER_LEVEL',
+  'CLASS_LEVEL',
+  'PARENT_CLASS_LEVEL',
+  'SPELL_CAST_LEVEL'
+])
+export const chargeBonusKindSchema = z.enum([
+  'PROFICIENCY_BONUS',
+  'ABILITY_MODIFIER',
+  'SKILL_BONUS'
+])
+export const attackDomainCodeSchema = z.enum([
+  'MELEE',
+  'RANGED',
+  'SPELL',
+  'UNARMED'
+])
+
+export const savingThrowKindSchema = z.enum(['SOURCE_SAVE_DC', 'FIXED_VALUE'])
+
+export const grantKindSchema = z.enum([
+  'MODIFIER_GRANT',
+  'PROFICIENCY_GRANT',
+  'SENSE_GRANT',
+  'FEAT_GRANT',
+  'SPELL_GRANT'
+])
+
+export const authoringModeKindSchema = z.enum(['ALL', 'SELECTED'])
+export const authoringSelectionKindSchema = z.enum(['GRANTED', 'CHOSEN'])
+export const authoringConstraintCodeSchema = z.enum(['INCLUDE', 'EXCLUDE'])
+
+export const proficiencyKindSchema = z.enum([
+  'SKILL',
+  'SAVE_ABILITY',
+  'EQUIPMENT',
+  'EQUIPMENT_PROPERTY',
+  'LANGUAGE'
+])
+
+export const roundingCodeSchema = z.enum(['UP', 'DOWN', 'NEAREST'])
+
+export const spellGrantAttributeSchema = z.enum([
+  'CONCENTRATION',
+  'RITUAL',
+  'LIMITED_USE',
+  'PREPARED',
+  'KNOWN',
+  'CAST_AT_WILL',
+  'CAST_AT_LEVEL',
+  'SELF_ONLY'
+])
+
+export const effectKindSchema = z.enum(['DAMAGE', 'CONDITION'])
+export const momentCodeSchema = z.enum([
+  'PASSIVE',
+  'ON_CAST',
+  'ON_ATTACK',
+  'ON_HIT',
+  'ON_CRIT',
+  'ON_SAVE_FAIL',
+  'ON_SAVE_SUCCESS',
+  'START_OF_TURN',
+  'END_OF_TURN',
+  'ON_MOVE',
+  'ON_HP_ZERO',
+  'ON_MISS'
+])
+export const momentGroupTypeSchema = z.enum(['SINGLE', 'CHOICE', 'SEQUENTIAL'])
+export const momentResolutionKindSchema = z.enum(['DIRECT', 'ROLL_TABLE'])
+export const momentRollTableKindSchema = z.enum(['RANGE', 'EXACT'])
+
+export const valueDomainCodeSchema = z.enum([
+  'SPEED',
+  'ATTACK_ROLL_BONUS',
+  'ARMOR_CLASS',
+  'SAVE_DC',
+  'SAVING_THROW_BONUS',
+  'DAMAGE',
+  'CONDITION',
+  'HIT_POINTS_MAX',
+  'RANGE',
+  'DURATION',
+  'SHAPE',
+  'CHARGE_LIMIT',
+  'CHARGE_RESET',
+  'INITIATIVE_BONUS',
+  'ABILITY_SCORE',
+  'SKILL_BONUS',
+  'PROFICIENCY_BONUS',
+  'MOVEMENT_MODE',
+  'SENSE_RANGE',
+  'SPELL_SLOT_COUNT',
+  'SPELL_SLOT_LEVEL_MAX',
+  'SPELLS_KNOWN',
+  'SPELLS_PREPARED',
+  'ACTION_COUNT',
+  'BONUS_ACTION_COUNT',
+  'REACTION_COUNT',
+  'DAMAGE_RESISTANCE',
+  'DAMAGE_IMMUNITY',
+  'DAMAGE_VULNERABILITY',
+  'ATTRIBUTE'
+])
+
+export const modifierKindSchema = z.enum([
+  'BONUS',
+  'PENALTY',
+  'SET_VALUE',
+  'ADD_BONUS_DIE',
+  'REPLACE_DAMAGE_TYPE',
+  'ADVANTAGE',
+  'DISADVANTAGE',
+  'ADD_OPTION',
+  'REMOVE_OPTION',
+  'REPLACE_RANGE_KIND',
+  'REPLACE_DURATION_KIND',
+  'REPLACE_SHAPE_KIND',
+  'REPLACE_CHARGE_RESET_KIND',
+  'MODIFY_CHARGE_LIMIT',
+  'OPTIONAL_ABILITY_MODIFIER'
+])
+
+export const modifierScopeKindSchema = z.enum(['GLOBAL', 'SOURCE'])
+export const modifierValueKindSchema = z.enum([
+  'FIXED',
+  'PROFICIENCY_BONUS',
+  'ABILITY_MODIFIER',
+  'SKILL_BONUS',
+  'CHARACTER_LEVEL',
+  'CLASS_LEVEL',
+  'SPELL_SLOT_LEVEL'
+])
+export const operationCodeSchema = z.enum([
+  'ADD',
+  'SUBTRACT',
+  'MULTIPLY',
+  'DIVIDE',
+  'SET',
+  'REPLACE'
+])
+
+export const equipmentCategoryCodeSchema = z.enum([
+  'WEAPON',
+  'ARMOR',
+  'ADVENTURING_GEAR',
+  'TOOL',
+  'SHIELD',
+  'VARIANT'
+])
+
+export const equipmentPropertyCodeSchema = z.enum([
+  'LIGHT',
+  'ONE_HANDED',
+  'TWO_HANDED',
+  'FINESSE',
+  'RANGED',
+  'THROWN',
+  'HEAVY',
+  'LOADING',
+  'AMMUNITION',
+  'REACH',
+  'SPECIAL',
+  'VERSATILE',
+  'MEDIUM',
+  'SIMPLE',
+  'MARTIAL',
+  'MELEE',
+  'FLASK',
+  'VIAL',
+  'POISON',
+  'CONTAINER',
+  'POTION',
+  'SCROLL',
+  'WONDEROUS_ITEM',
+  'ARCANE_FOCUS',
+  'HOLY_SYMBOL',
+  'DRINK',
+  'FOOD',
+  'ARTISANAL_TOOL',
+  'MUSICAL_INSTRUMENT',
+  'GAMING_SET',
+  'DRUIDIC_FOCUS',
+  'PROFESSIONAL_TOOL',
+  'WOOD',
+  'METAL',
+  'MAGIC'
+])
+
+export const spellAttributeSchema = z.enum([
+  'CONCENTRATION',
+  'RITUAL',
+  'ADDS_TO_WEAPON_ATTACK'
+])

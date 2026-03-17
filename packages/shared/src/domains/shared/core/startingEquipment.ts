@@ -1,4 +1,5 @@
 import type { CoreMeta } from '#core'
+import { valuesOf } from '#utils'
 
 export const STARTING_EQUIPMENT_KIND = {
   EQUIPMENT: 'EQUIPMENT',
@@ -28,6 +29,6 @@ export const STARTING_EQUIPMENT_KIND_REGISTRY: Record<
   }
 } as const
 
-export const STARTING_EQUIPMENT_KIND_OPTIONS = Object.values(
+export const STARTING_EQUIPMENT_KIND_OPTIONS = valuesOf(
   STARTING_EQUIPMENT_KIND_REGISTRY
 ) as StartingEquipmentKindOption[]

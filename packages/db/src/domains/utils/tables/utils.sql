@@ -1,25 +1,3 @@
-CREATE OR REPLACE FUNCTION public.upsert_json_array (
-  json_data jsonb,
-  key text,
-  upsert_func text,
-  parent_id uuid
-) RETURNS void LANGUAGE plpgsql SECURITY DEFINER
-SET
-  search_path = pg_catalog,
-  public AS $$
-DECLARE
-  r jsonb;
-BEGIN
-  FOR r IN
-  SELECT
-    JSONB_ARRAY_ELEMENTS(COALESCE(json_data -> key, '[]'::jsonb))
-    LOOP
-      EXECUTE FORMAT('SELECT %I($1, $2)', upsert_func)
-      USING r, parent_id;
-    END LOOP;
-END;
-$$;
-
 CREATE OR REPLACE FUNCTION public.set_updated_at () RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER
 SET
   search_path = pg_catalog,
@@ -123,7 +101,11 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.apply_updated_at_triggers (p_schema text DEFAULT 'public') RETURNS void LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION public.apply_updated_at_triggers (p_schema text DEFAULT 'public')
+RETURNS void
+LANGUAGE plpgsql
+SET search_path = pg_catalog, public
+AS $$
 DECLARE
     r RECORD;
     v_trigger_name text;
@@ -148,8 +130,10 @@ BEGIN
           )
     )
     LOOP
-        v_trigger_name :=
-            'trg_' || r.schema_name || '_' || r.table_name || '_set_updated_at';
+      v_trigger_name := left(
+        'trg_' || r.schema_name || '_' || r.table_name || '_set_updated_at',
+        63
+      );
 
         -- Only create trigger if it does not already exist
         IF NOT EXISTS (

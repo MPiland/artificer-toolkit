@@ -93,7 +93,6 @@ export function compileClassState(authored: CharacterClassState): CompiledCharac
 
   return {
     classId: authored.classId,
-    classLevel: authored.classLevel,
     spells
   }
 }

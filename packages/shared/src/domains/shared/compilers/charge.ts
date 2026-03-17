@@ -1,31 +1,38 @@
-import { assertNever } from '@artificer-toolkit/functions/utils'
+import { assertNever } from '#utils'
 
 import type {
   ChargeAuthored,
   ChargeBonusAuthored
 } from '#authored'
 import {
-  SCALING,
-  type ScalingPayload,
   CHARGE_BONUS_KIND,
+  SCALING,
   type AbilityCode,
-  type ScalingSource,
-  type ChargeResetKind,
-  type ChargeLimitKind
+  type ChargeLimitKind,
+  type ChargeResetKind
 } from '#core'
-import { compileScalingSource } from '#compilers'
 
-export type CompiledChargeLimitPayload = {
+export type CompiledChargeLimitPayloadByKind = {
   CHARACTER_LEVEL: {
     multiplier?: number
+    min?: number
+    max?: number
   }
   CLASS_LEVEL: {
     classId: string
     multiplier?: number
+    min?: number
+    max?: number
   }
-  SPELL_LEVEL: {
-    spellId: string
+  PARENT_CLASS_LEVEL: {
     multiplier?: number
+    min?: number
+    max?: number
+  }
+  SPELL_CAST_LEVEL: {
+    multiplier?: number
+    min?: number
+    max?: number
   }
   FIXED_AMOUNT: {
     amount: number
@@ -57,73 +64,40 @@ export type CompiledChargeBonus
     order: number
   }
 
-export type CompiledChargeDefinition<
-  TPayload,
-  TSource extends ScalingSource = ScalingSource
+export type CompiledCharge<
+  L extends ChargeLimitKind = ChargeLimitKind
 >
   = | ({
+    id: string
+    resetKind: ChargeResetKind
+    limitKind: Exclude<L, 'FIXED_AMOUNT'>
+    bonuses?: CompiledChargeBonus[]
     scalingKind: typeof SCALING.NONE
-  } & TPayload)
-  | ({
-    scalingKind: typeof SCALING.PER_LEVEL
-    levels: ({
-      level: number
-      order: number
-    } & TPayload)[]
-  } & ScalingPayload<TSource>)
-
-export type CompiledCharge<
-  L extends ChargeLimitKind = ChargeLimitKind,
-  TSource extends ScalingSource = ScalingSource
-> = {
-  id: string
-  resetKind: ChargeResetKind
-  limitKind: L
-  bonuses?: CompiledChargeBonus[]
-} & CompiledChargeDefinition<CompiledChargeLimitPayload[L], TSource>
-
-function compileChargeBase(
-  authored: ChargeAuthored
-): CompiledChargeLimitPayload[keyof CompiledChargeLimitPayload] {
-  switch (authored.limitKind) {
-    case 'FIXED_AMOUNT': {
-      const fixedAuthored = authored as Extract<ChargeAuthored, { limitKind: 'FIXED_AMOUNT' }>
-      return {
-        amount: (fixedAuthored as { amount: number }).amount
-      }
+  } & CompiledChargeLimitPayloadByKind[Exclude<L, 'FIXED_AMOUNT'>])
+    | ({
+      id: string
+      resetKind: ChargeResetKind
+      limitKind: 'FIXED_AMOUNT'
+      bonuses?: CompiledChargeBonus[]
+      scalingKind: typeof SCALING.NONE
+      amount: number
+    })
+    | {
+      id: string
+      resetKind: ChargeResetKind
+      limitKind: 'FIXED_AMOUNT'
+      bonuses?: CompiledChargeBonus[]
+      scalingKind: typeof SCALING.PER_LEVEL
+      levels: {
+        id: string
+        level: number
+        amount: number
+      }[]
     }
-
-    case 'CHARACTER_LEVEL': {
-      const charLevelAuthored = authored as Extract<ChargeAuthored, { limitKind: 'CHARACTER_LEVEL' }>
-      return {
-        multiplier: (charLevelAuthored as { multiplier?: number }).multiplier
-      }
-    }
-
-    case 'CLASS_LEVEL': {
-      const classLevelAuthored = authored as Extract<ChargeAuthored, { limitKind: 'CLASS_LEVEL' }>
-      return {
-        classId: (classLevelAuthored as { classId: string }).classId,
-        multiplier: (classLevelAuthored as { multiplier?: number }).multiplier
-      }
-    }
-
-    case 'SPELL_LEVEL': {
-      const spellLevelAuthored = authored as Extract<ChargeAuthored, { limitKind: 'SPELL_LEVEL' }>
-      return {
-        spellId: (spellLevelAuthored as { spellId: string }).spellId,
-        multiplier: (spellLevelAuthored as { multiplier?: number }).multiplier
-      }
-    }
-
-    default:
-      return assertNever(authored)
-  }
-}
 
 function compileChargeBonus(bonus: ChargeBonusAuthored): CompiledChargeBonus {
   switch (bonus.bonusKind) {
-    case 'ABILITY_MODIFIER':
+    case CHARGE_BONUS_KIND.ABILITY_MODIFIER:
       return {
         bonusKind: bonus.bonusKind,
         ability: bonus.ability,
@@ -133,7 +107,7 @@ function compileChargeBonus(bonus: ChargeBonusAuthored): CompiledChargeBonus {
         order: bonus.order
       }
 
-    case 'SKILL_BONUS':
+    case CHARGE_BONUS_KIND.SKILL_BONUS:
       return {
         bonusKind: bonus.bonusKind,
         skillId: bonus.skillId,
@@ -143,7 +117,7 @@ function compileChargeBonus(bonus: ChargeBonusAuthored): CompiledChargeBonus {
         order: bonus.order
       }
 
-    case 'PROFICIENCY_BONUS':
+    case CHARGE_BONUS_KIND.PROFICIENCY_BONUS:
       return {
         bonusKind: bonus.bonusKind,
         min: bonus.min,
@@ -162,33 +136,64 @@ export function compileCharge(authored: ChargeAuthored): CompiledCharge {
     = authored.bonuses && authored.bonuses.length
       ? authored.bonuses.map(compileChargeBonus)
       : undefined
+
   const base = {
     id: authored.id,
     resetKind: authored.resetKind,
-    limitKind: authored.limitKind,
     bonuses
   }
 
-  switch (authored.scalingKind) {
-    case SCALING.NONE: {
+  switch (authored.limitKind) {
+    case 'CHARACTER_LEVEL':
+    case 'PARENT_CLASS_LEVEL':
+    case 'SPELL_CAST_LEVEL':
       return {
         ...base,
+        limitKind: authored.limitKind,
         scalingKind: SCALING.NONE,
-        ...compileChargeBase(authored)
+        multiplier: authored.multiplier,
+        min: authored.min,
+        max: authored.max
       }
-    }
 
-    case SCALING.PER_LEVEL: {
+    case 'CLASS_LEVEL':
       return {
-        scalingKind: SCALING.PER_LEVEL,
-        ...compileScalingSource(authored),
         ...base,
-        levels: authored.levels.map((entry) => ({
-          level: entry.level,
-          order: entry.order,
-          ...compileChargeBase(authored)
-        }))
+        limitKind: authored.limitKind,
+        scalingKind: SCALING.NONE,
+        classId: authored.classId,
+        multiplier: authored.multiplier,
+        min: authored.min,
+        max: authored.max
       }
-    }
+
+    case 'FIXED_AMOUNT':
+      switch (authored.scalingKind) {
+        case SCALING.NONE:
+          return {
+            ...base,
+            limitKind: 'FIXED_AMOUNT',
+            scalingKind: SCALING.NONE,
+            amount: authored.amount
+          }
+
+        case SCALING.PER_LEVEL:
+          return {
+            ...base,
+            limitKind: 'FIXED_AMOUNT',
+            scalingKind: SCALING.PER_LEVEL,
+            levels: authored.levels.map((entry) => ({
+              id: entry.id,
+              level: entry.level,
+              amount: entry.amount
+            }))
+          }
+
+        default:
+          return assertNever(authored)
+      }
+
+    default:
+      return assertNever(authored)
   }
 }

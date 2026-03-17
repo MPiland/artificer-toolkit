@@ -11,7 +11,6 @@
  *
  * Ownership:
  *   spells → spell_effects (owned)
- *   spells → spell_traits (authoritative)
  *
  * References:
  *   spells → magic_schools
@@ -37,8 +36,6 @@ CREATE TABLE IF NOT EXISTS public.spells (
     REFERENCES public.magic_schools(id)
     ON DELETE RESTRICT
     DEFERRABLE INITIALLY DEFERRED,
-
-  concentration_type text,      -- ConcentrationType
 
   casting_time_unit text NOT NULL,  -- CastingTimeUnit
   casting_time_amount integer NOT NULL,
@@ -67,32 +64,22 @@ CREATE INDEX IF NOT EXISTS idx_spells_level
 CREATE INDEX IF NOT EXISTS idx_spells_school
   ON public.spells(magic_school_id);
 
-/* ──────────────────────────────────────────────
- * SPELL — TRAITS
- *
- * Intent:
- *   Engine-core TraitCode[] applied to the spell.
- *
- * Ownership:
- *   Fully owned by spells (authoritative array).
- * ────────────────────────────────────────────── */
-
-CREATE TABLE IF NOT EXISTS public.spell_traits (
+CREATE TABLE IF NOT EXISTS public.spell_attributes (
   spell_id uuid NOT NULL
     REFERENCES public.spells(id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  trait_code text NOT NULL,
+  attribute_code text NOT NULL,
   sort_order integer NOT NULL,
 
-  PRIMARY KEY (spell_id, trait_code)
+  PRIMARY KEY (spell_id, attribute_code)
 );
 
-CREATE INDEX IF NOT EXISTS idx_spell_traits_spell
-  ON public.spell_traits(spell_id);
+CREATE INDEX IF NOT EXISTS idx_spell_attributes_spell
+  ON public.spell_attributes(spell_id);
 
-ALTER TABLE public.spell_traits ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.spell_attributes ENABLE ROW LEVEL SECURITY;
 
 /* ──────────────────────────────────────────────
  * SPELL — CLASSES
@@ -110,10 +97,7 @@ CREATE TABLE IF NOT EXISTS public.spell_classes (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  class_id uuid NOT NULL
-    REFERENCES public.classes(id)
-    ON DELETE RESTRICT
-    DEFERRABLE INITIALLY DEFERRED,
+  class_id uuid NOT NULL,
 
   PRIMARY KEY (spell_id, class_id)
 );
@@ -131,7 +115,7 @@ ALTER TABLE public.spell_classes ENABLE ROW LEVEL SECURITY;
  *
  * Intent:
  *   Associates authored effects to the spell.
- *   Effects may scale by SPELL_SLOT_LEVEL.
+ *   Effects may scale by SPELL_CAST_LEVEL.
  *
  * Ownership:
  *   spell_effects owns effect rows.
@@ -143,10 +127,7 @@ CREATE TABLE IF NOT EXISTS public.spell_effects (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  effect_id uuid NOT NULL
-    REFERENCES public.effects(id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
+  effect_id uuid NOT NULL,
 
   sort_order integer NOT NULL,
 

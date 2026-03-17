@@ -1,4 +1,9 @@
-import { assertNever } from '@artificer-toolkit/functions/utils'
+import {
+  assertNever,
+  compileSuccess,
+  unwrapCompileResult,
+  type CompileResult
+} from '#utils'
 
 import type { GrantPayloadAuthored, SpellGrantAuthored } from '#authored'
 import {
@@ -28,7 +33,10 @@ function compileSpellTarget(
   authored: GrantPayloadAuthored<{ spellIds: string[] }>
 ): CompiledGrantTarget<{ spellIds: string[] }> {
   switch (authored.authoringModeKind) {
+    case undefined:
     case AUTHORING_MODE_KIND.ALL:
+      return { authoringModeKind: AUTHORING_MODE_KIND.ALL }
+
     case AUTHORING_MODE_KIND.SELECTED:
       return authored
 
@@ -37,9 +45,9 @@ function compileSpellTarget(
   }
 }
 
-export function compileSpellGrant(
+export function compileSpellGrantResult(
   authored: SpellGrantAuthored
-): CompiledSpellGrant {
+): CompileResult<CompiledSpellGrant> {
   const base = {
     id: authored.id,
     castAtLevel: authored.castAtLevel,
@@ -52,24 +60,24 @@ export function compileSpellGrant(
     case SCALING.NONE: {
       switch (authored.selectionKind) {
         case AUTHORING_SELECTION_KIND.GRANTED: {
-          return {
+          return compileSuccess({
             ...base,
             grantKind: GRANT_KIND.SPELL_GRANT,
             selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
             scalingKind: SCALING.NONE,
             ...compileSpellTarget(authored)
-          }
+          })
         }
 
         case AUTHORING_SELECTION_KIND.CHOSEN: {
-          return {
+          return compileSuccess({
             ...base,
             grantKind: GRANT_KIND.SPELL_GRANT,
             selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
             scalingKind: SCALING.NONE,
             ...compileSpellTarget(authored),
             count: authored.count
-          }
+          })
         }
 
         default:
@@ -80,34 +88,34 @@ export function compileSpellGrant(
     case SCALING.PER_LEVEL: {
       switch (authored.selectionKind) {
         case AUTHORING_SELECTION_KIND.CHOSEN: {
-          return {
+          return compileSuccess({
             ...base,
             grantKind: GRANT_KIND.SPELL_GRANT,
             selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
             scalingKind: SCALING.PER_LEVEL,
-            ...compileScalingSource(authored.scaling),
-            levels: authored.scaling.levels.map((entry) => ({
+            ...compileScalingSource(authored.progression),
+            levels: authored.progression.levels.map((entry) => ({
               level: entry.level,
               count: entry.count,
               order: entry.order,
               ...compileSpellTarget(entry)
             }))
-          }
+          })
         }
 
         case AUTHORING_SELECTION_KIND.GRANTED: {
-          return {
+          return compileSuccess({
             ...base,
             grantKind: GRANT_KIND.SPELL_GRANT,
             selectionKind: AUTHORING_SELECTION_KIND.GRANTED, // <- literal
             scalingKind: SCALING.PER_LEVEL,
-            ...compileScalingSource(authored.scaling),
-            levels: authored.scaling.levels.map((entry) => ({
+            ...compileScalingSource(authored.progression),
+            levels: authored.progression.levels.map((entry) => ({
               level: entry.level,
               order: entry.order,
               ...compileSpellTarget(entry)
             }))
-          }
+          })
         }
 
         default:
@@ -118,4 +126,10 @@ export function compileSpellGrant(
     default:
       return assertNever(authored)
   }
+}
+
+export function compileSpellGrant(
+  authored: SpellGrantAuthored
+): CompiledSpellGrant {
+  return unwrapCompileResult(compileSpellGrantResult(authored))
 }

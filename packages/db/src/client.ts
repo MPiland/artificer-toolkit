@@ -26,6 +26,6 @@ export async function withUserContext<T>(
     })
   } catch (err) {
     console.error(err)
-    throw new Error('Failed to load data')
+    throw new Error('Failed to load data', { cause: err })
   }
 }

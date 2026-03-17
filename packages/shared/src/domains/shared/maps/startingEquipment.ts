@@ -78,8 +78,7 @@ export const STARTING_EQUIPMENT_ITEM_NODE_MAP
         kind: 'INLINE',
         options: AUTHORING_MODE_KIND_OPTIONS
       }, {
-        order: 3,
-        requiredIf: true
+        order: 3
       }))
       .set('category', selectSingle(['category'], 'Category', {
         kind: 'INLINE',
@@ -123,6 +122,8 @@ export const STARTING_EQUIPMENT_ITEM_NODE_MAP
               selectColumns: ['id', 'label']
             }))
           .end())
+      }, {
+        showIf: local.field(['authoringModeKind']).eq('SELECTED')
       }))
       .set('currencies', groupArray(['currencies'], 'Currencies', () => STARTING_EQUIPMENT_CURRENCY_NODE_MAP, {
         order: 3,

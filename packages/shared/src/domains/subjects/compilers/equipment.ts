@@ -16,9 +16,7 @@ import {
   compileModifierGrant,
   type CompiledModifierGrant,
   compileCharge,
-  type CompiledCharge,
-  compileSpeed,
-  type CompiledSpeed
+  type CompiledCharge
 } from '#compilers'
 
 export interface CompiledWeight {
@@ -73,7 +71,6 @@ export type CompiledEquipment = {
     typeof EQUIPMENT_CATEGORY_CODE.VARIANT
   >
   abilities: CompiledEquipmentAbilitiesAuthored[]
-  speed?: CompiledSpeed
 } & CompiledEquipmentBase
 
 export type CompiledEquipmentVariant = {
@@ -91,7 +88,7 @@ export function compileEquipment(
 
   const features
     = authored.features && authored.features.length
-      ? authored.features.map(compileFeature)
+      ? authored.features.map((feature) => compileFeature(feature as Parameters<typeof compileFeature>[0]))
       : undefined
 
   const charges = authored.charges ? compileCharge(authored.charges) : undefined
@@ -109,7 +106,6 @@ export function compileEquipment(
     capacity: authored.capacity,
     charges,
     effects,
-    restrictionGroups,
     features,
     rarityId: authored.rarityId,
     maxBonus: authored.maxBonus,
@@ -128,14 +124,11 @@ export function compileEquipment(
     }
   }
 
-  const speed = authored.speed ? compileSpeed(authored.speed) : undefined
-
   // Otherwise, it's non-variant equipment
   return {
     ...base,
     category: authored.category,
     properties: authored.properties,
-    abilities: authored.abilities,
-    speed
+    abilities: authored.abilities
   }
 }

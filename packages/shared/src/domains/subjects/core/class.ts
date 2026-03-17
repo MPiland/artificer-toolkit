@@ -1,4 +1,5 @@
 import type { CoreMeta } from '#core'
+import { valuesOf } from '#utils'
 
 export const CLASS_CATEGORY = {
   BASE: 'BASE',
@@ -28,7 +29,7 @@ export const CLASS_CATEGORY_REGISTRY: Record<
   }
 } as const
 
-export const CLASS_CATEGORY_OPTIONS = Object.values(
+export const CLASS_CATEGORY_OPTIONS = valuesOf(
   CLASS_CATEGORY_REGISTRY
 ) as readonly ClassCategoryOption[]
 
@@ -57,7 +58,7 @@ export const CLASS_ATTRIBUTE_REGISTRY: Record<ClassAttribute, ClassAttributeOpti
   }
 } as const
 
-export const CLASS_ATTRIBUTE_OPTIONS = Object.values(
+export const CLASS_ATTRIBUTE_OPTIONS = valuesOf(
   CLASS_ATTRIBUTE_REGISTRY
 ) as readonly ClassAttributeOption[]
 
@@ -80,7 +81,7 @@ export const SUBCLASS_ATTRIBUTE_REGISTRY: Record<SubclassAttribute, SubclassAttr
   }
 } as const
 
-export const SUBCLASS_ATTRIBUTE_OPTIONS = Object.values(
+export const SUBCLASS_ATTRIBUTE_OPTIONS = valuesOf(
   SUBCLASS_ATTRIBUTE_REGISTRY
 ) as readonly SubclassAttributeOption[]
 
@@ -141,7 +142,7 @@ export const SPELLCASTING_ATTRIBUTE_REGISTRY: Record<
   }
 } as const
 
-export const SPELLCASTING_ATTRIBUTE_OPTIONS = Object.values(
+export const SPELLCASTING_ATTRIBUTE_OPTIONS = valuesOf(
   SPELLCASTING_ATTRIBUTE_REGISTRY
 ) as readonly SpellcastingAttributeOption[]
 
@@ -184,7 +185,7 @@ export const PREPARE_LIMIT_METHOD_REGISTRY: Record<
   }
 } as const
 
-export const PREPARE_LIMIT_METHOD_OPTIONS = Object.values(
+export const PREPARE_LIMIT_METHOD_OPTIONS = valuesOf(
   PREPARE_LIMIT_METHOD_REGISTRY
 ) as readonly PrepareLimitMethodOption[]
 

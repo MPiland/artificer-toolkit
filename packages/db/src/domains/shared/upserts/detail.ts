@@ -12,11 +12,11 @@ export async function upsertDetail(db: DBLike, json_data: DetailAuthored) {
         description: json_data.description,
         sort_order: json_data.order
       })
-      .onConflict((oc) => oc.column('id').doUpdateSet({
-        label: (eb) => eb.ref('excluded.label'),
-        description: (eb) => eb.ref('excluded.description'),
-        sort_order: (eb) => eb.ref('excluded.sort_order')
-      }))
+      .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
+        label: ref('excluded.label'),
+        description: ref('excluded.description'),
+        sort_order: ref('excluded.sort_order')
+      })))
       .executeTakeFirstOrThrow()
 
     await trx.commit().execute()

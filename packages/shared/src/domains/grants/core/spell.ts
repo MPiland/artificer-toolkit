@@ -1,4 +1,5 @@
 import type { CoreMeta } from '#core'
+import { valuesOf } from '#utils'
 
 export const SPELL_GRANT_ATTRIBUTE = {
   CONCENTRATION: 'CONCENTRATION',
@@ -87,6 +88,6 @@ export const SPELL_GRANT_ATTRIBUTE_REGISTRY: Record<
   }
 } as const
 
-export const SPELL_GRANT_ATTRIBUTE_OPTIONS = Object.values(
+export const SPELL_GRANT_ATTRIBUTE_OPTIONS = valuesOf(
   SPELL_GRANT_ATTRIBUTE_REGISTRY
 ) as readonly SpellGrantAttributeOption[]

@@ -1,4 +1,4 @@
-import { assertNever } from '@artificer-toolkit/functions/utils'
+import { assertNever } from '#utils'
 
 import type { CharacterAbilityRollGroupRecord, CharacterAbilityScoresIntent, CharacterAcquisitionTiming, CharacterAdvancementIntent, CharacterAncestryAcquisition, CharacterBackgroundIntent, CharacterClassIntent, CharacterDieRollRecord, CharacterFeatureAcquisitionRecord, CharacterFeatureSelectionRecord, CharacterFeatureSelectionValue, CharacterFeatureSource, CharacterHitpointLevelEntry, CharacterHitpointsIntent, CharacterIntent, CharacterManualAbilityAssignment, CharacterManualRolledAbilityRecord, CharacterPointBuyAssignment, CharacterRaceIntent, CharacterResourceGrantRecord, CharacterSpellSelectionRecord, CharacterStandardArrayAssignment, CharacterStartingEquipmentDecision, CharacterStartingEquipmentGroupSelection, CharacterStartingGoldSelection } from '#authored'
 import type { AbilityCode, HitpointCalculationMethodCode } from '#core'

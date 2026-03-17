@@ -1,24 +1,148 @@
 import {
+  ABILITY_CODE,
   type ChargeAuthored,
   type ChargeBonusAuthored
 } from '@artificer-toolkit/shared'
-import type { DBLike } from '@artificer-toolkit/db/types'
-import { assertNever } from '@artificer-toolkit/functions/utils'
-import type { SupabaseDatabase } from '@artificer-toolkit/db/types'
+import type { DBLike } from '#types'
+import { assertNever } from '../../../utils/index.js'
+
+type ChargeAuthoredWrite = ChargeAuthored | ({
+  limitKind: 'CLASS_LEVEL'
+  scalingKind: 'NONE'
+  classId: string
+  multiplier?: number
+  min?: number
+  max?: number
+} | {
+  limitKind: 'PARENT_CLASS_LEVEL' | 'SPELL_CAST_LEVEL'
+  scalingKind: 'NONE'
+  multiplier?: number
+  min?: number
+  max?: number
+}) & Pick<ChargeAuthored, 'id' | 'resetKind' | 'bonuses'>
+
+type ChargeBonusRow = {
+  id: string
+  charge_id: string
+  bonus_kind: string
+  ability_code: string | null
+  skill_id: string | null
+  multiplier: number | null
+  min: number | null
+  max: number | null
+  sort_order: number
+}
+
+type ChargeLimitRow = {
+  charge_id: string
+  limit_kind: string
+  class_id: string | null
+  amount: number | null
+  multiplier: number | null
+  min: number | null
+  max: number | null
+}
+
+type ChargeScalingLevelRow = {
+  id: string
+  charge_id: string
+  level: number
+  sort_order: number
+  amount: number
+}
+
+function requireChargeResetKind(
+  chargeId: string,
+  value: string
+): ChargeAuthored['resetKind'] {
+  if (value !== 'LONG_REST' && value !== 'SHORT_REST' && value !== 'MANUAL') {
+    throw new Error(`Charge "${chargeId}" has invalid resetKind "${value}".`)
+  }
+
+  return value
+}
+
+function requireChargeScalingKind(
+  chargeId: string,
+  value: string
+): ChargeAuthored['scalingKind'] {
+  if (value !== 'NONE' && value !== 'PER_LEVEL') {
+    throw new Error(`Charge "${chargeId}" has invalid scalingKind "${value}".`)
+  }
+
+  return value
+}
+
+function requireChargeLimitKind(
+  chargeId: string,
+  value: string
+): void {
+  if (
+    value !== 'FIXED_AMOUNT'
+    && value !== 'CHARACTER_LEVEL'
+    && value !== 'CLASS_LEVEL'
+    && value !== 'PARENT_CLASS_LEVEL'
+    && value !== 'SPELL_CAST_LEVEL'
+  ) {
+    throw new Error(`Charge "${chargeId}" has invalid limitKind "${value}".`)
+  }
+}
+
+function requireAbilityCode(
+  bonusId: string,
+  value: string
+): string {
+  if (!(value in ABILITY_CODE)) {
+    throw new Error(`Charge bonus "${bonusId}" has invalid ability "${value}".`)
+  }
+
+  return value
+}
+
+function requireClassId(
+  chargeId: string,
+  classId: string | undefined
+): string {
+  if (!classId) {
+    throw new Error(`Charge "${chargeId}" is missing classId for CLASS_LEVEL limit.`)
+  }
+
+  return classId
+}
+
+function requireFixedAmount(
+  chargeId: string,
+  amount: number | undefined
+): number {
+  if (amount == null) {
+    throw new Error(`Charge "${chargeId}" is missing amount for FIXED_AMOUNT limit.`)
+  }
+
+  return amount
+}
+
+function requireScalingLevels(
+  chargeId: string,
+  levels: { id: string, level: number, amount: number }[] | undefined
+): { id: string, level: number, amount: number }[] {
+  if (!levels) {
+    throw new Error(`Charge "${chargeId}" is missing levels for PER_LEVEL scaling.`)
+  }
+
+  return levels
+}
 
 export function mapChargeBonusToRow(
   json_data: ChargeBonusAuthored,
   charge_id: string
-): Omit<
-  SupabaseDatabase['public']['Tables']['charge_bonuses']['Row'],
-  'created_at' | 'updated_at'
-> {
+): ChargeBonusRow {
   switch (json_data.bonusKind) {
     case 'ABILITY_MODIFIER': {
       return {
+        id: json_data.id,
         charge_id: charge_id,
         bonus_kind: json_data.bonusKind,
-        ability_code: json_data.ability,
+        ability_code: requireAbilityCode(json_data.id, json_data.ability),
         multiplier: json_data.multiplier ?? null,
         max: json_data.max ?? null,
         min: json_data.min ?? null,
@@ -29,6 +153,7 @@ export function mapChargeBonusToRow(
 
     case 'SKILL_BONUS': {
       return {
+        id: json_data.id,
         charge_id: charge_id,
         bonus_kind: json_data.bonusKind,
         ability_code: null,
@@ -42,6 +167,7 @@ export function mapChargeBonusToRow(
 
     case 'PROFICIENCY_BONUS': {
       return {
+        id: json_data.id,
         charge_id: charge_id,
         bonus_kind: json_data.bonusKind,
         ability_code: null,
@@ -60,53 +186,57 @@ export function mapChargeBonusToRow(
 }
 
 export function mapChargeLimitToRow(
-  json_data: ChargeAuthored,
+  json_data: ChargeAuthoredWrite,
   charge_id: string
-): Omit<
-  SupabaseDatabase['public']['Tables']['charge_limits']['Row'],
-  'created_at' | 'updated_at'
-> | null {
+): ChargeLimitRow | null {
   if (json_data.scalingKind !== 'NONE') return null
+
+  requireChargeLimitKind(charge_id, json_data.limitKind)
 
   switch (json_data.limitKind) {
     case 'CHARACTER_LEVEL':
       return {
         charge_id,
-        limit_kind: 'CHARACTER_LEVEL',
+        limit_kind: json_data.limitKind,
+        class_id: null,
         multiplier: json_data.multiplier ?? null,
         amount: null,
-        class_id: null,
-        spell_id: null
+        min: json_data.min ?? null,
+        max: json_data.max ?? null
       }
 
     case 'CLASS_LEVEL':
       return {
         charge_id,
-        limit_kind: 'CLASS_LEVEL',
-        class_id: json_data.classId,
+        limit_kind: json_data.limitKind,
+        class_id: requireClassId(charge_id, json_data.classId),
         multiplier: json_data.multiplier ?? null,
         amount: null,
-        spell_id: null
+        min: json_data.min ?? null,
+        max: json_data.max ?? null
+      }
+
+    case 'PARENT_CLASS_LEVEL':
+    case 'SPELL_CAST_LEVEL':
+      return {
+        charge_id,
+        limit_kind: json_data.limitKind,
+        class_id: null,
+        multiplier: json_data.multiplier ?? null,
+        amount: null,
+        min: json_data.min ?? null,
+        max: json_data.max ?? null
       }
 
     case 'FIXED_AMOUNT':
       return {
         charge_id,
-        limit_kind: 'FIXED_AMOUNT',
-        amount: json_data.amount,
-        multiplier: null,
+        limit_kind: json_data.limitKind,
         class_id: null,
-        spell_id: null
-      }
-
-    case 'SPELL_LEVEL':
-      return {
-        charge_id,
-        limit_kind: 'SPELL_LEVEL',
-        spell_id: json_data.spellId,
-        multiplier: json_data.multiplier ?? null,
-        amount: null,
-        class_id: null
+        amount: requireFixedAmount(charge_id, json_data.amount),
+        multiplier: null,
+        min: null,
+        max: null
       }
 
     default: {
@@ -116,146 +246,107 @@ export function mapChargeLimitToRow(
 }
 
 export function mapChargeScalingToRow(
-  json_data: ChargeAuthored,
+  json_data: ChargeAuthoredWrite,
   charge_id: string
-): Omit<
-  SupabaseDatabase['public']['Tables']['charge_scaling_levels']['Row'],
-  'created_at' | 'updated_at'
->[] {
+): ChargeScalingLevelRow[] {
   if (json_data.scalingKind !== 'PER_LEVEL') return []
 
-  return json_data.levels.map((entry) => ({
+  return requireScalingLevels(charge_id, json_data.levels).map((entry) => ({
+    id: entry.id,
     charge_id,
     level: entry.level,
-    sort_order: entry.order,
+    sort_order: entry.level,
     amount: entry.amount
   }))
 }
 
 export async function upsertCharge(db: DBLike, json_data: ChargeAuthored) {
+  const chargeData = json_data as ChargeAuthoredWrite
+  const scalingKind = requireChargeScalingKind(chargeData.id, chargeData.scalingKind)
+  const resetKind = requireChargeResetKind(chargeData.id, chargeData.resetKind)
+  const limit = mapChargeLimitToRow(chargeData, chargeData.id)
+  const levels = mapChargeScalingToRow(chargeData, chargeData.id)
+  const bonuses = chargeData.bonuses?.map((bonus) => mapChargeBonusToRow(bonus, chargeData.id)) ?? []
   const trx = await db.startTransaction().execute()
   try {
-    const charge = await trx
+    await trx
       .insertInto('charges')
       .values({
-        id: json_data.id,
-        scaling_kind: json_data.scalingKind,
-        reset_kind: json_data.resetKind
+        id: chargeData.id,
+        scaling_kind: scalingKind,
+        reset_kind: resetKind
       })
-      .onConflict((oc) => oc.column('id').doUpdateSet({
-        scaling_kind: (eb) => eb.ref('excluded.scaling_kind'),
-        reset_kind: (eb) => eb.ref('excluded.reset_kind')
-      }))
-      .returning('id')
-      .executeTakeFirstOrThrow()
+      .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
+        scaling_kind: ref('excluded.scaling_kind'),
+        reset_kind: ref('excluded.reset_kind')
+      })))
+      .execute()
 
-    const trxAfterCharge = await trx.savepoint('after_charge').execute()
-
-    switch (json_data.scalingKind) {
+    switch (scalingKind) {
       case 'NONE': {
-        try {
+        await trx
+          .deleteFrom('charge_scaling_levels')
+          .where('charge_id', '=', chargeData.id)
+          .execute()
+
+        if (limit) {
           await trx
-            .deleteFrom('charge_scaling_levels')
-            .where('charge_id', '=', charge.id)
+            .insertInto('charge_limits')
+            .values(limit)
+            .onConflict((oc) => oc.column('charge_id').doUpdateSet(({ ref }) => ({
+              limit_kind: ref('excluded.limit_kind'),
+              class_id: ref('excluded.class_id'),
+              amount: ref('excluded.amount'),
+              multiplier: ref('excluded.multiplier'),
+              min: ref('excluded.min'),
+              max: ref('excluded.max')
+            })))
             .execute()
-
-          const limit = mapChargeLimitToRow(json_data, charge.id)
-
-          if (limit) {
-            await trx
-              .insertInto('charge_limits')
-              .values(limit)
-              .onConflict((oc) => oc.column('charge_id').doUpdateSet({
-                limit_kind: (eb) => eb.ref('excluded.limit_kind'),
-                class_id: (eb) => eb.ref('excluded.class_id'),
-                spell_id: (eb) => eb.ref('excluded.spell_id'),
-                amount: (eb) => eb.ref('excluded.amount'),
-                multiplier: (eb) => eb.ref('excluded.multiplier')
-              }))
-              .executeTakeFirstOrThrow()
-          }
-        } catch (error) {
-          await trxAfterCharge.rollbackToSavepoint('after_charge').execute()
-          throw error
         }
         break
       }
 
       case 'PER_LEVEL': {
-        try {
-          await trx
-            .deleteFrom('charge_limits')
-            .where('charge_id', '=', charge.id)
-            .execute()
+        await trx
+          .deleteFrom('charge_limits')
+          .where('charge_id', '=', chargeData.id)
+          .execute()
 
-          const levels = mapChargeScalingToRow(json_data, charge.id)
-          const levelNumbers = levels.map((level) => level.level)
+        await trx
+          .deleteFrom('charge_scaling_levels')
+          .where('charge_id', '=', chargeData.id)
+          .execute()
 
-          await trx
-            .deleteFrom('charge_scaling_levels')
-            .where((eb) => eb.and([
-              eb('charge_id', '=', charge.id),
-              eb('level', 'not in', levelNumbers)
-            ]))
-            .execute()
-
+        if (levels.length > 0) {
           await trx
             .insertInto('charge_scaling_levels')
             .values(levels)
-            .onConflict((oc) => oc.columns(['charge_id', 'level']).doUpdateSet({
-              sort_order: (eb) => eb.ref('excluded.sort_order'),
-              amount: (eb) => eb.ref('excluded.amount')
-            }))
-            .executeTakeFirstOrThrow()
-        } catch (error) {
-          await trxAfterCharge.rollbackToSavepoint('after_charge').execute()
-          throw error
+            .execute()
         }
-
         break
       }
 
       default: {
-        assertNever(json_data)
+        assertNever(chargeData as never)
       }
     }
 
-    if (json_data.bonuses && json_data.bonuses.length) {
-      const bonuses = json_data.bonuses.map((bonus) => mapChargeBonusToRow(bonus, charge.id))
+    if (bonuses.length) {
+      await trx
+        .deleteFrom('charge_bonuses')
+        .where('charge_id', '=', chargeData.id)
+        .execute()
 
-      const bonusKinds = bonuses.map((bonus) => bonus.bonus_kind)
-      try {
-        await trx
-          .deleteFrom('charge_bonuses')
-          .where((eb) => eb.and([
-            eb('charge_id', '=', charge.id),
-            eb('bonus_kind', 'not in', bonusKinds)
-          ]))
-          .execute()
-        await trx
-          .insertInto('charge_bonuses')
-          .values(bonuses)
-          .onConflict((oc) => oc.columns(['charge_id', 'bonus_kind']).doUpdateSet({
-            ability_code: (eb) => eb.ref('excluded.ability_code'),
-            skill_id: (eb) => eb.ref('excluded.skill_id'),
-            multiplier: (eb) => eb.ref('excluded.multiplier'),
-            min: (eb) => eb.ref('excluded.min'),
-            max: (eb) => eb.ref('excluded.max'),
-            sort_order: (eb) => eb.ref('excluded.sort_order')
-          }))
-          .executeTakeFirstOrThrow()
-      } catch (error) {
-        await trxAfterCharge.rollbackToSavepoint('after_charge').execute()
-        throw error
-      }
+      await trx
+        .insertInto('charge_bonuses')
+        .values(bonuses)
+        .execute()
     } else {
       await trx
         .deleteFrom('charge_bonuses')
-        .where('charge_id', '=', charge.id)
+        .where('charge_id', '=', chargeData.id)
         .execute()
     }
-
-    await trxAfterCharge.releaseSavepoint('after_charge').execute()
 
     await trx.commit().execute()
   } catch (error) {

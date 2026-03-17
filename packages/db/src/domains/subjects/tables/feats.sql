@@ -10,7 +10,6 @@
 *
 * Ownership:
 *   feats → charges (owned)
-*   feats → restrictions (owned)
 *   feats → effects (owned)
 *   feats → modifier_grants (owned)
 *   feats → proficiency_grants (owned)
@@ -26,7 +25,6 @@ CREATE TABLE IF NOT EXISTS public.feats (
   description text NOT NULL,
   detail text,
   charge_id uuid REFERENCES public.charges (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
-  restriction_id uuid REFERENCES public.facets (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   is_master boolean,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
@@ -51,8 +49,7 @@ BEGIN
     AFTER DELETE ON public.feats
     FOR EACH ROW
     EXECUTE FUNCTION public.cleanup_owned_rows('[
-      { "table": "public.charges", "columns": ["charge_id"] },
-      { "table": "public.facets", "columns": ["restriction_id"] }
+      { "table": "public.charges", "columns": ["charge_id"] }
     ]');
   END IF;
 END;
@@ -68,39 +65,18 @@ BEGIN
     AFTER UPDATE ON public.feats
     FOR EACH ROW
     EXECUTE FUNCTION public.cleanup_owned_rows_on_update('[
-      { "table": "public.charges", "columns": ["charge_id"] },
-      { "table": "public.facets", "columns": ["restriction_id"] }
+      { "table": "public.charges", "columns": ["charge_id"] }
     ]');
   END IF;
 END;
 $$;
 
 /* ──────────────────────────────────────────────
-* FEAT — TRAITS
-*
-* Intent:
-*   Engine-core TraitCode[] applied to the feat.
-*
-* Ownership:
-*   Fully owned by feats (authoritative array).
-* ────────────────────────────────────────────── */
-CREATE TABLE IF NOT EXISTS public.feat_traits (
-  feat_id uuid NOT NULL REFERENCES public.feats (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  trait_code text NOT NULL,
-  sort_order integer NOT NULL,
-  PRIMARY KEY (feat_id, trait_code)
-);
-
-ALTER TABLE feat_traits ENABLE ROW LEVEL SECURITY;
-
-CREATE INDEX IF NOT EXISTS idx_feat_traits_feat ON public.feat_traits (feat_id);
-
-/* ──────────────────────────────────────────────
 * FEAT — EFFECTS (OWNED)
 * ────────────────────────────────────────────── */
 CREATE TABLE IF NOT EXISTS public.feat_effects (
   feat_id uuid NOT NULL REFERENCES public.feats (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  effect_id uuid NOT NULL REFERENCES public.effects (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  effect_id uuid NOT NULL,
   sort_order integer NOT NULL,
   PRIMARY KEY (feat_id, effect_id)
 );
@@ -130,7 +106,7 @@ $$;
 * ────────────────────────────────────────────── */
 CREATE TABLE IF NOT EXISTS public.feat_modifier_grants (
   feat_id uuid NOT NULL REFERENCES public.feats (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  modifier_grant_id uuid NOT NULL REFERENCES public.modifier_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  modifier_grant_id uuid NOT NULL,
   sort_order integer NOT NULL,
   PRIMARY KEY (feat_id, modifier_grant_id)
 );
@@ -160,7 +136,7 @@ $$;
 * ────────────────────────────────────────────── */
 CREATE TABLE IF NOT EXISTS public.feat_spell_grants (
   feat_id uuid NOT NULL REFERENCES public.feats (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  spell_grant_id uuid NOT NULL REFERENCES public.spell_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  spell_grant_id uuid NOT NULL,
   sort_order integer NOT NULL,
   PRIMARY KEY (feat_id, spell_grant_id)
 );
@@ -190,7 +166,7 @@ $$;
 * ────────────────────────────────────────────── */
 CREATE TABLE IF NOT EXISTS public.feat_sense_grants (
   feat_id uuid NOT NULL REFERENCES public.feats (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  sense_grant_id uuid NOT NULL REFERENCES public.sense_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  sense_grant_id uuid NOT NULL,
   sort_order integer NOT NULL,
   PRIMARY KEY (feat_id, sense_grant_id)
 );
@@ -220,7 +196,7 @@ $$;
 * ────────────────────────────────────────────── */
 CREATE TABLE IF NOT EXISTS public.feat_proficiency_grants (
   feat_id uuid NOT NULL REFERENCES public.feats (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  proficiency_grant_id uuid NOT NULL REFERENCES public.proficiency_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  proficiency_grant_id uuid NOT NULL,
   sort_order integer NOT NULL,
   PRIMARY KEY (feat_id, proficiency_grant_id)
 );
@@ -250,7 +226,7 @@ $$;
 * ────────────────────────────────────────────── */
 CREATE TABLE IF NOT EXISTS public.feat_features (
   feat_id uuid NOT NULL REFERENCES public.feats (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  feature_id uuid NOT NULL REFERENCES public.features (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  feature_id uuid NOT NULL,
   sort_order integer NOT NULL,
   PRIMARY KEY (feat_id, feature_id)
 );

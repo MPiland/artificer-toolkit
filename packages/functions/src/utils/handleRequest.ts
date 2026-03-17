@@ -1,14 +1,16 @@
-import type { DB } from '@artificer-toolkit/functions/types'
+import type { DBLike } from '@artificer-toolkit/db'
 import { createDb, withUserContext } from '@artificer-toolkit/db'
 import { createSupabaseClient } from '../clients/supabaseClient.js'
 
 /**
  * Generic wrapper for authenticated RLS-safe requests.
+ *
+ * `getArgs` receives both the Request and the authenticated userId,
+ * so routes can use either URL params or the current user's ID as query arguments.
  */
-// packages/functions/src/utils/handleRequest.ts
 export function handleRequest<TArgs extends unknown[], TResult>(
-  queryFn: (db: DB, ...args: TArgs) => Promise<TResult>,
-  getArgs: (req: Request) => TArgs
+  queryFn: (db: DBLike, ...args: TArgs) => Promise<TResult>,
+  getArgs: (req: Request, userId: string) => TArgs
 ) {
   return async (req: Request): Promise<Response> => {
     try {
@@ -23,7 +25,7 @@ export function handleRequest<TArgs extends unknown[], TResult>(
       const userId = data.user.id
 
       // 2. Extract typed args for this route
-      const args = getArgs(req)
+      const args = getArgs(req, userId)
 
       // 3. Create DB + run inside RLS-impersonated session
       const db = createDb()
@@ -33,7 +35,7 @@ export function handleRequest<TArgs extends unknown[], TResult>(
 
         return new Response(JSON.stringify(result), {
           status: 200,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json' },
         })
       } finally {
         await db.destroy()

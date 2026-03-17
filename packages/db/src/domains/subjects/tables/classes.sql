@@ -11,7 +11,6 @@
  *
  * Cardinality:
  *   systems 1 ──▶ N classes
- *   classes 1 ──▶ N class_traits (codes)
  *   classes 1 ──▶ N class_details (owned)
  *   classes 1 ──▶ N class_proficiency_grants (owned)
  *   classes 1 ──▶ N class_features (owned)
@@ -60,7 +59,15 @@ CREATE TABLE IF NOT EXISTS public.classes (
   is_master boolean,
 
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+
+  CONSTRAINT classes_category_chk CHECK (
+    category IN ('BASE', 'SUBCLASS')
+  ),
+  CONSTRAINT classes_category_parent_chk CHECK (
+    (category = 'BASE' AND parent_class_id IS NULL AND starting_equipment_id IS NOT NULL)
+    OR (category = 'SUBCLASS' AND parent_class_id IS NOT NULL AND starting_equipment_id IS NULL)
+  )
 );
 
 ALTER TABLE public.classes ENABLE ROW LEVEL SECURITY;
@@ -73,26 +80,26 @@ CREATE INDEX IF NOT EXISTS idx_classes_system
 CREATE INDEX IF NOT EXISTS idx_classes_parent
   ON public.classes(parent_class_id);
 
-/* ──────────────────────────────────────────────
- * CLASS — TRAITS (CODES)
- * ────────────────────────────────────────────── */
-
-CREATE TABLE IF NOT EXISTS public.class_traits (
+CREATE TABLE IF NOT EXISTS public.class_attributes (
   class_id uuid NOT NULL
     REFERENCES public.classes(id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  trait_code text NOT NULL,
+  attribute_code text NOT NULL,
   sort_order integer NOT NULL,
 
-  PRIMARY KEY (class_id, trait_code)
+  PRIMARY KEY (class_id, attribute_code)
 );
 
-CREATE INDEX IF NOT EXISTS idx_class_traits_class
-  ON public.class_traits(class_id);
+CREATE INDEX IF NOT EXISTS idx_class_attributes_class
+  ON public.class_attributes(class_id);
 
-ALTER TABLE public.class_traits ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.class_attributes ENABLE ROW LEVEL SECURITY;
+
+/* ──────────────────────────────────────────────
+ * CLASS — TRAITS (CODES)
+ * ────────────────────────────────────────────── */
 
 /* ──────────────────────────────────────────────
  * CLASS — DETAILS (OWNED)
@@ -148,10 +155,7 @@ CREATE TABLE IF NOT EXISTS public.class_proficiency_grants (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  proficiency_grant_id uuid NOT NULL
-    REFERENCES public.proficiency_grants(id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
+  proficiency_grant_id uuid NOT NULL,
 
   sort_order integer NOT NULL,
 
@@ -191,10 +195,7 @@ CREATE TABLE IF NOT EXISTS public.class_features (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  feature_id uuid NOT NULL
-    REFERENCES public.features(id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
+  feature_id uuid NOT NULL,
 
   sort_order integer NOT NULL,
 
@@ -321,7 +322,7 @@ CREATE TABLE IF NOT EXISTS public.class_resources (
 
   label text NOT NULL,
   description text,
-  level_available integer NOT NULL,
+  available_at_level integer NOT NULL,
 
   charge_id uuid NOT NULL
     REFERENCES public.charges(id)
@@ -390,9 +391,9 @@ CREATE TABLE IF NOT EXISTS public.class_spellcasting (
   ability_code text,         -- AbilityCode
   max_spell_level integer NOT NULL,
 
-  charge_id uuid
+  charge_id uuid NOT NULL
     REFERENCES public.charges(id)
-    ON DELETE SET NULL
+    ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED
 );
 
@@ -444,27 +445,26 @@ $$;
  * SPELLCASTING — TRAITS (CODES)
  * ────────────────────────────────────────────── */
 
-CREATE TABLE IF NOT EXISTS public.class_spellcasting_traits (
+/* ──────────────────────────────────────────────
+ * SPELLCASTING — PREPARE LIMIT
+ * ────────────────────────────────────────────── */
+
+CREATE TABLE IF NOT EXISTS public.class_spellcasting_attributes (
   spellcasting_id uuid NOT NULL
     REFERENCES public.class_spellcasting(id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  trait_code text NOT NULL, -- SpellcastingTraitCode
+  attribute_code text NOT NULL,
   sort_order integer NOT NULL,
 
-  PRIMARY KEY (spellcasting_id, trait_code)
+  PRIMARY KEY (spellcasting_id, attribute_code)
 );
 
-ALTER TABLE public.class_spellcasting_traits ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.class_spellcasting_attributes ENABLE ROW LEVEL SECURITY;
 
-CREATE INDEX IF NOT EXISTS idx_class_spellcasting_traits_sc
-  ON public.class_spellcasting_traits(spellcasting_id);
-
-
-/* ──────────────────────────────────────────────
- * SPELLCASTING — PREPARE LIMIT
- * ────────────────────────────────────────────── */
+CREATE INDEX IF NOT EXISTS idx_class_spellcasting_attributes_sc
+  ON public.class_spellcasting_attributes(spellcasting_id);
 
 CREATE TABLE IF NOT EXISTS public.class_spellcasting_prepare_limit (
   spellcasting_id uuid PRIMARY KEY
@@ -494,6 +494,23 @@ ALTER TABLE public.class_spellcasting_prepare_limit_methods ENABLE ROW LEVEL SEC
 
 CREATE INDEX IF NOT EXISTS idx_class_spellcasting_prepare_methods_sc
   ON public.class_spellcasting_prepare_limit_methods(spellcasting_id);
+
+CREATE TABLE IF NOT EXISTS public.class_spellcasting_prepare_limit_levels (
+  spellcasting_id uuid NOT NULL
+    REFERENCES public.class_spellcasting(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  class_level integer NOT NULL,
+  amount integer NOT NULL,
+
+  PRIMARY KEY (spellcasting_id, class_level)
+);
+
+ALTER TABLE public.class_spellcasting_prepare_limit_levels ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_class_spellcasting_prepare_levels_sc
+  ON public.class_spellcasting_prepare_limit_levels(spellcasting_id);
 
 
 /* ──────────────────────────────────────────────
@@ -559,7 +576,7 @@ ALTER TABLE public.class_multiclass ENABLE ROW LEVEL SECURITY;
 CREATE UNIQUE INDEX IF NOT EXISTS uq_class_multiclass_class
   ON public.class_multiclass(class_id);
 
-CREATE TABLE IF NOT EXISTS public.class_multiclass_requirements (
+CREATE TABLE IF NOT EXISTS public.class_multiclass_requirement_groups (
   id uuid PRIMARY KEY,
 
   multiclass_id uuid NOT NULL
@@ -567,24 +584,31 @@ CREATE TABLE IF NOT EXISTS public.class_multiclass_requirements (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  parent_id uuid
-    REFERENCES public.class_multiclass_requirements(id)
+  sort_order integer NOT NULL
+);
+
+ALTER TABLE public.class_multiclass_requirement_groups ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_class_multiclass_req_groups_mc
+  ON public.class_multiclass_requirement_groups(multiclass_id);
+
+CREATE TABLE IF NOT EXISTS public.class_multiclass_requirements (
+  id uuid PRIMARY KEY,
+
+  requirement_group_id uuid NOT NULL
+    REFERENCES public.class_multiclass_requirement_groups(id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  requirement_type text NOT NULL, -- MulticlassTypeCode (ABILITY|GROUP)
-  ability_code text,              -- AbilityCode (ABILITY)
-  min integer,             -- (ABILITY)
-  logic text                      -- OptionalLogicCode (GROUP)
+  ability_code text NOT NULL,
+  min integer NOT NULL,
+  sort_order integer NOT NULL
 );
 
 ALTER TABLE public.class_multiclass_requirements ENABLE ROW LEVEL SECURITY;
 
-CREATE INDEX IF NOT EXISTS idx_class_multiclass_reqs_mc
-  ON public.class_multiclass_requirements(multiclass_id);
-
-CREATE INDEX IF NOT EXISTS idx_class_multiclass_reqs_parent
-  ON public.class_multiclass_requirements(parent_id);
+CREATE INDEX IF NOT EXISTS idx_class_multiclass_reqs_group
+  ON public.class_multiclass_requirements(requirement_group_id);
 
 
 /* ──────────────────────────────────────────────
@@ -597,10 +621,7 @@ CREATE TABLE IF NOT EXISTS public.class_multiclass_proficiency_grants (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  proficiency_grant_id uuid NOT NULL
-    REFERENCES public.proficiency_grants(id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
+  proficiency_grant_id uuid NOT NULL,
 
   sort_order integer NOT NULL,
 

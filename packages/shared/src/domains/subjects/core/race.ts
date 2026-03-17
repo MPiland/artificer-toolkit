@@ -1,4 +1,5 @@
 import { type CoreMeta } from '#core'
+import { valuesOf } from '#utils'
 
 export const RACE_CATEGORY_CODE = {
   BASE: 'BASE',
@@ -36,6 +37,6 @@ export const RACE_CATEGORY_REGISTRY: Record<
   }
 } as const
 
-export const RACE_CATEGORY_OPTIONS = Object.values(
+export const RACE_CATEGORY_OPTIONS = valuesOf(
   RACE_CATEGORY_REGISTRY
 ) as readonly RaceCategoryOption[]

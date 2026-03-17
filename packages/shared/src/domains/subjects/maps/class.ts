@@ -1,193 +1,294 @@
 import {
-  CLASS_CATEGORY_REGISTRY,
-  CLASS_ATTRIBUTE_REGISTRY,
-  FEATURE_CATEGORY_REGISTRY,
-  PREPARE_LIMIT_METHOD_REGISTRY,
-  SUBCLASS_ATTRIBUTE_REGISTRY,
-  type AbilityCode
+  ABILITY_OPTIONS,
+  CLASS_ATTRIBUTE_OPTIONS,
+  CLASS_CATEGORY,
+  CLASS_CATEGORY_OPTIONS,
+  PREPARE_LIMIT_METHOD_OPTIONS,
+  ROUNDING_OPTIONS,
+  SCALING_AMOUNT_OPTIONS,
+  SPELLCASTING_ATTRIBUTE_OPTIONS,
+  SUBCLASS_ATTRIBUTE_OPTIONS
 } from '#core'
-import { CHARGE_NODE_MAP, FEATURE_NODE_MAP, PROFICIENCY_NODE_MAP } from '#maps'
-import type { NodeMap, EmptyObject } from '#utils'
+import {
+  CHARGE_NODE_MAP,
+  FEATURE_NODE_MAP,
+  PROFICIENCY_NODE_MAP,
+  STARTING_EQUIPMENT_NODE_MAP
+} from '#maps'
+import { buildNodeMap } from '#utils'
+import type {
+  ClassAuthored,
+  ClassHitpointAuthored,
+  ClassMulticlassAuthored,
+  ClassMulticlassRequirementAuthored,
+  ClassMulticlassRequirementGroup,
+  ClassPrepareLimitAuthored,
+  ClassResourceAuthored,
+  ClassSpellcastingAuthored,
+  ClassSpellLimitsAuthored,
+  ClassSpellSlotAuthored,
+  ClassStartingGoldAuthored,
+  ClassSubtypeAuthored,
+  DetailAuthored
+} from '#authored'
 
-export type ClassSpellcastingNodePayloads = {
-  ability: { ability: AbilityCode }
-  maxSpellLevel: { spellLevel: number }
-}
+const detailNode = buildNodeMap<DetailAuthored>()
 
-export const CLASS_SPELLCASTING_NODE_MAP: NodeMap<ClassSpellcastingNodePayloads> = {
-  ability: {
-    kind: 'LEAF',
-    meta: {
-      label: 'Spellcasting Ability',
-      code: 'SPELLCASTING_ABILITY',
-      tooltip: 'Spellcasting ability of the class.'
-    },
-    payload: 'ability'
-  },
-  maxSpellLevel: {
-    kind: 'LEAF',
-    meta: {
-      label: 'Max Spell Level',
-      code: 'MAX_SPELL_LEVEL',
-      tooltip: 'Max spell level of the class.'
-    },
-    payload: 'maxSpellLeve'
-  }
-}
+const DETAIL_NODE_MAP = detailNode.define('classDetail', ({ map, nodes }) => {
+  const { text, number } = nodes
 
-export type ClassPrepareLimitNodePayloads = {
-  spellCastingAbility: { ability: AbilityCode }
-  classLevel: { multiplier?: number }
-  perLevelTable: { perLevel: { classLevel: number, amount: number }[] }
-}
+  map
+    .set('id', text(['id'], 'ID'))
+    .set('label', text(['label'], 'Label'))
+    .set('description', text(['description'], 'Description'))
+    .set('order', number(['order'], 'Order'))
+})
 
-export const CLASS_PREPARE_LIMIT_NODE_PATH: NodeMap<ClassPrepareLimitNodePayloads>
-  = {
-    spellCastingAbility: {
-      kind: 'LEAF',
-      meta: PREPARE_LIMIT_METHOD_REGISTRY.SPELLCASTING_ABILITY,
-      payload: 'spellCastingAbility'
-    },
-    classLevel: {
-      kind: 'LEAF',
-      meta: PREPARE_LIMIT_METHOD_REGISTRY.CLASS_LEVEL,
-      payload: 'classLevel'
-    },
-    perLevelTable: {
-      kind: 'LEAF',
-      meta: PREPARE_LIMIT_METHOD_REGISTRY.PER_LEVEL,
-      payload: 'perLevelTable'
-    }
-  }
+const classSpellSlot = buildNodeMap<ClassSpellSlotAuthored>()
 
-export type ClassResourceNodePayload = {
-  charges: EmptyObject
-}
+const CLASS_SPELL_SLOT_NODE_MAP = classSpellSlot.define('classSpellSlot', ({ map, nodes }) => {
+  const { number } = nodes
 
-export const CLASS_RESOURCE_NODE_MAP: NodeMap<ClassResourceNodePayload> = {
-  charges: {
-    kind: 'BRANCH',
-    enables: {
-      kind: 'PATH',
-      map: CHARGE_NODE_MAP
-    }
-  }
-}
+  map
+    .set('spellLevel', number(['spellLevel'], 'Spell Level'))
+    .set('slotCount', number(['slotCount'], 'Slot Count'))
+})
 
-export type BaseClassNodePayloads = {
-  features: { featureIds?: string[] }
-  resources: { resourceIds?: string[] }
-}
+const classSpellLimits = buildNodeMap<ClassSpellLimitsAuthored>()
 
-export const BASE_CLASS_NODE_MAP: NodeMap<BaseClassNodePayloads> = {
-  features: {
-    kind: 'BRANCH',
-    meta: {
-      ...FEATURE_CATEGORY_REGISTRY.FEATURE,
-      label: 'Features'
-    },
-    payload: 'features',
-    enables: {
-      kind: 'PATH',
-      map: FEATURE_NODE_MAP
-    },
-    options: [
-      {
-        kind: 'DATA',
-        relationship: {
-          kind: 'BRIDGE',
-          table: 'class_features',
-          parentColumn: 'class_id',
-          childColumn: 'feature_id'
-        },
-        selection: 'MULTI_OPTIONAL',
-        order: 0
-      }
-    ]
-  },
-  resources: {
-    kind: 'BRANCH',
-    meta: {
-      ...CLASS_ATTRIBUTE_REGISTRY.RESOURCE,
-      label: 'Resources'
-    },
-    payload: 'resources',
-    enables: {
-      kind: 'PATH',
-      map: CLASS_RESOURCE_NODE_MAP
-    },
-    options: [
-      {
-        kind: 'DATA',
-        relationship: {
-          kind: 'FOREIGN_KEY',
-          parent: {
-            table: 'classes',
-            column: 'id'
-          },
-          child: {
-            table: 'class_resources',
-            column: 'class_id'
-          }
-        },
-        selection: 'MULTI_OPTIONAL',
-        order: 0
-      }
-    ]
-  }
-}
+const CLASS_SPELL_LIMITS_NODE_MAP = classSpellLimits.define('classSpellLimits', ({ map, nodes }) => {
+  const { number, groupArray } = nodes
 
-export type SubclassNodePayload = BaseClassNodePayloads & {
-  subtypes: { subtypes: string[] }
-}
+  map
+    .set('classLevel', number(['classLevel'], 'Class Level'))
+    .set('slots', groupArray(['slots'], 'Slots', () => CLASS_SPELL_SLOT_NODE_MAP))
+    .set('learnedSpellsLimit', number(['learnedSpellsLimit'], 'Known Spells Limit'))
+    .set('preparedSpellsLimit', number(['preparedSpellsLimit'], 'Prepared Spells Limit'))
+    .set('cantripsLimit', number(['cantripsLimit'], 'Cantrips Limit'))
+})
 
-export const SUBCLASS_NODE_MAP: NodeMap<SubclassNodePayload> = {
-  ...BASE_CLASS_NODE_MAP,
-  subtypes: {
-    kind: 'LEAF',
-    meta: {
-      ...SUBCLASS_ATTRIBUTE_REGISTRY.SUBTYPE,
-      label: 'Subtypes'
-    },
-    payload: 'subtypes'
-  }
-}
+const classPrepareLimitPerLevel = buildNodeMap<NonNullable<ClassPrepareLimitAuthored['perLevel']>[number]>()
 
-export type ClassNodePayloads = BaseClassNodePayloads & {
-  subclasses: { subclassIds: string[] }
-}
+const CLASS_PREPARE_LIMIT_PER_LEVEL_NODE_MAP = classPrepareLimitPerLevel.define('classPrepareLimitPerLevel', ({ map, nodes }) => {
+  const { number } = nodes
 
-export const CLASS_NODE_MAP: NodeMap<ClassNodePayloads> = {
-  subclasses: {
-    kind: 'BRANCH',
-    meta: {
-      ...CLASS_CATEGORY_REGISTRY.SUBCLASS,
-      label: 'Subclasses'
-    },
-    enables: {
-      kind: 'PATH',
-      map: SUBCLASS_NODE_MAP
-    },
-    payload: 'subclasses',
-    options: [
-      {
-        kind: 'DATA',
-        relationship: {
-          kind: 'CONDITION',
-          table: 'classes',
-          column: 'category',
-          condition: 'SUBCLASS'
-        },
-        selection: 'MULTI_REQUIRED',
-        order: 0
-      }
-    ]
-  },
-  proficiencies: {
-    kind: 'BRANCH',
-    enables: {
-      kind: 'PATH',
-      map: PROFICIENCY_NODE_MAP
-    }
-  }
-}
+  map
+    .set('classLevel', number(['classLevel'], 'Class Level'))
+    .set('amount', number(['amount'], 'Amount'))
+})
+
+const classPrepareLimitNode = buildNodeMap<ClassPrepareLimitAuthored>()
+
+export const CLASS_PREPARE_LIMIT_NODE_MAP = classPrepareLimitNode.define('classPrepareLimit', ({ map, nodes, cond, logic }) => {
+  const { selectMulti, selectSingle, groupArray } = nodes
+  const local = cond.local()
+  const { or } = logic
+
+  map
+    .set('methodKinds', selectMulti(['methodKinds'], 'Method Kinds', {
+      kind: 'INLINE',
+      options: PREPARE_LIMIT_METHOD_OPTIONS
+    }))
+    .set('scaling', selectSingle(['scaling'], 'Scaling Amount', {
+      kind: 'INLINE',
+      options: SCALING_AMOUNT_OPTIONS
+    }))
+    .set('rounding', selectSingle(['rounding'], 'Rounding', {
+      kind: 'INLINE',
+      options: ROUNDING_OPTIONS
+    }, {
+      showIf: local.field(['scaling']).eq('HALF')
+    }))
+    .set('perLevel', groupArray(['perLevel'], 'Per-Level Limits', () => CLASS_PREPARE_LIMIT_PER_LEVEL_NODE_MAP, {
+      showIf: or([
+        local.field(['methodKinds']).contains(['PER_LEVEL']),
+        local.field(['scaling']).eq('FULL'),
+        local.field(['scaling']).eq('HALF'),
+        local.field(['scaling']).eq('DOUBLE')
+      ])
+    }))
+})
+
+const classSpellcastingNode = buildNodeMap<ClassSpellcastingAuthored>()
+
+export const CLASS_SPELLCASTING_NODE_MAP = classSpellcastingNode.define('classSpellcasting', ({ map, nodes, cond }) => {
+  const { selectSingle, selectMulti, number, text, groupArray, groupObject } = nodes
+  const local = cond.local()
+
+  map
+    .set('spellLimits', groupArray(['spellLimits'], 'Spell Limits', () => CLASS_SPELL_LIMITS_NODE_MAP))
+    .set('magicName', text(['magicName'], 'Magic Name'))
+    .set('ability', selectSingle(['ability'], 'Spellcasting Ability', {
+      kind: 'INLINE',
+      options: ABILITY_OPTIONS
+    }))
+    .set('maxSpellLevel', number(['maxSpellLevel'], 'Max Spell Level'))
+    .set('attributes', selectMulti(['attributes'], 'Attributes', {
+      kind: 'INLINE',
+      options: SPELLCASTING_ATTRIBUTE_OPTIONS
+    }))
+    .set('charges', groupObject(['charges'], 'Charges', () => CHARGE_NODE_MAP))
+    .set('prepareLimit', groupObject(['prepareLimit'], 'Prepare Limit', () => CLASS_PREPARE_LIMIT_NODE_MAP, {
+      showIf: local.field(['attributes']).contains(['PREPARES_SPELLS'])
+    }))
+})
+
+const classResourceNode = buildNodeMap<ClassResourceAuthored>()
+
+export const CLASS_RESOURCE_NODE_MAP = classResourceNode.define('classResource', ({ map, nodes }) => {
+  const { text, number, groupObject } = nodes
+
+  map
+    .set('id', text(['id'], 'ID'))
+    .set('label', text(['label'], 'Label'))
+    .set('description', text(['description'], 'Description'))
+    .set('availableAtLevel', number(['availableAtLevel'], 'Available At Level'))
+    .set('charges', groupObject(['charges'], 'Charges', () => CHARGE_NODE_MAP))
+})
+
+const classHitpointNode = buildNodeMap<ClassHitpointAuthored>()
+
+const CLASS_HITPOINT_NODE_MAP = classHitpointNode.define('classHitpoint', ({ map, nodes }) => {
+  const { selectSingle, text } = nodes
+
+  map
+    .set('ability', selectSingle(['ability'], 'Ability', {
+      kind: 'INLINE',
+      options: ABILITY_OPTIONS
+    }))
+    .set('dieConfig', text(['dieConfig'], 'Die Config'))
+})
+
+const classStartingGoldNode = buildNodeMap<ClassStartingGoldAuthored>()
+
+const CLASS_STARTING_GOLD_NODE_MAP = classStartingGoldNode.define('classStartingGold', ({ map, nodes, data }) => {
+  const { number, selectSingle, text } = nodes
+  const { table } = data
+
+  map
+    .set('multiplier', number(['multiplier'], 'Multiplier'))
+    .set('currencyId', selectSingle(['currencyId'], 'Currency', {
+      kind: 'DATA',
+      relationship: table('currencies', {
+        selectColumns: ['id', 'label']
+      })
+    }))
+    .set('dieConfig', text(['dieConfig'], 'Die Config'))
+})
+
+const classRequirementNode = buildNodeMap<ClassMulticlassRequirementAuthored>()
+
+const CLASS_MULTICLASS_REQUIREMENT_NODE_MAP = classRequirementNode.define('classMulticlassRequirement', ({ map, nodes }) => {
+  const { text, selectSingle, number } = nodes
+
+  map
+    .set('id', text(['id'], 'ID'))
+    .set('ability', selectSingle(['ability'], 'Ability', {
+      kind: 'INLINE',
+      options: ABILITY_OPTIONS
+    }))
+    .set('min', number(['min'], 'Minimum'))
+})
+
+const classRequirementGroupNode = buildNodeMap<ClassMulticlassRequirementGroup>()
+
+const CLASS_MULTICLASS_REQUIREMENT_GROUP_NODE_MAP = classRequirementGroupNode.define('classMulticlassRequirementGroup', ({ map, nodes }) => {
+  const { text, groupArray } = nodes
+
+  map
+    .set('id', text(['id'], 'ID'))
+    .set('requirements', groupArray(['requirements'], 'Requirements', () => CLASS_MULTICLASS_REQUIREMENT_NODE_MAP))
+})
+
+const classMulticlassNode = buildNodeMap<ClassMulticlassAuthored>()
+
+const CLASS_MULTICLASS_NODE_MAP = classMulticlassNode.define('classMulticlass', ({ map, nodes }) => {
+  const { text, groupObject, groupArray } = nodes
+
+  map
+    .set('id', text(['id'], 'ID'))
+    .set('requirementGroups', groupObject(['requirementGroups'], 'Requirement Groups', () => CLASS_MULTICLASS_REQUIREMENT_GROUPS_NODE_MAP))
+    .set('proficiencies', groupArray(['proficiencies'], 'Proficiencies', () => PROFICIENCY_NODE_MAP))
+})
+
+const classRequirementGroupsNode = buildNodeMap<ClassMulticlassAuthored['requirementGroups']>()
+
+const CLASS_MULTICLASS_REQUIREMENT_GROUPS_NODE_MAP = classRequirementGroupsNode.define('classMulticlassRequirementGroups', ({ map, nodes }) => {
+  const { groupArray } = nodes
+
+  map.set('groups', groupArray(['groups'], 'Groups', () => CLASS_MULTICLASS_REQUIREMENT_GROUP_NODE_MAP))
+})
+
+const classSubtypeNode = buildNodeMap<ClassSubtypeAuthored>()
+
+const CLASS_SUBTYPE_NODE_MAP = classSubtypeNode.define('classSubtype', ({ map, nodes }) => {
+  const { text, number } = nodes
+
+  map
+    .set('id', text(['id'], 'ID'))
+    .set('label', text(['label'], 'Label'))
+    .set('order', number(['order'], 'Order'))
+})
+
+const classNode = buildNodeMap<ClassAuthored>()
+
+export const CLASS_NODE_MAP = classNode.define('class', ({ map, nodes, cond, data }) => {
+  const { text, selectMulti, selectSingle, groupArray, groupObject } = nodes
+  const local = cond.local()
+  const { table } = data
+
+  const isBaseClass = local.field(['category']).eq(CLASS_CATEGORY.BASE)
+  const isSubclass = local.field(['category']).eq(CLASS_CATEGORY.SUBCLASS)
+
+  map
+    .set('id', text(['id'], 'ID'))
+    .set('label', text(['label'], 'Label'))
+    .set('description', text(['description'], 'Description'))
+    .set('details', groupArray(['details'], 'Details', () => DETAIL_NODE_MAP))
+    .set('proficiencies', groupArray(['proficiencies'], 'Proficiencies', () => PROFICIENCY_NODE_MAP))
+    .set('spellcasting', groupObject(['spellcasting'], 'Spellcasting', () => CLASS_SPELLCASTING_NODE_MAP))
+    .set('resources', groupObject(['resources'], 'Resource', () => CLASS_RESOURCE_NODE_MAP))
+    .set('features', groupArray(['features'], 'Features', () => FEATURE_NODE_MAP))
+    .set('userId', text(['userId'], 'User ID'))
+    .set('systemId', text(['systemId'], 'System ID'))
+    .set('category', selectSingle(['category'], 'Category', {
+      kind: 'INLINE',
+      options: CLASS_CATEGORY_OPTIONS
+    }))
+    .set('attributes', selectMulti(['attributes'], 'Attributes', {
+      kind: 'INLINE',
+      options: CLASS_ATTRIBUTE_OPTIONS
+    }, {
+      showIf: isBaseClass
+    }))
+    .set('startingGold', groupObject(['startingGold'], 'Starting Gold', () => CLASS_STARTING_GOLD_NODE_MAP, {
+      showIf: isBaseClass
+    }))
+    .set('startingEquipment', groupObject(['startingEquipment'], 'Starting Equipment', () => STARTING_EQUIPMENT_NODE_MAP, {
+      showIf: isBaseClass
+    }))
+    .set('hitpoint', groupObject(['hitpoint'], 'Hit Point', () => CLASS_HITPOINT_NODE_MAP, {
+      showIf: isBaseClass
+    }))
+    .set('multiclass', groupObject(['multiclass'], 'Multiclass', () => CLASS_MULTICLASS_NODE_MAP, {
+      showIf: isBaseClass
+    }))
+    .set('attributes', selectMulti(['attributes'], 'Attributes', {
+      kind: 'INLINE',
+      options: SUBCLASS_ATTRIBUTE_OPTIONS
+    }, {
+      showIf: isSubclass
+    }))
+    .set('parentClassId', selectSingle(['parentClassId'], 'Parent Class', {
+      kind: 'DATA',
+      relationship: table('classes', {
+        selectColumns: ['id', 'label'],
+        where: (col) => col('category').eq('BASE')
+      })
+    }, {
+      showIf: isSubclass
+    }))
+    .set('subtypes', groupArray(['subtypes'], 'Subtypes', () => CLASS_SUBTYPE_NODE_MAP, {
+      showIf: isSubclass
+    }))
+})

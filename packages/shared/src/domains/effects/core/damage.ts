@@ -1,4 +1,5 @@
 import type { CoreMeta } from '#core'
+import { valuesOf } from '#utils'
 
 /**
  * Defines how a damage amount is structurally determined.
@@ -42,7 +43,7 @@ export const DAMAGE_VALUE_REGISTRY: Record<DamageValueKind, DamageValueOption> =
   }
 }
 
-export const DAMAGE_VALUE_OPTIONS = Object.values(DAMAGE_VALUE_REGISTRY) as readonly DamageValueOption[]
+export const DAMAGE_VALUE_OPTIONS = valuesOf(DAMAGE_VALUE_REGISTRY) as readonly DamageValueOption[]
 
 export const DAMAGE_BONUS_KIND = {
   ABILITY_BONUS: 'ABILITY_BONUS',
@@ -79,4 +80,4 @@ export const DAMAGE_BONUS_REGISTRY: Record<DamageBonusKind, DamageBonusOption>
     }
   }
 
-export const DAMAGE_BONUS_OPTIONS = Object.values(DAMAGE_BONUS_REGISTRY) as readonly DamageBonusOption[]
+export const DAMAGE_BONUS_OPTIONS = valuesOf(DAMAGE_BONUS_REGISTRY) as readonly DamageBonusOption[]

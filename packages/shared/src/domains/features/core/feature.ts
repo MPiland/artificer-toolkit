@@ -1,4 +1,5 @@
 import type { CoreMeta } from '#core'
+import { valuesOf } from '#utils'
 
 export const FEATURE_CATEGORY = {
   FEATURE: 'FEATURE',
@@ -57,6 +58,6 @@ export const FEATURE_ATTRIBUTE_REGISTRY: Record<
   }
 } as const
 
-export const FEATURE_ATTRIBUTE_OPTIONS = Object.values(
+export const FEATURE_ATTRIBUTE_OPTIONS = valuesOf(
   FEATURE_ATTRIBUTE_REGISTRY
 ) as readonly FeatureAttributeOption[]

@@ -1,6 +1,6 @@
 import type { AbilityCode, ChargeLimitKind, ChargeResetKind, DurationKind, RangeKind, ShapeKind, CoreMeta } from '#core'
 import type { SenseCode } from '../vocabulary/authored/sense.js'
-import type { EmptyObject } from '#utils'
+import { type EmptyObject, valuesOf } from '#utils'
 
 export const VALUE_DOMAIN_CODE = {
   SPEED: 'SPEED',
@@ -301,6 +301,10 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     'Represents a attribute that would be applied to an item, spell, or creature.'
   }
 } as const
+
+export const VALUE_DOMAIN_OPTIONS = valuesOf(
+  VALUE_DOMAIN_REGISTRY
+) as readonly ValueDomainOption[]
 
 export const ATTACK_DOMAIN_CODE = {
   MELEE: 'MELEE',
