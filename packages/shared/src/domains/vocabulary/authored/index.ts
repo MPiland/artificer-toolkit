@@ -1,4 +1,6 @@
+export * from './challengeRating.js'
 export * from './condition.js'
+export * from './creatureType.js'
 export * from './damageType.js'
 export * from './language.js'
 export * from './magicSchool.js'

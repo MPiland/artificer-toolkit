@@ -223,6 +223,50 @@ export type Database = {
           },
         ]
       }
+      challenge_ratings: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          label: string
+          short: string | null
+          system_id: string
+          tooltip: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id: string
+          label: string
+          short?: string | null
+          system_id: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          label?: string
+          short?: string | null
+          system_id?: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_ratings_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       character_abilities: {
         Row: {
           character_id: string
@@ -1254,6 +1298,47 @@ export type Database = {
           },
         ]
       }
+      character_events: {
+        Row: {
+          actor_id: string
+          character_id: string
+          command_id: string
+          event_data: Json
+          event_id: string
+          event_type: string
+          occurred_at: string
+          schema_version: number
+        }
+        Insert: {
+          actor_id: string
+          character_id: string
+          command_id: string
+          event_data: Json
+          event_id?: string
+          event_type: string
+          occurred_at?: string
+          schema_version?: number
+        }
+        Update: {
+          actor_id?: string
+          character_id?: string
+          command_id?: string
+          event_data?: Json
+          event_id?: string
+          event_type?: string
+          occurred_at?: string
+          schema_version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_events_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       character_feature_acquisitions: {
         Row: {
           acquired_parent_id: string | null
@@ -2129,28 +2214,34 @@ export type Database = {
       }
       characters: {
         Row: {
+          build_state: Json | null
           created_at: string
           description: string | null
           id: string
           label: string
+          stream_version: number
           system_id: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          build_state?: Json | null
           created_at?: string
           description?: string | null
           id?: string
           label: string
+          stream_version?: number
           system_id: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          build_state?: Json | null
           created_at?: string
           description?: string | null
           id?: string
           label?: string
+          stream_version?: number
           system_id?: string
           updated_at?: string
           user_id?: string
@@ -3034,6 +3125,440 @@ export type Database = {
             columns: ["condition_type_id"]
             isOneToOne: false
             referencedRelation: "condition_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creature_actions: {
+        Row: {
+          action_type: string
+          attack_bonus: number | null
+          creature_id: string
+          damage: string | null
+          description: string
+          id: string
+          label: string
+          recharge: string | null
+          sort_order: number
+        }
+        Insert: {
+          action_type: string
+          attack_bonus?: number | null
+          creature_id: string
+          damage?: string | null
+          description: string
+          id: string
+          label: string
+          recharge?: string | null
+          sort_order: number
+        }
+        Update: {
+          action_type?: string
+          attack_bonus?: number | null
+          creature_id?: string
+          damage?: string | null
+          description?: string
+          id?: string
+          label?: string
+          recharge?: string | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creature_actions_creature_id_fkey"
+            columns: ["creature_id"]
+            isOneToOne: false
+            referencedRelation: "creatures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creature_condition_immunities: {
+        Row: {
+          condition_type_id: string
+          creature_id: string
+        }
+        Insert: {
+          condition_type_id: string
+          creature_id: string
+        }
+        Update: {
+          condition_type_id?: string
+          creature_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creature_condition_immunities_condition_type_id_fkey"
+            columns: ["condition_type_id"]
+            isOneToOne: false
+            referencedRelation: "condition_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creature_condition_immunities_creature_id_fkey"
+            columns: ["creature_id"]
+            isOneToOne: false
+            referencedRelation: "creatures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creature_damage_immunities: {
+        Row: {
+          creature_id: string
+          damage_type_id: string
+        }
+        Insert: {
+          creature_id: string
+          damage_type_id: string
+        }
+        Update: {
+          creature_id?: string
+          damage_type_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creature_damage_immunities_creature_id_fkey"
+            columns: ["creature_id"]
+            isOneToOne: false
+            referencedRelation: "creatures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creature_damage_immunities_damage_type_id_fkey"
+            columns: ["damage_type_id"]
+            isOneToOne: false
+            referencedRelation: "damage_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creature_damage_resistances: {
+        Row: {
+          creature_id: string
+          damage_type_id: string
+        }
+        Insert: {
+          creature_id: string
+          damage_type_id: string
+        }
+        Update: {
+          creature_id?: string
+          damage_type_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creature_damage_resistances_creature_id_fkey"
+            columns: ["creature_id"]
+            isOneToOne: false
+            referencedRelation: "creatures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creature_damage_resistances_damage_type_id_fkey"
+            columns: ["damage_type_id"]
+            isOneToOne: false
+            referencedRelation: "damage_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creature_damage_vulnerabilities: {
+        Row: {
+          creature_id: string
+          damage_type_id: string
+        }
+        Insert: {
+          creature_id: string
+          damage_type_id: string
+        }
+        Update: {
+          creature_id?: string
+          damage_type_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creature_damage_vulnerabilities_creature_id_fkey"
+            columns: ["creature_id"]
+            isOneToOne: false
+            referencedRelation: "creatures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creature_damage_vulnerabilities_damage_type_id_fkey"
+            columns: ["damage_type_id"]
+            isOneToOne: false
+            referencedRelation: "damage_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creature_details: {
+        Row: {
+          creature_id: string
+          detail_id: string
+          sort_order: number
+        }
+        Insert: {
+          creature_id: string
+          detail_id: string
+          sort_order: number
+        }
+        Update: {
+          creature_id?: string
+          detail_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creature_details_creature_id_fkey"
+            columns: ["creature_id"]
+            isOneToOne: false
+            referencedRelation: "creatures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creature_details_detail_id_fkey"
+            columns: ["detail_id"]
+            isOneToOne: false
+            referencedRelation: "details"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creature_features: {
+        Row: {
+          creature_id: string
+          feature_id: string
+          sort_order: number
+        }
+        Insert: {
+          creature_id: string
+          feature_id: string
+          sort_order: number
+        }
+        Update: {
+          creature_id?: string
+          feature_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creature_features_creature_id_fkey"
+            columns: ["creature_id"]
+            isOneToOne: false
+            referencedRelation: "creatures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creature_speeds: {
+        Row: {
+          amount: number
+          creature_id: string
+          speed_id: string
+          unit_code: string
+        }
+        Insert: {
+          amount: number
+          creature_id: string
+          speed_id: string
+          unit_code: string
+        }
+        Update: {
+          amount?: number
+          creature_id?: string
+          speed_id?: string
+          unit_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creature_speeds_creature_id_fkey"
+            columns: ["creature_id"]
+            isOneToOne: false
+            referencedRelation: "creatures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creature_speeds_speed_id_fkey"
+            columns: ["speed_id"]
+            isOneToOne: false
+            referencedRelation: "speeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creature_types: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          label: string
+          short: string | null
+          system_id: string
+          tooltip: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id: string
+          label: string
+          short?: string | null
+          system_id: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          label?: string
+          short?: string | null
+          system_id?: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creature_types_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creatures: {
+        Row: {
+          ability_scores: Json
+          alignment_id: string | null
+          armor_class: number
+          armor_class_note: string | null
+          category: string
+          challenge_rating_id: string | null
+          companion_profile: Json | null
+          created_at: string
+          creature_type_id: string | null
+          description: string | null
+          hit_dice: string | null
+          hit_points: number
+          id: string
+          is_master: boolean | null
+          label: string
+          lair_profile: Json | null
+          languages: string[] | null
+          legendary_profile: Json | null
+          mount_profile: Json | null
+          npc_profile: Json | null
+          passive_perception: number | null
+          quote: string | null
+          saving_throw_proficiencies: string[] | null
+          senses: string[] | null
+          size_code: string
+          skill_proficiencies: string[] | null
+          system_id: string
+          tags: string[] | null
+          updated_at: string
+          user_id: string | null
+          xp: number | null
+        }
+        Insert: {
+          ability_scores: Json
+          alignment_id?: string | null
+          armor_class: number
+          armor_class_note?: string | null
+          category: string
+          challenge_rating_id?: string | null
+          companion_profile?: Json | null
+          created_at?: string
+          creature_type_id?: string | null
+          description?: string | null
+          hit_dice?: string | null
+          hit_points: number
+          id: string
+          is_master?: boolean | null
+          label: string
+          lair_profile?: Json | null
+          languages?: string[] | null
+          legendary_profile?: Json | null
+          mount_profile?: Json | null
+          npc_profile?: Json | null
+          passive_perception?: number | null
+          quote?: string | null
+          saving_throw_proficiencies?: string[] | null
+          senses?: string[] | null
+          size_code: string
+          skill_proficiencies?: string[] | null
+          system_id: string
+          tags?: string[] | null
+          updated_at?: string
+          user_id?: string | null
+          xp?: number | null
+        }
+        Update: {
+          ability_scores?: Json
+          alignment_id?: string | null
+          armor_class?: number
+          armor_class_note?: string | null
+          category?: string
+          challenge_rating_id?: string | null
+          companion_profile?: Json | null
+          created_at?: string
+          creature_type_id?: string | null
+          description?: string | null
+          hit_dice?: string | null
+          hit_points?: number
+          id?: string
+          is_master?: boolean | null
+          label?: string
+          lair_profile?: Json | null
+          languages?: string[] | null
+          legendary_profile?: Json | null
+          mount_profile?: Json | null
+          npc_profile?: Json | null
+          passive_perception?: number | null
+          quote?: string | null
+          saving_throw_proficiencies?: string[] | null
+          senses?: string[] | null
+          size_code?: string
+          skill_proficiencies?: string[] | null
+          system_id?: string
+          tags?: string[] | null
+          updated_at?: string
+          user_id?: string | null
+          xp?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creatures_alignment_id_fkey"
+            columns: ["alignment_id"]
+            isOneToOne: false
+            referencedRelation: "alignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creatures_challenge_rating_id_fkey"
+            columns: ["challenge_rating_id"]
+            isOneToOne: false
+            referencedRelation: "challenge_ratings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creatures_creature_type_id_fkey"
+            columns: ["creature_type_id"]
+            isOneToOne: false
+            referencedRelation: "creature_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creatures_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
             referencedColumns: ["id"]
           },
         ]
@@ -8436,6 +8961,142 @@ export type Database = {
           },
         ]
       }
+      vehicle_details: {
+        Row: {
+          detail_id: string
+          sort_order: number
+          vehicle_id: string
+        }
+        Insert: {
+          detail_id: string
+          sort_order: number
+          vehicle_id: string
+        }
+        Update: {
+          detail_id?: string
+          sort_order?: number
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_details_detail_id_fkey"
+            columns: ["detail_id"]
+            isOneToOne: false
+            referencedRelation: "details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_details_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vehicle_features: {
+        Row: {
+          feature_id: string
+          sort_order: number
+          vehicle_id: string
+        }
+        Insert: {
+          feature_id: string
+          sort_order: number
+          vehicle_id: string
+        }
+        Update: {
+          feature_id?: string
+          sort_order?: number
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_features_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vehicles: {
+        Row: {
+          armor_class: number
+          cargo_capacity: string | null
+          category: string
+          cost: Json | null
+          created_at: string
+          crew_max: number | null
+          crew_min: number | null
+          description: string | null
+          hit_points: number
+          id: string
+          is_master: boolean | null
+          label: string
+          passenger_capacity: number | null
+          properties: string[] | null
+          size_code: string
+          speed: number | null
+          speed_note: string | null
+          system_id: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          armor_class: number
+          cargo_capacity?: string | null
+          category: string
+          cost?: Json | null
+          created_at?: string
+          crew_max?: number | null
+          crew_min?: number | null
+          description?: string | null
+          hit_points: number
+          id: string
+          is_master?: boolean | null
+          label: string
+          passenger_capacity?: number | null
+          properties?: string[] | null
+          size_code: string
+          speed?: number | null
+          speed_note?: string | null
+          system_id: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          armor_class?: number
+          cargo_capacity?: string | null
+          category?: string
+          cost?: Json | null
+          created_at?: string
+          crew_max?: number | null
+          crew_min?: number | null
+          description?: string | null
+          hit_points?: number
+          id?: string
+          is_master?: boolean | null
+          label?: string
+          passenger_capacity?: number | null
+          properties?: string[] | null
+          size_code?: string
+          speed?: number | null
+          speed_note?: string | null
+          system_id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicles_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -8593,3 +9254,4 @@ export const Constants = {
     },
   },
 } as const
+

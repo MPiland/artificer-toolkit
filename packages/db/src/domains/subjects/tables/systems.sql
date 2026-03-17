@@ -431,6 +431,70 @@ CREATE INDEX IF NOT EXISTS idx_speeds_system
 
 
 /* ──────────────────────────────────────────────
+ * CHALLENGE RATINGS
+ * ────────────────────────────────────────────── */
+
+CREATE TABLE IF NOT EXISTS public.challenge_ratings (
+  id uuid PRIMARY KEY,
+
+  system_id uuid NOT NULL
+    REFERENCES public.systems(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  code text NOT NULL,
+  label text NOT NULL,
+  description text,
+  tooltip text,
+  short text,
+
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.challenge_ratings ENABLE ROW LEVEL SECURITY;
+SELECT public.apply_system_vocabulary_policies('challenge_ratings');
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_challenge_ratings_system_code
+  ON public.challenge_ratings(system_id, code);
+
+CREATE INDEX IF NOT EXISTS idx_challenge_ratings_system
+  ON public.challenge_ratings(system_id);
+
+
+/* ──────────────────────────────────────────────
+ * CREATURE TYPES
+ * ────────────────────────────────────────────── */
+
+CREATE TABLE IF NOT EXISTS public.creature_types (
+  id uuid PRIMARY KEY,
+
+  system_id uuid NOT NULL
+    REFERENCES public.systems(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  code text NOT NULL,
+  label text NOT NULL,
+  description text,
+  tooltip text,
+  short text,
+
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.creature_types ENABLE ROW LEVEL SECURITY;
+SELECT public.apply_system_vocabulary_policies('creature_types');
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_creature_types_system_code
+  ON public.creature_types(system_id, code);
+
+CREATE INDEX IF NOT EXISTS idx_creature_types_system
+  ON public.creature_types(system_id);
+
+
+/* ──────────────────────────────────────────────
  * TERRAINS
  * ────────────────────────────────────────────── */
 

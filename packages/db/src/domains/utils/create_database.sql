@@ -42,10 +42,12 @@ SET CONSTRAINTS ALL DEFERRED;
 \i :etl_root'/subjects/tables/backgrounds.sql'
 \i :etl_root'/subjects/tables/characters.sql'
 \i :etl_root'/subjects/tables/classes.sql'
+\i :etl_root'/subjects/tables/creatures.sql'
 \i :etl_root'/subjects/tables/equipment.sql'
 \i :etl_root'/subjects/tables/feats.sql'
 \i :etl_root'/subjects/tables/races.sql'
 \i :etl_root'/subjects/tables/spells.sql'
+\i :etl_root'/subjects/tables/vehicles.sql'
 \i :etl_root'/bootstrap/constraints/cross_domain_foreign_keys.sql'
 
 SELECT

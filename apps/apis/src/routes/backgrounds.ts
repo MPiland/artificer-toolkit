@@ -2,6 +2,7 @@ import { handleRequest, handleAuthoringRequest, createBackgroundSubjectAuthoring
 import { getBackgroundListQuery } from '@artificer-toolkit/db'
 import { createBackgroundRepository } from '@artificer-toolkit/db'
 import type { BackgroundAuthored } from '@artificer-toolkit/shared'
+import { backgroundAuthoredDtoSchema } from '@artificer-toolkit/schema'
 
 function extractId(req: Request): string {
   const url = new URL(req.url)
@@ -13,16 +14,10 @@ function extractId(req: Request): string {
 export const getBackgroundList = handleRequest(getBackgroundListQuery, () => [] as [])
 
 // single
-export const getBackground = handleRequest<[string], BackgroundAuthored | null>(
-  (db, id) => createBackgroundRepository(db).findById(id),
-  (req) => [extractId(req)]
-)
+export const getBackground = handleRequest<[string], BackgroundAuthored | null>((db, id) => createBackgroundRepository(db).findById(id), (req: Request, _userId: string) => [extractId(req)] as [string])
 
 // create/update
-export const createBackground = handleAuthoringRequest(
-  async (db, body) => {
-    const service = createBackgroundSubjectAuthoringService(db)
-    return service.execute(body)
-  },
-  (raw) => raw
-)
+export const createBackground = handleAuthoringRequest(backgroundAuthoredDtoSchema, async (db, body) => {
+  const service = createBackgroundSubjectAuthoringService(db)
+  return service.execute(body)
+})

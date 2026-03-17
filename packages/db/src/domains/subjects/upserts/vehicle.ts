@@ -1,0 +1,168 @@
+import type { DBLike } from '#types'
+import type { Json } from '../../../types/supabase.database.js'
+import {
+  SIZE_CODE,
+  type VehicleAuthored
+} from '@artificer-toolkit/shared'
+import { upsertDetail } from '../../shared/upserts/index.js'
+import { upsertFeature } from '../../features/upserts/index.js'
+
+type VehicleRow = {
+  id: string
+  system_id: string
+  user_id: string
+  label: string
+  description: string | null
+  category: string
+  size_code: string
+  armor_class: number
+  hit_points: number
+  speed: number | null
+  speed_note: string | null
+  crew_min: number | null
+  crew_max: number | null
+  passenger_capacity: number | null
+  cargo_capacity: string | null
+  cost: Json | null
+  properties: string[] | null
+  is_master: boolean | null
+}
+
+type VehicleDetailRow = {
+  vehicle_id: string
+  detail_id: string
+  sort_order: number
+}
+
+type VehicleFeatureRow = {
+  vehicle_id: string
+  feature_id: string
+  sort_order: number
+}
+
+function requireCategory(
+  vehicleId: string,
+  value: string
+): VehicleAuthored['category'] {
+  if (![
+    'LAND', 'WATER', 'AIR', 'SPELLJAMMER'
+  ].includes(value)) {
+    throw new Error(`Vehicle "${vehicleId}" has invalid category "${value}".`)
+  }
+
+  return value as VehicleAuthored['category']
+}
+
+function requireSizeCode(
+  vehicleId: string,
+  value: string
+): VehicleAuthored['size'] {
+  if (!(value in SIZE_CODE)) {
+    throw new Error(`Vehicle "${vehicleId}" has invalid size "${value}".`)
+  }
+
+  return value as VehicleAuthored['size']
+}
+
+export async function upsertVehicle(
+  db: DBLike,
+  json_data: VehicleAuthored,
+  _systemId: string
+) {
+  const row: VehicleRow = {
+    id: json_data.id,
+    system_id: json_data.systemId,
+    user_id: json_data.userId,
+    label: json_data.label,
+    description: json_data.description ?? null,
+    category: requireCategory(json_data.id, json_data.category),
+    size_code: requireSizeCode(json_data.id, json_data.size),
+    armor_class: json_data.armorClass,
+    hit_points: json_data.hitPoints,
+    speed: json_data.speed ?? null,
+    speed_note: json_data.speedNote ?? null,
+    crew_min: json_data.crewMin ?? null,
+    crew_max: json_data.crewMax ?? null,
+    passenger_capacity: json_data.passengerCapacity ?? null,
+    cargo_capacity: json_data.cargoCapacity ?? null,
+    cost: json_data.cost ? json_data.cost as unknown as Json : null,
+    properties: json_data.properties ?? null,
+    is_master: null
+  }
+
+  const detailRows: VehicleDetailRow[] = (json_data.details ?? []).map((detail) => ({
+    vehicle_id: json_data.id,
+    detail_id: detail.id,
+    sort_order: detail.order
+  }))
+
+  const featureRows: VehicleFeatureRow[] = (json_data.features ?? []).map((feature) => ({
+    vehicle_id: json_data.id,
+    feature_id: feature.id,
+    sort_order: feature.order
+  }))
+
+  const trx = await db.startTransaction().execute()
+
+  try {
+    for (const detail of json_data.details ?? []) {
+      await upsertDetail(trx, detail)
+    }
+
+    for (const feature of json_data.features ?? []) {
+      await upsertFeature(trx, feature, json_data.systemId)
+    }
+
+    await trx
+      .insertInto('vehicles')
+      .values(row)
+      .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
+        system_id: ref('excluded.system_id'),
+        user_id: ref('excluded.user_id'),
+        label: ref('excluded.label'),
+        description: ref('excluded.description'),
+        category: ref('excluded.category'),
+        size_code: ref('excluded.size_code'),
+        armor_class: ref('excluded.armor_class'),
+        hit_points: ref('excluded.hit_points'),
+        speed: ref('excluded.speed'),
+        speed_note: ref('excluded.speed_note'),
+        crew_min: ref('excluded.crew_min'),
+        crew_max: ref('excluded.crew_max'),
+        passenger_capacity: ref('excluded.passenger_capacity'),
+        cargo_capacity: ref('excluded.cargo_capacity'),
+        cost: ref('excluded.cost'),
+        properties: ref('excluded.properties')
+      })))
+      .execute()
+
+    await trx
+      .deleteFrom('vehicle_details')
+      .where('vehicle_id', '=', json_data.id)
+      .execute()
+
+    await trx
+      .deleteFrom('vehicle_features')
+      .where('vehicle_id', '=', json_data.id)
+      .execute()
+
+    if (detailRows.length > 0) {
+      await trx
+        .insertInto('vehicle_details')
+        .values(detailRows)
+        .execute()
+    }
+
+    if (featureRows.length > 0) {
+      await trx
+        .insertInto('vehicle_features')
+        .values(featureRows)
+        .execute()
+    }
+
+    await trx.commit().execute()
+  } catch (error) {
+    await trx.rollback().execute()
+    throw error
+  }
+}

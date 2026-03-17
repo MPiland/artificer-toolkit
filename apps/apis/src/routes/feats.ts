@@ -2,6 +2,7 @@ import { handleRequest, handleAuthoringRequest, createFeatSubjectAuthoringServic
 import { getFeatListQuery } from '@artificer-toolkit/db'
 import { createFeatRepository } from '@artificer-toolkit/db'
 import type { FeatAuthored } from '@artificer-toolkit/shared'
+import { featAuthoredDtoSchema } from '@artificer-toolkit/schema'
 
 function extractId(req: Request): string {
   const url = new URL(req.url)
@@ -15,14 +16,14 @@ export const getFeatList = handleRequest(getFeatListQuery, () => [] as [])
 // single
 export const getFeat = handleRequest<[string], FeatAuthored | null>(
   (db, id) => createFeatRepository(db).findById(id),
-  (req) => [extractId(req)]
+  (req: Request, _userId: string) => [extractId(req)] as [string]
 )
 
 // create/update
 export const createFeat = handleAuthoringRequest(
+  featAuthoredDtoSchema,
   async (db, body) => {
     const service = createFeatSubjectAuthoringService(db)
     return service.execute(body)
-  },
-  (raw) => raw
+  }
 )

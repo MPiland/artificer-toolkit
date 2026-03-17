@@ -74,7 +74,9 @@ export interface SystemSeedRecord {
   label: string
   description?: string | null
   alignments: VocabularySeedRecord[]
+  challengeRatings: VocabularySeedRecord[]
   conditionTypes: VocabularySeedRecord[]
+  creatureTypes: VocabularySeedRecord[]
   currencies: VocabularySeedRecord[]
   damageTypes: VocabularySeedRecord[]
   languages: VocabularySeedRecord[]

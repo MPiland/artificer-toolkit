@@ -1,6 +1,7 @@
 import type {
   BackgroundAuthored,
   ClassAuthored,
+  CreatureAuthored,
   DetailAuthored,
   EffectAuthored,
   EquipmentAuthored,
@@ -16,6 +17,7 @@ import type {
   SpellAuthored,
   SpellGrantAuthored,
   StartingEquipmentAuthored,
+  VehicleAuthored,
   NodeSubjectCode
 } from '@artificer-toolkit/shared'
 import type { SystemSeedRecord } from '../source-data/index.js'
@@ -39,12 +41,14 @@ export interface AuthoredRepository<TAuthored, TFilter = RepositoryFindAllOption
 
 export type BackgroundRepository = AuthoredRepository<BackgroundAuthored>
 export type ClassRepository = AuthoredRepository<ClassAuthored>
+export type CreatureRepository = AuthoredRepository<CreatureAuthored>
 export type DetailRepository = AuthoredRepository<DetailAuthored, void>
 export type EquipmentRepository = AuthoredRepository<EquipmentAuthored | EquipmentVariantAuthored>
 export type FeatRepository = AuthoredRepository<FeatAuthored>
 export type RaceRepository = AuthoredRepository<RaceAuthored>
 export type SpellRepository = AuthoredRepository<SpellAuthored>
 export type SystemRepository = AuthoredRepository<SystemSeedRecord>
+export type VehicleRepository = AuthoredRepository<VehicleAuthored>
 
 export type FeatureRepository<N extends NodeSubjectCode = NodeSubjectCode> = AuthoredRepository<FeatureAuthored<N>>
 export type OptionRepository<N extends NodeSubjectCode = NodeSubjectCode> = AuthoredRepository<OptionAuthored<N>>

@@ -2,7 +2,7 @@ import type {
   CharacterBuildState,
   CharacterBuildSnapshot,
   CharacterAssemblyRegistry,
-  EquippedState,
+  EquippedState
 } from '@artificer-toolkit/shared'
 
 /**
@@ -21,13 +21,13 @@ export function buildSnapshot(
   const classes = state.classes.map((c) => ({
     classId: c.classRef.contentId,
     level: c.level,
-    subclassId: c.subclassRef?.contentId,
+    subclassId: c.subclassRef?.contentId
   }))
 
   const hitpoints = state.hitpointsByLevel.map((h) => ({
     classId: h.classRef.contentId,
     classLevel: h.classLevel,
-    value: h.value,
+    value: h.value
   }))
 
   // Assemble equipped items from owned equipment that has an equippedState
@@ -42,7 +42,7 @@ export function buildSnapshot(
       instanceId: owned.instanceId,
       contentRef: owned.contentRef,
       equippedState: owned.equippedState as EquippedState,
-      compiledItem,
+      compiledItem
     })
   }
 
@@ -61,6 +61,6 @@ export function buildSnapshot(
     abilities: { ...state.abilityScores },
     hitpoints,
     features,
-    equippedItems,
+    equippedItems
   }
 }

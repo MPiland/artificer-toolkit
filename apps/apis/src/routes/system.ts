@@ -15,5 +15,5 @@ export const getSystemList = handleRequest(getSystemListQuery, () => [] as [])
 // single
 export const getSystem = handleRequest<[string], SystemSeedRecord | null>(
   (db, id) => createSystemRepository(db).findById(id),
-  (req) => [extractId(req)]
+  (req: Request, _userId: string) => [extractId(req)] as [string]
 )

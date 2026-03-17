@@ -6,19 +6,21 @@ import type {
 import { upsertSystem } from '../upserts/system.js'
 import type { SystemRepository } from '../../../repositories/contracts.js'
 
-type VocabularyTableName =
-  | 'alignments'
-  | 'condition_types'
-  | 'currencies'
-  | 'damage_types'
-  | 'languages'
-  | 'magic_schools'
-  | 'passives'
-  | 'rarities'
-  | 'senses'
-  | 'skills'
-  | 'speeds'
-  | 'terrains'
+type VocabularyTableName
+  = | 'alignments'
+    | 'challenge_ratings'
+    | 'condition_types'
+    | 'creature_types'
+    | 'currencies'
+    | 'damage_types'
+    | 'languages'
+    | 'magic_schools'
+    | 'passives'
+    | 'rarities'
+    | 'senses'
+    | 'skills'
+    | 'speeds'
+    | 'terrains'
 
 async function readVocabularyRows(
   db: DBLike,
@@ -27,7 +29,9 @@ async function readVocabularyRows(
 ): Promise<VocabularySeedRecord[]> {
   const rows = await db
     .selectFrom(table)
-    .select(['id', 'code', 'label', 'description', 'tooltip', 'short'])
+    .select([
+      'id', 'code', 'label', 'description', 'tooltip', 'short'
+    ])
     .where('system_id', '=', systemId)
     .orderBy('label')
     .execute()
@@ -48,7 +52,9 @@ async function hydrateSystemById(
 ): Promise<SystemSeedRecord | null> {
   const row = await db
     .selectFrom('systems')
-    .select(['id', 'label', 'description', 'user_id'])
+    .select([
+      'id', 'label', 'description', 'user_id'
+    ])
     .where('id', '=', id)
     .executeTakeFirst()
 
@@ -59,7 +65,9 @@ async function hydrateSystemById(
 
   const [
     alignments,
+    challengeRatings,
     conditionTypes,
+    creatureTypes,
     currencies,
     damageTypes,
     languages,
@@ -72,7 +80,9 @@ async function hydrateSystemById(
     terrains
   ] = await Promise.all([
     readVocabularyRows(db, 'alignments', row.id),
+    readVocabularyRows(db, 'challenge_ratings', row.id),
     readVocabularyRows(db, 'condition_types', row.id),
+    readVocabularyRows(db, 'creature_types', row.id),
     readVocabularyRows(db, 'currencies', row.id),
     readVocabularyRows(db, 'damage_types', row.id),
     readVocabularyRows(db, 'languages', row.id),
@@ -91,7 +101,9 @@ async function hydrateSystemById(
     description: row.description,
     userId: row.user_id,
     alignments,
+    challengeRatings,
     conditionTypes,
+    creatureTypes,
     currencies,
     damageTypes,
     languages,

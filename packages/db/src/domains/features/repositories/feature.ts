@@ -109,7 +109,9 @@ export async function hydrateFeatureById(
       .orderBy('sort_order')
       .execute(),
     db.selectFrom('feature_option_levels')
-      .select(['level', 'count', 'replace_count', 'sort_order'])
+      .select([
+        'level', 'count', 'replace_count', 'sort_order'
+      ])
       .where('feature_id', '=', id)
       .orderBy('sort_order')
       .execute(),
@@ -125,7 +127,15 @@ export async function hydrateFeatureById(
   const spellGrantRepository = createSpellGrantRepository(db)
   const optionRepository = createOptionRepository<NodeSubjectCode>(db)
 
-  const [effects, featGrants, modifierGrants, proficiencyGrants, senseGrants, spellGrants, options] = await Promise.all([
+  const [
+    effects,
+    featGrants,
+    modifierGrants,
+    proficiencyGrants,
+    senseGrants,
+    spellGrants,
+    options
+  ] = await Promise.all([
     Promise.all(effectLinks.map((link) => effectRepository.findById(link.effect_id))),
     Promise.all(featGrantLinks.map((link) => featGrantRepository.findById(link.feat_grant_id))),
     Promise.all(modifierGrantLinks.map((link) => modifierGrantRepository.findById(link.modifier_grant_id))),
@@ -135,34 +145,13 @@ export async function hydrateFeatureById(
     Promise.all(optionLinks.map((link) => optionRepository.findById(link.option_id)))
   ])
 
-  const authoredEffects = effects.map((effect, index) => requireLinkedRecord(
-    effect,
-    `Feature "${id}" is linked to missing effect "${effectLinks[index]?.effect_id}".`
-  ))
-  const authoredFeatGrants = featGrants.map((grant, index) => requireLinkedRecord(
-    grant,
-    `Feature "${id}" is linked to missing feat grant "${featGrantLinks[index]?.feat_grant_id}".`
-  ))
-  const authoredModifierGrants = modifierGrants.map((grant, index) => requireLinkedRecord(
-    grant,
-    `Feature "${id}" is linked to missing modifier grant "${modifierGrantLinks[index]?.modifier_grant_id}".`
-  ))
-  const authoredProficiencyGrants = proficiencyGrants.map((grant, index) => requireLinkedRecord(
-    grant,
-    `Feature "${id}" is linked to missing proficiency grant "${proficiencyGrantLinks[index]?.proficiency_grant_id}".`
-  ))
-  const authoredSenseGrants = senseGrants.map((grant, index) => requireLinkedRecord(
-    grant,
-    `Feature "${id}" is linked to missing sense grant "${senseGrantLinks[index]?.sense_grant_id}".`
-  ))
-  const authoredSpellGrants = spellGrants.map((grant, index) => requireLinkedRecord(
-    grant,
-    `Feature "${id}" is linked to missing spell grant "${spellGrantLinks[index]?.spell_grant_id}".`
-  ))
-  const authoredOptions = options.map((option, index) => requireLinkedRecord(
-    option,
-    `Feature "${id}" is linked to missing option "${optionLinks[index]?.option_id}".`
-  ))
+  const authoredEffects = effects.map((effect, index) => requireLinkedRecord(effect, `Feature "${id}" is linked to missing effect "${effectLinks[index]?.effect_id}".`))
+  const authoredFeatGrants = featGrants.map((grant, index) => requireLinkedRecord(grant, `Feature "${id}" is linked to missing feat grant "${featGrantLinks[index]?.feat_grant_id}".`))
+  const authoredModifierGrants = modifierGrants.map((grant, index) => requireLinkedRecord(grant, `Feature "${id}" is linked to missing modifier grant "${modifierGrantLinks[index]?.modifier_grant_id}".`))
+  const authoredProficiencyGrants = proficiencyGrants.map((grant, index) => requireLinkedRecord(grant, `Feature "${id}" is linked to missing proficiency grant "${proficiencyGrantLinks[index]?.proficiency_grant_id}".`))
+  const authoredSenseGrants = senseGrants.map((grant, index) => requireLinkedRecord(grant, `Feature "${id}" is linked to missing sense grant "${senseGrantLinks[index]?.sense_grant_id}".`))
+  const authoredSpellGrants = spellGrants.map((grant, index) => requireLinkedRecord(grant, `Feature "${id}" is linked to missing spell grant "${spellGrantLinks[index]?.spell_grant_id}".`))
+  const authoredOptions = options.map((option, index) => requireLinkedRecord(option, `Feature "${id}" is linked to missing option "${optionLinks[index]?.option_id}".`))
 
   return {
     id: row.id,

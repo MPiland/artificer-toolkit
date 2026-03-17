@@ -147,8 +147,10 @@ BEGIN
           )
     )
     LOOP
-        v_trigger_name :=
-            'trg_' || r.schema_name || '_' || r.table_name || '_set_updated_at';
+      v_trigger_name := left(
+        'trg_' || r.schema_name || '_' || r.table_name || '_set_updated_at',
+        63
+      );
 
         -- Only create trigger if it does not already exist
         IF NOT EXISTS (

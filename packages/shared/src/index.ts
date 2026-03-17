@@ -8,3 +8,6 @@ export * from './barrels/compilers/index.js'
 
 // Core
 export * from './barrels/core/index.js'
+
+// Maps
+export * from './barrels/maps/index.js'

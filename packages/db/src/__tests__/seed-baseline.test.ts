@@ -47,7 +47,9 @@ describe('seedBaselineContent', () => {
             label: 'System',
             description: null,
             alignments: [],
+            challengeRatings: [],
             conditionTypes: [],
+            creatureTypes: [],
             currencies: [],
             damageTypes: [],
             languages: [],
@@ -92,10 +94,7 @@ describe('seedBaselineContent', () => {
       }
     })
 
-    const result = await seedBaselineContent(
-      { db: {} as never, systemId: 'system-1' },
-      bundle
-    )
+    const result = await seedBaselineContent({ db: {} as never, systemId: 'system-1' }, bundle)
 
     expect(wrapperCalls).toEqual([
       'upsertSystem',

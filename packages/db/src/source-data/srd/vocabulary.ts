@@ -14,18 +14,20 @@ function vocabId(domain: string, index: number): string {
 
 // Domain codes (encoded in the UUID clock_seq_hi field) — kept short:
 const D = {
-  alignment:     '0001',
-  conditionType: '0002',
-  currency:      '0003',
-  damageType:    '0004',
-  language:      '0005',
-  magicSchool:   '0006',
-  passive:       '0007',
-  rarity:        '0008',
-  sense:         '0009',
-  skill:         '000a',
-  speed:         '000b',
-  terrain:       '000c',
+  alignment:       '0001',
+  conditionType:   '0002',
+  currency:        '0003',
+  damageType:      '0004',
+  language:        '0005',
+  magicSchool:     '0006',
+  passive:         '0007',
+  rarity:          '0008',
+  sense:           '0009',
+  skill:           '000a',
+  speed:           '000b',
+  terrain:         '000c',
+  challengeRating: '000d',
+  creatureType:    '000e',
 } as const
 
 // ─── Alignments ───────────────────────────────────────────────────────────────
@@ -203,6 +205,64 @@ export const SRD_TERRAINS = [
   { id: vocabId(D.terrain, 10), code: 'URBAN',        label: 'Urban' },
 ]
 
+// ─── Challenge Ratings ────────────────────────────────────────────────────────
+
+export const SRD_CHALLENGE_RATINGS = [
+  { id: vocabId(D.challengeRating,  1), code: 'CR_0',   label: '0',    short: 'CR 0',    description: '0 XP' },
+  { id: vocabId(D.challengeRating,  2), code: 'CR_1_8', label: '1/8',  short: 'CR 1/8',  description: '25 XP' },
+  { id: vocabId(D.challengeRating,  3), code: 'CR_1_4', label: '1/4',  short: 'CR 1/4',  description: '50 XP' },
+  { id: vocabId(D.challengeRating,  4), code: 'CR_1_2', label: '1/2',  short: 'CR 1/2',  description: '100 XP' },
+  { id: vocabId(D.challengeRating,  5), code: 'CR_1',   label: '1',    short: 'CR 1',    description: '200 XP' },
+  { id: vocabId(D.challengeRating,  6), code: 'CR_2',   label: '2',    short: 'CR 2',    description: '450 XP' },
+  { id: vocabId(D.challengeRating,  7), code: 'CR_3',   label: '3',    short: 'CR 3',    description: '700 XP' },
+  { id: vocabId(D.challengeRating,  8), code: 'CR_4',   label: '4',    short: 'CR 4',    description: '1100 XP' },
+  { id: vocabId(D.challengeRating,  9), code: 'CR_5',   label: '5',    short: 'CR 5',    description: '1800 XP' },
+  { id: vocabId(D.challengeRating, 10), code: 'CR_6',   label: '6',    short: 'CR 6',    description: '2300 XP' },
+  { id: vocabId(D.challengeRating, 11), code: 'CR_7',   label: '7',    short: 'CR 7',    description: '2900 XP' },
+  { id: vocabId(D.challengeRating, 12), code: 'CR_8',   label: '8',    short: 'CR 8',    description: '3900 XP' },
+  { id: vocabId(D.challengeRating, 13), code: 'CR_9',   label: '9',    short: 'CR 9',    description: '5000 XP' },
+  { id: vocabId(D.challengeRating, 14), code: 'CR_10',  label: '10',   short: 'CR 10',   description: '5900 XP' },
+  { id: vocabId(D.challengeRating, 15), code: 'CR_11',  label: '11',   short: 'CR 11',   description: '7200 XP' },
+  { id: vocabId(D.challengeRating, 16), code: 'CR_12',  label: '12',   short: 'CR 12',   description: '8400 XP' },
+  { id: vocabId(D.challengeRating, 17), code: 'CR_13',  label: '13',   short: 'CR 13',   description: '10000 XP' },
+  { id: vocabId(D.challengeRating, 18), code: 'CR_14',  label: '14',   short: 'CR 14',   description: '11500 XP' },
+  { id: vocabId(D.challengeRating, 19), code: 'CR_15',  label: '15',   short: 'CR 15',   description: '13000 XP' },
+  { id: vocabId(D.challengeRating, 20), code: 'CR_16',  label: '16',   short: 'CR 16',   description: '15000 XP' },
+  { id: vocabId(D.challengeRating, 21), code: 'CR_17',  label: '17',   short: 'CR 17',   description: '18000 XP' },
+  { id: vocabId(D.challengeRating, 22), code: 'CR_18',  label: '18',   short: 'CR 18',   description: '20000 XP' },
+  { id: vocabId(D.challengeRating, 23), code: 'CR_19',  label: '19',   short: 'CR 19',   description: '22000 XP' },
+  { id: vocabId(D.challengeRating, 24), code: 'CR_20',  label: '20',   short: 'CR 20',   description: '25000 XP' },
+  { id: vocabId(D.challengeRating, 25), code: 'CR_21',  label: '21',   short: 'CR 21',   description: '33000 XP' },
+  { id: vocabId(D.challengeRating, 26), code: 'CR_22',  label: '22',   short: 'CR 22',   description: '41000 XP' },
+  { id: vocabId(D.challengeRating, 27), code: 'CR_23',  label: '23',   short: 'CR 23',   description: '50000 XP' },
+  { id: vocabId(D.challengeRating, 28), code: 'CR_24',  label: '24',   short: 'CR 24',   description: '62000 XP' },
+  { id: vocabId(D.challengeRating, 29), code: 'CR_25',  label: '25',   short: 'CR 25',   description: '75000 XP' },
+  { id: vocabId(D.challengeRating, 30), code: 'CR_26',  label: '26',   short: 'CR 26',   description: '90000 XP' },
+  { id: vocabId(D.challengeRating, 31), code: 'CR_27',  label: '27',   short: 'CR 27',   description: '105000 XP' },
+  { id: vocabId(D.challengeRating, 32), code: 'CR_28',  label: '28',   short: 'CR 28',   description: '120000 XP' },
+  { id: vocabId(D.challengeRating, 33), code: 'CR_29',  label: '29',   short: 'CR 29',   description: '135000 XP' },
+  { id: vocabId(D.challengeRating, 34), code: 'CR_30',  label: '30',   short: 'CR 30',   description: '155000 XP' },
+]
+
+// ─── Creature Types ───────────────────────────────────────────────────────────
+
+export const SRD_CREATURE_TYPES = [
+  { id: vocabId(D.creatureType,  1), code: 'ABERRATION',   label: 'Aberration',   description: 'Utterly alien beings from beyond the known planes.' },
+  { id: vocabId(D.creatureType,  2), code: 'BEAST',        label: 'Beast',        description: 'Nonhumanoid creatures that are a natural part of the fantasy ecology.' },
+  { id: vocabId(D.creatureType,  3), code: 'CELESTIAL',    label: 'Celestial',    description: 'Creatures native to the Upper Planes.' },
+  { id: vocabId(D.creatureType,  4), code: 'CONSTRUCT',    label: 'Construct',    description: 'Made, not born — programmed or imbued with purpose.' },
+  { id: vocabId(D.creatureType,  5), code: 'DRAGON',       label: 'Dragon',       description: 'Large reptilian creatures of ancient origin and tremendous power.' },
+  { id: vocabId(D.creatureType,  6), code: 'ELEMENTAL',    label: 'Elemental',    description: 'Creatures native to the elemental planes.' },
+  { id: vocabId(D.creatureType,  7), code: 'FEY',          label: 'Fey',          description: 'Magical creatures closely tied to the forces of nature.' },
+  { id: vocabId(D.creatureType,  8), code: 'FIEND',        label: 'Fiend',        description: 'Wicked creatures from the Lower Planes.' },
+  { id: vocabId(D.creatureType,  9), code: 'GIANT',        label: 'Giant',        description: 'Humanlike creatures that tower over humanoids.' },
+  { id: vocabId(D.creatureType, 10), code: 'HUMANOID',     label: 'Humanoid',     description: 'The main peoples of the D&D world, both civilized and savage.' },
+  { id: vocabId(D.creatureType, 11), code: 'MONSTROSITY',  label: 'Monstrosity',  description: 'Frightening creatures that are not natural and almost never benign.' },
+  { id: vocabId(D.creatureType, 12), code: 'OOZE',         label: 'Ooze',         description: 'Gelatinous creatures that rarely have a fixed shape.' },
+  { id: vocabId(D.creatureType, 13), code: 'PLANT',        label: 'Plant',        description: 'Vegetable creatures, not ordinary flora.' },
+  { id: vocabId(D.creatureType, 14), code: 'UNDEAD',       label: 'Undead',       description: 'Once-living creatures brought to undeath through necromancy or unholy curse.' },
+]
+
 // ─── Full system record ───────────────────────────────────────────────────────
 
 export const srdSystemRecord: SystemSeedRecord = {
@@ -210,9 +270,11 @@ export const srdSystemRecord: SystemSeedRecord = {
   label: 'D&D 5e SRD 5.1',
   description: 'Baseline SRD content bundle for Artificer Toolkit.',
   userId: SRD_USER_ID,
-  alignments:    SRD_ALIGNMENTS,
-  conditionTypes: SRD_CONDITION_TYPES,
-  currencies:    SRD_CURRENCIES,
+  alignments:      SRD_ALIGNMENTS,
+  challengeRatings: SRD_CHALLENGE_RATINGS,
+  conditionTypes:  SRD_CONDITION_TYPES,
+  creatureTypes:   SRD_CREATURE_TYPES,
+  currencies:      SRD_CURRENCIES,
   damageTypes:   SRD_DAMAGE_TYPES,
   languages:     SRD_LANGUAGES,
   magicSchools:  SRD_MAGIC_SCHOOLS,

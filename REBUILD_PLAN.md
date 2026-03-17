@@ -68,8 +68,10 @@ Package responsibilities stay as-is during the backend rebuild. Physical renames
 6. Phase 5 - Server/application layer reorganization
 7. Phase 6 - Character engine kernel (complete)
 8. Phase 6.5 - Character lifecycle + full engine architecture
-9. Phase 7 - API transport stabilization and validation
-10. Phase 8 - Frontend rewrite
+9. Phase 7 - API transport stabilization and validation (complete)
+10. Phase 7.6 - SRD master data population + E2E test
+11. Phase 7.5 - New subject types (creature + vehicle)
+12. Phase 8 - Frontend rewrite + Condition/Play State
 
 ## Phase Status Tracker
 
@@ -83,8 +85,10 @@ Package responsibilities stay as-is during the backend rebuild. Physical renames
 | Phase 5 - Server/application layer reorganization | Complete | Services layer with write+read pipelines for subjects/grants/features; repositories wired into read path; list queries rewritten against current DB schema; 11 dead fragment files deleted; POST routes and handleAuthoringRequest added; all exit criteria met |
 | Phase 6 - Character engine kernel | Complete | `RulesSystem` interface + `dnd5e2014` impl; grant accumulation → modifier stacking → derived stat pipeline; 36 engine tests pass; `packages/shared` and `packages/functions` typecheck clean |
 | Phase 6.5 - Character lifecycle + full engine | Complete | Engine kernel moved to `packages/shared`; armor-aware AC; spell slot resolver (single + multiclass fusion); class resource resolver; `CharacterBuildState` + `CharacterEvent` union (14 types, full dice history); 10 command DTOs + handlers; `snapshotBuilder`, `contentAccess`; `character_events` SQL + repository; 40 engine tests pass; all 4 packages typecheck clean. Deferred: `lifecycleService` DB wiring, `CharacterHistoryView`, full `resolvePendingChoices` impl, `character_events` Supabase migration, `CompiledPrerequisite` on feat compiler. See `PHASE_6_5_ENGINE_SUBPLAN.md` |
-| Phase 7 - API transport stabilization and validation | Pending | Can begin. Phase 6.5 command layer and read models are in place. Wire `lifecycleService` to DB as first Phase 7 act before adding new API routes. Phase 7 must also cover condition/exhaustion tracking: a `character_play_state` table with `conditions: Array<{ conditionTypeId, level? }>`, `ConditionAppliedEvent`/`ConditionRemovedEvent` in a separate play-event union (not the build-event union), and the engine accepting optional `activeConditions` alongside `CharacterBuildSnapshot` for combat-time sheet resolution with stacking exhaustion penalties. Vocabulary (`EXHAUSTION` + all 15 conditions) and PENALTY additive stacking are already in place from Phase 6. |
-| Phase 8 - Frontend rewrite | Pending | Starts only after backend/API phases are stable |
+| Phase 7 - API transport stabilization and validation | Complete | `CharacterLifecycleService` + `CharacterRepository`; `build_state`/`stream_version` columns on `characters`; `character_events` Supabase migration; Zod validation on all routes (character commands + content writes); 5 character API routes. See `PHASE_7_API_WEB_SUBPLAN.md`. |
+| Phase 7.6 - SRD master data population + E2E test | Pending | Populate SRD baseline bundle (races, classes, subclasses, backgrounds, spells, feats, equipment) as full authored TypeScript source data. Culminates in Vitest E2E integration test: seed → create Fighter → level → engine → assert sheet. See `PHASE_7_6_SRD_SEED_SUBPLAN.md`. |
+| Phase 7.5 - New subject types (creature + vehicle) | Complete | Creature + vehicle now ship as first-class authored subjects across shared/schema/db/functions/apis, the additive Supabase migration has been applied, DB types regenerated, `yarn build:all` is clean, and `yarn test:db` passes at 22 files / 168 tests. See `PHASE_7_5_SUBJECTS_SUBPLAN.md`. |
+| Phase 8 - Frontend rewrite + Condition/Play State | Pending | Starts only after backend/API phases are stable. Scope includes: condition/exhaustion tracking (`character_play_state` table, play-event union separate from build events, engine `activeConditions` input for combat-time sheet resolution with stacking PENALTY modifiers); vocabulary (`EXHAUSTION` + all 15 conditions) and PENALTY additive stacking are already in place from Phase 6. |
 
 ## Guiding Principles
 

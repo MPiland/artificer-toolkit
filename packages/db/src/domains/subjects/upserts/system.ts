@@ -3,7 +3,9 @@ import type { SystemSeedRecord } from '../../../source-data/content.js'
 
 type VocabularyTableName
   = | 'alignments'
+    | 'challenge_ratings'
     | 'condition_types'
+    | 'creature_types'
     | 'currencies'
     | 'damage_types'
     | 'languages'
@@ -99,7 +101,9 @@ export async function upsertSystem(
     .execute()
 
   await replaceSystemVocabulary(db, 'alignments', json_data.id, mapVocabularyRows(json_data.id, json_data.alignments))
+  await replaceSystemVocabulary(db, 'challenge_ratings', json_data.id, mapVocabularyRows(json_data.id, json_data.challengeRatings))
   await replaceSystemVocabulary(db, 'condition_types', json_data.id, mapVocabularyRows(json_data.id, json_data.conditionTypes))
+  await replaceSystemVocabulary(db, 'creature_types', json_data.id, mapVocabularyRows(json_data.id, json_data.creatureTypes))
   await replaceSystemVocabulary(db, 'currencies', json_data.id, mapVocabularyRows(json_data.id, json_data.currencies))
   await replaceSystemVocabulary(db, 'damage_types', json_data.id, mapVocabularyRows(json_data.id, json_data.damageTypes))
   await replaceSystemVocabulary(db, 'languages', json_data.id, mapVocabularyRows(json_data.id, json_data.languages))
