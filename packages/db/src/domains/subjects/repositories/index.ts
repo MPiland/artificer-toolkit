@@ -1,4 +1,5 @@
 export * from './background.js'
+export * from './characterEvent.js'
 export * from './class.js'
 export * from './equipment.js'
 export * from './feat.js'
