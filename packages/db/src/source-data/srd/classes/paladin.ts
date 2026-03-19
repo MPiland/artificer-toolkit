@@ -1,0 +1,438 @@
+import {
+  ABILITY_CODE,
+  AUTHORING_MODE_KIND,
+  AUTHORING_SELECTION_KIND,
+  CLASS_ATTRIBUTE,
+  CLASS_CATEGORY,
+  GRANT_KIND,
+  PROFICIENCY_KIND,
+  SCALING,
+  SCALING_AMOUNT_KIND,
+  SPELLCASTING_ATTRIBUTE,
+  type ClassAuthored
+} from '@artificer-toolkit/shared'
+import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
+import {
+  SRD_CURRENCIES,
+  SRD_SKILLS,
+  SRD_SYSTEM_ID,
+  SRD_USER_ID
+} from '../vocabulary.js'
+
+function skillId(code: string): string {
+  const entry = SRD_SKILLS.find((s) => s.code === code)
+  if (!entry) throw new Error(`SRD skill vocabulary entry for ${code} required.`)
+  return entry.id
+}
+
+const goldCurrencyId = SRD_CURRENCIES.find((c) => c.code === 'GP')?.id
+if (!goldCurrencyId) throw new Error('SRD GP currency required.')
+
+function classRowId(classIndex: number, group: number, entry: number): string {
+  const xx = classIndex.toString(16).padStart(2, '0')
+  const gg = group.toString(16).padStart(2, '0')
+  const nn = entry.toString(16).padStart(2, '0')
+  return `00000000-0000-0000-c0${xx}-${gg}${nn}00000000`
+}
+
+const P = 7 // Paladin class index
+
+// Paladin spell slot charge — half caster (starts L2), resets on long rest
+const paladinSlotCharge = {
+  id: classRowId(P, 1, 1),
+  limitKind: 'FIXED_AMOUNT' as const,
+  scalingKind: SCALING.PER_LEVEL,
+  resetKind: 'LONG_REST' as const,
+  levels: [
+    { id: classRowId(P, 1, 2), level: 2, amount: 2 },
+    { id: classRowId(P, 1, 3), level: 3, amount: 3 },
+    { id: classRowId(P, 1, 4), level: 4, amount: 3 },
+    { id: classRowId(P, 1, 5), level: 5, amount: 4 },
+    { id: classRowId(P, 1, 6), level: 6, amount: 4 },
+    { id: classRowId(P, 1, 7), level: 7, amount: 4 },
+    { id: classRowId(P, 1, 8), level: 8, amount: 4 },
+    { id: classRowId(P, 1, 9), level: 9, amount: 4 },
+    { id: classRowId(P, 1, 10), level: 10, amount: 4 },
+    { id: classRowId(P, 1, 11), level: 11, amount: 5 },
+    { id: classRowId(P, 1, 12), level: 12, amount: 5 },
+    { id: classRowId(P, 1, 13), level: 13, amount: 5 },
+    { id: classRowId(P, 1, 14), level: 14, amount: 5 },
+    { id: classRowId(P, 1, 15), level: 15, amount: 5 },
+    { id: classRowId(P, 1, 16), level: 16, amount: 5 },
+    { id: classRowId(P, 1, 17), level: 17, amount: 5 },
+    { id: classRowId(P, 1, 18), level: 18, amount: 5 },
+    { id: classRowId(P, 1, 19), level: 19, amount: 5 },
+    { id: classRowId(P, 1, 20), level: 20, amount: 5 }
+  ]
+}
+
+const paladinSpellLimits = [
+  { classLevel: 2, slots: [{ spellLevel: 1, slotCount: 2 }] },
+  { classLevel: 3, slots: [{ spellLevel: 1, slotCount: 3 }] },
+  { classLevel: 4, slots: [{ spellLevel: 1, slotCount: 3 }] },
+  { classLevel: 5, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 2 }] },
+  { classLevel: 6, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 2 }] },
+  { classLevel: 7, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }] },
+  { classLevel: 8, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }] },
+  { classLevel: 9, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 2 }] },
+  { classLevel: 10, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 2 }] },
+  { classLevel: 11, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }] },
+  { classLevel: 12, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }] },
+  { classLevel: 13, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 1 }] },
+  { classLevel: 14, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 1 }] },
+  { classLevel: 15, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 2 }] },
+  { classLevel: 16, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 2 }] },
+  { classLevel: 17, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 1 }] },
+  { classLevel: 18, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 1 }] },
+  { classLevel: 19, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 2 }] },
+  { classLevel: 20, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 2 }] }
+]
+
+export const paladin: ClassAuthored = {
+  id: CLASS_IDS.PALADIN,
+  label: 'Paladin',
+  category: CLASS_CATEGORY.BASE,
+  attributes: [CLASS_ATTRIBUTE.SPELLCASTER],
+  description: 'A holy warrior bound to a sacred oath.',
+  userId: SRD_USER_ID,
+  systemId: SRD_SYSTEM_ID,
+
+  hitpoint: {
+    ability: ABILITY_CODE.CONSTITUTION,
+    dieConfig: 'd10'
+  },
+
+  startingGold: {
+    multiplier: 10,
+    currencyId: goldCurrencyId,
+    dieConfig: '5d4'
+  },
+
+  multiclass: {
+    id: classRowId(P, 99, 1),
+    requirementGroups: {
+      groups: [
+        {
+          id: classRowId(P, 99, 2),
+          requirements: [
+            { id: classRowId(P, 99, 3), ability: ABILITY_CODE.STRENGTH, min: 13 },
+            { id: classRowId(P, 99, 4), ability: ABILITY_CODE.CHARISMA, min: 13 }
+          ]
+        }
+      ]
+    },
+    proficiencies: [
+      {
+        id: classRowId(P, 99, 5),
+        grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+        proficiencyKind: PROFICIENCY_KIND.EQUIPMENT_PROPERTY,
+        level: SCALING_AMOUNT_KIND.FULL,
+        selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+        scalingKind: SCALING.NONE,
+        authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+        properties: ['LIGHT', 'MEDIUM'],
+        category: 'ARMOR',
+        order: 0
+      }
+    ]
+  },
+
+  startingEquipment: {
+    id: classRowId(P, 98, 1),
+    sets: []
+  },
+
+  spellcasting: {
+    ability: ABILITY_CODE.CHARISMA,
+    maxSpellLevel: 5,
+    attributes: [SPELLCASTING_ATTRIBUTE.PREPARES_SPELLS],
+    charges: paladinSlotCharge,
+    spellLimits: paladinSpellLimits
+  },
+
+  proficiencies: [
+    // All armor
+    {
+      id: classRowId(P, 2, 1),
+      grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+      proficiencyKind: PROFICIENCY_KIND.EQUIPMENT_PROPERTY,
+      level: SCALING_AMOUNT_KIND.FULL,
+      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+      scalingKind: SCALING.NONE,
+      authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+      properties: ['LIGHT', 'MEDIUM', 'HEAVY'],
+      category: 'ARMOR',
+      order: 0
+    },
+    // Shields
+    {
+      id: classRowId(P, 2, 2),
+      grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+      proficiencyKind: PROFICIENCY_KIND.EQUIPMENT_PROPERTY,
+      level: SCALING_AMOUNT_KIND.FULL,
+      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+      scalingKind: SCALING.NONE,
+      authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+      properties: ['SHIELD'],
+      category: 'ARMOR',
+      order: 1
+    },
+    // Simple weapons
+    {
+      id: classRowId(P, 2, 3),
+      grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+      proficiencyKind: PROFICIENCY_KIND.EQUIPMENT_PROPERTY,
+      level: SCALING_AMOUNT_KIND.FULL,
+      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+      scalingKind: SCALING.NONE,
+      authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+      properties: ['SIMPLE'],
+      category: 'WEAPON',
+      order: 2
+    },
+    // Martial weapons
+    {
+      id: classRowId(P, 2, 4),
+      grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+      proficiencyKind: PROFICIENCY_KIND.EQUIPMENT_PROPERTY,
+      level: SCALING_AMOUNT_KIND.FULL,
+      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+      scalingKind: SCALING.NONE,
+      authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+      properties: ['MARTIAL'],
+      category: 'WEAPON',
+      order: 3
+    },
+    // Saving throws: WIS, CHA
+    {
+      id: classRowId(P, 2, 5),
+      grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+      proficiencyKind: PROFICIENCY_KIND.SAVE_ABILITY,
+      level: SCALING_AMOUNT_KIND.FULL,
+      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+      scalingKind: SCALING.NONE,
+      authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+      abilities: [ABILITY_CODE.WISDOM, ABILITY_CODE.CHARISMA],
+      order: 4
+    },
+    // Skills: choose 2 from Athletics, Insight, Intimidation, Medicine, Persuasion, Religion
+    {
+      id: classRowId(P, 2, 6),
+      grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+      proficiencyKind: PROFICIENCY_KIND.SKILL,
+      level: SCALING_AMOUNT_KIND.FULL,
+      selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+      scalingKind: SCALING.NONE,
+      count: 2,
+      authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+      skillIds: [
+        skillId('ATHLETICS'),
+        skillId('INSIGHT'),
+        skillId('INTIMIDATION'),
+        skillId('MEDICINE'),
+        skillId('PERSUASION'),
+        skillId('RELIGION')
+      ],
+      order: 5
+    }
+  ],
+
+  features: [
+    {
+      id: classRowId(P, 3, 1),
+      label: 'Divine Sense',
+      description: 'The presence of strong evil registers on your senses like a noxious odor, and powerful good rings like heavenly music in your ears. As an action, you open your awareness to detect such forces.',
+      availableAtLevel: 1,
+      order: 0
+    },
+    {
+      id: classRowId(P, 3, 2),
+      label: 'Lay on Hands',
+      description: 'Your blessed touch can heal wounds. You have a pool of healing power that replenishes when you take a long rest. With that pool, you can restore a total number of hit points equal to your paladin level × 5.',
+      availableAtLevel: 1,
+      order: 1
+    },
+    {
+      id: classRowId(P, 3, 3),
+      label: 'Fighting Style',
+      description: 'At 2nd level, you adopt a style of fighting as your specialty. Choose from Defense, Dueling, Great Weapon Fighting, or Protection.',
+      availableAtLevel: 2,
+      order: 2
+    },
+    {
+      id: classRowId(P, 3, 4),
+      label: 'Spellcasting',
+      description: 'By 2nd level, you have learned to draw on divine magic through meditation and prayer to cast spells as a cleric does.',
+      availableAtLevel: 2,
+      order: 3
+    },
+    {
+      id: classRowId(P, 3, 5),
+      label: 'Divine Smite',
+      description: 'Starting at 2nd level, when you hit a creature with a melee weapon attack, you can expend one spell slot to deal radiant damage to the target, in addition to the weapon\'s damage.',
+      availableAtLevel: 2,
+      order: 4
+    },
+    {
+      id: classRowId(P, 3, 6),
+      label: 'Divine Health',
+      description: 'By 3rd level, the divine magic flowing through you makes you immune to disease.',
+      availableAtLevel: 3,
+      order: 5
+    },
+    {
+      id: classRowId(P, 3, 7),
+      label: 'Sacred Oath',
+      description: 'When you reach 3rd level, you swear the oath that binds you as a paladin forever.',
+      availableAtLevel: 3,
+      order: 6
+    },
+    {
+      id: classRowId(P, 3, 8),
+      label: 'Ability Score Improvement',
+      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      availableAtLevel: 4,
+      order: 7
+    },
+    {
+      id: classRowId(P, 3, 9),
+      label: 'Extra Attack',
+      description: 'Beginning at 5th level, you can attack twice, instead of once, whenever you take the Attack action on your turn.',
+      availableAtLevel: 5,
+      order: 8
+    },
+    {
+      id: classRowId(P, 3, 10),
+      label: 'Aura of Protection',
+      description: 'Starting at 6th level, whenever you or a friendly creature within 10 feet of you must make a saving throw, the creature gains a bonus to the saving throw equal to your Charisma modifier (with a minimum bonus of +1).',
+      availableAtLevel: 6,
+      order: 9
+    },
+    {
+      id: classRowId(P, 3, 11),
+      label: 'Sacred Oath Feature',
+      description: 'At 7th level, you gain a feature from your Sacred Oath.',
+      availableAtLevel: 7,
+      order: 10
+    },
+    {
+      id: classRowId(P, 3, 12),
+      label: 'Ability Score Improvement',
+      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      availableAtLevel: 8,
+      order: 11
+    },
+    {
+      id: classRowId(P, 3, 13),
+      label: 'Aura of Courage',
+      description: 'Starting at 10th level, you and friendly creatures within 10 feet of you can\'t be frightened while you are conscious.',
+      availableAtLevel: 10,
+      order: 12
+    },
+    {
+      id: classRowId(P, 3, 14),
+      label: 'Improved Divine Smite',
+      description: 'By 11th level, you are so suffused with righteous might that all your melee weapon strikes carry divine power with them. Whenever you hit a creature with a melee weapon, the creature takes an extra 1d8 radiant damage.',
+      availableAtLevel: 11,
+      order: 13
+    },
+    {
+      id: classRowId(P, 3, 15),
+      label: 'Ability Score Improvement',
+      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      availableAtLevel: 12,
+      order: 14
+    },
+    {
+      id: classRowId(P, 3, 16),
+      label: 'Cleansing Touch',
+      description: 'Beginning at 14th level, you can use your action to end one spell on yourself or on one willing creature that you touch.',
+      availableAtLevel: 14,
+      order: 15
+    },
+    {
+      id: classRowId(P, 3, 17),
+      label: 'Sacred Oath Feature',
+      description: 'At 15th level, you gain a feature from your Sacred Oath.',
+      availableAtLevel: 15,
+      order: 16
+    },
+    {
+      id: classRowId(P, 3, 18),
+      label: 'Ability Score Improvement',
+      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      availableAtLevel: 16,
+      order: 17
+    },
+    {
+      id: classRowId(P, 3, 19),
+      label: 'Sacred Oath Feature',
+      description: 'At 20th level, you gain a feature from your Sacred Oath.',
+      availableAtLevel: 20,
+      order: 18
+    },
+    {
+      id: classRowId(P, 3, 20),
+      label: 'Ability Score Improvement',
+      description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
+      availableAtLevel: 19,
+      order: 19
+    }
+  ]
+}
+
+// ─── Oath of Devotion Subclass ────────────────────────────────────────────────
+
+export const devotion: ClassAuthored = {
+  id: SUBCLASS_IDS.DEVOTION,
+  label: 'Oath of Devotion',
+  category: CLASS_CATEGORY.SUBCLASS,
+  parentClassId: CLASS_IDS.PALADIN,
+  description: 'The Oath of Devotion binds a paladin to the loftiest ideals of justice, virtue, and order.',
+  userId: SRD_USER_ID,
+  systemId: SRD_SYSTEM_ID,
+  features: [
+    {
+      id: classRowId(P, 11, 1),
+      label: 'Oath Spells',
+      description: 'You gain oath spells at the paladin levels listed. Protection from Evil and Good, Sanctuary (L3); Lesser Restoration, Zone of Truth (L5); Beacon of Hope, Dispel Magic (L9); Freedom of Movement, Guardian of Faith (L13); Commune, Flame Strike (L17).',
+      availableAtLevel: 3,
+      order: 0
+    },
+    {
+      id: classRowId(P, 11, 2),
+      label: 'Channel Divinity: Sacred Weapon',
+      description: 'As an action, you can imbue one weapon that you are holding with positive energy, using your Channel Divinity. For 1 minute, you add your Charisma modifier to attack rolls made with that weapon.',
+      availableAtLevel: 3,
+      order: 1
+    },
+    {
+      id: classRowId(P, 11, 3),
+      label: 'Channel Divinity: Turn the Unholy',
+      description: 'As an action, you present your holy symbol and speak a prayer censuring fiends and undead, using your Channel Divinity. Each fiend or undead that can see or hear you within 30 feet of you must make a Wisdom saving throw.',
+      availableAtLevel: 3,
+      order: 2
+    },
+    {
+      id: classRowId(P, 11, 4),
+      label: 'Aura of Devotion',
+      description: 'Starting at 7th level, you and friendly creatures within 10 feet of you can\'t be charmed while you are conscious.',
+      availableAtLevel: 7,
+      order: 3
+    },
+    {
+      id: classRowId(P, 11, 5),
+      label: 'Purity of Spirit',
+      description: 'Beginning at 15th level, you are always under the effects of a Protection from Evil and Good spell.',
+      availableAtLevel: 15,
+      order: 4
+    },
+    {
+      id: classRowId(P, 11, 6),
+      label: 'Holy Nimbus',
+      description: 'At 20th level, as an action, you can emanate an aura of sunlight. For 1 minute, bright light shines from you in a 30-foot radius, and dim light shines 30 feet beyond that.',
+      availableAtLevel: 20,
+      order: 5
+    }
+  ]
+}

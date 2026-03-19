@@ -6,7 +6,7 @@ const duration = buildNodeMap<DurationAuthored>()
 
 export const DURATION_NODE_MAP = duration.define('duration', ({ map, nodes, cond, logic }) => {
   const local = cond.local()
-  const { not } = logic
+  const { and, not } = logic
 
   const { selectSingle, number } = nodes
 
@@ -17,6 +17,9 @@ export const DURATION_NODE_MAP = duration.define('duration', ({ map, nodes, cond
     }))
     .set('amount', number(['amount'], 'Amount', {
       order: 2,
-      showIf: not(local.field(['durationKind']).eq('INSTANTANEOUS'))
+      showIf: and([
+        not(local.field(['durationKind']).eq('INSTANTANEOUS')),
+        not(local.field(['durationKind']).eq('UNTIL_DISPELLED'))
+      ])
     }))
 })

@@ -57,6 +57,9 @@ describe('createSpellRepository', () => {
           magic_school_id: 'evocation',
           casting_time_unit: 'ROUND',
           casting_time_amount: 1,
+          range_id: null,
+          duration_id: null,
+          at_higher_levels: null,
           material_description: 'A sliver of glass.'
         }
       ],
@@ -81,10 +84,13 @@ describe('createSpellRepository', () => {
         unit: 'ROUND',
         amount: 1
       },
+      range: undefined,
+      duration: undefined,
       level: 1,
       classIds: ['sorcerer', 'wizard'],
       magicSchoolId: 'evocation',
       effects: undefined,
+      atHigherLevels: undefined,
       materialDescription: 'A sliver of glass.',
       userId: 'user-1',
       systemId: 'system-1'
@@ -104,6 +110,9 @@ describe('createSpellRepository', () => {
           magic_school_id: 'evocation',
           casting_time_unit: 'ROUND',
           casting_time_amount: 1,
+          range_id: null,
+          duration_id: null,
+          at_higher_levels: null,
           material_description: null
         }
       ],
@@ -122,10 +131,13 @@ describe('createSpellRepository', () => {
         unit: 'ROUND',
         amount: 1
       },
+      range: undefined,
+      duration: undefined,
       level: 0,
       classIds: [],
       magicSchoolId: 'evocation',
       effects: undefined,
+      atHigherLevels: undefined,
       materialDescription: undefined,
       userId: 'user-1',
       systemId: 'system-1'
@@ -145,9 +157,21 @@ describe('createSpellRepository', () => {
         unit: 'ROUND',
         amount: 1
       },
+      range: {
+        id: 'spell-range-root-1',
+        rangeKind: 'DISTANCE',
+        amount: 150,
+        unit: 'FEET'
+      },
+      duration: {
+        id: 'spell-duration-root-1',
+        durationKind: 'ROUND',
+        amount: 10
+      },
       level: 1,
       classIds: ['wizard'],
       magicSchoolId: 'evocation',
+      atHigherLevels: 'When you cast this spell using a spell slot of 2nd level or higher, the damage increases.',
       effects: [
         {
           id: 'spell-effect-1',
@@ -165,17 +189,31 @@ describe('createSpellRepository', () => {
               unit: 'FEET'
             }
           },
-          moments: [
+          branches: [
             {
-              id: 'spell-moment-1',
-              moment: 'ON_HIT',
+              id: 'spell-BRANCH-1',
+              branch: 'ON_HIT',
               groupType: 'SINGLE',
               resolutionKind: 'DIRECT',
               effectKind: 'DAMAGE',
               damageTypeId: 'fire',
               valueKind: 'DICE',
-              scalingKind: 'NONE',
-              diceConfig: '3d6'
+              scalingKind: 'PER_LEVEL',
+              scalingSource: 'SPELL_CAST_LEVEL',
+              levels: [
+                {
+                  id: 'spell-BRANCH-1-level-1',
+                  level: 1,
+                  order: 1,
+                  diceConfig: '3d6'
+                },
+                {
+                  id: 'spell-BRANCH-1-level-2',
+                  level: 2,
+                  order: 2,
+                  diceConfig: '4d6'
+                }
+              ]
             }
           ]
         }
@@ -194,9 +232,21 @@ describe('createSpellRepository', () => {
         unit: 'ROUND',
         amount: 1
       },
+      range: {
+        id: 'spell-range-root-1',
+        rangeKind: 'DISTANCE',
+        amount: 150,
+        unit: 'FEET'
+      },
+      duration: {
+        id: 'spell-duration-root-1',
+        durationKind: 'ROUND',
+        amount: 10
+      },
       level: 1,
       classIds: ['wizard'],
       magicSchoolId: 'evocation',
+      atHigherLevels: 'When you cast this spell using a spell slot of 2nd level or higher, the damage increases.',
       effects: [
         {
           id: 'spell-effect-1',
@@ -215,18 +265,32 @@ describe('createSpellRepository', () => {
             },
             shape: undefined
           },
-          moments: [
+          branches: [
             {
-              id: 'spell-moment-1',
-              moment: 'ON_HIT',
+              id: 'spell-BRANCH-1',
+              branch: 'ON_HIT',
               groupType: 'SINGLE',
               resolutionKind: 'DIRECT',
               duration: undefined,
               effectKind: 'DAMAGE',
               damageTypeId: 'fire',
               valueKind: 'DICE',
-              scalingKind: 'NONE',
-              diceConfig: '3d6',
+              scalingKind: 'PER_LEVEL',
+              scalingSource: 'SPELL_CAST_LEVEL',
+              levels: [
+                {
+                  id: 'spell-BRANCH-1-level-1',
+                  level: 1,
+                  order: 1,
+                  diceConfig: '3d6'
+                },
+                {
+                  id: 'spell-BRANCH-1-level-2',
+                  level: 2,
+                  order: 2,
+                  diceConfig: '4d6'
+                }
+              ],
               bonuses: undefined
             }
           ]
@@ -251,6 +315,9 @@ describe('createSpellRepository', () => {
           magic_school_id: 'evocation',
           casting_time_unit: 'DAY',
           casting_time_amount: 1,
+          range_id: null,
+          duration_id: null,
+          at_higher_levels: null,
           material_description: null
         }
       ],

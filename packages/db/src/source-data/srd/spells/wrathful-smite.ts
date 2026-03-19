@@ -1,0 +1,70 @@
+import {
+  ACTIVATION_CODE,
+  BRANCH,
+  BRANCH_GROUP_TYPE,
+  BRANCH_RESOLUTION_KIND,
+  CASTING_TIME_UNIT_CODE,
+  DURATION_KIND,
+  EFFECT_KIND,
+  RANGE_KIND,
+  SPELL_ATTRIBUTE,
+  SUBJECT,
+  TARGET_SELECTION_KIND,
+  TRIGGER,
+  type SpellAuthored
+} from '@artificer-toolkit/shared'
+import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+
+export const wrathfulSmite: SpellAuthored = {
+  kind: SUBJECT.SPELL,
+  id: SPELL_IDS.WRATHFUL_SMITE,
+  label: 'Wrathful Smite',
+  description:
+    'The next time you hit with a melee weapon attack during this spell’s duration, your attack deals extra psychic damage, and the target must make a Wisdom saving throw or become frightened of you until the spell ends.',
+  castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
+  level: 1,
+  classIds: [CLASS_IDS.PALADIN],
+  magicSchoolId: schoolId('EVOCATION'),
+  attributes: [SPELL_ATTRIBUTE.CONCENTRATION],
+  capabilities: [
+    {
+      id: spellChildId(SPELL_IDS.WRATHFUL_SMITE, 0x210, 1),
+      order: 1,
+      invocation: {
+        triggerCode: TRIGGER.ACTIVATED,
+        activation: {
+          code: ACTIVATION_CODE.BONUS_ACTION,
+          amount: 1
+        },
+        range: {
+          id: spellChildId(SPELL_IDS.WRATHFUL_SMITE, 0x211, 1),
+          rangeKind: RANGE_KIND.SELF
+        },
+        targeting: {
+          selectionKind: TARGET_SELECTION_KIND.SELF,
+          detail: 'Empower your next melee weapon attack.'
+        }
+      },
+      branches: [
+        {
+          id: spellChildId(SPELL_IDS.WRATHFUL_SMITE, 0x212, 1),
+          branch: BRANCH.ON_USE,
+          groupType: BRANCH_GROUP_TYPE.SINGLE,
+          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
+          duration: {
+            id: spellChildId(SPELL_IDS.WRATHFUL_SMITE, 0x213, 1),
+            durationKind: DURATION_KIND.MINUTE,
+            amount: 1
+          },
+          effectKind: EFFECT_KIND.RULE,
+          label: 'Wrathful Smite',
+          description:
+            'Empowers the next melee weapon hit to deal extra psychic damage and frighten the target on a failed save.'
+        }
+      ]
+    }
+  ],
+  userId: SRD_USER_ID,
+  systemId: SRD_SYSTEM_ID
+}

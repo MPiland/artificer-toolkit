@@ -11,6 +11,7 @@ export const VALUE_DOMAIN_CODE = {
   DAMAGE: 'DAMAGE',
   CONDITION: 'CONDITION',
   HIT_POINTS_MAX: 'HIT_POINTS_MAX',
+  TEMPORARY_HIT_POINTS: 'TEMPORARY_HIT_POINTS',
   RANGE: 'RANGE',
   DURATION: 'DURATION',
   SHAPE: 'SHAPE',
@@ -67,6 +68,14 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     tooltip: 'The character\'s maximum health.',
     description:
       'Determines the maximum number of hit points the character can have.'
+  },
+
+  [VALUE_DOMAIN_CODE.TEMPORARY_HIT_POINTS]: {
+    code: VALUE_DOMAIN_CODE.TEMPORARY_HIT_POINTS,
+    label: 'Temporary Hit Points',
+    tooltip: 'Temporary hit points granted by spells, features, or equipment.',
+    description:
+      'Represents temporary hit points that absorb damage before normal hit points are lost.'
   },
 
   [VALUE_DOMAIN_CODE.ARMOR_CLASS]: {

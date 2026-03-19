@@ -1,0 +1,1 @@
+export { fiend as theFiend } from './warlock.js'

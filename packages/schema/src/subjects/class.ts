@@ -39,7 +39,7 @@ const classBaseDtoSchema = z.object({
   systemId: z.string()
 })
 
-export const parentClassAuthoredDtoSchema = classBaseDtoSchema.extend({
+const parentClassAuthoredDtoSchemaRaw = classBaseDtoSchema.extend({
   category: z.literal('BASE'),
   attributes: z.array(z.string()).optional(),
   startingGold: classStartingGoldDtoSchema,
@@ -48,16 +48,24 @@ export const parentClassAuthoredDtoSchema = classBaseDtoSchema.extend({
   multiclass: classMulticlassDtoSchema
 })
 
-export const subclassAuthoredDtoSchema = classBaseDtoSchema.extend({
+const subclassAuthoredDtoSchemaRaw = classBaseDtoSchema.extend({
   category: z.literal('SUBCLASS'),
   attributes: z.array(z.string()).optional(),
   parentClassId: z.string(),
   subtypes: z.array(classSubtypeDtoSchema).optional()
 })
 
-export const classAuthoredDtoSchema = z.union([
-  parentClassAuthoredDtoSchema,
-  subclassAuthoredDtoSchema
+const classAuthoredDtoSchemaRaw: z.ZodTypeAny = z.union([
+  parentClassAuthoredDtoSchemaRaw,
+  subclassAuthoredDtoSchemaRaw
 ])
 
-export type ClassAuthoredDto = z.infer<typeof classAuthoredDtoSchema>
+export type ParentClassAuthoredDto = z.infer<typeof parentClassAuthoredDtoSchemaRaw>
+export type SubclassAuthoredDto = z.infer<typeof subclassAuthoredDtoSchemaRaw>
+export type ClassAuthoredDto = ParentClassAuthoredDto | SubclassAuthoredDto
+const parentClassAuthoredDtoSchemaBase: z.ZodTypeAny = parentClassAuthoredDtoSchemaRaw
+const subclassAuthoredDtoSchemaBase: z.ZodTypeAny = subclassAuthoredDtoSchemaRaw
+const classAuthoredDtoSchemaBase: z.ZodTypeAny = classAuthoredDtoSchemaRaw
+export const parentClassAuthoredDtoSchema = parentClassAuthoredDtoSchemaBase
+export const subclassAuthoredDtoSchema = subclassAuthoredDtoSchemaBase
+export const classAuthoredDtoSchema = classAuthoredDtoSchemaBase

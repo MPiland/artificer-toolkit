@@ -6,9 +6,9 @@ import {
   type CompiledSenseGrant,
   type CompiledSpellGrant,
   type CompiledCharge,
-  type CompiledEffectGroup,
+  type CompiledCapabilityGroup,
   compileCharge,
-  compileEffect,
+  compileCapability,
   compileFeatGrant,
   compileSpellGrant,
   compileSenseGrant,
@@ -20,7 +20,7 @@ import type { FeatureAttribute } from '#core'
 export type CompiledFeatureBase = {
   id: string
   attributes?: FeatureAttribute[]
-  effects?: CompiledEffectGroup[]
+  capabilities?: CompiledCapabilityGroup[]
   charges?: CompiledCharge
   feats?: CompiledFeatGrant[]
   modifiers?: CompiledModifierGrant[]
@@ -33,8 +33,8 @@ export type CompiledFeatureBase = {
 export function compileFeatureBase(authored: FeatureBaseAuthored): CompiledFeatureBase {
   const charges = authored.charges ? compileCharge(authored.charges) : undefined
 
-  const effects = authored.effects?.length
-    ? authored.effects.map(compileEffect)
+  const capabilities = (authored.capabilities ?? authored.effects)?.length
+    ? (authored.capabilities ?? authored.effects)?.map(compileCapability)
     : undefined
 
   const feats = authored.grants?.feats?.length
@@ -59,7 +59,7 @@ export function compileFeatureBase(authored: FeatureBaseAuthored): CompiledFeatu
   return {
     id: authored.id,
     attributes: authored.attributes,
-    effects,
+    capabilities,
     charges,
     feats,
     modifiers,

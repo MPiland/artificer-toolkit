@@ -8,6 +8,10 @@ export const durationDtoSchema = z.union([
   }),
   z.object({
     id: z.string(),
+    durationKind: z.literal(durationKindSchema.enum.UNTIL_DISPELLED)
+  }),
+  z.object({
+    id: z.string(),
     durationKind: z.enum([
       durationKindSchema.enum.TURN,
       durationKindSchema.enum.ROUND,

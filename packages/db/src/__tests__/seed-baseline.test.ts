@@ -87,10 +87,12 @@ describe('seedBaselineContent', () => {
       subjects: {
         backgrounds: [],
         classes: [],
+        creatures: [],
         equipment: [],
         feats: [],
         races: [],
-        spells: []
+        spells: [],
+        vehicles: []
       }
     })
 
@@ -141,10 +143,12 @@ describe('seedBaselineContent', () => {
       subjects: {
         backgrounds: [],
         classes: [],
+        creatures: [],
         equipment: [],
         feats: [],
         races: [],
-        spells: []
+        spells: [],
+        vehicles: []
       }
     })
 

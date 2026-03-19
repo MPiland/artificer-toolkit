@@ -575,6 +575,10 @@ export class InMemoryDb {
         this.deleteWhere('facet_predicate_feature_items', 'facet_condition_id', row.id)
         this.deleteWhere('facet_predicate_option_items', 'facet_condition_id', row.id)
         this.deleteWhere('facet_predicate_equipment_items', 'facet_condition_id', row.id)
+        this.deleteWhere('facet_predicate_creature_record_kind_items', 'facet_condition_id', row.id)
+        this.deleteWhere('facet_predicate_creature_category_items', 'facet_condition_id', row.id)
+        this.deleteWhere('facet_predicate_vehicle_category_items', 'facet_condition_id', row.id)
+        this.deleteWhere('facet_predicate_creature_type_items', 'facet_condition_id', row.id)
         break
 
       case 'option_modifier_grants':

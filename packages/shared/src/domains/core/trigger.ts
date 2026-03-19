@@ -2,6 +2,7 @@ import type { CoreMeta } from './core.js'
 import { valuesOf } from '#utils'
 
 export const TRIGGER = {
+  ACTIVATED: 'ACTIVATED',
   MELEE_WEAPON_ATTACK: 'MELEE_WEAPON_ATTACK',
   RANGED_WEAPON_ATTACK: 'RANGED_WEAPON_ATTACK',
   UNARMED_ATTACK: 'UNARMED_ATTACK',
@@ -15,6 +16,13 @@ export type Trigger = keyof typeof TRIGGER
 export type TriggerOption = CoreMeta<Trigger>
 
 export const TRIGGER_REGISTRY: Record<Trigger, TriggerOption> = {
+  ACTIVATED: {
+    code: TRIGGER.ACTIVATED,
+    label: 'Activated',
+    description: 'Indicates an activated capability that resolves when the source uses it.',
+    tooltip: 'Activated capability.'
+  },
+
   MELEE_WEAPON_ATTACK: {
     code: TRIGGER.MELEE_WEAPON_ATTACK,
     label: 'Melee Weapon Attack',

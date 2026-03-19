@@ -1,0 +1,73 @@
+import {
+  ACTIVATION_CODE,
+  BRANCH,
+  BRANCH_GROUP_TYPE,
+  BRANCH_RESOLUTION_KIND,
+  CASTING_TIME_UNIT_CODE,
+  EFFECT_KIND,
+  MEASUREMENT_UNIT_CODE,
+  RANGE_KIND,
+  SUBJECT,
+  TARGET_SELECTION_KIND,
+  TRIGGER,
+  type SpellAuthored
+} from '@artificer-toolkit/shared'
+import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { SRD_MAGIC_SCHOOLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import { spellChildId } from './shared.js'
+
+function schoolId(code: string): string {
+  const entry = SRD_MAGIC_SCHOOLS.find((s) => s.code === code)
+  if (!entry) throw new Error(`SRD magic school vocabulary entry for ${code} required for spell source data.`)
+  return entry.id
+}
+
+export const creation: SpellAuthored = {
+  kind: SUBJECT.SPELL,
+  id: SPELL_IDS.CREATION,
+  label: 'Creation',
+  description:
+    'You pull wisps of shadow material from the Shadowfell to create a nonliving object of vegetable matter within range: soft goods, rope, wood, or something similar.',
+  castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
+  level: 5,
+  classIds: [CLASS_IDS.SORCERER, CLASS_IDS.WIZARD],
+  magicSchoolId: schoolId('ILLUSION'),
+  materialDescription: 'a tiny piece of matter of the same type of item you plan to create',
+  capabilities: [
+    {
+      id: spellChildId(SPELL_IDS.CREATION, 0x210, 1),
+      order: 1,
+      invocation: {
+        triggerCode: TRIGGER.ACTIVATED,
+        activation: {
+          code: ACTIVATION_CODE.ACTION,
+          amount: 1
+        },
+        range: {
+          id: spellChildId(SPELL_IDS.CREATION, 0x211, 1),
+          rangeKind: RANGE_KIND.DISTANCE,
+          amount: 30,
+          unit: MEASUREMENT_UNIT_CODE.FEET
+        },
+        targeting: {
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
+          detail: 'Choose the space where the object appears within range.'
+        }
+      },
+      branches: [
+        {
+          id: spellChildId(SPELL_IDS.CREATION, 0x212, 1),
+          branch: BRANCH.ON_USE,
+          groupType: BRANCH_GROUP_TYPE.SINGLE,
+          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
+          effectKind: EFFECT_KIND.RULE,
+          label: 'Creation',
+          description:
+            'Creates a nonliving object of vegetable matter whose exact duration and size depend on the material created.'
+        }
+      ]
+    }
+  ],
+  userId: SRD_USER_ID,
+  systemId: SRD_SYSTEM_ID
+}

@@ -1,4 +1,14 @@
 import { describe, expect, it } from 'vitest'
+import {
+  ACTIVATION_CODE,
+  EFFECT_KIND,
+  BRANCH,
+  BRANCH_GROUP_TYPE,
+  BRANCH_RESOLUTION_KIND,
+  RANGE_KIND,
+  TRIGGER
+} from '@artificer-toolkit/shared'
+import { upsertEffect } from '../domains/effects/upserts/effect.js'
 import { upsertFeature } from '../domains/features/upserts/feature.js'
 import { upsertOption } from '../domains/features/upserts/option.js'
 import { upsertBackground } from '../domains/subjects/upserts/background.js'
@@ -17,6 +27,35 @@ import { upsertStartingEquipment } from '../domains/shared/upserts/starting_equi
 import { InMemoryDb } from './helpers/in-memory-db.js'
 
 describe('unsupported authored branches fail loudly', () => {
+  it('rejects unsupported effect outcome kinds until DB persistence is expanded', async () => {
+    await expect(upsertEffect(new InMemoryDb() as never, {
+      id: 'effect-unsupported-heal',
+      order: 1,
+      invocation: {
+        triggerCode: TRIGGER.SPELL_ATTACK,
+        activation: {
+          code: ACTIVATION_CODE.ACTION,
+          amount: 1
+        },
+        range: {
+          id: 'range-unsupported-heal',
+          rangeKind: RANGE_KIND.TOUCH
+        }
+      },
+      branches: [
+        {
+          id: 'BRANCH-unsupported-heal',
+          branch: BRANCH.ON_HIT,
+          groupType: BRANCH_GROUP_TYPE.SINGLE,
+          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
+          effectKind: EFFECT_KIND.HEAL,
+          valueKind: 'DICE',
+          diceConfig: '1d8'
+        }
+      ]
+    } as never)).rejects.toThrow('DB persistence currently supports only DAMAGE and CONDITION branches')
+  })
+
   it('rejects feature restrictions that use invalid proficiency-grant relation target selections', async () => {
     await expect(upsertFeature(new InMemoryDb() as never, {
       id: 'feature-invalid-relation-target',

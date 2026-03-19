@@ -104,6 +104,67 @@ describe('createVehicleRepository', () => {
     })
   })
 
+  it('hydrates an SRD-style logistics vehicle with only category, speed, and cost fields', async () => {
+    const repo = createVehicleRepository(createFakeDb({
+      vehicles: [
+        {
+          id: 'vehicle-3',
+          system_id: 'system-1',
+          user_id: 'user-1',
+          label: 'Keelboat',
+          description: null,
+          category: 'WATER',
+          size_code: null,
+          armor_class: null,
+          hit_points: null,
+          speed: null,
+          speed_note: '1 mph',
+          crew_min: null,
+          crew_max: null,
+          passenger_capacity: null,
+          cargo_capacity: null,
+          cost: { amount: 3000, currencyId: 'gp' },
+          properties: null
+        }
+      ],
+      vehicle_details: [],
+      vehicle_features: [],
+      details: [],
+      features: [],
+      feature_effects: [],
+      feature_attributes: [],
+      feature_feat_grants: [],
+      feature_modifier_grants: [],
+      feature_proficiency_grants: [],
+      feature_sense_grants: [],
+      feature_spell_grants: [],
+      feature_options: [],
+      feature_option_levels: []
+    }) as never)
+
+    await expect(repo.findById('vehicle-3')).resolves.toEqual({
+      id: 'vehicle-3',
+      label: 'Keelboat',
+      description: undefined,
+      details: undefined,
+      userId: 'user-1',
+      systemId: 'system-1',
+      category: 'WATER',
+      size: undefined,
+      armorClass: undefined,
+      hitPoints: undefined,
+      speed: undefined,
+      speedNote: '1 mph',
+      crewMin: undefined,
+      crewMax: undefined,
+      passengerCapacity: undefined,
+      cargoCapacity: undefined,
+      cost: { amount: 3000, currencyId: 'gp' },
+      properties: undefined,
+      features: undefined
+    })
+  })
+
   it('hydrates a spelljammer with details, features, and optional fields', async () => {
     const repo = createVehicleRepository(createFakeDb({
       vehicles: [

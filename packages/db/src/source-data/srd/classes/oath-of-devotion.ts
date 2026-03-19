@@ -1,0 +1,1 @@
+export { devotion as oathOfDevotion } from './paladin.js'

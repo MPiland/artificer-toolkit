@@ -1,7 +1,7 @@
 import { FEATURE_ATTRIBUTE_OPTIONS } from '#core'
 import { buildNodeMap } from '#utils'
 import type { FeatureAuthored, FeatureOptionChoice } from '#authored'
-import { EFFECT_NODE_MAP, CHARGE_NODE_MAP, FACET_NODE_MAP, FEATURE_GRANTS_NODE_MAP } from '#maps'
+import { CAPABILITY_NODE_MAP, CHARGE_NODE_MAP, FACET_NODE_MAP, FEATURE_GRANTS_NODE_MAP } from '#maps'
 import { OPTION_NODE_MAP } from './option.js'
 
 const optionChoice = buildNodeMap<FeatureOptionChoice>()
@@ -30,7 +30,7 @@ export const FEATURE_NODE_MAP = feature.define('feature', ({ map, nodes, cond })
       options: FEATURE_ATTRIBUTE_OPTIONS
     }))
     .set('detail', text(['detail'], 'Detail'))
-    .set('effects', groupArray(['effects'], 'Effects', () => EFFECT_NODE_MAP))
+    .set('capabilities', groupArray(['capabilities'], 'Capabilities', () => CAPABILITY_NODE_MAP))
     .set('charges', groupObject(['charges'], 'Charges', () => CHARGE_NODE_MAP, {
       showIf: local.field(['attributes']).contains(['LIMITED_USE'])
     }))

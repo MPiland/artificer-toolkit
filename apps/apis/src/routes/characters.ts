@@ -141,5 +141,11 @@ export const getCharacterHistory = handleRequest(
     const events = await createCharacterEventRepository(db).listByCharacter(characterId)
     return buildCharacterHistoryView(events)
   },
-  (req: Request) => [extractId(req)] as [string]
+  (req: Request) => {
+    const url = new URL(req.url)
+    const segments = url.pathname.split('/').filter(Boolean)
+    const historyIdx = segments.lastIndexOf('history')
+    const characterId = historyIdx > 0 ? segments[historyIdx - 1] : extractId(req)
+    return [characterId] as [string]
+  }
 )

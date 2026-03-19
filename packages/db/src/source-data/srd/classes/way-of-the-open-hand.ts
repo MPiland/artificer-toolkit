@@ -1,0 +1,1 @@
+export { openHand as wayOfTheOpenHand } from './monk.js'

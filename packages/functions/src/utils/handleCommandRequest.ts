@@ -64,6 +64,14 @@ export function handleCommandRequest<TCommand extends { expectedVersion: number 
 
       const command = parsed.data
 
+      // Guard: body characterId (if present) must match the URL-derived characterId
+      if ('characterId' in command && (command as Record<string, unknown>).characterId !== characterId) {
+        return new Response(
+          JSON.stringify({ error: 'characterId in body does not match URL' }),
+          { status: 422, headers: { 'Content-Type': 'application/json' } }
+        )
+      }
+
       // 4. Dispatch inside RLS session
       const db = createDb()
       try {

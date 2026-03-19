@@ -1,0 +1,5 @@
+export {
+  ACTIVATION_NODE_MAP,
+  INVOCATION_NODE_MAP,
+  EFFECT_NODE_MAP as CAPABILITY_NODE_MAP
+} from './effect.js'

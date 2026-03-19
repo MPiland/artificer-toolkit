@@ -1,0 +1,1 @@
+export { evocationSchool as schoolOfEvocation } from './wizard.js'

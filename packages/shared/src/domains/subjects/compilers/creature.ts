@@ -6,6 +6,8 @@ import type {
   CreatureLegendaryProfile,
   CreatureMountProfile,
   CreatureNpcProfile,
+  LogisticsCreatureAuthored,
+  StatBlockCreatureAuthored,
 } from '#authored'
 import type { AbilityCode, SizeCode } from '#core'
 import {
@@ -15,8 +17,6 @@ import {
   type CompiledSpeed,
 } from '#compilers'
 
-// ─── Compiled action ──────────────────────────────────────────────────────────
-
 export interface CompiledCreatureAction {
   id: string
   label: string
@@ -25,8 +25,6 @@ export interface CompiledCreatureAction {
   damage?: string
   recharge?: string
 }
-
-// ─── Compiled profiles ────────────────────────────────────────────────────────
 
 export interface CompiledCreatureLegendaryProfile {
   legendaryResistanceCount?: number
@@ -59,21 +57,29 @@ export interface CompiledCreatureNpcProfile {
   personalityTraits?: string[]
 }
 
-// ─── Compiled creature ────────────────────────────────────────────────────────
-
-export interface CompiledCreature {
+export interface CompiledCreatureBase {
   id: string
+  recordKind: CreatureAuthored['recordKind']
   category: string
-  creatureTypeId: string
-  size: SizeCode
+  creatureTypeId?: string
+  size?: SizeCode
   alignmentId?: string
   tags?: string[]
+  speeds: CompiledSpeed[]
+  features?: CompiledFeature[]
+  mountProfile?: CompiledCreatureMountProfile
+  companionProfile?: CompiledCreatureCompanionProfile
+}
+
+export interface CompiledStatBlockCreature extends CompiledCreatureBase {
+  recordKind: 'STAT_BLOCK'
+  creatureTypeId: string
+  size: SizeCode
   abilityScores: Record<AbilityCode, number>
   armorClass: number
   armorClassNote?: string
   hitPoints: number
   hitDice?: string
-  speeds: CompiledSpeed[]
   senses?: string[]
   passivePerception?: number
   savingThrowProficiencies?: AbilityCode[]
@@ -88,15 +94,19 @@ export interface CompiledCreature {
   actions?: CompiledCreatureAction[]
   bonusActions?: CompiledCreatureAction[]
   reactions?: CompiledCreatureAction[]
-  features?: CompiledFeature[]
   legendaryProfile?: CompiledCreatureLegendaryProfile
   lairProfile?: CompiledCreatureLairProfile
-  mountProfile?: CompiledCreatureMountProfile
-  companionProfile?: CompiledCreatureCompanionProfile
   npcProfile?: CompiledCreatureNpcProfile
 }
 
-// ─── Compile helpers ──────────────────────────────────────────────────────────
+export interface CompiledLogisticsCreature extends CompiledCreatureBase {
+  recordKind: 'LOGISTICS'
+  cost?: LogisticsCreatureAuthored['cost']
+  carryingCapacity?: LogisticsCreatureAuthored['carryingCapacity']
+  logisticsNotes?: string[]
+}
+
+export type CompiledCreature = CompiledStatBlockCreature | CompiledLogisticsCreature
 
 function compileAction(authored: CreatureActionAuthored): CompiledCreatureAction {
   return {
@@ -154,22 +164,39 @@ function compileNpcProfile(authored: CreatureNpcProfile): CompiledCreatureNpcPro
   }
 }
 
-// ─── Main compile function ────────────────────────────────────────────────────
-
-export function compileCreature(authored: CreatureAuthored): CompiledCreature {
+function compileBase(
+  authored: CreatureAuthored
+): CompiledCreatureBase {
   return {
     id: authored.id,
+    recordKind: authored.recordKind,
     category: authored.category,
     creatureTypeId: authored.creatureTypeId,
     size: authored.size,
     alignmentId: authored.alignmentId,
     tags: authored.tags,
+    speeds: authored.speeds.map(compileSpeed),
+    features: authored.features?.map(compileFeature),
+    mountProfile: authored.mountProfile
+      ? compileMountProfile(authored.mountProfile)
+      : undefined,
+    companionProfile: authored.companionProfile
+      ? compileCompanionProfile(authored.companionProfile)
+      : undefined,
+  }
+}
+
+function compileStatBlockCreature(authored: StatBlockCreatureAuthored): CompiledStatBlockCreature {
+  return {
+    ...compileBase(authored),
+    recordKind: 'STAT_BLOCK',
+    creatureTypeId: authored.creatureTypeId,
+    size: authored.size,
     abilityScores: authored.abilityScores,
     armorClass: authored.armorClass,
     armorClassNote: authored.armorClassNote,
     hitPoints: authored.hitPoints,
     hitDice: authored.hitDice,
-    speeds: authored.speeds.map(compileSpeed),
     senses: authored.senses,
     passivePerception: authored.passivePerception,
     savingThrowProficiencies: authored.savingThrowProficiencies,
@@ -181,7 +208,6 @@ export function compileCreature(authored: CreatureAuthored): CompiledCreature {
     languages: authored.languages,
     challengeRatingId: authored.challengeRatingId,
     xp: authored.xp,
-    features: authored.features?.map(compileFeature),
     actions: authored.actions?.map(compileAction),
     bonusActions: authored.bonusActions?.map(compileAction),
     reactions: authored.reactions?.map(compileAction),
@@ -191,14 +217,26 @@ export function compileCreature(authored: CreatureAuthored): CompiledCreature {
     lairProfile: authored.lairProfile
       ? compileLairProfile(authored.lairProfile)
       : undefined,
-    mountProfile: authored.mountProfile
-      ? compileMountProfile(authored.mountProfile)
-      : undefined,
-    companionProfile: authored.companionProfile
-      ? compileCompanionProfile(authored.companionProfile)
-      : undefined,
     npcProfile: authored.npcProfile
       ? compileNpcProfile(authored.npcProfile)
       : undefined,
   }
+}
+
+function compileLogisticsCreature(authored: LogisticsCreatureAuthored): CompiledLogisticsCreature {
+  return {
+    ...compileBase(authored),
+    recordKind: 'LOGISTICS',
+    cost: authored.cost,
+    carryingCapacity: authored.carryingCapacity,
+    logisticsNotes: authored.logisticsNotes,
+  }
+}
+
+export function compileCreature(authored: CreatureAuthored): CompiledCreature {
+  if (authored.recordKind === 'LOGISTICS') {
+    return compileLogisticsCreature(authored)
+  }
+
+  return compileStatBlockCreature(authored)
 }

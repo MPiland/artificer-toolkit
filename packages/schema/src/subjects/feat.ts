@@ -6,16 +6,17 @@ import {
   senseGrantDtoSchema,
   spellGrantDtoSchema
 } from '../grants/index.js'
-import { effectDtoSchema } from '../effects/index.js'
+import { capabilityDtoSchema } from '../effects/index.js'
 import { featureDtoSchema } from '../features/index.js'
 import { chargeDtoSchema } from '../shared/index.js'
 
-export const featAuthoredDtoSchema = z.object({
+const featAuthoredDtoSchemaBase: z.ZodTypeAny = z.object({
   id: z.string(),
   label: z.string(),
   description: z.string(),
   detail: z.string().optional(),
-  effects: z.array(effectDtoSchema).optional(),
+  capabilities: z.array(capabilityDtoSchema).optional(),
+  effects: z.array(capabilityDtoSchema).optional(),
   charges: chargeDtoSchema.optional(),
   grants: z.object({
     modifiers: z.array(modifierGrantDtoSchema).optional(),
@@ -28,4 +29,5 @@ export const featAuthoredDtoSchema = z.object({
   systemId: z.string()
 })
 
-export type FeatAuthoredDto = z.infer<typeof featAuthoredDtoSchema>
+export type FeatAuthoredDto = z.infer<typeof featAuthoredDtoSchemaBase>
+export const featAuthoredDtoSchema = featAuthoredDtoSchemaBase

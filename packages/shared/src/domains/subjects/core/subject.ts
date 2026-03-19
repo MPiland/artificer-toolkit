@@ -10,6 +10,8 @@ export const SUBJECT = {
   RACE: 'RACE',
   FEAT: 'FEAT',
   CLASS: 'CLASS',
+  CREATURE: 'CREATURE',
+  VEHICLE: 'VEHICLE',
   CHARACTER: 'CHARACTER',
   BACKGROUND: 'BACKGROUND'
 } as const
@@ -60,6 +62,20 @@ export const SUBJECT_REGISTRY: SubjectRegistry = {
     label: 'Class',
     tooltip: 'A character class.',
     description: 'Represents class-level features and resources.'
+  },
+
+  CREATURE: {
+    code: SUBJECT.CREATURE,
+    label: 'Creature',
+    tooltip: 'A creature or companion record.',
+    description: 'Represents master creature records, including monsters, mounts, and companions.'
+  },
+
+  VEHICLE: {
+    code: SUBJECT.VEHICLE,
+    label: 'Vehicle',
+    tooltip: 'A vehicle record.',
+    description: 'Represents master vehicle records such as carts, boats, and ships.'
   },
 
   CHARACTER: {

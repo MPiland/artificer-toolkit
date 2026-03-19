@@ -56,11 +56,13 @@ export function evaluateEntryPrerequisite(
       if (actual >= min) return { passed: true, failedRequirements: [] }
       return {
         passed: false,
-        failedRequirements: [{
-          description: prerequisite.description,
-          required: String(min),
-          actual: String(actual),
-        }],
+        failedRequirements: [
+          {
+            description: prerequisite.description,
+            required: String(min),
+            actual: String(actual)
+          }
+        ]
       }
     }
     case 'CLASS_LEVEL': {

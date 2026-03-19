@@ -5,6 +5,7 @@ export const RANGE_KIND = {
   SELF: 'SELF',
   TOUCH: 'TOUCH',
   SIGHT: 'SIGHT',
+  SPECIAL: 'SPECIAL',
   UNLIMITED: 'UNLIMITED',
   DISTANCE: 'DISTANCE'
 } as const
@@ -31,6 +32,12 @@ export const RANGE_REGISTRY: Record<RangeKind, RangeOption> = {
     label: 'Sight',
     description: 'The target must be within the source\'s line of sight.',
     tooltip: 'Within sight.'
+  },
+  [RANGE_KIND.SPECIAL]: {
+    code: RANGE_KIND.SPECIAL,
+    label: 'Special',
+    description: 'The effect uses special range rules that are defined by its own text.',
+    tooltip: 'Defined by special rules.'
   },
   [RANGE_KIND.UNLIMITED]: {
     code: RANGE_KIND.UNLIMITED,

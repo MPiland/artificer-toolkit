@@ -157,6 +157,13 @@ export const SRD_SENSES = [
   { id: vocabId(D.sense, 4), code: 'TRUESIGHT',        label: 'Truesight',        description: 'A creature with truesight can see in normal and magical darkness, see invisible creatures and objects, automatically detect visual illusions, and see into the Ethereal Plane.' },
 ]
 
+// Named sense ID helpers — consumed by races.ts, creatures.ts, and anywhere
+// a sense grant needs to reference a vocabulary sense ID.
+export const SRD_DARKVISION_SENSE_ID  = SRD_SENSES.find((s) => s.code === 'DARKVISION')!.id
+export const SRD_BLINDSIGHT_SENSE_ID  = SRD_SENSES.find((s) => s.code === 'BLINDSIGHT')!.id
+export const SRD_TREMORSENSE_SENSE_ID = SRD_SENSES.find((s) => s.code === 'TREMORSENSE')!.id
+export const SRD_TRUESIGHT_SENSE_ID   = SRD_SENSES.find((s) => s.code === 'TRUESIGHT')!.id
+
 // ─── Skills ───────────────────────────────────────────────────────────────────
 
 export const SRD_SKILLS = [

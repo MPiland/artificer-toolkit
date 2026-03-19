@@ -5,6 +5,7 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { deleteEffectById, upsertEffect } from '../../effects/upserts/index.js'
+import { upsertDuration, upsertRange } from '../../shared/upserts/index.js'
 
 type SpellRow = {
   id: string
@@ -16,6 +17,9 @@ type SpellRow = {
   magic_school_id: string
   casting_time_unit: string
   casting_time_amount: number
+  range_id: string | null
+  duration_id: string | null
+  at_higher_levels: string | null
   material_description: string | null
 }
 
@@ -63,8 +67,19 @@ function mapSpellRow(json_data: SpellAuthored): SpellRow {
     magic_school_id: json_data.magicSchoolId,
     casting_time_unit: requireCastingTimeUnit(json_data.id, json_data.castingTime.unit),
     casting_time_amount: json_data.castingTime.amount,
+    range_id: json_data.range?.id ?? null,
+    duration_id: json_data.duration?.id ?? null,
+    at_higher_levels: json_data.atHigherLevels ?? null,
     material_description: json_data.materialDescription ?? null
   }
+}
+
+async function deleteCharacteristicById(db: DBLike, id: string): Promise<void> {
+  await db.deleteFrom('characteristic_shape_dimensions').where('characteristic_id', '=', id).execute()
+  await db.deleteFrom('characteristic_shapes').where('characteristic_id', '=', id).execute()
+  await db.deleteFrom('characteristic_ranges').where('characteristic_id', '=', id).execute()
+  await db.deleteFrom('characteristic_durations').where('characteristic_id', '=', id).execute()
+  await db.deleteFrom('characteristics').where('id', '=', id).execute()
 }
 
 export async function upsertSpell(
@@ -92,11 +107,26 @@ export async function upsertSpell(
   const trx = await db.startTransaction().execute()
 
   try {
-    const previousEffectRows = await trx
-      .selectFrom('spell_effects')
-      .select(['effect_id'])
-      .where('spell_id', '=', json_data.id)
-      .execute()
+    const [previousSpellRow, previousEffectRows] = await Promise.all([
+      trx
+        .selectFrom('spells')
+        .select(['range_id', 'duration_id'])
+        .where('id', '=', json_data.id)
+        .executeTakeFirst(),
+      trx
+        .selectFrom('spell_effects')
+        .select(['effect_id'])
+        .where('spell_id', '=', json_data.id)
+        .execute()
+    ])
+
+    if (json_data.range) {
+      await upsertRange(trx, json_data.range)
+    }
+
+    if (json_data.duration) {
+      await upsertDuration(trx, json_data.duration)
+    }
 
     for (const effect of json_data.effects ?? []) {
       await upsertEffect(trx, effect)
@@ -114,9 +144,20 @@ export async function upsertSpell(
         magic_school_id: ref('excluded.magic_school_id'),
         casting_time_unit: ref('excluded.casting_time_unit'),
         casting_time_amount: ref('excluded.casting_time_amount'),
+        range_id: ref('excluded.range_id'),
+        duration_id: ref('excluded.duration_id'),
+        at_higher_levels: ref('excluded.at_higher_levels'),
         material_description: ref('excluded.material_description')
       })))
       .execute()
+
+    if (previousSpellRow?.range_id && previousSpellRow.range_id !== json_data.range?.id) {
+      await deleteCharacteristicById(trx, previousSpellRow.range_id)
+    }
+
+    if (previousSpellRow?.duration_id && previousSpellRow.duration_id !== json_data.duration?.id) {
+      await deleteCharacteristicById(trx, previousSpellRow.duration_id)
+    }
 
     await trx
       .deleteFrom('spell_attributes')

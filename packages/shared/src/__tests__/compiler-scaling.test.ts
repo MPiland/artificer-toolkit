@@ -9,10 +9,10 @@ import {
   CHARGE_RESET_KIND,
   EFFECT_KIND,
   GRANT_KIND,
-  MOMENT,
-  MOMENT_GROUP_TYPE,
-  MOMENT_RESOLUTION_KIND,
-  MOMENT_ROLL_TABLE_KIND,
+  BRANCH,
+  BRANCH_GROUP_TYPE,
+  BRANCH_RESOLUTION_KIND,
+  BRANCH_ROLL_TABLE_KIND,
   RANGE_KIND,
   SCALING,
   SCALING_SOURCE,
@@ -363,13 +363,13 @@ describe('shared compiler scaling', () => {
           rangeKind: RANGE_KIND.SELF
         }
       },
-      moments: [
+      branches: [
         {
           id: 'potion-side-effects-table',
-          moment: MOMENT.PASSIVE,
-          groupType: MOMENT_GROUP_TYPE.SINGLE,
-          resolutionKind: MOMENT_RESOLUTION_KIND.ROLL_TABLE,
-          rollTableKind: MOMENT_ROLL_TABLE_KIND.EXACT,
+          branch: BRANCH.PASSIVE,
+          groupType: BRANCH_GROUP_TYPE.SINGLE,
+          resolutionKind: BRANCH_RESOLUTION_KIND.ROLL_TABLE,
+          rollTableKind: BRANCH_ROLL_TABLE_KIND.EXACT,
           dieConfig: 'd6',
           table: [
             {
@@ -398,9 +398,9 @@ describe('shared compiler scaling', () => {
     expect(result.value).toEqual([
       {
         id: 'slowed',
-        moment: MOMENT.PASSIVE,
-        resolutionKind: MOMENT_RESOLUTION_KIND.ROLL_TABLE,
-        rollTableKind: MOMENT_ROLL_TABLE_KIND.EXACT,
+        branch: BRANCH.PASSIVE,
+        resolutionKind: BRANCH_RESOLUTION_KIND.ROLL_TABLE,
+        rollTableKind: BRANCH_ROLL_TABLE_KIND.EXACT,
         die: 'd6',
         rollValue: 1,
         outcome: {
@@ -413,9 +413,9 @@ describe('shared compiler scaling', () => {
       },
       {
         id: 'poisoned',
-        moment: MOMENT.PASSIVE,
-        resolutionKind: MOMENT_RESOLUTION_KIND.ROLL_TABLE,
-        rollTableKind: MOMENT_ROLL_TABLE_KIND.EXACT,
+        branch: BRANCH.PASSIVE,
+        resolutionKind: BRANCH_RESOLUTION_KIND.ROLL_TABLE,
+        rollTableKind: BRANCH_ROLL_TABLE_KIND.EXACT,
         die: 'd6',
         rollValue: 2,
         outcome: {
@@ -427,5 +427,220 @@ describe('shared compiler scaling', () => {
         duration: undefined
       }
     ])
+  })
+
+  it('compiles non-damage capability outcomes like apply-grant and rule without flattening them away', () => {
+    const result = compileEffectResult({
+      id: 'shield-capability',
+      order: 1,
+      invocation: {
+        triggerCode: TRIGGER.SPELL_ATTACK,
+        activation: { code: ACTIVATION_CODE.REACTION, amount: 1 },
+        range: {
+          id: 'shield-self',
+          rangeKind: RANGE_KIND.SELF
+        }
+      },
+      branches: [
+        {
+          id: 'shield-buff',
+          branch: BRANCH.ON_CAST,
+          groupType: BRANCH_GROUP_TYPE.SINGLE,
+          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
+          effectKind: EFFECT_KIND.APPLY_GRANT,
+          grants: {
+            modifiers: [
+              {
+                grantKind: GRANT_KIND.MODIFIER_GRANT,
+                id: 'shield-ac',
+                order: 1,
+                selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                valueDomainCode: 'ARMOR_CLASS',
+                domain: {},
+                modifierKind: 'BONUS',
+                scope: 'GLOBAL',
+                payload: {
+                  valueKind: 'FIXED',
+                  amount: 5
+                }
+              }
+            ]
+          }
+        },
+        {
+          id: 'shield-rule',
+          branch: BRANCH.ON_CAST,
+          groupType: BRANCH_GROUP_TYPE.SINGLE,
+          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
+          effectKind: EFFECT_KIND.RULE,
+          label: 'Intercepts Magic Missile',
+          description: 'The shield blocks the magic missile spell until the start of your next turn.'
+        }
+      ]
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) {
+      throw new Error('Expected compileEffectResult to succeed')
+    }
+
+    expect(result.value).toEqual([
+      {
+        id: 'shield-buff',
+        branch: BRANCH.ON_CAST,
+        resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
+        groupKind: BRANCH_GROUP_TYPE.SINGLE,
+        outcome: {
+          id: 'shield-buff',
+          effectKind: EFFECT_KIND.APPLY_GRANT,
+          branch: BRANCH.ON_CAST,
+          groupType: BRANCH_GROUP_TYPE.SINGLE,
+          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
+          grants: {
+            modifiers: [
+              {
+                grantKind: GRANT_KIND.MODIFIER_GRANT,
+                id: 'shield-ac',
+                order: 1,
+                selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                valueDomainCode: 'ARMOR_CLASS',
+                domain: {},
+                modifierKind: 'BONUS',
+                scope: 'GLOBAL',
+                payload: {
+                  valueKind: 'FIXED',
+                  amount: 5
+                }
+              }
+            ]
+          }
+        },
+        order: 0,
+        duration: undefined
+      },
+      {
+        id: 'shield-rule',
+        branch: BRANCH.ON_CAST,
+        resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
+        groupKind: BRANCH_GROUP_TYPE.SINGLE,
+        outcome: {
+          id: 'shield-rule',
+          effectKind: EFFECT_KIND.RULE,
+          branch: BRANCH.ON_CAST,
+          groupType: BRANCH_GROUP_TYPE.SINGLE,
+          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
+          label: 'Intercepts Magic Missile',
+          description: 'The shield blocks the magic missile spell until the start of your next turn.'
+        },
+        order: 1,
+        duration: undefined
+      }
+    ])
+  })
+
+  it('preserves activated on-use healing capabilities with structured heal bonuses', () => {
+    const result = compileEffectResult({
+      id: 'second-wind-capability',
+      order: 1,
+      invocation: {
+        triggerCode: TRIGGER.ACTIVATED,
+        activation: { code: ACTIVATION_CODE.BONUS_ACTION, amount: 1 },
+        range: {
+          id: 'second-wind-range',
+          rangeKind: RANGE_KIND.SELF
+        },
+        targeting: {
+          selectionKind: 'SELF'
+        }
+      },
+      branches: [
+        {
+          id: 'second-wind-heal',
+          branch: BRANCH.ON_USE,
+          groupType: BRANCH_GROUP_TYPE.SINGLE,
+          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
+          effectKind: EFFECT_KIND.HEAL,
+          valueKind: 'DICE',
+          scalingKind: SCALING.NONE,
+          diceConfig: '1d10',
+          bonuses: [
+            {
+              id: 'second-wind-fighter-level',
+              bonusKind: 'CLASS_LEVEL',
+              classId: 'fighter',
+              order: 1
+            }
+          ]
+        }
+      ]
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) {
+      throw new Error('Expected compileEffectResult to succeed')
+    }
+
+    expect(result.value[0]).toMatchObject({
+      branch: BRANCH.ON_USE,
+      outcome: {
+        effectKind: EFFECT_KIND.HEAL,
+        bonuses: [
+          {
+            bonusKind: 'CLASS_LEVEL',
+            classId: 'fighter'
+          }
+        ]
+      }
+    })
+  })
+
+  it('compiles long-cast manifest capabilities with separate activation and casting layers', () => {
+    const result = compileEffectResult({
+      id: 'find-familiar-capability',
+      order: 1,
+      invocation: {
+        triggerCode: TRIGGER.ACTIVATED,
+        activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+        range: {
+          id: 'find-familiar-range',
+          rangeKind: RANGE_KIND.DISTANCE,
+          amount: 10,
+          unit: 'FEET'
+        },
+        targeting: {
+          selectionKind: 'AREA_CONTENTS',
+          detail: 'The familiar appears in an unoccupied space within range.'
+        }
+      },
+      branches: [
+        {
+          id: 'find-familiar-branch',
+          branch: BRANCH.ON_USE,
+          groupType: BRANCH_GROUP_TYPE.SINGLE,
+          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
+          duration: {
+            id: 'find-familiar-duration',
+            durationKind: 'UNTIL_DISPELLED'
+          },
+          effectKind: EFFECT_KIND.MANIFEST,
+          manifestKind: 'CREATURE',
+          label: 'Familiar'
+        }
+      ]
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) {
+      throw new Error('Expected compileEffectResult to succeed')
+    }
+
+    expect(result.value[0]).toMatchObject({
+      branch: BRANCH.ON_USE,
+      outcome: {
+        effectKind: EFFECT_KIND.MANIFEST,
+        manifestKind: 'CREATURE',
+        label: 'Familiar'
+      }
+    })
   })
 })

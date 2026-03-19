@@ -5,6 +5,8 @@
  * `CharacterBuildSnapshot` + `CharacterAssemblyRegistry` + `RulesSystem`.
  */
 
+import type { CompiledRange } from '../../shared/compilers/range.js'
+
 export interface EngineProficiency {
   /** PROFICIENCY_KIND value (SKILL, SAVE_ABILITY, LANGUAGE, EQUIPMENT, EQUIPMENT_PROPERTY) */
   kind: string
@@ -16,7 +18,7 @@ export interface EngineProficiency {
 
 export interface EngineSense {
   senseCode: string
-  range?: number
+  range?: CompiledRange
 }
 
 export interface EngineDerivedStats {

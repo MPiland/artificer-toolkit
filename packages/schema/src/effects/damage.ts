@@ -1,5 +1,10 @@
 import { z } from 'zod'
-import { abilityCodeSchema, scalingKindSchema, scalingSourceSchema } from '../shared/enums.js'
+import {
+  abilityCodeSchema,
+  scalingAmountKindSchema,
+  scalingKindSchema,
+  scalingSourceSchema
+} from '../shared/enums.js'
 import { levelScaledValueLevelDtoSchema } from '../shared/scaling.js'
 
 export const damageBonusDtoSchema = z.union([
@@ -103,7 +108,8 @@ export const damageDtoSchema = z.object({
   id: z.string(),
   effectKind: z.literal('DAMAGE'),
   damageTypeId: z.string(),
-  bonuses: z.array(damageBonusDtoSchema).optional()
+  bonuses: z.array(damageBonusDtoSchema).optional(),
+  amountKind: scalingAmountKindSchema.optional()
 }).and(z.union([damageFixedDtoSchema, damageDiceDtoSchema, damagePoolDtoSchema]))
 
 export type DamageDto = z.infer<typeof damageDtoSchema>

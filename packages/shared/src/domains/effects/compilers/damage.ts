@@ -98,6 +98,7 @@ export type CompiledDamageEffect<S extends ScalingSource = ScalingSource> = {
   effectKind: typeof EFFECT_KIND.DAMAGE
   damageTypeId: string
   bonuses?: CompiledDamageBonus[]
+  amountKind?: DamageAuthored['amountKind']
 } & CompiledDamageValue<S>
 
 export function compileDamageBonuses(
@@ -157,6 +158,7 @@ export function compileDamageEffect(
             damageTypeId: authored.damageTypeId,
             valueKind: DAMAGE_VALUE_KIND.FIXED,
             bonuses,
+            amountKind: authored.amountKind,
             scalingKind: SCALING.NONE,
             amount: authored.amount
           })
@@ -171,6 +173,7 @@ export function compileDamageEffect(
             valueKind: authored.valueKind,
             dice: authored.diceConfig,
             bonuses,
+            amountKind: authored.amountKind,
             scalingKind: authored.scalingKind
           })
           break
@@ -184,6 +187,7 @@ export function compileDamageEffect(
             valueKind: authored.valueKind,
             amount: authored.amount,
             bonuses,
+            amountKind: authored.amountKind,
             scalingKind: authored.scalingKind
           })
           break
@@ -237,6 +241,7 @@ export function compileDamageEffect(
               order: entry.order,
               amount: entry.amount,
               bonuses,
+              amountKind: authored.amountKind,
               scalingKind: SCALING.PER_LEVEL,
               ...scaling
             }
@@ -255,6 +260,7 @@ export function compileDamageEffect(
               order: entry.order,
               dice: entry.diceConfig,
               bonuses,
+              amountKind: authored.amountKind,
               scalingKind: SCALING.PER_LEVEL,
               ...scaling
             }
@@ -273,6 +279,7 @@ export function compileDamageEffect(
             amount: authored.amount,
             multiplier: authored.multiplier,
             bonuses,
+            amountKind: authored.amountKind,
             scalingKind: SCALING.PER_LEVEL,
             ...scaling
           })

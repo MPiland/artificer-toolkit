@@ -1,5 +1,9 @@
 import { type DamageAuthored, type DamageBonusAuthored, type DamageDicePayload, type DamageFixedPayload } from '#authored'
-import { ABILITY_OPTIONS, DAMAGE_BONUS_OPTIONS, DAMAGE_VALUE_OPTIONS } from '#core'
+import {
+  ABILITY_OPTIONS,
+  DAMAGE_BONUS_OPTIONS,
+  DAMAGE_VALUE_OPTIONS
+} from '#core'
 import { buildNodeMap } from '#utils'
 import { type AllUnionFields } from 'type-fest'
 

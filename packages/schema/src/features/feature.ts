@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { featureBaseDtoSchema } from './base.js'
+import { featureBaseDtoObject } from './base.js'
 import { featureOptionDtoSchema } from './option.js'
 
 export const featureOptionChoiceDtoSchema = z.object({
@@ -9,7 +9,7 @@ export const featureOptionChoiceDtoSchema = z.object({
   replaceCount: z.number().int().nullable().optional()
 })
 
-export const featureDtoSchema = featureBaseDtoSchema.extend({
+export const featureDtoSchema = featureBaseDtoObject.extend({
   optionChoices: z.array(featureOptionChoiceDtoSchema).optional(),
   options: z.array(featureOptionDtoSchema).optional(),
   availableAtLevel: z.number().int().optional()

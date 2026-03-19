@@ -217,7 +217,33 @@ function buildCharacter(): CharacterAuthored {
           resourceGrantId: 'resource-grant-1',
           used: 1
         }
-      ]
+      ],
+      creatures: [
+        {
+          id: 'character-creature-1',
+          creatureId: 'creature-1',
+          relationshipKind: 'MOUNT',
+          customName: 'Storm',
+          isActive: true
+        }
+      ],
+      vehicles: [
+        {
+          id: 'character-vehicle-1',
+          vehicleId: 'vehicle-1',
+          customName: 'Dawnrunner'
+        }
+      ],
+      creatureEquipment: {
+        'character-creature-1': [
+          { equipmentItemId: 'inventory-1' }
+        ]
+      },
+      vehicleEquipment: {
+        'character-vehicle-1': [
+          { equipmentItemId: 'inventory-2' }
+        ]
+      }
     }
   }
 }
@@ -265,6 +291,41 @@ describe('upsertCharacter', () => {
         text_value: null,
         number_value: null,
         boolean_value: true
+      }
+    ])
+    expect(db.snapshot('character_creatures')).toEqual([
+      {
+        id: 'character-creature-1',
+        character_id: 'character-1',
+        creature_id: 'creature-1',
+        relationship_kind: 'MOUNT',
+        custom_name: 'Storm',
+        notes: null,
+        is_active: true
+      }
+    ])
+    expect(db.snapshot('character_vehicles')).toEqual([
+      {
+        id: 'character-vehicle-1',
+        character_id: 'character-1',
+        vehicle_id: 'vehicle-1',
+        custom_name: 'Dawnrunner',
+        notes: null,
+        is_active: null
+      }
+    ])
+    expect(db.snapshot('character_creature_equipment')).toEqual([
+      {
+        character_id: 'character-1',
+        character_creature_id: 'character-creature-1',
+        equipment_id: 'inventory-1'
+      }
+    ])
+    expect(db.snapshot('character_vehicle_equipment')).toEqual([
+      {
+        character_id: 'character-1',
+        character_vehicle_id: 'character-vehicle-1',
+        equipment_id: 'inventory-2'
       }
     ])
 
@@ -347,7 +408,11 @@ describe('upsertCharacter', () => {
           hitDice: []
         },
         classes: [],
-        resources: []
+        resources: [],
+        creatures: [],
+        vehicles: [],
+        creatureEquipment: {},
+        vehicleEquipment: {}
       }
     })
 
@@ -368,6 +433,10 @@ describe('upsertCharacter', () => {
     expect(db.snapshot('character_resource_grants')).toEqual([])
     expect(db.snapshot('character_resources')).toEqual([])
     expect(db.snapshot('character_equipment')).toEqual([])
+    expect(db.snapshot('character_creatures')).toEqual([])
+    expect(db.snapshot('character_vehicles')).toEqual([])
+    expect(db.snapshot('character_creature_equipment')).toEqual([])
+    expect(db.snapshot('character_vehicle_equipment')).toEqual([])
     expect(db.snapshot('character_equipped')).toEqual([])
     expect(db.snapshot('character_attuned')).toEqual([])
     expect(db.snapshot('character_currency_groups')).toEqual([])

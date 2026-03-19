@@ -5,7 +5,7 @@ import { assertNever } from '#utils'
 export type CompiledDuration
   = {
     [K in DurationKind]:
-    K extends typeof DURATION_KIND.INSTANTANEOUS
+    K extends typeof DURATION_KIND.INSTANTANEOUS | typeof DURATION_KIND.UNTIL_DISPELLED
       ? {
           durationKind: K
         }
@@ -20,6 +20,12 @@ export function compileDuration(authored: DurationAuthored): CompiledDuration {
     case DURATION_KIND.INSTANTANEOUS: {
       return {
         durationKind: DURATION_KIND.INSTANTANEOUS
+      }
+    }
+
+    case DURATION_KIND.UNTIL_DISPELLED: {
+      return {
+        durationKind: DURATION_KIND.UNTIL_DISPELLED
       }
     }
 

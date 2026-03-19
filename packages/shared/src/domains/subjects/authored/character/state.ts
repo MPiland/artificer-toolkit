@@ -15,6 +15,27 @@ export interface CharacterEquipmentState {
   attuned: string[] // character item IDs
 }
 
+export interface CharacterOwnedCreatureState {
+  id: string
+  creatureId: string
+  relationshipKind: 'MOUNT' | 'COMPANION' | 'OWNED' | 'SUMMONED'
+  customName?: string
+  notes?: string
+  isActive?: boolean
+}
+
+export interface CharacterOwnedVehicleState {
+  id: string
+  vehicleId: string
+  customName?: string
+  notes?: string
+  isActive?: boolean
+}
+
+export interface CharacterRosterEquipmentAssignmentState {
+  equipmentItemId: string
+}
+
 export interface CharacterCurrencyAmountState {
   currencyId: string
   amount: number
@@ -75,4 +96,8 @@ export interface CharacterState {
   hitpoints: CharacterHitpointsState
   classes?: CharacterClassState[]
   resources?: CharacterResourceUsageState[]
+  creatures?: CharacterOwnedCreatureState[]
+  vehicles?: CharacterOwnedVehicleState[]
+  creatureEquipment?: Record<string, CharacterRosterEquipmentAssignmentState[]>
+  vehicleEquipment?: Record<string, CharacterRosterEquipmentAssignmentState[]>
 }

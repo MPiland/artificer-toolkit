@@ -1,0 +1,1 @@
+export { berserker as pathOfTheBerserker } from './barbarian.js'

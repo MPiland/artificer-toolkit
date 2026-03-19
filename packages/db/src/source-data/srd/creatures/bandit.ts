@@ -1,0 +1,30 @@
+import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { CR, CREATURE_IDS, CREATURE_TYPE, SRD_SYSTEM_ID, SRD_USER_ID, walk } from './shared.js'
+
+export const bandit: CreatureAuthored = {
+  id: CREATURE_IDS.BANDIT,
+  label: 'Bandit',
+  description: 'A cutthroat opportunist who preys on travelers and merchants.',
+  userId: SRD_USER_ID,
+  systemId: SRD_SYSTEM_ID,
+  recordKind: 'STAT_BLOCK',
+  category: 'NPC',
+  creatureTypeId: CREATURE_TYPE.HUMANOID,
+  size: 'MEDIUM',
+  abilityScores: {
+    STRENGTH: 11,
+    DEXTERITY: 12,
+    CONSTITUTION: 12,
+    INTELLIGENCE: 10,
+    WISDOM: 10,
+    CHARISMA: 10,
+    SPELLCASTING: 0
+  },
+  armorClass: 12,
+  armorClassNote: 'leather armor',
+  hitPoints: 11,
+  hitDice: '2d8+2',
+  speeds: walk(30),
+  challengeRatingId: CR.CR_1_8,
+  xp: 25
+}

@@ -9,7 +9,7 @@ import {
 } from '#core'
 import {
   CHARGE_NODE_MAP,
-  EFFECT_NODE_MAP,
+  CAPABILITY_NODE_MAP,
   FACET_NODE_MAP,
   FEATURE_NODE_MAP,
   MODIFIER_GRANT_NODE_MAP
@@ -140,7 +140,7 @@ export const EQUIPMENT_NODE_MAP = equipment.define('equipment', ({ map, nodes, c
     .set('quote', text(['quote'], 'Quote'))
     .set('cost', groupObject(['cost'], 'Cost', () => COST_NODE_MAP))
     .set('weight', groupObject(['weight'], 'Weight', () => WEIGHT_NODE_MAP))
-    .set('effects', groupArray(['effects'], 'Effects', () => EFFECT_NODE_MAP))
+    .set('capabilities', groupArray(['capabilities'], 'Capabilities', () => CAPABILITY_NODE_MAP))
     .set('charges', groupObject(['charges'], 'Charges', () => CHARGE_NODE_MAP, {
       showIf: local.field(['attributes']).contains(['LIMITED_USE'])
     }))
@@ -177,8 +177,6 @@ export const EQUIPMENT_NODE_MAP = equipment.define('equipment', ({ map, nodes, c
     .set('properties', selectMulti(['properties'], 'Properties', {
       kind: 'INLINE',
       optionGroups: equipmentPropertyOptionGroups
-    }, {
-      showIf: isBaseEquipment
     }))
     .set('abilities', groupArray(['abilities'], 'Abilities', () => EQUIPMENT_ABILITIES_NODE_MAP, {
       showIf: isBaseEquipment

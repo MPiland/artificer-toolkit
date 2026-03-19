@@ -2,6 +2,7 @@ import type { DBLike } from '#types'
 import type { Json } from '../../../types/supabase.database.js'
 import {
   SIZE_CODE,
+  type SizeCode,
   type VehicleAuthored
 } from '@artificer-toolkit/shared'
 import { upsertDetail } from '../../shared/upserts/index.js'
@@ -14,9 +15,9 @@ type VehicleRow = {
   label: string
   description: string | null
   category: string
-  size_code: string
-  armor_class: number
-  hit_points: number
+  size_code: string | null
+  armor_class: number | null
+  hit_points: number | null
   speed: number | null
   speed_note: string | null
   crew_min: number | null
@@ -56,12 +57,12 @@ function requireCategory(
 function requireSizeCode(
   vehicleId: string,
   value: string
-): VehicleAuthored['size'] {
+): SizeCode {
   if (!(value in SIZE_CODE)) {
     throw new Error(`Vehicle "${vehicleId}" has invalid size "${value}".`)
   }
 
-  return value as VehicleAuthored['size']
+  return value as SizeCode
 }
 
 export async function upsertVehicle(
@@ -76,9 +77,9 @@ export async function upsertVehicle(
     label: json_data.label,
     description: json_data.description ?? null,
     category: requireCategory(json_data.id, json_data.category),
-    size_code: requireSizeCode(json_data.id, json_data.size),
-    armor_class: json_data.armorClass,
-    hit_points: json_data.hitPoints,
+    size_code: json_data.size ? requireSizeCode(json_data.id, json_data.size) : null,
+    armor_class: json_data.armorClass ?? null,
+    hit_points: json_data.hitPoints ?? null,
     speed: json_data.speed ?? null,
     speed_note: json_data.speedNote ?? null,
     crew_min: json_data.crewMin ?? null,
@@ -113,10 +114,10 @@ export async function upsertVehicle(
       await upsertFeature(trx, feature, json_data.systemId)
     }
 
-    await trx
+    await (trx as any)
       .insertInto('vehicles')
       .values(row)
-      .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
+      .onConflict((oc: any) => oc.column('id').doUpdateSet(({ ref }: any) => ({
         system_id: ref('excluded.system_id'),
         user_id: ref('excluded.user_id'),
         label: ref('excluded.label'),

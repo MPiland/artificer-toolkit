@@ -1,5 +1,4 @@
 import {
-  CREATURE_CATEGORY_CODE,
   MEASUREMENT_UNIT_CODE,
   SIZE_CODE,
   type CreatureAuthored,
@@ -7,7 +6,7 @@ import {
   type CreatureLairProfile,
   type CreatureLegendaryProfile,
   type CreatureMountProfile,
-  type CreatureNpcProfile
+  type CreatureNpcProfile,
 } from '@artificer-toolkit/shared'
 import type { DBLike } from '#types'
 import { upsertCreature } from '../upserts/creature.js'
@@ -20,7 +19,10 @@ function requireLinkedRecord<T>(value: T | null, message: string): T {
   return value
 }
 
-function requireSizeCode(creatureId: string, value: string): CreatureAuthored['size'] {
+function requireSizeCode(creatureId: string, value?: string | null): CreatureAuthored['size'] | undefined {
+  if (value == null) {
+    return undefined
+  }
   if (!(value in SIZE_CODE)) {
     throw new Error(`Creature "${creatureId}" has invalid size_code "${value}".`)
   }
@@ -42,7 +44,9 @@ async function hydrateCreatureById(
   db: DBLike,
   id: string
 ): Promise<CreatureAuthored | null> {
-  const row = await db
+  // The creature schema is evolving ahead of regenerated DB types.
+  // Use a narrowed any-based query here until the next typegen pass.
+  const row = await (db as any)
     .selectFrom('creatures')
     .select([
       'id',
@@ -51,6 +55,7 @@ async function hydrateCreatureById(
       'label',
       'quote',
       'description',
+      'record_kind',
       'category',
       'creature_type_id',
       'size_code',
@@ -72,7 +77,11 @@ async function hydrateCreatureById(
       'lair_profile',
       'mount_profile',
       'companion_profile',
-      'npc_profile'
+      'npc_profile',
+      'cost',
+      'carrying_capacity_amount',
+      'carrying_capacity_unit',
+      'logistics_notes'
     ])
     .where('id', '=', id)
     .executeTakeFirst()
@@ -86,64 +95,76 @@ async function hydrateCreatureById(
     featureLinks,
     detailLinks,
     speedRows,
-    actionRows
+    actionRows,
+    resistanceRows,
+    immunityRows,
+    vulnerabilityRows,
+    conditionImmunityRows
   ] = await Promise.all([
-    db.selectFrom('creature_features')
+    (db as any).selectFrom('creature_features')
       .select(['feature_id', 'sort_order'])
       .where('creature_id', '=', id)
       .orderBy('sort_order')
       .execute(),
-    db.selectFrom('creature_details')
+    (db as any).selectFrom('creature_details')
       .select(['detail_id', 'sort_order'])
       .where('creature_id', '=', id)
       .orderBy('sort_order')
       .execute(),
-    db.selectFrom('creature_speeds')
+    (db as any).selectFrom('creature_speeds')
       .select(['speed_id', 'amount', 'unit_code'])
       .where('creature_id', '=', id)
       .execute(),
-    db.selectFrom('creature_actions')
+    (db as any).selectFrom('creature_actions')
       .select([
         'id', 'action_type', 'sort_order', 'label', 'description', 'attack_bonus', 'damage', 'recharge'
       ])
       .where('creature_id', '=', id)
       .orderBy('sort_order')
+      .execute(),
+    (db as any).selectFrom('creature_damage_resistances')
+      .select(['damage_type_id'])
+      .where('creature_id', '=', id)
+      .execute(),
+    (db as any).selectFrom('creature_damage_immunities')
+      .select(['damage_type_id'])
+      .where('creature_id', '=', id)
+      .execute(),
+    (db as any).selectFrom('creature_damage_vulnerabilities')
+      .select(['damage_type_id'])
+      .where('creature_id', '=', id)
+      .execute(),
+    (db as any).selectFrom('creature_condition_immunities')
+      .select(['condition_type_id'])
+      .where('creature_id', '=', id)
       .execute()
   ])
 
   const detailRepository = createDetailRepository(db)
   const featureRepository = createFeatureRepository(db, row.system_id)
 
-  const details = await Promise.all(detailLinks.map((link) => detailRepository.findById(link.detail_id)))
-  const features = await Promise.all(featureLinks.map((link) => featureRepository.findById(link.feature_id)))
+  const details = await Promise.all(detailLinks.map((link: any) => detailRepository.findById(link.detail_id)))
+  const features = await Promise.all(featureLinks.map((link: any) => featureRepository.findById(link.feature_id)))
 
-  const authoredDetails = details.map((detail, i) => requireLinkedRecord(detail, `Creature "${id}" is linked to missing detail "${detailLinks[i]?.detail_id}".`))
-  const authoredFeatures = features.map((feature, i) => requireLinkedRecord(feature, `Creature "${id}" is linked to missing feature "${featureLinks[i]?.feature_id}".`))
+  const authoredDetails = details.map((detail, index) => requireLinkedRecord(detail, `Creature "${id}" is linked to missing detail "${detailLinks[index]?.detail_id}".`))
+  const authoredFeatures = features.map((feature, index) => requireLinkedRecord(feature, `Creature "${id}" is linked to missing feature "${featureLinks[index]?.feature_id}".`))
 
-  const authoredSpeeds = speedRows.map((speed) => ({
+  const authoredSpeeds = speedRows.map((speed: any) => ({
     speedId: speed.speed_id,
     amount: speed.amount,
     unit: requireMeasurementUnit(id, speed.speed_id, speed.unit_code)
   }))
 
-  const mapAction = (r: typeof actionRows[number]) => ({
-    id: r.id,
-    label: r.label,
-    description: r.description,
-    attackBonus: r.attack_bonus ?? undefined,
-    damage: r.damage ?? undefined,
-    recharge: r.recharge ?? undefined
+  const mapAction = (action: typeof actionRows[number]) => ({
+    id: action.id,
+    label: action.label,
+    description: action.description,
+    attackBonus: action.attack_bonus ?? undefined,
+    damage: action.damage ?? undefined,
+    recharge: action.recharge ?? undefined
   })
 
-  const actions = actionRows.filter((r) => r.action_type === 'ACTION').map(mapAction)
-  const bonusActions = actionRows.filter((r) => r.action_type === 'BONUS_ACTION').map(mapAction)
-  const reactions = actionRows.filter((r) => r.action_type === 'REACTION').map(mapAction)
-
-  if (!row.size_code) {
-    throw new Error(`Creature "${id}" is missing size_code.`)
-  }
-
-  return {
+  const base = {
     id: row.id,
     label: row.label,
     quote: row.quote ?? undefined,
@@ -152,33 +173,60 @@ async function hydrateCreatureById(
     features: authoredFeatures.length > 0 ? authoredFeatures : undefined,
     userId: row.user_id,
     systemId: row.system_id,
+    recordKind: row.record_kind as CreatureAuthored['recordKind'],
     category: row.category as CreatureAuthored['category'],
-    creatureTypeId: row.creature_type_id ?? '',
+    creatureTypeId: row.creature_type_id ?? undefined,
     size: requireSizeCode(id, row.size_code),
     alignmentId: row.alignment_id ?? undefined,
-    tags: (row.tags as string[] | null) ?? undefined,
-    abilityScores: (row.ability_scores as unknown) as CreatureAuthored['abilityScores'],
-    armorClass: row.armor_class,
-    armorClassNote: row.armor_class_note ?? undefined,
-    hitPoints: row.hit_points,
-    hitDice: row.hit_dice ?? undefined,
+    tags: row.tags ?? undefined,
     speeds: authoredSpeeds,
-    senses: (row.senses as string[] | null) ?? undefined,
-    passivePerception: row.passive_perception ?? undefined,
-    savingThrowProficiencies: (row.saving_throw_proficiencies as unknown as CreatureAuthored['savingThrowProficiencies']) ?? undefined,
-    skillProficiencies: (row.skill_proficiencies as string[] | null) ?? undefined,
-    languages: (row.languages as string[] | null) ?? undefined,
-    challengeRatingId: row.challenge_rating_id ?? undefined,
-    xp: row.xp ?? undefined,
-    actions: actions.length > 0 ? actions : undefined,
-    bonusActions: bonusActions.length > 0 ? bonusActions : undefined,
-    reactions: reactions.length > 0 ? reactions : undefined,
-    legendaryProfile: row.legendary_profile ? (row.legendary_profile as unknown as CreatureLegendaryProfile) : undefined,
-    lairProfile: row.lair_profile ? (row.lair_profile as unknown as CreatureLairProfile) : undefined,
     mountProfile: row.mount_profile ? (row.mount_profile as unknown as CreatureMountProfile) : undefined,
     companionProfile: row.companion_profile ? (row.companion_profile as unknown as CreatureCompanionProfile) : undefined,
-    npcProfile: row.npc_profile ? (row.npc_profile as unknown as CreatureNpcProfile) : undefined
   }
+
+  if (row.record_kind === 'LOGISTICS') {
+    return {
+      ...base,
+      recordKind: 'LOGISTICS',
+      cost: row.cost ? row.cost as never : undefined,
+      carryingCapacity: row.carrying_capacity_amount != null && row.carrying_capacity_unit
+        ? {
+            amount: Number(row.carrying_capacity_amount),
+            unit: row.carrying_capacity_unit as never
+          }
+        : undefined,
+      logisticsNotes: row.logistics_notes ?? undefined,
+    } as CreatureAuthored
+  }
+
+  return {
+    ...base,
+    recordKind: 'STAT_BLOCK',
+    creatureTypeId: row.creature_type_id ?? '',
+    size: requireLinkedRecord(requireSizeCode(id, row.size_code), `Creature "${id}" is missing size_code.`),
+    abilityScores: row.ability_scores as never,
+    armorClass: Number(row.armor_class ?? 0),
+    armorClassNote: row.armor_class_note ?? undefined,
+    hitPoints: Number(row.hit_points ?? 0),
+    hitDice: row.hit_dice ?? undefined,
+    senses: row.senses ?? undefined,
+    passivePerception: row.passive_perception ?? undefined,
+    savingThrowProficiencies: row.saving_throw_proficiencies as never ?? undefined,
+    skillProficiencies: row.skill_proficiencies ?? undefined,
+    damageVulnerabilities: vulnerabilityRows.map((entry: any) => entry.damage_type_id),
+    damageResistances: resistanceRows.map((entry: any) => entry.damage_type_id),
+    damageImmunities: immunityRows.map((entry: any) => entry.damage_type_id),
+    conditionImmunities: conditionImmunityRows.map((entry: any) => entry.condition_type_id),
+    languages: row.languages ?? undefined,
+    challengeRatingId: row.challenge_rating_id ?? undefined,
+    xp: row.xp ?? undefined,
+    actions: actionRows.filter((action: any) => action.action_type === 'ACTION').map(mapAction),
+    bonusActions: actionRows.filter((action: any) => action.action_type === 'BONUS_ACTION').map(mapAction),
+    reactions: actionRows.filter((action: any) => action.action_type === 'REACTION').map(mapAction),
+    legendaryProfile: row.legendary_profile ? (row.legendary_profile as unknown as CreatureLegendaryProfile) : undefined,
+    lairProfile: row.lair_profile ? (row.lair_profile as unknown as CreatureLairProfile) : undefined,
+    npcProfile: row.npc_profile ? (row.npc_profile as unknown as CreatureNpcProfile) : undefined
+  } as CreatureAuthored
 }
 
 export function createCreatureRepository(db: DBLike): CreatureRepository {
@@ -192,7 +240,7 @@ export function createCreatureRepository(db: DBLike): CreatureRepository {
     },
 
     async findAll(filter?: RepositoryFindAllOptions) {
-      let query = db
+      let query = (db as any)
         .selectFrom('creatures')
         .select('id')
         .orderBy('label')
@@ -205,7 +253,7 @@ export function createCreatureRepository(db: DBLike): CreatureRepository {
       }
 
       const rows = await query.execute()
-      const records = await Promise.all(rows.map((row) => hydrateCreatureById(db, row.id)))
+      const records = await Promise.all(rows.map((row: any) => hydrateCreatureById(db, row.id)))
       return records.filter((record): record is CreatureAuthored => record !== null)
     }
   }

@@ -25,6 +25,7 @@ export function mapRangeToRow(
 
     case 'SELF':
     case 'SIGHT':
+    case 'SPECIAL':
     case 'TOUCH':
     case 'UNLIMITED':
       return {

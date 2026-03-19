@@ -28,8 +28,8 @@ CREATE TABLE IF NOT EXISTS public.equipment (
   quote text,
   category text NOT NULL, -- EquipmentCategoryCode
   rarity_id uuid NOT NULL REFERENCES public.rarities (id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
-  cost_amount integer NOT NULL,
-  cost_currency_id uuid NOT NULL REFERENCES public.currencies (id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
+  cost_amount integer,
+  cost_currency_id uuid REFERENCES public.currencies (id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
   weight_amount numeric NOT NULL,
   weight_unit text NOT NULL,
   capacity_amount numeric,
@@ -51,6 +51,10 @@ CREATE TABLE IF NOT EXISTS public.equipment (
   CONSTRAINT equipment_capacity_chk CHECK (
     (capacity_amount IS NULL AND capacity_unit IS NULL)
     OR (capacity_amount IS NOT NULL AND capacity_unit IS NOT NULL)
+  ),
+  CONSTRAINT equipment_cost_chk CHECK (
+    (cost_amount IS NULL AND cost_currency_id IS NULL)
+    OR (cost_amount IS NOT NULL AND cost_currency_id IS NOT NULL)
   )
 );
 

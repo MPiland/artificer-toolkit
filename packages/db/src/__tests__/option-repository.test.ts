@@ -179,10 +179,10 @@ describe('createOptionRepository', () => {
               unit: 'FEET'
             }
           },
-          moments: [
+          branches: [
             {
               id: 'option-effect-direct-1',
-              moment: 'ON_HIT',
+              branch: 'ON_HIT',
               groupType: 'SINGLE',
               resolutionKind: 'DIRECT',
               effectKind: 'DAMAGE',
@@ -220,10 +220,10 @@ describe('createOptionRepository', () => {
             },
             shape: undefined
           },
-          moments: [
+          branches: [
             {
               id: 'option-effect-direct-1',
-              moment: 'ON_HIT',
+              branch: 'ON_HIT',
               groupType: 'SINGLE',
               resolutionKind: 'DIRECT',
               duration: undefined,

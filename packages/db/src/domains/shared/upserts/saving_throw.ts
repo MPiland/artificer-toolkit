@@ -7,7 +7,7 @@ export async function upsertSavingThrow(db: DBLike, json_data: SavingThrowAuthor
   // Generated DB types are still pre-recreate. Keep this wrapper aligned to the
   // authored contract now, then let the Phase 4 type-regeneration checkpoint
   // remove the fallback casts once `saving_throws` is regenerated.
-  const savingThrow = ('ability' in json_data)
+  const savingThrow = json_data.savingThrowKind === 'FIXED_VALUE'
     ? {
         id: json_data.id,
         ability_code: json_data.ability,

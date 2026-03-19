@@ -15,7 +15,10 @@
       "Bash(grep -rn \"throw new Error\" packages/db/src/domains/subjects/upserts/*.ts packages/db/src/domains/shared/upserts/starting_equipment.ts)",
       "Bash(ls packages/db/src/repositories/*.ts packages/db/src/__tests__/*.test.ts)",
       "Bash(yarn workspace:*)",
-      "Bash(find /c/Users/pilan/Desktop/artificer-toolkit/packages/shared/src/domains -type f -name *deserialize* -o -name *fromDb* -o -name *assemble*)"
+      "Bash(find /c/Users/pilan/Desktop/artificer-toolkit/packages/shared/src/domains -type f -name *deserialize* -o -name *fromDb* -o -name *assemble*)",
+      "Bash(node -e \":*)",
+      "Bash(ls packages/db/src/source-data/srd/spells/*.ts)",
+      "Bash(xargs -I{} basename {} .ts)"
     ]
   },
   "enableAllProjectMcpServers": true,

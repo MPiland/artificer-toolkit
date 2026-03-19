@@ -55,6 +55,7 @@ describe('createCreatureRepository', () => {
           label: 'Town Guard',
           quote: null,
           description: 'A stalwart defender.',
+          record_kind: 'STAT_BLOCK',
           category: 'NPC',
           creature_type_id: 'humanoid',
           size_code: 'MEDIUM',
@@ -119,6 +120,7 @@ describe('createCreatureRepository', () => {
       features: undefined,
       userId: 'user-1',
       systemId: 'system-1',
+      recordKind: 'STAT_BLOCK',
       category: 'NPC',
       creatureTypeId: 'humanoid',
       size: 'MEDIUM',
@@ -147,8 +149,12 @@ describe('createCreatureRepository', () => {
           recharge: undefined,
         }
       ],
-      bonusActions: undefined,
-      reactions: undefined,
+      bonusActions: [],
+      reactions: [],
+      damageVulnerabilities: [],
+      damageResistances: [],
+      damageImmunities: [],
+      conditionImmunities: [],
       legendaryProfile: undefined,
       lairProfile: undefined,
       mountProfile: undefined,
@@ -174,6 +180,7 @@ describe('createCreatureRepository', () => {
           label: 'Warhorse',
           quote: null,
           description: null,
+          record_kind: 'STAT_BLOCK',
           category: 'BEAST',
           creature_type_id: 'beast',
           size_code: 'LARGE',
@@ -220,6 +227,7 @@ describe('createCreatureRepository', () => {
     const result = await repo.findById('creature-beast-1')
     expect(result).toMatchObject({
       id: 'creature-beast-1',
+      recordKind: 'STAT_BLOCK',
       category: 'BEAST',
       size: 'LARGE',
       mountProfile: {
@@ -258,6 +266,7 @@ describe('createCreatureRepository', () => {
           label: 'Ancient Red Dragon',
           quote: 'I am fire. I am death.',
           description: 'The apex of draconic might.',
+          record_kind: 'STAT_BLOCK',
           category: 'MONSTER',
           creature_type_id: 'dragon',
           size_code: 'GARGANTUAN',
@@ -365,6 +374,7 @@ describe('createCreatureRepository', () => {
     expect(result).toMatchObject({
       id: 'creature-monster-1',
       label: 'Ancient Red Dragon',
+      recordKind: 'STAT_BLOCK',
       category: 'MONSTER',
       size: 'GARGANTUAN',
       tags: ['dragon', 'legendary'],
@@ -410,6 +420,97 @@ describe('createCreatureRepository', () => {
     expect(result?.mountProfile).toBeUndefined()
   })
 
+  it('hydrates a logistics-only creature record', async () => {
+    const repo = createCreatureRepository(createFakeDb({
+      creatures: [
+        {
+          id: 'creature-logistics-1',
+          system_id: 'system-1',
+          user_id: 'user-1',
+          label: 'Riding Horse',
+          quote: null,
+          description: 'A dependable riding animal.',
+          record_kind: 'LOGISTICS',
+          category: 'BEAST',
+          creature_type_id: 'beast',
+          size_code: null,
+          alignment_id: null,
+          tags: ['mount'],
+          ability_scores: null,
+          armor_class: null,
+          armor_class_note: null,
+          hit_points: null,
+          hit_dice: null,
+          senses: null,
+          passive_perception: null,
+          saving_throw_proficiencies: null,
+          skill_proficiencies: null,
+          languages: null,
+          challenge_rating_id: null,
+          xp: null,
+          legendary_profile: null,
+          lair_profile: null,
+          mount_profile: { mountType: 'CONTROLLED', riderCount: 1, capacity: 1, notes: 'Common mount' },
+          companion_profile: null,
+          npc_profile: null,
+          cost: { amount: 75, currencyId: 'gp' },
+          carrying_capacity_amount: 480,
+          carrying_capacity_unit: 'POUNDS',
+          logistics_notes: ['Requires saddle for riding.']
+        }
+      ],
+      creature_features: [],
+      creature_details: [],
+      creature_speeds: [
+        { creature_id: 'creature-logistics-1', speed_id: 'walk', amount: 60, unit_code: 'FEET' }
+      ],
+      creature_actions: [],
+      creature_damage_resistances: [],
+      creature_damage_immunities: [],
+      creature_damage_vulnerabilities: [],
+      creature_condition_immunities: [],
+      features: [],
+      feature_effects: [],
+      feature_attributes: [],
+      feature_feat_grants: [],
+      feature_modifier_grants: [],
+      feature_proficiency_grants: [],
+      feature_sense_grants: [],
+      feature_spell_grants: [],
+      feature_options: [],
+      feature_option_levels: [],
+      details: [],
+    }) as never)
+
+    await expect(repo.findById('creature-logistics-1')).resolves.toEqual({
+      id: 'creature-logistics-1',
+      label: 'Riding Horse',
+      quote: undefined,
+      description: 'A dependable riding animal.',
+      details: undefined,
+      features: undefined,
+      userId: 'user-1',
+      systemId: 'system-1',
+      recordKind: 'LOGISTICS',
+      category: 'BEAST',
+      creatureTypeId: 'beast',
+      size: undefined,
+      alignmentId: undefined,
+      tags: ['mount'],
+      speeds: [{ speedId: 'walk', amount: 60, unit: 'FEET' }],
+      mountProfile: {
+        mountType: 'CONTROLLED',
+        riderCount: 1,
+        capacity: 1,
+        notes: 'Common mount'
+      },
+      companionProfile: undefined,
+      cost: { amount: 75, currencyId: 'gp' },
+      carryingCapacity: { amount: 480, unit: 'POUNDS' },
+      logisticsNotes: ['Requires saddle for riding.']
+    })
+  })
+
   it('returns null for an unknown id', async () => {
     const repo = createCreatureRepository(createFakeDb({ creatures: [] }) as never)
     await expect(repo.findById('does-not-exist')).resolves.toBeNull()
@@ -425,6 +526,7 @@ describe('createCreatureRepository', () => {
           label: 'Ghost',
           quote: null,
           description: null,
+          record_kind: 'STAT_BLOCK',
           category: 'MONSTER',
           creature_type_id: null,
           size_code: 'MEDIUM',

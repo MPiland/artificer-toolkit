@@ -1,4 +1,4 @@
-import type { AbilityCode, SCALING } from '#core'
+import type { AbilityCode, SCALING, ScalingAmountKind } from '#core'
 import {
   DAMAGE_BONUS_KIND,
   DAMAGE_VALUE_KIND,
@@ -99,4 +99,5 @@ export type DamageAuthored = {
   effectKind: typeof EFFECT_KIND.DAMAGE
   damageTypeId: string
   bonuses?: DamageBonusAuthored[]
+  amountKind?: ScalingAmountKind
 } & DamagePayload

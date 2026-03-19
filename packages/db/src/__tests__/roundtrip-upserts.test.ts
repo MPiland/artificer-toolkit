@@ -1021,10 +1021,13 @@ describe('round-trip upsert correctness', () => {
         unit: 'MINUTE',
         amount: 10
       },
+      range: undefined,
+      duration: undefined,
       level: 2,
       classIds: ['wizard'],
       magicSchoolId: 'evocation',
-      effects: undefined,
+      capabilities: undefined,
+      atHigherLevels: undefined,
       materialDescription: undefined,
       userId: 'user-1',
       systemId: 'system-1'
@@ -1083,10 +1086,10 @@ describe('round-trip upsert correctness', () => {
               unit: 'FEET'
             }
           },
-          moments: [
+          branches: [
             {
-              id: 'spell-effect-moment-1',
-              moment: 'ON_HIT',
+              id: 'spell-effect-BRANCH-1',
+              branch: 'ON_HIT',
               groupType: 'SINGLE',
               resolutionKind: 'DIRECT',
               effectKind: 'DAMAGE',
@@ -1131,10 +1134,10 @@ describe('round-trip upsert correctness', () => {
               unit: 'FEET'
             }
           },
-          moments: [
+          branches: [
             {
-              id: 'spell-effect-moment-2',
-              moment: 'ON_HIT',
+              id: 'spell-effect-BRANCH-2',
+              branch: 'ON_HIT',
               groupType: 'SINGLE',
               resolutionKind: 'DIRECT',
               effectKind: 'CONDITION',
@@ -1157,6 +1160,8 @@ describe('round-trip upsert correctness', () => {
         unit: 'ROUND',
         amount: 1
       },
+      range: undefined,
+      duration: undefined,
       level: 1,
       classIds: ['wizard'],
       magicSchoolId: 'evocation',
@@ -1178,10 +1183,10 @@ describe('round-trip upsert correctness', () => {
             },
             shape: undefined
           },
-          moments: [
+          branches: [
             {
-              id: 'spell-effect-moment-2',
-              moment: 'ON_HIT',
+              id: 'spell-effect-BRANCH-2',
+              branch: 'ON_HIT',
               groupType: 'SINGLE',
               resolutionKind: 'DIRECT',
               duration: undefined,
@@ -1191,6 +1196,7 @@ describe('round-trip upsert correctness', () => {
           ]
         }
       ],
+      atHigherLevels: undefined,
       materialDescription: undefined,
       userId: 'user-1',
       systemId: 'system-1'
@@ -1206,7 +1212,7 @@ describe('round-trip upsert correctness', () => {
     expect(db.snapshot('damages')).toEqual([])
     expect(db.snapshot('conditions')).toEqual([
       {
-        id: 'spell-effect-moment-2',
+        id: 'spell-effect-BRANCH-2',
         condition_type_id: 'deafened'
       }
     ])
@@ -1572,13 +1578,13 @@ describe('round-trip upsert correctness', () => {
       id: 'equipment-variant-1',
       label: 'Flame Tongue Longsword',
       description: 'Variant item',
-      cost: { amount: 1500, currencyId: 'gp' },
       weight: { amount: 3, unit: 'POUNDS' },
       rarityId: 'rare',
       userId: 'user-1',
       systemId: 'system-1',
       category: 'VARIANT',
-      parentEquipmentId: 'equipment-parent-1'
+      parentEquipmentId: 'equipment-parent-1',
+      properties: ['MAGIC']
     })
 
     await expect(repository.findById('equipment-variant-1')).resolves.toEqual({
@@ -1588,7 +1594,7 @@ describe('round-trip upsert correctness', () => {
       description: 'Variant item',
       attributes: undefined,
       quote: undefined,
-      cost: { amount: 1500, currencyId: 'gp' },
+      cost: undefined,
       weight: { amount: 3, unit: 'POUNDS' },
       effects: undefined,
       charges: undefined,
@@ -1604,7 +1610,8 @@ describe('round-trip upsert correctness', () => {
       userId: 'user-1',
       systemId: 'system-1',
       category: 'VARIANT',
-      parentEquipmentId: 'equipment-parent-1'
+      parentEquipmentId: 'equipment-parent-1',
+      properties: ['MAGIC']
     })
 
     expect(db.snapshot('equipment')).toEqual([
@@ -1617,8 +1624,8 @@ describe('round-trip upsert correctness', () => {
         quote: null,
         category: 'VARIANT',
         rarity_id: 'rare',
-        cost_amount: 1500,
-        cost_currency_id: 'gp',
+        cost_amount: null,
+        cost_currency_id: null,
         weight_amount: 3,
         weight_unit: 'POUNDS',
         capacity_amount: null,
@@ -1631,7 +1638,12 @@ describe('round-trip upsert correctness', () => {
         parent_equipment_id: 'equipment-parent-1'
       }
     ])
-    expect(db.snapshot('equipment_properties')).toEqual([])
+    expect(db.snapshot('equipment_properties')).toEqual([
+      {
+        equipment_id: 'equipment-variant-1',
+        property_code: 'MAGIC'
+      }
+    ])
     expect(db.snapshot('equipment_abilities')).toEqual([])
   })
 
@@ -1782,10 +1794,10 @@ describe('round-trip upsert correctness', () => {
               unit: 'FEET'
             }
           },
-          moments: [
+          branches: [
             {
-              id: 'shared-moment-1',
-              moment: 'ON_HIT',
+              id: 'shared-BRANCH-1',
+              branch: 'ON_HIT',
               groupType: 'SINGLE',
               resolutionKind: 'DIRECT',
               effectKind: 'DAMAGE',
@@ -1821,10 +1833,10 @@ describe('round-trip upsert correctness', () => {
               unit: 'FEET'
             }
           },
-          moments: [
+          branches: [
             {
-              id: 'shared-moment-2',
-              moment: 'ON_HIT',
+              id: 'shared-BRANCH-2',
+              branch: 'ON_HIT',
               groupType: 'SINGLE',
               resolutionKind: 'DIRECT',
               effectKind: 'CONDITION',
@@ -1859,10 +1871,10 @@ describe('round-trip upsert correctness', () => {
             },
             shape: undefined
           },
-          moments: [
+          branches: [
             {
-              id: 'shared-moment-2',
-              moment: 'ON_HIT',
+              id: 'shared-BRANCH-2',
+              branch: 'ON_HIT',
               groupType: 'SINGLE',
               resolutionKind: 'DIRECT',
               duration: undefined,
@@ -1887,12 +1899,12 @@ describe('round-trip upsert correctness', () => {
         sort_order: 2
       }
     ])
-    expect(db.snapshot('effect_moments')).toEqual([
+    expect(db.snapshot('effect_branches')).toEqual([
       {
-        id: 'shared-moment-2',
+        id: 'shared-BRANCH-2',
         effect_id: 'shared-effect-1',
         trigger_code: 'SPELL_ATTACK',
-        moment_code: 'ON_HIT',
+        branch_code: 'ON_HIT',
         group_type: 'SINGLE',
         resolution_kind: 'DIRECT',
         duration_id: null,
@@ -1903,7 +1915,7 @@ describe('round-trip upsert correctness', () => {
     expect(db.snapshot('damages')).toEqual([])
     expect(db.snapshot('conditions')).toEqual([
       {
-        id: 'shared-moment-2',
+        id: 'shared-BRANCH-2',
         condition_type_id: 'warded'
       }
     ])

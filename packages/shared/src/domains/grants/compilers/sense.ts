@@ -16,12 +16,14 @@ import {
 } from '#core'
 import {
   compileCharge,
+  compileRange,
   compileScalingSource
 } from '#compilers'
 import type {
   CompiledGrantTarget,
   CompiledScalingGrant,
-  CompiledCharge
+  CompiledCharge,
+  CompiledRange
 } from '#compilers'
 import { SCALING } from '#core'
 
@@ -30,6 +32,7 @@ export type CompiledSenseGrant = CompiledScalingGrant<
   CompiledGrantTarget<{ senseIds: string[] }>
 > & {
   charges?: CompiledCharge
+  range?: CompiledRange
 }
 
 // IMPORTANT: return `authored` for ALL so you don't drop extra fields (like `count`)
@@ -58,6 +61,7 @@ export function compileSenseGrantResult(
   }
 
   const charges = authored.charges ? compileCharge(authored.charges) : undefined
+  const range = authored.range ? compileRange(authored.range) : undefined
 
   switch (authored.scalingKind) {
     case SCALING.NONE: {
@@ -67,6 +71,7 @@ export function compileSenseGrantResult(
             ...base,
             grantKind: GRANT_KIND.SENSE_GRANT,
             charges,
+            range,
             selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
             scalingKind: SCALING.NONE,
             ...compileSenseTarget(authored)
@@ -78,6 +83,7 @@ export function compileSenseGrantResult(
             ...base,
             grantKind: GRANT_KIND.SENSE_GRANT,
             charges,
+            range,
             selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
             scalingKind: SCALING.NONE,
             ...compileSenseTarget(authored),
@@ -97,6 +103,7 @@ export function compileSenseGrantResult(
             ...base,
             grantKind: GRANT_KIND.SENSE_GRANT,
             charges,
+            range,
             selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
             scalingKind: SCALING.PER_LEVEL,
             ...compileScalingSource(authored.progression),
@@ -114,6 +121,7 @@ export function compileSenseGrantResult(
             ...base,
             grantKind: GRANT_KIND.SENSE_GRANT,
             charges,
+            range,
             selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
             scalingKind: SCALING.PER_LEVEL,
             ...compileScalingSource(authored.progression),

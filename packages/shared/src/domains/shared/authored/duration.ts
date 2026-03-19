@@ -7,6 +7,10 @@ export type DurationAuthored
   }
   | {
     id: string
-    durationKind: Exclude<DurationKind, 'INSTANTANEOUS'>
+    durationKind: Extract<DurationKind, 'UNTIL_DISPELLED'>
+  }
+  | {
+    id: string
+    durationKind: Exclude<DurationKind, 'INSTANTANEOUS' | 'UNTIL_DISPELLED'>
     amount: number
   }

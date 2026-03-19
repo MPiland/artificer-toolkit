@@ -4,7 +4,7 @@ import {
   unwrapCompileResult,
   type CompileResult
 } from '#utils'
-import type { ModifierGrantAuthored } from '#authored'
+import type { FacetAuthored, ModifierGrantAuthored } from '#authored'
 import { AUTHORING_SELECTION_KIND, GRANT_KIND } from '#core'
 import type {
   ModifierKind,
@@ -24,6 +24,16 @@ export type CompiledModifierGrant<
 > & {
   modifierKind: K
   scope: ModifierScopeKind
+  /**
+   * Restriction facet carried from the authored grant.
+   * The engine evaluates this at two points:
+   * - CHARACTER-subject contexts: gate whether the grant is collected at all
+   *   (e.g. character must have SPELL_OBTAINED: Eldritch Blast)
+   * - Non-CHARACTER subject contexts (SPELL, EQUIPMENT, etc.): tag the
+   *   modifier entry with scope IDs so the character sheet can display
+   *   where the modifier applies (e.g. scopeSpellIds: [ELDRITCH_BLAST_ID])
+   */
+  restrictions?: FacetAuthored
 }
 
 /* ──────────────────────────────────────────────

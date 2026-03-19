@@ -115,7 +115,11 @@ async function hydrateSenseGrantById(
       'scaling_source',
       'class_id',
       'charge_id',
-      'restriction_id'
+      'restriction_id',
+      'range_id',
+      'range_kind',
+      'range_amount',
+      'range_unit'
     ])
     .where('id', '=', id)
     .executeTakeFirst()
@@ -147,11 +151,21 @@ async function hydrateSenseGrantById(
     ])
   }
 
+  const range = (() => {
+    if (!root.range_id || !root.range_kind) return undefined
+    if (root.range_kind === 'DISTANCE') {
+      if (root.range_amount == null || !root.range_unit) return undefined
+      return { id: root.range_id, rangeKind: 'DISTANCE' as const, amount: root.range_amount, unit: root.range_unit }
+    }
+    return { id: root.range_id, rangeKind: root.range_kind as Exclude<typeof root.range_kind, 'DISTANCE'> }
+  })()
+
   const base = {
     id: root.id,
     grantKind: 'SENSE_GRANT' as const,
     order: root.sort_order,
-    charges: charge ?? undefined
+    charges: charge ?? undefined,
+    range
   }
   const scalingKind = requireScalingKind(root.scaling_kind, `Sense grant "${id}" has invalid scaling_kind "${root.scaling_kind}".`)
 

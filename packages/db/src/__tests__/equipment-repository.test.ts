@@ -183,7 +183,7 @@ describe('createEquipmentRepository', () => {
       quote: 'Sharp steel.',
       cost: { amount: 15, currencyId: 'gp' },
       weight: { amount: 3, unit: 'POUNDS' },
-      effects: undefined,
+      capabilities: undefined,
       charges: {
         id: 'charge-1',
         resetKind: 'LONG_REST',
@@ -290,8 +290,8 @@ describe('createEquipmentRepository', () => {
           quote: null,
           category: 'VARIANT',
           rarity_id: 'rare',
-          cost_amount: 1500,
-          cost_currency_id: 'gp',
+          cost_amount: null,
+          cost_currency_id: null,
           weight_amount: 3,
           weight_unit: 'POUNDS',
           capacity_amount: null,
@@ -308,7 +308,12 @@ describe('createEquipmentRepository', () => {
       equipment_modifier_grants: [],
       equipment_features: [],
       equipment_attributes: [],
-      equipment_properties: [],
+      equipment_properties: [
+        {
+          equipment_id: 'equipment-variant-1',
+          property_code: 'MAGIC'
+        }
+      ],
       equipment_abilities: [],
       equipment_contains: []
     }) as never)
@@ -320,9 +325,9 @@ describe('createEquipmentRepository', () => {
       description: 'A variant weapon.',
       attributes: undefined,
       quote: undefined,
-      cost: { amount: 1500, currencyId: 'gp' },
+      cost: undefined,
       weight: { amount: 3, unit: 'POUNDS' },
-      effects: undefined,
+      capabilities: undefined,
       charges: undefined,
       capacity: undefined,
       modifiers: undefined,
@@ -336,11 +341,12 @@ describe('createEquipmentRepository', () => {
       userId: 'user-1',
       systemId: 'system-1',
       category: 'VARIANT',
-      parentEquipmentId: 'equipment-parent-1'
+      parentEquipmentId: 'equipment-parent-1',
+      properties: ['MAGIC']
     })
   })
 
-  it('round-trips supported equipment effects through the typed effect repository', async () => {
+  it('round-trips supported equipment capabilities through the typed effect repository', async () => {
     const db = new InMemoryDb()
     const repository = createEquipmentRepository(db as never)
 
@@ -352,7 +358,7 @@ describe('createEquipmentRepository', () => {
       cost: { amount: 50, currencyId: 'gp' },
       weight: { amount: 4, unit: 'POUNDS' },
       rarityId: 'uncommon',
-      effects: [
+      capabilities: [
         {
           id: 'equipment-effect-1',
           order: 1,
@@ -366,10 +372,10 @@ describe('createEquipmentRepository', () => {
               rangeKind: 'SELF'
             }
           },
-          moments: [
+          branches: [
             {
-              id: 'equipment-moment-1',
-              moment: 'ON_HIT',
+              id: 'equipment-BRANCH-1',
+              branch: 'ON_HIT',
               groupType: 'SINGLE',
               resolutionKind: 'DIRECT',
               effectKind: 'DAMAGE',
@@ -397,7 +403,7 @@ describe('createEquipmentRepository', () => {
       quote: undefined,
       cost: { amount: 50, currencyId: 'gp' },
       weight: { amount: 4, unit: 'POUNDS' },
-      effects: [
+      capabilities: [
         {
           id: 'equipment-effect-1',
           order: 1,
@@ -412,10 +418,10 @@ describe('createEquipmentRepository', () => {
             },
             shape: undefined
           },
-          moments: [
+          branches: [
             {
-              id: 'equipment-moment-1',
-              moment: 'ON_HIT',
+              id: 'equipment-BRANCH-1',
+              branch: 'ON_HIT',
               groupType: 'SINGLE',
               resolutionKind: 'DIRECT',
               duration: undefined,

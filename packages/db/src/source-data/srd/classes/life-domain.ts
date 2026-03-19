@@ -1,0 +1,1 @@
+export { lifeDomain as lifeDomainCleric } from './cleric.js'

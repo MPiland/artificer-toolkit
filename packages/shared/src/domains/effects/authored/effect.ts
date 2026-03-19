@@ -1,8 +1,9 @@
 import type {
   SavingThrowAuthored,
-  MomentAuthored,
+  BranchAuthored,
   RangeAuthored,
-  ShapeAuthored
+  ShapeAuthored,
+  TargetingAuthored
 } from '#authored'
 import type {
   ACTIVATION_CODE,
@@ -24,11 +25,13 @@ export type InvocationAuthored<TTrigger extends Trigger = Trigger>
     activation: ActivationAuthored
     range: RangeAuthored
     shape?: ShapeAuthored
+    targeting?: TargetingAuthored
   } | {
     triggerCode: Exclude<TTrigger, 'SAVING_THROW'>
     activation: ActivationAuthored
     range: RangeAuthored
     shape?: ShapeAuthored
+    targeting?: TargetingAuthored
   }
 
 export type EffectAuthored<
@@ -37,5 +40,5 @@ export type EffectAuthored<
   id: string
   order: number // int
   invocation: InvocationAuthored<TTrigger>
-  moments: MomentAuthored<TTrigger>[]
+  branches: BranchAuthored<TTrigger>[]
 }

@@ -1,15 +1,18 @@
 import type {
+  ApplyGrantAuthored,
+  HealAuthored,
+  ManifestAuthored,
   DurationAuthored,
   EffectAuthored,
-  MomentAuthored
+  BranchAuthored
 } from '#authored'
 import {
   EFFECT_KIND,
-  MOMENT_GROUP_TYPE,
-  MOMENT_ROLL_TABLE_KIND,
-  MOMENT_RESOLUTION_KIND,
-  type MomentCode,
-  type MomentGroupType,
+  BRANCH_GROUP_TYPE,
+  BRANCH_ROLL_TABLE_KIND,
+  BRANCH_RESOLUTION_KIND,
+  type BranchCode,
+  type BranchGroupType,
   type Trigger
 } from '#core'
 import {
@@ -29,25 +32,25 @@ import {
 
 export type CompiledEffect = {
   id: string
-  moment: MomentCode
+  branch: BranchCode
   duration?: CompiledDuration
-  outcome: CompiledMomentOutcome
+  outcome: CompiledBranchOutcome
   order?: number
 } & (
   | {
-    resolutionKind: typeof MOMENT_RESOLUTION_KIND.DIRECT
-    groupKind: keyof typeof MOMENT_GROUP_TYPE
+    resolutionKind: typeof BRANCH_RESOLUTION_KIND.DIRECT
+    groupKind: keyof typeof BRANCH_GROUP_TYPE
   }
   | ({
-    resolutionKind: typeof MOMENT_RESOLUTION_KIND.ROLL_TABLE
+    resolutionKind: typeof BRANCH_RESOLUTION_KIND.ROLL_TABLE
   } & (
     | {
-      rollTableKind: typeof MOMENT_ROLL_TABLE_KIND.RANGE
+      rollTableKind: typeof BRANCH_ROLL_TABLE_KIND.RANGE
       die: string
       rollRange: [number, number]
     }
     | {
-      rollTableKind: typeof MOMENT_ROLL_TABLE_KIND.EXACT
+      rollTableKind: typeof BRANCH_ROLL_TABLE_KIND.EXACT
       die: string
       rollValue: number
     }
@@ -56,62 +59,73 @@ export type CompiledEffect = {
 
 export type CompiledEffectGroup = CompiledEffect[]
 
-export type CompiledMomentDirect<TPayload> = {
+export type CompiledBranchDirect<TPayload> = {
   id: string
-  groupType: MomentGroupType
-  resolutionKind: typeof MOMENT_RESOLUTION_KIND.DIRECT
+  groupType: BranchGroupType
+  resolutionKind: typeof BRANCH_RESOLUTION_KIND.DIRECT
   duration?: DurationAuthored
 } & TPayload
 
-export type CompiledMomentRollTableEntry<TPayload> = {
+export type CompiledBranchRollTableEntry<TPayload> = {
   id: string
   label: string
   duration?: DurationAuthored
 } & TPayload
 
-export type CompiledMomentRollTableRange<TPayload> = {
-  rollTableKind: typeof MOMENT_ROLL_TABLE_KIND.RANGE
+export type CompiledBranchRollTableRange<TPayload> = {
+  rollTableKind: typeof BRANCH_ROLL_TABLE_KIND.RANGE
   table: ({
     rollRange: [number, number]
-  } & CompiledMomentRollTableEntry<TPayload>)[]
+  } & CompiledBranchRollTableEntry<TPayload>)[]
 }
 
-export type CompiledMomentRollTableExact<TPayload> = {
-  rollTableKind: typeof MOMENT_ROLL_TABLE_KIND.EXACT
-  table: ({ rollValue: number } & CompiledMomentRollTableEntry<TPayload>)[]
+export type CompiledBranchRollTableExact<TPayload> = {
+  rollTableKind: typeof BRANCH_ROLL_TABLE_KIND.EXACT
+  table: ({ rollValue: number } & CompiledBranchRollTableEntry<TPayload>)[]
 }
 
-export type CompiledMomentRollTableKindPayload<TPayload>
-  = | CompiledMomentRollTableRange<TPayload>
-    | CompiledMomentRollTableExact<TPayload>
+export type CompiledBranchRollTableKindPayload<TPayload>
+  = | CompiledBranchRollTableRange<TPayload>
+    | CompiledBranchRollTableExact<TPayload>
 
-export type CompiledMomentRollTable<TPayload> = {
-  resolutionKind: typeof MOMENT_RESOLUTION_KIND.ROLL_TABLE
+export type CompiledBranchRollTable<TPayload> = {
+  resolutionKind: typeof BRANCH_RESOLUTION_KIND.ROLL_TABLE
   die: string
-} & CompiledMomentRollTableKindPayload<TPayload>
+} & CompiledBranchRollTableKindPayload<TPayload>
 
-export type CompilerMomentEntry<TPayload>
-  = | CompiledMomentDirect<TPayload>
-    | CompiledMomentRollTable<TPayload>
+export type CompilerBranchEntry<TPayload>
+  = | CompiledBranchDirect<TPayload>
+    | CompiledBranchRollTable<TPayload>
 
-export type CompilerMomentMap<TPayload> = Partial<
-  Record<MomentCode, CompilerMomentEntry<TPayload>>
+export type CompilerBranchMap<TPayload> = Partial<
+  Record<BranchCode, CompilerBranchEntry<TPayload>>
 >
 
-export type CompiledMomentOutcome
+export type CompiledBranchOutcome
   = | CompiledDamageEffect
     | CompiledConditionEffect
+    | HealAuthored
+    | ApplyGrantAuthored
+    | ManifestAuthored
+    | import('#authored').TeleportAuthored
+    | import('#authored').RuleAuthored
 
-function compileMomentPayload(
-  moment: Extract<MomentAuthored<Trigger>, { resolutionKind: typeof MOMENT_RESOLUTION_KIND.DIRECT }> | Extract<MomentAuthored<Trigger>, { resolutionKind: typeof MOMENT_RESOLUTION_KIND.ROLL_TABLE }>['table'][number]
-): CompiledMomentOutcome[] {
-  switch (moment.effectKind) {
+function compileBranchPayload(
+  branch: Extract<BranchAuthored<Trigger>, { resolutionKind: typeof BRANCH_RESOLUTION_KIND.DIRECT }> | Extract<BranchAuthored<Trigger>, { resolutionKind: typeof BRANCH_RESOLUTION_KIND.ROLL_TABLE }>['table'][number]
+): CompiledBranchOutcome[] {
+  switch (branch.effectKind) {
     case EFFECT_KIND.CONDITION:
-      return compileConditionEffect(moment)
+      return compileConditionEffect(branch)
     case EFFECT_KIND.DAMAGE:
-      return compileDamageEffect(moment)
+      return compileDamageEffect(branch)
+    case EFFECT_KIND.HEAL:
+    case EFFECT_KIND.APPLY_GRANT:
+    case EFFECT_KIND.TELEPORT:
+    case EFFECT_KIND.MANIFEST:
+    case EFFECT_KIND.RULE:
+      return [branch]
     default:
-      return assertNever(moment)
+      return assertNever(branch)
   }
 }
 
@@ -120,20 +134,20 @@ export function compileEffectResult<
 >(effect: EffectAuthored<TTrigger>): CompileResult<CompiledEffectGroup> {
   const rules: CompiledEffect[] = []
 
-  for (const moment of effect.moments) {
-    switch (moment.resolutionKind) {
-      case MOMENT_RESOLUTION_KIND.DIRECT: {
-        const compiledOutcomes = compileMomentPayload(moment)
-        const duration = moment.duration
-          ? compileDuration(moment.duration)
+  for (const branch of effect.branches) {
+    switch (branch.resolutionKind) {
+      case BRANCH_RESOLUTION_KIND.DIRECT: {
+        const compiledOutcomes = compileBranchPayload(branch)
+        const duration = branch.duration
+          ? compileDuration(branch.duration)
           : undefined
 
         for (const outcome of compiledOutcomes) {
           rules.push({
             id: outcome.id,
-            moment: moment.moment,
-            resolutionKind: MOMENT_RESOLUTION_KIND.DIRECT,
-            groupKind: moment.groupType,
+            branch: branch.branch,
+            resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
+            groupKind: branch.groupType,
             outcome,
             order: rules.length,
             duration
@@ -142,11 +156,11 @@ export function compileEffectResult<
         break
       }
 
-      case MOMENT_RESOLUTION_KIND.ROLL_TABLE: {
-        switch (moment.rollTableKind) {
-          case MOMENT_ROLL_TABLE_KIND.RANGE: {
-            for (const entry of moment.table) {
-              const compiledOutcomes = compileMomentPayload(entry)
+      case BRANCH_RESOLUTION_KIND.ROLL_TABLE: {
+        switch (branch.rollTableKind) {
+          case BRANCH_ROLL_TABLE_KIND.RANGE: {
+            for (const entry of branch.table) {
+              const compiledOutcomes = compileBranchPayload(entry)
               const duration = entry.duration
                 ? compileDuration(entry.duration)
                 : undefined
@@ -154,10 +168,10 @@ export function compileEffectResult<
               for (const outcome of compiledOutcomes) {
                 rules.push({
                   id: outcome.id,
-                  moment: moment.moment,
-                  resolutionKind: MOMENT_RESOLUTION_KIND.ROLL_TABLE,
-                  rollTableKind: MOMENT_ROLL_TABLE_KIND.RANGE,
-                  die: moment.dieConfig,
+                  branch: branch.branch,
+                  resolutionKind: BRANCH_RESOLUTION_KIND.ROLL_TABLE,
+                  rollTableKind: BRANCH_ROLL_TABLE_KIND.RANGE,
+                  die: branch.dieConfig,
                   rollRange: entry.rollRange,
                   outcome,
                   order: rules.length,
@@ -168,9 +182,9 @@ export function compileEffectResult<
             break
           }
 
-          case MOMENT_ROLL_TABLE_KIND.EXACT: {
-            for (const entry of moment.table) {
-              const compiledOutcomes = compileMomentPayload(entry)
+          case BRANCH_ROLL_TABLE_KIND.EXACT: {
+            for (const entry of branch.table) {
+              const compiledOutcomes = compileBranchPayload(entry)
               const duration = entry.duration
                 ? compileDuration(entry.duration)
                 : undefined
@@ -178,10 +192,10 @@ export function compileEffectResult<
               for (const outcome of compiledOutcomes) {
                 rules.push({
                   id: outcome.id,
-                  moment: moment.moment,
-                  resolutionKind: MOMENT_RESOLUTION_KIND.ROLL_TABLE,
-                  rollTableKind: MOMENT_ROLL_TABLE_KIND.EXACT,
-                  die: moment.dieConfig,
+                  branch: branch.branch,
+                  resolutionKind: BRANCH_RESOLUTION_KIND.ROLL_TABLE,
+                  rollTableKind: BRANCH_ROLL_TABLE_KIND.EXACT,
+                  die: branch.dieConfig,
                   rollValue: entry.rollValue,
                   outcome,
                   order: rules.length,
@@ -193,13 +207,13 @@ export function compileEffectResult<
           }
 
           default:
-            return assertNever(moment)
+            return assertNever(branch)
         }
         break
       }
 
       default:
-        return assertNever(moment)
+        return assertNever(branch)
     }
   }
 

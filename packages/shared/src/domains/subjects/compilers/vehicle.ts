@@ -6,9 +6,9 @@ import type { CompiledCost } from './equipment.js'
 export interface CompiledVehicle {
   id: string
   category: string
-  size: SizeCode
-  armorClass: number
-  hitPoints: number
+  size?: SizeCode
+  armorClass?: number
+  hitPoints?: number
   speed?: number
   speedNote?: string
   crewMin?: number

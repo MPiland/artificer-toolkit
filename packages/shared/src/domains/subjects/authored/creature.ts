@@ -1,19 +1,14 @@
 import type { AbilityCode, SizeCode } from '#core'
 import type {
+  CapacityAuthored,
+  CostAuthored,
   DetailAuthored,
   FeatureAuthored,
   SpeedAuthored,
 } from '#authored'
 
-// ─── Category ────────────────────────────────────────────────────────────────
-// Content/presentation bucket — what kind of creature this is.
-// Legendary/lair/mount/companion mechanics are PROFILES (not categories)
-// because they cut across categories: any creature can be legendary,
-// any beast can be a mount, etc.
-
 export type CreatureCategory = 'NPC' | 'MONSTER' | 'BEAST' | 'COMPANION' | 'SUMMON'
-
-// ─── Action ──────────────────────────────────────────────────────────────────
+export type CreatureRecordKind = 'STAT_BLOCK' | 'LOGISTICS'
 
 export interface CreatureActionAuthored {
   id: string
@@ -24,12 +19,9 @@ export interface CreatureActionAuthored {
   recharge?: string
 }
 
-// ─── Optional rule profiles ───────────────────────────────────────────────────
-// Presence = that mechanics module applies to this creature.
-
 export interface CreatureLegendaryProfile {
-  legendaryResistanceCount?: number   // uses per day (legendary resistance)
-  actionsCount: number                // legendary actions per round
+  legendaryResistanceCount?: number
+  actionsCount: number
   actions: CreatureActionAuthored[]
 }
 
@@ -58,38 +50,41 @@ export interface CreatureNpcProfile {
   personalityTraits?: string[]
 }
 
-// ─── Root authored type ───────────────────────────────────────────────────────
-
-export interface CreatureAuthored {
+export interface CreatureBaseAuthored {
   id: string
   label: string
   quote?: string
   description?: string
   details?: DetailAuthored[]
-  features?: FeatureAuthored[]          // traits, special abilities
+  features?: FeatureAuthored[]
   userId: string
   systemId: string
 
-  // Identity
+  recordKind: CreatureRecordKind
   category: CreatureCategory
-  creatureTypeId: string               // vocabulary: ABERRATION, BEAST, HUMANOID, etc.
-  size: SizeCode
+  creatureTypeId?: string
+  size?: SizeCode
   alignmentId?: string
   tags?: string[]
 
-  // Core stats
+  speeds: SpeedAuthored[]
+  mountProfile?: CreatureMountProfile
+  companionProfile?: CreatureCompanionProfile
+}
+
+export interface StatBlockCreatureAuthored extends CreatureBaseAuthored {
+  recordKind: 'STAT_BLOCK'
+  creatureTypeId: string
+  size: SizeCode
+
   abilityScores: Record<AbilityCode, number>
   armorClass: number
   armorClassNote?: string
   hitPoints: number
-  hitDice?: string                     // e.g. "5d8+10"
+  hitDice?: string
 
-  // Movement
-  speeds: SpeedAuthored[]
-  senses?: string[]                    // sense IDs from vocabulary
+  senses?: string[]
   passivePerception?: number
-
-  // Defenses
   savingThrowProficiencies?: AbilityCode[]
   skillProficiencies?: string[]
   damageVulnerabilities?: string[]
@@ -97,20 +92,48 @@ export interface CreatureAuthored {
   damageImmunities?: string[]
   conditionImmunities?: string[]
 
-  // Social/rules
   languages?: string[]
   challengeRatingId?: string
   xp?: number
 
-  // Standard actions
   actions?: CreatureActionAuthored[]
   bonusActions?: CreatureActionAuthored[]
   reactions?: CreatureActionAuthored[]
 
-  // Optional rule profiles (presence = that mechanics module applies)
   legendaryProfile?: CreatureLegendaryProfile
   lairProfile?: CreatureLairProfile
-  mountProfile?: CreatureMountProfile
-  companionProfile?: CreatureCompanionProfile
   npcProfile?: CreatureNpcProfile
 }
+
+export interface LogisticsCreatureAuthored extends CreatureBaseAuthored {
+  recordKind: 'LOGISTICS'
+
+  cost?: CostAuthored
+  carryingCapacity?: CapacityAuthored
+  logisticsNotes?: string[]
+
+  abilityScores?: never
+  armorClass?: never
+  armorClassNote?: never
+  hitPoints?: never
+  hitDice?: never
+  senses?: never
+  passivePerception?: never
+  savingThrowProficiencies?: never
+  skillProficiencies?: never
+  damageVulnerabilities?: never
+  damageResistances?: never
+  damageImmunities?: never
+  conditionImmunities?: never
+  languages?: never
+  challengeRatingId?: never
+  xp?: never
+  actions?: never
+  bonusActions?: never
+  reactions?: never
+  legendaryProfile?: never
+  lairProfile?: never
+  npcProfile?: never
+}
+
+export type CreatureAuthored = StatBlockCreatureAuthored | LogisticsCreatureAuthored

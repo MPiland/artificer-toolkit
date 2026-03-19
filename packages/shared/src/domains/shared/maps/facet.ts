@@ -798,7 +798,7 @@ const FACET_PREDICATE_NODE_MAP = facetPredicateNode.define('facePredicate', ({ m
                 input: p.id(['spellIds'])
               }))
             .end())
-          .mapValues('effect_moments', {
+          .mapValues('effect_branches', {
             whereColumn: 'effect_id',
             valueColumn: 'duration_id'
           })
@@ -1405,17 +1405,17 @@ const FACET_PREDICATE_NODE_MAP = facetPredicateNode.define('facePredicate', ({ m
           .end())
         .union((u) => u
           .branch((b) => b
-            .mapValues('moment_roll_table_entries', {
+            .mapValues('branch_roll_table_entries', {
               whereColumn: 'effect_id',
               valueColumn: 'id'
             })
-            .mapValues('moment_roll_table_damages', {
+            .mapValues('branch_roll_table_damages', {
               whereColumn: 'entry_id',
               valueColumn: 'damage_id'
             })
             .end())
           .branch((b) => b
-            .mapValues('moment_direct_damages', {
+            .mapValues('branch_direct_damages', {
               whereColumn: 'effect_id',
               valueColumn: 'damage_id'
             })
@@ -1482,17 +1482,17 @@ const FACET_PREDICATE_NODE_MAP = facetPredicateNode.define('facePredicate', ({ m
           .end())
         .union((u) => u
           .branch((b) => b
-            .mapValues('moment_roll_table_entries', {
+            .mapValues('branch_roll_table_entries', {
               whereColumn: 'effect_id',
               valueColumn: 'id'
             })
-            .mapValues('moment_roll_table_conditions', {
+            .mapValues('branch_roll_table_conditions', {
               whereColumn: 'entry_id',
               valueColumn: 'condition_id'
             })
             .end())
           .branch((b) => b
-            .mapValues('moment_direct_conditions', {
+            .mapValues('branch_direct_conditions', {
               whereColumn: 'effect_id',
               valueColumn: 'condition_id'
             })

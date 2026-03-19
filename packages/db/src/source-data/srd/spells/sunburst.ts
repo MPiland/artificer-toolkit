@@ -1,0 +1,82 @@
+import {
+  ABILITY_CODE,
+  ACTIVATION_CODE,
+  BRANCH,
+  BRANCH_GROUP_TYPE,
+  BRANCH_RESOLUTION_KIND,
+  CASTING_TIME_UNIT_CODE,
+  EFFECT_KIND,
+  MEASUREMENT_UNIT_CODE,
+  RANGE_KIND,
+  SUBJECT,
+  TARGET_SELECTION_KIND,
+  TRIGGER,
+  type SpellAuthored
+} from '@artificer-toolkit/shared'
+import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+
+export const sunburst: SpellAuthored = {
+  kind: SUBJECT.SPELL,
+  id: SPELL_IDS.SUNBURST,
+  label: 'Sunburst',
+  description:
+    'A burst of brilliant sunlight explodes in a 60-foot radius at a point within range, dealing radiant damage and potentially blinding creatures caught in the flash.',
+  castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
+  level: 8,
+  classIds: [CLASS_IDS.DRUID, CLASS_IDS.SORCERER, CLASS_IDS.WIZARD],
+  magicSchoolId: schoolId('EVOCATION'),
+  materialDescription: 'fire and a piece of sunstone',
+  capabilities: [
+    {
+      id: spellChildId(SPELL_IDS.SUNBURST, 0x210, 1),
+      order: 1,
+      invocation: {
+        triggerCode: TRIGGER.SAVING_THROW,
+        savingThrow: {
+          id: spellChildId(SPELL_IDS.SUNBURST, 0x211, 1),
+          savingThrowKind: 'SOURCE_SAVE_DC',
+          ability: ABILITY_CODE.CONSTITUTION
+        },
+        activation: {
+          code: ACTIVATION_CODE.ACTION,
+          amount: 1
+        },
+        range: {
+          id: spellChildId(SPELL_IDS.SUNBURST, 0x212, 1),
+          rangeKind: RANGE_KIND.DISTANCE,
+          amount: 150,
+          unit: MEASUREMENT_UNIT_CODE.FEET
+        },
+        targeting: {
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
+          detail: 'Choose a point within range. Creatures in the burst are affected.'
+        }
+      },
+      branches: [
+        {
+          id: spellChildId(SPELL_IDS.SUNBURST, 0x213, 1),
+          branch: BRANCH.ON_SAVE_FAIL,
+          groupType: BRANCH_GROUP_TYPE.SINGLE,
+          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
+          effectKind: EFFECT_KIND.RULE,
+          label: 'Sunburst',
+          description:
+            'Creatures in the burst take radiant damage and may be blinded by the flash on a failed Constitution saving throw.'
+        },
+        {
+          id: spellChildId(SPELL_IDS.SUNBURST, 0x214, 1),
+          branch: BRANCH.ON_SAVE_SUCCESS,
+          groupType: BRANCH_GROUP_TYPE.SINGLE,
+          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
+          effectKind: EFFECT_KIND.RULE,
+          label: 'Sunburst',
+          description:
+            'Creatures in the burst take half damage on a successful Constitution saving throw.'
+        }
+      ]
+    }
+  ],
+  userId: SRD_USER_ID,
+  systemId: SRD_SYSTEM_ID
+}
