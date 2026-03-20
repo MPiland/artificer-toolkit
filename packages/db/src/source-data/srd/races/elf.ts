@@ -15,13 +15,24 @@ import {
   type RaceAuthored
 } from '@artificer-toolkit/shared'
 import { RACE_IDS, SUBRACE_IDS, SPELL_IDS } from '../ids.js'
-import { SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID, SRD_DARKVISION_SENSE_ID, SRD_SKILLS } from '../vocabulary.js'
+import { SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID, SRD_DARKVISION_SENSE_ID, SRD_SKILLS, SRD_CONDITION_TYPES } from '../vocabulary.js'
 
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
   const rHex = raceIndex.toString(16).padStart(4, '0')
   const gHex = group.toString(16).padStart(2, '0')
   const eHex = entry.toString(16).padStart(2, '0')
   return `00000000-0000-0000-a001-${rHex}${gHex}${eHex}0000`
+}
+
+function equipId(index: number): string {
+  const hex = index.toString(16).padStart(4, '0')
+  return `00000000-0000-0000-0060-${hex}00000000`
+}
+
+function conditionTypeId(code: string): string {
+  const entry = SRD_CONDITION_TYPES.find((c) => c.code === code)
+  if (!entry) throw new Error(`SRD condition type vocabulary entry for ${code} required.`)
+  return entry.id
 }
 
 const walkSpeedId = SRD_SPEEDS.find((speed) => speed.code === 'WALK')?.id
@@ -32,6 +43,12 @@ const elfWalk30 = [{ speedId: walkSpeedId, amount: 30, unit: MEASUREMENT_UNIT_CO
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
   if (!entry) throw new Error(`SRD skill vocabulary entry for ${code} required.`)
+  return entry.id
+}
+
+function languageId(code: string): string {
+  const entry = SRD_LANGUAGES.find((l) => l.code === code)
+  if (!entry) throw new Error(`SRD language vocabulary entry for ${code} required.`)
   return entry.id
 }
 
@@ -100,7 +117,25 @@ export const elf: RaceAuthored = {
       label: 'Fey Ancestry',
       description: 'You have advantage on saving throws against being charmed, and magic can\'t put you to sleep.',
       availableAtLevel: 1,
-      order: 2
+      order: 2,
+      grants: {
+        modifiers: [
+          {
+            id: raceFeatureId(2, 3, 2),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_BONUS,
+            domain: {
+              ability: ABILITY_CODE.CHARISMA,
+              conditionTypeId: conditionTypeId('CHARMED')
+            },
+            modifierKind: MODIFIER_KIND.ADVANTAGE,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: undefined,
+            order: 0
+          }
+        ]
+      }
     },
     {
       id: raceFeatureId(2, 4, 1),
@@ -108,6 +143,28 @@ export const elf: RaceAuthored = {
       description: 'Elves don\'t need to sleep. Instead, they meditate deeply, remaining semiconscious, for 4 hours a day. After resting in this way, you gain the same benefit that a human does from 8 hours of sleep.',
       availableAtLevel: 1,
       order: 3
+    },
+    {
+      id: raceFeatureId(2, 5, 1),
+      label: 'Languages',
+      description: 'You can speak, read, and write Common and Elvish.',
+      availableAtLevel: 1,
+      order: 4,
+      grants: {
+        proficiencies: [
+          {
+            id: raceFeatureId(2, 5, 2),
+            grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+            proficiencyKind: PROFICIENCY_KIND.LANGUAGE,
+            level: SCALING_AMOUNT_KIND.FULL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: SCALING.NONE,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            languageIds: [languageId('COMMON'), languageId('ELVISH')],
+            order: 0
+          }
+        ]
+      }
     }
   ]
 }
@@ -160,7 +217,27 @@ export const highElf: RaceAuthored = {
       label: 'Elf Weapon Training',
       description: 'You have proficiency with the longsword, shortsword, shortbow, and longbow.',
       availableAtLevel: 1,
-      order: 1
+      order: 1,
+      grants: {
+        proficiencies: [
+          {
+            id: raceFeatureId(103, 2, 2),
+            grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+            proficiencyKind: PROFICIENCY_KIND.EQUIPMENT,
+            level: SCALING_AMOUNT_KIND.FULL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: SCALING.NONE,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            equipmentIds: [
+              equipId(22), // longsword
+              equipId(28), // shortsword
+              equipId(13), // shortbow
+              equipId(36)  // longbow
+            ],
+            order: 0
+          }
+        ]
+      }
     },
     {
       id: raceFeatureId(103, 3, 1),
@@ -174,7 +251,22 @@ export const highElf: RaceAuthored = {
       label: 'Extra Language',
       description: 'You can speak, read, and write one extra language of your choice.',
       availableAtLevel: 1,
-      order: 3
+      order: 3,
+      grants: {
+        proficiencies: [
+          {
+            id: raceFeatureId(103, 4, 2),
+            grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+            proficiencyKind: PROFICIENCY_KIND.LANGUAGE,
+            level: SCALING_AMOUNT_KIND.FULL,
+            selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+            count: 1,
+            scalingKind: SCALING.NONE,
+            authoringModeKind: AUTHORING_MODE_KIND.ALL,
+            order: 0
+          }
+        ]
+      }
     }
   ]
 }
@@ -228,7 +320,27 @@ export const woodElf: RaceAuthored = {
       label: 'Elf Weapon Training',
       description: 'You have proficiency with the longsword, shortsword, shortbow, and longbow.',
       availableAtLevel: 1,
-      order: 1
+      order: 1,
+      grants: {
+        proficiencies: [
+          {
+            id: raceFeatureId(104, 2, 2),
+            grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+            proficiencyKind: PROFICIENCY_KIND.EQUIPMENT,
+            level: SCALING_AMOUNT_KIND.FULL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: SCALING.NONE,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            equipmentIds: [
+              equipId(22), // longsword
+              equipId(28), // shortsword
+              equipId(13), // shortbow
+              equipId(36)  // longbow
+            ],
+            order: 0
+          }
+        ]
+      }
     },
     {
       id: raceFeatureId(104, 3, 1),
@@ -243,6 +355,28 @@ export const woodElf: RaceAuthored = {
       description: 'You can attempt to hide even when you are only lightly obscured by foliage, heavy rain, falling snow, mist, and other natural phenomena.',
       availableAtLevel: 1,
       order: 3
+    },
+    {
+      id: raceFeatureId(104, 5, 1),
+      label: 'Languages',
+      description: 'You can speak, read, and write Common and Elvish.',
+      availableAtLevel: 1,
+      order: 4,
+      grants: {
+        proficiencies: [
+          {
+            id: raceFeatureId(104, 5, 2),
+            grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+            proficiencyKind: PROFICIENCY_KIND.LANGUAGE,
+            level: SCALING_AMOUNT_KIND.FULL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: SCALING.NONE,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            languageIds: [languageId('COMMON'), languageId('ELVISH')],
+            order: 0
+          }
+        ]
+      }
     }
   ]
 }
@@ -366,7 +500,48 @@ export const darkElf: RaceAuthored = {
       label: 'Drow Weapon Training',
       description: 'You have proficiency with rapiers, shortswords, and hand crossbows.',
       availableAtLevel: 1,
-      order: 4
+      order: 4,
+      grants: {
+        proficiencies: [
+          {
+            id: raceFeatureId(105, 5, 2),
+            grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+            proficiencyKind: PROFICIENCY_KIND.EQUIPMENT,
+            level: SCALING_AMOUNT_KIND.FULL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: SCALING.NONE,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            equipmentIds: [
+              equipId(26), // rapier
+              equipId(28), // shortsword
+              equipId(34)  // hand crossbow
+            ],
+            order: 0
+          }
+        ]
+      }
+    },
+    {
+      id: raceFeatureId(105, 6, 1),
+      label: 'Languages',
+      description: 'You can speak, read, and write Common, Elvish, and Undercommon.',
+      availableAtLevel: 1,
+      order: 5,
+      grants: {
+        proficiencies: [
+          {
+            id: raceFeatureId(105, 6, 2),
+            grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+            proficiencyKind: PROFICIENCY_KIND.LANGUAGE,
+            level: SCALING_AMOUNT_KIND.FULL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: SCALING.NONE,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            languageIds: [languageId('COMMON'), languageId('ELVISH'), languageId('UNDERCOMMON')],
+            order: 0
+          }
+        ]
+      }
     }
   ]
 }

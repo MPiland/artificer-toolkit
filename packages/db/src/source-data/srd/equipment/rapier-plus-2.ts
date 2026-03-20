@@ -13,6 +13,7 @@ export const rapierPlus2: EquipmentVariantAuthored = {
   weight: S.lbs(2),
   rarityId: S.RARITY_RARE,
   maxBonus: 2,
+  modifiers: S.meleeMagicWeaponModifiers(S.equipId(211), 2),
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID,
 }

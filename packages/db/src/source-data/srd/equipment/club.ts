@@ -9,6 +9,7 @@ export const club: EquipmentAuthored = {
     category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
     properties: [S.EQUIPMENT_PROPERTY_CODE.SIMPLE, S.EQUIPMENT_PROPERTY_CODE.MELEE, S.EQUIPMENT_PROPERTY_CODE.LIGHT],
     abilities: [],
+    capabilities: S.meleeWeaponCapabilities(S.equipId(1), 'BLUDGEONING', '1d4'),
     cost: S.gp(0.1),
     weight: S.lbs(2),
     rarityId: S.RARITY_COMMON,

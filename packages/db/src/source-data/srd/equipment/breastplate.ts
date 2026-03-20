@@ -13,6 +13,7 @@ export const breastplate: EquipmentAuthored = {
     cost: S.gp(400),
     weight: S.lbs(20),
     rarityId: S.RARITY_COMMON,
-    userId: S.SRD_USER_ID,
+    modifiers: S.mediumArmorModifiers(S.equipId(44)),
+  userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
   }

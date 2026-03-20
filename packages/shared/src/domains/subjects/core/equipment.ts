@@ -104,7 +104,8 @@ export const EQUIPMENT_PROPERTY_CODE = {
   PROFESSIONAL_TOOL: 'PROFESSIONAL_TOOL',
   WOOD: 'WOOD',
   METAL: 'METAL',
-  MAGIC: 'MAGIC'
+  MAGIC: 'MAGIC',
+  CLOTHING: 'CLOTHING'
 } as const
 
 export type EquipmentPropertyCode = keyof typeof EQUIPMENT_PROPERTY_CODE
@@ -363,6 +364,13 @@ export const EQUIPMENT_PROPERTY_REGISTRY: Record<
     label: 'Magic',
     tooltip: 'Magical in nature.',
     description: 'May interact with anti-magic effects.'
+  },
+
+  [EQUIPMENT_PROPERTY_CODE.CLOTHING]: {
+    code: EQUIPMENT_PROPERTY_CODE.CLOTHING,
+    label: 'Clothing',
+    tooltip: 'A wearable garment.',
+    description: 'Clothing items worn for social, religious, or practical purposes.'
   }
 } as const
 
@@ -417,6 +425,7 @@ export const PROPERTIES_BY_CATEGORY = {
     EQUIPMENT_PROPERTY_CODE.HOLY_SYMBOL,
     EQUIPMENT_PROPERTY_CODE.DRINK,
     EQUIPMENT_PROPERTY_CODE.FOOD,
+    EQUIPMENT_PROPERTY_CODE.CLOTHING,
     EQUIPMENT_PROPERTY_CODE.MAGIC,
     EQUIPMENT_PROPERTY_CODE.WONDEROUS_ITEM
   ],

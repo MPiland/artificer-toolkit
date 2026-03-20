@@ -13,6 +13,7 @@ export const whipPlus2: EquipmentVariantAuthored = {
   weight: S.lbs(3),
   rarityId: S.RARITY_RARE,
   maxBonus: 2,
+  modifiers: S.meleeMagicWeaponModifiers(S.equipId(229), 2),
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID,
 }

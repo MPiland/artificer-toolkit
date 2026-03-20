@@ -36,6 +36,7 @@ type ModifierGrantDomainParamRow = {
   speed_id: string | null
   sense_code: string | null
   spell_level: number | null
+  condition_type_id: string | null
 }
 
 type ModifierGrantPayloadRow = {
@@ -291,10 +292,23 @@ function mapModifierGrantDomainRow(
         skill_id: null,
         speed_id: null,
         sense_code: null,
-        spell_level: null
+        spell_level: null,
+        condition_type_id: null
       }
 
     case 'SAVING_THROW_BONUS':
+      return {
+        modifier_grant_id: json_data.id,
+        value_domain_code: json_data.valueDomainCode,
+        attack_domain_code: null,
+        ability_code: requireAbilityCode(json_data.id, (json_data.domain as { ability?: string }).ability ?? '', 'domain ability'),
+        skill_id: null,
+        speed_id: null,
+        sense_code: null,
+        spell_level: null,
+        condition_type_id: (json_data.domain as { conditionTypeId?: string }).conditionTypeId ?? null
+      }
+
     case 'ABILITY_SCORE':
       return {
         modifier_grant_id: json_data.id,
@@ -304,7 +318,8 @@ function mapModifierGrantDomainRow(
         skill_id: null,
         speed_id: null,
         sense_code: null,
-        spell_level: null
+        spell_level: null,
+        condition_type_id: null
       }
 
     case 'SKILL_BONUS': {
@@ -321,7 +336,8 @@ function mapModifierGrantDomainRow(
         skill_id: skillId,
         speed_id: null,
         sense_code: null,
-        spell_level: null
+        spell_level: null,
+        condition_type_id: null
       }
     }
 
@@ -339,7 +355,8 @@ function mapModifierGrantDomainRow(
         skill_id: null,
         speed_id: speedId,
         sense_code: null,
-        spell_level: null
+        spell_level: null,
+        condition_type_id: null
       }
     }
 
@@ -357,7 +374,8 @@ function mapModifierGrantDomainRow(
         skill_id: null,
         speed_id: null,
         sense_code: senseCode,
-        spell_level: null
+        spell_level: null,
+        condition_type_id: null
       }
     }
 
@@ -375,7 +393,8 @@ function mapModifierGrantDomainRow(
         skill_id: null,
         speed_id: null,
         sense_code: null,
-        spell_level: spellLevel
+        spell_level: spellLevel,
+        condition_type_id: null
       }
     }
 
@@ -544,7 +563,8 @@ function mapModifierGrantPayload(
           break
         }
 
-        case 'CONDITION': {
+        case 'CONDITION':
+        case 'CONDITION_IMMUNITY': {
           const conditionTypeId = (payload as { conditionTypeId?: string }).conditionTypeId
           if (!conditionTypeId) {
             throw new Error(`Modifier grant "${json_data.id}" is missing payload conditionTypeId.`)

@@ -4,7 +4,7 @@ import * as S from './shared.js'
 
 export const halfPlateArmorPlus1: EquipmentVariantAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
-  id: S.equipId(213),
+  id: S.equipId(327),
   label: 'Half Plate Armor +1',
   description: 'You have a +1 bonus to AC while wearing this magic armor.',
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
@@ -13,6 +13,7 @@ export const halfPlateArmorPlus1: EquipmentVariantAuthored = {
   weight: halfPlateArmor.weight,
   rarityId: S.RARITY_UNCOMMON,
   maxBonus: 1,
+  modifiers: S.magicArmorModifiers(S.equipId(327), 1),
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID,
 }

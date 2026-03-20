@@ -9,6 +9,7 @@ export const lightCrossbow: EquipmentAuthored = {
     category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
     properties: [S.EQUIPMENT_PROPERTY_CODE.SIMPLE, S.EQUIPMENT_PROPERTY_CODE.RANGED, S.EQUIPMENT_PROPERTY_CODE.AMMUNITION, S.EQUIPMENT_PROPERTY_CODE.LOADING, S.EQUIPMENT_PROPERTY_CODE.TWO_HANDED],
     abilities: [],
+    capabilities: S.rangedWeaponCapabilities(S.equipId(11), 'PIERCING', '1d8', 80),
     cost: S.gp(25),
     weight: S.lbs(5),
     rarityId: S.RARITY_COMMON,

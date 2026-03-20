@@ -1,6 +1,7 @@
 import {
   ACTIVATION_CODE,
   ABILITY_CODE,
+  AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
   BRANCH,
   BRANCH_GROUP_TYPE,
@@ -10,6 +11,7 @@ import {
   MEASUREMENT_UNIT_CODE,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
+  PROFICIENCY_KIND,
   RANGE_KIND,
   RACE_CATEGORY_CODE,
   SCALING,
@@ -24,7 +26,7 @@ import {
   type RaceAuthored
 } from '@artificer-toolkit/shared'
 import { RACE_IDS } from '../ids.js'
-import { SRD_DAMAGE_TYPES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import { SRD_DAMAGE_TYPES, SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
   const rHex = raceIndex.toString(16).padStart(4, '0')
@@ -46,6 +48,12 @@ function ancestryFeatureId(optionIndex: number, entry: number): string {
 function damageTypeId(code: string): string {
   const entry = SRD_DAMAGE_TYPES.find((damageType) => damageType.code === code)
   if (!entry) throw new Error(`SRD damage type vocabulary entry for ${code} is required for dragonborn source data.`)
+  return entry.id
+}
+
+function languageId(code: string): string {
+  const entry = SRD_LANGUAGES.find((l) => l.code === code)
+  if (!entry) throw new Error(`SRD language vocabulary entry for ${code} required.`)
   return entry.id
 }
 
@@ -324,6 +332,28 @@ export const dragonborn: RaceAuthored = {
       description: 'Your selected draconic ancestry option grants the matching Breath Weapon and Damage Resistance features.',
       availableAtLevel: 1,
       order: 2
+    },
+    {
+      id: raceFeatureId(5, 4, 1),
+      label: 'Languages',
+      description: 'You can speak, read, and write Common and Draconic.',
+      availableAtLevel: 1,
+      order: 3,
+      grants: {
+        proficiencies: [
+          {
+            id: raceFeatureId(5, 4, 2),
+            grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+            proficiencyKind: PROFICIENCY_KIND.LANGUAGE,
+            level: SCALING_AMOUNT_KIND.FULL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: SCALING.NONE,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            languageIds: [languageId('COMMON'), languageId('DRACONIC')],
+            order: 0
+          }
+        ]
+      }
     }
   ]
 }

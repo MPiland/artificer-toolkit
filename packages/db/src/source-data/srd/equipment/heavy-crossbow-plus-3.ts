@@ -13,6 +13,7 @@ export const heavyCrossbowPlus3: EquipmentVariantAuthored = {
   weight: S.lbs(18),
   rarityId: S.RARITY_VERY_RARE,
   maxBonus: 3,
+  modifiers: S.rangedMagicWeaponModifiers(S.equipId(239), 3),
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID,
 }

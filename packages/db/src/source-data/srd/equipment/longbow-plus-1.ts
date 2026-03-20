@@ -13,6 +13,7 @@ export const longbowPlus1: EquipmentVariantAuthored = {
   weight: S.lbs(2),
   rarityId: S.RARITY_UNCOMMON,
   maxBonus: 1,
+  modifiers: S.rangedMagicWeaponModifiers(S.equipId(240), 1),
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID,
 }

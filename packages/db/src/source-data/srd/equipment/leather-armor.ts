@@ -13,6 +13,7 @@ export const leatherArmor: EquipmentAuthored = {
     cost: S.gp(10),
     weight: S.lbs(10),
     rarityId: S.RARITY_COMMON,
-    userId: S.SRD_USER_ID,
+    modifiers: S.lightArmorModifiers(S.equipId(39)),
+  userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
   }

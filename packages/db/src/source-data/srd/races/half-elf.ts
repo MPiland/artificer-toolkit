@@ -15,7 +15,7 @@ import {
   type RaceAuthored
 } from '@artificer-toolkit/shared'
 import { RACE_IDS } from '../ids.js'
-import { SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID, SRD_DARKVISION_SENSE_ID } from '../vocabulary.js'
+import { SRD_CONDITION_TYPES, SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID, SRD_DARKVISION_SENSE_ID } from '../vocabulary.js'
 
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
   const rHex = raceIndex.toString(16).padStart(4, '0')
@@ -28,6 +28,18 @@ const walkSpeedId = SRD_SPEEDS.find((speed) => speed.code === 'WALK')?.id
 if (!walkSpeedId) throw new Error('SRD WALK speed vocabulary entry is required for race source data.')
 
 const halfElfWalk30 = [{ speedId: walkSpeedId, amount: 30, unit: MEASUREMENT_UNIT_CODE.FEET }]
+
+function conditionTypeId(code: string): string {
+  const entry = SRD_CONDITION_TYPES.find((c) => c.code === code)
+  if (!entry) throw new Error(`SRD condition type vocabulary entry for ${code} required.`)
+  return entry.id
+}
+
+function languageId(code: string): string {
+  const entry = SRD_LANGUAGES.find((l) => l.code === code)
+  if (!entry) throw new Error(`SRD language vocabulary entry for ${code} required.`)
+  return entry.id
+}
 
 // ─── Half-Elf (raceIndex = 7) ─────────────────────────────────────────────────
 
@@ -106,7 +118,25 @@ export const halfElf: RaceAuthored = {
       label: 'Fey Ancestry',
       description: 'You have advantage on saving throws against being charmed, and magic can\'t put you to sleep.',
       availableAtLevel: 1,
-      order: 2
+      order: 2,
+      grants: {
+        modifiers: [
+          {
+            id: raceFeatureId(7, 3, 2),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_BONUS,
+            domain: {
+              ability: ABILITY_CODE.CHARISMA,
+              conditionTypeId: conditionTypeId('CHARMED')
+            },
+            modifierKind: MODIFIER_KIND.ADVANTAGE,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: undefined,
+            order: 0
+          }
+        ]
+      }
     },
     {
       id: raceFeatureId(7, 4, 1),
@@ -126,6 +156,39 @@ export const halfElf: RaceAuthored = {
             count: 2,
             authoringModeKind: AUTHORING_MODE_KIND.ALL,
             order: 0
+          }
+        ]
+      }
+    },
+    {
+      id: raceFeatureId(7, 5, 1),
+      label: 'Languages',
+      description: 'You can speak, read, and write Common, Elvish, and one extra language of your choice.',
+      availableAtLevel: 1,
+      order: 4,
+      grants: {
+        proficiencies: [
+          {
+            id: raceFeatureId(7, 5, 2),
+            grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+            proficiencyKind: PROFICIENCY_KIND.LANGUAGE,
+            level: SCALING_AMOUNT_KIND.FULL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: SCALING.NONE,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            languageIds: [languageId('COMMON'), languageId('ELVISH')],
+            order: 0
+          },
+          {
+            id: raceFeatureId(7, 5, 3),
+            grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+            proficiencyKind: PROFICIENCY_KIND.LANGUAGE,
+            level: SCALING_AMOUNT_KIND.FULL,
+            selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+            count: 1,
+            scalingKind: SCALING.NONE,
+            authoringModeKind: AUTHORING_MODE_KIND.ALL,
+            order: 1
           }
         ]
       }

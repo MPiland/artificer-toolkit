@@ -13,6 +13,7 @@ export const hideArmor: EquipmentAuthored = {
     cost: S.gp(10),
     weight: S.lbs(12),
     rarityId: S.RARITY_COMMON,
-    userId: S.SRD_USER_ID,
+    modifiers: S.mediumArmorModifiers(S.equipId(41)),
+  userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
   }

@@ -4,7 +4,7 @@ import * as S from './shared.js'
 
 export const leatherArmorPlus1: EquipmentVariantAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
-  id: S.equipId(195),
+  id: S.equipId(309),
   label: 'Leather Armor +1',
   description: 'You have a +1 bonus to AC while wearing this magic armor.',
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
@@ -13,6 +13,7 @@ export const leatherArmorPlus1: EquipmentVariantAuthored = {
   weight: leatherArmor.weight,
   rarityId: S.RARITY_UNCOMMON,
   maxBonus: 1,
+  modifiers: S.magicArmorModifiers(S.equipId(309), 1),
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID,
 }

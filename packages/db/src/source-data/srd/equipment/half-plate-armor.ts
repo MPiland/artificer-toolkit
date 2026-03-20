@@ -13,6 +13,7 @@ export const halfPlateArmor: EquipmentAuthored = {
     cost: S.gp(750),
     weight: S.lbs(40),
     rarityId: S.RARITY_COMMON,
-    userId: S.SRD_USER_ID,
+    modifiers: S.mediumArmorModifiers(S.equipId(45)),
+  userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
   }

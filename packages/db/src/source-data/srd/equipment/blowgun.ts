@@ -9,6 +9,7 @@ export const blowgun: EquipmentAuthored = {
     category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
     properties: [S.EQUIPMENT_PROPERTY_CODE.MARTIAL, S.EQUIPMENT_PROPERTY_CODE.RANGED, S.EQUIPMENT_PROPERTY_CODE.AMMUNITION, S.EQUIPMENT_PROPERTY_CODE.LOADING],
     abilities: [],
+    capabilities: S.rangedFixedDamageWeaponCapabilities(S.equipId(33), 'PIERCING', 1, 25),
     cost: S.gp(10),
     weight: S.lbs(1),
     rarityId: S.RARITY_COMMON,

@@ -15,7 +15,7 @@ import {
   type RaceAuthored
 } from '@artificer-toolkit/shared'
 import { RACE_IDS, SUBRACE_IDS } from '../ids.js'
-import { SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID, SRD_DARKVISION_SENSE_ID } from '../vocabulary.js'
+import { SRD_CONDITION_TYPES, SRD_DAMAGE_TYPES, SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID, SRD_DARKVISION_SENSE_ID } from '../vocabulary.js'
 
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
   const rHex = raceIndex.toString(16).padStart(4, '0')
@@ -28,6 +28,29 @@ const walkSpeedId = SRD_SPEEDS.find((speed) => speed.code === 'WALK')?.id
 if (!walkSpeedId) throw new Error('SRD WALK speed vocabulary entry is required for race source data.')
 
 const dwarfWalk25 = [{ speedId: walkSpeedId, amount: 25, unit: MEASUREMENT_UNIT_CODE.FEET }]
+
+function conditionTypeId(code: string): string {
+  const entry = SRD_CONDITION_TYPES.find((c) => c.code === code)
+  if (!entry) throw new Error(`SRD condition type vocabulary entry for ${code} required.`)
+  return entry.id
+}
+
+function damageTypeId(code: string): string {
+  const entry = SRD_DAMAGE_TYPES.find((d) => d.code === code)
+  if (!entry) throw new Error(`SRD damage type vocabulary entry for ${code} required.`)
+  return entry.id
+}
+
+function equipId(index: number): string {
+  const hex = index.toString(16).padStart(4, '0')
+  return `00000000-0000-0000-0060-${hex}00000000`
+}
+
+function languageId(code: string): string {
+  const entry = SRD_LANGUAGES.find((l) => l.code === code)
+  if (!entry) throw new Error(`SRD language vocabulary entry for ${code} required.`)
+  return entry.id
+}
 
 // ─── Dwarf (raceIndex = 1) ────────────────────────────────────────────────────
 
@@ -72,14 +95,63 @@ export const dwarf: RaceAuthored = {
       label: 'Dwarven Resilience',
       description: 'You have advantage on saving throws against poison, and you have resistance against poison damage.',
       availableAtLevel: 1,
-      order: 1
+      order: 1,
+      grants: {
+        modifiers: [
+          {
+            id: raceFeatureId(1, 2, 2),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_BONUS,
+            domain: {
+              ability: ABILITY_CODE.CONSTITUTION,
+              conditionTypeId: conditionTypeId('POISONED')
+            },
+            modifierKind: MODIFIER_KIND.ADVANTAGE,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: undefined,
+            order: 0
+          },
+          {
+            id: raceFeatureId(1, 2, 3),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE_RESISTANCE,
+            domain: {},
+            modifierKind: MODIFIER_KIND.ADD_OPTION,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: { damageTypeId: damageTypeId('POISON') },
+            order: 1
+          }
+        ]
+      }
     },
     {
       id: raceFeatureId(1, 3, 1),
       label: 'Dwarven Combat Training',
       description: 'You have proficiency with the battleaxe, handaxe, light hammer, and warhammer.',
       availableAtLevel: 1,
-      order: 2
+      order: 2,
+      grants: {
+        proficiencies: [
+          {
+            id: raceFeatureId(1, 3, 2),
+            grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+            proficiencyKind: PROFICIENCY_KIND.EQUIPMENT,
+            level: SCALING_AMOUNT_KIND.FULL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: SCALING.NONE,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            equipmentIds: [
+              equipId(15), // battleaxe
+              equipId(4),  // handaxe
+              equipId(6),  // light hammer
+              equipId(31)  // warhammer
+            ],
+            order: 0
+          }
+        ]
+      }
     },
     {
       id: raceFeatureId(1, 4, 1),
@@ -94,6 +166,28 @@ export const dwarf: RaceAuthored = {
       description: 'Whenever you make an Intelligence (History) check related to the origin of stonework, you are considered proficient in the History skill and add double your proficiency bonus to the check, instead of your normal proficiency bonus.',
       availableAtLevel: 1,
       order: 4
+    },
+    {
+      id: raceFeatureId(1, 6, 1),
+      label: 'Languages',
+      description: 'You can speak, read, and write Common and Dwarvish.',
+      availableAtLevel: 1,
+      order: 5,
+      grants: {
+        proficiencies: [
+          {
+            id: raceFeatureId(1, 6, 2),
+            grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+            proficiencyKind: PROFICIENCY_KIND.LANGUAGE,
+            level: SCALING_AMOUNT_KIND.FULL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: SCALING.NONE,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            languageIds: [languageId('COMMON'), languageId('DWARVISH')],
+            order: 0
+          }
+        ]
+      }
     }
   ]
 }
@@ -212,24 +306,11 @@ export const mountainDwarf: RaceAuthored = {
     {
       id: raceFeatureId(102, 2, 1),
       label: 'Dwarven Armor Training',
+      // TODO: armor category proficiency (light + medium) cannot be modeled with SELECTED equipmentIds.
+      // Keep description-only until a CATEGORY authoring mode is available.
       description: 'You have proficiency with light and medium armor.',
       availableAtLevel: 1,
-      order: 1,
-      grants: {
-        proficiencies: [
-          {
-            id: raceFeatureId(102, 2, 2),
-            grantKind: GRANT_KIND.PROFICIENCY_GRANT,
-            proficiencyKind: PROFICIENCY_KIND.EQUIPMENT,
-            level: SCALING_AMOUNT_KIND.FULL,
-            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-            scalingKind: SCALING.NONE,
-            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-            equipmentIds: [],
-            order: 0
-          }
-        ]
-      }
+      order: 1
     }
   ]
 }

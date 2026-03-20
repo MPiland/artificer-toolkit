@@ -13,6 +13,7 @@ export const netPlus1: EquipmentVariantAuthored = {
   weight: S.lbs(3),
   rarityId: S.RARITY_UNCOMMON,
   maxBonus: 1,
+  modifiers: S.rangedMagicWeaponModifiers(S.equipId(243), 1),
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID,
 }

@@ -15,7 +15,7 @@ import {
   type RaceAuthored
 } from '@artificer-toolkit/shared'
 import { RACE_IDS } from '../ids.js'
-import { SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID, SRD_DARKVISION_SENSE_ID, SRD_SKILLS } from '../vocabulary.js'
+import { SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID, SRD_DARKVISION_SENSE_ID, SRD_SKILLS } from '../vocabulary.js'
 
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
   const rHex = raceIndex.toString(16).padStart(4, '0')
@@ -30,6 +30,12 @@ if (!walkSpeedId) throw new Error('SRD WALK speed vocabulary entry is required f
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
   if (!entry) throw new Error(`SRD skill vocabulary entry for ${code} required.`)
+  return entry.id
+}
+
+function languageId(code: string): string {
+  const entry = SRD_LANGUAGES.find((l) => l.code === code)
+  if (!entry) throw new Error(`SRD language vocabulary entry for ${code} required.`)
   return entry.id
 }
 
@@ -141,6 +147,28 @@ export const halfOrc: RaceAuthored = {
       description: 'When you score a critical hit with a melee weapon attack, you can roll one of the weapon\'s damage dice one additional time and add it to the extra damage of the critical hit.',
       availableAtLevel: 1,
       order: 4
+    },
+    {
+      id: raceFeatureId(8, 6, 1),
+      label: 'Languages',
+      description: 'You can speak, read, and write Common and Orc.',
+      availableAtLevel: 1,
+      order: 5,
+      grants: {
+        proficiencies: [
+          {
+            id: raceFeatureId(8, 6, 2),
+            grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+            proficiencyKind: PROFICIENCY_KIND.LANGUAGE,
+            level: SCALING_AMOUNT_KIND.FULL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: SCALING.NONE,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            languageIds: [languageId('COMMON'), languageId('ORC')],
+            order: 0
+          }
+        ]
+      }
     }
   ]
 }

@@ -13,6 +13,7 @@ export const scaleMail: EquipmentAuthored = {
     cost: S.gp(50),
     weight: S.lbs(45),
     rarityId: S.RARITY_COMMON,
-    userId: S.SRD_USER_ID,
+    modifiers: S.mediumArmorModifiers(S.equipId(43)),
+  userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
   }

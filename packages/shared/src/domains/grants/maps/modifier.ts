@@ -28,7 +28,7 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define('modifierGrant
   const { selectSingle, number } = nodes
   const local = cond.local()
   const parent = cond.parent<ModifierGrantUnion>()
-  const { or } = logic
+  const { and, or } = logic
   const { table } = data
 
   map
@@ -81,6 +81,20 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define('modifierGrant
       })
     }, {
       showIf: parent.field(['valueDomainCode']).eq('SENSE_RANGE')
+    }))
+    .set('conditionTypeId', selectSingle(['conditionTypeId'], 'Condition Type', {
+      kind: 'DATA',
+      relationship: table('condition_types', {
+        selectColumns: ['id', 'label']
+      })
+    }, {
+      showIf: and([
+        parent.field(['valueDomainCode']).eq('SAVING_THROW_BONUS'),
+        or([
+          parent.field(['modifierKind']).eq('ADVANTAGE'),
+          parent.field(['modifierKind']).eq('DISADVANTAGE')
+        ])
+      ])
     }))
 })
 
@@ -169,7 +183,10 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define('modifierGrantPay
         selectColumns: ['id', 'label']
       })
     }, {
-      showIf: parent.field(['valueDomainCode']).eq('CONDITION')
+      showIf: or([
+        parent.field(['valueDomainCode']).eq('CONDITION'),
+        parent.field(['valueDomainCode']).eq('CONDITION_IMMUNITY')
+      ])
     }))
     .set('attributeId', text(['attributeId'], 'Attribute ID', {
       showIf: parent.field(['valueDomainCode']).eq('ATTRIBUTE')
@@ -281,6 +298,7 @@ export const MODIFIER_GRANT_NODE_MAP = modifierGrant.define('modifierGrant', ({ 
         local.field(['valueDomainCode']).eq('DAMAGE'),
         local.field(['valueDomainCode']).eq('SPELL_SLOT_COUNT')
       ])
+      // Note: CONDITION_IMMUNITY uses payload conditionTypeId only — no domain params needed
     }))
     .set('payload', groupObject(['payload'], 'Payload', () => MODIFIER_GRANT_PAYLOAD_NODE_MAP, {
       showIf: or([

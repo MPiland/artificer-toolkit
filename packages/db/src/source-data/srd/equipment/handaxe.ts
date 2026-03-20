@@ -9,6 +9,7 @@ export const handaxe: EquipmentAuthored = {
     category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
     properties: [S.EQUIPMENT_PROPERTY_CODE.SIMPLE, S.EQUIPMENT_PROPERTY_CODE.MELEE, S.EQUIPMENT_PROPERTY_CODE.LIGHT, S.EQUIPMENT_PROPERTY_CODE.THROWN],
     abilities: [],
+    capabilities: S.thrownWeaponCapabilities(S.equipId(4), 'SLASHING', '1d6', 20),
     cost: S.gp(5),
     weight: S.lbs(2),
     rarityId: S.RARITY_COMMON,

@@ -15,7 +15,19 @@ import {
   type RaceAuthored
 } from '@artificer-toolkit/shared'
 import { RACE_IDS, SUBRACE_IDS } from '../ids.js'
-import { SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID, SRD_SKILLS } from '../vocabulary.js'
+import { SRD_CONDITION_TYPES, SRD_DAMAGE_TYPES, SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID, SRD_SKILLS } from '../vocabulary.js'
+
+function conditionTypeId(code: string): string {
+  const entry = SRD_CONDITION_TYPES.find((c) => c.code === code)
+  if (!entry) throw new Error(`SRD condition type vocabulary entry for ${code} required.`)
+  return entry.id
+}
+
+function damageTypeId(code: string): string {
+  const entry = SRD_DAMAGE_TYPES.find((d) => d.code === code)
+  if (!entry) throw new Error(`SRD damage type vocabulary entry for ${code} required.`)
+  return entry.id
+}
 
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
   const rHex = raceIndex.toString(16).padStart(4, '0')
@@ -30,6 +42,12 @@ if (!walkSpeedId) throw new Error('SRD WALK speed vocabulary entry is required f
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
   if (!entry) throw new Error(`SRD skill vocabulary entry for ${code} required.`)
+  return entry.id
+}
+
+function languageId(code: string): string {
+  const entry = SRD_LANGUAGES.find((l) => l.code === code)
+  if (!entry) throw new Error(`SRD language vocabulary entry for ${code} required.`)
   return entry.id
 }
 
@@ -81,7 +99,25 @@ export const halfling: RaceAuthored = {
       label: 'Brave',
       description: 'You have advantage on saving throws against being frightened.',
       availableAtLevel: 1,
-      order: 2
+      order: 2,
+      grants: {
+        modifiers: [
+          {
+            id: raceFeatureId(3, 3, 2),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_BONUS,
+            domain: {
+              ability: ABILITY_CODE.WISDOM,
+              conditionTypeId: conditionTypeId('FRIGHTENED')
+            },
+            modifierKind: MODIFIER_KIND.ADVANTAGE,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: undefined,
+            order: 0
+          }
+        ]
+      }
     },
     {
       id: raceFeatureId(3, 4, 1),
@@ -89,6 +125,28 @@ export const halfling: RaceAuthored = {
       description: 'You can move through the space of any creature that is of a size larger than yours.',
       availableAtLevel: 1,
       order: 3
+    },
+    {
+      id: raceFeatureId(3, 5, 1),
+      label: 'Languages',
+      description: 'You can speak, read, and write Common and Halfling.',
+      availableAtLevel: 1,
+      order: 4,
+      grants: {
+        proficiencies: [
+          {
+            id: raceFeatureId(3, 5, 2),
+            grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+            proficiencyKind: PROFICIENCY_KIND.LANGUAGE,
+            level: SCALING_AMOUNT_KIND.FULL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: SCALING.NONE,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            languageIds: [languageId('COMMON'), languageId('HALFLING')],
+            order: 0
+          }
+        ]
+      }
     }
   ]
 }
@@ -172,7 +230,36 @@ export const stout: RaceAuthored = {
       label: 'Stout Resilience',
       description: 'You have advantage on saving throws against poison, and you have resistance against poison damage.',
       availableAtLevel: 1,
-      order: 1
+      order: 1,
+      grants: {
+        modifiers: [
+          {
+            id: raceFeatureId(107, 2, 2),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_BONUS,
+            domain: {
+              ability: ABILITY_CODE.CONSTITUTION,
+              conditionTypeId: conditionTypeId('POISONED')
+            },
+            modifierKind: MODIFIER_KIND.ADVANTAGE,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: undefined,
+            order: 0
+          },
+          {
+            id: raceFeatureId(107, 2, 3),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE_RESISTANCE,
+            domain: {},
+            modifierKind: MODIFIER_KIND.ADD_OPTION,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: { damageTypeId: damageTypeId('POISON') },
+            order: 1
+          }
+        ]
+      }
     }
   ]
 }

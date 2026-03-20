@@ -9,6 +9,7 @@ export const warPick: EquipmentAuthored = {
     category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
     properties: [S.EQUIPMENT_PROPERTY_CODE.MARTIAL, S.EQUIPMENT_PROPERTY_CODE.MELEE],
     abilities: [],
+    capabilities: S.meleeWeaponCapabilities(S.equipId(30), 'PIERCING', '1d8'),
     cost: S.gp(5),
     weight: S.lbs(2),
     rarityId: S.RARITY_COMMON,

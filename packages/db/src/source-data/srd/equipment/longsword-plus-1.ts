@@ -13,6 +13,7 @@ export const longswordPlus1: EquipmentVariantAuthored = {
   weight: S.lbs(3),
   rarityId: S.RARITY_UNCOMMON,
   maxBonus: 1,
+  modifiers: S.meleeMagicWeaponModifiers(S.equipId(198), 1),
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID,
 }

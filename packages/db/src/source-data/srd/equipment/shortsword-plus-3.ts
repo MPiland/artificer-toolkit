@@ -13,6 +13,7 @@ export const shortswordPlus3: EquipmentVariantAuthored = {
   weight: S.lbs(2),
   rarityId: S.RARITY_VERY_RARE,
   maxBonus: 3,
+  modifiers: S.meleeMagicWeaponModifiers(S.equipId(218), 3),
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID,
 }

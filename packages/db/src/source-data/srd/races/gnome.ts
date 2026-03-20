@@ -6,14 +6,28 @@ import {
   MEASUREMENT_UNIT_CODE,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
+  PROFICIENCY_KIND,
   RACE_CATEGORY_CODE,
   SCALING,
+  SCALING_AMOUNT_KIND,
   SIZE_CODE,
   VALUE_DOMAIN_CODE,
   type RaceAuthored
 } from '@artificer-toolkit/shared'
 import { RACE_IDS, SUBRACE_IDS, SPELL_IDS } from '../ids.js'
-import { SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID, SRD_DARKVISION_SENSE_ID } from '../vocabulary.js'
+import { SRD_CONDITION_TYPES, SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID, SRD_DARKVISION_SENSE_ID } from '../vocabulary.js'
+
+function conditionTypeId(code: string): string {
+  const entry = SRD_CONDITION_TYPES.find((c) => c.code === code)
+  if (!entry) throw new Error(`SRD condition type vocabulary entry for ${code} required.`)
+  return entry.id
+}
+
+function languageId(code: string): string {
+  const entry = SRD_LANGUAGES.find((l) => l.code === code)
+  if (!entry) throw new Error(`SRD language vocabulary entry for ${code} required.`)
+  return entry.id
+}
 
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
   const rHex = raceIndex.toString(16).padStart(4, '0')
@@ -92,7 +106,66 @@ export const gnome: RaceAuthored = {
       label: 'Gnome Cunning',
       description: 'You have advantage on all Intelligence, Wisdom, and Charisma saving throws against magic.',
       availableAtLevel: 1,
-      order: 2
+      order: 2,
+      grants: {
+        modifiers: [
+          {
+            id: raceFeatureId(6, 3, 2),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_BONUS,
+            domain: { ability: ABILITY_CODE.INTELLIGENCE },
+            modifierKind: MODIFIER_KIND.ADVANTAGE,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: undefined,
+            order: 0
+          },
+          {
+            id: raceFeatureId(6, 3, 3),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_BONUS,
+            domain: { ability: ABILITY_CODE.WISDOM },
+            modifierKind: MODIFIER_KIND.ADVANTAGE,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: undefined,
+            order: 1
+          },
+          {
+            id: raceFeatureId(6, 3, 4),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_BONUS,
+            domain: { ability: ABILITY_CODE.CHARISMA },
+            modifierKind: MODIFIER_KIND.ADVANTAGE,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: undefined,
+            order: 2
+          }
+        ]
+      }
+    },
+    {
+      id: raceFeatureId(6, 4, 1),
+      label: 'Languages',
+      description: 'You can speak, read, and write Common and Gnomish.',
+      availableAtLevel: 1,
+      order: 3,
+      grants: {
+        proficiencies: [
+          {
+            id: raceFeatureId(6, 4, 2),
+            grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+            proficiencyKind: PROFICIENCY_KIND.LANGUAGE,
+            level: SCALING_AMOUNT_KIND.FULL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: SCALING.NONE,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            languageIds: [languageId('COMMON'), languageId('GNOMISH')],
+            order: 0
+          }
+        ]
+      }
     }
   ]
 }

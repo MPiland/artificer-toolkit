@@ -13,6 +13,7 @@ export const blowgunPlus2: EquipmentVariantAuthored = {
   weight: S.lbs(1),
   rarityId: S.RARITY_RARE,
   maxBonus: 2,
+  modifiers: S.rangedMagicWeaponModifiers(S.equipId(232), 2),
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID,
 }

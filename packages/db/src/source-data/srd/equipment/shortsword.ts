@@ -9,9 +9,11 @@ export const shortsword: EquipmentAuthored = {
     category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
     properties: [S.EQUIPMENT_PROPERTY_CODE.MARTIAL, S.EQUIPMENT_PROPERTY_CODE.MELEE, S.EQUIPMENT_PROPERTY_CODE.FINESSE, S.EQUIPMENT_PROPERTY_CODE.LIGHT],
     abilities: [],
+    capabilities: S.meleeWeaponCapabilities(S.equipId(28), 'PIERCING', '1d6'),
     cost: S.gp(10),
     weight: S.lbs(2),
     rarityId: S.RARITY_COMMON,
-    userId: S.SRD_USER_ID,
+    modifiers: S.finesseWeaponModifiers(S.equipId(28)),
+  userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
   }

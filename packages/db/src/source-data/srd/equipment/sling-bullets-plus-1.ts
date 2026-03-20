@@ -4,7 +4,7 @@ import * as S from './shared.js'
 
 export const slingBulletsPlus1: EquipmentVariantAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
-  id: S.equipId(201),
+  id: S.equipId(351),
   label: 'Sling Bullets +1',
   description: 'These 20 magic bullets grant a +1 bonus to attack and damage rolls made with them.',
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
@@ -13,6 +13,7 @@ export const slingBulletsPlus1: EquipmentVariantAuthored = {
   weight: S.lbs(1.5),
   rarityId: S.RARITY_UNCOMMON,
   maxBonus: 1,
+  modifiers: S.magicAmmoModifiers(S.equipId(351), 1),
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID
 }

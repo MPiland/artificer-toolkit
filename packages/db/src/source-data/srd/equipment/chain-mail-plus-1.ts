@@ -4,7 +4,7 @@ import * as S from './shared.js'
 
 export const chainMailPlus1: EquipmentVariantAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
-  id: S.equipId(219),
+  id: S.equipId(333),
   label: 'Chain Mail +1',
   description: 'You have a +1 bonus to AC while wearing this magic armor.',
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
@@ -13,6 +13,7 @@ export const chainMailPlus1: EquipmentVariantAuthored = {
   weight: chainMail.weight,
   rarityId: S.RARITY_UNCOMMON,
   maxBonus: 1,
+  modifiers: S.magicArmorModifiers(S.equipId(333), 1),
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID,
 }

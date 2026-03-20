@@ -6568,6 +6568,7 @@ export type Database = {
         Row: {
           ability_code: string | null
           attack_domain_code: string | null
+          condition_type_id: string | null
           created_at: string
           modifier_grant_id: string
           sense_code: string | null
@@ -6580,6 +6581,7 @@ export type Database = {
         Insert: {
           ability_code?: string | null
           attack_domain_code?: string | null
+          condition_type_id?: string | null
           created_at?: string
           modifier_grant_id: string
           sense_code?: string | null
@@ -6592,6 +6594,7 @@ export type Database = {
         Update: {
           ability_code?: string | null
           attack_domain_code?: string | null
+          condition_type_id?: string | null
           created_at?: string
           modifier_grant_id?: string
           sense_code?: string | null
@@ -6602,6 +6605,13 @@ export type Database = {
           value_domain_code?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "modifier_grant_domain_params_condition_type_id_fkey"
+            columns: ["condition_type_id"]
+            isOneToOne: false
+            referencedRelation: "condition_types"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "modifier_grant_domain_params_modifier_grant_id_fkey"
             columns: ["modifier_grant_id"]

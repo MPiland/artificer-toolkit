@@ -9,9 +9,11 @@ export const rapier: EquipmentAuthored = {
     category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
     properties: [S.EQUIPMENT_PROPERTY_CODE.MARTIAL, S.EQUIPMENT_PROPERTY_CODE.MELEE, S.EQUIPMENT_PROPERTY_CODE.FINESSE],
     abilities: [],
+    capabilities: S.meleeWeaponCapabilities(S.equipId(26), 'PIERCING', '1d8'),
     cost: S.gp(25),
     weight: S.lbs(2),
     rarityId: S.RARITY_COMMON,
-    userId: S.SRD_USER_ID,
+    modifiers: S.finesseWeaponModifiers(S.equipId(26)),
+  userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
   }

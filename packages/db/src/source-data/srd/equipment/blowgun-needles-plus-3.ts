@@ -4,7 +4,7 @@ import * as S from './shared.js'
 
 export const blowgunNeedlesPlus3: EquipmentVariantAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
-  id: S.equipId(197),
+  id: S.equipId(347),
   label: 'Blowgun Needles +3',
   description: 'These 50 magic blowgun needles grant a +3 bonus to attack and damage rolls made with them.',
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
@@ -13,6 +13,7 @@ export const blowgunNeedlesPlus3: EquipmentVariantAuthored = {
   weight: S.lbs(1),
   rarityId: S.RARITY_VERY_RARE,
   maxBonus: 3,
+  modifiers: S.magicAmmoModifiers(S.equipId(347), 3),
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID
 }

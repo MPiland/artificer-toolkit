@@ -7,7 +7,7 @@ export const costumeClothes: EquipmentAuthored = {
     label: 'Costume Clothes',
     description: "Theatrical or masquerade garments useful for disguise or performance.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
-    properties: [],
+    properties: [S.EQUIPMENT_PROPERTY_CODE.CLOTHING],
     abilities: [],
     cost: S.gp(5),
     weight: S.lbs(4),

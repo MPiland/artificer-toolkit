@@ -27,6 +27,11 @@ const abilityParamDtoSchema = z.object({
   ability: abilityCodeSchema
 })
 
+const savingThrowParamDtoSchema = z.object({
+  ability: abilityCodeSchema,
+  conditionTypeId: z.string().optional()
+})
+
 const skillParamDtoSchema = z.object({
   skillId: z.string()
 })
@@ -118,6 +123,7 @@ const optionPayloadByDomainDtoSchema = {
   DAMAGE_IMMUNITY: z.object({ damageTypeId: z.string() }),
   DAMAGE_VULNERABILITY: z.object({ damageTypeId: z.string() }),
   CONDITION: z.object({ conditionTypeId: z.string() }),
+  CONDITION_IMMUNITY: z.object({ conditionTypeId: z.string() }),
   ATTRIBUTE: z.object({ attributeId: z.string() }),
   MOVEMENT_MODE: z.object({ movementModeId: z.string() })
 } as const
@@ -164,8 +170,10 @@ const modifierGrantVariants = [
   buildModifierGrantVariant('SAVE_DC', 'BONUS', emptyDomainDtoSchema.optional(), modifierScalarValueDtoSchema),
   buildModifierGrantVariant('SAVE_DC', 'PENALTY', emptyDomainDtoSchema.optional(), modifierScalarValueDtoSchema),
   buildModifierGrantVariant('SAVE_DC', 'SET_VALUE', emptyDomainDtoSchema.optional(), z.object({ amount: z.number() })),
-  buildModifierGrantVariant('SAVING_THROW_BONUS', 'BONUS', abilityParamDtoSchema, modifierScalarValueDtoSchema),
-  buildModifierGrantVariant('SAVING_THROW_BONUS', 'PENALTY', abilityParamDtoSchema, modifierScalarValueDtoSchema),
+  buildModifierGrantVariant('SAVING_THROW_BONUS', 'BONUS', savingThrowParamDtoSchema, modifierScalarValueDtoSchema),
+  buildModifierGrantVariant('SAVING_THROW_BONUS', 'PENALTY', savingThrowParamDtoSchema, modifierScalarValueDtoSchema),
+  buildModifierGrantVariant('SAVING_THROW_BONUS', 'ADVANTAGE', savingThrowParamDtoSchema),
+  buildModifierGrantVariant('SAVING_THROW_BONUS', 'DISADVANTAGE', savingThrowParamDtoSchema),
   buildModifierGrantVariant('ATTACK_ROLL_BONUS', 'BONUS', attackDomainParamDtoSchema, modifierScalarValueDtoSchema),
   buildModifierGrantVariant('ATTACK_ROLL_BONUS', 'PENALTY', attackDomainParamDtoSchema, modifierScalarValueDtoSchema),
   buildModifierGrantVariant('ATTACK_ROLL_BONUS', 'OPTIONAL_ABILITY_MODIFIER', attackDomainParamDtoSchema, z.object({
@@ -241,6 +249,8 @@ const modifierGrantVariants = [
   })),
   buildModifierGrantVariant('CONDITION', 'ADD_OPTION', emptyDomainDtoSchema.optional(), optionPayloadByDomainDtoSchema.CONDITION),
   buildModifierGrantVariant('CONDITION', 'REMOVE_OPTION', emptyDomainDtoSchema.optional(), optionPayloadByDomainDtoSchema.CONDITION),
+  buildModifierGrantVariant('CONDITION_IMMUNITY', 'ADD_OPTION', emptyDomainDtoSchema.optional(), optionPayloadByDomainDtoSchema.CONDITION_IMMUNITY),
+  buildModifierGrantVariant('CONDITION_IMMUNITY', 'REMOVE_OPTION', emptyDomainDtoSchema.optional(), optionPayloadByDomainDtoSchema.CONDITION_IMMUNITY),
   buildModifierGrantVariant('ATTRIBUTE', 'ADD_OPTION', emptyDomainDtoSchema.optional(), optionPayloadByDomainDtoSchema.ATTRIBUTE),
   buildModifierGrantVariant('ATTRIBUTE', 'REMOVE_OPTION', emptyDomainDtoSchema.optional(), optionPayloadByDomainDtoSchema.ATTRIBUTE)
 ] as const

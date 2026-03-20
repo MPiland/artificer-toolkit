@@ -4,7 +4,7 @@ import * as S from './shared.js'
 
 export const breastplatePlus2: EquipmentVariantAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
-  id: S.equipId(211),
+  id: S.equipId(325),
   label: 'Breastplate +2',
   description: 'You have a +2 bonus to AC while wearing this magic armor.',
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
@@ -13,6 +13,7 @@ export const breastplatePlus2: EquipmentVariantAuthored = {
   weight: breastplate.weight,
   rarityId: S.RARITY_RARE,
   maxBonus: 2,
+  modifiers: S.magicArmorModifiers(S.equipId(325), 2),
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID,
 }

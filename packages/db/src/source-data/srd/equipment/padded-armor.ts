@@ -13,6 +13,7 @@ export const paddedArmor: EquipmentAuthored = {
     cost: S.gp(5),
     weight: S.lbs(8),
     rarityId: S.RARITY_COMMON,
-    userId: S.SRD_USER_ID,
+    modifiers: S.lightArmorModifiers(S.equipId(38)),
+  userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
   }

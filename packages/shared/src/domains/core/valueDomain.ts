@@ -33,6 +33,7 @@ export const VALUE_DOMAIN_CODE = {
   DAMAGE_RESISTANCE: 'DAMAGE_RESISTANCE',
   DAMAGE_IMMUNITY: 'DAMAGE_IMMUNITY',
   DAMAGE_VULNERABILITY: 'DAMAGE_VULNERABILITY',
+  CONDITION_IMMUNITY: 'CONDITION_IMMUNITY',
   ATTRIBUTE: 'ATTRIBUTE'
 } as const
 
@@ -196,6 +197,14 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     tooltip: 'Vulnerability to a type of damage.',
     description:
       'Represents vulnerability that increases damage of a specific type.'
+  },
+
+  [VALUE_DOMAIN_CODE.CONDITION_IMMUNITY]: {
+    code: VALUE_DOMAIN_CODE.CONDITION_IMMUNITY,
+    label: 'Condition Immunity',
+    tooltip: 'Immunity to a condition.',
+    description:
+      'Represents immunity that prevents a specific condition from being applied to the creature.'
   },
 
   [VALUE_DOMAIN_CODE.RANGE]: {
@@ -377,8 +386,8 @@ export type ValueDomainParamByCode = {
   // Attack bonus is usually different for melee/ranged/spell/unarmed
   ATTACK_ROLL_BONUS: { attackDomain: AttackDomainCode }
 
-  // Save bonus is per ability (STR/DEX/etc)
-  SAVING_THROW_BONUS: { ability: AbilityCode }
+  // Save bonus is per ability (STR/DEX/etc); conditionTypeId scopes advantage/disadvantage to a specific condition
+  SAVING_THROW_BONUS: { ability: AbilityCode, conditionTypeId?: string }
 
   // Skill bonus is per skill
   SKILL_BONUS: { skillId: string }
@@ -454,6 +463,7 @@ export type ValueDomainParamByCode = {
    * ────────────────────────────────────────────── */
 
   CONDITION: EmptyObject
+  CONDITION_IMMUNITY: EmptyObject
   ATTRIBUTE: EmptyObject
 }
 
@@ -477,6 +487,9 @@ export type ValueDomainOptionPayloadByDomain = {
   // Your CONDITION domain is “applied conditions on character”.
   // If you model as conditionTypeId, use that. If you model as conditionId, switch.
   CONDITION: { conditionTypeId: string }
+
+  // Condition immunity: prevents a specific condition from being applied
+  CONDITION_IMMUNITY: { conditionTypeId: string }
 
   // Attribute is likely from a registry (ritual, concentration, etc.)
   ATTRIBUTE: { attributeId: string }

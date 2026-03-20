@@ -473,7 +473,7 @@ export const PREDICATE_REGISTRY = {
     label: 'Size',
     tooltip: 'Narrows selection to creature size(s).',
     description: 'Such as Small, Medium, or Large.',
-    subjects: ['RACE']
+    subjects: ['RACE', 'CHARACTER']
   },
 
   MAGIC_SCHOOL: {

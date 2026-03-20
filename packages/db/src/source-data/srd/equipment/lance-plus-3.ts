@@ -13,6 +13,7 @@ export const lancePlus3: EquipmentVariantAuthored = {
   weight: S.lbs(6),
   rarityId: S.RARITY_VERY_RARE,
   maxBonus: 3,
+  modifiers: S.meleeMagicWeaponModifiers(S.equipId(197), 3),
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID,
 }

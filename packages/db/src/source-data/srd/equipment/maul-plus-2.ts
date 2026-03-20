@@ -13,6 +13,7 @@ export const maulPlus2: EquipmentVariantAuthored = {
   weight: S.lbs(10),
   rarityId: S.RARITY_RARE,
   maxBonus: 2,
+  modifiers: S.meleeMagicWeaponModifiers(S.equipId(202), 2),
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID,
 }

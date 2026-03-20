@@ -6,14 +6,28 @@ import {
   MEASUREMENT_UNIT_CODE,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
+  PROFICIENCY_KIND,
   RACE_CATEGORY_CODE,
   SCALING,
+  SCALING_AMOUNT_KIND,
   SIZE_CODE,
   VALUE_DOMAIN_CODE,
   type RaceAuthored
 } from '@artificer-toolkit/shared'
 import { RACE_IDS, SPELL_IDS } from '../ids.js'
-import { SRD_DARKVISION_SENSE_ID, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import { SRD_DAMAGE_TYPES, SRD_DARKVISION_SENSE_ID, SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+
+function damageTypeId(code: string): string {
+  const entry = SRD_DAMAGE_TYPES.find((d) => d.code === code)
+  if (!entry) throw new Error(`SRD damage type vocabulary entry for ${code} required.`)
+  return entry.id
+}
+
+function languageId(code: string): string {
+  const entry = SRD_LANGUAGES.find((l) => l.code === code)
+  if (!entry) throw new Error(`SRD language vocabulary entry for ${code} required.`)
+  return entry.id
+}
 
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
   const rHex = raceIndex.toString(16).padStart(4, '0')
@@ -101,7 +115,22 @@ export const tiefling: RaceAuthored = {
       label: 'Hellish Resistance',
       description: 'You have resistance to fire damage.',
       availableAtLevel: 1,
-      order: 2
+      order: 2,
+      grants: {
+        modifiers: [
+          {
+            id: raceFeatureId(9, 3, 2),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE_RESISTANCE,
+            domain: {},
+            modifierKind: MODIFIER_KIND.ADD_OPTION,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: { damageTypeId: damageTypeId('FIRE') },
+            order: 0
+          }
+        ]
+      }
     },
     {
       id: raceFeatureId(9, 4, 1),
@@ -137,6 +166,28 @@ export const tiefling: RaceAuthored = {
             authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
             spellIds: [SPELL_IDS.DARKNESS],
             order: 2
+          }
+        ]
+      }
+    },
+    {
+      id: raceFeatureId(9, 5, 1),
+      label: 'Languages',
+      description: 'You can speak, read, and write Common and Infernal.',
+      availableAtLevel: 1,
+      order: 4,
+      grants: {
+        proficiencies: [
+          {
+            id: raceFeatureId(9, 5, 2),
+            grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+            proficiencyKind: PROFICIENCY_KIND.LANGUAGE,
+            level: SCALING_AMOUNT_KIND.FULL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: SCALING.NONE,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            languageIds: [languageId('COMMON'), languageId('INFERNAL')],
+            order: 0
           }
         ]
       }
