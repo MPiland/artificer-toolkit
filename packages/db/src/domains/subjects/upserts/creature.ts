@@ -2,13 +2,15 @@ import type { DBLike } from '#types'
 import type { Json } from '../../../types/supabase.database.js'
 import {
   CREATURE_CATEGORY_CODE,
+  CREATURE_RECORD_KIND_CODE,
+  MEASUREMENT_UNIT_CODE,
   SIZE_CODE,
   type CreatureAuthored,
+  type LogisticsCreatureAuthored,
+  type StatBlockCreatureAuthored,
 } from '@artificer-toolkit/shared'
 import { upsertDetail } from '../../shared/upserts/index.js'
 import { upsertFeature } from '../../features/upserts/index.js'
-
-// ─── Row types ────────────────────────────────────────────────────────────────
 
 type CreatureRow = {
   id: string
@@ -17,15 +19,16 @@ type CreatureRow = {
   label: string
   quote: string | null
   description: string | null
+  record_kind: string
   category: string
   creature_type_id: string | null
-  size_code: string
+  size_code: string | null
   alignment_id: string | null
   tags: string[] | null
-  ability_scores: Json
-  armor_class: number
+  ability_scores: Json | null
+  armor_class: number | null
   armor_class_note: string | null
-  hit_points: number
+  hit_points: number | null
   hit_dice: string | null
   senses: string[] | null
   passive_perception: number | null
@@ -39,6 +42,10 @@ type CreatureRow = {
   mount_profile: Json | null
   companion_profile: Json | null
   npc_profile: Json | null
+  cost: Json | null
+  carrying_capacity_amount: number | null
+  carrying_capacity_unit: string | null
+  logistics_notes: string[] | null
   is_master: boolean | null
 }
 
@@ -77,8 +84,6 @@ type CreatureConditionRow = {
   condition_type_id: string
 }
 
-// ─── Validators ───────────────────────────────────────────────────────────────
-
 function requireCreatureCategory(
   creatureId: string,
   value: string
@@ -90,87 +95,153 @@ function requireCreatureCategory(
   return value as CreatureAuthored['category']
 }
 
-function requireSizeCode(creatureId: string, value: string): string {
+function requireRecordKind(
+  creatureId: string,
+  value: string
+): CreatureAuthored['recordKind'] {
+  const valid = Object.values(CREATURE_RECORD_KIND_CODE) as string[]
+  if (!valid.includes(value)) {
+    throw new Error(`Creature "${creatureId}" has invalid record kind "${value}".`)
+  }
+  return value as CreatureAuthored['recordKind']
+}
+
+function requireSizeCode(creatureId: string, value?: string | null): string | null {
+  if (value == null) {
+    return null
+  }
   if (!(value in SIZE_CODE)) {
     throw new Error(`Creature "${creatureId}" has invalid size "${value}".`)
   }
   return value
 }
 
-// ─── Main upsert ──────────────────────────────────────────────────────────────
+function requireMeasurementUnit(
+  creatureId: string,
+  value?: string | null
+): string | null {
+  if (value == null) {
+    return null
+  }
+  if (!(value in MEASUREMENT_UNIT_CODE)) {
+    throw new Error(`Creature "${creatureId}" has invalid measurement unit "${value}".`)
+  }
+  return value
+}
+
+function buildBaseRow(jsonData: CreatureAuthored): CreatureRow {
+  return {
+    id: jsonData.id,
+    system_id: jsonData.systemId,
+    user_id: jsonData.userId,
+    label: jsonData.label,
+    quote: jsonData.quote ?? null,
+    description: jsonData.description ?? null,
+    record_kind: requireRecordKind(jsonData.id, jsonData.recordKind),
+    category: requireCreatureCategory(jsonData.id, jsonData.category),
+    creature_type_id: jsonData.creatureTypeId ?? null,
+    size_code: requireSizeCode(jsonData.id, jsonData.size ?? null),
+    alignment_id: jsonData.alignmentId ?? null,
+    tags: jsonData.tags ?? null,
+    ability_scores: null,
+    armor_class: null,
+    armor_class_note: null,
+    hit_points: null,
+    hit_dice: null,
+    senses: null,
+    passive_perception: null,
+    saving_throw_proficiencies: null,
+    skill_proficiencies: null,
+    languages: null,
+    challenge_rating_id: null,
+    xp: null,
+    legendary_profile: null,
+    lair_profile: null,
+    mount_profile: jsonData.mountProfile
+      ? jsonData.mountProfile as unknown as Json
+      : null,
+    companion_profile: jsonData.companionProfile
+      ? jsonData.companionProfile as unknown as Json
+      : null,
+    npc_profile: null,
+    cost: null,
+    carrying_capacity_amount: null,
+    carrying_capacity_unit: null,
+    logistics_notes: null,
+    is_master: null,
+  }
+}
+
+function buildCreatureRow(jsonData: CreatureAuthored): CreatureRow {
+  const row = buildBaseRow(jsonData)
+
+  if (jsonData.recordKind === 'LOGISTICS') {
+    const logistics = jsonData as LogisticsCreatureAuthored
+    return {
+      ...row,
+      cost: logistics.cost ? logistics.cost as unknown as Json : null,
+      carrying_capacity_amount: logistics.carryingCapacity?.amount ?? null,
+      carrying_capacity_unit: requireMeasurementUnit(jsonData.id, logistics.carryingCapacity?.unit ?? null),
+      logistics_notes: logistics.logisticsNotes ?? null,
+    }
+  }
+
+  const statBlock = jsonData as StatBlockCreatureAuthored
+  return {
+    ...row,
+    ability_scores: statBlock.abilityScores as unknown as Json,
+    armor_class: statBlock.armorClass,
+    armor_class_note: statBlock.armorClassNote ?? null,
+    hit_points: statBlock.hitPoints,
+    hit_dice: statBlock.hitDice ?? null,
+    senses: statBlock.senses ?? null,
+    passive_perception: statBlock.passivePerception ?? null,
+    saving_throw_proficiencies: statBlock.savingThrowProficiencies ?? null,
+    skill_proficiencies: statBlock.skillProficiencies ?? null,
+    languages: statBlock.languages ?? null,
+    challenge_rating_id: statBlock.challengeRatingId ?? null,
+    xp: statBlock.xp ?? null,
+    legendary_profile: statBlock.legendaryProfile
+      ? statBlock.legendaryProfile as unknown as Json
+      : null,
+    lair_profile: statBlock.lairProfile
+      ? statBlock.lairProfile as unknown as Json
+      : null,
+    npc_profile: statBlock.npcProfile
+      ? statBlock.npcProfile as unknown as Json
+      : null,
+  }
+}
 
 export async function upsertCreature(
   db: DBLike,
-  json_data: CreatureAuthored,
+  jsonData: CreatureAuthored,
   _systemId: string
 ) {
-  const category = requireCreatureCategory(json_data.id, json_data.category)
-  const size_code = requireSizeCode(json_data.id, json_data.size)
+  const creatureRow = buildCreatureRow(jsonData)
 
-  const creatureRow: CreatureRow = {
-    id: json_data.id,
-    system_id: json_data.systemId,
-    user_id: json_data.userId,
-    label: json_data.label,
-    quote: json_data.quote ?? null,
-    description: json_data.description ?? null,
-    category,
-    creature_type_id: json_data.creatureTypeId ?? null,
-    size_code,
-    alignment_id: json_data.alignmentId ?? null,
-    tags: json_data.tags ?? null,
-    ability_scores: json_data.abilityScores as unknown as Json,
-    armor_class: json_data.armorClass,
-    armor_class_note: json_data.armorClassNote ?? null,
-    hit_points: json_data.hitPoints,
-    hit_dice: json_data.hitDice ?? null,
-    senses: json_data.senses ?? null,
-    passive_perception: json_data.passivePerception ?? null,
-    saving_throw_proficiencies: json_data.savingThrowProficiencies ?? null,
-    skill_proficiencies: json_data.skillProficiencies ?? null,
-    languages: json_data.languages ?? null,
-    challenge_rating_id: json_data.challengeRatingId ?? null,
-    xp: json_data.xp ?? null,
-    legendary_profile: json_data.legendaryProfile
-      ? (json_data.legendaryProfile as unknown as Json)
-      : null,
-    lair_profile: json_data.lairProfile
-      ? (json_data.lairProfile as unknown as Json)
-      : null,
-    mount_profile: json_data.mountProfile
-      ? (json_data.mountProfile as unknown as Json)
-      : null,
-    companion_profile: json_data.companionProfile
-      ? (json_data.companionProfile as unknown as Json)
-      : null,
-    npc_profile: json_data.npcProfile
-      ? (json_data.npcProfile as unknown as Json)
-      : null,
-    is_master: null,
-  }
-
-  const detailRows: CreatureDetailRow[] = (json_data.details ?? []).map((detail) => ({
-    creature_id: json_data.id,
+  const detailRows: CreatureDetailRow[] = (jsonData.details ?? []).map((detail) => ({
+    creature_id: jsonData.id,
     detail_id: detail.id,
     sort_order: detail.order,
   }))
 
-  const speedRows: CreatureSpeedRow[] = (json_data.speeds ?? []).map((speed) => ({
-    creature_id: json_data.id,
+  const speedRows: CreatureSpeedRow[] = (jsonData.speeds ?? []).map((speed) => ({
+    creature_id: jsonData.id,
     speed_id: speed.speedId,
     amount: speed.amount,
     unit_code: speed.unit,
   }))
 
   const buildActionRows = (
-    actions: CreatureAuthored['actions'],
+    actions: StatBlockCreatureAuthored['actions'] | undefined,
     actionType: string
   ): CreatureActionRow[] =>
-    (actions ?? []).map((action, i) => ({
+    (actions ?? []).map((action, index) => ({
       id: action.id,
-      creature_id: json_data.id,
+      creature_id: jsonData.id,
       action_type: actionType,
-      sort_order: i,
+      sort_order: index,
       label: action.label,
       description: action.description,
       attack_bonus: action.attackBonus ?? null,
@@ -178,34 +249,44 @@ export async function upsertCreature(
       recharge: action.recharge ?? null,
     }))
 
-  const actionRows: CreatureActionRow[] = [
-    ...buildActionRows(json_data.actions, 'ACTION'),
-    ...buildActionRows(json_data.bonusActions, 'BONUS_ACTION'),
-    ...buildActionRows(json_data.reactions, 'REACTION'),
-  ]
+  const actionRows: CreatureActionRow[] = jsonData.recordKind === 'STAT_BLOCK'
+    ? [
+        ...buildActionRows(jsonData.actions, 'ACTION'),
+        ...buildActionRows(jsonData.bonusActions, 'BONUS_ACTION'),
+        ...buildActionRows(jsonData.reactions, 'REACTION'),
+      ]
+    : []
 
-  const resistanceRows: CreatureDamageRow[] = (json_data.damageResistances ?? []).map((id) => ({
-    creature_id: json_data.id,
-    damage_type_id: id,
-  }))
+  const resistanceRows: CreatureDamageRow[] = jsonData.recordKind === 'STAT_BLOCK'
+    ? (jsonData.damageResistances ?? []).map((id) => ({
+        creature_id: jsonData.id,
+        damage_type_id: id,
+      }))
+    : []
 
-  const immunityRows: CreatureDamageRow[] = (json_data.damageImmunities ?? []).map((id) => ({
-    creature_id: json_data.id,
-    damage_type_id: id,
-  }))
+  const immunityRows: CreatureDamageRow[] = jsonData.recordKind === 'STAT_BLOCK'
+    ? (jsonData.damageImmunities ?? []).map((id) => ({
+        creature_id: jsonData.id,
+        damage_type_id: id,
+      }))
+    : []
 
-  const vulnerabilityRows: CreatureDamageRow[] = (json_data.damageVulnerabilities ?? []).map((id) => ({
-    creature_id: json_data.id,
-    damage_type_id: id,
-  }))
+  const vulnerabilityRows: CreatureDamageRow[] = jsonData.recordKind === 'STAT_BLOCK'
+    ? (jsonData.damageVulnerabilities ?? []).map((id) => ({
+        creature_id: jsonData.id,
+        damage_type_id: id,
+      }))
+    : []
 
-  const conditionImmunityRows: CreatureConditionRow[] = (json_data.conditionImmunities ?? []).map((id) => ({
-    creature_id: json_data.id,
-    condition_type_id: id,
-  }))
+  const conditionImmunityRows: CreatureConditionRow[] = jsonData.recordKind === 'STAT_BLOCK'
+    ? (jsonData.conditionImmunities ?? []).map((id) => ({
+        creature_id: jsonData.id,
+        condition_type_id: id,
+      }))
+    : []
 
-  const featureRows = (json_data.features ?? []).map((feature) => ({
-    creature_id: json_data.id,
+  const featureRows = (jsonData.features ?? []).map((feature) => ({
+    creature_id: jsonData.id,
     feature_id: feature.id,
     sort_order: feature.order,
   }))
@@ -213,58 +294,27 @@ export async function upsertCreature(
   const trx = await db.startTransaction().execute()
 
   try {
-    // Upsert owned shared records first (FK dependencies)
-    for (const detail of json_data.details ?? []) {
+    for (const detail of jsonData.details ?? []) {
       await upsertDetail(trx, detail)
     }
-    for (const feature of json_data.features ?? []) {
-      await upsertFeature(trx, feature, json_data.systemId)
+    for (const feature of jsonData.features ?? []) {
+      await upsertFeature(trx, feature, jsonData.systemId)
     }
 
-    // Upsert root creature row
-    await trx
+    await (trx as any)
       .insertInto('creatures')
       .values(creatureRow)
-      .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
-        system_id: ref('excluded.system_id'),
-        user_id: ref('excluded.user_id'),
-        label: ref('excluded.label'),
-        quote: ref('excluded.quote'),
-        description: ref('excluded.description'),
-        category: ref('excluded.category'),
-        creature_type_id: ref('excluded.creature_type_id'),
-        size_code: ref('excluded.size_code'),
-        alignment_id: ref('excluded.alignment_id'),
-        tags: ref('excluded.tags'),
-        ability_scores: ref('excluded.ability_scores'),
-        armor_class: ref('excluded.armor_class'),
-        armor_class_note: ref('excluded.armor_class_note'),
-        hit_points: ref('excluded.hit_points'),
-        hit_dice: ref('excluded.hit_dice'),
-        senses: ref('excluded.senses'),
-        passive_perception: ref('excluded.passive_perception'),
-        saving_throw_proficiencies: ref('excluded.saving_throw_proficiencies'),
-        skill_proficiencies: ref('excluded.skill_proficiencies'),
-        languages: ref('excluded.languages'),
-        challenge_rating_id: ref('excluded.challenge_rating_id'),
-        xp: ref('excluded.xp'),
-        legendary_profile: ref('excluded.legendary_profile'),
-        lair_profile: ref('excluded.lair_profile'),
-        mount_profile: ref('excluded.mount_profile'),
-        companion_profile: ref('excluded.companion_profile'),
-        npc_profile: ref('excluded.npc_profile'),
-      })))
+      .onConflict((oc: any) => oc.column('id').doUpdateSet(creatureRow))
       .execute()
 
-    // Delete and re-insert all bridge records
-    await trx.deleteFrom('creature_details').where('creature_id', '=', json_data.id).execute()
-    await trx.deleteFrom('creature_features').where('creature_id', '=', json_data.id).execute()
-    await trx.deleteFrom('creature_speeds').where('creature_id', '=', json_data.id).execute()
-    await trx.deleteFrom('creature_actions').where('creature_id', '=', json_data.id).execute()
-    await trx.deleteFrom('creature_damage_resistances').where('creature_id', '=', json_data.id).execute()
-    await trx.deleteFrom('creature_damage_immunities').where('creature_id', '=', json_data.id).execute()
-    await trx.deleteFrom('creature_damage_vulnerabilities').where('creature_id', '=', json_data.id).execute()
-    await trx.deleteFrom('creature_condition_immunities').where('creature_id', '=', json_data.id).execute()
+    await trx.deleteFrom('creature_details').where('creature_id', '=', jsonData.id).execute()
+    await trx.deleteFrom('creature_features').where('creature_id', '=', jsonData.id).execute()
+    await trx.deleteFrom('creature_speeds').where('creature_id', '=', jsonData.id).execute()
+    await trx.deleteFrom('creature_actions').where('creature_id', '=', jsonData.id).execute()
+    await trx.deleteFrom('creature_damage_resistances').where('creature_id', '=', jsonData.id).execute()
+    await trx.deleteFrom('creature_damage_immunities').where('creature_id', '=', jsonData.id).execute()
+    await trx.deleteFrom('creature_damage_vulnerabilities').where('creature_id', '=', jsonData.id).execute()
+    await trx.deleteFrom('creature_condition_immunities').where('creature_id', '=', jsonData.id).execute()
 
     if (detailRows.length > 0) {
       await trx.insertInto('creature_details').values(detailRows).execute()

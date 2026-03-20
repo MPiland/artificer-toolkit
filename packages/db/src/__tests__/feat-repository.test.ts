@@ -459,10 +459,10 @@ describe('createFeatRepository', () => {
               unit: 'FEET'
             }
           },
-          moments: [
+          branches: [
             {
-              id: 'feat-moment-1',
-              moment: 'ON_HIT',
+              id: 'feat-BRANCH-1',
+              branch: 'ON_HIT',
               groupType: 'SINGLE',
               resolutionKind: 'DIRECT',
               effectKind: 'DAMAGE',
@@ -501,10 +501,10 @@ describe('createFeatRepository', () => {
             },
             shape: undefined
           },
-          moments: [
+          branches: [
             {
-              id: 'feat-moment-1',
-              moment: 'ON_HIT',
+              id: 'feat-BRANCH-1',
+              branch: 'ON_HIT',
               groupType: 'SINGLE',
               resolutionKind: 'DIRECT',
               duration: undefined,

@@ -4,18 +4,18 @@ import {
   DAMAGE_BONUS_KIND,
   DAMAGE_VALUE_KIND,
   EFFECT_KIND,
-  MOMENT,
-  MOMENT_GROUP_TYPE,
-  MOMENT_RESOLUTION_KIND,
-  MOMENT_ROLL_TABLE_KIND,
-  MOMENTS_BY_TRIGGER,
+  BRANCH,
+  BRANCH_GROUP_TYPE,
+  BRANCH_RESOLUTION_KIND,
+  BRANCH_ROLL_TABLE_KIND,
+  BRANCHES_BY_TRIGGER,
   SCALING,
   SCALING_SOURCE,
   TRIGGER,
   type ConditionAuthored,
   type DamageAuthored,
   type EffectAuthored,
-  type MomentAuthored,
+  type BranchAuthored,
   type Trigger
 } from '@artificer-toolkit/shared'
 
@@ -34,11 +34,11 @@ export type EffectInvocationRow = {
   saving_throw_id: string | null
 }
 
-export type EffectMomentRow = {
+export type EffectBranchRow = {
   id: string
   effect_id: string
   trigger_code: string
-  moment_code: string
+  branch_code: string
   group_type: string
   resolution_kind: string
   duration_id: string | null
@@ -46,11 +46,11 @@ export type EffectMomentRow = {
   die: string | null
 }
 
-export type MomentRollTableEntryRow = {
+export type BranchRollTableEntryRow = {
   id: string
   effect_id: string
   trigger_code: string
-  moment_code: string
+  branch_code: string
   description: string | null
   sort_order: number
   duration_id: string | null
@@ -127,36 +127,36 @@ function requireActivationCode(effectId: string, value: string): EffectInvocatio
   return value
 }
 
-function requireMomentCode(effectId: string, triggerCode: Trigger, value: string): EffectMomentRow['moment_code'] {
-  if (!(value in MOMENT)) {
-    throw new Error(`Effect "${effectId}" has invalid moment code "${value}".`)
+function requireBranchCode(effectId: string, triggerCode: Trigger, value: string): EffectBranchRow['branch_code'] {
+  if (!(value in BRANCH)) {
+    throw new Error(`Effect "${effectId}" has invalid branch code "${value}".`)
   }
 
-  if (!MOMENTS_BY_TRIGGER[triggerCode].includes(value as (typeof MOMENTS_BY_TRIGGER)[Trigger][number])) {
-    throw new Error(`Effect "${effectId}" has invalid moment code "${value}" for trigger "${triggerCode}".`)
-  }
-
-  return value
-}
-
-function requireMomentGroupType(effectId: string, value: string): EffectMomentRow['group_type'] {
-  if (!(value in MOMENT_GROUP_TYPE)) {
-    throw new Error(`Effect "${effectId}" has invalid moment group type "${value}".`)
+  if (!BRANCHES_BY_TRIGGER[triggerCode].includes(value as (typeof BRANCHES_BY_TRIGGER)[Trigger][number])) {
+    throw new Error(`Effect "${effectId}" has invalid branch code "${value}" for trigger "${triggerCode}".`)
   }
 
   return value
 }
 
-function requireMomentResolutionKind(effectId: string, value: string): EffectMomentRow['resolution_kind'] {
-  if (!(value in MOMENT_RESOLUTION_KIND)) {
-    throw new Error(`Effect "${effectId}" has invalid moment resolution kind "${value}".`)
+function requireBranchGroupType(effectId: string, value: string): EffectBranchRow['group_type'] {
+  if (!(value in BRANCH_GROUP_TYPE)) {
+    throw new Error(`Effect "${effectId}" has invalid branch group type "${value}".`)
   }
 
   return value
 }
 
-function requireMomentRollTableKind(effectId: string, value: string): EffectMomentRow['roll_table_kind'] {
-  if (!(value in MOMENT_ROLL_TABLE_KIND)) {
+function requireBranchResolutionKind(effectId: string, value: string): EffectBranchRow['resolution_kind'] {
+  if (!(value in BRANCH_RESOLUTION_KIND)) {
+    throw new Error(`Effect "${effectId}" has invalid branch resolution kind "${value}".`)
+  }
+
+  return value
+}
+
+function requireBranchRollTableKind(effectId: string, value: string): EffectBranchRow['roll_table_kind'] {
+  if (!(value in BRANCH_ROLL_TABLE_KIND)) {
     throw new Error(`Effect "${effectId}" has invalid roll table kind "${value}".`)
   }
 
@@ -211,12 +211,18 @@ export function mapEffectRow(json_data: EffectAuthored): EffectRow {
 }
 
 export function mapInvocationRow(json_data: EffectAuthored): EffectInvocationRow {
+  const activation = json_data.invocation.activation
+
+  if (!activation) {
+    throw new Error(`Effect "${json_data.id}" is missing activation. DB persistence still requires explicit activation for effect invocations.`)
+  }
+
   return {
     effect_id: json_data.id,
     trigger_code: requireTriggerCode(json_data.id, json_data.invocation.triggerCode),
-    activation_type: requireActivationCode(json_data.id, json_data.invocation.activation.code),
-    activation_value: 'amount' in json_data.invocation.activation
-      ? json_data.invocation.activation.amount
+    activation_type: requireActivationCode(json_data.id, activation.code),
+    activation_value: 'amount' in activation
+      ? activation.amount
       : null,
     range_characteristic_id: json_data.invocation.range.id,
     shape_characteristic_id: json_data.invocation.shape?.id ?? null,
@@ -226,42 +232,42 @@ export function mapInvocationRow(json_data: EffectAuthored): EffectInvocationRow
   }
 }
 
-export function mapMomentRow(
+export function mapBranchRow(
   effectId: string,
   triggerCode: Trigger,
-  json_data: MomentAuthored
-): EffectMomentRow {
+  json_data: BranchAuthored
+): EffectBranchRow {
   return {
     id: json_data.id,
     effect_id: effectId,
     trigger_code: requireTriggerCode(effectId, triggerCode),
-    moment_code: requireMomentCode(effectId, triggerCode, json_data.moment),
-    group_type: requireMomentGroupType(effectId, json_data.groupType),
-    resolution_kind: requireMomentResolutionKind(effectId, json_data.resolutionKind),
-    duration_id: json_data.resolutionKind === MOMENT_RESOLUTION_KIND.DIRECT
+    branch_code: requireBranchCode(effectId, triggerCode, json_data.branch),
+    group_type: requireBranchGroupType(effectId, json_data.groupType),
+    resolution_kind: requireBranchResolutionKind(effectId, json_data.resolutionKind),
+    duration_id: json_data.resolutionKind === BRANCH_RESOLUTION_KIND.DIRECT
       ? json_data.duration?.id ?? null
       : null,
-    roll_table_kind: json_data.resolutionKind === MOMENT_RESOLUTION_KIND.ROLL_TABLE
-      ? requireMomentRollTableKind(effectId, json_data.rollTableKind)
+    roll_table_kind: json_data.resolutionKind === BRANCH_RESOLUTION_KIND.ROLL_TABLE
+      ? requireBranchRollTableKind(effectId, json_data.rollTableKind)
       : null,
-    die: json_data.resolutionKind === MOMENT_RESOLUTION_KIND.ROLL_TABLE
+    die: json_data.resolutionKind === BRANCH_RESOLUTION_KIND.ROLL_TABLE
       ? json_data.dieConfig
       : null
   }
 }
 
-export function mapRollTableEntryRow(
+export function mapBranchRollTableEntryRow(
   effectId: string,
   triggerCode: Trigger,
-  momentCode: string,
+  branchCode: string,
   order: number,
-  json_data: Extract<MomentAuthored, { resolutionKind: 'ROLL_TABLE' }>['table'][number]
-): MomentRollTableEntryRow {
+  json_data: Extract<BranchAuthored, { resolutionKind: 'ROLL_TABLE' }>['table'][number]
+): BranchRollTableEntryRow {
   return {
     id: json_data.id,
     effect_id: effectId,
     trigger_code: requireTriggerCode(effectId, triggerCode),
-    moment_code: requireMomentCode(effectId, triggerCode, momentCode),
+    branch_code: requireBranchCode(effectId, triggerCode, branchCode),
     description: json_data.description ?? null,
     sort_order: order,
     duration_id: json_data.duration?.id ?? null,
@@ -409,5 +415,5 @@ export function mapConditionRow(json_data: ConditionAuthored): ConditionRow {
 
 export {
   EFFECT_KIND,
-  MOMENT_RESOLUTION_KIND
+  BRANCH_RESOLUTION_KIND
 }

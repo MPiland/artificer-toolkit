@@ -1,0 +1,1 @@
+export { thief as thiefRoguishArchetype } from './rogue.js'

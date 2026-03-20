@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { chargeDtoSchema } from '../shared/charge.js'
 import { detailDtoSchema } from '../shared/detail.js'
 import { facetDtoSchema } from '../shared/facet.js'
-import { effectDtoSchema } from '../effects/effect.js'
+import { capabilityDtoSchema } from '../effects/capability.js'
 import {
   featGrantDtoSchema,
   modifierGrantDtoSchema,
@@ -12,7 +12,7 @@ import {
   spellGrantDtoSchema
 } from '../grants/index.js'
 
-export const featureGrantsDtoSchema = z.object({
+const featureGrantsDtoSchemaBase = z.object({
   feats: z.array(featGrantDtoSchema).optional(),
   modifiers: z.array(modifierGrantDtoSchema).optional(),
   proficiencies: z.array(proficiencyGrantDtoSchema).optional(),
@@ -20,17 +20,23 @@ export const featureGrantsDtoSchema = z.object({
   spells: z.array(spellGrantDtoSchema).optional()
 })
 
-export const featureBaseDtoSchema = z.object({
+export type FeatureGrantsDto = z.infer<typeof featureGrantsDtoSchemaBase>
+export const featureGrantsDtoSchema: z.ZodType<FeatureGrantsDto> = featureGrantsDtoSchemaBase
+
+const featureBaseDtoSchemaBase = z.object({
   id: z.string(),
   label: z.string(),
   description: z.string(),
   attributes: z.array(z.string()).optional(),
   detail: z.union([z.string(), detailDtoSchema]).optional(),
-  effects: z.array(effectDtoSchema).optional(),
+  capabilities: z.array(capabilityDtoSchema).optional(),
+  effects: z.array(capabilityDtoSchema).optional(),
   charges: chargeDtoSchema.optional(),
   grants: featureGrantsDtoSchema.optional(),
   restrictions: facetDtoSchema.optional(),
   order: z.number().int()
 })
 
-export type FeatureBaseDto = z.infer<typeof featureBaseDtoSchema>
+export type FeatureBaseDto = z.infer<typeof featureBaseDtoSchemaBase>
+export const featureBaseDtoSchema: z.ZodType<FeatureBaseDto> = featureBaseDtoSchemaBase
+export const featureBaseDtoObject = featureBaseDtoSchemaBase

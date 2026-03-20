@@ -6,11 +6,11 @@ import {
   DURATION_KIND,
   EFFECT_KIND,
   MEASUREMENT_UNIT_CODE,
-  MOMENT,
-  MOMENT_GROUP_TYPE,
-  MOMENT_RESOLUTION_KIND,
-  MOMENT_ROLL_TABLE_KIND,
-  MOMENTS_BY_TRIGGER,
+  BRANCH,
+  BRANCH_GROUP_TYPE,
+  BRANCH_RESOLUTION_KIND,
+  BRANCH_ROLL_TABLE_KIND,
+  BRANCHES_BY_TRIGGER,
   RANGE_KIND,
   SAVING_THROW_KIND,
   SCALING,
@@ -21,7 +21,7 @@ import {
   type DamageAuthored,
   type DurationAuthored,
   type EffectAuthored,
-  type MomentAuthored,
+  type BranchAuthored,
   type SavingThrowAuthored,
   type Trigger,
   type ShapeAuthored
@@ -30,15 +30,15 @@ import type { DBLike } from '#types'
 import { upsertEffect } from '../upserts/effect.js'
 import type { EffectRepository } from '../../../repositories/contracts.js'
 
-type EffectMoment = EffectAuthored['moments'][number]
-type DirectMoment = Extract<EffectMoment, { resolutionKind: typeof MOMENT_RESOLUTION_KIND.DIRECT }>
-type ExactRollTableMoment = Extract<
-  EffectMoment,
-  { resolutionKind: typeof MOMENT_RESOLUTION_KIND.ROLL_TABLE, rollTableKind: typeof MOMENT_ROLL_TABLE_KIND.EXACT }
+type EffectBranch = EffectAuthored['branches'][number]
+type DirectBranch = Extract<EffectBranch, { resolutionKind: typeof BRANCH_RESOLUTION_KIND.DIRECT }>
+type ExactRollTableBranch = Extract<
+  EffectBranch,
+  { resolutionKind: typeof BRANCH_RESOLUTION_KIND.ROLL_TABLE, rollTableKind: typeof BRANCH_ROLL_TABLE_KIND.EXACT }
 >
-type RangeRollTableMoment = Extract<
-  EffectMoment,
-  { resolutionKind: typeof MOMENT_RESOLUTION_KIND.ROLL_TABLE, rollTableKind: typeof MOMENT_ROLL_TABLE_KIND.RANGE }
+type RangeRollTableBranch = Extract<
+  EffectBranch,
+  { resolutionKind: typeof BRANCH_RESOLUTION_KIND.ROLL_TABLE, rollTableKind: typeof BRANCH_ROLL_TABLE_KIND.RANGE }
 >
 type DamageBonus = NonNullable<DamageAuthored['bonuses']>[number]
 
@@ -48,6 +48,21 @@ function requireLinkedRecord<T>(value: T | null | undefined, message: string): T
   }
 
   return value
+}
+
+function buildActivation(
+  effectId: string,
+  activationType: string,
+  activationValue: number | null
+): NonNullable<EffectAuthored['invocation']['activation']> {
+  const activationCode = requireActivationCode(effectId, activationType)
+
+  return activationCode === ACTIVATION_CODE.FREE
+    ? { code: activationCode }
+    : {
+        code: activationCode,
+        amount: requireLinkedRecord(activationValue, `Effect "${effectId}" activation "${activationCode}" is missing amount.`)
+      }
 }
 
 function requireActivationCode(effectId: string, value: string): EffectAuthored['invocation']['activation']['code'] {
@@ -106,40 +121,40 @@ function requireSavingThrowKind(savingThrowId: string, value: string) {
   return value as keyof typeof SAVING_THROW_KIND
 }
 
-function requireMomentCode(effectId: string, triggerCode: Trigger, value: string) {
-  if (!(value in MOMENT)) {
-    throw new Error(`Effect "${effectId}" has invalid moment_code "${value}".`)
+function requireBranchCode(effectId: string, triggerCode: Trigger, value: string) {
+  if (!(value in BRANCH)) {
+    throw new Error(`Effect "${effectId}" has invalid branch_code "${value}".`)
   }
 
-  if (!MOMENTS_BY_TRIGGER[triggerCode].includes(value as (typeof MOMENTS_BY_TRIGGER)[Trigger][number])) {
-    throw new Error(`Effect "${effectId}" has invalid moment_code "${value}" for trigger "${triggerCode}".`)
+  if (!BRANCHES_BY_TRIGGER[triggerCode].includes(value as (typeof BRANCHES_BY_TRIGGER)[Trigger][number])) {
+    throw new Error(`Effect "${effectId}" has invalid branch_code "${value}" for trigger "${triggerCode}".`)
   }
 
-  return value as MomentAuthored<typeof triggerCode>['moment']
+  return value as BranchAuthored<typeof triggerCode>['branch']
 }
 
-function requireMomentGroupType(effectId: string, value: string) {
-  if (!(value in MOMENT_GROUP_TYPE)) {
+function requireBranchGroupType(effectId: string, value: string) {
+  if (!(value in BRANCH_GROUP_TYPE)) {
     throw new Error(`Effect "${effectId}" has invalid group_type "${value}".`)
   }
 
-  return value as keyof typeof MOMENT_GROUP_TYPE
+  return value as keyof typeof BRANCH_GROUP_TYPE
 }
 
-function requireMomentResolutionKind(effectId: string, value: string) {
-  if (!(value in MOMENT_RESOLUTION_KIND)) {
+function requireBranchResolutionKind(effectId: string, value: string) {
+  if (!(value in BRANCH_RESOLUTION_KIND)) {
     throw new Error(`Effect "${effectId}" has invalid resolution_kind "${value}".`)
   }
 
-  return value as keyof typeof MOMENT_RESOLUTION_KIND
+  return value as keyof typeof BRANCH_RESOLUTION_KIND
 }
 
-function requireMomentRollTableKind(effectId: string, value: string) {
-  if (!(value in MOMENT_ROLL_TABLE_KIND)) {
+function requireBranchRollTableKind(effectId: string, value: string) {
+  if (!(value in BRANCH_ROLL_TABLE_KIND)) {
     throw new Error(`Effect "${effectId}" has invalid roll_table_kind "${value}".`)
   }
 
-  return value as keyof typeof MOMENT_ROLL_TABLE_KIND
+  return value as keyof typeof BRANCH_ROLL_TABLE_KIND
 }
 
 function requireDamageValueKind(damageId: string, value: string) {
@@ -579,46 +594,46 @@ async function hydrateDamageById(db: DBLike, id: string): Promise<DamageAuthored
   }
 }
 
-async function hydrateEffectPayloadForMoment(
+async function hydrateEffectPayloadForBranch(
   db: DBLike,
   effectId: string,
   triggerCode: string,
-  momentCode: string
+  branchCode: string
 ): Promise<ConditionAuthored | DamageAuthored> {
   const [directDamageRow, directConditionRow] = await Promise.all([
-    db.selectFrom('moment_direct_damages')
+    db.selectFrom('branch_direct_damages')
       .select(['damage_id'])
       .where('effect_id', '=', effectId)
       .where('trigger_code', '=', triggerCode)
-      .where('moment_code', '=', momentCode)
+      .where('branch_code', '=', branchCode)
       .executeTakeFirst(),
-    db.selectFrom('moment_direct_conditions')
+    db.selectFrom('branch_direct_conditions')
       .select(['condition_id'])
       .where('effect_id', '=', effectId)
       .where('trigger_code', '=', triggerCode)
-      .where('moment_code', '=', momentCode)
+      .where('branch_code', '=', branchCode)
       .executeTakeFirst()
   ])
 
   if (directDamageRow && directConditionRow) {
-    throw new Error(`Effect "${effectId}" direct moment "${momentCode}" has both damage and condition payloads.`)
+    throw new Error(`Effect "${effectId}" direct branch "${branchCode}" has both damage and condition payloads.`)
   }
 
   if (directDamageRow) {
     return requireLinkedRecord(
       await hydrateDamageById(db, directDamageRow.damage_id),
-      `Effect "${effectId}" direct moment "${momentCode}" is linked to missing damage "${directDamageRow.damage_id}".`
+      `Effect "${effectId}" direct branch "${branchCode}" is linked to missing damage "${directDamageRow.damage_id}".`
     )
   }
 
   if (directConditionRow) {
     return requireLinkedRecord(
       await hydrateConditionById(db, directConditionRow.condition_id),
-      `Effect "${effectId}" direct moment "${momentCode}" is linked to missing condition "${directConditionRow.condition_id}".`
+      `Effect "${effectId}" direct branch "${branchCode}" is linked to missing condition "${directConditionRow.condition_id}".`
     )
   }
 
-  throw new Error(`Effect "${effectId}" direct moment "${momentCode}" is missing payload.`)
+  throw new Error(`Effect "${effectId}" direct branch "${branchCode}" is missing payload.`)
 }
 
 async function hydrateRollTablePayload(
@@ -627,11 +642,11 @@ async function hydrateRollTablePayload(
   entryId: string
 ): Promise<ConditionAuthored | DamageAuthored> {
   const [damageRow, conditionRow] = await Promise.all([
-    db.selectFrom('moment_roll_table_damages')
+    db.selectFrom('branch_roll_table_damages')
       .select(['damage_id'])
       .where('entry_id', '=', entryId)
       .executeTakeFirst(),
-    db.selectFrom('moment_roll_table_conditions')
+    db.selectFrom('branch_roll_table_conditions')
       .select(['condition_id'])
       .where('entry_id', '=', entryId)
       .executeTakeFirst()
@@ -682,65 +697,64 @@ async function hydrateEffectById(db: DBLike, id: string): Promise<EffectAuthored
 
   const invocation = requireLinkedRecord(invocationRow, `Effect "${id}" is missing invocation row.`)
   const triggerCode = requireTriggerCode(id, invocation.trigger_code)
-  const activationCode = requireActivationCode(id, invocation.activation_type)
-  const [range, shape, hydratedSavingThrow, momentRows] = await Promise.all([
+  const [range, shape, hydratedSavingThrow, branchRows] = await Promise.all([
     hydrateRangeById(db, invocation.range_characteristic_id),
     invocation.shape_characteristic_id ? hydrateShapeById(db, invocation.shape_characteristic_id) : Promise.resolve(undefined),
     invocation.saving_throw_id ? hydrateSavingThrowById(db, invocation.saving_throw_id) : Promise.resolve(undefined),
-    db.selectFrom('effect_moments')
-      .select(['id', 'trigger_code', 'moment_code', 'group_type', 'resolution_kind', 'duration_id', 'roll_table_kind', 'die'])
+    db.selectFrom('effect_branches')
+      .select(['id', 'trigger_code', 'branch_code', 'group_type', 'resolution_kind', 'duration_id', 'roll_table_kind', 'die'])
       .where('effect_id', '=', id)
-      .orderBy('moment_code')
+      .orderBy('branch_code')
       .execute()
   ])
 
-  const moments: EffectAuthored['moments'] = []
+  const branches: EffectAuthored['branches'] = []
 
-  for (const momentRow of momentRows) {
-    const momentTriggerCode = requireTriggerCode(id, momentRow.trigger_code)
-    if (momentTriggerCode !== triggerCode) {
-      throw new Error(`Effect "${id}" has moment "${momentRow.id}" stored under mismatched trigger "${momentTriggerCode}".`)
+  for (const branchRow of branchRows) {
+    const branchTriggerCode = requireTriggerCode(id, branchRow.trigger_code)
+    if (branchTriggerCode !== triggerCode) {
+      throw new Error(`Effect "${id}" has branch "${branchRow.id}" stored under mismatched trigger "${branchTriggerCode}".`)
     }
 
-    const momentCode = requireMomentCode(id, triggerCode, momentRow.moment_code)
-    const groupType = requireMomentGroupType(id, momentRow.group_type)
-    const resolutionKind = requireMomentResolutionKind(id, momentRow.resolution_kind)
+    const branchCode = requireBranchCode(id, triggerCode, branchRow.branch_code)
+    const groupType = requireBranchGroupType(id, branchRow.group_type)
+    const resolutionKind = requireBranchResolutionKind(id, branchRow.resolution_kind)
 
-    if (resolutionKind === MOMENT_RESOLUTION_KIND.DIRECT) {
+    if (resolutionKind === BRANCH_RESOLUTION_KIND.DIRECT) {
       const [payload, duration] = await Promise.all([
-        hydrateEffectPayloadForMoment(db, id, momentRow.trigger_code, momentRow.moment_code),
-        momentRow.duration_id ? hydrateDurationById(db, momentRow.duration_id) : Promise.resolve(undefined)
+        hydrateEffectPayloadForBranch(db, id, branchRow.trigger_code, branchRow.branch_code),
+        branchRow.duration_id ? hydrateDurationById(db, branchRow.duration_id) : Promise.resolve(undefined)
       ])
 
-      if (payload.id !== momentRow.id) {
-        throw new Error(`Effect "${id}" direct moment "${momentRow.id}" is linked to payload "${payload.id}" instead of sharing the owned id.`)
+      if (payload.id !== branchRow.id) {
+        throw new Error(`Effect "${id}" direct branch "${branchRow.id}" is linked to payload "${payload.id}" instead of sharing the owned id.`)
       }
 
-      const directMoment: DirectMoment = {
+      const DirectBranch: DirectBranch = {
         ...payload,
-        moment: momentCode,
+        branch: branchCode,
         groupType,
         resolutionKind,
         duration,
       }
 
-      moments.push(directMoment)
+      branches.push(DirectBranch)
       continue
     }
 
-    const rollTableKind = requireMomentRollTableKind(id, requireLinkedRecord(momentRow.roll_table_kind, `Effect "${id}" roll-table moment "${momentCode}" is missing roll_table_kind.`))
-    const dieConfig = requireLinkedRecord(momentRow.die, `Effect "${id}" roll-table moment "${momentCode}" is missing die.`)
+    const rollTableKind = requireBranchRollTableKind(id, requireLinkedRecord(branchRow.roll_table_kind, `Effect "${id}" roll-table branch "${branchCode}" is missing roll_table_kind.`))
+    const dieConfig = requireLinkedRecord(branchRow.die, `Effect "${id}" roll-table branch "${branchCode}" is missing die.`)
     const entries = await db
-      .selectFrom('moment_roll_table_entries')
+      .selectFrom('branch_roll_table_entries')
       .select(['id', 'description', 'duration_id', 'roll_value', 'roll_min', 'roll_max', 'sort_order'])
       .where('effect_id', '=', id)
-      .where('trigger_code', '=', momentRow.trigger_code)
-      .where('moment_code', '=', momentRow.moment_code)
+      .where('trigger_code', '=', branchRow.trigger_code)
+      .where('branch_code', '=', branchRow.branch_code)
       .orderBy('sort_order')
       .execute()
 
-    if (rollTableKind === MOMENT_ROLL_TABLE_KIND.EXACT) {
-      const table: ExactRollTableMoment['table'] = []
+    if (rollTableKind === BRANCH_ROLL_TABLE_KIND.EXACT) {
+      const table: ExactRollTableBranch['table'] = []
 
       for (const entry of entries) {
         const [payload, duration] = await Promise.all([
@@ -760,9 +774,9 @@ async function hydrateEffectById(db: DBLike, id: string): Promise<EffectAuthored
         })
       }
 
-      const exactMoment: ExactRollTableMoment = {
-        id: momentRow.id,
-        moment: momentCode,
+      const exactBranch: ExactRollTableBranch = {
+        id: branchRow.id,
+        branch: branchCode,
         groupType,
         resolutionKind,
         rollTableKind,
@@ -770,11 +784,11 @@ async function hydrateEffectById(db: DBLike, id: string): Promise<EffectAuthored
         table
       }
 
-      moments.push(exactMoment)
+      branches.push(exactBranch)
       continue
     }
 
-    const table: RangeRollTableMoment['table'] = []
+    const table: RangeRollTableBranch['table'] = []
 
     for (const entry of entries) {
       const [payload, duration] = await Promise.all([
@@ -797,9 +811,9 @@ async function hydrateEffectById(db: DBLike, id: string): Promise<EffectAuthored
       })
     }
 
-    const rangeMoment: RangeRollTableMoment = {
-      id: momentRow.id,
-      moment: momentCode,
+    const rangeBranch: RangeRollTableBranch = {
+      id: branchRow.id,
+      branch: branchCode,
       groupType,
       resolutionKind,
       rollTableKind,
@@ -807,15 +821,10 @@ async function hydrateEffectById(db: DBLike, id: string): Promise<EffectAuthored
       table
     }
 
-    moments.push(rangeMoment)
+    branches.push(rangeBranch)
   }
 
-  const activation: EffectAuthored['invocation']['activation'] = activationCode === ACTIVATION_CODE.FREE
-    ? { code: activationCode }
-    : {
-        code: activationCode,
-        amount: requireLinkedRecord(invocation.activation_value, `Effect "${id}" activation "${activationCode}" is missing amount.`)
-      }
+  const activation = buildActivation(id, invocation.activation_type, invocation.activation_value)
 
   const authoredInvocation: EffectAuthored['invocation'] = triggerCode === TRIGGER.SAVING_THROW
     ? {
@@ -839,7 +848,7 @@ async function hydrateEffectById(db: DBLike, id: string): Promise<EffectAuthored
     id: row.id,
     order: row.sort_order,
     invocation: authoredInvocation,
-    moments
+    branches
   }
 }
 

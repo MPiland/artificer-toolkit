@@ -18,6 +18,7 @@ export const activationCodeSchema = z.enum([
 ])
 
 export const triggerCodeSchema = z.enum([
+  'ACTIVATED',
   'MELEE_WEAPON_ATTACK',
   'RANGED_WEAPON_ATTACK',
   'UNARMED_ATTACK',
@@ -98,12 +99,14 @@ export const rangeKindSchema = z.enum([
   'SELF',
   'TOUCH',
   'SIGHT',
+  'SPECIAL',
   'UNLIMITED',
   'DISTANCE'
 ])
 
 export const durationKindSchema = z.enum([
   'INSTANTANEOUS',
+  'UNTIL_DISPELLED',
   'TURN',
   'ROUND',
   'MINUTE',
@@ -208,9 +211,10 @@ export const spellGrantAttributeSchema = z.enum([
   'SELF_ONLY'
 ])
 
-export const effectKindSchema = z.enum(['DAMAGE', 'CONDITION'])
-export const momentCodeSchema = z.enum([
+export const effectKindSchema = z.enum(['DAMAGE', 'CONDITION', 'HEAL', 'APPLY_GRANT', 'TELEPORT', 'MANIFEST', 'RULE'])
+export const branchCodeSchema = z.enum([
   'PASSIVE',
+  'ON_USE',
   'ON_CAST',
   'ON_ATTACK',
   'ON_HIT',
@@ -223,9 +227,9 @@ export const momentCodeSchema = z.enum([
   'ON_HP_ZERO',
   'ON_MISS'
 ])
-export const momentGroupTypeSchema = z.enum(['SINGLE', 'CHOICE', 'SEQUENTIAL'])
-export const momentResolutionKindSchema = z.enum(['DIRECT', 'ROLL_TABLE'])
-export const momentRollTableKindSchema = z.enum(['RANGE', 'EXACT'])
+export const branchGroupTypeSchema = z.enum(['SINGLE', 'CHOICE', 'SEQUENTIAL'])
+export const branchResolutionKindSchema = z.enum(['DIRECT', 'ROLL_TABLE'])
+export const branchRollTableKindSchema = z.enum(['RANGE', 'EXACT'])
 
 export const valueDomainCodeSchema = z.enum([
   'SPEED',
@@ -236,6 +240,7 @@ export const valueDomainCodeSchema = z.enum([
   'DAMAGE',
   'CONDITION',
   'HIT_POINTS_MAX',
+  'TEMPORARY_HIT_POINTS',
   'RANGE',
   'DURATION',
   'SHAPE',

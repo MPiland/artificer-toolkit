@@ -1,4 +1,5 @@
 import type {
+  CapabilityAuthored,
   EffectAuthored,
   FeatGrantAuthored,
   ModifierGrantAuthored,
@@ -16,6 +17,8 @@ export interface FeatureBaseAuthored<N extends NodeSubjectCode = NodeSubjectCode
   description: string
   attributes?: FeatureAttribute[]
   detail?: string
+  capabilities?: CapabilityAuthored[]
+  /** @deprecated Use capabilities. */
   effects?: EffectAuthored[]
   charges?: ChargeAuthored
   grants?: {

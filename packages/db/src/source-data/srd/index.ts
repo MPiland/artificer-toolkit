@@ -1,5 +1,13 @@
 import { defineBaselineContentBundle } from '../content.js'
 import { srdSystemRecord, SRD_SYSTEM_ID } from './vocabulary.js'
+import { srdBackgrounds } from './backgrounds/index.js'
+import { srdClasses } from './classes/index.js'
+import { srdCreatures } from './creatures/index.js'
+import { srdEquipment } from './equipment/index.js'
+import { srdFeats } from './feats/index.js'
+import { srdRaces } from './races/index.js'
+import { srdSpells } from './spells/index.js'
+import { srdVehicles } from './vehicles/index.js'
 
 export { SRD_SYSTEM_ID }
 
@@ -28,11 +36,13 @@ export const srdBaselineContent = defineBaselineContentBundle({
     spells: []
   },
   subjects: {
-    backgrounds: [],
-    classes: [],
-    equipment: [],
-    feats: [],
-    races: [],
-    spells: []
+    backgrounds: srdBackgrounds,
+    classes: srdClasses,
+    creatures: srdCreatures,
+    equipment: srdEquipment,
+    feats: srdFeats,
+    races: srdRaces,
+    spells: srdSpells,
+    vehicles: srdVehicles
   }
 })

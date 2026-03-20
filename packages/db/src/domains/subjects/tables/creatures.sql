@@ -36,12 +36,13 @@ CREATE TABLE IF NOT EXISTS public.creatures (
   quote text,
   description text,
 
+  record_kind text NOT NULL DEFAULT 'STAT_BLOCK',
   category text NOT NULL,              -- CreatureCategory
   creature_type_id uuid
     REFERENCES public.creature_types(id)
     ON DELETE SET NULL
     DEFERRABLE INITIALLY DEFERRED,
-  size_code text NOT NULL,             -- SizeCode
+  size_code text,                      -- SizeCode
   alignment_id uuid
     REFERENCES public.alignments(id)
     ON DELETE SET NULL
@@ -49,10 +50,10 @@ CREATE TABLE IF NOT EXISTS public.creatures (
   tags text[],
 
   -- Core stats
-  ability_scores jsonb NOT NULL,       -- Record<AbilityCode, number>
-  armor_class integer NOT NULL,
+  ability_scores jsonb,                -- Record<AbilityCode, number>
+  armor_class integer,
   armor_class_note text,
-  hit_points integer NOT NULL,
+  hit_points integer,
   hit_dice text,
 
   -- Senses / passives
@@ -71,6 +72,12 @@ CREATE TABLE IF NOT EXISTS public.creatures (
     DEFERRABLE INITIALLY DEFERRED,
   xp integer,
 
+  -- Logistics-only fields
+  cost jsonb,
+  carrying_capacity_amount numeric,
+  carrying_capacity_unit text,
+  logistics_notes text[],
+
   -- Optional rule profiles (presence = module applies)
   legendary_profile jsonb,             -- CreatureLegendaryProfile | null
   lair_profile jsonb,                  -- CreatureLairProfile | null
@@ -85,6 +92,9 @@ CREATE TABLE IF NOT EXISTS public.creatures (
 
   CONSTRAINT creatures_category_chk CHECK (
     category IN ('NPC', 'MONSTER', 'BEAST', 'COMPANION', 'SUMMON')
+  ),
+  CONSTRAINT creatures_record_kind_chk CHECK (
+    record_kind IN ('STAT_BLOCK', 'LOGISTICS')
   )
 );
 

@@ -31,13 +31,7 @@ export function runEngine(
   const snapshotAsAssembled = adaptSnapshotForGrantApplicator(snapshot)
   const accumulated = applyGrants(snapshotAsAssembled, registry, rules)
   const resolvedModifiers = resolveModifiers(accumulated.modifierEntries, rules)
-  const derivedStats = calculateDerivedStats(
-    snapshot,
-    resolvedModifiers,
-    accumulated.proficiencies,
-    registry,
-    rules
-  )
+  const derivedStats = calculateDerivedStats(snapshot, resolvedModifiers, accumulated.proficiencies, registry, rules)
 
   const spellSlots = resolveSpellSlots(snapshot, registry)
   const resources = resolveResources(snapshot, registry)
@@ -51,7 +45,7 @@ export function runEngine(
     derivedStats,
     spellSlots,
     resources,
-    activeItemContributions,
+    activeItemContributions
   }
 }
 
@@ -82,7 +76,7 @@ function buildItemContributions(
     // Items with compiled modifiers — track which domain keys they contributed
     if (compiled.modifiers?.length) {
       for (const mod of compiled.modifiers) {
-        const g = mod as { valueDomainCode?: string; modifierKind?: string }
+        const g = mod as { valueDomainCode?: string, modifierKind?: string }
         const key = `${g.valueDomainCode ?? 'UNKNOWN'}:${g.modifierKind ?? 'BONUS'}`
         if (resolvedModifiers[key] !== undefined && !modifiersApplied.includes(key)) {
           modifiersApplied.push(key)
@@ -94,7 +88,7 @@ function buildItemContributions(
       contributions.push({
         instanceId: item.instanceId,
         contentId: item.contentRef.contentId,
-        modifiersApplied,
+        modifiersApplied
       })
     }
   }
@@ -123,7 +117,7 @@ function adaptSnapshotForGrantApplicator(snapshot: CharacterBuildSnapshot) {
       id: '',
       featureId: f.featureId,
       source: f.source,
-      timing: f.timing,
+      timing: f.timing
     })),
     modifierGrants: [],
     resources: [],
@@ -137,19 +131,19 @@ function adaptSnapshotForGrantApplicator(snapshot: CharacterBuildSnapshot) {
         method: 'STANDARD_ARRAY' as const,
         assignments: Object.entries(snapshot.abilities).map(([ability, score]) => ({
           ability,
-          option: String(score) as never,
-        })),
+          option: String(score) as never
+        }))
       },
       hitpoints: {
         method: 'FIXED' as const,
-        levels: snapshot.hitpoints.map((h) => ({ level: h.classLevel, value: h.value })),
+        levels: snapshot.hitpoints.map((h) => ({ level: h.classLevel, value: h.value }))
       },
-      featureAcquisitions: [],
+      featureAcquisitions: []
     },
     state: {
       equipment: { items: [] },
       currency: [],
-      hitpoints: { current: 0, temporary: 0 },
-    },
+      hitpoints: { current: 0, temporary: 0 }
+    }
   } as never
 }

@@ -173,6 +173,69 @@ export async function upsertCharacter(
       equipment_id: equipmentId
     })))
 
+    const creatureRows = (json_data.state.creatures ?? []).map((creature: NonNullable<typeof json_data.state.creatures>[number]) => ({
+      id: creature.id,
+      character_id: json_data.id,
+      creature_id: creature.creatureId,
+      relationship_kind: creature.relationshipKind,
+      custom_name: creature.customName ?? null,
+      notes: creature.notes ?? null,
+      is_active: creature.isActive ?? null
+    }))
+
+    const vehicleRows = (json_data.state.vehicles ?? []).map((vehicle: NonNullable<typeof json_data.state.vehicles>[number]) => ({
+      id: vehicle.id,
+      character_id: json_data.id,
+      vehicle_id: vehicle.vehicleId,
+      custom_name: vehicle.customName ?? null,
+      notes: vehicle.notes ?? null,
+      is_active: vehicle.isActive ?? null
+    }))
+
+    const creatureIds = new Set(creatureRows.map((row) => row.id))
+    const vehicleIds = new Set(vehicleRows.map((row) => row.id))
+
+    const creatureEquipmentRows = Object.entries(json_data.state.creatureEquipment ?? {}).flatMap(([creatureInstanceId, assignments]) => {
+      if (!creatureIds.has(creatureInstanceId)) {
+        throw new Error(`Character ${json_data.id} creature equipment references missing creature instance ${creatureInstanceId}.`)
+      }
+
+      return (assignments as NonNullable<typeof json_data.state.creatureEquipment>[string]).map((assignment) => {
+        if (!inventoryIds.has(assignment.equipmentItemId)) {
+          throw new Error(`Character ${json_data.id} creature equipment references missing inventory item ${assignment.equipmentItemId}.`)
+        }
+
+        return {
+          character_id: json_data.id,
+          character_creature_id: creatureInstanceId,
+          equipment_id: assignment.equipmentItemId
+        }
+      })
+    })
+
+    const vehicleEquipmentRows = Object.entries(json_data.state.vehicleEquipment ?? {}).flatMap(([vehicleInstanceId, assignments]) => {
+      if (!vehicleIds.has(vehicleInstanceId)) {
+        throw new Error(`Character ${json_data.id} vehicle equipment references missing vehicle instance ${vehicleInstanceId}.`)
+      }
+
+      return (assignments as NonNullable<typeof json_data.state.vehicleEquipment>[string]).map((assignment) => {
+        if (!inventoryIds.has(assignment.equipmentItemId)) {
+          throw new Error(`Character ${json_data.id} vehicle equipment references missing inventory item ${assignment.equipmentItemId}.`)
+        }
+
+        return {
+          character_id: json_data.id,
+          character_vehicle_id: vehicleInstanceId,
+          equipment_id: assignment.equipmentItemId
+        }
+      })
+    })
+
+    await insertRows(trx, 'character_creatures', creatureRows)
+    await insertRows(trx, 'character_vehicles', vehicleRows)
+    await insertRows(trx, 'character_creature_equipment', creatureEquipmentRows)
+    await insertRows(trx, 'character_vehicle_equipment', vehicleEquipmentRows)
+
     const currencyGroupRows = json_data.state.currency.map((group, index) => ({
       id: `${json_data.id}::currency-group::${index + 1}`,
       character_id: json_data.id,

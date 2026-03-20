@@ -49,7 +49,7 @@ type ExistingEffectIds = {
   rangeCharacteristicId: string | null
   shapeCharacteristicId: string | null
   savingThrowId: string | null
-  momentDurationIds: string[]
+  branchDurationIds: string[]
   entryDurationIds: string[]
   damageIds: string[]
   conditionIds: string[]
@@ -59,7 +59,7 @@ type ExistingEffectIds = {
 async function collectExistingEffectIds(db: DBLike, effectId: string): Promise<ExistingEffectIds> {
   const [
     invocationRow,
-    momentRows,
+    branchRows,
     directDamageRows,
     directConditionRows,
     entryRows
@@ -68,19 +68,19 @@ async function collectExistingEffectIds(db: DBLike, effectId: string): Promise<E
       .select(['range_characteristic_id', 'shape_characteristic_id', 'saving_throw_id'])
       .where('effect_id', '=', effectId)
       .executeTakeFirst(),
-    db.selectFrom('effect_moments')
+    db.selectFrom('effect_branches')
       .select(['duration_id'])
       .where('effect_id', '=', effectId)
       .execute(),
-    db.selectFrom('moment_direct_damages')
+    db.selectFrom('branch_direct_damages')
       .select(['damage_id'])
       .where('effect_id', '=', effectId)
       .execute(),
-    db.selectFrom('moment_direct_conditions')
+    db.selectFrom('branch_direct_conditions')
       .select(['condition_id'])
       .where('effect_id', '=', effectId)
       .execute(),
-    db.selectFrom('moment_roll_table_entries')
+    db.selectFrom('branch_roll_table_entries')
       .select(['id', 'duration_id'])
       .where('effect_id', '=', effectId)
       .execute()
@@ -92,11 +92,11 @@ async function collectExistingEffectIds(db: DBLike, effectId: string): Promise<E
 
   for (const entryId of entryIds) {
     const [rollDamageRow, rollConditionRow] = await Promise.all([
-      db.selectFrom('moment_roll_table_damages')
+      db.selectFrom('branch_roll_table_damages')
         .select(['damage_id'])
         .where('entry_id', '=', entryId)
         .executeTakeFirst(),
-      db.selectFrom('moment_roll_table_conditions')
+      db.selectFrom('branch_roll_table_conditions')
         .select(['condition_id'])
         .where('entry_id', '=', entryId)
         .executeTakeFirst()
@@ -115,7 +115,7 @@ async function collectExistingEffectIds(db: DBLike, effectId: string): Promise<E
     rangeCharacteristicId: invocationRow?.range_characteristic_id ?? null,
     shapeCharacteristicId: invocationRow?.shape_characteristic_id ?? null,
     savingThrowId: invocationRow?.saving_throw_id ?? null,
-    momentDurationIds: momentRows.flatMap((row) => row.duration_id ? [row.duration_id] : []),
+    branchDurationIds: branchRows.flatMap((row) => row.duration_id ? [row.duration_id] : []),
     entryDurationIds: entryRows.flatMap((row) => row.duration_id ? [row.duration_id] : []),
     damageIds: [
       ...directDamageRows.map((row) => row.damage_id),
@@ -133,24 +133,24 @@ export async function deleteEffectById(db: DBLike, effectId: string): Promise<vo
   const existing = await collectExistingEffectIds(db, effectId)
 
   for (const entryId of existing.entryIds) {
-    await db.deleteFrom('moment_roll_table_damages').where('entry_id', '=', entryId)
+    await db.deleteFrom('branch_roll_table_damages').where('entry_id', '=', entryId)
       .execute()
-    await db.deleteFrom('moment_roll_table_conditions').where('entry_id', '=', entryId)
+    await db.deleteFrom('branch_roll_table_conditions').where('entry_id', '=', entryId)
       .execute()
   }
 
-  await db.deleteFrom('moment_roll_table_entries').where('effect_id', '=', effectId)
+  await db.deleteFrom('branch_roll_table_entries').where('effect_id', '=', effectId)
     .execute()
-  await db.deleteFrom('moment_direct_damages').where('effect_id', '=', effectId)
+  await db.deleteFrom('branch_direct_damages').where('effect_id', '=', effectId)
     .execute()
-  await db.deleteFrom('moment_direct_conditions').where('effect_id', '=', effectId)
+  await db.deleteFrom('branch_direct_conditions').where('effect_id', '=', effectId)
     .execute()
-  await db.deleteFrom('effect_moments').where('effect_id', '=', effectId)
+  await db.deleteFrom('effect_branches').where('effect_id', '=', effectId)
     .execute()
   await db.deleteFrom('effect_invocations').where('effect_id', '=', effectId)
     .execute()
 
-  for (const durationId of new Set([...existing.momentDurationIds, ...existing.entryDurationIds])) {
+  for (const durationId of new Set([...existing.branchDurationIds, ...existing.entryDurationIds])) {
     await deleteCharacteristicById(db, durationId)
   }
 

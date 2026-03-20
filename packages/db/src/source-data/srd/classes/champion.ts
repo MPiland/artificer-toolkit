@@ -1,0 +1,1 @@
+export { champion as championMartialArchetype } from './fighter.js'

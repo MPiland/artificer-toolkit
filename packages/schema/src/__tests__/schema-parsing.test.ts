@@ -11,6 +11,7 @@ import { startingEquipmentDtoSchema } from '../shared/startingEquipment.js'
 import { backgroundListResponseDtoSchema, featureResponseDtoSchema } from '../api/content.js'
 import { resourceIdParamsDtoSchema, systemAuthoredDtoSchema, systemListResponseDtoSchema } from '../index.js'
 import { classAuthoredDtoSchema } from '../subjects/class.js'
+import { spellAuthoredDtoSchema } from '../subjects/spell.js'
 
 describe('schema package parsing', () => {
   it('parses per-level charges with nested bonuses', () => {
@@ -41,7 +42,7 @@ describe('schema package parsing', () => {
     expect(parsed.levels).toHaveLength(2)
   })
 
-  it('parses effects with nested saving throw invocations and moments', () => {
+  it('parses effects with nested saving throw invocations and branches', () => {
     const parsed = effectDtoSchema.parse({
       id: 'burning-hands-effect',
       order: 1,
@@ -62,10 +63,10 @@ describe('schema package parsing', () => {
           rangeKind: 'SELF'
         }
       },
-      moments: [
+      branches: [
         {
           id: 'burning-hands-direct',
-          moment: 'ON_SAVE_FAIL',
+          branch: 'ON_SAVE_FAIL',
           groupType: 'SINGLE',
           resolutionKind: 'DIRECT',
           effectKind: 'DAMAGE',
@@ -77,8 +78,190 @@ describe('schema package parsing', () => {
       ]
     })
 
-    expect(parsed.moments).toHaveLength(1)
+    expect(parsed.branches).toHaveLength(1)
     expect(parsed.invocation.triggerCode).toBe('SAVING_THROW')
+    expect(parsed.branches[0]).toMatchObject({
+      branch: 'ON_SAVE_FAIL'
+    })
+  })
+
+  it('parses non-damage outcome families such as apply-grant and rule fallbacks', () => {
+    const parsed = effectDtoSchema.parse({
+      id: 'shield-effect',
+      order: 1,
+      invocation: {
+        triggerCode: 'SPELL_ATTACK',
+        activation: {
+          code: 'REACTION',
+          amount: 1
+        },
+        range: {
+          id: 'shield-range',
+          rangeKind: 'SELF'
+        }
+      },
+      branches: [
+        {
+          id: 'shield-grant',
+          branch: 'ON_CAST',
+          groupType: 'SINGLE',
+          resolutionKind: 'DIRECT',
+          effectKind: 'APPLY_GRANT',
+          grants: {
+            modifiers: [
+              {
+                grantKind: 'MODIFIER_GRANT',
+                id: 'shield-ac-bonus',
+                order: 1,
+                selectionKind: 'GRANTED',
+                valueDomainCode: 'ARMOR_CLASS',
+                modifierKind: 'BONUS',
+                scope: 'GLOBAL',
+                payload: {
+                  valueKind: 'FIXED',
+                  amount: 5
+                }
+              }
+            ]
+          }
+        },
+        {
+          id: 'shield-rule',
+          branch: 'ON_CAST',
+          groupType: 'SINGLE',
+          resolutionKind: 'DIRECT',
+          effectKind: 'RULE',
+          label: 'Magic Missile Interception',
+          description: 'This capability blocks the magic missile spell until the start of your next turn.'
+        }
+      ]
+    })
+
+    expect(parsed.branches).toHaveLength(2)
+  })
+
+  it('parses activated feature-style capabilities with on-use healing bonuses', () => {
+    const parsed = effectDtoSchema.parse({
+      id: 'second-wind-capability',
+      order: 1,
+      invocation: {
+        triggerCode: 'ACTIVATED',
+        activation: {
+          code: 'BONUS_ACTION',
+          amount: 1
+        },
+        range: {
+          id: 'second-wind-range',
+          rangeKind: 'SELF'
+        },
+        targeting: {
+          selectionKind: 'SELF'
+        }
+      },
+      branches: [
+        {
+          id: 'second-wind-heal',
+          branch: 'ON_USE',
+          groupType: 'SINGLE',
+          resolutionKind: 'DIRECT',
+          effectKind: 'HEAL',
+          valueKind: 'DICE',
+          scalingKind: 'NONE',
+          diceConfig: '1d10',
+          bonuses: [
+            {
+              id: 'second-wind-fighter-level',
+              bonusKind: 'CLASS_LEVEL',
+              classId: 'fighter',
+              order: 1
+            }
+          ]
+        }
+      ]
+    }) as {
+      branches?: Array<{
+        branch?: string
+        bonuses?: Array<{ bonusKind?: string, classId?: string }>
+      }>
+    }
+
+    expect(parsed.branches?.[0]?.branch).toBe('ON_USE')
+    expect(parsed.branches?.[0]?.bonuses?.[0]).toMatchObject({
+      bonusKind: 'CLASS_LEVEL',
+      classId: 'fighter'
+    })
+  })
+
+  it('parses long-cast spell capabilities with separate activation and casting time layers', () => {
+    const parsed = spellAuthoredDtoSchema.parse({
+      kind: 'SPELL',
+      id: 'find-familiar',
+      label: 'Find Familiar',
+      description: 'You gain the service of a familiar.',
+      castingTime: {
+        unit: 'HOUR',
+        amount: 1
+      },
+      level: 1,
+      classIds: ['wizard'],
+      magicSchoolId: 'conjuration',
+      attributes: ['RITUAL'],
+      capabilities: [
+        {
+          id: 'find-familiar-capability',
+          order: 1,
+          invocation: {
+            triggerCode: 'ACTIVATED',
+            activation: {
+              code: 'ACTION',
+              amount: 1
+            },
+            range: {
+              id: 'find-familiar-range',
+              rangeKind: 'DISTANCE',
+              amount: 10,
+              unit: 'FEET'
+            },
+            targeting: {
+              selectionKind: 'AREA_CONTENTS',
+              detail: 'The familiar appears in an unoccupied space within range.'
+            }
+          },
+          branches: [
+            {
+              id: 'find-familiar-branch',
+              branch: 'ON_USE',
+              groupType: 'SINGLE',
+              resolutionKind: 'DIRECT',
+              duration: {
+                id: 'find-familiar-duration',
+                durationKind: 'UNTIL_DISPELLED'
+              },
+              effectKind: 'MANIFEST',
+              manifestKind: 'CREATURE',
+              label: 'Familiar',
+              detail: 'A spirit takes an animal form you choose and acts independently while obeying your commands.'
+            }
+          ]
+        }
+      ],
+      userId: 'user-1',
+      systemId: 'system-1'
+    }) as {
+      capabilities?: Array<{
+        invocation?: { activation?: { code?: string, amount?: number } }
+        branches?: Array<{ effectKind?: string, manifestKind?: string }>
+      }>
+    }
+
+    expect(parsed.capabilities?.[0]?.invocation?.activation).toMatchObject({
+      code: 'ACTION',
+      amount: 1
+    })
+    expect(parsed.capabilities?.[0]?.branches?.[0]).toMatchObject({
+      effectKind: 'MANIFEST',
+      manifestKind: 'CREATURE'
+    })
   })
 
   it('parses features with nested grant groups and options', () => {
@@ -441,10 +624,172 @@ describe('schema package parsing', () => {
           ]
         }
       }
-    })
+    }) as { category?: string, features?: Array<{ id?: string }> }
 
     expect(parsed.category).toBe('BASE')
     expect(parsed.features?.[0]?.id).toBe('arcane-recovery')
+  })
+
+  it('parses a spell with capability-owned range/shape and structured effect scaling', () => {
+    const parsed = spellAuthoredDtoSchema.parse({
+      kind: 'SPELL',
+      id: 'burning-hands',
+      label: 'Burning Hands',
+      description: 'Each creature in a 15-foot cone must make a Dexterity saving throw.',
+      castingTime: {
+        unit: 'ROUND',
+        amount: 1
+      },
+      level: 1,
+      classIds: ['wizard', 'sorcerer'],
+      magicSchoolId: 'evocation',
+      capabilities: [
+        {
+          id: 'burning-hands-effect',
+          order: 1,
+          invocation: {
+            triggerCode: 'SAVING_THROW',
+            savingThrow: {
+              id: 'burning-hands-save',
+              savingThrowKind: 'SOURCE_SAVE_DC',
+              ability: 'DEXTERITY'
+            },
+            activation: {
+              code: 'ACTION',
+              amount: 1
+            },
+          range: {
+            id: 'burning-hands-effect-range',
+            rangeKind: 'SELF'
+          },
+          targeting: {
+            selectionKind: 'AREA_CONTENTS',
+            detail: 'Each creature in the cone.'
+          },
+          shape: {
+            id: 'burning-hands-cone',
+            shapeKind: 'CONE',
+              length: {
+                amount: 15,
+                unit: 'FEET'
+              }
+            }
+          },
+          branches: [
+            {
+              id: 'burning-hands-damage',
+              branch: 'ON_SAVE_FAIL',
+              groupType: 'SINGLE',
+              resolutionKind: 'DIRECT',
+              effectKind: 'DAMAGE',
+              damageTypeId: 'fire',
+              valueKind: 'DICE',
+              scalingKind: 'PER_LEVEL',
+              scalingSource: 'SPELL_CAST_LEVEL',
+              levels: [
+                {
+                  id: 'burning-hands-level-1',
+                  level: 1,
+                  order: 1,
+                  diceConfig: '3d6'
+                },
+                {
+                  id: 'burning-hands-level-2',
+                  level: 2,
+                  order: 2,
+                  diceConfig: '4d6'
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      userId: 'user-1',
+      systemId: 'system-1'
+    }) as {
+      capabilities?: Array<{
+        invocation: {
+          range: { rangeKind: string }
+          targeting?: { selectionKind?: string }
+        }
+        branches?: Array<Record<string, unknown>>
+      }>
+    }
+
+    expect(parsed.capabilities?.[0]?.invocation.range.rangeKind).toBe('SELF')
+    expect(parsed.capabilities?.[0]?.invocation.targeting?.selectionKind).toBe('AREA_CONTENTS')
+    expect(parsed.capabilities?.[0]?.branches?.[0]).toMatchObject({
+      scalingKind: 'PER_LEVEL',
+      scalingSource: 'SPELL_CAST_LEVEL'
+    })
+  })
+
+  it('parses richer invocation targeting qualifiers for multi-target effects', () => {
+    const parsed = effectDtoSchema.parse({
+      id: 'mass-cure-wounds-effect',
+      order: 1,
+      invocation: {
+        triggerCode: 'SPELL_ATTACK',
+        activation: {
+          code: 'ACTION',
+          amount: 1
+        },
+        range: {
+          id: 'mass-cure-wounds-range',
+          rangeKind: 'DISTANCE',
+          amount: 60,
+          unit: 'FEET'
+        },
+        shape: {
+          id: 'mass-cure-wounds-shape',
+          shapeKind: 'SPHERE',
+          radius: {
+            amount: 30,
+            unit: 'FEET'
+          }
+        },
+        targeting: {
+          selectionKind: 'CHOSEN_CREATURES',
+          maxTargets: 6,
+          excludedCreatureTypeIds: ['undead', 'construct'],
+          detail: 'Up to six creatures of your choice.'
+        }
+      },
+      branches: [
+        {
+          id: 'mass-cure-wounds-heal',
+          branch: 'ON_CAST',
+          groupType: 'SINGLE',
+          resolutionKind: 'DIRECT',
+          effectKind: 'HEAL',
+          valueKind: 'DICE',
+          scalingKind: 'PER_LEVEL',
+          scalingSource: 'SPELL_CAST_LEVEL',
+          levels: [
+            {
+              id: 'mass-cure-wounds-level-5',
+              level: 5,
+              order: 1,
+              diceConfig: '3d8'
+            }
+          ]
+        }
+      ]
+    }) as {
+      invocation?: {
+        targeting?: {
+          selectionKind?: string
+          maxTargets?: number
+          excludedCreatureTypeIds?: string[]
+        }
+      }
+    }
+
+    expect(parsed.invocation?.targeting).toMatchObject({
+      selectionKind: 'CHOSEN_CREATURES',
+      maxTargets: 6,
+      excludedCreatureTypeIds: ['undead', 'construct']
+    })
   })
 
   it('rejects legacy placeholder values once nested enums are tightened', () => {
@@ -468,10 +813,10 @@ describe('schema package parsing', () => {
           rangeKind: 'SELF'
         }
       },
-      moments: [
+      branches: [
         {
           id: 'bad-moment',
-          moment: 'IMMEDIATE',
+          branch: 'IMMEDIATE',
           groupType: 'SINGLE',
           resolutionKind: 'DIRECT',
           effectKind: 'DAMAGE',
@@ -511,7 +856,7 @@ describe('schema package parsing', () => {
         description: system.description,
         userId: system.userId
       }
-    ])
+    ]) as { label?: string }[]
 
     const params = resourceIdParamsDtoSchema.parse({ id: system.id })
 
@@ -533,14 +878,14 @@ describe('schema package parsing', () => {
       meta: {
         total: 1
       }
-    })
+    }) as { items: { id?: string }[] }
 
     const feature = featureResponseDtoSchema.parse({
       id: 'fighting-style',
       label: 'Fighting Style',
       description: 'Choose a martial specialization.',
       order: 1
-    })
+    }) as { label?: string }
 
     expect(list.items[0]?.id).toBe('acolyte')
     expect(feature?.label).toBe('Fighting Style')

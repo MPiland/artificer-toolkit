@@ -8,6 +8,7 @@ export const rangeDtoSchema = z.union([
       rangeKindSchema.enum.SELF,
       rangeKindSchema.enum.TOUCH,
       rangeKindSchema.enum.SIGHT,
+      rangeKindSchema.enum.SPECIAL,
       rangeKindSchema.enum.UNLIMITED
     ])
   }),

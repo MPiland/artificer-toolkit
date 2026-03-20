@@ -2,9 +2,11 @@ import type {
   BackgroundAuthored,
   ChargeAuthored,
   ClassAuthored,
+  CreatureAuthored,
   DetailAuthored,
   EffectAuthored,
   EquipmentAuthored,
+  EquipmentVariantAuthored,
   FeatGrantAuthored,
   FeatAuthored,
   FeatureAuthored,
@@ -16,7 +18,8 @@ import type {
   SenseGrantAuthored,
   SpellAuthored,
   SpellGrantAuthored,
-  StartingEquipmentAuthored
+  StartingEquipmentAuthored,
+  VehicleAuthored
 } from '@artificer-toolkit/shared'
 
 /**
@@ -50,10 +53,12 @@ export interface BaselineGrantsContent {
 export interface BaselineSubjectsContent {
   backgrounds: BackgroundAuthored[]
   classes: ClassAuthored[]
-  equipment: EquipmentAuthored[]
+  creatures: CreatureAuthored[]
+  equipment: Array<EquipmentAuthored | EquipmentVariantAuthored>
   feats: FeatAuthored[]
   races: RaceAuthored[]
   spells: SpellAuthored[]
+  vehicles: VehicleAuthored[]
 }
 
 export interface BaselineVocabularyContent {

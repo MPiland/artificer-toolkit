@@ -198,15 +198,17 @@ async function hydrateEquipmentById(
       ? attributes.map((attribute) => requireAttribute(id, attribute.attribute_code))
       : undefined,
     quote: row.quote ?? undefined,
-    cost: {
-      amount: row.cost_amount,
-      currencyId: row.cost_currency_id
-    },
+    cost: row.cost_amount != null && row.cost_currency_id
+      ? {
+          amount: row.cost_amount,
+          currencyId: row.cost_currency_id
+        }
+      : undefined,
     weight: {
       amount: row.weight_amount,
       unit: requireMeasurementUnit(id, row.weight_unit)
     },
-    effects: authoredEffects.length > 0 ? authoredEffects : undefined,
+    capabilities: authoredEffects.length > 0 ? authoredEffects : undefined,
     charges: row.charge_id
       ? requireLinkedRecord(charge, `Equipment "${id}" is linked to missing charge "${row.charge_id}".`)
       : undefined,
@@ -243,7 +245,10 @@ async function hydrateEquipmentById(
       parentEquipmentId: requireLinkedRecord(
         row.parent_equipment_id,
         `Equipment "${id}" is missing parent_equipment_id for VARIANT payload.`
-      )
+      ),
+      properties: properties.length > 0
+        ? properties.map((property) => requireProperty(id, property.property_code))
+        : undefined
     }
   }
 
@@ -285,7 +290,7 @@ export function createEquipmentRepository(db: DBLike): EquipmentRepository {
 
       const rows = await query.execute()
       const records = await Promise.all(rows.map((row) => hydrateEquipmentById(db, row.id)))
-      return records.filter((record): record is EquipmentAuthored => record !== null)
+      return records.filter((record): record is EquipmentAuthored | EquipmentVariantAuthored => record !== null)
     }
   }
 }

@@ -5,6 +5,8 @@ import {
   AUTHORING_MODE_KIND,
   CHARGE_LIMIT_KIND,
   CHARGE_RESET_KIND,
+  CREATURE_CATEGORY_CODE,
+  CREATURE_RECORD_KIND_CODE,
   DURATION_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
@@ -16,6 +18,7 @@ import {
   RELATIONS,
   SCALING_AMOUNT_KIND,
   SIZE_CODE,
+  VEHICLE_CATEGORY_CODE,
   type FacetAuthored,
   type FacetBodyAuthored,
   type FacetConditionAuthored,
@@ -39,6 +42,8 @@ const SUBJECT_SELECTION_COLUMNS = {
   FEAT: { payloadKey: 'featIds', column: 'feat_id' },
   RACE: { payloadKey: 'raceIds', column: 'race_id' },
   BACKGROUND: { payloadKey: 'backgroundIds', column: 'background_id' },
+  CREATURE: { payloadKey: 'creatureIds', column: 'creature_id' },
+  VEHICLE: { payloadKey: 'vehicleIds', column: 'vehicle_id' },
   OPTION: { payloadKey: 'optionIds', column: 'option_id' },
   SUBRACE: { payloadKey: 'subraceIds', column: 'subrace_id' },
   SUBCLASS: { payloadKey: 'subclassIds', column: 'subclass_id' },
@@ -199,6 +204,39 @@ function requireSizeCode(
   }
 
   return value as keyof typeof SIZE_CODE
+}
+
+function requireCreatureRecordKind(
+  ownerId: string,
+  value: string
+): keyof typeof CREATURE_RECORD_KIND_CODE {
+  if (!(value in CREATURE_RECORD_KIND_CODE)) {
+    throw new Error(`${ownerId} has invalid creature record kind "${value}".`)
+  }
+
+  return value as keyof typeof CREATURE_RECORD_KIND_CODE
+}
+
+function requireCreatureCategory(
+  ownerId: string,
+  value: string
+): keyof typeof CREATURE_CATEGORY_CODE {
+  if (!(value in CREATURE_CATEGORY_CODE)) {
+    throw new Error(`${ownerId} has invalid creature category "${value}".`)
+  }
+
+  return value as keyof typeof CREATURE_CATEGORY_CODE
+}
+
+function requireVehicleCategory(
+  ownerId: string,
+  value: string
+): keyof typeof VEHICLE_CATEGORY_CODE {
+  if (!(value in VEHICLE_CATEGORY_CODE)) {
+    throw new Error(`${ownerId} has invalid vehicle category "${value}".`)
+  }
+
+  return value as keyof typeof VEHICLE_CATEGORY_CODE
 }
 
 function requireChargeLimitKind(
@@ -669,6 +707,30 @@ async function writeIdItems(
     .execute()
 }
 
+async function writeTextItems(
+  db: DBLike,
+  table:
+    | 'facet_predicate_creature_record_kind_items'
+    | 'facet_predicate_creature_category_items'
+    | 'facet_predicate_vehicle_category_items',
+  column: 'record_kind' | 'category_code',
+  conditionId: string,
+  values: string[]
+): Promise<void> {
+  if (values.length === 0) {
+    throw new Error(`Facet condition "${conditionId}" requires at least one "${column}".`)
+  }
+
+  await (db as any)
+    .insertInto(table)
+    .values(values.map((value: string, index: number) => ({
+      facet_condition_id: conditionId,
+      [column]: value,
+      sort_order: index + 1
+    })))
+    .execute()
+}
+
 async function writePredicatePayload(
   db: DBLike,
   condition: PredicateConditionAuthored
@@ -1047,6 +1109,71 @@ async function writePredicatePayload(
       }
       return
 
+    case 'CREATURE_RECORD_KIND':
+      await insertPredicateSelectableHeader(db, condition)
+      if (condition.authoringModeKind === AUTHORING_MODE_KIND.SELECTED) {
+        await writeTextItems(
+          db,
+          'facet_predicate_creature_record_kind_items',
+          'record_kind',
+          conditionId,
+          condition.recordKinds.map((value) => requireCreatureRecordKind(`facet condition "${conditionId}"`, value))
+        )
+      }
+      return
+
+    case 'CREATURE_CATEGORY':
+      await insertPredicateSelectableHeader(db, condition)
+      if (condition.authoringModeKind === AUTHORING_MODE_KIND.SELECTED) {
+        await writeTextItems(
+          db,
+          'facet_predicate_creature_category_items',
+          'category_code',
+          conditionId,
+          condition.categories.map((value) => requireCreatureCategory(`facet condition "${conditionId}"`, value))
+        )
+      }
+      return
+
+    case 'CREATURE_TYPE':
+      await insertPredicateSelectableHeader(db, condition)
+      if (condition.authoringModeKind === AUTHORING_MODE_KIND.SELECTED) {
+        await (db as any)
+          .insertInto('facet_predicate_creature_type_items')
+          .values(condition.creatureTypeIds.map((creatureTypeId: string, index: number) => ({
+            facet_condition_id: conditionId,
+            creature_type_id: creatureTypeId,
+            sort_order: index + 1
+          })))
+          .execute()
+      }
+      return
+
+    case 'CREATURE_SIZE':
+    case 'VEHICLE_SIZE':
+      await insertPredicateSelectableHeader(db, condition)
+      if (condition.authoringModeKind === AUTHORING_MODE_KIND.SELECTED) {
+        await writeSizeItems(db, conditionId, condition.sizes)
+      }
+      return
+
+    case 'VEHICLE_CATEGORY':
+      await insertPredicateSelectableHeader(db, condition)
+      if (condition.authoringModeKind === AUTHORING_MODE_KIND.SELECTED) {
+        await writeTextItems(
+          db,
+          'facet_predicate_vehicle_category_items',
+          'category_code',
+          conditionId,
+          condition.categories.map((value) => requireVehicleCategory(`facet condition "${conditionId}"`, value))
+        )
+      }
+      return
+
+    case 'CREATURE_IS_MOUNT':
+    case 'CREATURE_IS_COMPANION':
+      return
+
     default:
       throw new Error(`Facet condition "${conditionId}" uses an unsupported predicate for typed persistence.`)
   }
@@ -1080,7 +1207,7 @@ async function writeBody(
     })
       .execute()
 
-    for (const condition of group.conditions) {
+    for (const condition of (group.conditions ?? [])) {
       await writeCondition(db, group.id, subject, condition)
     }
   }
@@ -1201,7 +1328,7 @@ export async function upsertFacet<N extends NodeSubjectCode = NodeSubjectCode>(
       })
         .execute()
 
-      for (const condition of context.conditions) {
+      for (const condition of (context.conditions ?? [])) {
         await writeCondition(db, bodyGroupId, subject, condition)
       }
     }
@@ -1693,6 +1820,96 @@ async function hydratePredicateCondition(
         ...selection,
         ...(selection.authoringModeKind === AUTHORING_MODE_KIND.SELECTED
           ? { sizes: items.map((item) => requireSizeCode(`facet condition "${row.id}"`, item.size_code)) }
+          : {})
+      } as PredicateConditionAuthored
+    }
+
+    case 'CREATURE_RECORD_KIND': {
+      const selection = await hydratePredicateSelectable(db, row.id)
+      const items = await (db as any).selectFrom('facet_predicate_creature_record_kind_items')
+        .select(['record_kind', 'sort_order'])
+        .where('facet_condition_id', '=', row.id)
+        .orderBy('sort_order')
+        .execute()
+
+      return {
+        ...base,
+        ...selection,
+        ...(selection.authoringModeKind === AUTHORING_MODE_KIND.SELECTED
+          ? { recordKinds: items.map((item: { record_kind: string }) => requireCreatureRecordKind(`facet condition "${row.id}"`, item.record_kind)) }
+          : {})
+      } as PredicateConditionAuthored
+    }
+
+    case 'CREATURE_CATEGORY': {
+      const selection = await hydratePredicateSelectable(db, row.id)
+      const items = await (db as any).selectFrom('facet_predicate_creature_category_items')
+        .select(['category_code', 'sort_order'])
+        .where('facet_condition_id', '=', row.id)
+        .orderBy('sort_order')
+        .execute()
+
+      return {
+        ...base,
+        ...selection,
+        ...(selection.authoringModeKind === AUTHORING_MODE_KIND.SELECTED
+          ? { categories: items.map((item: { category_code: string }) => requireCreatureCategory(`facet condition "${row.id}"`, item.category_code)) }
+          : {})
+      } as PredicateConditionAuthored
+    }
+
+    case 'CREATURE_TYPE': {
+      const selection = await hydratePredicateSelectable(db, row.id)
+      const items = await (db as any).selectFrom('facet_predicate_creature_type_items')
+        .select(['creature_type_id', 'sort_order'])
+        .where('facet_condition_id', '=', row.id)
+        .orderBy('sort_order')
+        .execute()
+
+      return {
+        ...base,
+        ...selection,
+        ...(selection.authoringModeKind === AUTHORING_MODE_KIND.SELECTED
+          ? { creatureTypeIds: items.map((item: { creature_type_id: string }) => item.creature_type_id) }
+          : {})
+      } as PredicateConditionAuthored
+    }
+
+    case 'CREATURE_SIZE':
+    case 'VEHICLE_SIZE': {
+      const selection = await hydratePredicateSelectable(db, row.id)
+      const items = await db.selectFrom('facet_predicate_size_items')
+        .select(['size_code', 'sort_order'])
+        .where('facet_condition_id', '=', row.id)
+        .orderBy('sort_order')
+        .execute()
+
+      return {
+        ...base,
+        ...selection,
+        ...(selection.authoringModeKind === AUTHORING_MODE_KIND.SELECTED
+          ? { sizes: items.map((item) => requireSizeCode(`facet condition "${row.id}"`, item.size_code)) }
+          : {})
+      } as PredicateConditionAuthored
+    }
+
+    case 'CREATURE_IS_MOUNT':
+    case 'CREATURE_IS_COMPANION':
+      return base as PredicateConditionAuthored
+
+    case 'VEHICLE_CATEGORY': {
+      const selection = await hydratePredicateSelectable(db, row.id)
+      const items = await (db as any).selectFrom('facet_predicate_vehicle_category_items')
+        .select(['category_code', 'sort_order'])
+        .where('facet_condition_id', '=', row.id)
+        .orderBy('sort_order')
+        .execute()
+
+      return {
+        ...base,
+        ...selection,
+        ...(selection.authoringModeKind === AUTHORING_MODE_KIND.SELECTED
+          ? { categories: items.map((item: { category_code: string }) => requireVehicleCategory(`facet condition "${row.id}"`, item.category_code)) }
           : {})
       } as PredicateConditionAuthored
     }

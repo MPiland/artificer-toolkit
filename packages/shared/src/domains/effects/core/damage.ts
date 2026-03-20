@@ -81,3 +81,31 @@ export const DAMAGE_BONUS_REGISTRY: Record<DamageBonusKind, DamageBonusOption>
   }
 
 export const DAMAGE_BONUS_OPTIONS = valuesOf(DAMAGE_BONUS_REGISTRY) as readonly DamageBonusOption[]
+
+export const SAVE_SUCCESS_OUTCOME_KIND = {
+  NONE: 'NONE',
+  HALF: 'HALF'
+} as const
+
+export type SaveSuccessOutcomeKind = keyof typeof SAVE_SUCCESS_OUTCOME_KIND
+
+export type SaveSuccessOutcomeOption = CoreMeta<SaveSuccessOutcomeKind>
+
+export const SAVE_SUCCESS_OUTCOME_REGISTRY: Record<SaveSuccessOutcomeKind, SaveSuccessOutcomeOption> = {
+  [SAVE_SUCCESS_OUTCOME_KIND.NONE]: {
+    code: SAVE_SUCCESS_OUTCOME_KIND.NONE,
+    label: 'No Effect On Success',
+    description: 'A successful saving throw prevents this damage outcome entirely.',
+    tooltip: 'Use when a successful save negates the damage.'
+  },
+  [SAVE_SUCCESS_OUTCOME_KIND.HALF]: {
+    code: SAVE_SUCCESS_OUTCOME_KIND.HALF,
+    label: 'Half On Success',
+    description: 'A successful saving throw reduces this damage outcome to half.',
+    tooltip: 'Use when a successful save halves the damage.'
+  }
+}
+
+export const SAVE_SUCCESS_OUTCOME_OPTIONS = valuesOf(
+  SAVE_SUCCESS_OUTCOME_REGISTRY
+) as readonly SaveSuccessOutcomeOption[]

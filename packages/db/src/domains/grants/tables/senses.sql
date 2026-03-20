@@ -26,6 +26,10 @@ CREATE TABLE IF NOT EXISTS public.sense_grants (
   class_id uuid,
   charge_id uuid REFERENCES public.charges (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   restriction_id uuid REFERENCES public.facets (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
+  range_id uuid,                -- authored range object ID (null when no base range)
+  range_kind text,              -- SELF | TOUCH | SIGHT | UNLIMITED | DISTANCE
+  range_amount integer,         -- DISTANCE only
+  range_unit text,              -- DISTANCE only — MeasurementUnitCode
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT sense_grants_root_sort_order_chk CHECK (
@@ -56,6 +60,18 @@ CREATE TABLE IF NOT EXISTS public.sense_grants (
   CONSTRAINT sense_grants_root_mode_usage_chk CHECK (
     (scaling_kind = 'NONE' AND authoring_mode_kind IN ('ALL', 'SELECTED'))
     OR (scaling_kind = 'PER_LEVEL' AND authoring_mode_kind = 'ALL')
+  ),
+  CONSTRAINT sense_grants_root_range_kind_chk CHECK (
+    range_kind IS NULL
+    OR range_kind IN ('SELF', 'TOUCH', 'SIGHT', 'UNLIMITED', 'DISTANCE')
+  ),
+  CONSTRAINT sense_grants_root_range_distance_chk CHECK (
+    (range_kind = 'DISTANCE' AND range_amount IS NOT NULL AND range_unit IS NOT NULL)
+    OR (range_kind IS DISTINCT FROM 'DISTANCE' AND range_amount IS NULL AND range_unit IS NULL)
+  ),
+  CONSTRAINT sense_grants_root_range_id_chk CHECK (
+    (range_kind IS NOT NULL AND range_id IS NOT NULL)
+    OR (range_kind IS NULL AND range_id IS NULL)
   )
 );
 

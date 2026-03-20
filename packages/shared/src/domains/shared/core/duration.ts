@@ -3,6 +3,7 @@ import { valuesOf } from '#utils'
 
 export const DURATION_KIND = {
   INSTANTANEOUS: 'INSTANTANEOUS',
+  UNTIL_DISPELLED: 'UNTIL_DISPELLED',
   TURN: 'TURN',
   ROUND: 'ROUND',
   MINUTE: 'MINUTE',
@@ -23,6 +24,12 @@ export const DURATION_REGISTRY: Record<DurationKind, DurationOption> = {
     label: 'Instantaneous',
     description: 'An effect that occurs immediately and does not persist over time.',
     tooltip: 'No duration.'
+  },
+  [DURATION_KIND.UNTIL_DISPELLED]: {
+    code: DURATION_KIND.UNTIL_DISPELLED,
+    label: 'Until Dispelled',
+    description: 'The effect persists until it is ended by dispelling magic or another specific rule.',
+    tooltip: 'Lasts until dispelled.'
   },
   [DURATION_KIND.TURN]: {
     code: DURATION_KIND.TURN,

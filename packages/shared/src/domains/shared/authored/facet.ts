@@ -40,7 +40,8 @@ export type FacetBodyAuthored<S extends NodeSubjectCode = NodeSubjectCode> = {
 export type FacetBodyGroupAuthored<S extends NodeSubjectCode = NodeSubjectCode> = {
   id: string
   order: number
-  conditions: readonly FacetConditionAuthored<S>[] // AND
+  /** AND-combined property checks. Omit rather than passing []. */
+  conditions?: readonly FacetConditionAuthored<S>[]
 }
 
 /**
@@ -69,15 +70,45 @@ export type FacetGroupAuthored<N extends NodeSubjectCode = NodeSubjectCode> = {
 }
 
 /**
- * A subject context block.
- * Conditions are AND-only within the subject.
+ * A subject context block within a facet group.
+ *
+ * The chain is: **subject type → identity selection → property predicates (optional)**
+ *
+ * 1. `subject` — declares the kind of node being checked (e.g. `'CHARACTER'`, `'SPELL'`, `'EQUIPMENT'`).
+ * 2. Identity selection (from `SubjectSelectionAuthored<N>`) — narrows to specific instances
+ *    by ID (e.g. `spellIds: [ELDRITCH_BLAST_ID]`). `CHARACTER` has no selection payload
+ *    because there is always exactly one character in context.
+ * 3. `conditions` (optional) — further AND-combined property checks on the selected subjects
+ *    (e.g. `MAGIC_SCHOOL`, `SPELL_LEVEL`). Predicates are the terminal nodes of the chain.
+ *    Omitting `conditions` means the identity selection alone is the complete restriction —
+ *    do not provide an empty array, omit the field entirely.
+ *
+ * @example Identity-only restriction — "applies only to Eldritch Blast"
+ * ```ts
+ * { subject: 'SPELL', spellIds: [ELDRITCH_BLAST_ID] }
+ * ```
+ *
+ * @example Identity + property — "applies to evocation spells of level 1–3"
+ * ```ts
+ * { subject: 'SPELL', spellIds: [...],
+ *   conditions: [
+ *     { kind: 'PREDICATE', predicateCode: 'MAGIC_SCHOOL', magicSchoolIds: [EVOCATION_ID], ... },
+ *     { kind: 'PREDICATE', predicateCode: 'SPELL_LEVEL', min: 1, max: 3, ... }
+ *   ] }
+ * ```
+ *
+ * @example Character prerequisite — "character must have obtained Eldritch Blast"
+ * ```ts
+ * { subject: 'CHARACTER',
+ *   conditions: [{ kind: 'PREDICATE', predicateCode: 'SPELL_OBTAINED', spellIds: [ELDRITCH_BLAST_ID], ... }] }
+ * ```
  */
 export type FacetContextAuthored<N extends NodeSubjectCode = NodeSubjectCode>
   = N extends NodeSubjectCode ? {
     id: string
     order: number
     subject: N
-    conditions: readonly FacetConditionAuthored<N>[] // AND
+    conditions?: readonly FacetConditionAuthored<N>[] // AND; omit rather than passing []
   } & (N extends 'CHARACTER' ? EmptyObject : SubjectSelectionAuthored<N>)
     : never
 

@@ -24,8 +24,8 @@ type EquipmentRow = {
   quote: string | null
   category: string
   rarity_id: string
-  cost_amount: number
-  cost_currency_id: string
+  cost_amount: number | null
+  cost_currency_id: string | null
   weight_amount: number
   weight_unit: string
   capacity_amount: number | null
@@ -157,8 +157,8 @@ function mapEquipmentRow(json_data: EquipmentAuthored | EquipmentVariantAuthored
     quote: json_data.quote ?? null,
     category: requireCategory(json_data.id, json_data.category),
     rarity_id: json_data.rarityId,
-    cost_amount: json_data.cost.amount,
-    cost_currency_id: json_data.cost.currencyId,
+    cost_amount: json_data.cost?.amount ?? null,
+    cost_currency_id: json_data.cost?.currencyId ?? null,
     weight_amount: json_data.weight.amount,
     weight_unit: requireMeasurementUnit(json_data.id, json_data.weight.unit),
     capacity_amount: json_data.capacity?.amount ?? null,
@@ -187,18 +187,20 @@ export async function upsertEquipment(
     sort_order: index + 1
   }))
 
-  const propertyRows: EquipmentPropertyRow[] = isBaseEquipment(json_data)
-    ? json_data.properties.map((property) => ({
-        equipment_id: json_data.id,
-        property_code: requireProperty(json_data.id, property)
-      }))
-    : []
-  const effectRows = (json_data.effects ?? []).map((effect, index) => ({
+  const propertyRows: EquipmentPropertyRow[] = (isBaseEquipment(json_data)
+    ? json_data.properties
+    : (json_data.properties ?? [])
+  ).map((property) => ({
+    equipment_id: json_data.id,
+    property_code: requireProperty(json_data.id, property)
+  }))
+  const authoredCapabilities = json_data.capabilities ?? json_data.effects ?? []
+  const effectRows = authoredCapabilities.map((effect, index) => ({
     equipment_id: json_data.id,
     effect_id: effect.id,
     sort_order: index + 1
   }))
-  const nextEffectIds = new Set((json_data.effects ?? []).map((effect) => effect.id))
+  const nextEffectIds = new Set(authoredCapabilities.map((effect) => effect.id))
 
   const abilityRows: EquipmentAbilityRow[] = isBaseEquipment(json_data)
     ? json_data.abilities.flatMap((entry, groupIndex) => entry.abilities.map((ability, abilityIndex) => ({
@@ -242,7 +244,7 @@ export async function upsertEquipment(
       await upsertFacet(trx, json_data.restrictions)
     }
 
-    for (const effect of json_data.effects ?? []) {
+    for (const effect of authoredCapabilities) {
       await upsertEffect(trx, effect)
     }
 

@@ -174,7 +174,7 @@ END;
 $$;
 -- END INCLUDE: src\domains\utils\tables\utils.sql
 -- BEGIN INCLUDE: src\domains\utils\tables\user_management.sql
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * USER MANAGEMENT
  *
  * Defines:
@@ -193,12 +193,12 @@ $$;
  *
  * Storage:
  *   - avatars bucket
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * PROFILES
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.profiles (
   id uuid PRIMARY KEY
@@ -231,12 +231,12 @@ CREATE POLICY "Users can update own profile."
   USING ((SELECT auth.uid()) = id);
 
 
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * ADMINS
  *
  * Stores which users have admin privileges.
  * Referenced by set_admin_claims().
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.admins (
   user_id  uuid PRIMARY KEY
@@ -252,9 +252,9 @@ CREATE POLICY "Admins can view admin flags."
   USING ((auth.jwt()::jsonb -> 'app_metadata' ->> 'admin') = 'true');
 
 
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * TRIGGER: auto-create profile on signup
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger
@@ -288,9 +288,9 @@ END;
 $$;
 
 
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * AUTH HOOK: inject admin flag into JWT
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE OR REPLACE FUNCTION public.set_admin_claims(event jsonb)
 RETURNS jsonb
@@ -324,7 +324,7 @@ END;
 $$;
 
 
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * POLICY HELPER: direct ownership
  *
  * For tables with (user_id, is_master).
@@ -332,7 +332,7 @@ $$;
  * Admins (JWT app_metadata.admin = 'true') bypass.
  *
  * Usage: SELECT public.apply_direct_ownership_policies('<table_name>');
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE OR REPLACE FUNCTION public.apply_direct_ownership_policies(target_table text)
 RETURNS void
@@ -406,7 +406,7 @@ END;
 $$;
 
 
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * POLICY HELPER: system-derived ownership
  *
  * For tables with (system_id, is_master).
@@ -417,7 +417,7 @@ $$;
  * current user and the row to not be master content.
  *
  * Usage: SELECT public.apply_system_derived_policies('classes');
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE OR REPLACE FUNCTION public.apply_system_derived_policies(target_table text)
 RETURNS void
@@ -629,17 +629,17 @@ END;
 $$;
 
 
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * STORAGE: avatars bucket
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 INSERT INTO storage.buckets (id, name)
 VALUES ('avatars', 'avatars')
 ON CONFLICT (id) DO NOTHING;
 -- END INCLUDE: src\domains\utils\tables\user_management.sql
 -- BEGIN INCLUDE: src\domains\subjects\tables\systems.sql
-/* ──────────────────────────────────────────────
- * SYSTEMS — ROOT
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * SYSTEMS â€” ROOT
  *
  * Intent:
  *   A System is the top-level owned container for all author-extensible
@@ -650,7 +650,7 @@ ON CONFLICT (id) DO NOTHING;
  *   - Vocabulary rows are owned by the System via system_id.
  *   - Stale deletes are performed per vocabulary surface by id.
  *   - No per-table updated_at triggers (handled globally).
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.systems (
   id uuid PRIMARY KEY,
@@ -707,7 +707,7 @@ CREATE INDEX IF NOT EXISTS idx_systems_user
   ON public.systems(user_id);
 
 
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * VOCABULARY TABLE TEMPLATE
  *
  * Columns:
@@ -715,12 +715,12 @@ CREATE INDEX IF NOT EXISTS idx_systems_user
  *  - system_id: owning system
  *  - code: author-extensible code (string)
  *  - label/description/tooltip/short: presentation
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * ALIGNMENTS
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.alignments (
   id uuid PRIMARY KEY,
@@ -750,9 +750,9 @@ CREATE INDEX IF NOT EXISTS idx_alignments_system
   ON public.alignments(system_id);
 
 
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * CONDITIONS
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.condition_types (
   id uuid PRIMARY KEY,
@@ -782,9 +782,9 @@ CREATE INDEX IF NOT EXISTS idx_condition_types_system
   ON public.condition_types(system_id);
 
 
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * CURRENCIES
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.currencies (
   id uuid PRIMARY KEY,
@@ -814,9 +814,9 @@ CREATE INDEX IF NOT EXISTS idx_currencies_system
   ON public.currencies(system_id);
 
 
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * DAMAGE TYPES
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.damage_types (
   id uuid PRIMARY KEY,
@@ -846,9 +846,9 @@ CREATE INDEX IF NOT EXISTS idx_damage_types_system
   ON public.damage_types(system_id);
 
 
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * LANGUAGES
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.languages (
   id uuid PRIMARY KEY,
@@ -878,9 +878,9 @@ CREATE INDEX IF NOT EXISTS idx_languages_system
   ON public.languages(system_id);
 
 
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * MAGIC SCHOOLS
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.magic_schools (
   id uuid PRIMARY KEY,
@@ -910,9 +910,9 @@ CREATE INDEX IF NOT EXISTS idx_magic_schools_system
   ON public.magic_schools(system_id);
 
 
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * PASSIVES
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.passives (
   id uuid PRIMARY KEY,
@@ -942,9 +942,9 @@ CREATE INDEX IF NOT EXISTS idx_passives_system
   ON public.passives(system_id);
 
 
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * RARITIES
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.rarities (
   id uuid PRIMARY KEY,
@@ -974,9 +974,9 @@ CREATE INDEX IF NOT EXISTS idx_rarities_system
   ON public.rarities(system_id);
 
 
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * SENSES
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.senses (
   id uuid PRIMARY KEY,
@@ -1006,9 +1006,9 @@ CREATE INDEX IF NOT EXISTS idx_senses_system
   ON public.senses(system_id);
 
 
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * SKILLS
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.skills (
   id uuid PRIMARY KEY,
@@ -1038,9 +1038,9 @@ CREATE INDEX IF NOT EXISTS idx_skills_system
   ON public.skills(system_id);
 
 
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * SPEEDS
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.speeds (
   id uuid PRIMARY KEY,
@@ -1070,9 +1070,73 @@ CREATE INDEX IF NOT EXISTS idx_speeds_system
   ON public.speeds(system_id);
 
 
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * CHALLENGE RATINGS
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
+CREATE TABLE IF NOT EXISTS public.challenge_ratings (
+  id uuid PRIMARY KEY,
+
+  system_id uuid NOT NULL
+    REFERENCES public.systems(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  code text NOT NULL,
+  label text NOT NULL,
+  description text,
+  tooltip text,
+  short text,
+
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.challenge_ratings ENABLE ROW LEVEL SECURITY;
+SELECT public.apply_system_vocabulary_policies('challenge_ratings');
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_challenge_ratings_system_code
+  ON public.challenge_ratings(system_id, code);
+
+CREATE INDEX IF NOT EXISTS idx_challenge_ratings_system
+  ON public.challenge_ratings(system_id);
+
+
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * CREATURE TYPES
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
+CREATE TABLE IF NOT EXISTS public.creature_types (
+  id uuid PRIMARY KEY,
+
+  system_id uuid NOT NULL
+    REFERENCES public.systems(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  code text NOT NULL,
+  label text NOT NULL,
+  description text,
+  tooltip text,
+  short text,
+
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.creature_types ENABLE ROW LEVEL SECURITY;
+SELECT public.apply_system_vocabulary_policies('creature_types');
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_creature_types_system_code
+  ON public.creature_types(system_id, code);
+
+CREATE INDEX IF NOT EXISTS idx_creature_types_system
+  ON public.creature_types(system_id);
+
+
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * TERRAINS
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.terrains (
   id uuid PRIMARY KEY,
@@ -1102,20 +1166,20 @@ CREATE INDEX IF NOT EXISTS idx_terrains_system
   ON public.terrains(system_id);
 -- END INCLUDE: src\domains\subjects\tables\systems.sql
 -- BEGIN INCLUDE: src\domains\shared\tables\charges.sql
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * CHARGES
  *
  * Root authored charge definition.
  *
  * Cardinality:
- *   systems 1 ──▶ N charges
+ *   systems 1 â”€â”€â–¶ N charges
  *
  * Owns:
  *   charge_limits
  *   charge_scaling_levels
  *   charge_bonus_kinds
  *   charge_bonuses
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.charges (
   id uuid PRIMARY KEY,
@@ -1129,7 +1193,7 @@ CREATE TABLE IF NOT EXISTS public.charges (
 
 ALTER TABLE public.charges ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * CHARGE LIMITS
  *
  * Discriminated limit payload.
@@ -1137,7 +1201,7 @@ ALTER TABLE public.charges ENABLE ROW LEVEL SECURITY;
  *
  * Corresponds to:
  *   ChargeLimitPayload
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.charge_limits (
   charge_id uuid PRIMARY KEY
@@ -1168,7 +1232,7 @@ CREATE TABLE IF NOT EXISTS public.charge_limits (
 
 ALTER TABLE public.charge_limits ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * CHARGE SCALING LEVELS
  *
  * Level-based scaling values.
@@ -1176,7 +1240,7 @@ ALTER TABLE public.charge_limits ENABLE ROW LEVEL SECURITY;
  *
  * Corresponds to:
  *   LevelScaledValue<{ amount: number }>
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.charge_scaling_levels (
   id uuid PRIMARY KEY,
@@ -1200,7 +1264,7 @@ CREATE INDEX IF NOT EXISTS idx_charge_scaling_levels_charge
 
 ALTER TABLE public.charge_scaling_levels ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * CHARGE BONUSES
  *
  * Bonus payloads.
@@ -1208,7 +1272,7 @@ ALTER TABLE public.charge_scaling_levels ENABLE ROW LEVEL SECURITY;
  *
  * Corresponds to:
  *   ChargeBonusAuthored
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.charge_bonuses (
   id uuid PRIMARY KEY,
@@ -1256,7 +1320,7 @@ ALTER TABLE public.charge_bonuses ENABLE ROW LEVEL SECURITY;
 -- END INCLUDE: src\domains\shared\tables\charges.sql
 -- BEGIN INCLUDE: src\domains\shared\tables\details.sql
 /*************************************************
- * DETAILS — STANDALONE AUTHORED ENTITY
+ * DETAILS â€” STANDALONE AUTHORED ENTITY
  *************************************************/
 
 CREATE TABLE IF NOT EXISTS public.details (
@@ -1274,9 +1338,9 @@ CREATE TABLE IF NOT EXISTS public.details (
 ALTER TABLE public.details ENABLE ROW LEVEL SECURITY;
 -- END INCLUDE: src\domains\shared\tables\details.sql
 -- BEGIN INCLUDE: src\domains\shared\tables\characteristics.sql
-/* ──────────────────────────────────────────────
- * CHARACTERISTICS — SHARED STRUCTURAL ENTITY
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * CHARACTERISTICS â€” SHARED STRUCTURAL ENTITY
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.characteristics (
   id uuid PRIMARY KEY,
@@ -1292,9 +1356,9 @@ CREATE INDEX IF NOT EXISTS idx_characteristics_code
 
 ALTER TABLE public.characteristics ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
- * CHARACTERISTICS — RANGE SIZES
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * CHARACTERISTICS â€” RANGE SIZES
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
  
  CREATE TABLE IF NOT EXISTS public.characteristic_ranges (
   characteristic_id uuid PRIMARY KEY
@@ -1314,9 +1378,9 @@ ALTER TABLE public.characteristics ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.characteristic_ranges ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
- * CHARACTERISTICS — SHAPES
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * CHARACTERISTICS â€” SHAPES
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.characteristic_shapes (
   characteristic_id uuid PRIMARY KEY
@@ -1328,9 +1392,9 @@ CREATE TABLE IF NOT EXISTS public.characteristic_shapes (
 
 ALTER TABLE public.characteristic_shapes ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
- * CHARACTERISTICS — SHAPE DIMENSIONS
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * CHARACTERISTICS â€” SHAPE DIMENSIONS
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.characteristic_shape_dimensions (
   characteristic_id uuid NOT NULL
@@ -1350,9 +1414,9 @@ CREATE INDEX IF NOT EXISTS idx_characteristic_shape_dimensions_characteristic_id
 
 ALTER TABLE public.characteristic_shape_dimensions ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
- * CHARACTERISTICS — DURATIONS
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * CHARACTERISTICS â€” DURATIONS
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
  
  CREATE TABLE IF NOT EXISTS public.characteristic_durations (
   characteristic_id uuid PRIMARY KEY
@@ -1366,7 +1430,7 @@ ALTER TABLE public.characteristic_durations ENABLE ROW LEVEL SECURITY;
 -- END INCLUDE: src\domains\shared\tables\characteristics.sql
 -- BEGIN INCLUDE: src\domains\shared\tables\facets.sql
 /* ============================================================================
- * FACETS — FULLY NORMALIZED (NO JSONB)
+ * FACETS â€” FULLY NORMALIZED (NO JSONB)
  *
  * Storage model
  * - Facet: OR-of-groups
@@ -1524,7 +1588,7 @@ CREATE INDEX IF NOT EXISTS idx_facet_body_selections_mode
   ON public.facet_body_selections (authoring_mode_kind);
 
 -- Selected IDs for body selection (only when authoring_mode_kind = SELECTED).
--- Polymorphic “one-of” row; stored as FK columns (no arrays, no jsonb).
+-- Polymorphic â€œone-ofâ€ row; stored as FK columns (no arrays, no jsonb).
 CREATE TABLE IF NOT EXISTS public.facet_body_selection_items (
   facet_body_id uuid NOT NULL
     REFERENCES public.facet_bodies (id)
@@ -1539,6 +1603,8 @@ CREATE TABLE IF NOT EXISTS public.facet_body_selection_items (
   feat_id uuid,
   race_id uuid,
   background_id uuid,
+  creature_id uuid,
+  vehicle_id uuid,
   option_id uuid,
 
   /* Modeled as IDs in existing tables */
@@ -1559,6 +1625,8 @@ CREATE TABLE IF NOT EXISTS public.facet_body_selection_items (
     + (feat_id IS NOT NULL)::int
     + (race_id IS NOT NULL)::int
     + (background_id IS NOT NULL)::int
+    + (creature_id IS NOT NULL)::int
+    + (vehicle_id IS NOT NULL)::int
     + (option_id IS NOT NULL)::int
     + (subrace_id IS NOT NULL)::int
     + (subclass_id IS NOT NULL)::int
@@ -1684,6 +1752,8 @@ CREATE TABLE IF NOT EXISTS public.facet_exists_selection_items (
   feat_id uuid,
   race_id uuid,
   background_id uuid,
+  creature_id uuid,
+  vehicle_id uuid,
   option_id uuid,
 
   subrace_id uuid,
@@ -1703,6 +1773,8 @@ CREATE TABLE IF NOT EXISTS public.facet_exists_selection_items (
     + (feat_id IS NOT NULL)::int
     + (race_id IS NOT NULL)::int
     + (background_id IS NOT NULL)::int
+    + (creature_id IS NOT NULL)::int
+    + (vehicle_id IS NOT NULL)::int
     + (option_id IS NOT NULL)::int
     + (subrace_id IS NOT NULL)::int
     + (subclass_id IS NOT NULL)::int
@@ -2211,11 +2283,86 @@ ALTER TABLE public.facet_predicate_equipment_items ENABLE ROW LEVEL SECURITY;
 
 CREATE INDEX IF NOT EXISTS idx_facet_predicate_equipment_items_condition
   ON public.facet_predicate_equipment_items (facet_condition_id);
+
+/* Creature record kind list payload */
+CREATE TABLE IF NOT EXISTS public.facet_predicate_creature_record_kind_items (
+  facet_condition_id uuid NOT NULL
+    REFERENCES public.facet_conditions (id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  record_kind text NOT NULL,
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (facet_condition_id, record_kind)
+);
+
+ALTER TABLE public.facet_predicate_creature_record_kind_items ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_facet_predicate_creature_record_kind_items_condition
+  ON public.facet_predicate_creature_record_kind_items (facet_condition_id);
+
+/* Creature category list payload */
+CREATE TABLE IF NOT EXISTS public.facet_predicate_creature_category_items (
+  facet_condition_id uuid NOT NULL
+    REFERENCES public.facet_conditions (id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  category_code text NOT NULL,
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (facet_condition_id, category_code)
+);
+
+ALTER TABLE public.facet_predicate_creature_category_items ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_facet_predicate_creature_category_items_condition
+  ON public.facet_predicate_creature_category_items (facet_condition_id);
+
+/* Vehicle category list payload */
+CREATE TABLE IF NOT EXISTS public.facet_predicate_vehicle_category_items (
+  facet_condition_id uuid NOT NULL
+    REFERENCES public.facet_conditions (id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  category_code text NOT NULL,
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (facet_condition_id, category_code)
+);
+
+ALTER TABLE public.facet_predicate_vehicle_category_items ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_facet_predicate_vehicle_category_items_condition
+  ON public.facet_predicate_vehicle_category_items (facet_condition_id);
+
+/* Creature type list payload */
+CREATE TABLE IF NOT EXISTS public.facet_predicate_creature_type_items (
+  facet_condition_id uuid NOT NULL
+    REFERENCES public.facet_conditions (id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  creature_type_id uuid NOT NULL
+    REFERENCES public.creature_types (id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (facet_condition_id, creature_type_id)
+);
+
+ALTER TABLE public.facet_predicate_creature_type_items ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_facet_predicate_creature_type_items_condition
+  ON public.facet_predicate_creature_type_items (facet_condition_id);
 -- END INCLUDE: src\domains\shared\tables\facets.sql
 -- BEGIN INCLUDE: src\domains\shared\tables\saving_throws.sql
-/* ──────────────────────────────────────────────
- * SAVING THROWS — STANDALONE AUTHORED ENTITY
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * SAVING THROWS â€” STANDALONE AUTHORED ENTITY
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.saving_throws (
   id uuid PRIMARY KEY,
@@ -2246,7 +2393,7 @@ CREATE INDEX IF NOT EXISTS idx_saving_throws_ability
   ON public.saving_throws (ability_code);
 -- END INCLUDE: src\domains\shared\tables\saving_throws.sql
 -- BEGIN INCLUDE: src\domains\shared\tables\starting_equipment.sql
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * ROOT
  *
  * Intent:
@@ -2254,8 +2401,8 @@ CREATE INDEX IF NOT EXISTS idx_saving_throws_ability
  *   definition for a system.
  *
  * Cardinality:
- *   systems 1 ──▶ 1 starting_equipment
- * ────────────────────────────────────────────── */
+ *   systems 1 â”€â”€â–¶ 1 starting_equipment
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.starting_equipment (
   id uuid PRIMARY KEY,
@@ -2266,12 +2413,12 @@ CREATE TABLE IF NOT EXISTS public.starting_equipment (
 
 ALTER TABLE public.starting_equipment ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * SETS
  *
  * Intent:
  *   Top-level alternative sets of starting equipment.
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.starting_equipment_sets (
   id uuid PRIMARY KEY,
@@ -2291,12 +2438,12 @@ CREATE INDEX IF NOT EXISTS idx_starting_equipment_sets_parent
 
 ALTER TABLE public.starting_equipment_sets ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * GROUPS
  *
  * Intent:
  *   Mutually-exclusive choice groups inside a set.
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.starting_equipment_groups (
   id uuid PRIMARY KEY,
@@ -2316,12 +2463,12 @@ CREATE INDEX IF NOT EXISTS idx_starting_equipment_groups_set
 
 ALTER TABLE public.starting_equipment_groups ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * OPTIONS
  *
  * Intent:
  *   Individual selectable options within a group.
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.starting_equipment_options (
   id uuid PRIMARY KEY,
@@ -2341,12 +2488,12 @@ CREATE INDEX IF NOT EXISTS idx_starting_equipment_options_group
 
 ALTER TABLE public.starting_equipment_options ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * OPTION ITEMS
  *
  * Intent:
  *   Concrete equipment or currency payloads.
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.starting_equipment_option_items (
   id uuid PRIMARY KEY,
@@ -2409,10 +2556,10 @@ CREATE INDEX IF NOT EXISTS idx_starting_equipment_option_items_option
 
 ALTER TABLE public.starting_equipment_option_items ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
- * OPTION ITEM → EQUIPMENT IDS
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * OPTION ITEM â†’ EQUIPMENT IDS
  * (mode = SELECTED only)
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.starting_equipment_option_item_equipment (
   option_item_id uuid NOT NULL
@@ -2428,9 +2575,9 @@ CREATE TABLE IF NOT EXISTS public.starting_equipment_option_item_equipment (
 
 ALTER TABLE public.starting_equipment_option_item_equipment ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
- * OPTION ITEM → PROPERTIES
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * OPTION ITEM â†’ PROPERTIES
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.starting_equipment_option_item_properties (
   option_item_id uuid NOT NULL
@@ -2445,9 +2592,9 @@ CREATE TABLE IF NOT EXISTS public.starting_equipment_option_item_properties (
 
 ALTER TABLE public.starting_equipment_option_item_properties ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
- * OPTION ITEM → CURRENCY
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * OPTION ITEM â†’ CURRENCY
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.starting_equipment_currencies (
   option_item_id uuid NOT NULL
@@ -2464,10 +2611,10 @@ CREATE TABLE IF NOT EXISTS public.starting_equipment_currencies (
 ALTER TABLE public.starting_equipment_currencies ENABLE ROW LEVEL SECURITY;
 -- END INCLUDE: src\domains\shared\tables\starting_equipment.sql
 -- BEGIN INCLUDE: src\domains\effects\tables\effects.sql
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * EFFECTS
  * Root authored effect container
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.effects (
   id uuid PRIMARY KEY,
@@ -2476,7 +2623,7 @@ CREATE TABLE IF NOT EXISTS public.effects (
   sort_order integer NOT NULL,
 
   -- No additional inline payload lives on the effect root.
-  -- Nested invocation and moment trees are persisted in owned child tables.
+  -- Nested invocation and BRANCH trees are persisted in owned child tables.
 
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
@@ -2485,9 +2632,9 @@ CREATE TABLE IF NOT EXISTS public.effects (
 ALTER TABLE public.effects ENABLE ROW LEVEL SECURITY;
 -- END INCLUDE: src\domains\effects\tables\effects.sql
 -- BEGIN INCLUDE: src\domains\effects\tables\conditions.sql
-/* ──────────────────────────────────────────────
- * CONDITIONS — AUTHORED EFFECT ENTITY
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * CONDITIONS â€” AUTHORED EFFECT ENTITY
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.conditions (
   id uuid PRIMARY KEY,
@@ -2508,7 +2655,7 @@ ALTER TABLE public.conditions ENABLE ROW LEVEL SECURITY;
 -- END INCLUDE: src\domains\effects\tables\conditions.sql
 -- BEGIN INCLUDE: src\domains\effects\tables\damages.sql
 /*************************************************
- * DAMAGES — AUTHORED ENTITY (FINAL)
+ * DAMAGES â€” AUTHORED ENTITY (FINAL)
  * - Supports FIXED | DICE | POOL
  * - Supports ScalingType NONE | PER_LEVEL
  *   - PER_LEVEL levels only for FIXED/DICE
@@ -2524,9 +2671,9 @@ ALTER TABLE public.conditions ENABLE ROW LEVEL SECURITY;
 -- TABLES
 -- =========================================================
 
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * DAMAGES (ROOT)
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.damages (
   id uuid PRIMARY KEY,
 
@@ -2552,9 +2699,9 @@ CREATE INDEX IF NOT EXISTS idx_damages_damage_type
 
 ALTER TABLE public.damages ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * DAMAGE BONUS KINDS (author intent)
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.damage_bonus_kinds (
   damage_id uuid NOT NULL
     REFERENCES public.damages(id)
@@ -2572,14 +2719,14 @@ CREATE INDEX IF NOT EXISTS idx_damage_bonus_kinds_damage
   
 ALTER TABLE public.damage_bonus_kinds ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * DAMAGE VALUES (1:1 per damage)
  * Stores the resolved "value" object:
  * - FIXED: amount
  * - DICE: dice
  * - POOL: amount + optional multiplier/min/max
  *   (for POOL PER_LEVEL, these come from scaling.value)
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.damage_values (
   id uuid PRIMARY KEY,
   damage_id uuid NOT NULL
@@ -2607,10 +2754,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_damage_values_damage
 
 ALTER TABLE public.damage_values ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * DAMAGE SCALING LEVELS (FIXED/DICE only)
  * Used when scaling_kind = PER_LEVEL and value_kind IN (FIXED, DICE)
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.damage_scaling_levels (
   id uuid PRIMARY KEY,
   damage_id uuid NOT NULL
@@ -2641,14 +2788,14 @@ CREATE INDEX IF NOT EXISTS idx_damage_scaling_levels_damage
   
 ALTER TABLE public.damage_scaling_levels ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * DAMAGE BONUSES (optional payload objects)
  * These are the "bonuses?: DamageBonusEffect[]" entries.
  * IMPORTANT:
  * - ability bonus stores AbilityCode as text in ability_code
  * - skill bonus references skill_id
  * - proficiency bonus has neither
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.damage_bonuses (
   id uuid PRIMARY KEY,
   damage_id uuid NOT NULL
@@ -2678,10 +2825,10 @@ CREATE INDEX IF NOT EXISTS idx_damage_bonuses_damage
 ALTER TABLE public.damage_bonuses ENABLE ROW LEVEL SECURITY;
 -- END INCLUDE: src\domains\effects\tables\damages.sql
 -- BEGIN INCLUDE: src\domains\effects\tables\invocations.sql
-/* ──────────────────────────────────────────────
- * EFFECT INVOCATIONS — TABLE
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * EFFECT INVOCATIONS â€” TABLE
  * One invocation per effect
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.effect_invocations (
   effect_id uuid PRIMARY KEY
@@ -2719,9 +2866,9 @@ CREATE INDEX IF NOT EXISTS idx_effect_invocations_saving_throw
 
 ALTER TABLE public.effect_invocations ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
- * EFFECT INVOCATIONS — OWNERSHIP CLEANUP
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * EFFECT INVOCATIONS â€” OWNERSHIP CLEANUP
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 DO $$
 BEGIN
@@ -2742,24 +2889,24 @@ BEGIN
 END;
 $$;
 -- END INCLUDE: src\domains\effects\tables\invocations.sql
--- BEGIN INCLUDE: src\domains\effects\tables\moments\moments.sql
-/* ──────────────────────────────────────────────
- * MOMENTS — TABLES
+-- BEGIN INCLUDE: src\domains\effects\tables\branches\branches.sql
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * branches â€” TABLES
  * NOTE:
- * - Moment containers do have authored IDs.
+ * - BRANCH containers do have authored IDs.
  * - We keep the authored id on the row, while also preserving the composite
  *   parent key shape that the existing payload tables already reference:
- *     (effect_id, trigger_code, moment_code)
+ *     (effect_id, trigger_code, branch_code)
  * - Payload is NOT stored here. Payload tables will FK to:
- *     - DIRECT: (effect_id, trigger_code, moment_code)
- *     - ROLL_TABLE: moment_roll_table_entries.id
- * ────────────────────────────────────────────── */
+ *     - DIRECT: (effect_id, trigger_code, branch_code)
+ *     - ROLL_TABLE: branch_roll_table_entries.id
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
-CREATE TABLE IF NOT EXISTS public.effect_moments (
+CREATE TABLE IF NOT EXISTS public.effect_branches (
   id uuid NOT NULL UNIQUE,
   effect_id uuid NOT NULL REFERENCES public.effects(id) DEFERRABLE INITIALLY DEFERRED,
   trigger_code text NOT NULL,
-  moment_code text NOT NULL,
+  branch_code text NOT NULL,
 
   group_type text NOT NULL,
   resolution_kind text NOT NULL,
@@ -2774,26 +2921,26 @@ CREATE TABLE IF NOT EXISTS public.effect_moments (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
 
-  PRIMARY KEY (effect_id, trigger_code, moment_code)
+  PRIMARY KEY (effect_id, trigger_code, branch_code)
 );
 
-CREATE INDEX IF NOT EXISTS idx_effect_moments_effect_id
-  ON public.effect_moments(effect_id);
+CREATE INDEX IF NOT EXISTS idx_effect_branches_effect_id
+  ON public.effect_branches(effect_id);
 
-CREATE INDEX IF NOT EXISTS idx_effect_moments_trigger_code
-  ON public.effect_moments(trigger_code);
+CREATE INDEX IF NOT EXISTS idx_effect_branches_trigger_code
+  ON public.effect_branches(trigger_code);
 
-ALTER TABLE public.effect_moments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.effect_branches ENABLE ROW LEVEL SECURITY;
 
 DO $$
 BEGIN
   IF NOT EXISTS (
     SELECT 1
     FROM pg_trigger
-    WHERE tgname = 'trg_cleanup_effect_moments_owned_on_update'
+    WHERE tgname = 'trg_cleanup_effect_branches_owned_on_update'
   ) THEN
-    CREATE TRIGGER trg_cleanup_effect_moments_owned_on_update
-    AFTER UPDATE ON public.effect_moments
+    CREATE TRIGGER trg_cleanup_effect_branches_owned_on_update
+    AFTER UPDATE ON public.effect_branches
     FOR EACH ROW
     EXECUTE FUNCTION public.cleanup_owned_rows_on_update('[{
       "table": "public.characteristics",
@@ -2808,10 +2955,10 @@ BEGIN
   IF NOT EXISTS (
     SELECT 1
     FROM pg_trigger
-    WHERE tgname = 'trg_cleanup_effect_moments_owned'
+    WHERE tgname = 'trg_cleanup_effect_branches_owned'
   ) THEN
-    CREATE TRIGGER trg_cleanup_effect_moments_owned
-    AFTER DELETE ON public.effect_moments
+    CREATE TRIGGER trg_cleanup_effect_branches_owned
+    AFTER DELETE ON public.effect_branches
     FOR EACH ROW
     EXECUTE FUNCTION public.cleanup_owned_rows('[{
       "table": "public.characteristics",
@@ -2821,18 +2968,18 @@ BEGIN
 END;
 $$;
 
-/* ──────────────────────────────────────────────
- * MOMENT ROLL TABLE ENTRIES — TABLES
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * BRANCH ROLL TABLE ENTRIES â€” TABLES
  * One row per authored roll-table entry (entry has an authored id)
  * Payload is NOT stored here; payload tables will FK to entry_id.
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
-CREATE TABLE IF NOT EXISTS public.moment_roll_table_entries (
+CREATE TABLE IF NOT EXISTS public.branch_roll_table_entries (
   id uuid PRIMARY KEY,
 
   effect_id uuid NOT NULL REFERENCES public.effects(id) DEFERRABLE INITIALLY DEFERRED,
   trigger_code text NOT NULL,
-  moment_code text NOT NULL,
+  branch_code text NOT NULL,
 
   description text,
   sort_order integer NOT NULL,
@@ -2847,118 +2994,118 @@ CREATE TABLE IF NOT EXISTS public.moment_roll_table_entries (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
 
-  CONSTRAINT moment_roll_table_entry_parent_fk
-    FOREIGN KEY (effect_id, trigger_code, moment_code)
-    REFERENCES public.effect_moments(effect_id, trigger_code, moment_code)
+  CONSTRAINT branch_roll_table_entry_parent_fk
+    FOREIGN KEY (effect_id, trigger_code, branch_code)
+    REFERENCES public.effect_branches(effect_id, trigger_code, branch_code)
     ON DELETE CASCADE,
 
-  CONSTRAINT moment_roll_table_entry_roll_shape_chk CHECK (
+  CONSTRAINT branch_roll_table_entry_roll_shape_chk CHECK (
     (roll_value IS NOT NULL AND roll_min IS NULL AND roll_max IS NULL)
     OR
     (roll_value IS NULL AND roll_min IS NOT NULL AND roll_max IS NOT NULL)
   )
 );
 
-CREATE INDEX IF NOT EXISTS idx_moment_roll_table_entries_parent
-  ON public.moment_roll_table_entries(effect_id, trigger_code, moment_code);
+CREATE INDEX IF NOT EXISTS idx_branch_roll_table_entries_parent
+  ON public.branch_roll_table_entries(effect_id, trigger_code, branch_code);
 
-ALTER TABLE public.moment_roll_table_entries ENABLE ROW LEVEL SECURITY;
--- END INCLUDE: src\domains\effects\tables\moments\moments.sql
--- BEGIN INCLUDE: src\domains\effects\tables\moments\roll_tables.sql
-/* ──────────────────────────────────────────────
- * MOMENT ROLL TABLE DAMAGE
+ALTER TABLE public.branch_roll_table_entries ENABLE ROW LEVEL SECURITY;
+-- END INCLUDE: src\domains\effects\tables\branches\branches.sql
+-- BEGIN INCLUDE: src\domains\effects\tables\branches\roll_tables.sql
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * BRANCH ROLL TABLE DAMAGE
  * One row per roll-table entry payload
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
-CREATE TABLE IF NOT EXISTS public.moment_roll_table_damages (
+CREATE TABLE IF NOT EXISTS public.branch_roll_table_damages (
   entry_id uuid PRIMARY KEY
-    REFERENCES public.moment_roll_table_entries(id)
+    REFERENCES public.branch_roll_table_entries(id)
     ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
 
   damage_id uuid NOT NULL
     REFERENCES public.damages(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED
 );
 
-CREATE INDEX IF NOT EXISTS idx_moment_roll_table_damages_damage_id
-  ON public.moment_roll_table_damages(damage_id);
+CREATE INDEX IF NOT EXISTS idx_branch_roll_table_damages_damage_id
+  ON public.branch_roll_table_damages(damage_id);
 
-ALTER TABLE public.moment_roll_table_damages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.branch_roll_table_damages ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
- * MOMENT ROLL TABLE CONDITION
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * BRANCH ROLL TABLE CONDITION
  * One row per roll-table entry payload
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
-CREATE TABLE IF NOT EXISTS public.moment_roll_table_conditions (
+CREATE TABLE IF NOT EXISTS public.branch_roll_table_conditions (
   entry_id uuid PRIMARY KEY
-    REFERENCES public.moment_roll_table_entries(id)
+    REFERENCES public.branch_roll_table_entries(id)
     ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
 
   condition_id uuid NOT NULL
     REFERENCES public.conditions(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED
 );
 
-CREATE INDEX IF NOT EXISTS idx_moment_roll_table_conditions_condition_id
-  ON public.moment_roll_table_conditions(condition_id);
+CREATE INDEX IF NOT EXISTS idx_branch_roll_table_conditions_condition_id
+  ON public.branch_roll_table_conditions(condition_id);
 
-ALTER TABLE public.moment_roll_table_conditions ENABLE ROW LEVEL SECURITY;
--- END INCLUDE: src\domains\effects\tables\moments\roll_tables.sql
--- BEGIN INCLUDE: src\domains\effects\tables\moments\direct.sql
-/* ──────────────────────────────────────────────
- * MOMENT DIRECT DAMAGE
- * One row per DIRECT moment payload
- * ────────────────────────────────────────────── */
+ALTER TABLE public.branch_roll_table_conditions ENABLE ROW LEVEL SECURITY;
+-- END INCLUDE: src\domains\effects\tables\branches\roll_tables.sql
+-- BEGIN INCLUDE: src\domains\effects\tables\branches\direct.sql
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * BRANCH DIRECT DAMAGE
+ * One row per DIRECT BRANCH payload
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
-CREATE TABLE IF NOT EXISTS public.moment_direct_damages (
+CREATE TABLE IF NOT EXISTS public.branch_direct_damages (
   effect_id uuid NOT NULL REFERENCES public.effects(id) DEFERRABLE INITIALLY DEFERRED,
   trigger_code text NOT NULL,
-  moment_code text NOT NULL,
+  branch_code text NOT NULL,
 
   damage_id uuid NOT NULL
     REFERENCES public.damages(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
 
-  PRIMARY KEY (effect_id, trigger_code, moment_code),
+  PRIMARY KEY (effect_id, trigger_code, branch_code),
 
-  CONSTRAINT moment_direct_damage_fk
-    FOREIGN KEY (effect_id, trigger_code, moment_code)
-    REFERENCES public.effect_moments(effect_id, trigger_code, moment_code)
+  CONSTRAINT branch_direct_damage_fk
+    FOREIGN KEY (effect_id, trigger_code, branch_code)
+    REFERENCES public.effect_branches(effect_id, trigger_code, branch_code)
     ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_moment_direct_damages_damage_id
-  ON public.moment_direct_damages(damage_id);
+CREATE INDEX IF NOT EXISTS idx_branch_direct_damages_damage_id
+  ON public.branch_direct_damages(damage_id);
 
-ALTER TABLE public.moment_direct_damages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.branch_direct_damages ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
- * MOMENT DIRECT CONDITION
- * One row per DIRECT moment payload
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * BRANCH DIRECT CONDITION
+ * One row per DIRECT BRANCH payload
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
-CREATE TABLE IF NOT EXISTS public.moment_direct_conditions (
+CREATE TABLE IF NOT EXISTS public.branch_direct_conditions (
   effect_id uuid NOT NULL REFERENCES public.effects(id) DEFERRABLE INITIALLY DEFERRED,
   trigger_code text NOT NULL,
-  moment_code text NOT NULL,
+  branch_code text NOT NULL,
 
   condition_id uuid NOT NULL
     REFERENCES public.conditions(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
 
-  PRIMARY KEY (effect_id, trigger_code, moment_code),
+  PRIMARY KEY (effect_id, trigger_code, branch_code),
 
-  CONSTRAINT moment_direct_condition_fk
-    FOREIGN KEY (effect_id, trigger_code, moment_code)
-    REFERENCES public.effect_moments(effect_id, trigger_code, moment_code)
+  CONSTRAINT branch_direct_condition_fk
+    FOREIGN KEY (effect_id, trigger_code, branch_code)
+    REFERENCES public.effect_branches(effect_id, trigger_code, branch_code)
     ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_moment_direct_conditions_condition_id
-  ON public.moment_direct_conditions(condition_id);
+CREATE INDEX IF NOT EXISTS idx_branch_direct_conditions_condition_id
+  ON public.branch_direct_conditions(condition_id);
 
-ALTER TABLE public.moment_direct_conditions ENABLE ROW LEVEL SECURITY;
--- END INCLUDE: src\domains\effects\tables\moments\direct.sql
+ALTER TABLE public.branch_direct_conditions ENABLE ROW LEVEL SECURITY;
+-- END INCLUDE: src\domains\effects\tables\branches\direct.sql
 -- BEGIN INCLUDE: src\domains\features\tables\features.sql
-/* ──────────────────────────────────────────────
-* FEATURES — ROOT
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* FEATURES â€” ROOT
 *
 * Intent:
 *   A Feature is an authored container that groups
@@ -2969,16 +3116,16 @@ ALTER TABLE public.moment_direct_conditions ENABLE ROW LEVEL SECURITY;
 *   gated by level via optionChoices.
 *
 * Cardinality:
-*   systems 1 ──▶ N features
+*   systems 1 â”€â”€â–¶ N features
 *
 * Ownership:
-*   features → attributes
-*   features → restrictions (owned)
-*   features → effects (owned)
-*   features → <typed grant bridges>
-*   features → feature_options (bridge)
-*   features → feature_option_levels (owned)
-* ────────────────────────────────────────────── */
+*   features â†’ attributes
+*   features â†’ restrictions (owned)
+*   features â†’ effects (owned)
+*   features â†’ <typed grant bridges>
+*   features â†’ feature_options (bridge)
+*   features â†’ feature_option_levels (owned)
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.features (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   label text NOT NULL,
@@ -3041,15 +3188,15 @@ CREATE INDEX IF NOT EXISTS idx_feature_attributes_feature ON public.feature_attr
 
 ALTER TABLE public.feature_attributes ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
-* FEATURE — EFFECTS (OWNED)
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* FEATURE â€” EFFECTS (OWNED)
 *
 * Intent:
 *   Associates authored effects to the feature.
 *
 * Ownership:
 *   feature_effects owns effect rows.
-* ────────────────────────────────────────────── */
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.feature_effects (
   feature_id uuid NOT NULL REFERENCES public.features (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   effect_id uuid NOT NULL REFERENCES public.effects (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
@@ -3079,8 +3226,8 @@ BEGIN
 END;
 $$;
 
-/* ──────────────────────────────────────────────
-* FEATURE — GRANT BRIDGES (TYPED)
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* FEATURE â€” GRANT BRIDGES (TYPED)
 *
 * Intent:
 *   Each grant kind has its own authored table.
@@ -3088,7 +3235,7 @@ $$;
 *
 * Ownership:
 *   Bridges own grant rows.
-* ────────────────────────────────────────────── */
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.feature_feat_grants (
   feature_id uuid NOT NULL REFERENCES public.features (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   feat_grant_id uuid NOT NULL,
@@ -3224,12 +3371,12 @@ BEGIN
 END;
 $$;
 
-/* ──────────────────────────────────────────────
-* FEATURE — OPTIONS (BRIDGE)
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* FEATURE â€” OPTIONS (BRIDGE)
 *
 * Intent:
 *   Attaches selectable Feature Options to the feature.
-* ────────────────────────────────────────────── */
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.feature_options (
   feature_id uuid NOT NULL REFERENCES public.features (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   option_id uuid NOT NULL,
@@ -3239,13 +3386,13 @@ CREATE TABLE IF NOT EXISTS public.feature_options (
 
 ALTER TABLE public.feature_options ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
-* FEATURE — OPTIONS BY LEVEL (OWNED)
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* FEATURE â€” OPTIONS BY LEVEL (OWNED)
 *
 * Intent:
 *   Defines how many options are selectable at
 *   specific character levels.
-* ────────────────────────────────────────────── */
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.feature_option_levels (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   feature_id uuid NOT NULL REFERENCES public.features (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
@@ -3258,8 +3405,8 @@ CREATE TABLE IF NOT EXISTS public.feature_option_levels (
 ALTER TABLE public.feature_option_levels ENABLE ROW LEVEL SECURITY;
 -- END INCLUDE: src\domains\features\tables\features.sql
 -- BEGIN INCLUDE: src\domains\features\tables\options.sql
-/* ──────────────────────────────────────────────
-* FEATURE OPTIONS — ROOT
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* FEATURE OPTIONS â€” ROOT
 *
 * Intent:
 *   A Feature Option is an authored feature-like container that can
@@ -3269,18 +3416,18 @@ ALTER TABLE public.feature_option_levels ENABLE ROW LEVEL SECURITY;
 *   in owned/authoritative child tables and bridge tables.
 *
 * Cardinality:
-*   systems 1 ──▶ N options
+*   systems 1 â”€â”€â–¶ N options
 *
 * Ownership:
-*   options → charges (1:1 owned via charge_id)
-*   options → restrictions (owned via bridge)
-*   options → effects (owned via bridge)
-*   options → feat_grants (owned via bridge)
-*   options → modifier_grants (owned via bridge)
-*   options → proficiency_grants (owned via bridge)
-*   options → sense_grants (owned via bridge)
-*   options → spell_grants (owned via bridge)
-* ────────────────────────────────────────────── */
+*   options â†’ charges (1:1 owned via charge_id)
+*   options â†’ restrictions (owned via bridge)
+*   options â†’ effects (owned via bridge)
+*   options â†’ feat_grants (owned via bridge)
+*   options â†’ modifier_grants (owned via bridge)
+*   options â†’ proficiency_grants (owned via bridge)
+*   options â†’ sense_grants (owned via bridge)
+*   options â†’ spell_grants (owned via bridge)
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.options (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   label text NOT NULL,
@@ -3344,18 +3491,18 @@ CREATE INDEX IF NOT EXISTS idx_option_attributes_option ON public.option_attribu
 
 ALTER TABLE public.option_attributes ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
-* FEATURE OPTION — EFFECTS (OWNED)
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* FEATURE OPTION â€” EFFECTS (OWNED)
 *
 * Intent:
 *   Associates authored effects to the option (ordered).
 *
 * Cardinality:
-*   options 1 ──▶ N option_effects
+*   options 1 â”€â”€â–¶ N option_effects
 *
 * Ownership:
 *   option_effects owns effects rows.
-* ────────────────────────────────────────────── */
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.option_effects (
   option_id uuid NOT NULL REFERENCES public.options (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   effect_id uuid NOT NULL REFERENCES public.effects (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
@@ -3383,19 +3530,19 @@ BEGIN
 END;
 $$;
 
-/* ──────────────────────────────────────────────
-* FEATURE OPTION — GRANTS (OWNED BRIDGES)
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* FEATURE OPTION â€” GRANTS (OWNED BRIDGES)
 *
 * Intent:
 *   Each grant kind is stored in its own grant table; these bridges
 *   attach grants to the option (ordered).
 *
 * Cardinality:
-*   options 1 ──▶ N <bridge>
+*   options 1 â”€â”€â–¶ N <bridge>
 *
 * Ownership:
 *   Each bridge owns its grant rows.
-* ────────────────────────────────────────────── */
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.option_feat_grants (
   option_id uuid NOT NULL REFERENCES public.options (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   feat_grant_id uuid NOT NULL,
@@ -3531,15 +3678,15 @@ BEGIN
 END;
 $$;
 
-/* ──────────────────────────────────────────────
-* OWNED CHILD CLEANUP: options → charges
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* OWNED CHILD CLEANUP: options â†’ charges
 *
 * Intent:
 *   charge_id is an owned FK. When the feature option is deleted,
 *   delete the owned charge row.
 *
 *   When charge_id changes (or is cleared), delete the old owned row.
-* ────────────────────────────────────────────── */
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -3573,22 +3720,22 @@ END;
 $$;
 -- END INCLUDE: src\domains\features\tables\options.sql
 -- BEGIN INCLUDE: src\domains\grants\tables\feats.sql
-/* ──────────────────────────────────────────────
-* FEAT GRANTS — ROOT
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* FEAT GRANTS â€” ROOT
 *
 * Intent:
 *   Authored grant that grants feats (ALL or SELECTED),
 *   either directly or via per-level scaling.
 *
 * Cardinality:
-*   systems 1 ──▶ N feat_grants
+*   systems 1 â”€â”€â–¶ N feat_grants
 *
 * Ownership:
-*   feat_grants → feat_grant_charges     (owned rows in public.charges)
-*   feat_grants → feat_grant_feats       (references feats; not owned entities)
-*   feat_grants → feat_grant_scaling_levels
-*   feat_grant_scaling_levels → feat_grant_scaling_level_feats
-* ────────────────────────────────────────────── */
+*   feat_grants â†’ feat_grant_charges     (owned rows in public.charges)
+*   feat_grants â†’ feat_grant_feats       (references feats; not owned entities)
+*   feat_grants â†’ feat_grant_scaling_levels
+*   feat_grant_scaling_levels â†’ feat_grant_scaling_level_feats
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.feat_grants (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   /* base authored fields */
@@ -3676,19 +3823,19 @@ BEGIN
 END;
 $$;
 
-/* ──────────────────────────────────────────────
-* FEAT GRANT — FEATS (ROOT PAYLOAD, SELECTED ONLY)
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* FEAT GRANT â€” FEATS (ROOT PAYLOAD, SELECTED ONLY)
 *
 * Intent:
 *   Stores payload.featIds when authoring_mode_kind = SELECTED
 *   AND scaling_kind = NONE (root payload).
 *
 * Cardinality:
-*   feat_grants 1 ──▶ N feats
+*   feat_grants 1 â”€â”€â–¶ N feats
 *
 * Ownership:
 *   rows are owned by feat_grants, feats are not owned.
-* ────────────────────────────────────────────── */
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.feat_grant_feats (
   feat_grant_id uuid NOT NULL REFERENCES public.feat_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   feat_id uuid NOT NULL,
@@ -3701,19 +3848,19 @@ CREATE INDEX IF NOT EXISTS idx_feat_grant_feats_grant ON public.feat_grant_feats
 
 CREATE INDEX IF NOT EXISTS idx_feat_grant_feats_feat ON public.feat_grant_feats (feat_id);
 
-/* ──────────────────────────────────────────────
-* FEAT GRANT — SCALING LEVELS (PER_LEVEL)
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* FEAT GRANT â€” SCALING LEVELS (PER_LEVEL)
 *
 * Intent:
 *   Stores scaling.levels[] rows.
 *   Each level stores its own payload mode and optional count (CHOSEN).
 *
 * Cardinality:
-*   feat_grants 1 ──▶ N scaling levels
+*   feat_grants 1 â”€â”€â–¶ N scaling levels
 *
 * Ownership:
 *   owned by feat_grants.
-* ────────────────────────────────────────────── */
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.feat_grant_scaling_levels (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   feat_grant_id uuid NOT NULL REFERENCES public.feat_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
@@ -3744,19 +3891,19 @@ CREATE INDEX IF NOT EXISTS idx_feat_grant_scaling_levels_grant ON public.feat_gr
 CREATE UNIQUE INDEX IF NOT EXISTS uq_feat_grant_scaling_levels_grant_level
   ON public.feat_grant_scaling_levels (feat_grant_id, level);
 
-/* ──────────────────────────────────────────────
-* FEAT GRANT — SCALING LEVEL FEATS (SELECTED ONLY)
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* FEAT GRANT â€” SCALING LEVEL FEATS (SELECTED ONLY)
 *
 * Intent:
 *   Stores level.value.featIds when authoring_mode_kind = SELECTED
 *   for a given scaling level.
 *
 * Cardinality:
-*   scaling_levels 1 ──▶ N feats
+*   scaling_levels 1 â”€â”€â–¶ N feats
 *
 * Ownership:
 *   rows owned by scaling_levels, feats are not owned.
-* ────────────────────────────────────────────── */
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.feat_grant_scaling_level_feats (
   scaling_level_id uuid NOT NULL REFERENCES public.feat_grant_scaling_levels (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   feat_id uuid NOT NULL,
@@ -4090,23 +4237,23 @@ CREATE TABLE IF NOT EXISTS public.proficiency_grant_equipment_property_filters (
 ALTER TABLE public.proficiency_grant_equipment_property_filters ENABLE ROW LEVEL SECURITY;
 -- END INCLUDE: src\domains\grants\tables\proficiencies.sql
 -- BEGIN INCLUDE: src\domains\grants\tables\senses.sql
-/* ──────────────────────────────────────────────
-* SENSE GRANTS — ROOT
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* SENSE GRANTS â€” ROOT
 *
 * Intent:
 *   Authored grant that grants senses (ALL or SELECTED),
 *   either directly or via per-level scaling.
 *
 * Cardinality:
-*   systems 1 ──▶ N sense_grants
+*   systems 1 â”€â”€â–¶ N sense_grants
 *
 * Ownership:
-*   sense_grants → sense_grant_restrictions (owned restrictions)
-*   sense_grants → sense_grant_charges     (owned charges, optional 1:1)
-*   sense_grants → sense_grant_senses      (sense references)
-*   sense_grants → sense_grant_scaling_levels
-*   sense_grant_scaling_levels → sense_grant_scaling_level_senses
-* ────────────────────────────────────────────── */
+*   sense_grants â†’ sense_grant_restrictions (owned restrictions)
+*   sense_grants â†’ sense_grant_charges     (owned charges, optional 1:1)
+*   sense_grants â†’ sense_grant_senses      (sense references)
+*   sense_grants â†’ sense_grant_scaling_levels
+*   sense_grant_scaling_levels â†’ sense_grant_scaling_level_senses
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.sense_grants (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   sort_order integer NOT NULL,
@@ -4118,6 +4265,10 @@ CREATE TABLE IF NOT EXISTS public.sense_grants (
   class_id uuid,
   charge_id uuid REFERENCES public.charges (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   restriction_id uuid REFERENCES public.facets (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
+  range_id uuid,                -- authored range object ID (null when no base range)
+  range_kind text,              -- SELF | TOUCH | SIGHT | UNLIMITED | DISTANCE
+  range_amount integer,         -- DISTANCE only
+  range_unit text,              -- DISTANCE only â€” MeasurementUnitCode
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT sense_grants_root_sort_order_chk CHECK (
@@ -4148,6 +4299,18 @@ CREATE TABLE IF NOT EXISTS public.sense_grants (
   CONSTRAINT sense_grants_root_mode_usage_chk CHECK (
     (scaling_kind = 'NONE' AND authoring_mode_kind IN ('ALL', 'SELECTED'))
     OR (scaling_kind = 'PER_LEVEL' AND authoring_mode_kind = 'ALL')
+  ),
+  CONSTRAINT sense_grants_root_range_kind_chk CHECK (
+    range_kind IS NULL
+    OR range_kind IN ('SELF', 'TOUCH', 'SIGHT', 'UNLIMITED', 'DISTANCE')
+  ),
+  CONSTRAINT sense_grants_root_range_distance_chk CHECK (
+    (range_kind = 'DISTANCE' AND range_amount IS NOT NULL AND range_unit IS NOT NULL)
+    OR (range_kind IS DISTINCT FROM 'DISTANCE' AND range_amount IS NULL AND range_unit IS NULL)
+  ),
+  CONSTRAINT sense_grants_root_range_id_chk CHECK (
+    (range_kind IS NOT NULL AND range_id IS NOT NULL)
+    OR (range_kind IS NULL AND range_id IS NULL)
   )
 );
 
@@ -4189,9 +4352,9 @@ BEGIN
 END;
 $$;
 
-/* ──────────────────────────────────────────────
-* SENSE GRANT — ROOT PAYLOAD (SELECTED, NONE)
-* ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* SENSE GRANT â€” ROOT PAYLOAD (SELECTED, NONE)
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.sense_grant_senses (
   sense_grant_id uuid NOT NULL REFERENCES public.sense_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   sense_id uuid NOT NULL REFERENCES public.senses (id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
@@ -4202,9 +4365,9 @@ ALTER TABLE public.sense_grant_senses ENABLE ROW LEVEL SECURITY;
 
 CREATE INDEX IF NOT EXISTS idx_sense_grant_senses_grant ON public.sense_grant_senses (sense_grant_id);
 
-/* ──────────────────────────────────────────────
-* SENSE GRANT — SCALING LEVELS
-* ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* SENSE GRANT â€” SCALING LEVELS
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.sense_grant_scaling_levels (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   sense_grant_id uuid NOT NULL REFERENCES public.sense_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
@@ -4235,9 +4398,9 @@ CREATE INDEX IF NOT EXISTS idx_sense_grant_scaling_levels_grant ON public.sense_
 CREATE UNIQUE INDEX IF NOT EXISTS uq_sense_grant_scaling_levels_grant_level
   ON public.sense_grant_scaling_levels (sense_grant_id, level);
 
-/* ──────────────────────────────────────────────
-* SENSE GRANT — SCALING LEVEL PAYLOAD
-* ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* SENSE GRANT â€” SCALING LEVEL PAYLOAD
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.sense_grant_scaling_level_senses (
   scaling_level_id uuid NOT NULL REFERENCES public.sense_grant_scaling_levels (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   sense_id uuid NOT NULL REFERENCES public.senses (id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
@@ -4247,8 +4410,8 @@ CREATE TABLE IF NOT EXISTS public.sense_grant_scaling_level_senses (
 ALTER TABLE public.sense_grant_scaling_level_senses ENABLE ROW LEVEL SECURITY;
 -- END INCLUDE: src\domains\grants\tables\senses.sql
 -- BEGIN INCLUDE: src\domains\grants\tables\spells.sql
-/* ──────────────────────────────────────────────
-* SPELL GRANTS — ROOT
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* SPELL GRANTS â€” ROOT
 *
 * Intent:
 *   Authored grant that grants spells (ALL or SELECTED),
@@ -4256,17 +4419,17 @@ ALTER TABLE public.sense_grant_scaling_level_senses ENABLE ROW LEVEL SECURITY;
 *   and optional charges.
 *
 * Cardinality:
-*   systems 1 ──▶ N spell_grants
+*   systems 1 â”€â”€â–¶ N spell_grants
 *
 * Ownership:
-*   spell_grants → spell_grant_restrictions
-*   spell_grants → spell_grant_filters
-*   spell_grants → spell_grant_charges
-*   spell_grants → spell_grant_attributes
-*   spell_grants → spell_grant_spells
-*   spell_grants → spell_grant_scaling_levels
-*   spell_grant_scaling_levels → spell_grant_scaling_level_spells
-* ────────────────────────────────────────────── */
+*   spell_grants â†’ spell_grant_restrictions
+*   spell_grants â†’ spell_grant_filters
+*   spell_grants â†’ spell_grant_charges
+*   spell_grants â†’ spell_grant_attributes
+*   spell_grants â†’ spell_grant_spells
+*   spell_grants â†’ spell_grant_scaling_levels
+*   spell_grant_scaling_levels â†’ spell_grant_scaling_level_spells
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.spell_grants (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   sort_order integer NOT NULL,
@@ -4354,9 +4517,9 @@ BEGIN
 END;
 $$;
 
-/* ──────────────────────────────────────────────
-* SPELL GRANT — ATTRIBUTES
-* ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* SPELL GRANT â€” ATTRIBUTES
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.spell_grant_attributes (
   spell_grant_id uuid NOT NULL REFERENCES public.spell_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   attribute_code text NOT NULL,
@@ -4383,9 +4546,9 @@ ALTER TABLE public.spell_grant_attributes ENABLE ROW LEVEL SECURITY;
 
 CREATE INDEX IF NOT EXISTS idx_spell_grant_attributes_grant ON public.spell_grant_attributes (spell_grant_id);
 
-/* ──────────────────────────────────────────────
-* SPELL GRANT — ROOT PAYLOAD (NONE)
-* ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* SPELL GRANT â€” ROOT PAYLOAD (NONE)
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.spell_grant_spells (
   spell_grant_id uuid NOT NULL REFERENCES public.spell_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   spell_id uuid NOT NULL,
@@ -4396,9 +4559,9 @@ ALTER TABLE public.spell_grant_spells ENABLE ROW LEVEL SECURITY;
 
 CREATE INDEX IF NOT EXISTS idx_spell_grant_spells_grant ON public.spell_grant_spells (spell_grant_id);
 
-/* ──────────────────────────────────────────────
-* SPELL GRANT — SCALING LEVELS
-* ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* SPELL GRANT â€” SCALING LEVELS
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.spell_grant_scaling_levels (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   spell_grant_id uuid NOT NULL REFERENCES public.spell_grants (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
@@ -4429,9 +4592,9 @@ CREATE INDEX IF NOT EXISTS idx_spell_grant_scaling_levels_grant ON public.spell_
 CREATE UNIQUE INDEX IF NOT EXISTS uq_spell_grant_scaling_levels_grant_level
   ON public.spell_grant_scaling_levels (spell_grant_id, level);
 
-/* ──────────────────────────────────────────────
-* SPELL GRANT — SCALING LEVEL PAYLOAD
-* ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* SPELL GRANT â€” SCALING LEVEL PAYLOAD
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.spell_grant_scaling_level_spells (
   scaling_level_id uuid NOT NULL REFERENCES public.spell_grant_scaling_levels (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   spell_id uuid NOT NULL,
@@ -4441,22 +4604,22 @@ CREATE TABLE IF NOT EXISTS public.spell_grant_scaling_level_spells (
 ALTER TABLE public.spell_grant_scaling_level_spells ENABLE ROW LEVEL SECURITY;
 -- END INCLUDE: src\domains\grants\tables\spells.sql
 -- BEGIN INCLUDE: src\domains\subjects\tables\backgrounds.sql
-/* ──────────────────────────────────────────────
- * BACKGROUNDS — ROOT
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * BACKGROUNDS â€” ROOT
  *
  * Intent:
  *   Background is a top-level authored subject that can grant
  *   proficiencies, features, starting equipment, and details.
  *
  * Cardinality:
- *   systems 1 ──▶ N backgrounds
+ *   systems 1 â”€â”€â–¶ N backgrounds
  *
  * Ownership:
- *   backgrounds → details (owned via bridge)
- *   backgrounds → starting_equipment (owned 1:1 via FK)
- *   backgrounds → proficiency_grants (owned via bridge)
- *   backgrounds → features (owned via bridge)
- * ────────────────────────────────────────────── */
+ *   backgrounds â†’ details (owned via bridge)
+ *   backgrounds â†’ starting_equipment (owned 1:1 via FK)
+ *   backgrounds â†’ proficiency_grants (owned via bridge)
+ *   backgrounds â†’ features (owned via bridge)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.backgrounds (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -4495,9 +4658,9 @@ CREATE INDEX IF NOT EXISTS idx_backgrounds_user
 CREATE INDEX IF NOT EXISTS idx_backgrounds_starting_equipment
   ON public.backgrounds(starting_equipment_id);
 
-/* ──────────────────────────────────────────────
- * BACKGROUND — DETAILS (OWNED)
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * BACKGROUND â€” DETAILS (OWNED)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.background_details (
   background_id uuid NOT NULL
@@ -4536,9 +4699,9 @@ BEGIN
 END;
 $$;
 
-/* ──────────────────────────────────────────────
- * BACKGROUND — PROFICIENCY GRANTS (OWNED)
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * BACKGROUND â€” PROFICIENCY GRANTS (OWNED)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.background_proficiency_grants (
   background_id uuid NOT NULL
@@ -4574,9 +4737,9 @@ BEGIN
 END;
 $$;
 
-/* ──────────────────────────────────────────────
- * BACKGROUND — FEATURES (OWNED)
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * BACKGROUND â€” FEATURES (OWNED)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.background_features (
   background_id uuid NOT NULL
@@ -4612,9 +4775,9 @@ BEGIN
 END;
 $$;
 
-/* ──────────────────────────────────────────────
- * BACKGROUND → STARTING EQUIPMENT (OWNED)
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * BACKGROUND â†’ STARTING EQUIPMENT (OWNED)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 DO $$
 BEGIN
@@ -4649,18 +4812,22 @@ END;
 $$;
 -- END INCLUDE: src\domains\subjects\tables\backgrounds.sql
 -- BEGIN INCLUDE: src\domains\subjects\tables\characters.sql
-/* ──────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * CHARACTERS
  *
  * User-authored character persistence.
  * Characters are always user-owned and never master data.
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.characters (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid (),
   system_id uuid NOT NULL REFERENCES public.systems (id) ON DELETE CASCADE DEFERRABLE,
   user_id uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE DEFERRABLE,
   label text NOT NULL,
   description text,
+  -- Persisted CharacterBuildState snapshot (null until first command is processed)
+  build_state jsonb,
+  -- Optimistic concurrency guard â€” incremented on every command write
+  stream_version integer NOT NULL DEFAULT 0,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW()
 );
@@ -5234,6 +5401,76 @@ END;
 $$;
 
 ALTER TABLE IF EXISTS public.character_attuned ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.character_creatures (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
+  creature_id uuid NOT NULL REFERENCES public.creatures (id) ON DELETE CASCADE DEFERRABLE,
+  relationship_kind text NOT NULL,
+  custom_name text,
+  notes text,
+  is_active boolean,
+  created_at timestamptz NOT NULL DEFAULT NOW(),
+  updated_at timestamptz NOT NULL DEFAULT NOW(),
+  CONSTRAINT character_creatures_relationship_kind_chk CHECK (
+    relationship_kind IN ('MOUNT', 'COMPANION', 'OWNED', 'SUMMONED')
+  )
+);
+
+CREATE INDEX IF NOT EXISTS idx_character_creatures_character_id
+  ON public.character_creatures (character_id);
+
+CREATE INDEX IF NOT EXISTS idx_character_creatures_creature_id
+  ON public.character_creatures (creature_id);
+
+ALTER TABLE IF EXISTS public.character_creatures ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.character_vehicles (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
+  vehicle_id uuid NOT NULL REFERENCES public.vehicles (id) ON DELETE CASCADE DEFERRABLE,
+  custom_name text,
+  notes text,
+  is_active boolean,
+  created_at timestamptz NOT NULL DEFAULT NOW(),
+  updated_at timestamptz NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_character_vehicles_character_id
+  ON public.character_vehicles (character_id);
+
+CREATE INDEX IF NOT EXISTS idx_character_vehicles_vehicle_id
+  ON public.character_vehicles (vehicle_id);
+
+ALTER TABLE IF EXISTS public.character_vehicles ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.character_creature_equipment (
+  character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
+  character_creature_id uuid NOT NULL REFERENCES public.character_creatures (id) ON DELETE CASCADE DEFERRABLE,
+  equipment_id uuid NOT NULL REFERENCES public.character_equipment (id) ON DELETE CASCADE DEFERRABLE,
+  created_at timestamptz NOT NULL DEFAULT NOW(),
+  updated_at timestamptz NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (character_creature_id, equipment_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_character_creature_equipment_character_id
+  ON public.character_creature_equipment (character_id);
+
+ALTER TABLE IF EXISTS public.character_creature_equipment ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.character_vehicle_equipment (
+  character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
+  character_vehicle_id uuid NOT NULL REFERENCES public.character_vehicles (id) ON DELETE CASCADE DEFERRABLE,
+  equipment_id uuid NOT NULL REFERENCES public.character_equipment (id) ON DELETE CASCADE DEFERRABLE,
+  created_at timestamptz NOT NULL DEFAULT NOW(),
+  updated_at timestamptz NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (character_vehicle_id, equipment_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_character_vehicle_equipment_character_id
+  ON public.character_vehicle_equipment (character_id);
+
+ALTER TABLE IF EXISTS public.character_vehicle_equipment ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE IF NOT EXISTS public.character_currency_groups (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid (),
@@ -6062,8 +6299,8 @@ END;$$;
 ALTER TABLE IF EXISTS public.character_background_equipment_items ENABLE ROW LEVEL SECURITY;
 -- END INCLUDE: src\domains\subjects\tables\characters.sql
 -- BEGIN INCLUDE: src\domains\subjects\tables\classes.sql
-/* ──────────────────────────────────────────────
- * CLASSES — ROOT
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * CLASSES â€” ROOT
  *
  * Intent:
  *   Stores authored Classes and Subclasses (category-driven).
@@ -6074,17 +6311,17 @@ ALTER TABLE IF EXISTS public.character_background_equipment_items ENABLE ROW LEV
  *   plus their own proficiencies and features.
  *
  * Cardinality:
- *   systems 1 ──▶ N classes
- *   classes 1 ──▶ N class_details (owned)
- *   classes 1 ──▶ N class_proficiency_grants (owned)
- *   classes 1 ──▶ N class_features (owned)
- *   classes 0..1 ──▶ 1 class_hitpoints (BASE only)
- *   classes 0..1 ──▶ 1 class_starting_gold (BASE only)
- *   classes 0..1 ──▶ 1 starting_equipment (owned FK, BASE only)
- *   classes 0..1 ──▶ 1 class_spellcasting (owned subtree, BASE only)
- *   classes 0..1 ──▶ 1 class_resource (owned subtree, optional)
- *   classes 0..1 ──▶ 1 class_multiclass (owned subtree, BASE only)
- *   classes 1 ──▶ N class_subtypes (SUBCLASS only)
+ *   systems 1 â”€â”€â–¶ N classes
+ *   classes 1 â”€â”€â–¶ N class_details (owned)
+ *   classes 1 â”€â”€â–¶ N class_proficiency_grants (owned)
+ *   classes 1 â”€â”€â–¶ N class_features (owned)
+ *   classes 0..1 â”€â”€â–¶ 1 class_hitpoints (BASE only)
+ *   classes 0..1 â”€â”€â–¶ 1 class_starting_gold (BASE only)
+ *   classes 0..1 â”€â”€â–¶ 1 starting_equipment (owned FK, BASE only)
+ *   classes 0..1 â”€â”€â–¶ 1 class_spellcasting (owned subtree, BASE only)
+ *   classes 0..1 â”€â”€â–¶ 1 class_resource (owned subtree, optional)
+ *   classes 0..1 â”€â”€â–¶ 1 class_multiclass (owned subtree, BASE only)
+ *   classes 1 â”€â”€â–¶ N class_subtypes (SUBCLASS only)
  *
  * Ownership:
  *   - class_details owns details rows via bridge trigger
@@ -6093,7 +6330,7 @@ ALTER TABLE IF EXISTS public.character_background_equipment_items ENABLE ROW LEV
  *   - classes.starting_equipment_id is owned FK (cleanup on delete/update)
  *   - class_spellcasting owns its charges via FK (cleanup on delete/update)
  *   - class_resource owns its charges via FK (cleanup on delete/update)
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.classes (
   id uuid PRIMARY KEY,
@@ -6161,13 +6398,13 @@ CREATE INDEX IF NOT EXISTS idx_class_attributes_class
 
 ALTER TABLE public.class_attributes ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
- * CLASS — TRAITS (CODES)
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * CLASS â€” TRAITS (CODES)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
-/* ──────────────────────────────────────────────
- * CLASS — DETAILS (OWNED)
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * CLASS â€” DETAILS (OWNED)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.class_details (
   class_id uuid NOT NULL
@@ -6209,9 +6446,9 @@ END;
 $$;
 
 
-/* ──────────────────────────────────────────────
- * CLASS — PROFICIENCY GRANTS (OWNED BRIDGE)
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * CLASS â€” PROFICIENCY GRANTS (OWNED BRIDGE)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.class_proficiency_grants (
   class_id uuid NOT NULL
@@ -6249,9 +6486,9 @@ BEGIN
 END;
 $$;
 
-/* ──────────────────────────────────────────────
- * CLASS — FEATURES (OWNED BRIDGE)
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * CLASS â€” FEATURES (OWNED BRIDGE)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.class_features (
   class_id uuid NOT NULL
@@ -6289,9 +6526,9 @@ BEGIN
 END;
 $$;
 
-/* ──────────────────────────────────────────────
- * CLASS — HITPOINTS (BASE ONLY)
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * CLASS â€” HITPOINTS (BASE ONLY)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.class_hitpoints (
   class_id uuid PRIMARY KEY
@@ -6305,9 +6542,9 @@ CREATE TABLE IF NOT EXISTS public.class_hitpoints (
 
 ALTER TABLE public.class_hitpoints ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
- * CLASS — STARTING GOLD (BASE ONLY)
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * CLASS â€” STARTING GOLD (BASE ONLY)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.class_starting_gold (
   class_id uuid PRIMARY KEY
@@ -6326,14 +6563,14 @@ CREATE TABLE IF NOT EXISTS public.class_starting_gold (
 
 ALTER TABLE public.class_starting_gold ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
- * OWNED FK CLEANUP: classes → starting_equipment
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * OWNED FK CLEANUP: classes â†’ starting_equipment
  *
  * Intent:
  *   starting_equipment_id is owned by the class.
  *   - On class delete: delete owned row.
  *   - On starting_equipment_id update/clear: delete old owned row.
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 DO $$
 BEGIN
@@ -6372,9 +6609,9 @@ END;
 $$;
 
 
-/* ──────────────────────────────────────────────
- * CLASS — RESOURCES (OWNED, OPTIONAL)
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * CLASS â€” RESOURCES (OWNED, OPTIONAL)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.class_resources (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -6439,9 +6676,9 @@ END;
 $$;
 
 
-/* ──────────────────────────────────────────────
- * CLASS — SPELLCASTING (OWNED SUBTREE, OPTIONAL)
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * CLASS â€” SPELLCASTING (OWNED SUBTREE, OPTIONAL)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.class_spellcasting (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -6505,13 +6742,13 @@ BEGIN
 END;
 $$;
 
-/* ──────────────────────────────────────────────
- * SPELLCASTING — TRAITS (CODES)
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * SPELLCASTING â€” TRAITS (CODES)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
-/* ──────────────────────────────────────────────
- * SPELLCASTING — PREPARE LIMIT
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * SPELLCASTING â€” PREPARE LIMIT
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.class_spellcasting_attributes (
   spellcasting_id uuid NOT NULL
@@ -6577,9 +6814,9 @@ CREATE INDEX IF NOT EXISTS idx_class_spellcasting_prepare_levels_sc
   ON public.class_spellcasting_prepare_limit_levels(spellcasting_id);
 
 
-/* ──────────────────────────────────────────────
- * SPELLCASTING — SPELL LIMITS / SLOTS
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * SPELLCASTING â€” SPELL LIMITS / SLOTS
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.class_spell_limits (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -6622,9 +6859,9 @@ CREATE INDEX IF NOT EXISTS idx_class_spell_slots_limit
   ON public.class_spell_slots(spell_limit_id);
 
 
-/* ──────────────────────────────────────────────
- * CLASS — MULTICLASS (OWNED SUBTREE, BASE ONLY)
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * CLASS â€” MULTICLASS (OWNED SUBTREE, BASE ONLY)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.class_multiclass (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -6675,9 +6912,9 @@ CREATE INDEX IF NOT EXISTS idx_class_multiclass_reqs_group
   ON public.class_multiclass_requirements(requirement_group_id);
 
 
-/* ──────────────────────────────────────────────
- * MULTICLASS — PROFICIENCY GRANTS (OWNED BRIDGE)
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * MULTICLASS â€” PROFICIENCY GRANTS (OWNED BRIDGE)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.class_multiclass_proficiency_grants (
   multiclass_id uuid NOT NULL
@@ -6716,9 +6953,9 @@ END;
 $$;
 
 
-/* ──────────────────────────────────────────────
- * SUBCLASS — SUBTYPES
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * SUBCLASS â€” SUBTYPES
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.class_subtypes (
   id uuid PRIMARY KEY,
@@ -6736,28 +6973,384 @@ ALTER TABLE public.class_subtypes ENABLE ROW LEVEL SECURITY;
 CREATE INDEX IF NOT EXISTS idx_class_subtypes_class
   ON public.class_subtypes(class_id);
 -- END INCLUDE: src\domains\subjects\tables\classes.sql
+-- BEGIN INCLUDE: src\domains\subjects\tables\creatures.sql
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * CREATURES â€” ROOT
+ *
+ * Intent:
+ *   Stat block for a creature (monster, NPC, beast,
+ *   companion, or summon). Reference content â€” not
+ *   character lifecycle state.
+ *
+ * Cardinality:
+ *   systems 1 â”€â”€â–¶ N creatures
+ *
+ * Ownership:
+ *   creatures â†’ details (owned)
+ *   creatures â†’ features (owned via bridge â€” traits)
+ *   creatures â†’ speeds (owned)
+ *   creatures â†’ actions (owned via bridge)
+ *   creatures â†’ damage_resistances/immunities/vulnerabilities (owned)
+ *   creatures â†’ condition_immunities (owned)
+ *   Optional profiles stored as jsonb (tightly owned, rarely queried):
+ *     legendary_profile, lair_profile, mount_profile,
+ *     companion_profile, npc_profile
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
+CREATE TABLE IF NOT EXISTS public.creatures (
+  id uuid PRIMARY KEY,
+  system_id uuid NOT NULL
+    REFERENCES public.systems(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  user_id uuid REFERENCES auth.users(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  label text NOT NULL,
+  quote text,
+  description text,
+
+  record_kind text NOT NULL DEFAULT 'STAT_BLOCK',
+  category text NOT NULL,              -- CreatureCategory
+  creature_type_id uuid
+    REFERENCES public.creature_types(id)
+    ON DELETE SET NULL
+    DEFERRABLE INITIALLY DEFERRED,
+  size_code text,                      -- SizeCode
+  alignment_id uuid
+    REFERENCES public.alignments(id)
+    ON DELETE SET NULL
+    DEFERRABLE INITIALLY DEFERRED,
+  tags text[],
+
+  -- Core stats
+  ability_scores jsonb,                -- Record<AbilityCode, number>
+  armor_class integer,
+  armor_class_note text,
+  hit_points integer,
+  hit_dice text,
+
+  -- Senses / passives
+  senses text[],
+  passive_perception integer,
+
+  -- Saving throws / skills (vocabulary IDs)
+  saving_throw_proficiencies text[],
+  skill_proficiencies text[],
+
+  -- Social/rules
+  languages text[],
+  challenge_rating_id uuid
+    REFERENCES public.challenge_ratings(id)
+    ON DELETE SET NULL
+    DEFERRABLE INITIALLY DEFERRED,
+  xp integer,
+
+  -- Logistics-only fields
+  cost jsonb,
+  carrying_capacity_amount numeric,
+  carrying_capacity_unit text,
+  logistics_notes text[],
+
+  -- Optional rule profiles (presence = module applies)
+  legendary_profile jsonb,             -- CreatureLegendaryProfile | null
+  lair_profile jsonb,                  -- CreatureLairProfile | null
+  mount_profile jsonb,                 -- CreatureMountProfile | null
+  companion_profile jsonb,             -- CreatureCompanionProfile | null
+  npc_profile jsonb,                   -- CreatureNpcProfile | null
+
+  is_master boolean,
+
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+
+  CONSTRAINT creatures_category_chk CHECK (
+    category IN ('NPC', 'MONSTER', 'BEAST', 'COMPANION', 'SUMMON')
+  ),
+  CONSTRAINT creatures_record_kind_chk CHECK (
+    record_kind IN ('STAT_BLOCK', 'LOGISTICS')
+  )
+);
+
+ALTER TABLE public.creatures ENABLE ROW LEVEL SECURITY;
+
+SELECT public.apply_system_derived_policies('creatures');
+
+CREATE INDEX IF NOT EXISTS idx_creatures_system
+  ON public.creatures(system_id);
+
+CREATE INDEX IF NOT EXISTS idx_creatures_category
+  ON public.creatures(category);
+
+CREATE INDEX IF NOT EXISTS idx_creatures_creature_type
+  ON public.creatures(creature_type_id);
+
+
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * CREATURE â€” DETAILS (OWNED)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
+CREATE TABLE IF NOT EXISTS public.creature_details (
+  creature_id uuid NOT NULL
+    REFERENCES public.creatures(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  detail_id uuid NOT NULL
+    REFERENCES public.details(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (creature_id, detail_id)
+);
+
+ALTER TABLE public.creature_details ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_creature_details_creature
+  ON public.creature_details(creature_id);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'trg_cleanup_creature_details_owned'
+      AND tgrelid = 'public.creature_details'::regclass
+  ) THEN
+    CREATE TRIGGER trg_cleanup_creature_details_owned
+    AFTER DELETE ON public.creature_details
+    FOR EACH ROW
+    EXECUTE FUNCTION public.cleanup_owned_rows('[
+      { "table": "public.details", "columns": ["detail_id"] }
+    ]');
+  END IF;
+END;
+$$;
+
+
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * CREATURE â€” FEATURES / TRAITS (OWNED)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
+CREATE TABLE IF NOT EXISTS public.creature_features (
+  creature_id uuid NOT NULL
+    REFERENCES public.creatures(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  feature_id uuid NOT NULL,
+
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (creature_id, feature_id)
+);
+
+ALTER TABLE public.creature_features ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_creature_features_creature
+  ON public.creature_features(creature_id);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'trg_cleanup_creature_features_owned'
+      AND tgrelid = 'public.creature_features'::regclass
+  ) THEN
+    CREATE TRIGGER trg_cleanup_creature_features_owned
+    AFTER DELETE ON public.creature_features
+    FOR EACH ROW
+    EXECUTE FUNCTION public.cleanup_owned_rows('[
+      { "table": "public.features", "columns": ["feature_id"] }
+    ]');
+  END IF;
+END;
+$$;
+
+
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * CREATURE â€” SPEEDS (OWNED)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
+CREATE TABLE IF NOT EXISTS public.creature_speeds (
+  creature_id uuid NOT NULL
+    REFERENCES public.creatures(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  speed_id uuid NOT NULL
+    REFERENCES public.speeds(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  amount integer NOT NULL,
+  unit_code text NOT NULL,
+
+  PRIMARY KEY (creature_id, speed_id)
+);
+
+ALTER TABLE public.creature_speeds ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_creature_speeds_creature
+  ON public.creature_speeds(creature_id);
+
+
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * CREATURE â€” ACTIONS (OWNED)
+ *
+ * Standard actions / bonus actions / reactions are stored
+ * in a single table discriminated by action_type.
+ * Legendary and lair actions are stored in the jsonb profiles.
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
+CREATE TABLE IF NOT EXISTS public.creature_actions (
+  id uuid PRIMARY KEY,
+
+  creature_id uuid NOT NULL
+    REFERENCES public.creatures(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  action_type text NOT NULL,           -- 'ACTION' | 'BONUS_ACTION' | 'REACTION'
+  sort_order integer NOT NULL,
+
+  label text NOT NULL,
+  description text NOT NULL,
+  attack_bonus integer,
+  damage text,
+  recharge text,
+
+  CONSTRAINT creature_actions_type_chk CHECK (
+    action_type IN ('ACTION', 'BONUS_ACTION', 'REACTION')
+  )
+);
+
+ALTER TABLE public.creature_actions ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_creature_actions_creature
+  ON public.creature_actions(creature_id);
+
+
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * CREATURE â€” DAMAGE RESISTANCES (NORMALIZED)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
+CREATE TABLE IF NOT EXISTS public.creature_damage_resistances (
+  creature_id uuid NOT NULL
+    REFERENCES public.creatures(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  damage_type_id uuid NOT NULL
+    REFERENCES public.damage_types(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  PRIMARY KEY (creature_id, damage_type_id)
+);
+
+ALTER TABLE public.creature_damage_resistances ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_creature_damage_resistances_creature
+  ON public.creature_damage_resistances(creature_id);
+
+
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * CREATURE â€” DAMAGE IMMUNITIES (NORMALIZED)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
+CREATE TABLE IF NOT EXISTS public.creature_damage_immunities (
+  creature_id uuid NOT NULL
+    REFERENCES public.creatures(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  damage_type_id uuid NOT NULL
+    REFERENCES public.damage_types(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  PRIMARY KEY (creature_id, damage_type_id)
+);
+
+ALTER TABLE public.creature_damage_immunities ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_creature_damage_immunities_creature
+  ON public.creature_damage_immunities(creature_id);
+
+
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * CREATURE â€” DAMAGE VULNERABILITIES (NORMALIZED)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
+CREATE TABLE IF NOT EXISTS public.creature_damage_vulnerabilities (
+  creature_id uuid NOT NULL
+    REFERENCES public.creatures(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  damage_type_id uuid NOT NULL
+    REFERENCES public.damage_types(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  PRIMARY KEY (creature_id, damage_type_id)
+);
+
+ALTER TABLE public.creature_damage_vulnerabilities ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_creature_damage_vulnerabilities_creature
+  ON public.creature_damage_vulnerabilities(creature_id);
+
+
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * CREATURE â€” CONDITION IMMUNITIES (NORMALIZED)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
+CREATE TABLE IF NOT EXISTS public.creature_condition_immunities (
+  creature_id uuid NOT NULL
+    REFERENCES public.creatures(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  condition_type_id uuid NOT NULL
+    REFERENCES public.condition_types(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  PRIMARY KEY (creature_id, condition_type_id)
+);
+
+ALTER TABLE public.creature_condition_immunities ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_creature_condition_immunities_creature
+  ON public.creature_condition_immunities(creature_id);
+-- END INCLUDE: src\domains\subjects\tables\creatures.sql
 -- BEGIN INCLUDE: src\domains\subjects\tables\equipment.sql
 /*************************************************
-* EQUIPMENT — AUTHORING STRUCTURE
+* EQUIPMENT â€” AUTHORING STRUCTURE
 *************************************************/
-/* ──────────────────────────────────────────────
-* EQUIPMENT — ROOT
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* EQUIPMENT â€” ROOT
 *
 * Intent:
 *   Top-level equipment definition. May be a base
 *   item or a variant container.
 *
 * Cardinality:
-*   systems 1 ──▶ N equipment
+*   systems 1 â”€â”€â–¶ N equipment
 *
 * Ownership:
-*   equipment → charges (owned FK)
-*   equipment → effects (owned via bridge)
-*   equipment → modifiers (owned via bridge)
-*   equipment → restrictions (owned via bridge)
-*   equipment → features (owned via bridge)
-*   equipment → contains (owned rows)
-* ────────────────────────────────────────────── */
+*   equipment â†’ charges (owned FK)
+*   equipment â†’ effects (owned via bridge)
+*   equipment â†’ modifiers (owned via bridge)
+*   equipment â†’ restrictions (owned via bridge)
+*   equipment â†’ features (owned via bridge)
+*   equipment â†’ contains (owned rows)
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.equipment (
   id uuid PRIMARY KEY,
   system_id uuid NOT NULL REFERENCES public.systems (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
@@ -6767,8 +7360,8 @@ CREATE TABLE IF NOT EXISTS public.equipment (
   quote text,
   category text NOT NULL, -- EquipmentCategoryCode
   rarity_id uuid NOT NULL REFERENCES public.rarities (id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
-  cost_amount integer NOT NULL,
-  cost_currency_id uuid NOT NULL REFERENCES public.currencies (id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
+  cost_amount integer,
+  cost_currency_id uuid REFERENCES public.currencies (id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
   weight_amount numeric NOT NULL,
   weight_unit text NOT NULL,
   capacity_amount numeric,
@@ -6790,6 +7383,10 @@ CREATE TABLE IF NOT EXISTS public.equipment (
   CONSTRAINT equipment_capacity_chk CHECK (
     (capacity_amount IS NULL AND capacity_unit IS NULL)
     OR (capacity_amount IS NOT NULL AND capacity_unit IS NOT NULL)
+  ),
+  CONSTRAINT equipment_cost_chk CHECK (
+    (cost_amount IS NULL AND cost_currency_id IS NULL)
+    OR (cost_amount IS NOT NULL AND cost_currency_id IS NOT NULL)
   )
 );
 
@@ -6849,9 +7446,9 @@ BEGIN
 END;
 $$;
 
-/* ──────────────────────────────────────────────
-* EQUIPMENT — PROPERTIES
-* ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* EQUIPMENT â€” PROPERTIES
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.equipment_properties (
   equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   property_code text NOT NULL,
@@ -6860,9 +7457,9 @@ CREATE TABLE IF NOT EXISTS public.equipment_properties (
 
 ALTER TABLE public.equipment_properties ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
-* EQUIPMENT — ABILITIES
-* ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* EQUIPMENT â€” ABILITIES
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.equipment_abilities (
   equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   operation text NOT NULL, -- EquipmentAbilityOperation
@@ -6873,12 +7470,12 @@ CREATE TABLE IF NOT EXISTS public.equipment_abilities (
 
 ALTER TABLE public.equipment_abilities ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
-* EQUIPMENT — SPEED
-* ────────────────────────────────────────────── */
-/* ──────────────────────────────────────────────
-* EQUIPMENT — CONTAINS
-* ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* EQUIPMENT â€” SPEED
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* EQUIPMENT â€” CONTAINS
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.equipment_contains (
   equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   contained_equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
@@ -6888,9 +7485,9 @@ CREATE TABLE IF NOT EXISTS public.equipment_contains (
 
 ALTER TABLE public.equipment_contains ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
-* EQUIPMENT — EFFECTS (OWNED)
-* ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* EQUIPMENT â€” EFFECTS (OWNED)
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.equipment_effects (
   equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   effect_id uuid NOT NULL,
@@ -6919,9 +7516,9 @@ BEGIN
 END;
 $$;
 
-/* ──────────────────────────────────────────────
-* EQUIPMENT — MODIFIER GRANTS (OWNED)
-* ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* EQUIPMENT â€” MODIFIER GRANTS (OWNED)
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.equipment_modifier_grants (
   equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   modifier_grant_id uuid NOT NULL,
@@ -6950,9 +7547,9 @@ BEGIN
 END;
 $$;
 
-/* ──────────────────────────────────────────────
-* EQUIPMENT — FEATURES (OWNED)
-* ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* EQUIPMENT â€” FEATURES (OWNED)
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.equipment_features (
   equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   feature_id uuid NOT NULL,
@@ -6981,8 +7578,8 @@ BEGIN
 END;
 $$;
 
-/* ──────────────────────────────────────────────
-* OWNED CHILD CLEANUP: equipment → charges
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* OWNED CHILD CLEANUP: equipment â†’ charges
 *
 * Intent:
 *   charge_id is an owned FK. When equipment is deleted,
@@ -6990,7 +7587,7 @@ $$;
 *
 *   When charge_id changes (or is cleared), delete the
 *   old owned charge row.
-* ────────────────────────────────────────────── */
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -7026,25 +7623,25 @@ END;
 $$;
 -- END INCLUDE: src\domains\subjects\tables\equipment.sql
 -- BEGIN INCLUDE: src\domains\subjects\tables\feats.sql
-/* ──────────────────────────────────────────────
-* FEATS — ROOT
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* FEATS â€” ROOT
 *
 * Intent:
 *   A Feat is a top-level authored subject that grants
 *   persistent capabilities, modifiers, and/or features.
 *
 * Cardinality:
-*   systems 1 ──▶ N feats
+*   systems 1 â”€â”€â–¶ N feats
 *
 * Ownership:
-*   feats → charges (owned)
-*   feats → effects (owned)
-*   feats → modifier_grants (owned)
-*   feats → proficiency_grants (owned)
-*   feats → sense_grants (owned)
-*   feats → spell_grants (owned)
-*   feats → features (owned)
-* ────────────────────────────────────────────── */
+*   feats â†’ charges (owned)
+*   feats â†’ effects (owned)
+*   feats â†’ modifier_grants (owned)
+*   feats â†’ proficiency_grants (owned)
+*   feats â†’ sense_grants (owned)
+*   feats â†’ spell_grants (owned)
+*   feats â†’ features (owned)
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.feats (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   system_id uuid NOT NULL REFERENCES public.systems (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
@@ -7099,9 +7696,9 @@ BEGIN
 END;
 $$;
 
-/* ──────────────────────────────────────────────
-* FEAT — EFFECTS (OWNED)
-* ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* FEAT â€” EFFECTS (OWNED)
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.feat_effects (
   feat_id uuid NOT NULL REFERENCES public.feats (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   effect_id uuid NOT NULL,
@@ -7129,9 +7726,9 @@ BEGIN
 END;
 $$;
 
-/* ──────────────────────────────────────────────
-* FEAT — MODIFIER GRANTS
-* ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* FEAT â€” MODIFIER GRANTS
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.feat_modifier_grants (
   feat_id uuid NOT NULL REFERENCES public.feats (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   modifier_grant_id uuid NOT NULL,
@@ -7159,9 +7756,9 @@ BEGIN
 END;
 $$;
 
-/* ──────────────────────────────────────────────
-* FEAT — SPELL GRANTS
-* ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* FEAT â€” SPELL GRANTS
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.feat_spell_grants (
   feat_id uuid NOT NULL REFERENCES public.feats (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   spell_grant_id uuid NOT NULL,
@@ -7189,9 +7786,9 @@ BEGIN
 END;
 $$;
 
-/* ──────────────────────────────────────────────
-* FEAT — SENSE GRANTS
-* ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* FEAT â€” SENSE GRANTS
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.feat_sense_grants (
   feat_id uuid NOT NULL REFERENCES public.feats (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   sense_grant_id uuid NOT NULL,
@@ -7219,9 +7816,9 @@ BEGIN
 END;
 $$;
 
-/* ──────────────────────────────────────────────
-* FEAT — PROFICIENCY GRANTS
-* ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* FEAT â€” PROFICIENCY GRANTS
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.feat_proficiency_grants (
   feat_id uuid NOT NULL REFERENCES public.feats (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   proficiency_grant_id uuid NOT NULL,
@@ -7249,9 +7846,9 @@ BEGIN
 END;
 $$;
 
-/* ──────────────────────────────────────────────
-* FEAT — FEATURES (OWNED)
-* ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+* FEAT â€” FEATURES (OWNED)
+* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 CREATE TABLE IF NOT EXISTS public.feat_features (
   feat_id uuid NOT NULL REFERENCES public.feats (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   feature_id uuid NOT NULL,
@@ -7280,22 +7877,22 @@ END;
 $$;
 -- END INCLUDE: src\domains\subjects\tables\feats.sql
 -- BEGIN INCLUDE: src\domains\subjects\tables\races.sql
-/* ──────────────────────────────────────────────
- * RACES — ROOT
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * RACES â€” ROOT
  *
  * Intent:
  *   Top-level race definition. Can represent a
  *   base race or a subrace.
  *
  * Cardinality:
- *   systems 1 ──▶ N races
+ *   systems 1 â”€â”€â–¶ N races
  *
  * Ownership:
- *   races → details (owned)
- *   races → features (owned via bridge)
- *   races → speeds (owned)
- *   races → ancestry (owned subtree, BASE only)
- * ────────────────────────────────────────────── */
+ *   races â†’ details (owned)
+ *   races â†’ features (owned via bridge)
+ *   races â†’ speeds (owned)
+ *   races â†’ ancestry (owned subtree, BASE only)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.races (
   id uuid PRIMARY KEY,
@@ -7346,9 +7943,9 @@ CREATE INDEX IF NOT EXISTS idx_races_parent
 
 
 
-/* ──────────────────────────────────────────────
- * RACE — DETAILS (OWNED)
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * RACE â€” DETAILS (OWNED)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.race_details (
   race_id uuid NOT NULL
@@ -7388,9 +7985,9 @@ BEGIN
 END;
 $$;
 
-/* ──────────────────────────────────────────────
- * RACE — FEATURES (OWNED)
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * RACE â€” FEATURES (OWNED)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.race_features (
   race_id uuid NOT NULL
@@ -7427,9 +8024,9 @@ BEGIN
 END;
 $$;
 
-/* ──────────────────────────────────────────────
- * RACE — SPEEDS (OWNED)
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * RACE â€” SPEEDS (OWNED)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.race_speeds (
   race_id uuid NOT NULL
@@ -7451,12 +8048,12 @@ ALTER TABLE public.race_speeds ENABLE ROW LEVEL SECURITY;
 CREATE INDEX IF NOT EXISTS idx_race_speeds_race
   ON public.race_speeds(race_id);
 
-/* ──────────────────────────────────────────────
- * RACE — ANCESTRY (BASE ONLY)
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * RACE â€” ANCESTRY (BASE ONLY)
  *
  * Intent:
  *   Optional ancestry container for base races.
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.race_ancestries (
   id uuid PRIMARY KEY,
@@ -7474,9 +8071,9 @@ ALTER TABLE public.race_ancestries ENABLE ROW LEVEL SECURITY;
 CREATE INDEX IF NOT EXISTS idx_race_ancestries_race
   ON public.race_ancestries(race_id);
 
-/* ──────────────────────────────────────────────
- * RACE — ANCESTRY OPTIONS (OWNED)
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * RACE â€” ANCESTRY OPTIONS (OWNED)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.race_ancestry_options (
   id uuid PRIMARY KEY,
@@ -7495,9 +8092,9 @@ ALTER TABLE public.race_ancestry_options ENABLE ROW LEVEL SECURITY;
 CREATE INDEX IF NOT EXISTS idx_race_ancestry_options_ancestry
   ON public.race_ancestry_options(ancestry_id);
 
-/* ──────────────────────────────────────────────
- * RACE — ANCESTRY OPTION FEATURES (OWNED)
- * ────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * RACE â€” ANCESTRY OPTION FEATURES (OWNED)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.race_ancestry_option_features (
   ancestry_option_id uuid NOT NULL
@@ -7535,8 +8132,8 @@ END;
 $$;
 -- END INCLUDE: src\domains\subjects\tables\races.sql
 -- BEGIN INCLUDE: src\domains\subjects\tables\spells.sql
-/* ──────────────────────────────────────────────
- * SPELLS — ROOT
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * SPELLS â€” ROOT
  *
  * Intent:
  *   Spell is a top-level authored subject that defines
@@ -7544,15 +8141,15 @@ $$;
  *   casting time, and owned effects.
  *
  * Cardinality:
- *   systems 1 ──▶ N spells
+ *   systems 1 â”€â”€â–¶ N spells
  *
  * Ownership:
- *   spells → spell_effects (owned)
+ *   spells â†’ spell_effects (owned)
  *
  * References:
- *   spells → magic_schools
- *   spells → classes (many-to-many)
- * ────────────────────────────────────────────── */
+ *   spells â†’ magic_schools
+ *   spells â†’ classes (many-to-many)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.spells (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -7576,6 +8173,16 @@ CREATE TABLE IF NOT EXISTS public.spells (
 
   casting_time_unit text NOT NULL,  -- CastingTimeUnit
   casting_time_amount integer NOT NULL,
+
+  range_id uuid
+    REFERENCES public.characteristics(id)
+    DEFERRABLE INITIALLY DEFERRED,
+
+  duration_id uuid
+    REFERENCES public.characteristics(id)
+    DEFERRABLE INITIALLY DEFERRED,
+
+  at_higher_levels text,
 
   material_description text,
 
@@ -7618,15 +8225,15 @@ CREATE INDEX IF NOT EXISTS idx_spell_attributes_spell
 
 ALTER TABLE public.spell_attributes ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
- * SPELL — CLASSES
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * SPELL â€” CLASSES
  *
  * Intent:
  *   Declares which classes can cast this spell.
  *
  * Ownership:
  *   NOT owned. Classes are vocabulary-level entities.
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.spell_classes (
   spell_id uuid NOT NULL
@@ -7647,8 +8254,8 @@ CREATE INDEX IF NOT EXISTS idx_spell_classes_class
 
 ALTER TABLE public.spell_classes ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
- * SPELL — EFFECTS (OWNED)
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * SPELL â€” EFFECTS (OWNED)
  *
  * Intent:
  *   Associates authored effects to the spell.
@@ -7656,7 +8263,7 @@ ALTER TABLE public.spell_classes ENABLE ROW LEVEL SECURITY;
  *
  * Ownership:
  *   spell_effects owns effect rows.
- * ────────────────────────────────────────────── */
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 CREATE TABLE IF NOT EXISTS public.spell_effects (
   spell_id uuid NOT NULL
@@ -7692,6 +8299,154 @@ BEGIN
 END;
 $$;
 -- END INCLUDE: src\domains\subjects\tables\spells.sql
+-- BEGIN INCLUDE: src\domains\subjects\tables\vehicles.sql
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * VEHICLES â€” ROOT
+ *
+ * Intent:
+ *   DM-facing reference records for land, water,
+ *   air, and spelljamming vehicles.
+ *
+ * Cardinality:
+ *   systems 1 â”€â”€â–¶ N vehicles
+ *
+ * Ownership:
+ *   vehicles â†’ details (owned)
+ *   vehicles â†’ features (owned via bridge)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
+CREATE TABLE IF NOT EXISTS public.vehicles (
+  id uuid PRIMARY KEY,
+  system_id uuid NOT NULL
+    REFERENCES public.systems(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  user_id uuid REFERENCES auth.users(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  label text NOT NULL,
+  description text,
+
+  category text NOT NULL,
+  size_code text,
+  armor_class integer,
+  hit_points integer,
+
+  speed integer,
+  speed_note text,
+  crew_min integer,
+  crew_max integer,
+  passenger_capacity integer,
+  cargo_capacity text,
+
+  cost jsonb,
+  properties text[],
+
+  is_master boolean,
+
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+
+  CONSTRAINT vehicles_category_chk CHECK (
+    category IN ('LAND', 'WATER', 'AIR', 'SPELLJAMMER')
+  )
+);
+
+ALTER TABLE public.vehicles ENABLE ROW LEVEL SECURITY;
+
+SELECT public.apply_system_derived_policies('vehicles');
+
+CREATE INDEX IF NOT EXISTS idx_vehicles_system
+  ON public.vehicles(system_id);
+
+CREATE INDEX IF NOT EXISTS idx_vehicles_category
+  ON public.vehicles(category);
+
+
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * VEHICLE â€” DETAILS (OWNED)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
+CREATE TABLE IF NOT EXISTS public.vehicle_details (
+  vehicle_id uuid NOT NULL
+    REFERENCES public.vehicles(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  detail_id uuid NOT NULL
+    REFERENCES public.details(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (vehicle_id, detail_id)
+);
+
+ALTER TABLE public.vehicle_details ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_vehicle_details_vehicle
+  ON public.vehicle_details(vehicle_id);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'trg_cleanup_vehicle_details_owned'
+      AND tgrelid = 'public.vehicle_details'::regclass
+  ) THEN
+    CREATE TRIGGER trg_cleanup_vehicle_details_owned
+    AFTER DELETE ON public.vehicle_details
+    FOR EACH ROW
+    EXECUTE FUNCTION public.cleanup_owned_rows('[
+      { "table": "public.details", "columns": ["detail_id"] }
+    ]');
+  END IF;
+END;
+$$;
+
+
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * VEHICLE â€” FEATURES (OWNED)
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
+CREATE TABLE IF NOT EXISTS public.vehicle_features (
+  vehicle_id uuid NOT NULL
+    REFERENCES public.vehicles(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  feature_id uuid NOT NULL,
+
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (vehicle_id, feature_id)
+);
+
+ALTER TABLE public.vehicle_features ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_vehicle_features_vehicle
+  ON public.vehicle_features(vehicle_id);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'trg_cleanup_vehicle_features_owned'
+      AND tgrelid = 'public.vehicle_features'::regclass
+  ) THEN
+    CREATE TRIGGER trg_cleanup_vehicle_features_owned
+    AFTER DELETE ON public.vehicle_features
+    FOR EACH ROW
+    EXECUTE FUNCTION public.cleanup_owned_rows('[
+      { "table": "public.features", "columns": ["feature_id"] }
+    ]');
+  END IF;
+END;
+$$;
+-- END INCLUDE: src\domains\subjects\tables\vehicles.sql
 -- BEGIN INCLUDE: src\domains\bootstrap\constraints\cross_domain_foreign_keys.sql
 /* ============================================================================
  * Cross-domain foreign keys deferred for empty-database bootstrap.

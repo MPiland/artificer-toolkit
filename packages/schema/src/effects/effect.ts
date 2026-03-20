@@ -1,10 +1,11 @@
 import { z } from 'zod'
 
-import { momentDtoSchema } from './moment.js'
+import { branchDtoSchema } from './branch.js'
 import { activationCodeSchema, triggerCodeSchema } from '../shared/enums.js'
 import { rangeDtoSchema } from '../shared/range.js'
 import { savingThrowDtoSchema } from '../shared/savingThrow.js'
 import { shapeDtoSchema } from '../shared/shape.js'
+import { targetingDtoSchema } from './targeting.js'
 
 export const activationDtoSchema = z.discriminatedUnion('code', [
   z.object({
@@ -30,10 +31,12 @@ export const invocationDtoSchema = z.discriminatedUnion('triggerCode', [
     savingThrow: savingThrowDtoSchema,
     activation: activationDtoSchema,
     range: rangeDtoSchema,
-    shape: shapeDtoSchema.optional()
+    shape: shapeDtoSchema.optional(),
+    targeting: targetingDtoSchema.optional()
   }),
   z.object({
     triggerCode: z.enum([
+      triggerCodeSchema.enum.ACTIVATED,
       triggerCodeSchema.enum.MELEE_WEAPON_ATTACK,
       triggerCodeSchema.enum.RANGED_WEAPON_ATTACK,
       triggerCodeSchema.enum.UNARMED_ATTACK,
@@ -42,7 +45,8 @@ export const invocationDtoSchema = z.discriminatedUnion('triggerCode', [
     ]),
     activation: activationDtoSchema,
     range: rangeDtoSchema,
-    shape: shapeDtoSchema.optional()
+    shape: shapeDtoSchema.optional(),
+    targeting: targetingDtoSchema.optional()
   })
 ])
 
@@ -50,7 +54,7 @@ export const effectDtoSchema = z.object({
   id: z.string(),
   order: z.number().int(),
   invocation: invocationDtoSchema,
-  moments: z.array(momentDtoSchema)
+  branches: z.array(branchDtoSchema)
 })
 
 export type EffectDto = z.infer<typeof effectDtoSchema>

@@ -68,7 +68,7 @@ describe('facet-backed owners round-trip', () => {
       quote: undefined,
       cost: { amount: 20, currencyId: 'gp' },
       weight: { amount: 3, unit: 'POUNDS' },
-      effects: undefined,
+      capabilities: undefined,
       charges: undefined,
       capacity: undefined,
       modifiers: undefined,
@@ -774,6 +774,200 @@ describe('facet-backed owners round-trip', () => {
                   relationCode: 'PROFICIENCY_GRANT',
                   authoringModeKind: 'SELECTED',
                   proficiencyKind: 'SKILL'
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    })
+  })
+
+  it('round-trips creature and vehicle facet subjects, relations, and predicates', async () => {
+    const db = new InMemoryDb()
+
+    await upsertFacet(db as never, {
+      id: 'creature-vehicle-facet-1',
+      groups: [
+        {
+          id: 'creature-vehicle-group-1',
+          order: 1,
+          contexts: [
+            {
+              id: 'creature-context-1',
+              order: 1,
+              subject: 'CREATURE',
+              authoringModeKind: 'SELECTED',
+              creatureIds: ['creature-1', 'creature-2'],
+              conditions: [
+                {
+                  id: 'creature-record-kind-condition-1',
+                  order: 1,
+                  kind: 'PREDICATE',
+                  constraint: 'INCLUDE',
+                  predicateCode: 'CREATURE_RECORD_KIND',
+                  authoringModeKind: 'SELECTED',
+                  recordKinds: ['STAT_BLOCK', 'LOGISTICS']
+                },
+                {
+                  id: 'creature-category-condition-1',
+                  order: 2,
+                  kind: 'PREDICATE',
+                  constraint: 'INCLUDE',
+                  predicateCode: 'CREATURE_CATEGORY',
+                  authoringModeKind: 'SELECTED',
+                  categories: ['BEAST', 'MONSTER']
+                },
+                {
+                  id: 'creature-type-condition-1',
+                  order: 3,
+                  kind: 'PREDICATE',
+                  constraint: 'INCLUDE',
+                  predicateCode: 'CREATURE_TYPE',
+                  authoringModeKind: 'SELECTED',
+                  creatureTypeIds: ['beast', 'humanoid']
+                },
+                {
+                  id: 'creature-size-condition-1',
+                  order: 4,
+                  kind: 'PREDICATE',
+                  constraint: 'INCLUDE',
+                  predicateCode: 'CREATURE_SIZE',
+                  authoringModeKind: 'SELECTED',
+                  sizes: ['MEDIUM', 'LARGE']
+                },
+                {
+                  id: 'creature-mount-condition-1',
+                  order: 5,
+                  kind: 'PREDICATE',
+                  constraint: 'INCLUDE',
+                  predicateCode: 'CREATURE_IS_MOUNT'
+                }
+              ]
+            },
+            {
+              id: 'vehicle-context-1',
+              order: 2,
+              subject: 'VEHICLE',
+              authoringModeKind: 'SELECTED',
+              vehicleIds: ['vehicle-1'],
+              conditions: [
+                {
+                  id: 'vehicle-category-condition-1',
+                  order: 1,
+                  kind: 'PREDICATE',
+                  constraint: 'INCLUDE',
+                  predicateCode: 'VEHICLE_CATEGORY',
+                  authoringModeKind: 'SELECTED',
+                  categories: ['LAND', 'WATER']
+                },
+                {
+                  id: 'vehicle-size-condition-1',
+                  order: 2,
+                  kind: 'PREDICATE',
+                  constraint: 'INCLUDE',
+                  predicateCode: 'VEHICLE_SIZE',
+                  authoringModeKind: 'SELECTED',
+                  sizes: ['LARGE', 'HUGE']
+                }
+              ]
+            },
+            {
+              id: 'character-context-vehicle-1',
+              order: 3,
+              subject: 'CHARACTER',
+              conditions: [
+                {
+                  id: 'character-creature-exists-1',
+                  order: 1,
+                  kind: 'EXISTS',
+                  constraint: 'INCLUDE',
+                  relationCode: 'CREATURE',
+                  authoringModeKind: 'SELECTED',
+                  creatureIds: ['creature-1']
+                },
+                {
+                  id: 'character-vehicle-exists-1',
+                  order: 2,
+                  kind: 'EXISTS',
+                  constraint: 'INCLUDE',
+                  relationCode: 'VEHICLE',
+                  authoringModeKind: 'SELECTED',
+                  vehicleIds: ['vehicle-1']
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    } as never)
+
+    await expect(hydrateFacetById(db as never, 'creature-vehicle-facet-1')).resolves.toMatchObject({
+      id: 'creature-vehicle-facet-1',
+      groups: [
+        {
+          contexts: [
+            {
+              subject: 'CREATURE',
+              authoringModeKind: 'SELECTED',
+              creatureIds: ['creature-1', 'creature-2'],
+              conditions: [
+                {
+                  predicateCode: 'CREATURE_RECORD_KIND',
+                  authoringModeKind: 'SELECTED',
+                  recordKinds: ['STAT_BLOCK', 'LOGISTICS']
+                },
+                {
+                  predicateCode: 'CREATURE_CATEGORY',
+                  authoringModeKind: 'SELECTED',
+                  categories: ['BEAST', 'MONSTER']
+                },
+                {
+                  predicateCode: 'CREATURE_TYPE',
+                  authoringModeKind: 'SELECTED',
+                  creatureTypeIds: ['beast', 'humanoid']
+                },
+                {
+                  predicateCode: 'CREATURE_SIZE',
+                  authoringModeKind: 'SELECTED',
+                  sizes: ['MEDIUM', 'LARGE']
+                },
+                {
+                  predicateCode: 'CREATURE_IS_MOUNT'
+                }
+              ]
+            },
+            {
+              subject: 'VEHICLE',
+              authoringModeKind: 'SELECTED',
+              vehicleIds: ['vehicle-1'],
+              conditions: [
+                {
+                  predicateCode: 'VEHICLE_CATEGORY',
+                  authoringModeKind: 'SELECTED',
+                  categories: ['LAND', 'WATER']
+                },
+                {
+                  predicateCode: 'VEHICLE_SIZE',
+                  authoringModeKind: 'SELECTED',
+                  sizes: ['LARGE', 'HUGE']
+                }
+              ]
+            },
+            {
+              subject: 'CHARACTER',
+              conditions: [
+                {
+                  kind: 'EXISTS',
+                  relationCode: 'CREATURE',
+                  authoringModeKind: 'SELECTED',
+                  creatureIds: ['creature-1']
+                },
+                {
+                  kind: 'EXISTS',
+                  relationCode: 'VEHICLE',
+                  authoringModeKind: 'SELECTED',
+                  vehicleIds: ['vehicle-1']
                 }
               ]
             }

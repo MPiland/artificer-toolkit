@@ -40,6 +40,16 @@ CREATE TABLE IF NOT EXISTS public.spells (
   casting_time_unit text NOT NULL,  -- CastingTimeUnit
   casting_time_amount integer NOT NULL,
 
+  range_id uuid
+    REFERENCES public.characteristics(id)
+    DEFERRABLE INITIALLY DEFERRED,
+
+  duration_id uuid
+    REFERENCES public.characteristics(id)
+    DEFERRABLE INITIALLY DEFERRED,
+
+  at_higher_levels text,
+
   material_description text,
 
   is_master boolean,

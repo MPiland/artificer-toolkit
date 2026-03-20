@@ -24,7 +24,7 @@ ALTER TABLE public.characteristics ENABLE ROW LEVEL SECURITY;
   characteristic_id uuid PRIMARY KEY
     REFERENCES characteristics(id) ON DELETE CASCADE,
 
-  kind text NOT NULL,   -- DISTANCE | SELF | SIGHT | TOUCH | UNLIMITED
+  kind text NOT NULL,   -- DISTANCE | SELF | SIGHT | SPECIAL | TOUCH | UNLIMITED
   min integer,
   max integer,
   unit_code text,

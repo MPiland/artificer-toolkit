@@ -81,6 +81,7 @@ CREATE TABLE IF NOT EXISTS public.modifier_grant_domain_params (
   speed_id uuid REFERENCES public.speeds (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   sense_code text,
   spell_level integer,
+  condition_type_id uuid REFERENCES public.condition_types (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT modifier_grant_domain_params_spell_level_chk CHECK (

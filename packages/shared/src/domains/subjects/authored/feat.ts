@@ -1,4 +1,5 @@
 import type {
+  CapabilityAuthored,
   ModifierGrantAuthored,
   ProficiencyGrantAuthored,
   SenseGrantAuthored,
@@ -13,6 +14,8 @@ export interface FeatAuthored {
   label: string
   description: string
   detail?: string
+  capabilities?: CapabilityAuthored[]
+  /** @deprecated Use capabilities. */
   effects?: EffectAuthored[]
   charges?: ChargeAuthored
   grants?: {

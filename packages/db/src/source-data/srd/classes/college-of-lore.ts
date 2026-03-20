@@ -1,0 +1,1 @@
+export { lore as collegeOfLore } from './bard.js'

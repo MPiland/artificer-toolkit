@@ -1,5 +1,6 @@
 import {
   SIZE_CODE,
+  type SizeCode,
   type VehicleAuthored
 } from '@artificer-toolkit/shared'
 import type { DBLike } from '#types'
@@ -24,12 +25,12 @@ function requireCategory(
 function requireSizeCode(
   vehicleId: string,
   value: string
-): VehicleAuthored['size'] {
+): SizeCode {
   if (!(value in SIZE_CODE)) {
     throw new Error(`Vehicle "${vehicleId}" has invalid size_code "${value}".`)
   }
 
-  return value as VehicleAuthored['size']
+  return value as SizeCode
 }
 
 function requireLinkedRecord<T>(
@@ -47,7 +48,7 @@ async function hydrateVehicleById(
   db: DBLike,
   id: string
 ): Promise<VehicleAuthored | null> {
-  const row = await db
+  const row = await (db as any)
     .selectFrom('vehicles')
     .select([
       'id',
@@ -106,9 +107,9 @@ async function hydrateVehicleById(
     userId: row.user_id,
     systemId: row.system_id,
     category: requireCategory(id, row.category),
-    size: requireSizeCode(id, row.size_code),
-    armorClass: row.armor_class,
-    hitPoints: row.hit_points,
+    size: row.size_code ? requireSizeCode(id, row.size_code) : undefined,
+    armorClass: row.armor_class ?? undefined,
+    hitPoints: row.hit_points ?? undefined,
     speed: row.speed ?? undefined,
     speedNote: row.speed_note ?? undefined,
     crewMin: row.crew_min ?? undefined,

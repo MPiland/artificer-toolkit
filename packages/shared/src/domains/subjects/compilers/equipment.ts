@@ -9,8 +9,8 @@ import type {
 } from '#core'
 import { EQUIPMENT_CATEGORY_CODE } from '#core'
 import {
-  compileEffect,
-  type CompiledEffectGroup,
+  compileCapability,
+  type CompiledCapabilityGroup,
   compileFeature,
   type CompiledFeature,
   compileModifierGrant,
@@ -49,10 +49,10 @@ export type CompiledEquipmentAbilitiesAuthored = {
 
 export type CompiledEquipmentBase = {
   id: string
-  cost: CompiledCost
+  cost?: CompiledCost
   weight: CompiledWeight
   attributes?: EquipmentAttribute[]
-  effects?: CompiledEffectGroup[]
+  capabilities?: CompiledCapabilityGroup[]
   charges?: CompiledCharge
   capacity?: CompiledCapacity
   modifiers?: CompiledModifierGrant[]
@@ -76,14 +76,15 @@ export type CompiledEquipment = {
 export type CompiledEquipmentVariant = {
   category: typeof EQUIPMENT_CATEGORY_CODE.VARIANT
   parentEquipmentId: string
+  properties?: EquipmentPropertyCode[]
 } & CompiledEquipmentBase
 
 export function compileEquipment(
   authored: EquipmentAuthored | EquipmentVariantAuthored
 ): CompiledEquipment | CompiledEquipmentVariant {
-  const effects
-    = authored.effects && authored.effects.length
-      ? authored.effects.map(compileEffect)
+  const capabilities
+    = (authored.capabilities ?? authored.effects)?.length
+      ? (authored.capabilities ?? authored.effects)?.map(compileCapability)
       : undefined
 
   const features
@@ -105,7 +106,7 @@ export function compileEquipment(
     attributes: authored.attributes,
     capacity: authored.capacity,
     charges,
-    effects,
+    capabilities,
     features,
     rarityId: authored.rarityId,
     maxBonus: authored.maxBonus,
@@ -120,7 +121,8 @@ export function compileEquipment(
     return {
       ...base,
       category: EQUIPMENT_CATEGORY_CODE.VARIANT,
-      parentEquipmentId: authored.parentEquipmentId
+      parentEquipmentId: authored.parentEquipmentId,
+      properties: authored.properties
     }
   }
 

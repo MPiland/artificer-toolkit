@@ -17,7 +17,7 @@ const raceBaseDtoSchema = z.object({
   systemId: z.string()
 })
 
-export const parentRaceAuthoredDtoSchema = raceBaseDtoSchema.extend({
+const parentRaceAuthoredDtoSchemaRaw: z.ZodTypeAny = raceBaseDtoSchema.extend({
   category: z.literal('BASE'),
   playable: z.boolean(),
   ancestry: raceAncestryDtoSchema.optional(),
@@ -25,16 +25,24 @@ export const parentRaceAuthoredDtoSchema = raceBaseDtoSchema.extend({
   speeds: z.array(speedDtoSchema)
 })
 
-export const subraceAuthoredDtoSchema = raceBaseDtoSchema.extend({
+const subraceAuthoredDtoSchemaRaw: z.ZodTypeAny = raceBaseDtoSchema.extend({
   category: z.literal('SUBRACE'),
   parentRaceId: z.string(),
   size: z.string().optional(),
   speeds: z.array(speedDtoSchema).optional()
 })
 
-export const raceAuthoredDtoSchema = z.union([
-  parentRaceAuthoredDtoSchema,
-  subraceAuthoredDtoSchema
+const raceAuthoredDtoSchemaRaw: z.ZodTypeAny = z.union([
+  parentRaceAuthoredDtoSchemaRaw,
+  subraceAuthoredDtoSchemaRaw
 ])
 
-export type RaceAuthoredDto = z.infer<typeof raceAuthoredDtoSchema>
+export type ParentRaceAuthoredDto = z.infer<typeof parentRaceAuthoredDtoSchemaRaw>
+export type SubraceAuthoredDto = z.infer<typeof subraceAuthoredDtoSchemaRaw>
+export type RaceAuthoredDto = ParentRaceAuthoredDto | SubraceAuthoredDto
+const parentRaceAuthoredDtoSchemaBase: z.ZodTypeAny = parentRaceAuthoredDtoSchemaRaw
+const subraceAuthoredDtoSchemaBase: z.ZodTypeAny = subraceAuthoredDtoSchemaRaw
+const raceAuthoredDtoSchemaBase: z.ZodTypeAny = raceAuthoredDtoSchemaRaw
+export const parentRaceAuthoredDtoSchema = parentRaceAuthoredDtoSchemaBase
+export const subraceAuthoredDtoSchema = subraceAuthoredDtoSchemaBase
+export const raceAuthoredDtoSchema = raceAuthoredDtoSchemaBase

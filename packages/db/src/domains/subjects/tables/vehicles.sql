@@ -28,9 +28,9 @@ CREATE TABLE IF NOT EXISTS public.vehicles (
   description text,
 
   category text NOT NULL,
-  size_code text NOT NULL,
-  armor_class integer NOT NULL,
-  hit_points integer NOT NULL,
+  size_code text,
+  armor_class integer,
+  hit_points integer,
 
   speed integer,
   speed_note text,

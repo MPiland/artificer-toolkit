@@ -1,3 +1,4 @@
+import { EQUIPMENT_CATEGORY_CODE } from '@artificer-toolkit/shared'
 import { z } from 'zod'
 
 import {
@@ -12,7 +13,7 @@ import {
   facetDtoSchema,
   speedDtoSchema
 } from '../shared/index.js'
-import { effectDtoSchema } from '../effects/index.js'
+import { capabilityDtoSchema } from '../effects/index.js'
 import { featureDtoSchema } from '../features/index.js'
 import { modifierGrantDtoSchema } from '../grants/index.js'
 
@@ -23,9 +24,10 @@ const equipmentBaseDtoSchema = z.object({
   description: z.string().nullable(),
   attributes: z.array(z.string()).optional(),
   quote: z.string().optional(),
-  cost: costDtoSchema,
+  cost: costDtoSchema.optional(),
   weight: weightDtoSchema,
-  effects: z.array(effectDtoSchema).optional(),
+  capabilities: z.array(capabilityDtoSchema).optional(),
+  effects: z.array(capabilityDtoSchema).optional(),
   charges: chargeDtoSchema.optional(),
   capacity: capacityDtoSchema.optional(),
   modifiers: z.array(modifierGrantDtoSchema).optional(),
@@ -40,17 +42,20 @@ const equipmentBaseDtoSchema = z.object({
   systemId: z.string()
 })
 
-export const equipmentAuthoredDtoSchema = equipmentBaseDtoSchema.extend({
+const equipmentAuthoredDtoSchemaBase = equipmentBaseDtoSchema.extend({
   properties: z.array(z.string()),
   category: z.string(),
   abilities: z.array(equipmentAbilityDtoSchema),
   speed: speedDtoSchema.optional()
 })
 
-export const equipmentVariantAuthoredDtoSchema = equipmentBaseDtoSchema.extend({
-  category: z.literal('VARIANT'),
-  parentEquipmentId: z.string()
+const equipmentVariantAuthoredDtoSchemaBase = equipmentBaseDtoSchema.extend({
+  category: z.literal(EQUIPMENT_CATEGORY_CODE.VARIANT),
+  parentEquipmentId: z.string(),
+  properties: z.array(z.string()).optional()
 })
 
-export type EquipmentAuthoredDto = z.infer<typeof equipmentAuthoredDtoSchema>
-export type EquipmentVariantAuthoredDto = z.infer<typeof equipmentVariantAuthoredDtoSchema>
+export type EquipmentAuthoredDto = z.infer<typeof equipmentAuthoredDtoSchemaBase>
+export type EquipmentVariantAuthoredDto = z.infer<typeof equipmentVariantAuthoredDtoSchemaBase>
+export const equipmentAuthoredDtoSchema: z.ZodType<EquipmentAuthoredDto> = equipmentAuthoredDtoSchemaBase
+export const equipmentVariantAuthoredDtoSchema: z.ZodType<EquipmentVariantAuthoredDto> = equipmentVariantAuthoredDtoSchemaBase

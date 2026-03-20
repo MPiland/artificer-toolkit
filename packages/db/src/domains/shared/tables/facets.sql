@@ -172,6 +172,8 @@ CREATE TABLE IF NOT EXISTS public.facet_body_selection_items (
   feat_id uuid,
   race_id uuid,
   background_id uuid,
+  creature_id uuid,
+  vehicle_id uuid,
   option_id uuid,
 
   /* Modeled as IDs in existing tables */
@@ -192,6 +194,8 @@ CREATE TABLE IF NOT EXISTS public.facet_body_selection_items (
     + (feat_id IS NOT NULL)::int
     + (race_id IS NOT NULL)::int
     + (background_id IS NOT NULL)::int
+    + (creature_id IS NOT NULL)::int
+    + (vehicle_id IS NOT NULL)::int
     + (option_id IS NOT NULL)::int
     + (subrace_id IS NOT NULL)::int
     + (subclass_id IS NOT NULL)::int
@@ -317,6 +321,8 @@ CREATE TABLE IF NOT EXISTS public.facet_exists_selection_items (
   feat_id uuid,
   race_id uuid,
   background_id uuid,
+  creature_id uuid,
+  vehicle_id uuid,
   option_id uuid,
 
   subrace_id uuid,
@@ -336,6 +342,8 @@ CREATE TABLE IF NOT EXISTS public.facet_exists_selection_items (
     + (feat_id IS NOT NULL)::int
     + (race_id IS NOT NULL)::int
     + (background_id IS NOT NULL)::int
+    + (creature_id IS NOT NULL)::int
+    + (vehicle_id IS NOT NULL)::int
     + (option_id IS NOT NULL)::int
     + (subrace_id IS NOT NULL)::int
     + (subclass_id IS NOT NULL)::int
@@ -844,3 +852,78 @@ ALTER TABLE public.facet_predicate_equipment_items ENABLE ROW LEVEL SECURITY;
 
 CREATE INDEX IF NOT EXISTS idx_facet_predicate_equipment_items_condition
   ON public.facet_predicate_equipment_items (facet_condition_id);
+
+/* Creature record kind list payload */
+CREATE TABLE IF NOT EXISTS public.facet_predicate_creature_record_kind_items (
+  facet_condition_id uuid NOT NULL
+    REFERENCES public.facet_conditions (id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  record_kind text NOT NULL,
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (facet_condition_id, record_kind)
+);
+
+ALTER TABLE public.facet_predicate_creature_record_kind_items ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_facet_predicate_creature_record_kind_items_condition
+  ON public.facet_predicate_creature_record_kind_items (facet_condition_id);
+
+/* Creature category list payload */
+CREATE TABLE IF NOT EXISTS public.facet_predicate_creature_category_items (
+  facet_condition_id uuid NOT NULL
+    REFERENCES public.facet_conditions (id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  category_code text NOT NULL,
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (facet_condition_id, category_code)
+);
+
+ALTER TABLE public.facet_predicate_creature_category_items ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_facet_predicate_creature_category_items_condition
+  ON public.facet_predicate_creature_category_items (facet_condition_id);
+
+/* Vehicle category list payload */
+CREATE TABLE IF NOT EXISTS public.facet_predicate_vehicle_category_items (
+  facet_condition_id uuid NOT NULL
+    REFERENCES public.facet_conditions (id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  category_code text NOT NULL,
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (facet_condition_id, category_code)
+);
+
+ALTER TABLE public.facet_predicate_vehicle_category_items ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_facet_predicate_vehicle_category_items_condition
+  ON public.facet_predicate_vehicle_category_items (facet_condition_id);
+
+/* Creature type list payload */
+CREATE TABLE IF NOT EXISTS public.facet_predicate_creature_type_items (
+  facet_condition_id uuid NOT NULL
+    REFERENCES public.facet_conditions (id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  creature_type_id uuid NOT NULL
+    REFERENCES public.creature_types (id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (facet_condition_id, creature_type_id)
+);
+
+ALTER TABLE public.facet_predicate_creature_type_items ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_facet_predicate_creature_type_items_condition
+  ON public.facet_predicate_creature_type_items (facet_condition_id);

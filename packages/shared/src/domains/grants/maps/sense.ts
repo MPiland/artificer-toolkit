@@ -5,7 +5,7 @@ import {
   SCALING_OPTIONS,
   SCALING_SOURCE_OPTIONS
 } from '#core'
-import { FACET_NODE_MAP, CHARGE_NODE_MAP } from '#maps'
+import { FACET_NODE_MAP, CHARGE_NODE_MAP, RANGE_NODE_MAP } from '#maps'
 import { buildNodeMap } from '#utils'
 
 type SenseGrantProgression = Extract<SenseGrantAuthored, { scalingKind: 'PER_LEVEL' }>['progression']
@@ -100,6 +100,7 @@ export const SENSE_GRANT_NODE_MAP = senseGrant.define('senseGrant', ({ map, node
       showIf: local.field(['authoringModeKind']).eq('SELECTED')
     }))
     .set('charges', groupObject(['charges'], 'Charges', () => CHARGE_NODE_MAP))
+    .set('range', groupObject(['range'], 'Range', () => RANGE_NODE_MAP))
     .set('restrictions', groupObject(['restrictions'], 'Restrictions', () => FACET_NODE_MAP))
     .set('progression', groupObject(['progression'], 'Progression', () => SENSE_GRANT_PROGRESSION_NODE_MAP, {
       showIf: local.field(['scalingKind']).eq('PER_LEVEL')

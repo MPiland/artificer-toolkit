@@ -1,4 +1,16 @@
-import type { CharacterClassState, CharacterCurrencyGroupState, CharacterEquipmentItemState, CharacterEquipmentState, CharacterHitDiceUsageState, CharacterHitpointsState, CharacterResourceUsageState, CharacterState } from '#authored'
+import type {
+  CharacterClassState,
+  CharacterCurrencyGroupState,
+  CharacterEquipmentItemState,
+  CharacterEquipmentState,
+  CharacterHitDiceUsageState,
+  CharacterHitpointsState,
+  CharacterOwnedCreatureState,
+  CharacterOwnedVehicleState,
+  CharacterResourceUsageState,
+  CharacterRosterEquipmentAssignmentState,
+  CharacterState,
+} from '#authored'
 
 export type CompiledCharacterState = {
   equipment: CompiledCharacterEquipmentState
@@ -17,6 +29,10 @@ export type CompiledCharacterState = {
    * Grants live on intent; state references them by resourceGrantId.
    */
   resources?: CompiledCharacterResourceUsageState[]
+  creatures?: CompiledOwnedCreatureState[]
+  vehicles?: CompiledOwnedVehicleState[]
+  creatureEquipment?: Record<string, CompiledRosterEquipmentAssignmentState[]>
+  vehicleEquipment?: Record<string, CompiledRosterEquipmentAssignmentState[]>
 }
 
 /* ──────────────────────────────────────────────────────────────
@@ -77,6 +93,10 @@ export function compileCurrencyGroups(authored: CharacterCurrencyGroupState[]): 
   return authored
 }
 
+export type CompiledOwnedCreatureState = CharacterOwnedCreatureState
+export type CompiledOwnedVehicleState = CharacterOwnedVehicleState
+export type CompiledRosterEquipmentAssignmentState = CharacterRosterEquipmentAssignmentState
+
 /* ──────────────────────────────────────────────────────────────
  * Class mutable state (optional)
  * ────────────────────────────────────────────────────────────── */
@@ -113,6 +133,14 @@ export function compileCharacterState(authored: CharacterState): CompiledCharact
     currency: compileCurrencyGroups(authored.currency),
     hitpoints: compileHitpointState(authored.hitpoints),
     classes,
-    resources
+    resources,
+    creatures: authored.creatures?.length ? authored.creatures : undefined,
+    vehicles: authored.vehicles?.length ? authored.vehicles : undefined,
+    creatureEquipment: authored.creatureEquipment && Object.keys(authored.creatureEquipment).length
+      ? authored.creatureEquipment
+      : undefined,
+    vehicleEquipment: authored.vehicleEquipment && Object.keys(authored.vehicleEquipment).length
+      ? authored.vehicleEquipment
+      : undefined
   }
 }

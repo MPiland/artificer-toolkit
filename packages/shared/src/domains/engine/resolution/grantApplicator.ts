@@ -4,6 +4,7 @@ import type { CompiledFeat } from '../../subjects/compilers/feat.js'
 import type { CompiledModifierGrant } from '../../grants/compilers/modifier.js'
 import type { CompiledProficiencyGrant } from '../../grants/compilers/proficiency.js'
 import type { CompiledSenseGrant } from '../../grants/compilers/sense.js'
+import type { CompiledRange } from '../../shared/compilers/range.js'
 import type { EngineProficiency, EngineSense } from '../contracts/engineState.js'
 import type { RulesSystem } from '../contracts/rulesSystem.js'
 import type { CharacterAssemblyRegistry } from '../registry.js'
@@ -18,8 +19,18 @@ export interface EngineAccumulatedState {
   /**
    * Flat modifier grants collected from all sources.
    * Key: `${valueDomainCode}:${modifierKind}` for grouping by the resolver.
+   *
+   * `scopeSpellIds` is present when the grant's restrictions contain a SPELL-subject
+   * context — the modifier only applies when resolving one of those spells.
+   * The character sheet uses this to display "applies to: Eldritch Blast" rather
+   * than showing the modifier as a global bonus.
    */
-  modifierEntries: Array<{ domainKey: string, modifierKind: string, grant: CompiledModifierGrant }>
+  modifierEntries: Array<{
+    domainKey: string
+    modifierKind: string
+    grant: CompiledModifierGrant
+    scopeSpellIds?: string[]
+  }>
   unlockedFeatIds: string[]
   unlockedSpellIds: string[]
 }
@@ -105,7 +116,7 @@ function extractSenses(grants: CompiledSenseGrant[]): EngineSense[] {
 
   for (const grant of grants) {
     // SCALING.NONE grants: pull senseIds from the payload if present
-    const g = grant as { senseIds?: string[], range?: number, scalingKind?: string }
+    const g = grant as { senseIds?: string[], range?: CompiledRange, scalingKind?: string }
     if (g.senseIds) {
       for (const senseCode of g.senseIds) {
         out.push({ senseCode, range: g.range })
@@ -120,15 +131,73 @@ function extractSenses(grants: CompiledSenseGrant[]): EngineSense[] {
  * Modifier extraction helpers
  * ────────────────────────────────────────────── */
 
+/**
+ * Collects modifier grants into the accumulated state, evaluating restrictions:
+ *
+ * - CHARACTER-subject contexts: gate whether the grant is collected at all.
+ *   Supported predicates: SPELL_OBTAINED (checks snapshot.spellAccess).
+ *   Unsupported predicates pass through (fail-open) until implemented.
+ *
+ * - Non-CHARACTER subject contexts (e.g. SPELL): tag the entry with scope IDs
+ *   so the character sheet knows where the modifier applies.
+ *   SPELL-subject contexts populate `scopeSpellIds`.
+ */
 function collectModifiers(
   grants: CompiledModifierGrant[],
+  snapshot: AssembledCharacterSnapshot,
   out: EngineAccumulatedState['modifierEntries']
 ): void {
+  const obtainedSpellIds = new Set(snapshot.spellAccess.map((s) => s.spellId))
+  const obtainedFeatureIds = new Set(snapshot.features.map((f) => f.featureId))
+
   for (const grant of grants) {
+    const restrictions = (grant as { restrictions?: unknown }).restrictions as
+      { groups?: Array<{ contexts?: Array<{ subject?: string, spellIds?: string[], conditions?: Array<{ predicateCode?: string, spellIds?: string[] }> }> }> }
+      | undefined
+
+    // Evaluate CHARACTER-subject restriction contexts — gate eligibility
+    if (restrictions?.groups) {
+      let eligible = true
+      for (const group of restrictions.groups) {
+        for (const ctx of (group.contexts ?? [])) {
+          if (ctx.subject !== 'CHARACTER') continue
+          for (const condition of (ctx.conditions ?? [])) {
+            if (condition.predicateCode === 'SPELL_OBTAINED') {
+              const required = condition.spellIds ?? []
+              if (required.some((id) => !obtainedSpellIds.has(id))) {
+                eligible = false
+              }
+            } else if (condition.predicateCode === 'FEATURE_OBTAINED') {
+              const required = condition.spellIds ?? [] // spellIds is a misnomer here — featureIds
+              if (required.some((id) => !obtainedFeatureIds.has(id))) {
+                eligible = false
+              }
+            }
+            // Other predicates: fail-open until implemented
+          }
+        }
+      }
+      if (!eligible) continue
+    }
+
+    // Extract SPELL-subject scope IDs for character sheet display
+    let scopeSpellIds: string[] | undefined
+    if (restrictions?.groups) {
+      const spellIds: string[] = []
+      for (const group of restrictions.groups) {
+        for (const ctx of (group.contexts ?? [])) {
+          if (ctx.subject === 'SPELL' && ctx.spellIds?.length) {
+            spellIds.push(...ctx.spellIds)
+          }
+        }
+      }
+      if (spellIds.length > 0) scopeSpellIds = spellIds
+    }
+
     const g = grant as { valueDomainCode?: string, modifierKind?: string }
     const domain = g.valueDomainCode ?? 'UNKNOWN'
     const kind = g.modifierKind ?? 'BONUS'
-    out.push({ domainKey: `${domain}:${kind}`, modifierKind: kind, grant })
+    out.push({ domainKey: `${domain}:${kind}`, modifierKind: kind, grant, scopeSpellIds })
   }
 }
 
@@ -169,7 +238,7 @@ export function applyGrants(
     // Apply modifier grants from the feature registry
     const registryFeature = registry.features[feature.featureId]
     if (registryFeature?.modifiers?.length) {
-      collectModifiers(registryFeature.modifiers, acc.modifierEntries)
+      collectModifiers(registryFeature.modifiers, snapshot, acc.modifierEntries)
     }
 
     // Apply grants from classes referenced by this feature's source
@@ -202,7 +271,7 @@ export function applyGrants(
               break
             case 'MODIFIER_GRANT':
               if (compiledFeat.modifiers?.length) {
-                collectModifiers(compiledFeat.modifiers, acc.modifierEntries)
+                collectModifiers(compiledFeat.modifiers, snapshot, acc.modifierEntries)
               }
               break
           }
@@ -218,16 +287,13 @@ export function applyGrants(
   // Also collect modifier grants already assembled on the snapshot (from feature registry path)
   // These come from resolveCharacterState() — avoid double-counting by only adding them if
   // they are not already captured from the registry.features path above.
-  // The snapshot.modifierGrants are authoritative assembled modifiers — include them directly.
-  for (const modifierGrant of snapshot.modifierGrants) {
-    const g = modifierGrant.grant as { valueDomainCode?: string, modifierKind?: string }
-    const domain = g.valueDomainCode ?? 'UNKNOWN'
-    const kind = g.modifierKind ?? 'BONUS'
-    acc.modifierEntries.push({
-      domainKey: `${domain}:${kind}`,
-      modifierKind: kind,
-      grant: modifierGrant.grant
-    })
+  // Route through collectModifiers so restrictions are evaluated consistently.
+  if (snapshot.modifierGrants.length) {
+    collectModifiers(
+      snapshot.modifierGrants.map((mg) => mg.grant),
+      snapshot,
+      acc.modifierEntries
+    )
   }
 
   return acc

@@ -588,6 +588,76 @@ $$;
 
 ALTER TABLE IF EXISTS public.character_attuned ENABLE ROW LEVEL SECURITY;
 
+CREATE TABLE IF NOT EXISTS public.character_creatures (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
+  creature_id uuid NOT NULL REFERENCES public.creatures (id) ON DELETE CASCADE DEFERRABLE,
+  relationship_kind text NOT NULL,
+  custom_name text,
+  notes text,
+  is_active boolean,
+  created_at timestamptz NOT NULL DEFAULT NOW(),
+  updated_at timestamptz NOT NULL DEFAULT NOW(),
+  CONSTRAINT character_creatures_relationship_kind_chk CHECK (
+    relationship_kind IN ('MOUNT', 'COMPANION', 'OWNED', 'SUMMONED')
+  )
+);
+
+CREATE INDEX IF NOT EXISTS idx_character_creatures_character_id
+  ON public.character_creatures (character_id);
+
+CREATE INDEX IF NOT EXISTS idx_character_creatures_creature_id
+  ON public.character_creatures (creature_id);
+
+ALTER TABLE IF EXISTS public.character_creatures ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.character_vehicles (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
+  vehicle_id uuid NOT NULL REFERENCES public.vehicles (id) ON DELETE CASCADE DEFERRABLE,
+  custom_name text,
+  notes text,
+  is_active boolean,
+  created_at timestamptz NOT NULL DEFAULT NOW(),
+  updated_at timestamptz NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_character_vehicles_character_id
+  ON public.character_vehicles (character_id);
+
+CREATE INDEX IF NOT EXISTS idx_character_vehicles_vehicle_id
+  ON public.character_vehicles (vehicle_id);
+
+ALTER TABLE IF EXISTS public.character_vehicles ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.character_creature_equipment (
+  character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
+  character_creature_id uuid NOT NULL REFERENCES public.character_creatures (id) ON DELETE CASCADE DEFERRABLE,
+  equipment_id uuid NOT NULL REFERENCES public.character_equipment (id) ON DELETE CASCADE DEFERRABLE,
+  created_at timestamptz NOT NULL DEFAULT NOW(),
+  updated_at timestamptz NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (character_creature_id, equipment_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_character_creature_equipment_character_id
+  ON public.character_creature_equipment (character_id);
+
+ALTER TABLE IF EXISTS public.character_creature_equipment ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.character_vehicle_equipment (
+  character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
+  character_vehicle_id uuid NOT NULL REFERENCES public.character_vehicles (id) ON DELETE CASCADE DEFERRABLE,
+  equipment_id uuid NOT NULL REFERENCES public.character_equipment (id) ON DELETE CASCADE DEFERRABLE,
+  created_at timestamptz NOT NULL DEFAULT NOW(),
+  updated_at timestamptz NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (character_vehicle_id, equipment_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_character_vehicle_equipment_character_id
+  ON public.character_vehicle_equipment (character_id);
+
+ALTER TABLE IF EXISTS public.character_vehicle_equipment ENABLE ROW LEVEL SECURITY;
+
 CREATE TABLE IF NOT EXISTS public.character_currency_groups (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid (),
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,

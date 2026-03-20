@@ -1,0 +1,82 @@
+import {
+  ACTIVATION_CODE,
+  BRANCH,
+  BRANCH_GROUP_TYPE,
+  BRANCH_RESOLUTION_KIND,
+  CASTING_TIME_UNIT_CODE,
+  DURATION_KIND,
+  EFFECT_KIND,
+  MANIFEST_KIND,
+  MEASUREMENT_UNIT_CODE,
+  RANGE_KIND,
+  SHAPE_KIND,
+  SUBJECT,
+  TARGET_SELECTION_KIND,
+  TRIGGER,
+  type SpellAuthored
+} from '@artificer-toolkit/shared'
+import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+
+export const privateSanctum: SpellAuthored = {
+  kind: SUBJECT.SPELL,
+  id: SPELL_IDS.PRIVATE_SANCTUM,
+  label: 'Private Sanctum',
+  description:
+    'You make an area within range magically secure. The area is a cube that can be as small as 5 feet to as large as 100 feet on each side.',
+  castingTime: { unit: CASTING_TIME_UNIT_CODE.MINUTE, amount: 10 },
+  level: 4,
+  classIds: [CLASS_IDS.WIZARD],
+  magicSchoolId: schoolId('ABJURATION'),
+  materialDescription:
+    'a thin sheet of lead, a piece of opaque glass, a wad of cotton or cloth, and powdered chrysolite',
+  capabilities: [
+    {
+      id: spellChildId(SPELL_IDS.PRIVATE_SANCTUM, 0x210, 1),
+      order: 1,
+      invocation: {
+        triggerCode: TRIGGER.ACTIVATED,
+        activation: {
+          code: ACTIVATION_CODE.ACTION,
+          amount: 1
+        },
+        range: {
+          id: spellChildId(SPELL_IDS.PRIVATE_SANCTUM, 0x201, 1),
+          rangeKind: RANGE_KIND.DISTANCE,
+          amount: 120,
+          unit: MEASUREMENT_UNIT_CODE.FEET
+        },
+        shape: {
+          id: spellChildId(SPELL_IDS.PRIVATE_SANCTUM, 0x212, 1),
+          shapeKind: SHAPE_KIND.CUBE,
+          edgeLength: {
+            amount: 100,
+            unit: MEASUREMENT_UNIT_CODE.FEET
+          }
+        },
+        targeting: {
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
+          detail: 'Choose the area to secure within range.'
+        }
+      },
+      branches: [
+        {
+          id: spellChildId(SPELL_IDS.PRIVATE_SANCTUM, 0x213, 1),
+          branch: BRANCH.ON_USE,
+          groupType: BRANCH_GROUP_TYPE.SINGLE,
+          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
+          duration: {
+            id: spellChildId(SPELL_IDS.PRIVATE_SANCTUM, 0x202, 1),
+            durationKind: DURATION_KIND.HOUR,
+            amount: 24
+          },
+          effectKind: EFFECT_KIND.RULE,
+          label: 'Private Sanctum',
+          description: 'Creates a magically secure warded area within the chosen space.'
+        }
+      ]
+    }
+  ],
+  userId: SRD_USER_ID,
+  systemId: SRD_SYSTEM_ID
+}

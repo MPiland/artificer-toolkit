@@ -15,9 +15,9 @@ export interface VehicleAuthored {
   userId: string
   systemId: string
   category: VehicleCategory
-  size: SizeCode
-  armorClass: number
-  hitPoints: number
+  size?: SizeCode
+  armorClass?: number
+  hitPoints?: number
   speed?: number
   speedNote?: string
   crewMin?: number

@@ -195,10 +195,10 @@ describe('createFeatureRepository', () => {
               unit: 'FEET'
             }
           },
-          moments: [
+          branches: [
             {
-              id: 'feature-effect-moment-1',
-              moment: 'ON_HIT',
+              id: 'feature-effect-BRANCH-1',
+              branch: 'ON_HIT',
               groupType: 'SINGLE',
               resolutionKind: 'DIRECT',
               effectKind: 'DAMAGE',
@@ -230,10 +230,10 @@ describe('createFeatureRepository', () => {
                   rangeKind: 'SELF'
                 }
               },
-              moments: [
+              branches: [
                 {
-                  id: 'option-effect-moment-1',
-                  moment: 'PASSIVE',
+                  id: 'option-effect-BRANCH-1',
+                  branch: 'PASSIVE',
                   groupType: 'SINGLE',
                   resolutionKind: 'DIRECT',
                   effectKind: 'CONDITION',
@@ -270,10 +270,10 @@ describe('createFeatureRepository', () => {
             },
             shape: undefined
           },
-          moments: [
+          branches: [
             {
-              id: 'feature-effect-moment-1',
-              moment: 'ON_HIT',
+              id: 'feature-effect-BRANCH-1',
+              branch: 'ON_HIT',
               groupType: 'SINGLE',
               resolutionKind: 'DIRECT',
               duration: undefined,
@@ -315,10 +315,10 @@ describe('createFeatureRepository', () => {
                 },
                 shape: undefined
               },
-              moments: [
+              branches: [
                 {
-                  id: 'option-effect-moment-1',
-                  moment: 'PASSIVE',
+                  id: 'option-effect-BRANCH-1',
+                  branch: 'PASSIVE',
                   groupType: 'SINGLE',
                   resolutionKind: 'DIRECT',
                   duration: undefined,

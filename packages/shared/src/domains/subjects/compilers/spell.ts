@@ -1,9 +1,11 @@
-import type { SpellAuthored } from '#authored'
+import type {
+  SpellAuthored
+} from '#authored'
 import type {
   CastingTimeUnitCode,
   SpellAttribute
 } from '#core'
-import { compileEffect, type CompiledEffectGroup } from '#compilers'
+import { compileCapability, type CompiledCapabilityGroup } from '#compilers'
 
 export type CompiledCastingTime = {
   unit: CastingTimeUnitCode
@@ -16,14 +18,14 @@ export type CompiledSpell = {
   attributes?: SpellAttribute[]
   classIds: string[]
   magicSchoolId: string
-  effects?: CompiledEffectGroup[]
+  capabilities?: CompiledCapabilityGroup[]
   castingTime?: CompiledCastingTime
 }
 
 export function compileSpell(authored: SpellAuthored): CompiledSpell {
-  const effects
-    = authored.effects && authored.effects.length
-      ? authored.effects.map(compileEffect)
+  const capabilities
+    = (authored.capabilities ?? authored.effects)?.length
+      ? (authored.capabilities ?? authored.effects)?.map(compileCapability)
       : undefined
 
   return {
@@ -32,7 +34,7 @@ export function compileSpell(authored: SpellAuthored): CompiledSpell {
     classIds: authored.classIds,
     attributes: authored.attributes,
     magicSchoolId: authored.magicSchoolId,
-    effects,
+    capabilities,
     castingTime: authored.castingTime
   }
 }

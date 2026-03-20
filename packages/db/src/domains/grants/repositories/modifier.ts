@@ -37,6 +37,7 @@ type ModifierGrantDomainRow = {
   speed_id: string | null
   sense_code: string | null
   spell_level: number | null
+  condition_type_id: string | null
 }
 
 type ModifierGrantPayloadRow = {
@@ -303,7 +304,18 @@ function hydrateDomain(
       }
     }
 
-    case 'SAVING_THROW_BONUS':
+    case 'SAVING_THROW_BONUS': {
+      const persisted = requireDomainRow(row.id, domainRow)
+      if (!persisted.ability_code) {
+        throw new Error(`Modifier grant "${row.id}" is missing domain ability_code.`)
+      }
+
+      return {
+        ability: requireAbilityCode(row.id, persisted.ability_code, 'domain ability_code'),
+        ...(persisted.condition_type_id ? { conditionTypeId: persisted.condition_type_id } : {})
+      }
+    }
+
     case 'ABILITY_SCORE': {
       const persisted = requireDomainRow(row.id, domainRow)
       if (!persisted.ability_code) {
@@ -478,6 +490,7 @@ function hydratePayload(
           return { damageTypeId: payload.damage_type_id }
 
         case 'CONDITION':
+        case 'CONDITION_IMMUNITY':
           if (!payload.condition_type_id) {
             throw new Error(`Modifier grant "${row.id}" option payload is missing condition_type_id.`)
           }
@@ -660,7 +673,8 @@ export async function hydrateModifierGrantById(
         'skill_id',
         'speed_id',
         'sense_code',
-        'spell_level'
+        'spell_level',
+        'condition_type_id'
       ])
       .where('modifier_grant_id', '=', id)
       .executeTakeFirst() as Promise<ModifierGrantDomainRow | undefined>,

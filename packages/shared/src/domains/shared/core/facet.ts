@@ -4,6 +4,8 @@ import {
   type ChargeLimitKind,
   type ChargeResetKind,
   type CoreMeta,
+  type CreatureCategoryCode,
+  type CreatureRecordKindCode,
   type DurationKind,
   type EquipmentCategoryCode,
   type EquipmentPropertyCode,
@@ -11,7 +13,8 @@ import {
   type ProficiencyKind,
   type RangeKind,
   type ScalingAmountKind,
-  type SizeCode
+  type SizeCode,
+  type VehicleCategoryCode
 } from '#core'
 import { valuesOf, type Selectable, type EmptyObject } from '#utils'
 
@@ -23,6 +26,8 @@ export type SubjectPayloadByCode = {
   FEAT: { featIds: string[] }
   RACE: { raceIds: string[] }
   BACKGROUND: { backgroundIds: string[] }
+  CREATURE: { creatureIds: string[] }
+  VEHICLE: { vehicleIds: string[] }
   PROFICIENCY_GRANT: { proficiencyKind: ProficiencyKind }
 
   OPTION: { optionIds: string[] }
@@ -137,6 +142,10 @@ export const RELATIONS = {
   BACKGROUND: {
     FEATURE: { to: 'FEATURE' },
     PROFICIENCY_GRANT: { to: 'PROFICIENCY_GRANT' }
+  },
+  CHARACTER: {
+    CREATURE: { to: 'CREATURE' },
+    VEHICLE: { to: 'VEHICLE' }
   },
   RACE: {
     FEATURE: { to: 'FEATURE' },
@@ -333,6 +342,26 @@ export type PredicatePayloadByCode = {
   WHILE_SOURCE_CARRIED: EmptyObject
   WHILE_SOURCE_EQUIPPED: EmptyObject
   WHILE_SOURCE_ATTUNED: EmptyObject
+  CREATURE_RECORD_KIND: Selectable<
+    { recordKinds: CreatureRecordKindCode[] }
+  >
+  CREATURE_CATEGORY: Selectable<
+    { categories: CreatureCategoryCode[] }
+  >
+  CREATURE_TYPE: Selectable<
+    { creatureTypeIds: string[] }
+  >
+  CREATURE_SIZE: Selectable<
+    { sizes: SizeCode[] }
+  >
+  CREATURE_IS_MOUNT: EmptyObject
+  CREATURE_IS_COMPANION: EmptyObject
+  VEHICLE_CATEGORY: Selectable<
+    { categories: VehicleCategoryCode[] }
+  >
+  VEHICLE_SIZE: Selectable<
+    { sizes: SizeCode[] }
+  >
 }
 
 type SelectablePredicateCode = {
@@ -363,7 +392,13 @@ export const SELECTABLE_PREDICATE_CODES = [
   'SKILL_PROFICIENCY',
   'SKILL_SCORE',
   'ABILITY_SCORE',
-  'SAVING_THROW_ABILITY_BONUS'
+  'SAVING_THROW_ABILITY_BONUS',
+  'CREATURE_RECORD_KIND',
+  'CREATURE_CATEGORY',
+  'CREATURE_TYPE',
+  'CREATURE_SIZE',
+  'VEHICLE_CATEGORY',
+  'VEHICLE_SIZE'
 ] as const satisfies readonly SelectablePredicateCode[]
 
 export type PredicateCode = keyof PredicatePayloadByCode
@@ -438,7 +473,7 @@ export const PREDICATE_REGISTRY = {
     label: 'Size',
     tooltip: 'Narrows selection to creature size(s).',
     description: 'Such as Small, Medium, or Large.',
-    subjects: ['RACE']
+    subjects: ['RACE', 'CHARACTER']
   },
 
   MAGIC_SCHOOL: {
@@ -725,6 +760,70 @@ export const PREDICATE_REGISTRY = {
           'The modifier applies only when the character is attuned to the item. Attunement is required in addition to equipping the item.',
     subjects: ['CHARACTER'],
     owners: ['EQUIPMENT']
+  },
+
+  CREATURE_RECORD_KIND: {
+    code: 'CREATURE_RECORD_KIND',
+    label: 'Creature Record Kind',
+    tooltip: 'Narrows selection to creature record kinds.',
+    description: 'Narrows creature applicability to stat-block or logistics creature records.',
+    subjects: ['CREATURE']
+  },
+
+  CREATURE_CATEGORY: {
+    code: 'CREATURE_CATEGORY',
+    label: 'Creature Category',
+    tooltip: 'Narrows selection to creature categories.',
+    description: 'Narrows creature applicability to categories such as monster, beast, companion, or summon.',
+    subjects: ['CREATURE']
+  },
+
+  CREATURE_TYPE: {
+    code: 'CREATURE_TYPE',
+    label: 'Creature Type',
+    tooltip: 'Narrows selection to creature types.',
+    description: 'Narrows creature applicability to one or more master creature types such as beast, humanoid, or undead.',
+    subjects: ['CREATURE']
+  },
+
+  CREATURE_SIZE: {
+    code: 'CREATURE_SIZE',
+    label: 'Creature Size',
+    tooltip: 'Narrows selection to creature sizes.',
+    description: 'Narrows creature applicability to one or more creature sizes.',
+    subjects: ['CREATURE']
+  },
+
+  CREATURE_IS_MOUNT: {
+    code: 'CREATURE_IS_MOUNT',
+    label: 'Is Mount',
+    tooltip: 'Requires mount-capable creatures.',
+    description: 'Narrows creature applicability to creatures that can be treated as mounts.',
+    subjects: ['CREATURE']
+  },
+
+  CREATURE_IS_COMPANION: {
+    code: 'CREATURE_IS_COMPANION',
+    label: 'Is Companion',
+    tooltip: 'Requires companion-capable creatures.',
+    description: 'Narrows creature applicability to creatures that can be treated as companions.',
+    subjects: ['CREATURE']
+  },
+
+  VEHICLE_CATEGORY: {
+    code: 'VEHICLE_CATEGORY',
+    label: 'Vehicle Category',
+    tooltip: 'Narrows selection to vehicle categories.',
+    description: 'Narrows vehicle applicability to land, water, air, or similar vehicle categories.',
+    subjects: ['VEHICLE']
+  },
+
+  VEHICLE_SIZE: {
+    code: 'VEHICLE_SIZE',
+    label: 'Vehicle Size',
+    tooltip: 'Narrows selection to vehicle sizes.',
+    description: 'Narrows vehicle applicability to one or more vehicle sizes.',
+    subjects: ['VEHICLE']
   }
 } as const satisfies Record<PredicateCode, PredicateOption>
 

@@ -10,6 +10,7 @@ import {
   type NodeSubjectCode
 } from '#core'
 import {
+  type CapabilityAuthored,
   type EffectAuthored,
   type ModifierGrantAuthored,
   type ChargeAuthored,
@@ -53,8 +54,10 @@ export type EquipmentBaseAuthored = {
   description: string | null
   attributes?: EquipmentAttribute[]
   quote?: string
-  cost: CostAuthored
+  cost?: CostAuthored
   weight: WeightAuthored
+  capabilities?: CapabilityAuthored[]
+  /** @deprecated Use capabilities. */
   effects?: EffectAuthored[]
   charges?: ChargeAuthored
   capacity?: CapacityAuthored
@@ -80,4 +83,5 @@ export type EquipmentAuthored = {
 export type EquipmentVariantAuthored = {
   category: typeof EQUIPMENT_CATEGORY_CODE.VARIANT
   parentEquipmentId: string
+  properties?: EquipmentPropertyCode[]
 } & EquipmentBaseAuthored

@@ -37,10 +37,10 @@ describe('createEffectRepository', () => {
           }
         }
       },
-      moments: [
+      branches: [
         {
           id: 'save-fail-1',
-          moment: 'ON_SAVE_FAIL',
+          branch: 'ON_SAVE_FAIL',
           groupType: 'SINGLE',
           resolutionKind: 'DIRECT',
           duration: {
@@ -64,7 +64,7 @@ describe('createEffectRepository', () => {
         },
         {
           id: 'save-success-1',
-          moment: 'ON_SAVE_SUCCESS',
+          branch: 'ON_SAVE_SUCCESS',
           groupType: 'SINGLE',
           resolutionKind: 'DIRECT',
           effectKind: 'CONDITION',
@@ -103,10 +103,10 @@ describe('createEffectRepository', () => {
           }
         }
       },
-      moments: [
+      branches: [
         {
           id: 'save-fail-1',
-          moment: 'ON_SAVE_FAIL',
+          branch: 'ON_SAVE_FAIL',
           groupType: 'SINGLE',
           resolutionKind: 'DIRECT',
           duration: {
@@ -133,7 +133,7 @@ describe('createEffectRepository', () => {
         },
         {
           id: 'save-success-1',
-          moment: 'ON_SAVE_SUCCESS',
+          branch: 'ON_SAVE_SUCCESS',
           groupType: 'SINGLE',
           resolutionKind: 'DIRECT',
           duration: undefined,
@@ -162,10 +162,10 @@ describe('createEffectRepository', () => {
           rangeKind: 'SELF'
         }
       },
-      moments: [
+      branches: [
         {
           id: 'passive-table-1',
-          moment: 'PASSIVE',
+          branch: 'PASSIVE',
           groupType: 'CHOICE',
           resolutionKind: 'ROLL_TABLE',
           rollTableKind: 'RANGE',
@@ -213,10 +213,10 @@ describe('createEffectRepository', () => {
         },
         shape: undefined
       },
-      moments: [
+      branches: [
         {
           id: 'passive-table-1',
-          moment: 'PASSIVE',
+          branch: 'PASSIVE',
           groupType: 'CHOICE',
           resolutionKind: 'ROLL_TABLE',
           rollTableKind: 'RANGE',

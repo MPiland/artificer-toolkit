@@ -1,0 +1,79 @@
+import {
+  ACTIVATION_CODE,
+  BRANCH,
+  BRANCH_GROUP_TYPE,
+  BRANCH_RESOLUTION_KIND,
+  CASTING_TIME_UNIT_CODE,
+  DURATION_KIND,
+  EFFECT_KIND,
+  MEASUREMENT_UNIT_CODE,
+  RANGE_KIND,
+  SUBJECT,
+  TARGET_DISPOSITION_KIND,
+  TARGET_SELECTION_KIND,
+  TRIGGER,
+  type SpellAuthored
+} from '@artificer-toolkit/shared'
+import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+
+export const sanctuary: SpellAuthored = {
+  kind: SUBJECT.SPELL,
+  id: SPELL_IDS.SANCTUARY,
+  label: 'Sanctuary',
+  description:
+    'You ward a creature within range against attack. Until the spell ends, a creature that targets the warded creature with an attack or harmful spell must first make a Wisdom saving throw.',
+  castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
+  range: {
+    id: spellChildId(SPELL_IDS.SANCTUARY, 0x201, 1),
+    rangeKind: RANGE_KIND.DISTANCE,
+    amount: 30,
+    unit: MEASUREMENT_UNIT_CODE.FEET
+  },
+  duration: {
+    id: spellChildId(SPELL_IDS.SANCTUARY, 0x202, 1),
+    durationKind: DURATION_KIND.MINUTE,
+    amount: 1
+  },
+  level: 1,
+  classIds: [CLASS_IDS.CLERIC],
+  magicSchoolId: schoolId('ABJURATION'),
+  userId: SRD_USER_ID,
+  systemId: SRD_SYSTEM_ID,
+  capabilities: [
+    {
+      id: spellChildId(SPELL_IDS.SANCTUARY, 0x210, 1),
+      order: 1,
+      invocation: {
+        triggerCode: TRIGGER.ACTIVATED,
+        activation: {
+          code: ACTIVATION_CODE.BONUS_ACTION,
+          amount: 1
+        },
+        range: {
+          id: spellChildId(SPELL_IDS.SANCTUARY, 0x211, 1),
+          rangeKind: RANGE_KIND.DISTANCE,
+          amount: 30,
+          unit: MEASUREMENT_UNIT_CODE.FEET
+        },
+        targeting: {
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+          dispositionKind: TARGET_DISPOSITION_KIND.WILLING,
+          detail: 'Ward one willing creature within range.'
+        }
+      },
+      branches: [
+        {
+          id: spellChildId(SPELL_IDS.SANCTUARY, 0x212, 1),
+          branch: BRANCH.ON_USE,
+          groupType: BRANCH_GROUP_TYPE.SINGLE,
+          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
+          effectKind: EFFECT_KIND.RULE,
+          label: 'Sanctuary',
+          description:
+            'Wards a creature against attack. The attack-or-harmful-spell trigger response remains a rules fallback for now.'
+        }
+      ]
+    }
+  ]
+}
