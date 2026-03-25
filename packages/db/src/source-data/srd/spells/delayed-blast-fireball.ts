@@ -51,8 +51,7 @@ export const delayedBlastFireball: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose a point within range for the glowing bead to linger.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -62,9 +61,6 @@ export const delayedBlastFireball: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Delayed Blast Fireball',
-          description:
-            'A glowing bead lingers at the chosen point for the duration before it detonates under the spell’s normal rules.'
         }
       ]
     }

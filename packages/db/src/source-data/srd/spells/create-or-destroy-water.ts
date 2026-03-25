@@ -42,8 +42,7 @@ export const createOrDestroyWater: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose whether to create or destroy water in an area or open container within range.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -53,9 +52,6 @@ export const createOrDestroyWater: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Create or Destroy Water',
-          description:
-            'Choose to create water in an area or open container, or to destroy water or suppress fog in the chosen area.'
         }
       ]
     }

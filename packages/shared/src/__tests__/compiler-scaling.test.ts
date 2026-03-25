@@ -13,6 +13,8 @@ import {
   BRANCH_GROUP_TYPE,
   BRANCH_RESOLUTION_KIND,
   BRANCH_ROLL_TABLE_KIND,
+  FORCED_MOVEMENT_ACTION_ECONOMY,
+  FORCED_MOVEMENT_DIRECTION,
   RANGE_KIND,
   SCALING,
   SCALING_SOURCE,
@@ -25,7 +27,8 @@ import {
   compileFeatGrant,
   compileFeatGrantResult,
   compileFeatureResult,
-  compileScalingSource
+  compileScalingSource,
+  compileSpellGrant
 } from '#compilers'
 
 describe('shared compiler scaling', () => {
@@ -165,6 +168,104 @@ describe('shared compiler scaling', () => {
           spellIds: ['misty-step']
         }
       ]
+    })
+  })
+
+  it('preserves spell grant restrictions and filters in the compiled grant shape', () => {
+    const compiled = compileSpellGrant({
+      grantKind: GRANT_KIND.SPELL_GRANT,
+      id: 'circle-spells-arctic',
+      order: 1,
+      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+      scalingKind: SCALING.PER_LEVEL,
+      progression: {
+        scalingSource: SCALING_SOURCE.CLASS_LEVEL,
+        classId: 'druid',
+        levels: [
+          {
+            id: 'circle-spells-3',
+            level: 3,
+            order: 1,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            spellIds: ['spike-growth']
+          }
+        ]
+      },
+      restrictions: {
+        groups: [
+          {
+            contexts: [
+              {
+                subject: 'SUBCLASS',
+                authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                conditions: [
+                  {
+                    predicateCode: 'SUBCLASS_SPECIALIZATION',
+                    authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                    specializationIds: ['arctic']
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      filters: {
+        groups: [
+          {
+            contexts: [
+              {
+                subject: 'SPELL',
+                authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                conditions: [
+                  {
+                    predicateCode: 'SPELL_LEVEL',
+                    min: 2
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    } as never)
+
+    expect(compiled).toMatchObject({
+      grantKind: GRANT_KIND.SPELL_GRANT,
+      restrictions: {
+        groups: [
+          {
+            contexts: [
+              {
+                subject: 'SUBCLASS',
+                conditions: [
+                  {
+                    predicateCode: 'SUBCLASS_SPECIALIZATION',
+                    specializationIds: ['arctic']
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      filters: {
+        groups: [
+          {
+            contexts: [
+              {
+                subject: 'SPELL',
+                conditions: [
+                  {
+                    predicateCode: 'SPELL_LEVEL',
+                    min: 2
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
     })
   })
 
@@ -472,9 +573,7 @@ describe('shared compiler scaling', () => {
           branch: BRANCH.ON_CAST,
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
-          effectKind: EFFECT_KIND.RULE,
-          label: 'Intercepts Magic Missile',
-          description: 'The shield blocks the magic missile spell until the start of your next turn.'
+          effectKind: EFFECT_KIND.RULE
         }
       ]
     })
@@ -528,9 +627,7 @@ describe('shared compiler scaling', () => {
           effectKind: EFFECT_KIND.RULE,
           branch: BRANCH.ON_CAST,
           groupType: BRANCH_GROUP_TYPE.SINGLE,
-          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
-          label: 'Intercepts Magic Missile',
-          description: 'The shield blocks the magic missile spell until the start of your next turn.'
+          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT
         },
         order: 1,
         duration: undefined
@@ -608,8 +705,7 @@ describe('shared compiler scaling', () => {
           unit: 'FEET'
         },
         targeting: {
-          selectionKind: 'AREA_CONTENTS',
-          detail: 'The familiar appears in an unoccupied space within range.'
+          selectionKind: 'AREA_CONTENTS'
         }
       },
       branches: [
@@ -623,8 +719,7 @@ describe('shared compiler scaling', () => {
             durationKind: 'UNTIL_DISPELLED'
           },
           effectKind: EFFECT_KIND.MANIFEST,
-          manifestKind: 'CREATURE',
-          label: 'Familiar'
+          manifestKind: 'CREATURE'
         }
       ]
     })
@@ -640,6 +735,66 @@ describe('shared compiler scaling', () => {
         effectKind: EFFECT_KIND.MANIFEST,
         manifestKind: 'CREATURE',
         label: 'Familiar'
+      }
+    })
+  })
+
+  it('preserves lifecycle metadata and typed forced movement outcomes', () => {
+    const result = compileEffectResult({
+      id: 'dissonant-whispers-capability',
+      order: 1,
+      invocation: {
+        triggerCode: TRIGGER.SAVING_THROW,
+        savingThrow: {
+          id: 'dw-save',
+          savingThrowKind: 'FIXED_VALUE',
+          ability: 'WISDOM',
+          dc: 14
+        },
+        activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+        range: {
+          id: 'dw-range',
+          rangeKind: RANGE_KIND.DISTANCE,
+          amount: 60,
+          unit: 'FEET'
+        }
+      },
+      branches: [
+        {
+          id: 'dw-forced-movement',
+          branch: BRANCH.ON_SAVE_FAIL,
+          groupType: BRANCH_GROUP_TYPE.SEQUENTIAL,
+          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
+          lifecycle: {
+            recurringKind: 'NONE',
+            consumeOnFirstEvent: 'ON_ATTACK_ROLL',
+            endOnEvents: ['ON_CAST_SPELL']
+          },
+          effectKind: EFFECT_KIND.FORCED_MOVEMENT,
+          direction: FORCED_MOVEMENT_DIRECTION.AWAY_FROM_SOURCE,
+          distanceMode: 'UP_TO_SPEED',
+          actionEconomy: FORCED_MOVEMENT_ACTION_ECONOMY.REACTION
+        }
+      ]
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) {
+      throw new Error('Expected compileEffectResult to succeed')
+    }
+
+    expect(result.value[0]).toMatchObject({
+      branch: BRANCH.ON_SAVE_FAIL,
+      lifecycle: {
+        recurringKind: 'NONE',
+        consumeOnFirstEvent: 'ON_ATTACK_ROLL',
+        endOnEvents: ['ON_CAST_SPELL']
+      },
+      outcome: {
+        effectKind: EFFECT_KIND.FORCED_MOVEMENT,
+        direction: FORCED_MOVEMENT_DIRECTION.AWAY_FROM_SOURCE,
+        distanceMode: 'UP_TO_SPEED',
+        actionEconomy: FORCED_MOVEMENT_ACTION_ECONOMY.REACTION
       }
     })
   })

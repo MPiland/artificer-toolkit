@@ -49,8 +49,7 @@ export const guardianOfFaith: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose an unoccupied space within range to create the spectral guardian.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -60,9 +59,6 @@ export const guardianOfFaith: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Guardian of Faith',
-          description:
-            'A large spectral guardian appears in the chosen space and remains there for the duration, harming creatures that move too close.'
         }
       ]
     }

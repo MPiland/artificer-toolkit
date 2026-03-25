@@ -42,8 +42,7 @@ export const blur: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF,
-          detail: 'Blur your own form.'
+          selectionKind: TARGET_SELECTION_KIND.SELF
         }
       },
       branches: [
@@ -58,9 +57,6 @@ export const blur: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Blur',
-          description:
-            'For the duration, creatures have disadvantage on attack rolls against you unless they rely on senses that bypass the illusion.'
         }
       ]
     }

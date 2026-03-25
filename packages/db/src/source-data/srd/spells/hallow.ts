@@ -51,8 +51,7 @@ export const hallow: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Touch a point to infuse the surrounding area.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -67,7 +66,6 @@ export const hallow: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.ZONE,
-          label: 'Hallow',
           detail: 'Infuses the chosen area with holy or unholy power and establishes the ward.'
         }
       ]

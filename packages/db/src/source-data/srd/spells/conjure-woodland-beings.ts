@@ -46,8 +46,7 @@ export const conjureWoodlandBeings: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose the unoccupied spaces where the fey creatures appear.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -63,7 +62,6 @@ export const conjureWoodlandBeings: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.CREATURE,
-          label: 'Conjure Woodland Beings',
           detail: 'Summons woodland ally creatures under your control for the spell duration.'
         }
       ]

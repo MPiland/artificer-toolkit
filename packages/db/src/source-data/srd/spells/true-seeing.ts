@@ -44,8 +44,7 @@ export const trueSeeing: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: 'SINGLE_TARGET',
-          detail: 'Touch one willing creature to grant true seeing.'
+          selectionKind: 'SINGLE_TARGET'
         }
       },
       branches: [
@@ -60,8 +59,6 @@ export const trueSeeing: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'True Seeing',
-          description: 'The touched willing creature sees things as they actually are, has truesight, notices secret doors hidden by magic, and can see into the Ethereal Plane for the duration.'
         }
       ]
     }

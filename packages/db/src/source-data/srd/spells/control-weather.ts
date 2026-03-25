@@ -40,8 +40,7 @@ export const controlWeather: SpellAuthored = {
           rangeKind: RANGE_KIND.SPECIAL
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose the weather area around you to control.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -56,8 +55,6 @@ export const controlWeather: SpellAuthored = {
             amount: 8
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Control Weather',
-          description: 'Alters the weather in the chosen region while you remain able to sustain the spell.'
         }
       ]
     }

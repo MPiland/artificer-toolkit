@@ -41,8 +41,7 @@ export const fabricate: SpellAuthored = {
           rangeKind: RANGE_KIND.SIGHT
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose raw material within sight to convert into an object or structure.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -52,9 +51,6 @@ export const fabricate: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Fabricate',
-          description:
-            'Converts raw material into a finished product. The material-translation and crafting-output limits remain prose-bound.'
         }
       ]
     }

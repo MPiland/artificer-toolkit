@@ -40,8 +40,7 @@ export const speakWithAnimals: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: 'SELF',
-          detail: 'Gain the ability to comprehend and verbally communicate with beasts.'
+          selectionKind: 'SELF'
         }
       },
       branches: [
@@ -56,8 +55,6 @@ export const speakWithAnimals: SpellAuthored = {
             amount: 10
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Speak with Animals',
-          description: 'You can comprehend and verbally communicate with beasts for the duration.'
         }
       ]
     }

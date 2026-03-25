@@ -1,5 +1,5 @@
 import { ChargeBonusAuthored, type ChargeAuthored, type ChargeLimitPayload } from '#authored'
-import { ABILITY_OPTIONS, CHARGE_BONUS_OPTIONS, CHARGE_LIMIT_OPTIONS, CHARGE_RESET_OPTIONS, SCALING_OPTIONS } from '#core'
+import { ABILITY_OPTIONS, CHARGE_BONUS_OPTIONS, CHARGE_LIMIT_OPTIONS, CHARGE_RESET_OPTIONS, SCALING_OPTIONS, CHARGE_LIMIT_KIND } from '#core'
 import { buildNodeMap } from '#utils'
 import { AllUnionFields } from 'type-fest'
 
@@ -89,13 +89,22 @@ export const CHARGE_NODE_MAP = charges.define('charges', ({ map, nodes, logic, c
     .set('bonuses', groupArray(['bonuses'], 'Bonuses', () => CHARGE_BONUS_NODE_MAP, {
       order: 2
     }))
+    .set('ability', selectSingle(['ability'], 'Ability', {
+      kind: 'INLINE',
+      options: ABILITY_OPTIONS
+    }, {
+      order: 3,
+      requiredIf: true,
+      showIf: local.field(['limitKind']).eq(CHARGE_LIMIT_KIND.ABILITY_MODIFIER)
+    }))
     .set('multiplier', number(['multiplier'], 'Multiplier', {
       order: 4,
       showIf: or([
         local.field(['limitKind']).eq('CHARACTER_LEVEL'),
         local.field(['limitKind']).eq('CLASS_LEVEL'),
         local.field(['limitKind']).eq('PARENT_CLASS_LEVEL'),
-        local.field(['limitKind']).eq('SPELL_CAST_LEVEL')
+        local.field(['limitKind']).eq('SPELL_CAST_LEVEL'),
+        local.field(['limitKind']).eq('ABILITY_MODIFIER')
       ])
     }))
     .set('classId', selectSingle(['classId'], 'Class', {

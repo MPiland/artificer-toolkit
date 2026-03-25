@@ -40,8 +40,7 @@ export const cureWounds: SpellAuthored = {
         },
         targeting: {
           selectionKind: 'SINGLE_TARGET',
-          excludedCreatureTypeIds: ['undead', 'construct'],
-          detail: 'A creature you touch.'
+          excludedCreatureTypeIds: ['undead', 'construct']
         }
       },
       branches: [

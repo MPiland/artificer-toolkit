@@ -40,8 +40,7 @@ export const foresight: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Touch one willing creature.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -56,9 +55,6 @@ export const foresight: SpellAuthored = {
             amount: 8
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Foresight',
-          description:
-            'Bestows the spell’s future-sight benefits for the duration. Surprise immunity and broad advantage coverage still remain prose-bound.'
         }
       ]
     }

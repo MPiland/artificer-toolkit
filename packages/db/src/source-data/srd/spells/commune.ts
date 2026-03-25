@@ -40,8 +40,7 @@ export const commune: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: 'SELF',
-          detail: 'You contact your deity or a divine proxy and ask up to three questions.'
+          selectionKind: 'SELF'
         }
       },
       branches: [
@@ -51,8 +50,6 @@ export const commune: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Commune Reply',
-          description: 'Receive answers of yes, no, unclear, or no reply to up to three questions before the spell ends.'
         }
       ]
     }

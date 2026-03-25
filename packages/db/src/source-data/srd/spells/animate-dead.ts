@@ -46,8 +46,7 @@ export const animateDead: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose a pile of bones or a corpse of a Small or Medium humanoid.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -58,7 +57,6 @@ export const animateDead: SpellAuthored = {
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.CREATURE,
-          label: 'Animate Dead',
           detail: 'Raises the target as an undead creature under the caster\'s control.'
         }
       ]

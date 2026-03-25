@@ -43,8 +43,7 @@ export const callLightning: SpellAuthored = {
           rangeKind: RANGE_KIND.SIGHT
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose a point in the storm cloud to call down lightning.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         },
         shape: {
           id: spellChildId(SPELL_IDS.CALL_LIGHTNING, 0x212, 1),
@@ -66,9 +65,6 @@ export const callLightning: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Call Lightning',
-          description:
-            'A storm cloud forms overhead and can be used to call down bolts of lightning while concentration is maintained.'
         }
       ]
     }

@@ -51,8 +51,7 @@ export const suggestion: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one creature you can see within range that can hear and understand you.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -67,9 +66,6 @@ export const suggestion: SpellAuthored = {
             amount: 8
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Suggestion Takes Hold',
-          description:
-            'On a failed save, the target follows the suggested course of activity under the spell’s full SRD constraints.'
         },
         {
           id: spellChildId(SPELL_IDS.SUGGESTION, 0x215, 1),
@@ -77,8 +73,6 @@ export const suggestion: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Successful Save',
-          description: 'On a successful save, the target resists the spell.'
         }
       ]
     }

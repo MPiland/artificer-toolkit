@@ -42,8 +42,7 @@ export const stormOfVengeance: SpellAuthored = {
           rangeKind: RANGE_KIND.SIGHT
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose a point you can see to center the storm.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -58,9 +57,6 @@ export const stormOfVengeance: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Storm of Vengeance',
-          description:
-            'Creates an escalating storm effect that changes each round while concentration is maintained.'
         }
       ]
     }

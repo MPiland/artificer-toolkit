@@ -45,8 +45,7 @@ export const animalMessenger: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one Tiny beast you can see within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -61,9 +60,6 @@ export const animalMessenger: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Animal Messenger',
-          description:
-            'The chosen Tiny beast carries a spoken message toward a specified location, delivering it to the described recipient if able within the spell’s limits.'
         }
       ]
     }

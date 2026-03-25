@@ -44,8 +44,7 @@ export const fireBolt: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Hurl the mote of fire at one creature or object within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -65,15 +64,6 @@ export const fireBolt: SpellAuthored = {
             { id: spellChildId(SPELL_IDS.FIRE_BOLT, 0x212, 4), level: 11, order: 3, diceConfig: '3d10' },
             { id: spellChildId(SPELL_IDS.FIRE_BOLT, 0x212, 5), level: 17, order: 4, diceConfig: '4d10' }
           ]
-        },
-        {
-          id: spellChildId(SPELL_IDS.FIRE_BOLT, 0x213, 1),
-          branch: BRANCH.ON_MISS,
-          groupType: BRANCH_GROUP_TYPE.SINGLE,
-          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
-          effectKind: EFFECT_KIND.RULE,
-          label: 'Miss',
-          description: 'On a miss, the mote has no effect.'
         }
       ]
     }

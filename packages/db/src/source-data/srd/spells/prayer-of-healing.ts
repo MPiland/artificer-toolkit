@@ -46,8 +46,7 @@ export const prayerOfHealing: SpellAuthored = {
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
           maxTargets: 6,
-          excludedCreatureTypeIds: ['undead', 'construct'],
-          detail: 'Up to six creatures you can see within range.'
+          excludedCreatureTypeIds: ['undead', 'construct']
         }
       },
       branches: [

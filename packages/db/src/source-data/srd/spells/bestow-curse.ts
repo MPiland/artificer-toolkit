@@ -55,8 +55,7 @@ export const bestowCurse: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Touch one creature and attempt to place a curse on it.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -71,9 +70,6 @@ export const bestowCurse: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Cursed',
-          description:
-            'The target becomes cursed with one of the spell\'s available curse options. This still needs a richer curse-choice and ongoing curse-state model.'
         },
         {
           id: spellChildId(SPELL_IDS.BESTOW_CURSE, 0x215, 1),
@@ -81,8 +77,6 @@ export const bestowCurse: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Unaffected',
-          description: 'A creature that succeeds on the saving throw is unaffected by the curse.'
         }
       ]
     }

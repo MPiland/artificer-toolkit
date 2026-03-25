@@ -7,6 +7,7 @@ import {
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
   PROFICIENCY_KIND,
+  RANGE_KIND,
   RACE_CATEGORY_CODE,
   SCALING,
   SCALING_AMOUNT_KIND,
@@ -27,6 +28,11 @@ function languageId(code: string): string {
   const entry = SRD_LANGUAGES.find((l) => l.code === code)
   if (!entry) throw new Error(`SRD language vocabulary entry for ${code} required.`)
   return entry.id
+}
+
+function equipId(index: number): string {
+  const hex = index.toString(16).padStart(4, '0')
+  return `00000000-0000-0000-0060-${hex}00000000`
 }
 
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
@@ -70,7 +76,7 @@ export const gnome: RaceAuthored = {
             senseIds: [SRD_DARKVISION_SENSE_ID],
             range: {
               id: raceFeatureId(6, 1, 3),
-              rangeKind: 'DISTANCE' as const,
+              rangeKind: RANGE_KIND.DISTANCE,
               amount: 60,
               unit: MEASUREMENT_UNIT_CODE.FEET
             },
@@ -214,7 +220,22 @@ export const rockGnome: RaceAuthored = {
       label: 'Tinker',
       description: 'You have proficiency with artisan\'s tools (tinker\'s tools). Using those tools, you can spend 1 hour and 10 gp worth of materials to construct a Tiny clockwork device (AC 5, 1 hp).',
       availableAtLevel: 1,
-      order: 2
+      order: 2,
+      grants: {
+        proficiencies: [
+          {
+            id: raceFeatureId(109, 3, 2),
+            grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+            proficiencyKind: PROFICIENCY_KIND.EQUIPMENT,
+            level: SCALING_AMOUNT_KIND.FULL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: SCALING.NONE,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            equipmentIds: [equipId(65)],
+            order: 0
+          }
+        ]
+      }
     }
   ]
 }

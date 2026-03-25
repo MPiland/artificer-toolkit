@@ -24,8 +24,7 @@ export const net: EquipmentAuthored = {
             rangeKind: S.RANGE_KIND.SPECIAL
           },
           targeting: {
-            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-            detail: 'Throw the net at one Large or smaller creature within the net’s special range.'
+            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
           }
         },
         branches: [
@@ -43,8 +42,6 @@ export const net: EquipmentAuthored = {
             groupType: S.BRANCH_GROUP_TYPE.SEQUENTIAL,
             resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
             effectKind: S.EFFECT_KIND.RULE,
-            label: 'Net Special',
-            description: 'A Large or smaller creature hit by the net is restrained until it is freed. A creature can use its action to make a DC 10 Strength check, freeing itself or another creature within its reach on a success. Dealing 5 slashing damage to the net also frees the creature without harming it.'
           },
           {
             id: S.equipmentChildId(S.equipId(37), 0x214, 1),
@@ -52,8 +49,6 @@ export const net: EquipmentAuthored = {
             groupType: S.BRANCH_GROUP_TYPE.SINGLE,
             resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
             effectKind: S.EFFECT_KIND.RULE,
-            label: 'Miss',
-            description: 'On a miss, the net does not restrain the target.'
           }
         ]
       }

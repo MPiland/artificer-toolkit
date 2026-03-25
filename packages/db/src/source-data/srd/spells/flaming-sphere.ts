@@ -44,8 +44,7 @@ export const flamingSphere: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose an unoccupied space within range to create the sphere.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -55,9 +54,6 @@ export const flamingSphere: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Flaming Sphere',
-          description:
-            'A burning sphere appears and can be moved as a bonus action to harm nearby creatures for the duration.'
         }
       ]
     }

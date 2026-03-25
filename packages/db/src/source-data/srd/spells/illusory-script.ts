@@ -47,8 +47,7 @@ export const illusoryScript: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Touch the parchment, paper, or writing material to inscribe the script.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -58,9 +57,6 @@ export const illusoryScript: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Illusory Script',
-          description:
-            'The writing is imbued with a private illusion visible only to the creatures you designate.'
         }
       ]
     }

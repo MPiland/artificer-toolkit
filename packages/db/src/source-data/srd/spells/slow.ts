@@ -74,8 +74,7 @@ export const slow: SpellAuthored = {
           }
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Each creature in the cube.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -90,9 +89,6 @@ export const slow: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Slow',
-          description:
-            'Failed saves are slowed and constrained by the spell\'s time-distortion rules. This still needs a richer slow-state and action-limitation model.'
         },
         {
           id: spellChildId(SPELL_IDS.SLOW, 0x216, 1),
@@ -100,8 +96,6 @@ export const slow: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Successful Save',
-          description: 'On a successful save, the creature is unaffected by the spell.'
         }
       ]
     }

@@ -40,8 +40,7 @@ export const shillelagh: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Touch one club or quarterstaff you are holding.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -56,9 +55,6 @@ export const shillelagh: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Shillelagh',
-          description:
-            'Empowers the touched club or quarterstaff under the spell’s full SRD attack and damage substitution rules.'
         }
       ]
     }

@@ -47,8 +47,7 @@ export const majorImage: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Create the image within range.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -63,9 +62,6 @@ export const majorImage: SpellAuthored = {
             amount: 10
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Major Image',
-          description:
-            'Creates a sound, smell, and temperature capable visual illusion that can be moved or altered while you remain within range.'
         }
       ]
     }

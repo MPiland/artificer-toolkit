@@ -46,8 +46,7 @@ export const wallOfIce: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose a point or surface within range to create the wall.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -63,7 +62,6 @@ export const wallOfIce: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.ZONE,
-          label: 'Wall of Ice',
           detail:
             'Creates a wall of ice that can be formed as a dome, sphere, or flat surface.'
         }

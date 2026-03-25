@@ -94,9 +94,9 @@ const durationPredicatePayloadSchema = z.union([
 
 const predicatePayloadSchema = z.union([
   z.object({
-    predicateCode: z.literal(predicateCodeSchema.enum.SUBCLASS_SUBTYPE)
+    predicateCode: z.literal(predicateCodeSchema.enum.SUBCLASS_SPECIALIZATION)
   }).and(selectableSchema(z.object({
-    subtypeIds: z.array(z.string())
+    specializationIds: z.array(z.string())
   }))),
   z.object({
     predicateCode: z.literal(predicateCodeSchema.enum.SPELLCASTING)

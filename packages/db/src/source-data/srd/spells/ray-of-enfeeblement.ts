@@ -45,8 +45,7 @@ export const rayOfEnfeeblement: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Send the ray at one creature within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -56,9 +55,6 @@ export const rayOfEnfeeblement: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SEQUENTIAL,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Rider',
-          description:
-            'On a hit, the target deals only half damage with Strength-based weapon attacks until the spell ends.'
         },
         {
           id: spellChildId(SPELL_IDS.RAY_OF_ENFEEBLEMENT, 0x213, 1),
@@ -66,8 +62,6 @@ export const rayOfEnfeeblement: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Miss',
-          description: 'On a miss, the spell has no effect.'
         }
       ]
     }

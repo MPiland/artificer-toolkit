@@ -47,8 +47,7 @@ export const fogCloud: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'A fog cloud appears centered on a point within range.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -64,7 +63,6 @@ export const fogCloud: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.ZONE,
-          label: 'Fog Cloud',
           detail: 'Creates a heavily obscured fog sphere. Radius increases by 20 feet for each slot level above 1st.',
           shape: {
             id: spellChildId(SPELL_IDS.FOG_CLOUD, 0x214, 1),

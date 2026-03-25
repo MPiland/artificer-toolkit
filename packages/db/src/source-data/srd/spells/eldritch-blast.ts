@@ -44,8 +44,7 @@ export const eldritchBlast: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Make a ranged spell attack against one creature within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -55,9 +54,6 @@ export const eldritchBlast: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Eldritch Blast',
-          description:
-            'On a hit, the target takes force damage. The cantrip may create additional beams as the caster advances, but that beam-count logic is not yet modeled structurally here.'
         },
         {
           id: spellChildId(SPELL_IDS.ELDRITCH_BLAST, 0x213, 1),
@@ -65,8 +61,6 @@ export const eldritchBlast: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Miss',
-          description: 'On a miss, the beam fails to deal damage.'
         }
       ]
     }

@@ -24,8 +24,7 @@ export const caltropsBagOf20: EquipmentAuthored = {
             rangeKind: S.RANGE_KIND.TOUCH
           },
           targeting: {
-            selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
-            detail: 'Spread the caltrops to cover a 5-foot square on the ground within reach.'
+            selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS
           }
         },
         branches: [
@@ -35,8 +34,6 @@ export const caltropsBagOf20: EquipmentAuthored = {
             groupType: S.BRANCH_GROUP_TYPE.SINGLE,
             resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
             effectKind: S.EFFECT_KIND.RULE,
-            label: 'Caltrops',
-            description: 'A creature entering the covered area must succeed on a DC 15 Dexterity saving throw or stop moving and take 1 piercing damage. Until the creature regains at least 1 hit point, its walking speed is reduced by 10 feet.'
           }
         ]
       }

@@ -48,8 +48,7 @@ export const darkvision: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.WILLING,
-          detail: 'Touch one willing creature.'
+          dispositionKind: TARGET_DISPOSITION_KIND.WILLING
         }
       },
       branches: [

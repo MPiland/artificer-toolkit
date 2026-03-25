@@ -54,8 +54,7 @@ export const animalShapes: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-          dispositionKind: TARGET_DISPOSITION_KIND.WILLING,
-          detail: 'Choose any number of willing creatures you can see within range.'
+          dispositionKind: TARGET_DISPOSITION_KIND.WILLING
         }
       },
       branches: [
@@ -70,9 +69,6 @@ export const animalShapes: SpellAuthored = {
             amount: 24
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Animal Shapes',
-          description:
-            'Transforms the chosen willing creatures into beasts within the spell\'s CR and size limits for the duration. This still needs a richer multi-target transformation model.'
         }
       ]
     }

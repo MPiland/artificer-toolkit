@@ -130,14 +130,76 @@ describe('schema package parsing', () => {
           branch: 'ON_CAST',
           groupType: 'SINGLE',
           resolutionKind: 'DIRECT',
-          effectKind: 'RULE',
-          label: 'Magic Missile Interception',
-          description: 'This capability blocks the magic missile spell until the start of your next turn.'
+          effectKind: 'RULE'
         }
       ]
     })
 
     expect(parsed.branches).toHaveLength(2)
+  })
+
+  it('parses branch lifecycle metadata and forced movement outcomes', () => {
+    const parsed = effectDtoSchema.parse({
+      id: 'dissonant-whispers-effect',
+      order: 1,
+      invocation: {
+        triggerCode: 'SAVING_THROW',
+        savingThrow: {
+          id: 'wis-save',
+          savingThrowKind: 'FIXED_VALUE',
+          ability: 'WISDOM',
+          dc: 14
+        },
+        activation: {
+          code: 'ACTION',
+          amount: 1
+        },
+        range: {
+          id: 'dw-range',
+          rangeKind: 'DISTANCE',
+          amount: 60,
+          unit: 'FEET'
+        }
+      },
+      branches: [
+        {
+          id: 'dw-damage',
+          branch: 'ON_SAVE_FAIL',
+          groupType: 'SEQUENTIAL',
+          resolutionKind: 'DIRECT',
+          effectKind: 'DAMAGE',
+          damageTypeId: 'psychic',
+          valueKind: 'DICE',
+          scalingKind: 'NONE',
+          diceConfig: '3d6'
+        },
+        {
+          id: 'dw-move',
+          branch: 'ON_SAVE_FAIL',
+          groupType: 'SEQUENTIAL',
+          resolutionKind: 'DIRECT',
+          lifecycle: {
+            recurringKind: 'NONE',
+            consumeOnFirstEvent: 'ON_ATTACK_ROLL',
+            endOnEvents: ['ON_CAST_SPELL']
+          },
+          effectKind: 'FORCED_MOVEMENT',
+          direction: 'AWAY_FROM_SOURCE',
+          distanceMode: 'UP_TO_SPEED',
+          actionEconomy: 'REACTION'
+        }
+      ]
+    }) as {
+      branches?: Array<{
+        effectKind?: string
+        lifecycle?: { consumeOnFirstEvent?: string }
+      }>
+    }
+
+    expect(parsed.branches?.[1]).toMatchObject({
+      effectKind: 'FORCED_MOVEMENT',
+      lifecycle: { consumeOnFirstEvent: 'ON_ATTACK_ROLL' }
+    })
   })
 
   it('parses activated feature-style capabilities with on-use healing bonuses', () => {
@@ -223,8 +285,7 @@ describe('schema package parsing', () => {
               unit: 'FEET'
             },
             targeting: {
-              selectionKind: 'AREA_CONTENTS',
-              detail: 'The familiar appears in an unoccupied space within range.'
+              selectionKind: 'AREA_CONTENTS'
             }
           },
           branches: [
@@ -239,7 +300,6 @@ describe('schema package parsing', () => {
               },
               effectKind: 'MANIFEST',
               manifestKind: 'CREATURE',
-              label: 'Familiar',
               detail: 'A spirit takes an animal form you choose and acts independently while obeying your commands.'
             }
           ]
@@ -663,8 +723,7 @@ describe('schema package parsing', () => {
             rangeKind: 'SELF'
           },
           targeting: {
-            selectionKind: 'AREA_CONTENTS',
-            detail: 'Each creature in the cone.'
+            selectionKind: 'AREA_CONTENTS'
           },
           shape: {
             id: 'burning-hands-cone',
@@ -751,8 +810,7 @@ describe('schema package parsing', () => {
         targeting: {
           selectionKind: 'CHOSEN_CREATURES',
           maxTargets: 6,
-          excludedCreatureTypeIds: ['undead', 'construct'],
-          detail: 'Up to six creatures of your choice.'
+          excludedCreatureTypeIds: ['undead', 'construct']
         }
       },
       branches: [

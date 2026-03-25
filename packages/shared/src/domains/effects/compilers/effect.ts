@@ -1,5 +1,7 @@
 import type {
   ApplyGrantAuthored,
+  BranchLifecycleAuthored,
+  ForcedMovementAuthored,
   HealAuthored,
   ManifestAuthored,
   DurationAuthored,
@@ -34,6 +36,7 @@ export type CompiledEffect = {
   id: string
   branch: BranchCode
   duration?: CompiledDuration
+  lifecycle?: BranchLifecycleAuthored
   outcome: CompiledBranchOutcome
   order?: number
 } & (
@@ -106,6 +109,7 @@ export type CompiledBranchOutcome
     | CompiledConditionEffect
     | HealAuthored
     | ApplyGrantAuthored
+    | ForcedMovementAuthored
     | ManifestAuthored
     | import('#authored').TeleportAuthored
     | import('#authored').RuleAuthored
@@ -120,6 +124,7 @@ function compileBranchPayload(
       return compileDamageEffect(branch)
     case EFFECT_KIND.HEAL:
     case EFFECT_KIND.APPLY_GRANT:
+    case EFFECT_KIND.FORCED_MOVEMENT:
     case EFFECT_KIND.TELEPORT:
     case EFFECT_KIND.MANIFEST:
     case EFFECT_KIND.RULE:
@@ -141,6 +146,7 @@ export function compileEffectResult<
         const duration = branch.duration
           ? compileDuration(branch.duration)
           : undefined
+        const lifecycle = branch.lifecycle
 
         for (const outcome of compiledOutcomes) {
           rules.push({
@@ -150,7 +156,8 @@ export function compileEffectResult<
             groupKind: branch.groupType,
             outcome,
             order: rules.length,
-            duration
+            duration,
+            lifecycle
           })
         }
         break

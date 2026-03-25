@@ -45,8 +45,7 @@ export const antimagicField: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF,
-          detail: 'Create the antimagic sphere centered on yourself.'
+          selectionKind: TARGET_SELECTION_KIND.SELF
         }
       },
       branches: [
@@ -62,7 +61,6 @@ export const antimagicField: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.ZONE,
-          label: 'Antimagic Field',
           detail: 'Creates a 10-foot-radius sphere in which magic is suppressed.'
         }
       ]

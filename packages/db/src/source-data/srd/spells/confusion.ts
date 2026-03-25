@@ -67,8 +67,7 @@ export const confusion: SpellAuthored = {
           }
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose the point where the confusion sphere is centered.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -83,9 +82,6 @@ export const confusion: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Confused',
-          description:
-            'Affected creatures behave according to the spell\'s confusion table for the duration. This still needs a richer random-behavior and repeated-save model.'
         },
         {
           id: spellChildId(SPELL_IDS.CONFUSION, 0x216, 1),
@@ -93,8 +89,6 @@ export const confusion: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Unaffected',
-          description: 'A creature that succeeds on the saving throw is unaffected by the confusion.'
         }
       ]
     }

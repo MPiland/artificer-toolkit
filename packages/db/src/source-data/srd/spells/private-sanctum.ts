@@ -55,8 +55,7 @@ export const privateSanctum: SpellAuthored = {
           }
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose the area to secure within range.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -71,8 +70,6 @@ export const privateSanctum: SpellAuthored = {
             amount: 24
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Private Sanctum',
-          description: 'Creates a magically secure warded area within the chosen space.'
         }
       ]
     }

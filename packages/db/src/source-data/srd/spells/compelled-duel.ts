@@ -44,8 +44,7 @@ export const compelledDuel: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one creature you can see within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -55,9 +54,6 @@ export const compelledDuel: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Compelled Duel',
-          description:
-            "The target must answer the duel and remains constrained by the spell's SRD limits while the spell is active."
         }
       ]
     }

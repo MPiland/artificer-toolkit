@@ -43,8 +43,7 @@ export const dispelEvilAndGood: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF,
-          detail: 'The protection surrounds you.'
+          selectionKind: TARGET_SELECTION_KIND.SELF
         }
       },
       branches: [
@@ -59,9 +58,6 @@ export const dispelEvilAndGood: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Dispel Evil and Good',
-          description:
-            'The current model does not yet honestly express the creature-type keyed protection, banishment, and dismissal behavior.'
         }
       ]
     }

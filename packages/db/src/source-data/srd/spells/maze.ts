@@ -61,8 +61,7 @@ export const maze: SpellAuthored = {
           unit: 'FEET'
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one creature you can see within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -77,9 +76,6 @@ export const maze: SpellAuthored = {
             amount: 10
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Maze',
-          description:
-            'The target is banished into the demiplane under the spell’s rules until it escapes or the spell ends.'
         },
         {
           id: spellChildId(SPELL_IDS.MAZE, 0x215, 1),
@@ -87,8 +83,6 @@ export const maze: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Unaffected',
-          description: 'A target that succeeds on the saving throw is unaffected by the spell.'
         }
       ]
     }

@@ -60,8 +60,7 @@ export const floatingDisk: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'An unoccupied space within range where the disk appears.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         },
         shape: {
           id: spellChildId(SPELL_IDS.FLOATING_DISK, 0x212, 1),
@@ -85,7 +84,6 @@ export const floatingDisk: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.OBJECT,
-          label: 'Floating Disk',
           detail:
             'Creates a circular force disk that carries weight and follows the caster while within range.'
         }

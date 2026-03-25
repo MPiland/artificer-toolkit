@@ -100,10 +100,7 @@ function dragonbornAncestryFeatures(optionIndex: number, config: DragonbornAnces
               rangeKind: RANGE_KIND.SELF
             },
             targeting: {
-              selectionKind: 'AREA_CONTENTS',
-              detail: config.shapeKind === SHAPE_KIND.LINE
-                ? 'Each creature in the 5-by-30-foot line.'
-                : 'Each creature in the 15-foot cone.'
+              selectionKind: 'AREA_CONTENTS'
             },
             shape: config.shapeKind === SHAPE_KIND.LINE
               ? {

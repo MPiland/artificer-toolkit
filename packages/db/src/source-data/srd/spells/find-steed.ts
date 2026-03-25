@@ -46,8 +46,7 @@ export const findSteed: SpellAuthored = {
           rangeKind: RANGE_KIND.SPECIAL
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Summon a steed spirit in an unoccupied space near you.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -58,7 +57,6 @@ export const findSteed: SpellAuthored = {
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.CREATURE,
-          label: 'Find Steed',
           detail:
             'Summons a loyal steed spirit that takes on an appropriate form and forms a lasting bond.'
         }

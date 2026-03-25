@@ -50,8 +50,7 @@ export const raiseDead: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Touch one dead creature.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -65,9 +64,6 @@ export const raiseDead: SpellAuthored = {
             durationKind: DURATION_KIND.INSTANTANEOUS
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Raise Dead',
-          description:
-            'This spell currently needs a resurrection-state and post-death restoration model to express the full SRD behavior honestly.'
         }
       ]
     }

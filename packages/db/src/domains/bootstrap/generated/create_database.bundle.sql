@@ -2123,22 +2123,22 @@ CREATE INDEX IF NOT EXISTS idx_facet_predicate_condition_type_items_condition
   ON public.facet_predicate_condition_type_items (facet_condition_id);
 
 /* Subclass subtype list payload */
-CREATE TABLE IF NOT EXISTS public.facet_predicate_subclass_subtype_items (
+CREATE TABLE IF NOT EXISTS public.facet_predicate_subclass_specialization_items (
   facet_condition_id uuid NOT NULL
     REFERENCES public.facet_conditions (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  subtype_id text NOT NULL,
+  specialization_id text NOT NULL,
   sort_order integer NOT NULL,
 
-  PRIMARY KEY (facet_condition_id, subtype_id)
+  PRIMARY KEY (facet_condition_id, specialization_id)
 );
 
-ALTER TABLE public.facet_predicate_subclass_subtype_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.facet_predicate_subclass_specialization_items ENABLE ROW LEVEL SECURITY;
 
-CREATE INDEX IF NOT EXISTS idx_facet_predicate_subclass_subtype_items_condition
-  ON public.facet_predicate_subclass_subtype_items (facet_condition_id);
+CREATE INDEX IF NOT EXISTS idx_facet_predicate_subclass_specialization_items_condition
+  ON public.facet_predicate_subclass_specialization_items (facet_condition_id);
 
 /* Size list payload */
 CREATE TABLE IF NOT EXISTS public.facet_predicate_size_items (
@@ -5044,7 +5044,7 @@ CREATE TABLE IF NOT EXISTS public.character_classes (
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
   class_id uuid NOT NULL REFERENCES public.classes (id) ON DELETE CASCADE DEFERRABLE,
   subclass_id uuid REFERENCES public.classes (id) ON DELETE SET NULL DEFERRABLE,
-  subtype_id uuid REFERENCES public.class_subtypes (id) ON DELETE SET NULL DEFERRABLE,
+  specialization_id uuid REFERENCES public.class_specializations (id) ON DELETE SET NULL DEFERRABLE,
   class_level integer NOT NULL,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
@@ -5056,7 +5056,7 @@ CREATE TABLE IF NOT EXISTS public.character_classes (
 
 CREATE INDEX IF NOT EXISTS idx_char_classes_class_id ON public.character_classes (class_id);
 CREATE INDEX IF NOT EXISTS idx_char_classes_subclass_id ON public.character_classes (subclass_id);
-CREATE INDEX IF NOT EXISTS idx_char_classes_subtype_id ON public.character_classes (subtype_id);
+CREATE INDEX IF NOT EXISTS idx_char_classes_specialization_id ON public.character_classes (specialization_id);
 
 DO $$
 BEGIN
@@ -6307,7 +6307,7 @@ ALTER TABLE IF EXISTS public.character_background_equipment_items ENABLE ROW LEV
  *   Base classes may own: starting gold, hitpoints, starting equipment,
  *   spellcasting, multiclass requirements, proficiencies, and features.
  *
- *   Subclasses attach to a parent class and may define subtypes,
+ *   Subclasses attach to a parent class and may define specializations,
  *   plus their own proficiencies and features.
  *
  * Cardinality:
@@ -6321,7 +6321,7 @@ ALTER TABLE IF EXISTS public.character_background_equipment_items ENABLE ROW LEV
  *   classes 0..1 â”€â”€â–¶ 1 class_spellcasting (owned subtree, BASE only)
  *   classes 0..1 â”€â”€â–¶ 1 class_resource (owned subtree, optional)
  *   classes 0..1 â”€â”€â–¶ 1 class_multiclass (owned subtree, BASE only)
- *   classes 1 â”€â”€â–¶ N class_subtypes (SUBCLASS only)
+ *   classes 1 â”€â”€â–¶ N class_specializations (SUBCLASS only)
  *
  * Ownership:
  *   - class_details owns details rows via bridge trigger
@@ -6957,7 +6957,7 @@ $$;
  * SUBCLASS â€” SUBTYPES
  * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
-CREATE TABLE IF NOT EXISTS public.class_subtypes (
+CREATE TABLE IF NOT EXISTS public.class_specializations (
   id uuid PRIMARY KEY,
   class_id uuid NOT NULL
     REFERENCES public.classes(id)
@@ -6968,10 +6968,10 @@ CREATE TABLE IF NOT EXISTS public.class_subtypes (
   sort_order integer NOT NULL
 );
 
-ALTER TABLE public.class_subtypes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.class_specializations ENABLE ROW LEVEL SECURITY;
 
-CREATE INDEX IF NOT EXISTS idx_class_subtypes_class
-  ON public.class_subtypes(class_id);
+CREATE INDEX IF NOT EXISTS idx_class_specializations_class
+  ON public.class_specializations(class_id);
 -- END INCLUDE: src\domains\subjects\tables\classes.sql
 -- BEGIN INCLUDE: src\domains\subjects\tables\creatures.sql
 /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -7035,13 +7035,6 @@ CREATE TABLE IF NOT EXISTS public.creatures (
   -- Senses / passives
   senses text[],
   passive_perception integer,
-
-  -- Saving throws / skills (vocabulary IDs)
-  saving_throw_proficiencies text[],
-  skill_proficiencies text[],
-
-  -- Social/rules
-  languages text[],
   challenge_rating_id uuid
     REFERENCES public.challenge_ratings(id)
     ON DELETE SET NULL
@@ -7165,6 +7158,46 @@ BEGIN
     FOR EACH ROW
     EXECUTE FUNCTION public.cleanup_owned_rows('[
       { "table": "public.features", "columns": ["feature_id"] }
+    ]');
+  END IF;
+END;
+$$;
+
+
+/* ----------------------------------------------------------------
+ * CREATURE - PROFICIENCY GRANTS (OWNED VIA BRIDGE)
+ * ---------------------------------------------------------------- */
+
+CREATE TABLE IF NOT EXISTS public.creature_proficiency_grants (
+  creature_id uuid NOT NULL
+    REFERENCES public.creatures(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  proficiency_grant_id uuid NOT NULL,
+
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (creature_id, proficiency_grant_id)
+);
+
+ALTER TABLE public.creature_proficiency_grants ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_creature_proficiency_grants_creature
+  ON public.creature_proficiency_grants(creature_id);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'trg_cleanup_creature_proficiency_grants_owned'
+      AND tgrelid = 'public.creature_proficiency_grants'::regclass
+  ) THEN
+    CREATE TRIGGER trg_cleanup_creature_proficiency_grants_owned
+    AFTER DELETE ON public.creature_proficiency_grants
+    FOR EACH ROW
+    EXECUTE FUNCTION public.cleanup_owned_rows('[
+      { "table": "public.proficiency_grants", "columns": ["proficiency_grant_id"] }
     ]');
   END IF;
 END;
@@ -9276,3 +9309,5 @@ $$;
 SELECT
   public.apply_updated_at_triggers ();
 -- END INCLUDE: src\domains\utils\create_database.sql
+
+

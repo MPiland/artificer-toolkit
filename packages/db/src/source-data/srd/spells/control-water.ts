@@ -55,8 +55,7 @@ export const controlWater: SpellAuthored = {
           }
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose the body of water within range to control.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -72,7 +71,6 @@ export const controlWater: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.ZONE,
-          label: 'Controlled Water',
           detail: 'Creates a controlled water zone whose state can be altered by the spell.'
         }
       ]

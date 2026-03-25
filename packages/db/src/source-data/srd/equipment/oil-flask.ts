@@ -24,8 +24,7 @@ export const oilFlask: EquipmentAuthored = {
             rangeKind: S.RANGE_KIND.TOUCH
           },
           targeting: {
-            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-            detail: 'Pour the oil onto one object, surface, or light source within reach.'
+            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
           }
         },
         branches: [
@@ -35,8 +34,6 @@ export const oilFlask: EquipmentAuthored = {
             groupType: S.BRANCH_GROUP_TYPE.SINGLE,
             resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
             effectKind: S.EFFECT_KIND.RULE,
-            label: 'Oil',
-            description: 'A flask of oil can fuel a lamp or lantern for 6 hours. You can also splash the oil on the ground or an object so that it burns for 2 rounds after being ignited, dealing fire damage to creatures that enter or end their turn in the burning area according to the SRD item text.'
           }
         ]
       }

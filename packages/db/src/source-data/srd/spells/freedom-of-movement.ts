@@ -44,8 +44,7 @@ export const freedomOfMovement: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.WILLING,
-          detail: 'Touch one willing creature.'
+          dispositionKind: TARGET_DISPOSITION_KIND.WILLING
         }
       },
       branches: [
@@ -60,9 +59,6 @@ export const freedomOfMovement: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Freedom of Movement',
-          description:
-            'Protects the target from difficult terrain, magical speed reduction, and paralysis or restraint from magic. This still needs richer movement and condition-immunity modeling.'
         }
       ]
     }

@@ -51,8 +51,7 @@ export const fingerOfDeath: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Send necrotic energy at one creature you can see within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -78,9 +77,6 @@ export const fingerOfDeath: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SEQUENTIAL,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Rider',
-          description:
-            'If this reduces the target to 0 hit points, it dies and rises as a zombie in the SRD text, which remains a constrained rules fallback here.'
         },
         {
           id: spellChildId(SPELL_IDS.FINGER_OF_DEATH, 0x214, 1),

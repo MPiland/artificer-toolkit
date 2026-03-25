@@ -46,8 +46,7 @@ export const massCureWounds: SpellAuthored = {
         targeting: {
           selectionKind: 'CHOSEN_CREATURES',
           maxTargets: 6,
-          excludedCreatureTypeIds: ['undead', 'construct'],
-          detail: 'Up to six creatures of your choice in the sphere.'
+          excludedCreatureTypeIds: ['undead', 'construct']
         },
         shape: {
           id: spellChildId(SPELL_IDS.MASS_CURE_WOUNDS, 0x212, 1),

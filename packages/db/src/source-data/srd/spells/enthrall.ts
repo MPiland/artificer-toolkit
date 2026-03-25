@@ -56,8 +56,7 @@ export const enthrall: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-          detail: 'Choose creatures you can see within range that can hear you.'
+          selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES
         }
       },
       branches: [
@@ -72,9 +71,6 @@ export const enthrall: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Enthralled',
-          description:
-            'Affected creatures are distracted by your speech for the duration. This still needs a richer perception-disadvantage and attention-diversion model.'
         },
         {
           id: spellChildId(SPELL_IDS.ENTHRALL, 0x215, 1),
@@ -82,8 +78,6 @@ export const enthrall: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Unaffected',
-          description: 'A creature that succeeds on the saving throw is unaffected by the spell.'
         }
       ]
     }

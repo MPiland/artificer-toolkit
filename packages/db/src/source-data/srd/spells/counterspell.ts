@@ -42,8 +42,7 @@ export const counterspell: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Interrupt a creature you can see that is casting a spell.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -53,9 +52,6 @@ export const counterspell: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Counterspell',
-          description:
-            'Attempts to interrupt the casting spell; the remaining interruption logic is kept as a constrained rule fallback.'
         }
       ]
     }

@@ -53,8 +53,7 @@ export const earthquake: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose a point on the ground within range to center the earthquake.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         },
         shape: {
           id: spellChildId(SPELL_IDS.EARTHQUAKE, 0x212, 1),
@@ -77,9 +76,6 @@ export const earthquake: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Earthquake',
-          description:
-            'The tremor ripples through the area and imposes the spell’s ongoing structural effects under the SRD text.'
         }
       ]
     }

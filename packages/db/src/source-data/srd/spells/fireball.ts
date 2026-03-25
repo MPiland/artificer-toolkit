@@ -52,8 +52,7 @@ export const fireball: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Each creature in the sphere.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         },
         shape: {
           id: spellChildId(SPELL_IDS.FIREBALL, 0x212, 1),

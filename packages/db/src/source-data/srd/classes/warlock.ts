@@ -11,10 +11,12 @@ import {
   SCALING,
   SCALING_AMOUNT_KIND,
   SPELLCASTING_ATTRIBUTE,
+  SPELL_GRANT_ATTRIBUTE,
   VALUE_DOMAIN_CODE,
   type ClassAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SUBCLASS_IDS, SPELL_IDS } from '../ids.js'
+import { srdSpells } from '../spells/index.js'
 import {
   SRD_CURRENCIES,
   SRD_SKILLS,
@@ -32,6 +34,10 @@ function skillId(code: string): string {
 
 const goldCurrencyId = SRD_CURRENCIES.find((c) => c.code === 'GP')?.id
 if (!goldCurrencyId) throw new Error('SRD GP currency vocabulary entry required for class source data.')
+
+const allCantripIds = srdSpells
+  .filter((spell) => spell.level === 0)
+  .map((spell) => spell.id)
 
 // ID helpers: class rows use domain c0XX where XX = class index (01–0c)
 // Format: 00000000-0000-0000-c0XX-GGNN00000000
@@ -482,6 +488,764 @@ export const warlock: ClassAuthored = {
             ]
           },
           order: 8
+        },
+        // ── Additional SRD 5.1 Eldritch Invocations ──────────────────────────────
+        // IDs: options use classRowId(W, 5, N), restriction nodes use classRowId(W, 6, N)
+        {
+          id: classRowId(W, 5, 1),
+          label: 'Beguiling Influence',
+          description: 'You gain proficiency in the Deception and Persuasion skills.',
+          grants: {
+            proficiencies: [
+              {
+                id: classRowId(W, 5, 2),
+                grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+                proficiencyKind: PROFICIENCY_KIND.SKILL,
+                level: SCALING_AMOUNT_KIND.FULL,
+                selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                scalingKind: SCALING.NONE,
+                authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                skillIds: [skillId('DECEPTION'), skillId('PERSUASION')],
+                order: 0
+              }
+            ]
+          },
+          order: 9
+        },
+        {
+          id: classRowId(W, 5, 3),
+          label: 'Book of Ancient Secrets',
+          description: 'You can now inscribe magical rituals in your Book of Shadows. On your adventures, you can add other ritual spells to your Book of Shadows.',
+          // Requires Pact of the Tome (classRowId(W, 3, 25))
+          restrictions: {
+            id: classRowId(W, 6, 1),
+            groups: [
+              {
+                id: classRowId(W, 6, 2),
+                order: 0,
+                contexts: [
+                  {
+                    id: classRowId(W, 6, 3),
+                    order: 0,
+                    subject: 'CHARACTER' as const,
+                    conditions: [
+                      {
+                        id: classRowId(W, 6, 4),
+                        order: 0,
+                        kind: 'PREDICATE' as const,
+                        constraint: 'INCLUDE' as const,
+                        predicateCode: 'OPTION_OBTAINED' as const,
+                        optionIds: [classRowId(W, 3, 25)]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          order: 10
+        },
+        {
+          id: classRowId(W, 5, 4),
+          label: 'Chains of Carceri',
+          description: 'You can cast Hold Monster at will—targeting a celestial, fiend, or elemental—without expending a spell slot or material components. You must finish a long rest before you can use this invocation on the same creature again.',
+          grants: {
+            spells: [
+              {
+                id: classRowId(W, 5, 5),
+                grantKind: GRANT_KIND.SPELL_GRANT,
+                selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                scalingKind: SCALING.NONE,
+                authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                spellIds: [SPELL_IDS.HOLD_MONSTER],
+                order: 0
+              }
+            ]
+          },
+          // Requires warlock level 15 + Pact of the Chain (classRowId(W, 3, 22))
+          restrictions: {
+            id: classRowId(W, 6, 5),
+            groups: [
+              {
+                id: classRowId(W, 6, 6),
+                order: 0,
+                contexts: [
+                  {
+                    id: classRowId(W, 6, 7),
+                    order: 0,
+                    subject: 'CHARACTER' as const,
+                    conditions: [
+                      {
+                        id: classRowId(W, 6, 8),
+                        order: 0,
+                        kind: 'PREDICATE' as const,
+                        constraint: 'INCLUDE' as const,
+                        predicateCode: 'CLASS_LEVEL' as const,
+                        min: 15
+                      },
+                      {
+                        id: classRowId(W, 6, 9),
+                        order: 1,
+                        kind: 'PREDICATE' as const,
+                        constraint: 'INCLUDE' as const,
+                        predicateCode: 'OPTION_OBTAINED' as const,
+                        optionIds: [classRowId(W, 3, 22)]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          order: 11
+        },
+        {
+          id: classRowId(W, 5, 6),
+          label: 'Dreadful Word',
+          description: 'You can cast Confusion once using a warlock spell slot. You can\'t do so again until you finish a long rest.',
+          grants: {
+            spells: [
+              {
+                id: classRowId(W, 5, 7),
+                grantKind: GRANT_KIND.SPELL_GRANT,
+                selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                scalingKind: SCALING.NONE,
+                authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                spellIds: [SPELL_IDS.CONFUSION],
+                order: 0
+              }
+            ]
+          },
+          // Requires warlock level 7
+          restrictions: {
+            id: classRowId(W, 6, 10),
+            groups: [
+              {
+                id: classRowId(W, 6, 11),
+                order: 0,
+                contexts: [
+                  {
+                    id: classRowId(W, 6, 12),
+                    order: 0,
+                    subject: 'CHARACTER' as const,
+                    conditions: [
+                      {
+                        id: classRowId(W, 6, 13),
+                        order: 0,
+                        kind: 'PREDICATE' as const,
+                        constraint: 'INCLUDE' as const,
+                        predicateCode: 'CLASS_LEVEL' as const,
+                        min: 7
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          order: 12
+        },
+        {
+          id: classRowId(W, 5, 8),
+          label: 'Eldritch Spear',
+          description: 'When you cast Eldritch Blast, its range is 300 feet.',
+          // Range change is not representable as a modifier grant — description-only.
+          // Requires Eldritch Blast cantrip.
+          restrictions: {
+            id: classRowId(W, 6, 14),
+            groups: [
+              {
+                id: classRowId(W, 6, 15),
+                order: 0,
+                contexts: [
+                  {
+                    id: classRowId(W, 6, 16),
+                    order: 0,
+                    subject: 'CHARACTER' as const,
+                    conditions: [
+                      {
+                        id: classRowId(W, 6, 17),
+                        order: 0,
+                        kind: 'PREDICATE' as const,
+                        constraint: 'INCLUDE' as const,
+                        predicateCode: 'SPELL_OBTAINED' as const,
+                        spellIds: [SPELL_IDS.ELDRITCH_BLAST]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          order: 13
+        },
+        {
+          id: classRowId(W, 5, 9),
+          label: 'Eyes of the Rune Keeper',
+          description: 'You can read all writing.',
+          // No requirements. Passive ability — description-only.
+          order: 14
+        },
+        {
+          id: classRowId(W, 5, 10),
+          label: 'Gaze of Two Minds',
+          description: 'You can use your action to touch a willing humanoid and perceive through its senses until the start of your next turn.',
+          // No requirements. Action-based ability — description-only.
+          order: 15
+        },
+        {
+          id: classRowId(W, 5, 11),
+          label: 'Lifedrinker',
+          description: 'When you hit a creature with your pact weapon, the creature takes extra necrotic damage equal to your Charisma modifier (minimum 1).',
+          // Pact weapon damage is not a standard attack type we can scope as a modifier grant — description-only.
+          // Requires warlock level 12 + Pact of the Blade (classRowId(W, 3, 24))
+          restrictions: {
+            id: classRowId(W, 6, 18),
+            groups: [
+              {
+                id: classRowId(W, 6, 19),
+                order: 0,
+                contexts: [
+                  {
+                    id: classRowId(W, 6, 20),
+                    order: 0,
+                    subject: 'CHARACTER' as const,
+                    conditions: [
+                      {
+                        id: classRowId(W, 6, 21),
+                        order: 0,
+                        kind: 'PREDICATE' as const,
+                        constraint: 'INCLUDE' as const,
+                        predicateCode: 'CLASS_LEVEL' as const,
+                        min: 12
+                      },
+                      {
+                        id: classRowId(W, 6, 22),
+                        order: 1,
+                        kind: 'PREDICATE' as const,
+                        constraint: 'INCLUDE' as const,
+                        predicateCode: 'OPTION_OBTAINED' as const,
+                        optionIds: [classRowId(W, 3, 24)]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          order: 16
+        },
+        {
+          id: classRowId(W, 5, 12),
+          label: 'Master of Myriad Forms',
+          description: 'You can cast Alter Self at will, without expending a spell slot.',
+          grants: {
+            spells: [
+              {
+                id: classRowId(W, 5, 13),
+                grantKind: GRANT_KIND.SPELL_GRANT,
+                selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                scalingKind: SCALING.NONE,
+                authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                spellIds: [SPELL_IDS.ALTER_SELF],
+                order: 0
+              }
+            ]
+          },
+          // Requires warlock level 15
+          restrictions: {
+            id: classRowId(W, 6, 23),
+            groups: [
+              {
+                id: classRowId(W, 6, 24),
+                order: 0,
+                contexts: [
+                  {
+                    id: classRowId(W, 6, 25),
+                    order: 0,
+                    subject: 'CHARACTER' as const,
+                    conditions: [
+                      {
+                        id: classRowId(W, 6, 26),
+                        order: 0,
+                        kind: 'PREDICATE' as const,
+                        constraint: 'INCLUDE' as const,
+                        predicateCode: 'CLASS_LEVEL' as const,
+                        min: 15
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          order: 17
+        },
+        {
+          id: classRowId(W, 5, 14),
+          label: 'Minions of Chaos',
+          description: 'You can cast Conjure Elemental once using a warlock spell slot. You can\'t do so again until you finish a long rest.',
+          grants: {
+            spells: [
+              {
+                id: classRowId(W, 5, 15),
+                grantKind: GRANT_KIND.SPELL_GRANT,
+                selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                scalingKind: SCALING.NONE,
+                authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                spellIds: [SPELL_IDS.CONJURE_ELEMENTAL],
+                order: 0
+              }
+            ]
+          },
+          // Requires warlock level 9
+          restrictions: {
+            id: classRowId(W, 6, 27),
+            groups: [
+              {
+                id: classRowId(W, 6, 28),
+                order: 0,
+                contexts: [
+                  {
+                    id: classRowId(W, 6, 29),
+                    order: 0,
+                    subject: 'CHARACTER' as const,
+                    conditions: [
+                      {
+                        id: classRowId(W, 6, 30),
+                        order: 0,
+                        kind: 'PREDICATE' as const,
+                        constraint: 'INCLUDE' as const,
+                        predicateCode: 'CLASS_LEVEL' as const,
+                        min: 9
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          order: 18
+        },
+        {
+          id: classRowId(W, 5, 16),
+          label: 'Mire the Mind',
+          description: 'You can cast Slow once using a warlock spell slot. You can\'t do so again until you finish a long rest.',
+          grants: {
+            spells: [
+              {
+                id: classRowId(W, 5, 17),
+                grantKind: GRANT_KIND.SPELL_GRANT,
+                selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                scalingKind: SCALING.NONE,
+                authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                spellIds: [SPELL_IDS.SLOW],
+                order: 0
+              }
+            ]
+          },
+          // Requires warlock level 5
+          restrictions: {
+            id: classRowId(W, 6, 31),
+            groups: [
+              {
+                id: classRowId(W, 6, 32),
+                order: 0,
+                contexts: [
+                  {
+                    id: classRowId(W, 6, 33),
+                    order: 0,
+                    subject: 'CHARACTER' as const,
+                    conditions: [
+                      {
+                        id: classRowId(W, 6, 34),
+                        order: 0,
+                        kind: 'PREDICATE' as const,
+                        constraint: 'INCLUDE' as const,
+                        predicateCode: 'CLASS_LEVEL' as const,
+                        min: 5
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          order: 19
+        },
+        {
+          id: classRowId(W, 5, 18),
+          label: 'One with Shadows',
+          description: 'When you are in an area of dim light or darkness, you can use your action to become invisible until you move or take an action or a reaction.',
+          // Action-based ability — description-only.
+          // Requires warlock level 5
+          restrictions: {
+            id: classRowId(W, 6, 35),
+            groups: [
+              {
+                id: classRowId(W, 6, 36),
+                order: 0,
+                contexts: [
+                  {
+                    id: classRowId(W, 6, 37),
+                    order: 0,
+                    subject: 'CHARACTER' as const,
+                    conditions: [
+                      {
+                        id: classRowId(W, 6, 38),
+                        order: 0,
+                        kind: 'PREDICATE' as const,
+                        constraint: 'INCLUDE' as const,
+                        predicateCode: 'CLASS_LEVEL' as const,
+                        min: 5
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          order: 20
+        },
+        {
+          id: classRowId(W, 5, 19),
+          label: 'Otherworldly Leap',
+          description: 'You can cast Jump on yourself at will, without expending a spell slot or material components.',
+          grants: {
+            spells: [
+              {
+                id: classRowId(W, 5, 20),
+                grantKind: GRANT_KIND.SPELL_GRANT,
+                selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                scalingKind: SCALING.NONE,
+                authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                spellIds: [SPELL_IDS.JUMP],
+                order: 0
+              }
+            ]
+          },
+          // Requires warlock level 9
+          restrictions: {
+            id: classRowId(W, 6, 39),
+            groups: [
+              {
+                id: classRowId(W, 6, 40),
+                order: 0,
+                contexts: [
+                  {
+                    id: classRowId(W, 6, 41),
+                    order: 0,
+                    subject: 'CHARACTER' as const,
+                    conditions: [
+                      {
+                        id: classRowId(W, 6, 42),
+                        order: 0,
+                        kind: 'PREDICATE' as const,
+                        constraint: 'INCLUDE' as const,
+                        predicateCode: 'CLASS_LEVEL' as const,
+                        min: 9
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          order: 21
+        },
+        {
+          id: classRowId(W, 5, 21),
+          label: 'Sculptor of Flesh',
+          description: 'You can cast Polymorph once using a warlock spell slot. You can\'t do so again until you finish a long rest.',
+          grants: {
+            spells: [
+              {
+                id: classRowId(W, 5, 22),
+                grantKind: GRANT_KIND.SPELL_GRANT,
+                selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                scalingKind: SCALING.NONE,
+                authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                spellIds: [SPELL_IDS.POLYMORPH],
+                order: 0
+              }
+            ]
+          },
+          // Requires warlock level 7
+          restrictions: {
+            id: classRowId(W, 6, 43),
+            groups: [
+              {
+                id: classRowId(W, 6, 44),
+                order: 0,
+                contexts: [
+                  {
+                    id: classRowId(W, 6, 45),
+                    order: 0,
+                    subject: 'CHARACTER' as const,
+                    conditions: [
+                      {
+                        id: classRowId(W, 6, 46),
+                        order: 0,
+                        kind: 'PREDICATE' as const,
+                        constraint: 'INCLUDE' as const,
+                        predicateCode: 'CLASS_LEVEL' as const,
+                        min: 7
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          order: 22
+        },
+        {
+          id: classRowId(W, 5, 23),
+          label: 'Sign of Ill Omen',
+          description: 'You can cast Bestow Curse once using a warlock spell slot. You can\'t do so again until you finish a long rest.',
+          grants: {
+            spells: [
+              {
+                id: classRowId(W, 5, 24),
+                grantKind: GRANT_KIND.SPELL_GRANT,
+                selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                scalingKind: SCALING.NONE,
+                authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                spellIds: [SPELL_IDS.BESTOW_CURSE],
+                order: 0
+              }
+            ]
+          },
+          // Requires warlock level 5
+          restrictions: {
+            id: classRowId(W, 6, 47),
+            groups: [
+              {
+                id: classRowId(W, 6, 48),
+                order: 0,
+                contexts: [
+                  {
+                    id: classRowId(W, 6, 49),
+                    order: 0,
+                    subject: 'CHARACTER' as const,
+                    conditions: [
+                      {
+                        id: classRowId(W, 6, 50),
+                        order: 0,
+                        kind: 'PREDICATE' as const,
+                        constraint: 'INCLUDE' as const,
+                        predicateCode: 'CLASS_LEVEL' as const,
+                        min: 5
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          order: 23
+        },
+        {
+          id: classRowId(W, 5, 25),
+          label: 'Thirsting Blade',
+          description: 'You can attack with your pact weapon twice, instead of once, when you take the Attack action on your turn.',
+          // Extra attack not representable as a standard modifier grant — description-only.
+          // Requires warlock level 5 + Pact of the Blade (classRowId(W, 3, 24))
+          restrictions: {
+            id: classRowId(W, 6, 51),
+            groups: [
+              {
+                id: classRowId(W, 6, 52),
+                order: 0,
+                contexts: [
+                  {
+                    id: classRowId(W, 6, 53),
+                    order: 0,
+                    subject: 'CHARACTER' as const,
+                    conditions: [
+                      {
+                        id: classRowId(W, 6, 54),
+                        order: 0,
+                        kind: 'PREDICATE' as const,
+                        constraint: 'INCLUDE' as const,
+                        predicateCode: 'CLASS_LEVEL' as const,
+                        min: 5
+                      },
+                      {
+                        id: classRowId(W, 6, 55),
+                        order: 1,
+                        kind: 'PREDICATE' as const,
+                        constraint: 'INCLUDE' as const,
+                        predicateCode: 'OPTION_OBTAINED' as const,
+                        optionIds: [classRowId(W, 3, 24)]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          order: 24
+        },
+        {
+          id: classRowId(W, 5, 26),
+          label: 'Visions of Distant Realms',
+          description: 'You can cast Arcane Eye at will, without expending a spell slot.',
+          grants: {
+            spells: [
+              {
+                id: classRowId(W, 5, 27),
+                grantKind: GRANT_KIND.SPELL_GRANT,
+                selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                scalingKind: SCALING.NONE,
+                authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                spellIds: [SPELL_IDS.ARCANE_EYE],
+                order: 0
+              }
+            ]
+          },
+          // Requires warlock level 15
+          restrictions: {
+            id: classRowId(W, 6, 56),
+            groups: [
+              {
+                id: classRowId(W, 6, 57),
+                order: 0,
+                contexts: [
+                  {
+                    id: classRowId(W, 6, 58),
+                    order: 0,
+                    subject: 'CHARACTER' as const,
+                    conditions: [
+                      {
+                        id: classRowId(W, 6, 59),
+                        order: 0,
+                        kind: 'PREDICATE' as const,
+                        constraint: 'INCLUDE' as const,
+                        predicateCode: 'CLASS_LEVEL' as const,
+                        min: 15
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          order: 25
+        },
+        {
+          id: classRowId(W, 5, 28),
+          label: 'Voice of the Chain Master',
+          description: 'You can communicate telepathically with your familiar and perceive through your familiar\'s senses as long as you are on the same plane of existence.',
+          // Description-only — telepathic sense-sharing is not representable as a modifier.
+          // Requires Pact of the Chain (classRowId(W, 3, 22))
+          restrictions: {
+            id: classRowId(W, 6, 60),
+            groups: [
+              {
+                id: classRowId(W, 6, 61),
+                order: 0,
+                contexts: [
+                  {
+                    id: classRowId(W, 6, 62),
+                    order: 0,
+                    subject: 'CHARACTER' as const,
+                    conditions: [
+                      {
+                        id: classRowId(W, 6, 63),
+                        order: 0,
+                        kind: 'PREDICATE' as const,
+                        constraint: 'INCLUDE' as const,
+                        predicateCode: 'OPTION_OBTAINED' as const,
+                        optionIds: [classRowId(W, 3, 22)]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          order: 26
+        },
+        {
+          id: classRowId(W, 5, 29),
+          label: 'Whispers of the Grave',
+          description: 'You can cast Speak with Dead at will, without expending a spell slot.',
+          grants: {
+            spells: [
+              {
+                id: classRowId(W, 5, 30),
+                grantKind: GRANT_KIND.SPELL_GRANT,
+                selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                scalingKind: SCALING.NONE,
+                authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                spellIds: [SPELL_IDS.SPEAK_WITH_DEAD],
+                order: 0
+              }
+            ]
+          },
+          // Requires warlock level 9
+          restrictions: {
+            id: classRowId(W, 6, 64),
+            groups: [
+              {
+                id: classRowId(W, 6, 65),
+                order: 0,
+                contexts: [
+                  {
+                    id: classRowId(W, 6, 66),
+                    order: 0,
+                    subject: 'CHARACTER' as const,
+                    conditions: [
+                      {
+                        id: classRowId(W, 6, 67),
+                        order: 0,
+                        kind: 'PREDICATE' as const,
+                        constraint: 'INCLUDE' as const,
+                        predicateCode: 'CLASS_LEVEL' as const,
+                        min: 9
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          order: 27
+        },
+        {
+          id: classRowId(W, 5, 31),
+          label: 'Witch Sight',
+          description: 'You can see the true form of any shapechanger or creature concealed by illusion or transmutation magic while the creature is within 30 feet of you and within line of sight.',
+          // Passive sense — description-only.
+          // Requires warlock level 15
+          restrictions: {
+            id: classRowId(W, 6, 68),
+            groups: [
+              {
+                id: classRowId(W, 6, 69),
+                order: 0,
+                contexts: [
+                  {
+                    id: classRowId(W, 6, 70),
+                    order: 0,
+                    subject: 'CHARACTER' as const,
+                    conditions: [
+                      {
+                        id: classRowId(W, 6, 71),
+                        order: 0,
+                        kind: 'PREDICATE' as const,
+                        constraint: 'INCLUDE' as const,
+                        predicateCode: 'CLASS_LEVEL' as const,
+                        min: 15
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          order: 28
         }
       ]
     },
@@ -507,6 +1271,7 @@ export const warlock: ClassAuthored = {
                 scalingKind: SCALING.NONE,
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: [SPELL_IDS.FIND_FAMILIAR],
+                attributes: [SPELL_GRANT_ATTRIBUTE.KNOWN, SPELL_GRANT_ATTRIBUTE.RITUAL],
                 order: 0
               }
             ]
@@ -523,6 +1288,21 @@ export const warlock: ClassAuthored = {
           id: classRowId(W, 3, 25),
           label: 'Pact of the Tome',
           description: 'Your patron gives you a grimoire called a Book of Shadows. When you gain this feature, choose three cantrips from any class\'s spell list.',
+          grants: {
+            spells: [
+              {
+                id: classRowId(W, 3, 55),
+                grantKind: GRANT_KIND.SPELL_GRANT,
+                selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+                count: 3,
+                scalingKind: SCALING.NONE,
+                authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                spellIds: allCantripIds,
+                attributes: [SPELL_GRANT_ATTRIBUTE.KNOWN],
+                order: 0
+              }
+            ]
+          },
           order: 2
         }
       ]
@@ -625,85 +1405,3 @@ export const warlock: ClassAuthored = {
 }
 
 // ─── Warlock Subclasses ───────────────────────────────────────────────────────
-
-// SRD 5.1 includes only The Fiend patron
-export const fiend: ClassAuthored = {
-  id: SUBCLASS_IDS.FIEND,
-  label: 'The Fiend',
-  category: CLASS_CATEGORY.SUBCLASS,
-  parentClassId: CLASS_IDS.WARLOCK,
-  description: 'You have made a pact with a fiend from the lower planes of existence, a being whose aims are evil, even if you strive against those aims.',
-  userId: SRD_USER_ID,
-  systemId: SRD_SYSTEM_ID,
-  features: [
-    {
-      id: classRowId(W, 11, 1),
-      label: 'Expanded Spell List',
-      description: 'The Fiend lets you choose from an expanded list of spells when you learn a warlock spell. The following spells are added to the warlock spell list for you: Burning Hands, Command (L1), Blindness/Deafness, Scorching Ray (L2), Fireball, Stinking Cloud (L3), Fire Shield, Wall of Fire (L4), Flame Strike, Hallow (L5).',
-      availableAtLevel: 1,
-      order: 0,
-      grants: {
-        spells: [
-          {
-            id: classRowId(W, 11, 2),
-            grantKind: GRANT_KIND.SPELL_GRANT,
-            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-            scalingKind: SCALING.NONE,
-            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-            spellIds: [
-              SPELL_IDS.BURNING_HANDS,
-              SPELL_IDS.COMMAND,
-              SPELL_IDS.BLINDNESS_DEAFNESS,
-              SPELL_IDS.SCORCHING_RAY,
-              SPELL_IDS.FIREBALL,
-              SPELL_IDS.FIRE_SHIELD,
-              SPELL_IDS.WALL_OF_FIRE,
-              SPELL_IDS.FLAME_STRIKE,
-              SPELL_IDS.HALLOW
-            ],
-            order: 0
-          }
-        ]
-      }
-    },
-    {
-      id: classRowId(W, 11, 3),
-      label: 'Dark One\'s Blessing',
-      description: 'Starting at 1st level, when you reduce a hostile creature to 0 hit points, you gain temporary hit points equal to your Charisma modifier + your warlock level (minimum of 1).',
-      availableAtLevel: 1,
-      order: 1
-    },
-    {
-      id: classRowId(W, 11, 4),
-      label: 'Dark One\'s Own Luck',
-      description: 'Starting at 6th level, you can call on your patron to alter fate in your favor. When you make an ability check or a saving throw, you can use this feature to add a d10 to your roll.',
-      availableAtLevel: 6,
-      order: 2
-    },
-    {
-      id: classRowId(W, 11, 5),
-      label: 'Fiendish Resilience',
-      description: 'Starting at 10th level, you can choose one damage type when you finish a short or long rest. You gain resistance to that damage type until you choose a different one with this feature.',
-      availableAtLevel: 10,
-      order: 3
-    },
-    {
-      id: classRowId(W, 11, 6),
-      label: 'Hurl Through Hell',
-      description: 'Starting at 14th level, when you hit a creature with an attack, you can use this feature to instantly transport the target through the lower planes.',
-      availableAtLevel: 14,
-      order: 4
-    }
-  ]
-}
-
-export const warlockSubclasses: ClassAuthored[] = [fiend]
-
-// ─── Export ───────────────────────────────────────────────────────────────────
-// Note: other classes are not implemented yet — they will be added in future iterations.
-// The Warlock is the priority subject for the Phase 7.6 E2E integration test.
-
-export const srdClasses: ClassAuthored[] = [
-  warlock,
-  fiend
-]

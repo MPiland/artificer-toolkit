@@ -1,0 +1,152 @@
+import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import * as S from './shared.js'
+
+export const minotaurSkeleton: CreatureAuthored = {
+  id: S.CREATURE_IDS.MINOTAUR_SKELETON,
+  label: 'Minotaur Skeleton',
+  userId: S.SRD_USER_ID,
+  systemId: S.SRD_SYSTEM_ID,
+  recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
+  category: S.CREATURE_CATEGORY_CODE.MONSTER,
+  creatureTypeId: S.CREATURE_TYPE.UNDEAD,
+  size: S.SIZE_CODE.LARGE,
+  alignmentId: '00000000-0000-0000-0001-000700000000',
+  abilityScores: {
+    STRENGTH: 18,
+    DEXTERITY: 11,
+    CONSTITUTION: 15,
+    INTELLIGENCE: 6,
+    WISDOM: 8,
+    CHARISMA: 5,
+    SPELLCASTING: 0
+  },
+  armorClass: 12,
+  armorClassNote: 'natural armor',
+  hitPoints: 67,
+  hitDice: '9d10+18',
+  speeds: [...S.walk(40)],
+  damageVulnerabilities: ['bludgeoning'],
+  damageImmunities: ['poison'],
+  conditionImmunities: ['exhaustion', 'poisoned'],
+  senses: ['darkvision 60 ft.'],
+  passivePerception: 9,
+  challengeRatingId: S.CR.CR_2,
+  xp: 450,
+  features: [
+    {
+      id: S.featureId(199, 1),
+      label: 'Charge',
+      description: 'Charge. If the skeleton moves at least 10 feet straight toward a target and then hits it with a gore attack on the same turn, the target takes an extra 9 (2d8) piercing damage. If the target is a creature, it must succeed on a DC 14 Strength saving throw or be pushed up to 10 feet away and knocked prone.',
+      order: 1
+    },
+    {
+      id: S.featureId(199, 2),
+      label: 'Language Limitation',
+      description: 'Understands Abyssal but can\'t speak.',
+      grants: {
+        proficiencies: [
+          S.grantedLanguageProficiency(199, 1, 'ABYSSAL')
+        ]
+      },
+      order: 2
+    },
+    {
+      id: S.featureId(199, 3),
+      label: 'Greataxe',
+      description: 'Greataxe. Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 17 (2d12 + 4) slashing damage.',
+      capabilities: [
+        {
+          id: S.actionId(199, 1),
+          order: 1,
+          invocation: {
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: {
+              code: S.ACTIVATION_CODE.ACTION,
+              amount: 1
+            },
+            range: {
+              id: S.actionId(199, 2),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+            }
+          },
+          branches: [
+            {
+              id: S.actionId(199, 3),
+              branch: S.BRANCH.ON_HIT,
+              groupType: S.BRANCH_GROUP_TYPE.SINGLE,
+              resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
+              effectKind: S.EFFECT_KIND.DAMAGE,
+              damageTypeId: S.damageTypeId('SLASHING'),
+              valueKind: S.DAMAGE_VALUE_KIND.DICE,
+              scalingKind: S.SCALING.NONE,
+              diceConfig: '2d12',
+              bonuses: [
+                {
+                  id: S.actionId(199, 4),
+                  bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
+                  ability: S.ABILITY_CODE.STRENGTH,
+                  order: 1
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      order: 3
+    },
+    {
+      id: S.featureId(199, 4),
+      label: 'Gore',
+      description: 'Gore. Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 13 (2d8 + 4) piercing damage.',
+      capabilities: [
+        {
+          id: S.actionId(199, 5),
+          order: 1,
+          invocation: {
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: {
+              code: S.ACTIVATION_CODE.ACTION,
+              amount: 1
+            },
+            range: {
+              id: S.actionId(199, 6),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+            }
+          },
+          branches: [
+            {
+              id: S.actionId(199, 7),
+              branch: S.BRANCH.ON_HIT,
+              groupType: S.BRANCH_GROUP_TYPE.SINGLE,
+              resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
+              effectKind: S.EFFECT_KIND.DAMAGE,
+              damageTypeId: S.damageTypeId('PIERCING'),
+              valueKind: S.DAMAGE_VALUE_KIND.DICE,
+              scalingKind: S.SCALING.NONE,
+              diceConfig: '2d8',
+              bonuses: [
+                {
+                  id: S.actionId(199, 8),
+                  bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
+                  ability: S.ABILITY_CODE.STRENGTH,
+                  order: 1
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      order: 4
+    }
+  ]
+}

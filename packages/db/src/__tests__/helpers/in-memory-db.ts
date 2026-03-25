@@ -566,7 +566,7 @@ export class InMemoryDb {
         this.deleteWhere('facet_predicate_magic_school_items', 'facet_condition_id', row.id)
         this.deleteWhere('facet_predicate_damage_type_items', 'facet_condition_id', row.id)
         this.deleteWhere('facet_predicate_condition_type_items', 'facet_condition_id', row.id)
-        this.deleteWhere('facet_predicate_subclass_subtype_items', 'facet_condition_id', row.id)
+        this.deleteWhere('facet_predicate_subclass_specialization_items', 'facet_condition_id', row.id)
         this.deleteWhere('facet_predicate_size_items', 'facet_condition_id', row.id)
         this.deleteWhere('facet_predicate_charge_limit_kind_items', 'facet_condition_id', row.id)
         this.deleteWhere('facet_predicate_charge_reset_kind_items', 'facet_condition_id', row.id)

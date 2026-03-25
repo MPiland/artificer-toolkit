@@ -43,8 +43,7 @@ export const plantGrowth: SpellAuthored = {
           unit: 'FEET'
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose a point within range where plants grow thick and overgrown.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -58,9 +57,6 @@ export const plantGrowth: SpellAuthored = {
             durationKind: DURATION_KIND.INSTANTANEOUS
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Plant Growth',
-          description:
-            'The chosen area is affected under the spell’s normal growth rules, but the alternate 8-hour enrichment mode remains a rules fallback.'
         }
       ]
     }

@@ -99,6 +99,7 @@ export type CompiledDamageEffect<S extends ScalingSource = ScalingSource> = {
   damageTypeId: string
   bonuses?: CompiledDamageBonus[]
   amountKind?: DamageAuthored['amountKind']
+  multiplier?: number
 } & CompiledDamageValue<S>
 
 export function compileDamageBonuses(
@@ -159,6 +160,7 @@ export function compileDamageEffect(
             valueKind: DAMAGE_VALUE_KIND.FIXED,
             bonuses,
             amountKind: authored.amountKind,
+            multiplier: authored.multiplier,
             scalingKind: SCALING.NONE,
             amount: authored.amount
           })
@@ -174,6 +176,7 @@ export function compileDamageEffect(
             dice: authored.diceConfig,
             bonuses,
             amountKind: authored.amountKind,
+            multiplier: authored.multiplier,
             scalingKind: authored.scalingKind
           })
           break
@@ -188,6 +191,7 @@ export function compileDamageEffect(
             amount: authored.amount,
             bonuses,
             amountKind: authored.amountKind,
+            multiplier: authored.multiplier,
             scalingKind: authored.scalingKind
           })
           break
@@ -242,6 +246,7 @@ export function compileDamageEffect(
               amount: entry.amount,
               bonuses,
               amountKind: authored.amountKind,
+              multiplier: authored.multiplier,
               scalingKind: SCALING.PER_LEVEL,
               ...scaling
             }
@@ -261,6 +266,7 @@ export function compileDamageEffect(
               dice: entry.diceConfig,
               bonuses,
               amountKind: authored.amountKind,
+              multiplier: authored.multiplier,
               scalingKind: SCALING.PER_LEVEL,
               ...scaling
             }

@@ -41,8 +41,7 @@ export const heal: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: 'SINGLE_TARGET',
-          detail: 'Choose a creature that you can see within range.'
+          selectionKind: 'SINGLE_TARGET'
         }
       },
       branches: [

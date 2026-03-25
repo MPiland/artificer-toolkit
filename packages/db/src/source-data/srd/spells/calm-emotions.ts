@@ -44,8 +44,7 @@ export const calmEmotions: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose a point within range and affect creatures in the sphere centered there.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -55,9 +54,6 @@ export const calmEmotions: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Calm Emotions',
-          description:
-            "The spell suppresses strong emotions in the area and can end charmed or frightened conditions within the spell's SRD limits."
         }
       ]
     }

@@ -42,8 +42,7 @@ export const knock: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one object you can see within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -53,9 +52,6 @@ export const knock: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Knock',
-          description:
-            'Unlocks or unbars the chosen object and creates the spell\'s audible knock. This still needs a richer object-state and lock/ward interaction model.'
         }
       ]
     }

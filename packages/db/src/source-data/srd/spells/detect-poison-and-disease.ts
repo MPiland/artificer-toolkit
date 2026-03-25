@@ -40,8 +40,7 @@ export const detectPoisonAndDisease: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: 'AREA_CONTENTS',
-          detail: 'Sense poisons, poisonous creatures, and diseases within 30 feet of you.'
+          selectionKind: 'AREA_CONTENTS'
         }
       },
       branches: [
@@ -56,8 +55,6 @@ export const detectPoisonAndDisease: SpellAuthored = {
             amount: 10
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Detect Poison and Disease',
-          description: 'Sense the presence and location of poisons, poisonous creatures, and diseases within 30 feet for the duration.'
         }
       ]
     }

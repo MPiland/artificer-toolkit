@@ -47,8 +47,7 @@ export const arcaneSword: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Create the sword within range and choose a target within 5 feet of it.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -64,7 +63,6 @@ export const arcaneSword: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.WEAPON,
-          label: 'Arcane Sword',
           detail:
             'Creates a sword-shaped plane of force that can attack a target within 5 feet of it.',
           capabilities: [
@@ -84,8 +82,7 @@ export const arcaneSword: SpellAuthored = {
                   unit: MEASUREMENT_UNIT_CODE.FEET
                 },
                 targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                  detail: 'Choose a creature within 5 feet of the sword.'
+                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
                 }
               },
               branches: [
@@ -110,15 +107,6 @@ export const arcaneSword: SpellAuthored = {
                   valueKind: 'DICE',
                   scalingKind: SCALING.NONE,
                   diceConfig: '6d10'
-                },
-                {
-                  id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x224, 1),
-                  branch: BRANCH.ON_MISS,
-                  groupType: BRANCH_GROUP_TYPE.SINGLE,
-                  resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
-                  effectKind: EFFECT_KIND.RULE,
-                  label: 'Miss',
-                  description: 'The arcane sword misses the target and deals no damage.'
                 }
               ]
             }

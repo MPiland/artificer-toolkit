@@ -44,8 +44,7 @@ export const wallOfFire: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose a line or ring within range to create the fire wall.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -60,9 +59,6 @@ export const wallOfFire: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Wall of Fire',
-          description:
-            'Creates a burning wall or ring of fire that deals damage to creatures in or passing through it.'
         }
       ]
     }

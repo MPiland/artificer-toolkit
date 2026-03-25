@@ -38,8 +38,7 @@ export const sending: SpellAuthored = {
           rangeKind: RANGE_KIND.UNLIMITED
         },
         targeting: {
-          selectionKind: 'SINGLE_TARGET',
-          detail: 'Send a mental message to a creature with which you are familiar.'
+          selectionKind: 'SINGLE_TARGET'
         }
       },
       branches: [
@@ -49,8 +48,6 @@ export const sending: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Sending Message',
-          description: 'Send a short mental message to a familiar creature and receive an immediate reply in like manner.'
         }
       ]
     }

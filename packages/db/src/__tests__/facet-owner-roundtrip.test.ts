@@ -532,30 +532,30 @@ describe('facet-backed owners round-trip', () => {
     })
   })
 
-  it('round-trips subclass subtype facets through the shared facet helper', async () => {
+  it('round-trips subclass specialization facets through the shared facet helper', async () => {
     const db = new InMemoryDb()
 
     await upsertFacet(db as never, {
-      id: 'subclass-subtype-facet-1',
+      id: 'subclass-specialization-facet-1',
       groups: [
         {
-          id: 'subclass-subtype-group-1',
+          id: 'subclass-specialization-group-1',
           order: 1,
           contexts: [
             {
-              id: 'subclass-subtype-context-1',
+              id: 'subclass-specialization-context-1',
               order: 1,
               subject: 'SUBCLASS',
               authoringModeKind: 'ALL',
               conditions: [
                 {
-                  id: 'subclass-subtype-condition-1',
+                  id: 'subclass-specialization-condition-1',
                   order: 1,
                   kind: 'PREDICATE',
                   constraint: 'INCLUDE',
-                  predicateCode: 'SUBCLASS_SUBTYPE',
+                  predicateCode: 'SUBCLASS_SPECIALIZATION',
                   authoringModeKind: 'SELECTED',
-                  subtypeIds: ['land', 'sea']
+                  specializationIds: ['land', 'sea']
                 }
               ]
             }
@@ -564,8 +564,8 @@ describe('facet-backed owners round-trip', () => {
       ]
     } as never)
 
-    await expect(hydrateFacetById(db as never, 'subclass-subtype-facet-1')).resolves.toMatchObject({
-      id: 'subclass-subtype-facet-1',
+    await expect(hydrateFacetById(db as never, 'subclass-specialization-facet-1')).resolves.toMatchObject({
+      id: 'subclass-specialization-facet-1',
       groups: [
         {
           contexts: [
@@ -573,9 +573,9 @@ describe('facet-backed owners round-trip', () => {
               subject: 'SUBCLASS',
               conditions: [
                 {
-                  predicateCode: 'SUBCLASS_SUBTYPE',
+                  predicateCode: 'SUBCLASS_SPECIALIZATION',
                   authoringModeKind: 'SELECTED',
-                  subtypeIds: ['land', 'sea']
+                  specializationIds: ['land', 'sea']
                 }
               ]
             }

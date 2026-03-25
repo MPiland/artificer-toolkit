@@ -53,8 +53,7 @@ export const entangle: SpellAuthored = {
           }
         },
         targeting: {
-          selectionKind: 'AREA_CONTENTS',
-          detail: 'Choose a point on the ground within range and fill a 20-foot square with grasping plants.'
+          selectionKind: 'AREA_CONTENTS'
         }
       },
       branches: [
@@ -70,7 +69,6 @@ export const entangle: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.ZONE,
-          label: 'Entangle',
           detail:
             'Creates a zone of grasping plants that turns the area into difficult terrain and can restrain creatures caught in it.'
         }

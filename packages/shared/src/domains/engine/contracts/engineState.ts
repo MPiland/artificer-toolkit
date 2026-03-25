@@ -6,6 +6,7 @@
  */
 
 import type { CompiledRange } from '../../shared/compilers/range.js'
+import type { CompiledCharacterClassState } from '../../subjects/compilers/character/state.js'
 
 export interface EngineProficiency {
   /** PROFICIENCY_KIND value (SKILL, SAVE_ABILITY, LANGUAGE, EQUIPMENT, EQUIPMENT_PROPERTY) */
@@ -23,13 +24,13 @@ export interface EngineSense {
 
 export interface EngineDerivedStats {
   proficiencyBonus: number
-  /** Ability code → final score (after modifiers applied) */
+  /** Ability code â†’ final score (after modifiers applied) */
   abilityScores: Record<string, number>
-  /** Ability code → modifier value, e.g. STR 16 → 3 */
+  /** Ability code â†’ modifier value, e.g. STR 16 â†’ 3 */
   abilityModifiers: Record<string, number>
-  /** Ability code → total saving throw bonus */
+  /** Ability code â†’ total saving throw bonus */
   savingThrows: Record<string, number>
-  /** Skill id → total skill check bonus */
+  /** Skill id â†’ total skill check bonus */
   skillBonuses: Record<string, number>
   initiative: number
   /** Resolved from equipped armor + shield + modifiers. Falls back to 10 + DEX when unarmored. */
@@ -49,9 +50,9 @@ export interface EngineDerivedStats {
  * Pact magic (Warlock): separate slot pool tracked in `pactMagic`.
  */
 export interface EngineSpellSlots {
-  /** Slot level (1–9) → maximum slots */
+  /** Slot level (1â€“9) â†’ maximum slots */
   maxByLevel: Record<number, number>
-  /** Pact magic tracked separately — not fused with standard slots */
+  /** Pact magic tracked separately â€” not fused with standard slots */
   pactMagic?: {
     slots: number
     level: number
@@ -93,7 +94,9 @@ export interface EngineCharacterOutput {
   proficiencies: EngineProficiency[]
   senses: EngineSense[]
   derivedStats: EngineDerivedStats
-  /** Spell slot maximums — empty maxByLevel when character has no spellcasting */
+  /** Resolved class-scoped spell state derived from grants */
+  spellState?: CompiledCharacterClassState[]
+  /** Spell slot maximums â€” empty maxByLevel when character has no spellcasting */
   spellSlots: EngineSpellSlots
   /** Class resources with resolved maximums */
   resources: EngineResource[]

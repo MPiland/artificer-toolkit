@@ -41,8 +41,7 @@ export const clone: SpellAuthored = {
           rangeKind: RANGE_KIND.SPECIAL
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Prepare a clone for one living creature using the vessel and material components required by the spell.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -52,9 +51,6 @@ export const clone: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Clone',
-          description:
-            'Creates and matures a replacement body under the spell’s full vessel, maturity, and soul-transfer rules.'
         }
       ]
     }

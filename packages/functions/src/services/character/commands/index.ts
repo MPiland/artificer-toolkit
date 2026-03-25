@@ -138,6 +138,7 @@ export const handleGainClassLevel: CommandHandler<GainClassLevelCommand> = async
     schemaVersion: 1,
     classRef: command.classRef,
     subclassRef: command.subclassRef,
+    specializationRef: command.specializationRef,
     newLevel,
     totalCharacterLevel: totalLevel,
   }
@@ -145,10 +146,20 @@ export const handleGainClassLevel: CommandHandler<GainClassLevelCommand> = async
   const updatedClasses = existing
     ? currentState.classes.map((c) =>
         c.classRef.contentId === command.classRef.contentId
-          ? { ...c, level: newLevel, subclassRef: command.subclassRef ?? c.subclassRef }
+          ? {
+              ...c,
+              level: newLevel,
+              subclassRef: command.subclassRef ?? c.subclassRef,
+              specializationRef: command.specializationRef ?? c.specializationRef
+            }
           : c
       )
-    : [...currentState.classes, { classRef: command.classRef, subclassRef: command.subclassRef, level: 1 }]
+    : [...currentState.classes, {
+        classRef: command.classRef,
+        subclassRef: command.subclassRef,
+        specializationRef: command.specializationRef,
+        level: 1
+      }]
 
   const newState: CharacterBuildState = {
     ...currentState,

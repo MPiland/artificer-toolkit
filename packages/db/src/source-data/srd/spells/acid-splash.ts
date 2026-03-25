@@ -51,8 +51,7 @@ export const acidSplash: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-          maxTargets: 2,
-          detail: 'Choose one or two creatures you can see within range.'
+          maxTargets: 2
         }
       },
       branches: [
@@ -72,15 +71,6 @@ export const acidSplash: SpellAuthored = {
             { id: spellChildId(SPELL_IDS.ACID_SPLASH, 0x212, 4), level: 11, order: 3, diceConfig: '3d6' },
             { id: spellChildId(SPELL_IDS.ACID_SPLASH, 0x212, 5), level: 17, order: 4, diceConfig: '4d6' }
           ]
-        },
-        {
-          id: spellChildId(SPELL_IDS.ACID_SPLASH, 0x213, 1),
-          branch: BRANCH.ON_SAVE_SUCCESS,
-          groupType: BRANCH_GROUP_TYPE.SINGLE,
-          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
-          effectKind: EFFECT_KIND.RULE,
-          label: 'Successful Save',
-          description: 'On a successful saving throw, the target takes no damage.'
         }
       ]
     }

@@ -40,8 +40,7 @@ export const communeWithNature: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: 'SELF',
-          detail: 'You gain knowledge of the surrounding terrain and natural features.'
+          selectionKind: 'SELF'
         }
       },
       branches: [
@@ -51,8 +50,6 @@ export const communeWithNature: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Commune with Nature Knowledge',
-          description: 'Learn facts about terrain, bodies of water, plants, minerals, people, celestials, fiends, fey, undead, and buildings within the surrounding territory.'
         }
       ]
     }

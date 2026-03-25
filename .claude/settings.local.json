@@ -57,7 +57,8 @@
       "Bash(head -10 grep -rn 'CLOTHING\\\\|CLOTHES\\\\|WORN' /c/Users/pilan/Desktop/artificer-toolkit/packages/shared/src/)",
       "Read(//c/Users/pilan/Desktop/artificer-toolkit/packages/db/src/source-data/srd/vehicles/**)",
       "Bash(find \"/c/Users/pilan/Desktop/artificer-toolkit/packages/db/src/source-data/srd\" -name \"*.ts\" -exec grep -l \"SPELL_GRANT\\\\|SpellGrantAuthored\" {})",
-      "Bash(grep -rn AUTHORING_MODE_KIND /c/Users/pilan/Desktop/artificer-toolkit/packages/shared/src/domains/shared/core/ --include=*.ts)"
+      "Bash(grep -rn AUTHORING_MODE_KIND /c/Users/pilan/Desktop/artificer-toolkit/packages/shared/src/domains/shared/core/ --include=*.ts)",
+      "Read(//c/Users/pilan/.claude/projects/c--Users-pilan-Desktop-artificer-toolkit/996897c1-81b3-4005-8f22-f11ba96b3760/tool-results/**)"
     ]
   },
   "enableAllProjectMcpServers": true,

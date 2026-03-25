@@ -41,8 +41,7 @@ export const flameBlade: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF,
-          detail: 'Conjure a fiery blade in your free hand.'
+          selectionKind: TARGET_SELECTION_KIND.SELF
         }
       },
       branches: [
@@ -52,9 +51,6 @@ export const flameBlade: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Flame Blade',
-          description:
-            'A fiery blade appears in your hand and can be used to make melee spell attacks that deal fire damage for the duration.'
         }
       ]
     }

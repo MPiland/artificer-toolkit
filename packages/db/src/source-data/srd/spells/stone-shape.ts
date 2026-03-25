@@ -49,8 +49,7 @@ export const stoneShape: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Touch a stone object or section of stone.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -60,9 +59,6 @@ export const stoneShape: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Stone Shape',
-          description:
-            'Transforms the touched stone into the desired shape. Fine mechanical detail and related object identity changes remain in prose.'
         }
       ]
     }

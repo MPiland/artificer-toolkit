@@ -45,8 +45,7 @@ export const massSuggestion: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-          maxTargets: 12,
-          detail: 'Choose up to twelve creatures that can hear and understand you.'
+          maxTargets: 12
         }
       },
       branches: [
@@ -61,9 +60,6 @@ export const massSuggestion: SpellAuthored = {
             amount: 24
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Mass Suggestion',
-          description:
-            'The current model does not yet honestly express a long-form compulsive suggestion applied across multiple creatures.'
         }
       ]
     }

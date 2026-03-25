@@ -38,8 +38,7 @@ export const tongues: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: 'SINGLE_TARGET',
-          detail: 'Touch one creature to grant universal language comprehension and speech.'
+          selectionKind: 'SINGLE_TARGET'
         }
       },
       branches: [
@@ -54,8 +53,6 @@ export const tongues: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Tongues',
-          description: 'The touched creature understands any spoken language it hears, and creatures that know at least one language understand what it says for the duration.'
         }
       ]
     }

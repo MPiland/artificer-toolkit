@@ -43,8 +43,7 @@ export const sleep: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Affect creatures in the spell\'s chosen area within range according to the rolled hit point pool.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -59,9 +58,6 @@ export const sleep: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Sleep',
-          description:
-            'Roll the spell\'s hit point pool and apply magical slumber to creatures in ascending current-hit-point order. This still needs a richer hit-point-pool and sleep-state model.'
         }
       ]
     }

@@ -1,16 +1,16 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
-import { CR, CREATURE_IDS, CREATURE_TYPE, SRD_SYSTEM_ID, SRD_USER_ID, walk } from './shared.js'
+import * as S from './shared.js'
 
 export const veteran: CreatureAuthored = {
-  id: CREATURE_IDS.VETERAN,
+  id: S.CREATURE_IDS.VETERAN,
   label: 'Veteran',
-  description: 'A seasoned fighter with years of battlefield experience and a mastery of multiple weapons.',
-  userId: SRD_USER_ID,
-  systemId: SRD_SYSTEM_ID,
-  recordKind: 'STAT_BLOCK',
-  category: 'NPC',
-  creatureTypeId: CREATURE_TYPE.HUMANOID,
-  size: 'MEDIUM',
+  userId: S.SRD_USER_ID,
+  systemId: S.SRD_SYSTEM_ID,
+  recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
+  category: S.CREATURE_CATEGORY_CODE.NPC,
+  creatureTypeId: S.CREATURE_TYPE.HUMANOID,
+  size: S.SIZE_CODE.MEDIUM,
+  tags: ['any race'],
   abilityScores: {
     STRENGTH: 16,
     DEXTERITY: 13,
@@ -21,10 +21,167 @@ export const veteran: CreatureAuthored = {
     SPELLCASTING: 0
   },
   armorClass: 17,
-  armorClassNote: 'splint armor',
+  armorClassNote: 'splint',
   hitPoints: 58,
   hitDice: '9d8+18',
-  speeds: walk(30),
-  challengeRatingId: CR.CR_3,
-  xp: 700
+  speeds: [...S.walk(30)],
+  proficiencies: [
+    S.grantedSkillProficiency(279, 1, 'ATHLETICS', 'PERCEPTION')
+  ],
+  passivePerception: 12,
+  challengeRatingId: S.CR.CR_3,
+  xp: 700,
+  features: [
+    {
+      id: S.featureId(279, 1),
+      label: 'Language Knowledge',
+      description: 'Any one language (usually Common).',
+      grants: {
+        proficiencies: [
+          S.grantedLanguageProficiency(279, 2, 'COMMON')
+        ]
+      },
+      order: 1
+    },
+    {
+      id: S.featureId(279, 2),
+      label: 'Multiattack',
+      description: 'The veteran makes two longsword attacks. If it has a shortsword drawn, it can also make a shortsword attack.',
+      order: 2
+    },
+    {
+      id: S.featureId(279, 3),
+      label: 'Longsword',
+      description: 'Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 7 (1d8 + 3) slashing damage, or 8 (1d10 + 3) slashing damage if used with two hands.',
+      capabilities: [
+        {
+          id: S.actionId(279, 7),
+          order: 1,
+          invocation: {
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(279, 8),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+            }
+          },
+          branches: [
+            {
+              id: S.actionId(279, 9),
+              branch: S.BRANCH.ON_HIT,
+              groupType: S.BRANCH_GROUP_TYPE.SINGLE,
+              resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
+              effectKind: S.EFFECT_KIND.DAMAGE,
+              damageTypeId: S.damageTypeId('SLASHING'),
+              valueKind: S.DAMAGE_VALUE_KIND.DICE,
+              scalingKind: S.SCALING.NONE,
+              diceConfig: '1d8',
+              bonuses: [
+                {
+                  id: S.actionId(279, 10),
+                  bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
+                  ability: S.ABILITY_CODE.STRENGTH,
+                  order: 1
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      order: 3
+    },
+    {
+      id: S.featureId(279, 4),
+      label: 'Shortsword',
+      description: 'Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 6 (1d6 + 3) piercing damage.',
+      capabilities: [
+        {
+          id: S.actionId(279, 11),
+          order: 1,
+          invocation: {
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(279, 12),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+            }
+          },
+          branches: [
+            {
+              id: S.actionId(279, 13),
+              branch: S.BRANCH.ON_HIT,
+              groupType: S.BRANCH_GROUP_TYPE.SINGLE,
+              resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
+              effectKind: S.EFFECT_KIND.DAMAGE,
+              damageTypeId: S.damageTypeId('PIERCING'),
+              valueKind: S.DAMAGE_VALUE_KIND.DICE,
+              scalingKind: S.SCALING.NONE,
+              diceConfig: '1d6',
+              bonuses: [
+                {
+                  id: S.actionId(279, 14),
+                  bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
+                  ability: S.ABILITY_CODE.STRENGTH,
+                  order: 1
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      order: 4
+    },
+    {
+      id: S.featureId(279, 5),
+      label: 'Heavy Crossbow',
+      description: 'Ranged Weapon Attack: +3 to hit, range 100/400 ft., one target. Hit: 6 (1d10 + 1) piercing damage.',
+      capabilities: [
+        {
+          id: S.actionId(279, 15),
+          order: 1,
+          invocation: {
+            triggerCode: S.TRIGGER.RANGED_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: S.actionId(279, 16), rangeKind: S.RANGE_KIND.SPECIAL },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+            }
+          },
+          branches: [
+            {
+              id: S.actionId(279, 17),
+              branch: S.BRANCH.ON_HIT,
+              groupType: S.BRANCH_GROUP_TYPE.SINGLE,
+              resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
+              effectKind: S.EFFECT_KIND.DAMAGE,
+              damageTypeId: S.damageTypeId('PIERCING'),
+              valueKind: S.DAMAGE_VALUE_KIND.DICE,
+              scalingKind: S.SCALING.NONE,
+              diceConfig: '1d10',
+              bonuses: [
+                {
+                  id: S.actionId(279, 18),
+                  bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
+                  ability: S.ABILITY_CODE.DEXTERITY,
+                  order: 1
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      order: 5
+    }
+  ]
 }
+

@@ -40,8 +40,7 @@ export const findThePath: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: 'SELF',
-          detail: 'Receive guidance toward a specific fixed location that you are familiar with on the same plane.'
+          selectionKind: 'SELF'
         }
       },
       branches: [
@@ -56,8 +55,6 @@ export const findThePath: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Find the Path Guidance',
-          description: 'Reveal the shortest, most direct physical route to the chosen destination for the duration.'
         }
       ]
     }

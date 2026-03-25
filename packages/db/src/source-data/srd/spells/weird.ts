@@ -51,8 +51,7 @@ export const weird: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose the creatures within range that are affected.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -67,9 +66,6 @@ export const weird: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Weird',
-          description:
-            'The target suffers the spell’s fear-and-psychic assault until it overcomes the effect.'
         },
         {
           id: spellChildId(SPELL_IDS.WEIRD, 0x215, 1),
@@ -77,8 +73,6 @@ export const weird: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'No Effect',
-          description: 'The target resists the phantasmal assault.'
         }
       ]
     }

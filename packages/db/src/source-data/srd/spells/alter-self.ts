@@ -42,8 +42,7 @@ export const alterSelf: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF,
-          detail: 'Transform yourself using one of the spell\'s listed options.'
+          selectionKind: TARGET_SELECTION_KIND.SELF
         }
       },
       branches: [
@@ -58,9 +57,6 @@ export const alterSelf: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Alter Self',
-          description:
-            'Assume one of the spell\'s alternate forms or adaptations for the duration. This still needs a richer transformation-option and replacement-state model.'
         }
       ]
     }

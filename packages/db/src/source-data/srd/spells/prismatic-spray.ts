@@ -41,8 +41,7 @@ export const prismaticSpray: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'A 60-foot cone of multicolored rays erupts from your hand.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         },
         shape: {
           id: spellChildId(SPELL_IDS.PRISMATIC_SPRAY, 0x212, 1),
@@ -60,9 +59,6 @@ export const prismaticSpray: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Prismatic Spray',
-          description:
-            'The rays erupt and resolve through the spell’s random prismatic effect rules.'
         }
       ]
     }

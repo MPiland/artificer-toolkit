@@ -5,10 +5,13 @@ import {
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
   GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
   PROFICIENCY_KIND,
   SCALING,
   SCALING_AMOUNT_KIND,
   SPELLCASTING_ATTRIBUTE,
+  VALUE_DOMAIN_CODE,
   type ClassAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
@@ -270,9 +273,81 @@ export const ranger: ClassAuthored = {
     {
       id: classRowId(RA, 3, 3),
       label: 'Fighting Style',
-      description: 'At 2nd level, you adopt a particular style of fighting. Choose from Archery, Defense, Dueling, or Two-Weapon Fighting.',
+      description: 'At 2nd level, you adopt a particular style of fighting. Choose one of the following options.',
       availableAtLevel: 2,
-      order: 2
+      order: 2,
+      optionChoices: [{ level: 2, count: 1 }],
+      options: [
+        {
+          id: classRowId(RA, 4, 1),
+          label: 'Archery',
+          description: 'You gain a +2 bonus to attack rolls you make with ranged weapons.',
+          grants: {
+            modifiers: [
+              {
+                id: classRowId(RA, 4, 10),
+                grantKind: GRANT_KIND.MODIFIER_GRANT,
+                valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL_BONUS,
+                domain: { attackDomain: 'RANGED' as const },
+                modifierKind: MODIFIER_KIND.BONUS,
+                scope: MODIFIER_SCOPE_KIND.SOURCE,
+                selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                payload: { valueKind: 'FIXED' as const, amount: 2 },
+                order: 0
+              }
+            ]
+          },
+          order: 0
+        },
+        {
+          id: classRowId(RA, 4, 2),
+          label: 'Defense',
+          description: 'While you are wearing armor, you gain a +1 bonus to AC.',
+          grants: {
+            modifiers: [
+              {
+                id: classRowId(RA, 4, 11),
+                grantKind: GRANT_KIND.MODIFIER_GRANT,
+                valueDomainCode: VALUE_DOMAIN_CODE.ARMOR_CLASS,
+                domain: {},
+                modifierKind: MODIFIER_KIND.BONUS,
+                scope: MODIFIER_SCOPE_KIND.SOURCE,
+                selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                payload: { valueKind: 'FIXED' as const, amount: 1 },
+                order: 0
+              }
+            ]
+          },
+          order: 1
+        },
+        {
+          id: classRowId(RA, 4, 3),
+          label: 'Dueling',
+          description: 'When you are wielding a melee weapon in one hand and no other weapons, you gain a +2 bonus to damage rolls with that weapon.',
+          grants: {
+            modifiers: [
+              {
+                id: classRowId(RA, 4, 12),
+                grantKind: GRANT_KIND.MODIFIER_GRANT,
+                valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE,
+                domain: { attackDomain: 'MELEE' as const },
+                modifierKind: MODIFIER_KIND.BONUS,
+                scope: MODIFIER_SCOPE_KIND.SOURCE,
+                selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                payload: { valueKind: 'FIXED' as const, amount: 2 },
+                order: 0
+              }
+            ]
+          },
+          order: 2
+        },
+        {
+          id: classRowId(RA, 4, 4),
+          label: 'Two-Weapon Fighting',
+          description: 'When you engage in two-weapon fighting, you can add your ability modifier to the damage of the second attack.',
+          order: 3
+        }
+      ]
     },
     {
       id: classRowId(RA, 3, 4),
@@ -399,48 +474,6 @@ export const ranger: ClassAuthored = {
       description: 'At 20th level, you become an unparalleled hunter of your enemies. Once on each of your turns, you can add your Wisdom modifier to the attack roll or the damage roll of an attack you make against one of your favored enemies.',
       availableAtLevel: 20,
       order: 20
-    }
-  ]
-}
-
-// ─── Hunter Subclass ──────────────────────────────────────────────────────────
-
-export const hunter: ClassAuthored = {
-  id: SUBCLASS_IDS.HUNTER,
-  label: 'Hunter',
-  category: CLASS_CATEGORY.SUBCLASS,
-  parentClassId: CLASS_IDS.RANGER,
-  description: 'Emulating the Hunter archetype means accepting your place as a bulwark between civilization and the terrors of the wilderness.',
-  userId: SRD_USER_ID,
-  systemId: SRD_SYSTEM_ID,
-  features: [
-    {
-      id: classRowId(RA, 11, 1),
-      label: 'Hunter\'s Prey',
-      description: 'At 3rd level, you gain one of the following features of your choice: Colossus Slayer, Giant Killer, or Horde Breaker.',
-      availableAtLevel: 3,
-      order: 0
-    },
-    {
-      id: classRowId(RA, 11, 2),
-      label: 'Defensive Tactics',
-      description: 'At 7th level, you gain one of the following features of your choice: Escape the Horde, Multiattack Defense, or Steel Will.',
-      availableAtLevel: 7,
-      order: 1
-    },
-    {
-      id: classRowId(RA, 11, 3),
-      label: 'Multiattack',
-      description: 'At 11th level, you gain one of the following features of your choice: Volley or Whirlwind Attack.',
-      availableAtLevel: 11,
-      order: 2
-    },
-    {
-      id: classRowId(RA, 11, 4),
-      label: 'Superior Hunter\'s Defense',
-      description: 'At 15th level, you gain one of the following features of your choice: Evasion, Stand Against the Tide, or Uncanny Dodge.',
-      availableAtLevel: 15,
-      order: 3
     }
   ]
 }

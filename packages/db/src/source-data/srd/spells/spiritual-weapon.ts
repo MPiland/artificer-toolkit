@@ -42,8 +42,7 @@ export const spiritualWeapon: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose an unoccupied space within range to create the spectral weapon.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -53,9 +52,6 @@ export const spiritualWeapon: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Spiritual Weapon',
-          description:
-            'Create a spectral weapon that can strike now and be commanded again with bonus actions for the duration.'
         }
       ]
     }

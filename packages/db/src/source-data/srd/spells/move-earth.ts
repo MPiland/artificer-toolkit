@@ -48,8 +48,7 @@ export const moveEarth: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose an area of terrain no larger than 40 feet on a side within range.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -64,9 +63,6 @@ export const moveEarth: SpellAuthored = {
             amount: 2
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Move Earth',
-          description:
-            'Reshapes dirt, sand, or clay in the chosen area. The terrain-rewriting rules remain prose-bound.'
         }
       ]
     }

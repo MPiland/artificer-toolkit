@@ -42,8 +42,7 @@ export const guidance: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.WILLING,
-          detail: 'Touch one willing creature.'
+          dispositionKind: TARGET_DISPOSITION_KIND.WILLING
         }
       },
       branches: [
@@ -58,9 +57,6 @@ export const guidance: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Guidance',
-          description:
-            'The target can add 1d4 to one ability check of its choice before the spell ends. This still needs a richer one-shot check bonus model to express structurally.'
         }
       ]
     }

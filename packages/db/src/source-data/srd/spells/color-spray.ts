@@ -49,8 +49,7 @@ export const colorSpray: SpellAuthored = {
           }
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Creatures in a 15-foot cone.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -60,9 +59,6 @@ export const colorSpray: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Color Spray',
-          description:
-            'Roll 6d10 and affect creatures in ascending current hit point order within the cone until the total is exhausted, blinding them under the spell’s normal exclusions and duration.'
         }
       ]
     }

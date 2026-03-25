@@ -46,8 +46,7 @@ export const tinyHut: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF,
-          detail: 'Create the hut around yourself.'
+          selectionKind: TARGET_SELECTION_KIND.SELF
         }
       },
       branches: [
@@ -63,7 +62,6 @@ export const tinyHut: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.ZONE,
-          label: 'Tiny Hut',
           detail:
             'Creates an immobile dome of force that surrounds the source and remains stationary for the duration.',
           shape: {

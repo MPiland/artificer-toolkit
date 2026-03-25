@@ -47,8 +47,7 @@ export const goodberry: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF,
-          detail: 'Create magical berries in your hand.'
+          selectionKind: TARGET_SELECTION_KIND.SELF
         }
       },
       branches: [
@@ -63,9 +62,6 @@ export const goodberry: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Goodberry',
-          description:
-            'This spell currently needs a richer consumable-item or manifested-object model to express the berries, their later consumption, and the healing rider honestly.'
         }
       ]
     }

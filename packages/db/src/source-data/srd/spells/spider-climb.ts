@@ -53,8 +53,7 @@ export const spiderClimb: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.WILLING,
-          detail: 'Touch one willing creature.'
+          dispositionKind: TARGET_DISPOSITION_KIND.WILLING
         }
       },
       branches: [
@@ -69,9 +68,6 @@ export const spiderClimb: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Spider Climb',
-          description:
-            'The target gains vertical and ceiling movement for the duration. This still needs a structured movement-mode and ceiling-surface model.'
         }
       ]
     }

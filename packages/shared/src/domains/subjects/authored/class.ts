@@ -89,7 +89,7 @@ export interface ClassMulticlassAuthored {
   proficiencies?: ProficiencyGrantAuthored[]
 }
 
-export interface ClassSubtypeAuthored {
+export interface ClassSpecializationAuthored {
   id: string
   label: string
   order: number // int
@@ -121,7 +121,7 @@ export type SubclassAuthored = {
   category: typeof CLASS_CATEGORY.SUBCLASS
   attributes?: SubclassAttribute[]
   parentClassId: string
-  subtypes?: ClassSubtypeAuthored[]
+  specializations?: ClassSpecializationAuthored[]
 } & ClassBaseAuthored
 
 export type ClassAuthored = ParentClassAuthored | SubclassAuthored

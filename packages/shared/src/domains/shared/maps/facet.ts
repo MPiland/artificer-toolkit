@@ -669,9 +669,9 @@ const FACET_PREDICATE_NODE_MAP = facetPredicateNode.define('facePredicate', ({ m
       kind: 'INLINE',
       options: AUTHORING_MODE_KIND_OPTIONS
     }, { order: 2, showIf: showAuthoringMode }))
-    .set('subtypeIds', selectMulti(['subtypeIds'], 'Subclass Subtypes', {
+    .set('specializationIds', selectMulti(['specializationIds'], 'Subclass Specializations', {
       kind: 'DATA',
-      relationship: mapValues('class_subtypes', {
+      relationship: mapValues('class_specializations', {
         whereColumn: 'class_id',
         valueColumn: 'id',
         selectColumns: ['id', 'label'],
@@ -680,7 +680,7 @@ const FACET_PREDICATE_NODE_MAP = facetPredicateNode.define('facePredicate', ({ m
     }, {
       order: 3,
       showIf: and([
-        local.field(['predicateCode']).eq('SUBCLASS_SUBTYPE'),
+        local.field(['predicateCode']).eq('SUBCLASS_SPECIALIZATION'),
         local.field(['authoringModeKind']).eq('SELECTED')
       ])
     }))

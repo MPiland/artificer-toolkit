@@ -100,4 +100,5 @@ export type DamageAuthored = {
   damageTypeId: string
   bonuses?: DamageBonusAuthored[]
   amountKind?: ScalingAmountKind
+  multiplier?: number
 } & DamagePayload

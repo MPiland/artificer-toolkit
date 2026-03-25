@@ -24,8 +24,7 @@ export const climbersKit: EquipmentAuthored = {
             rangeKind: S.RANGE_KIND.SELF
           },
           targeting: {
-            selectionKind: S.TARGET_SELECTION_KIND.SELF,
-            detail: 'Secure yourself with the climber’s kit while climbing.'
+            selectionKind: S.TARGET_SELECTION_KIND.SELF
           }
         },
         branches: [
@@ -35,8 +34,6 @@ export const climbersKit: EquipmentAuthored = {
             groupType: S.BRANCH_GROUP_TYPE.SINGLE,
             resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
             effectKind: S.EFFECT_KIND.RULE,
-            label: "Climber's Kit",
-            description: 'When anchored as part of a climb, a climber’s kit lets you secure yourself so you cannot fall more than 25 feet from the point where you anchored the kit.'
           }
         ]
       }

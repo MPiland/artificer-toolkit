@@ -48,8 +48,7 @@ export const conjureBarrage: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'A 60-foot cone of conjured weapons erupts from you.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         },
         shape: {
           id: spellChildId(SPELL_IDS.CONJURE_BARRAGE, 0x212, 1),
@@ -67,9 +66,6 @@ export const conjureBarrage: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Conjure Barrage',
-          description:
-            'The weapon or ammunition bursts into a cone of identical weapons that strike the area under the spell’s rules.'
         }
       ]
     }

@@ -52,8 +52,7 @@ export const freezingSphere: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose a point within range; creatures in the 60-foot-radius sphere are affected.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         },
         shape: {
           id: spellChildId(SPELL_IDS.FREEZING_SPHERE, 0x213, 1),

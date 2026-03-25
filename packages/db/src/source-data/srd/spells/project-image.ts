@@ -46,8 +46,7 @@ export const projectImage: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.MILES
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF,
-          detail: 'Create an illusory copy of yourself at a place you have seen before.'
+          selectionKind: TARGET_SELECTION_KIND.SELF
         }
       },
       branches: [
@@ -62,9 +61,6 @@ export const projectImage: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Project Image',
-          description:
-            'Creates an illusory copy of the source that can appear remotely while the spell lasts.'
         }
       ]
     }

@@ -44,8 +44,22 @@ function createFakeDb(rowsByTable: RowMap) {
 
 const BASE_ABILITY_SCORES = { STR: 10, DEX: 10, CON: 10, INT: 10, WIS: 10, CHA: 10 }
 
+function emptyGrantTables() {
+  return {
+    proficiency_grants: [],
+    proficiency_grant_skills: [],
+    proficiency_grant_save_abilities: [],
+    proficiency_grant_languages: [],
+    proficiency_grant_equipment: [],
+    proficiency_grant_equipment_filters: [],
+    proficiency_grant_equipment_filter_properties: [],
+    proficiency_grant_equipment_properties: [],
+    proficiency_grant_equipment_property_filters: [],
+  }
+}
+
 describe('createCreatureRepository', () => {
-  it('hydrates a minimal NPC creature with no profiles', async () => {
+  it('hydrates a minimal NPC creature with root language proficiency grants', async () => {
     const repo = createCreatureRepository(createFakeDb({
       creatures: [
         {
@@ -68,9 +82,6 @@ describe('createCreatureRepository', () => {
           hit_dice: '2d8+2',
           senses: null,
           passive_perception: 10,
-          saving_throw_proficiencies: null,
-          skill_proficiencies: null,
-          languages: ['common'],
           challenge_rating_id: 'cr-1-8',
           xp: 25,
           legendary_profile: null,
@@ -79,6 +90,9 @@ describe('createCreatureRepository', () => {
           companion_profile: null,
           npc_profile: null,
         }
+      ],
+      creature_proficiency_grants: [
+        { creature_id: 'creature-npc-1', proficiency_grant_id: 'grant-lang-1', sort_order: 1 }
       ],
       creature_features: [],
       creature_details: [],
@@ -108,6 +122,23 @@ describe('createCreatureRepository', () => {
       feature_spell_grants: [],
       feature_options: [],
       feature_option_levels: [],
+      ...emptyGrantTables(),
+      proficiency_grants: [
+        {
+          id: 'grant-lang-1',
+          sort_order: 1,
+          proficiency_kind: 'LANGUAGE',
+          selection_kind: 'GRANTED',
+          authoring_mode_kind: 'SELECTED',
+          count: null,
+          level: 'FULL',
+          rounding: null,
+          restriction_id: null
+        }
+      ],
+      proficiency_grant_languages: [
+        { proficiency_grant_id: 'grant-lang-1', language_id: 'common' }
+      ],
       details: [],
     }) as never)
 
@@ -118,6 +149,21 @@ describe('createCreatureRepository', () => {
       description: 'A stalwart defender.',
       details: undefined,
       features: undefined,
+      proficiencies: [
+        {
+          id: 'grant-lang-1',
+          grantKind: 'PROFICIENCY_GRANT',
+          proficiencyKind: 'LANGUAGE',
+          order: 1,
+          selectionKind: 'GRANTED',
+          authoringModeKind: 'SELECTED',
+          level: 'FULL',
+          rounding: undefined,
+          count: undefined,
+          languageIds: ['common'],
+          restrictions: undefined
+        }
+      ],
       userId: 'user-1',
       systemId: 'system-1',
       recordKind: 'STAT_BLOCK',
@@ -134,9 +180,6 @@ describe('createCreatureRepository', () => {
       speeds: [{ speedId: 'walk', amount: 30, unit: 'FEET' }],
       senses: undefined,
       passivePerception: 10,
-      savingThrowProficiencies: undefined,
-      skillProficiencies: undefined,
-      languages: ['common'],
       challengeRatingId: 'cr-1-8',
       xp: 25,
       actions: [
@@ -193,9 +236,6 @@ describe('createCreatureRepository', () => {
           hit_dice: '3d10+3',
           senses: null,
           passive_perception: 11,
-          saving_throw_proficiencies: null,
-          skill_proficiencies: null,
-          languages: null,
           challenge_rating_id: 'cr-1-2',
           xp: 100,
           legendary_profile: null,
@@ -205,6 +245,7 @@ describe('createCreatureRepository', () => {
           npc_profile: null,
         }
       ],
+      creature_proficiency_grants: [],
       creature_features: [],
       creature_details: [],
       creature_speeds: [
@@ -221,6 +262,7 @@ describe('createCreatureRepository', () => {
       feature_spell_grants: [],
       feature_options: [],
       feature_option_levels: [],
+      ...emptyGrantTables(),
       details: [],
     }) as never)
 
@@ -230,6 +272,7 @@ describe('createCreatureRepository', () => {
       recordKind: 'STAT_BLOCK',
       category: 'BEAST',
       size: 'LARGE',
+      proficiencies: undefined,
       mountProfile: {
         mountType: 'CONTROLLED',
         capacity: 1,
@@ -242,7 +285,7 @@ describe('createCreatureRepository', () => {
     expect(result?.speeds).toEqual([{ speedId: 'walk', amount: 60, unit: 'FEET' }])
   })
 
-  it('hydrates a MONSTER with legendaryProfile, lairProfile, bonus actions and reactions', async () => {
+  it('hydrates a MONSTER with root save, skill, and language proficiency grants', async () => {
     const legendaryProfile = {
       legendaryResistanceCount: 3,
       actionsCount: 3,
@@ -279,9 +322,6 @@ describe('createCreatureRepository', () => {
           hit_dice: '28d20+252',
           senses: ['blindsight-60', 'darkvision-120', 'tremorsense-60'],
           passive_perception: 26,
-          saving_throw_proficiencies: ['DEX', 'CON', 'WIS', 'CHA'],
-          skill_proficiencies: ['perception', 'stealth'],
-          languages: ['common', 'draconic'],
           challenge_rating_id: 'cr-24',
           xp: 62000,
           legendary_profile: legendaryProfile,
@@ -290,6 +330,11 @@ describe('createCreatureRepository', () => {
           companion_profile: null,
           npc_profile: null,
         }
+      ],
+      creature_proficiency_grants: [
+        { creature_id: 'creature-monster-1', proficiency_grant_id: 'grant-save-1', sort_order: 1 },
+        { creature_id: 'creature-monster-1', proficiency_grant_id: 'grant-skill-1', sort_order: 2 },
+        { creature_id: 'creature-monster-1', proficiency_grant_id: 'grant-lang-1', sort_order: 3 }
       ],
       creature_features: [
         { creature_id: 'creature-monster-1', feature_id: 'feature-legendary', sort_order: 0 }
@@ -366,6 +411,56 @@ describe('createCreatureRepository', () => {
       feature_spell_grants: [],
       feature_options: [],
       feature_option_levels: [],
+      ...emptyGrantTables(),
+      proficiency_grants: [
+        {
+          id: 'grant-save-1',
+          sort_order: 1,
+          proficiency_kind: 'SAVE_ABILITY',
+          selection_kind: 'GRANTED',
+          authoring_mode_kind: 'SELECTED',
+          count: null,
+          level: 'FULL',
+          rounding: null,
+          restriction_id: null
+        },
+        {
+          id: 'grant-skill-1',
+          sort_order: 2,
+          proficiency_kind: 'SKILL',
+          selection_kind: 'GRANTED',
+          authoring_mode_kind: 'SELECTED',
+          count: null,
+          level: 'FULL',
+          rounding: null,
+          restriction_id: null
+        },
+        {
+          id: 'grant-lang-1',
+          sort_order: 3,
+          proficiency_kind: 'LANGUAGE',
+          selection_kind: 'GRANTED',
+          authoring_mode_kind: 'SELECTED',
+          count: null,
+          level: 'FULL',
+          rounding: null,
+          restriction_id: null
+        }
+      ],
+      proficiency_grant_skills: [
+        { proficiency_grant_id: 'grant-skill-1', skill_id: 'perception' },
+        { proficiency_grant_id: 'grant-skill-1', skill_id: 'stealth' }
+      ],
+      proficiency_grant_save_abilities: [
+        { proficiency_grant_id: 'grant-save-1', ability_code: 'DEXTERITY' },
+        { proficiency_grant_id: 'grant-save-1', ability_code: 'CONSTITUTION' },
+        { proficiency_grant_id: 'grant-save-1', ability_code: 'WISDOM' },
+        { proficiency_grant_id: 'grant-save-1', ability_code: 'CHARISMA' }
+      ],
+      proficiency_grant_languages: [
+        { proficiency_grant_id: 'grant-lang-1', language_id: 'common' },
+        { proficiency_grant_id: 'grant-lang-1', language_id: 'draconic' }
+      ],
       details: [],
     }) as never)
 
@@ -378,8 +473,26 @@ describe('createCreatureRepository', () => {
       category: 'MONSTER',
       size: 'GARGANTUAN',
       tags: ['dragon', 'legendary'],
-      savingThrowProficiencies: ['DEX', 'CON', 'WIS', 'CHA'],
-      skillProficiencies: ['perception', 'stealth'],
+      proficiencies: [
+        {
+          id: 'grant-save-1',
+          grantKind: 'PROFICIENCY_GRANT',
+          proficiencyKind: 'SAVE_ABILITY',
+          abilities: ['DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA']
+        },
+        {
+          id: 'grant-skill-1',
+          grantKind: 'PROFICIENCY_GRANT',
+          proficiencyKind: 'SKILL',
+          skillIds: ['perception', 'stealth']
+        },
+        {
+          id: 'grant-lang-1',
+          grantKind: 'PROFICIENCY_GRANT',
+          proficiencyKind: 'LANGUAGE',
+          languageIds: ['common', 'draconic']
+        }
+      ],
       challengeRatingId: 'cr-24',
       xp: 62000,
     })
@@ -391,32 +504,15 @@ describe('createCreatureRepository', () => {
     })
 
     expect(result?.speeds).toHaveLength(2)
-
     expect(result?.actions).toHaveLength(2)
     expect(result?.actions?.[0]).toMatchObject({ id: 'action-bite', attackBonus: 17 })
     expect(result?.actions?.[1]).toMatchObject({ id: 'action-fire-breath', recharge: '5-6', attackBonus: undefined })
-
     expect(result?.bonusActions).toHaveLength(1)
     expect(result?.bonusActions?.[0]).toMatchObject({ id: 'bonus-detect' })
-
     expect(result?.reactions).toHaveLength(1)
     expect(result?.reactions?.[0]).toMatchObject({ id: 'reaction-wing' })
-
-    expect(result?.legendaryProfile).toEqual({
-      legendaryResistanceCount: 3,
-      actionsCount: 3,
-      actions: [
-        { id: 'leg-1', label: 'Tail Attack', description: 'Whip its tail.', attackBonus: 7, damage: '2d6+4 bludgeoning', recharge: null }
-      ],
-    })
-
-    expect(result?.lairProfile).toEqual({
-      lairActions: [
-        { id: 'lair-1', label: 'Tremor', description: 'The earth shakes.', attackBonus: null, damage: null, recharge: null }
-      ],
-      regionalEffects: ['Vegetation withers within 6 miles.'],
-    })
-
+    expect(result?.legendaryProfile).toEqual(legendaryProfile)
+    expect(result?.lairProfile).toEqual(lairProfile)
     expect(result?.mountProfile).toBeUndefined()
   })
 
@@ -443,9 +539,6 @@ describe('createCreatureRepository', () => {
           hit_dice: null,
           senses: null,
           passive_perception: null,
-          saving_throw_proficiencies: null,
-          skill_proficiencies: null,
-          languages: null,
           challenge_rating_id: null,
           xp: null,
           legendary_profile: null,
@@ -459,6 +552,7 @@ describe('createCreatureRepository', () => {
           logistics_notes: ['Requires saddle for riding.']
         }
       ],
+      creature_proficiency_grants: [],
       creature_features: [],
       creature_details: [],
       creature_speeds: [
@@ -479,6 +573,7 @@ describe('createCreatureRepository', () => {
       feature_spell_grants: [],
       feature_options: [],
       feature_option_levels: [],
+      ...emptyGrantTables(),
       details: [],
     }) as never)
 
@@ -489,6 +584,7 @@ describe('createCreatureRepository', () => {
       description: 'A dependable riding animal.',
       details: undefined,
       features: undefined,
+      proficiencies: undefined,
       userId: 'user-1',
       systemId: 'system-1',
       recordKind: 'LOGISTICS',
@@ -539,9 +635,6 @@ describe('createCreatureRepository', () => {
           hit_dice: null,
           senses: null,
           passive_perception: 11,
-          saving_throw_proficiencies: null,
-          skill_proficiencies: null,
-          languages: null,
           challenge_rating_id: null,
           xp: null,
           legendary_profile: null,
@@ -551,6 +644,7 @@ describe('createCreatureRepository', () => {
           npc_profile: null,
         }
       ],
+      creature_proficiency_grants: [],
       creature_features: [],
       creature_details: [],
       creature_speeds: [],
@@ -565,6 +659,7 @@ describe('createCreatureRepository', () => {
       feature_spell_grants: [],
       feature_options: [],
       feature_option_levels: [],
+      ...emptyGrantTables(),
       details: [],
     }) as never)
 

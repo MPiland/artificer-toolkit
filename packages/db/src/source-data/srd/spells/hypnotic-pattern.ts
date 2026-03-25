@@ -65,8 +65,7 @@ export const hypnoticPattern: SpellAuthored = {
           }
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Affect creatures in the 30-foot cube who can see the pattern.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -81,9 +80,6 @@ export const hypnoticPattern: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Hypnotic Pattern',
-          description:
-            'Creatures that fail the saving throw are charmed and incapacitated with speed 0 for the duration until the spell is broken in the normal SRD ways. This still needs a richer incapacitation and break-condition model.'
         },
         {
           id: spellChildId(SPELL_IDS.HYPNOTIC_PATTERN, 0x216, 1),
@@ -91,8 +87,6 @@ export const hypnoticPattern: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Unaffected',
-          description: 'A creature that succeeds on the saving throw is unaffected by the pattern.'
         }
       ]
     }

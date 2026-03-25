@@ -45,8 +45,7 @@ export const passWithoutTrace: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-          detail: 'Choose creatures within 30 feet of you to receive the veil of shadow and silence.'
+          selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES
         }
       },
       branches: [
@@ -61,9 +60,6 @@ export const passWithoutTrace: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Pass without Trace',
-          description:
-            'Chosen creatures within 30 feet gain the spell\'s stealth and tracking protection for the duration. This still needs a richer skill-bonus and trail-suppression model.'
         }
       ]
     }

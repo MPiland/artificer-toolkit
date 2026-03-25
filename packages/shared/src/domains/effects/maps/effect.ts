@@ -45,7 +45,7 @@ const targeting = buildNodeMap<TargetingAuthored>()
 
 export const TARGETING_NODE_MAP
   = targeting.define('targeting', ({ map, nodes, cond, logic }) => {
-    const { selectSingle, number, text } = nodes
+    const { selectSingle, number } = nodes
     const { not } = logic
     const local = cond.local()
 
@@ -67,9 +67,6 @@ export const TARGETING_NODE_MAP
       .set('maxTargets', number(['maxTargets'], 'Max Targets', {
         order: 3,
         showIf: not(local.field(['selectionKind']).eq('SELF'))
-      }))
-      .set('detail', text(['detail'], 'Detail', {
-        order: 4
       }))
   })
 

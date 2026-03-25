@@ -43,8 +43,7 @@ export const forbiddance: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'A large warded area chosen by touching a point in the area.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -60,7 +59,6 @@ export const forbiddance: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.ZONE,
-          label: 'Forbiddance',
           detail:
             'Creates a warded zone against teleportation and planar travel. The creature-type damage riders remain expressed in prose for now.'
         }

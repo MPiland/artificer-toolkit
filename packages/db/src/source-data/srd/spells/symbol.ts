@@ -50,8 +50,7 @@ export const symbol: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF,
-          detail: 'Inscribe a glyph on a surface or within an object you touch.'
+          selectionKind: TARGET_SELECTION_KIND.SELF
         }
       },
       branches: [
@@ -65,9 +64,6 @@ export const symbol: SpellAuthored = {
             durationKind: DURATION_KIND.UNTIL_DISPELLED
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Symbol',
-          description:
-            'The glyph is inscribed and bound under the spell’s trigger rules, with the specific effect determined by the chosen symbol text.'
         }
       ]
     }

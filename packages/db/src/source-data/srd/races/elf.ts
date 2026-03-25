@@ -7,15 +7,18 @@ import {
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
   PROFICIENCY_KIND,
+  RANGE_KIND,
   RACE_CATEGORY_CODE,
   SCALING,
   SCALING_AMOUNT_KIND,
   SIZE_CODE,
+  SPELL_GRANT_ATTRIBUTE,
   VALUE_DOMAIN_CODE,
   type RaceAuthored
 } from '@artificer-toolkit/shared'
-import { RACE_IDS, SUBRACE_IDS, SPELL_IDS } from '../ids.js'
+import { CLASS_IDS, RACE_IDS, SUBRACE_IDS, SPELL_IDS } from '../ids.js'
 import { SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID, SRD_DARKVISION_SENSE_ID, SRD_SKILLS, SRD_CONDITION_TYPES } from '../vocabulary.js'
+import { srdSpells } from '../spells/index.js'
 
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
   const rHex = raceIndex.toString(16).padStart(4, '0')
@@ -52,6 +55,17 @@ function languageId(code: string): string {
   return entry.id
 }
 
+function availableLanguageIds(excludedCodes: string[] = []): string[] {
+  const excluded = new Set(excludedCodes)
+  return SRD_LANGUAGES
+    .filter((language) => !excluded.has(language.code))
+    .map((language) => language.id)
+}
+
+const wizardCantripIds = srdSpells
+  .filter((spell) => spell.level === 0 && spell.classIds.includes(CLASS_IDS.WIZARD))
+  .map((spell) => spell.id)
+
 // ─── Elf (raceIndex = 2) ──────────────────────────────────────────────────────
 
 export const elf: RaceAuthored = {
@@ -81,7 +95,7 @@ export const elf: RaceAuthored = {
             senseIds: [SRD_DARKVISION_SENSE_ID],
             range: {
               id: raceFeatureId(2, 1, 3),
-              rangeKind: 'DISTANCE' as const,
+              rangeKind: RANGE_KIND.DISTANCE,
               amount: 60,
               unit: MEASUREMENT_UNIT_CODE.FEET
             },
@@ -244,7 +258,22 @@ export const highElf: RaceAuthored = {
       label: 'Cantrip',
       description: 'You know one cantrip of your choice from the wizard spell list. Intelligence is your spellcasting ability for it.',
       availableAtLevel: 1,
-      order: 2
+      order: 2,
+      grants: {
+        spells: [
+          {
+            id: raceFeatureId(103, 3, 2),
+            grantKind: GRANT_KIND.SPELL_GRANT,
+            selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+            count: 1,
+            scalingKind: SCALING.NONE,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            spellIds: wizardCantripIds,
+            attributes: [SPELL_GRANT_ATTRIBUTE.KNOWN],
+            order: 0
+          }
+        ]
+      }
     },
     {
       id: raceFeatureId(103, 4, 1),
@@ -263,6 +292,7 @@ export const highElf: RaceAuthored = {
             count: 1,
             scalingKind: SCALING.NONE,
             authoringModeKind: AUTHORING_MODE_KIND.ALL,
+            languageIds: availableLanguageIds(['COMMON', 'ELVISH']),
             order: 0
           }
         ]
@@ -441,7 +471,7 @@ export const darkElf: RaceAuthored = {
             senseIds: [SRD_DARKVISION_SENSE_ID],
             range: {
               id: raceFeatureId(105, 2, 3),
-              rangeKind: 'DISTANCE' as const,
+              rangeKind: RANGE_KIND.DISTANCE,
               amount: 120,
               unit: MEASUREMENT_UNIT_CODE.FEET
             },
@@ -472,6 +502,7 @@ export const darkElf: RaceAuthored = {
             scalingKind: SCALING.NONE,
             authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
             spellIds: [SPELL_IDS.DANCING_LIGHTS],
+            attributes: [SPELL_GRANT_ATTRIBUTE.KNOWN],
             order: 0
           },
           {

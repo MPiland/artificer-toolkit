@@ -21,7 +21,7 @@ export const charmPerson: SpellAuthored = {
   id: SPELL_IDS.CHARM_PERSON,
   label: 'Charm Person',
   description:
-    "You attempt to charm a humanoid you can see within range. The target must succeed on a Wisdom saving throw or be charmed by you until the spell ends or until you or your companions do anything harmful to it.",
+    'You attempt to charm a humanoid you can see within range. The target must succeed on a Wisdom saving throw or be charmed by you until the spell ends or until you or your companions do anything harmful to it.',
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 1,
   classIds: [CLASS_IDS.WARLOCK],
@@ -43,8 +43,7 @@ export const charmPerson: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one humanoid you can see within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -60,16 +59,6 @@ export const charmPerson: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.CONDITION,
           conditionId: conditionTypeId('CHARMED')
-        },
-        {
-          id: spellChildId(SPELL_IDS.CHARM_PERSON, 0x214, 1),
-          branch: BRANCH.ON_SAVE_SUCCESS,
-          groupType: BRANCH_GROUP_TYPE.SINGLE,
-          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
-          effectKind: EFFECT_KIND.RULE,
-          label: 'Charm Person',
-          description:
-            'On a successful saving throw, the target is unaffected by the spell.'
         }
       ]
     }

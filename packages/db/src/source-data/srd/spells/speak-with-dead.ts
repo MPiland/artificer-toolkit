@@ -41,8 +41,7 @@ export const speakWithDead: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: 'SINGLE_TARGET',
-          detail: 'Animate one corpse within range to answer your questions.'
+          selectionKind: 'SINGLE_TARGET'
         }
       },
       branches: [
@@ -57,8 +56,6 @@ export const speakWithDead: SpellAuthored = {
             amount: 10
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Speak with Dead',
-          description: 'Grant a corpse the semblance of life and intelligence so it can answer questions you pose for the duration.'
         }
       ]
     }

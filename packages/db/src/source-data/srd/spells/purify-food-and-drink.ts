@@ -45,8 +45,7 @@ export const purifyFoodAndDrink: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose a point within range; nonmagical food and drink in the 5-foot-radius sphere are purified.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         },
         shape: {
           id: spellChildId(SPELL_IDS.PURIFY_FOOD_AND_DRINK, 0x212, 1),
@@ -64,9 +63,6 @@ export const purifyFoodAndDrink: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Purify Food and Drink',
-          description:
-            'Purifies nonmagical food and drink in the area, removing poison and disease under the spell’s full SRD rules.'
         }
       ]
     }

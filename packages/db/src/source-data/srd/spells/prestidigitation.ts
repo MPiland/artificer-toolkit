@@ -49,8 +49,7 @@ export const prestidigitation: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one eligible small magical trick, object, or sensory effect within the spell\'s normal limits.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -60,9 +59,6 @@ export const prestidigitation: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Prestidigitation',
-          description:
-            'Produce one of the spell\'s small magical tricks within its normal SRD limits. This still needs a richer minor-effect and object-state model to express structurally.'
         }
       ]
     }

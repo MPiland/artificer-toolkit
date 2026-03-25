@@ -39,8 +39,7 @@ export const instantSummons: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Touch one eligible object and bind it to the spell’s sapphire component.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -50,9 +49,6 @@ export const instantSummons: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Instant Summons',
-          description:
-            'Marks the object and binds it to the sapphire, with later recall and shard-breaking behavior governed by the spell’s full SRD rules.'
         }
       ]
     }

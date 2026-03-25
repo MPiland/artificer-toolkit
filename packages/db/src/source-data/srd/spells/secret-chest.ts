@@ -51,8 +51,7 @@ export const secretChest: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Touch the chest and its miniature replica.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -63,7 +62,6 @@ export const secretChest: SpellAuthored = {
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.OBJECT,
-          label: 'Secret Chest',
           detail:
             'Hides the chest and its contents on the Ethereal Plane until the spell is reversed.'
         }

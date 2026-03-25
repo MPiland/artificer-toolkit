@@ -117,7 +117,7 @@ export interface CharacterClassIntent {
   classId: string
   classLevel: number
   subclassId?: string
-  subtypeId?: string
+  specializationId?: string
 }
 
 /* ──────────────────────────────────────────────

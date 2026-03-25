@@ -58,8 +58,7 @@ export const compulsion: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-          detail: 'Choose creatures you can see within range that can hear you.'
+          selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES
         }
       },
       branches: [
@@ -74,9 +73,6 @@ export const compulsion: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Compelled',
-          description:
-            'Affected creatures move as the spell directs for the duration. This still needs a richer forced-movement and repeated-turn compulsion model.'
         },
         {
           id: spellChildId(SPELL_IDS.COMPULSION, 0x215, 1),
@@ -84,8 +80,6 @@ export const compulsion: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Unaffected',
-          description: 'A creature that succeeds on the saving throw is unaffected by the compulsion.'
         }
       ]
     }

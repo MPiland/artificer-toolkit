@@ -42,8 +42,7 @@ export const feeblemind: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one creature you can see within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -53,9 +52,6 @@ export const feeblemind: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Feeblemind',
-          description:
-            'Deals psychic damage and forces the spell’s Intelligence save, with the full mind-shattering consequences remaining prose-bound.'
         }
       ]
     }

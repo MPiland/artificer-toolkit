@@ -43,8 +43,7 @@ export const spiritGuardians: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF,
-          detail: 'Protective spirits surround you in a 15-foot radius centered on you.'
+          selectionKind: TARGET_SELECTION_KIND.SELF
         },
         shape: {
           id: spellChildId(SPELL_IDS.SPIRIT_GUARDIANS, 0x212, 1),
@@ -62,9 +61,6 @@ export const spiritGuardians: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Spirit Guardians',
-          description:
-            'Protective spirits whirl around you and hinder enemies while sparing creatures you designate for the duration.'
         }
       ]
     }

@@ -46,8 +46,7 @@ export const clairvoyance: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.MILES
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Create an invisible sensor at a familiar or obvious location within range.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -63,7 +62,6 @@ export const clairvoyance: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.SENSOR,
-          label: 'Clairvoyance Sensor',
           detail: 'Creates an invisible sensor that provides sight or hearing from the chosen location for the duration.'
         }
       ]

@@ -50,8 +50,7 @@ export const fireShield: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF,
-          detail: 'A protective shield surrounds you.'
+          selectionKind: TARGET_SELECTION_KIND.SELF
         }
       },
       branches: [
@@ -66,9 +65,6 @@ export const fireShield: SpellAuthored = {
             amount: 10
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Fire Shield',
-          description:
-            'You wreath yourself in flames that grant resistance and retaliatory damage for the duration. This still needs a richer reactive protection model with choice-aware resistance and damage riders.'
         }
       ]
     }

@@ -46,8 +46,7 @@ export const magicJar: SpellAuthored = {
           rangeKind: RANGE_KIND.SPECIAL
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF,
-          detail: 'Target yourself and your prepared container.'
+          selectionKind: TARGET_SELECTION_KIND.SELF
         }
       },
       branches: [
@@ -57,9 +56,6 @@ export const magicJar: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Magic Jar',
-          description:
-            'Transfers your soul into the prepared container and leaves your body in a catatonic state until the spell ends or is ended.'
         }
       ]
     }

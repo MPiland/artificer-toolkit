@@ -44,8 +44,7 @@ export const sunbeam: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'A 60-foot line of light flashes from your hand.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         },
         shape: {
           id: spellChildId(SPELL_IDS.SUNBEAM, 0x212, 1),
@@ -68,9 +67,6 @@ export const sunbeam: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Sunbeam',
-          description:
-            'The beam flashes from your hand and can be fired again with your action on later turns while concentration is maintained.'
         }
       ]
     }

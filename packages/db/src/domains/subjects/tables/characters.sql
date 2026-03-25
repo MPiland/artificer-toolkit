@@ -230,7 +230,7 @@ CREATE TABLE IF NOT EXISTS public.character_classes (
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
   class_id uuid NOT NULL REFERENCES public.classes (id) ON DELETE CASCADE DEFERRABLE,
   subclass_id uuid REFERENCES public.classes (id) ON DELETE SET NULL DEFERRABLE,
-  subtype_id uuid REFERENCES public.class_subtypes (id) ON DELETE SET NULL DEFERRABLE,
+  specialization_id uuid REFERENCES public.class_specializations (id) ON DELETE SET NULL DEFERRABLE,
   class_level integer NOT NULL,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
@@ -242,7 +242,7 @@ CREATE TABLE IF NOT EXISTS public.character_classes (
 
 CREATE INDEX IF NOT EXISTS idx_char_classes_class_id ON public.character_classes (class_id);
 CREATE INDEX IF NOT EXISTS idx_char_classes_subclass_id ON public.character_classes (subclass_id);
-CREATE INDEX IF NOT EXISTS idx_char_classes_subtype_id ON public.character_classes (subtype_id);
+CREATE INDEX IF NOT EXISTS idx_char_classes_specialization_id ON public.character_classes (specialization_id);
 
 DO $$
 BEGIN

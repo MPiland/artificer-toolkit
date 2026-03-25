@@ -44,8 +44,7 @@ export const locateAnimalsOrPlants: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.MILES
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Name or describe a kind of beast or plant to locate within the spell’s search radius.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -55,9 +54,6 @@ export const locateAnimalsOrPlants: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Locate Animals or Plants',
-          description:
-            'Reveals the direction and distance to the nearest matching creature or plant within range under the spell’s full SRD rules.'
         }
       ]
     }

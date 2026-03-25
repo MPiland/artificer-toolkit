@@ -41,8 +41,7 @@ export const continualFlame: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Touch one object to wreath it in a harmless magical flame.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -56,9 +55,6 @@ export const continualFlame: SpellAuthored = {
             durationKind: DURATION_KIND.UNTIL_DISPELLED
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Continual Flame',
-          description:
-            'The touched object is wreathed in a bright, harmless magical flame that lasts until dispelled.'
         }
       ]
     }

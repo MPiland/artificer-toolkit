@@ -54,8 +54,7 @@ export const windWall: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'A wall of strong wind rises from a point within range.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -71,7 +70,6 @@ export const windWall: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.ZONE,
-          label: 'Wind Wall',
           detail:
             'Creates a wall of strong wind that blocks line of sight and pushes back gases, vapors, and small flying creatures.',
           shape: {

@@ -58,8 +58,7 @@ export const sanctuary: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.WILLING,
-          detail: 'Ward one willing creature within range.'
+          dispositionKind: TARGET_DISPOSITION_KIND.WILLING
         }
       },
       branches: [
@@ -69,9 +68,6 @@ export const sanctuary: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Sanctuary',
-          description:
-            'Wards a creature against attack. The attack-or-harmful-spell trigger response remains a rules fallback for now.'
         }
       ]
     }

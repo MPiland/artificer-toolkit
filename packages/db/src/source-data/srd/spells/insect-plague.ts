@@ -47,8 +47,7 @@ export const insectPlague: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose a point within range. Swarming insects fill a 20-foot-radius sphere there.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         },
         shape: {
           id: spellChildId(SPELL_IDS.INSECT_PLAGUE, 0x212, 1),
@@ -72,7 +71,6 @@ export const insectPlague: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.ZONE,
-          label: 'Insect Plague',
           detail:
             "Creates a swarm-filled hazardous zone that obscures the area, counts as difficult terrain, and harms creatures within it under the spell's rules."
         }

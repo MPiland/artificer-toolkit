@@ -54,8 +54,7 @@ export const stoneskin: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.WILLING,
-          detail: 'Touch one willing creature.'
+          dispositionKind: TARGET_DISPOSITION_KIND.WILLING
         }
       },
       branches: [
@@ -70,9 +69,6 @@ export const stoneskin: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Stoneskin',
-          description:
-            'The target gains resistance to nonmagical bludgeoning, piercing, and slashing damage for the duration. This still needs a richer resistance grant model that can express the nonmagical qualifier honestly.'
         }
       ]
     }

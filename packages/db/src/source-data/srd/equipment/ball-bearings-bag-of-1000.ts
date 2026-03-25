@@ -24,8 +24,7 @@ export const ballBearingsBagOf1000: EquipmentAuthored = {
             rangeKind: S.RANGE_KIND.TOUCH
           },
           targeting: {
-            selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
-            detail: 'Scatter the bearings across a 10-foot square on level ground within reach.'
+            selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS
           }
         },
         branches: [
@@ -35,8 +34,6 @@ export const ballBearingsBagOf1000: EquipmentAuthored = {
             groupType: S.BRANCH_GROUP_TYPE.SINGLE,
             resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
             effectKind: S.EFFECT_KIND.RULE,
-            label: 'Ball Bearings',
-            description: 'A creature moving across the covered area must succeed on a DC 10 Dexterity saving throw or fall prone. Moving through the area at half speed avoids the saving throw.'
           }
         ]
       }

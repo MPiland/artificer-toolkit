@@ -40,8 +40,7 @@ export const magicWeapon: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Touch one nonmagical weapon.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -56,9 +55,6 @@ export const magicWeapon: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Magic Weapon',
-          description:
-            'Turns the touched weapon magical and grants its SRD attack and damage bonuses for the duration.'
         }
       ]
     }

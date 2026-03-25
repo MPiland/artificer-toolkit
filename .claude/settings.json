@@ -7,7 +7,17 @@
       "Bash(mv backgrounds.ts backgrounds/backgrounds.ts)",
       "Bash(mv spells.ts spells/spells.ts)",
       "Bash(mv feats.ts feats/feats.ts)",
-      "Bash(cut -d'\\(' -f1)"
+      "Bash(cut -d'\\(' -f1)",
+      "Bash(node -e \":*)",
+      "Bash(grep -r \"EFFECT_KIND.RULE\\\\|kind: ''RULE''\\\\|effectKind: S.EFFECT_KIND.RULE\" /c/Users/pilan/Desktop/artificer-toolkit/packages/db/src/source-data/srd/creatures/ --include=\"*.ts\" -l)",
+      "Bash(grep -h \"label:\" c:/Users/pilan/Desktop/artificer-toolkit/packages/db/src/source-data/srd/creatures/*.ts)",
+      "Bash(sort -t, -k2 -n)",
+      "Bash(for file:*)",
+      "Bash(grep -l \"effectKind: S.EFFECT_KIND.CONDITION\" packages/db/src/source-data/srd/creatures/*.ts)",
+      "Bash(python3 /c/tmp/fix_creature_branches.py)",
+      "Read(//usr/**)",
+      "Bash(python /c/tmp/fix_creature_branches.py)",
+      "Bash(grep -B 2 \"label: ''''Tail Attack''''\" packages/db/src/source-data/srd/creatures/adult-black-dragon.ts)"
     ]
   },
   "enabledPlugins": {

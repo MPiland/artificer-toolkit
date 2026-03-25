@@ -57,8 +57,7 @@ export const hideousLaughter: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one creature you can see within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -73,9 +72,6 @@ export const hideousLaughter: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Hideous Laughter',
-          description:
-            'The target falls prone and is incapacitated under the spell’s laughter/falling effect rules until the spell ends.'
         },
         {
           id: spellChildId(SPELL_IDS.HIDEOUS_LAUGHTER, 0x215, 1),
@@ -83,8 +79,6 @@ export const hideousLaughter: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Unaffected',
-          description: 'A target that succeeds on the saving throw is unaffected by the spell.'
         }
       ]
     }

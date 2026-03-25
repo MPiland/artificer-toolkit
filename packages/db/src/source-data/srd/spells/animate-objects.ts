@@ -46,8 +46,7 @@ export const animateObjects: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose up to ten nonmagical objects within range that are not being worn or carried.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -63,7 +62,6 @@ export const animateObjects: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.CREATURE,
-          label: 'Animate Objects',
           detail:
             'Animates the chosen objects and turns them into creatures under your control until the spell ends.'
         }

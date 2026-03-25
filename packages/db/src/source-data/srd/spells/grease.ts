@@ -18,7 +18,7 @@ import {
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { SRD_MAGIC_SCHOOLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-import { spellChildId } from './shared.js'
+import { conditionTypeId, spellChildId } from './shared.js'
 
 function schoolId(code: string): string {
   const entry = SRD_MAGIC_SCHOOLS.find((s) => s.code === code)
@@ -66,8 +66,7 @@ export const grease: SpellAuthored = {
           }
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose a point within range; grease covers the 10-foot square centered there.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -83,7 +82,6 @@ export const grease: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.ZONE,
-          label: 'Grease Zone',
           detail: 'Creates a slick zone of grease that turns the area into difficult terrain for the duration.'
         },
         {
@@ -91,18 +89,8 @@ export const grease: SpellAuthored = {
           branch: BRANCH.ON_SAVE_FAIL,
           groupType: BRANCH_GROUP_TYPE.SEQUENTIAL,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
-          effectKind: EFFECT_KIND.RULE,
-          label: 'Fall Prone',
-          description: 'Creatures standing in the area when the grease appears fall prone on a failed Dexterity save.'
-        },
-        {
-          id: spellChildId(SPELL_IDS.GREASE, 0x217, 1),
-          branch: BRANCH.ON_SAVE_SUCCESS,
-          groupType: BRANCH_GROUP_TYPE.SINGLE,
-          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
-          effectKind: EFFECT_KIND.RULE,
-          label: 'Keep Footing',
-          description: 'Creatures standing in the area when the grease appears keep their footing on a successful Dexterity save.'
+          effectKind: EFFECT_KIND.CONDITION,
+          conditionTypeId: conditionTypeId('PRONE')
         }
       ]
     }

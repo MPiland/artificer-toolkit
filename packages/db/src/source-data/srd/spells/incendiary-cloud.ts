@@ -50,8 +50,7 @@ export const incendiaryCloud: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose a point within range. A burning cloud fills a 20-foot-radius sphere.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         },
         shape: {
           id: spellChildId(SPELL_IDS.INCENDIARY_CLOUD, 0x212, 1),
@@ -69,9 +68,6 @@ export const incendiaryCloud: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Incendiary Cloud',
-          description:
-            'A cloud of white-hot embers fills the area and remains for the duration or until dispersed by strong wind.'
         }
       ]
     }

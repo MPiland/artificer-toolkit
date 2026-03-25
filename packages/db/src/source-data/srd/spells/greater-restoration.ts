@@ -47,8 +47,7 @@ export const greaterRestoration: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Touch one creature.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -62,9 +61,6 @@ export const greaterRestoration: SpellAuthored = {
             durationKind: DURATION_KIND.INSTANTANEOUS
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Greater Restoration',
-          description:
-            'This spell currently needs a richer condition, curse, exhaustion, and ability-score restoration model to express the full SRD behavior honestly.'
         }
       ]
     }

@@ -47,8 +47,7 @@ export const haste: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.WILLING,
-          detail: 'Choose one willing creature you can see within range.'
+          dispositionKind: TARGET_DISPOSITION_KIND.WILLING
         }
       },
       branches: [
@@ -63,9 +62,6 @@ export const haste: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Haste',
-          description:
-            'The target gains the spell\'s speed, AC, Dexterity save, and extra-action benefits for the duration. This still needs a richer action-economy and speed-buff model.'
         }
       ]
     }

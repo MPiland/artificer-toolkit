@@ -50,8 +50,7 @@ export const conjureVolley: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose a point within range for the volley to fall.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         },
         shape: {
           id: spellChildId(SPELL_IDS.CONJURE_VOLLEY, 0x212, 1),
@@ -69,9 +68,6 @@ export const conjureVolley: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Conjure Volley',
-          description:
-            'The ammunition or weapon duplicates fall in a volley that damages creatures in the area under the spell’s rules.'
         }
       ]
     }

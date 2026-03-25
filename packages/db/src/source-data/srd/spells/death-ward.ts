@@ -42,8 +42,7 @@ export const deathWard: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.WILLING,
-          detail: 'Touch one willing creature.'
+          dispositionKind: TARGET_DISPOSITION_KIND.WILLING
         }
       },
       branches: [
@@ -58,9 +57,6 @@ export const deathWard: SpellAuthored = {
             amount: 8
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Death Ward',
-          description:
-            'The current model does not yet represent the trigger-based replacement of dropping to 0 hit points with a 1 hit point fallback.'
         }
       ]
     }

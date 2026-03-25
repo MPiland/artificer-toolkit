@@ -53,8 +53,7 @@ export const zoneOfTruth: SpellAuthored = {
           }
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose a point within range to center the zone.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -69,9 +68,6 @@ export const zoneOfTruth: SpellAuthored = {
             amount: 10
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Zone of Truth',
-          description:
-            'Creates a zone that impedes deception and forces saving throws when creatures enter or start their turn there.'
         }
       ]
     }

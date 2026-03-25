@@ -45,8 +45,7 @@ export const imprisonment: SpellAuthored = {
           rangeKind: RANGE_KIND.SPECIAL
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one creature you can see and bind it using one of the spell’s imprisonment forms.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -56,9 +55,6 @@ export const imprisonment: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Imprisoned',
-          description:
-            'On a failed save, the creature is bound by the chosen imprisonment form under the spell’s full SRD rules.'
         },
         {
           id: spellChildId(SPELL_IDS.IMPRISONMENT, 0x214, 1),
@@ -66,9 +62,6 @@ export const imprisonment: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Successful Save',
-          description:
-            'On a successful save, the target resists the spell and becomes immune to further castings of your imprisonment.'
         }
       ]
     }

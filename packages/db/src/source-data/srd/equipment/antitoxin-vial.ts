@@ -24,8 +24,7 @@ export const antitoxinVial: EquipmentAuthored = {
             rangeKind: S.RANGE_KIND.TOUCH
           },
           targeting: {
-            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-            detail: 'Administer the antitoxin to one creature within reach.'
+            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
           }
         },
         branches: [
@@ -35,8 +34,6 @@ export const antitoxinVial: EquipmentAuthored = {
             groupType: S.BRANCH_GROUP_TYPE.SINGLE,
             resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
             effectKind: S.EFFECT_KIND.RULE,
-            label: 'Antitoxin',
-            description: 'For 1 hour, the target has advantage on saving throws against poison.'
           }
         ]
       }

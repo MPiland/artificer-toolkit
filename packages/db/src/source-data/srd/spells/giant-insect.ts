@@ -52,8 +52,7 @@ export const giantInsect: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-          maxTargets: 10,
-          detail: 'Choose up to ten insects within range to transform.'
+          maxTargets: 10
         }
       },
       branches: [
@@ -69,7 +68,6 @@ export const giantInsect: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.CREATURE,
-          label: 'Giant Insect',
           detail: "Transforms the chosen insects into giant versions of their forms for the spell's duration."
         }
       ]

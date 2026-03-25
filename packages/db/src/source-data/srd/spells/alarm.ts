@@ -55,8 +55,7 @@ export const alarm: SpellAuthored = {
           }
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose a door, a window, or an area no larger than a 20-foot cube within range.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -72,7 +71,6 @@ export const alarm: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.ZONE,
-          label: 'Alarm Ward',
           detail: 'Alerts you when a Tiny or larger creature touches or enters the warded area.'
         }
       ]

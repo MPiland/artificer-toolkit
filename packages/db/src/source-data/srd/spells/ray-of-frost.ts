@@ -1,21 +1,31 @@
 import {
   ACTIVATION_CODE,
+  AUTHORING_SELECTION_KIND,
   CASTING_TIME_UNIT_CODE,
   BRANCH,
   BRANCH_GROUP_TYPE,
   BRANCH_RESOLUTION_KIND,
+  DURATION_KIND,
   EFFECT_KIND,
+  GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
   RANGE_KIND,
   SCALING,
   SCALING_SOURCE,
   TARGET_SELECTION_KIND,
   SUBJECT,
   TRIGGER,
+  VALUE_DOMAIN_CODE,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { SRD_SPEEDS } from '../vocabulary.js'
 import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+
+const walkSpeedId = SRD_SPEEDS.find((speed) => speed.code === 'WALK')?.id
+if (!walkSpeedId) throw new Error('SRD WALK speed vocabulary entry is required for spell source data.')
 
 export const rayOfFrost: SpellAuthored = {
   kind: SUBJECT.SPELL,
@@ -44,8 +54,7 @@ export const rayOfFrost: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Hurl a frigid beam at one creature within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -71,9 +80,30 @@ export const rayOfFrost: SpellAuthored = {
           branch: BRANCH.ON_HIT,
           groupType: BRANCH_GROUP_TYPE.SEQUENTIAL,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
-          effectKind: EFFECT_KIND.RULE,
-          label: 'Rider',
-          description: 'On a hit, the target\'s speed is reduced until the start of your next turn.'
+          duration: {
+            id: spellChildId(SPELL_IDS.RAY_OF_FROST, 0x214, 1),
+            durationKind: DURATION_KIND.ROUND,
+            amount: 1
+          },
+          effectKind: EFFECT_KIND.APPLY_GRANT,
+          grants: {
+            modifiers: [
+              {
+                id: spellChildId(SPELL_IDS.RAY_OF_FROST, 0x215, 1),
+                grantKind: GRANT_KIND.MODIFIER_GRANT,
+                valueDomainCode: VALUE_DOMAIN_CODE.SPEED,
+                domain: { speedId: walkSpeedId },
+                modifierKind: MODIFIER_KIND.PENALTY,
+                scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                payload: {
+                  valueKind: 'FIXED',
+                  amount: 10
+                },
+                order: 1
+              }
+            ]
+          }
         }
       ]
     }

@@ -25,8 +25,7 @@ export const healersKit10Uses: EquipmentAuthored = {
             rangeKind: S.RANGE_KIND.TOUCH
           },
           targeting: {
-            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-            detail: 'Use the kit to stabilize one dying creature within reach.'
+            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
           }
         },
         branches: [
@@ -36,8 +35,6 @@ export const healersKit10Uses: EquipmentAuthored = {
             groupType: S.BRANCH_GROUP_TYPE.SINGLE,
             resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
             effectKind: S.EFFECT_KIND.RULE,
-            label: "Healer's Kit",
-            description: "You can use the kit to stabilize a dying creature without making a Wisdom (Medicine) check."
           }
         ]
       }

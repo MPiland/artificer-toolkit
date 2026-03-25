@@ -40,8 +40,7 @@ export const detectThoughts: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: 'SELF',
-          detail: 'Read the surface thoughts of a creature within range, or probe deeper after establishing a link.'
+          selectionKind: 'SELF'
         }
       },
       branches: [
@@ -56,9 +55,6 @@ export const detectThoughts: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Detect Thoughts',
-          description:
-            'For the duration, you can sense and read surface thoughts and, when you maintain the link, probe deeper thoughts through a saving throw-based interaction.'
         }
       ]
     }

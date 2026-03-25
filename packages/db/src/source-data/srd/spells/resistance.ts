@@ -44,8 +44,7 @@ export const resistance: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.WILLING,
-          detail: 'Touch one willing creature.'
+          dispositionKind: TARGET_DISPOSITION_KIND.WILLING
         }
       },
       branches: [
@@ -60,9 +59,6 @@ export const resistance: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Resistance',
-          description:
-            'The target can add 1d4 to one saving throw of its choice before the spell ends. This still needs a richer one-shot saving-throw bonus model to express structurally.'
         }
       ]
     }

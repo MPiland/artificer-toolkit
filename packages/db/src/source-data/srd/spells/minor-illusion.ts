@@ -50,8 +50,7 @@ export const minorIllusion: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Create a sound or an image of an object within range.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -66,9 +65,6 @@ export const minorIllusion: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Minor Illusion',
-          description:
-            'Creates a simple sensory illusion that creatures can investigate and disbelieve.'
         }
       ]
     }

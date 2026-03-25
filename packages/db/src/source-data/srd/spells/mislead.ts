@@ -42,8 +42,7 @@ export const mislead: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF,
-          detail: 'Target yourself.'
+          selectionKind: TARGET_SELECTION_KIND.SELF
         }
       },
       branches: [
@@ -58,9 +57,6 @@ export const mislead: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Mislead',
-          description:
-            'You become invisible and leave behind an illusory double until the spell ends or the invisibility breaks.'
         }
       ]
     }

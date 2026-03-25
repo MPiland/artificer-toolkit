@@ -45,8 +45,7 @@ export const magicCircle: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'A 10-foot-radius cylinder centered on a point on the ground within range.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         },
         shape: {
           id: spellChildId(SPELL_IDS.MAGIC_CIRCLE, 0x212, 1),
@@ -74,7 +73,6 @@ export const magicCircle: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.ZONE,
-          label: 'Magic Circle',
           detail:
             'Creates a warded cylinder against chosen creature types. The creature-type exclusion and banishment riders are still described in prose.'
         }

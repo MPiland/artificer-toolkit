@@ -5,15 +5,19 @@ import {
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
   GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
   PROFICIENCY_KIND,
   SCALING,
   SCALING_AMOUNT_KIND,
   SPELLCASTING_ATTRIBUTE,
+  VALUE_DOMAIN_CODE,
   type ClassAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
 import {
   SRD_CURRENCIES,
+  SRD_LANGUAGES,
   SRD_SKILLS,
   SRD_SYSTEM_ID,
   SRD_USER_ID
@@ -22,6 +26,12 @@ import {
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
   if (!entry) throw new Error(`SRD skill vocabulary entry for ${code} required.`)
+  return entry.id
+}
+
+function languageId(code: string): string {
+  const entry = SRD_LANGUAGES.find((l) => l.code === code)
+  if (!entry) throw new Error(`SRD language vocabulary entry for ${code} required.`)
   return entry.id
 }
 
@@ -234,7 +244,62 @@ export const sorcerer: ClassAuthored = {
       label: 'Metamagic',
       description: 'At 3rd level, you gain the ability to twist your spells to suit your needs. You gain two of the following Metamagic options of your choice.',
       availableAtLevel: 3,
-      order: 4
+      order: 4,
+      optionChoices: [
+        { level: 3, count: 2 },
+        { level: 10, count: 1 },
+        { level: 17, count: 1 }
+      ],
+      options: [
+        {
+          id: classRowId(S, 13, 1),
+          label: 'Careful Spell',
+          description: 'When you cast a spell that forces other creatures to make a saving throw, you can protect some of those creatures from the spell\'s full force. To do so, you spend 1 sorcery point and choose a number of those creatures up to your Charisma modifier (minimum of one creature). A chosen creature automatically succeeds on its saving throw against the spell.',
+          order: 0
+        },
+        {
+          id: classRowId(S, 13, 2),
+          label: 'Distant Spell',
+          description: 'When you cast a spell that has a range of 5 feet or greater, you can spend 1 sorcery point to double the range of the spell. When you cast a spell that has a range of touch, you can spend 1 sorcery point to make the range of the spell 30 feet.',
+          order: 1
+        },
+        {
+          id: classRowId(S, 13, 3),
+          label: 'Empowered Spell',
+          description: 'When you roll damage for a spell, you can spend 1 sorcery point to reroll a number of the damage dice up to your Charisma modifier (minimum of one). You must use the new rolls. You can use Empowered Spell even if you have already used a different Metamagic option during the casting of the spell.',
+          order: 2
+        },
+        {
+          id: classRowId(S, 13, 4),
+          label: 'Extended Spell',
+          description: 'When you cast a spell that has a duration of 1 minute or longer, you can spend 1 sorcery point to double its duration, to a maximum duration of 24 hours.',
+          order: 3
+        },
+        {
+          id: classRowId(S, 13, 5),
+          label: 'Heightened Spell',
+          description: 'When you cast a spell that forces a creature to make a saving throw to resist its effects, you can spend 3 sorcery points to give one target of the spell disadvantage on its first saving throw made against the spell.',
+          order: 4
+        },
+        {
+          id: classRowId(S, 13, 6),
+          label: 'Quickened Spell',
+          description: 'When you cast a spell that has a casting time of 1 action, you can spend 2 sorcery points to change the casting time to 1 bonus action for this casting.',
+          order: 5
+        },
+        {
+          id: classRowId(S, 13, 7),
+          label: 'Subtle Spell',
+          description: 'When you cast a spell, you can spend 1 sorcery point to cast it without any somatic or verbal components.',
+          order: 6
+        },
+        {
+          id: classRowId(S, 13, 8),
+          label: 'Twinned Spell',
+          description: 'When you cast a spell that targets only one creature and doesn\'t have a range of self, you can spend a number of sorcery points equal to the spell\'s level to target a second creature in range with the same spell (1 sorcery point if the spell is a cantrip). To be eligible, a spell must be incapable of targeting more than one creature at the spell\'s current level.',
+          order: 7
+        }
+      ]
     },
     {
       id: classRowId(S, 4, 6),
@@ -305,55 +370,6 @@ export const sorcerer: ClassAuthored = {
       description: 'At 20th level, you regain 4 expended sorcery points whenever you finish a short rest.',
       availableAtLevel: 20,
       order: 14
-    }
-  ]
-}
-
-// ─── Draconic Bloodline Subclass ──────────────────────────────────────────────
-
-export const draconicBloodline: ClassAuthored = {
-  id: SUBCLASS_IDS.DRACONIC_BLOODLINE,
-  label: 'Draconic Bloodline',
-  category: CLASS_CATEGORY.SUBCLASS,
-  parentClassId: CLASS_IDS.SORCERER,
-  description: 'Your innate magic comes from draconic magic that was mingled with your blood or that of your ancestors.',
-  userId: SRD_USER_ID,
-  systemId: SRD_SYSTEM_ID,
-  features: [
-    {
-      id: classRowId(S, 11, 1),
-      label: 'Dragon Ancestor',
-      description: 'At 1st level, you choose one type of dragon as your ancestor. The damage type associated with each dragon is used by features you gain later.',
-      availableAtLevel: 1,
-      order: 0
-    },
-    {
-      id: classRowId(S, 11, 2),
-      label: 'Draconic Resilience',
-      description: 'As magic flows through your body, it causes physical traits of your dragon ancestors to emerge. At 1st level, your hit point maximum increases by 1 and increases by 1 again whenever you gain a level in this class. Additionally, parts of your skin are covered by a thin sheen of dragon-like scales. When you aren\'t wearing armor, your AC equals 13 + your Dexterity modifier.',
-      availableAtLevel: 1,
-      order: 1
-    },
-    {
-      id: classRowId(S, 11, 3),
-      label: 'Elemental Affinity',
-      description: 'Starting at 6th level, when you cast a spell that deals damage of the type associated with your draconic ancestry, you can add your Charisma modifier to one damage roll of that spell.',
-      availableAtLevel: 6,
-      order: 2
-    },
-    {
-      id: classRowId(S, 11, 4),
-      label: 'Dragon Wings',
-      description: 'At 14th level, you gain the ability to sprout a pair of dragon wings from your back, gaining a flying speed equal to your current speed. You can create these wings as a bonus action on your turn.',
-      availableAtLevel: 14,
-      order: 3
-    },
-    {
-      id: classRowId(S, 11, 5),
-      label: 'Draconic Presence',
-      description: 'Beginning at 18th level, you can channel the dread presence of your dragon ancestor, causing those around you to become awestruck or frightened.',
-      availableAtLevel: 18,
-      order: 4
     }
   ]
 }

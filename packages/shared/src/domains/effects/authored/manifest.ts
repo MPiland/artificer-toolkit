@@ -5,7 +5,6 @@ export type ManifestAuthored = {
   id: string
   effectKind: typeof EFFECT_KIND.MANIFEST
   manifestKind: keyof typeof MANIFEST_KIND
-  label: string
   detail?: string
   shape?: ShapeAuthored
   creatureId?: string

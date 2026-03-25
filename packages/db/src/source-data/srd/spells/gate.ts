@@ -44,8 +44,7 @@ export const gate: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose an unoccupied space you can see within range where the planar portal opens.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -61,7 +60,6 @@ export const gate: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.ZONE,
-          label: 'Gate',
           detail:
             'Creates a planar portal to another plane of existence, with the travel and calling rules remaining governed by the spell’s full SRD text.'
         }

@@ -46,8 +46,7 @@ export const conjureFey: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose an unoccupied space within range where the fey appears.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -63,7 +62,6 @@ export const conjureFey: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.CREATURE,
-          label: 'Conjure Fey',
           detail: 'Summons a fey ally under your control for the spell duration.'
         }
       ]

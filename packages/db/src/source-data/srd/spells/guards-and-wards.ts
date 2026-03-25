@@ -48,8 +48,7 @@ export const guardsAndWards: SpellAuthored = {
           rangeKind: RANGE_KIND.SIGHT
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Select the contiguous areas to ward while casting.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -64,8 +63,6 @@ export const guardsAndWards: SpellAuthored = {
             amount: 24
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Guards and Wards',
-          description: 'Creates a powerful ward over the chosen stronghold area.'
         }
       ]
     }

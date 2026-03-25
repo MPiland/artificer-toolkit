@@ -41,8 +41,7 @@ export const nondetection: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Touch the target to ward it from divination magic.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -57,8 +56,6 @@ export const nondetection: SpellAuthored = {
             amount: 8
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Nondetection',
-          description: 'Hides the touched target from divination magic for the duration.'
         }
       ]
     }

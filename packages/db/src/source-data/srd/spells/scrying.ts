@@ -39,8 +39,7 @@ export const scrying: SpellAuthored = {
           rangeKind: RANGE_KIND.SPECIAL
         },
         targeting: {
-          selectionKind: 'SINGLE_TARGET',
-          detail: 'Attempt to perceive a creature on the same plane of existence through a magical sensor.'
+          selectionKind: 'SINGLE_TARGET'
         }
       },
       branches: [
@@ -56,7 +55,6 @@ export const scrying: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.SENSOR,
-          label: 'Scrying Sensor',
           detail: 'Creates an invisible sensor near the target creature, allowing you to see and hear the target if the spell succeeds.'
         }
       ]

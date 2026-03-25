@@ -49,8 +49,7 @@ export const gustOfWind: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'A 60-foot line of strong wind blasts from you.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         },
         shape: {
           id: spellChildId(SPELL_IDS.GUST_OF_WIND, 0x212, 1),
@@ -73,9 +72,6 @@ export const gustOfWind: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Gust of Wind',
-          description:
-            'Creates a line of strong wind that persists for the duration and pushes creatures under the spell’s rules.'
         }
       ]
     }

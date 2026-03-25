@@ -40,8 +40,7 @@ export const divination: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: 'SELF',
-          detail: 'You ask a divinatory question concerning a specific goal, event, or activity to occur within 7 days.'
+          selectionKind: 'SELF'
         }
       },
       branches: [
@@ -51,8 +50,6 @@ export const divination: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Divination Answer',
-          description: "Receive a truthful reply from a god or a god's servants about the specific goal, event, or activity."
         }
       ]
     }

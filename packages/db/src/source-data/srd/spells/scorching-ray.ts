@@ -45,8 +45,7 @@ export const scorchingRay: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-          maxTargets: 3,
-          detail: 'Choose up to three creatures within range.'
+          maxTargets: 3
         }
       },
       branches: [

@@ -12,6 +12,7 @@ import type { DBLike } from '#types'
 import { upsertCreature } from '../upserts/creature.js'
 import { createDetailRepository } from '../../shared/repositories/detail.js'
 import { createFeatureRepository } from '../../features/repositories/feature.js'
+import { createProficiencyGrantRepository } from '../../grants/repositories/proficiency.js'
 import type { CreatureRepository, RepositoryFindAllOptions } from '../../../repositories/contracts.js'
 
 function requireLinkedRecord<T>(value: T | null, message: string): T {
@@ -68,9 +69,6 @@ async function hydrateCreatureById(
       'hit_dice',
       'senses',
       'passive_perception',
-      'saving_throw_proficiencies',
-      'skill_proficiencies',
-      'languages',
       'challenge_rating_id',
       'xp',
       'legendary_profile',
@@ -94,6 +92,7 @@ async function hydrateCreatureById(
   const [
     featureLinks,
     detailLinks,
+    proficiencyLinks,
     speedRows,
     actionRows,
     resistanceRows,
@@ -108,6 +107,11 @@ async function hydrateCreatureById(
       .execute(),
     (db as any).selectFrom('creature_details')
       .select(['detail_id', 'sort_order'])
+      .where('creature_id', '=', id)
+      .orderBy('sort_order')
+      .execute(),
+    (db as any).selectFrom('creature_proficiency_grants')
+      .select(['proficiency_grant_id', 'sort_order'])
       .where('creature_id', '=', id)
       .orderBy('sort_order')
       .execute(),
@@ -142,12 +146,17 @@ async function hydrateCreatureById(
 
   const detailRepository = createDetailRepository(db)
   const featureRepository = createFeatureRepository(db, row.system_id)
+  const proficiencyGrantRepository = createProficiencyGrantRepository(db)
 
-  const details = await Promise.all(detailLinks.map((link: any) => detailRepository.findById(link.detail_id)))
-  const features = await Promise.all(featureLinks.map((link: any) => featureRepository.findById(link.feature_id)))
+  const [details, features, proficiencies] = await Promise.all([
+    Promise.all(detailLinks.map((link: any) => detailRepository.findById(link.detail_id))),
+    Promise.all(featureLinks.map((link: any) => featureRepository.findById(link.feature_id))),
+    Promise.all(proficiencyLinks.map((link: any) => proficiencyGrantRepository.findById(link.proficiency_grant_id))),
+  ])
 
   const authoredDetails = details.map((detail, index) => requireLinkedRecord(detail, `Creature "${id}" is linked to missing detail "${detailLinks[index]?.detail_id}".`))
   const authoredFeatures = features.map((feature, index) => requireLinkedRecord(feature, `Creature "${id}" is linked to missing feature "${featureLinks[index]?.feature_id}".`))
+  const authoredProficiencies = proficiencies.map((proficiency, index) => requireLinkedRecord(proficiency, `Creature "${id}" is linked to missing proficiency grant "${proficiencyLinks[index]?.proficiency_grant_id}".`))
 
   const authoredSpeeds = speedRows.map((speed: any) => ({
     speedId: speed.speed_id,
@@ -171,6 +180,7 @@ async function hydrateCreatureById(
     description: row.description ?? undefined,
     details: authoredDetails.length > 0 ? authoredDetails : undefined,
     features: authoredFeatures.length > 0 ? authoredFeatures : undefined,
+    proficiencies: authoredProficiencies.length > 0 ? authoredProficiencies : undefined,
     userId: row.user_id,
     systemId: row.system_id,
     recordKind: row.record_kind as CreatureAuthored['recordKind'],
@@ -211,13 +221,10 @@ async function hydrateCreatureById(
     hitDice: row.hit_dice ?? undefined,
     senses: row.senses ?? undefined,
     passivePerception: row.passive_perception ?? undefined,
-    savingThrowProficiencies: row.saving_throw_proficiencies as never ?? undefined,
-    skillProficiencies: row.skill_proficiencies ?? undefined,
     damageVulnerabilities: vulnerabilityRows.map((entry: any) => entry.damage_type_id),
     damageResistances: resistanceRows.map((entry: any) => entry.damage_type_id),
     damageImmunities: immunityRows.map((entry: any) => entry.damage_type_id),
     conditionImmunities: conditionImmunityRows.map((entry: any) => entry.condition_type_id),
-    languages: row.languages ?? undefined,
     challengeRatingId: row.challenge_rating_id ?? undefined,
     xp: row.xp ?? undefined,
     actions: actionRows.filter((action: any) => action.action_type === 'ACTION').map(mapAction),

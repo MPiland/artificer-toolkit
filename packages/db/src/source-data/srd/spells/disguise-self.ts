@@ -40,8 +40,7 @@ export const disguiseSelf: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF,
-          detail: 'Alter your own appearance and apparent gear.'
+          selectionKind: TARGET_SELECTION_KIND.SELF
         }
       },
       branches: [
@@ -56,9 +55,6 @@ export const disguiseSelf: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Disguise Self',
-          description:
-            'Creates an illusory change to your appearance and the appearance of worn or carried items within the spell’s normal disguise limits until dismissed or ended.'
         }
       ]
     }

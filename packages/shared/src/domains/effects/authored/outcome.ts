@@ -1,6 +1,7 @@
 import type { ApplyGrantAuthored } from './applyGrant.js'
 import type { ConditionAuthored } from './condition.js'
 import type { DamageAuthored } from './damage.js'
+import type { ForcedMovementAuthored } from './forcedMovement.js'
 import type { HealAuthored } from './heal.js'
 import type { ManifestAuthored } from './manifest.js'
 import type { RuleAuthored } from './rule.js'
@@ -11,6 +12,7 @@ export type OutcomeAuthored =
   | ConditionAuthored
   | HealAuthored
   | ApplyGrantAuthored
+  | ForcedMovementAuthored
   | TeleportAuthored
   | ManifestAuthored
   | RuleAuthored

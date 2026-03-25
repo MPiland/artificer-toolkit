@@ -41,8 +41,7 @@ export const identify: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: 'SINGLE_TARGET',
-          detail: 'Touch one object to identify whether it is magical and learn its properties.'
+          selectionKind: 'SINGLE_TARGET'
         }
       },
       branches: [
@@ -52,9 +51,6 @@ export const identify: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Identify',
-          description:
-            'You identify the touched object or spell effect and learn its magical properties, attunement requirement, and charges, if any.'
         }
       ]
     }

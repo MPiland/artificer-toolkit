@@ -51,8 +51,7 @@ export const fleshToStone: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one creature you can see within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -67,9 +66,6 @@ export const fleshToStone: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Flesh Hardens',
-          description:
-            'On a failed save, the target begins turning to stone under the spell’s repeated-save and petrification rules.'
         },
         {
           id: spellChildId(SPELL_IDS.FLESH_TO_STONE, 0x215, 1),
@@ -77,8 +73,6 @@ export const fleshToStone: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Successful Save',
-          description: 'On a successful save, the target resists the transmutation.'
         }
       ]
     }

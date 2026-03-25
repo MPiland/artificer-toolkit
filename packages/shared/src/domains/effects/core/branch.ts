@@ -243,3 +243,103 @@ export const BRANCHES_BY_TRIGGER: Record<Trigger, readonly BranchCode[]> = {
 
 export type BranchesByTrigger<TTrigger extends Trigger>
   = (typeof BRANCHES_BY_TRIGGER)[TTrigger][number]
+
+export const BRANCH_LIFECYCLE_RECURRING_KIND = {
+  NONE: 'NONE',
+  START_OF_TURN: 'START_OF_TURN',
+  END_OF_TURN: 'END_OF_TURN'
+} as const
+
+export type BranchLifecycleRecurringKind = keyof typeof BRANCH_LIFECYCLE_RECURRING_KIND
+
+export type BranchLifecycleRecurringKindOption = CoreMeta<BranchLifecycleRecurringKind>
+
+export const BRANCH_LIFECYCLE_RECURRING_KIND_REGISTRY: Record<
+  BranchLifecycleRecurringKind,
+  BranchLifecycleRecurringKindOption
+> = {
+  [BRANCH_LIFECYCLE_RECURRING_KIND.NONE]: {
+    code: BRANCH_LIFECYCLE_RECURRING_KIND.NONE,
+    label: 'None',
+    description: 'No recurring lifecycle application.',
+    tooltip: 'No recurrence.'
+  },
+  [BRANCH_LIFECYCLE_RECURRING_KIND.START_OF_TURN]: {
+    code: BRANCH_LIFECYCLE_RECURRING_KIND.START_OF_TURN,
+    label: 'Start Of Turn',
+    description: 'Re-applies at the start of each turn while active.',
+    tooltip: 'Recurring at turn start.'
+  },
+  [BRANCH_LIFECYCLE_RECURRING_KIND.END_OF_TURN]: {
+    code: BRANCH_LIFECYCLE_RECURRING_KIND.END_OF_TURN,
+    label: 'End Of Turn',
+    description: 'Re-applies at the end of each turn while active.',
+    tooltip: 'Recurring at turn end.'
+  }
+} as const
+
+export const BRANCH_LIFECYCLE_RECURRING_KIND_OPTIONS = valuesOf(
+  BRANCH_LIFECYCLE_RECURRING_KIND_REGISTRY
+) as readonly BranchLifecycleRecurringKindOption[]
+
+export const BRANCH_LIFECYCLE_CONSUME_EVENT = {
+  ON_ATTACK_ROLL: 'ON_ATTACK_ROLL',
+  ON_CAST_SPELL: 'ON_CAST_SPELL'
+} as const
+
+export type BranchLifecycleConsumeEvent = keyof typeof BRANCH_LIFECYCLE_CONSUME_EVENT
+
+export type BranchLifecycleConsumeEventOption = CoreMeta<BranchLifecycleConsumeEvent>
+
+export const BRANCH_LIFECYCLE_CONSUME_EVENT_REGISTRY: Record<
+  BranchLifecycleConsumeEvent,
+  BranchLifecycleConsumeEventOption
+> = {
+  [BRANCH_LIFECYCLE_CONSUME_EVENT.ON_ATTACK_ROLL]: {
+    code: BRANCH_LIFECYCLE_CONSUME_EVENT.ON_ATTACK_ROLL,
+    label: 'On Attack Roll',
+    description: 'Consume the effect on the first attack roll event.',
+    tooltip: 'Consumed by first attack roll.'
+  },
+  [BRANCH_LIFECYCLE_CONSUME_EVENT.ON_CAST_SPELL]: {
+    code: BRANCH_LIFECYCLE_CONSUME_EVENT.ON_CAST_SPELL,
+    label: 'On Cast Spell',
+    description: 'Consume the effect on the first cast spell event.',
+    tooltip: 'Consumed by first spell cast.'
+  }
+} as const
+
+export const BRANCH_LIFECYCLE_CONSUME_EVENT_OPTIONS = valuesOf(
+  BRANCH_LIFECYCLE_CONSUME_EVENT_REGISTRY
+) as readonly BranchLifecycleConsumeEventOption[]
+
+export const BRANCH_LIFECYCLE_END_EVENT = {
+  ON_ATTACK_ROLL: 'ON_ATTACK_ROLL',
+  ON_CAST_SPELL: 'ON_CAST_SPELL'
+} as const
+
+export type BranchLifecycleEndEvent = keyof typeof BRANCH_LIFECYCLE_END_EVENT
+
+export type BranchLifecycleEndEventOption = CoreMeta<BranchLifecycleEndEvent>
+
+export const BRANCH_LIFECYCLE_END_EVENT_REGISTRY: Record<
+  BranchLifecycleEndEvent,
+  BranchLifecycleEndEventOption
+> = {
+  [BRANCH_LIFECYCLE_END_EVENT.ON_ATTACK_ROLL]: {
+    code: BRANCH_LIFECYCLE_END_EVENT.ON_ATTACK_ROLL,
+    label: 'On Attack Roll',
+    description: 'The effect ends when an attack roll event occurs.',
+    tooltip: 'Ends on attack roll.'
+  },
+  [BRANCH_LIFECYCLE_END_EVENT.ON_CAST_SPELL]: {
+    code: BRANCH_LIFECYCLE_END_EVENT.ON_CAST_SPELL,
+    label: 'On Cast Spell',
+    description: 'The effect ends when a spell cast event occurs.',
+    tooltip: 'Ends on spell cast.'
+  }
+} as const
+
+export const BRANCH_LIFECYCLE_END_EVENT_OPTIONS = valuesOf(
+  BRANCH_LIFECYCLE_END_EVENT_REGISTRY
+) as readonly BranchLifecycleEndEventOption[]

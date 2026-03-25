@@ -52,8 +52,7 @@ export const regenerate: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Touch one creature.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -67,9 +66,6 @@ export const regenerate: SpellAuthored = {
             durationKind: DURATION_KIND.INSTANTANEOUS
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Regenerate',
-          description:
-            'This spell currently needs a richer regeneration, limb-restoration, and long-duration healing-state model to express the full SRD behavior honestly.'
         }
       ]
     }

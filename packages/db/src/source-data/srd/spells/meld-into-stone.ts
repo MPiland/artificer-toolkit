@@ -44,8 +44,7 @@ export const meldIntoStone: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Touch a stone object or surface large enough to contain you.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -60,9 +59,6 @@ export const meldIntoStone: SpellAuthored = {
             amount: 8
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Meld into Stone',
-          description:
-            'Merges the target into stone for the duration. The full movement and sensory implications remain prose-bound.'
         }
       ]
     }

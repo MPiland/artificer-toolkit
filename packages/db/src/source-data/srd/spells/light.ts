@@ -40,8 +40,7 @@ export const light: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Touch one object no larger than 10 feet in any dimension.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -56,9 +55,6 @@ export const light: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Light',
-          description:
-            'The touched object sheds bright and dim light for the duration. This still needs a richer light-source or illuminated-object model to express structurally.'
         }
       ]
     }

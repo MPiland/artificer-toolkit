@@ -1,0 +1,9277 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "13.0.5"
+  }
+  public: {
+    Tables: {
+      admins: {
+        Row: {
+          is_admin: boolean
+          user_id: string
+        }
+        Insert: {
+          is_admin?: boolean
+          user_id: string
+        }
+        Update: {
+          is_admin?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
+      alignments: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          label: string
+          short: string | null
+          system_id: string
+          tooltip: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id: string
+          label: string
+          short?: string | null
+          system_id: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          label?: string
+          short?: string | null
+          system_id?: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alignments_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      background_details: {
+        Row: {
+          background_id: string
+          detail_id: string
+          sort_order: number
+        }
+        Insert: {
+          background_id: string
+          detail_id: string
+          sort_order: number
+        }
+        Update: {
+          background_id?: string
+          detail_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "background_details_background_id_fkey"
+            columns: ["background_id"]
+            isOneToOne: false
+            referencedRelation: "backgrounds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "background_details_detail_id_fkey"
+            columns: ["detail_id"]
+            isOneToOne: false
+            referencedRelation: "details"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      background_features: {
+        Row: {
+          background_id: string
+          feature_id: string
+          sort_order: number
+        }
+        Insert: {
+          background_id: string
+          feature_id: string
+          sort_order: number
+        }
+        Update: {
+          background_id?: string
+          feature_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "background_features_background_id_fkey"
+            columns: ["background_id"]
+            isOneToOne: false
+            referencedRelation: "backgrounds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "background_features_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      background_proficiency_grants: {
+        Row: {
+          background_id: string
+          proficiency_grant_id: string
+          sort_order: number
+        }
+        Insert: {
+          background_id: string
+          proficiency_grant_id: string
+          sort_order: number
+        }
+        Update: {
+          background_id?: string
+          proficiency_grant_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "background_proficiency_grants_background_id_fkey"
+            columns: ["background_id"]
+            isOneToOne: false
+            referencedRelation: "backgrounds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "background_proficiency_grants_proficiency_grant_id_fkey"
+            columns: ["proficiency_grant_id"]
+            isOneToOne: false
+            referencedRelation: "proficiency_grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      backgrounds: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_master: boolean | null
+          label: string
+          starting_equipment_id: string | null
+          system_id: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_master?: boolean | null
+          label: string
+          starting_equipment_id?: string | null
+          system_id: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_master?: boolean | null
+          label?: string
+          starting_equipment_id?: string | null
+          system_id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "backgrounds_starting_equipment_id_fkey"
+            columns: ["starting_equipment_id"]
+            isOneToOne: false
+            referencedRelation: "starting_equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "backgrounds_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      challenge_ratings: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          label: string
+          short: string | null
+          system_id: string
+          tooltip: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id: string
+          label: string
+          short?: string | null
+          system_id: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          label?: string
+          short?: string | null
+          system_id?: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_ratings_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_abilities: {
+        Row: {
+          character_id: string
+          created_at: string
+          method_code: string
+          updated_at: string
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          method_code: string
+          updated_at?: string
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          method_code?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_abilities_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: true
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_abilities_manual_assignments: {
+        Row: {
+          ability_code: string
+          character_id: string
+          created_at: string
+          score: number
+          updated_at: string
+        }
+        Insert: {
+          ability_code: string
+          character_id: string
+          created_at?: string
+          score: number
+          updated_at?: string
+        }
+        Update: {
+          ability_code?: string
+          character_id?: string
+          created_at?: string
+          score?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_abilities_manual_assignments_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_abilities_manual_rolled: {
+        Row: {
+          character_id: string
+          configuration: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          character_id: string
+          configuration?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          character_id?: string
+          configuration?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_abilities_manual_rolled_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: true
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_abilities_manual_rolled_groups: {
+        Row: {
+          applied: boolean | null
+          assigned_ability_code: string | null
+          character_id: string
+          created_at: string
+          group_index: number
+          id: string
+          rolling: boolean | null
+          score: number
+          updated_at: string
+        }
+        Insert: {
+          applied?: boolean | null
+          assigned_ability_code?: string | null
+          character_id: string
+          created_at?: string
+          group_index: number
+          id: string
+          rolling?: boolean | null
+          score: number
+          updated_at?: string
+        }
+        Update: {
+          applied?: boolean | null
+          assigned_ability_code?: string | null
+          character_id?: string
+          created_at?: string
+          group_index?: number
+          id?: string
+          rolling?: boolean | null
+          score?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_abilities_manual_rolled_groups_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_abilities_manual_rolled_rolls: {
+        Row: {
+          character_id: string
+          created_at: string
+          die: number
+          group_index: number
+          is_kept: boolean | null
+          roll_index: number
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          die: number
+          group_index: number
+          is_kept?: boolean | null
+          roll_index: number
+          updated_at?: string
+          value: number
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          die?: number
+          group_index?: number
+          is_kept?: boolean | null
+          roll_index?: number
+          updated_at?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_abilities_manual_rolled_rolls_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_abilities_point_buy: {
+        Row: {
+          character_id: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_abilities_point_buy_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: true
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_abilities_point_buy_distributed: {
+        Row: {
+          ability_code: string
+          character_id: string
+          created_at: string
+          option_code: string
+          updated_at: string
+        }
+        Insert: {
+          ability_code: string
+          character_id: string
+          created_at?: string
+          option_code: string
+          updated_at?: string
+        }
+        Update: {
+          ability_code?: string
+          character_id?: string
+          created_at?: string
+          option_code?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_abilities_point_buy_distributed_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_abilities_standard_array: {
+        Row: {
+          ability_code: string
+          character_id: string
+          created_at: string
+          option_code: string
+          updated_at: string
+        }
+        Insert: {
+          ability_code: string
+          character_id: string
+          created_at?: string
+          option_code: string
+          updated_at?: string
+        }
+        Update: {
+          ability_code?: string
+          character_id?: string
+          created_at?: string
+          option_code?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_abilities_standard_array_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_advancement: {
+        Row: {
+          character_id: string
+          created_at: string
+          experience: number | null
+          method_code: string
+          updated_at: string
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          experience?: number | null
+          method_code: string
+          updated_at?: string
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          experience?: number | null
+          method_code?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_advancement_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: true
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_ancestry_acquisitions: {
+        Row: {
+          ancestry_id: string
+          character_id: string
+          class_id: string | null
+          class_level: number | null
+          created_at: string
+          id: string
+          option_id: string
+          race_id: string | null
+          source_kind: string
+          subrace_id: string | null
+          timing_kind: string
+          updated_at: string
+        }
+        Insert: {
+          ancestry_id: string
+          character_id: string
+          class_id?: string | null
+          class_level?: number | null
+          created_at?: string
+          id?: string
+          option_id: string
+          race_id?: string | null
+          source_kind: string
+          subrace_id?: string | null
+          timing_kind: string
+          updated_at?: string
+        }
+        Update: {
+          ancestry_id?: string
+          character_id?: string
+          class_id?: string | null
+          class_level?: number | null
+          created_at?: string
+          id?: string
+          option_id?: string
+          race_id?: string | null
+          source_kind?: string
+          subrace_id?: string | null
+          timing_kind?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_ancestry_acquisitions_ancestry_id_fkey"
+            columns: ["ancestry_id"]
+            isOneToOne: false
+            referencedRelation: "race_ancestries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_ancestry_acquisitions_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_ancestry_acquisitions_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_ancestry_acquisitions_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "race_ancestry_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_ancestry_acquisitions_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_ancestry_acquisitions_subrace_id_fkey"
+            columns: ["subrace_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_attuned: {
+        Row: {
+          character_id: string
+          created_at: string
+          equipment_id: string
+          updated_at: string
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          equipment_id: string
+          updated_at?: string
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          equipment_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_attuned_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_attuned_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "character_equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_background: {
+        Row: {
+          background_id: string
+          character_id: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          background_id: string
+          character_id: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          background_id?: string
+          character_id?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_background_background_id_fkey"
+            columns: ["background_id"]
+            isOneToOne: false
+            referencedRelation: "backgrounds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_background_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: true
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_background_equipment_groups: {
+        Row: {
+          character_id: string
+          created_at: string
+          group_id: string
+          option_id: string
+          updated_at: string
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          group_id: string
+          option_id: string
+          updated_at?: string
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          group_id?: string
+          option_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_background_equipment_groups_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_background_equipment_groups_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "starting_equipment_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_background_equipment_groups_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "starting_equipment_options"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_background_equipment_items: {
+        Row: {
+          character_id: string
+          created_at: string
+          equipment_id: string
+          group_id: string
+          quantity: number
+          selection_item_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          equipment_id: string
+          group_id: string
+          quantity?: number
+          selection_item_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          equipment_id?: string
+          group_id?: string
+          quantity?: number
+          selection_item_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_background_equipment_items_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_background_equipment_items_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_background_equipment_items_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "starting_equipment_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_background_equipment_items_selection_item_id_fkey"
+            columns: ["selection_item_id"]
+            isOneToOne: false
+            referencedRelation: "starting_equipment_option_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_background_equipment_session: {
+        Row: {
+          applied: boolean | null
+          character_id: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          applied?: boolean | null
+          character_id: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          applied?: boolean | null
+          character_id?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_background_equipment_session_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: true
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_class_equipment_groups: {
+        Row: {
+          character_id: string
+          created_at: string
+          group_id: string
+          option_id: string
+          updated_at: string
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          group_id: string
+          option_id: string
+          updated_at?: string
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          group_id?: string
+          option_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_class_equipment_groups_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_class_equipment_groups_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "starting_equipment_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_class_equipment_groups_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "starting_equipment_options"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_class_equipment_items: {
+        Row: {
+          character_id: string
+          created_at: string
+          equipment_id: string
+          group_id: string
+          quantity: number
+          selection_item_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          equipment_id: string
+          group_id: string
+          quantity?: number
+          selection_item_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          equipment_id?: string
+          group_id?: string
+          quantity?: number
+          selection_item_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_class_equipment_items_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_class_equipment_items_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_class_equipment_items_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "starting_equipment_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_class_equipment_items_selection_item_id_fkey"
+            columns: ["selection_item_id"]
+            isOneToOne: false
+            referencedRelation: "starting_equipment_option_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_class_equipment_session: {
+        Row: {
+          applied: boolean | null
+          character_id: string
+          created_at: string
+          gold_option: string | null
+          option: string | null
+          total_gold: number | null
+          updated_at: string
+        }
+        Insert: {
+          applied?: boolean | null
+          character_id: string
+          created_at?: string
+          gold_option?: string | null
+          option?: string | null
+          total_gold?: number | null
+          updated_at?: string
+        }
+        Update: {
+          applied?: boolean | null
+          character_id?: string
+          created_at?: string
+          gold_option?: string | null
+          option?: string | null
+          total_gold?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_class_equipment_session_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: true
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_class_equipment_session_gold_option_fkey"
+            columns: ["gold_option"]
+            isOneToOne: false
+            referencedRelation: "starting_equipment_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_class_equipment_session_option_fkey"
+            columns: ["option"]
+            isOneToOne: false
+            referencedRelation: "starting_equipment_options"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_class_spells: {
+        Row: {
+          character_id: string
+          class_id: string
+          created_at: string
+          spell_id: string
+          state: Database["public"]["Enums"]["spell_state"]
+          updated_at: string
+        }
+        Insert: {
+          character_id: string
+          class_id: string
+          created_at?: string
+          spell_id: string
+          state: Database["public"]["Enums"]["spell_state"]
+          updated_at?: string
+        }
+        Update: {
+          character_id?: string
+          class_id?: string
+          created_at?: string
+          spell_id?: string
+          state?: Database["public"]["Enums"]["spell_state"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_class_spells_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_class_spells_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_class_spells_spell_id_fkey"
+            columns: ["spell_id"]
+            isOneToOne: false
+            referencedRelation: "spells"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_classes: {
+        Row: {
+          character_id: string
+          class_id: string
+          class_level: number
+          created_at: string
+          subclass_id: string | null
+          specialization_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          character_id: string
+          class_id: string
+          class_level: number
+          created_at?: string
+          subclass_id?: string | null
+          specialization_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          character_id?: string
+          class_id?: string
+          class_level?: number
+          created_at?: string
+          subclass_id?: string | null
+          specialization_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_classes_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_classes_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_classes_subclass_id_fkey"
+            columns: ["subclass_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_classes_specialization_id_fkey"
+            columns: ["specialization_id"]
+            isOneToOne: false
+            referencedRelation: "class_specializations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_currencies: {
+        Row: {
+          amount: number
+          created_at: string
+          currency_id: string
+          group_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency_id: string
+          group_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency_id?: string
+          group_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_currencies_currency_id_fkey"
+            columns: ["currency_id"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_currencies_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "character_currency_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_currency_groups: {
+        Row: {
+          character_id: string
+          container_id: string | null
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          character_id: string
+          container_id?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          character_id?: string
+          container_id?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_currency_groups_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_currency_groups_container_id_fkey"
+            columns: ["container_id"]
+            isOneToOne: false
+            referencedRelation: "character_equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_equipment: {
+        Row: {
+          character_id: string
+          container_id: string | null
+          container_path: string | null
+          created_at: string
+          custom_name: string | null
+          equipment_id: string
+          id: string
+          notes: string | null
+          quantity: number
+          updated_at: string
+        }
+        Insert: {
+          character_id: string
+          container_id?: string | null
+          container_path?: string | null
+          created_at?: string
+          custom_name?: string | null
+          equipment_id: string
+          id?: string
+          notes?: string | null
+          quantity?: number
+          updated_at?: string
+        }
+        Update: {
+          character_id?: string
+          container_id?: string | null
+          container_path?: string | null
+          created_at?: string
+          custom_name?: string | null
+          equipment_id?: string
+          id?: string
+          notes?: string | null
+          quantity?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_equipment_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_equipment_container_id_fkey"
+            columns: ["container_id"]
+            isOneToOne: false
+            referencedRelation: "character_equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_equipment_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_equipped: {
+        Row: {
+          character_id: string
+          created_at: string
+          equipment_id: string
+          updated_at: string
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          equipment_id: string
+          updated_at?: string
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          equipment_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_equipped_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_equipped_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "character_equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_events: {
+        Row: {
+          actor_id: string
+          character_id: string
+          command_id: string
+          event_data: Json
+          event_id: string
+          event_type: string
+          occurred_at: string
+          schema_version: number
+        }
+        Insert: {
+          actor_id: string
+          character_id: string
+          command_id: string
+          event_data: Json
+          event_id?: string
+          event_type: string
+          occurred_at?: string
+          schema_version?: number
+        }
+        Update: {
+          actor_id?: string
+          character_id?: string
+          command_id?: string
+          event_data?: Json
+          event_id?: string
+          event_type?: string
+          occurred_at?: string
+          schema_version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_events_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_feature_acquisitions: {
+        Row: {
+          acquired_parent_id: string | null
+          ancestry_id: string | null
+          background_id: string | null
+          character_id: string
+          class_id: string | null
+          created_at: string
+          feat_id: string | null
+          feature_id: string
+          id: string
+          option_id: string | null
+          race_id: string | null
+          reason: string | null
+          source_kind: string
+          subclass_id: string | null
+          subrace_id: string | null
+          timing_class_id: string | null
+          timing_class_level: number | null
+          timing_kind: string
+          timing_level: number | null
+          updated_at: string
+        }
+        Insert: {
+          acquired_parent_id?: string | null
+          ancestry_id?: string | null
+          background_id?: string | null
+          character_id: string
+          class_id?: string | null
+          created_at?: string
+          feat_id?: string | null
+          feature_id: string
+          id: string
+          option_id?: string | null
+          race_id?: string | null
+          reason?: string | null
+          source_kind: string
+          subclass_id?: string | null
+          subrace_id?: string | null
+          timing_class_id?: string | null
+          timing_class_level?: number | null
+          timing_kind: string
+          timing_level?: number | null
+          updated_at?: string
+        }
+        Update: {
+          acquired_parent_id?: string | null
+          ancestry_id?: string | null
+          background_id?: string | null
+          character_id?: string
+          class_id?: string | null
+          created_at?: string
+          feat_id?: string | null
+          feature_id?: string
+          id?: string
+          option_id?: string | null
+          race_id?: string | null
+          reason?: string | null
+          source_kind?: string
+          subclass_id?: string | null
+          subrace_id?: string | null
+          timing_class_id?: string | null
+          timing_class_level?: number | null
+          timing_kind?: string
+          timing_level?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_feature_acquisitions_acquired_parent_id_fkey"
+            columns: ["acquired_parent_id"]
+            isOneToOne: false
+            referencedRelation: "character_feature_acquisitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_feature_acquisitions_ancestry_id_fkey"
+            columns: ["ancestry_id"]
+            isOneToOne: false
+            referencedRelation: "race_ancestries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_feature_acquisitions_background_id_fkey"
+            columns: ["background_id"]
+            isOneToOne: false
+            referencedRelation: "backgrounds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_feature_acquisitions_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_feature_acquisitions_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_feature_acquisitions_feat_id_fkey"
+            columns: ["feat_id"]
+            isOneToOne: false
+            referencedRelation: "feats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_feature_acquisitions_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_feature_acquisitions_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_feature_acquisitions_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_feature_acquisitions_subclass_id_fkey"
+            columns: ["subclass_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_feature_acquisitions_subrace_id_fkey"
+            columns: ["subrace_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_feature_acquisitions_timing_class_id_fkey"
+            columns: ["timing_class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_feature_selection_records: {
+        Row: {
+          created_at: string
+          feature_acquisition_id: string
+          selection_key: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          feature_acquisition_id: string
+          selection_key: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          feature_acquisition_id?: string
+          selection_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_feature_selection_records_feature_acquisition_id_fkey"
+            columns: ["feature_acquisition_id"]
+            isOneToOne: false
+            referencedRelation: "character_feature_acquisitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_feature_selection_values: {
+        Row: {
+          boolean_value: boolean | null
+          created_at: string
+          feature_acquisition_id: string
+          number_value: number | null
+          selection_key: string
+          text_value: string | null
+          updated_at: string
+          value_index: number
+          value_kind: string
+        }
+        Insert: {
+          boolean_value?: boolean | null
+          created_at?: string
+          feature_acquisition_id: string
+          number_value?: number | null
+          selection_key: string
+          text_value?: string | null
+          updated_at?: string
+          value_index: number
+          value_kind: string
+        }
+        Update: {
+          boolean_value?: boolean | null
+          created_at?: string
+          feature_acquisition_id?: string
+          number_value?: number | null
+          selection_key?: string
+          text_value?: string | null
+          updated_at?: string
+          value_index?: number
+          value_kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_feature_selection_v_feature_acquisition_id_selec_fkey"
+            columns: ["feature_acquisition_id", "selection_key"]
+            isOneToOne: false
+            referencedRelation: "character_feature_selection_records"
+            referencedColumns: ["feature_acquisition_id", "selection_key"]
+          },
+        ]
+      }
+      character_hit_dice_state: {
+        Row: {
+          character_id: string
+          created_at: string
+          die: number
+          total: number
+          updated_at: string
+          used: number
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          die: number
+          total: number
+          updated_at?: string
+          used: number
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          die?: number
+          total?: number
+          updated_at?: string
+          used?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_hit_dice_state_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_hitpoint_intent: {
+        Row: {
+          character_id: string
+          created_at: string
+          method_code: string
+          updated_at: string
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          method_code: string
+          updated_at?: string
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          method_code?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_hitpoint_intent_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: true
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_hitpoint_level_rolls: {
+        Row: {
+          char_level: number
+          character_id: string
+          created_at: string
+          die: number
+          roll_index: number
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          char_level: number
+          character_id: string
+          created_at?: string
+          die: number
+          roll_index: number
+          updated_at?: string
+          value: number
+        }
+        Update: {
+          char_level?: number
+          character_id?: string
+          created_at?: string
+          die?: number
+          roll_index?: number
+          updated_at?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_hitpoint_level_rolls_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_hitpoint_levels: {
+        Row: {
+          char_level: number
+          character_id: string
+          created_at: string
+          overridden: boolean | null
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          char_level: number
+          character_id: string
+          created_at?: string
+          overridden?: boolean | null
+          updated_at?: string
+          value: number
+        }
+        Update: {
+          char_level?: number
+          character_id?: string
+          created_at?: string
+          overridden?: boolean | null
+          updated_at?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_hitpoint_levels_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_hitpoint_state: {
+        Row: {
+          character_id: string
+          created_at: string
+          current: number | null
+          max_override: number | null
+          temp: number | null
+          updated_at: string
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          current?: number | null
+          max_override?: number | null
+          temp?: number | null
+          updated_at?: string
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          current?: number | null
+          max_override?: number | null
+          temp?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_hitpoint_state_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: true
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_race: {
+        Row: {
+          character_id: string
+          created_at: string
+          race_id: string
+          subrace_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          race_id: string
+          subrace_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          race_id?: string
+          subrace_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_race_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: true
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_race_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_race_subrace_id_fkey"
+            columns: ["subrace_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_resource_grants: {
+        Row: {
+          acquired_parent_id: string | null
+          character_id: string
+          class_id: string | null
+          created_at: string
+          feature_id: string | null
+          id: string
+          option_id: string | null
+          resource_id: string
+          source_kind: string
+          subclass_id: string | null
+          timing_class_id: string | null
+          timing_class_level: number | null
+          timing_kind: string
+          timing_level: number | null
+          updated_at: string
+        }
+        Insert: {
+          acquired_parent_id?: string | null
+          character_id: string
+          class_id?: string | null
+          created_at?: string
+          feature_id?: string | null
+          id: string
+          option_id?: string | null
+          resource_id: string
+          source_kind: string
+          subclass_id?: string | null
+          timing_class_id?: string | null
+          timing_class_level?: number | null
+          timing_kind: string
+          timing_level?: number | null
+          updated_at?: string
+        }
+        Update: {
+          acquired_parent_id?: string | null
+          character_id?: string
+          class_id?: string | null
+          created_at?: string
+          feature_id?: string | null
+          id?: string
+          option_id?: string | null
+          resource_id?: string
+          source_kind?: string
+          subclass_id?: string | null
+          timing_class_id?: string | null
+          timing_class_level?: number | null
+          timing_kind?: string
+          timing_level?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_resource_grants_acquired_parent_id_fkey"
+            columns: ["acquired_parent_id"]
+            isOneToOne: false
+            referencedRelation: "character_feature_acquisitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_resource_grants_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_resource_grants_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_resource_grants_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_resource_grants_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_resource_grants_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "class_resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_resource_grants_subclass_id_fkey"
+            columns: ["subclass_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_resource_grants_timing_class_id_fkey"
+            columns: ["timing_class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_resources: {
+        Row: {
+          character_id: string
+          created_at: string
+          resource_grant_id: string
+          updated_at: string
+          used: number
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          resource_grant_id: string
+          updated_at?: string
+          used?: number
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          resource_grant_id?: string
+          updated_at?: string
+          used?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_resources_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_resources_resource_grant_id_fkey"
+            columns: ["resource_grant_id"]
+            isOneToOne: false
+            referencedRelation: "character_resource_grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_spell_selection_spells: {
+        Row: {
+          created_at: string
+          selection_id: string
+          spell_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          selection_id: string
+          spell_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          selection_id?: string
+          spell_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_spell_selection_spells_selection_id_fkey"
+            columns: ["selection_id"]
+            isOneToOne: false
+            referencedRelation: "character_spell_selections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_spell_selection_spells_spell_id_fkey"
+            columns: ["spell_id"]
+            isOneToOne: false
+            referencedRelation: "spells"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_spell_selections: {
+        Row: {
+          acquired_parent_id: string | null
+          character_id: string
+          class_id: string | null
+          created_at: string
+          feature_id: string | null
+          id: string
+          option_id: string | null
+          replaced_selection_id: string | null
+          source_kind: string
+          subclass_id: string | null
+          timing_class_id: string | null
+          timing_class_level: number | null
+          timing_kind: string
+          timing_level: number | null
+          updated_at: string
+        }
+        Insert: {
+          acquired_parent_id?: string | null
+          character_id: string
+          class_id?: string | null
+          created_at?: string
+          feature_id?: string | null
+          id: string
+          option_id?: string | null
+          replaced_selection_id?: string | null
+          source_kind: string
+          subclass_id?: string | null
+          timing_class_id?: string | null
+          timing_class_level?: number | null
+          timing_kind: string
+          timing_level?: number | null
+          updated_at?: string
+        }
+        Update: {
+          acquired_parent_id?: string | null
+          character_id?: string
+          class_id?: string | null
+          created_at?: string
+          feature_id?: string | null
+          id?: string
+          option_id?: string | null
+          replaced_selection_id?: string | null
+          source_kind?: string
+          subclass_id?: string | null
+          timing_class_id?: string | null
+          timing_class_level?: number | null
+          timing_kind?: string
+          timing_level?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_spell_selections_acquired_parent_id_fkey"
+            columns: ["acquired_parent_id"]
+            isOneToOne: false
+            referencedRelation: "character_feature_acquisitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_spell_selections_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_spell_selections_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_spell_selections_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_spell_selections_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_spell_selections_replaced_selection_id_fkey"
+            columns: ["replaced_selection_id"]
+            isOneToOne: false
+            referencedRelation: "character_spell_selections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_spell_selections_subclass_id_fkey"
+            columns: ["subclass_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_spell_selections_timing_class_id_fkey"
+            columns: ["timing_class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      characteristic_durations: {
+        Row: {
+          amount: number | null
+          characteristic_id: string
+          kind: string
+        }
+        Insert: {
+          amount?: number | null
+          characteristic_id: string
+          kind: string
+        }
+        Update: {
+          amount?: number | null
+          characteristic_id?: string
+          kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "characteristic_durations_characteristic_id_fkey"
+            columns: ["characteristic_id"]
+            isOneToOne: true
+            referencedRelation: "characteristics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      characteristic_ranges: {
+        Row: {
+          characteristic_id: string
+          kind: string
+          max: number | null
+          min: number | null
+          unit_code: string | null
+        }
+        Insert: {
+          characteristic_id: string
+          kind: string
+          max?: number | null
+          min?: number | null
+          unit_code?: string | null
+        }
+        Update: {
+          characteristic_id?: string
+          kind?: string
+          max?: number | null
+          min?: number | null
+          unit_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "characteristic_ranges_characteristic_id_fkey"
+            columns: ["characteristic_id"]
+            isOneToOne: true
+            referencedRelation: "characteristics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      characteristic_shape_dimensions: {
+        Row: {
+          amount: number
+          characteristic_id: string
+          dimension: string
+          unit_code: string
+        }
+        Insert: {
+          amount: number
+          characteristic_id: string
+          dimension: string
+          unit_code: string
+        }
+        Update: {
+          amount?: number
+          characteristic_id?: string
+          dimension?: string
+          unit_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "characteristic_shape_dimensions_characteristic_id_fkey"
+            columns: ["characteristic_id"]
+            isOneToOne: false
+            referencedRelation: "characteristic_shapes"
+            referencedColumns: ["characteristic_id"]
+          },
+        ]
+      }
+      characteristic_shapes: {
+        Row: {
+          characteristic_id: string
+          kind: string
+        }
+        Insert: {
+          characteristic_id: string
+          kind: string
+        }
+        Update: {
+          characteristic_id?: string
+          kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "characteristic_shapes_characteristic_id_fkey"
+            columns: ["characteristic_id"]
+            isOneToOne: true
+            referencedRelation: "characteristics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      characteristics: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      characters: {
+        Row: {
+          build_state: Json | null
+          created_at: string
+          description: string | null
+          id: string
+          label: string
+          stream_version: number
+          system_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          build_state?: Json | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          label: string
+          stream_version?: number
+          system_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          build_state?: Json | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          label?: string
+          stream_version?: number
+          system_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "characters_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      charge_bonuses: {
+        Row: {
+          ability_code: string | null
+          bonus_kind: string
+          charge_id: string
+          created_at: string
+          id: string
+          max: number | null
+          min: number | null
+          multiplier: number | null
+          skill_id: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          ability_code?: string | null
+          bonus_kind: string
+          charge_id: string
+          created_at?: string
+          id: string
+          max?: number | null
+          min?: number | null
+          multiplier?: number | null
+          skill_id?: string | null
+          sort_order: number
+          updated_at?: string
+        }
+        Update: {
+          ability_code?: string | null
+          bonus_kind?: string
+          charge_id?: string
+          created_at?: string
+          id?: string
+          max?: number | null
+          min?: number | null
+          multiplier?: number | null
+          skill_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "charge_bonuses_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "charge_bonuses_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      charge_limits: {
+        Row: {
+          ability_code: string | null
+          amount: number | null
+          charge_id: string
+          class_id: string | null
+          limit_kind: string
+          max: number | null
+          min: number | null
+          multiplier: number | null
+        }
+        Insert: {
+          ability_code?: string | null
+          amount?: number | null
+          charge_id: string
+          class_id?: string | null
+          limit_kind: string
+          max?: number | null
+          min?: number | null
+          multiplier?: number | null
+        }
+        Update: {
+          ability_code?: string | null
+          amount?: number | null
+          charge_id?: string
+          class_id?: string | null
+          limit_kind?: string
+          max?: number | null
+          min?: number | null
+          multiplier?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "charge_limits_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: true
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      charge_scaling_levels: {
+        Row: {
+          amount: number
+          charge_id: string
+          created_at: string
+          id: string
+          level: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          charge_id: string
+          created_at?: string
+          id: string
+          level: number
+          sort_order: number
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          charge_id?: string
+          created_at?: string
+          id?: string
+          level?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "charge_scaling_levels_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      charges: {
+        Row: {
+          created_at: string
+          id: string
+          reset_kind: string
+          scaling_kind: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          reset_kind: string
+          scaling_kind: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reset_kind?: string
+          scaling_kind?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      class_attributes: {
+        Row: {
+          attribute_code: string
+          class_id: string
+          sort_order: number
+        }
+        Insert: {
+          attribute_code: string
+          class_id: string
+          sort_order: number
+        }
+        Update: {
+          attribute_code?: string
+          class_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_attributes_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_details: {
+        Row: {
+          class_id: string
+          detail_id: string
+          sort_order: number
+        }
+        Insert: {
+          class_id: string
+          detail_id: string
+          sort_order: number
+        }
+        Update: {
+          class_id?: string
+          detail_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_details_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_details_detail_id_fkey"
+            columns: ["detail_id"]
+            isOneToOne: false
+            referencedRelation: "details"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_features: {
+        Row: {
+          class_id: string
+          feature_id: string
+          sort_order: number
+        }
+        Insert: {
+          class_id: string
+          feature_id: string
+          sort_order: number
+        }
+        Update: {
+          class_id?: string
+          feature_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_features_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_features_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_hitpoints: {
+        Row: {
+          ability_code: string
+          class_id: string
+          die_config: string
+        }
+        Insert: {
+          ability_code: string
+          class_id: string
+          die_config: string
+        }
+        Update: {
+          ability_code?: string
+          class_id?: string
+          die_config?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_hitpoints_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: true
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_multiclass: {
+        Row: {
+          class_id: string
+          id: string
+        }
+        Insert: {
+          class_id: string
+          id?: string
+        }
+        Update: {
+          class_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_multiclass_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_multiclass_proficiency_grants: {
+        Row: {
+          multiclass_id: string
+          proficiency_grant_id: string
+          sort_order: number
+        }
+        Insert: {
+          multiclass_id: string
+          proficiency_grant_id: string
+          sort_order: number
+        }
+        Update: {
+          multiclass_id?: string
+          proficiency_grant_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_multiclass_proficiency_grants_multiclass_id_fkey"
+            columns: ["multiclass_id"]
+            isOneToOne: false
+            referencedRelation: "class_multiclass"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_multiclass_proficiency_grants_proficiency_grant_id_fkey"
+            columns: ["proficiency_grant_id"]
+            isOneToOne: false
+            referencedRelation: "proficiency_grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_multiclass_requirement_groups: {
+        Row: {
+          id: string
+          multiclass_id: string
+          sort_order: number
+        }
+        Insert: {
+          id: string
+          multiclass_id: string
+          sort_order: number
+        }
+        Update: {
+          id?: string
+          multiclass_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_multiclass_requirement_groups_multiclass_id_fkey"
+            columns: ["multiclass_id"]
+            isOneToOne: false
+            referencedRelation: "class_multiclass"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_multiclass_requirements: {
+        Row: {
+          ability_code: string
+          id: string
+          min: number
+          requirement_group_id: string
+          sort_order: number
+        }
+        Insert: {
+          ability_code: string
+          id: string
+          min: number
+          requirement_group_id: string
+          sort_order: number
+        }
+        Update: {
+          ability_code?: string
+          id?: string
+          min?: number
+          requirement_group_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_multiclass_requirements_requirement_group_id_fkey"
+            columns: ["requirement_group_id"]
+            isOneToOne: false
+            referencedRelation: "class_multiclass_requirement_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_proficiency_grants: {
+        Row: {
+          class_id: string
+          proficiency_grant_id: string
+          sort_order: number
+        }
+        Insert: {
+          class_id: string
+          proficiency_grant_id: string
+          sort_order: number
+        }
+        Update: {
+          class_id?: string
+          proficiency_grant_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_proficiency_grants_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_proficiency_grants_proficiency_grant_id_fkey"
+            columns: ["proficiency_grant_id"]
+            isOneToOne: false
+            referencedRelation: "proficiency_grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_resources: {
+        Row: {
+          available_at_level: number
+          charge_id: string
+          class_id: string
+          description: string | null
+          id: string
+          label: string
+        }
+        Insert: {
+          available_at_level: number
+          charge_id: string
+          class_id: string
+          description?: string | null
+          id?: string
+          label: string
+        }
+        Update: {
+          available_at_level?: number
+          charge_id?: string
+          class_id?: string
+          description?: string | null
+          id?: string
+          label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_resources_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_resources_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_spell_limits: {
+        Row: {
+          cantrips_limit: number | null
+          class_level: number
+          id: string
+          learned_spells_limit: number | null
+          prepared_spells_limit: number | null
+          spellcasting_id: string
+        }
+        Insert: {
+          cantrips_limit?: number | null
+          class_level: number
+          id?: string
+          learned_spells_limit?: number | null
+          prepared_spells_limit?: number | null
+          spellcasting_id: string
+        }
+        Update: {
+          cantrips_limit?: number | null
+          class_level?: number
+          id?: string
+          learned_spells_limit?: number | null
+          prepared_spells_limit?: number | null
+          spellcasting_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_spell_limits_spellcasting_id_fkey"
+            columns: ["spellcasting_id"]
+            isOneToOne: false
+            referencedRelation: "class_spellcasting"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_spell_slots: {
+        Row: {
+          slot_count: number
+          spell_level: number
+          spell_limit_id: string
+        }
+        Insert: {
+          slot_count: number
+          spell_level: number
+          spell_limit_id: string
+        }
+        Update: {
+          slot_count?: number
+          spell_level?: number
+          spell_limit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_spell_slots_spell_limit_id_fkey"
+            columns: ["spell_limit_id"]
+            isOneToOne: false
+            referencedRelation: "class_spell_limits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_spellcasting: {
+        Row: {
+          ability_code: string | null
+          charge_id: string
+          class_id: string
+          id: string
+          magic_name: string | null
+          max_spell_level: number
+        }
+        Insert: {
+          ability_code?: string | null
+          charge_id: string
+          class_id: string
+          id?: string
+          magic_name?: string | null
+          max_spell_level: number
+        }
+        Update: {
+          ability_code?: string | null
+          charge_id?: string
+          class_id?: string
+          id?: string
+          magic_name?: string | null
+          max_spell_level?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_spellcasting_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_spellcasting_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_spellcasting_attributes: {
+        Row: {
+          attribute_code: string
+          sort_order: number
+          spellcasting_id: string
+        }
+        Insert: {
+          attribute_code: string
+          sort_order: number
+          spellcasting_id: string
+        }
+        Update: {
+          attribute_code?: string
+          sort_order?: number
+          spellcasting_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_spellcasting_attributes_spellcasting_id_fkey"
+            columns: ["spellcasting_id"]
+            isOneToOne: false
+            referencedRelation: "class_spellcasting"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_spellcasting_prepare_limit: {
+        Row: {
+          rounding: string | null
+          scaling: string | null
+          spellcasting_id: string
+        }
+        Insert: {
+          rounding?: string | null
+          scaling?: string | null
+          spellcasting_id: string
+        }
+        Update: {
+          rounding?: string | null
+          scaling?: string | null
+          spellcasting_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_spellcasting_prepare_limit_spellcasting_id_fkey"
+            columns: ["spellcasting_id"]
+            isOneToOne: true
+            referencedRelation: "class_spellcasting"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_spellcasting_prepare_limit_levels: {
+        Row: {
+          amount: number
+          class_level: number
+          spellcasting_id: string
+        }
+        Insert: {
+          amount: number
+          class_level: number
+          spellcasting_id: string
+        }
+        Update: {
+          amount?: number
+          class_level?: number
+          spellcasting_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_spellcasting_prepare_limit_levels_spellcasting_id_fkey"
+            columns: ["spellcasting_id"]
+            isOneToOne: false
+            referencedRelation: "class_spellcasting"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_spellcasting_prepare_limit_methods: {
+        Row: {
+          method_code: string
+          sort_order: number
+          spellcasting_id: string
+        }
+        Insert: {
+          method_code: string
+          sort_order: number
+          spellcasting_id: string
+        }
+        Update: {
+          method_code?: string
+          sort_order?: number
+          spellcasting_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_spellcasting_prepare_limit_methods_spellcasting_id_fkey"
+            columns: ["spellcasting_id"]
+            isOneToOne: false
+            referencedRelation: "class_spellcasting"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_starting_gold: {
+        Row: {
+          class_id: string
+          currency_id: string
+          die_config: string
+          multiplier: number
+        }
+        Insert: {
+          class_id: string
+          currency_id: string
+          die_config: string
+          multiplier: number
+        }
+        Update: {
+          class_id?: string
+          currency_id?: string
+          die_config?: string
+          multiplier?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_starting_gold_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: true
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_starting_gold_currency_id_fkey"
+            columns: ["currency_id"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_specializations: {
+        Row: {
+          class_id: string
+          id: string
+          label: string
+          sort_order: number
+        }
+        Insert: {
+          class_id: string
+          id: string
+          label: string
+          sort_order: number
+        }
+        Update: {
+          class_id?: string
+          id?: string
+          label?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_specializations_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      classes: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          is_master: boolean | null
+          label: string
+          parent_class_id: string | null
+          starting_equipment_id: string | null
+          system_id: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          id: string
+          is_master?: boolean | null
+          label: string
+          parent_class_id?: string | null
+          starting_equipment_id?: string | null
+          system_id: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_master?: boolean | null
+          label?: string
+          parent_class_id?: string | null
+          starting_equipment_id?: string | null
+          system_id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classes_parent_class_id_fkey"
+            columns: ["parent_class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classes_starting_equipment_id_fkey"
+            columns: ["starting_equipment_id"]
+            isOneToOne: false
+            referencedRelation: "starting_equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classes_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      condition_types: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          label: string
+          short: string | null
+          system_id: string
+          tooltip: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id: string
+          label: string
+          short?: string | null
+          system_id: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          label?: string
+          short?: string | null
+          system_id?: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "condition_types_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conditions: {
+        Row: {
+          condition_type_id: string
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          condition_type_id: string
+          created_at?: string
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          condition_type_id?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conditions_condition_type_id_fkey"
+            columns: ["condition_type_id"]
+            isOneToOne: false
+            referencedRelation: "condition_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creature_actions: {
+        Row: {
+          action_type: string
+          attack_bonus: number | null
+          creature_id: string
+          damage: string | null
+          description: string
+          id: string
+          label: string
+          recharge: string | null
+          sort_order: number
+        }
+        Insert: {
+          action_type: string
+          attack_bonus?: number | null
+          creature_id: string
+          damage?: string | null
+          description: string
+          id: string
+          label: string
+          recharge?: string | null
+          sort_order: number
+        }
+        Update: {
+          action_type?: string
+          attack_bonus?: number | null
+          creature_id?: string
+          damage?: string | null
+          description?: string
+          id?: string
+          label?: string
+          recharge?: string | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creature_actions_creature_id_fkey"
+            columns: ["creature_id"]
+            isOneToOne: false
+            referencedRelation: "creatures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creature_condition_immunities: {
+        Row: {
+          condition_type_id: string
+          creature_id: string
+        }
+        Insert: {
+          condition_type_id: string
+          creature_id: string
+        }
+        Update: {
+          condition_type_id?: string
+          creature_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creature_condition_immunities_condition_type_id_fkey"
+            columns: ["condition_type_id"]
+            isOneToOne: false
+            referencedRelation: "condition_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creature_condition_immunities_creature_id_fkey"
+            columns: ["creature_id"]
+            isOneToOne: false
+            referencedRelation: "creatures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creature_damage_immunities: {
+        Row: {
+          creature_id: string
+          damage_type_id: string
+        }
+        Insert: {
+          creature_id: string
+          damage_type_id: string
+        }
+        Update: {
+          creature_id?: string
+          damage_type_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creature_damage_immunities_creature_id_fkey"
+            columns: ["creature_id"]
+            isOneToOne: false
+            referencedRelation: "creatures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creature_damage_immunities_damage_type_id_fkey"
+            columns: ["damage_type_id"]
+            isOneToOne: false
+            referencedRelation: "damage_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creature_damage_resistances: {
+        Row: {
+          creature_id: string
+          damage_type_id: string
+        }
+        Insert: {
+          creature_id: string
+          damage_type_id: string
+        }
+        Update: {
+          creature_id?: string
+          damage_type_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creature_damage_resistances_creature_id_fkey"
+            columns: ["creature_id"]
+            isOneToOne: false
+            referencedRelation: "creatures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creature_damage_resistances_damage_type_id_fkey"
+            columns: ["damage_type_id"]
+            isOneToOne: false
+            referencedRelation: "damage_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creature_damage_vulnerabilities: {
+        Row: {
+          creature_id: string
+          damage_type_id: string
+        }
+        Insert: {
+          creature_id: string
+          damage_type_id: string
+        }
+        Update: {
+          creature_id?: string
+          damage_type_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creature_damage_vulnerabilities_creature_id_fkey"
+            columns: ["creature_id"]
+            isOneToOne: false
+            referencedRelation: "creatures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creature_damage_vulnerabilities_damage_type_id_fkey"
+            columns: ["damage_type_id"]
+            isOneToOne: false
+            referencedRelation: "damage_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creature_details: {
+        Row: {
+          creature_id: string
+          detail_id: string
+          sort_order: number
+        }
+        Insert: {
+          creature_id: string
+          detail_id: string
+          sort_order: number
+        }
+        Update: {
+          creature_id?: string
+          detail_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creature_details_creature_id_fkey"
+            columns: ["creature_id"]
+            isOneToOne: false
+            referencedRelation: "creatures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creature_details_detail_id_fkey"
+            columns: ["detail_id"]
+            isOneToOne: false
+            referencedRelation: "details"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creature_features: {
+        Row: {
+          creature_id: string
+          feature_id: string
+          sort_order: number
+        }
+        Insert: {
+          creature_id: string
+          feature_id: string
+          sort_order: number
+        }
+        Update: {
+          creature_id?: string
+          feature_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creature_features_creature_id_fkey"
+            columns: ["creature_id"]
+            isOneToOne: false
+            referencedRelation: "creatures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creature_proficiency_grants: {
+        Row: {
+          creature_id: string
+          proficiency_grant_id: string
+          sort_order: number
+        }
+        Insert: {
+          creature_id: string
+          proficiency_grant_id: string
+          sort_order: number
+        }
+        Update: {
+          creature_id?: string
+          proficiency_grant_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creature_proficiency_grants_creature_id_fkey"
+            columns: ["creature_id"]
+            isOneToOne: false
+            referencedRelation: "creatures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creature_speeds: {
+        Row: {
+          amount: number
+          creature_id: string
+          speed_id: string
+          unit_code: string
+        }
+        Insert: {
+          amount: number
+          creature_id: string
+          speed_id: string
+          unit_code: string
+        }
+        Update: {
+          amount?: number
+          creature_id?: string
+          speed_id?: string
+          unit_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creature_speeds_creature_id_fkey"
+            columns: ["creature_id"]
+            isOneToOne: false
+            referencedRelation: "creatures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creature_speeds_speed_id_fkey"
+            columns: ["speed_id"]
+            isOneToOne: false
+            referencedRelation: "speeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creature_types: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          label: string
+          short: string | null
+          system_id: string
+          tooltip: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id: string
+          label: string
+          short?: string | null
+          system_id: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          label?: string
+          short?: string | null
+          system_id?: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creature_types_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creatures: {
+        Row: {
+          ability_scores: Json
+          alignment_id: string | null
+          armor_class: number
+          armor_class_note: string | null
+          category: string
+          challenge_rating_id: string | null
+          companion_profile: Json | null
+          created_at: string
+          creature_type_id: string | null
+          description: string | null
+          hit_dice: string | null
+          hit_points: number
+          id: string
+          is_master: boolean | null
+          label: string
+          lair_profile: Json | null
+          legendary_profile: Json | null
+          mount_profile: Json | null
+          npc_profile: Json | null
+          passive_perception: number | null
+          quote: string | null
+          senses: string[] | null
+          size_code: string
+          system_id: string
+          tags: string[] | null
+          updated_at: string
+          user_id: string | null
+          xp: number | null
+        }
+        Insert: {
+          ability_scores: Json
+          alignment_id?: string | null
+          armor_class: number
+          armor_class_note?: string | null
+          category: string
+          challenge_rating_id?: string | null
+          companion_profile?: Json | null
+          created_at?: string
+          creature_type_id?: string | null
+          description?: string | null
+          hit_dice?: string | null
+          hit_points: number
+          id: string
+          is_master?: boolean | null
+          label: string
+          lair_profile?: Json | null
+          legendary_profile?: Json | null
+          mount_profile?: Json | null
+          npc_profile?: Json | null
+          passive_perception?: number | null
+          quote?: string | null
+          senses?: string[] | null
+          size_code: string
+          system_id: string
+          tags?: string[] | null
+          updated_at?: string
+          user_id?: string | null
+          xp?: number | null
+        }
+        Update: {
+          ability_scores?: Json
+          alignment_id?: string | null
+          armor_class?: number
+          armor_class_note?: string | null
+          category?: string
+          challenge_rating_id?: string | null
+          companion_profile?: Json | null
+          created_at?: string
+          creature_type_id?: string | null
+          description?: string | null
+          hit_dice?: string | null
+          hit_points?: number
+          id?: string
+          is_master?: boolean | null
+          label?: string
+          lair_profile?: Json | null
+          legendary_profile?: Json | null
+          mount_profile?: Json | null
+          npc_profile?: Json | null
+          passive_perception?: number | null
+          quote?: string | null
+          senses?: string[] | null
+          size_code?: string
+          system_id?: string
+          tags?: string[] | null
+          updated_at?: string
+          user_id?: string | null
+          xp?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creatures_alignment_id_fkey"
+            columns: ["alignment_id"]
+            isOneToOne: false
+            referencedRelation: "alignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creatures_challenge_rating_id_fkey"
+            columns: ["challenge_rating_id"]
+            isOneToOne: false
+            referencedRelation: "challenge_ratings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creatures_creature_type_id_fkey"
+            columns: ["creature_type_id"]
+            isOneToOne: false
+            referencedRelation: "creature_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creatures_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      currencies: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          label: string
+          short: string | null
+          system_id: string
+          tooltip: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id: string
+          label: string
+          short?: string | null
+          system_id: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          label?: string
+          short?: string | null
+          system_id?: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "currencies_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      damage_bonus_kinds: {
+        Row: {
+          bonus_kind: string
+          damage_id: string
+          sort_order: number
+        }
+        Insert: {
+          bonus_kind: string
+          damage_id: string
+          sort_order?: number
+        }
+        Update: {
+          bonus_kind?: string
+          damage_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "damage_bonus_kinds_damage_id_fkey"
+            columns: ["damage_id"]
+            isOneToOne: false
+            referencedRelation: "damages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      damage_bonuses: {
+        Row: {
+          ability_code: string | null
+          bonus_kind: string
+          created_at: string
+          damage_id: string
+          id: string
+          max: number | null
+          min: number | null
+          multiplier: number | null
+          skill_id: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          ability_code?: string | null
+          bonus_kind: string
+          created_at?: string
+          damage_id: string
+          id: string
+          max?: number | null
+          min?: number | null
+          multiplier?: number | null
+          skill_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          ability_code?: string | null
+          bonus_kind?: string
+          created_at?: string
+          damage_id?: string
+          id?: string
+          max?: number | null
+          min?: number | null
+          multiplier?: number | null
+          skill_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "damage_bonuses_damage_id_fkey"
+            columns: ["damage_id"]
+            isOneToOne: false
+            referencedRelation: "damages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "damage_bonuses_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      damage_scaling_levels: {
+        Row: {
+          amount: number | null
+          created_at: string
+          damage_id: string
+          dice: string | null
+          id: string
+          level: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          damage_id: string
+          dice?: string | null
+          id: string
+          level: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          damage_id?: string
+          dice?: string | null
+          id?: string
+          level?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "damage_scaling_levels_damage_id_fkey"
+            columns: ["damage_id"]
+            isOneToOne: false
+            referencedRelation: "damages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      damage_types: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          label: string
+          short: string | null
+          system_id: string
+          tooltip: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id: string
+          label: string
+          short?: string | null
+          system_id: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          label?: string
+          short?: string | null
+          system_id?: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "damage_types_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      damage_values: {
+        Row: {
+          amount: number | null
+          created_at: string
+          damage_id: string
+          dice: string | null
+          id: string
+          max: number | null
+          min: number | null
+          multiplier: number | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          damage_id: string
+          dice?: string | null
+          id: string
+          max?: number | null
+          min?: number | null
+          multiplier?: number | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          damage_id?: string
+          dice?: string | null
+          id?: string
+          max?: number | null
+          min?: number | null
+          multiplier?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "damage_values_damage_id_fkey"
+            columns: ["damage_id"]
+            isOneToOne: false
+            referencedRelation: "damages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      damages: {
+        Row: {
+          class_id: string | null
+          created_at: string
+          damage_type_id: string
+          id: string
+          scaling_kind: string
+          scaling_source: string | null
+          sort_order: number
+          updated_at: string
+          value_kind: string
+        }
+        Insert: {
+          class_id?: string | null
+          created_at?: string
+          damage_type_id: string
+          id: string
+          scaling_kind: string
+          scaling_source?: string | null
+          sort_order?: number
+          updated_at?: string
+          value_kind: string
+        }
+        Update: {
+          class_id?: string | null
+          created_at?: string
+          damage_type_id?: string
+          id?: string
+          scaling_kind?: string
+          scaling_source?: string | null
+          sort_order?: number
+          updated_at?: string
+          value_kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "damages_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "damages_damage_type_id_fkey"
+            columns: ["damage_type_id"]
+            isOneToOne: false
+            referencedRelation: "damage_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      details: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      effect_invocations: {
+        Row: {
+          activation_type: string
+          activation_value: number | null
+          created_at: string
+          effect_id: string
+          range_characteristic_id: string
+          saving_throw_id: string | null
+          shape_characteristic_id: string | null
+          trigger_code: string
+          updated_at: string
+        }
+        Insert: {
+          activation_type: string
+          activation_value?: number | null
+          created_at?: string
+          effect_id: string
+          range_characteristic_id: string
+          saving_throw_id?: string | null
+          shape_characteristic_id?: string | null
+          trigger_code: string
+          updated_at?: string
+        }
+        Update: {
+          activation_type?: string
+          activation_value?: number | null
+          created_at?: string
+          effect_id?: string
+          range_characteristic_id?: string
+          saving_throw_id?: string | null
+          shape_characteristic_id?: string | null
+          trigger_code?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "effect_invocations_effect_id_fkey"
+            columns: ["effect_id"]
+            isOneToOne: true
+            referencedRelation: "effects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "effect_invocations_range_characteristic_id_fkey"
+            columns: ["range_characteristic_id"]
+            isOneToOne: false
+            referencedRelation: "characteristics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "effect_invocations_saving_throw_id_fkey"
+            columns: ["saving_throw_id"]
+            isOneToOne: false
+            referencedRelation: "saving_throws"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "effect_invocations_shape_characteristic_id_fkey"
+            columns: ["shape_characteristic_id"]
+            isOneToOne: false
+            referencedRelation: "characteristics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      effect_moments: {
+        Row: {
+          created_at: string
+          die: string | null
+          duration_id: string | null
+          effect_id: string
+          group_type: string
+          id: string
+          moment_code: string
+          resolution_kind: string
+          roll_table_kind: string | null
+          trigger_code: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          die?: string | null
+          duration_id?: string | null
+          effect_id: string
+          group_type: string
+          id: string
+          moment_code: string
+          resolution_kind: string
+          roll_table_kind?: string | null
+          trigger_code: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          die?: string | null
+          duration_id?: string | null
+          effect_id?: string
+          group_type?: string
+          id?: string
+          moment_code?: string
+          resolution_kind?: string
+          roll_table_kind?: string | null
+          trigger_code?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "effect_moments_duration_id_fkey"
+            columns: ["duration_id"]
+            isOneToOne: false
+            referencedRelation: "characteristics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "effect_moments_effect_id_fkey"
+            columns: ["effect_id"]
+            isOneToOne: false
+            referencedRelation: "effects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      effects: {
+        Row: {
+          created_at: string
+          id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          sort_order: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      equipment: {
+        Row: {
+          armor_class: number | null
+          capacity_amount: number | null
+          capacity_unit: string | null
+          category: string
+          charge_id: string | null
+          cost_amount: number
+          cost_currency_id: string
+          created_at: string
+          description: string | null
+          id: string
+          is_master: boolean | null
+          label: string
+          max_bonus: number | null
+          max_stack: number | null
+          parent_equipment_id: string | null
+          quote: string | null
+          rarity_id: string
+          restriction_id: string | null
+          system_id: string
+          updated_at: string
+          user_id: string | null
+          weight_amount: number
+          weight_unit: string
+        }
+        Insert: {
+          armor_class?: number | null
+          capacity_amount?: number | null
+          capacity_unit?: string | null
+          category: string
+          charge_id?: string | null
+          cost_amount: number
+          cost_currency_id: string
+          created_at?: string
+          description?: string | null
+          id: string
+          is_master?: boolean | null
+          label: string
+          max_bonus?: number | null
+          max_stack?: number | null
+          parent_equipment_id?: string | null
+          quote?: string | null
+          rarity_id: string
+          restriction_id?: string | null
+          system_id: string
+          updated_at?: string
+          user_id?: string | null
+          weight_amount: number
+          weight_unit: string
+        }
+        Update: {
+          armor_class?: number | null
+          capacity_amount?: number | null
+          capacity_unit?: string | null
+          category?: string
+          charge_id?: string | null
+          cost_amount?: number
+          cost_currency_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_master?: boolean | null
+          label?: string
+          max_bonus?: number | null
+          max_stack?: number | null
+          parent_equipment_id?: string | null
+          quote?: string | null
+          rarity_id?: string
+          restriction_id?: string | null
+          system_id?: string
+          updated_at?: string
+          user_id?: string | null
+          weight_amount?: number
+          weight_unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_cost_currency_id_fkey"
+            columns: ["cost_currency_id"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_parent_equipment_id_fkey"
+            columns: ["parent_equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_rarity_id_fkey"
+            columns: ["rarity_id"]
+            isOneToOne: false
+            referencedRelation: "rarities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_restriction_id_fkey"
+            columns: ["restriction_id"]
+            isOneToOne: false
+            referencedRelation: "facets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_abilities: {
+        Row: {
+          ability_code: string
+          equipment_id: string
+          operation: string
+          sort_order: number
+        }
+        Insert: {
+          ability_code: string
+          equipment_id: string
+          operation: string
+          sort_order: number
+        }
+        Update: {
+          ability_code?: string
+          equipment_id?: string
+          operation?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_abilities_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_attributes: {
+        Row: {
+          attribute_code: string
+          equipment_id: string
+          sort_order: number
+        }
+        Insert: {
+          attribute_code: string
+          equipment_id: string
+          sort_order: number
+        }
+        Update: {
+          attribute_code?: string
+          equipment_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_attributes_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_contains: {
+        Row: {
+          contained_equipment_id: string
+          equipment_id: string
+          quantity: number
+        }
+        Insert: {
+          contained_equipment_id: string
+          equipment_id: string
+          quantity: number
+        }
+        Update: {
+          contained_equipment_id?: string
+          equipment_id?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_contains_contained_equipment_id_fkey"
+            columns: ["contained_equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_contains_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_effects: {
+        Row: {
+          effect_id: string
+          equipment_id: string
+          sort_order: number
+        }
+        Insert: {
+          effect_id: string
+          equipment_id: string
+          sort_order: number
+        }
+        Update: {
+          effect_id?: string
+          equipment_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_effects_effect_id_fkey"
+            columns: ["effect_id"]
+            isOneToOne: false
+            referencedRelation: "effects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_effects_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_features: {
+        Row: {
+          equipment_id: string
+          feature_id: string
+          sort_order: number
+        }
+        Insert: {
+          equipment_id: string
+          feature_id: string
+          sort_order: number
+        }
+        Update: {
+          equipment_id?: string
+          feature_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_features_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_features_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_modifier_grants: {
+        Row: {
+          equipment_id: string
+          modifier_grant_id: string
+          sort_order: number
+        }
+        Insert: {
+          equipment_id: string
+          modifier_grant_id: string
+          sort_order: number
+        }
+        Update: {
+          equipment_id?: string
+          modifier_grant_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_modifier_grants_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_modifier_grants_modifier_grant_id_fkey"
+            columns: ["modifier_grant_id"]
+            isOneToOne: false
+            referencedRelation: "modifier_grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_properties: {
+        Row: {
+          equipment_id: string
+          property_code: string
+        }
+        Insert: {
+          equipment_id: string
+          property_code: string
+        }
+        Update: {
+          equipment_id?: string
+          property_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_properties_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_bodies: {
+        Row: {
+          created_at: string
+          id: string
+          node_subject_code: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          node_subject_code: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          node_subject_code?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      facet_body_groups: {
+        Row: {
+          created_at: string
+          facet_body_id: string
+          id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          facet_body_id: string
+          id: string
+          sort_order: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          facet_body_id?: string
+          id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_body_groups_facet_body_id_fkey"
+            columns: ["facet_body_id"]
+            isOneToOne: false
+            referencedRelation: "facet_bodies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_body_selection_items: {
+        Row: {
+          ancestry_option_id: string | null
+          background_id: string | null
+          class_id: string | null
+          created_at: string
+          equipment_id: string | null
+          facet_body_id: string
+          feat_id: string | null
+          feature_id: string | null
+          option_id: string | null
+          proficiency_kind: string | null
+          race_id: string | null
+          resource_id: string | null
+          sort_order: number
+          spell_id: string | null
+          subclass_id: string | null
+          subrace_id: string | null
+        }
+        Insert: {
+          ancestry_option_id?: string | null
+          background_id?: string | null
+          class_id?: string | null
+          created_at?: string
+          equipment_id?: string | null
+          facet_body_id: string
+          feat_id?: string | null
+          feature_id?: string | null
+          option_id?: string | null
+          proficiency_kind?: string | null
+          race_id?: string | null
+          resource_id?: string | null
+          sort_order: number
+          spell_id?: string | null
+          subclass_id?: string | null
+          subrace_id?: string | null
+        }
+        Update: {
+          ancestry_option_id?: string | null
+          background_id?: string | null
+          class_id?: string | null
+          created_at?: string
+          equipment_id?: string | null
+          facet_body_id?: string
+          feat_id?: string | null
+          feature_id?: string | null
+          option_id?: string | null
+          proficiency_kind?: string | null
+          race_id?: string | null
+          resource_id?: string | null
+          sort_order?: number
+          spell_id?: string | null
+          subclass_id?: string | null
+          subrace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_body_selection_items_ancestry_option_id_fkey"
+            columns: ["ancestry_option_id"]
+            isOneToOne: false
+            referencedRelation: "race_ancestry_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_body_selection_items_background_id_fkey"
+            columns: ["background_id"]
+            isOneToOne: false
+            referencedRelation: "backgrounds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_body_selection_items_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_body_selection_items_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_body_selection_items_facet_body_id_fkey"
+            columns: ["facet_body_id"]
+            isOneToOne: false
+            referencedRelation: "facet_bodies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_body_selection_items_feat_id_fkey"
+            columns: ["feat_id"]
+            isOneToOne: false
+            referencedRelation: "feats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_body_selection_items_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_body_selection_items_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_body_selection_items_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_body_selection_items_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "class_resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_body_selection_items_spell_id_fkey"
+            columns: ["spell_id"]
+            isOneToOne: false
+            referencedRelation: "spells"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_body_selection_items_subclass_id_fkey"
+            columns: ["subclass_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_body_selection_items_subrace_id_fkey"
+            columns: ["subrace_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_body_selections: {
+        Row: {
+          authoring_mode_kind: string
+          created_at: string
+          facet_body_id: string
+          updated_at: string
+        }
+        Insert: {
+          authoring_mode_kind: string
+          created_at?: string
+          facet_body_id: string
+          updated_at?: string
+        }
+        Update: {
+          authoring_mode_kind?: string
+          created_at?: string
+          facet_body_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_body_selections_facet_body_id_fkey"
+            columns: ["facet_body_id"]
+            isOneToOne: true
+            referencedRelation: "facet_bodies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_conditions: {
+        Row: {
+          constraint_code: string
+          created_at: string
+          facet_body_group_id: string
+          id: string
+          kind: string
+          predicate_code: string | null
+          relation_code: string | null
+          sort_order: number
+          updated_at: string
+          where_facet_body_id: string | null
+        }
+        Insert: {
+          constraint_code: string
+          created_at?: string
+          facet_body_group_id: string
+          id: string
+          kind: string
+          predicate_code?: string | null
+          relation_code?: string | null
+          sort_order: number
+          updated_at?: string
+          where_facet_body_id?: string | null
+        }
+        Update: {
+          constraint_code?: string
+          created_at?: string
+          facet_body_group_id?: string
+          id?: string
+          kind?: string
+          predicate_code?: string | null
+          relation_code?: string | null
+          sort_order?: number
+          updated_at?: string
+          where_facet_body_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_conditions_facet_body_group_id_fkey"
+            columns: ["facet_body_group_id"]
+            isOneToOne: false
+            referencedRelation: "facet_body_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_conditions_where_facet_body_id_fkey"
+            columns: ["where_facet_body_id"]
+            isOneToOne: false
+            referencedRelation: "facet_bodies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_context_bodies: {
+        Row: {
+          facet_body_id: string
+          facet_context_id: string
+        }
+        Insert: {
+          facet_body_id: string
+          facet_context_id: string
+        }
+        Update: {
+          facet_body_id?: string
+          facet_context_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_context_bodies_facet_body_id_fkey"
+            columns: ["facet_body_id"]
+            isOneToOne: false
+            referencedRelation: "facet_bodies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_context_bodies_facet_context_id_fkey"
+            columns: ["facet_context_id"]
+            isOneToOne: true
+            referencedRelation: "facet_contexts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_contexts: {
+        Row: {
+          created_at: string
+          facet_group_id: string
+          id: string
+          node_subject_code: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          facet_group_id: string
+          id: string
+          node_subject_code: string
+          sort_order: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          facet_group_id?: string
+          id?: string
+          node_subject_code?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_contexts_facet_group_id_fkey"
+            columns: ["facet_group_id"]
+            isOneToOne: false
+            referencedRelation: "facet_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_exists_selection_items: {
+        Row: {
+          ancestry_option_id: string | null
+          background_id: string | null
+          class_id: string | null
+          created_at: string
+          equipment_id: string | null
+          facet_condition_id: string
+          feat_id: string | null
+          feature_id: string | null
+          option_id: string | null
+          proficiency_kind: string | null
+          race_id: string | null
+          resource_id: string | null
+          sort_order: number
+          spell_id: string | null
+          subclass_id: string | null
+          subrace_id: string | null
+        }
+        Insert: {
+          ancestry_option_id?: string | null
+          background_id?: string | null
+          class_id?: string | null
+          created_at?: string
+          equipment_id?: string | null
+          facet_condition_id: string
+          feat_id?: string | null
+          feature_id?: string | null
+          option_id?: string | null
+          proficiency_kind?: string | null
+          race_id?: string | null
+          resource_id?: string | null
+          sort_order: number
+          spell_id?: string | null
+          subclass_id?: string | null
+          subrace_id?: string | null
+        }
+        Update: {
+          ancestry_option_id?: string | null
+          background_id?: string | null
+          class_id?: string | null
+          created_at?: string
+          equipment_id?: string | null
+          facet_condition_id?: string
+          feat_id?: string | null
+          feature_id?: string | null
+          option_id?: string | null
+          proficiency_kind?: string | null
+          race_id?: string | null
+          resource_id?: string | null
+          sort_order?: number
+          spell_id?: string | null
+          subclass_id?: string | null
+          subrace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_exists_selection_items_ancestry_option_id_fkey"
+            columns: ["ancestry_option_id"]
+            isOneToOne: false
+            referencedRelation: "race_ancestry_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_exists_selection_items_background_id_fkey"
+            columns: ["background_id"]
+            isOneToOne: false
+            referencedRelation: "backgrounds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_exists_selection_items_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_exists_selection_items_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_exists_selection_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
+            isOneToOne: false
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_exists_selection_items_feat_id_fkey"
+            columns: ["feat_id"]
+            isOneToOne: false
+            referencedRelation: "feats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_exists_selection_items_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_exists_selection_items_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_exists_selection_items_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_exists_selection_items_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "class_resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_exists_selection_items_spell_id_fkey"
+            columns: ["spell_id"]
+            isOneToOne: false
+            referencedRelation: "spells"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_exists_selection_items_subclass_id_fkey"
+            columns: ["subclass_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_exists_selection_items_subrace_id_fkey"
+            columns: ["subrace_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_exists_selections: {
+        Row: {
+          authoring_mode_kind: string
+          created_at: string
+          facet_condition_id: string
+          updated_at: string
+        }
+        Insert: {
+          authoring_mode_kind: string
+          created_at?: string
+          facet_condition_id: string
+          updated_at?: string
+        }
+        Update: {
+          authoring_mode_kind?: string
+          created_at?: string
+          facet_condition_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_exists_selections_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
+            isOneToOne: true
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_groups: {
+        Row: {
+          created_at: string
+          facet_id: string
+          id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          facet_id: string
+          id: string
+          sort_order: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          facet_id?: string
+          id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_groups_facet_id_fkey"
+            columns: ["facet_id"]
+            isOneToOne: false
+            referencedRelation: "facets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_predicate_ability_items: {
+        Row: {
+          ability_code: string
+          facet_condition_id: string
+          sort_order: number
+        }
+        Insert: {
+          ability_code: string
+          facet_condition_id: string
+          sort_order: number
+        }
+        Update: {
+          ability_code?: string
+          facet_condition_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_predicate_ability_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
+            isOneToOne: false
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_predicate_charge_limit_kind_items: {
+        Row: {
+          charge_limit_kind: string
+          facet_condition_id: string
+          sort_order: number
+        }
+        Insert: {
+          charge_limit_kind: string
+          facet_condition_id: string
+          sort_order: number
+        }
+        Update: {
+          charge_limit_kind?: string
+          facet_condition_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_predicate_charge_limit_kind_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
+            isOneToOne: false
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_predicate_charge_reset_kind_items: {
+        Row: {
+          charge_reset_kind: string
+          facet_condition_id: string
+          sort_order: number
+        }
+        Insert: {
+          charge_reset_kind: string
+          facet_condition_id: string
+          sort_order: number
+        }
+        Update: {
+          charge_reset_kind?: string
+          facet_condition_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_predicate_charge_reset_kind_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
+            isOneToOne: false
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_predicate_condition_type_items: {
+        Row: {
+          condition_type_id: string
+          facet_condition_id: string
+          sort_order: number
+        }
+        Insert: {
+          condition_type_id: string
+          facet_condition_id: string
+          sort_order: number
+        }
+        Update: {
+          condition_type_id?: string
+          facet_condition_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_predicate_condition_type_items_condition_type_id_fkey"
+            columns: ["condition_type_id"]
+            isOneToOne: false
+            referencedRelation: "condition_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_predicate_condition_type_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
+            isOneToOne: false
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_predicate_damage_type_items: {
+        Row: {
+          damage_type_id: string
+          facet_condition_id: string
+          sort_order: number
+        }
+        Insert: {
+          damage_type_id: string
+          facet_condition_id: string
+          sort_order: number
+        }
+        Update: {
+          damage_type_id?: string
+          facet_condition_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_predicate_damage_type_items_damage_type_id_fkey"
+            columns: ["damage_type_id"]
+            isOneToOne: false
+            referencedRelation: "damage_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_predicate_damage_type_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
+            isOneToOne: false
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_predicate_duration_kind_items: {
+        Row: {
+          duration_kind: string
+          facet_condition_id: string
+          sort_order: number
+        }
+        Insert: {
+          duration_kind: string
+          facet_condition_id: string
+          sort_order: number
+        }
+        Update: {
+          duration_kind?: string
+          facet_condition_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_predicate_duration_kind_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
+            isOneToOne: false
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_predicate_durations: {
+        Row: {
+          created_at: string
+          duration_kind: string | null
+          facet_condition_id: string
+          max_amount: number | null
+          min_amount: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          duration_kind?: string | null
+          facet_condition_id: string
+          max_amount?: number | null
+          min_amount?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          duration_kind?: string | null
+          facet_condition_id?: string
+          max_amount?: number | null
+          min_amount?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_predicate_durations_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
+            isOneToOne: true
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_predicate_equipment_categories: {
+        Row: {
+          category_code: string
+          created_at: string
+          facet_condition_id: string
+          updated_at: string
+        }
+        Insert: {
+          category_code: string
+          created_at?: string
+          facet_condition_id: string
+          updated_at?: string
+        }
+        Update: {
+          category_code?: string
+          created_at?: string
+          facet_condition_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_predicate_equipment_categories_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
+            isOneToOne: true
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_predicate_equipment_items: {
+        Row: {
+          equipment_id: string
+          facet_condition_id: string
+          sort_order: number
+        }
+        Insert: {
+          equipment_id: string
+          facet_condition_id: string
+          sort_order: number
+        }
+        Update: {
+          equipment_id?: string
+          facet_condition_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_predicate_equipment_items_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_predicate_equipment_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
+            isOneToOne: false
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_predicate_equipment_property_items: {
+        Row: {
+          facet_condition_id: string
+          property_code: string
+          sort_order: number
+        }
+        Insert: {
+          facet_condition_id: string
+          property_code: string
+          sort_order: number
+        }
+        Update: {
+          facet_condition_id?: string
+          property_code?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_predicate_equipment_property_item_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
+            isOneToOne: false
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_predicate_feat_items: {
+        Row: {
+          facet_condition_id: string
+          feat_id: string
+          sort_order: number
+        }
+        Insert: {
+          facet_condition_id: string
+          feat_id: string
+          sort_order: number
+        }
+        Update: {
+          facet_condition_id?: string
+          feat_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_predicate_feat_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
+            isOneToOne: false
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_predicate_feat_items_feat_id_fkey"
+            columns: ["feat_id"]
+            isOneToOne: false
+            referencedRelation: "feats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_predicate_feature_items: {
+        Row: {
+          facet_condition_id: string
+          feature_id: string
+          sort_order: number
+        }
+        Insert: {
+          facet_condition_id: string
+          feature_id: string
+          sort_order: number
+        }
+        Update: {
+          facet_condition_id?: string
+          feature_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_predicate_feature_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
+            isOneToOne: false
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_predicate_feature_items_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_predicate_language_items: {
+        Row: {
+          facet_condition_id: string
+          language_id: string
+          sort_order: number
+        }
+        Insert: {
+          facet_condition_id: string
+          language_id: string
+          sort_order: number
+        }
+        Update: {
+          facet_condition_id?: string
+          language_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_predicate_language_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
+            isOneToOne: false
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_predicate_language_items_language_id_fkey"
+            columns: ["language_id"]
+            isOneToOne: false
+            referencedRelation: "languages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_predicate_magic_school_items: {
+        Row: {
+          facet_condition_id: string
+          magic_school_id: string
+          sort_order: number
+        }
+        Insert: {
+          facet_condition_id: string
+          magic_school_id: string
+          sort_order: number
+        }
+        Update: {
+          facet_condition_id?: string
+          magic_school_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_predicate_magic_school_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
+            isOneToOne: false
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_predicate_magic_school_items_magic_school_id_fkey"
+            columns: ["magic_school_id"]
+            isOneToOne: false
+            referencedRelation: "magic_schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_predicate_numeric_ranges: {
+        Row: {
+          created_at: string
+          facet_condition_id: string
+          max_value: number | null
+          min_value: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          facet_condition_id: string
+          max_value?: number | null
+          min_value: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          facet_condition_id?: string
+          max_value?: number | null
+          min_value?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_predicate_numeric_ranges_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
+            isOneToOne: true
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_predicate_option_items: {
+        Row: {
+          facet_condition_id: string
+          option_id: string
+          sort_order: number
+        }
+        Insert: {
+          facet_condition_id: string
+          option_id: string
+          sort_order: number
+        }
+        Update: {
+          facet_condition_id?: string
+          option_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_predicate_option_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
+            isOneToOne: false
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_predicate_option_items_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "options"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_predicate_proficiency_levels: {
+        Row: {
+          created_at: string
+          facet_condition_id: string
+          proficiency_level: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          facet_condition_id: string
+          proficiency_level: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          facet_condition_id?: string
+          proficiency_level?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_predicate_proficiency_levels_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
+            isOneToOne: true
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_predicate_range_kind_items: {
+        Row: {
+          facet_condition_id: string
+          range_kind: string
+          sort_order: number
+        }
+        Insert: {
+          facet_condition_id: string
+          range_kind: string
+          sort_order: number
+        }
+        Update: {
+          facet_condition_id?: string
+          range_kind?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_predicate_range_kind_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
+            isOneToOne: false
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_predicate_ranges: {
+        Row: {
+          created_at: string
+          facet_condition_id: string
+          max_distance: number | null
+          min_distance: number | null
+          range_kind: string | null
+          unit_code: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          facet_condition_id: string
+          max_distance?: number | null
+          min_distance?: number | null
+          range_kind?: string | null
+          unit_code?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          facet_condition_id?: string
+          max_distance?: number | null
+          min_distance?: number | null
+          range_kind?: string | null
+          unit_code?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_predicate_ranges_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
+            isOneToOne: true
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_predicate_selectables: {
+        Row: {
+          authoring_mode_kind: string
+          created_at: string
+          facet_condition_id: string
+          updated_at: string
+        }
+        Insert: {
+          authoring_mode_kind: string
+          created_at?: string
+          facet_condition_id: string
+          updated_at?: string
+        }
+        Update: {
+          authoring_mode_kind?: string
+          created_at?: string
+          facet_condition_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_predicate_selectables_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
+            isOneToOne: true
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_predicate_size_items: {
+        Row: {
+          facet_condition_id: string
+          size_code: string
+          sort_order: number
+        }
+        Insert: {
+          facet_condition_id: string
+          size_code: string
+          sort_order: number
+        }
+        Update: {
+          facet_condition_id?: string
+          size_code?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_predicate_size_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
+            isOneToOne: false
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_predicate_skill_items: {
+        Row: {
+          facet_condition_id: string
+          skill_id: string
+          sort_order: number
+        }
+        Insert: {
+          facet_condition_id: string
+          skill_id: string
+          sort_order: number
+        }
+        Update: {
+          facet_condition_id?: string
+          skill_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_predicate_skill_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
+            isOneToOne: false
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_predicate_skill_items_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_predicate_spell_items: {
+        Row: {
+          facet_condition_id: string
+          sort_order: number
+          spell_id: string
+        }
+        Insert: {
+          facet_condition_id: string
+          sort_order: number
+          spell_id: string
+        }
+        Update: {
+          facet_condition_id?: string
+          sort_order?: number
+          spell_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_predicate_spell_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
+            isOneToOne: false
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facet_predicate_spell_items_spell_id_fkey"
+            columns: ["spell_id"]
+            isOneToOne: false
+            referencedRelation: "spells"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facet_predicate_subclass_specialization_items: {
+        Row: {
+          facet_condition_id: string
+          sort_order: number
+          specialization_id: string
+        }
+        Insert: {
+          facet_condition_id: string
+          sort_order: number
+          specialization_id: string
+        }
+        Update: {
+          facet_condition_id?: string
+          sort_order?: number
+          specialization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facet_predicate_subclass_specialization_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
+            isOneToOne: false
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facets: {
+        Row: {
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      feat_effects: {
+        Row: {
+          effect_id: string
+          feat_id: string
+          sort_order: number
+        }
+        Insert: {
+          effect_id: string
+          feat_id: string
+          sort_order: number
+        }
+        Update: {
+          effect_id?: string
+          feat_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feat_effects_effect_id_fkey"
+            columns: ["effect_id"]
+            isOneToOne: false
+            referencedRelation: "effects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feat_effects_feat_id_fkey"
+            columns: ["feat_id"]
+            isOneToOne: false
+            referencedRelation: "feats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feat_features: {
+        Row: {
+          feat_id: string
+          feature_id: string
+          sort_order: number
+        }
+        Insert: {
+          feat_id: string
+          feature_id: string
+          sort_order: number
+        }
+        Update: {
+          feat_id?: string
+          feature_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feat_features_feat_id_fkey"
+            columns: ["feat_id"]
+            isOneToOne: false
+            referencedRelation: "feats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feat_features_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feat_grant_feats: {
+        Row: {
+          feat_grant_id: string
+          feat_id: string
+        }
+        Insert: {
+          feat_grant_id: string
+          feat_id: string
+        }
+        Update: {
+          feat_grant_id?: string
+          feat_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feat_grant_feats_feat_grant_id_fkey"
+            columns: ["feat_grant_id"]
+            isOneToOne: false
+            referencedRelation: "feat_grants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feat_grant_feats_feat_id_fkey"
+            columns: ["feat_id"]
+            isOneToOne: false
+            referencedRelation: "feats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feat_grant_scaling_level_feats: {
+        Row: {
+          feat_id: string
+          scaling_level_id: string
+        }
+        Insert: {
+          feat_id: string
+          scaling_level_id: string
+        }
+        Update: {
+          feat_id?: string
+          scaling_level_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feat_grant_scaling_level_feats_feat_id_fkey"
+            columns: ["feat_id"]
+            isOneToOne: false
+            referencedRelation: "feats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feat_grant_scaling_level_feats_scaling_level_id_fkey"
+            columns: ["scaling_level_id"]
+            isOneToOne: false
+            referencedRelation: "feat_grant_scaling_levels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feat_grant_scaling_levels: {
+        Row: {
+          authoring_mode_kind: string
+          created_at: string
+          feat_grant_id: string
+          id: string
+          level: number
+          selection_count: number | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          authoring_mode_kind: string
+          created_at?: string
+          feat_grant_id: string
+          id?: string
+          level: number
+          selection_count?: number | null
+          sort_order: number
+          updated_at?: string
+        }
+        Update: {
+          authoring_mode_kind?: string
+          created_at?: string
+          feat_grant_id?: string
+          id?: string
+          level?: number
+          selection_count?: number | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feat_grant_scaling_levels_feat_grant_id_fkey"
+            columns: ["feat_grant_id"]
+            isOneToOne: false
+            referencedRelation: "feat_grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feat_grants: {
+        Row: {
+          authoring_mode_kind: string
+          charge_id: string | null
+          class_id: string | null
+          created_at: string
+          id: string
+          restriction_id: string | null
+          scaling_kind: string
+          scaling_source: string | null
+          selection_count: number | null
+          selection_kind: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          authoring_mode_kind: string
+          charge_id?: string | null
+          class_id?: string | null
+          created_at?: string
+          id?: string
+          restriction_id?: string | null
+          scaling_kind: string
+          scaling_source?: string | null
+          selection_count?: number | null
+          selection_kind: string
+          sort_order: number
+          updated_at?: string
+        }
+        Update: {
+          authoring_mode_kind?: string
+          charge_id?: string | null
+          class_id?: string | null
+          created_at?: string
+          id?: string
+          restriction_id?: string | null
+          scaling_kind?: string
+          scaling_source?: string | null
+          selection_count?: number | null
+          selection_kind?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feat_grants_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feat_grants_restriction_id_fkey"
+            columns: ["restriction_id"]
+            isOneToOne: false
+            referencedRelation: "facets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feat_modifier_grants: {
+        Row: {
+          feat_id: string
+          modifier_grant_id: string
+          sort_order: number
+        }
+        Insert: {
+          feat_id: string
+          modifier_grant_id: string
+          sort_order: number
+        }
+        Update: {
+          feat_id?: string
+          modifier_grant_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feat_modifier_grants_feat_id_fkey"
+            columns: ["feat_id"]
+            isOneToOne: false
+            referencedRelation: "feats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feat_modifier_grants_modifier_grant_id_fkey"
+            columns: ["modifier_grant_id"]
+            isOneToOne: false
+            referencedRelation: "modifier_grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feat_proficiency_grants: {
+        Row: {
+          feat_id: string
+          proficiency_grant_id: string
+          sort_order: number
+        }
+        Insert: {
+          feat_id: string
+          proficiency_grant_id: string
+          sort_order: number
+        }
+        Update: {
+          feat_id?: string
+          proficiency_grant_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feat_proficiency_grants_feat_id_fkey"
+            columns: ["feat_id"]
+            isOneToOne: false
+            referencedRelation: "feats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feat_proficiency_grants_proficiency_grant_id_fkey"
+            columns: ["proficiency_grant_id"]
+            isOneToOne: false
+            referencedRelation: "proficiency_grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feat_sense_grants: {
+        Row: {
+          feat_id: string
+          sense_grant_id: string
+          sort_order: number
+        }
+        Insert: {
+          feat_id: string
+          sense_grant_id: string
+          sort_order: number
+        }
+        Update: {
+          feat_id?: string
+          sense_grant_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feat_sense_grants_feat_id_fkey"
+            columns: ["feat_id"]
+            isOneToOne: false
+            referencedRelation: "feats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feat_sense_grants_sense_grant_id_fkey"
+            columns: ["sense_grant_id"]
+            isOneToOne: false
+            referencedRelation: "sense_grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feat_spell_grants: {
+        Row: {
+          feat_id: string
+          sort_order: number
+          spell_grant_id: string
+        }
+        Insert: {
+          feat_id: string
+          sort_order: number
+          spell_grant_id: string
+        }
+        Update: {
+          feat_id?: string
+          sort_order?: number
+          spell_grant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feat_spell_grants_feat_id_fkey"
+            columns: ["feat_id"]
+            isOneToOne: false
+            referencedRelation: "feats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feat_spell_grants_spell_grant_id_fkey"
+            columns: ["spell_grant_id"]
+            isOneToOne: false
+            referencedRelation: "spell_grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feats: {
+        Row: {
+          charge_id: string | null
+          created_at: string
+          description: string
+          detail: string | null
+          id: string
+          is_master: boolean | null
+          label: string
+          system_id: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          charge_id?: string | null
+          created_at?: string
+          description: string
+          detail?: string | null
+          id?: string
+          is_master?: boolean | null
+          label: string
+          system_id: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          charge_id?: string | null
+          created_at?: string
+          description?: string
+          detail?: string | null
+          id?: string
+          is_master?: boolean | null
+          label?: string
+          system_id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feats_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feats_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feature_attributes: {
+        Row: {
+          attribute_code: string
+          feature_id: string
+          sort_order: number
+        }
+        Insert: {
+          attribute_code: string
+          feature_id: string
+          sort_order: number
+        }
+        Update: {
+          attribute_code?: string
+          feature_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_attributes_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feature_effects: {
+        Row: {
+          effect_id: string
+          feature_id: string
+          sort_order: number
+        }
+        Insert: {
+          effect_id: string
+          feature_id: string
+          sort_order: number
+        }
+        Update: {
+          effect_id?: string
+          feature_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_effects_effect_id_fkey"
+            columns: ["effect_id"]
+            isOneToOne: false
+            referencedRelation: "effects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feature_effects_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feature_feat_grants: {
+        Row: {
+          feat_grant_id: string
+          feature_id: string
+          sort_order: number
+        }
+        Insert: {
+          feat_grant_id: string
+          feature_id: string
+          sort_order: number
+        }
+        Update: {
+          feat_grant_id?: string
+          feature_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_feat_grants_feat_grant_id_fkey"
+            columns: ["feat_grant_id"]
+            isOneToOne: false
+            referencedRelation: "feat_grants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feature_feat_grants_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feature_modifier_grants: {
+        Row: {
+          feature_id: string
+          modifier_grant_id: string
+          sort_order: number
+        }
+        Insert: {
+          feature_id: string
+          modifier_grant_id: string
+          sort_order: number
+        }
+        Update: {
+          feature_id?: string
+          modifier_grant_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_modifier_grants_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feature_modifier_grants_modifier_grant_id_fkey"
+            columns: ["modifier_grant_id"]
+            isOneToOne: false
+            referencedRelation: "modifier_grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feature_option_levels: {
+        Row: {
+          count: number
+          feature_id: string
+          id: string
+          level: number
+          replace_count: number | null
+          sort_order: number
+        }
+        Insert: {
+          count: number
+          feature_id: string
+          id?: string
+          level: number
+          replace_count?: number | null
+          sort_order: number
+        }
+        Update: {
+          count?: number
+          feature_id?: string
+          id?: string
+          level?: number
+          replace_count?: number | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_option_levels_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feature_options: {
+        Row: {
+          feature_id: string
+          option_id: string
+          sort_order: number
+        }
+        Insert: {
+          feature_id: string
+          option_id: string
+          sort_order: number
+        }
+        Update: {
+          feature_id?: string
+          option_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_options_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feature_options_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "options"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feature_proficiency_grants: {
+        Row: {
+          feature_id: string
+          proficiency_grant_id: string
+          sort_order: number
+        }
+        Insert: {
+          feature_id: string
+          proficiency_grant_id: string
+          sort_order: number
+        }
+        Update: {
+          feature_id?: string
+          proficiency_grant_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_proficiency_grants_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feature_proficiency_grants_proficiency_grant_id_fkey"
+            columns: ["proficiency_grant_id"]
+            isOneToOne: false
+            referencedRelation: "proficiency_grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feature_sense_grants: {
+        Row: {
+          feature_id: string
+          sense_grant_id: string
+          sort_order: number
+        }
+        Insert: {
+          feature_id: string
+          sense_grant_id: string
+          sort_order: number
+        }
+        Update: {
+          feature_id?: string
+          sense_grant_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_sense_grants_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feature_sense_grants_sense_grant_id_fkey"
+            columns: ["sense_grant_id"]
+            isOneToOne: false
+            referencedRelation: "sense_grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feature_spell_grants: {
+        Row: {
+          feature_id: string
+          sort_order: number
+          spell_grant_id: string
+        }
+        Insert: {
+          feature_id: string
+          sort_order: number
+          spell_grant_id: string
+        }
+        Update: {
+          feature_id?: string
+          sort_order?: number
+          spell_grant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_spell_grants_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feature_spell_grants_spell_grant_id_fkey"
+            columns: ["spell_grant_id"]
+            isOneToOne: false
+            referencedRelation: "spell_grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      features: {
+        Row: {
+          available_at_level: number | null
+          charge_id: string | null
+          created_at: string
+          description: string
+          detail: string | null
+          id: string
+          label: string
+          restriction_id: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          available_at_level?: number | null
+          charge_id?: string | null
+          created_at?: string
+          description: string
+          detail?: string | null
+          id?: string
+          label: string
+          restriction_id?: string | null
+          sort_order: number
+          updated_at?: string
+        }
+        Update: {
+          available_at_level?: number | null
+          charge_id?: string | null
+          created_at?: string
+          description?: string
+          detail?: string | null
+          id?: string
+          label?: string
+          restriction_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "features_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "features_restriction_id_fkey"
+            columns: ["restriction_id"]
+            isOneToOne: false
+            referencedRelation: "facets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      languages: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          label: string
+          short: string | null
+          system_id: string
+          tooltip: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id: string
+          label: string
+          short?: string | null
+          system_id: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          label?: string
+          short?: string | null
+          system_id?: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "languages_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      magic_schools: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          label: string
+          short: string | null
+          system_id: string
+          tooltip: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id: string
+          label: string
+          short?: string | null
+          system_id: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          label?: string
+          short?: string | null
+          system_id?: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "magic_schools_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      modifier_grant_charge_levels: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          level: number
+          modifier_grant_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id: string
+          level: number
+          modifier_grant_id: string
+          sort_order: number
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          level?: number
+          modifier_grant_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "modifier_grant_charge_levels_modifier_grant_id_fkey"
+            columns: ["modifier_grant_id"]
+            isOneToOne: false
+            referencedRelation: "modifier_grant_payloads"
+            referencedColumns: ["modifier_grant_id"]
+          },
+        ]
+      }
+      modifier_grant_domain_params: {
+        Row: {
+          ability_code: string | null
+          attack_domain_code: string | null
+          created_at: string
+          modifier_grant_id: string
+          sense_code: string | null
+          skill_id: string | null
+          speed_id: string | null
+          spell_level: number | null
+          updated_at: string
+          value_domain_code: string
+        }
+        Insert: {
+          ability_code?: string | null
+          attack_domain_code?: string | null
+          created_at?: string
+          modifier_grant_id: string
+          sense_code?: string | null
+          skill_id?: string | null
+          speed_id?: string | null
+          spell_level?: number | null
+          updated_at?: string
+          value_domain_code: string
+        }
+        Update: {
+          ability_code?: string | null
+          attack_domain_code?: string | null
+          created_at?: string
+          modifier_grant_id?: string
+          sense_code?: string | null
+          skill_id?: string | null
+          speed_id?: string | null
+          spell_level?: number | null
+          updated_at?: string
+          value_domain_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "modifier_grant_domain_params_modifier_grant_id_fkey"
+            columns: ["modifier_grant_id"]
+            isOneToOne: true
+            referencedRelation: "modifier_grants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "modifier_grant_domain_params_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "modifier_grant_domain_params_speed_id_fkey"
+            columns: ["speed_id"]
+            isOneToOne: false
+            referencedRelation: "speeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      modifier_grant_optional_abilities: {
+        Row: {
+          ability_code: string
+          modifier_grant_id: string
+        }
+        Insert: {
+          ability_code: string
+          modifier_grant_id: string
+        }
+        Update: {
+          ability_code?: string
+          modifier_grant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "modifier_grant_optional_abilities_modifier_grant_id_fkey"
+            columns: ["modifier_grant_id"]
+            isOneToOne: false
+            referencedRelation: "modifier_grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      modifier_grant_payloads: {
+        Row: {
+          attribute_id: string | null
+          charge_amount: number | null
+          charge_limit_kind: string | null
+          charge_max: number | null
+          charge_min: number | null
+          charge_multiplier: number | null
+          charge_scaling_kind: string | null
+          condition_type_id: string | null
+          created_at: string
+          damage_type_id: string | null
+          dice: string | null
+          duration_kind: string | null
+          modifier_grant_id: string
+          modifier_kind: string
+          movement_mode_id: string | null
+          numeric_ability_code: string | null
+          numeric_amount: number | null
+          numeric_class_id: string | null
+          numeric_multiplier: number | null
+          numeric_skill_id: string | null
+          numeric_value_kind: string | null
+          range_kind: string | null
+          reset_kind: string | null
+          set_amount: number | null
+          shape_kind: string | null
+          updated_at: string
+          value_domain_code: string
+        }
+        Insert: {
+          attribute_id?: string | null
+          charge_amount?: number | null
+          charge_limit_kind?: string | null
+          charge_max?: number | null
+          charge_min?: number | null
+          charge_multiplier?: number | null
+          charge_scaling_kind?: string | null
+          condition_type_id?: string | null
+          created_at?: string
+          damage_type_id?: string | null
+          dice?: string | null
+          duration_kind?: string | null
+          modifier_grant_id: string
+          modifier_kind: string
+          movement_mode_id?: string | null
+          numeric_ability_code?: string | null
+          numeric_amount?: number | null
+          numeric_class_id?: string | null
+          numeric_multiplier?: number | null
+          numeric_skill_id?: string | null
+          numeric_value_kind?: string | null
+          range_kind?: string | null
+          reset_kind?: string | null
+          set_amount?: number | null
+          shape_kind?: string | null
+          updated_at?: string
+          value_domain_code: string
+        }
+        Update: {
+          attribute_id?: string | null
+          charge_amount?: number | null
+          charge_limit_kind?: string | null
+          charge_max?: number | null
+          charge_min?: number | null
+          charge_multiplier?: number | null
+          charge_scaling_kind?: string | null
+          condition_type_id?: string | null
+          created_at?: string
+          damage_type_id?: string | null
+          dice?: string | null
+          duration_kind?: string | null
+          modifier_grant_id?: string
+          modifier_kind?: string
+          movement_mode_id?: string | null
+          numeric_ability_code?: string | null
+          numeric_amount?: number | null
+          numeric_class_id?: string | null
+          numeric_multiplier?: number | null
+          numeric_skill_id?: string | null
+          numeric_value_kind?: string | null
+          range_kind?: string | null
+          reset_kind?: string | null
+          set_amount?: number | null
+          shape_kind?: string | null
+          updated_at?: string
+          value_domain_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "modifier_grant_payloads_condition_type_id_fkey"
+            columns: ["condition_type_id"]
+            isOneToOne: false
+            referencedRelation: "condition_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "modifier_grant_payloads_damage_type_id_fkey"
+            columns: ["damage_type_id"]
+            isOneToOne: false
+            referencedRelation: "damage_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "modifier_grant_payloads_modifier_grant_id_fkey"
+            columns: ["modifier_grant_id"]
+            isOneToOne: true
+            referencedRelation: "modifier_grants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "modifier_grant_payloads_numeric_class_id_fkey"
+            columns: ["numeric_class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "modifier_grant_payloads_numeric_skill_id_fkey"
+            columns: ["numeric_skill_id"]
+            isOneToOne: false
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      modifier_grants: {
+        Row: {
+          count: number | null
+          created_at: string
+          grant_kind: string
+          id: string
+          modifier_kind: string
+          restriction_id: string | null
+          scope: string
+          selection_kind: string
+          sort_order: number
+          system_id: string
+          updated_at: string
+          value_domain_code: string
+        }
+        Insert: {
+          count?: number | null
+          created_at?: string
+          grant_kind?: string
+          id: string
+          modifier_kind: string
+          restriction_id?: string | null
+          scope: string
+          selection_kind: string
+          sort_order: number
+          system_id: string
+          updated_at?: string
+          value_domain_code: string
+        }
+        Update: {
+          count?: number | null
+          created_at?: string
+          grant_kind?: string
+          id?: string
+          modifier_kind?: string
+          restriction_id?: string | null
+          scope?: string
+          selection_kind?: string
+          sort_order?: number
+          system_id?: string
+          updated_at?: string
+          value_domain_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "modifier_grants_restriction_id_fkey"
+            columns: ["restriction_id"]
+            isOneToOne: false
+            referencedRelation: "facets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "modifier_grants_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moment_direct_conditions: {
+        Row: {
+          condition_id: string
+          effect_id: string
+          moment_code: string
+          trigger_code: string
+        }
+        Insert: {
+          condition_id: string
+          effect_id: string
+          moment_code: string
+          trigger_code: string
+        }
+        Update: {
+          condition_id?: string
+          effect_id?: string
+          moment_code?: string
+          trigger_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moment_direct_condition_fk"
+            columns: ["effect_id", "trigger_code", "moment_code"]
+            isOneToOne: true
+            referencedRelation: "effect_moments"
+            referencedColumns: ["effect_id", "trigger_code", "moment_code"]
+          },
+          {
+            foreignKeyName: "moment_direct_conditions_condition_id_fkey"
+            columns: ["condition_id"]
+            isOneToOne: false
+            referencedRelation: "conditions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moment_direct_conditions_effect_id_fkey"
+            columns: ["effect_id"]
+            isOneToOne: false
+            referencedRelation: "effects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moment_direct_damages: {
+        Row: {
+          damage_id: string
+          effect_id: string
+          moment_code: string
+          trigger_code: string
+        }
+        Insert: {
+          damage_id: string
+          effect_id: string
+          moment_code: string
+          trigger_code: string
+        }
+        Update: {
+          damage_id?: string
+          effect_id?: string
+          moment_code?: string
+          trigger_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moment_direct_damage_fk"
+            columns: ["effect_id", "trigger_code", "moment_code"]
+            isOneToOne: true
+            referencedRelation: "effect_moments"
+            referencedColumns: ["effect_id", "trigger_code", "moment_code"]
+          },
+          {
+            foreignKeyName: "moment_direct_damages_damage_id_fkey"
+            columns: ["damage_id"]
+            isOneToOne: false
+            referencedRelation: "damages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moment_direct_damages_effect_id_fkey"
+            columns: ["effect_id"]
+            isOneToOne: false
+            referencedRelation: "effects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moment_roll_table_conditions: {
+        Row: {
+          condition_id: string
+          entry_id: string
+        }
+        Insert: {
+          condition_id: string
+          entry_id: string
+        }
+        Update: {
+          condition_id?: string
+          entry_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moment_roll_table_conditions_condition_id_fkey"
+            columns: ["condition_id"]
+            isOneToOne: false
+            referencedRelation: "conditions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moment_roll_table_conditions_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: true
+            referencedRelation: "moment_roll_table_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moment_roll_table_damages: {
+        Row: {
+          damage_id: string
+          entry_id: string
+        }
+        Insert: {
+          damage_id: string
+          entry_id: string
+        }
+        Update: {
+          damage_id?: string
+          entry_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moment_roll_table_damages_damage_id_fkey"
+            columns: ["damage_id"]
+            isOneToOne: false
+            referencedRelation: "damages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moment_roll_table_damages_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: true
+            referencedRelation: "moment_roll_table_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moment_roll_table_entries: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration_id: string | null
+          effect_id: string
+          id: string
+          moment_code: string
+          roll_max: number | null
+          roll_min: number | null
+          roll_value: number | null
+          sort_order: number
+          trigger_code: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration_id?: string | null
+          effect_id: string
+          id: string
+          moment_code: string
+          roll_max?: number | null
+          roll_min?: number | null
+          roll_value?: number | null
+          sort_order: number
+          trigger_code: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration_id?: string | null
+          effect_id?: string
+          id?: string
+          moment_code?: string
+          roll_max?: number | null
+          roll_min?: number | null
+          roll_value?: number | null
+          sort_order?: number
+          trigger_code?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moment_roll_table_entries_duration_id_fkey"
+            columns: ["duration_id"]
+            isOneToOne: false
+            referencedRelation: "characteristics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moment_roll_table_entries_effect_id_fkey"
+            columns: ["effect_id"]
+            isOneToOne: false
+            referencedRelation: "effects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moment_roll_table_entry_parent_fk"
+            columns: ["effect_id", "trigger_code", "moment_code"]
+            isOneToOne: false
+            referencedRelation: "effect_moments"
+            referencedColumns: ["effect_id", "trigger_code", "moment_code"]
+          },
+        ]
+      }
+      option_attributes: {
+        Row: {
+          attribute_code: string
+          option_id: string
+          sort_order: number
+        }
+        Insert: {
+          attribute_code: string
+          option_id: string
+          sort_order: number
+        }
+        Update: {
+          attribute_code?: string
+          option_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "option_attributes_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "options"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      option_effects: {
+        Row: {
+          effect_id: string
+          option_id: string
+          sort_order: number
+        }
+        Insert: {
+          effect_id: string
+          option_id: string
+          sort_order: number
+        }
+        Update: {
+          effect_id?: string
+          option_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "option_effects_effect_id_fkey"
+            columns: ["effect_id"]
+            isOneToOne: false
+            referencedRelation: "effects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "option_effects_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "options"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      option_feat_grants: {
+        Row: {
+          feat_grant_id: string
+          option_id: string
+          sort_order: number
+        }
+        Insert: {
+          feat_grant_id: string
+          option_id: string
+          sort_order: number
+        }
+        Update: {
+          feat_grant_id?: string
+          option_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "option_feat_grants_feat_grant_id_fkey"
+            columns: ["feat_grant_id"]
+            isOneToOne: false
+            referencedRelation: "feat_grants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "option_feat_grants_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "options"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      option_modifier_grants: {
+        Row: {
+          modifier_grant_id: string
+          option_id: string
+          sort_order: number
+        }
+        Insert: {
+          modifier_grant_id: string
+          option_id: string
+          sort_order: number
+        }
+        Update: {
+          modifier_grant_id?: string
+          option_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "option_modifier_grants_modifier_grant_id_fkey"
+            columns: ["modifier_grant_id"]
+            isOneToOne: false
+            referencedRelation: "modifier_grants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "option_modifier_grants_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "options"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      option_proficiency_grants: {
+        Row: {
+          option_id: string
+          proficiency_grant_id: string
+          sort_order: number
+        }
+        Insert: {
+          option_id: string
+          proficiency_grant_id: string
+          sort_order: number
+        }
+        Update: {
+          option_id?: string
+          proficiency_grant_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "option_proficiency_grants_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "option_proficiency_grants_proficiency_grant_id_fkey"
+            columns: ["proficiency_grant_id"]
+            isOneToOne: false
+            referencedRelation: "proficiency_grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      option_sense_grants: {
+        Row: {
+          option_id: string
+          sense_grant_id: string
+          sort_order: number
+        }
+        Insert: {
+          option_id: string
+          sense_grant_id: string
+          sort_order: number
+        }
+        Update: {
+          option_id?: string
+          sense_grant_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "option_sense_grants_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "option_sense_grants_sense_grant_id_fkey"
+            columns: ["sense_grant_id"]
+            isOneToOne: false
+            referencedRelation: "sense_grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      option_spell_grants: {
+        Row: {
+          option_id: string
+          sort_order: number
+          spell_grant_id: string
+        }
+        Insert: {
+          option_id: string
+          sort_order: number
+          spell_grant_id: string
+        }
+        Update: {
+          option_id?: string
+          sort_order?: number
+          spell_grant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "option_spell_grants_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "option_spell_grants_spell_grant_id_fkey"
+            columns: ["spell_grant_id"]
+            isOneToOne: false
+            referencedRelation: "spell_grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      options: {
+        Row: {
+          charge_id: string | null
+          created_at: string
+          description: string
+          detail: string | null
+          id: string
+          label: string
+          restriction_id: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          charge_id?: string | null
+          created_at?: string
+          description: string
+          detail?: string | null
+          id?: string
+          label: string
+          restriction_id?: string | null
+          sort_order: number
+          updated_at?: string
+        }
+        Update: {
+          charge_id?: string | null
+          created_at?: string
+          description?: string
+          detail?: string | null
+          id?: string
+          label?: string
+          restriction_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "options_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "options_restriction_id_fkey"
+            columns: ["restriction_id"]
+            isOneToOne: false
+            referencedRelation: "facets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      passives: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          label: string
+          short: string | null
+          system_id: string
+          tooltip: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id: string
+          label: string
+          short?: string | null
+          system_id: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          label?: string
+          short?: string | null
+          system_id?: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "passives_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proficiency_grant_equipment: {
+        Row: {
+          equipment_id: string
+          proficiency_grant_id: string
+        }
+        Insert: {
+          equipment_id: string
+          proficiency_grant_id: string
+        }
+        Update: {
+          equipment_id?: string
+          proficiency_grant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proficiency_grant_equipment_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proficiency_grant_equipment_proficiency_grant_id_fkey"
+            columns: ["proficiency_grant_id"]
+            isOneToOne: false
+            referencedRelation: "proficiency_grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proficiency_grant_equipment_filter_properties: {
+        Row: {
+          proficiency_grant_id: string
+          property_code: string
+        }
+        Insert: {
+          proficiency_grant_id: string
+          property_code: string
+        }
+        Update: {
+          proficiency_grant_id?: string
+          property_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proficiency_grant_equipment_filter_pr_proficiency_grant_id_fkey"
+            columns: ["proficiency_grant_id"]
+            isOneToOne: false
+            referencedRelation: "proficiency_grant_equipment_filters"
+            referencedColumns: ["proficiency_grant_id"]
+          },
+        ]
+      }
+      proficiency_grant_equipment_filters: {
+        Row: {
+          category_code: string | null
+          proficiency_grant_id: string
+        }
+        Insert: {
+          category_code?: string | null
+          proficiency_grant_id: string
+        }
+        Update: {
+          category_code?: string | null
+          proficiency_grant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proficiency_grant_equipment_filters_proficiency_grant_id_fkey"
+            columns: ["proficiency_grant_id"]
+            isOneToOne: true
+            referencedRelation: "proficiency_grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proficiency_grant_equipment_properties: {
+        Row: {
+          proficiency_grant_id: string
+          property_code: string
+        }
+        Insert: {
+          proficiency_grant_id: string
+          property_code: string
+        }
+        Update: {
+          proficiency_grant_id?: string
+          property_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proficiency_grant_equipment_propertie_proficiency_grant_id_fkey"
+            columns: ["proficiency_grant_id"]
+            isOneToOne: false
+            referencedRelation: "proficiency_grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proficiency_grant_equipment_property_filters: {
+        Row: {
+          category_code: string | null
+          proficiency_grant_id: string
+        }
+        Insert: {
+          category_code?: string | null
+          proficiency_grant_id: string
+        }
+        Update: {
+          category_code?: string | null
+          proficiency_grant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proficiency_grant_equipment_property__proficiency_grant_id_fkey"
+            columns: ["proficiency_grant_id"]
+            isOneToOne: true
+            referencedRelation: "proficiency_grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proficiency_grant_languages: {
+        Row: {
+          language_id: string
+          proficiency_grant_id: string
+        }
+        Insert: {
+          language_id: string
+          proficiency_grant_id: string
+        }
+        Update: {
+          language_id?: string
+          proficiency_grant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proficiency_grant_languages_language_id_fkey"
+            columns: ["language_id"]
+            isOneToOne: false
+            referencedRelation: "languages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proficiency_grant_languages_proficiency_grant_id_fkey"
+            columns: ["proficiency_grant_id"]
+            isOneToOne: false
+            referencedRelation: "proficiency_grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proficiency_grant_save_abilities: {
+        Row: {
+          ability_code: string
+          proficiency_grant_id: string
+        }
+        Insert: {
+          ability_code: string
+          proficiency_grant_id: string
+        }
+        Update: {
+          ability_code?: string
+          proficiency_grant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proficiency_grant_save_abilities_proficiency_grant_id_fkey"
+            columns: ["proficiency_grant_id"]
+            isOneToOne: false
+            referencedRelation: "proficiency_grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proficiency_grant_skills: {
+        Row: {
+          proficiency_grant_id: string
+          skill_id: string
+        }
+        Insert: {
+          proficiency_grant_id: string
+          skill_id: string
+        }
+        Update: {
+          proficiency_grant_id?: string
+          skill_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proficiency_grant_skills_proficiency_grant_id_fkey"
+            columns: ["proficiency_grant_id"]
+            isOneToOne: false
+            referencedRelation: "proficiency_grants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proficiency_grant_skills_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proficiency_grants: {
+        Row: {
+          authoring_mode_kind: string
+          count: number | null
+          created_at: string
+          grant_kind: string
+          id: string
+          level: string
+          proficiency_kind: string
+          restriction_id: string | null
+          rounding: string | null
+          selection_kind: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          authoring_mode_kind: string
+          count?: number | null
+          created_at?: string
+          grant_kind?: string
+          id?: string
+          level: string
+          proficiency_kind: string
+          restriction_id?: string | null
+          rounding?: string | null
+          selection_kind: string
+          sort_order: number
+          updated_at?: string
+        }
+        Update: {
+          authoring_mode_kind?: string
+          count?: number | null
+          created_at?: string
+          grant_kind?: string
+          id?: string
+          level?: string
+          proficiency_kind?: string
+          restriction_id?: string | null
+          rounding?: string | null
+          selection_kind?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proficiency_grants_restriction_id_fkey"
+            columns: ["restriction_id"]
+            isOneToOne: false
+            referencedRelation: "facets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          full_name: string | null
+          id: string
+          updated_at: string | null
+          username: string | null
+          website: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string | null
+          username?: string | null
+          website?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string | null
+          username?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
+      race_ancestries: {
+        Row: {
+          description: string | null
+          id: string
+          label: string
+          race_id: string
+        }
+        Insert: {
+          description?: string | null
+          id: string
+          label: string
+          race_id: string
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          label?: string
+          race_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "race_ancestries_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      race_ancestry_option_features: {
+        Row: {
+          ancestry_option_id: string
+          feature_id: string
+          sort_order: number
+        }
+        Insert: {
+          ancestry_option_id: string
+          feature_id: string
+          sort_order: number
+        }
+        Update: {
+          ancestry_option_id?: string
+          feature_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "race_ancestry_option_features_ancestry_option_id_fkey"
+            columns: ["ancestry_option_id"]
+            isOneToOne: false
+            referencedRelation: "race_ancestry_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "race_ancestry_option_features_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      race_ancestry_options: {
+        Row: {
+          ancestry_id: string
+          description: string | null
+          id: string
+          label: string
+          sort_order: number
+        }
+        Insert: {
+          ancestry_id: string
+          description?: string | null
+          id: string
+          label: string
+          sort_order: number
+        }
+        Update: {
+          ancestry_id?: string
+          description?: string | null
+          id?: string
+          label?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "race_ancestry_options_ancestry_id_fkey"
+            columns: ["ancestry_id"]
+            isOneToOne: false
+            referencedRelation: "race_ancestries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      race_details: {
+        Row: {
+          detail_id: string
+          race_id: string
+          sort_order: number
+        }
+        Insert: {
+          detail_id: string
+          race_id: string
+          sort_order: number
+        }
+        Update: {
+          detail_id?: string
+          race_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "race_details_detail_id_fkey"
+            columns: ["detail_id"]
+            isOneToOne: false
+            referencedRelation: "details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "race_details_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      race_features: {
+        Row: {
+          feature_id: string
+          race_id: string
+          sort_order: number
+        }
+        Insert: {
+          feature_id: string
+          race_id: string
+          sort_order: number
+        }
+        Update: {
+          feature_id?: string
+          race_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "race_features_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "race_features_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      race_speeds: {
+        Row: {
+          amount: number
+          race_id: string
+          speed_id: string
+          unit_code: string
+        }
+        Insert: {
+          amount: number
+          race_id: string
+          speed_id: string
+          unit_code: string
+        }
+        Update: {
+          amount?: number
+          race_id?: string
+          speed_id?: string
+          unit_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "race_speeds_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "race_speeds_speed_id_fkey"
+            columns: ["speed_id"]
+            isOneToOne: false
+            referencedRelation: "speeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      races: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          is_master: boolean | null
+          label: string
+          parent_race_id: string | null
+          playable: boolean | null
+          quote: string | null
+          size_code: string | null
+          system_id: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          id: string
+          is_master?: boolean | null
+          label: string
+          parent_race_id?: string | null
+          playable?: boolean | null
+          quote?: string | null
+          size_code?: string | null
+          system_id: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_master?: boolean | null
+          label?: string
+          parent_race_id?: string | null
+          playable?: boolean | null
+          quote?: string | null
+          size_code?: string | null
+          system_id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "races_parent_race_id_fkey"
+            columns: ["parent_race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "races_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rarities: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          label: string
+          short: string | null
+          system_id: string
+          tooltip: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id: string
+          label: string
+          short?: string | null
+          system_id: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          label?: string
+          short?: string | null
+          system_id?: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rarities_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saving_throws: {
+        Row: {
+          ability_code: string | null
+          created_at: string
+          dc: number | null
+          id: string
+          saving_throw_kind: string
+          updated_at: string
+        }
+        Insert: {
+          ability_code?: string | null
+          created_at?: string
+          dc?: number | null
+          id: string
+          saving_throw_kind: string
+          updated_at?: string
+        }
+        Update: {
+          ability_code?: string | null
+          created_at?: string
+          dc?: number | null
+          id?: string
+          saving_throw_kind?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sense_grant_scaling_level_senses: {
+        Row: {
+          scaling_level_id: string
+          sense_id: string
+        }
+        Insert: {
+          scaling_level_id: string
+          sense_id: string
+        }
+        Update: {
+          scaling_level_id?: string
+          sense_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sense_grant_scaling_level_senses_scaling_level_id_fkey"
+            columns: ["scaling_level_id"]
+            isOneToOne: false
+            referencedRelation: "sense_grant_scaling_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sense_grant_scaling_level_senses_sense_id_fkey"
+            columns: ["sense_id"]
+            isOneToOne: false
+            referencedRelation: "senses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sense_grant_scaling_levels: {
+        Row: {
+          authoring_mode_kind: string
+          created_at: string
+          id: string
+          level: number
+          selection_count: number | null
+          sense_grant_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          authoring_mode_kind: string
+          created_at?: string
+          id?: string
+          level: number
+          selection_count?: number | null
+          sense_grant_id: string
+          sort_order: number
+          updated_at?: string
+        }
+        Update: {
+          authoring_mode_kind?: string
+          created_at?: string
+          id?: string
+          level?: number
+          selection_count?: number | null
+          sense_grant_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sense_grant_scaling_levels_sense_grant_id_fkey"
+            columns: ["sense_grant_id"]
+            isOneToOne: false
+            referencedRelation: "sense_grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sense_grant_senses: {
+        Row: {
+          sense_grant_id: string
+          sense_id: string
+        }
+        Insert: {
+          sense_grant_id: string
+          sense_id: string
+        }
+        Update: {
+          sense_grant_id?: string
+          sense_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sense_grant_senses_sense_grant_id_fkey"
+            columns: ["sense_grant_id"]
+            isOneToOne: false
+            referencedRelation: "sense_grants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sense_grant_senses_sense_id_fkey"
+            columns: ["sense_id"]
+            isOneToOne: false
+            referencedRelation: "senses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sense_grants: {
+        Row: {
+          authoring_mode_kind: string
+          charge_id: string | null
+          class_id: string | null
+          created_at: string
+          id: string
+          restriction_id: string | null
+          scaling_kind: string
+          scaling_source: string | null
+          selection_count: number | null
+          selection_kind: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          authoring_mode_kind: string
+          charge_id?: string | null
+          class_id?: string | null
+          created_at?: string
+          id?: string
+          restriction_id?: string | null
+          scaling_kind: string
+          scaling_source?: string | null
+          selection_count?: number | null
+          selection_kind: string
+          sort_order: number
+          updated_at?: string
+        }
+        Update: {
+          authoring_mode_kind?: string
+          charge_id?: string | null
+          class_id?: string | null
+          created_at?: string
+          id?: string
+          restriction_id?: string | null
+          scaling_kind?: string
+          scaling_source?: string | null
+          selection_count?: number | null
+          selection_kind?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sense_grants_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sense_grants_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sense_grants_restriction_id_fkey"
+            columns: ["restriction_id"]
+            isOneToOne: false
+            referencedRelation: "facets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      senses: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          label: string
+          short: string | null
+          system_id: string
+          tooltip: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id: string
+          label: string
+          short?: string | null
+          system_id: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          label?: string
+          short?: string | null
+          system_id?: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "senses_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      skills: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          label: string
+          short: string | null
+          system_id: string
+          tooltip: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id: string
+          label: string
+          short?: string | null
+          system_id: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          label?: string
+          short?: string | null
+          system_id?: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skills_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      speeds: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          label: string
+          short: string | null
+          system_id: string
+          tooltip: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id: string
+          label: string
+          short?: string | null
+          system_id: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          label?: string
+          short?: string | null
+          system_id?: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "speeds_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spell_attributes: {
+        Row: {
+          attribute_code: string
+          sort_order: number
+          spell_id: string
+        }
+        Insert: {
+          attribute_code: string
+          sort_order: number
+          spell_id: string
+        }
+        Update: {
+          attribute_code?: string
+          sort_order?: number
+          spell_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spell_attributes_spell_id_fkey"
+            columns: ["spell_id"]
+            isOneToOne: false
+            referencedRelation: "spells"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spell_classes: {
+        Row: {
+          class_id: string
+          spell_id: string
+        }
+        Insert: {
+          class_id: string
+          spell_id: string
+        }
+        Update: {
+          class_id?: string
+          spell_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spell_classes_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spell_classes_spell_id_fkey"
+            columns: ["spell_id"]
+            isOneToOne: false
+            referencedRelation: "spells"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spell_effects: {
+        Row: {
+          effect_id: string
+          sort_order: number
+          spell_id: string
+        }
+        Insert: {
+          effect_id: string
+          sort_order: number
+          spell_id: string
+        }
+        Update: {
+          effect_id?: string
+          sort_order?: number
+          spell_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spell_effects_effect_id_fkey"
+            columns: ["effect_id"]
+            isOneToOne: false
+            referencedRelation: "effects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spell_effects_spell_id_fkey"
+            columns: ["spell_id"]
+            isOneToOne: false
+            referencedRelation: "spells"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spell_grant_attributes: {
+        Row: {
+          attribute_code: string
+          sort_order: number
+          spell_grant_id: string
+        }
+        Insert: {
+          attribute_code: string
+          sort_order: number
+          spell_grant_id: string
+        }
+        Update: {
+          attribute_code?: string
+          sort_order?: number
+          spell_grant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spell_grant_attributes_spell_grant_id_fkey"
+            columns: ["spell_grant_id"]
+            isOneToOne: false
+            referencedRelation: "spell_grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spell_grant_scaling_level_spells: {
+        Row: {
+          scaling_level_id: string
+          spell_id: string
+        }
+        Insert: {
+          scaling_level_id: string
+          spell_id: string
+        }
+        Update: {
+          scaling_level_id?: string
+          spell_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spell_grant_scaling_level_spells_scaling_level_id_fkey"
+            columns: ["scaling_level_id"]
+            isOneToOne: false
+            referencedRelation: "spell_grant_scaling_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spell_grant_scaling_level_spells_spell_id_fkey"
+            columns: ["spell_id"]
+            isOneToOne: false
+            referencedRelation: "spells"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spell_grant_scaling_levels: {
+        Row: {
+          authoring_mode_kind: string
+          created_at: string
+          id: string
+          level: number
+          selection_count: number | null
+          sort_order: number
+          spell_grant_id: string
+          updated_at: string
+        }
+        Insert: {
+          authoring_mode_kind: string
+          created_at?: string
+          id?: string
+          level: number
+          selection_count?: number | null
+          sort_order: number
+          spell_grant_id: string
+          updated_at?: string
+        }
+        Update: {
+          authoring_mode_kind?: string
+          created_at?: string
+          id?: string
+          level?: number
+          selection_count?: number | null
+          sort_order?: number
+          spell_grant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spell_grant_scaling_levels_spell_grant_id_fkey"
+            columns: ["spell_grant_id"]
+            isOneToOne: false
+            referencedRelation: "spell_grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spell_grant_spells: {
+        Row: {
+          spell_grant_id: string
+          spell_id: string
+        }
+        Insert: {
+          spell_grant_id: string
+          spell_id: string
+        }
+        Update: {
+          spell_grant_id?: string
+          spell_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spell_grant_spells_spell_grant_id_fkey"
+            columns: ["spell_grant_id"]
+            isOneToOne: false
+            referencedRelation: "spell_grants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spell_grant_spells_spell_id_fkey"
+            columns: ["spell_id"]
+            isOneToOne: false
+            referencedRelation: "spells"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spell_grants: {
+        Row: {
+          authoring_mode_kind: string
+          cast_at_level: number | null
+          charge_id: string | null
+          class_id: string | null
+          created_at: string
+          filter_id: string | null
+          id: string
+          restriction_id: string | null
+          scaling_kind: string
+          scaling_source: string | null
+          selection_count: number | null
+          selection_kind: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          authoring_mode_kind: string
+          cast_at_level?: number | null
+          charge_id?: string | null
+          class_id?: string | null
+          created_at?: string
+          filter_id?: string | null
+          id?: string
+          restriction_id?: string | null
+          scaling_kind: string
+          scaling_source?: string | null
+          selection_count?: number | null
+          selection_kind: string
+          sort_order: number
+          updated_at?: string
+        }
+        Update: {
+          authoring_mode_kind?: string
+          cast_at_level?: number | null
+          charge_id?: string | null
+          class_id?: string | null
+          created_at?: string
+          filter_id?: string | null
+          id?: string
+          restriction_id?: string | null
+          scaling_kind?: string
+          scaling_source?: string | null
+          selection_count?: number | null
+          selection_kind?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spell_grants_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spell_grants_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spell_grants_filter_id_fkey"
+            columns: ["filter_id"]
+            isOneToOne: false
+            referencedRelation: "facets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spell_grants_restriction_id_fkey"
+            columns: ["restriction_id"]
+            isOneToOne: false
+            referencedRelation: "facets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spells: {
+        Row: {
+          casting_time_amount: number
+          casting_time_unit: string
+          created_at: string
+          description: string
+          id: string
+          is_master: boolean | null
+          label: string
+          level: number
+          magic_school_id: string
+          material_description: string | null
+          system_id: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          casting_time_amount: number
+          casting_time_unit: string
+          created_at?: string
+          description: string
+          id?: string
+          is_master?: boolean | null
+          label: string
+          level: number
+          magic_school_id: string
+          material_description?: string | null
+          system_id: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          casting_time_amount?: number
+          casting_time_unit?: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_master?: boolean | null
+          label?: string
+          level?: number
+          magic_school_id?: string
+          material_description?: string | null
+          system_id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spells_magic_school_id_fkey"
+            columns: ["magic_school_id"]
+            isOneToOne: false
+            referencedRelation: "magic_schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spells_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      starting_equipment: {
+        Row: {
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      starting_equipment_currencies: {
+        Row: {
+          amount: number
+          currency_id: string
+          option_item_id: string
+        }
+        Insert: {
+          amount: number
+          currency_id: string
+          option_item_id: string
+        }
+        Update: {
+          amount?: number
+          currency_id?: string
+          option_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "starting_equipment_currencies_currency_id_fkey"
+            columns: ["currency_id"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "starting_equipment_currencies_option_item_id_fkey"
+            columns: ["option_item_id"]
+            isOneToOne: false
+            referencedRelation: "starting_equipment_option_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      starting_equipment_groups: {
+        Row: {
+          created_at: string
+          equipment_set_id: string
+          id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          equipment_set_id: string
+          id: string
+          sort_order: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          equipment_set_id?: string
+          id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "starting_equipment_groups_equipment_set_id_fkey"
+            columns: ["equipment_set_id"]
+            isOneToOne: false
+            referencedRelation: "starting_equipment_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      starting_equipment_option_item_equipment: {
+        Row: {
+          equipment_id: string
+          option_item_id: string
+        }
+        Insert: {
+          equipment_id: string
+          option_item_id: string
+        }
+        Update: {
+          equipment_id?: string
+          option_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "starting_equipment_option_item_equipment_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "starting_equipment_option_item_equipment_option_item_id_fkey"
+            columns: ["option_item_id"]
+            isOneToOne: false
+            referencedRelation: "starting_equipment_option_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      starting_equipment_option_item_properties: {
+        Row: {
+          option_item_id: string
+          property_code: string
+        }
+        Insert: {
+          option_item_id: string
+          property_code: string
+        }
+        Update: {
+          option_item_id?: string
+          property_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "starting_equipment_option_item_properties_option_item_id_fkey"
+            columns: ["option_item_id"]
+            isOneToOne: false
+            referencedRelation: "starting_equipment_option_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      starting_equipment_option_items: {
+        Row: {
+          authoring_mode_kind: string | null
+          category_code: string | null
+          count: number | null
+          created_at: string
+          equipment_option_id: string
+          id: string
+          quantity: number | null
+          selection_kind: string | null
+          sort_order: number
+          starting_equipment_kind: string
+          updated_at: string
+        }
+        Insert: {
+          authoring_mode_kind?: string | null
+          category_code?: string | null
+          count?: number | null
+          created_at?: string
+          equipment_option_id: string
+          id: string
+          quantity?: number | null
+          selection_kind?: string | null
+          sort_order: number
+          starting_equipment_kind: string
+          updated_at?: string
+        }
+        Update: {
+          authoring_mode_kind?: string | null
+          category_code?: string | null
+          count?: number | null
+          created_at?: string
+          equipment_option_id?: string
+          id?: string
+          quantity?: number | null
+          selection_kind?: string | null
+          sort_order?: number
+          starting_equipment_kind?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "starting_equipment_option_items_equipment_option_id_fkey"
+            columns: ["equipment_option_id"]
+            isOneToOne: false
+            referencedRelation: "starting_equipment_options"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      starting_equipment_options: {
+        Row: {
+          created_at: string
+          equipment_group_id: string
+          id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          equipment_group_id: string
+          id: string
+          sort_order: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          equipment_group_id?: string
+          id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "starting_equipment_options_equipment_group_id_fkey"
+            columns: ["equipment_group_id"]
+            isOneToOne: false
+            referencedRelation: "starting_equipment_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      starting_equipment_sets: {
+        Row: {
+          created_at: string
+          id: string
+          sort_order: number
+          starting_equipment_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          sort_order: number
+          starting_equipment_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          sort_order?: number
+          starting_equipment_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "starting_equipment_sets_starting_equipment_id_fkey"
+            columns: ["starting_equipment_id"]
+            isOneToOne: false
+            referencedRelation: "starting_equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      systems: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          label: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id: string
+          label: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          label?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      terrains: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          label: string
+          short: string | null
+          system_id: string
+          tooltip: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id: string
+          label: string
+          short?: string | null
+          system_id: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          label?: string
+          short?: string | null
+          system_id?: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "terrains_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vehicle_details: {
+        Row: {
+          detail_id: string
+          sort_order: number
+          vehicle_id: string
+        }
+        Insert: {
+          detail_id: string
+          sort_order: number
+          vehicle_id: string
+        }
+        Update: {
+          detail_id?: string
+          sort_order?: number
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_details_detail_id_fkey"
+            columns: ["detail_id"]
+            isOneToOne: false
+            referencedRelation: "details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_details_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vehicle_features: {
+        Row: {
+          feature_id: string
+          sort_order: number
+          vehicle_id: string
+        }
+        Insert: {
+          feature_id: string
+          sort_order: number
+          vehicle_id: string
+        }
+        Update: {
+          feature_id?: string
+          sort_order?: number
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_features_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vehicles: {
+        Row: {
+          armor_class: number
+          cargo_capacity: string | null
+          category: string
+          cost: Json | null
+          created_at: string
+          crew_max: number | null
+          crew_min: number | null
+          description: string | null
+          hit_points: number
+          id: string
+          is_master: boolean | null
+          label: string
+          passenger_capacity: number | null
+          properties: string[] | null
+          size_code: string
+          speed: number | null
+          speed_note: string | null
+          system_id: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          armor_class: number
+          cargo_capacity?: string | null
+          category: string
+          cost?: Json | null
+          created_at?: string
+          crew_max?: number | null
+          crew_min?: number | null
+          description?: string | null
+          hit_points: number
+          id: string
+          is_master?: boolean | null
+          label: string
+          passenger_capacity?: number | null
+          properties?: string[] | null
+          size_code: string
+          speed?: number | null
+          speed_note?: string | null
+          system_id: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          armor_class?: number
+          cargo_capacity?: string | null
+          category?: string
+          cost?: Json | null
+          created_at?: string
+          crew_max?: number | null
+          crew_min?: number | null
+          description?: string | null
+          hit_points?: number
+          id?: string
+          is_master?: boolean | null
+          label?: string
+          passenger_capacity?: number | null
+          properties?: string[] | null
+          size_code?: string
+          speed?: number | null
+          speed_note?: string | null
+          system_id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicles_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      apply_direct_ownership_policies: {
+        Args: { target_table: string }
+        Returns: undefined
+      }
+      apply_system_derived_policies: {
+        Args: { target_table: string }
+        Returns: undefined
+      }
+      apply_system_vocabulary_policies: {
+        Args: { target_table: string }
+        Returns: undefined
+      }
+      apply_updated_at_triggers: {
+        Args: { p_schema?: string }
+        Returns: undefined
+      }
+      jsonb_has_all: { Args: { arr: Json }; Returns: boolean }
+      set_admin_claims: { Args: { event: Json }; Returns: Json }
+    }
+    Enums: {
+      spell_state: "PREPARED" | "KNOWN"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      spell_state: ["PREPARED", "KNOWN"],
+    },
+  },
+} as const
+

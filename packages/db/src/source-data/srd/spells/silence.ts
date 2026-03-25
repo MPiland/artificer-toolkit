@@ -55,8 +55,7 @@ export const silence: SpellAuthored = {
           }
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose the point where the silence sphere is centered.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -72,7 +71,6 @@ export const silence: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.ZONE,
-          label: 'Silence Sphere',
           detail:
             'Creates a spherical zone where sound cannot be created or pass through for the duration.'
         }

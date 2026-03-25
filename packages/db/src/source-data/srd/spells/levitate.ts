@@ -45,8 +45,7 @@ export const levitate: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one creature or object you can see within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -61,9 +60,6 @@ export const levitate: SpellAuthored = {
             amount: 10
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Levitate',
-          description:
-            'The target rises and stays suspended for the duration. This still needs a structured vertical-position and suspension-state model.'
         }
       ]
     }

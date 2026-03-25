@@ -45,8 +45,7 @@ export const windWalk: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-          maxTargets: 11,
-          detail: 'Choose yourself and up to ten willing creatures within range.'
+          maxTargets: 11
         }
       },
       branches: [
@@ -61,9 +60,6 @@ export const windWalk: SpellAuthored = {
             amount: 8
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Wind Walk',
-          description:
-            'Transforms the chosen creatures into cloudlike forms with the spell’s full movement and reversion rules.'
         }
       ]
     }

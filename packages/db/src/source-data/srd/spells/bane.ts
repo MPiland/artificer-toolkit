@@ -46,8 +46,7 @@ export const bane: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-          maxTargets: 3,
-          detail: 'Up to three creatures of your choice that you can see within range.'
+          maxTargets: 3
         }
       },
       branches: [
@@ -62,9 +61,6 @@ export const bane: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Bane',
-          description:
-            'Targets make Charisma saving throws. On a failure, they subtract 1d4 from attack rolls and saving throws for the duration. When cast with a higher-level slot, it can target one additional creature for each slot level above 1st.'
         }
       ]
     }

@@ -42,8 +42,7 @@ export const jump: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Touch one creature.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -58,9 +57,6 @@ export const jump: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Jump',
-          description:
-            'Triples the target\'s jump distance for the duration. This still needs a richer movement-mode and jump-distance model to express structurally.'
         }
       ]
     }

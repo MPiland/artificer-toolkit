@@ -51,8 +51,7 @@ export const iceStorm: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Each creature in the cylinder.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         },
         shape: {
           id: spellChildId(SPELL_IDS.ICE_STORM, 0x212, 1),
@@ -89,15 +88,6 @@ export const iceStorm: SpellAuthored = {
           valueKind: 'DICE',
           scalingKind: SCALING.NONE,
           diceConfig: '4d6'
-        },
-        {
-          id: spellChildId(SPELL_IDS.ICE_STORM, 0x215, 1),
-          branch: BRANCH.ON_SAVE_SUCCESS,
-          groupType: BRANCH_GROUP_TYPE.SINGLE,
-          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
-          effectKind: EFFECT_KIND.RULE,
-          label: 'Successful Save',
-          description: 'On a successful save, the creature takes no damage.'
         }
       ]
     }

@@ -43,8 +43,7 @@ export const featherFall: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-          maxTargets: 5,
-          detail: 'Choose up to five falling creatures within range.'
+          maxTargets: 5
         }
       },
       branches: [
@@ -59,9 +58,6 @@ export const featherFall: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Feather Fall',
-          description:
-            'Chosen falling creatures descend at 60 feet per round for the duration and take no falling damage if they land before the spell ends.'
         }
       ]
     }

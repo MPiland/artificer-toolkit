@@ -41,8 +41,7 @@ export const mirageArcane: SpellAuthored = {
           rangeKind: RANGE_KIND.SIGHT
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose the terrain you can see to alter.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -58,7 +57,6 @@ export const mirageArcane: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.ZONE,
-          label: 'Mirage Arcane',
           detail:
             'Creates an illusory terrain zone whose general shape remains the same while its appearance changes.'
         }

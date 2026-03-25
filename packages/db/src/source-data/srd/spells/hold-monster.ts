@@ -16,7 +16,7 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { conditionTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 
 export const holdMonster: SpellAuthored = {
   kind: SUBJECT.SPELL,
@@ -26,7 +26,9 @@ export const holdMonster: SpellAuthored = {
     'Choose a creature that you can see within range. The target must succeed on a Wisdom saving throw or be paralyzed for the duration. This spell has no effect on undead. At the end of each of its turns, the target can make another Wisdom saving throw.',
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 5,
-  classIds: [CLASS_IDS.BARD, CLASS_IDS.SORCERER, CLASS_IDS.WARLOCK, CLASS_IDS.WIZARD],
+  classIds: [
+    CLASS_IDS.BARD, CLASS_IDS.SORCERER, CLASS_IDS.WARLOCK, CLASS_IDS.WIZARD
+  ],
   magicSchoolId: schoolId('ENCHANTMENT'),
   attributes: [SPELL_ATTRIBUTE.CONCENTRATION],
   capabilities: [
@@ -51,8 +53,7 @@ export const holdMonster: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one creature you can see within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -66,19 +67,8 @@ export const holdMonster: SpellAuthored = {
             durationKind: DURATION_KIND.MINUTE,
             amount: 1
           },
-          effectKind: EFFECT_KIND.RULE,
-          label: 'Held Monster',
-          description:
-            'The target is paralyzed under the spell’s repeated-save rules until the spell ends.'
-        },
-        {
-          id: spellChildId(SPELL_IDS.HOLD_MONSTER, 0x215, 1),
-          branch: BRANCH.ON_SAVE_SUCCESS,
-          groupType: BRANCH_GROUP_TYPE.SINGLE,
-          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
-          effectKind: EFFECT_KIND.RULE,
-          label: 'Unaffected',
-          description: 'A target that succeeds on the saving throw is unaffected by the spell.'
+          effectKind: EFFECT_KIND.CONDITION,
+          conditionId: conditionTypeId('PARALYZED')
         }
       ]
     }

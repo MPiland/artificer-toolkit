@@ -46,8 +46,7 @@ export const lesserRestoration: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Touch one creature.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -61,9 +60,6 @@ export const lesserRestoration: SpellAuthored = {
             durationKind: DURATION_KIND.INSTANTANEOUS
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Lesser Restoration',
-          description:
-            'This spell currently needs a richer condition-removal and disease-ending model to express its full SRD behavior honestly.'
         }
       ]
     }

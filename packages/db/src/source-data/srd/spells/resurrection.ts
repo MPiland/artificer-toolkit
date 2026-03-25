@@ -48,8 +48,7 @@ export const resurrection: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Touch one dead creature.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -63,9 +62,6 @@ export const resurrection: SpellAuthored = {
             durationKind: DURATION_KIND.INSTANTANEOUS
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Resurrection',
-          description:
-            'This spell currently needs a full resurrection and soul-restoration model to express the SRD behavior honestly.'
         }
       ]
     }

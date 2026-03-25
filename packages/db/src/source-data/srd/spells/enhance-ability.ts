@@ -44,8 +44,7 @@ export const enhanceAbility: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.WILLING,
-          detail: 'Touch one willing creature.'
+          dispositionKind: TARGET_DISPOSITION_KIND.WILLING
         }
       },
       branches: [
@@ -60,9 +59,6 @@ export const enhanceAbility: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Enhance Ability',
-          description:
-            'The current model does not yet represent the selectable ability-specific modes, advantage on ability checks, or the related temporary hit point rider as structured outcomes.'
         }
       ]
     }

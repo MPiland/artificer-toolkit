@@ -43,8 +43,7 @@ export const massHeal: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-          detail: 'Any number of creatures you can see within range share the healing pool.'
+          selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES
         }
       },
       branches: [

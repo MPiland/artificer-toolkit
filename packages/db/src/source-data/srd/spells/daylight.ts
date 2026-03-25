@@ -53,8 +53,7 @@ export const daylight: SpellAuthored = {
           }
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Create bright light centered on a point within range.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -70,7 +69,6 @@ export const daylight: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.ZONE,
-          label: 'Daylight',
           detail:
             'Creates a sphere of bright light that dispels darkness in the area and sheds bright light for the duration.'
         }

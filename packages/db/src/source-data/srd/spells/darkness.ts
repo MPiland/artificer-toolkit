@@ -55,8 +55,7 @@ export const darkness: SpellAuthored = {
           }
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Create magical darkness centered on a point within range.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -72,7 +71,6 @@ export const darkness: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.ZONE,
-          label: 'Darkness',
           detail:
             'Creates a sphere of magical darkness that spreads around corners and blocks nonmagical light.'
         }

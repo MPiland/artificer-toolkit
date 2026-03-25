@@ -50,8 +50,7 @@ export const disintegrate: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Send the ray at one target you can see within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -71,15 +70,6 @@ export const disintegrate: SpellAuthored = {
             { id: spellChildId(SPELL_IDS.DISINTEGRATE, 0x212, 4), level: 8, order: 3, diceConfig: '16d6+40' },
             { id: spellChildId(SPELL_IDS.DISINTEGRATE, 0x212, 5), level: 9, order: 4, diceConfig: '19d6+40' }
           ]
-        },
-        {
-          id: spellChildId(SPELL_IDS.DISINTEGRATE, 0x213, 1),
-          branch: BRANCH.ON_SAVE_SUCCESS,
-          groupType: BRANCH_GROUP_TYPE.SINGLE,
-          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
-          effectKind: EFFECT_KIND.RULE,
-          label: 'Successful Save',
-          description: 'On a successful save, the spell has no effect.'
         }
       ]
     }

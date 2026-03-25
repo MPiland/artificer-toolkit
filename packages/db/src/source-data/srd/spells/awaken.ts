@@ -40,8 +40,7 @@ export const awaken: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Touch one Huge or smaller beast or plant that meets the spell’s Intelligence limit.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -51,9 +50,6 @@ export const awaken: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Awaken',
-          description:
-            'The touched beast or plant gains awakened intellect and animation under the spell’s SRD limits, including Intelligence increase and charm toward you for 30 days if applicable.'
         }
       ]
     }

@@ -43,8 +43,7 @@ export const simulacrum: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Touch the prepared snow or ice duplicate or the creature being copied.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -59,7 +58,6 @@ export const simulacrum: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.CREATURE,
-          label: 'Simulacrum',
           detail:
             'Creates a partially real duplicate of the copied creature that persists until dispelled.'
         }

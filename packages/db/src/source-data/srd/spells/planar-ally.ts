@@ -43,8 +43,7 @@ export const planarAlly: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose an unoccupied space within range where the ally appears.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -55,7 +54,6 @@ export const planarAlly: SpellAuthored = {
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.CREATURE,
-          label: 'Planar Ally',
           detail:
             'Calls a celestial, elemental, or fiend to aid you, with payment and service terms still governed by the spell’s full SRD rules.'
         }

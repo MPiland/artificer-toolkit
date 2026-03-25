@@ -13,6 +13,10 @@ import {
   BRANCH_ROLL_TABLE_KIND_OPTIONS,
   DAMAGE_VALUE_OPTIONS,
   EFFECT_KIND_OPTIONS,
+  FORCED_MOVEMENT_ACTION_ECONOMY_OPTIONS,
+  FORCED_MOVEMENT_DIRECTION_OPTIONS,
+  FORCED_MOVEMENT_DISTANCE_MODE_OPTIONS,
+  MEASUREMENT_UNIT_OPTIONS,
   SCALING_SOURCE_OPTIONS
 } from '#core'
 import {
@@ -94,7 +98,6 @@ export const BRANCH_ROLL_TABLE_ENTRY_NODE_MAP = branchRollTableEntry.define('bra
   const { table } = data
 
   map
-    .set('description', text(['description'], 'Description'))
     .set('duration', groupObject(['duration'], 'Duration', () => DURATION_NODE_MAP))
     .set('rollRangeMin', number(['rollRange', 0], 'Roll Min', {
       requiredIf: true,
@@ -159,11 +162,7 @@ export const BRANCH_ROLL_TABLE_ENTRY_NODE_MAP = branchRollTableEntry.define('bra
       ])
     }))
     .set('multiplier', number(['multiplier'], 'Damage Multiplier', {
-      showIf: and([
-        local.field(['effectKind']).eq('DAMAGE'),
-        local.field(['scalingKind']).eq('PER_LEVEL'),
-        local.field(['valueKind']).eq('POOL')
-      ])
+      showIf: local.field(['effectKind']).eq('DAMAGE')
     }))
     .set('min', number(['min'], 'Damage Min', {
       showIf: and([
@@ -227,6 +226,44 @@ export const BRANCH_ROLL_TABLE_ENTRY_NODE_MAP = branchRollTableEntry.define('bra
     }, {
       requiredIf: true,
       showIf: local.field(['effectKind']).eq('CONDITION')
+    }))
+    .set('direction', selectSingle(['direction'], 'Direction', {
+      kind: 'INLINE',
+      options: FORCED_MOVEMENT_DIRECTION_OPTIONS
+    }, {
+      requiredIf: true,
+      showIf: local.field(['effectKind']).eq('FORCED_MOVEMENT')
+    }))
+    .set('distanceMode', selectSingle(['distanceMode'], 'Distance Mode', {
+      kind: 'INLINE',
+      options: FORCED_MOVEMENT_DISTANCE_MODE_OPTIONS
+    }, {
+      requiredIf: true,
+      showIf: local.field(['effectKind']).eq('FORCED_MOVEMENT')
+    }))
+    .set('movementAmount', number(['amount'], 'Distance Amount', {
+      requiredIf: true,
+      showIf: and([
+        local.field(['effectKind']).eq('FORCED_MOVEMENT'),
+        local.field(['distanceMode']).eq('FIXED_DISTANCE')
+      ])
+    }))
+    .set('movementUnit', selectSingle(['unit'], 'Distance Unit', {
+      kind: 'INLINE',
+      options: MEASUREMENT_UNIT_OPTIONS
+    }, {
+      requiredIf: true,
+      showIf: and([
+        local.field(['effectKind']).eq('FORCED_MOVEMENT'),
+        local.field(['distanceMode']).eq('FIXED_DISTANCE')
+      ])
+    }))
+    .set('actionEconomy', selectSingle(['actionEconomy'], 'Action Economy', {
+      kind: 'INLINE',
+      options: FORCED_MOVEMENT_ACTION_ECONOMY_OPTIONS
+    }, {
+      requiredIf: true,
+      showIf: local.field(['effectKind']).eq('FORCED_MOVEMENT')
     }))
 })
 

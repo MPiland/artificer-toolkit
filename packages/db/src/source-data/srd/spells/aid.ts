@@ -44,8 +44,7 @@ export const aid: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-          maxTargets: 3,
-          detail: 'Choose up to three creatures within range.'
+          maxTargets: 3
         }
       },
       branches: [
@@ -60,9 +59,6 @@ export const aid: SpellAuthored = {
             amount: 8
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Aid',
-          description:
-            'This spell currently needs a combined max-hit-point and current-hit-point model to express the full SRD behavior honestly.'
         }
       ]
     }

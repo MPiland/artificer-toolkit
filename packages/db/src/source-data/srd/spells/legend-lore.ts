@@ -38,8 +38,7 @@ export const legendLore: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: 'SELF',
-          detail: 'Name or describe a person, place, or object to learn significant lore about it.'
+          selectionKind: 'SELF'
         }
       },
       branches: [
@@ -49,8 +48,6 @@ export const legendLore: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Legend Lore Insight',
-          description: 'Receive a brief summary of the significant lore about the named or described person, place, or object.'
         }
       ]
     }

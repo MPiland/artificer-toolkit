@@ -43,8 +43,7 @@ export const powerWordStun: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one creature within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -59,9 +58,6 @@ export const powerWordStun: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Power Word Stun',
-          description:
-            'The current model does not yet honestly express the hit-point threshold gate and repeated end-of-turn stun-save behavior.'
         }
       ]
     }

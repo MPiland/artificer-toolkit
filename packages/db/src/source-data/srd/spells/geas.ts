@@ -49,8 +49,7 @@ export const geas: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one creature within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -65,9 +64,6 @@ export const geas: SpellAuthored = {
             amount: 30
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Geas',
-          description:
-            'The current model does not yet honestly express a long-term magical command with the full compelled-service and penalty behavior.'
         }
       ]
     }

@@ -52,8 +52,7 @@ export const polymorph: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one creature you can see within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -68,9 +67,6 @@ export const polymorph: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Polymorph',
-          description:
-            "The target is transformed into a beast form and uses the new form's game statistics for the spell duration."
         },
         {
           id: spellChildId(SPELL_IDS.POLYMORPH, 0x215, 1),
@@ -78,8 +74,6 @@ export const polymorph: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'No Effect',
-          description: 'The target resists the transformation.'
         }
       ]
     }

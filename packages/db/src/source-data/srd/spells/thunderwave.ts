@@ -27,7 +27,9 @@ export const thunderwave: SpellAuthored = {
     'A wave of thunderous force sweeps out from you. Each creature in a 15-foot cube originating from you must make a Constitution saving throw or take thunder damage and be pushed away from you.',
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 1,
-  classIds: [CLASS_IDS.BARD, CLASS_IDS.DRUID, CLASS_IDS.SORCERER, CLASS_IDS.WIZARD],
+  classIds: [
+    CLASS_IDS.BARD, CLASS_IDS.DRUID, CLASS_IDS.SORCERER, CLASS_IDS.WIZARD
+  ],
   magicSchoolId: schoolId('EVOCATION'),
   capabilities: [
     {
@@ -49,8 +51,7 @@ export const thunderwave: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Each creature in the cube.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         },
         shape: {
           id: spellChildId(SPELL_IDS.THUNDERWAVE, 0x213, 1),
@@ -83,15 +84,6 @@ export const thunderwave: SpellAuthored = {
             { id: spellChildId(SPELL_IDS.THUNDERWAVE, 0x214, 9), level: 8, order: 8, diceConfig: '9d8' },
             { id: spellChildId(SPELL_IDS.THUNDERWAVE, 0x214, 10), level: 9, order: 9, diceConfig: '10d8' }
           ]
-        },
-        {
-          id: spellChildId(SPELL_IDS.THUNDERWAVE, 0x215, 1),
-          branch: BRANCH.ON_SAVE_SUCCESS,
-          groupType: BRANCH_GROUP_TYPE.SINGLE,
-          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
-          effectKind: EFFECT_KIND.RULE,
-          label: 'Successful Save',
-          description: 'On a successful save, the creature takes no damage and is not pushed.'
         }
       ]
     }

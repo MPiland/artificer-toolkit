@@ -53,8 +53,7 @@ export const wardingBond: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.WILLING,
-          detail: 'Touch one willing creature.'
+          dispositionKind: TARGET_DISPOSITION_KIND.WILLING
         }
       },
       branches: [
@@ -64,9 +63,6 @@ export const wardingBond: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Warding Bond',
-          description:
-            'Creates a bonded ward between caster and target. Shared damage and distance-based protection are not yet modeled cleanly.'
         }
       ]
     }

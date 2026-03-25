@@ -55,8 +55,7 @@ export const enlargeReduce: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one creature or object that is neither worn nor carried.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -71,9 +70,6 @@ export const enlargeReduce: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Enlarge/Reduce',
-          description:
-            'Changes the target\'s size and associated combat profile for the duration. This still needs a structured size/state transformation model.'
         }
       ]
     }

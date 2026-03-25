@@ -7,7 +7,7 @@ import type {
   ClassResourceAuthored,
   ClassSpellcastingAuthored,
   ClassSpellLimitsAuthored,
-  ClassSubtypeAuthored
+  ClassSpecializationAuthored
 } from '#authored'
 import {
   type AbilityCode,
@@ -99,7 +99,7 @@ export interface CompiledMulticlass {
   proficiencies?: CompiledProficiencyGrant[]
 }
 
-export interface CompiledSubtype {
+export interface CompiledSpecialization {
   id: string
   order: number // int
 }
@@ -124,7 +124,7 @@ export type CompiledClass = CompiledClassBase
     | {
       category: typeof CLASS_CATEGORY.SUBCLASS
       parentClassId: string
-      subtypes?: CompiledSubtype[]
+      specializations?: CompiledSpecialization[]
     }
   )
 
@@ -203,9 +203,9 @@ export function compileMulticlass(
   }
 }
 
-export function compileSubtype(
-  authored: ClassSubtypeAuthored
-): CompiledSubtype {
+export function compileSpecialization(
+  authored: ClassSpecializationAuthored
+): CompiledSpecialization {
   return {
     id: authored.id,
     order: authored.order
@@ -252,15 +252,15 @@ export function compileClass(authored: ClassAuthored): CompiledClass {
     }
 
     case CLASS_CATEGORY.SUBCLASS: {
-      const subtypes
-        = authored.subtypes && authored.subtypes.length
-          ? authored.subtypes.map((subtype) => compileSubtype(subtype))
+      const specializations
+        = authored.specializations && authored.specializations.length
+          ? authored.specializations.map((specialization) => compileSpecialization(specialization))
           : undefined
       return {
         ...base,
         category: authored.category,
         parentClassId: authored.parentClassId,
-        subtypes
+        specializations
       }
     }
 

@@ -46,8 +46,7 @@ export const truePolymorph: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one creature or object you can see within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -62,9 +61,6 @@ export const truePolymorph: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'True Polymorph',
-          description:
-            'The target is transformed into the chosen creature or object form and may become permanent if the duration is maintained.'
         }
       ]
     }

@@ -42,8 +42,7 @@ export const acidArrow: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Hurl an acid arrow at one creature within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -53,9 +52,6 @@ export const acidArrow: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Acid Arrow',
-          description:
-            'On a hit, the target takes acid damage immediately and again at the end of its next turn.'
         },
         {
           id: spellChildId(SPELL_IDS.ACID_ARROW, 0x213, 1),
@@ -63,8 +59,6 @@ export const acidArrow: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Miss',
-          description: 'On a miss, the arrow has no effect.'
         }
       ]
     }

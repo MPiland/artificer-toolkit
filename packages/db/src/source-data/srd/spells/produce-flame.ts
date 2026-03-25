@@ -39,8 +39,7 @@ export const produceFlame: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF,
-          detail: 'Create a flame in your hand that can later be used to make an attack.'
+          selectionKind: TARGET_SELECTION_KIND.SELF
         }
       },
       branches: [
@@ -50,9 +49,6 @@ export const produceFlame: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Produce Flame',
-          description:
-            'A flickering flame appears in your hand and can be used to make a ranged spell attack, ending the spell if you attack with it.'
         }
       ]
     }

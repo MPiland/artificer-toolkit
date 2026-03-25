@@ -40,8 +40,7 @@ export const arcanistsMagicAura: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Touch one creature or object and alter its magical aura.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -56,9 +55,6 @@ export const arcanistsMagicAura: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: "Arcanist's Magic Aura",
-          description:
-            'The touched creature or object radiates the aura you choose for the duration, including appearing nonmagical or masking its actual magical aura.'
         }
       ]
     }

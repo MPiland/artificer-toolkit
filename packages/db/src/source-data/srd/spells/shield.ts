@@ -43,8 +43,7 @@ export const shield: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: 'SELF',
-          detail: 'A protective barrier appears around you.'
+          selectionKind: 'SELF'
         }
       },
       branches: [

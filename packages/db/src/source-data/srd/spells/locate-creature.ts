@@ -41,8 +41,7 @@ export const locateCreature: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: 'SELF',
-          detail: 'Sense the direction to the familiar named or described creature within range.'
+          selectionKind: 'SELF'
         }
       },
       branches: [
@@ -57,8 +56,6 @@ export const locateCreature: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Locate Creature',
-          description: 'Sense the direction to the familiar named or described creature within 1,000 feet, including the direction of its movement if it is moving.'
         }
       ]
     }

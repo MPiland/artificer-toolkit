@@ -54,8 +54,7 @@ export const forcecage: SpellAuthored = {
           }
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose the area to imprison within range.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -71,7 +70,6 @@ export const forcecage: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.ZONE,
-          label: 'Forcecage',
           detail:
             'Creates an immobile force prison that encloses the chosen area as a cage or solid box.'
         }

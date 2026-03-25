@@ -1,0 +1,195 @@
+import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import * as S from './shared.js'
+
+export const manticore: CreatureAuthored = {
+  id: S.CREATURE_IDS.MANTICORE,
+  label: 'Manticore',
+  userId: S.SRD_USER_ID,
+  systemId: S.SRD_SYSTEM_ID,
+  recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
+  category: S.CREATURE_CATEGORY_CODE.MONSTER,
+  creatureTypeId: S.CREATURE_TYPE.MONSTROSITY,
+  size: S.SIZE_CODE.LARGE,
+  alignmentId: '00000000-0000-0000-0001-000700000000',
+  abilityScores: {
+    STRENGTH: 17,
+    DEXTERITY: 16,
+    CONSTITUTION: 17,
+    INTELLIGENCE: 7,
+    WISDOM: 12,
+    CHARISMA: 8,
+    SPELLCASTING: 0
+  },
+  armorClass: 14,
+  armorClassNote: 'natural armor',
+  hitPoints: 68,
+  hitDice: '8d10+24',
+  speeds: [...S.walk(30), ...S.fly(50)],
+  proficiencies: [
+    S.grantedLanguageProficiency(191, 1, 'COMMON')
+  ],
+  senses: ['darkvision 60 ft.'],
+  passivePerception: 11,
+  challengeRatingId: S.CR.CR_3,
+  xp: 700,
+  features: [
+    {
+      id: S.featureId(191, 1),
+      label: 'Tail Spike Regrowth',
+      description: 'Tail Spike Regrowth. The manticore has twenty-four tail spikes. Used spikes regrow when the manticore finishes a long rest.',
+      order: 1
+    },
+    {
+      id: S.featureId(191, 2),
+      label: 'Multiattack',
+      description: 'The manticore makes three attacks: one with its bite and two with its claws or three with its tail spikes.',
+      order: 2
+    },
+    {
+      id: S.featureId(191, 3),
+      label: 'Bite',
+      description: 'Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 7 (1d8 + 3) piercing damage.',
+      capabilities: [
+        {
+          id: S.actionId(191, 4),
+          order: 1,
+          invocation: {
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: {
+              code: S.ACTIVATION_CODE.ACTION,
+              amount: 1
+            },
+            range: {
+              id: S.actionId(191, 5),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+            }
+          },
+          branches: [
+            {
+              id: S.actionId(191, 6),
+              branch: S.BRANCH.ON_HIT,
+              groupType: S.BRANCH_GROUP_TYPE.SINGLE,
+              resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
+              effectKind: S.EFFECT_KIND.DAMAGE,
+              damageTypeId: S.damageTypeId('PIERCING'),
+              valueKind: S.DAMAGE_VALUE_KIND.DICE,
+              scalingKind: S.SCALING.NONE,
+              diceConfig: '1d8',
+              bonuses: [
+                {
+                  id: S.actionId(191, 7),
+                  bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
+                  ability: S.ABILITY_CODE.STRENGTH,
+                  order: 1
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      order: 3
+    },
+    {
+      id: S.featureId(191, 4),
+      label: 'Claw',
+      description: 'Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 6 (1d6 + 3) slashing damage.',
+      capabilities: [
+        {
+          id: S.actionId(191, 8),
+          order: 1,
+          invocation: {
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: {
+              code: S.ACTIVATION_CODE.ACTION,
+              amount: 1
+            },
+            range: {
+              id: S.actionId(191, 9),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+            }
+          },
+          branches: [
+            {
+              id: S.actionId(191, 10),
+              branch: S.BRANCH.ON_HIT,
+              groupType: S.BRANCH_GROUP_TYPE.SINGLE,
+              resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
+              effectKind: S.EFFECT_KIND.DAMAGE,
+              damageTypeId: S.damageTypeId('SLASHING'),
+              valueKind: S.DAMAGE_VALUE_KIND.DICE,
+              scalingKind: S.SCALING.NONE,
+              diceConfig: '1d6',
+              bonuses: [
+                {
+                  id: S.actionId(191, 11),
+                  bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
+                  ability: S.ABILITY_CODE.STRENGTH,
+                  order: 1
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      order: 4
+    },
+    {
+      id: S.featureId(191, 5),
+      label: 'Tail Spike',
+      description: 'Ranged Weapon Attack: +5 to hit, range 100/200 ft., one target. Hit: 7 (1d8 + 3) piercing damage.',
+      capabilities: [
+        {
+          id: S.actionId(191, 12),
+          order: 1,
+          invocation: {
+            triggerCode: S.TRIGGER.RANGED_WEAPON_ATTACK,
+            activation: {
+              code: S.ACTIVATION_CODE.ACTION,
+              amount: 1
+            },
+            range: {
+              id: S.actionId(191, 13),
+              rangeKind: S.RANGE_KIND.SPECIAL
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+            }
+          },
+          branches: [
+            {
+              id: S.actionId(191, 14),
+              branch: S.BRANCH.ON_HIT,
+              groupType: S.BRANCH_GROUP_TYPE.SINGLE,
+              resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
+              effectKind: S.EFFECT_KIND.DAMAGE,
+              damageTypeId: S.damageTypeId('PIERCING'),
+              valueKind: S.DAMAGE_VALUE_KIND.DICE,
+              scalingKind: S.SCALING.NONE,
+              diceConfig: '1d8',
+              bonuses: [
+                {
+                  id: S.actionId(191, 15),
+                  bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
+                  ability: S.ABILITY_CODE.STRENGTH,
+                  order: 1
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      order: 5
+    }
+  ]
+}
+

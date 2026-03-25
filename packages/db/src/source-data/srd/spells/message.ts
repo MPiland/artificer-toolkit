@@ -43,8 +43,7 @@ export const message: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Point toward one creature within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -58,9 +57,6 @@ export const message: SpellAuthored = {
             durationKind: DURATION_KIND.INSTANTANEOUS
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Message',
-          description:
-            'Whisper a message to the target, which can whisper a reply only you can hear. This still needs a communication-channel model to express structurally.'
         }
       ]
     }

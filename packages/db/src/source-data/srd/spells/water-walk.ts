@@ -59,8 +59,7 @@ export const waterWalk: SpellAuthored = {
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
           dispositionKind: TARGET_DISPOSITION_KIND.WILLING,
-          maxTargets: 10,
-          detail: 'Choose up to ten willing creatures you can see within range.'
+          maxTargets: 10
         }
       },
       branches: [
@@ -75,9 +74,6 @@ export const waterWalk: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Water Walk',
-          description:
-            'The targets can move across liquid surfaces as if they were harmless ground for the duration. This still needs a structured liquid-surface movement state.'
         }
       ]
     }

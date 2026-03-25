@@ -40,8 +40,7 @@ export const mirrorImage: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF,
-          detail: 'Create illusory duplicates in your own space.'
+          selectionKind: TARGET_SELECTION_KIND.SELF
         }
       },
       branches: [
@@ -56,9 +55,6 @@ export const mirrorImage: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Mirror Image',
-          description:
-            'Creates three illusory duplicates that interfere with attacks against you for the duration. This still needs a richer illusion-defense and attack-redirection model.'
         }
       ]
     }

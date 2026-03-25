@@ -45,8 +45,7 @@ export const animalFriendship: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one beast you can see within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -61,9 +60,6 @@ export const animalFriendship: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Animal Friendship',
-          description:
-            "The beast is treated as friendly for the duration if its Intelligence is 3 or lower and it fails the spell's saving throw."
         }
       ]
     }

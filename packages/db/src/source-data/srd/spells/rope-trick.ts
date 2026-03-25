@@ -40,8 +40,7 @@ export const ropeTrick: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Touch the rope to create the extradimensional space.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -56,9 +55,6 @@ export const ropeTrick: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Rope Trick',
-          description:
-            'Creates an extradimensional space accessible from the rope while the spell lasts.'
         }
       ]
     }

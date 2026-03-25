@@ -51,8 +51,7 @@ export const teleportationCircle: SpellAuthored = {
           }
         },
         targeting: {
-          selectionKind: 'AREA_CONTENTS',
-          detail: 'You draw the teleportation circle on the ground within range.'
+          selectionKind: 'AREA_CONTENTS'
         }
       },
       branches: [
@@ -68,7 +67,6 @@ export const teleportationCircle: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.ZONE,
-          label: 'Teleportation Circle',
           detail: 'Creates a temporary teleportation circle linked to a permanent teleportation circle whose sigil sequence you know and that is on the same plane.'
         }
       ]

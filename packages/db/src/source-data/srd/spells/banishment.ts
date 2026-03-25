@@ -44,8 +44,7 @@ export const banishment: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one creature you can see within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -60,9 +59,6 @@ export const banishment: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Banishment',
-          description:
-            'The target makes a Charisma saving throw. On a failure, it is banished under the spell’s plane-of-origin and duration rules.'
         }
       ]
     }

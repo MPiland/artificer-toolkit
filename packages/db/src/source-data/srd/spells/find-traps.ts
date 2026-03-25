@@ -41,8 +41,7 @@ export const findTraps: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: 'AREA_CONTENTS',
-          detail: 'Sense traps within range that are within line of sight.'
+          selectionKind: 'AREA_CONTENTS'
         }
       },
       branches: [
@@ -52,8 +51,6 @@ export const findTraps: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Find Traps Sense',
-          description: 'Sense the presence of visible traps within range and learn the general nature of the danger posed by each trap.'
         }
       ]
     }

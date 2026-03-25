@@ -40,8 +40,7 @@ export const detectEvilAndGood: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: 'SELF',
-          detail: 'Sense planar and consecration-aligned presences around you.'
+          selectionKind: 'SELF'
         }
       },
       branches: [
@@ -56,9 +55,6 @@ export const detectEvilAndGood: SpellAuthored = {
             amount: 10
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Detect Evil and Good',
-          description:
-            'For the duration, you sense whether certain creature types are within 30 feet of you, and you know the location of any such creature. You also sense consecrated or desecrated places and objects within 30 feet.'
         }
       ]
     }

@@ -42,8 +42,7 @@ export const teleport: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-          detail: 'Teleport yourself and willing creatures within 10 feet, or a single object that fits the spell limits.'
+          selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES
         }
       },
       branches: [
@@ -53,9 +52,6 @@ export const teleport: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Teleport',
-          description:
-            'Transports willing creatures or one object to a chosen destination, with accuracy determined by your familiarity with that location and the spell\'s normal mishap table.'
         }
       ]
     }

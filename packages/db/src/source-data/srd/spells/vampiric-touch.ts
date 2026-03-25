@@ -41,8 +41,7 @@ export const vampiricTouch: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Make a melee spell attack against one creature within your reach.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -52,9 +51,6 @@ export const vampiricTouch: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Vampiric Touch',
-          description:
-            'You make a melee spell attack that siphons life force to heal your wounds, and the spell can be sustained on later turns by using your action.'
         }
       ]
     }

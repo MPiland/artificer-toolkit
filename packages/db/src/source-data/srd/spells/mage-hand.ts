@@ -42,8 +42,7 @@ export const mageHand: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: 'AREA_CONTENTS',
-          detail: 'The spectral hand appears at a point you choose within range.'
+          selectionKind: 'AREA_CONTENTS'
         }
       },
       branches: [
@@ -59,7 +58,6 @@ export const mageHand: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.HAND,
-          label: 'Mage Hand',
           detail: 'Creates a spectral hand that can manipulate unattended objects and containers within its limits.'
         }
       ]

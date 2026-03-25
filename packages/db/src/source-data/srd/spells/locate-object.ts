@@ -41,8 +41,7 @@ export const locateObject: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: 'SELF',
-          detail: 'You sense the direction to a familiar named or described object within range.'
+          selectionKind: 'SELF'
         }
       },
       branches: [
@@ -57,8 +56,6 @@ export const locateObject: SpellAuthored = {
             amount: 10
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Locate Object',
-          description: 'Sense the direction to the familiar named or described object within 1,000 feet, including the direction of its movement if it is in motion.'
         }
       ]
     }

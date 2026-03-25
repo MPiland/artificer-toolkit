@@ -40,8 +40,7 @@ export const heroesFeast: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-          maxTargets: 12,
-          detail: 'Create a feast that up to twelve creatures can consume.'
+          maxTargets: 12
         }
       },
       branches: [
@@ -51,9 +50,6 @@ export const heroesFeast: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: "Heroes' Feast",
-          description:
-            'Creates a feast with delayed protective and restorative benefits that still exceed the current structured grant and healing model.'
         }
       ]
     }

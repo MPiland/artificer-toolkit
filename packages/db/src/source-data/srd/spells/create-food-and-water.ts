@@ -43,8 +43,7 @@ export const createFoodAndWater: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Create food and water on the ground or in containers within range.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -55,7 +54,6 @@ export const createFoodAndWater: SpellAuthored = {
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.OBJECT,
-          label: 'Create Food and Water',
           detail:
             'Creates 45 pounds of food and 30 gallons of water, enough to sustain up to fifteen humanoids or five steeds for 24 hours.'
         }

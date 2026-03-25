@@ -50,8 +50,7 @@ export const graspingVine: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Conjure a vine in an unoccupied space within range.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -61,9 +60,6 @@ export const graspingVine: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Grasping Vine',
-          description:
-            'The vine is conjured and can be directed to lash out at a creature under the spell’s rules.'
         }
       ]
     }

@@ -40,8 +40,7 @@ export const detectMagic: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: 'AREA_CONTENTS',
-          detail: 'Sense magic within 30 feet of you.'
+          selectionKind: 'AREA_CONTENTS'
         }
       },
       branches: [
@@ -56,8 +55,6 @@ export const detectMagic: SpellAuthored = {
             amount: 10
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Detect Magic',
-          description: 'Sense the presence of magic within 30 feet and, by using your action, see faint auras around visible creatures or objects in the area that bear magic.'
         }
       ]
     }

@@ -114,6 +114,23 @@ export const SRD_LANGUAGES = [
   { id: vocabId(D.language, 14), code: 'PRIMORDIAL',  label: 'Primordial',  description: 'Language of elementals.' },
   { id: vocabId(D.language, 15), code: 'SYLVAN',      label: 'Sylvan',      description: 'Language of fey creatures.' },
   { id: vocabId(D.language, 16), code: 'UNDERCOMMON', label: 'Undercommon', description: 'Trade language of the Underdark.' },
+  // Additional fixed SRD creature languages
+  { id: vocabId(D.language, 17), code: 'AQUAN',        label: 'Aquan',        description: 'Aquan is the water-tuned dialect of Primordial.' },
+  { id: vocabId(D.language, 18), code: 'AURAN',        label: 'Auran',        description: 'Auran is the air-tuned dialect of Primordial.' },
+  { id: vocabId(D.language, 19), code: 'IGNAN',        label: 'Ignan',        description: 'Ignan is the fire-tuned dialect of Primordial.' },
+  { id: vocabId(D.language, 20), code: 'TERRAN',       label: 'Terran',       description: 'Terran is the earth-tuned dialect of Primordial.' },
+  { id: vocabId(D.language, 21), code: 'DRUIDIC',      label: 'Druidic',      description: 'A secret language used by druids.' },
+  { id: vocabId(D.language, 22), code: 'THIEVES_CANT', label: 'Thieves\' Cant', description: 'A secret mix of dialect, jargon, and code used by rogues.' },
+  { id: vocabId(D.language, 23), code: 'BLINK_DOG',    label: 'Blink Dog',    description: 'The language used by blink dogs.' },
+  { id: vocabId(D.language, 24), code: 'GIANT_EAGLE',  label: 'Giant Eagle',  description: 'The language used by giant eagles.' },
+  { id: vocabId(D.language, 25), code: 'GIANT_ELK',    label: 'Giant Elk',    description: 'The language used by giant elk.' },
+  { id: vocabId(D.language, 26), code: 'GIANT_OWL',    label: 'Giant Owl',    description: 'The language used by giant owls.' },
+  { id: vocabId(D.language, 27), code: 'GNOLL',        label: 'Gnoll',        description: 'The language used by gnolls.' },
+  { id: vocabId(D.language, 28), code: 'OTYUGH',       label: 'Otyugh',       description: 'The language used by otyughs.' },
+  { id: vocabId(D.language, 29), code: 'SAHUAGIN',     label: 'Sahuagin',     description: 'The language used by sahuagin.' },
+  { id: vocabId(D.language, 30), code: 'SPHINX',       label: 'Sphinx',       description: 'The language used by sphinxes.' },
+  { id: vocabId(D.language, 31), code: 'WINTER_WOLF',  label: 'Winter Wolf',  description: 'The language used by winter wolves.' },
+  { id: vocabId(D.language, 32), code: 'WORG',         label: 'Worg',         description: 'The language used by worgs.' },
 ]
 
 // ─── Magic Schools ────────────────────────────────────────────────────────────

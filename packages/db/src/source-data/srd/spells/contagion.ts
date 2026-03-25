@@ -42,8 +42,7 @@ export const contagion: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Make a melee spell attack against one creature within your reach.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -53,9 +52,6 @@ export const contagion: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Contagion',
-          description:
-            'On a hit, the target suffers the chosen disease under the spell’s rules. The disease options remain prose-bound for now.'
         },
         {
           id: spellChildId(SPELL_IDS.CONTAGION, 0x213, 1),
@@ -63,8 +59,6 @@ export const contagion: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Miss',
-          description: 'On a miss, the spell has no effect.'
         }
       ]
     }

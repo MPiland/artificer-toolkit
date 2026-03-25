@@ -41,8 +41,7 @@ export const protectionFromEnergy: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: 'WILLING',
-          detail: 'Touch one willing creature.'
+          dispositionKind: 'WILLING'
         }
       },
       branches: [
@@ -57,9 +56,6 @@ export const protectionFromEnergy: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Protection from Energy',
-          description:
-            'This spell currently needs a choice-aware resistance grant model to represent the selected damage type honestly.'
         }
       ]
     }

@@ -47,8 +47,7 @@ export const wallOfThorns: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose a solid surface within range to raise a wall of thorns.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         },
         shape: {
           id: spellChildId(SPELL_IDS.WALL_OF_THORNS, 0x212, 1),
@@ -79,9 +78,6 @@ export const wallOfThorns: SpellAuthored = {
             amount: 10
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Wall of Thorns',
-          description:
-            'A dense wall of thorny brush appears and injures creatures that pass through it or start too close to it.'
         }
       ]
     }

@@ -58,6 +58,27 @@ Examples:
 
 Vocabulary is still system-owned and referenced by ID, but authored records should remain natural to read and edit.
 
+## Creature Proficiency Rule
+
+Creature authoring should not maintain a second proficiency shape.
+
+Use the same proficiency-grant model used by classes, backgrounds, features, and other subjects:
+
+- plain creature skill knowledge -> proficiency grant
+- plain creature save proficiency -> proficiency grant
+- plain fixed creature language knowledge -> proficiency grant
+
+Qualified communication semantics stay in features instead of inventing creature-only root fields.
+
+Examples:
+
+- `Telepathy 120 ft.` -> feature text
+- `understands Common but can't speak` -> feature text, plus language proficiency grant when real language knowledge is implied
+- `any two languages` -> feature text, not fake seeded vocabulary
+- `the languages it knew in life` -> feature text, not fake seeded vocabulary
+
+This keeps the authored surface unified while preserving the SRD's communication caveats honestly.
+
 ## Complete Before Seed
 
 Seeded baseline data must be complete in its authored contract.
@@ -99,6 +120,9 @@ This means:
 - spells, active features, active feats, and active equipment powers should author capabilities
 - option-derived active mechanics should be owned by the selected option's feature instead of duplicated at the subject root
 - direct class, subclass, race, feat, or equipment actions should be owned by the granting feature/item rather than introducing a second action framework
+- use subclass `specialization` only for lasting subclass identity branches that later mechanics can key off; do not use it as a generic bucket for normal feature options
+- `Circle of the Land` terrain is a subclass specialization, while Ranger-style favored-terrain selections remain ordinary feature choices
+- when a subclass specialization changes later granted spells or benefits, prefer one feature with multiple specialization-restricted grants and progressive unlock levels over duplicating each specialization/tier as separate pseudo-features
 - grants remain the right home for passive bonuses, senses, proficiencies, and persistent access
 - temporary buffs/debuffs should be represented as applying typed grants through outcomes rather than inventing ad hoc subject-root fields
 - magic gear stays inside equipment: use `EQUIPMENT_PROPERTY_CODE.MAGIC` for enchanted items, and use `EquipmentVariantAuthored` with `parentEquipmentId` for upgrades like `+1` gear instead of inventing a separate magic-item subject or treating the variant as a base record
@@ -118,6 +142,7 @@ Constrained fallback:
   - blocked by a named model/runtime gap
 - source-data should prefer shared targeting constants over raw targeting string literals
 - they are not the default path for SRD implementation
+- authored spell-grant restrictions are part of the canonical contract and must survive compilation/resolution; do not route specialization- or facet-bound spell packages only through prose or feature duplication
 
 ## Phase 7.7 Master-Data Anchor
 

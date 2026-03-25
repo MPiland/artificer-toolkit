@@ -50,8 +50,7 @@ export const chainLightning: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-          maxTargets: 4,
-          detail: 'Choose one primary target and up to three additional targets near it.'
+          maxTargets: 4
         }
       },
       branches: [

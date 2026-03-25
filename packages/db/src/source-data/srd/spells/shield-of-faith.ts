@@ -5,13 +5,16 @@ import {
   BRANCH_GROUP_TYPE,
   BRANCH_RESOLUTION_KIND,
   CASTING_TIME_UNIT_CODE,
+  DURATION_KIND,
   EFFECT_KIND,
   GRANT_KIND,
+  MEASUREMENT_UNIT_CODE,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
   RANGE_KIND,
   SPELL_ATTRIBUTE,
   SUBJECT,
+  TARGET_SELECTION_KIND,
   TRIGGER,
   VALUE_DOMAIN_CODE,
   type SpellAuthored
@@ -44,11 +47,10 @@ export const shieldOfFaith: SpellAuthored = {
           id: spellChildId(SPELL_IDS.SHIELD_OF_FAITH, 0x211, 1),
           rangeKind: RANGE_KIND.DISTANCE,
           amount: 60,
-          unit: 'FEET'
+          unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: 'SINGLE_TARGET',
-          detail: 'A creature of your choice within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -59,7 +61,7 @@ export const shieldOfFaith: SpellAuthored = {
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           duration: {
             id: spellChildId(SPELL_IDS.SHIELD_OF_FAITH, 0x213, 1),
-            durationKind: 'MINUTE',
+            durationKind: DURATION_KIND.MINUTE,
             amount: 10
           },
           effectKind: EFFECT_KIND.APPLY_GRANT,

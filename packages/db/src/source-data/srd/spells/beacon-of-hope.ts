@@ -45,8 +45,7 @@ export const beaconOfHope: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-          detail: 'Choose any number of creatures within range.'
+          selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES
         }
       },
       branches: [
@@ -61,9 +60,6 @@ export const beaconOfHope: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Beacon of Hope',
-          description:
-            'The current model does not yet represent saving-throw advantage or the maximum-healing rider as structured outcomes.'
         }
       ]
     }

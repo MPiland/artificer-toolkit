@@ -41,8 +41,7 @@ export const arcaneLock: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Touch one closed door, window, gate, chest, or other entryway.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -56,9 +55,6 @@ export const arcaneLock: SpellAuthored = {
             durationKind: DURATION_KIND.UNTIL_DISPELLED
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Arcane Lock',
-          description:
-            'The touched entryway becomes magically locked until dispelled or suppressed, and creatures you designate can open it normally.'
         }
       ]
     }

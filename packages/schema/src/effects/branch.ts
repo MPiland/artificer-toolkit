@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { applyGrantDtoSchema } from './applyGrant.js'
 import { conditionDtoSchema } from './condition.js'
 import { damageDtoSchema } from './damage.js'
+import { forcedMovementDtoSchema } from './forcedMovement.js'
 import { healDtoSchema } from './heal.js'
 import { manifestDtoSchema } from './manifest.js'
 import { ruleDtoSchema } from './rule.js'
@@ -10,6 +11,9 @@ import { teleportDtoSchema } from './teleport.js'
 import { durationDtoSchema } from '../shared/duration.js'
 import {
   branchCodeSchema,
+  branchLifecycleConsumeEventSchema,
+  branchLifecycleEndEventSchema,
+  branchLifecycleRecurringKindSchema,
   branchGroupTypeSchema,
   branchResolutionKindSchema,
   branchRollTableKindSchema
@@ -20,28 +24,34 @@ const branchEffectPayloadDtoSchema = z.union([
   conditionDtoSchema,
   healDtoSchema,
   applyGrantDtoSchema,
+  forcedMovementDtoSchema,
   teleportDtoSchema,
   manifestDtoSchema,
   ruleDtoSchema
 ])
 
+const branchLifecycleDtoSchema = z.object({
+  recurringKind: branchLifecycleRecurringKindSchema.optional(),
+  consumeOnFirstEvent: branchLifecycleConsumeEventSchema.optional(),
+  endOnEvents: z.array(branchLifecycleEndEventSchema).optional()
+})
+
 const branchDirectDtoSchema = z.object({
   resolutionKind: z.literal(branchResolutionKindSchema.enum.DIRECT),
-  duration: durationDtoSchema.optional()
+  duration: durationDtoSchema.optional(),
+  lifecycle: branchLifecycleDtoSchema.optional()
 }).and(branchEffectPayloadDtoSchema)
 
 const exactRollTableEntryDtoSchema = z.object({
   id: z.string(),
   rollValue: z.number(),
-  duration: durationDtoSchema.optional(),
-  description: z.string().optional()
+  duration: durationDtoSchema.optional()
 }).and(branchEffectPayloadDtoSchema)
 
 const rangeRollTableEntryDtoSchema = z.object({
   id: z.string(),
   rollRange: z.tuple([z.number(), z.number()]),
-  duration: durationDtoSchema.optional(),
-  description: z.string().optional()
+  duration: durationDtoSchema.optional()
 }).and(branchEffectPayloadDtoSchema)
 
 const branchRollTableDtoSchema = z.union([

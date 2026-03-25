@@ -51,8 +51,7 @@ export const modifyMemory: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one creature within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -67,9 +66,6 @@ export const modifyMemory: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Modify Memory',
-          description:
-            'The target becomes charmed and its memories can be altered in the spell’s special sequence of actions.'
         },
         {
           id: spellChildId(SPELL_IDS.MODIFY_MEMORY, 0x215, 1),
@@ -77,8 +73,6 @@ export const modifyMemory: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'No Effect',
-          description: 'The target resists the memory alteration.'
         }
       ]
     }

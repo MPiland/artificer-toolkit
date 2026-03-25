@@ -63,8 +63,7 @@ export const hallucinatoryTerrain: SpellAuthored = {
           }
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose a 150-foot cube of natural terrain within range.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -80,7 +79,6 @@ export const hallucinatoryTerrain: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.ZONE,
-          label: 'Hallucinatory Terrain',
           detail: 'Creates an illusory terrain zone that masks the selected natural terrain.'
         }
       ]

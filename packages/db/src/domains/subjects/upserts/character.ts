@@ -82,7 +82,7 @@ export async function upsertCharacter(
       character_id: json_data.id,
       class_id: characterClass.classId,
       subclass_id: characterClass.subclassId ?? null,
-      subtype_id: characterClass.subtypeId ?? null,
+      specialization_id: characterClass.specializationId ?? null,
       class_level: characterClass.classLevel
     })))
 

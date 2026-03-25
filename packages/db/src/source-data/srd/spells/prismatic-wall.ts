@@ -53,8 +53,7 @@ export const prismaticWall: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose a point within range to create the prismatic wall.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -64,9 +63,6 @@ export const prismaticWall: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Prismatic Wall',
-          description:
-            'Creates a multicolored wall or sphere of light with layered magical effects under the spell’s normal rules.'
         }
       ]
     }

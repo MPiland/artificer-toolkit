@@ -50,8 +50,7 @@ export const demiplane: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose a flat solid surface within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -66,9 +65,6 @@ export const demiplane: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Demiplane',
-          description:
-            'Creates a shadowy door to a demiplane; the exact spatial and extraplanar handling remains a constrained rules fallback.'
         }
       ]
     }

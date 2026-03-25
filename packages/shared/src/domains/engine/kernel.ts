@@ -3,6 +3,7 @@ import type { RulesSystem } from './contracts/rulesSystem.js'
 import type { CharacterAssemblyRegistry } from './registry.js'
 import type { CharacterBuildSnapshot } from './snapshot.js'
 import { applyGrants } from './resolution/grantApplicator.js'
+import { resolveSpellGrantState } from './resolution/spellGrantResolver.js'
 import { resolveModifiers } from './resolution/modifierResolver.js'
 import { calculateDerivedStats } from './resolution/derivedStatCalculator.js'
 import { resolveSpellSlots } from './resolution/spellSlotResolver.js'
@@ -27,14 +28,15 @@ export function runEngine(
   registry: CharacterAssemblyRegistry,
   rules: RulesSystem
 ): EngineCharacterOutput {
+  const resolvedSpellGrantState = resolveSpellGrantState(snapshot, registry)
   // Grant accumulation uses the AssembledCharacterSnapshot shape via an adapter.
-  const snapshotAsAssembled = adaptSnapshotForGrantApplicator(snapshot)
+  const snapshotAsAssembled = adaptSnapshotForGrantApplicator(snapshot, resolvedSpellGrantState.spellAccess)
   const accumulated = applyGrants(snapshotAsAssembled, registry, rules)
   const resolvedModifiers = resolveModifiers(accumulated.modifierEntries, rules)
   const derivedStats = calculateDerivedStats(snapshot, resolvedModifiers, accumulated.proficiencies, registry, rules)
 
   const spellSlots = resolveSpellSlots(snapshot, registry)
-  const resources = resolveResources(snapshot, registry)
+  const resources = resolveResources(snapshot, registry, rules)
   const activeItemContributions = buildItemContributions(snapshot, resolvedModifiers)
 
   return {
@@ -43,6 +45,7 @@ export function runEngine(
     proficiencies: accumulated.proficiencies,
     senses: accumulated.senses,
     derivedStats,
+    spellState: resolvedSpellGrantState.spellState,
     spellSlots,
     resources,
     activeItemContributions
@@ -107,7 +110,10 @@ function buildItemContributions(
  * maps the new snapshot shape to the assembled shape. Once grantApplicator is
  * updated to accept CharacterBuildSnapshot directly this adapter will be removed.
  */
-function adaptSnapshotForGrantApplicator(snapshot: CharacterBuildSnapshot) {
+function adaptSnapshotForGrantApplicator(
+  snapshot: CharacterBuildSnapshot,
+  spellAccess: ReturnType<typeof resolveSpellGrantState>['spellAccess']
+) {
   return {
     characterId: snapshot.characterId,
     systemId: snapshot.systemId,
@@ -121,7 +127,7 @@ function adaptSnapshotForGrantApplicator(snapshot: CharacterBuildSnapshot) {
     })),
     modifierGrants: [],
     resources: [],
-    spellAccess: [],
+    spellAccess,
     intent: {
       advancement: { method: 'MILESTONE' as const },
       race: { raceId: '' },

@@ -5,13 +5,16 @@ import {
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
   GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
   PROFICIENCY_KIND,
   SCALING,
   SCALING_AMOUNT_KIND,
   SPELLCASTING_ATTRIBUTE,
+  VALUE_DOMAIN_CODE,
   type ClassAuthored
 } from '@artificer-toolkit/shared'
-import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
+import { CLASS_IDS, SUBCLASS_IDS, SPELL_IDS } from '../ids.js'
 import {
   SRD_CURRENCIES,
   SRD_SKILLS,
@@ -255,9 +258,66 @@ export const paladin: ClassAuthored = {
     {
       id: classRowId(P, 3, 3),
       label: 'Fighting Style',
-      description: 'At 2nd level, you adopt a style of fighting as your specialty. Choose from Defense, Dueling, Great Weapon Fighting, or Protection.',
+      description: 'At 2nd level, you adopt a style of fighting as your specialty. Choose one of the following options.',
       availableAtLevel: 2,
-      order: 2
+      order: 2,
+      optionChoices: [{ level: 2, count: 1 }],
+      options: [
+        {
+          id: classRowId(P, 4, 1),
+          label: 'Defense',
+          description: 'While you are wearing armor, you gain a +1 bonus to AC.',
+          grants: {
+            modifiers: [
+              {
+                id: classRowId(P, 4, 10),
+                grantKind: GRANT_KIND.MODIFIER_GRANT,
+                valueDomainCode: VALUE_DOMAIN_CODE.ARMOR_CLASS,
+                domain: {},
+                modifierKind: MODIFIER_KIND.BONUS,
+                scope: MODIFIER_SCOPE_KIND.SOURCE,
+                selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                payload: { valueKind: 'FIXED' as const, amount: 1 },
+                order: 0
+              }
+            ]
+          },
+          order: 0
+        },
+        {
+          id: classRowId(P, 4, 2),
+          label: 'Dueling',
+          description: 'When you are wielding a melee weapon in one hand and no other weapons, you gain a +2 bonus to damage rolls with that weapon.',
+          grants: {
+            modifiers: [
+              {
+                id: classRowId(P, 4, 11),
+                grantKind: GRANT_KIND.MODIFIER_GRANT,
+                valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE,
+                domain: { attackDomain: 'MELEE' as const },
+                modifierKind: MODIFIER_KIND.BONUS,
+                scope: MODIFIER_SCOPE_KIND.SOURCE,
+                selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                payload: { valueKind: 'FIXED' as const, amount: 2 },
+                order: 0
+              }
+            ]
+          },
+          order: 1
+        },
+        {
+          id: classRowId(P, 4, 3),
+          label: 'Great Weapon Fighting',
+          description: 'When you roll a 1 or 2 on a damage die for an attack you make with a melee weapon that you are wielding with two hands, you can reroll the die and must use the new roll.',
+          order: 2
+        },
+        {
+          id: classRowId(P, 4, 4),
+          label: 'Protection',
+          description: 'When a creature you can see attacks a target other than you that is within 5 feet of you, you can use your reaction to impose disadvantage on the attack roll. You must be wielding a shield.',
+          order: 3
+        }
+      ]
     },
     {
       id: classRowId(P, 3, 4),
@@ -377,62 +437,6 @@ export const paladin: ClassAuthored = {
       description: 'You can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1 each.',
       availableAtLevel: 19,
       order: 19
-    }
-  ]
-}
-
-// ─── Oath of Devotion Subclass ────────────────────────────────────────────────
-
-export const devotion: ClassAuthored = {
-  id: SUBCLASS_IDS.DEVOTION,
-  label: 'Oath of Devotion',
-  category: CLASS_CATEGORY.SUBCLASS,
-  parentClassId: CLASS_IDS.PALADIN,
-  description: 'The Oath of Devotion binds a paladin to the loftiest ideals of justice, virtue, and order.',
-  userId: SRD_USER_ID,
-  systemId: SRD_SYSTEM_ID,
-  features: [
-    {
-      id: classRowId(P, 11, 1),
-      label: 'Oath Spells',
-      description: 'You gain oath spells at the paladin levels listed. Protection from Evil and Good, Sanctuary (L3); Lesser Restoration, Zone of Truth (L5); Beacon of Hope, Dispel Magic (L9); Freedom of Movement, Guardian of Faith (L13); Commune, Flame Strike (L17).',
-      availableAtLevel: 3,
-      order: 0
-    },
-    {
-      id: classRowId(P, 11, 2),
-      label: 'Channel Divinity: Sacred Weapon',
-      description: 'As an action, you can imbue one weapon that you are holding with positive energy, using your Channel Divinity. For 1 minute, you add your Charisma modifier to attack rolls made with that weapon.',
-      availableAtLevel: 3,
-      order: 1
-    },
-    {
-      id: classRowId(P, 11, 3),
-      label: 'Channel Divinity: Turn the Unholy',
-      description: 'As an action, you present your holy symbol and speak a prayer censuring fiends and undead, using your Channel Divinity. Each fiend or undead that can see or hear you within 30 feet of you must make a Wisdom saving throw.',
-      availableAtLevel: 3,
-      order: 2
-    },
-    {
-      id: classRowId(P, 11, 4),
-      label: 'Aura of Devotion',
-      description: 'Starting at 7th level, you and friendly creatures within 10 feet of you can\'t be charmed while you are conscious.',
-      availableAtLevel: 7,
-      order: 3
-    },
-    {
-      id: classRowId(P, 11, 5),
-      label: 'Purity of Spirit',
-      description: 'Beginning at 15th level, you are always under the effects of a Protection from Evil and Good spell.',
-      availableAtLevel: 15,
-      order: 4
-    },
-    {
-      id: classRowId(P, 11, 6),
-      label: 'Holy Nimbus',
-      description: 'At 20th level, as an action, you can emanate an aura of sunlight. For 1 minute, bright light shines from you in a 30-foot radius, and dim light shines 30 feet beyond that.',
-      availableAtLevel: 20,
-      order: 5
     }
   ]
 }

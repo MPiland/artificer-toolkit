@@ -43,8 +43,7 @@ export const healingWord: SpellAuthored = {
         },
         targeting: {
           selectionKind: 'SINGLE_TARGET',
-          excludedCreatureTypeIds: ['undead', 'construct'],
-          detail: 'A creature of your choice that you can see within range.'
+          excludedCreatureTypeIds: ['undead', 'construct']
         }
       },
       branches: [

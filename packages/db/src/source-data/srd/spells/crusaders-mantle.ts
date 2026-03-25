@@ -48,8 +48,7 @@ export const crusadersMantle: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF,
-          detail: 'The aura radiates from you.'
+          selectionKind: TARGET_SELECTION_KIND.SELF
         }
       },
       branches: [
@@ -64,9 +63,6 @@ export const crusadersMantle: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: "Crusader's Mantle",
-          description:
-            'The current model does not yet honestly express the moving aura membership and weapon-hit rider without flattening the spell.'
         }
       ]
     }

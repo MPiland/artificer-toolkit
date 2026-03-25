@@ -47,7 +47,7 @@ type ClassProficiencyGrantRow = {
   sort_order: number
 }
 
-type ClassSubtypeRow = {
+type ClassSpecializationRow = {
   id: string
   class_id: string
   label: string
@@ -422,7 +422,7 @@ export async function upsertClass(
       .execute()
     await trx.deleteFrom('class_attributes').where('class_id', '=', json_data.id)
       .execute()
-    await trx.deleteFrom('class_subtypes').where('class_id', '=', json_data.id)
+    await trx.deleteFrom('class_specializations').where('class_id', '=', json_data.id)
       .execute()
     await trx.deleteFrom('class_resources').where('class_id', '=', json_data.id)
       .execute()
@@ -594,15 +594,15 @@ export async function upsertClass(
       await trx.deleteFrom('class_multiclass').where('class_id', '=', json_data.id)
         .execute()
 
-      const subtypeRows: ClassSubtypeRow[] = (json_data.subtypes ?? []).map((subtype) => ({
-        id: subtype.id,
+      const specializationRows: ClassSpecializationRow[] = (json_data.specializations ?? []).map((specialization) => ({
+        id: specialization.id,
         class_id: json_data.id,
-        label: subtype.label,
-        sort_order: subtype.order
+        label: specialization.label,
+        sort_order: specialization.order
       }))
 
-      if (subtypeRows.length > 0) {
-        await trx.insertInto('class_subtypes').values(subtypeRows)
+      if (specializationRows.length > 0) {
+        await trx.insertInto('class_specializations').values(specializationRows)
           .execute()
       }
     }

@@ -48,8 +48,7 @@ export const holyAura: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF,
-          detail: 'The aura radiates from you and protects creatures of your choice in its area.'
+          selectionKind: TARGET_SELECTION_KIND.SELF
         }
       },
       branches: [
@@ -64,9 +63,6 @@ export const holyAura: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Holy Aura',
-          description:
-            'The current model does not yet honestly express the aura-wide save advantage, attack disadvantage, and chosen-creature shielding behavior.'
         }
       ]
     }

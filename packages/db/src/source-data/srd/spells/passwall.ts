@@ -55,8 +55,7 @@ export const passwall: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'A point on a wooden, plaster, or stone surface within range.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -66,9 +65,6 @@ export const passwall: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Passwall',
-          description:
-            'Creates a temporary passage through a surface. The passage dimensions and safe ejection behavior are not yet modeled as a typed manifest.'
         }
       ]
     }

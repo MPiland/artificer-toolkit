@@ -41,8 +41,7 @@ export const glyphOfWarding: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Touch a surface or object to inscribe the glyph.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -56,9 +55,6 @@ export const glyphOfWarding: SpellAuthored = {
             durationKind: DURATION_KIND.UNTIL_DISPELLED
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Glyph of Warding',
-          description:
-            'Inscribes a magical glyph that triggers when a chosen condition is met.'
         }
       ]
     }

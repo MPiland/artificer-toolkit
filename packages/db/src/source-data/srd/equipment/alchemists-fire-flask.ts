@@ -24,8 +24,7 @@ export const alchemistsFireFlask: EquipmentAuthored = {
             rangeKind: S.RANGE_KIND.SPECIAL
           },
           targeting: {
-            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-            detail: 'Throw the flask at one creature within the alchemist’s fire special range.'
+            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
           }
         },
         branches: [
@@ -46,8 +45,6 @@ export const alchemistsFireFlask: EquipmentAuthored = {
             groupType: S.BRANCH_GROUP_TYPE.SEQUENTIAL,
             resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
             effectKind: S.EFFECT_KIND.RULE,
-            label: "Alchemist's Fire",
-            description: 'On a hit, the target takes 1d4 fire damage at the start of each of its turns until a creature uses its action to make a DC 10 Dexterity check to extinguish the flames.'
           },
           {
             id: S.equipmentChildId(S.equipId(120), 0x214, 1),
@@ -55,8 +52,6 @@ export const alchemistsFireFlask: EquipmentAuthored = {
             groupType: S.BRANCH_GROUP_TYPE.SINGLE,
             resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
             effectKind: S.EFFECT_KIND.RULE,
-            label: 'Miss',
-            description: "On a miss, the flask's fire does not cling to the target."
           }
         ]
       }

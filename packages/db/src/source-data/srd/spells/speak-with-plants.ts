@@ -38,8 +38,7 @@ export const speakWithPlants: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: 'AREA_CONTENTS',
-          detail: 'Imbue nearby plants with limited sentience and animation.'
+          selectionKind: 'AREA_CONTENTS'
         }
       },
       branches: [
@@ -54,8 +53,6 @@ export const speakWithPlants: SpellAuthored = {
             amount: 10
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Speak with Plants',
-          description: 'Nearby plants gain limited sentience, can communicate with you, and can follow simple commands for the duration.'
         }
       ]
     }

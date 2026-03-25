@@ -40,8 +40,7 @@ export const augury: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: 'SELF',
-          detail: 'Perform the divination yourself.'
+          selectionKind: 'SELF'
         }
       },
       branches: [
@@ -51,9 +50,6 @@ export const augury: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Augury',
-          description:
-            'You ask for advice about a specific course of action and receive a limited prophetic answer: weal, woe, both, or nothing.'
         }
       ]
     }

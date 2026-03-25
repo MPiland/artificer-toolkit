@@ -39,8 +39,7 @@ export const trueResurrection: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Touch the creature whose life you intend to restore.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -50,9 +49,6 @@ export const trueResurrection: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'True Resurrection',
-          description:
-            'The creature returns to life if its soul is free and willing, even if a new body must be recreated.'
         }
       ]
     }

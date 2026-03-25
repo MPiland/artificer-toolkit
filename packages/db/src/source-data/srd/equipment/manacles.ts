@@ -24,8 +24,7 @@ export const manacles: EquipmentAuthored = {
             rangeKind: S.RANGE_KIND.TOUCH
           },
           targeting: {
-            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-            detail: 'Attempt to secure the manacles on one restrained, incapacitated, or otherwise subdued creature within reach.'
+            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
           }
         },
         branches: [
@@ -35,8 +34,6 @@ export const manacles: EquipmentAuthored = {
             groupType: S.BRANCH_GROUP_TYPE.SINGLE,
             resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
             effectKind: S.EFFECT_KIND.RULE,
-            label: 'Manacles',
-            description: 'A creature bound by the manacles can use its action to make a DC 20 Dexterity check to escape. Another creature can use its action to break them with a DC 20 Strength check.'
           }
         ]
       }

@@ -46,8 +46,7 @@ export const massHealingWord: SpellAuthored = {
         targeting: {
           selectionKind: 'CHOSEN_CREATURES',
           maxTargets: 6,
-          excludedCreatureTypeIds: ['undead', 'construct'],
-          detail: 'Up to six creatures of your choice that you can see within range.'
+          excludedCreatureTypeIds: ['undead', 'construct']
         }
       },
       branches: [

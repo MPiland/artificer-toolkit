@@ -57,8 +57,7 @@ export const planeShift: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-          maxTargets: 8,
-          detail: 'Link hands with willing creatures in a circle or touch one unwilling creature.'
+          maxTargets: 8
         }
       },
       branches: [
@@ -68,9 +67,6 @@ export const planeShift: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Plane Shift',
-          description:
-            'The chosen creatures are transported to another plane under the spell’s rules.'
         }
       ]
     }

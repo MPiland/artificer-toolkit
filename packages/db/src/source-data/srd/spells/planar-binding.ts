@@ -50,8 +50,7 @@ export const planarBinding: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose a celestial, elemental, fey, or fiend within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -66,9 +65,6 @@ export const planarBinding: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Planar Binding',
-          description:
-            'The chosen creature is bound to your service for the spell duration, subject to the spell’s special terms.'
         },
         {
           id: spellChildId(SPELL_IDS.PLANAR_BINDING, 0x215, 1),
@@ -76,8 +72,6 @@ export const planarBinding: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'No Binding',
-          description: 'The creature resists the binding and remains free.'
         }
       ]
     }

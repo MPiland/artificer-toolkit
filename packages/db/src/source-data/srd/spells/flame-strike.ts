@@ -5,6 +5,8 @@ import {
   BRANCH_RESOLUTION_KIND,
   CASTING_TIME_UNIT_CODE,
   EFFECT_KIND,
+  SCALING,
+  SCALING_AMOUNT_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
   SUBJECT,
@@ -14,7 +16,7 @@ import {
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { SRD_MAGIC_SCHOOLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-import { spellChildId } from './shared.js'
+import { damageTypeId, spellChildId } from './shared.js'
 
 function schoolId(code: string): string {
   const entry = SRD_MAGIC_SCHOOLS.find((s) => s.code === code)
@@ -54,34 +56,59 @@ export const flameStrike: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose a point within range. Creatures in the cylinder are affected.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
         {
           id: spellChildId(SPELL_IDS.FLAME_STRIKE, 0x213, 1),
           branch: BRANCH.ON_SAVE_FAIL,
-          groupType: BRANCH_GROUP_TYPE.SINGLE,
+          groupType: BRANCH_GROUP_TYPE.SEQUENTIAL,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
-          effectKind: EFFECT_KIND.RULE,
-          label: 'Flame Strike',
-          description:
-            'Creatures in the cylinder take 4d6 fire damage and 4d6 radiant damage on a failed Dexterity saving throw.'
+          effectKind: EFFECT_KIND.DAMAGE,
+          damageTypeId: damageTypeId('FIRE'),
+          valueKind: 'DICE',
+          scalingKind: SCALING.NONE,
+          diceConfig: '4d6'
+        },
+        {
+          id: spellChildId(SPELL_IDS.FLAME_STRIKE, 0x213, 2),
+          branch: BRANCH.ON_SAVE_FAIL,
+          groupType: BRANCH_GROUP_TYPE.SEQUENTIAL,
+          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
+          effectKind: EFFECT_KIND.DAMAGE,
+          damageTypeId: damageTypeId('RADIANT'),
+          valueKind: 'DICE',
+          scalingKind: SCALING.NONE,
+          diceConfig: '4d6'
         },
         {
           id: spellChildId(SPELL_IDS.FLAME_STRIKE, 0x214, 1),
           branch: BRANCH.ON_SAVE_SUCCESS,
-          groupType: BRANCH_GROUP_TYPE.SINGLE,
+          groupType: BRANCH_GROUP_TYPE.SEQUENTIAL,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
-          effectKind: EFFECT_KIND.RULE,
-          label: 'Flame Strike',
-          description:
-            'Creatures in the cylinder take half damage on a successful Dexterity saving throw.'
+          effectKind: EFFECT_KIND.DAMAGE,
+          damageTypeId: damageTypeId('FIRE'),
+          amountKind: SCALING_AMOUNT_KIND.HALF,
+          valueKind: 'DICE',
+          scalingKind: SCALING.NONE,
+          diceConfig: '4d6'
+        },
+        {
+          id: spellChildId(SPELL_IDS.FLAME_STRIKE, 0x214, 2),
+          branch: BRANCH.ON_SAVE_SUCCESS,
+          groupType: BRANCH_GROUP_TYPE.SEQUENTIAL,
+          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
+          effectKind: EFFECT_KIND.DAMAGE,
+          damageTypeId: damageTypeId('RADIANT'),
+          amountKind: SCALING_AMOUNT_KIND.HALF,
+          valueKind: 'DICE',
+          scalingKind: SCALING.NONE,
+          diceConfig: '4d6'
         }
       ]
     }
   ],
   userId: SRD_USER_ID,
-  systemId: SRD_SYSTEM_ID,
+  systemId: SRD_SYSTEM_ID
 }

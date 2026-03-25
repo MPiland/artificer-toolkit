@@ -40,8 +40,7 @@ export const seeInvisibility: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF,
-          detail: 'Grant yourself sight of invisible creatures and objects.'
+          selectionKind: TARGET_SELECTION_KIND.SELF
         }
       },
       branches: [
@@ -56,9 +55,6 @@ export const seeInvisibility: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'See Invisibility',
-          description:
-            'See invisible creatures and objects as visible and perceive into the Ethereal Plane for the duration. This still needs a richer visibility and planar-sight model to express structurally.'
         }
       ]
     }

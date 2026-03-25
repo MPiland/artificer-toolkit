@@ -41,8 +41,7 @@ export const inflictWounds: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Make a melee spell attack against one creature you can reach.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -67,15 +66,6 @@ export const inflictWounds: SpellAuthored = {
             { id: spellChildId(SPELL_IDS.INFLICT_WOUNDS, 0x212, 9), level: 8, order: 8, diceConfig: '10d10' },
             { id: spellChildId(SPELL_IDS.INFLICT_WOUNDS, 0x212, 10), level: 9, order: 9, diceConfig: '11d10' }
           ]
-        },
-        {
-          id: spellChildId(SPELL_IDS.INFLICT_WOUNDS, 0x213, 1),
-          branch: BRANCH.ON_MISS,
-          groupType: BRANCH_GROUP_TYPE.SINGLE,
-          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
-          effectKind: EFFECT_KIND.RULE,
-          label: 'Miss',
-          description: 'On a miss, the spell has no effect.'
         }
       ]
     }

@@ -40,8 +40,7 @@ export const blink: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF,
-          detail: 'Place yourself under the blink effect.'
+          selectionKind: TARGET_SELECTION_KIND.SELF
         }
       },
       branches: [
@@ -56,9 +55,6 @@ export const blink: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Blink',
-          description:
-            'At the end of each of your turns, roll a d20. On 11 or higher, you blink into the Ethereal Plane and return under the spell\'s normal timing and positioning rules.'
         }
       ]
     }

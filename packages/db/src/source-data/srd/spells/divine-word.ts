@@ -48,8 +48,7 @@ export const divineWord: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-          detail: 'Choose any number of creatures you can see within range that can hear you.'
+          selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES
         }
       },
       branches: [
@@ -59,9 +58,6 @@ export const divineWord: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Divine Word',
-          description:
-            'Each affected creature suffers the spell’s escalating divine consequences under the SRD text.'
         },
         {
           id: spellChildId(SPELL_IDS.DIVINE_WORD, 0x213, 1),
@@ -69,8 +65,6 @@ export const divineWord: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Successful Save',
-          description: 'A creature that succeeds on the save is unaffected by the word.'
         }
       ]
     }

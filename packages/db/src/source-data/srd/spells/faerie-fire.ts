@@ -55,8 +55,7 @@ export const faerieFire: SpellAuthored = {
           }
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose a 20-foot cube within range.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -72,7 +71,6 @@ export const faerieFire: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.ZONE,
-          label: 'Faerie Fire',
           detail:
             'Creates a zone of colored light that outlines creatures and objects in the area for the duration, making them easier to see and target.'
         }

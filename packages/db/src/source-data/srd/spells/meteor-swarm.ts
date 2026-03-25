@@ -62,8 +62,7 @@ export const meteorSwarm: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.MILES
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose four points you can see within range for the meteor blasts.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         },
         shape: {
           id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x212, 1),

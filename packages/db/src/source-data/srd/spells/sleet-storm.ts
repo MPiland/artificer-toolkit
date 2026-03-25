@@ -47,8 +47,7 @@ export const sleetStorm: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose a point within range. Freezing rain and sleet fill a wide cylinder.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         },
         shape: {
           id: spellChildId(SPELL_IDS.SLEET_STORM, 0x212, 1),
@@ -75,9 +74,6 @@ export const sleetStorm: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Sleet Storm',
-          description:
-            'A cylinder of freezing rain and sleet fills the area, heavily obscuring it and making the ground slick and difficult terrain.'
         }
       ]
     }

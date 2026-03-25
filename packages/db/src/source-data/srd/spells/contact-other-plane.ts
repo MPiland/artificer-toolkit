@@ -40,8 +40,7 @@ export const contactOtherPlane: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: 'SELF',
-          detail: 'Mentally contact an extraplanar intelligence and ask questions.'
+          selectionKind: 'SELF'
         }
       },
       branches: [
@@ -51,8 +50,6 @@ export const contactOtherPlane: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Contact Other Plane',
-          description: 'Contact an extraplanar intelligence, risk mental strain, and potentially receive one-word answers to your questions.'
         }
       ]
     }

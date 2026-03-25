@@ -55,8 +55,7 @@ export const invisibility: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.WILLING,
-          detail: 'Touch one creature.'
+          dispositionKind: TARGET_DISPOSITION_KIND.WILLING
         }
       },
       branches: [
@@ -71,9 +70,6 @@ export const invisibility: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Invisibility',
-          description:
-            'The target becomes invisible until the spell ends, ending early if it attacks or casts a spell. This still needs a structured invisibility-state grant and an early-break rule model.'
         }
       ]
     }

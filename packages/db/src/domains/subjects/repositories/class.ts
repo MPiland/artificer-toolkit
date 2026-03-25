@@ -274,7 +274,7 @@ async function hydrateClassById(
     detailLinks,
     proficiencyLinks,
     attributeRows,
-    subtypeRows,
+    specializationRows,
     startingGoldRow,
     hitpointRow,
     multiclassRow,
@@ -285,7 +285,7 @@ async function hydrateClassById(
     db.selectFrom('class_details').select(['detail_id', 'sort_order']).where('class_id', '=', id).orderBy('sort_order').execute(),
     db.selectFrom('class_proficiency_grants').select(['proficiency_grant_id', 'sort_order']).where('class_id', '=', id).orderBy('sort_order').execute(),
     db.selectFrom('class_attributes').select(['attribute_code', 'sort_order']).where('class_id', '=', id).orderBy('sort_order').execute(),
-    db.selectFrom('class_subtypes').select(['id', 'label', 'sort_order']).where('class_id', '=', id).orderBy('sort_order').execute(),
+    db.selectFrom('class_specializations').select(['id', 'label', 'sort_order']).where('class_id', '=', id).orderBy('sort_order').execute(),
     db.selectFrom('class_starting_gold').select(['multiplier', 'currency_id', 'die_config']).where('class_id', '=', id).executeTakeFirst(),
     db.selectFrom('class_hitpoints').select(['ability_code', 'die_config']).where('class_id', '=', id).executeTakeFirst(),
     db.selectFrom('class_multiclass').select(['id']).where('class_id', '=', id).executeTakeFirst(),
@@ -431,11 +431,11 @@ async function hydrateClassById(
       row.parent_class_id,
       `Class "${id}" is missing parent_class_id for SUBCLASS payload.`
     ),
-    subtypes: subtypeRows.length > 0
-      ? subtypeRows.map((subtype) => ({
-          id: subtype.id,
-          label: subtype.label,
-          order: subtype.sort_order
+    specializations: specializationRows.length > 0
+      ? specializationRows.map((specialization) => ({
+          id: specialization.id,
+          label: specialization.label,
+          order: specialization.sort_order
         }))
       : undefined
   }

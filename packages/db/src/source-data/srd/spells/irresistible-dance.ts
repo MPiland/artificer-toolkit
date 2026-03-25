@@ -51,8 +51,7 @@ export const irresistibleDance: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one creature you can see within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -67,9 +66,6 @@ export const irresistibleDance: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Irresistible Dance',
-          description:
-            'The target is compelled to dance under the spell’s rules until it breaks free or the spell ends.'
         },
         {
           id: spellChildId(SPELL_IDS.IRRESISTIBLE_DANCE, 0x215, 1),
@@ -77,8 +73,6 @@ export const irresistibleDance: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Unaffected',
-          description: 'A target that succeeds on the saving throw is unaffected by the spell.'
         }
       ]
     }

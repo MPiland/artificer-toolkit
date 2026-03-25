@@ -1,0 +1,153 @@
+import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import * as S from './shared.js'
+
+export const blueDragonWyrmling: CreatureAuthored = {
+  id: S.CREATURE_IDS.BLUE_DRAGON_WYRMLING,
+  label: 'Blue Dragon Wyrmling',
+  userId: S.SRD_USER_ID,
+  systemId: S.SRD_SYSTEM_ID,
+  recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
+  category: S.CREATURE_CATEGORY_CODE.MONSTER,
+  creatureTypeId: S.CREATURE_TYPE.DRAGON,
+  size: S.SIZE_CODE.MEDIUM,
+  alignmentId: '00000000-0000-0000-0001-000700000000',
+  abilityScores: {
+    STRENGTH: 17,
+    DEXTERITY: 10,
+    CONSTITUTION: 15,
+    INTELLIGENCE: 12,
+    WISDOM: 11,
+    CHARISMA: 15,
+    SPELLCASTING: 0
+  },
+  armorClass: 17,
+  armorClassNote: 'natural armor',
+  hitPoints: 52,
+  hitDice: '8d8+16',
+  speeds: [...S.walk(30), ...S.burrow(15), ...S.fly(60)],
+  proficiencies: [
+    S.grantedSaveProficiency(50, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
+    S.grantedSkillProficiency(50, 2, 'PERCEPTION', 'STEALTH'),
+    S.grantedLanguageProficiency(50, 3, 'DRACONIC')
+  ],
+  damageImmunities: ['lightning'],
+  senses: ['blindsight 10 ft.', 'darkvision 60 ft.'],
+  passivePerception: 14,
+  challengeRatingId: S.CR.CR_3,
+  xp: 700,
+  features: [
+    {
+      id: S.featureId(50, 1),
+      label: 'Bite',
+      description: 'Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 8 (1d10 + 3) piercing damage plus 3 (1d6) lightning damage.',
+      capabilities: [
+        {
+          id: S.actionId(50, 1),
+          order: 1,
+          invocation: {
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: {
+              code: S.ACTIVATION_CODE.ACTION,
+              amount: 1
+            },
+            range: {
+              id: S.actionId(50, 2),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+            }
+          },
+          branches: [
+            {
+              id: S.actionId(50, 3),
+              branch: S.BRANCH.ON_HIT,
+              groupType: S.BRANCH_GROUP_TYPE.SEQUENTIAL,
+              resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
+              effectKind: S.EFFECT_KIND.DAMAGE,
+              damageTypeId: S.damageTypeId('PIERCING'),
+              valueKind: S.DAMAGE_VALUE_KIND.DICE,
+              scalingKind: S.SCALING.NONE,
+              diceConfig: '1d10',
+              bonuses: [
+                {
+                  id: S.actionId(50, 4),
+                  bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
+                  ability: S.ABILITY_CODE.STRENGTH,
+                  order: 1
+                }
+              ]
+            },
+            {
+              id: S.actionId(50, 5),
+              branch: S.BRANCH.ON_HIT,
+              groupType: S.BRANCH_GROUP_TYPE.SEQUENTIAL,
+              resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
+              effectKind: S.EFFECT_KIND.DAMAGE,
+              damageTypeId: S.damageTypeId('LIGHTNING'),
+              valueKind: S.DAMAGE_VALUE_KIND.DICE,
+              scalingKind: S.SCALING.NONE,
+              diceConfig: '1d6'
+            }
+          ]
+        }
+      ],
+      order: 1
+    },
+    {
+      id: S.featureId(50, 2),
+      label: 'Lightning Breath (Recharge 5-6)',
+      description: 'The dragon exhales lightning in a 30-foot line that is 5 feet wide. Each creature in that line must make a DC 12 Dexterity saving throw, taking 22 (4d10) lightning damage on a failed save, or half as much damage on a successful one.',
+      capabilities: [
+        {
+          id: S.actionId(50, 6),
+          order: 1,
+          invocation: {
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            savingThrow: {
+              id: S.actionId(50, 7),
+              savingThrowKind: 'SOURCE_SAVE_DC',
+              ability: S.ABILITY_CODE.DEXTERITY
+            },
+            activation: {
+              code: S.ACTIVATION_CODE.ACTION,
+              amount: 1
+            },
+            range: {
+              id: S.actionId(50, 8),
+              rangeKind: S.RANGE_KIND.SPECIAL
+            }
+          },
+          branches: [
+            {
+              id: S.actionId(50, 9),
+              branch: S.BRANCH.ON_SAVE_FAIL,
+              groupType: S.BRANCH_GROUP_TYPE.SINGLE,
+              resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
+              effectKind: S.EFFECT_KIND.DAMAGE,
+              damageTypeId: S.damageTypeId('LIGHTNING'),
+              valueKind: S.DAMAGE_VALUE_KIND.DICE,
+              scalingKind: S.SCALING.NONE,
+              diceConfig: '4d10'
+            },
+            {
+              id: S.actionId(50, 10),
+              branch: S.BRANCH.ON_SAVE_SUCCESS,
+              groupType: S.BRANCH_GROUP_TYPE.SINGLE,
+              resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
+              effectKind: S.EFFECT_KIND.DAMAGE,
+              damageTypeId: S.damageTypeId('LIGHTNING'),
+              valueKind: S.DAMAGE_VALUE_KIND.DICE,
+              scalingKind: S.SCALING.NONE,
+              diceConfig: '4d10',
+              multiplier: 0.5
+            }
+          ]
+        }
+      ],
+      order: 2
+    }
+  ]
+}

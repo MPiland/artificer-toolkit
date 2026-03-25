@@ -54,8 +54,7 @@ export const cloudkill: SpellAuthored = {
           }
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Create a 20-foot-radius sphere of poisonous fog centered on a point within range.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -71,7 +70,6 @@ export const cloudkill: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.ZONE,
-          label: 'Cloudkill',
           detail:
             'Creates a poisonous fog zone that spreads around corners and harms creatures within it while the spell lasts.'
         }

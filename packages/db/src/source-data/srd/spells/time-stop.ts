@@ -39,8 +39,7 @@ export const timeStop: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF,
-          detail: 'Target yourself.'
+          selectionKind: TARGET_SELECTION_KIND.SELF
         }
       },
       branches: [
@@ -50,9 +49,6 @@ export const timeStop: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Time Stop',
-          description:
-            'You gain extra turns while time is stopped for everyone else; the detailed turn sequence remains a rules fallback.'
         }
       ]
     }

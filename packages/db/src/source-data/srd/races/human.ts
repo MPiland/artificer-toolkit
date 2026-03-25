@@ -30,6 +30,13 @@ function languageId(code: string): string {
   return entry.id
 }
 
+function availableLanguageIds(excludedCodes: string[] = []): string[] {
+  const excluded = new Set(excludedCodes)
+  return SRD_LANGUAGES
+    .filter((language) => !excluded.has(language.code))
+    .map((language) => language.id)
+}
+
 const walkSpeedId = SRD_SPEEDS.find((speed) => speed.code === 'WALK')?.id
 if (!walkSpeedId) throw new Error('SRD WALK speed vocabulary entry is required for race source data.')
 
@@ -141,6 +148,7 @@ export const human: RaceAuthored = {
             count: 1,
             scalingKind: SCALING.NONE,
             authoringModeKind: AUTHORING_MODE_KIND.ALL,
+            languageIds: availableLanguageIds(['COMMON']),
             order: 0
           }
         ]

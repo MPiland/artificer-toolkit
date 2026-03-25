@@ -16,7 +16,7 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { conditionTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 
 export const dominatePerson: SpellAuthored = {
   kind: SUBJECT.SPELL,
@@ -51,8 +51,7 @@ export const dominatePerson: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one humanoid you can see within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -66,19 +65,8 @@ export const dominatePerson: SpellAuthored = {
             durationKind: DURATION_KIND.MINUTE,
             amount: 1
           },
-          effectKind: EFFECT_KIND.RULE,
-          label: 'Dominated Humanoid',
-          description:
-            'On a failed save, the humanoid is charmed by you and subject to the spell’s command and control rules for the duration.'
-        },
-        {
-          id: spellChildId(SPELL_IDS.DOMINATE_PERSON, 0x215, 1),
-          branch: BRANCH.ON_SAVE_SUCCESS,
-          groupType: BRANCH_GROUP_TYPE.SINGLE,
-          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
-          effectKind: EFFECT_KIND.RULE,
-          label: 'Successful Save',
-          description: 'On a successful save, the humanoid is unaffected.'
+          effectKind: EFFECT_KIND.CONDITION,
+          conditionId: conditionTypeId('CHARMED')
         }
       ]
     }

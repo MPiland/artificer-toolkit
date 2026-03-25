@@ -46,8 +46,7 @@ export const conjureMinorElementals: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose the unoccupied spaces where the elementals appear.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -63,7 +62,6 @@ export const conjureMinorElementals: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.CREATURE,
-          label: 'Conjure Minor Elementals',
           detail: 'Summons minor elemental allies under your control for the spell duration.'
         }
       ]

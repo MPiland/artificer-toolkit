@@ -46,8 +46,7 @@ export const arcaneEye: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Create the magical eye within range.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -63,7 +62,6 @@ export const arcaneEye: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.SENSOR,
-          label: 'Arcane Eye',
           detail:
             'Creates an invisible magical eye that relays visual information and can move while you concentrate.'
         }

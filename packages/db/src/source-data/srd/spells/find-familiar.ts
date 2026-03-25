@@ -46,8 +46,7 @@ export const findFamiliar: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'The familiar appears in an unoccupied space within range.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -58,7 +57,6 @@ export const findFamiliar: SpellAuthored = {
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.CREATURE,
-          label: 'Familiar',
           detail:
             'A spirit takes an animal form you choose, acts independently, and obeys your commands until it drops to 0 hit points, you dismiss it, or you cast this spell again.'
         }

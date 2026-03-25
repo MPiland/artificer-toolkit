@@ -41,8 +41,7 @@ export const revivify: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Touch one creature that has died within the last minute.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -56,9 +55,6 @@ export const revivify: SpellAuthored = {
             durationKind: DURATION_KIND.INSTANTANEOUS
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Revivify',
-          description:
-            'This spell currently needs a resurrection model rather than a healing or grant outcome to express its full SRD behavior honestly.'
         }
       ]
     }

@@ -11,6 +11,7 @@ import {
 } from '@artificer-toolkit/shared'
 import { upsertDetail } from '../../shared/upserts/index.js'
 import { upsertFeature } from '../../features/upserts/index.js'
+import { upsertProficiencyGrant } from '../../grants/upserts/index.js'
 
 type CreatureRow = {
   id: string
@@ -32,9 +33,6 @@ type CreatureRow = {
   hit_dice: string | null
   senses: string[] | null
   passive_perception: number | null
-  saving_throw_proficiencies: string[] | null
-  skill_proficiencies: string[] | null
-  languages: string[] | null
   challenge_rating_id: string | null
   xp: number | null
   legendary_profile: Json | null
@@ -52,6 +50,12 @@ type CreatureRow = {
 type CreatureDetailRow = {
   creature_id: string
   detail_id: string
+  sort_order: number
+}
+
+type CreatureProficiencyGrantRow = {
+  creature_id: string
+  proficiency_grant_id: string
   sort_order: number
 }
 
@@ -150,9 +154,6 @@ function buildBaseRow(jsonData: CreatureAuthored): CreatureRow {
     hit_dice: null,
     senses: null,
     passive_perception: null,
-    saving_throw_proficiencies: null,
-    skill_proficiencies: null,
-    languages: null,
     challenge_rating_id: null,
     xp: null,
     legendary_profile: null,
@@ -196,9 +197,6 @@ function buildCreatureRow(jsonData: CreatureAuthored): CreatureRow {
     hit_dice: statBlock.hitDice ?? null,
     senses: statBlock.senses ?? null,
     passive_perception: statBlock.passivePerception ?? null,
-    saving_throw_proficiencies: statBlock.savingThrowProficiencies ?? null,
-    skill_proficiencies: statBlock.skillProficiencies ?? null,
-    languages: statBlock.languages ?? null,
     challenge_rating_id: statBlock.challengeRatingId ?? null,
     xp: statBlock.xp ?? null,
     legendary_profile: statBlock.legendaryProfile
@@ -224,6 +222,12 @@ export async function upsertCreature(
     creature_id: jsonData.id,
     detail_id: detail.id,
     sort_order: detail.order,
+  }))
+
+  const proficiencyRows: CreatureProficiencyGrantRow[] = (jsonData.proficiencies ?? []).map((grant) => ({
+    creature_id: jsonData.id,
+    proficiency_grant_id: grant.id,
+    sort_order: grant.order,
   }))
 
   const speedRows: CreatureSpeedRow[] = (jsonData.speeds ?? []).map((speed) => ({
@@ -300,6 +304,9 @@ export async function upsertCreature(
     for (const feature of jsonData.features ?? []) {
       await upsertFeature(trx, feature, jsonData.systemId)
     }
+    for (const proficiency of jsonData.proficiencies ?? []) {
+      await upsertProficiencyGrant(trx, proficiency)
+    }
 
     await (trx as any)
       .insertInto('creatures')
@@ -308,6 +315,7 @@ export async function upsertCreature(
       .execute()
 
     await trx.deleteFrom('creature_details').where('creature_id', '=', jsonData.id).execute()
+    await trx.deleteFrom('creature_proficiency_grants').where('creature_id', '=', jsonData.id).execute()
     await trx.deleteFrom('creature_features').where('creature_id', '=', jsonData.id).execute()
     await trx.deleteFrom('creature_speeds').where('creature_id', '=', jsonData.id).execute()
     await trx.deleteFrom('creature_actions').where('creature_id', '=', jsonData.id).execute()
@@ -318,6 +326,9 @@ export async function upsertCreature(
 
     if (detailRows.length > 0) {
       await trx.insertInto('creature_details').values(detailRows).execute()
+    }
+    if (proficiencyRows.length > 0) {
+      await trx.insertInto('creature_proficiency_grants').values(proficiencyRows).execute()
     }
     if (featureRows.length > 0) {
       await trx.insertInto('creature_features').values(featureRows).execute()

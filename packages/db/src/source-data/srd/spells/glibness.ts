@@ -46,8 +46,7 @@ export const glibness: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF,
-          detail: 'Target yourself.'
+          selectionKind: TARGET_SELECTION_KIND.SELF
         }
       },
       branches: [
@@ -57,9 +56,6 @@ export const glibness: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Glibness',
-          description:
-            'The spell grants extraordinary verbal certainty and the ability to substitute a 15 for Charisma checks until the spell ends.'
         }
       ]
     }

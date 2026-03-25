@@ -49,8 +49,7 @@ export const dissonantWhispers: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one creature that can hear you within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -70,18 +69,10 @@ export const dissonantWhispers: SpellAuthored = {
           branch: BRANCH.ON_SAVE_FAIL,
           groupType: BRANCH_GROUP_TYPE.SEQUENTIAL,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
-          effectKind: EFFECT_KIND.RULE,
-          label: 'Rider',
-          description: 'On a failed save, the target must also use its reaction to move away from you.'
-        },
-        {
-          id: spellChildId(SPELL_IDS.DISSONANT_WHISPERS, 0x214, 1),
-          branch: BRANCH.ON_SAVE_SUCCESS,
-          groupType: BRANCH_GROUP_TYPE.SINGLE,
-          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
-          effectKind: EFFECT_KIND.RULE,
-          label: 'Successful Save',
-          description: 'On a successful save, the spell has no effect.'
+          effectKind: 'FORCED_MOVEMENT',
+          direction: 'AWAY_FROM_SOURCE',
+          distanceMode: 'UP_TO_SPEED',
+          actionEconomy: 'REACTION'
         }
       ]
     }

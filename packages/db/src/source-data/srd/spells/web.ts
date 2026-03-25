@@ -53,8 +53,7 @@ export const web: SpellAuthored = {
           }
         },
         targeting: {
-          selectionKind: 'AREA_CONTENTS',
-          detail: 'Choose a point within range and fill a 20-foot cube with sticky webbing.'
+          selectionKind: 'AREA_CONTENTS'
         }
       },
       branches: [
@@ -70,7 +69,6 @@ export const web: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.ZONE,
-          label: 'Web',
           detail:
             'Creates a zone of sticky webbing that is difficult terrain and can restrain creatures that enter or begin their turn in it.'
         }

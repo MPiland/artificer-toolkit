@@ -48,8 +48,7 @@ export const divineFavor: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF,
-          detail: 'The prayer empowers you.'
+          selectionKind: TARGET_SELECTION_KIND.SELF
         }
       },
       branches: [
@@ -64,9 +63,6 @@ export const divineFavor: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Divine Favor',
-          description:
-            'The current model does not yet honestly express the extra radiant damage-on-hit rider as a structured grant without flattening the spell.'
         }
       ]
     }

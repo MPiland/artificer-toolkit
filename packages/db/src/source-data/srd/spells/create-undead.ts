@@ -44,8 +44,7 @@ export const createUndead: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose up to three corpses of Medium or Small humanoids within range.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -61,7 +60,6 @@ export const createUndead: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.CREATURE,
-          label: 'Create Undead',
           detail: 'Creates undead creatures under your control from the chosen corpses.'
         }
       ]

@@ -89,6 +89,7 @@ Current shared/schema direction:
   - `ON_MISS`
   - `ON_CRIT`
 - this is more honest to SRD mechanics than a damage-only shortcut field and keeps the model reusable across spells, features, feats, equipment, creatures, and manifests
+- compiled spell grants now preserve authored `restrictions`, so specialization- and facet-routed spell packages survive compilation instead of being dropped before resolution
 
 Current DB/runtime boundary:
 
@@ -170,6 +171,8 @@ Current race-feature anchor finding:
 Current observed source-data counts:
 
 - `9` race/background files contain explicit `grants`
+- only `1` race/background/feat file currently contains explicit `capabilities`:
+  - `Dragonborn`
 - race files already show strong alignment for passive mechanics like ability score bonuses, senses, and persistent proficiencies
 - backgrounds already model persistent proficiencies better than most active mechanic-bearing families
 
@@ -178,20 +181,185 @@ Current race/background verdict:
 - these families are directionally closer to master-data readiness than spells
 - passive mechanics are often already landing in the correct grant-oriented abstraction
 - active race features still need cleanup where they currently remain prose-only
+- current repo-backed skew inside this family:
+  - races are much farther along on structured grants than classes
+  - `Dragonborn` is currently the main race-side active-capability proof
+  - backgrounds remain strong on proficiencies/equipment but largely descriptive on feature semantics
+- first systematic-audit follow-through already found one stale assumption and corrected it:
+  - `Mountain Dwarf -> Dwarven Armor Training` was still tagged as unmodelable even though the repo now supports armor proficiency grants by category/property
+  - that race feature has now been converted into a real structured proficiency grant
+- remaining race/background audit examples that still need follow-through:
+  - `Dwarf -> Stonecunning`
+  - background feature semantics such as `Acolyte -> Shelter of the Faithful`, which are still intentionally descriptive rather than typed capabilities
+- another race-side follow-through slice has now landed:
+  - `Dwarf -> Tool Proficiency` is no longer prose-only
+  - it now uses a real chosen equipment proficiency grant across `Brewer's Supplies`, `Mason's Tools`, and `Smith's Tools`
 
 ### Class and subclass findings
 
 Current observed source-data counts:
 
-- `22` class/race/background files contain `features`
-- only `2` class/feat files currently contain explicit `grants`
+- `35` class/race/background/feat files currently expose `features`
+- `18` files in those families currently expose explicit `grants`
+- only `2` files in those families currently expose explicit `capabilities`:
+  - `Dragonborn`
+  - `Fighter`
 - class source files are still heavily feature-description driven
 
 Current class/subclass verdict:
 
 - passive class scaffolding such as spellcasting/proficiencies/progression is partly structured
 - feature-level mechanics are still mostly descriptive rather than classified into grants or capabilities
+- persistent subclass identity branches should now be modeled as `specializations`, not `subtypes`
+- `Circle of the Land` terrain is the canonical subclass-specialization anchor, while Ranger favored terrain remains a feature-level repeated choice rather than subclass identity
+- `Circle of the Land` now also proves the canonical progressive subclass-spell pattern:
+  - one real `Circle Spells` feature
+  - multiple specialization-restricted `SPELL_GRANT`s on that feature
+  - `SCALING.PER_LEVEL` progression at later class levels
+- the current class/subclass tranche is still structurally uneven:
+  - passive proficiencies and some grant-driven spell packages are landing correctly
+  - active feature mechanics are still sparse outside the current proof cases
+  - prose regressions introduced by earlier large refactors are still worth watching for during the audit
 - class and subclass features are a major remaining audit cluster after spells
+
+Current representative class findings from the systematic audit:
+
+- `Barbarian`
+  - passive pieces like `Unarmored Defense` are partially structured
+  - major active features like `Rage`, `Reckless Attack`, and `Danger Sense` remain prose-heavy
+  - `Fast Movement` still points to a conditional speed-modifier gap because the current modifier surface does not cleanly express “+10 feet while you aren't wearing heavy armor”
+- `Ranger`
+  - spellcasting scaffolding and some fighting-style grants are structured
+  - `Favored Enemy` and `Natural Explorer` remain prose-heavy despite being major class-defining mechanics
+  - `Primeval Awareness`, `Hide in Plain Sight`, and `Vanish` are still descriptive feature shells rather than typed capabilities or grants
+  - the current blocker is not just retrofit time:
+    - `Favored Enemy` wants a stronger creature-type/language-choice and target-relative bonus model
+    - `Natural Explorer` wants travel/exploration-state semantics rather than combat-only modifiers
+    - `Vanish` and `Hide in Plain Sight` want clearer action-economy / hide-state support than the current grant surface exposes
+- `Cleric`
+  - spellcasting scaffolding is structured
+  - `Channel Divinity`, `Destroy Undead`, and `Divine Intervention` are still mostly feature-description placeholders
+- `Life Domain`
+  - `Domain Spells` now use honest per-level prepared spell grants instead of flattening the whole package into an immediate all-spells grant
+  - `Bonus Proficiency` is now a real heavy-armor proficiency grant
+- `Paladin`
+  - `Lay on Hands` is still blocked by pooled-healing resource semantics plus the disease-cure rider; it should not be flattened into a simple one-shot heal capability
+  - `Divine Health` is still blocked by missing disease-immunity semantics
+  - `Aura of Protection` and `Aura of Courage` still point to aura-radius ally-state semantics rather than plain grants
+- `Oath of Devotion`
+  - `Oath Spells` now use honest per-level prepared spell grants instead of flattening the whole package into an immediate all-spells grant
+- `The Fiend`
+  - `Expanded Spell List` is not the same mechanic as domain/oath always-prepared spells
+  - it now stays descriptive in source data instead of pretending to be a `SPELL_GRANT`
+  - it still points to a distinct model gap for subclass-driven spell-list expansion rather than spell grants
+  - `Dark One's Blessing` still points to a trigger-model gap: `HEAL` can already represent temporary hit points, but the current invocation trigger surface does not yet expose a clean non-activated `ON_HP_ZERO` trigger for “when you reduce a hostile creature to 0 hit points”
+  - `Fiendish Resilience` still points to a chosen-option modifier gap because the current chosen modifier shape does not expose a clean option list for selectable damage resistances plus short/long-rest reselection cadence
+- `Warlock Invocations`
+  - spell-grant-shaped invocations such as `Armor of Shadows`, `Fiendish Vigor`, `Mask of Many Faces`, and `Misty Visions` still point to a spell-access semantic gap
+  - current `SPELL_GRANT` structure does not yet encode “at will, without expending a spell slot” or similar invocation-specific casting permissions honestly
+- `Warlock Pact Boons`
+  - `Pact of the Chain` is now partially structured: `Find Familiar` is carried as a real known ritual spell grant, while the separate familiar-manifest/runtime semantics remain their own gap
+  - `Pact of the Tome` is now partially structured: the “choose three cantrips from any class's spell list” portion is a real chosen known-spell grant using the repo-derived cantrip corpus
+  - the later `Book of Ancient Secrets` ritual-book expansion still points to separate ritual-book and spell-copy semantics rather than a simple spell grant
+- `Race Innate Magic`
+  - race features such as `Tiefling -> Infernal Legacy` and `Drow -> Drow Magic` are now at least partially structured, with their cantrip portions carried as real known-spell grants
+  - current `SPELL_GRANT` structure does not yet encode “once per long rest,” “once per day,” or fixed-cast-level innate-magic permissions honestly
+- `Circle of the Land`
+  - now stands as the canonical specialization-driven subclass spell proof and remains structurally sound after spot review
+  - `Bonus Cantrip` is now a real chosen known-spell grant using the repo-derived druid cantrip option list instead of a prose-only feature shell
+  - `Land's Stride`, `Nature's Ward`, and `Nature's Sanctuary` remain blocked by terrain-state, source-creature-type, disease-immunity, and target-retargeting semantics that the current model does not yet expose cleanly
+- `College of Lore`
+  - `Bonus Proficiencies` is now a real chosen skill proficiency grant instead of a prose-only feature shell
+  - `Additional Magical Secrets` still points to a real spell-choice constraint gap: it needs “choose spells from any class, but only of levels you can currently cast, with cantrips also allowed” rather than a flat unrestricted spell picker
+- `Bard`
+  - both `Expertise` features at levels 3 and 10 are now real chosen doubled-skill proficiency grants instead of prose-only feature shells
+  - base `Magical Secrets` at levels 10, 14, and 18 points to the same cross-list spell-choice gap as `College of Lore`, even though the class-layer wording omits the explicit cantrip clause
+- `Fighter`
+  - `Fighting Style` now uses a real option-choice structure, and the `Archery`, `Defense`, and `Dueling` options are modeled as structured modifier grants instead of prose-only options
+  - `Great Weapon Fighting`, `Protection`, and `Two-Weapon Fighting` still point to reroll, reaction interception, and off-hand damage semantics that are not yet cleanly expressed by the current grant/capability model
+- `Champion`
+  - `Additional Fighting Style` now uses a real option-choice structure mirroring fighter fighting styles, with the same safe structured `Archery`, `Defense`, and `Dueling` options carried directly on the subclass feature
+  - `Remarkable Athlete` still points to conditional half-proficiency-on-nonproficient-checks semantics rather than a plain modifier or grant
+- `Draconic Bloodline`
+  - `Draconic Resilience` is now mostly structured: the AC-setting half and the per-sorcerer-level hit-point-maximum increase are both modeled as modifier grants
+  - the remaining descriptive truth is mostly presentational flavor, not a missing mechanical grant
+- `Rogue`
+  - `Expertise` still points to a mixed-choice gap: the SRD allows either two skill proficiencies or one skill proficiency plus thieves' tools, which is not the same shape as bard's pure skill-only expertise chooser
+  - the 6th-level `Expertise` feature is now at least structured as a real chosen doubled-skill proficiency grant, because that later feature is skill-only
+  - `Slippery Mind` is now a real Wisdom saving throw proficiency grant instead of a prose-only feature shell
+  - `Thieves' Cant` is now modeled as a real language proficiency grant while preserving its descriptive secret-code semantics in feature text
+- `Monk`
+  - `Diamond Soul` now at least structures the “proficiency in all saving throws” half as a real save proficiency grant
+  - the reroll-on-failure rider still points to a roll-event interception gap rather than a grant gap
+  - `Unarmored Movement` still points to a conditional movement-scaling gap because it combines level-based speed increases with armor and shield state requirements
+  - `Purity of Body` still points to disease-immunity semantics and poison-immunity ambiguity that should not be flattened casually
+  - `Empty Body` still points to charge-spending plus temporary invisibility and broad damage-resistance semantics rather than a simple passive modifier
+- `Rock Gnome`
+  - `Tinker` now at least structures the tinker's tools proficiency half as a real equipment proficiency grant
+  - the clockwork-device construction clause still remains descriptive until the item-creation/runtime path is richer
+- `Druid`
+  - `Druidic` is now modeled as a real language proficiency grant instead of a prose-only feature shell
+- `Half-Elf`
+  - `Skill Versatility` was carrying a chosen skill proficiency grant without explicit skill options; that source-data drift is now corrected
+- `Human`, `Half-Elf`, `High Elf`, and `Acolyte`
+  - chosen language proficiency grants now carry explicit language option lists instead of relying on unstated UI assumptions
+- `High Elf`
+  - `Cantrip` is now a real chosen known-spell grant using the repo-derived wizard cantrip option list instead of a prose-only feature shell
+- chosen-language integrity check
+  - the remaining race/background `AUTHORING_SELECTION_KIND.CHOSEN` language grants now verify cleanly with explicit `languageIds`
+  - the remaining `CHOSEN` cases in that audit slice are now legitimate tool/equipment/skill choices plus the separate half-elf ability-score modifier-choice gap
+- `Half-Elf -> Ability Score Increase`
+  - still points to a modifier-choice gap because the current chosen modifier shape does not expose the legal ability-choice set for the two `+1` increases
+- `Way of the Open Hand`
+  - `Wholeness of Body` is now a real limited-use activated self-heal capability instead of a prose-only feature shell
+- `School of Evocation`
+  - `Evocation Savant` still points to spellbook-copy cost/time modification semantics rather than a plain grant
+  - `Sculpt Spells`, `Potent Cantrip`, `Empowered Evocation`, and `Overchannel` still point to spell-resolution and damage-roll rider semantics beyond the current generic grant surface
+- `Thief`
+  - `Fast Hands`, `Second-Story Work`, `Supreme Sneak`, `Use Magic Device`, and `Thief's Reflexes` all remain blocked by action-economy reuse, movement/jump overrides, conditional stealth advantage, magic-item requirement bypass, and extra-turn sequencing semantics respectively
+- `Hunter`
+  - `Steel Will` is now a real structured modifier grant using the same frightened-save-advantage pattern already proven in race features
+  - sibling options such as `Colossus Slayer`, `Horde Breaker`, `Escape the Horde`, and `Multiattack Defense` remain prose because they still want stronger target-relative attack-state and per-turn retaliation semantics than the current grant surface exposes
+
+Current representative blocked race/class feature findings from the systematic audit:
+
+- `Dwarf -> Stonecunning`
+  - still blocked because the current model does not express subject-matter-restricted expertise such as doubled proficiency on `Intelligence (History)` checks specifically about the origin of stonework
+- `Halfling -> Lucky`
+  - still blocked because the current model does not express roll-event interception and forced rerolls on natural `1`s across attack rolls, ability checks, and saving throws
+- `Halfling -> Halfling Nimbleness`
+  - still blocked because the current model does not express occupancy and pass-through movement exceptions
+- `Elf -> Trance`
+  - still blocked because the current model does not express sleep replacement and rest-equivalence semantics
+- `Monk -> Tongue of the Sun and Moon`
+  - still blocked because the current model does not express universal spoken-language comprehension and cross-language communication semantics as a clean structured grant
+- `Cleric -> Channel Divinity`
+  - still blocked because the current model does not yet expose a mature authored pattern for a shared class resource pool consumed by multiple later capabilities
+- `Cleric -> Destroy Undead`
+  - still blocked because it wants follow-through branching from `Turn Undead`, keyed to target CR threshold after a failed save
+- `Cleric -> Divine Intervention`
+  - still blocked because it is a percentile petition with adjudicated outcome, long cooldown, and level-20 auto-success, not a normal typed combat/state result
+- `Hunter -> Colossus Slayer`
+  - still blocked because it wants a once-per-turn hit rider conditioned on the target being below hit point maximum
+- `Hunter -> Horde Breaker`
+  - still blocked because it wants follow-up attack generation with proximity constraints relative to the original target
+- `Hunter -> Escape the Horde`
+  - still blocked because it wants disadvantage scoped specifically to opportunity attacks made against you
+- `Hunter -> Multiattack Defense`
+  - still blocked because it wants a triggered, source-specific, turn-scoped AC bonus after being hit
+- `Champion -> Additional Fighting Style`
+  - still blocked because it wants a reusable class-feature option-selection pattern rather than a plain feat or proficiency grant
+
+Current representative background and feat findings from the systematic audit:
+
+- `Acolyte`
+  - proficiencies and starting equipment are structurally solid
+  - `Shelter of the Faithful` still reads correctly as a descriptive social/world-state feature rather than a typed mechanical capability
+- `Grappler`
+  - still mixes a passive attack-advantage clause with an action-based pin rider in pure prose
+  - the passive clause wants a target-relative grapple predicate the current modifier surface does not expose cleanly
+  - the active clause wants contested-resolution / grapple-state follow-through beyond the current generic activated-capability surface
+  - it remains a good proof that feats still need a stronger passive-versus-active classification pass after the class and equipment tranches settle
 
 Immediate implication:
 
@@ -210,6 +378,9 @@ Current feat verdict:
 
 - feats are not yet structurally complete as master data
 - they need direct passive-vs-active classification rather than remaining simple text blocks
+- current repo-backed proof is still minimal:
+  - the feat tranche currently has no explicit `capabilities`
+  - `Grappler` remains a useful audit example because it mixes a passive advantage clause with an action-based pin mechanic that still reads as prose
 
 ### Equipment findings
 
@@ -219,7 +390,9 @@ Current equipment source tree:
 - equipment source constants are now normalized to shared category/property/measurement registries instead of raw string literals
 - equipment authoring/persistence now round-trips `capabilities` as the preferred surface, with legacy `effects` still present only as compatibility drift in shared/schema/DB naming
 - magic gear remains equipment, not a separate subject; magical upgrades such as `+1` items should be authored as `VARIANT` children of the base item with the `MAGIC` property
-- current magic-variant gap: many `+1/+2/+3` equipment variants currently rely on metadata (`maxBonus`) without the equivalent passive modifier grants (`modifiers`) that should drive attack-roll, damage-roll, or AC outcomes at runtime
+- earlier magic-variant drift has improved substantially:
+  - sampled `+1/+2/+3` equipment variants now already include passive `modifiers` alongside `maxBonus`
+  - magic-variant modifier absence no longer appears to be the broadest unresolved equipment issue in the current source tree
 - equipment `cost` cannot be treated as universally required because the SRD magic-item section frequently omits purchase prices; magic gear should omit cost rather than inventing one
 - passive equipment such as holy symbols, druidic foci, and most tools should stay metadata-only unless they truly grant a passive modifier or an active mechanic; `RULE` should not be used just to say an item can be used during play
 - bundles and supplied containers should prefer concrete `contains` modeling when the SRD lists included items
@@ -240,7 +413,74 @@ Current equipment verdict:
   - `Alchemist's Fire`
   - `Antitoxin`
 - equipment activations, special-use mechanics, pack behavior, and loadout semantics still need a dedicated audit pass beyond those anchors
-- magic variant correctness is not complete until passive modifier grants are authored for the variant bonus itself; `maxBonus` metadata alone is not a full mechanics representation
+- magic variant correctness still deserves spot checks, but sampled `+1/+2/+3` variants now already include passive modifier grants alongside `maxBonus`; this is no longer the broadest unresolved equipment issue
+- systematic equipment spot checks now narrow the highest-signal remaining issues:
+  - the broadest remaining equipment problem is not magic variants; it is the mundane-tool / utility-item tranche still modeled as placeholder `ACTIVATED -> ON_USE -> RULE` capabilities that mostly restate "use this item according to the applicable check rules"
+  - representative files:
+    - `Calligrapher's Supplies`
+    - `Thieves' Tools`
+    - `Alchemist's Supplies`
+    - `Brewer's Supplies`
+    - `Disguise Kit`
+    - `Poisoner's Kit`
+    - `Tinderbox`
+    - `Crowbar`
+    - `Bell`
+    - `Block and Tackle`
+  - these are strong candidates for metadata-only or descriptive-item treatment unless the product explicitly wants a generic mundane-item action surface
+  - first cleanup slice has now landed on that tranche:
+    - broad tool records such as `Alchemist's Supplies`, `Brewer's Supplies`, `Calligrapher's Supplies`, `Cartographer's Tools`, `Carpenter's Tools`, `Cobbler's Tools`, `Cook's Utensils`, `Forgery Kit`, `Glassblower's Tools`, `Herbalism Kit`, `Jeweler's Tools`, `Leatherworker's Tools`, `Mason's Tools`, `Navigator's Tools`, `Painter's Supplies`, `Potter's Tools`, `Smith's Tools`, `Tinker's Tools`, `Weaver's Tools`, `Woodcarver's Tools`, plus `Disguise Kit`, `Poisoner's Kit`, and `Thieves' Tools`, have been flattened back to metadata-only equipment records
+    - second cleanup slice removed additional descriptive utility items such as `Fishing Tackle`, `Grappling Hook`, `Hammer`, `Iron Spikes (10)`, `Ladder (10-foot)`, `Pole (10-foot)`, `Magnifying Glass`, and `Portable Ram`
+    - third cleanup slice flattened simple light-source records such as `Candle`, `Lamp`, `Torch`, `Bullseye Lantern`, and `Hooded Lantern` back to metadata-only equipment
+    - follow-up cleanup also removed explicit no-op miss branches from `Acid (Vial)`, `Alchemist's Fire (Flask)`, `Holy Water (Flask)`, and `Net`, and flattened `Lock` back to metadata-only gear
+    - the remaining equipment `RULE` count is now down to `10`, and the residue is much more concentrated in genuinely special-use gear such as thrown substances, trap/hazard gear, healing supplies, restraints, and a few climbing/support items
+    - current residue list:
+      - `Alchemist's Fire (Flask)`
+      - `Antitoxin (Vial)`
+      - `Ball Bearings (Bag of 1,000)`
+      - `Caltrops (Bag of 20)`
+      - `Climber's Kit`
+      - `Healer's Kit (10 uses)`
+      - `Hunting Trap`
+      - `Manacles`
+      - `Net`
+      - `Oil (Flask)`
+    - current residue classification:
+      - likely convertible with stronger typed support:
+        - `Antitoxin (Vial)`
+          - looks close to `APPLY_GRANT`, but the current `SAVING_THROW_BONUS` domain only scopes by save ability plus optional condition type
+          - the repo still lacks an honest typed way to express "advantage on saving throws against poison" without approximating the rule
+        - `Climber's Kit`
+          - wants a more explicit movement/fall-protection or traversal-state grant if this family is ever typed more strongly
+      - likely valid constrained `RULE` for now:
+        - `Healer's Kit (10 uses)`
+          - "stabilize without a Medicine check" is still closer to a narrow action-override rule than a clean typed outcome
+        - `Manacles`
+          - escape/break clauses remain a good constrained special-case rule until equipment-applied restraint states are richer
+      - blocked by stronger trap/zone/runtime support:
+        - `Ball Bearings (Bag of 1,000)`
+        - `Caltrops (Bag of 20)`
+        - `Hunting Trap`
+        - `Oil (Flask)`
+          - these all want better hazard/zone/persistent-area semantics than the current equipment surface exposes
+      - correctly still mechanic-bearing:
+        - `Net`
+          - remains a legitimate structured attack item with a mixed `CONDITION` plus special rider rule
+        - `Alchemist's Fire (Flask)`
+          - remains a legitimate attack item, but the recurring burn/extinguish rider still needs richer ongoing-effect handling
+  - the second strongest equipment gap is bundle/container drift:
+    - pack records already use `contains`
+    - several filled-container or bundle-style ammo/deployment records still do not
+    - representative files:
+      - `Arrows (20)`
+      - `Crossbow Bolts (20)`
+      - `Blowgun Needles (50)`
+      - `Sling Bullets (20)`
+      - `Ball Bearings (Bag of 1,000)`
+      - `Caltrops (Bag of 20)`
+  - current good news from the same audit:
+    - sampled `+1/+2/+3` variants such as `Pike +1`, `Plate Armor +1`, and `Arrows +1` now already include real passive modifiers alongside `maxBonus`
+    - magic-variant modifier absence no longer appears to be the top unresolved equipment issue in the current source tree
 
 Important implementation fact:
 
@@ -254,17 +494,142 @@ Current creature source tree:
 
 - creature stat blocks are present and useful for baseline reference/master records
 - current creature files are still mostly stat-block shaped rather than capability/outcome shaped
-- reusable creature actions and traits have not yet been normalized into the shared capability/outcome model
+- reusable creature actions and traits should converge on the shared feature/capability model, with stat-block sections treated as presentation grouping rather than a second mechanic system
+- creature SRD files now use shared constants for record-kind/category/size and movement units, reducing literal drift across the creature corpus
+- the creature source tree is no longer the earlier `22`-record subset; it now covers the full local-SRD creature roster:
+  - `201` main `Monsters A-Z`
+  - `89` Appendix `MM-A` miscellaneous creatures
+  - `21` Appendix `MM-B` NPC stat blocks
+  - `311` total creature master records
+- current creature master records still do not have a direct default-equipment/loadout field; creature equipment remains modeled at character-owned roster assignment time, not on the creature master record itself
 
 Current creature verdict:
 
 - creature master records are useful and necessary for baseline play-state and roster ownership
-- creature action grammar still needs an explicit boundary decision relative to the shared capability/outcome model
+- creature action arrays are now treated as a temporary structural inconsistency relative to the shared capability/outcome model
+- the full SRD creature roster now exists in source data, including legendary-profile cases from the main monster set
+- the current creature import is still partly stat-block-first in source data, but the corrected direction is now explicit: traits, actions, bonus actions, reactions, legendary actions, and lair actions should converge on feature-owned capabilities, with action grouping derived from the capability layer rather than generic feature metadata
+- creature proficiency authoring is now converging on the same canonical grant model used elsewhere:
+  - plain creature skills use proficiency grants
+  - plain creature save proficiencies use proficiency grants
+  - plain fixed creature languages use proficiency grants
+  - creature-only authored fields such as `skillProficiencies`, `savingThrowProficiencies`, and root `languages` are no longer the target contract
+  - qualified communication semantics remain feature-driven instead of inventing a second creature-only language model
+  - examples that stay feature-driven:
+    - `Telepathy 120 ft.`
+    - `understands Common but can't speak`
+    - `any two languages`
+    - `the languages it knew in life`
+  - when a qualified communication feature still implies real language knowledge, the feature should also own the matching language proficiency grant
+  - fixed creature languages missing from the earlier seed vocabulary have been added so creature language grants stay id-based instead of falling back to prose
+- the earlier broad corruption tail from the generated creature tranche has now been materially cleaned up:
+  - truncated language/telepathy fields were repaired
+  - merged weakness/features were split back into distinct entries
+  - lore prose accidentally appended to mechanical actions was removed
+  - malformed spellcasting punctuation was normalized
+  - broad generated spacing/article artifacts were corrected across the remaining stat-block text
+- focused verification remains green on:
+  - `packages/db/src/__tests__/creature-repository.test.ts`
+  - `packages/db/src/__tests__/srd-manifest.test.ts`
+  - `packages/db/src/__tests__/facet-owner-roundtrip.test.ts`
+- current repo scan status for legacy creature action surfaces:
+  - `0` files in `packages/db/src/source-data/srd/creatures` still expose root `actions`, `reactions`, `bonusActions`, or `legendaryProfile` arrays as canonical authored mechanics
+  - creature active mechanics are now authored through feature-owned capabilities across the converted SRD creature corpus
+- current creature constrained-`RULE` footprint after action-surface convergence:
+  - creature `RULE` is now at a confirmed floor of `119` constrained occurrences
+  - remaining creature residue is blocker-driven rather than structural conversion debt
+  - this is now the primary creature follow-through surface (semantic gap reduction), not structural action-array cleanup
+- the creature capability-first proof set is now materially broader than the initial anchor slice:
+  - baseline action/reaction anchors:
+    - `Medusa`
+    - `Knight`
+    - `Bandit Captain`
+    - `Aboleth`
+    - `Gladiator`
+    - `Erinyes`
+  - dragon-family anchors:
+    - all adult dragons
+    - all ancient dragons
+    - all young dragons
+    - all dragon wyrmlings
+  - legendary/control anchors:
+    - `Androsphinx`
+    - `Gynosphinx`
+    - `Kraken`
+    - `Unicorn`
+    - `Lich`
+    - `Vampire`
+    - `Mummy Lord`
+    - `Planetar`
+    - `Solar`
+    - `Tarrasque`
+  - fiend/construct/elemental anchors:
+    - `Balor`
+    - `Marilith`
+    - `Pit Fiend`
+    - devil family anchors through `Ice Devil`
+    - elemental family anchors through `Water Elemental`
+    - golem/guardian anchors through `Shield Guardian`
+  - NPC/caster anchors:
+    - `Archmage`
+    - `Mage`
+    - `Priest`
+    - `Acolyte`
+    - `Cult Fanatic`
+    - `Druid`
+    - `Assassin`
+    - `Scout`
+    - `Spy`
+    - `Thug`
+    - `Veteran`
+  - undead/control anchors:
+    - `Ghast`
+    - `Ghoul`
+    - `Ghost`
+    - `Specter`
+    - `Wight`
+    - `Wraith`
 
 Important implementation fact:
 
-- creature files are currently carrying core stat-block/logistics data, not reusable action structures
-- the creature audit must decide what should remain native stat-block grammar versus what should reuse shared capability/outcome modeling
+- creature files are now materially converging on reusable action structures instead of only carrying native stat-block arrays
+- the creature audit has therefore shifted from "should we unify creatures at all" to "which remaining creature mechanics still need richer shared semantics before they can leave constrained `RULE`"
+- first representative post-conversion spot checks are directionally good:
+  - plain cases like `Medusa` and `White Dragon Wyrmling` read naturally with root proficiency grants
+  - qualified communication cases like `Pegasus`, `Dretch`, and `Aboleth` keep the caveat in feature text while exposing real underlying language knowledge where appropriate
+  - dynamic placeholder cases like `Zombie`, `Skeleton`, `Mummy`, and `Ghost` stay feature-driven instead of pretending "languages from life" is fixed vocabulary
+  - the remaining cleanup here is contextual polish on some generated feature labels such as `Language Knowledge` / `Language Limitation`, not a structural model gap
+- current recurring creature gap buckets are now clearer and repeat across many files:
+  - death-trigger and aura-tick semantics:
+    - `Balor -> Death Throes`
+    - `Balor -> Fire Aura`
+    - `Fire Elemental -> Fire Form`
+  - grapple/swallow/ingestion loops:
+    - `Kraken -> Bite` / `Swallow`
+    - `Tarrasque -> Swallow`
+    - `Water Elemental -> Whelm`
+  - life-drain / hit-point-maximum reduction / undead-creation semantics:
+    - `Specter`
+    - `Wight`
+    - `Wraith`
+    - `Vampire`
+  - fear/paralysis and repeat-save control riders:
+    - `Lich -> Frightening Gaze`
+    - `Ghast` / `Ghoul` paralysis
+    - dragon control breaths like sleep / weakening / slowing / repulsion / paralyzing
+  - wall, zone, and persistent object/control semantics:
+    - `Ice Devil -> Wall of Ice`
+    - `Chain Devil` animated chains
+    - `Solar -> Flying Sword`
+  - stored-spell / summon / companion-style semantics:
+    - `Shield Guardian -> Spell Storing`
+    - `Vampire -> Children of the Night`
+  - transformation / replacement semantics:
+    - dragon `Change Shape`
+  - mixed attack packages and spell-amplified attack riders:
+    - `Druid -> Quarterstaff` with `shillelagh`
+    - `Priest -> Divine Eminence`
+    - some NPC `Multiattack` bundles that are still partly descriptive
 
 ## Spell Family Audit Buckets
 
@@ -649,7 +1014,38 @@ Working rule:
 
 This keeps the equipment model honest without creating noise.
 
-### 4. Creature actions need a hybrid decision, not an all-or-nothing rewrite
+### 4. Creature actions should converge on features and capabilities
+
+The corrected 7.7 direction is now explicit:
+
+- preserve stat-block readability and section grouping
+- stop defending a separate creature-only active-mechanics system
+- treat section labels such as `Traits`, `Actions`, `Reactions`, and `Legendary Actions` as presentation concerns, not as a second mechanic surface or a generic feature property
+
+Current repo truth:
+
+- many creature records still use native `actions`, `bonusActions`, `reactions`, and `legendaryProfile.actions`
+- creature traits already live in `features`
+- representative source-data follow-through has started on `Medusa` and `Aboleth`, where action rows now live as feature-owned capabilities instead of the creature `actions` array, with descriptive action text using constrained `RULE` where full structure still is not worth faking
+- `Aboleth` now also proves the same direction for legendary-action presentation: a feature-owned limited-use shell with legendary action capabilities is structurally cleaner than the old `legendaryProfile.actions` array
+- `Knight` now extends that proof to reaction-style creature mechanics by moving `Parry` onto a feature-owned reaction capability and treating `Leadership` as a limited-use activated capability instead of a standalone action row
+- `Adult Black Dragon` now extends that proof into the dragon stat-block family by moving `Legendary Resistance`, core attacks, a recharge breath weapon, and legendary actions onto feature-owned mechanics instead of `actions` plus `legendaryProfile`
+- `Adult Blue Dragon` and `Adult Brass Dragon` now extend that same proof across more dragon-family variants, including single-breath and multi-breath action sets
+- `Gladiator` now extends the NPC-side proof with another mixed attack/reaction stat block, including a melee-or-ranged attack shell and a reaction capability
+- the adult-dragon proof set now extends across `Adult Black Dragon`, `Adult Blue Dragon`, `Adult Brass Dragon`, `Adult Bronze Dragon`, `Adult Copper Dragon`, and `Adult Gold Dragon`, covering:
+  - legendary resistance as limited-use feature state
+  - structured breath-weapon damage where the model clearly fits
+  - constrained `RULE` breath riders where the model still should not be faked
+  - `Change Shape` and `Frightful Presence` as feature-owned descriptive capabilities
+  - legendary action pools as feature-owned limited-use shells
+- `Erinyes` now extends the NPC/fiend proof set with feature-owned weapon capabilities, poison rider sequencing, and a reaction capability instead of separate creature `actions` and `reactions` arrays
+
+Legendary mechanics follow the same rule:
+
+- `Legendary Resistance` should converge on a feature with charges and reset semantics
+- `Legendary Actions` should converge on feature-owned capabilities backed by a legendary-action resource/pool
+
+This is no longer an open design question. It is now a consistency correction to be finished.
 
 The current creature master-data value is in stat blocks, ownership, and baseline roster use.
 
@@ -683,7 +1079,7 @@ Working rule:
 | Equipment passive metadata | High | High | Closest to ready |
 | Equipment special-use mechanics | Low to medium | Low | Not ready |
 | Creature master records | Medium | Medium | Partially ready |
-| Creature action/capability consistency | Low | Low | Not ready |
+| Creature action/capability consistency | Medium | Low | In progress |
 
 ## Next Concrete Audit Tasks
 
@@ -1078,7 +1474,7 @@ This is the concrete short-list the next implementation pass should close in ord
 - `Net`
   - decide if its special-use behavior should be item-owned capability content
 - `Wolf`
-  - document which creature actions stay native stat-block grammar
+  - continue the creature feature/capability convergence and record any true residual creature-only presentation metadata still needed after that conversion
 - familiar/steed linkage
   - decide how manifests should point to creature master records where appropriate
 
@@ -1185,6 +1581,7 @@ Examples that need consistent treatment:
 - verify whether modifier payloads are rich enough for all temporary spell and feature buffs/debuffs
 - verify whether temp HP needs any additional modifier-domain structure beyond the initial value-domain groundwork
 - audit current SRD source usage to find any mechanics that are currently authored as direct grants but are really active capabilities
+- spell-grant attributes still do not explicitly encode "does not count against prepared limit" as a separate structured flag; `PREPARED` currently carries the always-prepared side, but the preparation-cap exclusion semantics still need a dedicated follow-through decision
 
 ## Capabilities Audit
 
@@ -1359,6 +1756,16 @@ These are the current major open questions the repo still needs to close before 
 
 - full record-by-record SRD mechanics classification has not yet been completed
 - DB persistence and repository hydration have not yet been fully redesigned for the broader capability/branch/outcome surface
+- the shared engine now resolves class/subclass spell grants into `spellState`, and the separate lifecycle/build-state snapshot path now threads selected subclass specialization through `GAIN_CLASS_LEVEL` commands, `CharacterBuildState`, and `snapshotBuilder`; the honest remaining caveat is tooling-related rather than model-related, because `packages/schema` rebuilds are still blocked by the pre-existing `equipment.ts` serialization issue and the checked-in dist had to be synchronized directly for this tranche
+- current source-data inventory snapshot for the main 7.7 audit buckets:
+  - spells: `324`
+  - equipment: `357`
+  - creatures: `311`
+  - classes/subclasses source files: `24`
+  - races/subraces source files: `17`
+  - backgrounds: `1`
+  - feats: `1`
+  - vehicles: `11`
 
 ## Branch Refactor Decision
 
@@ -1413,12 +1820,64 @@ Every future `RULE` usage should document:
 - whether the gap is temporary or expected to remain
 - whether a better typed outcome should be added later
 
+### Tranche 1 cross-domain `RULE` snapshot (creatures + equipment now)
+
+Current repo scan snapshot for the active semantic-gap reduction tranche:
+
+- creatures:
+  - `119` constrained `RULE` occurrences (floor — all blocked)
+- equipment:
+  - `10` constrained `RULE` occurrences (all in special-use gear)
+- spells:
+  - `215` constrained `RULE` occurrences across `214` files
+  - scheduled as the next focused tranche, not part of current creature/equipment execution lane
+- classes/races/backgrounds/feats:
+  - `0` constrained `RULE` occurrences in current source scan
+
+The live blocked-gap ledger for this tranche is now tracked in:
+
+- [`PHASE_7_7_RULE_GAP_LEDGER.md`](c:/Users/pilan/Desktop/artificer-toolkit/PHASE_7_7_RULE_GAP_LEDGER.md)
+
+Ledger policy in this tranche:
+
+- convert only when semantics are fully representable
+- keep constrained `RULE` when conversion would hide real mechanics gaps
+- always log the minimum model/runtime addition needed to replace the remaining `RULE` honestly
+
+### Damage save-success normalization
+
+- convergence direction now applied:
+  - keep explicit `ON_SAVE_FAIL` and `ON_SAVE_SUCCESS` branches
+  - normalize half-damage semantics to generic damage `multiplier: 0.5`
+  - remove ad hoc `saveSuccess` usage from source data
+- rationale:
+  - avoids save-only shortcut fields
+  - keeps damage math in one outcome primitive
+  - reduces authored/runtime drift
+
+Latest direct conversion examples in this tranche:
+
+- `Iron Golem -> Poison Breath` now uses typed `DAMAGE` branches (`ON_SAVE_FAIL` / `ON_SAVE_SUCCESS` with success-side `multiplier: 0.5`) instead of duplicated `RULE` damage text
+- `Behir -> Lightning Breath` now uses a proper `SAVING_THROW` invocation and typed save-gated `DAMAGE` branches instead of a single `ON_USE -> RULE` block
+- `Magma Mephit -> Fire Claws` now uses a typed secondary fire `DAMAGE` rider (`1d4`) instead of a plain `RULE` damage sentence
+- `Ankheg -> Acid Spray` now uses a typed `SAVING_THROW` invocation and save-gated `DAMAGE` branches instead of a `RULE` save/damage sentence
+- `Kraken -> Lightning Storm` now uses a typed `SAVING_THROW` invocation and save-gated `DAMAGE` branches instead of a `RULE` save/damage sentence
+- mixed attack-form cleanup is now landing where mechanics are fully representable:
+  - `Archmage`, `Mage`, `Cult Fanatic`, and `Bandit Captain` dagger rows now use explicit melee/ranged attack capabilities with typed hit damage
+  - `Bugbear`, `Lizardfolk`, and `Ogre` javelin rows now use explicit melee/ranged attack capabilities with typed hit damage
+  - `Orc -> Javelin` now uses explicit melee/ranged attack capabilities with typed hit damage
+
 ### Current spell `RULE` audit snapshot
 
 Current repo snapshot:
 
-- `38` SRD spell files currently use `EFFECT_KIND.RULE`
+- `214` SRD spell files currently use `EFFECT_KIND.RULE` (`215` total occurrences)
 - those `RULE` usages should no longer be treated as one undifferentiated bucket
+- the large count confirms that spell inventory conversion is complete, but typed-outcome convergence is not
+- the current spell `RULE` bucket includes a mix of:
+  - valid constrained information/adjudication mechanics
+  - likely-structured buffs/debuffs still waiting on richer grant/modifier support
+  - manifest-like or recurring-command spells whose authored source shape is ahead of the current runtime/persistence semantics
 
 Use these audit buckets instead:
 
@@ -1442,6 +1901,10 @@ These are mostly information, omen, communication, or adjudication mechanics whe
 - `Speak with Dead`
 - `Speak with Plants`
 - `Tongues`
+- `Detect Magic`
+- `Find Traps`
+- `True Seeing`
+- `Wish`
 
 #### Convertible or partially convertible `RULE`
 
@@ -1461,6 +1924,16 @@ These should be challenged before being allowed to remain `RULE`:
   - likely want a richer roll-surface modifier path for “add or subtract 1d4 on attack rolls and saving throws”
 - `Heroism`
   - likely wants stronger ongoing temp-HP application plus frightened-protection support before it can leave `RULE` honestly
+- `Aid`
+  - likely wants a better max-hit-point-plus-current-hit-point typed grant path
+- `Bless` / `Bane`
+  - want richer roll-surface modifier support for attack-roll and saving-throw dice adjustments
+- `Shield`
+  - mostly wants `APPLY_GRANT` plus a separate resolution for the `Magic Missile` clause
+- `Spiritual Weapon`
+  - directionally wants richer `MANIFEST` plus commandable follow-up capability support rather than a flat `RULE`
+- `Mage Hand` / `Unseen Servant` / `Find Familiar`
+  - prove the manifest family direction, but the remaining command/control semantics still need richer follow-through before the whole family can be considered fully typed
 
 Conclusion:
 
@@ -1470,6 +1943,11 @@ Conclusion:
   - valid constrained `RULE`
   - convertible with the current model
   - blocked by a named model/runtime gap
+- the immediate spell audit follow-through should prioritize the highest-leverage convertible families rather than attempting to eliminate all `RULE` uses at once:
+  - AC-setting / passive-protection buffs
+  - attack-roll and saving-throw roll-surface modifiers
+  - recurring temp-HP / immunity bundles
+  - commandable or reusable manifests
 
 ### Targeting vocabulary drift note
 
@@ -1533,6 +2011,21 @@ The next 7.7 passes should use this audit as the working checklist:
 2. finish the DB/runtime persistence redesign for capabilities, branches, and expanded outcomes
 3. retrofit SRD source data to the corrected active/passive model
 4. keep handoff docs aligned with the master-data purpose of the phase
+
+## 2026-03-24 Mechanics Delta
+
+- Damage success semantics are now standardized:
+  - no SRD source records should use `saveSuccess`
+  - use explicit `ON_SAVE_SUCCESS` damage branches with `multiplier: 0.5`
+- Cross-domain reduction status remains:
+  - creatures: `119 RULE` (floor confirmed)
+  - equipment: `10 RULE`
+  - spells: `215 RULE` (`214` files)
+- Tranche sequencing remains unchanged:
+  - active: creature + equipment conservative semantic reduction
+  - next: focused spell `RULE` classification/conversion tranche
+- Strict-shape reminder for conversion work:
+  - do not attach ad hoc `label`/`description` on branch payloads; keep descriptive semantics at feature/capability/invocation layers.
 
 ## Handoff Notes
 

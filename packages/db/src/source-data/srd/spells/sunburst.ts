@@ -49,8 +49,7 @@ export const sunburst: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose a point within range. Creatures in the burst are affected.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -60,9 +59,6 @@ export const sunburst: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Sunburst',
-          description:
-            'Creatures in the burst take radiant damage and may be blinded by the flash on a failed Constitution saving throw.'
         },
         {
           id: spellChildId(SPELL_IDS.SUNBURST, 0x214, 1),
@@ -70,9 +66,6 @@ export const sunburst: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Sunburst',
-          description:
-            'Creatures in the burst take half damage on a successful Constitution saving throw.'
         }
       ]
     }

@@ -46,8 +46,7 @@ export const arcaneHand: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Create the hand in an unoccupied space within range.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -63,7 +62,6 @@ export const arcaneHand: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.OBJECT,
-          label: 'Arcane Hand',
           detail:
             'Creates a Large hand of force that moves at your command and can be directed by later capabilities if the model supports them.'
         }

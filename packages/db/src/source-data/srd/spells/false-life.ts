@@ -41,8 +41,7 @@ export const falseLife: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF,
-          detail: 'Bolster yourself with temporary necromantic vitality.'
+          selectionKind: TARGET_SELECTION_KIND.SELF
         }
       },
       branches: [

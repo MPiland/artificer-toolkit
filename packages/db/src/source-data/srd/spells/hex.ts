@@ -45,8 +45,7 @@ export const hex: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Curse one creature you can see within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -61,9 +60,6 @@ export const hex: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Hex',
-          description:
-            'Curse the target, adding the spell\'s extra necrotic-damage rider to your hits and imposing disadvantage on checks with one chosen ability. This still needs a richer rider-damage, chosen-ability, and transfer-on-death model.'
         }
       ]
     }

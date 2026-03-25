@@ -39,8 +39,7 @@ export const spareTheDying: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Touch one living creature that has 0 hit points.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -50,8 +49,6 @@ export const spareTheDying: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Stabilize',
-          description: 'The touched creature becomes stable under the spell’s normal SRD rules.'
         }
       ]
     }

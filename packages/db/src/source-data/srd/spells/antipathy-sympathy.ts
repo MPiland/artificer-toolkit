@@ -43,8 +43,7 @@ export const antipathySympathy: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose a creature, object, or area to imbue with antipathy or sympathy.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -59,8 +58,6 @@ export const antipathySympathy: SpellAuthored = {
             amount: 10
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Antipathy/Sympathy',
-          description: 'Creates an attraction or repulsion effect for the chosen target and creatures.'
         }
       ]
     }

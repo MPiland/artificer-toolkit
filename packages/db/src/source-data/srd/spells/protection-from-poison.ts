@@ -40,8 +40,7 @@ export const protectionFromPoison: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Touch one creature.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -56,9 +55,6 @@ export const protectionFromPoison: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Protection from Poison',
-          description:
-            'This spell currently needs a richer restriction and advantage model to express poison neutralization, poison damage resistance, and advantage on saves against being poisoned without collapsing it into a guess.'
         }
       ]
     }

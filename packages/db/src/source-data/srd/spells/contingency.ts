@@ -40,8 +40,7 @@ export const contingency: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Bind one eligible contingent spell to yourself with a chosen trigger.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -56,9 +55,6 @@ export const contingency: SpellAuthored = {
             amount: 10
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Contingency',
-          description:
-            'Stores a contingent self-targeted spell and trigger under the spell’s full delayed-casting rules.'
         }
       ]
     }

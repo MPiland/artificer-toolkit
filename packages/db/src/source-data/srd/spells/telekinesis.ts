@@ -56,8 +56,7 @@ export const telekinesis: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one creature or object you can see within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -72,9 +71,6 @@ export const telekinesis: SpellAuthored = {
             amount: 10
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Telekinesis',
-          description:
-            'Lets you move or manipulate the chosen creature or object each round while concentrating.'
         }
       ]
     }

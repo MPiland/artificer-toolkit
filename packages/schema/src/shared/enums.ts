@@ -55,7 +55,7 @@ export const relationCodeSchema = z.enum([
 ])
 
 export const predicateCodeSchema = z.enum([
-  'SUBCLASS_SUBTYPE',
+  'SUBCLASS_SPECIALIZATION',
   'SPELLCASTING',
   'RANGE',
   'DURATION',
@@ -211,7 +211,7 @@ export const spellGrantAttributeSchema = z.enum([
   'SELF_ONLY'
 ])
 
-export const effectKindSchema = z.enum(['DAMAGE', 'CONDITION', 'HEAL', 'APPLY_GRANT', 'TELEPORT', 'MANIFEST', 'RULE'])
+export const effectKindSchema = z.enum(['DAMAGE', 'CONDITION', 'HEAL', 'APPLY_GRANT', 'FORCED_MOVEMENT', 'TELEPORT', 'MANIFEST', 'RULE'])
 export const branchCodeSchema = z.enum([
   'PASSIVE',
   'ON_USE',
@@ -230,6 +230,12 @@ export const branchCodeSchema = z.enum([
 export const branchGroupTypeSchema = z.enum(['SINGLE', 'CHOICE', 'SEQUENTIAL'])
 export const branchResolutionKindSchema = z.enum(['DIRECT', 'ROLL_TABLE'])
 export const branchRollTableKindSchema = z.enum(['RANGE', 'EXACT'])
+export const branchLifecycleRecurringKindSchema = z.enum(['NONE', 'START_OF_TURN', 'END_OF_TURN'])
+export const branchLifecycleConsumeEventSchema = z.enum(['ON_ATTACK_ROLL', 'ON_CAST_SPELL'])
+export const branchLifecycleEndEventSchema = z.enum(['ON_ATTACK_ROLL', 'ON_CAST_SPELL'])
+export const forcedMovementDirectionSchema = z.enum(['AWAY_FROM_SOURCE', 'TOWARD_SOURCE', 'CHOICE'])
+export const forcedMovementDistanceModeSchema = z.enum(['UP_TO_SPEED', 'FIXED_DISTANCE'])
+export const forcedMovementActionEconomySchema = z.enum(['NONE', 'REACTION'])
 
 export const valueDomainCodeSchema = z.enum([
   'SPEED',

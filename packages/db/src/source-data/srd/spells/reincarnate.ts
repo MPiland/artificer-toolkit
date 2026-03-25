@@ -39,8 +39,7 @@ export const reincarnate: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Touch the dead humanoid whose soul will be called back.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -50,9 +49,6 @@ export const reincarnate: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Reincarnate',
-          description:
-            'The soul returns to life in a new adult body with a randomly determined race, provided the soul is free and willing.'
         }
       ]
     }

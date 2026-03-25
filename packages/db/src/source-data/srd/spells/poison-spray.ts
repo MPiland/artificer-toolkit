@@ -50,8 +50,7 @@ export const poisonSpray: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'One creature you can see within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -71,15 +70,6 @@ export const poisonSpray: SpellAuthored = {
             { id: spellChildId(SPELL_IDS.POISON_SPRAY, 0x212, 4), level: 11, order: 3, diceConfig: '3d12' },
             { id: spellChildId(SPELL_IDS.POISON_SPRAY, 0x212, 5), level: 17, order: 4, diceConfig: '4d12' }
           ]
-        },
-        {
-          id: spellChildId(SPELL_IDS.POISON_SPRAY, 0x213, 1),
-          branch: BRANCH.ON_SAVE_SUCCESS,
-          groupType: BRANCH_GROUP_TYPE.SINGLE,
-          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
-          effectKind: EFFECT_KIND.RULE,
-          label: 'Successful Save',
-          description: 'On a successful saving throw, the target takes no damage.'
         }
       ]
     }

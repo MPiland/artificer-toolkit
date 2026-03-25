@@ -56,8 +56,7 @@ export const astralProjection: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-          detail: 'Choose yourself and up to eight willing creatures within range to project.'
+          selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES
         }
       },
       branches: [
@@ -67,9 +66,6 @@ export const astralProjection: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Astral Projection',
-          description:
-            'Projects the chosen creatures into the Astral Plane and leaves their bodies behind.'
         },
         {
           id: spellChildId(SPELL_IDS.ASTRAL_PROJECTION, 0x214, 1),
@@ -77,8 +73,6 @@ export const astralProjection: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'No Projection',
-          description: 'The spell fails for that creature and no projection occurs.'
         }
       ]
     }

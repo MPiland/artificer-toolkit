@@ -44,8 +44,7 @@ export const programmedIllusion: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Create an illusion within range that becomes active when a condition is met.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -59,9 +58,6 @@ export const programmedIllusion: SpellAuthored = {
             durationKind: DURATION_KIND.UNTIL_DISPELLED
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Programmed Illusion',
-          description:
-            'Creates an illusion that remains imperceptible until its programmed condition is met.'
         }
       ]
     }

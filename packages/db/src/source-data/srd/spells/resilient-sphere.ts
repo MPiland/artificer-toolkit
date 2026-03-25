@@ -57,8 +57,7 @@ export const resilientSphere: SpellAuthored = {
           }
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Enclose a creature or object within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -74,7 +73,6 @@ export const resilientSphere: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.ZONE,
-          label: 'Resilient Sphere',
           detail:
             'Creates a shimmering force sphere that encloses the chosen target until the duration ends.'
         }

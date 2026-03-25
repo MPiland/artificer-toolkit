@@ -43,8 +43,7 @@ export const wordOfRecall: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-          maxTargets: 6,
-          detail: 'You and up to five willing creatures within 5 feet of you.'
+          maxTargets: 6
         }
       },
       branches: [

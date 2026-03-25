@@ -115,8 +115,11 @@ export const DAMAGE_NODE_MAP = damage.define('damage', ({ map, nodes, cond, data
       order: 4,
       requiredIf: true
     }))
-    .set('bonuses', groupArray(['bonuses'], 'Damage Bonuses', () => DAMAGE_BONUS_NODE_MAP, {
+    .set('multiplier', number(['multiplier'], 'Damage Multiplier', {
       order: 5
+    }))
+    .set('bonuses', groupArray(['bonuses'], 'Damage Bonuses', () => DAMAGE_BONUS_NODE_MAP, {
+      order: 6
     }))
 })
 

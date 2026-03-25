@@ -16,7 +16,7 @@ import {
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { SRD_MAGIC_SCHOOLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-import { spellChildId } from './shared.js'
+import { conditionTypeId, spellChildId } from './shared.js'
 
 function schoolId(code: string): string {
   const entry = SRD_MAGIC_SCHOOLS.find((s) => s.code === code)
@@ -29,7 +29,7 @@ export const greaterInvisibility: SpellAuthored = {
   id: SPELL_IDS.GREATER_INVISIBILITY,
   label: 'Greater Invisibility',
   description:
-    "You or a creature you touch becomes invisible until the spell ends. Anything the target is wearing or carrying is invisible as long as it is on the target's person.",
+    'You or a creature you touch becomes invisible until the spell ends. Anything the target is wearing or carrying is invisible as long as it is on the target\'s person.',
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 4,
   classIds: [CLASS_IDS.BARD, CLASS_IDS.SORCERER, CLASS_IDS.WIZARD],
@@ -51,8 +51,7 @@ export const greaterInvisibility: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.WILLING,
-          detail: 'Touch yourself or one willing creature.'
+          dispositionKind: TARGET_DISPOSITION_KIND.WILLING
         }
       },
       branches: [
@@ -66,10 +65,8 @@ export const greaterInvisibility: SpellAuthored = {
             durationKind: DURATION_KIND.MINUTE,
             amount: 1
           },
-          effectKind: EFFECT_KIND.RULE,
-          label: 'Greater Invisibility',
-          description:
-            'The target becomes invisible for the duration, with its gear included under the spell’s rules.'
+          effectKind: EFFECT_KIND.CONDITION,
+          conditionId: conditionTypeId('INVISIBLE')
         }
       ]
     }

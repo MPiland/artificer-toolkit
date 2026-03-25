@@ -60,8 +60,7 @@ export const phantomSteed: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'An unoccupied space within range where the steed appears.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         },
         shape: {
           id: spellChildId(SPELL_IDS.PHANTOM_STEED, 0x212, 1),
@@ -85,7 +84,6 @@ export const phantomSteed: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.CREATURE,
-          label: 'Phantom Steed',
           detail:
             'Creates a riding steed of illusory force that persists for the duration and can be mounted.'
         }

@@ -42,8 +42,7 @@ export const dimensionDoor: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF,
-          detail: 'Teleport yourself, optionally bringing one willing creature of your size or smaller.'
+          selectionKind: TARGET_SELECTION_KIND.SELF
         }
       },
       branches: [

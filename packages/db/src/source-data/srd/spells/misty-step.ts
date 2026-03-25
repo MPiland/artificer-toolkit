@@ -42,8 +42,7 @@ export const mistyStep: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF,
-          detail: 'You teleport to an unoccupied space you can see.'
+          selectionKind: TARGET_SELECTION_KIND.SELF
         }
       },
       branches: [

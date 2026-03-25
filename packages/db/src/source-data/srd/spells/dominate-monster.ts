@@ -16,7 +16,7 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { conditionTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 
 export const dominateMonster: SpellAuthored = {
   kind: SUBJECT.SPELL,
@@ -26,7 +26,9 @@ export const dominateMonster: SpellAuthored = {
     'You attempt to beguile a creature that you can see within range. It must succeed on a Wisdom saving throw or be charmed by you for the duration.',
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 8,
-  classIds: [CLASS_IDS.BARD, CLASS_IDS.SORCERER, CLASS_IDS.WARLOCK, CLASS_IDS.WIZARD],
+  classIds: [
+    CLASS_IDS.BARD, CLASS_IDS.SORCERER, CLASS_IDS.WARLOCK, CLASS_IDS.WIZARD
+  ],
   magicSchoolId: schoolId('ENCHANTMENT'),
   attributes: [SPELL_ATTRIBUTE.CONCENTRATION],
   capabilities: [
@@ -51,8 +53,7 @@ export const dominateMonster: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one creature you can see within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -66,19 +67,8 @@ export const dominateMonster: SpellAuthored = {
             durationKind: DURATION_KIND.HOUR,
             amount: 1
           },
-          effectKind: EFFECT_KIND.RULE,
-          label: 'Dominated Creature',
-          description:
-            'On a failed save, the creature is charmed by you and subject to the spell’s command and control rules for the duration.'
-        },
-        {
-          id: spellChildId(SPELL_IDS.DOMINATE_MONSTER, 0x215, 1),
-          branch: BRANCH.ON_SAVE_SUCCESS,
-          groupType: BRANCH_GROUP_TYPE.SINGLE,
-          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
-          effectKind: EFFECT_KIND.RULE,
-          label: 'Successful Save',
-          description: 'On a successful save, the creature is unaffected.'
+          effectKind: EFFECT_KIND.CONDITION,
+          conditionId: conditionTypeId('CHARMED')
         }
       ]
     }

@@ -7,6 +7,7 @@ import {
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
   PROFICIENCY_KIND,
+  RANGE_KIND,
   RACE_CATEGORY_CODE,
   SCALING,
   SCALING_AMOUNT_KIND,
@@ -103,7 +104,7 @@ export const halfOrc: RaceAuthored = {
             senseIds: [SRD_DARKVISION_SENSE_ID],
             range: {
               id: raceFeatureId(8, 2, 3),
-              rangeKind: 'DISTANCE' as const,
+              rangeKind: RANGE_KIND.DISTANCE,
               amount: 60,
               unit: MEASUREMENT_UNIT_CODE.FEET
             },

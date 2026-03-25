@@ -576,8 +576,7 @@ export function meleeVersatileWeaponCapabilities(
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
         range: meleeRange(equipmentId, 0x210),
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'One-handed attack.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [damageBranch(equipmentId, 0x212, damageTypeCode, dice1h)]
@@ -590,8 +589,7 @@ export function meleeVersatileWeaponCapabilities(
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
         range: meleeRange(equipmentId, 0x220),
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Two-handed attack (versatile).'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [damageBranch(equipmentId, 0x222, damageTypeCode, dice2h)]
@@ -647,8 +645,7 @@ export function thrownVersatileWeaponCapabilities(
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
         range: meleeRange(equipmentId, 0x210),
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'One-handed attack.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [damageBranch(equipmentId, 0x212, damageTypeCode, dice1h)]
@@ -661,8 +658,7 @@ export function thrownVersatileWeaponCapabilities(
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
         range: meleeRange(equipmentId, 0x220),
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Two-handed attack (versatile).'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [damageBranch(equipmentId, 0x222, damageTypeCode, dice2h)]

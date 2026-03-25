@@ -45,9 +45,7 @@ export const magicMissile: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-          maxTargets: 3,
-          detail:
-            'Choose one or more creatures you can see within range, assigning the spell\'s darts among them.'
+          maxTargets: 3
         }
       },
       branches: [

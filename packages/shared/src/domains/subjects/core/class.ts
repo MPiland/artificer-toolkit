@@ -64,7 +64,7 @@ export const CLASS_ATTRIBUTE_OPTIONS = valuesOf(
 
 export const SUBCLASS_ATTRIBUTE = {
   ...CLASS_ATTRIBUTE,
-  SUBTYPE: 'SUBTYPE'
+  SPECIALIZATION: 'SPECIALIZATION'
 } as const
 
 export type SubclassAttribute = keyof typeof SUBCLASS_ATTRIBUTE
@@ -73,11 +73,11 @@ export type SubclassAttributeOption = CoreMeta<SubclassAttribute>
 
 export const SUBCLASS_ATTRIBUTE_REGISTRY: Record<SubclassAttribute, SubclassAttributeOption> = {
   ...CLASS_ATTRIBUTE_REGISTRY,
-  SUBTYPE: {
-    code: SUBCLASS_ATTRIBUTE.SUBTYPE,
-    label: 'Subtype',
-    description: 'The subclass has a specific subtype, such as Druid Circle of the Lands terrains or Barbarian Path of the Totem.',
-    tooltip: 'Defines a specific type or category within the subclass.'
+  SPECIALIZATION: {
+    code: SUBCLASS_ATTRIBUTE.SPECIALIZATION,
+    label: 'Specialization',
+    description: 'The subclass has a persistent specialization identity, such as Druid Circle of the Land terrain or Barbarian totem path.',
+    tooltip: 'Defines a lasting specialization within the subclass.'
   }
 } as const
 

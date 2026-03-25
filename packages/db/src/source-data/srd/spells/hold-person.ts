@@ -16,7 +16,7 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { conditionTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 
 export const holdPerson: SpellAuthored = {
   kind: SUBJECT.SPELL,
@@ -51,8 +51,7 @@ export const holdPerson: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one humanoid you can see within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -66,19 +65,8 @@ export const holdPerson: SpellAuthored = {
             durationKind: DURATION_KIND.MINUTE,
             amount: 1
           },
-          effectKind: EFFECT_KIND.RULE,
-          label: 'Held',
-          description:
-            'The target is paralyzed for the duration and can repeat the saving throw at the end of each of its turns. This still needs a richer repeated-save and paralysis-state model.'
-        },
-        {
-          id: spellChildId(SPELL_IDS.HOLD_PERSON, 0x215, 1),
-          branch: BRANCH.ON_SAVE_SUCCESS,
-          groupType: BRANCH_GROUP_TYPE.SINGLE,
-          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
-          effectKind: EFFECT_KIND.RULE,
-          label: 'Unaffected',
-          description: 'A target that succeeds on the saving throw is unaffected by the spell.'
+          effectKind: EFFECT_KIND.CONDITION,
+          conditionId: conditionTypeId('PARALYZED')
         }
       ]
     }

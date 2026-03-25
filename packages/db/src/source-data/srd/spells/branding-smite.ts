@@ -47,8 +47,7 @@ export const brandingSmite: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF,
-          detail: 'Empower your next weapon attack before the spell ends.'
+          selectionKind: TARGET_SELECTION_KIND.SELF
         }
       },
       branches: [
@@ -58,9 +57,6 @@ export const brandingSmite: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Branding Smite',
-          description:
-            'The next weapon hit before the spell ends deals extra radiant damage and can reveal an invisible target.'
         }
       ]
     }

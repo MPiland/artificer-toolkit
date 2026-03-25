@@ -47,8 +47,7 @@ export const silentImage: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Create the image within range.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -63,9 +62,6 @@ export const silentImage: SpellAuthored = {
             amount: 10
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Silent Image',
-          description:
-            'Creates a silent visual illusion that can be moved and altered while you remain within range.'
         }
       ]
     }

@@ -109,7 +109,8 @@ export const damageDtoSchema = z.object({
   effectKind: z.literal('DAMAGE'),
   damageTypeId: z.string(),
   bonuses: z.array(damageBonusDtoSchema).optional(),
-  amountKind: scalingAmountKindSchema.optional()
+  amountKind: scalingAmountKindSchema.optional(),
+  multiplier: z.number().optional()
 }).and(z.union([damageFixedDtoSchema, damageDiceDtoSchema, damagePoolDtoSchema]))
 
 export type DamageDto = z.infer<typeof damageDtoSchema>

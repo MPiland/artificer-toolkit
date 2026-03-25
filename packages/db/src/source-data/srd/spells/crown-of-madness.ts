@@ -17,7 +17,7 @@ import {
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { SRD_MAGIC_SCHOOLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-import { spellChildId } from './shared.js'
+import { conditionTypeId, spellChildId } from './shared.js'
 
 function schoolId(code: string): string {
   const entry = SRD_MAGIC_SCHOOLS.find((s) => s.code === code)
@@ -33,7 +33,9 @@ export const crownOfMadness: SpellAuthored = {
     'One humanoid of your choice that you can see within range must succeed on a Wisdom saving throw or become charmed by you for the duration. While the target is charmed in this way, a twisted crown of jagged iron appears on its head.',
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 2,
-  classIds: [CLASS_IDS.BARD, CLASS_IDS.SORCERER, CLASS_IDS.WARLOCK, CLASS_IDS.WIZARD],
+  classIds: [
+    CLASS_IDS.BARD, CLASS_IDS.SORCERER, CLASS_IDS.WARLOCK, CLASS_IDS.WIZARD
+  ],
   magicSchoolId: schoolId('ENCHANTMENT'),
   attributes: [SPELL_ATTRIBUTE.CONCENTRATION],
   capabilities: [
@@ -58,8 +60,7 @@ export const crownOfMadness: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one humanoid you can see within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -73,19 +74,8 @@ export const crownOfMadness: SpellAuthored = {
             durationKind: DURATION_KIND.MINUTE,
             amount: 1
           },
-          effectKind: EFFECT_KIND.RULE,
-          label: 'Crown of Madness',
-          description:
-            'The target is charmed and forced into the spell\'s attack behavior for the duration. This still needs a richer charm-control and repeat-action model.'
-        },
-        {
-          id: spellChildId(SPELL_IDS.CROWN_OF_MADNESS, 0x215, 1),
-          branch: BRANCH.ON_SAVE_SUCCESS,
-          groupType: BRANCH_GROUP_TYPE.SINGLE,
-          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
-          effectKind: EFFECT_KIND.RULE,
-          label: 'Unaffected',
-          description: 'A target that succeeds on the saving throw is unaffected by the crown.'
+          effectKind: EFFECT_KIND.CONDITION,
+          conditionId: conditionTypeId('CHARMED')
         }
       ]
     }

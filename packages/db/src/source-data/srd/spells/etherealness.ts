@@ -40,8 +40,7 @@ export const etherealness: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'You step into the Border Ethereal and may include extra creatures at higher slot levels.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -56,9 +55,6 @@ export const etherealness: SpellAuthored = {
             amount: 8
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Etherealness',
-          description:
-            'Moves you into the Border Ethereal under the spell’s full travel, perception, and dismissal rules.'
         }
       ]
     }

@@ -58,8 +58,7 @@ export const eyebite: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one creature you can see within 60 feet.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -74,9 +73,6 @@ export const eyebite: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Eyebite',
-          description:
-            'The target is affected under the spell’s dread-power rules, but the precise fear/sleep/panicked rider handling remains a rules fallback.'
         },
         {
           id: spellChildId(SPELL_IDS.EYEBITE, 0x215, 1),
@@ -84,8 +80,6 @@ export const eyebite: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Unaffected',
-          description: 'A target that succeeds on the saving throw is unaffected by the spell.'
         }
       ]
     }

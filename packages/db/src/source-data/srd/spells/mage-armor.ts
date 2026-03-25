@@ -42,8 +42,7 @@ export const mageArmor: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          dispositionKind: TARGET_DISPOSITION_KIND.WILLING,
-          detail: 'Touch one willing creature that isn\'t wearing armor.'
+          dispositionKind: TARGET_DISPOSITION_KIND.WILLING
         }
       },
       branches: [
@@ -58,9 +57,6 @@ export const mageArmor: SpellAuthored = {
             amount: 8
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Mage Armor',
-          description:
-            'The target\'s base AC becomes 13 + its Dexterity modifier until the spell ends, unless it dons armor before then.'
         }
       ]
     }

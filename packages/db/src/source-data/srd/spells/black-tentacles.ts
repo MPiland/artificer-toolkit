@@ -55,8 +55,7 @@ export const blackTentacles: SpellAuthored = {
           }
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Fill a 20-foot square on the ground you can see within range.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -72,7 +71,6 @@ export const blackTentacles: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.ZONE,
-          label: 'Black Tentacles',
           detail:
             'Creates a zone of writhing black tentacles that turns the area into difficult terrain and threatens to restrain creatures caught within it.'
         }

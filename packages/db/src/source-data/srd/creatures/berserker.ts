@@ -1,16 +1,16 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
-import { CR, CREATURE_IDS, CREATURE_TYPE, SRD_SYSTEM_ID, SRD_USER_ID, walk } from './shared.js'
+import * as S from './shared.js'
 
 export const berserker: CreatureAuthored = {
-  id: CREATURE_IDS.BERSERKER,
+  id: S.CREATURE_IDS.BERSERKER,
   label: 'Berserker',
-  description: 'A fierce warrior who enters a battle rage that makes them nearly unstoppable.',
-  userId: SRD_USER_ID,
-  systemId: SRD_SYSTEM_ID,
-  recordKind: 'STAT_BLOCK',
-  category: 'NPC',
-  creatureTypeId: CREATURE_TYPE.HUMANOID,
-  size: 'MEDIUM',
+  userId: S.SRD_USER_ID,
+  systemId: S.SRD_SYSTEM_ID,
+  recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
+  category: S.CREATURE_CATEGORY_CODE.NPC,
+  creatureTypeId: S.CREATURE_TYPE.HUMANOID,
+  size: S.SIZE_CODE.MEDIUM,
+  tags: ['any race'],
   abilityScores: {
     STRENGTH: 16,
     DEXTERITY: 12,
@@ -24,7 +24,76 @@ export const berserker: CreatureAuthored = {
   armorClassNote: 'hide armor',
   hitPoints: 67,
   hitDice: '9d8+27',
-  speeds: walk(30),
-  challengeRatingId: CR.CR_2,
-  xp: 450
+  speeds: [...S.walk(30)],
+  passivePerception: 10,
+  challengeRatingId: S.CR.CR_2,
+  xp: 450,
+  features: [
+    {
+      id: S.featureId(44, 1),
+      label: 'Reckless',
+      description: 'Reckless. At the start of its turn, the berserker can gain advantage on all melee weapon attack rolls during that turn, but attack rolls against it have advantage until the start of its next turn.',
+      order: 1
+    },
+    {
+      id: S.featureId(44, 2),
+      label: 'Language Knowledge',
+      description: 'Any one language (usually Common).',
+      grants: {
+        proficiencies: [
+          S.grantedLanguageProficiency(44, 1, 'COMMON')
+        ]
+      },
+      order: 2
+    },
+    {
+      id: S.featureId(44, 3),
+      label: 'Greataxe',
+      description: 'Greataxe. Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 9 (1d12 + 3) slashing damage.',
+      capabilities: [
+        {
+          id: S.actionId(44, 1),
+          order: 1,
+          invocation: {
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: {
+              code: S.ACTIVATION_CODE.ACTION,
+              amount: 1
+            },
+            range: {
+              id: S.actionId(44, 2),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+            }
+          },
+          branches: [
+            {
+              id: S.actionId(44, 3),
+              branch: S.BRANCH.ON_HIT,
+              groupType: S.BRANCH_GROUP_TYPE.SINGLE,
+              resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
+              effectKind: S.EFFECT_KIND.DAMAGE,
+              damageTypeId: S.damageTypeId('SLASHING'),
+              valueKind: S.DAMAGE_VALUE_KIND.DICE,
+              scalingKind: S.SCALING.NONE,
+              diceConfig: '1d12',
+              bonuses: [
+                {
+                  id: S.actionId(44, 4),
+                  bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
+                  ability: S.ABILITY_CODE.STRENGTH,
+                  order: 1
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      order: 3
+    }
+  ]
 }

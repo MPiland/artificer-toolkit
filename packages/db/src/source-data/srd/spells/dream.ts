@@ -39,8 +39,7 @@ export const dream: SpellAuthored = {
           rangeKind: RANGE_KIND.SPECIAL
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one creature known to you on the same plane of existence.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -50,9 +49,6 @@ export const dream: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Dream',
-          description:
-            "Shapes the target's dreams or delivers a nightmare messenger under the spell’s full SRD rules."
         }
       ]
     }

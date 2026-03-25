@@ -42,7 +42,7 @@ function buildCharacter(): CharacterAuthored {
           classId: 'class-1',
           classLevel: 3,
           subclassId: 'subclass-1',
-          subtypeId: 'subtype-1'
+          specializationId: 'specialization-1'
         }
       ],
       abilities: {

@@ -49,8 +49,7 @@ export const druidcraft: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Create one of the spell\'s tiny natural magical effects within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -60,9 +59,6 @@ export const druidcraft: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Druidcraft',
-          description:
-            'Produce one of the spell\'s listed natural magical effects, including the weather sign. This still needs a richer minor-effect and environment-state model to express structurally.'
         }
       ]
     }

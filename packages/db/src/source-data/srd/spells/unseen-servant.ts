@@ -46,8 +46,7 @@ export const unseenServant: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'The servant appears in an unoccupied space on the ground within range.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -63,7 +62,6 @@ export const unseenServant: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.OBJECT,
-          label: 'Unseen Servant',
           detail: 'Creates an invisible, mindless, shapeless force that performs simple tasks at your command.'
         }
       ]

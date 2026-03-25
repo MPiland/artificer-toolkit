@@ -46,8 +46,7 @@ export const waterBreathing: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-          maxTargets: 10,
-          detail: 'Up to ten willing creatures you can see within range.'
+          maxTargets: 10
         }
       },
       branches: [
@@ -62,9 +61,6 @@ export const waterBreathing: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Water Breathing',
-          description:
-            'This spell currently needs a richer breathing-state or movement/condition model to express underwater respiration honestly.'
         }
       ]
     }

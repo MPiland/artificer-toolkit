@@ -47,8 +47,7 @@ export const magicMouth: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose an object you can see that is not being worn or carried.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -62,9 +61,6 @@ export const magicMouth: SpellAuthored = {
             durationKind: DURATION_KIND.UNTIL_DISPELLED
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Magic Mouth',
-          description:
-            'The spell stores a message in the chosen object and releases it when the triggering condition is met.'
         }
       ]
     }

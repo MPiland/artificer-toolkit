@@ -50,8 +50,7 @@ export const gentleRepose: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Touch a corpse or other remains.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -66,9 +65,6 @@ export const gentleRepose: SpellAuthored = {
             amount: 10
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Gentle Repose',
-          description:
-            'Protects the remains from decay and delays the dead-restoration time limit. This still needs a richer corpse-state and restoration-window model.'
         }
       ]
     }

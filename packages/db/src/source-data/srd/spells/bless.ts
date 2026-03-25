@@ -46,8 +46,7 @@ export const bless: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-          maxTargets: 3,
-          detail: 'Up to three creatures of your choice within range.'
+          maxTargets: 3
         }
       },
       branches: [
@@ -62,9 +61,6 @@ export const bless: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Bless',
-          description:
-            'Affected targets add 1d4 to attack rolls and saving throws for the duration. When cast with a higher-level slot, it can target one additional creature for each slot level above 1st.'
         }
       ]
     }

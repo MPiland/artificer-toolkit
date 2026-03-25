@@ -24,8 +24,7 @@ export const holyWaterFlask: EquipmentAuthored = {
             rangeKind: S.RANGE_KIND.SPECIAL
           },
           targeting: {
-            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-            detail: 'Splash the holy water on one fiend or undead, or throw the flask as an improvised weapon.'
+            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
           }
         },
         branches: [
@@ -39,17 +38,8 @@ export const holyWaterFlask: EquipmentAuthored = {
             valueKind: S.DAMAGE_VALUE_KIND.DICE,
             scalingKind: S.SCALING.NONE,
             diceConfig: '2d6'
-          },
-          {
-            id: S.equipmentChildId(S.equipId(141), 0x213, 1),
-            branch: S.BRANCH.ON_MISS,
-            groupType: S.BRANCH_GROUP_TYPE.SINGLE,
-            resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
-            effectKind: S.EFFECT_KIND.RULE,
-            label: 'Miss',
-            description: 'On a miss, the holy water does not harm the target.'
-          }
-        ]
+        }
+      ]
       }
     ],
     cost: S.gp(25),

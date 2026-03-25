@@ -51,8 +51,7 @@ export const phantasmalKiller: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one creature within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -67,9 +66,6 @@ export const phantasmalKiller: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Phantasmal Killer',
-          description:
-            'The target is frightened and tormented by phantasmal psychic assault for the duration.'
         },
         {
           id: spellChildId(SPELL_IDS.PHANTASMAL_KILLER, 0x215, 1),
@@ -77,8 +73,6 @@ export const phantasmalKiller: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'No Effect',
-          description: 'The target resists the phantasmal assault and the spell ends.'
         }
       ]
     }

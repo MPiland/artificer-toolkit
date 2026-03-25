@@ -46,8 +46,7 @@ export const seeming: SpellAuthored = {
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-          maxTargets: 8,
-          detail: 'Choose creatures you can see within range and assign them new appearances.'
+          maxTargets: 8
         }
       },
       branches: [
@@ -62,9 +61,6 @@ export const seeming: SpellAuthored = {
             amount: 8
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Seeming',
-          description:
-            'Gives the chosen creatures a new illusory appearance. The disguise-specific statistics and ambiguity handling remain prose-bound.'
         }
       ]
     }

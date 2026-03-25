@@ -60,8 +60,7 @@ export const antilifeShell: SpellAuthored = {
           }
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF,
-          detail: 'Create a barrier centered on yourself that moves with you.'
+          selectionKind: TARGET_SELECTION_KIND.SELF
         }
       },
       branches: [
@@ -77,7 +76,6 @@ export const antilifeShell: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.ZONE,
-          label: 'Antilife Shell',
           detail:
             'Creates a moving barrier centered on you that hedges out creatures other than undead and constructs.'
         }

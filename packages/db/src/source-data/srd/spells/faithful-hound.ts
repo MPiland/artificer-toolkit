@@ -44,8 +44,7 @@ export const faithfulHound: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Conjure the guardian in an unoccupied space within range.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -61,7 +60,6 @@ export const faithfulHound: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.CREATURE,
-          label: 'Faithful Hound',
           detail:
             'Creates a phantom guardian that watches the area, sounds an alarm to warn you of intruders, and reacts to unwanted creatures.',
           capabilities: [
@@ -78,8 +76,7 @@ export const faithfulHound: SpellAuthored = {
                   rangeKind: RANGE_KIND.SPECIAL
                 },
                 targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-                  detail: 'Watch the hound\'s guarded area for intruders.'
+                  selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
                 }
               },
               branches: [
@@ -89,9 +86,6 @@ export const faithfulHound: SpellAuthored = {
                   groupType: BRANCH_GROUP_TYPE.SINGLE,
                   resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
                   effectKind: EFFECT_KIND.RULE,
-                  label: 'Guarded Area',
-                  description:
-                    'When a creature enters the hound\'s area, it barks and reacts to the intrusion according to the spell text.'
                 }
               ]
             }

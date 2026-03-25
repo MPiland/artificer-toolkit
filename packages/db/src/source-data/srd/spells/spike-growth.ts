@@ -47,8 +47,7 @@ export const spikeGrowth: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose a point within range. Spikes and thorns twist up in a 20-foot radius.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         },
         shape: {
           id: spellChildId(SPELL_IDS.SPIKE_GROWTH, 0x212, 1),
@@ -71,9 +70,6 @@ export const spikeGrowth: SpellAuthored = {
             amount: 10
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Spike Growth',
-          description:
-            'A hidden field of spikes and thorns twists up from the ground, becoming difficult terrain that tears at creatures moving through it.'
         }
       ]
     }

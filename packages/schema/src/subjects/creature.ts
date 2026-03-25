@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { detailDtoSchema, speedDtoSchema } from '../shared/index.js'
 import { featureDtoSchema } from '../features/index.js'
+import { proficiencyGrantDtoSchema } from '../grants/index.js'
 import { costDtoSchema } from './shared.js'
 
 const creatureActionDtoSchema = z.object({
@@ -50,6 +51,7 @@ const creatureBaseSchema = z.object({
   description: z.string().optional(),
   details: z.array(detailDtoSchema).optional(),
   features: z.array(featureDtoSchema).optional(),
+  proficiencies: z.array(proficiencyGrantDtoSchema).optional(),
   userId: z.string(),
   systemId: z.string(),
   category: z.enum(['NPC', 'MONSTER', 'BEAST', 'COMPANION', 'SUMMON']),
@@ -73,13 +75,10 @@ const statBlockCreatureSchema = creatureBaseSchema.extend({
   hitDice: z.string().optional(),
   senses: z.array(z.string()).optional(),
   passivePerception: z.number().optional(),
-  savingThrowProficiencies: z.array(z.string()).optional(),
-  skillProficiencies: z.array(z.string()).optional(),
   damageVulnerabilities: z.array(z.string()).optional(),
   damageResistances: z.array(z.string()).optional(),
   damageImmunities: z.array(z.string()).optional(),
   conditionImmunities: z.array(z.string()).optional(),
-  languages: z.array(z.string()).optional(),
   challengeRatingId: z.string().optional(),
   xp: z.number().optional(),
   actions: z.array(creatureActionDtoSchema).optional(),

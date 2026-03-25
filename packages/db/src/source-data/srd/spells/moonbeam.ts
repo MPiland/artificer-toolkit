@@ -44,8 +44,7 @@ export const moonbeam: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose a point within range. Creatures in the cylinder are affected.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -55,9 +54,6 @@ export const moonbeam: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Moonbeam',
-          description:
-            'A silvery cylinder of light remains centered on the point for the duration and can deal radiant damage to creatures in the area.'
         }
       ]
     }

@@ -10,7 +10,7 @@ import {
   type BackgroundAuthored
 } from '@artificer-toolkit/shared'
 import { BACKGROUND_IDS } from '../ids.js'
-import { SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import { SRD_LANGUAGES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 
 // Equipment IDs (equipId formula: 00000000-0000-0000-0060-{hex}00000000)
 const HOLY_SYMBOL_AMULET_ID = '00000000-0000-0000-0060-006000000000'
@@ -26,6 +26,10 @@ function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
   if (!entry) throw new Error(`SRD skill vocabulary entry for ${code} required for background source data.`)
   return entry.id
+}
+
+function availableLanguageIds(): string[] {
+  return SRD_LANGUAGES.map((language) => language.id)
 }
 
 function bgId(bgIndex: number, group: number, entry: number): string {
@@ -61,6 +65,7 @@ export const acolyte: BackgroundAuthored = {
       scalingKind: SCALING.NONE,
       count: 2,
       authoringModeKind: AUTHORING_MODE_KIND.ALL,
+      languageIds: availableLanguageIds(),
       order: 1
     }
   ],

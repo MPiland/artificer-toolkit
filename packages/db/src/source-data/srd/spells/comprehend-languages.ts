@@ -40,8 +40,7 @@ export const comprehendLanguages: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: 'SELF',
-          detail: 'You comprehend spoken and written languages you hear or see.'
+          selectionKind: 'SELF'
         }
       },
       branches: [
@@ -56,8 +55,6 @@ export const comprehendLanguages: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Comprehend Languages',
-          description: 'Understand the literal meaning of spoken languages you hear and written languages you see for the duration.'
         }
       ]
     }

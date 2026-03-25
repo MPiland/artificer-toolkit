@@ -44,8 +44,7 @@ export const reverseGravity: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose the cylindrical area whose gravity will be reversed.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -60,9 +59,6 @@ export const reverseGravity: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Reverse Gravity',
-          description:
-            'Reverses gravity in the chosen cylinder and returns affected creatures and objects when the spell ends.'
         }
       ]
     }

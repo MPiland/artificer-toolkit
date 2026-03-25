@@ -42,8 +42,7 @@ export const wrathfulSmite: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF,
-          detail: 'Empower your next melee weapon attack.'
+          selectionKind: TARGET_SELECTION_KIND.SELF
         }
       },
       branches: [
@@ -58,9 +57,6 @@ export const wrathfulSmite: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Wrathful Smite',
-          description:
-            'Empowers the next melee weapon hit to deal extra psychic damage and frighten the target on a failed save.'
         }
       ]
     }

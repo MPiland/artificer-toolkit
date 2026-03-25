@@ -1,9 +1,11 @@
 import {
+  ABILITY_CODE,
   ACTIVATION_CODE,
   BRANCH,
   BRANCH_GROUP_TYPE,
   BRANCH_RESOLUTION_KIND,
   CASTING_TIME_UNIT_CODE,
+  DURATION_KIND,
   EFFECT_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
@@ -13,7 +15,7 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { conditionTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 
 export const blindnessDeafness: SpellAuthored = {
   kind: SUBJECT.SPELL,
@@ -30,7 +32,12 @@ export const blindnessDeafness: SpellAuthored = {
       id: spellChildId(SPELL_IDS.BLINDNESS_DEAFNESS, 0x210, 1),
       order: 1,
       invocation: {
-        triggerCode: TRIGGER.ACTIVATED,
+        triggerCode: TRIGGER.SAVING_THROW,
+        savingThrow: {
+          id: spellChildId(SPELL_IDS.BLINDNESS_DEAFNESS, 0x214, 2),
+          savingThrowKind: 'SOURCE_SAVE_DC',
+          ability: ABILITY_CODE.CONSTITUTION
+        },
         activation: {
           code: ACTIVATION_CODE.ACTION,
           amount: 1
@@ -42,25 +49,35 @@ export const blindnessDeafness: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one creature you can see within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
         {
           id: spellChildId(SPELL_IDS.BLINDNESS_DEAFNESS, 0x212, 1),
-          branch: BRANCH.ON_USE,
-          groupType: BRANCH_GROUP_TYPE.SINGLE,
+          branch: BRANCH.ON_SAVE_FAIL,
+          groupType: BRANCH_GROUP_TYPE.CHOICE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           duration: {
             id: spellChildId(SPELL_IDS.BLINDNESS_DEAFNESS, 0x213, 1),
-            durationKind: 'MINUTE',
+            durationKind: DURATION_KIND.MINUTE,
             amount: 1
           },
-          effectKind: EFFECT_KIND.RULE,
-          label: 'Blindness/Deafness',
-          description:
-            'The target makes a Constitution saving throw. On a failure, choose whether it is blinded or deafened for the duration, with repeat saves under the spell’s normal rules.'
+          effectKind: EFFECT_KIND.CONDITION,
+          conditionId: conditionTypeId('BLINDED')
+        },
+        {
+          id: spellChildId(SPELL_IDS.BLINDNESS_DEAFNESS, 0x214, 1),
+          branch: BRANCH.ON_SAVE_FAIL,
+          groupType: BRANCH_GROUP_TYPE.CHOICE,
+          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
+          duration: {
+            id: spellChildId(SPELL_IDS.BLINDNESS_DEAFNESS, 0x215, 1),
+            durationKind: DURATION_KIND.MINUTE,
+            amount: 1
+          },
+          effectKind: EFFECT_KIND.CONDITION,
+          conditionId: conditionTypeId('DEAFENED')
         }
       ]
     }

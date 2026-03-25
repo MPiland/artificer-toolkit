@@ -46,8 +46,7 @@ export const dancingLights: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Create up to four lights at points within range.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -63,7 +62,6 @@ export const dancingLights: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.ILLUSION,
-          label: 'Dancing Lights',
           detail:
             'Creates up to four torch-sized lights that can be combined into a humanoid form and moved while the spell lasts.'
         }

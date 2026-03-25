@@ -1071,7 +1071,7 @@ export type Database = {
           class_level: number
           created_at: string
           subclass_id: string | null
-          subtype_id: string | null
+          specialization_id: string | null
           updated_at: string
         }
         Insert: {
@@ -1080,7 +1080,7 @@ export type Database = {
           class_level: number
           created_at?: string
           subclass_id?: string | null
-          subtype_id?: string | null
+          specialization_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -1089,7 +1089,7 @@ export type Database = {
           class_level?: number
           created_at?: string
           subclass_id?: string | null
-          subtype_id?: string | null
+          specialization_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1115,10 +1115,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "character_classes_subtype_id_fkey"
-            columns: ["subtype_id"]
+            foreignKeyName: "character_classes_specialization_id_fkey"
+            columns: ["specialization_id"]
             isOneToOne: false
-            referencedRelation: "class_subtypes"
+            referencedRelation: "class_specializations"
             referencedColumns: ["id"]
           },
         ]
@@ -2963,7 +2963,7 @@ export type Database = {
           },
         ]
       }
-      class_subtypes: {
+      class_specializations: {
         Row: {
           class_id: string
           id: string
@@ -2984,7 +2984,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "class_subtypes_class_id_fkey"
+            foreignKeyName: "class_specializations_class_id_fkey"
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
@@ -3352,6 +3352,32 @@ export type Database = {
           },
         ]
       }
+      creature_proficiency_grants: {
+        Row: {
+          creature_id: string
+          proficiency_grant_id: string
+          sort_order: number
+        }
+        Insert: {
+          creature_id: string
+          proficiency_grant_id: string
+          sort_order: number
+        }
+        Update: {
+          creature_id?: string
+          proficiency_grant_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creature_proficiency_grants_creature_id_fkey"
+            columns: ["creature_id"]
+            isOneToOne: false
+            referencedRelation: "creatures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       creature_speeds: {
         Row: {
           amount: number
@@ -3450,16 +3476,13 @@ export type Database = {
           is_master: boolean | null
           label: string
           lair_profile: Json | null
-          languages: string[] | null
           legendary_profile: Json | null
           mount_profile: Json | null
           npc_profile: Json | null
           passive_perception: number | null
           quote: string | null
-          saving_throw_proficiencies: string[] | null
           senses: string[] | null
           size_code: string
-          skill_proficiencies: string[] | null
           system_id: string
           tags: string[] | null
           updated_at: string
@@ -3483,16 +3506,13 @@ export type Database = {
           is_master?: boolean | null
           label: string
           lair_profile?: Json | null
-          languages?: string[] | null
           legendary_profile?: Json | null
           mount_profile?: Json | null
           npc_profile?: Json | null
           passive_perception?: number | null
           quote?: string | null
-          saving_throw_proficiencies?: string[] | null
           senses?: string[] | null
           size_code: string
-          skill_proficiencies?: string[] | null
           system_id: string
           tags?: string[] | null
           updated_at?: string
@@ -3516,16 +3536,13 @@ export type Database = {
           is_master?: boolean | null
           label?: string
           lair_profile?: Json | null
-          languages?: string[] | null
           legendary_profile?: Json | null
           mount_profile?: Json | null
           npc_profile?: Json | null
           passive_perception?: number | null
           quote?: string | null
-          saving_throw_proficiencies?: string[] | null
           senses?: string[] | null
           size_code?: string
-          skill_proficiencies?: string[] | null
           system_id?: string
           tags?: string[] | null
           updated_at?: string
@@ -5635,25 +5652,25 @@ export type Database = {
           },
         ]
       }
-      facet_predicate_subclass_subtype_items: {
+      facet_predicate_subclass_specialization_items: {
         Row: {
           facet_condition_id: string
           sort_order: number
-          subtype_id: string
+          specialization_id: string
         }
         Insert: {
           facet_condition_id: string
           sort_order: number
-          subtype_id: string
+          specialization_id: string
         }
         Update: {
           facet_condition_id?: string
           sort_order?: number
-          subtype_id?: string
+          specialization_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "facet_predicate_subclass_subtype_items_facet_condition_id_fkey"
+            foreignKeyName: "facet_predicate_subclass_specialization_items_facet_condition_id_fkey"
             columns: ["facet_condition_id"]
             isOneToOne: false
             referencedRelation: "facet_conditions"
@@ -9735,3 +9752,4 @@ export const Constants = {
     },
   },
 } as const
+

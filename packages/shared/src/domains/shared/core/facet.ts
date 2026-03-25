@@ -210,7 +210,7 @@ export const OWNER_KIND = {
 export type OwnerKind = keyof typeof OWNER_KIND
 
 export type PredicatePayloadByCode = {
-  SUBCLASS_SUBTYPE: Selectable<{ subtypeIds: string[] }>
+  SUBCLASS_SPECIALIZATION: Selectable<{ specializationIds: string[] }>
   SPELLCASTING: EmptyObject
   RANGE:
     | Selectable<{ rangeKind: Exclude<RangeKind, 'DISTANCE'>[] }>
@@ -372,7 +372,7 @@ type SelectablePredicateCode = {
 }[PredicateCode]
 
 export const SELECTABLE_PREDICATE_CODES = [
-  'SUBCLASS_SUBTYPE',
+  'SUBCLASS_SPECIALIZATION',
   'RANGE',
   'DURATION',
   'SIZE',
@@ -412,12 +412,12 @@ export type PredicateOption<
 }
 
 export const PREDICATE_REGISTRY = {
-  SUBCLASS_SUBTYPE: {
-    code: 'SUBCLASS_SUBTYPE',
-    label: 'Subclass Subtype',
-    tooltip: 'Narrows selection to subclass-defined option choice.',
+  SUBCLASS_SPECIALIZATION: {
+    code: 'SUBCLASS_SPECIALIZATION',
+    label: 'Subclass Specialization',
+    tooltip: 'Narrows selection to subclass-defined specialization choice.',
     description:
-          'Used for subclass sub-selections such as Druid Circle of the Land terrain.',
+          'Used for subclass specialization identities such as Druid Circle of the Land terrain.',
     subjects: ['SUBCLASS']
   },
 

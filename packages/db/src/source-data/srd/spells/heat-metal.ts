@@ -51,8 +51,7 @@ export const heatMetal: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one manufactured metal object within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -62,9 +61,6 @@ export const heatMetal: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Heat Metal',
-          description:
-            'The chosen metal object is heated under the spell’s rules and harms creatures in physical contact with it.'
         }
       ]
     }

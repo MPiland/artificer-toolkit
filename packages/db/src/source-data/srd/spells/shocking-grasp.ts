@@ -1,16 +1,22 @@
 import {
   ACTIVATION_CODE,
+  AUTHORING_SELECTION_KIND,
   CASTING_TIME_UNIT_CODE,
   BRANCH,
   BRANCH_GROUP_TYPE,
   BRANCH_RESOLUTION_KIND,
+  DURATION_KIND,
   EFFECT_KIND,
+  GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
   RANGE_KIND,
   SCALING,
   SCALING_SOURCE,
   TARGET_SELECTION_KIND,
   SUBJECT,
   TRIGGER,
+  VALUE_DOMAIN_CODE,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
@@ -41,8 +47,7 @@ export const shockingGrasp: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Deliver the shock to one creature you can touch.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -68,19 +73,29 @@ export const shockingGrasp: SpellAuthored = {
           branch: BRANCH.ON_HIT,
           groupType: BRANCH_GROUP_TYPE.SEQUENTIAL,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
-          effectKind: EFFECT_KIND.RULE,
-          label: 'Rider',
-          description:
-            'On a hit, the target cannot take reactions until the start of its next turn.'
-        },
-        {
-          id: spellChildId(SPELL_IDS.SHOCKING_GRASP, 0x214, 1),
-          branch: BRANCH.ON_MISS,
-          groupType: BRANCH_GROUP_TYPE.SINGLE,
-          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
-          effectKind: EFFECT_KIND.RULE,
-          label: 'Miss',
-          description: 'On a miss, the shock has no effect.'
+          duration: {
+            id: spellChildId(SPELL_IDS.SHOCKING_GRASP, 0x214, 1),
+            durationKind: DURATION_KIND.ROUND,
+            amount: 1
+          },
+          effectKind: EFFECT_KIND.APPLY_GRANT,
+          grants: {
+            modifiers: [
+              {
+                id: spellChildId(SPELL_IDS.SHOCKING_GRASP, 0x215, 1),
+                grantKind: GRANT_KIND.MODIFIER_GRANT,
+                valueDomainCode: VALUE_DOMAIN_CODE.REACTION_COUNT,
+                domain: {},
+                modifierKind: MODIFIER_KIND.SET_VALUE,
+                scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                payload: {
+                  amount: 0
+                },
+                order: 1
+              }
+            ]
+          }
         }
       ]
     }

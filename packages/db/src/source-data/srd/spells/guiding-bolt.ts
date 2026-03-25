@@ -44,8 +44,7 @@ export const guidingBolt: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Hurl the bolt at one creature of your choice within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -77,9 +76,6 @@ export const guidingBolt: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SEQUENTIAL,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Rider',
-          description:
-            'On a hit, the next attack roll made against the target before the end of your next turn has advantage.'
         },
         {
           id: spellChildId(SPELL_IDS.GUIDING_BOLT, 0x214, 1),
@@ -87,8 +83,6 @@ export const guidingBolt: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Miss',
-          description: 'On a miss, the bolt has no effect.'
         }
       ]
     }

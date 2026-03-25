@@ -2,6 +2,9 @@ import type { DurationAuthored, OutcomeAuthored } from '#authored'
 import {
   BRANCH_ROLL_TABLE_KIND,
   type BRANCH_RESOLUTION_KIND,
+  type BranchLifecycleConsumeEvent,
+  type BranchLifecycleEndEvent,
+  type BranchLifecycleRecurringKind,
   type BranchGroupType,
   type BranchRollTableKind,
   type BranchesByTrigger,
@@ -16,7 +19,6 @@ export type BranchRollTableEntryPayload = {
       rollRange: [number, number]
       id: string
       duration?: DurationAuthored
-      description?: string
     }
   )
   [BRANCH_ROLL_TABLE_KIND.EXACT]: (
@@ -24,7 +26,6 @@ export type BranchRollTableEntryPayload = {
       rollValue: number
       id: string
       duration?: DurationAuthored
-      description?: string
     }
   )
 }
@@ -37,9 +38,16 @@ export type BranchAuthoredBase<TTrigger extends Trigger = Trigger> = {
   groupType: BranchGroupType
 }
 
+export type BranchLifecycleAuthored = {
+  recurringKind?: BranchLifecycleRecurringKind
+  consumeOnFirstEvent?: BranchLifecycleConsumeEvent
+  endOnEvents?: BranchLifecycleEndEvent[]
+}
+
 export type BranchDirect = {
   resolutionKind: typeof BRANCH_RESOLUTION_KIND.DIRECT
   duration?: DurationAuthored
+  lifecycle?: BranchLifecycleAuthored
 } & BranchEffectPayload
 
 export type BranchRollTablePayload = {

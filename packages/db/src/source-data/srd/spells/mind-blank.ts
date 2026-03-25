@@ -40,8 +40,7 @@ export const mindBlank: SpellAuthored = {
           rangeKind: RANGE_KIND.TOUCH
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Touch one willing creature.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -56,9 +55,6 @@ export const mindBlank: SpellAuthored = {
             amount: 24
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Mind Blank',
-          description:
-            'Grants the spell’s psychic, thought-reading, divination, and charm protections for the duration.'
         }
       ]
     }

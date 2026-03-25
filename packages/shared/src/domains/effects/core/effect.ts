@@ -6,6 +6,7 @@ export const EFFECT_KIND = {
   CONDITION: 'CONDITION',
   HEAL: 'HEAL',
   APPLY_GRANT: 'APPLY_GRANT',
+  FORCED_MOVEMENT: 'FORCED_MOVEMENT',
   TELEPORT: 'TELEPORT',
   MANIFEST: 'MANIFEST',
   RULE: 'RULE'
@@ -49,6 +50,12 @@ export const EFFECT_KIND_REGISTRY: Record<EffectKind, EffectKindOption> = {
     label: 'Apply Grant',
     tooltip: 'This effect applies one or more typed grants for a duration or trigger.',
     description: 'This effect applies one or more typed grants for a duration or trigger.'
+  },
+  [EFFECT_KIND.FORCED_MOVEMENT]: {
+    code: EFFECT_KIND.FORCED_MOVEMENT,
+    label: 'Forced Movement',
+    tooltip: 'This effect compels movement with typed direction, distance, and action-economy usage.',
+    description: 'This effect compels movement with typed direction, distance, and action-economy usage.'
   },
   [EFFECT_KIND.TELEPORT]: {
     code: EFFECT_KIND.TELEPORT,

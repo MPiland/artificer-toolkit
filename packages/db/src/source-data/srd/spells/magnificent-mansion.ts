@@ -51,8 +51,7 @@ export const magnificentMansion: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose the point where the mansion entrance appears.'
+          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
         }
       },
       branches: [
@@ -68,7 +67,6 @@ export const magnificentMansion: SpellAuthored = {
           },
           effectKind: EFFECT_KIND.MANIFEST,
           manifestKind: MANIFEST_KIND.ZONE,
-          label: 'Magnificent Mansion',
           detail:
             'Creates an extradimensional dwelling with an entrance that remains open for the spell duration.'
         }

@@ -54,8 +54,7 @@ export const trueStrike: SpellAuthored = {
           unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Choose one target within range.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -70,9 +69,6 @@ export const trueStrike: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'True Strike',
-          description:
-            'Grants brief insight into the target\'s defenses, but the current model does not yet express the one-shot attack-roll advantage rider structurally.'
         }
       ]
     }

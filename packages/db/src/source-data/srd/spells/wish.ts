@@ -39,8 +39,7 @@ export const wish: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-          detail: 'Reality itself is altered according to the wish and its chosen scope.'
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET
         }
       },
       branches: [
@@ -50,9 +49,6 @@ export const wish: SpellAuthored = {
           groupType: BRANCH_GROUP_TYPE.SINGLE,
           resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
           effectKind: EFFECT_KIND.RULE,
-          label: 'Wish',
-          description:
-            'Produces the spell’s reality-altering effects, including safe spell duplication and risky open-ended wishes, under the full SRD rules.'
         }
       ]
     }

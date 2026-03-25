@@ -43,8 +43,7 @@ export const shapechange: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF,
-          detail: 'Target yourself.'
+          selectionKind: TARGET_SELECTION_KIND.SELF
         }
       },
       branches: [
@@ -59,9 +58,6 @@ export const shapechange: SpellAuthored = {
             amount: 1
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Shapechange',
-          description:
-            'You assume another form and can switch among eligible forms while the spell lasts.'
         }
       ]
     }

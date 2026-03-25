@@ -7,7 +7,7 @@ import {
   classResourceDtoSchema,
   classSpellLimitDtoSchema,
   classStartingGoldDtoSchema,
-  classSubtypeDtoSchema,
+  classSpecializationDtoSchema,
 } from './shared.js'
 import {
   abilityCodeSchema,
@@ -52,7 +52,7 @@ const subclassAuthoredDtoSchemaRaw = classBaseDtoSchema.extend({
   category: z.literal('SUBCLASS'),
   attributes: z.array(z.string()).optional(),
   parentClassId: z.string(),
-  subtypes: z.array(classSubtypeDtoSchema).optional()
+  specializations: z.array(classSpecializationDtoSchema).optional()
 })
 
 const classAuthoredDtoSchemaRaw: z.ZodTypeAny = z.union([

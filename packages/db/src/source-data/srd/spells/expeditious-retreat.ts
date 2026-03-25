@@ -42,8 +42,7 @@ export const expeditiousRetreat: SpellAuthored = {
           rangeKind: RANGE_KIND.SELF
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF,
-          detail: 'Enhance your own movement pace.'
+          selectionKind: TARGET_SELECTION_KIND.SELF
         }
       },
       branches: [
@@ -58,9 +57,6 @@ export const expeditiousRetreat: SpellAuthored = {
             amount: 10
           },
           effectKind: EFFECT_KIND.RULE,
-          label: 'Expeditious Retreat',
-          description:
-            'For the duration, you can take the Dash action as a bonus action on each of your turns. This still needs a richer action-economy buff model.'
         }
       ]
     }
