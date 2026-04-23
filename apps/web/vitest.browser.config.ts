@@ -7,6 +7,12 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true
   },
+  optimizeDeps: {
+    include: [
+      '@tabler/icons-react',
+      '@tanstack/react-router'
+    ]
+  },
   plugins: [
     vanillaExtractPlugin({
       unstable_mode: 'inlineCssInDev'

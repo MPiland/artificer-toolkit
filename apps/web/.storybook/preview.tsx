@@ -1,5 +1,5 @@
 import type { Preview } from '@storybook/react-vite'
-import { AppProviders } from '#app/providers/AppProviders'
+import { TestRouterProvider } from '#test/TestRouterProvider'
 import { handlers } from '#test/msw/handlers'
 import { initialize, mswLoader } from 'msw-storybook-addon'
 import '#css/main.css'
@@ -15,9 +15,9 @@ initialize({
 const preview: Preview = {
   decorators: [
     (Story) => (
-      <AppProviders>
+      <TestRouterProvider>
         <Story />
-      </AppProviders>
+      </TestRouterProvider>
     )
   ],
   loaders: [

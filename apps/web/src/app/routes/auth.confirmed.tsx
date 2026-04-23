@@ -1,6 +1,7 @@
-import { Button, Group, Stack, Text } from '@mantine/core'
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { PublicShellFrame } from '#app/shell'
+import { createFileRoute } from '@tanstack/react-router'
+import { AuthPageShell } from '#app/auth/AuthPageShell'
+import { transitionContent } from '#app/auth/auth.css'
+import { ctaRow, primaryLink, secondaryLink } from '#app/public/public.css'
 
 export const Route = createFileRoute('/auth/confirmed')({
   component: AuthConfirmedPage
@@ -8,29 +9,20 @@ export const Route = createFileRoute('/auth/confirmed')({
 
 function AuthConfirmedPage() {
   return (
-    <PublicShellFrame
-      eyebrow='Confirmed'
+    <AuthPageShell
       title='Your confirmation link has been accepted.'
-      description='This route gives us a stable auth callback destination for the Phase 9 shell, even before the full marketing and auth polish pass.'
-      highlights={[
-        'Ready for confirmation and reset redirects.',
-        'Lives inside the shared public shell.',
-        'Provides a simple review surface for Playwright app smoke tests.'
-      ]}
+      description='Continue into the login flow or return to the public homepage.'
     >
-      <Stack gap='lg'>
-        <Text c='dimmed'>
-          Continue into the login flow or head back to the marketing surface.
-        </Text>
-        <Group>
-          <Button component={Link} to='/login'>
+      <div className={transitionContent}>
+        <div className={ctaRow}>
+          <a className={primaryLink} href='/login'>
             Continue to login
-          </Button>
-          <Button component={Link} to='/' variant='default'>
+          </a>
+          <a className={secondaryLink} href='/'>
             Back to homepage
-          </Button>
-        </Group>
-      </Stack>
-    </PublicShellFrame>
+          </a>
+        </div>
+      </div>
+    </AuthPageShell>
   )
 }

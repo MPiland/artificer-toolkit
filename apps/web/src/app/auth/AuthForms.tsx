@@ -1,16 +1,23 @@
-import {
-  Anchor,
-  Button,
-  Group,
-  PasswordInput,
-  Stack,
-  Text,
-  TextInput
-} from '@mantine/core'
 import { notifications } from '@mantine/notifications'
-import { Link, useNavigate } from '@tanstack/react-router'
 import { useState, type FormEvent } from 'react'
-import { getSupabaseBrowserClient } from '../../supabase/client'
+import { browserAuthClient, type AuthClient } from './authClient'
+import {
+  authButton,
+  authDivider,
+  authDividerLine,
+  authFooterRow,
+  authForm,
+  fieldGroup,
+  fieldLabel,
+  forgotRow,
+  inlineLink,
+  textInput
+} from './auth.css'
+
+export interface AuthFormProps {
+  authClient?: AuthClient
+  onSuccess?: () => void | Promise<void>
+}
 
 function showError(title: string, message: string) {
   notifications.show({
@@ -28,8 +35,7 @@ function showSuccess(title: string, message: string) {
   })
 }
 
-export function LoginForm() {
-  const navigate = useNavigate()
+export function LoginForm({ authClient = browserAuthClient, onSuccess }: AuthFormProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -39,59 +45,69 @@ export function LoginForm() {
     setIsSubmitting(true)
 
     try {
-      const supabase = getSupabaseBrowserClient()
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      })
+      const result = await authClient.signIn({ email, password })
 
-      if (error) {
-        showError('Unable to sign in', error.message)
+      if (!result.ok) {
+        showError('Unable to sign in', result.message ?? 'Please try again.')
         return
       }
 
       showSuccess('Signed in', 'Your workspace is ready.')
-      await navigate({ to: '/home' })
+      await onSuccess?.()
     } finally {
       setIsSubmitting(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <Stack gap='md'>
-        <TextInput
-          label='Email'
+    <form className={authForm} onSubmit={handleSubmit}>
+      <label className={fieldGroup}>
+        <span className={fieldLabel}>Email address</span>
+        <input
+          className={textInput}
           name='email'
           type='email'
+          placeholder='you@example.com'
           value={email}
           onChange={(event) => setEmail(event.currentTarget.value)}
           required
         />
-        <PasswordInput
-          label='Password'
-          name='password'
-          value={password}
-          onChange={(event) => setPassword(event.currentTarget.value)}
-          required
-        />
-        <Button type='submit' loading={isSubmitting}>
-          Sign in
-        </Button>
-        <Group justify='space-between'>
-          <Anchor component={Link} to='/reset-password' size='sm'>
+      </label>
+      <div className={fieldGroup}>
+        <label className={fieldGroup}>
+          <span className={fieldLabel}>Password</span>
+          <input
+            className={textInput}
+            name='password'
+            type='password'
+            placeholder='********'
+            value={password}
+            onChange={(event) => setPassword(event.currentTarget.value)}
+            required
+          />
+        </label>
+        <div className={forgotRow}>
+          <a className={inlineLink} href='/reset-password'>
             Forgot password?
-          </Anchor>
-          <Anchor component={Link} to='/signup' size='sm'>
-            Create account
-          </Anchor>
-        </Group>
-      </Stack>
+          </a>
+        </div>
+      </div>
+      <button className={authButton} type='submit' disabled={isSubmitting}>
+        {isSubmitting ? 'Signing in...' : 'Sign in'}
+      </button>
+      <AuthDivider />
+      <div className={authFooterRow}>
+        <span>{`Don't have an account?`}</span>
+        <a className={inlineLink} href='/signup'>
+          Sign up -&gt;
+        </a>
+      </div>
     </form>
   )
 }
 
-export function SignupForm() {
+export function SignupForm({ authClient = browserAuthClient, onSuccess }: AuthFormProps) {
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -101,56 +117,73 @@ export function SignupForm() {
     setIsSubmitting(true)
 
     try {
-      const supabase = getSupabaseBrowserClient()
-      const { error } = await supabase.auth.signUp({
-        email,
-        password
-      })
+      const result = await authClient.signUp({ name, email, password })
 
-      if (error) {
-        showError('Unable to create account', error.message)
+      if (!result.ok) {
+        showError('Unable to create account', result.message ?? 'Please try again.')
         return
       }
 
       showSuccess('Check your email', 'Confirmation instructions were sent.')
+      await onSuccess?.()
     } finally {
       setIsSubmitting(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <Stack gap='md'>
-        <TextInput
-          label='Email'
+    <form className={authForm} onSubmit={handleSubmit}>
+      <label className={fieldGroup}>
+        <span className={fieldLabel}>Name</span>
+        <input
+          className={textInput}
+          name='name'
+          type='text'
+          placeholder='Morgan Emberfall'
+          value={name}
+          onChange={(event) => setName(event.currentTarget.value)}
+          required
+        />
+      </label>
+      <label className={fieldGroup}>
+        <span className={fieldLabel}>Email address</span>
+        <input
+          className={textInput}
           name='email'
           type='email'
+          placeholder='you@example.com'
           value={email}
           onChange={(event) => setEmail(event.currentTarget.value)}
           required
         />
-        <PasswordInput
-          label='Password'
+      </label>
+      <label className={fieldGroup}>
+        <span className={fieldLabel}>Password</span>
+        <input
+          className={textInput}
           name='password'
+          type='password'
+          placeholder='********'
           value={password}
           onChange={(event) => setPassword(event.currentTarget.value)}
           required
         />
-        <Button type='submit' loading={isSubmitting}>
-          Create account
-        </Button>
-        <Text size='sm' c='dimmed'>
-          Already have an account?{' '}
-          <Anchor component={Link} to='/login'>
-            Sign in
-          </Anchor>
-        </Text>
-      </Stack>
+      </label>
+      <button className={authButton} type='submit' disabled={isSubmitting}>
+        {isSubmitting ? 'Creating account...' : 'Create account'}
+      </button>
+      <AuthDivider />
+      <div className={authFooterRow}>
+        <span>Already have an account?</span>
+        <a className={inlineLink} href='/login'>
+          Sign in -&gt;
+        </a>
+      </div>
     </form>
   )
 }
 
-export function ResetPasswordForm() {
+export function ResetPasswordForm({ authClient = browserAuthClient, onSuccess }: AuthFormProps) {
   const [email, setEmail] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -159,48 +192,118 @@ export function ResetPasswordForm() {
     setIsSubmitting(true)
 
     try {
-      const supabase = getSupabaseBrowserClient()
-      const redirectTo = typeof window === 'undefined'
-        ? undefined
-        : `${window.location.origin}/auth/confirmed`
+      const result = await authClient.requestPasswordReset({ email })
 
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo
-      })
-
-      if (error) {
-        showError('Unable to send reset link', error.message)
+      if (!result.ok) {
+        showError('Unable to send reset link', result.message ?? 'Please try again.')
         return
       }
 
       showSuccess('Reset link sent', 'Check your inbox for the secure link.')
+      await onSuccess?.()
     } finally {
       setIsSubmitting(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <Stack gap='md'>
-        <TextInput
-          label='Email'
+    <form className={authForm} onSubmit={handleSubmit}>
+      <label className={fieldGroup}>
+        <span className={fieldLabel}>Email address</span>
+        <input
+          className={textInput}
           name='email'
           type='email'
+          placeholder='you@example.com'
           value={email}
           onChange={(event) => setEmail(event.currentTarget.value)}
           required
         />
-        <Button type='submit' loading={isSubmitting}>
-          Send reset link
-        </Button>
-        <Text size='sm' c='dimmed'>
-          Return to{' '}
-          <Anchor component={Link} to='/login'>
-            sign in
-          </Anchor>
-          .
-        </Text>
-      </Stack>
+      </label>
+      <button className={authButton} type='submit' disabled={isSubmitting}>
+        {isSubmitting ? 'Sending link...' : 'Send reset link'}
+      </button>
+      <AuthDivider />
+      <a className={inlineLink} href='/login'>
+        &lt;- Back to sign in
+      </a>
     </form>
+  )
+}
+
+export function UpdatePasswordForm({ authClient = browserAuthClient, onSuccess }: AuthFormProps) {
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    if (password !== confirmPassword) {
+      showError('Passwords do not match', 'Enter the same password in both fields.')
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      const result = await authClient.updatePassword({ password })
+
+      if (!result.ok) {
+        showError('Unable to update password', result.message ?? 'Please try again.')
+        return
+      }
+
+      showSuccess('Password updated', 'Use your new password the next time you sign in.')
+      await onSuccess?.()
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <form className={authForm} onSubmit={handleSubmit}>
+      <label className={fieldGroup}>
+        <span className={fieldLabel}>New password</span>
+        <input
+          className={textInput}
+          name='password'
+          type='password'
+          placeholder='********'
+          value={password}
+          onChange={(event) => setPassword(event.currentTarget.value)}
+          required
+        />
+      </label>
+      <label className={fieldGroup}>
+        <span className={fieldLabel}>Confirm password</span>
+        <input
+          className={textInput}
+          name='confirmPassword'
+          type='password'
+          placeholder='********'
+          value={confirmPassword}
+          onChange={(event) => setConfirmPassword(event.currentTarget.value)}
+          required
+        />
+      </label>
+      <button className={authButton} type='submit' disabled={isSubmitting}>
+        {isSubmitting ? 'Updating password...' : 'Update password'}
+      </button>
+      <AuthDivider />
+      <a className={inlineLink} href='/login'>
+        Back to sign in
+      </a>
+    </form>
+  )
+}
+
+function AuthDivider() {
+  return (
+    <div className={authDivider} aria-hidden='true'>
+      <span className={authDividerLine} />
+      <span>or</span>
+      <span className={authDividerLine} />
+    </div>
   )
 }

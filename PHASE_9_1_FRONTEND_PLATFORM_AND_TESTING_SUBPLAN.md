@@ -1,6 +1,6 @@
 # Phase 9.1 - Frontend Platform and Testing
 
-## Status: Ready for Review
+## Status: Ready for Review - Follow-Up Fixes Landed
 
 ## Objective
 
@@ -105,6 +105,13 @@ Stabilize `apps/web` as the implementation foundation before any feature rebuild
 - `yarn workspace @artificer-toolkit/web build-storybook`
 - `yarn workspace @artificer-toolkit/web test:e2e:storybook`
 - `yarn workspace @artificer-toolkit/web test:e2e:app`
+
+## Review Follow-Ups Landed
+
+- Added a route-aware shared test provider so component tests get TanStack Router context plus the normal app providers.
+- Added the same route-aware provider to Storybook preview decorators so route-aware stories can render safely.
+- Scoped Playwright web server startup to requested projects so `--project=app` does not boot Storybook, and `--project=storybook` does not boot the app.
+- Added Vitest browser dependency optimization for router/icon dependencies to avoid browser-test reload flake.
 
 ## Carry-Forward Warnings
 

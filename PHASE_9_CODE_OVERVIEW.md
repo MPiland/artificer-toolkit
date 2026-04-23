@@ -34,6 +34,11 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
 - `packages/schema` owns frontend-facing transport DTOs.
 - `packages/shared` owns node maps and authored model metadata.
 - The frontend should become lighter by deleting web-owned domain logic and using the backend stack correctly.
+- Supabase Auth must stay compatible with the hosted free-tier posture unless explicitly changed:
+  - do not assume custom SMTP is configured
+  - avoid UX that requires high-volume auth email delivery
+  - keep email confirmation and password recovery copy resilient when provider delivery is rate-limited or restricted
+  - validate auth flows without depending on live email delivery in Playwright or Storybook
 
 ## Cross-Cutting Product Rules
 
@@ -60,16 +65,19 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
 
 ## Current Checkpoint
 
-- Phase 9.1 is implemented and ready for review.
-- The active web build now runs from the new `src/app` slice with SSR, Storybook, Vitest, Vitest browser mode with Playwright, and route-level Playwright smoke coverage in place.
-- Pause here for manual Storybook and Playwright review before starting Phase 9.2.
+- Phase 9.1 passed review and Phase 9.2 has passed its automated review gate.
+- The active web build now runs the rebuilt public marketing page and auth routes from the new `src/app` slice.
+- Follow-up review fixes are landed for password recovery completion, router-aware test/story wrappers, and scoped Playwright web servers.
+- Supabase free-tier auth constraints are now documented as a Phase 9 design constraint.
+- Pause here for manual Storybook and Playwright review before starting Phase 9.3.
+- Gate commands passed: `yarn build:web`, `yarn workspace @artificer-toolkit/web test`, `yarn workspace @artificer-toolkit/web test:browser`, `yarn workspace @artificer-toolkit/web build`, `yarn workspace @artificer-toolkit/web build-storybook`, and `yarn workspace @artificer-toolkit/web test:e2e`.
 
 ## Subplan Index
 
 | # | Subplan | Focus | Status |
 |---|---|---|---|
-| 9.1 | [PHASE_9_1_FRONTEND_PLATFORM_AND_TESTING_SUBPLAN.md](PHASE_9_1_FRONTEND_PLATFORM_AND_TESTING_SUBPLAN.md) | Toolchain, SSR defaults, Storybook, Playwright, Vitest | Ready for Review |
-| 9.2 | [PHASE_9_2_PUBLIC_AUTH_AND_MARKETING_SUBPLAN.md](PHASE_9_2_PUBLIC_AUTH_AND_MARKETING_SUBPLAN.md) | Marketing page, logged-out shell, auth routes | Not Started |
+| 9.1 | [PHASE_9_1_FRONTEND_PLATFORM_AND_TESTING_SUBPLAN.md](PHASE_9_1_FRONTEND_PLATFORM_AND_TESTING_SUBPLAN.md) | Toolchain, SSR defaults, Storybook, Playwright, Vitest | Complete |
+| 9.2 | [PHASE_9_2_PUBLIC_AUTH_AND_MARKETING_SUBPLAN.md](PHASE_9_2_PUBLIC_AUTH_AND_MARKETING_SUBPLAN.md) | Marketing page, logged-out shell, auth routes | Ready for Manual Review |
 | 9.3 | [PHASE_9_3_APP_SHELL_NAV_AND_LIST_PATTERNS_SUBPLAN.md](PHASE_9_3_APP_SHELL_NAV_AND_LIST_PATTERNS_SUBPLAN.md) | Authenticated shell, navigation, canonical list pattern | Not Started |
 | 9.4 | [PHASE_9_4_FRONTEND_DATA_RUNTIME_SUBPLAN.md](PHASE_9_4_FRONTEND_DATA_RUNTIME_SUBPLAN.md) | REST-first adapter, SSR query hydration, provenance/editability | Not Started |
 | 9.5 | [PHASE_9_5_SHARED_FORM_RUNTIME_SUBPLAN.md](PHASE_9_5_SHARED_FORM_RUNTIME_SUBPLAN.md) | Node-map sections, typed stores, field runtime | Not Started |

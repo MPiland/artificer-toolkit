@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as UpdatePasswordRouteImport } from './routes/update-password'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LogoutRouteImport } from './routes/logout'
@@ -18,6 +19,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthConfirmedRouteImport } from './routes/auth.confirmed'
 import { Route as AuthedHomeIndexRouteImport } from './routes/_authed/home/index'
 
+const UpdatePasswordRoute = UpdatePasswordRouteImport.update({
+  id: '/update-password',
+  path: '/update-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
@@ -64,6 +70,7 @@ export interface FileRoutesByFullPath {
   '/logout': typeof LogoutRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/update-password': typeof UpdatePasswordRoute
   '/auth/confirmed': typeof AuthConfirmedRoute
   '/home/': typeof AuthedHomeIndexRoute
 }
@@ -73,6 +80,7 @@ export interface FileRoutesByTo {
   '/logout': typeof LogoutRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/update-password': typeof UpdatePasswordRoute
   '/auth/confirmed': typeof AuthConfirmedRoute
   '/home': typeof AuthedHomeIndexRoute
 }
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   '/logout': typeof LogoutRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/update-password': typeof UpdatePasswordRoute
   '/auth/confirmed': typeof AuthConfirmedRoute
   '/_authed/home/': typeof AuthedHomeIndexRoute
 }
@@ -95,6 +104,7 @@ export interface FileRouteTypes {
     | '/logout'
     | '/reset-password'
     | '/signup'
+    | '/update-password'
     | '/auth/confirmed'
     | '/home/'
   fileRoutesByTo: FileRoutesByTo
@@ -104,6 +114,7 @@ export interface FileRouteTypes {
     | '/logout'
     | '/reset-password'
     | '/signup'
+    | '/update-password'
     | '/auth/confirmed'
     | '/home'
   id:
@@ -114,6 +125,7 @@ export interface FileRouteTypes {
     | '/logout'
     | '/reset-password'
     | '/signup'
+    | '/update-password'
     | '/auth/confirmed'
     | '/_authed/home/'
   fileRoutesById: FileRoutesById
@@ -125,11 +137,19 @@ export interface RootRouteChildren {
   LogoutRoute: typeof LogoutRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  UpdatePasswordRoute: typeof UpdatePasswordRoute
   AuthConfirmedRoute: typeof AuthConfirmedRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/update-password': {
+      id: '/update-password'
+      path: '/update-password'
+      fullPath: '/update-password'
+      preLoaderRoute: typeof UpdatePasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
@@ -207,6 +227,7 @@ const rootRouteChildren: RootRouteChildren = {
   LogoutRoute: LogoutRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  UpdatePasswordRoute: UpdatePasswordRoute,
   AuthConfirmedRoute: AuthConfirmedRoute,
 }
 export const routeTree = rootRouteImport

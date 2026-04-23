@@ -1,6 +1,6 @@
 # Phase 9.2 - Public Auth and Marketing
 
-## Status: Not Started
+## Status: Ready for Manual Review - Gate Passed
 
 ## Objective
 
@@ -11,9 +11,9 @@ Rebuild the public experience first on the new foundation: the Figma marketing h
 - [PHASE_9_1_FRONTEND_PLATFORM_AND_TESTING_SUBPLAN.md](PHASE_9_1_FRONTEND_PLATFORM_AND_TESTING_SUBPLAN.md)
 - [PHASE_8_FIGMA_OVERVIEW.md](PHASE_8_FIGMA_OVERVIEW.md)
 - Figma marketing and auth screens
-- `apps/web/src/domains/auth/*`
-- `apps/web/src/domains/landing/Landing.tsx`
-- `apps/web/src/routes/index.tsx`
+- `apps/web/src/app/auth/*`
+- `apps/web/src/app/public/*`
+- `apps/web/src/app/routes/index.tsx`
 
 ## Scope
 
@@ -27,10 +27,19 @@ Rebuild the public experience first on the new foundation: the Figma marketing h
   - login
   - signup
   - reset password
+  - update password
   - auth confirmed
   - logout transition
 - Thin auth adapter over Supabase session primitives
 - SSR for all public/auth routes
+
+## Supabase Free-Tier Auth Constraint
+
+- Keep the public/auth UX compatible with the hosted Supabase free-tier posture unless the project explicitly moves to custom SMTP.
+- Do not assume high-volume or production-grade auth email delivery during this phase.
+- Password reset and signup confirmation must degrade gracefully when emails are rate-limited, restricted to allowed recipients, or delayed.
+- Storybook and Playwright coverage should validate routes, form behavior, redirects, and update-password handling without requiring live email delivery.
+- Product copy should avoid guaranteeing email arrival; prefer neutral language such as "If the address can receive project auth emails, instructions will be sent."
 
 ## Reuse Now
 
@@ -47,11 +56,13 @@ Rebuild the public experience first on the new foundation: the Figma marketing h
 
 ## Deliverables
 
-- Figma-matched public shell with desktop and mobile navigation behavior.
-- Marketing homepage with real content hierarchy, not placeholder copy.
-- Auth pages aligned to the rebuilt public shell.
-- Auth adapter with a narrow interface for session state, sign-in, sign-out, and password reset flows.
-- Storybook stories for:
+- [x] Figma-matched public shell with desktop and mobile navigation behavior.
+- [x] Marketing homepage with real content hierarchy, not placeholder copy.
+- [x] Auth pages aligned to the rebuilt public shell.
+- [x] Auth adapter with a narrow interface for session state, sign-in, sign-out, and password reset flows.
+- [x] Recovery emails redirect to a password-update route that calls Supabase password update.
+- [x] Supabase free-tier email delivery constraints are captured for auth UX and test planning.
+- [x] Storybook stories for:
   - public header
   - footer
   - hero sections
@@ -70,14 +81,25 @@ Rebuild the public experience first on the new foundation: the Figma marketing h
 
 ## Review Gate
 
-- Public and auth routes match the locked Figma direction.
-- Logged-out SSR works without hydration regressions.
-- Playwright covers sign-in, sign-out, reset, and confirmed flows.
-- Storybook covers reusable shell and auth pieces.
-- Manual review confirms the marketing page and auth routes are ready before app-shell work begins.
+- [x] Public and auth routes match the locked Figma direction.
+- [x] Logged-out SSR builds without hydration regressions.
+- [x] Playwright covers marketing, login, signup navigation, reset, update password, confirmed, and Storybook shell stories.
+- [x] Storybook covers reusable shell and auth pieces.
+- [ ] Manual review confirms the marketing page and auth routes are ready before app-shell work begins.
+
+## Gate Results
+
+- `yarn build:web` passed.
+- `yarn workspace @artificer-toolkit/web test` passed.
+- `yarn workspace @artificer-toolkit/web test:browser` passed.
+- `yarn workspace @artificer-toolkit/web build` passed.
+- `yarn workspace @artificer-toolkit/web build-storybook` passed.
+- `yarn workspace @artificer-toolkit/web test:e2e:app` passed.
+- `yarn workspace @artificer-toolkit/web test:e2e:storybook` passed.
+- `yarn workspace @artificer-toolkit/web test:e2e` passed.
 
 ## Exit Criteria
 
-- The logged-out experience is fully rebuilt on the new foundation.
-- Supabase auth still works, but public/auth code no longer depends on placeholder-era UI structure.
-- The next tranche can build the authenticated workspace without still relying on the old public shell.
+- [x] The logged-out experience is fully rebuilt on the new foundation.
+- [x] Supabase auth still works, but public/auth code no longer depends on placeholder-era UI structure.
+- [x] The next tranche can build the authenticated workspace without still relying on the old public shell.
