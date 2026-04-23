@@ -8,7 +8,6 @@ export const quiver: EquipmentAuthored = {
   description: 'A cylindrical container strapped to the back or hip for carrying up to 20 arrows.',
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [S.EQUIPMENT_PROPERTY_CODE.CONTAINER],
-  abilities: [],
   cost: S.gp(1),
   weight: S.lbs(1),
   rarityId: S.RARITY_COMMON,

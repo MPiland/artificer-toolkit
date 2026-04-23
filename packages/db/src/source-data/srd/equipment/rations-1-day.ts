@@ -9,7 +9,6 @@ export const rations1Day: EquipmentAuthored = {
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
     attributes: [S.EQUIPMENT_ATTRIBUTE.STACKABLE],
-    abilities: [],
     cost: S.sp(5),
     weight: S.lbs(2),
     rarityId: S.RARITY_COMMON,

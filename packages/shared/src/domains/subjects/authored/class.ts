@@ -7,6 +7,7 @@ import type {
 } from '#authored'
 import type {
   AbilityCode,
+  AuthoredRecordStatus,
   ScalingAmountKind,
   RoundingCode,
   SpellcastingAttribute,
@@ -89,7 +90,7 @@ export interface ClassMulticlassAuthored {
   proficiencies?: ProficiencyGrantAuthored[]
 }
 
-export interface ClassSubtypeAuthored {
+export interface ClassSpecializationAuthored {
   id: string
   label: string
   order: number // int
@@ -99,6 +100,7 @@ export type ClassBaseAuthored = {
   id: string
   label: string
   description?: string
+  status?: AuthoredRecordStatus
   details?: DetailAuthored[]
   proficiencies?: ProficiencyGrantAuthored[]
   spellcasting?: ClassSpellcastingAuthored
@@ -121,7 +123,7 @@ export type SubclassAuthored = {
   category: typeof CLASS_CATEGORY.SUBCLASS
   attributes?: SubclassAttribute[]
   parentClassId: string
-  subtypes?: ClassSubtypeAuthored[]
+  specializations?: ClassSpecializationAuthored[]
 } & ClassBaseAuthored
 
 export type ClassAuthored = ParentClassAuthored | SubclassAuthored

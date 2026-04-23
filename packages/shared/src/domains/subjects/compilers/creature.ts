@@ -12,8 +12,10 @@ import type {
 import type { AbilityCode, SizeCode } from '#core'
 import {
   compileFeature,
+  compileProficiencyGrant,
   compileSpeed,
   type CompiledFeature,
+  type CompiledProficiencyGrant,
   type CompiledSpeed,
 } from '#compilers'
 
@@ -29,11 +31,9 @@ export interface CompiledCreatureAction {
 export interface CompiledCreatureLegendaryProfile {
   legendaryResistanceCount?: number
   actionsCount: number
-  actions: CompiledCreatureAction[]
 }
 
 export interface CompiledCreatureLairProfile {
-  lairActions?: CompiledCreatureAction[]
   regionalEffects?: string[]
 }
 
@@ -67,6 +67,7 @@ export interface CompiledCreatureBase {
   tags?: string[]
   speeds: CompiledSpeed[]
   features?: CompiledFeature[]
+  proficiencies?: CompiledProficiencyGrant[]
   mountProfile?: CompiledCreatureMountProfile
   companionProfile?: CompiledCreatureCompanionProfile
 }
@@ -82,18 +83,19 @@ export interface CompiledStatBlockCreature extends CompiledCreatureBase {
   hitDice?: string
   senses?: string[]
   passivePerception?: number
-  savingThrowProficiencies?: AbilityCode[]
-  skillProficiencies?: string[]
   damageVulnerabilities?: string[]
   damageResistances?: string[]
   damageImmunities?: string[]
   conditionImmunities?: string[]
-  languages?: string[]
   challengeRatingId?: string
   xp?: number
+  /** @deprecated Prefer compiled features with `section: ACTIONS`. */
   actions?: CompiledCreatureAction[]
+  /** @deprecated Prefer compiled features with `section: BONUS_ACTIONS`. */
   bonusActions?: CompiledCreatureAction[]
+  /** @deprecated Prefer compiled features with `section: REACTIONS`. */
   reactions?: CompiledCreatureAction[]
+  /** @deprecated Prefer feature-owned charges/resources plus `LEGENDARY_ACTIONS` features. */
   legendaryProfile?: CompiledCreatureLegendaryProfile
   lairProfile?: CompiledCreatureLairProfile
   npcProfile?: CompiledCreatureNpcProfile
@@ -125,13 +127,11 @@ function compileLegendaryProfile(
   return {
     legendaryResistanceCount: authored.legendaryResistanceCount,
     actionsCount: authored.actionsCount,
-    actions: authored.actions.map(compileAction),
   }
 }
 
 function compileLairProfile(authored: CreatureLairProfile): CompiledCreatureLairProfile {
   return {
-    lairActions: authored.lairActions?.map(compileAction),
     regionalEffects: authored.regionalEffects,
   }
 }
@@ -177,6 +177,7 @@ function compileBase(
     tags: authored.tags,
     speeds: authored.speeds.map(compileSpeed),
     features: authored.features?.map(compileFeature),
+    proficiencies: authored.proficiencies?.map(compileProficiencyGrant),
     mountProfile: authored.mountProfile
       ? compileMountProfile(authored.mountProfile)
       : undefined,
@@ -199,13 +200,10 @@ function compileStatBlockCreature(authored: StatBlockCreatureAuthored): Compiled
     hitDice: authored.hitDice,
     senses: authored.senses,
     passivePerception: authored.passivePerception,
-    savingThrowProficiencies: authored.savingThrowProficiencies,
-    skillProficiencies: authored.skillProficiencies,
     damageVulnerabilities: authored.damageVulnerabilities,
     damageResistances: authored.damageResistances,
     damageImmunities: authored.damageImmunities,
     conditionImmunities: authored.conditionImmunities,
-    languages: authored.languages,
     challengeRatingId: authored.challengeRatingId,
     xp: authored.xp,
     actions: authored.actions?.map(compileAction),

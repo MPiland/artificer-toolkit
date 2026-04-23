@@ -40,3 +40,35 @@ export const RACE_CATEGORY_REGISTRY: Record<
 export const RACE_CATEGORY_OPTIONS = valuesOf(
   RACE_CATEGORY_REGISTRY
 ) as readonly RaceCategoryOption[]
+
+export const RACE_SELECTION_MODE = {
+  DIRECT: 'DIRECT',
+  REQUIRES_SUBRACE: 'REQUIRES_SUBRACE'
+} as const
+
+export type RaceSelectionMode = keyof typeof RACE_SELECTION_MODE
+
+export type RaceSelectionModeOption = CoreMeta<RaceSelectionMode>
+
+export const RACE_SELECTION_MODE_REGISTRY: Record<
+  RaceSelectionMode,
+  RaceSelectionModeOption
+> = {
+  [RACE_SELECTION_MODE.DIRECT]: {
+    code: RACE_SELECTION_MODE.DIRECT,
+    label: 'Direct',
+    description:
+      'This base race is a final selectable race by itself.'
+  },
+
+  [RACE_SELECTION_MODE.REQUIRES_SUBRACE]: {
+    code: RACE_SELECTION_MODE.REQUIRES_SUBRACE,
+    label: 'Requires Subrace',
+    description:
+      'This base race acts as a family container and requires a subrace selection.'
+  }
+} as const
+
+export const RACE_SELECTION_MODE_OPTIONS = valuesOf(
+  RACE_SELECTION_MODE_REGISTRY
+) as readonly RaceSelectionModeOption[]

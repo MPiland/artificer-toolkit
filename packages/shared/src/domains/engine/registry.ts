@@ -1,6 +1,7 @@
 import type { CompiledClass } from '../subjects/compilers/class.js'
 import type { CompiledEquipment, CompiledEquipmentVariant } from '../subjects/compilers/equipment.js'
 import type { CompiledFeat } from '../subjects/compilers/feat.js'
+import type { CompiledRace } from '../subjects/compilers/race.js'
 import type { CompiledSpell } from '../subjects/compilers/spell.js'
 import type { CompiledModifierGrant } from '../grants/compilers/modifier.js'
 
@@ -19,6 +20,7 @@ export interface CharacterAssemblyRegistry {
   features: Record<string, CharacterAssemblyRegistryFeature | undefined>
   classes: Record<string, CompiledClass | undefined>
   feats: Record<string, CompiledFeat | undefined>
+  races: Record<string, CompiledRace | undefined>
   equipment: Record<string, CompiledEquipment | CompiledEquipmentVariant | undefined>
   spells: Record<string, CompiledSpell | undefined>
 }

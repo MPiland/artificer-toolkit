@@ -52,7 +52,9 @@ describe('seedBaselineContent', () => {
             creatureTypes: [],
             currencies: [],
             damageTypes: [],
+            heritages: [],
             languages: [],
+            lifestyles: [],
             magicSchools: [],
             passives: [],
             rarities: [],
@@ -157,3 +159,5 @@ describe('seedBaselineContent', () => {
     ).rejects.toThrow('Missing system seed record')
   })
 })
+
+

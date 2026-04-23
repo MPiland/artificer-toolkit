@@ -13,6 +13,12 @@ import {
 } from '#core'
 
 export type CompiledChargeLimitPayloadByKind = {
+  ABILITY_MODIFIER: {
+    ability: AbilityCode
+    multiplier?: number
+    min?: number
+    max?: number
+  }
   CHARACTER_LEVEL: {
     multiplier?: number
     min?: number
@@ -144,6 +150,17 @@ export function compileCharge(authored: ChargeAuthored): CompiledCharge {
   }
 
   switch (authored.limitKind) {
+    case 'ABILITY_MODIFIER':
+      return {
+        ...base,
+        limitKind: authored.limitKind,
+        scalingKind: SCALING.NONE,
+        ability: authored.ability,
+        multiplier: authored.multiplier,
+        min: authored.min,
+        max: authored.max
+      }
+
     case 'CHARACTER_LEVEL':
     case 'PARENT_CLASS_LEVEL':
     case 'SPELL_CAST_LEVEL':

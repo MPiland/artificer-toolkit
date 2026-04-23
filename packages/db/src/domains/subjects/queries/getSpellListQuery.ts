@@ -4,6 +4,7 @@ interface SpellListItem {
   id: string
   label: string
   description: string | null
+  status: string
   systemId: string
   userId: string
 }
@@ -33,6 +34,7 @@ export async function getSpellListQuery(db: DBLike): Promise<{ items: SpellListI
       'id',
       'label',
       'description',
+      'status',
       'system_id as systemId',
       eb
         .case()

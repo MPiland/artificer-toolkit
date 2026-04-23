@@ -5,6 +5,7 @@ interface CreatureListItem {
   id: string
   label: string
   description: string | null
+  status: string
   systemId: string
   details: unknown
   userId: string
@@ -29,6 +30,7 @@ export async function getCreatureListQuery(db: DBLike): Promise<{ items: Creatur
       'id',
       'label',
       'description',
+      'status',
       'system_id as systemId',
       details(eb, (eb2) => eb2
         .selectFrom('creature_details as bridge')

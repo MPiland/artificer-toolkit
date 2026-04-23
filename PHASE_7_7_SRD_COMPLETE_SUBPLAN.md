@@ -1,6 +1,24 @@
 # Phase 7.7 - SRD CC 5.1 Content Completion Plus Creature, Vehicle, Character, and Facet Integration
 
-## Status: In progress
+## Status: Complete (Phase 8 baseline readiness)
+
+## Phase Gate Decision (2026-03-25)
+
+Phase 7.7 is now closed for its primary goal: a new user can start from preloaded SRD master data and build a usable SRD character/sheet without authoring baseline content first.
+
+What is complete for this gate:
+
+- SRD inventory completion and manifest alignment across classes/subclasses/races/backgrounds/feats/spells/equipment/creatures/vehicles
+- specialization rename and subclass specialization wiring (including `Circle of the Land`)
+- class/subclass spell-grant resolution into character spell state
+- creature/vehicle ownership and facet integration needed for baseline roster use
+- local DB reset + type generation + DB build path verified
+
+What is intentionally deferred after this gate:
+
+- constrained `RULE` residues that require deeper combat/target-instance runtime semantics
+- richer branch/outcome persistence/runtime convergence for advanced automation
+- capability/effect naming cleanup and broader ruleset-boundary refactor
 
 ## Context
 
@@ -25,7 +43,7 @@ That audit is no longer just a framework note. It now includes first-pass repo-b
 - grant-heavy race/background content
 - prose-heavy class/feat content
 - metadata-heavy equipment content
-- current creature stat-block vs shared-capability boundary questions
+- current creature stat-block convergence work, with creature-native action arrays now treated as a temporary inconsistency rather than a preferred long-term model
 - first-pass spell, class/feature, and equipment audit buckets
 - a prioritized audit sequence for the next record-by-record classification passes
 - a concrete anchor-record set covering spells, class features, race/background/feat cases, and equipment/creature boundary examples
@@ -120,6 +138,53 @@ Current locked scope:
 - use `contains` for concrete SRD bundles and supplied containers
 - keep composite inventory bundles decomposable into real component records where useful, such as quivers, arrows, and bundled arrow-filled quivers
 - Creatures: SRD creature entries only, including mount/animal entries represented through the creature model
+- creature source files should use shared creature constants (`CREATURE_CATEGORY_CODE`, `CREATURE_RECORD_KIND_CODE`, `SIZE_CODE`, and movement unit constants) to avoid literal drift during future updates
+- creature baseline completion expectation: every SRD creature record in `CREATURE_IDS` should include full stat-block sections present in the SRD entry (features/actions plus bonus actions/reactions when applicable)
+- the SRD creature tranche is now expanded to the full local-SRD roster rather than the earlier `22`-record subset:
+  - `201` main `Monsters A-Z`
+  - `89` Appendix `MM-A` miscellaneous creatures
+  - `21` Appendix `MM-B` nonplayer characters
+  - `311` total creature master records
+- current creature master records still do not own default equipment/loadouts directly; creature equipment remains a character-roster assignment concern, so SRD creature source data should stay honest to that boundary until a dedicated creature-loadout model exists
+- creature proficiency authoring is now aligned to the shared grant model:
+  - root creature `proficiencies` for plain skills, saves, and fixed languages
+  - feature text for qualified communication semantics such as telepathy, understands-only language caveats, and dynamic placeholders
+  - fixed missing creature languages were added to seeded vocabulary so creature language knowledge can stay id-based
+- creature active-mechanics convergence now follows the same direction:
+  - creature traits, actions, bonus actions, reactions, and legendary actions should converge on feature-owned capabilities
+  - stat-block sections remain necessary for rendering, but should be derived from the capability/action layer rather than added as a generic feature property
+  - descriptive action rows should use feature-owned capabilities with constrained `RULE` when the action needs explicit action-economy tracking; purely duplicate wrapper rows (for example multiattack summaries that only restate sibling attack features) may stay prose-only
+  - current proof anchors for this direction now include `Medusa` and `Aboleth`
+- the broader systematic audit is now active after that creature conversion:
+  - representative creature spot checks confirm the intended split is holding
+  - class/subclass/race/background/feat review shows those families are still structurally uneven, with only a small subset currently exposing explicit active `capabilities`
+  - safe subclass follow-through is still landing during the audit:
+    - `Hunter -> Steel Will` is now structured as a frightened-save advantage modifier grant
+    - `Life Domain -> Domain Spells` and `Oath of Devotion -> Oath Spells` now use per-level prepared spell grants instead of flattening their whole spell packages into immediate all-spells grants
+    - `Life Domain -> Bonus Proficiency` now uses a real heavy-armor proficiency grant
+    - `High Elf -> Cantrip` and `Circle of the Land -> Bonus Cantrip` now use real chosen known-spell grants with repo-derived option lists instead of prose-only placeholders
+    - `Bard -> Expertise` at levels 3 and 10 now uses real chosen doubled-skill proficiency grants instead of prose-only shells
+    - `Fighter -> Fighting Style` now uses a real option-choice structure, with `Archery`, `Defense`, and `Dueling` converted to structured modifier grants
+    - `Champion -> Additional Fighting Style` now uses a real option-choice structure mirroring fighter fighting styles
+    - `Rogue -> Expertise` at level 6 now uses a real chosen doubled-skill proficiency grant; only the 1st-level mixed skill-or-tools expertise shape remains a separate gap
+    - `Pact of the Chain` now carries `Find Familiar` as a real known ritual spell grant, while the deeper familiar-manifest/runtime semantics remain a separate gap
+    - `Pact of the Tome` now uses a real chosen known-spell grant for its three bonus cantrips, while the later ritual-book expansion remains a separate model gap
+    - `The Fiend -> Expanded Spell List` remains a separate model gap because it expands a learnable spell list rather than granting always-prepared spells, and the source data now stays descriptive instead of faking that behavior as a spell grant
+    - the remaining holdouts in that tranche are now more clearly named model gaps rather than vague leftovers, including `Barbarian -> Fast Movement`, `Monk -> Unarmored Movement`, `The Fiend -> Dark One's Blessing`, and `The Fiend -> Fiendish Resilience`
+  - equipment review shows the highest-signal remaining gap is now concentrated in a small special-use residue:
+    - the broad mundane-tool / utility-item placeholder tranche has already been flattened back to metadata-only records
+    - the remaining equipment `RULE` count is down to `10`
+    - the residue is mostly thrown substances, trap/hazard gear, restraints, and a few traversal-support items that still want either stronger typed support or honest constrained `RULE`
+  - spell review now shows `214` spell files with retained `EFFECT_KIND.RULE` (`215` total occurrences), confirming that the active spell tranche remains typed-outcome convergence rather than inventory conversion
+  - creature `RULE` residue is now at the confirmed floor of `119` occurrences (all blocked) with current blocker clusters tracked in [`PHASE_7_7_RULE_GAP_LEDGER.md`](c:/Users/pilan/Desktop/artificer-toolkit/PHASE_7_7_RULE_GAP_LEDGER.md)
+  - immediate convergence follow-through:
+    - half-on-save damage is now normalized to generic damage `multiplier: 0.5` on explicit `ON_SAVE_SUCCESS` branches
+    - legacy `saveSuccess: 'HALF'` hints have been removed from creature source data so damage math lives in one canonical primitive
+  - cross-domain semantic-gap tranche tracking is now explicit:
+    - active lane: creatures + equipment
+    - next lane: focused spell `RULE` audit
+    - live blocked-gap ledger: [`PHASE_7_7_RULE_GAP_LEDGER.md`](c:/Users/pilan/Desktop/artificer-toolkit/PHASE_7_7_RULE_GAP_LEDGER.md)
+    - conservative exactness rule: convert only fully representable mechanics, keep constrained `RULE` for true gaps with explicit follow-up requirements
 - Vehicles: SRD vehicle entries only
 
 Hard exclusions:
@@ -205,6 +270,13 @@ That means this phase should only be called complete when:
 - a new user can immediately create and manage a usable SRD character from preloaded content
 
 This is why 7.7 now includes a broader mechanics audit across grants, capabilities, outcomes, manifests, range/shape/duration placement, and cross-subject consistency rather than a spell-only pass.
+
+Subclass identity now also has a canonical naming and modeling rule:
+
+- lasting subclass identity branches use `specialization`
+- `Circle of the Land` terrain is modeled as a subclass specialization
+- repeated class feature choices such as Ranger favored terrain remain feature-option modeling rather than subclass specialization
+- when a specialization changes later granted content, prefer one feature with specialization-restricted progressive grants rather than exploding the subclass into terrain-tier pseudo-features
 
 ## Current Mechanics Modeling Rule
 
@@ -304,8 +376,16 @@ Current status:
   - `damageResistances`
   - `damageImmunities`
   - `conditionImmunities`
+- creature source data, authored/schema contracts, and creature repository/upsert paths now prefer root creature `proficiencies` instead of creature-only skill/save/language authored fields
 - `AUTHORING_PRINCIPLES.md` now explicitly treats authored contracts as UI-authoring contracts first
 - `AUTHORING_PRINCIPLES.md` now also explicitly locks the complete-before-seed rule for baseline SRD data
+- `Circle of the Land` now lives as its own true subclass source file and uses one `Circle Spells` feature with specialization-restricted `SPELL_GRANT`s instead of a terrain-tier pseudo-feature explosion
+- compiled spell grants now preserve authored `restrictions`, which was required so specialization-routed subclass spell packages survive compilation
+- shared engine spell-grant resolution now exists as a first-class pass:
+  - class/subclass spell grants resolve into `spellState`
+  - specialization restrictions are honored during that resolution
+  - `SCALING.PER_LEVEL` spell-grant progression unlocks by level
+  - `runEngine()` now exposes resolved grant-driven `spellState` for downstream consumers
 - SRD vehicle seed coverage now includes all 11 manifest vehicles using only SRD-backed fields where the PDF does not provide fuller object stats
 - spell/shared range modeling now supports `SPECIAL` as a first-class non-distance `RANGE_KIND`
 - first retrofit batch landed on existing spell seed files:
@@ -385,6 +465,11 @@ Still pending:
 - the broader SRD mechanics audit across features, feats, equipment, creature action-like content
 - full record-by-record classification of grants vs capabilities vs manifests vs constrained `RULE` across the SRD baseline
 - explicit master-data readiness verification for the new-user baseline character-creation experience
+- lifecycle/build-state specialization follow-through has now landed for the separate character event/build-state pipeline:
+  - `GAIN_CLASS_LEVEL` commands can carry `specializationRef`
+  - `CharacterBuildState` now persists `specializationRef` on class rows
+  - `snapshotBuilder` now populates `specializationId` into `CharacterBuildSnapshot`
+  - honest remaining caveat: this path was verified by focused source + dist synchronization because the broader `packages/schema` rebuild is still blocked by the known `equipment.ts` serialization issue
 - manifest-specific authored/runtime linkage for things like summons, zones, sensors, and commanded constructs
 - post-spell review of retained `RULE` cases and remaining typed-outcome/model gaps exposed by the now-converted spell corpus
   - `Silent Image`
@@ -487,8 +572,8 @@ Still pending:
 
 - backgrounds: 1
 - classes: 24
-- creatures: 22
-- equipment: 2
+- creatures: 311
+- equipment: 357
 - feats: 1
 - races: 17
 - spells: 324
@@ -502,8 +587,22 @@ Still pending:
 - `SUBRACE_IDS`: 8
 - `BACKGROUND_IDS`: 1
 - `SPELL_IDS`: 324
-- `CREATURE_IDS`: 22
+- `CREATURE_IDS`: legacy constant no longer reflects the full local-SRD creature roster; source-data coverage is now `311` creature records
 - `VEHICLE_IDS`: 11
+
+### Current Audit Gate
+
+- creature cleanup has now moved out of the earlier broad-corruption phase
+- focused cleanup and verification passes corrected truncated language fields, merged weakness/features, lore leakage into mechanics text, malformed spellcasting punctuation, and generated spacing/article scars across the creature tranche
+- creature proficiency unification is now part of the active convergence work:
+  - plain creature skills, saves, and fixed languages are being represented through root proficiency grants
+  - qualified communication text remains feature-driven
+  - the first representative spot checks confirm the authored shape makes contextual sense across plain monsters, dragons, telepathic creatures, understands-but-can't-speak cases, lycanthrope form caveats, and undead "languages from life" cases
+- repeated verification is still green on:
+  - `packages/db/src/__tests__/creature-repository.test.ts`
+  - `packages/db/src/__tests__/srd-manifest.test.ts`
+  - `packages/db/src/__tests__/facet-owner-roundtrip.test.ts`
+- the next 7.7 step after the creature proficiency conversion is therefore the broader systematic audit rather than another open-ended creature repair pass
 
 ### Guardrails Added
 
@@ -529,7 +628,7 @@ Still pending:
 - the latest missing-file fill batches added `Meld into Stone`, `Nondetection`, `Passwall`, `Sleet Storm`, `Speak with Plants`, `Stone Shape`, `Teleportation Circle`, `Vicious Mockery`, `Wall of Force`, `Warding Bond`, `Forcecage`, `Maze`, `Private Sanctum`, `Project Image`, `Resilient Sphere`, `Secret Chest`, `Mind Blank`, `Mislead`, `Modify Memory`, `Phantom Steed`, `Seeming`, `Plane Shift`, `True Seeing`, `Vampiric Touch`, `Plant Growth`, `Wall of Stone`, `Wind Wall`, `Stoneskin`, `Tiny Hut`, `Wall of Ice`, `Word of Recall`, `Circle of Death`, `Foresight`, `Freezing Sphere`, `Mass Suggestion`, `Programmed Illusion`, `Sequester`, `Time Stop`, and `Wish`
 - the final spell completion pass also added `Irresistible Dance`, `Mass Cure Wounds`, `Mass Heal`, `Meteor Swarm`, `Phantasmal Killer`, `Polymorph`, `Power Word Kill`, `Power Word Stun`, `Prayer of Healing`, `Prismatic Spray`, `Regenerate`, `Reincarnate`, `Shapechange`, `Simulacrum`, `Slow`, `Spike Growth`, `Spirit Guardians`, `Spiritual Weapon`, `Storm of Vengeance`, `Sunbeam`, `Sunburst`, `Symbol`, `Telekinesis`, `Teleport`, `True Polymorph`, `True Resurrection`, `Wall of Thorns`, `Weird`, and `Wind Walk`
 
-## Remaining Work
+## Deferred Follow-On (Post-7.7)
 
 ### High Priority
 
@@ -592,6 +691,29 @@ The same unified model now also covers generic activated class and race features
   - full SRD baseline imports into an empty DB
   - counts match the canonical manifest
   - representative cross-linked scenarios resolve correctly
+
+## 2026-03-24 Handoff Snapshot
+
+- Current convergence counts:
+  - creature `RULE`: `119` occurrences (floor confirmed)
+  - equipment `RULE`: `10` occurrences across `10` files
+  - spell `RULE`: `215` occurrences across `214` files
+- Half-on-save damage normalization landed:
+  - source records no longer use `saveSuccess`
+  - explicit save-success damage branches use `multiplier: 0.5`
+- Shared exported types were rebuilt so downstream packages pick up `DamageAuthored.multiplier`.
+- Recent strict-shape cleanup confirmed:
+  - branch payloads should not carry ad hoc `label`/`description` fields; keep descriptive text at feature/capability level.
+- Focused regression checks currently green:
+  - `packages/db/src/__tests__/creature-repository.test.ts`
+  - `packages/db/src/__tests__/srd-manifest.test.ts`
+
+### Immediate Next Steps (Claude/Copilot)
+
+1. Continue Tranche 1 conservative reductions for creatures/equipment in larger batches, keeping blocked cases in the ledger.
+2. Continue strict spell `RULE` reductions with existing primitives and update [`PHASE_7_7_RULE_GAP_LEDGER.md`](c:/Users/pilan/Desktop/artificer-toolkit/PHASE_7_7_RULE_GAP_LEDGER.md) in the same change.
+3. Keep blocker taxonomy current in [`PHASE_7_7_RULE_GAP_LEDGER.md`](c:/Users/pilan/Desktop/artificer-toolkit/PHASE_7_7_RULE_GAP_LEDGER.md) as the single source for model-gap follow-up.
+4. Prepare targeted schema-extension proposals for the remaining high-volume blocked families (one-shot riders, turn-tick effects, forced movement/reactive restrictions) once strict conversions stall.
 
 ## Handoff Notes
 

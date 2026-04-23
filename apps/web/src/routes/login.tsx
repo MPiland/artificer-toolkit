@@ -1,63 +1,56 @@
-import { createFileRoute, redirect } from '@tanstack/react-router'
-import { Auth } from '../domains/auth/Auth'
-import { useAuth } from '@hooks'
+import { createFileRoute, redirect, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { notifications } from '@mantine/notifications'
-import { resendCodeFn } from '@server/auth'
-import { useServerFn } from '@tanstack/react-start'
+import { Auth } from '#auth'
+import { getSupabaseBrowserClient } from '#supabase'
 
 export const Route = createFileRoute('/login')({
-  component: LoginComp,
+  beforeLoad: async ({ context }) => {
+    if (context.user) throw redirect({ to: '/home' })
+  },
+  component: LoginPage,
 })
 
-function LoginComp() {
-  const { signInWithPassword, isLoading } = useAuth()
-  const resend = useServerFn(resendCodeFn)
-
-  const [errorCode, setErrorCode] = useState<string | undefined>(undefined)
-  const [email, setEmail] = useState<string | null>(null)
+function LoginPage() {
+  const router = useRouter()
+  const [status, setStatus] = useState<'idle' | 'pending' | 'error'>('idle')
+  const [hint, setHint] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
     const fd = new FormData(e.currentTarget)
-
-    const emailVal = fd.get('email') as string
+    const email = fd.get('email') as string
     const password = fd.get('password') as string
 
-    setEmail(emailVal)
+    setStatus('pending')
+    setHint(null)
 
-    const { error } = await signInWithPassword(emailVal, password)
+    const supabase = getSupabaseBrowserClient()
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
 
-    if (!error) {
-      throw redirect({ href: '/' })
+    if (error) {
+      setStatus('error')
+      const code = (error as any).code as string | undefined
+      if (code === 'email_not_confirmed') {
+        setHint('Email not confirmed. Check your inbox or request a new link.')
+      } else if (code === 'invalid_credentials') {
+        setHint('Invalid email or password.')
+      } else {
+        setHint(error.message)
+      }
+      return
     }
 
-    setErrorCode(error.code) // <- Typed: string
-  }
-
-  async function handleResend() {
-    if (!email) return
-    const res = await resend({ data: { email } })
-
-    notifications.show({
-      message: res.error ? 'Error resending email' : 'Confirmation link sent!',
-      color: res.error ? 'red' : 'green',
-    })
+    notifications.show({ message: 'Welcome back!', color: 'teal', autoClose: 2000 })
+    await router.navigate({ to: '/home' })
   }
 
   return (
     <Auth
-      actionText='Login'
-      status={isLoading ? 'pending' : 'idle'}
+      mode='login'
+      status={status}
       onSubmit={handleSubmit}
-      afterSubmit={
-        errorCode === 'email_not_confirmed' ?
-          <>
-            Email not confirmed.
-            <button onClick={handleResend}>Resend</button>
-          </>
-        : null
-      }
+      hint={hint ?? undefined}
+      hintVariant='error'
     />
   )
 }

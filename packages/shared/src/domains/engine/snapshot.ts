@@ -53,6 +53,7 @@ export interface CharacterBuildSnapshot {
     classId: string
     level: number
     subclassId?: string
+    specializationId?: string
   }>
 
   /** Ability code → final base score (after racial/background bonuses but before engine modifiers) */

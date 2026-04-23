@@ -8,7 +8,6 @@ export const explorersPack: EquipmentAuthored = {
     description: "A well-rounded kit for those heading into the wilderness.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(10),
     weight: S.lbs(0),
     rarityId: S.RARITY_COMMON,

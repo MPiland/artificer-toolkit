@@ -8,7 +8,6 @@ export const shieldWood: EquipmentAuthored = {
   description: 'A wooden shield strapped to the forearm.',
   category: S.EQUIPMENT_CATEGORY_CODE.SHIELD,
   properties: [S.EQUIPMENT_PROPERTY_CODE.WOOD],
-  abilities: [],
   armorClass: 2,
   cost: S.gp(10),
   weight: S.lbs(6),

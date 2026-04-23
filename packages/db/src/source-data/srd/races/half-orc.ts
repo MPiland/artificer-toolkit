@@ -7,7 +7,9 @@ import {
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
   PROFICIENCY_KIND,
+  RANGE_KIND,
   RACE_CATEGORY_CODE,
+  RACE_SELECTION_MODE,
   SCALING,
   SCALING_AMOUNT_KIND,
   SIZE_CODE,
@@ -15,7 +17,7 @@ import {
   type RaceAuthored
 } from '@artificer-toolkit/shared'
 import { RACE_IDS } from '../ids.js'
-import { SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID, SRD_DARKVISION_SENSE_ID, SRD_SKILLS } from '../vocabulary.js'
+import { SRD_HUMAN_HERITAGE_ID, SRD_LANGUAGES, SRD_ORCISH_HERITAGE_ID, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID, SRD_DARKVISION_SENSE_ID, SRD_SKILLS } from '../vocabulary.js'
 
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
   const rHex = raceIndex.toString(16).padStart(4, '0')
@@ -47,9 +49,10 @@ export const halfOrc: RaceAuthored = {
   id: RACE_IDS.HALF_ORC,
   label: 'Half-Orc',
   category: RACE_CATEGORY_CODE.BASE,
-  playable: true,
+  selectionMode: RACE_SELECTION_MODE.DIRECT,
   size: SIZE_CODE.MEDIUM,
   speeds: halfOrcWalk30,
+  heritageIds: [SRD_HUMAN_HERITAGE_ID, SRD_ORCISH_HERITAGE_ID],
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
   features: [
@@ -103,7 +106,7 @@ export const halfOrc: RaceAuthored = {
             senseIds: [SRD_DARKVISION_SENSE_ID],
             range: {
               id: raceFeatureId(8, 2, 3),
-              rangeKind: 'DISTANCE' as const,
+              rangeKind: RANGE_KIND.DISTANCE,
               amount: 60,
               unit: MEASUREMENT_UNIT_CODE.FEET
             },
@@ -172,3 +175,4 @@ export const halfOrc: RaceAuthored = {
     }
   ]
 }
+

@@ -123,7 +123,7 @@ export type CompiledCharacterClassIntent = {
   classId: string
   classLevel: number
   subclassId?: string
-  subtypeId?: string
+  specializationId?: string
 }
 
 export function compileCharacterClassIntent(authored: CharacterClassIntent): CompiledCharacterClassIntent {
@@ -131,7 +131,7 @@ export function compileCharacterClassIntent(authored: CharacterClassIntent): Com
     classId: authored.classId,
     classLevel: authored.classLevel,
     subclassId: authored.subclassId,
-    subtypeId: authored.subtypeId
+    specializationId: authored.specializationId
   }
 }
 

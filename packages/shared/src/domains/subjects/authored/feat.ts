@@ -1,10 +1,10 @@
 import type {
-  CapabilityAuthored,
+  EffectAuthored,
+  FacetAuthored,
   ModifierGrantAuthored,
   ProficiencyGrantAuthored,
   SenseGrantAuthored,
   SpellGrantAuthored,
-  EffectAuthored,
   FeatureAuthored,
   ChargeAuthored
 } from '#authored'
@@ -13,9 +13,9 @@ export interface FeatAuthored {
   id: string
   label: string
   description: string
+  status?: import('#core').AuthoredRecordStatus
   detail?: string
-  capabilities?: CapabilityAuthored[]
-  /** @deprecated Use capabilities. */
+  prerequisites?: FacetAuthored<'CHARACTER'>
   effects?: EffectAuthored[]
   charges?: ChargeAuthored
   grants?: {
@@ -28,3 +28,4 @@ export interface FeatAuthored {
   userId: string
   systemId: string
 }
+

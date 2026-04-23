@@ -1,4 +1,8 @@
-import { RACE_CATEGORY_CODE, SIZE_OPTIONS } from '#core'
+import {
+  RACE_CATEGORY_CODE,
+  RACE_SELECTION_MODE_OPTIONS,
+  SIZE_OPTIONS
+} from '#core'
 import { FEATURE_NODE_MAP, SPEED_NODE_MAP } from '#maps'
 import { buildNodeMap } from '#utils'
 import type {
@@ -48,9 +52,8 @@ const RACE_ANCESTRY_NODE_MAP = ancestryNode.define('raceAncestry', ({ map, nodes
 const raceNode = buildNodeMap<RaceAuthored>()
 
 export const RACE_NODE_MAP = raceNode.define('race', ({ map, nodes, cond, data, logic }) => {
-  const { text, number, selectSingle, groupArray, groupObject } = nodes
+  const { text, number, selectSingle, selectMulti, groupArray, groupObject } = nodes
   const local = cond.local()
-  const { not } = logic
   const { table } = data
 
   const isBaseRace = local.field(['category']).eq(RACE_CATEGORY_CODE.BASE)
@@ -61,6 +64,14 @@ export const RACE_NODE_MAP = raceNode.define('race', ({ map, nodes, cond, data, 
     .set('label', text(['label'], 'Label'))
     .set('quote', text(['quote'], 'Quote'))
     .set('description', text(['description'], 'Description'))
+    .set('heritageIds', selectMulti(['heritageIds'], 'Heritages', {
+      kind: 'DATA',
+      relationship: table('heritages', {
+        selectColumns: ['id', 'label']
+      })
+    }, {
+      showIf: isBaseRace
+    }))
     .set('details', groupArray(['details'], 'Details', () => DETAIL_NODE_MAP))
     .set('features', groupArray(['features'], 'Features', () => FEATURE_NODE_MAP))
     .set('userId', text(['userId'], 'User ID'))
@@ -72,7 +83,10 @@ export const RACE_NODE_MAP = raceNode.define('race', ({ map, nodes, cond, data, 
         { code: RACE_CATEGORY_CODE.SUBRACE, label: 'Subrace' }
       ]
     }))
-    .set('playable', text(['playable'], 'Playable', {
+    .set('selectionMode', selectSingle(['selectionMode'], 'Selection Mode', {
+      kind: 'INLINE',
+      options: RACE_SELECTION_MODE_OPTIONS
+    }, {
       showIf: isBaseRace
     }))
     .set('ancestry', groupObject(['ancestry'], 'Ancestry', () => RACE_ANCESTRY_NODE_MAP, {
@@ -82,10 +96,10 @@ export const RACE_NODE_MAP = raceNode.define('race', ({ map, nodes, cond, data, 
       kind: 'INLINE',
       options: SIZE_OPTIONS
     }, {
-      showIf: not(local.field(['category']).empty())
+      showIf: isBaseRace
     }))
     .set('speeds', groupArray(['speeds'], 'Speeds', () => SPEED_NODE_MAP, {
-      showIf: not(local.field(['category']).empty())
+      showIf: isBaseRace
     }))
     .set('parentRaceId', selectSingle(['parentRaceId'], 'Parent Race', {
       kind: 'DATA',

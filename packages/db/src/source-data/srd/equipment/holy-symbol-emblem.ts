@@ -8,7 +8,6 @@ export const holySymbolEmblem: EquipmentAuthored = {
     description: "A divine symbol embossed on a shield or sewn onto clothing, serving as a cleric's focus.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(5),
     weight: S.lbs(0),
     rarityId: S.RARITY_COMMON,

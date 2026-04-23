@@ -82,7 +82,31 @@ export const STARTING_EQUIPMENT_ITEM_NODE_MAP
       }))
       .set('category', selectSingle(['category'], 'Category', {
         kind: 'INLINE',
-        options: EQUIPMENT_CATEGORY_OPTIONS
+        options: EQUIPMENT_CATEGORY_OPTIONS,
+        filter: {
+          kind: 'ALLOW',
+          by: condition((c) => c
+            .if(not(local.field(['properties']).empty()))
+            .then((o) => o
+              .chain((s) => s
+                .input('equipment_properties', {
+                  whereColumn: 'property_code',
+                  valueColumn: 'equipment_id',
+                  input: local.id(['properties'])
+                })
+                .mapValues('equipment', {
+                  whereColumn: 'id',
+                  valueColumn: 'category'
+                })
+                .end()))
+            .else((o) => o
+              .chain((s) => s
+                .seed('equipment', {
+                  valueColumn: 'category'
+                })
+                .end()))
+            .end())
+        }
       }, {
         order: 4
       }))
@@ -95,7 +119,25 @@ export const STARTING_EQUIPMENT_ITEM_NODE_MAP
       .set('equipmentIds', selectMulti(['equipmentIds'], 'Equipment', {
         kind: 'DATA',
         relationship: condition((c) => c
-          .if(not(local.field(['properties']).empty()))
+          .if(logic.and([
+            not(local.field(['properties']).empty()),
+            not(local.field(['category']).empty())
+          ]))
+          .then((o) => o
+            .chain((s) => s
+              .input('equipment_properties', {
+                whereColumn: 'property_code',
+                valueColumn: 'equipment_id',
+                input: local.id(['properties'])
+              })
+              .mapValues('equipment', {
+                whereColumn: 'id',
+                valueColumn: 'id',
+                selectColumns: ['id', 'label'],
+                where: (col) => col('category').in(local.id(['category']))
+              })
+              .end()))
+          .elseIf(not(local.field(['properties']).empty()))
           .then((o) => o
             .chain((s) => s
               .input('equipment_properties', {

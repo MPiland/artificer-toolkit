@@ -1,4 +1,8 @@
-import type { CoreMeta, MEASUREMENT_UNIT_CODE } from '#core'
+import type {
+  CoreMeta,
+  MeasurementUnitCode,
+  ScalableValueAuthored
+} from '#core'
 import { valuesOf } from '#utils'
 
 export const SHAPE_KIND = {
@@ -69,7 +73,14 @@ export const SHAPE_REGISTRY: Record<ShapeKind, ShapeOption> = {
 
 export const SHAPE_KIND_OPTIONS = valuesOf(SHAPE_REGISTRY) as ShapeOption[]
 
-export type ShapeMeasurementAuthored = { amount: number, unit: keyof typeof MEASUREMENT_UNIT_CODE }
+export type ShapeMeasurementValueAuthored = {
+  amount: number
+  unit: MeasurementUnitCode
+}
+
+export type ShapeMeasurementAuthored = ShapeMeasurementValueAuthored & {
+  scaling?: ScalableValueAuthored<ShapeMeasurementValueAuthored>
+}
 
 export type ShapePayloadByType = {
   [SHAPE_KIND.LINE]: {

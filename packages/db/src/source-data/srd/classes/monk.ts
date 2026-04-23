@@ -287,7 +287,29 @@ export const monk: ClassAuthored = {
       label: 'Diamond Soul',
       description: 'Beginning at 14th level, your mastery of ki grants you proficiency in all saving throws. Additionally, whenever you make a saving throw and fail, you can spend 1 ki point to reroll it and take the second result.',
       availableAtLevel: 14,
-      order: 20
+      order: 20,
+      grants: {
+        proficiencies: [
+          {
+            id: classRowId(M, 3, 210),
+            grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+            proficiencyKind: PROFICIENCY_KIND.SAVE_ABILITY,
+            level: SCALING_AMOUNT_KIND.FULL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: SCALING.NONE,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            abilities: [
+              ABILITY_CODE.STRENGTH,
+              ABILITY_CODE.DEXTERITY,
+              ABILITY_CODE.CONSTITUTION,
+              ABILITY_CODE.INTELLIGENCE,
+              ABILITY_CODE.WISDOM,
+              ABILITY_CODE.CHARISMA
+            ],
+            order: 0
+          }
+        ]
+      }
     },
     {
       id: classRowId(M, 3, 22),
@@ -330,48 +352,6 @@ export const monk: ClassAuthored = {
       description: 'At 20th level, when you roll for initiative and have no ki points remaining, you regain 4 ki points.',
       availableAtLevel: 20,
       order: 26
-    }
-  ]
-}
-
-// ─── Way of the Open Hand Subclass ───────────────────────────────────────────
-
-export const openHand: ClassAuthored = {
-  id: SUBCLASS_IDS.OPEN_HAND,
-  label: 'Way of the Open Hand',
-  category: CLASS_CATEGORY.SUBCLASS,
-  parentClassId: CLASS_IDS.MONK,
-  description: 'Monks of the Way of the Open Hand are the ultimate masters of martial arts combat, whether armed or unarmed.',
-  userId: SRD_USER_ID,
-  systemId: SRD_SYSTEM_ID,
-  features: [
-    {
-      id: classRowId(M, 11, 1),
-      label: 'Open Hand Technique',
-      description: 'Starting when you choose this tradition at 3rd level, you can manipulate your enemy\'s ki when you harness your own. Whenever you hit a creature with one of the attacks granted by your Flurry of Blows, you can impose one of the following effects on that target.',
-      availableAtLevel: 3,
-      order: 0
-    },
-    {
-      id: classRowId(M, 11, 2),
-      label: 'Wholeness of Body',
-      description: 'At 6th level, you gain the ability to heal yourself. As an action, you can regain hit points equal to three times your monk level. You must finish a long rest before you can use this feature again.',
-      availableAtLevel: 6,
-      order: 1
-    },
-    {
-      id: classRowId(M, 11, 3),
-      label: 'Tranquility',
-      description: 'Beginning at 11th level, you can enter a special meditation that surrounds you with an aura of peace. At the end of a long rest, you gain the effect of a Sanctuary spell that lasts until the start of your next long rest.',
-      availableAtLevel: 11,
-      order: 2
-    },
-    {
-      id: classRowId(M, 11, 4),
-      label: 'Quivering Palm',
-      description: 'At 17th level, you gain the ability to set up lethal vibrations in someone\'s body. When you hit a creature with an unarmed strike, you can spend 3 ki points to start these imperceptible vibrations.',
-      availableAtLevel: 17,
-      order: 3
     }
   ]
 }

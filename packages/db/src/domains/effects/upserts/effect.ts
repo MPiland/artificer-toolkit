@@ -1,10 +1,11 @@
 import type { DBLike } from '#types'
 import {
   EFFECT_KIND,
-  BRANCH_RESOLUTION_KIND,
   type ConditionAuthored,
   type DamageAuthored,
-  type EffectAuthored
+  type EffectAuthored,
+  type EffectPathAuthored,
+  type OutcomeAuthored
 } from '@artificer-toolkit/shared'
 import {
   upsertDuration,
@@ -14,9 +15,13 @@ import {
 } from '../../shared/upserts/index.js'
 import {
   mapEffectRow,
-  mapInvocationRow,
-  mapBranchRow,
-  mapBranchRollTableEntryRow
+  mapEffectGenericOutcomeRow,
+  mapEffectPathChoiceOptionRow,
+  mapEffectPathRollTableRow,
+  mapEffectPathRow,
+  mapEffectResultBlockOutcomeRow,
+  mapEffectResultBlockRow,
+  mapInvocationRow
 } from './effect.mappers.js'
 import {
   deleteEffectById,
@@ -27,15 +32,56 @@ import {
 export { deleteEffectById } from './effect.persistence.js'
 
 type PersistableOutcome = DamageAuthored | ConditionAuthored
+type PersistableGenericOutcome = Exclude<OutcomeAuthored, PersistableOutcome>
 
-function assertPersistableOutcome(ownerId: string, outcome: { effectKind: string }): asserts outcome is PersistableOutcome {
+function isRelationalOutcome(outcome: OutcomeAuthored): outcome is PersistableOutcome {
   if (outcome.effectKind === EFFECT_KIND.DAMAGE || outcome.effectKind === EFFECT_KIND.CONDITION) {
-    return
+    return true
   }
 
-  throw new Error(
-    `Effect "${ownerId}" uses outcome kind "${outcome.effectKind}", but DB persistence currently supports only DAMAGE and CONDITION branches.`
-  )
+  return false
+}
+
+async function upsertGenericOutcome(
+  db: DBLike,
+  outcome: PersistableGenericOutcome
+): Promise<void> {
+  await db
+    .insertInto('effect_generic_outcomes')
+    .values(mapEffectGenericOutcomeRow(outcome))
+    .execute()
+}
+
+async function upsertResultBlock(
+  db: DBLike,
+  effectId: string,
+  resultBlock: Extract<EffectPathAuthored, { selectionKind: 'FIXED' }>['resultBlock']
+): Promise<void> {
+  if (resultBlock.duration) {
+    await upsertDuration(db, resultBlock.duration)
+  }
+
+  await db
+    .insertInto('effect_result_blocks')
+    .values(mapEffectResultBlockRow(effectId, resultBlock))
+    .execute()
+
+  for (const [index, outcome] of resultBlock.outcomes.entries()) {
+    if (isRelationalOutcome(outcome)) {
+      if (outcome.effectKind === EFFECT_KIND.DAMAGE) {
+        await upsertDamage(db, outcome)
+      } else {
+        await upsertCondition(db, outcome)
+      }
+    } else {
+      await upsertGenericOutcome(db, outcome)
+    }
+
+    await db
+      .insertInto('effect_result_block_outcomes')
+      .values(mapEffectResultBlockOutcomeRow(resultBlock.id, outcome, index + 1))
+      .execute()
+  }
 }
 
 export async function upsertEffect(db: DBLike, json_data: EffectAuthored): Promise<void> {
@@ -43,6 +89,7 @@ export async function upsertEffect(db: DBLike, json_data: EffectAuthored): Promi
 
   try {
     await deleteEffectById(trx, json_data.id)
+    const paths = json_data.paths ?? []
 
     await upsertRange(trx, json_data.invocation.range)
 
@@ -64,69 +111,46 @@ export async function upsertEffect(db: DBLike, json_data: EffectAuthored): Promi
       .values(mapInvocationRow(json_data))
       .execute()
 
-    for (const branch of json_data.branches) {
-      if (branch.resolutionKind === BRANCH_RESOLUTION_KIND.DIRECT && branch.duration) {
-        await upsertDuration(trx, branch.duration)
+    for (const path of paths) {
+      if (path.rangeOverride) {
+        await upsertRange(trx, path.rangeOverride)
+      }
+
+      if (path.selectionKind === 'FIXED') {
+        await upsertResultBlock(trx, json_data.id, path.resultBlock)
+
+        await trx
+          .insertInto('effect_paths')
+          .values(mapEffectPathRow(json_data.id, json_data.invocation.triggerCode, path))
+          .execute()
+        continue
       }
 
       await trx
-        .insertInto('effect_branches')
-        .values(mapBranchRow(json_data.id, json_data.invocation.triggerCode, branch))
+        .insertInto('effect_paths')
+        .values(mapEffectPathRow(json_data.id, json_data.invocation.triggerCode, path))
         .execute()
 
-      if (branch.resolutionKind === BRANCH_RESOLUTION_KIND.DIRECT) {
-        assertPersistableOutcome(json_data.id, branch)
+      if (path.selectionKind === 'CHOICE') {
+        for (const option of path.options) {
+          await upsertResultBlock(trx, json_data.id, option.resultBlock)
 
-        if (branch.effectKind === EFFECT_KIND.DAMAGE) {
-          await upsertDamage(trx, branch)
-          await trx.insertInto('branch_direct_damages').values({
-            effect_id: json_data.id,
-            trigger_code: json_data.invocation.triggerCode,
-            branch_code: branch.branch,
-            damage_id: branch.id
-          })
-            .execute()
-        } else {
-          await upsertCondition(trx, branch)
-          await trx.insertInto('branch_direct_conditions').values({
-            effect_id: json_data.id,
-            trigger_code: json_data.invocation.triggerCode,
-            branch_code: branch.branch,
-            condition_id: branch.id
-          })
+          await trx
+            .insertInto('effect_path_choice_options')
+            .values(mapEffectPathChoiceOptionRow(path.id, option))
             .execute()
         }
 
         continue
       }
 
-      for (const [index, entry] of branch.table.entries()) {
-        if (entry.duration) {
-          await upsertDuration(trx, entry.duration)
-        }
+      for (const row of path.rows) {
+        await upsertResultBlock(trx, json_data.id, row.resultBlock)
 
         await trx
-          .insertInto('branch_roll_table_entries')
-          .values(mapBranchRollTableEntryRow(json_data.id, json_data.invocation.triggerCode, branch.branch, index + 1, entry))
+          .insertInto('effect_path_roll_table_rows')
+          .values(mapEffectPathRollTableRow(path.id, row))
           .execute()
-
-        assertPersistableOutcome(json_data.id, entry)
-
-        if (entry.effectKind === EFFECT_KIND.DAMAGE) {
-          await upsertDamage(trx, entry)
-          await trx.insertInto('branch_roll_table_damages').values({
-            entry_id: entry.id,
-            damage_id: entry.id
-          })
-            .execute()
-        } else {
-          await upsertCondition(trx, entry)
-          await trx.insertInto('branch_roll_table_conditions').values({
-            entry_id: entry.id,
-            condition_id: entry.id
-          })
-            .execute()
-        }
       }
     }
 
@@ -136,3 +160,5 @@ export async function upsertEffect(db: DBLike, json_data: EffectAuthored): Promi
     throw error
   }
 }
+
+

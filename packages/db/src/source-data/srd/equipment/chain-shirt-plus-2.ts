@@ -10,7 +10,6 @@ export const chainShirtPlus2: EquipmentVariantAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: chainShirt.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
-  weight: chainShirt.weight,
   rarityId: S.RARITY_RARE,
   maxBonus: 2,
   modifiers: S.magicArmorModifiers(S.equipId(319), 2),

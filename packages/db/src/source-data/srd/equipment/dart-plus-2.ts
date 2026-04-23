@@ -10,7 +10,6 @@ export const dartPlus2: EquipmentVariantAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: dart.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
-  weight: S.lbs(0.25),
   rarityId: S.RARITY_RARE,
   maxBonus: 2,
   modifiers: S.rangedMagicWeaponModifiers(S.equipId(256), 2),

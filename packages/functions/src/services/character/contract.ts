@@ -82,6 +82,7 @@ export function resolveCharacterState(
     userId: input.userId,
     label: input.label,
     description: input.description,
+    profile: input.profile,
     intent: input.intent,
     state: input.state,
     features,

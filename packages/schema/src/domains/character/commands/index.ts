@@ -56,7 +56,8 @@ export const assignAbilityScoresCommandSchema = commandEnvelopeSchema.extend({
 export const gainClassLevelCommandSchema = commandEnvelopeSchema.extend({
   type: z.literal('GAIN_CLASS_LEVEL'),
   classRef: contentRefSchema,
-  subclassRef: contentRefSchema.optional()
+  subclassRef: contentRefSchema.optional(),
+  specializationRef: contentRefSchema.optional()
 })
 
 export const applyHitPointsCommandSchema = commandEnvelopeSchema.extend({

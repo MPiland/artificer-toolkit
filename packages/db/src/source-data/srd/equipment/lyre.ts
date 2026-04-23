@@ -8,7 +8,6 @@ export const lyre: EquipmentAuthored = {
     description: "An ancient string instrument with a U-shaped frame played by plucking.",
     category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
     properties: [],
-    abilities: [],
     cost: S.gp(30),
     weight: S.lbs(2),
     rarityId: S.RARITY_COMMON,

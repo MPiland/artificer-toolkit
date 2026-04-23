@@ -1,4 +1,5 @@
 import {
+  AUTHORING_CONSTRAINT,
   type FeatAuthored
 } from '@artificer-toolkit/shared'
 import { SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
@@ -14,6 +15,34 @@ export const grappler: FeatAuthored = {
   label: 'Grappler',
   description:
     'You\'ve developed the skills necessary to hold your own in close-quarters grappling. Prerequisite: Strength 13 or higher.',
+  prerequisites: {
+    id: featId(0x11f0),
+    groups: [
+      {
+        id: featId(0x11f1),
+        order: 0,
+        contexts: [
+          {
+            id: featId(0x11f2),
+            order: 0,
+            subject: 'CHARACTER',
+            conditions: [
+              {
+                id: featId(0x11f3),
+                order: 0,
+                kind: 'PREDICATE',
+                constraint: AUTHORING_CONSTRAINT.INCLUDE,
+                predicateCode: 'ABILITY_SCORE',
+                authoringModeKind: 'SELECTED',
+                abilities: 'STRENGTH',
+                min: 13
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   features: [
     {
       id: featId(0x1101),

@@ -1,12 +1,20 @@
 # Phase 7 — API Transport Stabilization
 
-## Status: In Progress
+## Status: Complete
 
 ## Context
 
-Phase 6.5 delivered the complete character lifecycle domain layer: `CharacterBuildState`, `CharacterEvent` union (14 types), 10 command handlers, `snapshotBuilder`, `contentAccess` stub, `character_events` SQL table and repository, and a full engine pipeline. None of this is wired to the DB or exposed via API routes yet.
+Phase 6.5 delivered the complete character lifecycle domain layer: `CharacterBuildState`, `CharacterEvent` union (14 types), 10 command handlers, `snapshotBuilder`, `contentAccess` stub, `character_events` SQL table and repository, and a full engine pipeline. Phase 7 then completed the DB + route wiring and validation hardening for character transport.
 
-Phase 7's job is transport stabilization: connect the domain layer to the database, enforce Zod validation at all API boundaries, and expose character management through HTTP routes. No new domain behavior is added.
+Phase 7's job was transport stabilization: connect the domain layer to the database, enforce Zod validation at all API boundaries, and expose character management through HTTP routes. No new domain behavior is added.
+
+### Transport Posture (apps/apis -> apps/api)
+
+- `apps/apis` is the intended thin transport package (future rename target remains `apps/api`).
+- Current implementation is REST + Zod boundary validation and is considered stable enough for Phase 8 UI integration.
+- tRPC remains an optional follow-on transport swap layer, not a Phase 7 blocker.
+- The codebase is now positioned to adopt tRPC incrementally by mapping existing service handlers/DTO contracts to procedures without rewriting domain or repository layers.
+- Active follow-on is now tracked in [`PHASE_9_TRPC_SUBPLAN.md`](c:/Users/pilan/Desktop/artificer-toolkit/PHASE_9_TRPC_SUBPLAN.md).
 
 **Deferred to Phase 8:** condition/exhaustion tracking (`character_play_state` table, play-event union, engine `activeConditions` input). Vocabulary and PENALTY stacking infrastructure exist; domain work belongs in its own phase.
 

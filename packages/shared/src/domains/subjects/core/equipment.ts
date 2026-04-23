@@ -1,4 +1,4 @@
-import { CoreMeta } from '#core'
+import type { CoreMeta } from '#core'
 import { valuesOf } from '#utils'
 
 export const EQUIPMENT_CATEGORY_CODE = {

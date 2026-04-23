@@ -8,7 +8,6 @@ export const basket: EquipmentAuthored = {
     description: "A woven container suitable for carrying produce or light goods.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [S.EQUIPMENT_PROPERTY_CODE.CONTAINER],
-    abilities: [],
     cost: S.sp(4),
     weight: S.lbs(2),
     rarityId: S.RARITY_COMMON,

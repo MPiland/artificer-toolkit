@@ -7,6 +7,7 @@ export const MODIFIER_KIND = {
   BONUS: 'BONUS',
   PENALTY: 'PENALTY',
   SET_VALUE: 'SET_VALUE',
+  ABILITY_MODIFIER_BONUS: 'ABILITY_MODIFIER_BONUS',
 
   // Dice / damage
   ADD_BONUS_DIE: 'ADD_BONUS_DIE',
@@ -28,7 +29,7 @@ export const MODIFIER_KIND = {
 
   // Charges / misc
   MODIFY_CHARGE_LIMIT: 'MODIFY_CHARGE_LIMIT',
-  OPTIONAL_ABILITY_MODIFIER: 'OPTIONAL_ABILITY_MODIFIER'
+  OPTIONAL_ABILITY_MODIFIER_BONUS: 'OPTIONAL_ABILITY_MODIFIER_BONUS'
 } as const
 
 export type ModifierKind = keyof typeof MODIFIER_KIND
@@ -57,6 +58,14 @@ export const MODIFIER_KIND_REGISTRY: Record<ModifierKind, ModifierTypeOption> = 
     tooltip: 'Set the value to a specific amount.',
     description:
       'Overrides the existing value and sets it to a fixed or calculated value.'
+  },
+
+  ABILITY_MODIFIER_BONUS: {
+    code: MODIFIER_KIND.ABILITY_MODIFIER_BONUS,
+    label: 'Ability Modifier Bonus',
+    tooltip: 'Add a specific ability modifier to the domain.',
+    description:
+      'Adds the modifier from a selected ability, optionally with a multiplier or min/max clamp.'
   },
 
   ADD_BONUS_DIE: {
@@ -145,12 +154,12 @@ export const MODIFIER_KIND_REGISTRY: Record<ModifierKind, ModifierTypeOption> = 
       'Modifies the maximum number of charges or uses available, potentially scaling with level or other values.'
   },
 
-  OPTIONAL_ABILITY_MODIFIER: {
-    code: MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER,
-    label: 'Optional Ability Modifier',
-    tooltip: 'Allow an alternate ability modifier.',
+  OPTIONAL_ABILITY_MODIFIER_BONUS: {
+    code: MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS,
+    label: 'Optional Ability Modifier Bonus',
+    tooltip: 'Use the highest modifier from a set of allowed abilities.',
     description:
-      'Allows the user to choose an alternate ability modifier to use instead of the default one.'
+      'Uses the highest applicable ability modifier from the listed abilities instead of stacking them together.'
   }
 } as const
 
@@ -207,10 +216,17 @@ export const MODIFIER_KINDS_BY_DOMAIN: Record<ValueDomainCode, readonly Modifier
     ARMOR_CLASS: [
       MODIFIER_KIND.BONUS,
       MODIFIER_KIND.PENALTY,
-      MODIFIER_KIND.SET_VALUE
+      MODIFIER_KIND.SET_VALUE,
+      MODIFIER_KIND.ABILITY_MODIFIER_BONUS,
+      MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS
     ],
 
-    INITIATIVE_BONUS: [MODIFIER_KIND.BONUS, MODIFIER_KIND.PENALTY],
+    INITIATIVE: [
+      MODIFIER_KIND.BONUS,
+      MODIFIER_KIND.PENALTY,
+      MODIFIER_KIND.ADVANTAGE,
+      MODIFIER_KIND.DISADVANTAGE
+    ],
 
     SAVE_DC: [
       MODIFIER_KIND.BONUS,
@@ -218,22 +234,23 @@ export const MODIFIER_KINDS_BY_DOMAIN: Record<ValueDomainCode, readonly Modifier
       MODIFIER_KIND.SET_VALUE
     ],
 
-    SAVING_THROW_BONUS: [
+    SAVING_THROW_MODIFIER: [
       MODIFIER_KIND.BONUS,
       MODIFIER_KIND.PENALTY,
       MODIFIER_KIND.ADVANTAGE,
       MODIFIER_KIND.DISADVANTAGE
     ],
 
-    ATTACK_ROLL_BONUS: [
+    ATTACK_ROLL: [
       MODIFIER_KIND.BONUS,
       MODIFIER_KIND.PENALTY,
       MODIFIER_KIND.ADVANTAGE,
       MODIFIER_KIND.DISADVANTAGE,
-      MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER
+      MODIFIER_KIND.ABILITY_MODIFIER_BONUS,
+      MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS
     ],
 
-    SKILL_BONUS: [MODIFIER_KIND.BONUS, MODIFIER_KIND.PENALTY],
+    SKILL_MODIFIER: [MODIFIER_KIND.BONUS, MODIFIER_KIND.PENALTY],
 
     ABILITY_SCORE: [
       MODIFIER_KIND.BONUS,
@@ -249,9 +266,11 @@ export const MODIFIER_KINDS_BY_DOMAIN: Record<ValueDomainCode, readonly Modifier
 
     DAMAGE: [
       MODIFIER_KIND.BONUS,
+      MODIFIER_KIND.PENALTY,
       MODIFIER_KIND.ADD_BONUS_DIE,
       MODIFIER_KIND.REPLACE_DAMAGE_TYPE,
-      MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER
+      MODIFIER_KIND.ABILITY_MODIFIER_BONUS,
+      MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS
     ],
 
     DAMAGE_RESISTANCE: [MODIFIER_KIND.ADD_OPTION, MODIFIER_KIND.REMOVE_OPTION],
@@ -356,11 +375,10 @@ export type ModifierKindsByDomiain<V extends ValueDomainCode>
 export const MODIFIER_VALUE_SOURCE_CODE = {
   FIXED: 'FIXED',
   PROFICIENCY_BONUS: 'PROFICIENCY_BONUS',
-  ABILITY_MODIFIER: 'ABILITY_MODIFIER',
   SKILL_BONUS: 'SKILL_BONUS',
   CHARACTER_LEVEL: 'CHARACTER_LEVEL',
   CLASS_LEVEL: 'CLASS_LEVEL',
-  SPELL_LEVEL: 'SPELL_LEVEL'
+  SPELL_SLOT_LEVEL: 'SPELL_SLOT_LEVEL'
 } as const
 
 export type ModifierValueSource = keyof typeof MODIFIER_VALUE_SOURCE_CODE
@@ -385,13 +403,6 @@ export const MODIFIER_VALUE_SOURCE_REGISTRY: Record<
     tooltip: 'Automatically scales with character level.'
   },
 
-  ABILITY_MODIFIER: {
-    code: MODIFIER_VALUE_SOURCE_CODE.ABILITY_MODIFIER,
-    label: 'Ability Modifier',
-    description: 'Uses the modifier of a selected ability.',
-    tooltip: 'For example: Strength modifier or Spellcasting ability modifier.'
-  },
-
   SKILL_BONUS: {
     code: MODIFIER_VALUE_SOURCE_CODE.SKILL_BONUS,
     label: 'Skill Bonus',
@@ -413,8 +424,8 @@ export const MODIFIER_VALUE_SOURCE_REGISTRY: Record<
     tooltip: 'Optionally select a class to reference.'
   },
 
-  SPELL_LEVEL: {
-    code: MODIFIER_VALUE_SOURCE_CODE.SPELL_LEVEL,
+  SPELL_SLOT_LEVEL: {
+    code: MODIFIER_VALUE_SOURCE_CODE.SPELL_SLOT_LEVEL,
     label: 'Spell Level',
     description: 'Uses the level the spell is cast at.',
     tooltip: 'Higher spell slots result in higher values.'
@@ -432,7 +443,6 @@ export const MODIFIER_VALUE_SOURCE_OPTIONS = valuesOf(
 export type ModifierScalarValueAuthored
   = | { valueKind: 'FIXED', amount: number }
     | { valueKind: 'PROFICIENCY_BONUS', multiplier?: number }
-    | { valueKind: 'ABILITY_MODIFIER', ability: AbilityCode, multiplier?: number }
     | { valueKind: 'SKILL_BONUS', skillId: string, multiplier?: number }
     | { valueKind: 'CHARACTER_LEVEL', multiplier?: number }
     | { valueKind: 'CLASS_LEVEL', classId: string, multiplier?: number }
@@ -446,22 +456,24 @@ export type ModifierPayloadFor<
   // numeric-like
   = K extends 'BONUS' | 'PENALTY' ? ModifierScalarValueAuthored
     : K extends 'SET_VALUE' ? { amount: number } // consider NumericExpr later
-      : K extends 'MODIFY_CHARGE_LIMIT' ? ChargeLimitPayload
-        : K extends 'ADD_BONUS_DIE' ? { dice: string }
-          : K extends 'REPLACE_DAMAGE'
-            ? { damageTypeId: string } // consider renaming to REPLACE_DAMAGE_TYPE
-            : K extends 'ADVANTAGE' | 'DISADVANTAGE'
-              ? undefined
-              : K extends 'OPTIONAL_ABILITY_MODIFIER'
-                ? { abilities: AbilityCode[] }
+      : K extends 'ABILITY_MODIFIER_BONUS'
+        ? { ability: AbilityCode, multiplier?: number, min?: number, max?: number }
+        : K extends 'MODIFY_CHARGE_LIMIT' ? ChargeLimitPayload
+          : K extends 'ADD_BONUS_DIE' ? { dice: string }
+            : K extends 'REPLACE_DAMAGE_TYPE'
+              ? { damageTypeId: string } // consider renaming to REPLACE_DAMAGE_TYPE
+              : K extends 'ADVANTAGE' | 'DISADVANTAGE'
+                ? undefined
+                : K extends 'OPTIONAL_ABILITY_MODIFIER_BONUS'
+                  ? { abilities: AbilityCode[] }
 
-              // option-like operations must be domain-supported
-                : K extends 'ADD_OPTION' | 'REMOVE_OPTION' | 'REPLACE_OPTION'
-                  ? V extends keyof ValueDomainOptionPayloadByDomain
-                    ? ValueDomainOptionPayloadByDomain[V]
+                // option-like operations must be domain-supported
+                  : K extends 'ADD_OPTION' | 'REMOVE_OPTION' | 'REPLACE_OPTION'
+                    ? V extends keyof ValueDomainOptionPayloadByDomain
+                      ? ValueDomainOptionPayloadByDomain[V]
+                      : never
+
                     : never
-
-                  : never
 
 export type ModifierPayloadByDomain<
   V extends ValueDomainCode,

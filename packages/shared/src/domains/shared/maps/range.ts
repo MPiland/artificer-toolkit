@@ -1,12 +1,17 @@
 import type { RangeAuthored } from '#authored'
 import { MEASUREMENT_UNIT_OPTIONS, RANGE_OPTIONS } from '#core'
 import { buildNodeMap } from '#utils'
+import { MEASUREMENT_NODE_MAP } from './measurement.js'
+import { createBreakpointScalingNodeMap } from './scaling.js'
 
 const range = buildNodeMap<RangeAuthored>()
 
+const RANGE_SCALING_NODE_MAP
+  = createBreakpointScalingNodeMap('rangeScaling', 'Range Measurement', MEASUREMENT_NODE_MAP)
+
 export const RANGE_NODE_MAP = range.define('range', ({ map, cond, nodes }) => {
   const local = cond.local()
-  const { selectSingle, number } = nodes
+  const { selectSingle, number, groupObject } = nodes
   map
     .set('rangeKind', selectSingle(['rangeKind'], 'Range Kind', {
       kind: 'INLINE',
@@ -26,6 +31,10 @@ export const RANGE_NODE_MAP = range.define('range', ({ map, cond, nodes }) => {
     }, {
       order: 3,
       requiredIf: true,
+      showIf: local.field(['rangeKind']).eq('DISTANCE')
+    }))
+    .set('scaling', groupObject(['scaling'], 'Scaling', () => RANGE_SCALING_NODE_MAP, {
+      order: 4,
       showIf: local.field(['rangeKind']).eq('DISTANCE')
     }))
 })

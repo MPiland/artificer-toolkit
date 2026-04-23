@@ -19,17 +19,16 @@ import {
   runEngine,
   type CharacterAssemblyRegistry,
   type CharacterBuildSnapshot,
-  type EngineAccumulatedState,
 } from '@artificer-toolkit/shared'
-import { warlock, warlockSubclasses } from '../source-data/srd/classes/warlock.js'
+import { warlock } from '../source-data/srd/classes/warlock.js'
+import { theFiend } from '../source-data/srd/classes/the-fiend.js'
 import { CLASS_IDS, SUBCLASS_IDS, SPELL_IDS } from '../source-data/srd/ids.js'
 import { srdRaces } from '../source-data/srd/races/index.js'
 
 // ─── Compiled entities ───────────────────────────────────────────────────────
 
 const compiledWarlock = compileClass(warlock)
-const fiendAuthored = warlockSubclasses.find((s) => s.id === SUBCLASS_IDS.FIEND)!
-const compiledFiend = compileClass(fiendAuthored)
+const compiledFiend = compileClass(theFiend)
 
 // ─── Snapshot helpers ─────────────────────────────────────────────────────────
 
@@ -79,12 +78,12 @@ const agonizingBlastModifierGrant = {
   id: 'agonizing-blast-modifier-grant',
   grantKind: 'MODIFIER_GRANT' as const,
   valueDomainCode: 'DAMAGE',
-  modifierKind: 'BONUS',
+  modifierKind: 'ABILITY_MODIFIER_BONUS',
   scope: 'SOURCE',
   selectionKind: 'GRANTED' as const,
   scalingKind: 'NONE' as const,
   authoringModeKind: 'SELECTED' as const,
-  payload: { valueKind: 'ABILITY_MODIFIER' as const, ability: 'CHARISMA' as const },
+  payload: { ability: 'CHARISMA' as const },
   order: 0,
   restrictions: {
     id: 'agonizing-blast-spell-restriction',
@@ -117,6 +116,7 @@ const registry: CharacterAssemblyRegistry = {
     [SUBCLASS_IDS.FIEND]: compiledFiend
   },
   feats: {},
+  races: {},
   equipment: {},
   spells: {}
 }

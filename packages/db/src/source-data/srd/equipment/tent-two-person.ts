@@ -8,7 +8,6 @@ export const tentTwoPerson: EquipmentAuthored = {
     description: "A simple canvas shelter providing modest protection for two occupants.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(2),
     weight: S.lbs(20),
     rarityId: S.RARITY_COMMON,

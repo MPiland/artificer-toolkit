@@ -10,8 +10,13 @@
   },
   "dependencies": {
     "@artificer-toolkit/functions": "workspace:^",
+    "@artificer-toolkit/schema": "workspace:^",
     "@artificer-toolkit/shared": "workspace:^",
-    "@supabase/supabase-js": "^2.97.0"
+    "@supabase/supabase-js": "^2.97.0",
+    "@trpc/server": "^11.6.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
   },
   "exports": {
     ".": {

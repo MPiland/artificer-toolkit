@@ -1,3 +1,4 @@
+export * from './builderService.js'
 export * from './commands/index.js'
 export * from './contract.js'
 export * from './contentAccess.js'

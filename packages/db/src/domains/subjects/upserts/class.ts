@@ -17,6 +17,7 @@ import {
 import { upsertProficiencyGrant } from '../../grants/upserts/index.js'
 import { upsertFeature } from '../../features/upserts/index.js'
 import { upsertCharge } from '../../shared/upserts/charge.js'
+import { normalizeSubjectStatus } from '../status.js'
 
 type ClassRow = {
   id: string
@@ -26,6 +27,7 @@ type ClassRow = {
   parent_class_id: string | null
   label: string
   description: string | null
+  status: ClassAuthored['status']
   starting_equipment_id: string | null
 }
 
@@ -47,7 +49,7 @@ type ClassProficiencyGrantRow = {
   sort_order: number
 }
 
-type ClassSubtypeRow = {
+type ClassSpecializationRow = {
   id: string
   class_id: string
   label: string
@@ -248,6 +250,7 @@ function mapClassRow(json_data: ClassAuthored): ClassRow {
       parent_class_id: null,
       label: json_data.label,
       description: json_data.description ?? null,
+      status: normalizeSubjectStatus(json_data.status),
       starting_equipment_id: json_data.startingEquipment.id
     }
   }
@@ -260,6 +263,7 @@ function mapClassRow(json_data: ClassAuthored): ClassRow {
     parent_class_id: json_data.parentClassId,
     label: json_data.label,
     description: json_data.description ?? null,
+    status: normalizeSubjectStatus(json_data.status),
     starting_equipment_id: null
   }
 }
@@ -410,6 +414,7 @@ export async function upsertClass(
         parent_class_id: ref('excluded.parent_class_id'),
         label: ref('excluded.label'),
         description: ref('excluded.description'),
+        status: ref('excluded.status'),
         starting_equipment_id: ref('excluded.starting_equipment_id')
       })))
       .execute()
@@ -422,7 +427,7 @@ export async function upsertClass(
       .execute()
     await trx.deleteFrom('class_attributes').where('class_id', '=', json_data.id)
       .execute()
-    await trx.deleteFrom('class_subtypes').where('class_id', '=', json_data.id)
+    await trx.deleteFrom('class_specializations').where('class_id', '=', json_data.id)
       .execute()
     await trx.deleteFrom('class_resources').where('class_id', '=', json_data.id)
       .execute()
@@ -594,15 +599,15 @@ export async function upsertClass(
       await trx.deleteFrom('class_multiclass').where('class_id', '=', json_data.id)
         .execute()
 
-      const subtypeRows: ClassSubtypeRow[] = (json_data.subtypes ?? []).map((subtype) => ({
-        id: subtype.id,
+      const specializationRows: ClassSpecializationRow[] = (json_data.specializations ?? []).map((specialization) => ({
+        id: specialization.id,
         class_id: json_data.id,
-        label: subtype.label,
-        sort_order: subtype.order
+        label: specialization.label,
+        sort_order: specialization.order
       }))
 
-      if (subtypeRows.length > 0) {
-        await trx.insertInto('class_subtypes').values(subtypeRows)
+      if (specializationRows.length > 0) {
+        await trx.insertInto('class_specializations').values(specializationRows)
           .execute()
       }
     }

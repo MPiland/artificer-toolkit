@@ -8,7 +8,6 @@ export const splintArmor: EquipmentAuthored = {
     description: 'Narrow vertical strips of metal riveted to a leather backing.',
     category: S.EQUIPMENT_CATEGORY_CODE.ARMOR,
     properties: [S.EQUIPMENT_PROPERTY_CODE.HEAVY],
-    abilities: [],
     armorClass: 17,
     cost: S.gp(200),
     weight: S.lbs(60),

@@ -1,7 +1,11 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { logoutFn } from '@server/auth'
+import { createFileRoute, redirect } from '@tanstack/react-router'
+import { getSupabaseBrowserClient } from '#supabase'
 
 export const Route = createFileRoute('/logout')({
   preload: false,
-  loader: () => logoutFn(),
+  loader: async () => {
+    const supabase = getSupabaseBrowserClient()
+    await supabase.auth.signOut()
+    throw redirect({ to: '/login' })
+  },
 })

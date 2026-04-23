@@ -10,7 +10,6 @@ export const leatherArmorPlus2: EquipmentVariantAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: leatherArmor.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
-  weight: leatherArmor.weight,
   rarityId: S.RARITY_RARE,
   maxBonus: 2,
   modifiers: S.magicArmorModifiers(S.equipId(310), 2),

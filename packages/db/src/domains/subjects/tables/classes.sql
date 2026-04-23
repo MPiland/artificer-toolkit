@@ -6,7 +6,7 @@
  *   Base classes may own: starting gold, hitpoints, starting equipment,
  *   spellcasting, multiclass requirements, proficiencies, and features.
  *
- *   Subclasses attach to a parent class and may define subtypes,
+ *   Subclasses attach to a parent class and may define specializations,
  *   plus their own proficiencies and features.
  *
  * Cardinality:
@@ -20,7 +20,7 @@
  *   classes 0..1 ──▶ 1 class_spellcasting (owned subtree, BASE only)
  *   classes 0..1 ──▶ 1 class_resource (owned subtree, optional)
  *   classes 0..1 ──▶ 1 class_multiclass (owned subtree, BASE only)
- *   classes 1 ──▶ N class_subtypes (SUBCLASS only)
+ *   classes 1 ──▶ N class_specializations (SUBCLASS only)
  *
  * Ownership:
  *   - class_details owns details rows via bridge trigger
@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS public.classes (
 
   label text NOT NULL,
   description text,
+  status text NOT NULL DEFAULT 'DRAFT',
 
   starting_equipment_id uuid
     REFERENCES public.starting_equipment(id)
@@ -67,6 +68,9 @@ CREATE TABLE IF NOT EXISTS public.classes (
   CONSTRAINT classes_category_parent_chk CHECK (
     (category = 'BASE' AND parent_class_id IS NULL AND starting_equipment_id IS NOT NULL)
     OR (category = 'SUBCLASS' AND parent_class_id IS NOT NULL AND starting_equipment_id IS NULL)
+  ),
+  CONSTRAINT classes_status_chk CHECK (
+    status IN ('DRAFT', 'ACTIVE')
   )
 );
 
@@ -653,10 +657,10 @@ $$;
 
 
 /* ──────────────────────────────────────────────
- * SUBCLASS — SUBTYPES
+ * SUBCLASS — SPECIALIZATIONS
  * ────────────────────────────────────────────── */
 
-CREATE TABLE IF NOT EXISTS public.class_subtypes (
+CREATE TABLE IF NOT EXISTS public.class_specializations (
   id uuid PRIMARY KEY,
   class_id uuid NOT NULL
     REFERENCES public.classes(id)
@@ -667,7 +671,7 @@ CREATE TABLE IF NOT EXISTS public.class_subtypes (
   sort_order integer NOT NULL
 );
 
-ALTER TABLE public.class_subtypes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.class_specializations ENABLE ROW LEVEL SECURITY;
 
-CREATE INDEX IF NOT EXISTS idx_class_subtypes_class
-  ON public.class_subtypes(class_id);
+CREATE INDEX IF NOT EXISTS idx_class_specializations_class
+  ON public.class_specializations(class_id);

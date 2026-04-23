@@ -1,4 +1,4 @@
-import type { SizeCode } from '#core'
+import type { SizeCode, AuthoredRecordStatus } from '#core'
 import type {
   CostAuthored,
   DetailAuthored,
@@ -11,6 +11,7 @@ export interface VehicleAuthored {
   id: string
   label: string
   description?: string
+  status?: AuthoredRecordStatus
   details?: DetailAuthored[]
   userId: string
   systemId: string

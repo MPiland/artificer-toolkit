@@ -10,7 +10,6 @@ export const scaleMailPlus3: EquipmentVariantAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: scaleMail.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
-  weight: scaleMail.weight,
   rarityId: S.RARITY_VERY_RARE,
   maxBonus: 3,
   modifiers: S.magicArmorModifiers(S.equipId(323), 3),

@@ -6,6 +6,90 @@
       "DOM",
       "DOM.Iterable"
     ],
+    "paths": {
+      "#app/auth/AuthForms": [
+        "./src/app/auth/AuthForms.tsx"
+      ],
+      "#app/providers/AppProviders": [
+        "./src/app/providers/AppProviders.tsx"
+      ],
+      "#app/query/createAppQueryClient": [
+        "./src/app/query/createAppQueryClient.ts"
+      ],
+      "#app/routeStates": [
+        "./src/app/routeStates.tsx"
+      ],
+      "#app/shell": [
+        "./src/app/shell/index.ts"
+      ],
+      "#app/*": [
+        "./src/app/*"
+      ],
+      "#css/foundations.css": [
+        "./src/css/foundations.css.ts"
+      ],
+      "#css/layers.css": [
+        "./src/css/layers.css.ts"
+      ],
+      "#css/main.css": [
+        "./src/css/main.css"
+      ],
+      "#css/theme": [
+        "./src/css/theme.ts"
+      ],
+      "#css/theme.css": [
+        "./src/css/theme.css.ts"
+      ],
+      "#css/*": [
+        "./src/css/*"
+      ],
+      "#lib/*": [
+        "./src/lib/*"
+      ],
+      "#components/*": [
+        "./src/components/*"
+      ],
+      "#domains/*": [
+        "./src/domains/*"
+      ],
+      "#hooks": [
+        "./src/hooks/index.ts"
+      ],
+      "#utils": [
+        "./src/utils/index.ts"
+      ],
+      "#routes/*": [
+        "./src/routes/*"
+      ],
+      "#assets/*": [
+        "./src/assets/*"
+      ],
+      "#supabase": [
+        "./src/supabase/index.ts"
+      ],
+      "#supabase/*": [
+        "./src/supabase/*"
+      ],
+      "#auth": [
+        "./src/domains/auth/index.ts"
+      ],
+      "#test/msw/handlers": [
+        "./src/test/msw/handlers.ts"
+      ],
+      "#test/msw/server": [
+        "./src/test/msw/server.ts"
+      ],
+      "#test/renderWithAppProviders": [
+        "./src/test/renderWithAppProviders.tsx"
+      ],
+      "#types": [
+        "./src/types/index.ts"
+      ],
+      "#test/*": [
+        "./src/test/*"
+      ]
+    },
+    "allowImportingTsExtensions": true,
     "jsx": "react-jsx",
     "types": [
       "vite/client"
@@ -13,62 +97,11 @@
     "noEmit": true,
     "useDefineForClassFields": true,
     "module": "esnext",
-    "moduleResolution": "bundler",
-    "paths": {
-      "@auth": [
-        "./src/domains/auth"
-      ],
-      "@css/*": [
-        "./src/css/*"
-      ],
-      "@components/*": [
-        "./src/components/*"
-      ],
-      "@pages/*": [
-        "./src/domains/*"
-      ],
-      "@enums/*": [
-        "./src/enums/*"
-      ],
-      "@hooks": [
-        "./src/hooks"
-      ],
-      "@utils/*": [
-        "./src/utils/*"
-      ],
-      "@routes/*": [
-        "./src/routes/*"
-      ],
-      "@assets/*": [
-        "./src/assets/*"
-      ],
-      "@theme/*": [
-        "./src/theme/*"
-      ],
-      "@store": [
-        "./src/store"
-      ],
-      "@server/*": [
-        "./src/server/*"
-      ],
-      "@supabase": [
-        "./src/supabase"
-      ],
-      "@utils": [
-        "./src/utils"
-      ],
-      "@data/*": [
-        "./src/data/*"
-      ],
-      "@types": [
-        "./src/types"
-      ]
-    }
+    "moduleResolution": "bundler"
   },
   "include": [
     "src",
     "vite.config.ts",
-    "vite-env.d.ts",
-    "server/auth/serverFns.tsx"
+    "vite-env.d.ts"
   ]
 }

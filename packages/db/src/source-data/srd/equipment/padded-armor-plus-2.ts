@@ -10,7 +10,6 @@ export const paddedArmorPlus2: EquipmentVariantAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: paddedArmor.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
-  weight: paddedArmor.weight,
   rarityId: S.RARITY_RARE,
   maxBonus: 2,
   modifiers: S.magicArmorModifiers(S.equipId(307), 2),

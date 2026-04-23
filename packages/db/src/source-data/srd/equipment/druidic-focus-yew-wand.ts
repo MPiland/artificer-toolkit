@@ -8,7 +8,6 @@ export const druidicFocusYewWand: EquipmentAuthored = {
     description: "A wand of yew wood that channels the natural magic of druids.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(10),
     weight: S.lbs(1),
     rarityId: S.RARITY_COMMON,

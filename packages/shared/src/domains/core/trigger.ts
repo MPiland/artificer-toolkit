@@ -19,8 +19,8 @@ export const TRIGGER_REGISTRY: Record<Trigger, TriggerOption> = {
   ACTIVATED: {
     code: TRIGGER.ACTIVATED,
     label: 'Activated',
-    description: 'Indicates an activated capability that resolves when the source uses it.',
-    tooltip: 'Activated capability.'
+    description: 'Indicates an activated effect that resolves when the source uses it.',
+    tooltip: 'Activated effect.'
   },
 
   MELEE_WEAPON_ATTACK: {

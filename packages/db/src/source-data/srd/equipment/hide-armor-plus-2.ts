@@ -10,7 +10,6 @@ export const hideArmorPlus2: EquipmentVariantAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: hideArmor.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
-  weight: hideArmor.weight,
   rarityId: S.RARITY_RARE,
   maxBonus: 2,
   modifiers: S.magicArmorModifiers(S.equipId(316), 2),

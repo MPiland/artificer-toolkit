@@ -7,7 +7,9 @@ import {
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
   PROFICIENCY_KIND,
+  RANGE_KIND,
   RACE_CATEGORY_CODE,
+  RACE_SELECTION_MODE,
   SCALING,
   SCALING_AMOUNT_KIND,
   SIZE_CODE,
@@ -15,7 +17,7 @@ import {
   type RaceAuthored
 } from '@artificer-toolkit/shared'
 import { RACE_IDS, SUBRACE_IDS, SPELL_IDS } from '../ids.js'
-import { SRD_CONDITION_TYPES, SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID, SRD_DARKVISION_SENSE_ID } from '../vocabulary.js'
+import { SRD_CONDITION_TYPES, SRD_GNOMISH_HERITAGE_ID, SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID, SRD_DARKVISION_SENSE_ID } from '../vocabulary.js'
 
 function conditionTypeId(code: string): string {
   const entry = SRD_CONDITION_TYPES.find((c) => c.code === code)
@@ -27,6 +29,11 @@ function languageId(code: string): string {
   const entry = SRD_LANGUAGES.find((l) => l.code === code)
   if (!entry) throw new Error(`SRD language vocabulary entry for ${code} required.`)
   return entry.id
+}
+
+function equipId(index: number): string {
+  const hex = index.toString(16).padStart(4, '0')
+  return `00000000-0000-0000-0060-${hex}00000000`
 }
 
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
@@ -47,9 +54,10 @@ export const gnome: RaceAuthored = {
   id: RACE_IDS.GNOME,
   label: 'Gnome',
   category: RACE_CATEGORY_CODE.BASE,
-  playable: true,
+  selectionMode: RACE_SELECTION_MODE.REQUIRES_SUBRACE,
   size: SIZE_CODE.SMALL,
   speeds: gnomeWalk25,
+  heritageIds: [SRD_GNOMISH_HERITAGE_ID],
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
   features: [
@@ -70,7 +78,7 @@ export const gnome: RaceAuthored = {
             senseIds: [SRD_DARKVISION_SENSE_ID],
             range: {
               id: raceFeatureId(6, 1, 3),
-              rangeKind: 'DISTANCE' as const,
+              rangeKind: RANGE_KIND.DISTANCE,
               amount: 60,
               unit: MEASUREMENT_UNIT_CODE.FEET
             },
@@ -112,7 +120,7 @@ export const gnome: RaceAuthored = {
           {
             id: raceFeatureId(6, 3, 2),
             grantKind: GRANT_KIND.MODIFIER_GRANT,
-            valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_BONUS,
+            valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
             domain: { ability: ABILITY_CODE.INTELLIGENCE },
             modifierKind: MODIFIER_KIND.ADVANTAGE,
             scope: MODIFIER_SCOPE_KIND.GLOBAL,
@@ -123,7 +131,7 @@ export const gnome: RaceAuthored = {
           {
             id: raceFeatureId(6, 3, 3),
             grantKind: GRANT_KIND.MODIFIER_GRANT,
-            valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_BONUS,
+            valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
             domain: { ability: ABILITY_CODE.WISDOM },
             modifierKind: MODIFIER_KIND.ADVANTAGE,
             scope: MODIFIER_SCOPE_KIND.GLOBAL,
@@ -134,7 +142,7 @@ export const gnome: RaceAuthored = {
           {
             id: raceFeatureId(6, 3, 4),
             grantKind: GRANT_KIND.MODIFIER_GRANT,
-            valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_BONUS,
+            valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
             domain: { ability: ABILITY_CODE.CHARISMA },
             modifierKind: MODIFIER_KIND.ADVANTAGE,
             scope: MODIFIER_SCOPE_KIND.GLOBAL,
@@ -214,7 +222,24 @@ export const rockGnome: RaceAuthored = {
       label: 'Tinker',
       description: 'You have proficiency with artisan\'s tools (tinker\'s tools). Using those tools, you can spend 1 hour and 10 gp worth of materials to construct a Tiny clockwork device (AC 5, 1 hp).',
       availableAtLevel: 1,
-      order: 2
+      order: 2,
+      grants: {
+        proficiencies: [
+          {
+            id: raceFeatureId(109, 3, 2),
+            grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+            proficiencyKind: PROFICIENCY_KIND.EQUIPMENT,
+            level: SCALING_AMOUNT_KIND.FULL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: SCALING.NONE,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            equipmentIds: [equipId(65)],
+            order: 0
+          }
+        ]
+      }
     }
   ]
 }
+
+

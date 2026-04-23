@@ -8,7 +8,6 @@ export const inkPen: EquipmentAuthored = {
     description: "A quill or reed pen for writing with ink.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.cp(2),
     weight: S.lbs(0),
     rarityId: S.RARITY_COMMON,

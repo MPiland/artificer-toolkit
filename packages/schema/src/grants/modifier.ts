@@ -58,11 +58,6 @@ const modifierScalarValueDtoSchema = z.discriminatedUnion('valueKind', [
     multiplier: z.number().optional()
   }),
   z.object({
-    valueKind: z.literal(modifierValueKindSchema.enum.ABILITY_MODIFIER),
-    ability: abilityCodeSchema,
-    multiplier: z.number().optional()
-  }),
-  z.object({
     valueKind: z.literal(modifierValueKindSchema.enum.SKILL_BONUS),
     skillId: z.string(),
     multiplier: z.number().optional()
@@ -81,6 +76,13 @@ const modifierScalarValueDtoSchema = z.discriminatedUnion('valueKind', [
     multiplier: z.number().optional()
   })
 ])
+
+const abilityModifierBonusPayloadDtoSchema = z.object({
+  ability: abilityCodeSchema,
+  multiplier: z.number().optional(),
+  min: z.number().optional(),
+  max: z.number().optional()
+})
 
 const chargeLimitLevelDtoSchema = z.object({
   id: z.string(),
@@ -165,28 +167,40 @@ const modifierGrantVariants = [
   buildModifierGrantVariant('ARMOR_CLASS', 'BONUS', emptyDomainDtoSchema.optional(), modifierScalarValueDtoSchema),
   buildModifierGrantVariant('ARMOR_CLASS', 'PENALTY', emptyDomainDtoSchema.optional(), modifierScalarValueDtoSchema),
   buildModifierGrantVariant('ARMOR_CLASS', 'SET_VALUE', emptyDomainDtoSchema.optional(), z.object({ amount: z.number() })),
-  buildModifierGrantVariant('INITIATIVE_BONUS', 'BONUS', emptyDomainDtoSchema.optional(), modifierScalarValueDtoSchema),
-  buildModifierGrantVariant('INITIATIVE_BONUS', 'PENALTY', emptyDomainDtoSchema.optional(), modifierScalarValueDtoSchema),
+  buildModifierGrantVariant('ARMOR_CLASS', 'ABILITY_MODIFIER_BONUS', emptyDomainDtoSchema.optional(), abilityModifierBonusPayloadDtoSchema),
+  buildModifierGrantVariant('ARMOR_CLASS', 'OPTIONAL_ABILITY_MODIFIER_BONUS', emptyDomainDtoSchema.optional(), z.object({
+    abilities: z.array(abilityCodeSchema)
+  })),
+  buildModifierGrantVariant('INITIATIVE', 'BONUS', emptyDomainDtoSchema.optional(), modifierScalarValueDtoSchema),
+  buildModifierGrantVariant('INITIATIVE', 'PENALTY', emptyDomainDtoSchema.optional(), modifierScalarValueDtoSchema),
+  buildModifierGrantVariant('INITIATIVE', 'ADVANTAGE', emptyDomainDtoSchema.optional()),
+  buildModifierGrantVariant('INITIATIVE', 'DISADVANTAGE', emptyDomainDtoSchema.optional()),
   buildModifierGrantVariant('SAVE_DC', 'BONUS', emptyDomainDtoSchema.optional(), modifierScalarValueDtoSchema),
   buildModifierGrantVariant('SAVE_DC', 'PENALTY', emptyDomainDtoSchema.optional(), modifierScalarValueDtoSchema),
   buildModifierGrantVariant('SAVE_DC', 'SET_VALUE', emptyDomainDtoSchema.optional(), z.object({ amount: z.number() })),
-  buildModifierGrantVariant('SAVING_THROW_BONUS', 'BONUS', savingThrowParamDtoSchema, modifierScalarValueDtoSchema),
-  buildModifierGrantVariant('SAVING_THROW_BONUS', 'PENALTY', savingThrowParamDtoSchema, modifierScalarValueDtoSchema),
-  buildModifierGrantVariant('SAVING_THROW_BONUS', 'ADVANTAGE', savingThrowParamDtoSchema),
-  buildModifierGrantVariant('SAVING_THROW_BONUS', 'DISADVANTAGE', savingThrowParamDtoSchema),
-  buildModifierGrantVariant('ATTACK_ROLL_BONUS', 'BONUS', attackDomainParamDtoSchema, modifierScalarValueDtoSchema),
-  buildModifierGrantVariant('ATTACK_ROLL_BONUS', 'PENALTY', attackDomainParamDtoSchema, modifierScalarValueDtoSchema),
-  buildModifierGrantVariant('ATTACK_ROLL_BONUS', 'OPTIONAL_ABILITY_MODIFIER', attackDomainParamDtoSchema, z.object({
+  buildModifierGrantVariant('SAVING_THROW_MODIFIER', 'BONUS', savingThrowParamDtoSchema, modifierScalarValueDtoSchema),
+  buildModifierGrantVariant('SAVING_THROW_MODIFIER', 'PENALTY', savingThrowParamDtoSchema, modifierScalarValueDtoSchema),
+  buildModifierGrantVariant('SAVING_THROW_MODIFIER', 'ADVANTAGE', savingThrowParamDtoSchema),
+  buildModifierGrantVariant('SAVING_THROW_MODIFIER', 'DISADVANTAGE', savingThrowParamDtoSchema),
+  buildModifierGrantVariant('ATTACK_ROLL', 'BONUS', attackDomainParamDtoSchema, modifierScalarValueDtoSchema),
+  buildModifierGrantVariant('ATTACK_ROLL', 'PENALTY', attackDomainParamDtoSchema, modifierScalarValueDtoSchema),
+  buildModifierGrantVariant('ATTACK_ROLL', 'ABILITY_MODIFIER_BONUS', attackDomainParamDtoSchema, abilityModifierBonusPayloadDtoSchema),
+  buildModifierGrantVariant('ATTACK_ROLL', 'OPTIONAL_ABILITY_MODIFIER_BONUS', attackDomainParamDtoSchema, z.object({
     abilities: z.array(abilityCodeSchema)
   })),
-  buildModifierGrantVariant('SKILL_BONUS', 'BONUS', skillParamDtoSchema, modifierScalarValueDtoSchema),
-  buildModifierGrantVariant('SKILL_BONUS', 'PENALTY', skillParamDtoSchema, modifierScalarValueDtoSchema),
+  buildModifierGrantVariant('SKILL_MODIFIER', 'BONUS', skillParamDtoSchema, modifierScalarValueDtoSchema),
+  buildModifierGrantVariant('SKILL_MODIFIER', 'PENALTY', skillParamDtoSchema, modifierScalarValueDtoSchema),
   buildModifierGrantVariant('ABILITY_SCORE', 'BONUS', abilityParamDtoSchema, modifierScalarValueDtoSchema),
   buildModifierGrantVariant('ABILITY_SCORE', 'PENALTY', abilityParamDtoSchema, modifierScalarValueDtoSchema),
   buildModifierGrantVariant('ABILITY_SCORE', 'SET_VALUE', abilityParamDtoSchema, z.object({ amount: z.number() })),
   buildModifierGrantVariant('PROFICIENCY_BONUS', 'BONUS', emptyDomainDtoSchema.optional(), modifierScalarValueDtoSchema),
   buildModifierGrantVariant('PROFICIENCY_BONUS', 'SET_VALUE', emptyDomainDtoSchema.optional(), z.object({ amount: z.number() })),
   buildModifierGrantVariant('DAMAGE', 'BONUS', attackDomainParamDtoSchema, modifierScalarValueDtoSchema),
+  buildModifierGrantVariant('DAMAGE', 'PENALTY', attackDomainParamDtoSchema, modifierScalarValueDtoSchema),
+  buildModifierGrantVariant('DAMAGE', 'ABILITY_MODIFIER_BONUS', attackDomainParamDtoSchema, abilityModifierBonusPayloadDtoSchema),
+  buildModifierGrantVariant('DAMAGE', 'OPTIONAL_ABILITY_MODIFIER_BONUS', attackDomainParamDtoSchema, z.object({
+    abilities: z.array(abilityCodeSchema)
+  })),
   buildModifierGrantVariant('DAMAGE', 'ADD_BONUS_DIE', attackDomainParamDtoSchema, z.object({ dice: z.string() })),
   buildModifierGrantVariant('DAMAGE', 'REPLACE_DAMAGE_TYPE', attackDomainParamDtoSchema, z.object({ damageTypeId: z.string() })),
   buildModifierGrantVariant('DAMAGE_RESISTANCE', 'ADD_OPTION', emptyDomainDtoSchema.optional(), optionPayloadByDomainDtoSchema.DAMAGE_RESISTANCE),
@@ -264,3 +278,5 @@ const modifierGrantVariants = [
 export const modifierGrantDtoSchema = z.union(modifierGrantVariants)
 
 export type ModifierGrantDto = z.infer<typeof modifierGrantDtoSchema>
+
+

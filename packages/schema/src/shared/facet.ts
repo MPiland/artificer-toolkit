@@ -94,9 +94,9 @@ const durationPredicatePayloadSchema = z.union([
 
 const predicatePayloadSchema = z.union([
   z.object({
-    predicateCode: z.literal(predicateCodeSchema.enum.SUBCLASS_SUBTYPE)
+    predicateCode: z.literal(predicateCodeSchema.enum.SUBCLASS_SPECIALIZATION)
   }).and(selectableSchema(z.object({
-    subtypeIds: z.array(z.string())
+    specializationIds: z.array(z.string())
   }))),
   z.object({
     predicateCode: z.literal(predicateCodeSchema.enum.SPELLCASTING)
@@ -248,6 +248,11 @@ const predicatePayloadSchema = z.union([
     featIds: z.array(z.string())
   }),
   z.object({
+    predicateCode: z.literal(predicateCodeSchema.enum.HERITAGE)
+  }).and(selectableSchema(z.object({
+    heritageIds: z.array(z.string())
+  }))),
+  z.object({
     predicateCode: z.literal(predicateCodeSchema.enum.SKILL_PROFICIENCY)
   }).and(selectableSchema(z.object({
     skillIds: z.array(z.string())
@@ -263,6 +268,9 @@ const predicatePayloadSchema = z.union([
     predicateCode: z.literal(predicateCodeSchema.enum.ABILITY_SCORE)
   }).and(selectableSchema(z.object({
     abilities: abilityCodeSchema
+  }), z.object({
+    min: z.number(),
+    max: z.number().optional()
   }))),
   z.object({
     predicateCode: z.literal(predicateCodeSchema.enum.SAVING_THROW_ABILITY_BONUS)

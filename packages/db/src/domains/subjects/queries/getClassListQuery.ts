@@ -5,6 +5,7 @@ interface ClassListItem {
   id: string
   label: string
   description: string | null
+  status: string
   systemId: string
   details: unknown
   userId: string
@@ -29,6 +30,7 @@ export const getClassListQuery = async (db: DBLike): Promise<{ items: ClassListI
       'id',
       'label',
       'description',
+      'status',
       'system_id as systemId',
       details(eb, (eb2) => eb2
         .selectFrom('class_details as bridge')

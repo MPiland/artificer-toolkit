@@ -1,6 +1,5 @@
 import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
-import { getSpellFn } from '@server/domains'
-import { getSpellListFn } from '@server/domains'
+import { api } from '../../lib/api'
 
 const spellsKeys = {
   all: [
@@ -17,7 +16,7 @@ const spellsKeys = {
 export function getSpellList() {
   return queryOptions({
     queryKey: spellsKeys.lists(),
-    queryFn: async () => await getSpellListFn()
+    queryFn: async () => await api.content.spells.list()
   })
 }
 
@@ -28,9 +27,7 @@ export function useGetSpellList() {
 export function getSpell(id: string) {
   return queryOptions({
     queryKey: spellsKeys.single(id),
-    queryFn: async () => await getSpellFn({
-      data: id
-    })
+    queryFn: async () => await api.content.spells.get(id)
   })
 }
 

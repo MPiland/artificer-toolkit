@@ -8,7 +8,6 @@ export const drum: EquipmentAuthored = {
     description: "A percussion instrument consisting of a membrane stretched over a hollow frame.",
     category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
     properties: [],
-    abilities: [],
     cost: S.gp(6),
     weight: S.lbs(3),
     rarityId: S.RARITY_COMMON,

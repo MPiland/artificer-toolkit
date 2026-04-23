@@ -7,7 +7,9 @@ import {
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
   PROFICIENCY_KIND,
+  RANGE_KIND,
   RACE_CATEGORY_CODE,
+  RACE_SELECTION_MODE,
   SCALING,
   SCALING_AMOUNT_KIND,
   SIZE_CODE,
@@ -15,7 +17,7 @@ import {
   type RaceAuthored
 } from '@artificer-toolkit/shared'
 import { RACE_IDS } from '../ids.js'
-import { SRD_CONDITION_TYPES, SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID, SRD_DARKVISION_SENSE_ID } from '../vocabulary.js'
+import { SRD_CONDITION_TYPES, SRD_ELVEN_HERITAGE_ID, SRD_HUMAN_HERITAGE_ID, SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID, SRD_DARKVISION_SENSE_ID, SRD_SKILLS } from '../vocabulary.js'
 
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
   const rHex = raceIndex.toString(16).padStart(4, '0')
@@ -41,15 +43,29 @@ function languageId(code: string): string {
   return entry.id
 }
 
+function skillId(code: string): string {
+  const entry = SRD_SKILLS.find((s) => s.code === code)
+  if (!entry) throw new Error(`SRD skill vocabulary entry for ${code} required.`)
+  return entry.id
+}
+
+function availableLanguageIds(excludedCodes: string[] = []): string[] {
+  const excluded = new Set(excludedCodes)
+  return SRD_LANGUAGES
+    .filter((language) => !excluded.has(language.code))
+    .map((language) => language.id)
+}
+
 // ─── Half-Elf (raceIndex = 7) ─────────────────────────────────────────────────
 
 export const halfElf: RaceAuthored = {
   id: RACE_IDS.HALF_ELF,
   label: 'Half-Elf',
   category: RACE_CATEGORY_CODE.BASE,
-  playable: true,
+  selectionMode: RACE_SELECTION_MODE.DIRECT,
   size: SIZE_CODE.MEDIUM,
   speeds: halfElfWalk30,
+  heritageIds: [SRD_HUMAN_HERITAGE_ID, SRD_ELVEN_HERITAGE_ID],
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
   features: [
@@ -104,7 +120,7 @@ export const halfElf: RaceAuthored = {
             senseIds: [SRD_DARKVISION_SENSE_ID],
             range: {
               id: raceFeatureId(7, 2, 3),
-              rangeKind: 'DISTANCE' as const,
+              rangeKind: RANGE_KIND.DISTANCE,
               amount: 60,
               unit: MEASUREMENT_UNIT_CODE.FEET
             },
@@ -124,7 +140,7 @@ export const halfElf: RaceAuthored = {
           {
             id: raceFeatureId(7, 3, 2),
             grantKind: GRANT_KIND.MODIFIER_GRANT,
-            valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_BONUS,
+            valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
             domain: {
               ability: ABILITY_CODE.CHARISMA,
               conditionTypeId: conditionTypeId('CHARMED')
@@ -154,7 +170,27 @@ export const halfElf: RaceAuthored = {
             selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
             scalingKind: SCALING.NONE,
             count: 2,
-            authoringModeKind: AUTHORING_MODE_KIND.ALL,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            skillIds: [
+              skillId('ACROBATICS'),
+              skillId('ANIMAL_HANDLING'),
+              skillId('ARCANA'),
+              skillId('ATHLETICS'),
+              skillId('DECEPTION'),
+              skillId('HISTORY'),
+              skillId('INSIGHT'),
+              skillId('INTIMIDATION'),
+              skillId('INVESTIGATION'),
+              skillId('MEDICINE'),
+              skillId('NATURE'),
+              skillId('PERCEPTION'),
+              skillId('PERFORMANCE'),
+              skillId('PERSUASION'),
+              skillId('RELIGION'),
+              skillId('SLEIGHT_OF_HAND'),
+              skillId('STEALTH'),
+              skillId('SURVIVAL')
+            ],
             order: 0
           }
         ]
@@ -187,7 +223,8 @@ export const halfElf: RaceAuthored = {
             selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
             count: 1,
             scalingKind: SCALING.NONE,
-            authoringModeKind: AUTHORING_MODE_KIND.ALL,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            languageIds: availableLanguageIds(['COMMON', 'ELVISH']),
             order: 1
           }
         ]
@@ -195,3 +232,5 @@ export const halfElf: RaceAuthored = {
     }
   ]
 }
+
+

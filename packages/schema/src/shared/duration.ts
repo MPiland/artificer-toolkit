@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { durationKindSchema } from './enums.js'
+import { createBreakpointScalingDtoSchema } from './scaling.js'
 
 export const durationDtoSchema = z.union([
   z.object({
@@ -22,7 +23,10 @@ export const durationDtoSchema = z.union([
       durationKindSchema.enum.MONTH,
       durationKindSchema.enum.YEAR
     ]),
-    amount: z.number()
+    amount: z.number(),
+    scaling: createBreakpointScalingDtoSchema(z.object({
+      amount: z.number()
+    })).optional()
   })
 ])
 

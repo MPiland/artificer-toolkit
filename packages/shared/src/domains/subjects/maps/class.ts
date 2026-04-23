@@ -28,7 +28,7 @@ import type {
   ClassSpellLimitsAuthored,
   ClassSpellSlotAuthored,
   ClassStartingGoldAuthored,
-  ClassSubtypeAuthored,
+  ClassSpecializationAuthored,
   DetailAuthored
 } from '#authored'
 
@@ -219,9 +219,9 @@ const CLASS_MULTICLASS_REQUIREMENT_GROUPS_NODE_MAP = classRequirementGroupsNode.
   map.set('groups', groupArray(['groups'], 'Groups', () => CLASS_MULTICLASS_REQUIREMENT_GROUP_NODE_MAP))
 })
 
-const classSubtypeNode = buildNodeMap<ClassSubtypeAuthored>()
+const classSpecializationNode = buildNodeMap<ClassSpecializationAuthored>()
 
-const CLASS_SUBTYPE_NODE_MAP = classSubtypeNode.define('classSubtype', ({ map, nodes }) => {
+const CLASS_SPECIALIZATION_NODE_MAP = classSpecializationNode.define('classSpecialization', ({ map, nodes }) => {
   const { text, number } = nodes
 
   map
@@ -288,7 +288,7 @@ export const CLASS_NODE_MAP = classNode.define('class', ({ map, nodes, cond, dat
     }, {
       showIf: isSubclass
     }))
-    .set('subtypes', groupArray(['subtypes'], 'Subtypes', () => CLASS_SUBTYPE_NODE_MAP, {
+    .set('specializations', groupArray(['specializations'], 'Specializations', () => CLASS_SPECIALIZATION_NODE_MAP, {
       showIf: isSubclass
     }))
 })

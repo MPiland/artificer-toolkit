@@ -1,16 +1,16 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
-import { CR, CREATURE_IDS, CREATURE_TYPE, SRD_SYSTEM_ID, SRD_USER_ID, walk } from './shared.js'
+import * as S from './shared.js'
 
 export const thug: CreatureAuthored = {
-  id: CREATURE_IDS.THUG,
+  id: S.CREATURE_IDS.THUG,
   label: 'Thug',
-  description: 'A brutal enforcer who relies on raw strength and pack tactics to overwhelm foes.',
-  userId: SRD_USER_ID,
-  systemId: SRD_SYSTEM_ID,
-  recordKind: 'STAT_BLOCK',
-  category: 'NPC',
-  creatureTypeId: CREATURE_TYPE.HUMANOID,
-  size: 'MEDIUM',
+  userId: S.SRD_USER_ID,
+  systemId: S.SRD_SYSTEM_ID,
+  recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
+  category: S.CREATURE_CATEGORY_CODE.NPC,
+  creatureTypeId: S.CREATURE_TYPE.HUMANOID,
+  size: S.SIZE_CODE.MEDIUM,
+  tags: ['any race'],
   abilityScores: {
     STRENGTH: 15,
     DEXTERITY: 11,
@@ -24,7 +24,49 @@ export const thug: CreatureAuthored = {
   armorClassNote: 'leather armor',
   hitPoints: 32,
   hitDice: '5d8+10',
-  speeds: walk(30),
-  challengeRatingId: CR.CR_1_2,
-  xp: 100
+  speeds: [...S.walk(30)],
+  proficiencies: [
+    S.grantedSkillProficiency(269, 1, 'INTIMIDATION')
+  ],
+  passivePerception: 10,
+  challengeRatingId: S.CR.CR_1_2,
+  xp: 100,
+  features: [
+    {
+      id: S.featureId(269, 1),
+      label: 'Pack Tactics',
+      description: "Pack Tactics. The thug has advantage on an attack roll against a creature if at least one of the thug's allies is within 5 feet of the creature and the ally isn't incapacitated.",
+      order: 1
+    },
+    {
+      id: S.featureId(269, 2),
+      label: 'Language Knowledge',
+      description: 'Any one language (usually Common).',
+      grants: {
+        proficiencies: [
+          S.grantedLanguageProficiency(269, 2, 'COMMON')
+        ]
+      },
+      order: 2
+    },
+    {
+      id: S.featureId(269, 3),
+      label: 'Multiattack',
+      description: 'The thug makes two melee attacks.',
+      order: 3
+    },
+    {
+      id: S.featureId(269, 4),
+      label: 'Mace',
+      description: 'Melee Weapon Attack: +4 to hit, reach 5 ft., one creature. Hit: 5 (1d6 + 2) bludgeoning damage.',
+      order: 4
+    },
+    {
+      id: S.featureId(269, 5),
+      label: 'Heavy Crossbow',
+      description: 'Ranged Weapon Attack: +2 to hit, range 100/400 ft., one target. Hit: 5 (1d10) piercing damage.',
+      order: 5
+    }
+  ]
 }
+

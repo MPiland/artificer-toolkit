@@ -89,7 +89,7 @@ describe('createProficiencyGrantRepository', () => {
     })
   })
 
-  it('hydrates an equipment-property proficiency grant from the selected branch shape', async () => {
+  it('hydrates an equipment-property proficiency grant from the selected path shape', async () => {
     const repository = createProficiencyGrantRepository(createFakeDb({
       proficiency_grants: [
         {

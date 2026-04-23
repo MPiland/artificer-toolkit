@@ -28,3 +28,4 @@ export const noble: CreatureAuthored = {
   challengeRatingId: CR.CR_1_8,
   xp: 25
 }
+

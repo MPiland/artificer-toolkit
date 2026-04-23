@@ -37,6 +37,7 @@ type ChargeLimitRow = {
   charge_id: string
   limit_kind: string
   class_id: string | null
+  ability_code: string | null
   amount: number | null
   multiplier: number | null
   min: number | null
@@ -194,11 +195,24 @@ export function mapChargeLimitToRow(
   requireChargeLimitKind(charge_id, json_data.limitKind)
 
   switch (json_data.limitKind) {
+    case 'ABILITY_MODIFIER':
+      return {
+        charge_id,
+        limit_kind: json_data.limitKind,
+        class_id: null,
+        ability_code: requireAbilityCode(charge_id, json_data.ability),
+        amount: null,
+        multiplier: json_data.multiplier ?? null,
+        min: json_data.min ?? null,
+        max: json_data.max ?? null
+      }
+
     case 'CHARACTER_LEVEL':
       return {
         charge_id,
         limit_kind: json_data.limitKind,
         class_id: null,
+        ability_code: null,
         multiplier: json_data.multiplier ?? null,
         amount: null,
         min: json_data.min ?? null,
@@ -210,6 +224,7 @@ export function mapChargeLimitToRow(
         charge_id,
         limit_kind: json_data.limitKind,
         class_id: requireClassId(charge_id, json_data.classId),
+        ability_code: null,
         multiplier: json_data.multiplier ?? null,
         amount: null,
         min: json_data.min ?? null,
@@ -222,6 +237,7 @@ export function mapChargeLimitToRow(
         charge_id,
         limit_kind: json_data.limitKind,
         class_id: null,
+        ability_code: null,
         multiplier: json_data.multiplier ?? null,
         amount: null,
         min: json_data.min ?? null,
@@ -233,6 +249,7 @@ export function mapChargeLimitToRow(
         charge_id,
         limit_kind: json_data.limitKind,
         class_id: null,
+        ability_code: null,
         amount: requireFixedAmount(charge_id, json_data.amount),
         multiplier: null,
         min: null,

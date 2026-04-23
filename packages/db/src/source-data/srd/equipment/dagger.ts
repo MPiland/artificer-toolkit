@@ -8,8 +8,7 @@ export const dagger: EquipmentAuthored = {
     description: 'A small blade for quick strikes.',
     category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
     properties: [S.EQUIPMENT_PROPERTY_CODE.SIMPLE, S.EQUIPMENT_PROPERTY_CODE.MELEE, S.EQUIPMENT_PROPERTY_CODE.FINESSE, S.EQUIPMENT_PROPERTY_CODE.LIGHT, S.EQUIPMENT_PROPERTY_CODE.THROWN],
-    abilities: [],
-    capabilities: S.thrownWeaponCapabilities(S.equipId(2), 'PIERCING', '1d4', 20),
+    effects: S.thrownWeaponEffects(S.equipId(2), 'PIERCING', '1d4', 20),
     cost: S.gp(2),
     weight: S.lbs(1),
     rarityId: S.RARITY_COMMON,
@@ -17,3 +16,4 @@ export const dagger: EquipmentAuthored = {
   userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
   }
+

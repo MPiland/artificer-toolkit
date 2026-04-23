@@ -29,9 +29,7 @@ SET CONSTRAINTS ALL DEFERRED;
 \i :etl_root'/effects/tables/conditions.sql'
 \i :etl_root'/effects/tables/damages.sql'
 \i :etl_root'/effects/tables/invocations.sql'
-\i :etl_root'/effects/tables/branches/branches.sql'
-\i :etl_root'/effects/tables/branches/roll_tables.sql'
-\i :etl_root'/effects/tables/branches/direct.sql'
+\i :etl_root'/effects/tables/paths.sql'
 \i :etl_root'/features/tables/features.sql'
 \i :etl_root'/features/tables/options.sql'
 \i :etl_root'/grants/tables/feats.sql'
@@ -40,7 +38,6 @@ SET CONSTRAINTS ALL DEFERRED;
 \i :etl_root'/grants/tables/senses.sql'
 \i :etl_root'/grants/tables/spells.sql'
 \i :etl_root'/subjects/tables/backgrounds.sql'
-\i :etl_root'/subjects/tables/characters.sql'
 \i :etl_root'/subjects/tables/classes.sql'
 \i :etl_root'/subjects/tables/creatures.sql'
 \i :etl_root'/subjects/tables/equipment.sql'
@@ -48,7 +45,10 @@ SET CONSTRAINTS ALL DEFERRED;
 \i :etl_root'/subjects/tables/races.sql'
 \i :etl_root'/subjects/tables/spells.sql'
 \i :etl_root'/subjects/tables/vehicles.sql'
+\i :etl_root'/subjects/tables/characters.sql'
+\i :etl_root'/subjects/tables/character_events.sql'
 \i :etl_root'/bootstrap/constraints/cross_domain_foreign_keys.sql'
 
 SELECT
   public.apply_updated_at_triggers ();
+

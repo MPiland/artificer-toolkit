@@ -1,4 +1,4 @@
-import { getSupabaseServerClient } from '@utils'
+import { getSupabaseServerClient } from '#supabase'
 import { createServerFn } from '@tanstack/react-start'
 
 export const resetPasswordFn = createServerFn({ method: 'POST' })

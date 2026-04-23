@@ -1,5 +1,11 @@
 import type { AbilityCode, SCALING } from '#core'
-import { EFFECT_KIND, type ScalingSource, type ScalingSourcePayload } from '#core'
+import {
+  EFFECT_KIND,
+  SCALABLE_SCALING_KIND,
+  type ScalingBreakpoint,
+  type ScalingSource,
+  type ScalingSourcePayload
+} from '#core'
 
 export type HealBonusAuthored
   = | {
@@ -29,15 +35,23 @@ export type HealBonusAuthored
     order: number
   }
 
-export type HealingProgressionLevel<TPayload = object> = {
+export type HealingProgressionLevel<TPayload extends object = object> = {
   id: string
   level: number
   order: number
 } & TPayload
 
-export type HealingProgression<TPayload = object> = {
+export type HealingProgression<TPayload extends object = object> = {
   [S in ScalingSource]: {
     levels: HealingProgressionLevel<TPayload>[]
+  } & ScalingSourcePayload[S]
+}[ScalingSource]
+
+export type HealBreakpointProgressionLevel<TPayload extends object = object> = ScalingBreakpoint<TPayload>
+
+export type HealBreakpointProgression<TPayload extends object = object> = {
+  [S in ScalingSource]: {
+    breakpoints: HealBreakpointProgressionLevel<TPayload>[]
   } & ScalingSourcePayload[S]
 }[ScalingSource]
 
@@ -50,6 +64,10 @@ export type HealFixedPayload
     valueKind: 'FIXED'
     scalingKind: typeof SCALING.PER_LEVEL
   } & HealingProgression<{ amount: number }>)
+  | ({
+    valueKind: 'FIXED'
+    scalingKind: typeof SCALABLE_SCALING_KIND.BREAKPOINTS
+  } & HealBreakpointProgression<{ amount: number }>)
 
 export type HealDicePayload
   = | {
@@ -60,6 +78,10 @@ export type HealDicePayload
     valueKind: 'DICE'
     scalingKind: typeof SCALING.PER_LEVEL
   } & HealingProgression<{ diceConfig: string }>)
+  | ({
+    valueKind: 'DICE'
+    scalingKind: typeof SCALABLE_SCALING_KIND.BREAKPOINTS
+  } & HealBreakpointProgression<{ diceConfig: string }>)
 
 export type HealPoolPayload
   = | {

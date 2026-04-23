@@ -78,7 +78,7 @@ export const classMulticlassDtoSchema = z.object({
   proficiencies: z.array(proficiencyGrantDtoSchema).optional()
 })
 
-export const classSubtypeDtoSchema = z.object({
+export const classSpecializationDtoSchema = z.object({
   id: z.string(),
   label: z.string(),
   order: z.number().int()
@@ -132,3 +132,4 @@ export const castingTimeDtoSchema = z.object({
   unit: z.enum(['ROUND', 'MINUTE', 'HOUR']),
   amount: z.number()
 })
+

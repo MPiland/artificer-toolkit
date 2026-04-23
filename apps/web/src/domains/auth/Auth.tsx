@@ -1,157 +1,198 @@
-import {
-  Button,
-  Container,
-  Divider,
-  Group,
-  Paper,
-  Stack,
-  Text,
-  Title,
-  TextInput,
-  PasswordInput,
-  Alert,
-} from '@mantine/core'
-import Link from '@components/Link'
-import { auth_container, auth_link, auth_subtitle, auth_title, auth_wrapper, social_icon } from './Auth.css'
-import IGoogle from '@assets/Icons/IGoogle'
-import ITwitter from '@assets/Icons/ITwitter'
+import { Button, PasswordInput, Stack, TextInput } from '@mantine/core'
+import { Link } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
-import { useFormField } from '@hooks'
-import { Info } from 'lucide-react'
+import { useFormField } from '#hooks'
+import {
+  authFieldError,
+  authFieldInput,
+  authFieldLabel,
+  authForgotLink,
+  authForgotRow,
+  authForm,
+  authHint,
+  authHintError,
+  authHintInfo,
+  authLink,
+  submitButton,
+} from './Auth.css'
+import { AuthFrame } from './AuthFrame'
 
-function AuthHint({ message }: { message: ReactNode }) {
-  return (
-    <Alert variant='light' color='blue' icon={<Info />}>
-      <Text size='sm'>{message}</Text>
-    </Alert>
-  )
+export type AuthMode = 'login' | 'signup' | 'reset-request' | 'reset-confirm'
+export type AuthStatus = 'idle' | 'pending' | 'success' | 'error'
+
+const modeConfig: Record<AuthMode, { title: string; subtitle: ReactNode; submitLabel: string }> = {
+  login: {
+    title: 'Welcome back',
+    subtitle: (
+      <>
+        Sign in to continue your work. New here?{' '}
+        <Link to='/signup' className={authLink}>
+          Create an account
+        </Link>
+        .
+      </>
+    ),
+    submitLabel: 'Sign in',
+  },
+  signup: {
+    title: 'Create your account',
+    subtitle: (
+      <>
+        Set up your workspace and start building. Already have one?{' '}
+        <Link to='/login' className={authLink}>
+          Sign in
+        </Link>
+        .
+      </>
+    ),
+    submitLabel: 'Create account',
+  },
+  'reset-request': {
+    title: 'Reset password',
+    subtitle: "Enter your email and we will send a recovery link.",
+    submitLabel: 'Send reset link',
+  },
+  'reset-confirm': {
+    title: 'Choose a new password',
+    subtitle: 'Make it strong, then get back to work.',
+    submitLabel: 'Set new password',
+  },
 }
 
-export function Auth({
-  actionText,
-  onSubmit,
-  afterSubmit,
-  addon,
-  status,
-}: {
-  actionText: 'Login' | 'Sign Up'
+const fieldClassNames = {
+  input: authFieldInput,
+  label: authFieldLabel,
+  error: authFieldError,
+}
+
+interface AuthProps {
+  mode: AuthMode
+  status: AuthStatus
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void
-  status: 'pending' | 'idle' | 'success' | 'error'
-  afterSubmit?: ReactNode
-  addon?: ReactNode
-}) {
+  hint?: ReactNode
+  hintVariant?: 'error' | 'info'
+}
+
+export function Auth({ mode, status, onSubmit, hint, hintVariant = 'error' }: AuthProps) {
   const { AppField } = useFormField()
+  const config = modeConfig[mode]
+  const showEmail = mode !== 'reset-confirm'
+  const showPassword = mode === 'login' || mode === 'signup' || mode === 'reset-confirm'
 
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault()
-        onSubmit(e)
-      }}
-    >
-      <Container className={auth_container}>
-        <Stack className={auth_wrapper}>
-          <Title ta='center' className={auth_title}>
-            Welcome {actionText !== 'Sign Up' ? 'back!' : 'to Artificer Toolkit!'}
-          </Title>
-          <Text className={auth_subtitle}>
-            {actionText !== 'Sign Up' ?
-              <>
-                {"Don't have an account yet? "}
-                <Link type='anchor' to={'/signup'} className={auth_link}>
-                  Create account
-                </Link>
-              </>
-            : <>
-                Already have an account?{' '}
-                <Link type='anchor' to={'/login'} className={auth_link}>
-                  Login here
-                </Link>
-              </>
-            }
-          </Text>
-          <Paper withBorder shadow='md' p={30} radius='md'>
-            <Group grow mb='md' mt='md'>
-              <Button classNames={{ section: social_icon }} variant='default' leftSection={<IGoogle />} radius='xl'>
-                Google
-              </Button>
+    <AuthFrame title={config.title} subtitle={config.subtitle}>
+      <form
+        className={authForm}
+        onSubmit={(e) => {
+          e.preventDefault()
+          onSubmit(e)
+        }}
+      >
+        <Stack gap='md'>
+          {showEmail && (
+            <AppField
+              name='email'
+              validators={{
+                onBlur: ({ value }) => {
+                  const v = value as string
+                  if (!v) return null
+                  return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(v)
+                    ? null
+                    : 'Enter a valid email address.'
+                },
+                onSubmit: ({ value }) => {
+                  const v = value as string
+                  return !v ? 'Email is required.' : null
+                },
+              }}
+            >
+              {(field) => (
+                <TextInput
+                  classNames={fieldClassNames}
+                  label='Email'
+                  placeholder='you@example.com'
+                  type='email'
+                  autoComplete='username'
+                  value={(field.state.value as string) ?? ''}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                  error={
+                    !field.state.meta.isValid && field.state.meta.isTouched
+                      ? field.state.meta.errors?.join(', ')
+                      : undefined
+                  }
+                />
+              )}
+            </AppField>
+          )}
 
-              <Button classNames={{ section: social_icon }} variant='default' leftSection={<ITwitter />} radius='xl'>
-                Twitter
-              </Button>
-            </Group>
-
-            <Divider label='Or continue with email' labelPosition='center' my='lg' />
-            <Stack>
-              {afterSubmit && <AuthHint message={afterSubmit} />}
-              <AppField
-                name='email'
-                validators={{
-                  onBlur: ({ value }) => {
-                    const v = value as string
-                    return value && /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(v) ?
-                        null
-                      : 'Enter a valid email address.'
-                  },
-                  onSubmit: ({ value }) => {
-                    const v = value as string
-                    return !v || v === '' ? 'Email is required' : null
-                  },
-                }}
-              >
-                {(field) => (
-                  <TextInput
-                    label='Email'
-                    placeholder='user@email.com'
-                    value={field.state.value as string}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                    error={!field.state.meta.isValid && field.state.meta.errors?.join(', ')}
-                    autoComplete='username'
-                  />
-                )}
-              </AppField>
+          {showPassword && (
+            <>
               <AppField
                 name='password'
                 validators={{
                   onBlur: ({ value }) => {
                     const v = value as string
-                    return (
-                      v ?
-                        v.length <= 8 ? 'Password should include at least 8-20 characters'
-                        : /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,20}$/.test(v) ? null
-                        : 'Password should include at least one uppercase letter, one number and one special character'
-                      : null
-                    )
+                    if (!v) return null
+                    if (v.length < 8) return 'At least 8 characters required.'
+                    if (mode === 'signup' || mode === 'reset-confirm') {
+                      return /^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[#?!@$%^&*\-])/.test(v)
+                        ? null
+                        : 'Include uppercase, number, and special character.'
+                    }
+                    return null
                   },
                   onSubmit: ({ value }) => {
                     const v = value as string
-                    return !v || v === '' ? 'Password is required' : null
+                    return !v ? 'Password is required.' : null
                   },
                 }}
               >
                 {(field) => (
                   <PasswordInput
-                    label='Password'
-                    placeholder='Password...'
-                    autoComplete={actionText === 'Sign Up' ? 'new-password' : 'current-password'}
-                    value={field.state.value as string}
-                    onBlur={field.handleBlur}
+                    classNames={fieldClassNames}
+                    label={mode === 'reset-confirm' ? 'New password' : 'Password'}
+                    placeholder='Enter your password'
+                    autoComplete={
+                      mode === 'signup' || mode === 'reset-confirm' ? 'new-password' : 'current-password'
+                    }
+                    value={(field.state.value as string) ?? ''}
                     onChange={(e) => field.handleChange(e.target.value)}
-                    error={!field.state.meta.isValid && field.state.meta.errors?.join(', ')}
+                    onBlur={field.handleBlur}
+                    error={
+                      !field.state.meta.isValid && field.state.meta.isTouched
+                        ? field.state.meta.errors?.join(', ')
+                        : undefined
+                    }
                   />
                 )}
               </AppField>
-            </Stack>
-            <Group justify='flex-end' mt='xl'>
-              <Button loading={status === 'pending'} disabled={status === 'pending'} radius='xl' type='submit'>
-                {actionText}
-              </Button>
-            </Group>
-          </Paper>
-          {addon ? addon : null}
+
+              {mode === 'login' && (
+                <div className={authForgotRow}>
+                  <Link to='/reset-password' className={authForgotLink}>
+                    Forgot password?
+                  </Link>
+                </div>
+              )}
+            </>
+          )}
         </Stack>
-      </Container>
-    </form>
+
+        {hint && (
+          <div className={`${authHint} ${hintVariant === 'info' ? authHintInfo : authHintError}`}>{hint}</div>
+        )}
+
+        <Button
+          type='submit'
+          fullWidth
+          className={submitButton}
+          loading={status === 'pending'}
+          disabled={status === 'pending'}
+        >
+          {config.submitLabel}
+        </Button>
+      </form>
+    </AuthFrame>
   )
 }

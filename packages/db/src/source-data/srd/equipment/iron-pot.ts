@@ -8,7 +8,6 @@ export const ironPot: EquipmentAuthored = {
     description: "A heavy iron cooking pot with a lid, suitable for preparing meals over a fire.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [S.EQUIPMENT_PROPERTY_CODE.CONTAINER],
-    abilities: [],
     cost: S.gp(2),
     weight: S.lbs(10),
     rarityId: S.RARITY_COMMON,

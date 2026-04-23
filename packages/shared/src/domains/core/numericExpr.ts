@@ -11,7 +11,8 @@ export const NUMERIC_EXPR_CODE = {
   SKILL_BONUS: 'SKILL_BONUS',
   CHARACTER_LEVEL: 'CHARACTER_LEVEL',
   CLASS_LEVEL: 'CLASS_LEVEL',
-  SPELL_LEVEL: 'SPELL_LEVEL'
+  SPELL_LEVEL: 'SPELL_LEVEL',
+  HIT_POINT_MAXIMUM: 'HIT_POINT_MAXIMUM'
 } as const
 
 export type NumericExprOption = CoreMeta<keyof typeof NUMERIC_EXPR_CODE>
@@ -85,6 +86,13 @@ export const NUMERIC_EXPR: Record<keyof typeof NUMERIC_EXPR_CODE, NumericExprOpt
     label: 'Spell Level',
     description: 'Uses the level the spell is cast at.',
     tooltip: 'Higher spell slots result in higher values.'
+  },
+
+  [NUMERIC_EXPR_CODE.HIT_POINT_MAXIMUM]: {
+    code: NUMERIC_EXPR_CODE.HIT_POINT_MAXIMUM,
+    label: 'Hit Point Maximum',
+    description: 'Uses the source creature or character hit point maximum.',
+    tooltip: 'Useful for summons whose hit points depend on the caster.'
   }
 } as const
 
@@ -96,6 +104,7 @@ export type NumericAtom
     | { kind: typeof NUMERIC_EXPR_CODE.CHARACTER_LEVEL }
     | { kind: typeof NUMERIC_EXPR_CODE.CLASS_LEVEL, classId?: string }
     | { kind: typeof NUMERIC_EXPR_CODE.SPELL_LEVEL }
+    | { kind: typeof NUMERIC_EXPR_CODE.HIT_POINT_MAXIMUM }
 
 export type NumericMul = {
   kind: typeof NUMERIC_EXPR_CODE.MUL

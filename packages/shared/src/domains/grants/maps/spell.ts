@@ -6,7 +6,8 @@ import {
   SCALING_SOURCE_OPTIONS,
   SPELL_GRANT_ATTRIBUTE_OPTIONS
 } from '#core'
-import { CHARGE_NODE_MAP, FACET_NODE_MAP } from '#maps'
+import { CHARGE_NODE_MAP } from '../../shared/maps/charge.js'
+import { FACET_NODE_MAP } from '../../shared/maps/facet.js'
 import { buildNodeMap, type NodeMap } from '#utils'
 
 type SpellGrantProgression = Extract<SpellGrantAuthored, { scalingKind: 'PER_LEVEL' }>['progression']

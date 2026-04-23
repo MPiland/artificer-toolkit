@@ -17,6 +17,13 @@ export const activationCodeSchema = z.enum([
   'FREE'
 ])
 
+export const authoredRecordStatusSchema = z.enum(['DRAFT', 'ACTIVE'])
+
+export const invocationKindSchema = z.enum([
+  'ACTION',
+  'PASSIVE'
+])
+
 export const triggerCodeSchema = z.enum([
   'ACTIVATED',
   'MELEE_WEAPON_ATTACK',
@@ -55,7 +62,7 @@ export const relationCodeSchema = z.enum([
 ])
 
 export const predicateCodeSchema = z.enum([
-  'SUBCLASS_SUBTYPE',
+  'SUBCLASS_SPECIALIZATION',
   'SPELLCASTING',
   'RANGE',
   'DURATION',
@@ -79,6 +86,7 @@ export const predicateCodeSchema = z.enum([
   'CLASS_LEVEL',
   'SPELL_OBTAINED',
   'FEAT_OBTAINED',
+  'HERITAGE',
   'FEATURE_OBTAINED',
   'OPTION_OBTAINED',
   'EQUIPMENT_PROFICIENCY',
@@ -211,8 +219,19 @@ export const spellGrantAttributeSchema = z.enum([
   'SELF_ONLY'
 ])
 
-export const effectKindSchema = z.enum(['DAMAGE', 'CONDITION', 'HEAL', 'APPLY_GRANT', 'TELEPORT', 'MANIFEST', 'RULE'])
-export const branchCodeSchema = z.enum([
+export const effectKindSchema = z.enum([
+  'DAMAGE',
+  'CONDITION',
+  'HEAL',
+  'APPLY_GRANT',
+  'FORCED_MOVEMENT',
+  'TELEPORT',
+  'MANIFEST',
+  'MOVE_MANIFEST',
+  'COMMAND_MANIFEST',
+  'RULE'
+])
+export const pathCodeSchema = z.enum([
   'PASSIVE',
   'ON_USE',
   'ON_CAST',
@@ -227,16 +246,23 @@ export const branchCodeSchema = z.enum([
   'ON_HP_ZERO',
   'ON_MISS'
 ])
-export const branchGroupTypeSchema = z.enum(['SINGLE', 'CHOICE', 'SEQUENTIAL'])
-export const branchResolutionKindSchema = z.enum(['DIRECT', 'ROLL_TABLE'])
-export const branchRollTableKindSchema = z.enum(['RANGE', 'EXACT'])
+export const pathGroupTypeSchema = z.enum(['SINGLE', 'CHOICE', 'SEQUENTIAL'])
+export const pathOriginKindSchema = z.enum(['SOURCE', 'PRIMARY_TARGET', 'PREVIOUS_ENTRY_TARGET'])
+export const pathResolutionKindSchema = z.enum(['DIRECT', 'ROLL_TABLE'])
+export const pathRollTableKindSchema = z.enum(['RANGE', 'EXACT'])
+export const pathLifecycleRecurringKindSchema = z.enum(['NONE', 'START_OF_TURN', 'END_OF_TURN'])
+export const pathLifecycleConsumeEventSchema = z.enum(['ON_ATTACK_ROLL', 'ON_CAST_SPELL'])
+export const pathLifecycleEndEventSchema = z.enum(['ON_ATTACK_ROLL', 'ON_CAST_SPELL'])
+export const forcedMovementDirectionSchema = z.enum(['AWAY_FROM_SOURCE', 'TOWARD_SOURCE', 'CHOICE'])
+export const forcedMovementDistanceModeSchema = z.enum(['UP_TO_SPEED', 'FIXED_DISTANCE'])
+export const forcedMovementActionEconomySchema = z.enum(['NONE', 'REACTION'])
 
 export const valueDomainCodeSchema = z.enum([
   'SPEED',
-  'ATTACK_ROLL_BONUS',
+  'ATTACK_ROLL',
   'ARMOR_CLASS',
   'SAVE_DC',
-  'SAVING_THROW_BONUS',
+  'SAVING_THROW_MODIFIER',
   'DAMAGE',
   'CONDITION',
   'HIT_POINTS_MAX',
@@ -246,9 +272,9 @@ export const valueDomainCodeSchema = z.enum([
   'SHAPE',
   'CHARGE_LIMIT',
   'CHARGE_RESET',
-  'INITIATIVE_BONUS',
+  'INITIATIVE',
   'ABILITY_SCORE',
-  'SKILL_BONUS',
+  'SKILL_MODIFIER',
   'PROFICIENCY_BONUS',
   'MOVEMENT_MODE',
   'SENSE_RANGE',
@@ -269,6 +295,7 @@ export const modifierKindSchema = z.enum([
   'BONUS',
   'PENALTY',
   'SET_VALUE',
+  'ABILITY_MODIFIER_BONUS',
   'ADD_BONUS_DIE',
   'REPLACE_DAMAGE_TYPE',
   'ADVANTAGE',
@@ -280,14 +307,13 @@ export const modifierKindSchema = z.enum([
   'REPLACE_SHAPE_KIND',
   'REPLACE_CHARGE_RESET_KIND',
   'MODIFY_CHARGE_LIMIT',
-  'OPTIONAL_ABILITY_MODIFIER'
+  'OPTIONAL_ABILITY_MODIFIER_BONUS'
 ])
 
 export const modifierScopeKindSchema = z.enum(['GLOBAL', 'SOURCE'])
 export const modifierValueKindSchema = z.enum([
   'FIXED',
   'PROFICIENCY_BONUS',
-  'ABILITY_MODIFIER',
   'SKILL_BONUS',
   'CHARACTER_LEVEL',
   'CLASS_LEVEL',
@@ -354,3 +380,11 @@ export const spellAttributeSchema = z.enum([
   'RITUAL',
   'ADDS_TO_WEAPON_ATTACK'
 ])
+
+export const spellComponentSchema = z.enum([
+  'VERBAL',
+  'SOMATIC',
+  'MATERIAL'
+])
+
+

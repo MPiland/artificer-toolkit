@@ -151,7 +151,7 @@ describe('createClassRepository', () => {
       class_attributes: [
         { class_id: 'class-1', attribute_code: 'SPELLCASTER', sort_order: 1 }
       ],
-      class_subtypes: [],
+      class_specializations: [],
       class_starting_gold: [
         { class_id: 'class-1', multiplier: 4, currency_id: 'gp', die_config: '4d4' }
       ],
@@ -409,7 +409,7 @@ describe('createClassRepository', () => {
     })
   })
 
-  it('hydrates a supported subclass with subtypes', async () => {
+  it('hydrates a supported subclass with specializations', async () => {
     const repository = createClassRepository(createFakeDb({
       classes: [
         {
@@ -429,10 +429,10 @@ describe('createClassRepository', () => {
       class_details: [],
       class_proficiency_grants: [],
       class_attributes: [
-        { class_id: 'class-2', attribute_code: 'SUBTYPE', sort_order: 1 }
+        { class_id: 'class-2', attribute_code: 'SPECIALIZATION', sort_order: 1 }
       ],
-      class_subtypes: [
-        { id: 'subtype-1', class_id: 'class-2', label: 'Fire', sort_order: 1 }
+      class_specializations: [
+        { id: 'specialization-1', class_id: 'class-2', label: 'Fire', sort_order: 1 }
       ],
       class_starting_gold: [],
       class_hitpoints: [],
@@ -451,11 +451,11 @@ describe('createClassRepository', () => {
       userId: 'user-1',
       systemId: 'system-1',
       category: 'SUBCLASS',
-      attributes: ['SUBTYPE'],
+      attributes: ['SPECIALIZATION'],
       parentClassId: 'class-1',
-      subtypes: [
+      specializations: [
         {
-          id: 'subtype-1',
+          id: 'specialization-1',
           label: 'Fire',
           order: 1
         }

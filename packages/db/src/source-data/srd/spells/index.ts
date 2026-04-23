@@ -650,3 +650,4 @@ const itemSpells = [
 	windWalk
 ]
 export const srdSpells = itemSpells
+

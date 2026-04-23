@@ -8,7 +8,6 @@ export const arcaneFocusWand: EquipmentAuthored = {
     description: "A slender stick of carved wood or bone that focuses arcane magical energy.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(10),
     weight: S.lbs(1),
     rarityId: S.RARITY_COMMON,

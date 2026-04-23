@@ -72,7 +72,9 @@ Package responsibilities stay as-is during the backend rebuild. Physical renames
 10. Phase 7.5 - New subject types (creature + vehicle)
 11. Phase 7.6 - SRD master data population + E2E test
 12. Phase 7.7 - Complete SRD source data
-13. Phase 8 - Frontend rewrite + Condition/Play State
+13. Phase 8 - Frontend Figma (all domains — Figma screens only)
+14. Phase 9 - Frontend Code (all domains — React implementation against approved Figma)
+15. Phase 10 - tRPC transport modernization (hybrid incremental)
 
 ## Phase Status Tracker
 
@@ -89,8 +91,10 @@ Package responsibilities stay as-is during the backend rebuild. Physical renames
 | Phase 7 - API transport stabilization and validation | Complete | `CharacterLifecycleService` + `CharacterRepository`; `build_state`/`stream_version` columns on `characters`; `character_events` Supabase migration; Zod validation on all routes (character commands + content writes); 5 character API routes. See `PHASE_7_API_WEB_SUBPLAN.md`. |
 | Phase 7.5 - New subject types (creature + vehicle) | Complete | Creature + vehicle now ship as first-class authored subjects across shared/schema/db/functions/apis, the additive Supabase migration has been applied, DB types regenerated, `yarn build:all` is clean, and `yarn test:db` passes at 22 files / 168 tests. See `PHASE_7_5_SUBJECTS_SUBPLAN.md`. |
 | Phase 7.6 - SRD master data population + E2E test | Complete | `conditions` optional on `FacetContextAuthored`; `restrictions` explicit on `CompiledModifierGrant`; CHARACTER restriction eval + SPELL scope tagging in engine; Agonizing Blast modifier grant scoped to Eldritch Blast; Warlock L3 E2E test (Tiefling, Sage, Fiend) — 192/192 DB tests pass, 48/48 shared tests pass. Two API bugs fixed (getCharacterHistory URL extraction, handleCommandRequest characterId mismatch). See `PHASE_7_6_SRD_SEED_SUBPLAN.md`. |
-| Phase 7.7 - Complete SRD source data | In progress | Phase 7.7 is now explicitly anchored to the baseline master-data goal: a new user should be able to sign up and immediately create a usable SRD character from preloaded content. Scope remains the PDF-backed SRD CC 5.1 audit + canonical manifest, plus creature/vehicle/character/facet integration needed to represent mounts, companions, monsters, animals, and vehicles honestly. Creature discriminated union, character roster ownership, creature/vehicle facet subjects, UI-authorable authored-contract rules, and targeted round-trip coverage have landed; SRD vehicle coverage is now 11/11 using SRD-backed fields only. Spell source coverage and spell mechanics conversion are now structurally complete against the corrected SRD spell manifest at 324 / 324 records on the locked 7.7 capability/branch model. The equipment tranche is now underway as the next major master-data slice: SRD equipment constants were normalized to shared registries, equipment DB round-trips now prefer authored `capabilities`, and the first special-item anchors (`Net`, `Potion of Healing`, `Healer's Kit`, `Holy Water`, `Manacles`, `Acid`, `Alchemist's Fire`, and `Antitoxin`) now use the same capability/branch model instead of metadata-only placeholders. Magic gear stays in the equipment family, with `VARIANT` children and the `MAGIC` property used for enchanted upgrades like `+1` items instead of inventing a separate magic-item subject, and equipment `cost` is now optional so SRD magic gear can be authored honestly when the source omits a purchase price. Passive equipment such as holy symbols, druidic foci, and most tools should remain metadata-only unless they truly grant a persistent modifier or active mechanic, and concrete bundles/containers should use `contains` rather than fake capabilities. Shields remain their own equipment category rather than collapsing into armor so shield proficiency and wood/metal property distinctions remain expressible. Important active gap: newly authored `+1/+2/+3` magic variants still need passive modifier grants for their mechanical bonuses; `maxBonus` metadata alone is not sufficient for full runtime correctness. Shared/schema now expose a first-class capability/branch/outcome direction instead: capability-owned invocation (`range`, `shape`, targeting), branch-owned or outcome-owned `duration`, expanded typed outcomes (`HEAL`, `APPLY_GRANT`, `TELEPORT`, `MANIFEST`, constrained `RULE`), a generic activated-feature path (`TRIGGER.ACTIVATED` / `BRANCH.ON_USE`), and temp-HP groundwork via a `TEMPORARY_HIT_POINTS` value domain. The temporary `saveResolution` experiment has also been retired in favor of explicit branches such as `ON_SAVE_FAIL` and `ON_SAVE_SUCCESS`. Early non-spell anchor proofs are now in progress too: `Second Wind` is modeled as a feature-owned activated heal capability, and `Dragonborn Breath Weapon` is now treated as an ancestry-option-owned feature with explicit fail/success branches, ancestry-derived shape/type/save semantics, and limited-use charges. `SPELL_IDS` was previously corrected by removing ten non-SRD entries discovered during the audit (`Phantasmal Force`, `Power Word Heal`, `Ray of Sickness`, `Staggering Smite`, `Swift Quiver`, `Telepathy`, `Thorn Whip`, `Thunderous Smite`, `Tsunami`, `Witch Bolt`), shared/schema range handling includes `RANGE_KIND.SPECIAL`, and `UNTIL_DISPELLED` exists in the duration model. The active gate is now the broader mechanics and master-data readiness audit across grants, capabilities, branches, outcomes, manifests, and cross-subject SRD consistency, including explicit review of retained spell `RULE` usage, cleanup of remaining vocabulary drift, and named model/runtime gaps such as ongoing `Mage Armor` applicability. Remaining work is the wider persistence/runtime/content retrofit across features, feats, equipment, manifests, creatures, vehicles, and other SRD mechanics-bearing content, including the branch-based DB/runtime cleanup that still lags the shared/schema refactor and the richer `SOURCE_SAVE_DC` authored shape. Deferred follow-up after 7.7 convergence: capability/effect naming cleanup and a clearer ruleset boundary for `engine/dnd5e2014`. See `PHASE_7_7_SRD_COMPLETE_SUBPLAN.md`. |
-| Phase 8 - Frontend rewrite + Condition/Play State | Pending | Starts only after backend/API phases are stable. Scope includes: condition/exhaustion tracking (`character_play_state` table, play-event union separate from build events, engine `activeConditions` input for combat-time sheet resolution with stacking PENALTY modifiers); vocabulary (`EXHAUSTION` + all 15 conditions) and PENALTY additive stacking are already in place from Phase 6. |
+| Phase 7.7 - Complete SRD source data | Complete | Complete for Phase 8 builder/sheet baseline readiness: SRD master-data inventory is seeded and usable across classes, subclasses, races, backgrounds, feats, spells, equipment, creatures, and vehicles, with canonical specialization naming, class/subclass spell-grant resolution, and creature/vehicle roster ownership wired. Remaining constrained `RULE` and deep combat-runtime semantics are explicitly deferred to post-7.7 follow-up (interactive-map/runtime tranche), with blocker tracking maintained in the 7.7 audit and rule-gap docs. See `PHASE_7_7_SRD_COMPLETE_SUBPLAN.md` and `PHASE_7_7_RULE_GAP_LEDGER.md`. |
+| Phase 8 - Frontend Figma | In Progress | Figma-only. All authoring forms, character wizard, and character sheet designed in Figma before any code is written. Subphases: 8.1 Foundation, 8.2 Simple Authoring (Spell, Background, Feat, Features), 8.3 Complex P1 (Race, Equipment, Creature, Vehicle), 8.4 Complex P2 (Class), 8.5 Character Wizard, 8.6 Character Sheet. See `PHASE_8_FIGMA_OVERVIEW.md` and `PHASE_8_*_FIGMA_*.md` files. |
+| Phase 9 - Frontend Code | Not Started | React implementation against approved Phase 8 Figma screens. Blocked per-domain on Figma approval. Can begin domain-by-domain as screens are approved. See `PHASE_9_CODE_OVERVIEW.md` and `PHASE_9_*_CODE_*.md` files. |
+| Phase 10 - tRPC transport modernization (hybrid incremental) | Paused | Scaffold is landed in `apps/apis` (router/context/handler + typed `characters.*` and `content.*` namespaces), but active migration work is deferred while Phase 9 frontend delivery is prioritized. REST remains primary transport; tRPC stays as follow-on cutover work. See `PHASE_10_TRPC_SUBPLAN.md`. |
 
 ## Guiding Principles
 
@@ -129,6 +133,18 @@ Review rule for each phase:
 - prefer clarity without comment noise
 
 ## Immediate Next Steps
+
+- [ ] Phase 8.1 — Figma: Foundation & design system.
+- [ ] Phase 8.2 — Figma: Spell (in progress — 14 screens).
+- [ ] Phase 8.3–8.5 — Figma: Background, Feat, Features (subplans written after 8.2 approved).
+- [ ] Phase 8.6 — Figma: Race, Equipment, Creature & Vehicle.
+- [ ] Phase 8.9 — Figma: Class.
+- [ ] Phase 8.10 — Figma: Character Wizard.
+- [ ] Phase 8.11 — Figma: Character Sheet.
+- [ ] Phase 9.x — Code: implement each domain after its Figma screens are approved. See `PHASE_9_CODE_OVERVIEW.md`.
+- [ ] Phase 8.6 — Character sheet: live view from `EngineCharacterOutput`.
+
+### Completed
 
 - [x] Move Zod generation ownership from `packages/shared` into `packages/schema`.
 - [x] Create lower-level schema folders for shared, effects, grants, and features.
@@ -182,7 +198,11 @@ Review rule for each phase:
 - [x] Remove the last stale subject-root trait deletes from the legacy `spell.sql`, `equipment.sql`, and `feat.sql` upsert sources.
 - [x] Align character class-spell state and resource-usage persistence to the settled `CharacterState` and `CharacterResourceGrantRecord` contracts.
 - [x] Remove redundant ancestry-option persistence from `character_race` so race identity and ancestry acquisitions are not stored twice.
-- [x] Align all character `subclassId` provenance references to subclass class rows instead of subtype rows.
+- [x] Align all character `subclassId` provenance references to subclass class rows instead of older subclass-variant row references.
+- [x] Rename subclass identity storage from `subtype` to `specialization` across shared/schema/DB surfaces and move `Circle of the Land` terrain to real subclass specializations rather than feature options.
+- [x] Start Phase 7.7 cross-domain semantic-gap reduction Tranche 1 with a conservative blocked-gap ledger for creatures/equipment at [`PHASE_7_7_RULE_GAP_LEDGER.md`](c:/Users/pilan/Desktop/artificer-toolkit/PHASE_7_7_RULE_GAP_LEDGER.md); spell `RULE` audit is explicitly queued as the next tranche.
+- [x] Normalize half-on-save authored damage semantics to generic `multiplier: 0.5` on explicit save-success branches and remove legacy `saveSuccess` hints from SRD source records.
+- [ ] Repair `packages/db/scripts/build-create-database-bundle.mjs` include paths for the branch-table SQL bundle so local bundle regeneration works again after the branch rename.
 - [x] Align character starting-equipment session field names to the settled authored `applied` wording.
 - [x] Persist `acquiredParentId` for option-derived character provenance across feature acquisitions, spell selections, and resource grants.
 - [x] Add a `value_kind` payload correlation check to character feature-selection values.

@@ -26,6 +26,7 @@ export interface CharacterBuildState {
   classes: Array<{
     classRef: ContentRef
     subclassRef?: ContentRef
+    specializationRef?: ContentRef
     level: number
   }>
 

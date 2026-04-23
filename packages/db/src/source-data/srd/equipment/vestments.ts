@@ -8,7 +8,6 @@ export const vestments: EquipmentAuthored = {
   description: 'Ceremonial religious garments worn during worship and religious duties.',
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [S.EQUIPMENT_PROPERTY_CODE.CLOTHING],
-  abilities: [],
   cost: S.gp(1),
   weight: S.lbs(4),
   rarityId: S.RARITY_COMMON,

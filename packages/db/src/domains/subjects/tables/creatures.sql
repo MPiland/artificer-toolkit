@@ -12,6 +12,7 @@
  * Ownership:
  *   creatures → details (owned)
  *   creatures → features (owned via bridge — traits)
+ *   creatures → proficiency_grants (owned via bridge)
  *   creatures → speeds (owned)
  *   creatures → actions (owned via bridge)
  *   creatures → damage_resistances/immunities/vulnerabilities (owned)
@@ -35,6 +36,7 @@ CREATE TABLE IF NOT EXISTS public.creatures (
   label text NOT NULL,
   quote text,
   description text,
+  status text NOT NULL DEFAULT 'DRAFT',
 
   record_kind text NOT NULL DEFAULT 'STAT_BLOCK',
   category text NOT NULL,              -- CreatureCategory
@@ -59,13 +61,6 @@ CREATE TABLE IF NOT EXISTS public.creatures (
   -- Senses / passives
   senses text[],
   passive_perception integer,
-
-  -- Saving throws / skills (vocabulary IDs)
-  saving_throw_proficiencies text[],
-  skill_proficiencies text[],
-
-  -- Social/rules
-  languages text[],
   challenge_rating_id uuid
     REFERENCES public.challenge_ratings(id)
     ON DELETE SET NULL
@@ -95,6 +90,9 @@ CREATE TABLE IF NOT EXISTS public.creatures (
   ),
   CONSTRAINT creatures_record_kind_chk CHECK (
     record_kind IN ('STAT_BLOCK', 'LOGISTICS')
+  ),
+  CONSTRAINT creatures_status_chk CHECK (
+    status IN ('DRAFT', 'ACTIVE')
   )
 );
 
@@ -158,6 +156,45 @@ $$;
 /* ──────────────────────────────────────────────
  * CREATURE — FEATURES / TRAITS (OWNED)
  * ────────────────────────────────────────────── */
+
+/* ----------------------------------------------------------------
+ * CREATURE - PROFICIENCY GRANTS (OWNED VIA BRIDGE)
+ * ---------------------------------------------------------------- */
+
+CREATE TABLE IF NOT EXISTS public.creature_proficiency_grants (
+  creature_id uuid NOT NULL
+    REFERENCES public.creatures(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  proficiency_grant_id uuid NOT NULL,
+
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (creature_id, proficiency_grant_id)
+);
+
+ALTER TABLE public.creature_proficiency_grants ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_creature_proficiency_grants_creature
+  ON public.creature_proficiency_grants(creature_id);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'trg_cleanup_creature_proficiency_grants_owned'
+      AND tgrelid = 'public.creature_proficiency_grants'::regclass
+  ) THEN
+    CREATE TRIGGER trg_cleanup_creature_proficiency_grants_owned
+    AFTER DELETE ON public.creature_proficiency_grants
+    FOR EACH ROW
+    EXECUTE FUNCTION public.cleanup_owned_rows('[
+      { "table": "public.proficiency_grants", "columns": ["proficiency_grant_id"] }
+    ]');
+  END IF;
+END;
+$$;
 
 CREATE TABLE IF NOT EXISTS public.creature_features (
   creature_id uuid NOT NULL

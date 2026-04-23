@@ -1,5 +1,5 @@
 import type { DurationAuthored } from '#authored'
-import { DURATION_KIND, DurationKind } from '#core'
+import { DURATION_KIND, DurationKind, type ScalableValueAuthored } from '#core'
 import { assertNever } from '#utils'
 
 export type CompiledDuration
@@ -12,6 +12,7 @@ export type CompiledDuration
       : {
           durationKind: K
           amount: number
+          scaling?: ScalableValueAuthored<{ amount: number }>
         }
   }[DurationKind]
 
@@ -39,7 +40,8 @@ export function compileDuration(authored: DurationAuthored): CompiledDuration {
     case DURATION_KIND.WEEK:
       return {
         durationKind: authored.durationKind,
-        amount: authored.amount
+        amount: authored.amount,
+        ...(authored.scaling ? { scaling: authored.scaling } : {})
       }
 
     default:

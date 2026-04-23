@@ -6,6 +6,7 @@ interface RaceListItem {
   label: string
   description: string | null
   quote: string | null
+  status: string
   systemId: string
   details: unknown
   userId: string
@@ -18,7 +19,7 @@ interface RaceMetaObject {
 
 interface RaceMeta {
   categories: RaceMetaObject[]
-  playable: RaceMetaObject[]
+  selectionModes: RaceMetaObject[]
   parentRaces: RaceMetaObject[]
   features: RaceMetaObject[]
 }
@@ -31,6 +32,7 @@ export async function getRaceListQuery(db: DBLike): Promise<{ items: RaceListIte
       'label',
       'description',
       'quote',
+      'status',
       'system_id as systemId',
       details(eb, (eb2) => eb2
         .selectFrom('race_details as bridge')
@@ -63,17 +65,14 @@ export async function getRaceListQuery(db: DBLike): Promise<{ items: RaceListIte
     .groupBy('category')
     .execute() as RaceMetaObject[]
 
-  const playable: RaceMetaObject[] = await db
+  const selectionModes: RaceMetaObject[] = await db
     .selectFrom('races')
     .select((eb) => [
-      eb.case()
-        .when('playable', '=', true).then('Yes')
-        .else('No')
-        .end()
-        .as('id'),
+      'selection_mode as id',
       eb.fn.agg<string[]>('array_agg', [eb.ref('id')]).distinct().as('raceIds')
     ])
-    .groupBy('playable')
+    .where('selection_mode', 'is not', null)
+    .groupBy('selection_mode')
     .execute() as RaceMetaObject[]
 
   const parentRaces: RaceMetaObject[] = await db
@@ -99,7 +98,7 @@ export async function getRaceListQuery(db: DBLike): Promise<{ items: RaceListIte
     items,
     meta: {
       categories,
-      playable,
+      selectionModes,
       parentRaces,
       features
     }

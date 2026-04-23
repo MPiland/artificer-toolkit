@@ -1,6 +1,5 @@
 import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
-import { getEquipmentFn } from '@server/domains'
-import { getEquipmentListFn } from '@server/domains'
+import { api } from '../../lib/api'
 
 const equipmentsKeys = {
   all: [
@@ -17,7 +16,7 @@ const equipmentsKeys = {
 export function getEquipmentList() {
   return queryOptions({
     queryKey: equipmentsKeys.lists(),
-    queryFn: async () => await getEquipmentListFn()
+    queryFn: async () => await api.content.equipment.list()
   })
 }
 
@@ -28,9 +27,7 @@ export function useGetEquipmentList() {
 export function getEquipment(id: string) {
   return queryOptions({
     queryKey: equipmentsKeys.single(id),
-    queryFn: async () => await getEquipmentFn({
-      data: id
-    })
+    queryFn: async () => await api.content.equipment.get(id)
   })
 }
 

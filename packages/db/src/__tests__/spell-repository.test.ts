@@ -57,16 +57,15 @@ describe('createSpellRepository', () => {
           magic_school_id: 'evocation',
           casting_time_unit: 'ROUND',
           casting_time_amount: 1,
-          range_id: null,
-          duration_id: null,
-          at_higher_levels: null,
           material_description: 'A sliver of glass.'
         }
       ],
       spell_effects: [],
       spell_attributes: [
         { spell_id: 'spell-1', attribute_code: 'RITUAL', sort_order: 2 },
-        { spell_id: 'spell-1', attribute_code: 'CONCENTRATION', sort_order: 1 }
+        { spell_id: 'spell-1', attribute_code: 'CONCENTRATION', sort_order: 1 },
+        { spell_id: 'spell-1', attribute_code: 'VERBAL', sort_order: 3 },
+        { spell_id: 'spell-1', attribute_code: 'MATERIAL', sort_order: 4 }
       ],
       spell_classes: [
         { spell_id: 'spell-1', class_id: 'wizard' },
@@ -80,17 +79,15 @@ describe('createSpellRepository', () => {
       label: 'Magic Missile',
       description: 'Bolts of force.',
       attributes: ['CONCENTRATION', 'RITUAL'],
+      components: ['VERBAL', 'MATERIAL'],
       castingTime: {
         unit: 'ROUND',
         amount: 1
       },
-      range: undefined,
-      duration: undefined,
       level: 1,
       classIds: ['sorcerer', 'wizard'],
       magicSchoolId: 'evocation',
       effects: undefined,
-      atHigherLevels: undefined,
       materialDescription: 'A sliver of glass.',
       userId: 'user-1',
       systemId: 'system-1'
@@ -110,9 +107,6 @@ describe('createSpellRepository', () => {
           magic_school_id: 'evocation',
           casting_time_unit: 'ROUND',
           casting_time_amount: 1,
-          range_id: null,
-          duration_id: null,
-          at_higher_levels: null,
           material_description: null
         }
       ],
@@ -127,17 +121,15 @@ describe('createSpellRepository', () => {
       label: 'Shout',
       description: 'A loud shout.',
       attributes: undefined,
+      components: undefined,
       castingTime: {
         unit: 'ROUND',
         amount: 1
       },
-      range: undefined,
-      duration: undefined,
       level: 0,
       classIds: [],
       magicSchoolId: 'evocation',
       effects: undefined,
-      atHigherLevels: undefined,
       materialDescription: undefined,
       userId: 'user-1',
       systemId: 'system-1'
@@ -153,30 +145,20 @@ describe('createSpellRepository', () => {
       id: 'spell-effects-1',
       label: 'Flame Lash',
       description: 'A spell with an effect.',
+      components: ['VERBAL', 'SOMATIC'],
       castingTime: {
         unit: 'ROUND',
         amount: 1
       },
-      range: {
-        id: 'spell-range-root-1',
-        rangeKind: 'DISTANCE',
-        amount: 150,
-        unit: 'FEET'
-      },
-      duration: {
-        id: 'spell-duration-root-1',
-        durationKind: 'ROUND',
-        amount: 10
-      },
       level: 1,
       classIds: ['wizard'],
       magicSchoolId: 'evocation',
-      atHigherLevels: 'When you cast this spell using a spell slot of 2nd level or higher, the damage increases.',
       effects: [
         {
           id: 'spell-effect-1',
           order: 1,
           invocation: {
+            kind: 'ACTION',
             triggerCode: 'SPELL_ATTACK',
             activation: {
               code: 'ACTION',
@@ -189,31 +171,41 @@ describe('createSpellRepository', () => {
               unit: 'FEET'
             }
           },
-          branches: [
+          paths: [
             {
-              id: 'spell-BRANCH-1',
-              branch: 'ON_HIT',
+              id: 'spell-PATH_CODE-1',
+              order: 1,
+              pathCode: 'ON_HIT',
               groupType: 'SINGLE',
-              resolutionKind: 'DIRECT',
-              effectKind: 'DAMAGE',
-              damageTypeId: 'fire',
-              valueKind: 'DICE',
-              scalingKind: 'PER_LEVEL',
-              scalingSource: 'SPELL_CAST_LEVEL',
-              levels: [
-                {
-                  id: 'spell-BRANCH-1-level-1',
-                  level: 1,
-                  order: 1,
-                  diceConfig: '3d6'
-                },
-                {
-                  id: 'spell-BRANCH-1-level-2',
-                  level: 2,
-                  order: 2,
-                  diceConfig: '4d6'
-                }
-              ]
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: 'spell-PATH_CODE-1__result',
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: 'spell-PATH_CODE-1',
+                    effectKind: 'DAMAGE',
+                    damageTypeId: 'fire',
+                    valueKind: 'DICE',
+                    scalingKind: 'PER_LEVEL',
+                    scalingSource: 'SPELL_CAST_LEVEL',
+                    levels: [
+                      {
+                        id: 'spell-PATH_CODE-1-level-1',
+                        level: 1,
+                        order: 1,
+                        diceConfig: '3d6'
+                      },
+                      {
+                        id: 'spell-PATH_CODE-1-level-2',
+                        level: 2,
+                        order: 2,
+                        diceConfig: '4d6'
+                      }
+                    ]
+                  }
+                ]
+              }
             }
           ]
         }
@@ -222,36 +214,26 @@ describe('createSpellRepository', () => {
       systemId: 'system-1'
     })
 
-    await expect(repository.findById('spell-effects-1')).resolves.toEqual({
+    await expect(repository.findById('spell-effects-1')).resolves.toMatchObject({
       kind: 'SPELL',
       id: 'spell-effects-1',
       label: 'Flame Lash',
       description: 'A spell with an effect.',
       attributes: undefined,
+      components: ['VERBAL', 'SOMATIC'],
       castingTime: {
         unit: 'ROUND',
         amount: 1
       },
-      range: {
-        id: 'spell-range-root-1',
-        rangeKind: 'DISTANCE',
-        amount: 150,
-        unit: 'FEET'
-      },
-      duration: {
-        id: 'spell-duration-root-1',
-        durationKind: 'ROUND',
-        amount: 10
-      },
       level: 1,
       classIds: ['wizard'],
       magicSchoolId: 'evocation',
-      atHigherLevels: 'When you cast this spell using a spell slot of 2nd level or higher, the damage increases.',
       effects: [
         {
           id: 'spell-effect-1',
           order: 1,
           invocation: {
+            kind: 'ACTION',
             triggerCode: 'SPELL_ATTACK',
             activation: {
               code: 'ACTION',
@@ -262,36 +244,41 @@ describe('createSpellRepository', () => {
               rangeKind: 'DISTANCE',
               amount: 90,
               unit: 'FEET'
-            },
-            shape: undefined
+            }
           },
-          branches: [
+          paths: [
             {
-              id: 'spell-BRANCH-1',
-              branch: 'ON_HIT',
-              groupType: 'SINGLE',
-              resolutionKind: 'DIRECT',
-              duration: undefined,
-              effectKind: 'DAMAGE',
-              damageTypeId: 'fire',
-              valueKind: 'DICE',
-              scalingKind: 'PER_LEVEL',
-              scalingSource: 'SPELL_CAST_LEVEL',
-              levels: [
-                {
-                  id: 'spell-BRANCH-1-level-1',
-                  level: 1,
-                  order: 1,
-                  diceConfig: '3d6'
-                },
-                {
-                  id: 'spell-BRANCH-1-level-2',
-                  level: 2,
-                  order: 2,
-                  diceConfig: '4d6'
-                }
-              ],
-              bonuses: undefined
+              id: 'spell-PATH_CODE-1',
+              pathCode: 'ON_HIT',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: 'spell-PATH_CODE-1__result',
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: 'spell-PATH_CODE-1',
+                    effectKind: 'DAMAGE',
+                    damageTypeId: 'fire',
+                    valueKind: 'DICE',
+                    scalingKind: 'PER_LEVEL',
+                    scalingSource: 'SPELL_CAST_LEVEL',
+                    levels: [
+                      {
+                        id: 'spell-PATH_CODE-1-level-1',
+                        level: 1,
+                        order: 1,
+                        diceConfig: '3d6'
+                      },
+                      {
+                        id: 'spell-PATH_CODE-1-level-2',
+                        level: 2,
+                        order: 2,
+                        diceConfig: '4d6'
+                      }
+                    ]
+                  }
+                ]
+              }
             }
           ]
         }
@@ -300,6 +287,19 @@ describe('createSpellRepository', () => {
       userId: 'user-1',
       systemId: 'system-1'
     })
+
+    expect(db.snapshot('spell_attributes')).toEqual([
+      {
+        spell_id: 'spell-effects-1',
+        attribute_code: 'VERBAL',
+        sort_order: 1
+      },
+      {
+        spell_id: 'spell-effects-1',
+        attribute_code: 'SOMATIC',
+        sort_order: 2
+      }
+    ])
   })
 
   it('fails loudly on invalid persisted casting time units', async () => {
@@ -315,9 +315,6 @@ describe('createSpellRepository', () => {
           magic_school_id: 'evocation',
           casting_time_unit: 'DAY',
           casting_time_amount: 1,
-          range_id: null,
-          duration_id: null,
-          at_higher_levels: null,
           material_description: null
         }
       ],
@@ -328,4 +325,32 @@ describe('createSpellRepository', () => {
 
     await expect(repository.findById('spell-invalid-unit')).rejects.toThrow('invalid casting_time_unit')
   })
+
+  it('fails loudly on unknown persisted spell attribute/component codes', async () => {
+    const repository = createSpellRepository(createFakeDb({
+      spells: [
+        {
+          id: 'spell-invalid-attribute',
+          system_id: 'system-1',
+          user_id: 'user-1',
+          label: 'Broken Spell',
+          description: 'Oops.',
+          level: 1,
+          magic_school_id: 'evocation',
+          casting_time_unit: 'ROUND',
+          casting_time_amount: 1,
+          material_description: null
+        }
+      ],
+      spell_effects: [],
+      spell_attributes: [
+        { spell_id: 'spell-invalid-attribute', attribute_code: 'NOT_A_REAL_CODE', sort_order: 1 }
+      ],
+      spell_classes: []
+    }) as never)
+
+    await expect(repository.findById('spell-invalid-attribute')).rejects.toThrow('invalid spell_attributes codes')
+  })
 })
+
+

@@ -9,7 +9,6 @@ export const piton: EquipmentAuthored = {
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
     attributes: [S.EQUIPMENT_ATTRIBUTE.STACKABLE],
-    abilities: [],
     cost: S.cp(5),
     weight: S.lbs(0.25),
     rarityId: S.RARITY_COMMON,

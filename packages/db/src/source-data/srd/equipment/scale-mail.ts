@@ -8,7 +8,6 @@ export const scaleMail: EquipmentAuthored = {
     description: 'A coat of leather covered with overlapping metal scales.',
     category: S.EQUIPMENT_CATEGORY_CODE.ARMOR,
     properties: [S.EQUIPMENT_PROPERTY_CODE.MEDIUM],
-    abilities: [],
     armorClass: 14,
     cost: S.gp(50),
     weight: S.lbs(45),

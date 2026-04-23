@@ -2,6 +2,7 @@ import type { BackgroundAuthored } from '@artificer-toolkit/shared'
 import type { DBLike } from '#types'
 import { upsertBackground } from '../upserts/background.js'
 import type { BackgroundRepository, RepositoryFindAllOptions } from '../../../repositories/contracts.js'
+import { hydrateSubjectStatus } from '../status.js'
 
 function requireLinkedRecord<T>(
   value: T | null,
@@ -26,6 +27,7 @@ async function hydrateBackgroundById(
       'user_id',
       'label',
       'description',
+      'status',
       'starting_equipment_id'
     ])
     .where('id', '=', id)
@@ -97,6 +99,7 @@ async function hydrateBackgroundById(
     id: row.id,
     label: row.label,
     description: row.description ?? undefined,
+    status: hydrateSubjectStatus(row.status),
     details: authoredDetails.length > 0 ? authoredDetails : undefined,
     features: authoredFeatures.length > 0 ? authoredFeatures : undefined,
     startingEquipment: authoredStartingEquipment ?? undefined,

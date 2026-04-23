@@ -669,9 +669,9 @@ const FACET_PREDICATE_NODE_MAP = facetPredicateNode.define('facePredicate', ({ m
       kind: 'INLINE',
       options: AUTHORING_MODE_KIND_OPTIONS
     }, { order: 2, showIf: showAuthoringMode }))
-    .set('subtypeIds', selectMulti(['subtypeIds'], 'Subclass Subtypes', {
+    .set('specializationIds', selectMulti(['specializationIds'], 'Subclass Specializations', {
       kind: 'DATA',
-      relationship: mapValues('class_subtypes', {
+      relationship: mapValues('class_specializations', {
         whereColumn: 'class_id',
         valueColumn: 'id',
         selectColumns: ['id', 'label'],
@@ -680,7 +680,7 @@ const FACET_PREDICATE_NODE_MAP = facetPredicateNode.define('facePredicate', ({ m
     }, {
       order: 3,
       showIf: and([
-        local.field(['predicateCode']).eq('SUBCLASS_SUBTYPE'),
+        local.field(['predicateCode']).eq('SUBCLASS_SPECIALIZATION'),
         local.field(['authoringModeKind']).eq('SELECTED')
       ])
     }))
@@ -754,8 +754,8 @@ const FACET_PREDICATE_NODE_MAP = facetPredicateNode.define('facePredicate', ({ m
       options: DURATION_OPTIONS,
       filter: {
         kind: 'ALLOW',
-        by: chain((s) => s
-          .condition((c) => c
+        by: chain((s) => {
+          const selectedEffects = s.condition((c) => c
             .if(p.field(['subject']).eq('EQUIPMENT'))
             .then((o) => o
               .mapValues('equipment_effects', {
@@ -798,15 +798,54 @@ const FACET_PREDICATE_NODE_MAP = facetPredicateNode.define('facePredicate', ({ m
                 input: p.id(['spellIds'])
               }))
             .end())
-          .mapValues('effect_branches', {
-            whereColumn: 'effect_id',
-            valueColumn: 'duration_id'
-          })
-          .mapValues('characteristic_durations', {
-            whereColumn: 'characteristic_id',
-            valueColumn: 'kind'
-          })
-          .end())
+
+          return selectedEffects
+            .union((u) => u
+              .branch((b) => b
+                .mapValues('effect_paths', {
+                  whereColumn: 'effect_id',
+                  valueColumn: 'result_block_id'
+                })
+                .mapValues('effect_result_blocks', {
+                  whereColumn: 'id',
+                  valueColumn: 'duration_id'
+                })
+                .end())
+              .branch((b) => b
+                .mapValues('effect_paths', {
+                  whereColumn: 'effect_id',
+                  valueColumn: 'id'
+                })
+                .mapValues('effect_path_choice_options', {
+                  whereColumn: 'path_id',
+                  valueColumn: 'result_block_id'
+                })
+                .mapValues('effect_result_blocks', {
+                  whereColumn: 'id',
+                  valueColumn: 'duration_id'
+                })
+                .end())
+              .branch((b) => b
+                .mapValues('effect_paths', {
+                  whereColumn: 'effect_id',
+                  valueColumn: 'id'
+                })
+                .mapValues('effect_path_roll_table_rows', {
+                  whereColumn: 'path_id',
+                  valueColumn: 'result_block_id'
+                })
+                .mapValues('effect_result_blocks', {
+                  whereColumn: 'id',
+                  valueColumn: 'duration_id'
+                })
+                .end())
+              .end())
+            .mapValues('characteristic_durations', {
+              whereColumn: 'characteristic_id',
+              valueColumn: 'kind'
+            })
+            .end()
+        })
       }
     }, {
       order: 3, showIf: and([
@@ -845,6 +884,7 @@ const FACET_PREDICATE_NODE_MAP = facetPredicateNode.define('facePredicate', ({ m
         local.field(['predicateCode']).eq('ARMOR_CLASS'),
         local.field(['predicateCode']).eq('CHARACTER_LEVEL'),
         local.field(['predicateCode']).eq('CLASS_LEVEL'),
+        local.field(['predicateCode']).eq('ABILITY_SCORE'),
         local.field(['predicateCode']).eq('SAVING_THROW_ABILITY_BONUS')
       ])
     }))
@@ -877,6 +917,7 @@ const FACET_PREDICATE_NODE_MAP = facetPredicateNode.define('facePredicate', ({ m
         local.field(['predicateCode']).eq('ARMOR_CLASS'),
         local.field(['predicateCode']).eq('CHARACTER_LEVEL'),
         local.field(['predicateCode']).eq('CLASS_LEVEL'),
+        local.field(['predicateCode']).eq('ABILITY_SCORE'),
         local.field(['predicateCode']).eq('SAVING_THROW_ABILITY_BONUS')
       ])
     }))
@@ -1405,19 +1446,41 @@ const FACET_PREDICATE_NODE_MAP = facetPredicateNode.define('facePredicate', ({ m
           .end())
         .union((u) => u
           .branch((b) => b
-            .mapValues('branch_roll_table_entries', {
+            .mapValues('effect_paths', {
               whereColumn: 'effect_id',
-              valueColumn: 'id'
+              valueColumn: 'result_block_id'
             })
-            .mapValues('branch_roll_table_damages', {
-              whereColumn: 'entry_id',
-              valueColumn: 'damage_id'
+            .mapValues('effect_result_block_outcomes', {
+              whereColumn: 'result_block_id',
+              valueColumn: 'outcome_id'
             })
             .end())
           .branch((b) => b
-            .mapValues('branch_direct_damages', {
+            .mapValues('effect_paths', {
               whereColumn: 'effect_id',
-              valueColumn: 'damage_id'
+              valueColumn: 'id'
+            })
+            .mapValues('effect_path_choice_options', {
+              whereColumn: 'path_id',
+              valueColumn: 'result_block_id'
+            })
+            .mapValues('effect_result_block_outcomes', {
+              whereColumn: 'result_block_id',
+              valueColumn: 'outcome_id'
+            })
+            .end())
+          .branch((b) => b
+            .mapValues('effect_paths', {
+              whereColumn: 'effect_id',
+              valueColumn: 'id'
+            })
+            .mapValues('effect_path_roll_table_rows', {
+              whereColumn: 'path_id',
+              valueColumn: 'result_block_id'
+            })
+            .mapValues('effect_result_block_outcomes', {
+              whereColumn: 'result_block_id',
+              valueColumn: 'outcome_id'
             })
             .end())
           .end())
@@ -1482,19 +1545,41 @@ const FACET_PREDICATE_NODE_MAP = facetPredicateNode.define('facePredicate', ({ m
           .end())
         .union((u) => u
           .branch((b) => b
-            .mapValues('branch_roll_table_entries', {
+            .mapValues('effect_paths', {
               whereColumn: 'effect_id',
-              valueColumn: 'id'
+              valueColumn: 'result_block_id'
             })
-            .mapValues('branch_roll_table_conditions', {
-              whereColumn: 'entry_id',
-              valueColumn: 'condition_id'
+            .mapValues('effect_result_block_outcomes', {
+              whereColumn: 'result_block_id',
+              valueColumn: 'outcome_id'
             })
             .end())
           .branch((b) => b
-            .mapValues('branch_direct_conditions', {
+            .mapValues('effect_paths', {
               whereColumn: 'effect_id',
-              valueColumn: 'condition_id'
+              valueColumn: 'id'
+            })
+            .mapValues('effect_path_choice_options', {
+              whereColumn: 'path_id',
+              valueColumn: 'result_block_id'
+            })
+            .mapValues('effect_result_block_outcomes', {
+              whereColumn: 'result_block_id',
+              valueColumn: 'outcome_id'
+            })
+            .end())
+          .branch((b) => b
+            .mapValues('effect_paths', {
+              whereColumn: 'effect_id',
+              valueColumn: 'id'
+            })
+            .mapValues('effect_path_roll_table_rows', {
+              whereColumn: 'path_id',
+              valueColumn: 'result_block_id'
+            })
+            .mapValues('effect_result_block_outcomes', {
+              whereColumn: 'result_block_id',
+              valueColumn: 'outcome_id'
             })
             .end())
           .end())
@@ -1665,6 +1750,20 @@ const FACET_PREDICATE_NODE_MAP = facetPredicateNode.define('facePredicate', ({ m
       requiredIf: true,
       showIf: and([
         local.field(['predicateCode']).eq('FEAT_OBTAINED'),
+        p.field(['subject']).eq('CHARACTER')
+      ])
+    }))
+    .set('heritageIds', selectMulti(['heritageIds'], 'Heritages', {
+      kind: 'DATA',
+      relationship: table('heritages', {
+        selectColumns: ['id', 'label']
+      })
+    }, {
+      order: 3,
+      requiredIf: true,
+      showIf: and([
+        local.field(['predicateCode']).eq('HERITAGE'),
+        local.field(['authoringModeKind']).eq('SELECTED'),
         p.field(['subject']).eq('CHARACTER')
       ])
     }))

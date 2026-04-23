@@ -8,6 +8,7 @@ import {
   MODIFIER_SCOPE_KIND,
   PROFICIENCY_KIND,
   RACE_CATEGORY_CODE,
+  RACE_SELECTION_MODE,
   SCALING,
   SCALING_AMOUNT_KIND,
   SIZE_CODE,
@@ -15,7 +16,7 @@ import {
   type RaceAuthored
 } from '@artificer-toolkit/shared'
 import { RACE_IDS } from '../ids.js'
-import { SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import { SRD_HUMAN_HERITAGE_ID, SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
   const rHex = raceIndex.toString(16).padStart(4, '0')
@@ -30,6 +31,13 @@ function languageId(code: string): string {
   return entry.id
 }
 
+function availableLanguageIds(excludedCodes: string[] = []): string[] {
+  const excluded = new Set(excludedCodes)
+  return SRD_LANGUAGES
+    .filter((language) => !excluded.has(language.code))
+    .map((language) => language.id)
+}
+
 const walkSpeedId = SRD_SPEEDS.find((speed) => speed.code === 'WALK')?.id
 if (!walkSpeedId) throw new Error('SRD WALK speed vocabulary entry is required for race source data.')
 
@@ -41,9 +49,10 @@ export const human: RaceAuthored = {
   id: RACE_IDS.HUMAN,
   label: 'Human',
   category: RACE_CATEGORY_CODE.BASE,
-  playable: true,
+  selectionMode: RACE_SELECTION_MODE.DIRECT,
   size: SIZE_CODE.MEDIUM,
   speeds: humanWalk30,
+  heritageIds: [SRD_HUMAN_HERITAGE_ID],
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
   features: [
@@ -140,7 +149,8 @@ export const human: RaceAuthored = {
             selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
             count: 1,
             scalingKind: SCALING.NONE,
-            authoringModeKind: AUTHORING_MODE_KIND.ALL,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            languageIds: availableLanguageIds(['COMMON']),
             order: 0
           }
         ]
@@ -170,3 +180,4 @@ export const human: RaceAuthored = {
     }
   ]
 }
+

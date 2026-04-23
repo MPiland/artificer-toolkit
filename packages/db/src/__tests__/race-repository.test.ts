@@ -54,7 +54,7 @@ describe('createRaceRepository', () => {
           quote: 'Graceful.',
           description: 'Long-lived and keen.',
           category: 'BASE',
-          playable: true,
+          selection_mode: 'REQUIRES_SUBRACE',
           parent_race_id: null,
           size_code: 'MEDIUM'
         }
@@ -120,6 +120,9 @@ describe('createRaceRepository', () => {
       race_details: [
         { race_id: 'race-1', detail_id: 'detail-1', sort_order: 1 }
       ],
+      race_heritages: [
+        { race_id: 'race-1', heritage_id: 'heritage-elven', sort_order: 1 }
+      ],
       details: [
         { id: 'detail-1', label: 'Keen Senses', description: 'Alert.', sort_order: 1 }
       ],
@@ -133,6 +136,7 @@ describe('createRaceRepository', () => {
       label: 'Elf',
       quote: 'Graceful.',
       description: 'Long-lived and keen.',
+      heritageIds: ['heritage-elven'],
       details: [
         {
           id: 'detail-1',
@@ -161,7 +165,7 @@ describe('createRaceRepository', () => {
       userId: 'user-1',
       systemId: 'system-1',
       category: 'BASE',
-      playable: true,
+      selectionMode: 'REQUIRES_SUBRACE',
       ancestry: {
         id: 'ancestry-1',
         label: 'Draconic Ancestry',
@@ -203,7 +207,7 @@ describe('createRaceRepository', () => {
     })
   })
 
-  it('hydrates a subrace with optional size and speeds', async () => {
+  it('hydrates a subrace as an additive-only child record', async () => {
     const repository = createRaceRepository(createFakeDb({
       races: [
         {
@@ -214,7 +218,7 @@ describe('createRaceRepository', () => {
           quote: null,
           description: null,
           category: 'SUBRACE',
-          playable: null,
+          selection_mode: null,
           parent_race_id: 'race-1',
           size_code: null
         }
@@ -222,6 +226,7 @@ describe('createRaceRepository', () => {
       race_features: [],
       race_ancestries: [],
       race_details: [],
+      race_heritages: [],
       race_speeds: []
     }) as never)
 
@@ -230,14 +235,13 @@ describe('createRaceRepository', () => {
       label: 'High Elf',
       quote: undefined,
       description: undefined,
+      heritageIds: undefined,
       details: undefined,
       features: undefined,
       userId: 'user-1',
       systemId: 'system-1',
       category: 'SUBRACE',
-      parentRaceId: 'race-1',
-      size: undefined,
-      speeds: undefined
+      parentRaceId: 'race-1'
     })
   })
 
@@ -252,7 +256,7 @@ describe('createRaceRepository', () => {
           quote: null,
           description: null,
           category: 'BASE',
-          playable: true,
+          selection_mode: 'DIRECT',
           parent_race_id: null,
           size_code: 'MEDIUM'
         }
@@ -262,6 +266,7 @@ describe('createRaceRepository', () => {
       race_ancestry_options: [{ id: 'option-1', ancestry_id: 'ancestry-1', label: 'Blue', description: 'Cold.', sort_order: 1 }],
       race_ancestry_option_features: [],
       race_details: [],
+      race_heritages: [],
       race_speeds: []
     }) as never)
 
@@ -278,6 +283,144 @@ describe('createRaceRepository', () => {
     })
   })
 
+  it('resolves subraces against their parent race for effective reads', async () => {
+    const repository = createRaceRepository(createFakeDb({
+      races: [
+        {
+          id: 'race-1',
+          system_id: 'system-1',
+          user_id: 'user-1',
+          label: 'Elf',
+          quote: null,
+          description: 'Base elf.',
+          category: 'BASE',
+          selection_mode: 'REQUIRES_SUBRACE',
+          parent_race_id: null,
+          size_code: 'MEDIUM'
+        },
+        {
+          id: 'race-2',
+          system_id: 'system-1',
+          user_id: 'user-1',
+          label: 'Wood Elf',
+          quote: null,
+          description: 'A swift elf.',
+          category: 'SUBRACE',
+          selection_mode: null,
+          parent_race_id: 'race-1',
+          size_code: null
+        }
+      ],
+      race_features: [
+        { race_id: 'race-1', feature_id: 'feature-1', sort_order: 1 },
+        { race_id: 'race-2', feature_id: 'feature-2', sort_order: 1 }
+      ],
+      features: [
+        {
+          id: 'feature-1',
+          label: 'Keen Senses',
+          description: 'Parent feature.',
+          detail: null,
+          charge_id: null,
+          restriction_id: null,
+          sort_order: 1,
+          available_at_level: null
+        },
+        {
+          id: 'feature-2',
+          label: 'Fleet of Foot',
+          description: 'Child feature.',
+          detail: null,
+          charge_id: null,
+          restriction_id: null,
+          sort_order: 1,
+          available_at_level: null
+        }
+      ],
+      feature_effects: [],
+      feature_attributes: [],
+      feature_feat_grants: [],
+      feature_modifier_grants: [],
+      feature_proficiency_grants: [],
+      feature_sense_grants: [],
+      feature_spell_grants: [],
+      feature_options: [],
+      feature_option_levels: [],
+      race_ancestries: [
+        {
+          id: 'ancestry-1',
+          race_id: 'race-1',
+          label: 'Elven Lineage',
+          description: 'Parent ancestry.'
+        }
+      ],
+      race_ancestry_options: [
+        {
+          id: 'ancestry-option-1',
+          ancestry_id: 'ancestry-1',
+          label: 'Wood',
+          description: 'Forest lineage.',
+          sort_order: 1
+        }
+      ],
+      race_ancestry_option_features: [],
+      race_details: [
+        { race_id: 'race-1', detail_id: 'detail-1', sort_order: 1 },
+        { race_id: 'race-2', detail_id: 'detail-2', sort_order: 1 }
+      ],
+      race_heritages: [
+        { race_id: 'race-1', heritage_id: 'heritage-elven', sort_order: 1 }
+      ],
+      details: [
+        { id: 'detail-1', label: 'Parent Detail', description: 'Inherited.', sort_order: 1 },
+        { id: 'detail-2', label: 'Child Detail', description: 'Additive.', sort_order: 1 }
+      ],
+      race_speeds: [
+        { race_id: 'race-1', speed_id: 'walk', amount: 30, unit_code: 'FEET' }
+      ]
+    }) as never)
+
+    const resolved = await repository.findResolvedById('race-2')
+
+    expect(resolved).toMatchObject({
+      id: 'race-2',
+      category: 'SUBRACE',
+      parentRaceId: 'race-1',
+      heritageIds: ['heritage-elven'],
+      size: 'MEDIUM',
+      speeds: [
+        {
+          speedId: 'walk',
+          amount: 30,
+          unit: 'FEET'
+        }
+      ],
+      ancestry: {
+        id: 'ancestry-1',
+        label: 'Elven Lineage'
+      },
+      details: [
+        { id: 'detail-1' },
+        { id: 'detail-2' }
+      ],
+      features: [
+        { id: 'feature-1' },
+        { id: 'feature-2' }
+      ],
+      subrace: {
+        parentRaceId: 'race-1',
+        parentLabel: 'Elf',
+        inherited: {
+          size: 'MEDIUM',
+          heritageIds: ['heritage-elven']
+        }
+      }
+    })
+    expect(resolved && resolved.category === 'SUBRACE'
+      ? resolved.subrace.inherited
+      : undefined).not.toHaveProperty('selectionMode')
+  })
+
   it('fails loudly when an ancestry option is missing its required description', async () => {
     const repository = createRaceRepository(createFakeDb({
       races: [
@@ -289,7 +432,7 @@ describe('createRaceRepository', () => {
           quote: null,
           description: null,
           category: 'BASE',
-          playable: true,
+          selection_mode: 'DIRECT',
           parent_race_id: null,
           size_code: 'MEDIUM'
         }
@@ -299,6 +442,7 @@ describe('createRaceRepository', () => {
       race_ancestry_options: [{ id: 'option-1', ancestry_id: 'ancestry-1', label: 'Blue', description: null, sort_order: 1 }],
       race_ancestry_option_features: [],
       race_details: [],
+      race_heritages: [],
       race_speeds: []
     }) as never)
 

@@ -8,8 +8,7 @@ export const dart: EquipmentAuthored = {
     description: 'A small thrown missile weapon.',
     category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
     properties: [S.EQUIPMENT_PROPERTY_CODE.SIMPLE, S.EQUIPMENT_PROPERTY_CODE.RANGED, S.EQUIPMENT_PROPERTY_CODE.FINESSE, S.EQUIPMENT_PROPERTY_CODE.THROWN],
-    abilities: [],
-    capabilities: S.thrownWeaponCapabilities(S.equipId(12), 'PIERCING', '1d4', 20),
+    effects: S.thrownWeaponEffects(S.equipId(12), 'PIERCING', '1d4', 20),
     cost: S.gp(0.05),
     weight: S.lbs(0.25),
     rarityId: S.RARITY_COMMON,
@@ -17,3 +16,4 @@ export const dart: EquipmentAuthored = {
   userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
   }
+

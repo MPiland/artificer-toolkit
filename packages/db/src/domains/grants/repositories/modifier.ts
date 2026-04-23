@@ -37,7 +37,6 @@ type ModifierGrantDomainRow = {
   speed_id: string | null
   sense_code: string | null
   spell_level: number | null
-  condition_type_id: string | null
 }
 
 type ModifierGrantPayloadRow = {
@@ -48,6 +47,8 @@ type ModifierGrantPayloadRow = {
   numeric_amount: number | null
   numeric_multiplier: number | null
   numeric_ability_code: string | null
+  numeric_min: number | null
+  numeric_max: number | null
   numeric_skill_id: string | null
   numeric_class_id: string | null
   set_amount: number | null
@@ -237,11 +238,10 @@ function requireChargeScalingKind(
 function requireNumericValueKind(
   grantId: string,
   value: string | null
-): 'FIXED' | 'PROFICIENCY_BONUS' | 'ABILITY_MODIFIER' | 'SKILL_BONUS' | 'CHARACTER_LEVEL' | 'CLASS_LEVEL' | 'SPELL_SLOT_LEVEL' {
+): 'FIXED' | 'PROFICIENCY_BONUS' | 'SKILL_BONUS' | 'CHARACTER_LEVEL' | 'CLASS_LEVEL' | 'SPELL_SLOT_LEVEL' {
   if (
     value !== 'FIXED'
     && value !== 'PROFICIENCY_BONUS'
-    && value !== 'ABILITY_MODIFIER'
     && value !== 'SKILL_BONUS'
     && value !== 'CHARACTER_LEVEL'
     && value !== 'CLASS_LEVEL'
@@ -292,7 +292,7 @@ function hydrateDomain(
   domainRow: ModifierGrantDomainRow | undefined
 ): ModifierGrantAuthored['domain'] {
   switch (row.value_domain_code) {
-    case 'ATTACK_ROLL_BONUS':
+    case 'ATTACK_ROLL':
     case 'DAMAGE': {
       const persisted = requireDomainRow(row.id, domainRow)
       if (!persisted.attack_domain_code) {
@@ -304,15 +304,14 @@ function hydrateDomain(
       }
     }
 
-    case 'SAVING_THROW_BONUS': {
+    case 'SAVING_THROW_MODIFIER': {
       const persisted = requireDomainRow(row.id, domainRow)
       if (!persisted.ability_code) {
         throw new Error(`Modifier grant "${row.id}" is missing domain ability_code.`)
       }
 
       return {
-        ability: requireAbilityCode(row.id, persisted.ability_code, 'domain ability_code'),
-        ...(persisted.condition_type_id ? { conditionTypeId: persisted.condition_type_id } : {})
+        ability: requireAbilityCode(row.id, persisted.ability_code, 'domain ability_code')
       }
     }
 
@@ -327,7 +326,7 @@ function hydrateDomain(
       }
     }
 
-    case 'SKILL_BONUS': {
+    case 'SKILL_MODIFIER': {
       const persisted = requireDomainRow(row.id, domainRow)
       if (!persisted.skill_id) {
         throw new Error(`Modifier grant "${row.id}" is missing domain skill_id.`)
@@ -401,17 +400,6 @@ function hydratePayload(
             multiplier: payload.numeric_multiplier ?? undefined
           }
 
-        case 'ABILITY_MODIFIER':
-          if (!payload.numeric_ability_code) {
-            throw new Error(`Modifier grant "${row.id}" ABILITY_MODIFIER payload is missing numeric_ability_code.`)
-          }
-
-          return {
-            valueKind: 'ABILITY_MODIFIER',
-            ability: requireAbilityCode(row.id, payload.numeric_ability_code, 'numeric_ability_code'),
-            multiplier: payload.numeric_multiplier ?? undefined
-          }
-
         case 'SKILL_BONUS':
           if (!payload.numeric_skill_id) {
             throw new Error(`Modifier grant "${row.id}" SKILL_BONUS payload is missing numeric_skill_id.`)
@@ -445,6 +433,20 @@ function hydratePayload(
             valueKind: 'SPELL_SLOT_LEVEL',
             multiplier: payload.numeric_multiplier ?? undefined
           }
+      }
+    }
+
+    case 'ABILITY_MODIFIER_BONUS': {
+      const payload = requirePayloadRow(row.id, payloadRow, row.modifier_kind)
+      if (!payload.numeric_ability_code) {
+        throw new Error(`Modifier grant "${row.id}" ABILITY_MODIFIER_BONUS payload is missing numeric_ability_code.`)
+      }
+
+      return {
+        ability: requireAbilityCode(row.id, payload.numeric_ability_code, 'numeric_ability_code'),
+        multiplier: payload.numeric_multiplier ?? undefined,
+        min: payload.numeric_min ?? undefined,
+        max: payload.numeric_max ?? undefined
       }
     }
 
@@ -554,7 +556,7 @@ function hydratePayload(
       return { resetKind: requireResetKind(row.id, payload.reset_kind) }
     }
 
-    case 'OPTIONAL_ABILITY_MODIFIER':
+    case 'OPTIONAL_ABILITY_MODIFIER_BONUS':
       return {
         abilities: optionalAbilities.map((ability) =>
           requireAbilityCode(row.id, ability.ability_code, 'optional ability_code')
@@ -673,9 +675,8 @@ export async function hydrateModifierGrantById(
         'skill_id',
         'speed_id',
         'sense_code',
-        'spell_level',
-        'condition_type_id'
-      ])
+        'spell_level'
+      ] as const)
       .where('modifier_grant_id', '=', id)
       .executeTakeFirst() as Promise<ModifierGrantDomainRow | undefined>,
     db.selectFrom('modifier_grant_payloads')
@@ -687,6 +688,8 @@ export async function hydrateModifierGrantById(
         'numeric_amount',
         'numeric_multiplier',
         'numeric_ability_code',
+        'numeric_min',
+        'numeric_max',
         'numeric_skill_id',
         'numeric_class_id',
         'set_amount',
@@ -773,3 +776,4 @@ export function createModifierGrantRepository(
     }
   }
 }
+

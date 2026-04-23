@@ -10,7 +10,6 @@ export const shieldMetalPlus2: EquipmentVariantAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: shieldMetal.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
-  weight: S.lbs(6),
   rarityId: S.RARITY_RARE,
   maxBonus: 2,
   modifiers: S.magicArmorModifiers(S.equipId(359), 2),

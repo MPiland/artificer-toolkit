@@ -8,7 +8,6 @@ export const bedroll: EquipmentAuthored = {
     description: "A rolled blanket and sleeping pad for resting outdoors in modest comfort.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(1),
     weight: S.lbs(7),
     rarityId: S.RARITY_COMMON,

@@ -10,12 +10,12 @@ export const greataxe: EquipmentAuthored = {
   properties: [
     S.EQUIPMENT_PROPERTY_CODE.MARTIAL, S.EQUIPMENT_PROPERTY_CODE.MELEE, S.EQUIPMENT_PROPERTY_CODE.HEAVY, S.EQUIPMENT_PROPERTY_CODE.TWO_HANDED
   ],
-  abilities: [],
-  capabilities: S.meleeWeaponCapabilities(S.equipId(18), 'SLASHING', '1d12'),
+  effects: S.meleeWeaponEffects(S.equipId(18), 'SLASHING', '1d12'),
   cost: S.gp(30),
   weight: S.lbs(7),
   rarityId: S.RARITY_COMMON,
-  modifiers: S.heavyWeaponModifiers(S.equipId(18)),
+  modifiers: S.heavyMeleeWeaponModifiers(S.equipId(18)),
   userId: S.SRD_USER_ID,
   systemId: S.SRD_SYSTEM_ID
 }
+

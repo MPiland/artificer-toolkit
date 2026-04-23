@@ -10,7 +10,6 @@ export const greataxePlus2: EquipmentVariantAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: greataxe.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
-  weight: S.lbs(7),
   rarityId: S.RARITY_RARE,
   maxBonus: 2,
   modifiers: S.meleeMagicWeaponModifiers(S.equipId(265), 2),

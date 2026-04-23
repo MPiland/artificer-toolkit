@@ -1,5 +1,5 @@
 import { CREATURE_CATEGORY_CODE, CREATURE_MOUNT_TYPE_CODE, CREATURE_COMPANION_BOND_TYPE_CODE, CREATURE_INITIATIVE_MODE_CODE, SIZE_OPTIONS } from '#core'
-import { FEATURE_NODE_MAP, SPEED_NODE_MAP } from '#maps'
+import { FEATURE_NODE_MAP, PROFICIENCY_NODE_MAP, SPEED_NODE_MAP } from '#maps'
 import { buildNodeMap } from '#utils'
 import type {
   CreatureActionAuthored,
@@ -41,12 +41,11 @@ const CREATURE_ACTION_NODE_MAP = actionNode.define('creatureAction', ({ map, nod
 const legendaryNode = buildNodeMap<CreatureLegendaryProfile>()
 
 const CREATURE_LEGENDARY_PROFILE_NODE_MAP = legendaryNode.define('creatureLegendaryProfile', ({ map, nodes }) => {
-  const { number, groupArray } = nodes
+  const { number } = nodes
 
   map
     .set('legendaryResistanceCount', number(['legendaryResistanceCount'], 'Legendary Resistance Uses'))
     .set('actionsCount', number(['actionsCount'], 'Legendary Actions Per Round'))
-    .set('actions', groupArray(['actions'], 'Legendary Actions', () => CREATURE_ACTION_NODE_MAP))
 })
 
 const lairNode = buildNodeMap<CreatureLairProfile>()
@@ -59,7 +58,6 @@ const CREATURE_LAIR_PROFILE_NODE_MAP = lairNode.define('creatureLairProfile', ({
   })
 
   map
-    .set('lairActions', groupArray(['lairActions'], 'Lair Actions', () => CREATURE_ACTION_NODE_MAP))
     .set('regionalEffects', groupArray(['regionalEffects'], 'Regional Effects', () => regionalEffectNode))
 })
 
@@ -135,24 +133,12 @@ export const CREATURE_NODE_MAP = creatureNode.define('creature', ({ map, nodes, 
     m.set('value', n.text(['value'], 'Sense'))
   })
 
-  const savingThrowNode = buildNodeMap<{ value: string }>().define('savingThrow', ({ map: m, nodes: n }) => {
-    m.set('value', n.text(['value'], 'Ability'))
-  })
-
-  const skillNode = buildNodeMap<{ value: string }>().define('skill', ({ map: m, nodes: n }) => {
-    m.set('value', n.text(['value'], 'Skill'))
-  })
-
   const damageTypeNode = buildNodeMap<{ value: string }>().define('damageType', ({ map: m, nodes: n }) => {
     m.set('value', n.text(['value'], 'Damage Type'))
   })
 
   const conditionNode = buildNodeMap<{ value: string }>().define('condition', ({ map: m, nodes: n }) => {
     m.set('value', n.text(['value'], 'Condition'))
-  })
-
-  const languageNode = buildNodeMap<{ value: string }>().define('language', ({ map: m, nodes: n }) => {
-    m.set('value', n.text(['value'], 'Language'))
   })
 
   map
@@ -163,6 +149,7 @@ export const CREATURE_NODE_MAP = creatureNode.define('creature', ({ map, nodes, 
     .set('description', text(['description'], 'Description'))
     .set('details', groupArray(['details'], 'Details', () => CREATURE_DETAIL_NODE_MAP))
     .set('features', groupArray(['features'], 'Features', () => FEATURE_NODE_MAP))
+    .set('proficiencies', groupArray(['proficiencies'], 'Proficiencies', () => PROFICIENCY_NODE_MAP))
     .set('userId', text(['userId'], 'User ID'))
     .set('systemId', text(['systemId'], 'System ID'))
     .set('category', selectSingle(['category'], 'Category', {
@@ -213,16 +200,13 @@ export const CREATURE_NODE_MAP = creatureNode.define('creature', ({ map, nodes, 
     .set('senses', groupArray(['senses'], 'Senses', () => senseNode))
     .set('passivePerception', number(['passivePerception'], 'Passive Perception'))
 
-    // Defenses (stored as arrays of vocabulary IDs)
-    .set('savingThrowProficiencies', groupArray(['savingThrowProficiencies'], 'Saving Throw Proficiencies', () => savingThrowNode))
-    .set('skillProficiencies', groupArray(['skillProficiencies'], 'Skill Proficiencies', () => skillNode))
+    // Defenses
     .set('damageVulnerabilities', groupArray(['damageVulnerabilities'], 'Damage Vulnerabilities', () => damageTypeNode))
     .set('damageResistances', groupArray(['damageResistances'], 'Damage Resistances', () => damageTypeNode))
     .set('damageImmunities', groupArray(['damageImmunities'], 'Damage Immunities', () => damageTypeNode))
     .set('conditionImmunities', groupArray(['conditionImmunities'], 'Condition Immunities', () => conditionNode))
 
     // Social/rules
-    .set('languages', groupArray(['languages'], 'Languages', () => languageNode))
     .set('challengeRatingId', selectSingle(['challengeRatingId'], 'Challenge Rating', {
       kind: 'DATA',
       relationship: table('challenge_ratings', {

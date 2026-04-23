@@ -1,129 +1,139 @@
-import {
-  ABILITY_CODE,
-  ACTIVATION_CODE,
-  BRANCH,
-  BRANCH_GROUP_TYPE,
-  BRANCH_RESOLUTION_KIND,
-  CASTING_TIME_UNIT_CODE,
-  EFFECT_KIND,
-  MEASUREMENT_UNIT_CODE,
-  RANGE_KIND,
-  SCALING,
-  SCALING_AMOUNT_KIND,
-  SCALING_SOURCE,
-  SHAPE_KIND,
-  SUBJECT,
-  TARGET_SELECTION_KIND,
-  TRIGGER,
-  type SpellAuthored
-} from '@artificer-toolkit/shared'
-import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
-
+import { ABILITY_CODE, ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SCALING, SCALING_AMOUNT_KIND, SCALING_SOURCE, SHAPE_KIND, SUBJECT, TARGET_SELECTION_KIND, TRIGGER, type SpellAuthored } from '@artificer-toolkit/shared';
+import { CLASS_IDS, SPELL_IDS } from '../ids.js';
+import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js';
 export const meteorSwarm: SpellAuthored = {
-  kind: SUBJECT.SPELL,
-  id: SPELL_IDS.METEOR_SWARM,
-  label: 'Meteor Swarm',
-  description:
-    'Four blazing meteors strike points you choose within range, each creating a 40-foot-radius blast that deals massive fire and bludgeoning damage on a failed Dexterity save, or half as much on a success.',
-  castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
-  range: {
-    id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x201, 1),
-    rangeKind: RANGE_KIND.DISTANCE,
-    amount: 1,
-    unit: MEASUREMENT_UNIT_CODE.MILES
-  },
-  duration: {
-    id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x202, 1),
-    durationKind: 'INSTANTANEOUS'
-  },
-  level: 9,
-  classIds: [CLASS_IDS.SORCERER, CLASS_IDS.WIZARD],
-  magicSchoolId: schoolId('EVOCATION'),
-  capabilities: [
-    {
-      id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x210, 1),
-      order: 1,
-      invocation: {
-        triggerCode: TRIGGER.SAVING_THROW,
-        savingThrow: {
-          id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x214, 1),
-          savingThrowKind: 'SOURCE_SAVE_DC',
-          ability: ABILITY_CODE.DEXTERITY
-        },
-        activation: {
-          code: ACTIVATION_CODE.ACTION,
-          amount: 1
-        },
-        range: {
-          id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x211, 1),
-          rangeKind: RANGE_KIND.DISTANCE,
-          amount: 1,
-          unit: MEASUREMENT_UNIT_CODE.MILES
-        },
-        targeting: {
-          selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-          detail: 'Choose four points you can see within range for the meteor blasts.'
-        },
-        shape: {
-          id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x212, 1),
-          shapeKind: SHAPE_KIND.SPHERE,
-          radius: {
-            amount: 40,
-            unit: MEASUREMENT_UNIT_CODE.FEET
-          }
+    kind: SUBJECT.SPELL,
+    id: SPELL_IDS.METEOR_SWARM,
+    label: 'Meteor Swarm',
+    description: 'Four blazing meteors strike points you choose within range, each creating a 40-foot-radius blast that deals massive fire and bludgeoning damage on a failed Dexterity save, or half as much on a success.',
+    castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
+    level: 9,
+    classIds: [CLASS_IDS.SORCERER, CLASS_IDS.WIZARD],
+    magicSchoolId: schoolId('EVOCATION'),
+    effects: [
+        {
+            id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x210, 1),
+            order: 1,
+            invocation: {
+                triggerCode: TRIGGER.SAVING_THROW,
+                savingThrow: {
+                    id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x214, 1),
+                    savingThrowKind: 'SOURCE_SAVE_DC',
+                    ability: ABILITY_CODE.DEXTERITY
+                },
+                activation: {
+                    code: ACTIVATION_CODE.ACTION,
+                    amount: 1
+                },
+                range: {
+                    id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x211, 1),
+                    rangeKind: RANGE_KIND.DISTANCE,
+                    amount: 1,
+                    unit: MEASUREMENT_UNIT_CODE.MILES
+                },
+                targeting: {
+                    selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS
+                },
+                shape: {
+                    id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x212, 1),
+                    shapeKind: SHAPE_KIND.SPHERE,
+                    radius: {
+                        amount: 40,
+                        unit: MEASUREMENT_UNIT_CODE.FEET
+                    }
+                }
+            },
+            paths: [
+                {
+                    id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x213, 1),
+                    order: 1,
+                    pathCode: PATH_CODE.ON_SAVE_FAIL,
+                    groupType: PATH_GROUP_TYPE.SINGLE,
+                    selectionKind: "FIXED" as const,
+                    resultBlock: {
+                        id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x213, 1) + "__result",
+                        resultKind: "SINGLE" as const,
+                        outcomes: [
+                            {
+                                id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x213, 1),
+                                effectKind: EFFECT_KIND.DAMAGE,
+                                damageTypeId: damageTypeId('FIRE'),
+                                valueKind: 'DICE',
+                                scalingKind: SCALING.NONE,
+                                diceConfig: '20d6'
+                            }
+                        ]
+                    }
+                },
+                {
+                    id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x214, 1),
+                    order: 2,
+                    pathCode: PATH_CODE.ON_SAVE_FAIL,
+                    groupType: PATH_GROUP_TYPE.SINGLE,
+                    selectionKind: "FIXED" as const,
+                    resultBlock: {
+                        id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x214, 1) + "__result",
+                        resultKind: "SINGLE" as const,
+                        outcomes: [
+                            {
+                                id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x214, 1),
+                                effectKind: EFFECT_KIND.DAMAGE,
+                                damageTypeId: damageTypeId('BLUDGEONING'),
+                                valueKind: 'DICE',
+                                scalingKind: SCALING.NONE,
+                                diceConfig: '20d6'
+                            }
+                        ]
+                    }
+                },
+                {
+                    id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x215, 1),
+                    order: 3,
+                    pathCode: PATH_CODE.ON_SAVE_SUCCESS,
+                    groupType: PATH_GROUP_TYPE.SINGLE,
+                    selectionKind: "FIXED" as const,
+                    resultBlock: {
+                        id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x215, 1) + "__result",
+                        resultKind: "SINGLE" as const,
+                        outcomes: [
+                            {
+                                id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x215, 1),
+                                effectKind: EFFECT_KIND.DAMAGE,
+                                damageTypeId: damageTypeId('FIRE'),
+                                amountKind: SCALING_AMOUNT_KIND.HALF,
+                                valueKind: 'DICE',
+                                scalingKind: SCALING.NONE,
+                                diceConfig: '20d6'
+                            }
+                        ]
+                    }
+                },
+                {
+                    id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x216, 1),
+                    order: 4,
+                    pathCode: PATH_CODE.ON_SAVE_SUCCESS,
+                    groupType: PATH_GROUP_TYPE.SINGLE,
+                    selectionKind: "FIXED" as const,
+                    resultBlock: {
+                        id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x216, 1) + "__result",
+                        resultKind: "SINGLE" as const,
+                        outcomes: [
+                            {
+                                id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x216, 1),
+                                effectKind: EFFECT_KIND.DAMAGE,
+                                damageTypeId: damageTypeId('BLUDGEONING'),
+                                amountKind: SCALING_AMOUNT_KIND.HALF,
+                                valueKind: 'DICE',
+                                scalingKind: SCALING.NONE,
+                                diceConfig: '20d6'
+                            }
+                        ]
+                    }
+                }
+            ]
         }
-      },
-      branches: [
-        {
-          id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x213, 1),
-          branch: BRANCH.ON_SAVE_FAIL,
-          groupType: BRANCH_GROUP_TYPE.SINGLE,
-          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
-          effectKind: EFFECT_KIND.DAMAGE,
-          damageTypeId: damageTypeId('FIRE'),
-          valueKind: 'DICE',
-          scalingKind: SCALING.NONE,
-          diceConfig: '20d6'
-        },
-        {
-          id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x214, 1),
-          branch: BRANCH.ON_SAVE_FAIL,
-          groupType: BRANCH_GROUP_TYPE.SINGLE,
-          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
-          effectKind: EFFECT_KIND.DAMAGE,
-          damageTypeId: damageTypeId('BLUDGEONING'),
-          valueKind: 'DICE',
-          scalingKind: SCALING.NONE,
-          diceConfig: '20d6'
-        },
-        {
-          id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x215, 1),
-          branch: BRANCH.ON_SAVE_SUCCESS,
-          groupType: BRANCH_GROUP_TYPE.SINGLE,
-          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
-          effectKind: EFFECT_KIND.DAMAGE,
-          damageTypeId: damageTypeId('FIRE'),
-          amountKind: SCALING_AMOUNT_KIND.HALF,
-          valueKind: 'DICE',
-          scalingKind: SCALING.NONE,
-          diceConfig: '20d6'
-        },
-        {
-          id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x216, 1),
-          branch: BRANCH.ON_SAVE_SUCCESS,
-          groupType: BRANCH_GROUP_TYPE.SINGLE,
-          resolutionKind: BRANCH_RESOLUTION_KIND.DIRECT,
-          effectKind: EFFECT_KIND.DAMAGE,
-          damageTypeId: damageTypeId('BLUDGEONING'),
-          amountKind: SCALING_AMOUNT_KIND.HALF,
-          valueKind: 'DICE',
-          scalingKind: SCALING.NONE,
-          diceConfig: '20d6'
-        }
-      ]
-    }
-  ],
-  userId: SRD_USER_ID,
-  systemId: SRD_SYSTEM_ID
-}
+    ],
+    userId: SRD_USER_ID,
+    systemId: SRD_SYSTEM_ID
+};
+

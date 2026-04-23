@@ -4,8 +4,9 @@ import {
   DAMAGE_BONUS_KIND,
   DAMAGE_VALUE_KIND,
   EFFECT_KIND,
-  SCALING,
+  SCALABLE_SCALING_KIND,
   SCALING_SOURCE,
+  SCALING,
   ScalingSource,
   type ScalingPayload
 } from '#core'
@@ -16,6 +17,16 @@ export type CompiledLevelScaledValue<
   TSource extends ScalingSource
 > = {
   scalingKind: typeof SCALING.PER_LEVEL
+  level: number
+  order: number
+} & ScalingPayload<TSource>
+& TPayload
+
+export type CompiledBreakpointScaledValue<
+  TPayload,
+  TSource extends ScalingSource
+> = {
+  scalingKind: typeof SCALABLE_SCALING_KIND.BREAKPOINTS
   level: number
   order: number
 } & ScalingPayload<TSource>
@@ -68,6 +79,10 @@ export type CompiledDamagePayloadByValue<
       valueKind: typeof DAMAGE_VALUE_KIND.FIXED
       scalingKind: typeof SCALING.PER_LEVEL
     } & CompiledLevelScaledValue<{ amount: number }, S>)
+    | ({
+      valueKind: typeof DAMAGE_VALUE_KIND.FIXED
+      scalingKind: typeof SCALABLE_SCALING_KIND.BREAKPOINTS
+    } & CompiledBreakpointScaledValue<{ amount: number }, S>)
   [DAMAGE_VALUE_KIND.DICE]:
     | {
       dice: string
@@ -78,6 +93,10 @@ export type CompiledDamagePayloadByValue<
       valueKind: typeof DAMAGE_VALUE_KIND.DICE
       scalingKind: typeof SCALING.PER_LEVEL
     } & CompiledLevelScaledValue<{ dice: string }, S>)
+    | ({
+      valueKind: typeof DAMAGE_VALUE_KIND.DICE
+      scalingKind: typeof SCALABLE_SCALING_KIND.BREAKPOINTS
+    } & CompiledBreakpointScaledValue<{ dice: string }, S>)
   [DAMAGE_VALUE_KIND.POOL]:
     | {
       amount: number
@@ -99,6 +118,7 @@ export type CompiledDamageEffect<S extends ScalingSource = ScalingSource> = {
   damageTypeId: string
   bonuses?: CompiledDamageBonus[]
   amountKind?: DamageAuthored['amountKind']
+  multiplier?: number
 } & CompiledDamageValue<S>
 
 export function compileDamageBonuses(
@@ -142,31 +162,30 @@ export function compileDamageBonuses(
 export function compileDamageEffect(
   authored: DamageAuthored
 ): CompiledDamageEffect[] {
-  const outcomes: CompiledDamageEffect[] = []
   const bonuses
     = authored.bonuses && authored.bonuses.length
       ? authored.bonuses.map(compileDamageBonuses)
       : undefined
-  // handle each DamageValueKind separately because POOL scaling is different
+
   switch (authored.scalingKind) {
     case SCALING.NONE: {
       switch (authored.valueKind) {
         case DAMAGE_VALUE_KIND.FIXED: {
-          outcomes.push({
+          return [{
             id: authored.id,
             effectKind: EFFECT_KIND.DAMAGE,
             damageTypeId: authored.damageTypeId,
             valueKind: DAMAGE_VALUE_KIND.FIXED,
             bonuses,
             amountKind: authored.amountKind,
+            multiplier: authored.multiplier,
             scalingKind: SCALING.NONE,
             amount: authored.amount
-          })
-          break
+          }]
         }
 
         case DAMAGE_VALUE_KIND.DICE: {
-          outcomes.push({
+          return [{
             id: authored.id,
             effectKind: EFFECT_KIND.DAMAGE,
             damageTypeId: authored.damageTypeId,
@@ -174,13 +193,13 @@ export function compileDamageEffect(
             dice: authored.diceConfig,
             bonuses,
             amountKind: authored.amountKind,
+            multiplier: authored.multiplier,
             scalingKind: authored.scalingKind
-          })
-          break
+          }]
         }
 
         case DAMAGE_VALUE_KIND.POOL: {
-          outcomes.push({
+          return [{
             id: authored.id,
             effectKind: EFFECT_KIND.DAMAGE,
             damageTypeId: authored.damageTypeId,
@@ -188,50 +207,20 @@ export function compileDamageEffect(
             amount: authored.amount,
             bonuses,
             amountKind: authored.amountKind,
+            multiplier: authored.multiplier,
             scalingKind: authored.scalingKind
-          })
-          break
+          }]
         }
 
         default:
           return assertNever(authored)
       }
-      break
     }
 
     case SCALING.PER_LEVEL: {
-      const scaling: ScalingPayload<typeof authored.scalingSource> = (() => {
-        switch (authored.scalingSource) {
-          case SCALING_SOURCE.CHARACTER_LEVEL:
-            return {
-              scalingSource: SCALING_SOURCE.CHARACTER_LEVEL
-            }
-
-          case SCALING_SOURCE.CLASS_LEVEL: {
-            return {
-              scalingSource: SCALING_SOURCE.CLASS_LEVEL,
-              classId: authored.classId
-            }
-          }
-
-          case SCALING_SOURCE.PARENT_CLASS_LEVEL:
-            return {
-              scalingSource: SCALING_SOURCE.PARENT_CLASS_LEVEL
-            }
-
-          case SCALING_SOURCE.SPELL_CAST_LEVEL: {
-            return {
-              scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL
-            }
-          }
-
-          default:
-            return assertNever(authored)
-        }
-      })()
       switch (authored.valueKind) {
         case DAMAGE_VALUE_KIND.FIXED: {
-          const levels = authored.levels.map((entry) => {
+          return authored.levels.map((entry) => {
             return {
               id: entry.id,
               effectKind: EFFECT_KIND.DAMAGE,
@@ -242,15 +231,17 @@ export function compileDamageEffect(
               amount: entry.amount,
               bonuses,
               amountKind: authored.amountKind,
+              multiplier: authored.multiplier,
               scalingKind: SCALING.PER_LEVEL,
-              ...scaling
-            }
+              scalingSource: authored.scalingSource,
+              ...(authored.scalingSource === SCALING_SOURCE.CLASS_LEVEL
+                ? { classId: authored.classId }
+                : {})
+            } as CompiledDamageEffect
           })
-          outcomes.push(...levels)
-          break
         }
         case DAMAGE_VALUE_KIND.DICE: {
-          const level = authored.levels.map((entry) => {
+          return authored.levels.map((entry) => {
             return {
               id: entry.id,
               effectKind: EFFECT_KIND.DAMAGE,
@@ -261,15 +252,17 @@ export function compileDamageEffect(
               dice: entry.diceConfig,
               bonuses,
               amountKind: authored.amountKind,
+              multiplier: authored.multiplier,
               scalingKind: SCALING.PER_LEVEL,
-              ...scaling
-            }
+              scalingSource: authored.scalingSource,
+              ...(authored.scalingSource === SCALING_SOURCE.CLASS_LEVEL
+                ? { classId: authored.classId }
+                : {})
+            } as CompiledDamageEffect
           })
-          outcomes.push(...level)
-          break
         }
         case DAMAGE_VALUE_KIND.POOL: {
-          outcomes.push({
+          return [{
             id: authored.id,
             effectKind: EFFECT_KIND.DAMAGE,
             damageTypeId: authored.damageTypeId,
@@ -281,20 +274,65 @@ export function compileDamageEffect(
             bonuses,
             amountKind: authored.amountKind,
             scalingKind: SCALING.PER_LEVEL,
-            ...scaling
-          })
-
-          break
+            scalingSource: authored.scalingSource,
+            ...(authored.scalingSource === SCALING_SOURCE.CLASS_LEVEL
+              ? { classId: authored.classId }
+              : {})
+          } as CompiledDamageEffect]
         }
         default:
           return assertNever(authored)
       }
-
-      break
+    }
+    case SCALABLE_SCALING_KIND.BREAKPOINTS: {
+      switch (authored.valueKind) {
+        case DAMAGE_VALUE_KIND.FIXED: {
+          return authored.breakpoints.map((entry) => {
+            return {
+              id: entry.id,
+              effectKind: EFFECT_KIND.DAMAGE,
+              damageTypeId: authored.damageTypeId,
+              valueKind: DAMAGE_VALUE_KIND.FIXED,
+              level: entry.level,
+              order: entry.order,
+              amount: entry.value.amount,
+              bonuses,
+              amountKind: authored.amountKind,
+              multiplier: authored.multiplier,
+              scalingKind: SCALABLE_SCALING_KIND.BREAKPOINTS,
+              scalingSource: authored.scalingSource,
+              ...(authored.scalingSource === SCALING_SOURCE.CLASS_LEVEL
+                ? { classId: authored.classId }
+                : {})
+            } as CompiledDamageEffect
+          })
+        }
+        case DAMAGE_VALUE_KIND.DICE: {
+          return authored.breakpoints.map((entry) => {
+            return {
+              id: entry.id,
+              effectKind: EFFECT_KIND.DAMAGE,
+              damageTypeId: authored.damageTypeId,
+              valueKind: DAMAGE_VALUE_KIND.DICE,
+              level: entry.level,
+              order: entry.order,
+              dice: entry.value.diceConfig,
+              bonuses,
+              amountKind: authored.amountKind,
+              multiplier: authored.multiplier,
+              scalingKind: SCALABLE_SCALING_KIND.BREAKPOINTS,
+              scalingSource: authored.scalingSource,
+              ...(authored.scalingSource === SCALING_SOURCE.CLASS_LEVEL
+                ? { classId: authored.classId }
+                : {})
+            } as CompiledDamageEffect
+          })
+        }
+        default:
+          return assertNever(authored)
+      }
     }
     default:
       return assertNever(authored)
   }
-
-  return outcomes
 }

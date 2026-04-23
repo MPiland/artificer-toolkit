@@ -1,15 +1,17 @@
-import type { AbilityCode, SizeCode } from '#core'
+import type { AbilityCode, SizeCode, CreatureRecordKindCode, CreatureCategoryCode, AuthoredRecordStatus } from '#core'
 import type {
   CapacityAuthored,
   CostAuthored,
   DetailAuthored,
   FeatureAuthored,
-  SpeedAuthored,
+  ProficiencyGrantAuthored,
+  SpeedAuthored
 } from '#authored'
 
-export type CreatureCategory = 'NPC' | 'MONSTER' | 'BEAST' | 'COMPANION' | 'SUMMON'
-export type CreatureRecordKind = 'STAT_BLOCK' | 'LOGISTICS'
-
+/**
+ * @deprecated Prefer feature-owned effects with feature section metadata.
+ * This remains only as a transitional creature stat-block surface.
+ */
 export interface CreatureActionAuthored {
   id: string
   label: string
@@ -22,11 +24,9 @@ export interface CreatureActionAuthored {
 export interface CreatureLegendaryProfile {
   legendaryResistanceCount?: number
   actionsCount: number
-  actions: CreatureActionAuthored[]
 }
 
 export interface CreatureLairProfile {
-  lairActions?: CreatureActionAuthored[]
   regionalEffects?: string[]
 }
 
@@ -55,13 +55,15 @@ export interface CreatureBaseAuthored {
   label: string
   quote?: string
   description?: string
+  status?: AuthoredRecordStatus
   details?: DetailAuthored[]
   features?: FeatureAuthored[]
+  proficiencies?: ProficiencyGrantAuthored[]
   userId: string
   systemId: string
 
-  recordKind: CreatureRecordKind
-  category: CreatureCategory
+  recordKind: CreatureRecordKindCode
+  category: CreatureCategoryCode
   creatureTypeId?: string
   size?: SizeCode
   alignmentId?: string
@@ -85,21 +87,21 @@ export interface StatBlockCreatureAuthored extends CreatureBaseAuthored {
 
   senses?: string[]
   passivePerception?: number
-  savingThrowProficiencies?: AbilityCode[]
-  skillProficiencies?: string[]
   damageVulnerabilities?: string[]
   damageResistances?: string[]
   damageImmunities?: string[]
   conditionImmunities?: string[]
-
-  languages?: string[]
   challengeRatingId?: string
   xp?: number
 
+  /** @deprecated Prefer features with `section: ACTIONS`. */
   actions?: CreatureActionAuthored[]
+  /** @deprecated Prefer features with `section: BONUS_ACTIONS`. */
   bonusActions?: CreatureActionAuthored[]
+  /** @deprecated Prefer features with `section: REACTIONS`. */
   reactions?: CreatureActionAuthored[]
 
+  /** @deprecated Prefer feature-owned charges/resources plus `LEGENDARY_ACTIONS` features. */
   legendaryProfile?: CreatureLegendaryProfile
   lairProfile?: CreatureLairProfile
   npcProfile?: CreatureNpcProfile
@@ -119,13 +121,10 @@ export interface LogisticsCreatureAuthored extends CreatureBaseAuthored {
   hitDice?: never
   senses?: never
   passivePerception?: never
-  savingThrowProficiencies?: never
-  skillProficiencies?: never
   damageVulnerabilities?: never
   damageResistances?: never
   damageImmunities?: never
   conditionImmunities?: never
-  languages?: never
   challengeRatingId?: never
   xp?: never
   actions?: never

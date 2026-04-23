@@ -9,7 +9,6 @@ export const slingBullets20: EquipmentAuthored = {
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
     attributes: [S.EQUIPMENT_ATTRIBUTE.STACKABLE],
-    abilities: [],
     cost: S.cp(4),
     weight: S.lbs(1.5),
     rarityId: S.RARITY_COMMON,

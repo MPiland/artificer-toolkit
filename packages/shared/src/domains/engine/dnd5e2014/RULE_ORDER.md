@@ -33,7 +33,7 @@ Within a single feature, grants are applied in this order:
 
 1. `PROFICIENCY_GRANT` — establishes proficiencies (saves, skills, equipment, languages) first
    so they are available when other grant types check proficiency state
-2. `SENSE_GRANT` — sensory capabilities (Darkvision, Tremorsense, Blindsight, Truesight)
+2. `SENSE_GRANT` — senses (Darkvision, Tremorsense, Blindsight, Truesight)
 3. `MODIFIER_GRANT` — numeric or categorical stat modifiers (bonuses, penalties, set-values)
 4. `FEAT_GRANT` — unlocks additional feat features (secondary feature expansion)
 5. `SPELL_GRANT` — grants spell access (expanded spell lists, always-prepared spells)
@@ -61,7 +61,7 @@ which value domain the modifier targets.
 | `REPLACE_SHAPE_KIND`  | last          | Last replacement wins |
 | `REPLACE_CHARGE_RESET_KIND` | last    | Last replacement wins |
 | `MODIFY_CHARGE_LIMIT` | additive      | Charge limit deltas stack |
-| `OPTIONAL_ABILITY_MODIFIER` | additive | Adds to the pool of eligible ability modifiers |
+| `OPTIONAL_ABILITY_MODIFIER_BONUS` | additive | Adds to the pool of eligible ability modifiers |
 
 **Note on ENHANCEMENT bonuses:** The 5e 2014 rule that "enhancement bonuses don't stack" is
 modeled through `scope` on the modifier grant (`MODIFIER_SCOPE_KIND`), not the modifier kind
@@ -105,7 +105,7 @@ Stats are calculated in this exact order. Each step may depend on the result of 
 9. **Armor class** — `10 + DEX modifier` (base unarmored; equipped armor calculation is Phase 7)
    Apply `ARMOR_CLASS` domain modifiers on top.
 
-10. **Initiative** — `DEX modifier` + sum of `INITIATIVE_BONUS` domain modifiers
+10. **Initiative** — `DEX modifier` + sum of `INITIATIVE` domain modifiers
 
 11. **Spell save DC** — present only if the character has a spellcasting class in the registry:
     `8 + proficiencyBonus + spellcastingAbilityModifier`
@@ -130,3 +130,4 @@ Effect resolution (damage dice, healing, condition application, moment triggers)
 - Spell slot depletion and multi-class fusion
 - Feat prerequisite validation at engine time
 - Per-scope ENHANCEMENT bonus capping
+

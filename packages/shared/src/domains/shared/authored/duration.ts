@@ -1,4 +1,4 @@
-import type { DurationKind } from '#core'
+import type { DurationKind, ScalableValueAuthored } from '#core'
 
 export type DurationAuthored
   = | {
@@ -13,4 +13,5 @@ export type DurationAuthored
     id: string
     durationKind: Exclude<DurationKind, 'INSTANTANEOUS' | 'UNTIL_DISPELLED'>
     amount: number
+    scaling?: ScalableValueAuthored<{ amount: number }>
   }

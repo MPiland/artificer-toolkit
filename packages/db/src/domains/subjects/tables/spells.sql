@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS public.spells (
 
   label text NOT NULL,
   description text NOT NULL,
+  status text NOT NULL DEFAULT 'DRAFT',
 
   level integer NOT NULL,
 
@@ -40,22 +41,15 @@ CREATE TABLE IF NOT EXISTS public.spells (
   casting_time_unit text NOT NULL,  -- CastingTimeUnit
   casting_time_amount integer NOT NULL,
 
-  range_id uuid
-    REFERENCES public.characteristics(id)
-    DEFERRABLE INITIALLY DEFERRED,
-
-  duration_id uuid
-    REFERENCES public.characteristics(id)
-    DEFERRABLE INITIALLY DEFERRED,
-
-  at_higher_levels text,
-
   material_description text,
 
   is_master boolean,
 
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT spells_status_chk CHECK (
+    status IN ('DRAFT', 'ACTIVE')
+  )
 );
 
 SELECT public.apply_system_derived_policies('spells');

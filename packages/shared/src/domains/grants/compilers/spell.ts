@@ -5,11 +5,12 @@ import {
   type CompileResult
 } from '#utils'
 
-import type { GrantPayloadAuthored, SpellGrantAuthored } from '#authored'
+import type { FacetAuthored, GrantPayloadAuthored, SpellGrantAuthored } from '#authored'
 import {
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
-  GRANT_KIND
+  GRANT_KIND,
+  type NodeSubjectCode
 } from '#core'
 import {
   compileScalingSource
@@ -27,6 +28,8 @@ export type CompiledSpellGrant = CompiledScalingGrant<
 > & {
   castAtLevel?: number
   attributes?: SpellGrantAttribute[]
+  filters?: FacetAuthored<Extract<NodeSubjectCode, 'SPELL'>>
+  restrictions?: FacetAuthored
 }
 
 function compileSpellTarget(
@@ -53,6 +56,8 @@ export function compileSpellGrantResult(
     castAtLevel: authored.castAtLevel,
     attributes:
       authored.attributes && authored.attributes.length ? authored.attributes : undefined,
+    filters: authored.filters,
+    restrictions: authored.restrictions,
     order: authored.order
   }
 

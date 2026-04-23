@@ -8,7 +8,6 @@ export const prayerBook: EquipmentAuthored = {
     description: "A devotional text containing prayers, hymns, and religious teachings.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(25),
     weight: S.lbs(1),
     rarityId: S.RARITY_COMMON,

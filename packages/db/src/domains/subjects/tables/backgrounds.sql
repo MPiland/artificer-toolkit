@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS public.backgrounds (
 
   label text NOT NULL,
   description text,
+  status text NOT NULL DEFAULT 'DRAFT',
 
   starting_equipment_id uuid
     REFERENCES public.starting_equipment(id)
@@ -36,7 +37,11 @@ CREATE TABLE IF NOT EXISTS public.backgrounds (
   is_master boolean,
 
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+
+  CONSTRAINT backgrounds_status_chk CHECK (
+    status IN ('DRAFT', 'ACTIVE')
+  )
 );
 
 ALTER TABLE public.backgrounds ENABLE ROW LEVEL SECURITY;

@@ -28,3 +28,4 @@ export const orc: CreatureAuthored = {
   challengeRatingId: CR.CR_1_2,
   xp: 100
 }
+

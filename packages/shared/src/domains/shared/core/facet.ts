@@ -1,5 +1,4 @@
-import {
-  SUBJECT_REGISTRY,
+import { SUBJECT_REGISTRY,
   type AbilityCode,
   type ChargeLimitKind,
   type ChargeResetKind,
@@ -62,7 +61,7 @@ export const NODE_SUBJECT: NodeSubjectRegistry = {
     label: 'Feature Option',
     tooltip: 'Narrows selection to feature option.',
     description:
-      'Narrows selection to one or more specific feature options, such as Fighting Style selections, invocation choices, or other option-based feature branches.'
+      'Narrows selection to one or more specific feature options, such as Fighting Style selections, invocation choices, or other option-based feature paths.'
   },
 
   SUBCLASS: {
@@ -210,7 +209,7 @@ export const OWNER_KIND = {
 export type OwnerKind = keyof typeof OWNER_KIND
 
 export type PredicatePayloadByCode = {
-  SUBCLASS_SUBTYPE: Selectable<{ subtypeIds: string[] }>
+  SUBCLASS_SPECIALIZATION: Selectable<{ specializationIds: string[] }>
   SPELLCASTING: EmptyObject
   RANGE:
     | Selectable<{ rangeKind: Exclude<RangeKind, 'DISTANCE'>[] }>
@@ -325,6 +324,9 @@ export type PredicatePayloadByCode = {
   FEAT_OBTAINED: {
     featIds: string[]
   }
+  HERITAGE: Selectable<{
+    heritageIds: string[]
+  }>
   SKILL_PROFICIENCY: Selectable<
     { skillIds: string[] },
     { level: ScalingAmountKind }
@@ -333,7 +335,8 @@ export type PredicatePayloadByCode = {
     { skillIds: string[] }
   >
   ABILITY_SCORE: Selectable<
-    { abilities: AbilityCode }
+    { abilities: AbilityCode },
+    { min: number, max?: number }
   >
   SAVING_THROW_ABILITY_BONUS: Selectable<
     { abilities: AbilityCode },
@@ -372,7 +375,7 @@ type SelectablePredicateCode = {
 }[PredicateCode]
 
 export const SELECTABLE_PREDICATE_CODES = [
-  'SUBCLASS_SUBTYPE',
+  'SUBCLASS_SPECIALIZATION',
   'RANGE',
   'DURATION',
   'SIZE',
@@ -389,6 +392,7 @@ export const SELECTABLE_PREDICATE_CODES = [
   'CONDITION_TYPE',
   'CHARGE_LIMIT_KIND',
   'CHARGE_RESET_KIND',
+  'HERITAGE',
   'SKILL_PROFICIENCY',
   'SKILL_SCORE',
   'ABILITY_SCORE',
@@ -412,12 +416,12 @@ export type PredicateOption<
 }
 
 export const PREDICATE_REGISTRY = {
-  SUBCLASS_SUBTYPE: {
-    code: 'SUBCLASS_SUBTYPE',
-    label: 'Subclass Subtype',
-    tooltip: 'Narrows selection to subclass-defined option choice.',
+  SUBCLASS_SPECIALIZATION: {
+    code: 'SUBCLASS_SPECIALIZATION',
+    label: 'Subclass Specialization',
+    tooltip: 'Narrows selection to subclass-defined specialization choice.',
     description:
-          'Used for subclass sub-selections such as Druid Circle of the Land terrain.',
+          'Used for subclass specialization identities such as Druid Circle of the Land terrain.',
     subjects: ['SUBCLASS']
   },
 
@@ -594,7 +598,7 @@ export const PREDICATE_REGISTRY = {
   CAN_CAST_SPELL: {
     code: 'CAN_CAST_SPELL',
     label: 'Can Cast Spells',
-    tooltip: 'Requires spellcasting capability.',
+    tooltip: 'Requires spellcasting.',
     description: 'Does not imply knowing any specific spell.',
     subjects: ['CHARACTER'],
     owners: ['SPELL_GRANT']
@@ -632,6 +636,14 @@ export const PREDICATE_REGISTRY = {
     subjects: ['CHARACTER']
   },
 
+  HERITAGE: {
+    code: 'HERITAGE',
+    label: 'Heritage',
+    tooltip: 'Requires a character heritage membership.',
+    description: 'Requires the character to belong to one or more specific heritages such as Elven or Dwarven.',
+    subjects: ['CHARACTER']
+  },
+
   FEATURE_OBTAINED: {
     code: 'FEATURE_OBTAINED',
     label: 'Feature Obtained',
@@ -644,7 +656,7 @@ export const PREDICATE_REGISTRY = {
     code: 'OPTION_OBTAINED',
     label: 'Feature Option Obtained',
     tooltip: 'Narrows selection to feature option selection.',
-    description: 'Used for branching feature paths.',
+    description: 'Used for feature path branching.',
     subjects: ['CHARACTER']
   },
 

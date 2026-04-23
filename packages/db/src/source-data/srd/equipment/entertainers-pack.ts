@@ -8,7 +8,6 @@ export const entertainersPack: EquipmentAuthored = {
     description: "Supplies for a performer on the road, including costumes and creature comforts.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(40),
     weight: S.lbs(0),
     rarityId: S.RARITY_COMMON,

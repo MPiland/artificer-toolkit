@@ -8,7 +8,6 @@ export const ink1OunceBottle: EquipmentAuthored = {
     description: "A small bottle of writing ink sufficient for numerous pages of script.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(10),
     weight: S.lbs(0),
     rarityId: S.RARITY_COMMON,

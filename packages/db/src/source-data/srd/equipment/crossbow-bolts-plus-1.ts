@@ -10,7 +10,6 @@ export const crossbowBoltsPlus1: EquipmentVariantAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: crossbowBolts20.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.AMMUNITION, S.EQUIPMENT_PROPERTY_CODE.MAGIC],
-  weight: S.lbs(1.5),
   rarityId: S.RARITY_UNCOMMON,
   maxBonus: 1,
   modifiers: S.magicAmmoModifiers(S.equipId(348), 1),

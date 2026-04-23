@@ -5,6 +5,7 @@ interface EquipmentListItem {
   label: string
   description: string | null
   quote: string | null
+  status: string
   systemId: string
   userId: string
 }
@@ -29,6 +30,7 @@ export async function getEquipmentListQuery(db: DBLike): Promise<{ items: Equipm
       'label',
       'description',
       'quote',
+      'status',
       'system_id as systemId',
       eb
         .case()

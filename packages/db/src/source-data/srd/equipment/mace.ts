@@ -8,11 +8,12 @@ export const mace: EquipmentAuthored = {
     description: 'A heavy club with a metal head.',
     category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
     properties: [S.EQUIPMENT_PROPERTY_CODE.SIMPLE, S.EQUIPMENT_PROPERTY_CODE.MELEE],
-    abilities: [],
-    capabilities: S.meleeWeaponCapabilities(S.equipId(7), 'BLUDGEONING', '1d6'),
+    modifiers: S.meleeWeaponAbilityModifiers(S.equipId(7)),
+    effects: S.meleeWeaponEffects(S.equipId(7), 'BLUDGEONING', '1d6'),
     cost: S.gp(5),
     weight: S.lbs(4),
     rarityId: S.RARITY_COMMON,
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
   }
+

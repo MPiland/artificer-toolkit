@@ -10,7 +10,6 @@ export const javelinPlus2: EquipmentVariantAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: javelin.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
-  weight: S.lbs(2),
   rarityId: S.RARITY_RARE,
   maxBonus: 2,
   modifiers: S.thrownMagicWeaponModifiers(S.equipId(277), 2),

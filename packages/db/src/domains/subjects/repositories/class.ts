@@ -17,6 +17,7 @@ import { hydrateChargeById } from '../../grants/repositories/helpers.js'
 import { createProficiencyGrantRepository } from '../../grants/repositories/proficiency.js'
 import { createStartingEquipmentRepository } from '../../shared/repositories/starting_equipment.js'
 import type { ClassRepository, RepositoryFindAllOptions } from '../../../repositories/contracts.js'
+import { hydrateSubjectStatus } from '../status.js'
 
 function requireLinkedRecord<T>(
   value: T | null | undefined,
@@ -259,6 +260,7 @@ async function hydrateClassById(
       'parent_class_id',
       'label',
       'description',
+      'status',
       'starting_equipment_id'
     ])
     .where('id', '=', id)
@@ -274,7 +276,7 @@ async function hydrateClassById(
     detailLinks,
     proficiencyLinks,
     attributeRows,
-    subtypeRows,
+    specializationRows,
     startingGoldRow,
     hitpointRow,
     multiclassRow,
@@ -285,7 +287,7 @@ async function hydrateClassById(
     db.selectFrom('class_details').select(['detail_id', 'sort_order']).where('class_id', '=', id).orderBy('sort_order').execute(),
     db.selectFrom('class_proficiency_grants').select(['proficiency_grant_id', 'sort_order']).where('class_id', '=', id).orderBy('sort_order').execute(),
     db.selectFrom('class_attributes').select(['attribute_code', 'sort_order']).where('class_id', '=', id).orderBy('sort_order').execute(),
-    db.selectFrom('class_subtypes').select(['id', 'label', 'sort_order']).where('class_id', '=', id).orderBy('sort_order').execute(),
+    db.selectFrom('class_specializations').select(['id', 'label', 'sort_order']).where('class_id', '=', id).orderBy('sort_order').execute(),
     db.selectFrom('class_starting_gold').select(['multiplier', 'currency_id', 'die_config']).where('class_id', '=', id).executeTakeFirst(),
     db.selectFrom('class_hitpoints').select(['ability_code', 'die_config']).where('class_id', '=', id).executeTakeFirst(),
     db.selectFrom('class_multiclass').select(['id']).where('class_id', '=', id).executeTakeFirst(),
@@ -362,6 +364,7 @@ async function hydrateClassById(
       id: row.id,
       label: row.label,
       description: row.description ?? undefined,
+      status: hydrateSubjectStatus(row.status),
       details: authoredDetails.length > 0 ? authoredDetails : undefined,
       proficiencies: authoredProficiencies.length > 0 ? authoredProficiencies : undefined,
       spellcasting,
@@ -416,6 +419,7 @@ async function hydrateClassById(
     id: row.id,
     label: row.label,
     description: row.description ?? undefined,
+    status: hydrateSubjectStatus(row.status),
     details: authoredDetails.length > 0 ? authoredDetails : undefined,
     proficiencies: authoredProficiencies.length > 0 ? authoredProficiencies : undefined,
     spellcasting,
@@ -431,11 +435,11 @@ async function hydrateClassById(
       row.parent_class_id,
       `Class "${id}" is missing parent_class_id for SUBCLASS payload.`
     ),
-    subtypes: subtypeRows.length > 0
-      ? subtypeRows.map((subtype) => ({
-          id: subtype.id,
-          label: subtype.label,
-          order: subtype.sort_order
+    specializations: specializationRows.length > 0
+      ? specializationRows.map((specialization) => ({
+          id: specialization.id,
+          label: specialization.label,
+          order: specialization.sort_order
         }))
       : undefined
   }

@@ -8,11 +8,12 @@ export const lightHammer: EquipmentAuthored = {
     description: 'A small hammer that can be thrown.',
     category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
     properties: [S.EQUIPMENT_PROPERTY_CODE.SIMPLE, S.EQUIPMENT_PROPERTY_CODE.MELEE, S.EQUIPMENT_PROPERTY_CODE.LIGHT, S.EQUIPMENT_PROPERTY_CODE.THROWN],
-    abilities: [],
-    capabilities: S.thrownWeaponCapabilities(S.equipId(6), 'BLUDGEONING', '1d4', 20),
+    modifiers: S.thrownWeaponAbilityModifiers(S.equipId(6)),
+    effects: S.thrownWeaponEffects(S.equipId(6), 'BLUDGEONING', '1d4', 20),
     cost: S.gp(2),
     weight: S.lbs(2),
     rarityId: S.RARITY_COMMON,
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
   }
+

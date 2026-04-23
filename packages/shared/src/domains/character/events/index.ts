@@ -70,6 +70,7 @@ export interface ClassLevelGainedEvent extends CharacterEventEnvelope {
   type: 'CLASS_LEVEL_GAINED'
   classRef: ContentRef
   subclassRef?: ContentRef
+  specializationRef?: ContentRef
   newLevel: number
   totalCharacterLevel: number
 }

@@ -7,15 +7,18 @@ import {
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
   PROFICIENCY_KIND,
+  RANGE_KIND,
   RACE_CATEGORY_CODE,
+  RACE_SELECTION_MODE,
   SCALING,
   SCALING_AMOUNT_KIND,
   SIZE_CODE,
+  SPELL_GRANT_ATTRIBUTE,
   VALUE_DOMAIN_CODE,
   type RaceAuthored
 } from '@artificer-toolkit/shared'
 import { RACE_IDS, SPELL_IDS } from '../ids.js'
-import { SRD_DAMAGE_TYPES, SRD_DARKVISION_SENSE_ID, SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import { SRD_DAMAGE_TYPES, SRD_DARKVISION_SENSE_ID, SRD_INFERNAL_HERITAGE_ID, SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 
 function damageTypeId(code: string): string {
   const entry = SRD_DAMAGE_TYPES.find((d) => d.code === code)
@@ -45,9 +48,10 @@ export const tiefling: RaceAuthored = {
   id: RACE_IDS.TIEFLING,
   label: 'Tiefling',
   category: RACE_CATEGORY_CODE.BASE,
-  playable: true,
+  selectionMode: RACE_SELECTION_MODE.DIRECT,
   size: SIZE_CODE.MEDIUM,
   speeds: tieflingWalk30,
+  heritageIds: [SRD_INFERNAL_HERITAGE_ID],
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
   features: [
@@ -101,7 +105,7 @@ export const tiefling: RaceAuthored = {
             senseIds: [SRD_DARKVISION_SENSE_ID],
             range: {
               id: raceFeatureId(9, 2, 3),
-              rangeKind: 'DISTANCE' as const,
+              rangeKind: RANGE_KIND.DISTANCE,
               amount: 60,
               unit: MEASUREMENT_UNIT_CODE.FEET
             },
@@ -147,6 +151,7 @@ export const tiefling: RaceAuthored = {
             scalingKind: SCALING.NONE,
             authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
             spellIds: [SPELL_IDS.THAUMATURGY],
+            attributes: [SPELL_GRANT_ATTRIBUTE.KNOWN],
             order: 0
           },
           {
@@ -194,3 +199,4 @@ export const tiefling: RaceAuthored = {
     }
   ]
 }
+

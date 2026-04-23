@@ -1,11 +1,16 @@
 import type { ShapeAuthored } from '#authored'
 import { MEASUREMENT_UNIT_OPTIONS, SHAPE_KIND_OPTIONS, type ShapeMeasurementAuthored } from '#core'
 import { buildNodeMap } from '#utils'
+import { MEASUREMENT_NODE_MAP } from './measurement.js'
+import { createBreakpointScalingNodeMap } from './scaling.js'
 
 const shapeMeasurement = buildNodeMap<ShapeMeasurementAuthored>()
 
+const SHAPE_MEASUREMENT_SCALING_NODE_MAP
+  = createBreakpointScalingNodeMap('shapeMeasurementScaling', 'Shape Measurement', MEASUREMENT_NODE_MAP)
+
 export const SHAPE_MEASUREMENT_NODE_MAP = shapeMeasurement.define('shapeMeasurement', ({ map, nodes }) => {
-  const { selectSingle, number } = nodes
+  const { selectSingle, number, groupObject } = nodes
 
   map
     .set('amount', number(['amount'], 'Amount', {
@@ -15,6 +20,9 @@ export const SHAPE_MEASUREMENT_NODE_MAP = shapeMeasurement.define('shapeMeasurem
     .set('unit', selectSingle(['unit'], 'Unit', {
       kind: 'INLINE',
       options: MEASUREMENT_UNIT_OPTIONS
+    }))
+    .set('scaling', groupObject(['scaling'], 'Scaling', () => SHAPE_MEASUREMENT_SCALING_NODE_MAP, {
+      order: 3
     }))
 })
 

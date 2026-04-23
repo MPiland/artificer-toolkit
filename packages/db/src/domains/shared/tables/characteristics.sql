@@ -28,6 +28,7 @@ ALTER TABLE public.characteristics ENABLE ROW LEVEL SECURITY;
   min integer,
   max integer,
   unit_code text,
+  scaling jsonb,
 
   CHECK (
     (kind = 'DISTANCE' AND min IS NOT NULL)
@@ -65,6 +66,7 @@ CREATE TABLE IF NOT EXISTS public.characteristic_shape_dimensions (
 
   amount integer NOT NULL,
   unit_code text NOT NULL,
+  scaling jsonb,
 
   PRIMARY KEY (characteristic_id, dimension)
 );
@@ -83,7 +85,8 @@ ALTER TABLE public.characteristic_shape_dimensions ENABLE ROW LEVEL SECURITY;
     REFERENCES characteristics(id) ON DELETE CASCADE,
 
   kind text NOT NULL,   -- INSTANTANEOUS | DAY | HOUR | MINUTE | MONTH | ROUND | TURN | WEEK | YEAR
-  amount integer
+  amount integer,
+  scaling jsonb
 );
 
 ALTER TABLE public.characteristic_durations ENABLE ROW LEVEL SECURITY;

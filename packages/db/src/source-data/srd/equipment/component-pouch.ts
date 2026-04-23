@@ -8,7 +8,6 @@ export const componentPouch: EquipmentAuthored = {
     description: "A small watertight pouch containing the material components needed for arcane spells.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(25),
     weight: S.lbs(2),
     rarityId: S.RARITY_COMMON,

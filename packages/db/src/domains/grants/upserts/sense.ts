@@ -14,10 +14,6 @@ type SenseGrantRootRow = {
   class_id: string | null
   charge_id: string | null
   restriction_id: string | null
-  range_id: string | null
-  range_kind: string | null
-  range_amount: number | null
-  range_unit: string | null
 }
 
 type SenseGrantScalingLevelRow = {
@@ -127,24 +123,6 @@ function rejectAllModeSenseIds(
   throw new Error(`Sense grant "${grantId}" cannot persist senseIds when authoringModeKind is ALL for ${suffix}.`)
 }
 
-function mapRangeFields(json_data: SenseGrantAuthored): {
-  range_id: string | null
-  range_kind: string | null
-  range_amount: number | null
-  range_unit: string | null
-} {
-  if (!json_data.range) {
-    return { range_id: null, range_kind: null, range_amount: null, range_unit: null }
-  }
-  const r = json_data.range
-  return {
-    range_id: r.id,
-    range_kind: r.rangeKind,
-    range_amount: r.rangeKind === 'DISTANCE' ? r.amount : null,
-    range_unit: r.rangeKind === 'DISTANCE' ? r.unit : null
-  }
-}
-
 function mapSenseGrantRootRow(
   json_data: SenseGrantAuthored,
   chargeId: string | null
@@ -152,8 +130,6 @@ function mapSenseGrantRootRow(
   if (json_data.selectionKind !== 'CHOSEN' && 'count' in json_data) {
     rejectGrantedCount(json_data.id, (json_data as { count?: number }).count, 'root')
   }
-
-  const range = mapRangeFields(json_data)
 
   if (json_data.scalingKind === 'NONE') {
     return {
@@ -168,8 +144,7 @@ function mapSenseGrantRootRow(
       scaling_source: null,
       class_id: null,
       charge_id: chargeId,
-      restriction_id: json_data.restrictions?.id ?? null,
-      ...range
+      restriction_id: json_data.restrictions?.id ?? null
     }
   }
 
@@ -185,8 +160,7 @@ function mapSenseGrantRootRow(
     scaling_source: progression.scalingSource,
     class_id: getClassIdForProgression(json_data.id, progression),
     charge_id: chargeId,
-    restriction_id: json_data.restrictions?.id ?? null,
-    ...range
+    restriction_id: json_data.restrictions?.id ?? null
   }
 }
 
@@ -292,11 +266,7 @@ export async function upsertSenseGrant(
         scaling_source: ref('excluded.scaling_source'),
         class_id: ref('excluded.class_id'),
         charge_id: ref('excluded.charge_id'),
-        restriction_id: ref('excluded.restriction_id'),
-        range_id: ref('excluded.range_id'),
-        range_kind: ref('excluded.range_kind'),
-        range_amount: ref('excluded.range_amount'),
-        range_unit: ref('excluded.range_unit')
+        restriction_id: ref('excluded.restriction_id')
       })))
       .execute()
 

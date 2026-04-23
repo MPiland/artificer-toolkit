@@ -8,7 +8,6 @@ export const sealingWax: EquipmentAuthored = {
     description: "Wax melted and pressed with a signet ring to seal and authenticate documents.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.sp(5),
     weight: S.lbs(0),
     rarityId: S.RARITY_COMMON,

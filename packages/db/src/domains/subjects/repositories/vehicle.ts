@@ -8,6 +8,7 @@ import { upsertVehicle } from '../upserts/vehicle.js'
 import { createDetailRepository } from '../../shared/repositories/detail.js'
 import { createFeatureRepository } from '../../features/repositories/feature.js'
 import type { RepositoryFindAllOptions, VehicleRepository } from '../../../repositories/contracts.js'
+import { hydrateSubjectStatus } from '../status.js'
 
 function requireCategory(
   vehicleId: string,
@@ -48,7 +49,7 @@ async function hydrateVehicleById(
   db: DBLike,
   id: string
 ): Promise<VehicleAuthored | null> {
-  const row = await (db as any)
+  const row = await db
     .selectFrom('vehicles')
     .select([
       'id',
@@ -56,6 +57,7 @@ async function hydrateVehicleById(
       'user_id',
       'label',
       'description',
+      'status',
       'category',
       'size_code',
       'armor_class',
@@ -103,6 +105,7 @@ async function hydrateVehicleById(
     id: row.id,
     label: row.label,
     description: row.description ?? undefined,
+    status: hydrateSubjectStatus(row.status),
     details: authoredDetails.length > 0 ? authoredDetails : undefined,
     userId: row.user_id,
     systemId: row.system_id,

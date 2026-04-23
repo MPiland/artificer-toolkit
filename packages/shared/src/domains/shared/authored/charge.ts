@@ -7,6 +7,13 @@ import {
 
 export type ChargeLimitPayload
   = | {
+    limitKind: 'ABILITY_MODIFIER'
+    scalingKind: 'NONE'
+    ability: AbilityCode
+    min?: number
+    max?: number
+    multiplier?: number
+  } | {
     limitKind: 'CHARACTER_LEVEL'
     scalingKind: 'NONE'
     multiplier?: number

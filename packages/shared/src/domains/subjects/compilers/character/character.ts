@@ -1,11 +1,13 @@
 import type { CharacterAuthored } from '#authored'
 import { compileCharacterIntent, type CompiledCharacterIntent } from './intent.js'
+import { compileCharacterProfile, type CompiledCharacterProfile } from './profile.js'
 import { compileCharacterState, type CompiledCharacterState } from './state.js'
 
 export type CompiledCharacter = {
   id: string
   label: string
   description?: string
+  profile: CompiledCharacterProfile
 
   intent: CompiledCharacterIntent
   state: CompiledCharacterState
@@ -19,6 +21,7 @@ export function compileCharacter(authored: CharacterAuthored): CompiledCharacter
     id: authored.id,
     label: authored.label,
     description: authored.description,
+    profile: compileCharacterProfile(authored.profile),
 
     intent: compileCharacterIntent(authored.intent),
     state: compileCharacterState(authored.state),

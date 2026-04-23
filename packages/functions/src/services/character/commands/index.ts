@@ -6,7 +6,9 @@ import type {
   ContentRef,
   OwnedEquipmentInstance,
   EquippedState,
+  PrerequisiteFailure
 } from '@artificer-toolkit/shared'
+import { evaluateFeatPrerequisites } from '@artificer-toolkit/shared'
 
 import type {
   CreateCharacterCommand,
@@ -29,6 +31,16 @@ export type CommandResult<TResult = void> = {
   events: CharacterEvent[]
   newState: CharacterBuildState
   result: TResult
+}
+
+export class CommandValidationError extends Error {
+  constructor(
+    message: string,
+    public readonly issues: string[] = []
+  ) {
+    super(message)
+    this.name = 'CommandValidationError'
+  }
 }
 
 export type CommandHandler<TCommand, TResult = void> = (
@@ -138,6 +150,7 @@ export const handleGainClassLevel: CommandHandler<GainClassLevelCommand> = async
     schemaVersion: 1,
     classRef: command.classRef,
     subclassRef: command.subclassRef,
+    specializationRef: command.specializationRef,
     newLevel,
     totalCharacterLevel: totalLevel,
   }
@@ -145,10 +158,20 @@ export const handleGainClassLevel: CommandHandler<GainClassLevelCommand> = async
   const updatedClasses = existing
     ? currentState.classes.map((c) =>
         c.classRef.contentId === command.classRef.contentId
-          ? { ...c, level: newLevel, subclassRef: command.subclassRef ?? c.subclassRef }
+          ? {
+              ...c,
+              level: newLevel,
+              subclassRef: command.subclassRef ?? c.subclassRef,
+              specializationRef: command.specializationRef ?? c.specializationRef
+            }
           : c
       )
-    : [...currentState.classes, { classRef: command.classRef, subclassRef: command.subclassRef, level: 1 }]
+    : [...currentState.classes, {
+        classRef: command.classRef,
+        subclassRef: command.subclassRef,
+        specializationRef: command.specializationRef,
+        level: 1
+      }]
 
   const newState: CharacterBuildState = {
     ...currentState,
@@ -249,10 +272,33 @@ export const handleMakeFeatureSelection: CommandHandler<MakeFeatureSelectionComm
 export const handleChooseFeat: CommandHandler<ChooseFeatCommand> = async (
   command,
   currentState,
-  _registry,
+  registry,
   _rules
-  // TODO: prerequisite evaluation — call evaluateEntryPrerequisite before emitting
 ) => {
+  const feat = registry.feats[command.featRef.contentId]
+  if (!feat) {
+    throw new CommandValidationError(
+      `Feat "${command.featRef.contentId}" is not available for selection.`
+    )
+  }
+
+  if (feat.prerequisites) {
+    const result = evaluateFeatPrerequisites(
+      feat.prerequisites,
+      currentState,
+      registry
+    )
+
+    if (!result.passed) {
+      throw new CommandValidationError(
+        `Feat "${command.featRef.contentId}" prerequisites are not met.`,
+        result.failedRequirements.map((failure: PrerequisiteFailure) =>
+          `${failure.description}: required ${failure.required}, actual ${failure.actual}`
+        )
+      )
+    }
+  }
+
   const event: CharacterEvent = {
     type: 'FEAT_CHOSEN',
     eventId: crypto.randomUUID(),

@@ -1,57 +1,53 @@
-import { createFileRoute, redirect } from '@tanstack/react-router'
-import { ResetPassword } from '../domains/auth/ResetPassword'
-import { resetPasswordFn } from '@server/auth'
-import { useServerFn } from '@tanstack/react-start'
+import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { useState } from 'react'
 import { notifications } from '@mantine/notifications'
-import { getSupabaseServerClient } from '@utils'
-import { useMutation } from '@hooks'
+import { Auth } from '#auth'
+import { getSupabaseBrowserClient } from '#supabase'
 
 export const Route = createFileRoute('/reset-password')({
-  beforeLoad: async () => {
-    const supabase = getSupabaseServerClient()
-    const { data } = await supabase.auth.getUser()
-    if (!data.user) throw redirect({ href: '/login' })
-  },
-  component: ResetPasswordComp,
+  component: ResetPasswordPage,
 })
 
-function ResetPasswordComp() {
-  const resetPassword = useMutation({
-    fn: useServerFn(resetPasswordFn),
-  })
+function ResetPasswordPage() {
+  // Supabase embeds the recovery token in the URL hash on redirect.
+  // By the time this page mounts, getSupabaseBrowserClient() has already
+  // exchanged the hash for a session via onAuthStateChange.
+  const router = useRouter()
+  const [status, setStatus] = useState<'idle' | 'pending' | 'error'>('idle')
+  const [hint, setHint] = useState<string | null>(null)
 
-  const handleSubmit = async (e: any) => {
-    e.preventDefault()
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     const fd = new FormData(e.currentTarget)
     const password = fd.get('password') as string
 
-    const res = await resetPassword.mutate({ data: { password } })
+    setStatus('pending')
+    setHint(null)
 
-    if (res?.error) {
-      notifications.show({
-        message: 'Something went wrong resetting password.',
-        color: 'red',
-        position: 'top-center',
-        autoClose: 2500,
-      })
+    const supabase = getSupabaseBrowserClient()
+    const { error } = await supabase.auth.updateUser({ password })
+
+    if (error) {
+      setStatus('error')
+      setHint(error.message)
       return
     }
 
     notifications.show({
-      message: 'Password reset successfully!',
-      color: 'green',
-      position: 'top-center',
+      message: 'Password updated successfully.',
+      color: 'teal',
       autoClose: 2500,
     })
 
-    throw redirect({ href: '/' })
+    await router.navigate({ to: '/login' })
   }
 
-  const uiStatus: 'pending' | 'idle' | 'success' | 'error' =
-    resetPassword.status === 'pending' ? 'pending'
-    : resetPassword.status === 'error' ? 'error'
-    : resetPassword.status === 'success' ? 'success'
-    : 'idle'
-
-  return <ResetPassword onSubmit={handleSubmit} status={uiStatus} />
+  return (
+    <Auth
+      mode='reset-confirm'
+      status={status}
+      onSubmit={handleSubmit}
+      hint={hint ?? undefined}
+      hintVariant='error'
+    />
+  )
 }

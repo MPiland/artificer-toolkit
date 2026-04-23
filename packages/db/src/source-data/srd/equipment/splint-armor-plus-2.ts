@@ -10,7 +10,6 @@ export const splintArmorPlus2: EquipmentVariantAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: splintArmor.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
-  weight: splintArmor.weight,
   rarityId: S.RARITY_RARE,
   maxBonus: 2,
   modifiers: S.magicArmorModifiers(S.equipId(337), 2),

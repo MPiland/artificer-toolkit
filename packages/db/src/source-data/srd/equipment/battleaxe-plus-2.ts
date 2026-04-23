@@ -10,7 +10,6 @@ export const battleaxePlus2: EquipmentVariantAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: battleaxe.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
-  weight: S.lbs(4),
   rarityId: S.RARITY_RARE,
   maxBonus: 2,
   modifiers: S.meleeMagicWeaponModifiers(S.equipId(247), 2),

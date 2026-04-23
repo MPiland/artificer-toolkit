@@ -8,7 +8,6 @@ export const crossbowBoltCase: EquipmentAuthored = {
     description: "A wooden or leather case that holds up to 20 crossbow bolts.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [S.EQUIPMENT_PROPERTY_CODE.CONTAINER],
-    abilities: [],
     cost: S.gp(1),
     weight: S.lbs(1),
     rarityId: S.RARITY_COMMON,

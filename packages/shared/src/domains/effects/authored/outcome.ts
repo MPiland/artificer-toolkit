@@ -1,16 +1,29 @@
 import type { ApplyGrantAuthored } from './applyGrant.js'
+import type { CommandManifestAuthored } from './commandManifest.js'
 import type { ConditionAuthored } from './condition.js'
 import type { DamageAuthored } from './damage.js'
+import type { ForcedMovementAuthored } from './forcedMovement.js'
 import type { HealAuthored } from './heal.js'
 import type { ManifestAuthored } from './manifest.js'
+import type { MoveManifestAuthored } from './moveManifest.js'
 import type { RuleAuthored } from './rule.js'
 import type { TeleportAuthored } from './teleport.js'
 
-export type OutcomeAuthored =
-  | DamageAuthored
-  | ConditionAuthored
-  | HealAuthored
-  | ApplyGrantAuthored
-  | TeleportAuthored
-  | ManifestAuthored
-  | RuleAuthored
+export type OutcomeRowMetadataAuthored = {
+  label?: string
+  description?: string
+}
+
+export type OutcomeAuthored
+  = | DamageAuthored
+    | ConditionAuthored
+    | HealAuthored
+    | ApplyGrantAuthored
+    | ForcedMovementAuthored
+    | TeleportAuthored
+    | ManifestAuthored
+    | MoveManifestAuthored
+    | CommandManifestAuthored
+    | RuleAuthored
+
+export type NonManifestOutcomeAuthored = Exclude<OutcomeAuthored, ManifestAuthored>

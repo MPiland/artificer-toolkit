@@ -7,7 +7,9 @@ import {
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
   PROFICIENCY_KIND,
+  RANGE_KIND,
   RACE_CATEGORY_CODE,
+  RACE_SELECTION_MODE,
   SCALING,
   SCALING_AMOUNT_KIND,
   SIZE_CODE,
@@ -15,7 +17,7 @@ import {
   type RaceAuthored
 } from '@artificer-toolkit/shared'
 import { RACE_IDS, SUBRACE_IDS } from '../ids.js'
-import { SRD_CONDITION_TYPES, SRD_DAMAGE_TYPES, SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID, SRD_DARKVISION_SENSE_ID } from '../vocabulary.js'
+import { SRD_CONDITION_TYPES, SRD_DAMAGE_TYPES, SRD_DWARVEN_HERITAGE_ID, SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID, SRD_DARKVISION_SENSE_ID } from '../vocabulary.js'
 
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
   const rHex = raceIndex.toString(16).padStart(4, '0')
@@ -58,9 +60,10 @@ export const dwarf: RaceAuthored = {
   id: RACE_IDS.DWARF,
   label: 'Dwarf',
   category: RACE_CATEGORY_CODE.BASE,
-  playable: true,
+  selectionMode: RACE_SELECTION_MODE.REQUIRES_SUBRACE,
   size: SIZE_CODE.MEDIUM,
   speeds: dwarfWalk25,
+  heritageIds: [SRD_DWARVEN_HERITAGE_ID],
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
   features: [
@@ -81,7 +84,7 @@ export const dwarf: RaceAuthored = {
             senseIds: [SRD_DARKVISION_SENSE_ID],
             range: {
               id: raceFeatureId(1, 1, 3),
-              rangeKind: 'DISTANCE' as const,
+              rangeKind: RANGE_KIND.DISTANCE,
               amount: 60,
               unit: MEASUREMENT_UNIT_CODE.FEET
             },
@@ -101,7 +104,7 @@ export const dwarf: RaceAuthored = {
           {
             id: raceFeatureId(1, 2, 2),
             grantKind: GRANT_KIND.MODIFIER_GRANT,
-            valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_BONUS,
+            valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
             domain: {
               ability: ABILITY_CODE.CONSTITUTION,
               conditionTypeId: conditionTypeId('POISONED')
@@ -158,7 +161,27 @@ export const dwarf: RaceAuthored = {
       label: 'Tool Proficiency',
       description: "You gain proficiency with the artisan's tools of your choice: smith's tools, brewer's supplies, or mason's tools.",
       availableAtLevel: 1,
-      order: 3
+      order: 3,
+      grants: {
+        proficiencies: [
+          {
+            id: raceFeatureId(1, 4, 2),
+            grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+            proficiencyKind: PROFICIENCY_KIND.EQUIPMENT,
+            level: SCALING_AMOUNT_KIND.FULL,
+            selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+            scalingKind: SCALING.NONE,
+            count: 1,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            equipmentIds: [
+              equipId(52), // brewer's supplies
+              equipId(61), // mason's tools
+              equipId(64)  // smith's tools
+            ],
+            order: 0
+          }
+        ]
+      }
     },
     {
       id: raceFeatureId(1, 5, 1),
@@ -306,11 +329,27 @@ export const mountainDwarf: RaceAuthored = {
     {
       id: raceFeatureId(102, 2, 1),
       label: 'Dwarven Armor Training',
-      // TODO: armor category proficiency (light + medium) cannot be modeled with SELECTED equipmentIds.
-      // Keep description-only until a CATEGORY authoring mode is available.
       description: 'You have proficiency with light and medium armor.',
       availableAtLevel: 1,
-      order: 1
+      order: 1,
+      grants: {
+        proficiencies: [
+          {
+            id: raceFeatureId(102, 2, 2),
+            grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+            proficiencyKind: PROFICIENCY_KIND.EQUIPMENT_PROPERTY,
+            level: SCALING_AMOUNT_KIND.FULL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: SCALING.NONE,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            properties: ['LIGHT', 'MEDIUM'],
+            category: 'ARMOR',
+            order: 0
+          }
+        ]
+      }
     }
   ]
 }
+
+

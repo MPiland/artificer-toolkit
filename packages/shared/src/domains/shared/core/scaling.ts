@@ -100,6 +100,29 @@ export const SCALING_OPTIONS = valuesOf(SCALING_REGISTRY) as readonly ScalingOpt
 
 export type ScalingSourceAuthored = ScalingSourcePayload[keyof ScalingSourcePayload]
 
+export const SCALABLE_SCALING_KIND = {
+  BREAKPOINTS: 'BREAKPOINTS'
+} as const
+
+export type ScalableScalingKind = keyof typeof SCALABLE_SCALING_KIND
+
+export type ScalingBreakpoint<TValue extends object = object> = {
+  id: string
+  level: number
+  order: number
+  value: TValue
+}
+
+export type BreakpointScalingAuthored<
+  TValue extends object = object,
+  TSource extends ScalingSource = ScalingSource
+> = {
+  scalingKind: typeof SCALABLE_SCALING_KIND.BREAKPOINTS
+  breakpoints: ScalingBreakpoint<TValue>[]
+} & ScalingPayload<TSource>
+
+export type ScalableValueAuthored<TValue extends object = object> = BreakpointScalingAuthored<TValue>
+
 export const SCALING_AMOUNT_KIND = {
   FULL: 'FULL',
   HALF: 'HALF',

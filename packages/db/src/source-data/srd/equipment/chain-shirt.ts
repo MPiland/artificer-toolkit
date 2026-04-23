@@ -8,7 +8,6 @@ export const chainShirt: EquipmentAuthored = {
     description: 'A shirt of interlocking metal rings.',
     category: S.EQUIPMENT_CATEGORY_CODE.ARMOR,
     properties: [S.EQUIPMENT_PROPERTY_CODE.MEDIUM],
-    abilities: [],
     armorClass: 13,
     cost: S.gp(50),
     weight: S.lbs(20),

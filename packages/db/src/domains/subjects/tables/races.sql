@@ -29,9 +29,10 @@ CREATE TABLE IF NOT EXISTS public.races (
   label text NOT NULL,
   quote text,
   description text,
+  status text NOT NULL DEFAULT 'DRAFT',
 
   category text NOT NULL,              -- RaceCategoryCode
-  playable boolean,                    -- BASE only
+  selection_mode text,                 -- BASE only (DIRECT | REQUIRES_SUBRACE)
 
   parent_race_id uuid                  -- SUBRACE only
     REFERENCES public.races(id)
@@ -46,9 +47,15 @@ CREATE TABLE IF NOT EXISTS public.races (
   CONSTRAINT races_category_chk CHECK (
     category IN ('BASE', 'SUBRACE')
   ),
+  CONSTRAINT races_selection_mode_chk CHECK (
+    selection_mode IN ('DIRECT', 'REQUIRES_SUBRACE') OR selection_mode IS NULL
+  ),
   CONSTRAINT races_category_payload_chk CHECK (
-    (category = 'BASE' AND parent_race_id IS NULL AND playable IS NOT NULL AND size_code IS NOT NULL)
-    OR (category = 'SUBRACE' AND parent_race_id IS NOT NULL AND playable IS NULL)
+    (category = 'BASE' AND parent_race_id IS NULL AND selection_mode IS NOT NULL AND size_code IS NOT NULL)
+    OR (category = 'SUBRACE' AND parent_race_id IS NOT NULL AND selection_mode IS NULL AND size_code IS NULL)
+  ),
+  CONSTRAINT races_status_chk CHECK (
+    status IN ('DRAFT', 'ACTIVE')
   )
 );
 
@@ -168,6 +175,27 @@ ALTER TABLE public.race_speeds ENABLE ROW LEVEL SECURITY;
 
 CREATE INDEX IF NOT EXISTS idx_race_speeds_race
   ON public.race_speeds(race_id);
+
+CREATE TABLE IF NOT EXISTS public.race_heritages (
+  race_id uuid NOT NULL
+    REFERENCES public.races(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  heritage_id uuid NOT NULL
+    REFERENCES public.heritages(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (race_id, heritage_id)
+);
+
+ALTER TABLE public.race_heritages ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_race_heritages_race
+  ON public.race_heritages(race_id);
 
 /* ──────────────────────────────────────────────
  * RACE — ANCESTRY (BASE ONLY)

@@ -21,7 +21,8 @@ export function buildSnapshot(
   const classes = state.classes.map((c) => ({
     classId: c.classRef.contentId,
     level: c.level,
-    subclassId: c.subclassRef?.contentId
+    subclassId: c.subclassRef?.contentId,
+    specializationId: c.specializationRef?.contentId
   }))
 
   const hitpoints = state.hitpointsByLevel.map((h) => ({

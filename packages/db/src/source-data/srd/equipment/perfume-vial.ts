@@ -8,7 +8,6 @@ export const perfumeVial: EquipmentAuthored = {
     description: "A small vial of pleasant-smelling aromatic liquid.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(5),
     weight: S.lbs(0),
     rarityId: S.RARITY_COMMON,

@@ -8,7 +8,6 @@ export const arcaneFocusOrb: EquipmentAuthored = {
     description: "A glass or crystal sphere that channels arcane energy for spellcasting.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(20),
     weight: S.lbs(3),
     rarityId: S.RARITY_COMMON,

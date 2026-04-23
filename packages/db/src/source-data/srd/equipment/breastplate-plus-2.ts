@@ -10,7 +10,6 @@ export const breastplatePlus2: EquipmentVariantAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: breastplate.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
-  weight: breastplate.weight,
   rarityId: S.RARITY_RARE,
   maxBonus: 2,
   modifiers: S.magicArmorModifiers(S.equipId(325), 2),

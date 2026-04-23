@@ -1,4 +1,4 @@
-import { getSupabaseServerClient } from '@utils'
+import { getSupabaseServerClient } from '#supabase'
 import { createServerFn } from '@tanstack/react-start'
 
 export const resendCodeFn = createServerFn({ method: 'POST' })
@@ -7,7 +7,7 @@ export const resendCodeFn = createServerFn({ method: 'POST' })
     const supabase = getSupabaseServerClient()
     const { error } = await supabase.auth.resend({
       email: data.email,
-      type: 'signup',
+      type: 'signup'
     })
     return error ? { error: true } : { error: false }
   })

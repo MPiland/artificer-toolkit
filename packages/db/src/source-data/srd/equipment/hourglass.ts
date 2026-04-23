@@ -8,7 +8,6 @@ export const hourglass: EquipmentAuthored = {
     description: "A glass vessel containing sand that measures the passage of roughly one hour.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(25),
     weight: S.lbs(1),
     rarityId: S.RARITY_COMMON,

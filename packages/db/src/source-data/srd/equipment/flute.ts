@@ -8,7 +8,6 @@ export const flute: EquipmentAuthored = {
     description: "A small woodwind instrument played by blowing across an embouchure hole.",
     category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
     properties: [],
-    abilities: [],
     cost: S.gp(2),
     weight: S.lbs(1),
     rarityId: S.RARITY_COMMON,

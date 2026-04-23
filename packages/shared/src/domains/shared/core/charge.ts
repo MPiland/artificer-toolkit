@@ -81,7 +81,8 @@ export const CHARGE_LIMIT_KIND = {
   CHARACTER_LEVEL: 'CHARACTER_LEVEL',
   CLASS_LEVEL: 'CLASS_LEVEL',
   PARENT_CLASS_LEVEL: 'PARENT_CLASS_LEVEL',
-  SPELL_CAST_LEVEL: 'SPELL_CAST_LEVEL'
+  SPELL_CAST_LEVEL: 'SPELL_CAST_LEVEL',
+  ABILITY_MODIFIER: 'ABILITY_MODIFIER'
 } as const
 
 export type ChargeLimitKind = keyof typeof CHARGE_LIMIT_KIND
@@ -128,6 +129,14 @@ export const CHARGE_LIMIT_REGISTRY: Record<ChargeLimitKind, ChargeLimitOption>
       tooltip: 'Uses the actual cast level.',
       description:
         'The number of uses increases based on the actual spell cast or upcast level.'
+    },
+
+    [CHARGE_LIMIT_KIND.ABILITY_MODIFIER]: {
+      code: CHARGE_LIMIT_KIND.ABILITY_MODIFIER,
+      label: 'Ability Modifier',
+      tooltip: 'Uses equal to an ability score modifier.',
+      description:
+        'The number of uses equals a chosen ability score modifier (e.g. Charisma modifier for Bardic Inspiration).'
     }
   } as const
 

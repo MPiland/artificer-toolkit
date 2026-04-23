@@ -43,18 +43,20 @@ CREATE TABLE IF NOT EXISTS public.charge_limits (
 
   limit_kind text NOT NULL,       -- CHARGE_LIMIT_KIND
   class_id uuid,
+  ability_code text,              -- ABILITY_MODIFIER limit kind
 
   /* FIXED_AMOUNT */
   amount integer,
 
-  /* CHARACTER_LEVEL | CLASS_LEVEL | PARENT_CLASS_LEVEL | SPELL_CAST_LEVEL */
+  /* CHARACTER_LEVEL | CLASS_LEVEL | PARENT_CLASS_LEVEL | SPELL_CAST_LEVEL | ABILITY_MODIFIER */
   multiplier numeric,
   min integer,
   max integer,
 
   CONSTRAINT charge_limits_fixed_amount_chk CHECK (
-    (limit_kind = 'FIXED_AMOUNT' AND amount IS NOT NULL AND class_id IS NULL)
-    OR (limit_kind IN ('CHARACTER_LEVEL', 'CLASS_LEVEL', 'PARENT_CLASS_LEVEL', 'SPELL_CAST_LEVEL') AND amount IS NULL)
+    (limit_kind = 'FIXED_AMOUNT' AND amount IS NOT NULL AND class_id IS NULL AND ability_code IS NULL)
+    OR (limit_kind IN ('CHARACTER_LEVEL', 'CLASS_LEVEL', 'PARENT_CLASS_LEVEL', 'SPELL_CAST_LEVEL') AND amount IS NULL AND ability_code IS NULL)
+    OR (limit_kind = 'ABILITY_MODIFIER' AND ability_code IS NOT NULL AND amount IS NULL AND class_id IS NULL)
   ),
   CONSTRAINT charge_limits_class_level_chk CHECK (
     (limit_kind = 'CLASS_LEVEL' AND class_id IS NOT NULL)

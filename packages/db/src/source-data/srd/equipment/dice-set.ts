@@ -8,7 +8,6 @@ export const diceSet: EquipmentAuthored = {
     description: "A collection of polyhedral dice used for games of chance and strategy.",
     category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
     properties: [],
-    abilities: [],
     cost: S.sp(1),
     weight: S.lbs(0),
     rarityId: S.RARITY_COMMON,
