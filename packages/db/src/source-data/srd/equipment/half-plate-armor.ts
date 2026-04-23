@@ -8,7 +8,6 @@ export const halfPlateArmor: EquipmentAuthored = {
     description: 'Shaped metal plates covering most of the body.',
     category: S.EQUIPMENT_CATEGORY_CODE.ARMOR,
     properties: [S.EQUIPMENT_PROPERTY_CODE.MEDIUM],
-    abilities: [],
     armorClass: 15,
     cost: S.gp(750),
     weight: S.lbs(40),

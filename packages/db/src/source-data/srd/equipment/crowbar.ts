@@ -8,7 +8,6 @@ export const crowbar: EquipmentAuthored = {
   description: 'A metal bar for prying open doors, crates, or other objects.',
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
-  abilities: [],
   cost: S.gp(2),
   weight: S.lbs(5),
   rarityId: S.RARITY_COMMON,

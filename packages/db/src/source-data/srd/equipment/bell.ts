@@ -8,7 +8,6 @@ export const bell: EquipmentAuthored = {
   description: 'A small metal bell that produces a clear ringing tone when struck.',
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
-  abilities: [],
   cost: S.gp(1),
   weight: S.lbs(0),
   rarityId: S.RARITY_COMMON,

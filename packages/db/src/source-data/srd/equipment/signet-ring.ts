@@ -8,7 +8,6 @@ export const signetRing: EquipmentAuthored = {
     description: "A ring bearing an engraved seal used to authenticate wax-sealed documents.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(5),
     weight: S.lbs(0),
     rarityId: S.RARITY_COMMON,

@@ -1,16 +1,18 @@
-import type { EquipmentAuthored, EquipmentVariantAuthored } from '#authored'
 import type {
-  AbilityCode,
+  BaseEquipmentAuthored,
+  EquipmentAuthored,
+  VariantEquipmentAuthored
+} from '#authored'
+import type {
   EquipmentAttribute,
   EquipmentCategoryCode,
   EquipmentPropertyCode,
-  MeasurementUnitCode,
-  OperationCode
+  MeasurementUnitCode
 } from '#core'
 import { EQUIPMENT_CATEGORY_CODE } from '#core'
 import {
-  compileCapability,
-  type CompiledCapabilityGroup,
+  compileEffect,
+  type CompiledEffectGroup,
   compileFeature,
   type CompiledFeature,
   compileModifierGrant,
@@ -42,17 +44,54 @@ export interface CompiledContainsAuthored {
   quantity: number
 }
 
-export type CompiledEquipmentAbilitiesAuthored = {
-  op: OperationCode
-  abilities: { ability: AbilityCode }[]
+export interface ResolvedEquipmentVariantInherited {
+  category: Exclude<
+    EquipmentCategoryCode,
+    typeof EQUIPMENT_CATEGORY_CODE.VARIANT
+  >
+  properties: EquipmentPropertyCode[]
+  description: BaseEquipmentAuthored['description']
+  quote?: BaseEquipmentAuthored['quote']
+  cost?: BaseEquipmentAuthored['cost']
+  weight: BaseEquipmentAuthored['weight']
+  attributes?: EquipmentAttribute[]
+  effects?: BaseEquipmentAuthored['effects']
+  charges?: BaseEquipmentAuthored['charges']
+  capacity?: BaseEquipmentAuthored['capacity']
+  modifiers?: BaseEquipmentAuthored['modifiers']
+  maxStack?: BaseEquipmentAuthored['maxStack']
+  rarityId: BaseEquipmentAuthored['rarityId']
+  maxBonus?: BaseEquipmentAuthored['maxBonus']
+  armorClass?: BaseEquipmentAuthored['armorClass']
+  contains?: BaseEquipmentAuthored['contains']
+  features?: BaseEquipmentAuthored['features']
+  restrictions?: BaseEquipmentAuthored['restrictions']
+}
+
+export interface ResolvedEquipmentVariantMeta {
+  parentEquipmentId: string
+  parentLabel: string
+  inherited: ResolvedEquipmentVariantInherited
+}
+
+export type ResolvedEquipment = Omit<
+  BaseEquipmentAuthored,
+  'category' | 'properties'
+> & {
+  category: Exclude<
+    EquipmentCategoryCode,
+    typeof EQUIPMENT_CATEGORY_CODE.VARIANT
+  >
+  properties: EquipmentPropertyCode[]
+  variant?: ResolvedEquipmentVariantMeta
 }
 
 export type CompiledEquipmentBase = {
   id: string
   cost?: CompiledCost
-  weight: CompiledWeight
+  weight?: CompiledWeight
   attributes?: EquipmentAttribute[]
-  capabilities?: CompiledCapabilityGroup[]
+  effects?: CompiledEffectGroup[]
   charges?: CompiledCharge
   capacity?: CompiledCapacity
   modifiers?: CompiledModifierGrant[]
@@ -70,7 +109,6 @@ export type CompiledEquipment = {
     EquipmentCategoryCode,
     typeof EQUIPMENT_CATEGORY_CODE.VARIANT
   >
-  abilities: CompiledEquipmentAbilitiesAuthored[]
 } & CompiledEquipmentBase
 
 export type CompiledEquipmentVariant = {
@@ -79,12 +117,36 @@ export type CompiledEquipmentVariant = {
   properties?: EquipmentPropertyCode[]
 } & CompiledEquipmentBase
 
-export function compileEquipment(
-  authored: EquipmentAuthored | EquipmentVariantAuthored
-): CompiledEquipment | CompiledEquipmentVariant {
-  const capabilities
-    = (authored.capabilities ?? authored.effects)?.length
-      ? (authored.capabilities ?? authored.effects)?.map(compileCapability)
+function mergeOrderedValues<T>(
+  parent?: readonly T[],
+  child?: readonly T[]
+): T[] | undefined {
+  const merged = [
+    ...(parent ?? []),
+    ...(child ?? [])
+  ]
+
+  return merged.length > 0 ? [...merged] : undefined
+}
+
+function mergeUniqueValues<T extends string>(
+  parent?: readonly T[],
+  child?: readonly T[]
+): T[] | undefined {
+  const merged = [
+    ...(parent ?? []),
+    ...(child ?? [])
+  ]
+
+  return merged.length > 0 ? [...new Set(merged)] : undefined
+}
+
+function compileEquipmentBase(
+  authored: EquipmentAuthored | VariantEquipmentAuthored | ResolvedEquipment
+): CompiledEquipmentBase {
+  const effects
+    = authored.effects?.length
+      ? authored.effects.map(compileEffect)
       : undefined
 
   const features
@@ -99,25 +161,124 @@ export function compileEquipment(
       ? authored.modifiers.map(compileModifierGrant)
       : undefined
 
-  const base: CompiledEquipmentBase = {
+  return {
     id: authored.id,
-    cost: authored.cost,
-    weight: authored.weight,
-    attributes: authored.attributes,
-    capacity: authored.capacity,
+    cost: 'cost' in authored ? authored.cost : undefined,
+    weight: 'weight' in authored ? authored.weight : undefined,
+    attributes: 'attributes' in authored ? authored.attributes : undefined,
+    capacity: 'capacity' in authored ? authored.capacity : undefined,
     charges,
-    capabilities,
+    effects,
     features,
     rarityId: authored.rarityId,
     maxBonus: authored.maxBonus,
-    maxStack: authored.maxStack,
-    armorClass: authored.armorClass,
-    contains: authored.contains,
+    maxStack: 'maxStack' in authored ? authored.maxStack : undefined,
+    armorClass: 'armorClass' in authored ? authored.armorClass : undefined,
+    contains: 'contains' in authored ? authored.contains : undefined,
     modifiers
   }
+}
+
+export function resolveEquipmentAuthored(
+  authored: EquipmentAuthored | VariantEquipmentAuthored,
+  lookupParent: (id: string) => EquipmentAuthored | VariantEquipmentAuthored | null | undefined,
+  lineage: string[] = []
+): ResolvedEquipment {
+  if (authored.category !== EQUIPMENT_CATEGORY_CODE.VARIANT) {
+    return {
+      ...authored,
+      category: authored.category,
+      properties: [...authored.properties]
+    }
+  }
+
+  if (lineage.includes(authored.id)) {
+    throw new Error(`Equipment variant cycle detected for "${authored.id}".`)
+  }
+
+  const parent = lookupParent(authored.parentEquipmentId)
+
+  if (!parent) {
+    throw new Error(
+      `Equipment variant "${authored.id}" is missing parent equipment "${authored.parentEquipmentId}".`
+    )
+  }
+
+  const resolvedParent = resolveEquipmentAuthored(parent, lookupParent, [
+    ...lineage,
+    authored.id
+  ])
+  const properties = mergeUniqueValues(
+    resolvedParent.properties,
+    authored.properties
+  ) ?? []
+
+  return {
+    kind: authored.kind,
+    id: authored.id,
+    label: authored.label,
+    description: authored.description ?? resolvedParent.description,
+    attributes: resolvedParent.attributes,
+    quote: authored.quote ?? resolvedParent.quote,
+    cost: resolvedParent.cost,
+    weight: resolvedParent.weight,
+    effects: mergeOrderedValues(
+      resolvedParent.effects,
+      authored.effects
+    ),
+    charges: authored.charges ?? resolvedParent.charges,
+    capacity: resolvedParent.capacity,
+    modifiers: mergeOrderedValues(
+      resolvedParent.modifiers,
+      authored.modifiers
+    ),
+    maxStack: resolvedParent.maxStack,
+    rarityId: authored.rarityId,
+    maxBonus: authored.maxBonus ?? resolvedParent.maxBonus,
+    armorClass: resolvedParent.armorClass,
+    contains: resolvedParent.contains,
+    features: mergeOrderedValues(
+      resolvedParent.features,
+      authored.features
+    ),
+    restrictions: authored.restrictions ?? resolvedParent.restrictions,
+    userId: authored.userId,
+    systemId: authored.systemId,
+    category: resolvedParent.category,
+    properties,
+    variant: {
+      parentEquipmentId: authored.parentEquipmentId,
+      parentLabel: parent.label,
+      inherited: {
+        category: resolvedParent.category,
+        properties: [...resolvedParent.properties],
+        description: resolvedParent.description,
+        quote: resolvedParent.quote,
+        cost: resolvedParent.cost,
+        weight: resolvedParent.weight,
+        attributes: resolvedParent.attributes,
+        effects: resolvedParent.effects,
+        charges: resolvedParent.charges,
+        capacity: resolvedParent.capacity,
+        modifiers: resolvedParent.modifiers,
+        maxStack: resolvedParent.maxStack,
+        rarityId: resolvedParent.rarityId,
+        maxBonus: resolvedParent.maxBonus,
+        armorClass: resolvedParent.armorClass,
+        contains: resolvedParent.contains,
+        features: resolvedParent.features,
+        restrictions: resolvedParent.restrictions
+      }
+    }
+  }
+}
+
+export function compileEquipment(
+  authored: EquipmentAuthored | VariantEquipmentAuthored
+): CompiledEquipment | CompiledEquipmentVariant {
+  const base = compileEquipmentBase(authored)
 
   if (authored.category === EQUIPMENT_CATEGORY_CODE.VARIANT) {
-    // TypeScript now knows this is EquipmentVariantAuthored
     return {
       ...base,
       category: EQUIPMENT_CATEGORY_CODE.VARIANT,
@@ -130,7 +291,17 @@ export function compileEquipment(
   return {
     ...base,
     category: authored.category,
-    properties: authored.properties,
-    abilities: authored.abilities
+    properties: authored.properties
   }
 }
+
+export function compileResolvedEquipment(
+  authored: ResolvedEquipment
+): CompiledEquipment {
+  return {
+    ...compileEquipmentBase(authored),
+    category: authored.category,
+    properties: authored.properties
+  }
+}
+

@@ -10,7 +10,6 @@ export const whipPlus3: EquipmentVariantAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: whip.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
-  weight: S.lbs(3),
   rarityId: S.RARITY_VERY_RARE,
   maxBonus: 3,
   modifiers: S.meleeMagicWeaponModifiers(S.equipId(230), 3),

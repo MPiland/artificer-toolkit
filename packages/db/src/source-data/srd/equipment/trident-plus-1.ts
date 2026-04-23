@@ -10,7 +10,6 @@ export const tridentPlus1: EquipmentVariantAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: trident.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
-  weight: S.lbs(4),
   rarityId: S.RARITY_UNCOMMON,
   maxBonus: 1,
   modifiers: S.thrownMagicWeaponModifiers(S.equipId(219), 1),

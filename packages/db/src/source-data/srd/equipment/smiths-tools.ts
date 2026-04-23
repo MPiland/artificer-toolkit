@@ -8,7 +8,6 @@ export const smithsTools: EquipmentAuthored = {
   description: 'Hammers, tongs, and files for working metal at the forge.',
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
-  abilities: [],
   cost: S.gp(20),
   weight: S.lbs(8),
   rarityId: S.RARITY_COMMON,

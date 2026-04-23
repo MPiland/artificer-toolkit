@@ -50,14 +50,14 @@ describe('createModifierGrantRepository', () => {
         sort_order: 2,
         selection_kind: 'CHOSEN',
         count: 1,
-        value_domain_code: 'ATTACK_ROLL_BONUS',
-        modifier_kind: 'OPTIONAL_ABILITY_MODIFIER',
+        value_domain_code: 'ATTACK_ROLL',
+        modifier_kind: 'OPTIONAL_ABILITY_MODIFIER_BONUS',
         scope: 'SOURCE',
         restriction_id: null
       }],
       modifier_grant_domain_params: [{
         modifier_grant_id: 'modifier-1',
-        value_domain_code: 'ATTACK_ROLL_BONUS',
+        value_domain_code: 'ATTACK_ROLL',
         attack_domain_code: 'MELEE',
         ability_code: null,
         skill_id: null,
@@ -67,8 +67,8 @@ describe('createModifierGrantRepository', () => {
       }],
       modifier_grant_payloads: [{
         modifier_grant_id: 'modifier-1',
-        modifier_kind: 'OPTIONAL_ABILITY_MODIFIER',
-        value_domain_code: 'ATTACK_ROLL_BONUS',
+        modifier_kind: 'OPTIONAL_ABILITY_MODIFIER_BONUS',
+        value_domain_code: 'ATTACK_ROLL',
         numeric_value_kind: null,
         numeric_amount: null,
         numeric_multiplier: null,
@@ -105,11 +105,11 @@ describe('createModifierGrantRepository', () => {
       order: 2,
       selectionKind: 'CHOSEN',
       count: 1,
-      valueDomainCode: 'ATTACK_ROLL_BONUS',
+      valueDomainCode: 'ATTACK_ROLL',
       domain: {
         attackDomain: 'MELEE'
       },
-      modifierKind: 'OPTIONAL_ABILITY_MODIFIER',
+      modifierKind: 'OPTIONAL_ABILITY_MODIFIER_BONUS',
       scope: 'SOURCE',
       payload: {
         abilities: ['DEXTERITY', 'WISDOM']
@@ -216,19 +216,21 @@ describe('createModifierGrantRepository', () => {
         selection_kind: 'GRANTED',
         count: null,
         value_domain_code: 'SAVE_DC',
-        modifier_kind: 'BONUS',
+        modifier_kind: 'ABILITY_MODIFIER_BONUS',
         scope: 'GLOBAL',
         restriction_id: null
       }],
       modifier_grant_domain_params: [],
       modifier_grant_payloads: [{
         modifier_grant_id: 'modifier-bad-ability',
-        modifier_kind: 'BONUS',
+        modifier_kind: 'ABILITY_MODIFIER_BONUS',
         value_domain_code: 'SAVE_DC',
-        numeric_value_kind: 'ABILITY_MODIFIER',
+        numeric_value_kind: null,
         numeric_amount: null,
         numeric_multiplier: null,
         numeric_ability_code: 'LUCK',
+        numeric_min: null,
+        numeric_max: null,
         numeric_skill_id: null,
         numeric_class_id: null,
         set_amount: null,
@@ -257,3 +259,4 @@ describe('createModifierGrantRepository', () => {
     )
   })
 })
+

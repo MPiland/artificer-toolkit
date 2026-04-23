@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS public.classes (
 
   label text NOT NULL,
   description text,
+  status text NOT NULL DEFAULT 'DRAFT',
 
   starting_equipment_id uuid
     REFERENCES public.starting_equipment(id)
@@ -67,6 +68,9 @@ CREATE TABLE IF NOT EXISTS public.classes (
   CONSTRAINT classes_category_parent_chk CHECK (
     (category = 'BASE' AND parent_class_id IS NULL AND starting_equipment_id IS NOT NULL)
     OR (category = 'SUBCLASS' AND parent_class_id IS NOT NULL AND starting_equipment_id IS NULL)
+  ),
+  CONSTRAINT classes_status_chk CHECK (
+    status IN ('DRAFT', 'ACTIVE')
   )
 );
 

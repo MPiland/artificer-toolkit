@@ -30,7 +30,7 @@ export const GRANT_TYPE_REGISTRY: Record<GrantKind, GrantKindOption> = {
   [GRANT_KIND.SENSE_GRANT]: {
     code: GRANT_KIND.SENSE_GRANT,
     label: 'Sense',
-    tooltip: 'Grants a sensory capability.',
+    tooltip: 'Grants a sensory effect.',
     description: 'Examples include Darkvision, Tremorsense, or Blindsight.'
   },
 

@@ -8,7 +8,6 @@ export const fishingTackle: EquipmentAuthored = {
   description: 'A rod, line, hooks, floats, and bait for catching fish.',
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
-  abilities: [],
   cost: S.gp(1),
   weight: S.lbs(4),
   rarityId: S.RARITY_COMMON,

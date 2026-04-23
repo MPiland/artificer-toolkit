@@ -8,7 +8,6 @@ export const paddedArmor: EquipmentAuthored = {
     description: 'Quilted layers of cloth and batting.',
     category: S.EQUIPMENT_CATEGORY_CODE.ARMOR,
     properties: [S.EQUIPMENT_PROPERTY_CODE.LIGHT],
-    abilities: [],
     armorClass: 11,
     cost: S.gp(5),
     weight: S.lbs(8),

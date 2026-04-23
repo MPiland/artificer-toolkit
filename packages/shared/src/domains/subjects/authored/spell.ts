@@ -1,12 +1,11 @@
 import type {
   CastingTimeUnitCode,
+  SpellComponent,
   SpellAttribute,
-  SUBJECT
+  SUBJECT,
+  AuthoredRecordStatus
 } from '#core'
 import type {
-  CapabilityAuthored,
-  DurationAuthored,
-  RangeAuthored,
   EffectAuthored
 } from '#authored'
 
@@ -19,22 +18,17 @@ export type SpellAuthored = {
   kind: typeof SUBJECT.SPELL
   id: string
   label: string
+  status?: AuthoredRecordStatus
   attributes?: SpellAttribute[]
+  components?: SpellComponent[]
   description: string
   castingTime: CastingTimeAuthored
-  capabilities?: CapabilityAuthored[]
-  /** @deprecated Transitional compatibility only; move spell delivery semantics into capability invocation. */
-  range?: RangeAuthored
-  /** @deprecated Transitional compatibility only; move spell lifetime semantics into branches/outcomes. */
-  duration?: DurationAuthored
+  effects?: EffectAuthored[]
   level: number // int
   classIds: string[]
   magicSchoolId: string
-  /** @deprecated Use capabilities. */
-  effects?: EffectAuthored[]
-  /** @deprecated Encode scaling structurally in capability outcomes. */
-  atHigherLevels?: string
   materialDescription?: string
   userId: string
   systemId: string
 }
+

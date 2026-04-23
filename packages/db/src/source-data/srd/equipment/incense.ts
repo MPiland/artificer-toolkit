@@ -8,7 +8,6 @@ export const incense: EquipmentAuthored = {
   description: 'A stick of incense burned during religious ceremonies and meditation.',
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
-  abilities: [],
   cost: S.cp(1),
   weight: S.lbs(0),
   rarityId: S.RARITY_COMMON,

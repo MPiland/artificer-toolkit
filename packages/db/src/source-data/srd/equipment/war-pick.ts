@@ -8,11 +8,12 @@ export const warPick: EquipmentAuthored = {
     description: 'A pick-shaped weapon designed to pierce armor.',
     category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
     properties: [S.EQUIPMENT_PROPERTY_CODE.MARTIAL, S.EQUIPMENT_PROPERTY_CODE.MELEE],
-    abilities: [],
-    capabilities: S.meleeWeaponCapabilities(S.equipId(30), 'PIERCING', '1d8'),
+    modifiers: S.meleeWeaponAbilityModifiers(S.equipId(30)),
+    effects: S.meleeWeaponEffects(S.equipId(30), 'PIERCING', '1d8'),
     cost: S.gp(5),
     weight: S.lbs(2),
     rarityId: S.RARITY_COMMON,
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
   }
+

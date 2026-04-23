@@ -9,7 +9,7 @@ import {
   ROUNDING_OPTIONS,
   SCALING_AMOUNT_OPTIONS
 } from '#core'
-import { FACET_NODE_MAP } from '#maps'
+import { FACET_NODE_MAP } from '../../shared/maps/facet.js'
 import { buildNodeMap, type NodeMap } from '#utils'
 import type { AllUnionFields } from 'type-fest'
 

@@ -8,7 +8,6 @@ export const forgeryKit: EquipmentAuthored = {
   description: 'Inks, papers, and seal-making tools for duplicating documents and signatures.',
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
-  abilities: [],
   cost: S.gp(15),
   weight: S.lbs(5),
   rarityId: S.RARITY_COMMON,

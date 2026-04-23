@@ -178,6 +178,7 @@ function makeRegistry(): CharacterAssemblyRegistry {
       } as never
     },
     feats: {},
+    races: {},
     equipment: {},
     spells: {}
   }

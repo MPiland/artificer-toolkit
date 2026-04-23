@@ -18,16 +18,18 @@ const D = {
   conditionType:   '0002',
   currency:        '0003',
   damageType:      '0004',
-  language:        '0005',
-  magicSchool:     '0006',
-  passive:         '0007',
-  rarity:          '0008',
-  sense:           '0009',
-  skill:           '000a',
-  speed:           '000b',
-  terrain:         '000c',
-  challengeRating: '000d',
-  creatureType:    '000e',
+  heritage:        '0005',
+  language:        '0006',
+  magicSchool:     '0007',
+  passive:         '0008',
+  rarity:          '0009',
+  sense:           '000a',
+  skill:           '000b',
+  speed:           '000c',
+  terrain:         '000d',
+  challengeRating: '000e',
+  creatureType:    '000f',
+  lifestyle:       '0010',
 } as const
 
 // ─── Alignments ───────────────────────────────────────────────────────────────
@@ -95,6 +97,26 @@ export const SRD_DAMAGE_TYPES = [
 
 // ─── Languages ────────────────────────────────────────────────────────────────
 
+export const SRD_HERITAGES = [
+  { id: vocabId(D.heritage, 1), code: 'HUMAN', label: 'Human' },
+  { id: vocabId(D.heritage, 2), code: 'ELVEN', label: 'Elven' },
+  { id: vocabId(D.heritage, 3), code: 'DWARVEN', label: 'Dwarven' },
+  { id: vocabId(D.heritage, 4), code: 'HALFLING', label: 'Halfling' },
+  { id: vocabId(D.heritage, 5), code: 'GNOMISH', label: 'Gnomish' },
+  { id: vocabId(D.heritage, 6), code: 'DRACONIC', label: 'Draconic' },
+  { id: vocabId(D.heritage, 7), code: 'ORCISH', label: 'Orcish' },
+  { id: vocabId(D.heritage, 8), code: 'INFERNAL', label: 'Infernal' },
+]
+
+export const SRD_HUMAN_HERITAGE_ID = SRD_HERITAGES.find((entry) => entry.code === 'HUMAN')!.id
+export const SRD_ELVEN_HERITAGE_ID = SRD_HERITAGES.find((entry) => entry.code === 'ELVEN')!.id
+export const SRD_DWARVEN_HERITAGE_ID = SRD_HERITAGES.find((entry) => entry.code === 'DWARVEN')!.id
+export const SRD_HALFLING_HERITAGE_ID = SRD_HERITAGES.find((entry) => entry.code === 'HALFLING')!.id
+export const SRD_GNOMISH_HERITAGE_ID = SRD_HERITAGES.find((entry) => entry.code === 'GNOMISH')!.id
+export const SRD_DRACONIC_HERITAGE_ID = SRD_HERITAGES.find((entry) => entry.code === 'DRACONIC')!.id
+export const SRD_ORCISH_HERITAGE_ID = SRD_HERITAGES.find((entry) => entry.code === 'ORCISH')!.id
+export const SRD_INFERNAL_HERITAGE_ID = SRD_HERITAGES.find((entry) => entry.code === 'INFERNAL')!.id
+
 export const SRD_LANGUAGES = [
   // Standard languages
   { id: vocabId(D.language, 1),  code: 'COMMON',      label: 'Common',      description: 'Standard language spoken across most of the world.' },
@@ -131,6 +153,16 @@ export const SRD_LANGUAGES = [
   { id: vocabId(D.language, 30), code: 'SPHINX',       label: 'Sphinx',       description: 'The language used by sphinxes.' },
   { id: vocabId(D.language, 31), code: 'WINTER_WOLF',  label: 'Winter Wolf',  description: 'The language used by winter wolves.' },
   { id: vocabId(D.language, 32), code: 'WORG',         label: 'Worg',         description: 'The language used by worgs.' },
+]
+
+export const SRD_LIFESTYLES = [
+  { id: vocabId(D.lifestyle, 1), code: 'WRETCHED', label: 'Wretched', description: 'You live in inhumane conditions with little shelter, comfort, or safety.' },
+  { id: vocabId(D.lifestyle, 2), code: 'SQUALID', label: 'Squalid', description: 'You subsist in poor conditions, staying on the edge of health and dignity.' },
+  { id: vocabId(D.lifestyle, 3), code: 'POOR', label: 'Poor', description: 'You can survive in modest but difficult circumstances with few comforts.' },
+  { id: vocabId(D.lifestyle, 4), code: 'MODEST', label: 'Modest', description: 'You maintain a simple but stable standard of living.' },
+  { id: vocabId(D.lifestyle, 5), code: 'COMFORTABLE', label: 'Comfortable', description: 'You have enough means for dependable shelter, food, and ordinary comforts.' },
+  { id: vocabId(D.lifestyle, 6), code: 'WEALTHY', label: 'Wealthy', description: 'You enjoy a high standard of living with quality accommodations and services.' },
+  { id: vocabId(D.lifestyle, 7), code: 'ARISTOCRATIC', label: 'Aristocratic', description: 'You live with exceptional luxury, status, and access to elite circles.' },
 ]
 
 // ─── Magic Schools ────────────────────────────────────────────────────────────
@@ -300,7 +332,9 @@ export const srdSystemRecord: SystemSeedRecord = {
   creatureTypes:   SRD_CREATURE_TYPES,
   currencies:      SRD_CURRENCIES,
   damageTypes:   SRD_DAMAGE_TYPES,
+  heritages:     SRD_HERITAGES,
   languages:     SRD_LANGUAGES,
+  lifestyles:    SRD_LIFESTYLES,
   magicSchools:  SRD_MAGIC_SCHOOLS,
   passives:      SRD_PASSIVES,
   rarities:      SRD_RARITIES,

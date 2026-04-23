@@ -8,7 +8,6 @@ export const minersPick: EquipmentAuthored = {
     description: "A heavy pick for breaking rock and excavating tunnels.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(2),
     weight: S.lbs(10),
     rarityId: S.RARITY_COMMON,

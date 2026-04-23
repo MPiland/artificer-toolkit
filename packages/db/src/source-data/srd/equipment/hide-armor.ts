@@ -8,7 +8,6 @@ export const hideArmor: EquipmentAuthored = {
     description: 'Crude armor made from thick furs and pelts.',
     category: S.EQUIPMENT_CATEGORY_CODE.ARMOR,
     properties: [S.EQUIPMENT_PROPERTY_CODE.MEDIUM],
-    abilities: [],
     armorClass: 12,
     cost: S.gp(10),
     weight: S.lbs(12),

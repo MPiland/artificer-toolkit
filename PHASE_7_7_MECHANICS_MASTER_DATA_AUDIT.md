@@ -1,6 +1,14 @@
 # Phase 7.7 Mechanics and Master-Data Audit
 
-## Status: In progress
+## Status: Complete (for Phase 7.7 gate)
+
+## Gate Outcome (2026-03-25)
+
+This audit is closed as a Phase 7.7 decision gate.
+
+- Baseline readiness for character builder/sheet use is accepted.
+- Remaining constrained `RULE` cases are documented and intentionally deferred.
+- Post-7.7 work shifts from "must finish before Phase 8" to "runtime-depth follow-on for interactive play/map semantics."
 
 ## Purpose
 
@@ -1975,7 +1983,7 @@ Current readiness snapshot:
 - creature/vehicle ownership baseline for roster-style use
 - core spell metadata and spell inventory coverage
 
-### Not ready to call complete yet
+### Deferred Beyond Phase 7.7
 
 - full active-mechanics master data across spells, feats, equipment, and features
 - summon/manifest heavy content

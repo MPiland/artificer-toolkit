@@ -8,7 +8,9 @@ type VocabularyTableName
     | 'creature_types'
     | 'currencies'
     | 'damage_types'
+    | 'heritages'
     | 'languages'
+    | 'lifestyles'
     | 'magic_schools'
     | 'passives'
     | 'rarities'
@@ -106,7 +108,9 @@ export async function upsertSystem(
   await replaceSystemVocabulary(db, 'creature_types', json_data.id, mapVocabularyRows(json_data.id, json_data.creatureTypes))
   await replaceSystemVocabulary(db, 'currencies', json_data.id, mapVocabularyRows(json_data.id, json_data.currencies))
   await replaceSystemVocabulary(db, 'damage_types', json_data.id, mapVocabularyRows(json_data.id, json_data.damageTypes))
+  await replaceSystemVocabulary(db, 'heritages', json_data.id, mapVocabularyRows(json_data.id, json_data.heritages))
   await replaceSystemVocabulary(db, 'languages', json_data.id, mapVocabularyRows(json_data.id, json_data.languages))
+  await replaceSystemVocabulary(db, 'lifestyles', json_data.id, mapVocabularyRows(json_data.id, json_data.lifestyles))
   await replaceSystemVocabulary(db, 'magic_schools', json_data.id, mapVocabularyRows(json_data.id, json_data.magicSchools))
   await replaceSystemVocabulary(db, 'passives', json_data.id, mapVocabularyRows(json_data.id, json_data.passives))
   await replaceSystemVocabulary(db, 'rarities', json_data.id, mapVocabularyRows(json_data.id, json_data.rarities))

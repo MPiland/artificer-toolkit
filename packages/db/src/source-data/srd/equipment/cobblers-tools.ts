@@ -9,7 +9,6 @@ export const cobblersTools: EquipmentAuthored = {
     'Lasts, awls, and leather-working implements for making and repairing footwear.',
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
-  abilities: [],
   cost: S.gp(5),
   weight: S.lbs(5),
   rarityId: S.RARITY_COMMON,

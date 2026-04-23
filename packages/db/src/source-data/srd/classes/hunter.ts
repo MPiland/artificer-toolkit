@@ -68,7 +68,7 @@ export const hunterConclave: ClassAuthored = {
               {
                 id: classRowId(RA, 13, 4),
                 grantKind: GRANT_KIND.MODIFIER_GRANT,
-                valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_BONUS,
+                valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
                 domain: {
                   ability: ABILITY_CODE.WISDOM,
                   conditionTypeId: conditionTypeId('FRIGHTENED')
@@ -111,3 +111,4 @@ export const hunterConclave: ClassAuthored = {
     }
   ]
 }
+

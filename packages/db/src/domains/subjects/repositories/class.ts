@@ -17,6 +17,7 @@ import { hydrateChargeById } from '../../grants/repositories/helpers.js'
 import { createProficiencyGrantRepository } from '../../grants/repositories/proficiency.js'
 import { createStartingEquipmentRepository } from '../../shared/repositories/starting_equipment.js'
 import type { ClassRepository, RepositoryFindAllOptions } from '../../../repositories/contracts.js'
+import { hydrateSubjectStatus } from '../status.js'
 
 function requireLinkedRecord<T>(
   value: T | null | undefined,
@@ -259,6 +260,7 @@ async function hydrateClassById(
       'parent_class_id',
       'label',
       'description',
+      'status',
       'starting_equipment_id'
     ])
     .where('id', '=', id)
@@ -362,6 +364,7 @@ async function hydrateClassById(
       id: row.id,
       label: row.label,
       description: row.description ?? undefined,
+      status: hydrateSubjectStatus(row.status),
       details: authoredDetails.length > 0 ? authoredDetails : undefined,
       proficiencies: authoredProficiencies.length > 0 ? authoredProficiencies : undefined,
       spellcasting,
@@ -416,6 +419,7 @@ async function hydrateClassById(
     id: row.id,
     label: row.label,
     description: row.description ?? undefined,
+    status: hydrateSubjectStatus(row.status),
     details: authoredDetails.length > 0 ? authoredDetails : undefined,
     proficiencies: authoredProficiencies.length > 0 ? authoredProficiencies : undefined,
     spellcasting,

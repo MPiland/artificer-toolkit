@@ -1,34 +1,39 @@
 import {
-  handleRequest,
-  handleAuthoringRequest,
-  handleCommandRequest,
-  dispatchCharacterCommand,
-  handleCreateCharacter,
-  handleAssignAbilityScores,
-  handleGainClassLevel,
-  handleApplyHitPoints,
-  handleMakeFeatureSelection,
-  handleChooseFeat,
-  handleUpdateSpellSelection,
-  handleAcquireEquipment,
-  handleEquipItem,
-  handleUnequipItem,
-  buildSnapshot,
   NotFoundError,
+  buildSnapshot,
+  dispatchCharacterCommand,
+  handleAcquireEquipment,
+  handleApplyHitPoints,
+  handleAssignAbilityScores,
+  handleAuthoringRequest,
+  handleChooseFeat,
+  handleCommandRequest,
+  handleCreateCharacter,
+  handleEquipItem,
+  handleGainClassLevel,
+  handleMakeFeatureSelection,
+  handleRequest,
+  handleUnequipItem,
+  handleUpdateSpellSelection,
+  resolveCharacterBuilder
 } from '@artificer-toolkit/functions'
 import {
-  createCharacterRepository,
+  type Json,
+  ConcurrencyError,
   createCharacterEventRepository,
+  createCharacterRepository
 } from '@artificer-toolkit/db'
 import {
-  runEngine,
-  dnd5e2014RulesSystem,
+  type CharacterBuildState,
   buildCharacterHistoryView,
-  type CharacterAssemblyRegistry,
+  dnd5e2014RulesSystem,
+  runEngine,
+  type CharacterAssemblyRegistry
 } from '@artificer-toolkit/shared'
 import {
-  createCharacterCommandSchema,
+  characterAuthoredDtoSchema,
   characterCommandUnionSchema,
+  createCharacterCommandSchema
 } from '@artificer-toolkit/schema'
 
 function extractId(req: Request): string {
@@ -37,73 +42,74 @@ function extractId(req: Request): string {
   return segments[segments.length - 1]
 }
 
-/** Minimal stub registry — enough for commands that don't need compiled content. */
 function stubRegistry(): CharacterAssemblyRegistry {
-  return { features: {}, classes: {}, feats: {}, equipment: {}, spells: {} }
+  return { features: {}, classes: {}, feats: {}, races: {}, equipment: {}, spells: {} }
 }
 
-/* ──────────────────────────────────────────────
- * GET /characters — list user's characters
- * ────────────────────────────────────────────── */
-
 export const listCharacters = handleRequest(
-  async (db, userId: string) => createCharacterRepository(db).listByUser(userId),
+  async (db, userId: string) => {
+    const items = await createCharacterRepository(db).listByUser(userId)
+    return {
+      items: items.map((row) => ({
+        id: row.id,
+        label: row.label,
+        systemId: row.system_id,
+        streamVersion: row.stream_version
+      })),
+      meta: {}
+    }
+  },
   (_req: Request, userId: string) => [userId] as [string]
 )
 
-/* ──────────────────────────────────────────────
- * POST /characters — create a new character
- * ────────────────────────────────────────────── */
-
 export const createCharacter = handleAuthoringRequest(
-  createCharacterCommandSchema,
-  async (db, command, _userId) => {
-    const { events, newState } = await handleCreateCharacter(
-      command,
-      // createCharacter ignores currentState — pass an empty shell
-      { characterId: command.characterId, systemId: command.systemId, streamVersion: 0, name: '', classes: [], abilityScores: {}, abilityGenerationMethod: 'STANDARD_ARRAY', hitpointsByLevel: [], featureSelections: [], featRefs: [], spellRefs: [], ownedEquipment: [] },
-      stubRegistry(),
-      dnd5e2014RulesSystem
-    )
+  characterAuthoredDtoSchema,
+  async (db, character, userId) => {
+    const authored = {
+      ...character,
+      userId
+    }
 
-    const charRepo = createCharacterRepository(db)
-    const eventRepo = createCharacterEventRepository(db)
+    const repository = createCharacterRepository(db)
+    await repository.upsertAuthored(authored)
 
-    await charRepo.create({
-      id: command.characterId,
-      systemId: command.systemId,
-      userId: _userId,
-      label: command.name,
-      buildState: newState,
-    })
+    const persisted = await repository.findAuthoredById(authored.id)
+    const resolved = await resolveCharacterBuilder(db, persisted ?? authored, 'create')
 
-    await eventRepo.appendBatch(events)
-
-    return { characterId: command.characterId, streamVersion: newState.streamVersion }
+    return {
+      character: persisted ?? authored,
+      resolution: resolved
+    }
   }
 )
 
-/* ──────────────────────────────────────────────
- * GET /characters/:id — get resolved character sheet
- * ────────────────────────────────────────────── */
-
 export const getCharacter = handleRequest(
   async (db, characterId: string) => {
-    const row = await createCharacterRepository(db).findById(characterId)
-    if (!row?.build_state) return null
+    const character = await createCharacterRepository(db).findAuthoredById(characterId)
+    if (!character) return null
 
-    const registry = stubRegistry()
-    const snapshot = buildSnapshot(row.build_state, registry)
-    const output = runEngine(snapshot, registry, dnd5e2014RulesSystem)
-
-    return { buildState: row.build_state, engineOutput: output }
+    return {
+      character,
+      resolution: await resolveCharacterBuilder(db, character, 'edit')
+    }
   },
   (req: Request) => [extractId(req)] as [string]
 )
 
-/* ──────────────────────────────────────────────
- * POST /characters/:id/commands — dispatch a build command
- * ────────────────────────────────────────────── */
+export const resolveCharacter = handleAuthoringRequest(
+  characterAuthoredDtoSchema,
+  async (db, character, userId) => {
+    const authored = {
+      ...character,
+      userId
+    }
+
+    return {
+      character: authored,
+      resolution: await resolveCharacterBuilder(db, authored, 'create')
+    }
+  }
+)
 
 const commandHandlerMap = {
   CREATE_CHARACTER: handleCreateCharacter,
@@ -115,13 +121,70 @@ const commandHandlerMap = {
   UPDATE_SPELL_SELECTION: handleUpdateSpellSelection,
   ACQUIRE_EQUIPMENT: handleAcquireEquipment,
   EQUIP_ITEM: handleEquipItem,
-  UNEQUIP_ITEM: handleUnequipItem,
+  UNEQUIP_ITEM: handleUnequipItem
 } as const
+
+export const createLegacyCharacter = handleAuthoringRequest(
+  createCharacterCommandSchema,
+  async (db, command, userId) => {
+    const { events, newState } = await handleCreateCharacter(
+      command,
+      {
+        characterId: command.characterId,
+        systemId: command.systemId,
+        streamVersion: 0,
+        name: '',
+        classes: [],
+        abilityScores: {},
+        abilityGenerationMethod: 'STANDARD_ARRAY',
+        hitpointsByLevel: [],
+        featureSelections: [],
+        featRefs: [],
+        spellRefs: [],
+        ownedEquipment: []
+      },
+      stubRegistry(),
+      dnd5e2014RulesSystem
+    )
+
+    const repository = createCharacterRepository(db)
+    const eventRepository = createCharacterEventRepository(db)
+
+    await repository.create({
+      id: command.characterId,
+      systemId: command.systemId,
+      userId,
+      label: command.name,
+      buildState: newState as unknown as Json
+    })
+
+    await eventRepository.appendBatch(events)
+
+    return {
+      characterId: command.characterId,
+      streamVersion: newState.streamVersion
+    }
+  }
+)
+
+export const getLegacyCharacter = handleRequest(
+  async (db, characterId: string) => {
+    const row = await createCharacterRepository(db).findById(characterId)
+    if (!row?.build_state) return null
+
+    const registry = stubRegistry()
+    const buildState = row.build_state as unknown as CharacterBuildState
+    const snapshot = buildSnapshot(buildState, registry)
+    const output = runEngine(snapshot, registry, dnd5e2014RulesSystem)
+
+    return { buildState, engineOutput: output }
+  },
+  (req: Request) => [extractId(req)] as [string]
+)
 
 export const dispatchCommand = handleCommandRequest(
   characterCommandUnionSchema,
   async (characterId, expectedVersion, command, db) => {
-    // CREATE_CHARACTER is handled separately (no existing character to load)
     if (command.type === 'CREATE_CHARACTER') {
       throw new NotFoundError(characterId)
     }
@@ -131,10 +194,6 @@ export const dispatchCommand = handleCommandRequest(
     return dispatchCharacterCommand(characterId, expectedVersion, command, handler as any, db)
   }
 )
-
-/* ──────────────────────────────────────────────
- * GET /characters/:id/history — event log as history view
- * ────────────────────────────────────────────── */
 
 export const getCharacterHistory = handleRequest(
   async (db, characterId: string) => {
@@ -149,3 +208,5 @@ export const getCharacterHistory = handleRequest(
     return [characterId] as [string]
   }
 )
+
+export { ConcurrencyError }

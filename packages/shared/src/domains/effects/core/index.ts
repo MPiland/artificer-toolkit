@@ -1,5 +1,5 @@
-export * from './effect.js'
+export * from './outcome.js'
 export * from './damage.js'
-export * from './branch.js'
+export * from './path.js'
 export * from './forcedMovement.js'
 export * from './targeting.js'

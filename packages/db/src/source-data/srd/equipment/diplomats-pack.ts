@@ -8,7 +8,6 @@ export const diplomatsPack: EquipmentAuthored = {
     description: "A collection of fine writing materials and supplies suited to a noble envoy or courtier.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(39),
     weight: S.lbs(0),
     rarityId: S.RARITY_COMMON,

@@ -12,13 +12,14 @@ import {
   type CompiledProficiencyGrant,
   compileFeature,
   type CompiledFeature,
-  compileCapability,
-  type CompiledCapabilityGroup
+  compileEffect,
+  type CompiledEffectGroup
 } from '#compilers'
 
 export type CompiledFeat = {
   id: string
-  capabilities?: CompiledCapabilityGroup[]
+  prerequisites?: FeatAuthored['prerequisites']
+  effects?: CompiledEffectGroup[]
   charges?: CompiledCharge
   modifiers?: CompiledModifierGrant[]
   proficiencies?: CompiledProficiencyGrant[]
@@ -28,9 +29,9 @@ export type CompiledFeat = {
 }
 
 export function compileFeat(authored: FeatAuthored): CompiledFeat {
-  const capabilities
-    = (authored.capabilities ?? authored.effects)?.length
-      ? (authored.capabilities ?? authored.effects)?.map(compileCapability)
+  const effects
+    = authored.effects?.length
+      ? authored.effects.map(compileEffect)
       : undefined
 
   const modifiers
@@ -62,12 +63,14 @@ export function compileFeat(authored: FeatAuthored): CompiledFeat {
 
   return {
     id: authored.id,
+    prerequisites: authored.prerequisites,
     modifiers,
     spells,
     proficiencies,
     senses,
     features,
-    capabilities,
+    effects,
     charges
   }
 }
+

@@ -8,7 +8,6 @@ export const druidicFocusSprigOfMistletoe: EquipmentAuthored = {
     description: "A sacred sprig of mistletoe that serves as a focus for druidic spellcasting.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(1),
     weight: S.lbs(0),
     rarityId: S.RARITY_COMMON,

@@ -5,6 +5,7 @@ import {
   type CharacterAuthored
 } from '@artificer-toolkit/shared'
 import { assertNever } from '../../../utils/index.js'
+import { normalizeSubjectStatus } from '../status.js'
 import {
   countRolls,
   deleteExistingCharacterChildren,
@@ -31,17 +32,44 @@ export async function upsertCharacter(
         system_id: json_data.systemId,
         user_id: json_data.userId,
         label: json_data.label,
-        description: json_data.description ?? null
+        description: json_data.description ?? null,
+        status: normalizeSubjectStatus(json_data.status)
       })
       .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
         system_id: ref('excluded.system_id'),
         user_id: ref('excluded.user_id'),
         label: ref('excluded.label'),
-        description: ref('excluded.description')
+        description: ref('excluded.description'),
+        status: ref('excluded.status')
       })))
       .execute()
 
     await deleteExistingCharacterChildren(trx, json_data.id)
+
+    await trx.insertInto('character_profile').values({
+      character_id: json_data.id,
+      alignment_id: json_data.profile.alignmentId ?? null,
+      lifestyle_id: json_data.profile.lifestyleId ?? null,
+      faith: json_data.profile.faith ?? null,
+      gender: json_data.profile.gender ?? null,
+      age: json_data.profile.age ?? null,
+      eyes: json_data.profile.eyes ?? null,
+      hair: json_data.profile.hair ?? null,
+      skin: json_data.profile.skin ?? null,
+      height: json_data.profile.height ?? null,
+      weight: json_data.profile.weight ?? null,
+      physical_characteristics: json_data.profile.physicalCharacteristics ?? null,
+      personality_traits: json_data.profile.personalityTraits ?? null,
+      ideals: json_data.profile.ideals ?? null,
+      bonds: json_data.profile.bonds ?? null,
+      flaws: json_data.profile.flaws ?? null,
+      organizations: json_data.profile.organizations ?? null,
+      allies: json_data.profile.allies ?? null,
+      enemies: json_data.profile.enemies ?? null,
+      backstory: json_data.profile.backstory ?? null,
+      notes: json_data.profile.notes ?? null
+    })
+      .execute()
 
     await trx.insertInto('character_advancement').values({
       character_id: json_data.id,

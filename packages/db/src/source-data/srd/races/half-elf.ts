@@ -9,6 +9,7 @@ import {
   PROFICIENCY_KIND,
   RANGE_KIND,
   RACE_CATEGORY_CODE,
+  RACE_SELECTION_MODE,
   SCALING,
   SCALING_AMOUNT_KIND,
   SIZE_CODE,
@@ -16,7 +17,7 @@ import {
   type RaceAuthored
 } from '@artificer-toolkit/shared'
 import { RACE_IDS } from '../ids.js'
-import { SRD_CONDITION_TYPES, SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID, SRD_DARKVISION_SENSE_ID, SRD_SKILLS } from '../vocabulary.js'
+import { SRD_CONDITION_TYPES, SRD_ELVEN_HERITAGE_ID, SRD_HUMAN_HERITAGE_ID, SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID, SRD_DARKVISION_SENSE_ID, SRD_SKILLS } from '../vocabulary.js'
 
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
   const rHex = raceIndex.toString(16).padStart(4, '0')
@@ -61,9 +62,10 @@ export const halfElf: RaceAuthored = {
   id: RACE_IDS.HALF_ELF,
   label: 'Half-Elf',
   category: RACE_CATEGORY_CODE.BASE,
-  playable: true,
+  selectionMode: RACE_SELECTION_MODE.DIRECT,
   size: SIZE_CODE.MEDIUM,
   speeds: halfElfWalk30,
+  heritageIds: [SRD_HUMAN_HERITAGE_ID, SRD_ELVEN_HERITAGE_ID],
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
   features: [
@@ -138,7 +140,7 @@ export const halfElf: RaceAuthored = {
           {
             id: raceFeatureId(7, 3, 2),
             grantKind: GRANT_KIND.MODIFIER_GRANT,
-            valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_BONUS,
+            valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
             domain: {
               ability: ABILITY_CODE.CHARISMA,
               conditionTypeId: conditionTypeId('CHARMED')
@@ -168,7 +170,7 @@ export const halfElf: RaceAuthored = {
             selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
             scalingKind: SCALING.NONE,
             count: 2,
-            authoringModeKind: AUTHORING_MODE_KIND.ALL,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
             skillIds: [
               skillId('ACROBATICS'),
               skillId('ANIMAL_HANDLING'),
@@ -221,7 +223,7 @@ export const halfElf: RaceAuthored = {
             selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
             count: 1,
             scalingKind: SCALING.NONE,
-            authoringModeKind: AUTHORING_MODE_KIND.ALL,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
             languageIds: availableLanguageIds(['COMMON', 'ELVISH']),
             order: 1
           }
@@ -230,3 +232,5 @@ export const halfElf: RaceAuthored = {
     }
   ]
 }
+
+

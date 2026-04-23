@@ -9,7 +9,6 @@ export const cartographersTools: EquipmentAuthored = {
     'Instruments for drawing accurate maps, including compasses, rulers, and specialized inks.',
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
-  abilities: [],
   cost: S.gp(15),
   weight: S.lbs(6),
   rarityId: S.RARITY_COMMON,

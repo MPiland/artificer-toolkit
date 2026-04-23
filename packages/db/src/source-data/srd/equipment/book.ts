@@ -8,7 +8,6 @@ export const book: EquipmentAuthored = {
     description: "A bound volume that might contain spells, poetry, history, or other written knowledge.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(25),
     weight: S.lbs(5),
     rarityId: S.RARITY_COMMON,

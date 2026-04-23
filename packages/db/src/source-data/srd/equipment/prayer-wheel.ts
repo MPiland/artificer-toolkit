@@ -8,7 +8,6 @@ export const prayerWheel: EquipmentAuthored = {
   description: 'A cylindrical wheel on a spindle used in religious practice to accumulate wisdom and good karma.',
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
-  abilities: [],
   cost: S.gp(5),
   weight: S.lbs(1),
   rarityId: S.RARITY_COMMON,

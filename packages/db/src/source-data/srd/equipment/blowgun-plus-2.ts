@@ -10,7 +10,6 @@ export const blowgunPlus2: EquipmentVariantAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: blowgun.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
-  weight: S.lbs(1),
   rarityId: S.RARITY_RARE,
   maxBonus: 2,
   modifiers: S.rangedMagicWeaponModifiers(S.equipId(232), 2),

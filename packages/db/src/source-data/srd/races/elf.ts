@@ -9,6 +9,7 @@ import {
   PROFICIENCY_KIND,
   RANGE_KIND,
   RACE_CATEGORY_CODE,
+  RACE_SELECTION_MODE,
   SCALING,
   SCALING_AMOUNT_KIND,
   SIZE_CODE,
@@ -17,7 +18,7 @@ import {
   type RaceAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, RACE_IDS, SUBRACE_IDS, SPELL_IDS } from '../ids.js'
-import { SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID, SRD_DARKVISION_SENSE_ID, SRD_SKILLS, SRD_CONDITION_TYPES } from '../vocabulary.js'
+import { SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID, SRD_DARKVISION_SENSE_ID, SRD_ELVEN_HERITAGE_ID, SRD_SKILLS, SRD_CONDITION_TYPES } from '../vocabulary.js'
 import { srdSpells } from '../spells/index.js'
 
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
@@ -72,9 +73,10 @@ export const elf: RaceAuthored = {
   id: RACE_IDS.ELF,
   label: 'Elf',
   category: RACE_CATEGORY_CODE.BASE,
-  playable: true,
+  selectionMode: RACE_SELECTION_MODE.REQUIRES_SUBRACE,
   size: SIZE_CODE.MEDIUM,
   speeds: elfWalk30,
+  heritageIds: [SRD_ELVEN_HERITAGE_ID],
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
   features: [
@@ -137,7 +139,7 @@ export const elf: RaceAuthored = {
           {
             id: raceFeatureId(2, 3, 2),
             grantKind: GRANT_KIND.MODIFIER_GRANT,
-            valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_BONUS,
+            valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
             domain: {
               ability: ABILITY_CODE.CHARISMA,
               conditionTypeId: conditionTypeId('CHARMED')
@@ -291,7 +293,7 @@ export const highElf: RaceAuthored = {
             selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
             count: 1,
             scalingKind: SCALING.NONE,
-            authoringModeKind: AUTHORING_MODE_KIND.ALL,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
             languageIds: availableLanguageIds(['COMMON', 'ELVISH']),
             order: 0
           }
@@ -308,7 +310,6 @@ export const woodElf: RaceAuthored = {
   label: 'Wood Elf',
   category: RACE_CATEGORY_CODE.SUBRACE,
   parentRaceId: RACE_IDS.ELF,
-  speeds: [{ speedId: walkSpeedId, amount: 35, unit: MEASUREMENT_UNIT_CODE.FEET }],
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
   features: [
@@ -377,7 +378,22 @@ export const woodElf: RaceAuthored = {
       label: 'Fleet of Foot',
       description: 'Your base walking speed increases to 35 feet.',
       availableAtLevel: 1,
-      order: 2
+      order: 2,
+      grants: {
+        modifiers: [
+          {
+            id: raceFeatureId(104, 3, 2),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.SPEED,
+            domain: { speedId: walkSpeedId },
+            modifierKind: MODIFIER_KIND.BONUS,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: { valueKind: 'FIXED' as const, amount: 5 },
+            order: 0
+          }
+        ]
+      }
     },
     {
       id: raceFeatureId(104, 4, 1),
@@ -576,3 +592,5 @@ export const darkElf: RaceAuthored = {
     }
   ]
 }
+
+

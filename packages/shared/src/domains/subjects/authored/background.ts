@@ -1,4 +1,4 @@
-import type { SUBJECT } from '#core'
+import type { SUBJECT, AuthoredRecordStatus } from '#core'
 import type { FeatureAuthored, ProficiencyGrantAuthored, DetailAuthored, StartingEquipmentAuthored } from '#authored'
 
 export interface BackgroundAuthored {
@@ -6,6 +6,7 @@ export interface BackgroundAuthored {
   id: string
   label: string
   description?: string
+  status?: AuthoredRecordStatus
   details?: DetailAuthored[]
   startingEquipment?: StartingEquipmentAuthored
   proficiencies?: ProficiencyGrantAuthored[]

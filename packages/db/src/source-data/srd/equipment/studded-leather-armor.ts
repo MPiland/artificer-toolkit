@@ -8,7 +8,6 @@ export const studdedLeatherArmor: EquipmentAuthored = {
   description: 'Leather reinforced with close-set rivets of metal.',
   category: S.EQUIPMENT_CATEGORY_CODE.ARMOR,
   properties: [S.EQUIPMENT_PROPERTY_CODE.LIGHT],
-  abilities: [],
   armorClass: 12,
   cost: S.gp(45),
   weight: S.lbs(13),

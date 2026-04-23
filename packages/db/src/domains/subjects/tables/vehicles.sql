@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS public.vehicles (
 
   label text NOT NULL,
   description text,
+  status text NOT NULL DEFAULT 'DRAFT',
 
   category text NOT NULL,
   size_code text,
@@ -49,6 +50,9 @@ CREATE TABLE IF NOT EXISTS public.vehicles (
 
   CONSTRAINT vehicles_category_chk CHECK (
     category IN ('LAND', 'WATER', 'AIR', 'SPELLJAMMER')
+  ),
+  CONSTRAINT vehicles_status_chk CHECK (
+    status IN ('DRAFT', 'ACTIVE')
   )
 );
 

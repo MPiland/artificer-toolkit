@@ -8,11 +8,12 @@ export const flail: EquipmentAuthored = {
     description: 'A handle connected by a chain to a spiked metal head.',
     category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
     properties: [S.EQUIPMENT_PROPERTY_CODE.MARTIAL, S.EQUIPMENT_PROPERTY_CODE.MELEE],
-    abilities: [],
-    capabilities: S.meleeWeaponCapabilities(S.equipId(16), 'BLUDGEONING', '1d8'),
+    modifiers: S.meleeWeaponAbilityModifiers(S.equipId(16)),
+    effects: S.meleeWeaponEffects(S.equipId(16), 'BLUDGEONING', '1d8'),
     cost: S.gp(10),
     weight: S.lbs(2),
     rarityId: S.RARITY_COMMON,
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
   }
+

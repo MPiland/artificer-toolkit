@@ -10,7 +10,6 @@ export const handaxePlus3: EquipmentVariantAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: handaxe.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
-  weight: S.lbs(2),
   rarityId: S.RARITY_VERY_RARE,
   maxBonus: 3,
   modifiers: S.thrownMagicWeaponModifiers(S.equipId(275), 3),

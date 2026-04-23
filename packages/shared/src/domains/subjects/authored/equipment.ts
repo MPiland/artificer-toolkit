@@ -2,15 +2,13 @@ import {
   type SUBJECT,
   type EQUIPMENT_CATEGORY_CODE,
   type MeasurementUnitCode,
-  type OperationCode,
-  type AbilityCode,
   type EquipmentPropertyCode,
   type EquipmentCategoryCode,
   type EquipmentAttribute,
-  type NodeSubjectCode
+  type NodeSubjectCode,
+  type AuthoredRecordStatus
 } from '#core'
 import {
-  type CapabilityAuthored,
   type EffectAuthored,
   type ModifierGrantAuthored,
   type ChargeAuthored,
@@ -42,22 +40,16 @@ export interface ContainsAuthored {
   quantity: number
 }
 
-export type EquipmentAbilitiesAuthored = {
-  op: OperationCode
-  abilities: { ability: AbilityCode }[]
-}
-
-export type EquipmentBaseAuthored = {
+export type BaseEquipmentAuthored = {
   kind: typeof SUBJECT.EQUIPMENT
   id: string
   label: string
   description: string | null
+  status?: AuthoredRecordStatus
   attributes?: EquipmentAttribute[]
   quote?: string
   cost?: CostAuthored
   weight: WeightAuthored
-  capabilities?: CapabilityAuthored[]
-  /** @deprecated Use capabilities. */
   effects?: EffectAuthored[]
   charges?: ChargeAuthored
   capacity?: CapacityAuthored
@@ -71,17 +63,30 @@ export type EquipmentBaseAuthored = {
   restrictions?: FacetAuthored<Extract<NodeSubjectCode, 'EQUIPMENT'>>
   userId: string
   systemId: string
-}
-
-export type EquipmentAuthored = {
-  kind: typeof SUBJECT.EQUIPMENT
   properties: EquipmentPropertyCode[]
   category: Exclude<EquipmentCategoryCode, typeof EQUIPMENT_CATEGORY_CODE.VARIANT>
-  abilities: EquipmentAbilitiesAuthored[]
-} & EquipmentBaseAuthored
+}
 
-export type EquipmentVariantAuthored = {
+export type VariantEquipmentAuthored = {
+  kind: typeof SUBJECT.EQUIPMENT
+  id: string
+  label: string
+  description: string | null
+  status?: AuthoredRecordStatus
+  quote?: string
+  effects?: EffectAuthored[]
+  charges?: ChargeAuthored
+  modifiers?: ModifierGrantAuthored[]
+  rarityId: string
+  maxBonus?: number
+  features?: FeatureAuthored<Extract<NodeSubjectCode, 'EQUIPMENT'>>[]
+  restrictions?: FacetAuthored<Extract<NodeSubjectCode, 'EQUIPMENT'>>
+  userId: string
+  systemId: string
   category: typeof EQUIPMENT_CATEGORY_CODE.VARIANT
   parentEquipmentId: string
   properties?: EquipmentPropertyCode[]
-} & EquipmentBaseAuthored
+}
+
+export type EquipmentAuthored = BaseEquipmentAuthored | VariantEquipmentAuthored
+export type EquipmentVariantAuthored = VariantEquipmentAuthored

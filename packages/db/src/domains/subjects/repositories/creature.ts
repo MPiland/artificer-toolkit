@@ -14,6 +14,7 @@ import { createDetailRepository } from '../../shared/repositories/detail.js'
 import { createFeatureRepository } from '../../features/repositories/feature.js'
 import { createProficiencyGrantRepository } from '../../grants/repositories/proficiency.js'
 import type { CreatureRepository, RepositoryFindAllOptions } from '../../../repositories/contracts.js'
+import { hydrateSubjectStatus } from '../status.js'
 
 function requireLinkedRecord<T>(value: T | null, message: string): T {
   if (value === null) throw new Error(message)
@@ -45,9 +46,7 @@ async function hydrateCreatureById(
   db: DBLike,
   id: string
 ): Promise<CreatureAuthored | null> {
-  // The creature schema is evolving ahead of regenerated DB types.
-  // Use a narrowed any-based query here until the next typegen pass.
-  const row = await (db as any)
+  const row = await db
     .selectFrom('creatures')
     .select([
       'id',
@@ -56,6 +55,7 @@ async function hydrateCreatureById(
       'label',
       'quote',
       'description',
+      'status',
       'record_kind',
       'category',
       'creature_type_id',
@@ -100,45 +100,45 @@ async function hydrateCreatureById(
     vulnerabilityRows,
     conditionImmunityRows
   ] = await Promise.all([
-    (db as any).selectFrom('creature_features')
+    db.selectFrom('creature_features')
       .select(['feature_id', 'sort_order'])
       .where('creature_id', '=', id)
       .orderBy('sort_order')
       .execute(),
-    (db as any).selectFrom('creature_details')
+    db.selectFrom('creature_details')
       .select(['detail_id', 'sort_order'])
       .where('creature_id', '=', id)
       .orderBy('sort_order')
       .execute(),
-    (db as any).selectFrom('creature_proficiency_grants')
+    db.selectFrom('creature_proficiency_grants')
       .select(['proficiency_grant_id', 'sort_order'])
       .where('creature_id', '=', id)
       .orderBy('sort_order')
       .execute(),
-    (db as any).selectFrom('creature_speeds')
+    db.selectFrom('creature_speeds')
       .select(['speed_id', 'amount', 'unit_code'])
       .where('creature_id', '=', id)
       .execute(),
-    (db as any).selectFrom('creature_actions')
+    db.selectFrom('creature_actions')
       .select([
         'id', 'action_type', 'sort_order', 'label', 'description', 'attack_bonus', 'damage', 'recharge'
       ])
       .where('creature_id', '=', id)
       .orderBy('sort_order')
       .execute(),
-    (db as any).selectFrom('creature_damage_resistances')
+    db.selectFrom('creature_damage_resistances')
       .select(['damage_type_id'])
       .where('creature_id', '=', id)
       .execute(),
-    (db as any).selectFrom('creature_damage_immunities')
+    db.selectFrom('creature_damage_immunities')
       .select(['damage_type_id'])
       .where('creature_id', '=', id)
       .execute(),
-    (db as any).selectFrom('creature_damage_vulnerabilities')
+    db.selectFrom('creature_damage_vulnerabilities')
       .select(['damage_type_id'])
       .where('creature_id', '=', id)
       .execute(),
-    (db as any).selectFrom('creature_condition_immunities')
+    db.selectFrom('creature_condition_immunities')
       .select(['condition_type_id'])
       .where('creature_id', '=', id)
       .execute()
@@ -149,16 +149,16 @@ async function hydrateCreatureById(
   const proficiencyGrantRepository = createProficiencyGrantRepository(db)
 
   const [details, features, proficiencies] = await Promise.all([
-    Promise.all(detailLinks.map((link: any) => detailRepository.findById(link.detail_id))),
-    Promise.all(featureLinks.map((link: any) => featureRepository.findById(link.feature_id))),
-    Promise.all(proficiencyLinks.map((link: any) => proficiencyGrantRepository.findById(link.proficiency_grant_id))),
+    Promise.all(detailLinks.map((link) => detailRepository.findById(link.detail_id))),
+    Promise.all(featureLinks.map((link) => featureRepository.findById(link.feature_id))),
+    Promise.all(proficiencyLinks.map((link) => proficiencyGrantRepository.findById(link.proficiency_grant_id))),
   ])
 
   const authoredDetails = details.map((detail, index) => requireLinkedRecord(detail, `Creature "${id}" is linked to missing detail "${detailLinks[index]?.detail_id}".`))
   const authoredFeatures = features.map((feature, index) => requireLinkedRecord(feature, `Creature "${id}" is linked to missing feature "${featureLinks[index]?.feature_id}".`))
   const authoredProficiencies = proficiencies.map((proficiency, index) => requireLinkedRecord(proficiency, `Creature "${id}" is linked to missing proficiency grant "${proficiencyLinks[index]?.proficiency_grant_id}".`))
 
-  const authoredSpeeds = speedRows.map((speed: any) => ({
+  const authoredSpeeds = speedRows.map((speed) => ({
     speedId: speed.speed_id,
     amount: speed.amount,
     unit: requireMeasurementUnit(id, speed.speed_id, speed.unit_code)
@@ -178,6 +178,7 @@ async function hydrateCreatureById(
     label: row.label,
     quote: row.quote ?? undefined,
     description: row.description ?? undefined,
+    status: hydrateSubjectStatus(row.status),
     details: authoredDetails.length > 0 ? authoredDetails : undefined,
     features: authoredFeatures.length > 0 ? authoredFeatures : undefined,
     proficiencies: authoredProficiencies.length > 0 ? authoredProficiencies : undefined,
@@ -221,15 +222,15 @@ async function hydrateCreatureById(
     hitDice: row.hit_dice ?? undefined,
     senses: row.senses ?? undefined,
     passivePerception: row.passive_perception ?? undefined,
-    damageVulnerabilities: vulnerabilityRows.map((entry: any) => entry.damage_type_id),
-    damageResistances: resistanceRows.map((entry: any) => entry.damage_type_id),
-    damageImmunities: immunityRows.map((entry: any) => entry.damage_type_id),
-    conditionImmunities: conditionImmunityRows.map((entry: any) => entry.condition_type_id),
+    damageVulnerabilities: vulnerabilityRows.map((entry) => entry.damage_type_id),
+    damageResistances: resistanceRows.map((entry) => entry.damage_type_id),
+    damageImmunities: immunityRows.map((entry) => entry.damage_type_id),
+    conditionImmunities: conditionImmunityRows.map((entry) => entry.condition_type_id),
     challengeRatingId: row.challenge_rating_id ?? undefined,
     xp: row.xp ?? undefined,
-    actions: actionRows.filter((action: any) => action.action_type === 'ACTION').map(mapAction),
-    bonusActions: actionRows.filter((action: any) => action.action_type === 'BONUS_ACTION').map(mapAction),
-    reactions: actionRows.filter((action: any) => action.action_type === 'REACTION').map(mapAction),
+    actions: actionRows.filter((action) => action.action_type === 'ACTION').map(mapAction),
+    bonusActions: actionRows.filter((action) => action.action_type === 'BONUS_ACTION').map(mapAction),
+    reactions: actionRows.filter((action) => action.action_type === 'REACTION').map(mapAction),
     legendaryProfile: row.legendary_profile ? (row.legendary_profile as unknown as CreatureLegendaryProfile) : undefined,
     lairProfile: row.lair_profile ? (row.lair_profile as unknown as CreatureLairProfile) : undefined,
     npcProfile: row.npc_profile ? (row.npc_profile as unknown as CreatureNpcProfile) : undefined
@@ -247,7 +248,7 @@ export function createCreatureRepository(db: DBLike): CreatureRepository {
     },
 
     async findAll(filter?: RepositoryFindAllOptions) {
-      let query = (db as any)
+      let query = db
         .selectFrom('creatures')
         .select('id')
         .orderBy('label')
@@ -260,7 +261,7 @@ export function createCreatureRepository(db: DBLike): CreatureRepository {
       }
 
       const rows = await query.execute()
-      const records = await Promise.all(rows.map((row: any) => hydrateCreatureById(db, row.id)))
+      const records = await Promise.all(rows.map((row) => hydrateCreatureById(db, row.id)))
       return records.filter((record): record is CreatureAuthored => record !== null)
     }
   }

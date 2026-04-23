@@ -11,6 +11,7 @@ import {
 } from './shared.js'
 import {
   abilityCodeSchema,
+  authoredRecordStatusSchema,
   chargeDtoSchema,
   detailDtoSchema,
   startingEquipmentDtoSchema
@@ -22,6 +23,7 @@ const classBaseDtoSchema = z.object({
   id: z.string(),
   label: z.string(),
   description: z.string().optional(),
+  status: authoredRecordStatusSchema.optional(),
   details: z.array(detailDtoSchema).optional(),
   proficiencies: z.array(proficiencyGrantDtoSchema).optional(),
   spellcasting: z.object({

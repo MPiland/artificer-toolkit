@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
-import { branchDtoSchema } from './branch.js'
-import { activationCodeSchema, triggerCodeSchema } from '../shared/enums.js'
+import { manifestBehaviorPathDtoSchema, pathDtoSchema } from './path.js'
+import { activationCodeSchema, invocationKindSchema, triggerCodeSchema } from '../shared/enums.js'
 import { rangeDtoSchema } from '../shared/range.js'
 import { savingThrowDtoSchema } from '../shared/savingThrow.js'
 import { shapeDtoSchema } from '../shared/shape.js'
@@ -25,8 +25,31 @@ export const activationDtoSchema = z.discriminatedUnion('code', [
   })
 ])
 
-export const invocationDtoSchema = z.discriminatedUnion('triggerCode', [
+export const invocationDtoSchema = z.union([
   z.object({
+    kind: z.literal(invocationKindSchema.enum.PASSIVE),
+    triggerCode: z.literal(triggerCodeSchema.enum.SAVING_THROW),
+    savingThrow: savingThrowDtoSchema,
+    range: rangeDtoSchema,
+    shape: shapeDtoSchema.optional(),
+    targeting: targetingDtoSchema.optional()
+  }),
+  z.object({
+    kind: z.literal(invocationKindSchema.enum.PASSIVE),
+    triggerCode: z.enum([
+      triggerCodeSchema.enum.ACTIVATED,
+      triggerCodeSchema.enum.MELEE_WEAPON_ATTACK,
+      triggerCodeSchema.enum.RANGED_WEAPON_ATTACK,
+      triggerCodeSchema.enum.UNARMED_ATTACK,
+      triggerCodeSchema.enum.SPELL_ATTACK,
+      triggerCodeSchema.enum.ENTER_AREA
+    ]),
+    range: rangeDtoSchema,
+    shape: shapeDtoSchema.optional(),
+    targeting: targetingDtoSchema.optional()
+  }),
+  z.object({
+    kind: z.literal(invocationKindSchema.enum.ACTION).optional(),
     triggerCode: z.literal(triggerCodeSchema.enum.SAVING_THROW),
     savingThrow: savingThrowDtoSchema,
     activation: activationDtoSchema,
@@ -35,6 +58,7 @@ export const invocationDtoSchema = z.discriminatedUnion('triggerCode', [
     targeting: targetingDtoSchema.optional()
   }),
   z.object({
+    kind: z.literal(invocationKindSchema.enum.ACTION).optional(),
     triggerCode: z.enum([
       triggerCodeSchema.enum.ACTIVATED,
       triggerCodeSchema.enum.MELEE_WEAPON_ATTACK,
@@ -50,11 +74,16 @@ export const invocationDtoSchema = z.discriminatedUnion('triggerCode', [
   })
 ])
 
-export const effectDtoSchema = z.object({
+const createEffectDtoSchema = (pathSchema: z.ZodTypeAny) => z.object({
   id: z.string(),
   order: z.number().int(),
   invocation: invocationDtoSchema,
-  branches: z.array(branchDtoSchema)
+  paths: z.array(pathSchema).min(1)
 })
 
+export const effectDtoSchema = createEffectDtoSchema(pathDtoSchema)
+export const manifestNestedBehaviorDtoSchema = createEffectDtoSchema(manifestBehaviorPathDtoSchema)
+
 export type EffectDto = z.infer<typeof effectDtoSchema>
+
+

@@ -8,7 +8,6 @@ export const spyglass: EquipmentAuthored = {
     description: "A brass telescope that magnifies distant objects up to twice normal range.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(1000),
     weight: S.lbs(1),
     rarityId: S.RARITY_COMMON,

@@ -10,5 +10,4 @@ export type TeleportAuthored = {
   targetKind: TeleportTargetKind
   destinationKind: TeleportDestinationKind
   distance?: RangeAuthored
-  detail?: string
 }

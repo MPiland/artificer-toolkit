@@ -2,6 +2,7 @@ import type {
   CharacterAcquisitionTiming,
   CharacterFeatureSelectionRecord,
   CharacterFeatureSource,
+  CharacterProfileAuthored,
   CharacterResourceGrantSource,
   CharacterSpellSelectionSource
 } from '#authored'
@@ -36,6 +37,7 @@ export interface AssemblerCharacterInput {
   userId: string
   label: string
   description?: string
+  profile: CharacterProfileAuthored
   intent: CompiledCharacterIntent
   state: CompiledCharacterState
 }
@@ -78,6 +80,7 @@ export interface AssembledCharacterSnapshot {
   userId: string
   label: string
   description?: string
+  profile: CharacterProfileAuthored
   intent: CompiledCharacterIntent
   state: CompiledCharacterState
   features: AssembledCharacterFeature[]
@@ -104,6 +107,7 @@ export function buildAssemblerCharacterInput(
     userId: compiledCharacter.userId,
     label: compiledCharacter.label,
     description: compiledCharacter.description,
+    profile: compiledCharacter.profile,
     intent: compiledCharacter.intent,
     state: compiledCharacter.state
   }

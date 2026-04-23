@@ -8,7 +8,6 @@ export const breastplate: EquipmentAuthored = {
     description: 'A fitted metal chest piece with leather backing.',
     category: S.EQUIPMENT_CATEGORY_CODE.ARMOR,
     properties: [S.EQUIPMENT_PROPERTY_CODE.MEDIUM],
-    abilities: [],
     armorClass: 14,
     cost: S.gp(400),
     weight: S.lbs(20),

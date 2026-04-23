@@ -8,7 +8,6 @@ export const shieldMetal: EquipmentAuthored = {
   description: 'A metal shield strapped to the forearm.',
   category: S.EQUIPMENT_CATEGORY_CODE.SHIELD,
   properties: [S.EQUIPMENT_PROPERTY_CODE.METAL],
-  abilities: [],
   armorClass: 2,
   cost: S.gp(10),
   weight: S.lbs(6),

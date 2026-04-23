@@ -10,7 +10,6 @@ export const clubPlus2: EquipmentVariantAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: club.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
-  weight: S.lbs(2),
   rarityId: S.RARITY_RARE,
   maxBonus: 2,
   modifiers: S.meleeMagicWeaponModifiers(S.equipId(250), 2),

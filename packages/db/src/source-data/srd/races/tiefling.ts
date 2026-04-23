@@ -9,6 +9,7 @@ import {
   PROFICIENCY_KIND,
   RANGE_KIND,
   RACE_CATEGORY_CODE,
+  RACE_SELECTION_MODE,
   SCALING,
   SCALING_AMOUNT_KIND,
   SIZE_CODE,
@@ -17,7 +18,7 @@ import {
   type RaceAuthored
 } from '@artificer-toolkit/shared'
 import { RACE_IDS, SPELL_IDS } from '../ids.js'
-import { SRD_DAMAGE_TYPES, SRD_DARKVISION_SENSE_ID, SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import { SRD_DAMAGE_TYPES, SRD_DARKVISION_SENSE_ID, SRD_INFERNAL_HERITAGE_ID, SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 
 function damageTypeId(code: string): string {
   const entry = SRD_DAMAGE_TYPES.find((d) => d.code === code)
@@ -47,9 +48,10 @@ export const tiefling: RaceAuthored = {
   id: RACE_IDS.TIEFLING,
   label: 'Tiefling',
   category: RACE_CATEGORY_CODE.BASE,
-  playable: true,
+  selectionMode: RACE_SELECTION_MODE.DIRECT,
   size: SIZE_CODE.MEDIUM,
   speeds: tieflingWalk30,
+  heritageIds: [SRD_INFERNAL_HERITAGE_ID],
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
   features: [
@@ -197,3 +199,4 @@ export const tiefling: RaceAuthored = {
     }
   ]
 }
+

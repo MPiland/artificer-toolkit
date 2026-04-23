@@ -1,104 +1,115 @@
-import type { CreatureAuthored } from '@artificer-toolkit/shared'
-import * as S from './shared.js'
-
+import type { CreatureAuthored } from '@artificer-toolkit/shared';
+import * as S from './shared.js';
 export const ogreZombie: CreatureAuthored = {
-  id: S.CREATURE_IDS.OGRE_ZOMBIE,
-  label: 'Ogre Zombie',
-  userId: S.SRD_USER_ID,
-  systemId: S.SRD_SYSTEM_ID,
-  recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
-  category: S.CREATURE_CATEGORY_CODE.MONSTER,
-  creatureTypeId: S.CREATURE_TYPE.UNDEAD,
-  size: S.SIZE_CODE.LARGE,
-  alignmentId: '00000000-0000-0000-0001-000800000000',
-  abilityScores: {
-    STRENGTH: 19,
-    DEXTERITY: 6,
-    CONSTITUTION: 18,
-    INTELLIGENCE: 3,
-    WISDOM: 6,
-    CHARISMA: 5,
-    SPELLCASTING: 0
-  },
-  armorClass: 8,
-  hitPoints: 85,
-  hitDice: '9d10+36',
-  speeds: [...S.walk(30)],
-  proficiencies: [
-    S.grantedSaveProficiency(210, 1, 'WISDOM')
-  ],
-  damageImmunities: ['poison'],
-  conditionImmunities: ['poisoned'],
-  senses: ['darkvision 60 ft.'],
-  passivePerception: 8,
-  challengeRatingId: S.CR.CR_2,
-  xp: 450,
-  features: [
-    {
-      id: S.featureId(210, 1),
-      label: 'Undead Fortitude',
-      description: 'Undead Fortitude. If damage reduces the zombie to 0 hit points, it must make a Constitution saving throw with a DC of 5 + the damage taken, unless the damage is radiant or from a critical hit. On a success, the zombie drops to 1 hit point instead.',
-      order: 1
+    id: S.CREATURE_IDS.OGRE_ZOMBIE,
+    label: 'Ogre Zombie',
+    userId: S.SRD_USER_ID,
+    systemId: S.SRD_SYSTEM_ID,
+    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
+    category: S.CREATURE_CATEGORY_CODE.MONSTER,
+    creatureTypeId: S.CREATURE_TYPE.UNDEAD,
+    size: S.SIZE_CODE.LARGE,
+    alignmentId: '00000000-0000-0000-0001-000800000000',
+    abilityScores: {
+        STRENGTH: 19,
+        DEXTERITY: 6,
+        CONSTITUTION: 18,
+        INTELLIGENCE: 3,
+        WISDOM: 6,
+        CHARISMA: 5,
+        SPELLCASTING: 0
     },
-    {
-      id: S.featureId(210, 2),
-      label: 'Language Limitation',
-      description: 'Understands Common and Giant but can\'t speak.',
-      grants: {
-        proficiencies: [
-          S.grantedLanguageProficiency(210, 2, 'COMMON', 'GIANT')
-        ]
-      },
-      order: 2
-    },
-    {
-      id: S.featureId(210, 3),
-      label: 'Morningstar',
-      description: 'Morningstar. Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 13 (2d8 + 4) piercing damage.',
-      capabilities: [
+    armorClass: 8,
+    hitPoints: 85,
+    hitDice: '9d10+36',
+    speeds: [...S.walk(30)],
+    proficiencies: [
+        S.grantedSaveProficiency(210, 1, 'WISDOM')
+    ],
+    damageImmunities: ['poison'],
+    conditionImmunities: ['poisoned'],
+    senses: ['darkvision 60 ft.'],
+    passivePerception: 8,
+    challengeRatingId: S.CR.CR_2,
+    xp: 450,
+    features: [
         {
-          id: S.actionId(210, 1),
-          order: 1,
-          invocation: {
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
-            activation: {
-              code: S.ACTIVATION_CODE.ACTION,
-              amount: 1
+            id: S.featureId(210, 1),
+            label: 'Undead Fortitude',
+            description: 'Undead Fortitude. If damage reduces the zombie to 0 hit points, it must make a Constitution saving throw with a DC of 5 + the damage taken, unless the damage is radiant or from a critical hit. On a success, the zombie drops to 1 hit point instead.',
+            order: 1
+        },
+        {
+            id: S.featureId(210, 2),
+            label: 'Language Limitation',
+            description: 'Understands Common and Giant but can\'t speak.',
+            grants: {
+                proficiencies: [
+                    S.grantedLanguageProficiency(210, 2, 'COMMON', 'GIANT')
+                ]
             },
-            range: {
-              id: S.actionId(210, 2),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 5,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
-            }
-          },
-          branches: [
-            {
-              id: S.actionId(210, 3),
-              branch: S.BRANCH.ON_HIT,
-              groupType: S.BRANCH_GROUP_TYPE.SINGLE,
-              resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
-              effectKind: S.EFFECT_KIND.DAMAGE,
-              damageTypeId: S.damageTypeId('PIERCING'),
-              valueKind: S.DAMAGE_VALUE_KIND.DICE,
-              scalingKind: S.SCALING.NONE,
-              diceConfig: '2d8',
-              bonuses: [
+            order: 2
+        },
+        {
+            id: S.featureId(210, 3),
+            label: 'Morningstar',
+            description: 'Morningstar. Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 13 (2d8 + 4) piercing damage.',
+            effects: [
                 {
-                  id: S.actionId(210, 4),
-                  bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
-                  ability: S.ABILITY_CODE.STRENGTH,
-                  order: 1
+                    id: S.actionId(210, 1),
+                    order: 1,
+                    invocation: {
+                        triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+                        activation: {
+                            code: S.ACTIVATION_CODE.ACTION,
+                            amount: 1
+                        },
+                        range: {
+                            id: S.actionId(210, 2),
+                            rangeKind: S.RANGE_KIND.DISTANCE,
+                            amount: 5,
+                            unit: S.MEASUREMENT_UNIT_CODE.FEET
+                        },
+                        targeting: {
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                        }
+                    },
+                    paths: [
+                        {
+                            id: S.actionId(210, 3),
+                            order: 1,
+                            pathCode: S.PATH_CODE.ON_HIT,
+                            groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            selectionKind: "FIXED" as const,
+                            resultBlock: {
+                                id: S.actionId(210, 3) + "__result",
+                                resultKind: "SINGLE" as const,
+                                outcomes: [
+                                    {
+                                        id: S.actionId(210, 3),
+                                        effectKind: S.EFFECT_KIND.DAMAGE,
+                                        damageTypeId: S.damageTypeId('PIERCING'),
+                                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                                        scalingKind: S.SCALING.NONE,
+                                        diceConfig: '2d8',
+                                        bonuses: [
+                                            {
+                                                id: S.actionId(210, 4),
+                                                bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
+                                                ability: S.ABILITY_CODE.STRENGTH,
+                                                order: 1
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    ]
                 }
-              ]
-            }
-          ]
+            ],
+            order: 3
         }
-      ],
-      order: 3
-    }
-  ]
-}
+    ]
+};
+
+

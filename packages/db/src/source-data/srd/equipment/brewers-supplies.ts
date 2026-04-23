@@ -9,7 +9,6 @@ export const brewersSupplies: EquipmentAuthored = {
     'Equipment for brewing ale, wine, and other beverages, including a large pot and various fermentation tools.',
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
-  abilities: [],
   cost: S.gp(20),
   weight: S.lbs(9),
   rarityId: S.RARITY_COMMON,

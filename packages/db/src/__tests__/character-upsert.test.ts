@@ -9,6 +9,14 @@ function buildCharacter(): CharacterAuthored {
     id: 'character-1',
     label: 'Aria',
     description: 'Initial character state',
+    profile: {
+      alignmentId: 'alignment-1',
+      lifestyleId: 'lifestyle-1',
+      faith: 'Selune',
+      personalityTraits: 'Always offers a kind word.',
+      backstory: 'Raised on the road between two temple cities.',
+      notes: 'Carries a weathered journal.'
+    },
     systemId: 'system-1',
     userId: 'user-1',
     intent: {
@@ -293,6 +301,31 @@ describe('upsertCharacter', () => {
         boolean_value: true
       }
     ])
+    expect(db.snapshot('character_profile')).toEqual([
+      {
+        character_id: 'character-1',
+        alignment_id: 'alignment-1',
+        lifestyle_id: 'lifestyle-1',
+        faith: 'Selune',
+        gender: null,
+        age: null,
+        eyes: null,
+        hair: null,
+        skin: null,
+        height: null,
+        weight: null,
+        physical_characteristics: null,
+        personality_traits: 'Always offers a kind word.',
+        ideals: null,
+        bonds: null,
+        flaws: null,
+        organizations: null,
+        allies: null,
+        enemies: null,
+        backstory: 'Raised on the road between two temple cities.',
+        notes: 'Carries a weathered journal.'
+      }
+    ])
     expect(db.snapshot('character_creatures')).toEqual([
       {
         id: 'character-creature-1',
@@ -333,6 +366,10 @@ describe('upsertCharacter', () => {
       ...initial,
       label: 'Aria Revised',
       description: undefined,
+      profile: {
+        alignmentId: 'alignment-2',
+        notes: 'Updated note'
+      },
       intent: {
         ...initial.intent,
         advancement: {
@@ -422,7 +459,33 @@ describe('upsertCharacter', () => {
         system_id: 'system-1',
         user_id: 'user-1',
         label: 'Aria Revised',
-        description: null
+        description: null,
+        status: 'DRAFT'
+      }
+    ])
+    expect(db.snapshot('character_profile')).toEqual([
+      {
+        character_id: 'character-1',
+        alignment_id: 'alignment-2',
+        lifestyle_id: null,
+        faith: null,
+        gender: null,
+        age: null,
+        eyes: null,
+        hair: null,
+        skin: null,
+        height: null,
+        weight: null,
+        physical_characteristics: null,
+        personality_traits: null,
+        ideals: null,
+        bonds: null,
+        flaws: null,
+        organizations: null,
+        allies: null,
+        enemies: null,
+        backstory: null,
+        notes: 'Updated note'
       }
     ])
     expect(db.snapshot('character_feature_acquisitions')).toEqual([])

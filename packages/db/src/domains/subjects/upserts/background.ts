@@ -6,6 +6,7 @@ import {
 } from '../../shared/upserts/index.js'
 import { upsertProficiencyGrant } from '../../grants/upserts/index.js'
 import { upsertFeature } from '../../features/upserts/index.js'
+import { normalizeSubjectStatus } from '../status.js'
 
 type BackgroundRow = {
   id: string
@@ -13,6 +14,7 @@ type BackgroundRow = {
   user_id: string
   label: string
   description: string | null
+  status: BackgroundAuthored['status']
   starting_equipment_id: string | null
 }
 
@@ -41,6 +43,7 @@ function mapBackgroundRow(json_data: BackgroundAuthored): BackgroundRow {
     user_id: json_data.userId,
     label: json_data.label,
     description: json_data.description ?? null,
+    status: normalizeSubjectStatus(json_data.status),
     starting_equipment_id: json_data.startingEquipment?.id ?? null
   }
 }
@@ -83,6 +86,7 @@ export async function upsertBackground(
         user_id: ref('excluded.user_id'),
         label: ref('excluded.label'),
         description: ref('excluded.description'),
+        status: ref('excluded.status'),
         starting_equipment_id: ref('excluded.starting_equipment_id')
       })))
       .execute()

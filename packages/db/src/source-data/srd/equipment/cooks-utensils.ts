@@ -9,7 +9,6 @@ export const cooksUtensils: EquipmentAuthored = {
     'Pots, pans, knives, and seasoning equipment for preparing meals over a campfire or in a kitchen.',
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
-  abilities: [],
   cost: S.gp(1),
   weight: S.lbs(8),
   rarityId: S.RARITY_COMMON,

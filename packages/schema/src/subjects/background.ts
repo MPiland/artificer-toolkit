@@ -6,12 +6,14 @@ import {
 } from '../shared/index.js'
 import { featureDtoSchema } from '../features/index.js'
 import { proficiencyGrantDtoSchema } from '../grants/index.js'
+import { authoredRecordStatusSchema } from '../shared/enums.js'
 
 export const backgroundAuthoredDtoSchema = z.object({
   kind: z.literal('BACKGROUND'),
   id: z.string(),
   label: z.string(),
   description: z.string().optional(),
+  status: authoredRecordStatusSchema.optional(),
   details: z.array(detailDtoSchema).optional(),
   startingEquipment: startingEquipmentDtoSchema.optional(),
   proficiencies: z.array(proficiencyGrantDtoSchema).optional(),

@@ -1,11 +1,11 @@
 import {
   CASTING_TIME_UNIT_OPTIONS,
-  SPELL_ATTRIBUTE_OPTIONS,
-  type SpellAttribute
+  SPELL_COMPONENT_OPTIONS,
+  SPELL_ATTRIBUTE_OPTIONS
 } from '#core'
 import { buildNodeMap } from '#utils'
 import {
-  CAPABILITY_NODE_MAP
+  EFFECT_NODE_MAP
 } from '#maps'
 import type { SpellAuthored, CastingTimeAuthored } from '#authored'
 
@@ -39,6 +39,10 @@ export const SPELL_NODE_MAP = spellNode.define('spell', ({ map, nodes, data }) =
       kind: 'INLINE',
       options: SPELL_ATTRIBUTE_OPTIONS
     }))
+    .set('components', selectMulti(['components'], 'Components', {
+      kind: 'INLINE',
+      options: SPELL_COMPONENT_OPTIONS
+    }))
     .set('classIds', selectMulti(['classIds'], 'Classes', {
       kind: 'DATA',
       relationship: table('classes', {
@@ -52,5 +56,6 @@ export const SPELL_NODE_MAP = spellNode.define('spell', ({ map, nodes, data }) =
       })
     }))
     .set('castingTime', groupObject(['castingTime'], 'Casting Time', () => CASTING_TIME_NODE_MAP))
-    .set('capabilities', groupArray(['capabilities'], 'Capabilities', () => CAPABILITY_NODE_MAP))
+    .set('effects', groupArray(['effects'], 'Effects', () => EFFECT_NODE_MAP))
 })
+

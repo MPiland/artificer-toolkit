@@ -8,7 +8,6 @@ export const dungeoneersPack: EquipmentAuthored = {
     description: "Essentials for delving into dungeons and other underground environments.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(12),
     weight: S.lbs(0),
     rarityId: S.RARITY_COMMON,

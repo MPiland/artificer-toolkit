@@ -8,7 +8,6 @@ export const disguiseKit: EquipmentAuthored = {
   description: 'Cosmetics, hair dye, props, and small costumes for altering appearance.',
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
-  abilities: [],
   cost: S.gp(25),
   weight: S.lbs(3),
   rarityId: S.RARITY_COMMON,

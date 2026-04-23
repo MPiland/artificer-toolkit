@@ -12,6 +12,7 @@ __metadata:
     "@artificer-toolkit/functions": "workspace:^"
     "@artificer-toolkit/shared": "workspace:^"
     "@supabase/supabase-js": "npm:^2.97.0"
+    "@trpc/server": "npm:^11.6.0"
   languageName: unknown
   linkType: soft
 
@@ -34,12 +35,13 @@ __metadata:
   resolution: "@artificer-toolkit/functions@workspace:packages/functions"
   dependencies:
     "@artificer-toolkit/db": "workspace:^"
+    "@artificer-toolkit/schema": "workspace:^"
     "@artificer-toolkit/shared": "workspace:^"
     "@supabase/supabase-js": "npm:^2.97.0"
   languageName: unknown
   linkType: soft
 
-"@artificer-toolkit/schema@workspace:packages/schema":
+"@artificer-toolkit/schema@workspace:^, @artificer-toolkit/schema@workspace:packages/schema":
   version: 0.0.0-use.local
   resolution: "@artificer-toolkit/schema@workspace:packages/schema"
   dependencies:
@@ -2733,6 +2735,17 @@ __metadata:
     "@tiptap/extension-floating-menu":
       optional: true
   checksum: 10c0/17a5d4f12e9f348b584da2336f822b5f7c5c4a0bc009da4ddabd76dd8c7453aa01b5a94adf22805da9c78dd80a81704ca924b4f4a26ac5922e89ba839364d133
+  languageName: node
+  linkType: hard
+
+"@trpc/server@npm:^11.6.0":
+  version: 11.15.0
+  resolution: "@trpc/server@npm:11.15.0"
+  peerDependencies:
+    typescript: ">=5.7.2"
+  bin:
+    intent: bin/intent.js
+  checksum: 10c0/85495fbf7474b4eed18599244d42443ef53153029fb1d6f95e412ec142e073423a2c03a092111ef4e8e596757efb77f02536b4ae668440dd6f4de56370b73f5a
   languageName: node
   linkType: hard
 

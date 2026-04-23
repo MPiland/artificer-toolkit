@@ -8,7 +8,6 @@ export const weaversTools: EquipmentAuthored = {
   description: 'A loom shuttle, needles, and thread for weaving cloth and tapestries.',
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
-  abilities: [],
   cost: S.gp(1),
   weight: S.lbs(5),
   rarityId: S.RARITY_COMMON,

@@ -1,9 +1,16 @@
 import { z } from 'zod'
 import { measurementUnitCodeSchema, shapeKindSchema } from './enums.js'
+import { createBreakpointScalingDtoSchema } from './scaling.js'
 
 const shapeMeasurementDtoSchema = z.object({
   amount: z.number(),
-  unit: measurementUnitCodeSchema
+  unit: measurementUnitCodeSchema,
+  scaling: createBreakpointScalingDtoSchema(
+    z.object({
+      amount: z.number(),
+      unit: measurementUnitCodeSchema
+    })
+  ).optional()
 })
 
 export const shapeDtoSchema = z.discriminatedUnion('shapeKind', [

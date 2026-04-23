@@ -19,26 +19,26 @@ export const TARGET_SELECTION_KIND_REGISTRY: Record<
   [TARGET_SELECTION_KIND.SELF]: {
     code: TARGET_SELECTION_KIND.SELF,
     label: 'Self',
-    tooltip: 'The capability targets the source only.',
-    description: 'The capability targets the source only.'
+    tooltip: 'The effect targets the source only.',
+    description: 'The effect targets the source only.'
   },
   [TARGET_SELECTION_KIND.SINGLE_TARGET]: {
     code: TARGET_SELECTION_KIND.SINGLE_TARGET,
     label: 'Single Target',
     tooltip: 'Choose a single target.',
-    description: 'The capability chooses a single target.'
+    description: 'The effect chooses a single target.'
   },
   [TARGET_SELECTION_KIND.CHOSEN_CREATURES]: {
     code: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
     label: 'Chosen Creatures',
     tooltip: 'Choose one or more creatures as targets.',
-    description: 'The capability chooses one or more creatures as targets.'
+    description: 'The effect chooses one or more creatures as targets.'
   },
   [TARGET_SELECTION_KIND.AREA_CONTENTS]: {
     code: TARGET_SELECTION_KIND.AREA_CONTENTS,
     label: 'Area Contents',
-    tooltip: 'The capability affects creatures or objects within an area.',
-    description: 'The capability affects creatures or objects within an area.'
+    tooltip: 'The effect affects creatures or objects within an area.',
+    description: 'The effect affects creatures or objects within an area.'
   }
 } as const
 
@@ -83,3 +83,4 @@ export const TARGET_DISPOSITION_KIND_REGISTRY: Record<
 export const TARGET_DISPOSITION_KIND_OPTIONS = valuesOf(
   TARGET_DISPOSITION_KIND_REGISTRY
 ) as readonly TargetDispositionKindOption[]
+

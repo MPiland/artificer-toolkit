@@ -8,7 +8,6 @@ export const holySymbolAmulet: EquipmentAuthored = {
     description: "A pendant bearing the symbol of a deity, worn around the neck as a divine focus.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(5),
     weight: S.lbs(1),
     rarityId: S.RARITY_COMMON,

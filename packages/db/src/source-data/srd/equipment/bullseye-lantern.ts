@@ -8,7 +8,6 @@ export const bullseyeLantern: EquipmentAuthored = {
   description: 'A lantern with a focused lens that casts bright light in a 60-foot cone.',
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
-  abilities: [],
   cost: S.gp(10),
   weight: S.lbs(2),
   rarityId: S.RARITY_COMMON,

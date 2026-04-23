@@ -28,3 +28,4 @@ export const goblin: CreatureAuthored = {
   challengeRatingId: CR.CR_1_4,
   xp: 50
 }
+

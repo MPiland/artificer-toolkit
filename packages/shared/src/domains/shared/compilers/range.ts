@@ -1,5 +1,5 @@
-import type { MeasurementUnitCode, RangeKind } from '#core'
-import type { RangeAuthored } from '#authored'
+import type { MeasurementUnitCode, RangeKind, ScalableValueAuthored } from '#core'
+import type { RangeAuthored, RangeMeasurementAuthored } from '#authored'
 
 export type CompiledRange
   = | {
@@ -11,6 +11,7 @@ export type CompiledRange
       rangeKind: 'DISTANCE'
       amount: number
       unit: MeasurementUnitCode
+      scaling?: ScalableValueAuthored<RangeMeasurementAuthored>
     }
 
 export function compileRange(authored: RangeAuthored): CompiledRange {
@@ -20,7 +21,8 @@ export function compileRange(authored: RangeAuthored): CompiledRange {
         id: authored.id,
         rangeKind: authored.rangeKind,
         amount: authored.amount,
-        unit: authored.unit
+        unit: authored.unit,
+        ...(authored.scaling ? { scaling: authored.scaling } : {})
       }
 
     default:

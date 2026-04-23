@@ -305,10 +305,10 @@ export const warlock: ClassAuthored = {
                 grantKind: GRANT_KIND.MODIFIER_GRANT,
                 valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE,
                 domain: { attackDomain: 'SPELL' as const },
-                modifierKind: MODIFIER_KIND.BONUS,
+                modifierKind: MODIFIER_KIND.ABILITY_MODIFIER_BONUS,
                 scope: MODIFIER_SCOPE_KIND.SOURCE,
                 selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-                payload: { valueKind: 'ABILITY_MODIFIER' as const, ability: ABILITY_CODE.CHARISMA },
+                payload: { ability: ABILITY_CODE.CHARISMA },
                 order: 0,
                 // Scope this modifier to Eldritch Blast only — without this restriction
                 // the CHA bonus would apply to all spell attacks on the character sheet.

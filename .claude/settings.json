@@ -17,13 +17,16 @@
       "Bash(python3 /c/tmp/fix_creature_branches.py)",
       "Read(//usr/**)",
       "Bash(python /c/tmp/fix_creature_branches.py)",
-      "Bash(grep -B 2 \"label: ''''Tail Attack''''\" packages/db/src/source-data/srd/creatures/adult-black-dragon.ts)"
+      "Bash(grep -B 2 \"label: ''''Tail Attack''''\" packages/db/src/source-data/srd/creatures/adult-black-dragon.ts)",
+      "Bash(grep -l export.*Query /c/Users/pilan/Desktop/artificer-toolkit/packages/functions/src/**/*.ts)",
+      "Bash(grep -l \"supabase\\\\|auth\" /c/Users/pilan/Desktop/artificer-toolkit/apps/apis/src/**/*.ts)"
     ]
   },
   "enabledPlugins": {
     "context7@claude-plugins-official": true,
     "frontend-design@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
-    "claude-md-management@claude-plugins-official": true
+    "claude-md-management@claude-plugins-official": true,
+    "figma@claude-plugins-official": true
   }
 }

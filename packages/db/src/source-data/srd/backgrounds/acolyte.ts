@@ -64,7 +64,7 @@ export const acolyte: BackgroundAuthored = {
       selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
       scalingKind: SCALING.NONE,
       count: 2,
-      authoringModeKind: AUTHORING_MODE_KIND.ALL,
+      authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
       languageIds: availableLanguageIds(),
       order: 1
     }

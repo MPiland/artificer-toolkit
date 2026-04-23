@@ -8,6 +8,7 @@ import type { CompiledRange } from '../../shared/compilers/range.js'
 import type { EngineProficiency, EngineSense } from '../contracts/engineState.js'
 import type { RulesSystem } from '../contracts/rulesSystem.js'
 import type { CharacterAssemblyRegistry } from '../registry.js'
+import { buildModifierDomainKey } from './modifierDomainKey.js'
 
 /**
  * Accumulated state built up by processing all features in source order,
@@ -194,10 +195,19 @@ function collectModifiers(
       if (spellIds.length > 0) scopeSpellIds = spellIds
     }
 
-    const g = grant as { valueDomainCode?: string, modifierKind?: string }
-    const domain = g.valueDomainCode ?? 'UNKNOWN'
+    const g = grant as {
+      valueDomainCode?: string
+      modifierKind?: string
+      domain?: Record<string, unknown>
+    }
+    const valueDomainCode = g.valueDomainCode ?? 'UNKNOWN'
     const kind = g.modifierKind ?? 'BONUS'
-    out.push({ domainKey: `${domain}:${kind}`, modifierKind: kind, grant, scopeSpellIds })
+    out.push({
+      domainKey: buildModifierDomainKey(valueDomainCode, kind, g.domain),
+      modifierKind: kind,
+      grant,
+      scopeSpellIds
+    })
   }
 }
 

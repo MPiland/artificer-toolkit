@@ -8,7 +8,6 @@ export const blanket: EquipmentAuthored = {
     description: "A thick wool blanket for warmth during cold nights.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.sp(5),
     weight: S.lbs(3),
     rarityId: S.RARITY_COMMON,

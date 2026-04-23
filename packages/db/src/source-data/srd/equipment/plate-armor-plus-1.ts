@@ -10,7 +10,6 @@ export const plateArmorPlus1: EquipmentVariantAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: plateArmor.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
-  weight: plateArmor.weight,
   rarityId: S.RARITY_UNCOMMON,
   maxBonus: 1,
   modifiers: S.magicArmorModifiers(S.equipId(339), 1),

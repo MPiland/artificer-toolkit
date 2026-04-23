@@ -9,7 +9,6 @@ export const alchemistsSupplies: EquipmentAuthored = {
     'Tools for practicing the craft of alchemy, including vials, a mortar and pestle, and common reagents.',
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
-  abilities: [],
   cost: S.gp(50),
   weight: S.lbs(8),
   rarityId: S.RARITY_COMMON,

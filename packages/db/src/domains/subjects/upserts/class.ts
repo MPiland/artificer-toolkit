@@ -17,6 +17,7 @@ import {
 import { upsertProficiencyGrant } from '../../grants/upserts/index.js'
 import { upsertFeature } from '../../features/upserts/index.js'
 import { upsertCharge } from '../../shared/upserts/charge.js'
+import { normalizeSubjectStatus } from '../status.js'
 
 type ClassRow = {
   id: string
@@ -26,6 +27,7 @@ type ClassRow = {
   parent_class_id: string | null
   label: string
   description: string | null
+  status: ClassAuthored['status']
   starting_equipment_id: string | null
 }
 
@@ -248,6 +250,7 @@ function mapClassRow(json_data: ClassAuthored): ClassRow {
       parent_class_id: null,
       label: json_data.label,
       description: json_data.description ?? null,
+      status: normalizeSubjectStatus(json_data.status),
       starting_equipment_id: json_data.startingEquipment.id
     }
   }
@@ -260,6 +263,7 @@ function mapClassRow(json_data: ClassAuthored): ClassRow {
     parent_class_id: json_data.parentClassId,
     label: json_data.label,
     description: json_data.description ?? null,
+    status: normalizeSubjectStatus(json_data.status),
     starting_equipment_id: null
   }
 }
@@ -410,6 +414,7 @@ export async function upsertClass(
         parent_class_id: ref('excluded.parent_class_id'),
         label: ref('excluded.label'),
         description: ref('excluded.description'),
+        status: ref('excluded.status'),
         starting_equipment_id: ref('excluded.starting_equipment_id')
       })))
       .execute()

@@ -8,11 +8,12 @@ export const warhammer: EquipmentAuthored = {
     description: 'A heavy hammer used in melee combat.',
     category: S.EQUIPMENT_CATEGORY_CODE.WEAPON,
     properties: [S.EQUIPMENT_PROPERTY_CODE.MARTIAL, S.EQUIPMENT_PROPERTY_CODE.MELEE, S.EQUIPMENT_PROPERTY_CODE.VERSATILE],
-    abilities: [],
-    capabilities: S.meleeVersatileWeaponCapabilities(S.equipId(31), 'BLUDGEONING', '1d8', '1d10'),
+    modifiers: S.meleeWeaponAbilityModifiers(S.equipId(31)),
+    effects: S.meleeVersatileWeaponEffects(S.equipId(31), 'BLUDGEONING', '1d8', '1d10'),
     cost: S.gp(15),
     weight: S.lbs(2),
     rarityId: S.RARITY_COMMON,
     userId: S.SRD_USER_ID,
     systemId: S.SRD_SYSTEM_ID,
   }
+

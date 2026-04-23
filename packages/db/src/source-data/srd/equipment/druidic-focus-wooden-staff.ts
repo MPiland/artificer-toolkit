@@ -8,7 +8,6 @@ export const druidicFocusWoodenStaff: EquipmentAuthored = {
     description: "A staff of living wood carved with natural symbols, used as a druidic spellcasting focus.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(5),
     weight: S.lbs(4),
     rarityId: S.RARITY_COMMON,

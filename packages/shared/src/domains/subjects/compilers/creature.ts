@@ -31,12 +31,9 @@ export interface CompiledCreatureAction {
 export interface CompiledCreatureLegendaryProfile {
   legendaryResistanceCount?: number
   actionsCount: number
-  /** @deprecated Prefer compiled feature capabilities in the LEGENDARY_ACTIONS section. */
-  actions: CompiledCreatureAction[]
 }
 
 export interface CompiledCreatureLairProfile {
-  lairActions?: CompiledCreatureAction[]
   regionalEffects?: string[]
 }
 
@@ -130,13 +127,11 @@ function compileLegendaryProfile(
   return {
     legendaryResistanceCount: authored.legendaryResistanceCount,
     actionsCount: authored.actionsCount,
-    actions: authored.actions.map(compileAction),
   }
 }
 
 function compileLairProfile(authored: CreatureLairProfile): CompiledCreatureLairProfile {
   return {
-    lairActions: authored.lairActions?.map(compileAction),
     regionalEffects: authored.regionalEffects,
   }
 }

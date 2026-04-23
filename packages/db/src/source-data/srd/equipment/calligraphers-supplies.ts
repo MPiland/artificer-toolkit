@@ -9,7 +9,6 @@ export const calligraphersSupplies: EquipmentAuthored = {
     'Inks, pens, and specialized paper for producing fine handwriting and illuminated manuscripts.',
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
-  abilities: [],
   cost: S.gp(10),
   weight: S.lbs(5),
   rarityId: S.RARITY_COMMON,

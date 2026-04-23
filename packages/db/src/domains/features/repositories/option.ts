@@ -110,7 +110,14 @@ export async function hydrateOptionById(
   const senseGrantRepository = createSenseGrantRepository(db)
   const spellGrantRepository = createSpellGrantRepository(db)
 
-  const [effects, featGrants, modifierGrants, proficiencyGrants, senseGrants, spellGrants] = await Promise.all([
+  const [
+    effects,
+    featGrants,
+    modifierGrants,
+    proficiencyGrants,
+    senseGrants,
+    spellGrants
+  ] = await Promise.all([
     Promise.all(effectLinks.map((link) => effectRepository.findById(link.effect_id))),
     Promise.all(featGrantLinks.map((link) => featGrantRepository.findById(link.feat_grant_id))),
     Promise.all(modifierGrantLinks.map((link) => modifierGrantRepository.findById(link.modifier_grant_id))),
@@ -119,30 +126,12 @@ export async function hydrateOptionById(
     Promise.all(spellGrantLinks.map((link) => spellGrantRepository.findById(link.spell_grant_id)))
   ])
 
-  const authoredEffects = effects.map((effect, index) => requireLinkedRecord(
-    effect,
-    `Option "${id}" is linked to missing effect "${effectLinks[index]?.effect_id}".`
-  ))
-  const authoredFeatGrants = featGrants.map((grant, index) => requireLinkedRecord(
-    grant,
-    `Option "${id}" is linked to missing feat grant "${featGrantLinks[index]?.feat_grant_id}".`
-  ))
-  const authoredModifierGrants = modifierGrants.map((grant, index) => requireLinkedRecord(
-    grant,
-    `Option "${id}" is linked to missing modifier grant "${modifierGrantLinks[index]?.modifier_grant_id}".`
-  ))
-  const authoredProficiencyGrants = proficiencyGrants.map((grant, index) => requireLinkedRecord(
-    grant,
-    `Option "${id}" is linked to missing proficiency grant "${proficiencyGrantLinks[index]?.proficiency_grant_id}".`
-  ))
-  const authoredSenseGrants = senseGrants.map((grant, index) => requireLinkedRecord(
-    grant,
-    `Option "${id}" is linked to missing sense grant "${senseGrantLinks[index]?.sense_grant_id}".`
-  ))
-  const authoredSpellGrants = spellGrants.map((grant, index) => requireLinkedRecord(
-    grant,
-    `Option "${id}" is linked to missing spell grant "${spellGrantLinks[index]?.spell_grant_id}".`
-  ))
+  const authoredEffects = effects.map((effect, index) => requireLinkedRecord(effect, `Option "${id}" is linked to missing effect "${effectLinks[index]?.effect_id}".`))
+  const authoredFeatGrants = featGrants.map((grant, index) => requireLinkedRecord(grant, `Option "${id}" is linked to missing feat grant "${featGrantLinks[index]?.feat_grant_id}".`))
+  const authoredModifierGrants = modifierGrants.map((grant, index) => requireLinkedRecord(grant, `Option "${id}" is linked to missing modifier grant "${modifierGrantLinks[index]?.modifier_grant_id}".`))
+  const authoredProficiencyGrants = proficiencyGrants.map((grant, index) => requireLinkedRecord(grant, `Option "${id}" is linked to missing proficiency grant "${proficiencyGrantLinks[index]?.proficiency_grant_id}".`))
+  const authoredSenseGrants = senseGrants.map((grant, index) => requireLinkedRecord(grant, `Option "${id}" is linked to missing sense grant "${senseGrantLinks[index]?.sense_grant_id}".`))
+  const authoredSpellGrants = spellGrants.map((grant, index) => requireLinkedRecord(grant, `Option "${id}" is linked to missing spell grant "${spellGrantLinks[index]?.spell_grant_id}".`))
 
   return {
     id: row.id,
@@ -209,3 +198,6 @@ export function createOptionRepository<N extends NodeSubjectCode = NodeSubjectCo
     }
   }
 }
+
+
+

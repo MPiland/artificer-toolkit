@@ -10,7 +10,6 @@ export const halfPlateArmorPlus1: EquipmentVariantAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: halfPlateArmor.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
-  weight: halfPlateArmor.weight,
   rarityId: S.RARITY_UNCOMMON,
   maxBonus: 1,
   modifiers: S.magicArmorModifiers(S.equipId(327), 1),

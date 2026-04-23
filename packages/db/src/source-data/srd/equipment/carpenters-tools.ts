@@ -9,7 +9,6 @@ export const carpentersTools: EquipmentAuthored = {
     'Saws, hammers, chisels, and other woodworking instruments for shaping and joining timber.',
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
-  abilities: [],
   cost: S.gp(8),
   weight: S.lbs(6),
   rarityId: S.RARITY_COMMON,

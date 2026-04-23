@@ -1,6 +1,24 @@
 # Phase 7.7 - SRD CC 5.1 Content Completion Plus Creature, Vehicle, Character, and Facet Integration
 
-## Status: In progress
+## Status: Complete (Phase 8 baseline readiness)
+
+## Phase Gate Decision (2026-03-25)
+
+Phase 7.7 is now closed for its primary goal: a new user can start from preloaded SRD master data and build a usable SRD character/sheet without authoring baseline content first.
+
+What is complete for this gate:
+
+- SRD inventory completion and manifest alignment across classes/subclasses/races/backgrounds/feats/spells/equipment/creatures/vehicles
+- specialization rename and subclass specialization wiring (including `Circle of the Land`)
+- class/subclass spell-grant resolution into character spell state
+- creature/vehicle ownership and facet integration needed for baseline roster use
+- local DB reset + type generation + DB build path verified
+
+What is intentionally deferred after this gate:
+
+- constrained `RULE` residues that require deeper combat/target-instance runtime semantics
+- richer branch/outcome persistence/runtime convergence for advanced automation
+- capability/effect naming cleanup and broader ruleset-boundary refactor
 
 ## Context
 
@@ -610,7 +628,7 @@ Still pending:
 - the latest missing-file fill batches added `Meld into Stone`, `Nondetection`, `Passwall`, `Sleet Storm`, `Speak with Plants`, `Stone Shape`, `Teleportation Circle`, `Vicious Mockery`, `Wall of Force`, `Warding Bond`, `Forcecage`, `Maze`, `Private Sanctum`, `Project Image`, `Resilient Sphere`, `Secret Chest`, `Mind Blank`, `Mislead`, `Modify Memory`, `Phantom Steed`, `Seeming`, `Plane Shift`, `True Seeing`, `Vampiric Touch`, `Plant Growth`, `Wall of Stone`, `Wind Wall`, `Stoneskin`, `Tiny Hut`, `Wall of Ice`, `Word of Recall`, `Circle of Death`, `Foresight`, `Freezing Sphere`, `Mass Suggestion`, `Programmed Illusion`, `Sequester`, `Time Stop`, and `Wish`
 - the final spell completion pass also added `Irresistible Dance`, `Mass Cure Wounds`, `Mass Heal`, `Meteor Swarm`, `Phantasmal Killer`, `Polymorph`, `Power Word Kill`, `Power Word Stun`, `Prayer of Healing`, `Prismatic Spray`, `Regenerate`, `Reincarnate`, `Shapechange`, `Simulacrum`, `Slow`, `Spike Growth`, `Spirit Guardians`, `Spiritual Weapon`, `Storm of Vengeance`, `Sunbeam`, `Sunburst`, `Symbol`, `Telekinesis`, `Teleport`, `True Polymorph`, `True Resurrection`, `Wall of Thorns`, `Weird`, and `Wind Walk`
 
-## Remaining Work
+## Deferred Follow-On (Post-7.7)
 
 ### High Priority
 

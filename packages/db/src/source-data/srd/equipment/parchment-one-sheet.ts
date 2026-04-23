@@ -9,7 +9,6 @@ export const parchmentOneSheet: EquipmentAuthored = {
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
     attributes: [S.EQUIPMENT_ATTRIBUTE.STACKABLE],
-    abilities: [],
     cost: S.sp(1),
     weight: S.lbs(0),
     rarityId: S.RARITY_COMMON,

@@ -1,388 +1,478 @@
-import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
-import * as S from './shared.js'
-import { conditionTypeId } from '../equipment/shared.js'
-
+import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared';
+import * as S from './shared.js';
+import { conditionTypeId } from '../equipment/shared.js';
 export const adultGreenDragon: CreatureAuthored = {
-  id: S.CREATURE_IDS.ADULT_GREEN_DRAGON,
-  label: 'Adult Green Dragon',
-  userId: S.SRD_USER_ID,
-  systemId: S.SRD_SYSTEM_ID,
-  recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
-  category: S.CREATURE_CATEGORY_CODE.MONSTER,
-  creatureTypeId: S.CREATURE_TYPE.DRAGON,
-  size: S.SIZE_CODE.HUGE,
-  alignmentId: '00000000-0000-0000-0001-000700000000',
-  abilityScores: {
-    STRENGTH: 23,
-    DEXTERITY: 12,
-    CONSTITUTION: 21,
-    INTELLIGENCE: 18,
-    WISDOM: 15,
-    CHARISMA: 17,
-    SPELLCASTING: 0
-  },
-  armorClass: 19,
-  armorClassNote: 'natural armor',
-  hitPoints: 207,
-  hitDice: '18d12+90',
-  speeds: [...S.walk(40), ...S.fly(80), ...S.swim(40)],
-  proficiencies: [
-    S.grantedSaveProficiency(9, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
-    S.grantedSkillProficiency(9, 2, 'DECEPTION', 'INSIGHT', 'PERCEPTION'),
-    S.grantedLanguageProficiency(9, 3, 'COMMON', 'DRACONIC')
-  ],
-  damageImmunities: ['poison'],
-  conditionImmunities: ['poisoned'],
-  senses: ['blindsight 60 ft.', 'darkvision 120 ft.'],
-  passivePerception: 22,
-  challengeRatingId: S.CR.CR_15,
-  xp: 13000,
-  features: [
-    {
-      id: S.featureId(9, 1),
-      label: 'Amphibious',
-      description: 'Amphibious. The dragon can breathe air and water.',
-      order: 1
+    id: S.CREATURE_IDS.ADULT_GREEN_DRAGON,
+    label: 'Adult Green Dragon',
+    userId: S.SRD_USER_ID,
+    systemId: S.SRD_SYSTEM_ID,
+    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
+    category: S.CREATURE_CATEGORY_CODE.MONSTER,
+    creatureTypeId: S.CREATURE_TYPE.DRAGON,
+    size: S.SIZE_CODE.HUGE,
+    alignmentId: '00000000-0000-0000-0001-000700000000',
+    abilityScores: {
+        STRENGTH: 23,
+        DEXTERITY: 12,
+        CONSTITUTION: 21,
+        INTELLIGENCE: 18,
+        WISDOM: 15,
+        CHARISMA: 17,
+        SPELLCASTING: 0
     },
-    {
-      id: S.featureId(9, 2),
-      label: 'Legendary Resistance (3/Day)',
-      description: 'Legendary Resistance (3/Day). If the dragon fails a saving throw, it can choose to succeed instead.',
-      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
-      charges: {
-        id: S.legendaryActionId(9, 20),
-        limitKind: 'FIXED_AMOUNT',
-        scalingKind: S.SCALING.NONE,
-        resetKind: S.CHARGE_RESET_KIND.MANUAL,
-        amount: 3
-      },
-      order: 2
-    },
-    {
-      id: S.featureId(9, 3),
-      label: 'Multiattack',
-      description: 'The dragon can use its Frightful Presence. It then makes three attacks: one with its bite and two with its claws.',
-      order: 3
-    },
-    {
-      id: S.featureId(9, 4),
-      label: 'Bite',
-      description: 'Melee Weapon Attack: +11 to hit, reach 10 ft., one target. Hit: 17 (2d10 + 6) piercing damage plus 7 (2d6) poison damage.',
-      capabilities: [
+    armorClass: 19,
+    armorClassNote: 'natural armor',
+    hitPoints: 207,
+    hitDice: '18d12+90',
+    speeds: [...S.walk(40), ...S.fly(80), ...S.swim(40)],
+    proficiencies: [
+        S.grantedSaveProficiency(9, 1, 'DEXTERITY', 'CONSTITUTION', 'WISDOM', 'CHARISMA'),
+        S.grantedSkillProficiency(9, 2, 'DECEPTION', 'INSIGHT', 'PERCEPTION'),
+        S.grantedLanguageProficiency(9, 3, 'COMMON', 'DRACONIC')
+    ],
+    damageImmunities: ['poison'],
+    conditionImmunities: ['poisoned'],
+    senses: ['blindsight 60 ft.', 'darkvision 120 ft.'],
+    passivePerception: 22,
+    challengeRatingId: S.CR.CR_15,
+    xp: 13000,
+    features: [
         {
-          id: S.actionId(9, 13),
-          order: 1,
-          invocation: {
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: {
-              id: S.actionId(9, 14),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 10,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
-            }
-          },
-          branches: [
-            {
-              id: S.actionId(9, 15),
-              branch: S.BRANCH.ON_HIT,
-              groupType: S.BRANCH_GROUP_TYPE.SEQUENTIAL,
-              resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
-              effectKind: S.EFFECT_KIND.DAMAGE,
-              damageTypeId: S.damageTypeId('PIERCING'),
-              valueKind: S.DAMAGE_VALUE_KIND.DICE,
-              scalingKind: S.SCALING.NONE,
-              diceConfig: '2d10',
-              bonuses: [
-                {
-                  id: S.actionId(9, 16),
-                  bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
-                  ability: S.ABILITY_CODE.STRENGTH,
-                  order: 1
-                }
-              ]
-            },
-            {
-              id: S.actionId(9, 17),
-              branch: S.BRANCH.ON_HIT,
-              groupType: S.BRANCH_GROUP_TYPE.SEQUENTIAL,
-              resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
-              effectKind: S.EFFECT_KIND.DAMAGE,
-              damageTypeId: S.damageTypeId('POISON'),
-              valueKind: S.DAMAGE_VALUE_KIND.DICE,
-              scalingKind: S.SCALING.NONE,
-              diceConfig: '2d6'
-            }
-          ]
-        }
-      ],
-      order: 4
-    },
-    {
-      id: S.featureId(9, 5),
-      label: 'Claw',
-      description: 'Melee Weapon Attack: +11 to hit, reach 5 ft., one target. Hit: 13 (2d6 + 6) slashing damage.',
-      capabilities: [
-        {
-          id: S.actionId(9, 18),
-          order: 1,
-          invocation: {
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: {
-              id: S.actionId(9, 19),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 5,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
-            }
-          },
-          branches: [
-            {
-              id: S.actionId(9, 20),
-              branch: S.BRANCH.ON_HIT,
-              groupType: S.BRANCH_GROUP_TYPE.SINGLE,
-              resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
-              effectKind: S.EFFECT_KIND.DAMAGE,
-              damageTypeId: S.damageTypeId('SLASHING'),
-              valueKind: S.DAMAGE_VALUE_KIND.DICE,
-              scalingKind: S.SCALING.NONE,
-              diceConfig: '2d6',
-              bonuses: [
-                {
-                  id: S.actionId(9, 21),
-                  bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
-                  ability: S.ABILITY_CODE.STRENGTH,
-                  order: 1
-                }
-              ]
-            }
-          ]
-        }
-      ],
-      order: 5
-    },
-    {
-      id: S.featureId(9, 6),
-      label: 'Tail',
-      description: 'Melee Weapon Attack: +11 to hit, reach 15 ft., one target. Hit: 15 (2d8 + 6) bludgeoning damage.',
-      capabilities: [
-        {
-          id: S.actionId(9, 22),
-          order: 1,
-          invocation: {
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: {
-              id: S.actionId(9, 23),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 15,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
-            }
-          },
-          branches: [
-            {
-              id: S.actionId(9, 24),
-              branch: S.BRANCH.ON_HIT,
-              groupType: S.BRANCH_GROUP_TYPE.SINGLE,
-              resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
-              effectKind: S.EFFECT_KIND.DAMAGE,
-              damageTypeId: S.damageTypeId('BLUDGEONING'),
-              valueKind: S.DAMAGE_VALUE_KIND.DICE,
-              scalingKind: S.SCALING.NONE,
-              diceConfig: '2d8',
-              bonuses: [
-                {
-                  id: S.actionId(9, 25),
-                  bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
-                  ability: S.ABILITY_CODE.STRENGTH,
-                  order: 1
-                }
-              ]
-            }
-          ]
-        }
-      ],
-      order: 6
-    },
-    {
-      id: S.featureId(9, 7),
-      label: 'Frightful Presence',
-      description: 'Each creature of the dragon\'s choice that is within 120 feet of the dragon and aware of it must succeed on a DC 16 Wisdom saving throw or become frightened for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. If a creature\'s saving throw is successful or the effect ends for it, the creature is immune to the dragon\'s Frightful Presence for the next 24 hours.',
-      capabilities: [
-        {
-          id: S.actionId(9, 26),
-          order: 1,
-          invocation: {
-            triggerCode: S.TRIGGER.SAVING_THROW,
-            savingThrow: {
-              id: S.actionId(9, 33),
-              savingThrowKind: 'SOURCE_SAVE_DC',
-              ability: S.ABILITY_CODE.WISDOM
-            },
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: {
-              id: S.actionId(9, 27),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 120,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            }
-          },
-          branches: [
-            {
-              id: S.actionId(9, 28),
-              branch: S.BRANCH.ON_SAVE_FAIL,
-              groupType: S.BRANCH_GROUP_TYPE.SINGLE,
-              resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
-              effectKind: S.EFFECT_KIND.CONDITION,
-              duration: {
-                id: S.actionId(9, 34),
-                durationKind: DURATION_KIND.MINUTE,
-                amount: 1
-              },
-              conditionId: conditionTypeId('FRIGHTENED')
-            }
-          ]
-        }
-      ],
-      order: 7
-    },
-    {
-      id: S.featureId(9, 8),
-      label: 'Poison Breath (Recharge 5-6)',
-      description: 'The dragon exhales poisonous gas in a 60-foot cone. Each creature in that area must make a DC 18 Constitution saving throw, taking 56 (16d6) poison damage on a failed save, or half as much damage on a successful one.',
-      capabilities: [
-        {
-          id: S.actionId(9, 29),
-          order: 1,
-          invocation: {
-            triggerCode: S.TRIGGER.SAVING_THROW,
-            savingThrow: {
-              id: S.actionId(9, 30),
-              savingThrowKind: 'SOURCE_SAVE_DC',
-              ability: S.ABILITY_CODE.CONSTITUTION
-            },
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(9, 31), rangeKind: S.RANGE_KIND.SPECIAL }
-          },
-          branches: [
-            {
-              id: S.actionId(9, 32),
-              branch: S.BRANCH.ON_SAVE_FAIL,
-              groupType: S.BRANCH_GROUP_TYPE.SINGLE,
-              resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
-              effectKind: S.EFFECT_KIND.DAMAGE,
-              damageTypeId: S.damageTypeId('POISON'),
-              valueKind: S.DAMAGE_VALUE_KIND.DICE,
-              scalingKind: S.SCALING.NONE,
-              diceConfig: '16d6'
-            },
-            {
-              id: S.actionId(9, 33),
-              branch: S.BRANCH.ON_SAVE_SUCCESS,
-              groupType: S.BRANCH_GROUP_TYPE.SINGLE,
-              resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
-              effectKind: S.EFFECT_KIND.DAMAGE,
-              damageTypeId: S.damageTypeId('POISON'),
-              valueKind: S.DAMAGE_VALUE_KIND.DICE,
-              scalingKind: S.SCALING.NONE,
-              diceConfig: '16d6',
-              multiplier: 0.5
-            }
-          ]
-        }
-      ],
-      order: 8
-    },
-    {
-      id: S.featureId(9, 9),
-      label: 'Legendary Actions',
-      description: 'The dragon can take 3 legendary actions, choosing from the options below. Only one legendary action option can be used at a time and only at the end of another creature\'s turn. The dragon regains spent legendary actions at the start of its turn.',
-      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
-      charges: {
-        id: S.legendaryActionId(9, 21),
-        limitKind: 'FIXED_AMOUNT',
-        scalingKind: S.SCALING.NONE,
-        resetKind: S.CHARGE_RESET_KIND.MANUAL,
-        amount: 3
-      },
-      capabilities: [
-
-        {
-          id: S.legendaryActionId(9, 25),
-          order: 2,
-          invocation: {
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
-            activation: { code: S.ACTIVATION_CODE.FREE },
-            range: {
-              id: S.legendaryActionId(9, 26),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 15,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
-            }
-          },
-          branches: [
-            {
-              id: S.legendaryActionId(9, 27),
-              branch: S.BRANCH.ON_HIT,
-              groupType: S.BRANCH_GROUP_TYPE.SINGLE,
-              resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
-              effectKind: S.EFFECT_KIND.DAMAGE,
-              damageTypeId: S.damageTypeId('BLUDGEONING'),
-              valueKind: S.DAMAGE_VALUE_KIND.DICE,
-              scalingKind: S.SCALING.NONE,
-              diceConfig: '2d8+6',
-              bonuses: [
-                {
-                  id: S.legendaryActionId(9, 32),
-                  bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
-                  ability: S.ABILITY_CODE.STRENGTH,
-                  order: 1
-                }
-              ]
-            }
-          ]
+            id: S.featureId(9, 1),
+            label: 'Amphibious',
+            description: 'Amphibious. The dragon can breathe air and water.',
+            order: 1
         },
         {
-          id: S.legendaryActionId(9, 28),
-          order: 3,
-          invocation: {
-            triggerCode: S.TRIGGER.SAVING_THROW,
-            savingThrow: {
-              id: S.legendaryActionId(9, 31),
-              savingThrowKind: 'SOURCE_SAVE_DC',
-              ability: S.ABILITY_CODE.DEXTERITY
+            id: S.featureId(9, 2),
+            label: 'Legendary Resistance (3/Day)',
+            description: 'Legendary Resistance (3/Day). If the dragon fails a saving throw, it can choose to succeed instead.',
+            attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+            charges: {
+                id: S.legendaryActionId(9, 20),
+                limitKind: 'FIXED_AMOUNT',
+                scalingKind: S.SCALING.NONE,
+                resetKind: S.CHARGE_RESET_KIND.MANUAL,
+                amount: 3
             },
-            activation: { code: S.ACTIVATION_CODE.FREE },
-            range: { id: S.legendaryActionId(9, 29), rangeKind: S.RANGE_KIND.SPECIAL }
-          },
-          branches: [
-            {
-              id: S.legendaryActionId(9, 30),
-              branch: S.BRANCH.ON_SAVE_FAIL,
-              groupType: S.BRANCH_GROUP_TYPE.SINGLE,
-              resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
-              effectKind: S.EFFECT_KIND.DAMAGE,
-              damageTypeId: S.damageTypeId('BLUDGEONING'),
-              valueKind: S.DAMAGE_VALUE_KIND.DICE,
-              scalingKind: S.SCALING.NONE,
-              diceConfig: '2d6+6'
-            }
-          ]
+            order: 2
+        },
+        {
+            id: S.featureId(9, 3),
+            label: 'Multiattack',
+            description: 'The dragon can use its Frightful Presence. It then makes three attacks: one with its bite and two with its claws.',
+            order: 3
+        },
+        {
+            id: S.featureId(9, 4),
+            label: 'Bite',
+            description: 'Melee Weapon Attack: +11 to hit, reach 10 ft., one target. Hit: 17 (2d10 + 6) piercing damage plus 7 (2d6) poison damage.',
+            effects: [
+                {
+                    id: S.actionId(9, 13),
+                    order: 1,
+                    invocation: {
+                        triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+                        activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+                        range: {
+                            id: S.actionId(9, 14),
+                            rangeKind: S.RANGE_KIND.DISTANCE,
+                            amount: 10,
+                            unit: S.MEASUREMENT_UNIT_CODE.FEET
+                        },
+                        targeting: {
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                        }
+                    },
+                    paths: [
+                        {
+                            id: S.actionId(9, 15),
+                            order: 1,
+                            pathCode: S.PATH_CODE.ON_HIT,
+                            groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+                            selectionKind: "FIXED" as const,
+                            resultBlock: {
+                                id: S.actionId(9, 15) + "__result",
+                                resultKind: "SEQUENCE" as const,
+                                outcomes: [
+                                    {
+                                        id: S.actionId(9, 15),
+                                        effectKind: S.EFFECT_KIND.DAMAGE,
+                                        damageTypeId: S.damageTypeId('PIERCING'),
+                                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                                        scalingKind: S.SCALING.NONE,
+                                        diceConfig: '2d10',
+                                        bonuses: [
+                                            {
+                                                id: S.actionId(9, 16),
+                                                bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
+                                                ability: S.ABILITY_CODE.STRENGTH,
+                                                order: 1
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            id: S.actionId(9, 17),
+                            order: 2,
+                            pathCode: S.PATH_CODE.ON_HIT,
+                            groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+                            selectionKind: "FIXED" as const,
+                            resultBlock: {
+                                id: S.actionId(9, 17) + "__result",
+                                resultKind: "SEQUENCE" as const,
+                                outcomes: [
+                                    {
+                                        id: S.actionId(9, 17),
+                                        effectKind: S.EFFECT_KIND.DAMAGE,
+                                        damageTypeId: S.damageTypeId('POISON'),
+                                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                                        scalingKind: S.SCALING.NONE,
+                                        diceConfig: '2d6'
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ],
+            order: 4
+        },
+        {
+            id: S.featureId(9, 5),
+            label: 'Claw',
+            description: 'Melee Weapon Attack: +11 to hit, reach 5 ft., one target. Hit: 13 (2d6 + 6) slashing damage.',
+            effects: [
+                {
+                    id: S.actionId(9, 18),
+                    order: 1,
+                    invocation: {
+                        triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+                        activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+                        range: {
+                            id: S.actionId(9, 19),
+                            rangeKind: S.RANGE_KIND.DISTANCE,
+                            amount: 5,
+                            unit: S.MEASUREMENT_UNIT_CODE.FEET
+                        },
+                        targeting: {
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                        }
+                    },
+                    paths: [
+                        {
+                            id: S.actionId(9, 20),
+                            order: 1,
+                            pathCode: S.PATH_CODE.ON_HIT,
+                            groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            selectionKind: "FIXED" as const,
+                            resultBlock: {
+                                id: S.actionId(9, 20) + "__result",
+                                resultKind: "SINGLE" as const,
+                                outcomes: [
+                                    {
+                                        id: S.actionId(9, 20),
+                                        effectKind: S.EFFECT_KIND.DAMAGE,
+                                        damageTypeId: S.damageTypeId('SLASHING'),
+                                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                                        scalingKind: S.SCALING.NONE,
+                                        diceConfig: '2d6',
+                                        bonuses: [
+                                            {
+                                                id: S.actionId(9, 21),
+                                                bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
+                                                ability: S.ABILITY_CODE.STRENGTH,
+                                                order: 1
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ],
+            order: 5
+        },
+        {
+            id: S.featureId(9, 6),
+            label: 'Tail',
+            description: 'Melee Weapon Attack: +11 to hit, reach 15 ft., one target. Hit: 15 (2d8 + 6) bludgeoning damage.',
+            effects: [
+                {
+                    id: S.actionId(9, 22),
+                    order: 1,
+                    invocation: {
+                        triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+                        activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+                        range: {
+                            id: S.actionId(9, 23),
+                            rangeKind: S.RANGE_KIND.DISTANCE,
+                            amount: 15,
+                            unit: S.MEASUREMENT_UNIT_CODE.FEET
+                        },
+                        targeting: {
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                        }
+                    },
+                    paths: [
+                        {
+                            id: S.actionId(9, 24),
+                            order: 1,
+                            pathCode: S.PATH_CODE.ON_HIT,
+                            groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            selectionKind: "FIXED" as const,
+                            resultBlock: {
+                                id: S.actionId(9, 24) + "__result",
+                                resultKind: "SINGLE" as const,
+                                outcomes: [
+                                    {
+                                        id: S.actionId(9, 24),
+                                        effectKind: S.EFFECT_KIND.DAMAGE,
+                                        damageTypeId: S.damageTypeId('BLUDGEONING'),
+                                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                                        scalingKind: S.SCALING.NONE,
+                                        diceConfig: '2d8',
+                                        bonuses: [
+                                            {
+                                                id: S.actionId(9, 25),
+                                                bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
+                                                ability: S.ABILITY_CODE.STRENGTH,
+                                                order: 1
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ],
+            order: 6
+        },
+        {
+            id: S.featureId(9, 7),
+            label: 'Frightful Presence',
+            description: 'Each creature of the dragon\'s choice that is within 120 feet of the dragon and aware of it must succeed on a DC 16 Wisdom saving throw or become frightened for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. If a creature\'s saving throw is successful or the effect ends for it, the creature is immune to the dragon\'s Frightful Presence for the next 24 hours.',
+            effects: [
+                {
+                    id: S.actionId(9, 26),
+                    order: 1,
+                    invocation: {
+                        triggerCode: S.TRIGGER.SAVING_THROW,
+                        savingThrow: {
+                            id: S.actionId(9, 33),
+                            savingThrowKind: 'SOURCE_SAVE_DC',
+                            ability: S.ABILITY_CODE.WISDOM
+                        },
+                        activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+                        range: {
+                            id: S.actionId(9, 27),
+                            rangeKind: S.RANGE_KIND.DISTANCE,
+                            amount: 120,
+                            unit: S.MEASUREMENT_UNIT_CODE.FEET
+                        }
+                    },
+                    paths: [
+                        {
+                            id: S.actionId(9, 28),
+                            order: 1,
+                            pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+                            groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            selectionKind: "FIXED" as const,
+                            resultBlock: {
+                                id: S.actionId(9, 28) + "__result",
+                                resultKind: "SINGLE" as const,
+                                duration: {
+                                    id: S.actionId(9, 34),
+                                    durationKind: DURATION_KIND.MINUTE,
+                                    amount: 1
+                                },
+                                outcomes: [
+                                    {
+                                        id: S.actionId(9, 28),
+                                        effectKind: S.EFFECT_KIND.CONDITION,
+                                        conditionId: conditionTypeId('FRIGHTENED')
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ],
+            order: 7
+        },
+        {
+            id: S.featureId(9, 8),
+            label: 'Poison Breath (Recharge 5-6)',
+            description: 'The dragon exhales poisonous gas in a 60-foot cone. Each creature in that area must make a DC 18 Constitution saving throw, taking 56 (16d6) poison damage on a failed save, or half as much damage on a successful one.',
+            effects: [
+                {
+                    id: S.actionId(9, 29),
+                    order: 1,
+                    invocation: {
+                        triggerCode: S.TRIGGER.SAVING_THROW,
+                        savingThrow: {
+                            id: S.actionId(9, 30),
+                            savingThrowKind: 'SOURCE_SAVE_DC',
+                            ability: S.ABILITY_CODE.CONSTITUTION
+                        },
+                        activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+                        range: { id: S.actionId(9, 31), rangeKind: S.RANGE_KIND.SPECIAL }
+                    },
+                    paths: [
+                        {
+                            id: S.actionId(9, 32),
+                            order: 1,
+                            pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+                            groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            selectionKind: "FIXED" as const,
+                            resultBlock: {
+                                id: S.actionId(9, 32) + "__result",
+                                resultKind: "SINGLE" as const,
+                                outcomes: [
+                                    {
+                                        id: S.actionId(9, 32),
+                                        effectKind: S.EFFECT_KIND.DAMAGE,
+                                        damageTypeId: S.damageTypeId('POISON'),
+                                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                                        scalingKind: S.SCALING.NONE,
+                                        diceConfig: '16d6'
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            id: S.actionId(9, 33),
+                            order: 2,
+                            pathCode: S.PATH_CODE.ON_SAVE_SUCCESS,
+                            groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            selectionKind: "FIXED" as const,
+                            resultBlock: {
+                                id: S.actionId(9, 33) + "__result",
+                                resultKind: "SINGLE" as const,
+                                outcomes: [
+                                    {
+                                        id: S.actionId(9, 33),
+                                        effectKind: S.EFFECT_KIND.DAMAGE,
+                                        damageTypeId: S.damageTypeId('POISON'),
+                                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                                        scalingKind: S.SCALING.NONE,
+                                        diceConfig: '16d6',
+                                        multiplier: 0.5
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ],
+            order: 8
+        },
+        {
+            id: S.featureId(9, 9),
+            label: 'Legendary Actions',
+            description: 'The dragon can take 3 legendary actions, choosing from the options below. Only one legendary action option can be used at a time and only at the end of another creature\'s turn. The dragon regains spent legendary actions at the start of its turn.',
+            attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+            charges: {
+                id: S.legendaryActionId(9, 21),
+                limitKind: 'FIXED_AMOUNT',
+                scalingKind: S.SCALING.NONE,
+                resetKind: S.CHARGE_RESET_KIND.MANUAL,
+                amount: 3
+            },
+            effects: [
+                {
+                    id: S.legendaryActionId(9, 25),
+                    order: 2,
+                    invocation: {
+                        triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+                        activation: { code: S.ACTIVATION_CODE.FREE },
+                        range: {
+                            id: S.legendaryActionId(9, 26),
+                            rangeKind: S.RANGE_KIND.DISTANCE,
+                            amount: 15,
+                            unit: S.MEASUREMENT_UNIT_CODE.FEET
+                        },
+                        targeting: {
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                        }
+                    },
+                    paths: [
+                        {
+                            id: S.legendaryActionId(9, 27),
+                            order: 1,
+                            pathCode: S.PATH_CODE.ON_HIT,
+                            groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            selectionKind: "FIXED" as const,
+                            resultBlock: {
+                                id: S.legendaryActionId(9, 27) + "__result",
+                                resultKind: "SINGLE" as const,
+                                outcomes: [
+                                    {
+                                        id: S.legendaryActionId(9, 27),
+                                        effectKind: S.EFFECT_KIND.DAMAGE,
+                                        damageTypeId: S.damageTypeId('BLUDGEONING'),
+                                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                                        scalingKind: S.SCALING.NONE,
+                                        diceConfig: '2d8+6',
+                                        bonuses: [
+                                            {
+                                                id: S.legendaryActionId(9, 32),
+                                                bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
+                                                ability: S.ABILITY_CODE.STRENGTH,
+                                                order: 1
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    id: S.legendaryActionId(9, 28),
+                    order: 3,
+                    invocation: {
+                        triggerCode: S.TRIGGER.SAVING_THROW,
+                        savingThrow: {
+                            id: S.legendaryActionId(9, 31),
+                            savingThrowKind: 'SOURCE_SAVE_DC',
+                            ability: S.ABILITY_CODE.DEXTERITY
+                        },
+                        activation: { code: S.ACTIVATION_CODE.FREE },
+                        range: { id: S.legendaryActionId(9, 29), rangeKind: S.RANGE_KIND.SPECIAL }
+                    },
+                    paths: [
+                        {
+                            id: S.legendaryActionId(9, 30),
+                            order: 1,
+                            pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+                            groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            selectionKind: "FIXED" as const,
+                            resultBlock: {
+                                id: S.legendaryActionId(9, 30) + "__result",
+                                resultKind: "SINGLE" as const,
+                                outcomes: [
+                                    {
+                                        id: S.legendaryActionId(9, 30),
+                                        effectKind: S.EFFECT_KIND.DAMAGE,
+                                        damageTypeId: S.damageTypeId('BLUDGEONING'),
+                                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                                        scalingKind: S.SCALING.NONE,
+                                        diceConfig: '2d6+6'
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ],
+            order: 9
         }
-      ],
-      order: 9
-    }
-  ]
-}
+    ]
+};
+
+

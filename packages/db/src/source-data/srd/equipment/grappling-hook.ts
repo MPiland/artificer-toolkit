@@ -8,7 +8,6 @@ export const grapplingHook: EquipmentAuthored = {
   description: 'A metal hook with multiple prongs for anchoring a rope to ledges or railings.',
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
-  abilities: [],
   cost: S.gp(2),
   weight: S.lbs(4),
   rarityId: S.RARITY_COMMON,

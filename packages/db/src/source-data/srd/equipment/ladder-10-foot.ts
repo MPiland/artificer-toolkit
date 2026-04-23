@@ -8,7 +8,6 @@ export const ladder10Foot: EquipmentAuthored = {
   description: 'A wooden ladder 10 feet long for climbing walls or descending into pits.',
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
-  abilities: [],
   cost: S.sp(1),
   weight: S.lbs(25),
   rarityId: S.RARITY_COMMON,

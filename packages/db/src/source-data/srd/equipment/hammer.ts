@@ -8,7 +8,6 @@ export const hammer: EquipmentAuthored = {
   description: 'A steel-headed hammer suitable for driving pitons or nails.',
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
-  abilities: [],
   cost: S.gp(1),
   weight: S.lbs(3),
   rarityId: S.RARITY_COMMON,

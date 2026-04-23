@@ -3,6 +3,19 @@
   "private": true,
   "version": "0.0.1",
   "type": "module",
+  "imports": {
+    "#lib/*": "./src/lib/*",
+    "#css/*": "./src/css/*",
+    "#components/*": "./src/components/*",
+    "#domains/*": "./src/domains/*",
+    "#hooks": "./src/hooks/index.ts",
+    "#utils": "./src/utils/index.ts",
+    "#routes/*": "./src/routes/*",
+    "#assets/*": "./src/assets/*",
+    "#supabase": "./src/supabase/index.ts",
+    "#auth": "./src/domains/auth/index.ts",
+    "#types": "./src/types/index.ts"
+  },
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",

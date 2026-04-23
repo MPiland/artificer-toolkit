@@ -1,5 +1,6 @@
 import type { DBLike } from '#types'
 import {
+  type BaseRaceAuthored,
   MEASUREMENT_UNIT_CODE,
   RACE_CATEGORY_CODE,
   SIZE_CODE,
@@ -7,6 +8,7 @@ import {
 } from '@artificer-toolkit/shared'
 import { upsertDetail } from '../../shared/upserts/index.js'
 import { upsertFeature } from '../../features/upserts/index.js'
+import { normalizeSubjectStatus } from '../status.js'
 
 type RaceRow = {
   id: string
@@ -15,8 +17,9 @@ type RaceRow = {
   label: string
   quote: string | null
   description: string | null
+  status: RaceAuthored['status']
   category: string
-  playable: boolean | null
+  selection_mode: string | null
   parent_race_id: string | null
   size_code: string | null
 }
@@ -32,6 +35,12 @@ type RaceSpeedRow = {
   speed_id: string
   amount: number
   unit_code: string
+}
+
+type RaceHeritageRow = {
+  race_id: string
+  heritage_id: string
+  sort_order: number
 }
 
 type RaceAncestryRow = {
@@ -69,24 +78,24 @@ function requireRaceCategory(
 function requireSizeCode(
   raceId: string,
   value: string
-): Exclude<RaceAuthored, { category: 'SUBRACE' }>['size'] {
+): BaseRaceAuthored['size'] {
   if (!(value in SIZE_CODE)) {
     throw new Error(`Race "${raceId}" has invalid size "${value}".`)
   }
 
-  return value as Exclude<RaceAuthored, { category: 'SUBRACE' }>['size']
+  return value as BaseRaceAuthored['size']
 }
 
 function requireMeasurementUnit(
   raceId: string,
   speedId: string,
   value: string
-): NonNullable<RaceAuthored['speeds']>[number]['unit'] {
+): BaseRaceAuthored['speeds'][number]['unit'] {
   if (!(value in MEASUREMENT_UNIT_CODE)) {
     throw new Error(`Race "${raceId}" speed "${speedId}" has invalid unit "${value}".`)
   }
 
-  return value as NonNullable<RaceAuthored['speeds']>[number]['unit']
+  return value as BaseRaceAuthored['speeds'][number]['unit']
 }
 
 function mapRaceRow(json_data: RaceAuthored): RaceRow {
@@ -102,8 +111,9 @@ function mapRaceRow(json_data: RaceAuthored): RaceRow {
       label: baseData.label,
       quote: baseData.quote ?? null,
       description: baseData.description ?? null,
+      status: normalizeSubjectStatus(baseData.status),
       category,
-      playable: baseData.playable,
+      selection_mode: baseData.selectionMode,
       parent_race_id: null,
       size_code: requireSizeCode(baseData.id, baseData.size)
     }
@@ -118,10 +128,11 @@ function mapRaceRow(json_data: RaceAuthored): RaceRow {
     label: subraceData.label,
     quote: subraceData.quote ?? null,
     description: subraceData.description ?? null,
+    status: normalizeSubjectStatus(subraceData.status),
     category,
-    playable: null,
+    selection_mode: null,
     parent_race_id: subraceData.parentRaceId,
-    size_code: subraceData.size ?? null
+    size_code: null
   }
 }
 
@@ -130,34 +141,45 @@ export async function upsertRace(
   json_data: RaceAuthored,
   _systemId: string
 ) {
-  const speedRows: RaceSpeedRow[] = (json_data.speeds ?? []).map((speed) => ({
+  const baseData: BaseRaceAuthored | null = json_data.category === RACE_CATEGORY_CODE.BASE
+    ? json_data
+    : null
+  const ancestryData = baseData?.ancestry
+
+  const speedRows: RaceSpeedRow[] = (baseData?.speeds ?? []).map((speed) => ({
     race_id: json_data.id,
     speed_id: speed.speedId,
     amount: speed.amount,
     unit_code: requireMeasurementUnit(json_data.id, speed.speedId, speed.unit)
   }))
 
-  const ancestryRow: RaceAncestryRow | null = json_data.category === RACE_CATEGORY_CODE.BASE && json_data.ancestry
+  const heritageRows: RaceHeritageRow[] = (baseData?.heritageIds ?? []).map((heritageId, index) => ({
+    race_id: json_data.id,
+    heritage_id: heritageId,
+    sort_order: index + 1
+  }))
+
+  const ancestryRow: RaceAncestryRow | null = ancestryData
     ? {
-        id: json_data.ancestry.id,
+        id: ancestryData.id,
         race_id: json_data.id,
-        label: json_data.ancestry.label,
-        description: json_data.ancestry.description ?? null
+        label: ancestryData.label,
+        description: ancestryData.description ?? null
       }
     : null
 
-  const ancestryOptionRows: RaceAncestryOptionRow[] = json_data.category === RACE_CATEGORY_CODE.BASE && json_data.ancestry
-    ? json_data.ancestry.options.map((option) => ({
+  const ancestryOptionRows: RaceAncestryOptionRow[] = ancestryData
+    ? ancestryData.options.map((option) => ({
         id: option.id,
-        ancestry_id: json_data.ancestry!.id,
+        ancestry_id: ancestryData.id,
         label: option.label,
         description: option.description,
         sort_order: option.order
       }))
     : []
 
-  const ancestryOptionFeatureRows: RaceAncestryOptionFeatureRow[] = json_data.category === RACE_CATEGORY_CODE.BASE && json_data.ancestry
-    ? json_data.ancestry.options.flatMap((option) => (option.features ?? []).map((feature) => ({
+  const ancestryOptionFeatureRows: RaceAncestryOptionFeatureRow[] = ancestryData
+    ? ancestryData.options.flatMap((option) => (option.features ?? []).map((feature) => ({
         ancestry_option_id: option.id,
         feature_id: feature.id,
         sort_order: feature.order
@@ -179,8 +201,8 @@ export async function upsertRace(
       }
     }
 
-    if (json_data.category === RACE_CATEGORY_CODE.BASE && json_data.ancestry) {
-      for (const option of json_data.ancestry.options) {
+    if (ancestryData) {
+      for (const option of ancestryData.options) {
         for (const feature of option.features ?? []) {
           await upsertFeature(trx, feature, json_data.systemId)
         }
@@ -196,8 +218,9 @@ export async function upsertRace(
         label: ref('excluded.label'),
         quote: ref('excluded.quote'),
         description: ref('excluded.description'),
+        status: ref('excluded.status'),
         category: ref('excluded.category'),
-        playable: ref('excluded.playable'),
+        selection_mode: ref('excluded.selection_mode'),
         parent_race_id: ref('excluded.parent_race_id'),
         size_code: ref('excluded.size_code')
       })))
@@ -220,6 +243,11 @@ export async function upsertRace(
 
     await trx
       .deleteFrom('race_speeds')
+      .where('race_id', '=', json_data.id)
+      .execute()
+
+    await trx
+      .deleteFrom('race_heritages')
       .where('race_id', '=', json_data.id)
       .execute()
 
@@ -253,6 +281,13 @@ export async function upsertRace(
       await trx
         .insertInto('race_speeds')
         .values(speedRows)
+        .execute()
+    }
+
+    if (heritageRows.length > 0) {
+      await trx
+        .insertInto('race_heritages')
+        .values(heritageRows)
         .execute()
     }
 

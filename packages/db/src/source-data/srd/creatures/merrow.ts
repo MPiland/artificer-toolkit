@@ -66,3 +66,4 @@ export const merrow: CreatureAuthored = {
     }
   ]
 }
+

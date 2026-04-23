@@ -25,7 +25,6 @@ describe('facet-backed owners round-trip', () => {
       systemId: 'system-1',
       properties: ['MARTIAL'],
       category: 'WEAPON',
-      abilities: [],
       restrictions: {
         id: 'equipment-facet-1',
         groups: [
@@ -68,7 +67,7 @@ describe('facet-backed owners round-trip', () => {
       quote: undefined,
       cost: { amount: 20, currencyId: 'gp' },
       weight: { amount: 3, unit: 'POUNDS' },
-      capabilities: undefined,
+      effects: undefined,
       charges: undefined,
       capacity: undefined,
       modifiers: undefined,
@@ -112,9 +111,7 @@ describe('facet-backed owners round-trip', () => {
       userId: 'user-1',
       systemId: 'system-1',
       properties: ['MARTIAL'],
-      category: 'WEAPON',
-      abilities: [],
-      speed: undefined
+      category: 'WEAPON'
     })
   })
 
@@ -576,6 +573,78 @@ describe('facet-backed owners round-trip', () => {
                   predicateCode: 'SUBCLASS_SPECIALIZATION',
                   authoringModeKind: 'SELECTED',
                   specializationIds: ['land', 'sea']
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    })
+  })
+
+  it('round-trips heritage predicate facets through the shared facet helper', async () => {
+    const db = new InMemoryDb()
+
+    await db.insertInto('systems').values({
+      id: 'system-1',
+      label: 'System 1'
+    }).execute()
+
+    await db.insertInto('heritages').values([
+      {
+        id: 'heritage-elven',
+        system_id: 'system-1',
+        code: 'ELVEN',
+        label: 'Elven'
+      },
+      {
+        id: 'heritage-dwarven',
+        system_id: 'system-1',
+        code: 'DWARVEN',
+        label: 'Dwarven'
+      }
+    ]).execute()
+
+    await upsertFacet(db as never, {
+      id: 'heritage-facet-1',
+      groups: [
+        {
+          id: 'heritage-group-1',
+          order: 1,
+          contexts: [
+            {
+              id: 'heritage-context-1',
+              order: 1,
+              subject: 'CHARACTER',
+              conditions: [
+                {
+                  id: 'heritage-condition-1',
+                  order: 1,
+                  kind: 'PREDICATE',
+                  constraint: 'INCLUDE',
+                  predicateCode: 'HERITAGE',
+                  authoringModeKind: 'SELECTED',
+                  heritageIds: ['heritage-elven', 'heritage-dwarven']
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    } as never)
+
+    await expect(hydrateFacetById(db as never, 'heritage-facet-1')).resolves.toMatchObject({
+      id: 'heritage-facet-1',
+      groups: [
+        {
+          contexts: [
+            {
+              subject: 'CHARACTER',
+              conditions: [
+                {
+                  predicateCode: 'HERITAGE',
+                  authoringModeKind: 'SELECTED',
+                  heritageIds: ['heritage-elven', 'heritage-dwarven']
                 }
               ]
             }

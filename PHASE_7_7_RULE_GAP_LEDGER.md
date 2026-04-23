@@ -1,11 +1,15 @@
 # Phase 7.7 RULE Gap Ledger
 
+## Status: Deferred follow-on backlog (post-7.7)
+
 ## Purpose
 
 This ledger tracks constrained `EFFECT_KIND.RULE` usages that remain after Tranche 1 semantic-gap reduction work.  
 Each entry records whether the gap is still intentionally blocked and what minimum model/runtime addition would be needed to replace it honestly.
 
-## Current Tranche Scope
+## Current Scope
+
+- Phase 7.7 close decision: this ledger is now a deferred backlog for post-7.7 runtime-depth work, not an active phase gate.
 
 - Domains in active pass: `creatures`, `equipment` (floor confirmed — moving to spells)
 - Conservative exactness policy: only remove `RULE` when semantics are fully representable
@@ -141,6 +145,19 @@ Each entry records whether the gap is still intentionally blocked and what minim
 - This ledger intentionally tracks true blocked gaps rather than forcing approximate conversions.
 - During this tranche, classes/races remain out of active remediation unless regressions are detected.
 - Spell `RULE` classification remains the next tranche so this ledger can stay focused on creature/equipment convergence first.
+
+## Deferred TODO: Temporary APPLY_GRANT Lifecycle
+
+- Phase priority decision: do not block Phase 8 (character builder + sheet) on combat/event lifecycle semantics.
+- Deferred model note for post-Phase-8 interactive runtime:
+  - Add optional APPLY_GRANT-local lifecycle metadata, separate from existing `Duration.durationKind`.
+  - Pseudo-shape (not implemented):
+    - `lifetime.mode: 'PERMANENT' | 'TEMPORARY'`
+    - `lifetime.lastsUntil: 'NEXT_ATTACK' | 'END_OF_ROUND' | 'START_OF_NEXT_TURN' | 'END_OF_NEXT_TURN' | 'NEXT_SAVE'`
+- Runtime implications (deferred):
+  - Event hooks for consuming one-shot grants
+  - Turn-boundary expiry processing
+  - Snapshot/state reconciliation for expired temporary grants
 
 ## Tranche 1 Converted Anchors (so far)
 

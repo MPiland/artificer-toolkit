@@ -49,109 +49,141 @@ type ExistingEffectIds = {
   rangeCharacteristicId: string | null
   shapeCharacteristicId: string | null
   savingThrowId: string | null
-  branchDurationIds: string[]
-  entryDurationIds: string[]
+  pathDurationIds: string[]
+  pathRangeOverrideIds: string[]
+  pathIds: string[]
+  resultBlockIds: string[]
+  choiceOptionIds: string[]
+  rollRowIds: string[]
+  genericOutcomeIds: string[]
   damageIds: string[]
   conditionIds: string[]
-  entryIds: string[]
 }
 
 async function collectExistingEffectIds(db: DBLike, effectId: string): Promise<ExistingEffectIds> {
   const [
     invocationRow,
-    branchRows,
-    directDamageRows,
-    directConditionRows,
-    entryRows
+    pathRows
   ] = await Promise.all([
     db.selectFrom('effect_invocations')
-      .select(['range_characteristic_id', 'shape_characteristic_id', 'saving_throw_id'])
+      .select(['range_characteristic_id', 'shape_characteristic_id', 'saving_throw_id'] as const)
       .where('effect_id', '=', effectId)
       .executeTakeFirst(),
-    db.selectFrom('effect_branches')
-      .select(['duration_id'])
-      .where('effect_id', '=', effectId)
-      .execute(),
-    db.selectFrom('branch_direct_damages')
-      .select(['damage_id'])
-      .where('effect_id', '=', effectId)
-      .execute(),
-    db.selectFrom('branch_direct_conditions')
-      .select(['condition_id'])
-      .where('effect_id', '=', effectId)
-      .execute(),
-    db.selectFrom('branch_roll_table_entries')
-      .select(['id', 'duration_id'])
+    db.selectFrom('effect_paths')
+      .select(['id', 'result_block_id', 'range_override_characteristic_id'] as const)
       .where('effect_id', '=', effectId)
       .execute()
   ])
 
-  const entryIds = entryRows.map((row) => row.id)
-  const rollDamageIds: string[] = []
-  const rollConditionIds: string[] = []
+  const pathIds = pathRows.map((row) => row.id)
 
-  for (const entryId of entryIds) {
-    const [rollDamageRow, rollConditionRow] = await Promise.all([
-      db.selectFrom('branch_roll_table_damages')
-        .select(['damage_id'])
-        .where('entry_id', '=', entryId)
-        .executeTakeFirst(),
-      db.selectFrom('branch_roll_table_conditions')
-        .select(['condition_id'])
-        .where('entry_id', '=', entryId)
-        .executeTakeFirst()
-    ])
+  const [
+    choiceOptions,
+    rollRows
+  ] = await Promise.all([
+    pathIds.length > 0
+      ? db.selectFrom('effect_path_choice_options')
+          .select(['id', 'path_id', 'result_block_id'] as const)
+          .where('path_id', 'in', pathIds)
+          .execute()
+      : Promise.resolve([]),
+    pathIds.length > 0
+      ? db.selectFrom('effect_path_roll_table_rows')
+          .select(['id', 'path_id', 'result_block_id'] as const)
+          .where('path_id', 'in', pathIds)
+          .execute()
+      : Promise.resolve([])
+  ])
 
-    if (rollDamageRow?.damage_id) {
-      rollDamageIds.push(rollDamageRow.damage_id)
-    }
+  const resultBlockIds = Array.from(new Set([
+    ...pathRows.flatMap((row) => row.result_block_id ? [row.result_block_id] : []),
+    ...choiceOptions.map((row) => row.result_block_id),
+    ...rollRows.map((row) => row.result_block_id)
+  ]))
 
-    if (rollConditionRow?.condition_id) {
-      rollConditionIds.push(rollConditionRow.condition_id)
-    }
-  }
+  const [resultBlocks, nativeOutcomeRows] = await Promise.all([
+    resultBlockIds.length > 0
+      ? db.selectFrom('effect_result_blocks')
+          .select(['id', 'duration_id'] as const)
+          .where('id', 'in', resultBlockIds)
+          .execute()
+      : Promise.resolve([]),
+    resultBlockIds.length > 0
+      ? db.selectFrom('effect_result_block_outcomes')
+          .select(['outcome_id', 'effect_kind'] as const)
+          .where('result_block_id', 'in', resultBlockIds)
+          .execute()
+      : Promise.resolve([])
+  ])
 
   return {
     rangeCharacteristicId: invocationRow?.range_characteristic_id ?? null,
     shapeCharacteristicId: invocationRow?.shape_characteristic_id ?? null,
     savingThrowId: invocationRow?.saving_throw_id ?? null,
-    branchDurationIds: branchRows.flatMap((row) => row.duration_id ? [row.duration_id] : []),
-    entryDurationIds: entryRows.flatMap((row) => row.duration_id ? [row.duration_id] : []),
+    pathDurationIds: resultBlocks.flatMap((row) => row.duration_id ? [row.duration_id] : []),
+    pathRangeOverrideIds: pathRows.flatMap((row) => row.range_override_characteristic_id ? [row.range_override_characteristic_id] : []),
+    pathIds,
+    resultBlockIds,
+    choiceOptionIds: choiceOptions.map((row) => row.id),
+    rollRowIds: rollRows.map((row) => row.id),
+    genericOutcomeIds: nativeOutcomeRows
+      .filter((row) => row.effect_kind !== 'DAMAGE' && row.effect_kind !== 'CONDITION')
+      .map((row) => row.outcome_id),
     damageIds: [
-      ...directDamageRows.map((row) => row.damage_id),
-      ...rollDamageIds
+      ...nativeOutcomeRows
+        .filter((row) => row.effect_kind === 'DAMAGE')
+        .map((row) => row.outcome_id)
     ],
     conditionIds: [
-      ...directConditionRows.map((row) => row.condition_id),
-      ...rollConditionIds
-    ],
-    entryIds
+      ...nativeOutcomeRows
+        .filter((row) => row.effect_kind === 'CONDITION')
+        .map((row) => row.outcome_id)
+    ]
   }
 }
 
 export async function deleteEffectById(db: DBLike, effectId: string): Promise<void> {
   const existing = await collectExistingEffectIds(db, effectId)
 
-  for (const entryId of existing.entryIds) {
-    await db.deleteFrom('branch_roll_table_damages').where('entry_id', '=', entryId)
-      .execute()
-    await db.deleteFrom('branch_roll_table_conditions').where('entry_id', '=', entryId)
+  if (existing.resultBlockIds.length > 0) {
+    await db.deleteFrom('effect_result_block_outcomes').where('result_block_id', 'in', existing.resultBlockIds)
       .execute()
   }
 
-  await db.deleteFrom('branch_roll_table_entries').where('effect_id', '=', effectId)
-    .execute()
-  await db.deleteFrom('branch_direct_damages').where('effect_id', '=', effectId)
-    .execute()
-  await db.deleteFrom('branch_direct_conditions').where('effect_id', '=', effectId)
-    .execute()
-  await db.deleteFrom('effect_branches').where('effect_id', '=', effectId)
-    .execute()
+  if (existing.genericOutcomeIds.length > 0) {
+    await db.deleteFrom('effect_generic_outcomes').where('id', 'in', existing.genericOutcomeIds)
+      .execute()
+  }
+
+  if (existing.choiceOptionIds.length > 0) {
+    await db.deleteFrom('effect_path_choice_options').where('id', 'in', existing.choiceOptionIds)
+      .execute()
+  }
+
+  if (existing.rollRowIds.length > 0) {
+    await db.deleteFrom('effect_path_roll_table_rows').where('id', 'in', existing.rollRowIds)
+      .execute()
+  }
+
+  if (existing.pathIds.length > 0) {
+    await db.deleteFrom('effect_paths').where('id', 'in', existing.pathIds)
+      .execute()
+  }
+
+  if (existing.resultBlockIds.length > 0) {
+    await db.deleteFrom('effect_result_blocks').where('id', 'in', existing.resultBlockIds)
+      .execute()
+  }
+
   await db.deleteFrom('effect_invocations').where('effect_id', '=', effectId)
     .execute()
 
-  for (const durationId of new Set([...existing.branchDurationIds, ...existing.entryDurationIds])) {
+  for (const durationId of new Set(existing.pathDurationIds)) {
     await deleteCharacteristicById(db, durationId)
+  }
+
+  for (const rangeOverrideId of new Set(existing.pathRangeOverrideIds)) {
+    await deleteCharacteristicById(db, rangeOverrideId)
   }
 
   for (const damageId of new Set(existing.damageIds)) {
@@ -235,3 +267,5 @@ export async function upsertCondition(db: DBLike, json_data: ConditionAuthored):
     })))
     .execute()
 }
+
+

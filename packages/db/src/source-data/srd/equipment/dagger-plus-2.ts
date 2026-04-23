@@ -10,7 +10,6 @@ export const daggerPlus2: EquipmentVariantAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: dagger.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
-  weight: S.lbs(1),
   rarityId: S.RARITY_RARE,
   maxBonus: 2,
   modifiers: S.thrownMagicWeaponModifiers(S.equipId(253), 2),

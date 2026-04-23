@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { chargeDtoSchema } from '../shared/charge.js'
 import { detailDtoSchema } from '../shared/detail.js'
 import { facetDtoSchema } from '../shared/facet.js'
-import { capabilityDtoSchema } from '../effects/capability.js'
+import { effectDtoSchema } from '../effects/effect.js'
 import {
   featGrantDtoSchema,
   modifierGrantDtoSchema,
@@ -29,8 +29,7 @@ const featureBaseDtoSchemaBase = z.object({
   description: z.string(),
   attributes: z.array(z.string()).optional(),
   detail: z.union([z.string(), detailDtoSchema]).optional(),
-  capabilities: z.array(capabilityDtoSchema).optional(),
-  effects: z.array(capabilityDtoSchema).optional(),
+  effects: z.array(effectDtoSchema).optional(),
   charges: chargeDtoSchema.optional(),
   grants: featureGrantsDtoSchema.optional(),
   restrictions: facetDtoSchema.optional(),
@@ -40,3 +39,6 @@ const featureBaseDtoSchemaBase = z.object({
 export type FeatureBaseDto = z.infer<typeof featureBaseDtoSchemaBase>
 export const featureBaseDtoSchema: z.ZodType<FeatureBaseDto> = featureBaseDtoSchemaBase
 export const featureBaseDtoObject = featureBaseDtoSchemaBase
+
+
+

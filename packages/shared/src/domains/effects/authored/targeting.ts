@@ -1,15 +1,27 @@
 import type {
   TargetDispositionKind,
-  TargetSelectionKind
+  TargetSelectionKind,
+  ScalableValueAuthored
 } from '#core'
 
-export type TargetingAuthored =
-  | {
+export type TargetingAuthored
+  = | {
     selectionKind: Extract<TargetSelectionKind, 'SELF'>
   }
   | {
-    selectionKind: Exclude<TargetSelectionKind, 'SELF'>
+    selectionKind: Extract<TargetSelectionKind, 'SINGLE_TARGET'>
+    dispositionKind?: TargetDispositionKind
+    excludedCreatureTypeIds?: string[]
+  }
+  | {
+    selectionKind: Extract<TargetSelectionKind, 'CHOSEN_CREATURES'>
     dispositionKind?: TargetDispositionKind
     maxTargets?: number
+    maxTargetsScaling?: ScalableValueAuthored<{ amount: number }>
+    excludedCreatureTypeIds?: string[]
+  }
+  | {
+    selectionKind: Extract<TargetSelectionKind, 'AREA_CONTENTS'>
+    dispositionKind?: TargetDispositionKind
     excludedCreatureTypeIds?: string[]
   }

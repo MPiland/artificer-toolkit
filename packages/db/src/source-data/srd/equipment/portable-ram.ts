@@ -8,7 +8,6 @@ export const portableRam: EquipmentAuthored = {
   description: 'A heavy log fitted with handles for bashing open doors and similar barriers.',
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
-  abilities: [],
   cost: S.gp(4),
   weight: S.lbs(35),
   rarityId: S.RARITY_COMMON,

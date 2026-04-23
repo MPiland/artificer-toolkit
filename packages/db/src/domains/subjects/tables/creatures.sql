@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS public.creatures (
   label text NOT NULL,
   quote text,
   description text,
+  status text NOT NULL DEFAULT 'DRAFT',
 
   record_kind text NOT NULL DEFAULT 'STAT_BLOCK',
   category text NOT NULL,              -- CreatureCategory
@@ -89,6 +90,9 @@ CREATE TABLE IF NOT EXISTS public.creatures (
   ),
   CONSTRAINT creatures_record_kind_chk CHECK (
     record_kind IN ('STAT_BLOCK', 'LOGISTICS')
+  ),
+  CONSTRAINT creatures_status_chk CHECK (
+    status IN ('DRAFT', 'ACTIVE')
   )
 );
 

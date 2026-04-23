@@ -8,7 +8,6 @@ export const rope50FtHempen: EquipmentAuthored = {
     description: "Fifty feet of sturdy hemp rope able to support up to 1,500 pounds.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(1),
     weight: S.lbs(10),
     rarityId: S.RARITY_COMMON,

@@ -8,7 +8,6 @@ export const leatherArmor: EquipmentAuthored = {
     description: 'Breastplate and shoulder protectors of stiffened leather.',
     category: S.EQUIPMENT_CATEGORY_CODE.ARMOR,
     properties: [S.EQUIPMENT_PROPERTY_CODE.LIGHT],
-    abilities: [],
     armorClass: 11,
     cost: S.gp(10),
     weight: S.lbs(10),

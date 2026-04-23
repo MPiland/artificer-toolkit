@@ -3,6 +3,7 @@ import { detailDtoSchema, speedDtoSchema } from '../shared/index.js'
 import { featureDtoSchema } from '../features/index.js'
 import { proficiencyGrantDtoSchema } from '../grants/index.js'
 import { costDtoSchema } from './shared.js'
+import { authoredRecordStatusSchema } from '../shared/enums.js'
 
 const creatureActionDtoSchema = z.object({
   id: z.string(),
@@ -49,6 +50,7 @@ const creatureBaseSchema = z.object({
   label: z.string(),
   quote: z.string().optional(),
   description: z.string().optional(),
+  status: authoredRecordStatusSchema.optional(),
   details: z.array(detailDtoSchema).optional(),
   features: z.array(featureDtoSchema).optional(),
   proficiencies: z.array(proficiencyGrantDtoSchema).optional(),

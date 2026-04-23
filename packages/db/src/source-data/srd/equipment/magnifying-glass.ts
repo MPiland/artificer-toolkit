@@ -8,7 +8,6 @@ export const magnifyingGlass: EquipmentAuthored = {
   description: 'A lens that focuses light, useful for examining fine detail or starting fires in sunlight.',
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
-  abilities: [],
   cost: S.gp(100),
   weight: S.lbs(0),
   rarityId: S.RARITY_COMMON,

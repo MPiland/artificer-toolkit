@@ -8,7 +8,6 @@ export const hoodedLantern: EquipmentAuthored = {
   description: 'A lantern with a hood that can be lowered to reduce or conceal its light.',
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
-  abilities: [],
   cost: S.gp(5),
   weight: S.lbs(2),
   rarityId: S.RARITY_COMMON,

@@ -9,7 +9,6 @@ export const poisonersKit: EquipmentAuthored = {
     'Vials, a mortar and pestle, and reference materials for crafting and applying poisons.',
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
-  abilities: [],
   cost: S.gp(50),
   weight: S.lbs(2),
   rarityId: S.RARITY_COMMON,

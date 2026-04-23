@@ -39,6 +39,7 @@ describe('buildSnapshot', () => {
       features: {},
       classes: {},
       feats: {},
+      races: {},
       equipment: {},
       spells: {}
     }

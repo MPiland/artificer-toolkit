@@ -1,21 +1,23 @@
 import { createFileRoute } from '@tanstack/react-router'
-import CharacterForm from '../../../../domains/characters/form/CharacterForm'
-import { fetchCharacter } from '@apis'
-import Loading from '@components/Loading/Loading'
 import { Modal } from '@mantine/core'
+
+import Loading from '@components/Loading/Loading'
+import CharacterForm from '../../../../domains/characters/form/CharacterForm'
+import { getCharacterBuilder } from '../../../../data/characters'
 
 export const Route = createFileRoute('/_authed/characters/$action/$_characterId')({
   beforeLoad: async () => {
     return { form: { type: 'characters' } }
   },
   loader: async ({ params, context }) => {
-    const { _characterId: characterId } = params
-    if (characterId) {
-      return context.queryClient.ensureQueryData(fetchCharacter(characterId))
+    if (params.action === 'edit' && params._characterId) {
+      return context.queryClient.ensureQueryData(getCharacterBuilder(params._characterId))
     }
+
+    return null
   },
   pendingComponent: () => (
-    <Modal withCloseButton={false} opened onClose={() => {}} centered size="auto">
+    <Modal withCloseButton={false} opened onClose={() => {}} centered size='auto'>
       <Loading />
     </Modal>
   ),

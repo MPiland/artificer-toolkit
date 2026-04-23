@@ -10,7 +10,6 @@ export const longbowPlus2: EquipmentVariantAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: longbow.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
-  weight: S.lbs(2),
   rarityId: S.RARITY_RARE,
   maxBonus: 2,
   modifiers: S.rangedMagicWeaponModifiers(S.equipId(241), 2),

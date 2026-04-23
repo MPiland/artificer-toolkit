@@ -9,7 +9,6 @@ export const whetstone: EquipmentAuthored = {
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
     attributes: [S.EQUIPMENT_ATTRIBUTE.STACKABLE],
-    abilities: [],
     cost: S.cp(1),
     weight: S.lbs(1),
     rarityId: S.RARITY_COMMON,

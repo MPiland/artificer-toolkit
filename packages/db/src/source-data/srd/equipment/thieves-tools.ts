@@ -9,7 +9,6 @@ export const thievesTools: EquipmentAuthored = {
     'A small file, a set of lock picks, a small mirror, a pair of scissors, and pliers.',
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
-  abilities: [],
   cost: S.gp(25),
   weight: S.lbs(1),
   rarityId: S.RARITY_COMMON,

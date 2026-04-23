@@ -8,7 +8,6 @@ export const panFlute: EquipmentAuthored = {
     description: "A series of graduated pipes bound together, played by blowing across the open tops.",
     category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
     properties: [],
-    abilities: [],
     cost: S.gp(12),
     weight: S.lbs(2),
     rarityId: S.RARITY_COMMON,

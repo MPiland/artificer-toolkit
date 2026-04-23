@@ -13,7 +13,9 @@ type VocabularyTableName
     | 'creature_types'
     | 'currencies'
     | 'damage_types'
+    | 'heritages'
     | 'languages'
+    | 'lifestyles'
     | 'magic_schools'
     | 'passives'
     | 'rarities'
@@ -70,7 +72,9 @@ async function hydrateSystemById(
     creatureTypes,
     currencies,
     damageTypes,
+    heritages,
     languages,
+    lifestyles,
     magicSchools,
     passives,
     rarities,
@@ -85,7 +89,9 @@ async function hydrateSystemById(
     readVocabularyRows(db, 'creature_types', row.id),
     readVocabularyRows(db, 'currencies', row.id),
     readVocabularyRows(db, 'damage_types', row.id),
+    readVocabularyRows(db, 'heritages', row.id),
     readVocabularyRows(db, 'languages', row.id),
+    readVocabularyRows(db, 'lifestyles', row.id),
     readVocabularyRows(db, 'magic_schools', row.id),
     readVocabularyRows(db, 'passives', row.id),
     readVocabularyRows(db, 'rarities', row.id),
@@ -106,7 +112,9 @@ async function hydrateSystemById(
     creatureTypes,
     currencies,
     damageTypes,
+    heritages,
     languages,
+    lifestyles,
     magicSchools,
     passives,
     rarities,

@@ -46,7 +46,7 @@ export const CLASS_ATTRIBUTE_REGISTRY: Record<ClassAttribute, ClassAttributeOpti
   SPELLCASTER: {
     code: CLASS_ATTRIBUTE.SPELLCASTER,
     label: 'Spellcaster',
-    description: 'The class has spellcasting capabilities.',
+    description: 'The class has spellcasting.',
     tooltip: 'Can cast spells.'
   },
 

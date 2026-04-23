@@ -8,7 +8,6 @@ export const pottersTools: EquipmentAuthored = {
   description: 'A wheel, shaping tools, and glazing materials for crafting ceramic vessels.',
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
-  abilities: [],
   cost: S.gp(10),
   weight: S.lbs(3),
   rarityId: S.RARITY_COMMON,

@@ -28,3 +28,4 @@ export const priest: CreatureAuthored = {
   challengeRatingId: CR.CR_2,
   xp: 450
 }
+

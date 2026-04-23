@@ -72,3 +72,4 @@ export const gladiator: CreatureAuthored = {
     }
   ]
 }
+

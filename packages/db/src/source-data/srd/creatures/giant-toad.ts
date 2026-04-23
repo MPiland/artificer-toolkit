@@ -1,146 +1,187 @@
-import type { CreatureAuthored } from '@artificer-toolkit/shared'
-import { conditionTypeId } from '../equipment/shared.js'
-import * as S from './shared.js'
-
+import type { CreatureAuthored } from '@artificer-toolkit/shared';
+import { conditionTypeId } from '../equipment/shared.js';
+import * as S from './shared.js';
 export const giantToad: CreatureAuthored = {
-  id: S.CREATURE_IDS.GIANT_TOAD,
-  label: 'Giant Toad',
-  userId: S.SRD_USER_ID,
-  systemId: S.SRD_SYSTEM_ID,
-  recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
-  category: S.CREATURE_CATEGORY_CODE.BEAST,
-  creatureTypeId: S.CREATURE_TYPE.BEAST,
-  size: S.SIZE_CODE.LARGE,
-  alignmentId: '00000000-0000-0000-0001-000a00000000',
-  abilityScores: {
-    STRENGTH: 15,
-    DEXTERITY: 13,
-    CONSTITUTION: 13,
-    INTELLIGENCE: 2,
-    WISDOM: 10,
-    CHARISMA: 3,
-    SPELLCASTING: 0
-  },
-  armorClass: 11,
-  hitPoints: 39,
-  hitDice: '6d10+6',
-  speeds: [...S.walk(20), ...S.swim(40)],
-  senses: ['darkvision 30 ft.'],
-  passivePerception: 10,
-  challengeRatingId: S.CR.CR_1,
-  xp: 200,
-  features: [
-    {
-      id: S.featureId(4874, 1),
-      label: 'Amphibious',
-      description: 'Amphibious. The toad can breathe air and water.',
-      order: 1
+    id: S.CREATURE_IDS.GIANT_TOAD,
+    label: 'Giant Toad',
+    userId: S.SRD_USER_ID,
+    systemId: S.SRD_SYSTEM_ID,
+    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
+    category: S.CREATURE_CATEGORY_CODE.BEAST,
+    creatureTypeId: S.CREATURE_TYPE.BEAST,
+    size: S.SIZE_CODE.LARGE,
+    alignmentId: '00000000-0000-0000-0001-000a00000000',
+    abilityScores: {
+        STRENGTH: 15,
+        DEXTERITY: 13,
+        CONSTITUTION: 13,
+        INTELLIGENCE: 2,
+        WISDOM: 10,
+        CHARISMA: 3,
+        SPELLCASTING: 0
     },
-    {
-      id: S.featureId(4874, 2),
-      label: 'Standing Leap',
-      description: "Standing Leap. The toad's long jump is up to 20 feet and its high jump is up to 10 feet, with or without a running start.",
-      order: 2
-    },
-    {
-      id: S.featureId(4874, 3),
-      label: 'Bite',
-      description: 'Bite. Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 7 (1d10 + 2) piercing damage plus 5 (1d10) poison damage, and the target is grappled (escape DC 13). Until this grapple ends, the target is restrained, and the toad cannot bite another target.',
-      capabilities: [
+    armorClass: 11,
+    hitPoints: 39,
+    hitDice: '6d10+6',
+    speeds: [...S.walk(20), ...S.swim(40)],
+    senses: ['darkvision 30 ft.'],
+    passivePerception: 10,
+    challengeRatingId: S.CR.CR_1,
+    xp: 200,
+    features: [
         {
-          id: S.actionId(4874, 1),
-          order: 1,
-          invocation: {
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
-            activation: {
-              code: S.ACTIVATION_CODE.ACTION,
-              amount: 1
-            },
-            range: {
-              id: S.actionId(4874, 2),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 5,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
-            }
-          },
-          branches: [
-            {
-              id: S.actionId(4874, 3),
-              branch: S.BRANCH.ON_HIT,
-              groupType: S.BRANCH_GROUP_TYPE.SEQUENTIAL,
-              resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
-              effectKind: S.EFFECT_KIND.DAMAGE,
-              damageTypeId: S.damageTypeId('PIERCING'),
-              valueKind: S.DAMAGE_VALUE_KIND.DICE,
-              scalingKind: S.SCALING.NONE,
-              diceConfig: '1d10',
-              bonuses: [
+            id: S.featureId(4874, 1),
+            label: 'Amphibious',
+            description: 'Amphibious. The toad can breathe air and water.',
+            order: 1
+        },
+        {
+            id: S.featureId(4874, 2),
+            label: 'Standing Leap',
+            description: "Standing Leap. The toad's long jump is up to 20 feet and its high jump is up to 10 feet, with or without a running start.",
+            order: 2
+        },
+        {
+            id: S.featureId(4874, 3),
+            label: 'Bite',
+            description: 'Bite. Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 7 (1d10 + 2) piercing damage plus 5 (1d10) poison damage, and the target is grappled (escape DC 13). Until this grapple ends, the target is restrained, and the toad cannot bite another target.',
+            effects: [
                 {
-                  id: S.actionId(4874, 4),
-                  bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
-                  ability: S.ABILITY_CODE.STRENGTH,
-                  order: 1
+                    id: S.actionId(4874, 1),
+                    order: 1,
+                    invocation: {
+                        triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+                        activation: {
+                            code: S.ACTIVATION_CODE.ACTION,
+                            amount: 1
+                        },
+                        range: {
+                            id: S.actionId(4874, 2),
+                            rangeKind: S.RANGE_KIND.DISTANCE,
+                            amount: 5,
+                            unit: S.MEASUREMENT_UNIT_CODE.FEET
+                        },
+                        targeting: {
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                        }
+                    },
+                    paths: [
+                        {
+                            id: S.actionId(4874, 3),
+                            order: 1,
+                            pathCode: S.PATH_CODE.ON_HIT,
+                            groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+                            selectionKind: "FIXED" as const,
+                            resultBlock: {
+                                id: S.actionId(4874, 3) + "__result",
+                                resultKind: "SEQUENCE" as const,
+                                outcomes: [
+                                    {
+                                        id: S.actionId(4874, 3),
+                                        effectKind: S.EFFECT_KIND.DAMAGE,
+                                        damageTypeId: S.damageTypeId('PIERCING'),
+                                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                                        scalingKind: S.SCALING.NONE,
+                                        diceConfig: '1d10',
+                                        bonuses: [
+                                            {
+                                                id: S.actionId(4874, 4),
+                                                bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
+                                                ability: S.ABILITY_CODE.STRENGTH,
+                                                order: 1
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            id: S.actionId(4874, 5),
+                            order: 2,
+                            pathCode: S.PATH_CODE.ON_HIT,
+                            groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+                            selectionKind: "FIXED" as const,
+                            resultBlock: {
+                                id: S.actionId(4874, 5) + "__result",
+                                resultKind: "SEQUENCE" as const,
+                                outcomes: [
+                                    {
+                                        id: S.actionId(4874, 5),
+                                        effectKind: S.EFFECT_KIND.DAMAGE,
+                                        damageTypeId: S.damageTypeId('POISON'),
+                                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                                        scalingKind: S.SCALING.NONE,
+                                        diceConfig: '1d10'
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            id: S.actionId(4874, 6),
+                            order: 3,
+                            pathCode: S.PATH_CODE.ON_HIT,
+                            groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+                            selectionKind: "FIXED" as const,
+                            resultBlock: {
+                                id: S.actionId(4874, 6) + "__result",
+                                resultKind: "SEQUENCE" as const,
+                                outcomes: [
+                                    {
+                                        id: S.actionId(4874, 6),
+                                        effectKind: S.EFFECT_KIND.CONDITION,
+                                        conditionId: conditionTypeId('GRAPPLED')
+                                    }
+                                ]
+                            }
+                        }
+                    ]
                 }
-              ]
-            },
-            {
-              id: S.actionId(4874, 5),
-              branch: S.BRANCH.ON_HIT,
-              groupType: S.BRANCH_GROUP_TYPE.SEQUENTIAL,
-              resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
-              effectKind: S.EFFECT_KIND.DAMAGE,
-              damageTypeId: S.damageTypeId('POISON'),
-              valueKind: S.DAMAGE_VALUE_KIND.DICE,
-              scalingKind: S.SCALING.NONE,
-              diceConfig: '1d10'
-            },
-            {
-              id: S.actionId(4874, 6),
-              branch: S.BRANCH.ON_HIT,
-              groupType: S.BRANCH_GROUP_TYPE.SEQUENTIAL,
-              resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
-              effectKind: S.EFFECT_KIND.CONDITION,
-              conditionId: conditionTypeId('GRAPPLED')
-            }
-          ]
-        }
-      ],
-      order: 3
-    },
-    {
-      id: S.featureId(4874, 4),
-      label: 'Swallow',
-      description: "Swallow. The toad makes one bite attack against a Medium or smaller target it is grappling. If the attack hits, the target is swallowed, and the grapple ends. The swallowed target is blinded and restrained, it has total cover against attacks and other effects outside the toad, and it takes 10 (3d6) acid damage at the start of each of the toad's turns. The toad can have only one target swallowed at a time. If the toad dies, a swallowed creature is no longer restrained by it and can escape from the corpse using 5 feet of movement, exiting prone.",
-      capabilities: [
+            ],
+            order: 3
+        },
         {
-          id: S.actionId(4874, 7),
-          order: 1,
-          invocation: {
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: {
-              code: S.ACTIVATION_CODE.ACTION,
-              amount: 1
-            },
-            range: {
-              id: S.actionId(4874, 8),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
-          },
-          branches: [
-            {
-              id: S.actionId(4874, 9),
-              branch: S.BRANCH.ON_USE,
-              groupType: S.BRANCH_GROUP_TYPE.SINGLE,
-              resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
-              effectKind: S.EFFECT_KIND.RULE
-            }
-          ]
+            id: S.featureId(4874, 4),
+            label: 'Swallow',
+            description: "Swallow. The toad makes one bite attack against a Medium or smaller target it is grappling. If the attack hits, the target is swallowed, and the grapple ends. The swallowed target is blinded and restrained, it has total cover against attacks and other effects outside the toad, and it takes 10 (3d6) acid damage at the start of each of the toad's turns. The toad can have only one target swallowed at a time. If the toad dies, a swallowed creature is no longer restrained by it and can escape from the corpse using 5 feet of movement, exiting prone.",
+            effects: [
+                {
+                    id: S.actionId(4874, 7),
+                    order: 1,
+                    invocation: {
+                        triggerCode: S.TRIGGER.ACTIVATED,
+                        activation: {
+                            code: S.ACTIVATION_CODE.ACTION,
+                            amount: 1
+                        },
+                        range: {
+                            id: S.actionId(4874, 8),
+                            rangeKind: S.RANGE_KIND.SPECIAL
+                        }
+                    },
+                    paths: [
+                        {
+                            id: S.actionId(4874, 9),
+                            order: 1,
+                            pathCode: S.PATH_CODE.ON_USE,
+                            groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            selectionKind: "FIXED" as const,
+                            resultBlock: {
+                                id: S.actionId(4874, 9) + "__result",
+                                resultKind: "SINGLE" as const,
+                                outcomes: [
+                                    {
+                                        id: S.actionId(4874, 9),
+                                        effectKind: S.EFFECT_KIND.RULE
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ],
+            order: 4
         }
-      ],
-      order: 4
-    }
-  ]
-}
+    ]
+};
+
+

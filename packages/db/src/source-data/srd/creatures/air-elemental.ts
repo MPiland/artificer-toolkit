@@ -58,3 +58,4 @@ export const airElemental: CreatureAuthored = {
     }
   ]
 }
+

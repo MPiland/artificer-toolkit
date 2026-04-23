@@ -10,7 +10,6 @@ export const sicklePlus1: EquipmentVariantAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: sickle.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
-  weight: S.lbs(2),
   rarityId: S.RARITY_UNCOMMON,
   maxBonus: 1,
   modifiers: S.meleeMagicWeaponModifiers(S.equipId(285), 1),

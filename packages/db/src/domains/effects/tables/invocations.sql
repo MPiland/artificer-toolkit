@@ -1,7 +1,7 @@
-/* ──────────────────────────────────────────────
- * EFFECT INVOCATIONS — TABLE
- * One invocation per effect
- * ────────────────────────────────────────────── */
+/* ----------------------------------------------------------------------------
+ * EFFECT INVOCATIONS - TABLE
+ * One invocation envelope per effect root.
+ * ---------------------------------------------------------------------------- */
 
 CREATE TABLE IF NOT EXISTS public.effect_invocations (
   effect_id uuid PRIMARY KEY
@@ -21,6 +21,12 @@ CREATE TABLE IF NOT EXISTS public.effect_invocations (
   saving_throw_id uuid
     REFERENCES public.saving_throws(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
 
+  target_selection_kind text,
+  target_disposition_kind text,
+  max_targets integer,
+  max_targets_scaling jsonb,
+  excluded_creature_type_ids uuid[],
+
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -39,9 +45,9 @@ CREATE INDEX IF NOT EXISTS idx_effect_invocations_saving_throw
 
 ALTER TABLE public.effect_invocations ENABLE ROW LEVEL SECURITY;
 
-/* ──────────────────────────────────────────────
- * EFFECT INVOCATIONS — OWNERSHIP CLEANUP
- * ────────────────────────────────────────────── */
+/* ----------------------------------------------------------------------------
+ * EFFECT INVOCATIONS - OWNERSHIP CLEANUP
+ * ---------------------------------------------------------------------------- */
 
 DO $$
 BEGIN

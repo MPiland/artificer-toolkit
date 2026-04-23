@@ -6,7 +6,6 @@ import { ChevronRight } from 'lucide-react'
 import { useNavigate } from '@tanstack/react-router'
 import { LogOut } from 'lucide-react'
 import { base, avatar, avatar_img, chevron, email, label_container, menu, title } from './User.css'
-import SchemeToggle from '../SchemeToggle/SchemeToggle'
 import { use } from 'react'
 import { ModalContext } from '@components/Modal'
 import { useServerFn } from '@tanstack/react-start'
@@ -14,11 +13,10 @@ import { logoutFn } from '@server/auth'
 import { useAuth } from '../../auth/AuthContext'
 
 type UserProps = {
-  toggleColorScheme: () => void
   lg: boolean
 }
 
-const User = ({ toggleColorScheme, lg }: UserProps) => {
+const User = ({ lg }: UserProps) => {
   const navigate = useNavigate()
   const { showModal, hideModal } = use(ModalContext)
 
@@ -57,9 +55,6 @@ const User = ({ toggleColorScheme, lg }: UserProps) => {
           }}
         >
           Logout
-        </Menu.Item>
-        <Menu.Item leftSection={<SchemeToggle />} closeMenuOnClick={false} onClick={toggleColorScheme}>
-          Toggle Light/Dark Mode
         </Menu.Item>
       </Menu.Dropdown>
     </Menu>

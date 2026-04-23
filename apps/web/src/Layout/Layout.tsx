@@ -17,10 +17,6 @@ const Layout = () => {
     mobileOpened,
     { toggle: toggleMobile }
   ] = useDisclosure()
-  const [
-    desktopOpened,
-    { toggle: toggleDesktop }
-  ] = useDisclosure(true)
   const { setColorScheme } = useMantineColorScheme()
   const computedColorScheme = useComputedColorScheme('light', { getInitialValueInEffect: true })
   const { showModal, hideModal } = use(ModalContext)
@@ -50,11 +46,8 @@ const Layout = () => {
     if (mobileOpened && lg) {
       toggleMobile()
     }
-    if (desktopOpened && (!lg || !signedIn)) {
-      toggleDesktop()
-    }
   }, [
-    lg, mobileOpened, desktopOpened, toggleDesktop, toggleMobile, signedIn
+    lg, mobileOpened, toggleMobile
   ])
 
   return (
@@ -62,19 +55,17 @@ const Layout = () => {
       layout={!lg ? 'alt' : 'default'}
       header={{ height: 60 }}
       navbar={{
-        width: '16rem',
+        width: signedIn && lg ? 72 : '16rem',
         breakpoint: 'xs',
-        collapsed: { mobile: !mobileOpened, desktop: !desktopOpened }
+        collapsed: { mobile: !mobileOpened, desktop: !signedIn }
       }}
       padding="md"
       id="app-shell"
-      className={clsx(layout.base, { ['unAuth']: !signedIn }, { ['collapsed']: !desktopOpened && !mobileOpened })}
+      className={clsx(layout.base, { ['unAuth']: !signedIn }, { ['iconOnly']: signedIn && !!lg })}
     >
       <Header
         toggleMobile={toggleMobile}
         mobileOpened={mobileOpened}
-        toggleDesktop={toggleDesktop}
-        desktopOpened={desktopOpened}
         toggleColorScheme={toggleColorScheme}
         lg={lg ?? false}
         signedIn={signedIn}
@@ -85,9 +76,7 @@ const Layout = () => {
               <AuthNavbar
                 toggleMobile={toggleMobile}
                 mobileOpened={mobileOpened}
-                desktopOpened={desktopOpened}
                 authUser={authUser}
-                toggleColorScheme={toggleColorScheme}
                 lg={lg ?? false}
               />
             )

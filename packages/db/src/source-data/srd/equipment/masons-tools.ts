@@ -8,7 +8,6 @@ export const masonsTools: EquipmentAuthored = {
   description: 'Chisels, a mallet, and measuring tools for shaping and laying stone.',
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
-  abilities: [],
   cost: S.gp(10),
   weight: S.lbs(8),
   rarityId: S.RARITY_COMMON,

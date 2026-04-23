@@ -8,7 +8,6 @@ export const mirrorSteel: EquipmentAuthored = {
     description: "A small polished steel mirror useful for signaling, peeking around corners, or checking appearance.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(5),
     weight: S.lbs(0.5),
     rarityId: S.RARITY_COMMON,

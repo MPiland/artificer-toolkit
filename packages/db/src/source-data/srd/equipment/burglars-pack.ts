@@ -8,7 +8,6 @@ export const burglarsPack: EquipmentAuthored = {
     description: "A pre-assembled kit of gear favored by rogues and those who work in the shadows.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(16),
     weight: S.lbs(48),
     rarityId: S.RARITY_COMMON,

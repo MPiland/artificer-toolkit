@@ -111,7 +111,8 @@ export async function upsertFeature<N extends NodeSubjectCode>(
     attribute_code: requireFeatureAttribute(json_data.id, attribute),
     sort_order: index + 1
   }))
-  const effectRows = (json_data.effects ?? []).map((effect, index) => ({
+  const authoredEffects = json_data.effects ?? []
+  const effectRows = authoredEffects.map((effect, index) => ({
     feature_id: json_data.id,
     effect_id: effect.id,
     sort_order: index + 1
@@ -153,7 +154,7 @@ export async function upsertFeature<N extends NodeSubjectCode>(
     replace_count: choice.replaceCount ?? null,
     sort_order: index + 1
   }))
-  const nextEffectIds = new Set((json_data.effects ?? []).map((effect) => effect.id))
+  const nextEffectIds = new Set(authoredEffects.map((effect) => effect.id))
 
   const trx = await db.startTransaction().execute()
 
@@ -182,7 +183,7 @@ export async function upsertFeature<N extends NodeSubjectCode>(
       await upsertFacet(trx, json_data.restrictions)
     }
 
-    for (const effect of json_data.effects ?? []) {
+    for (const effect of authoredEffects) {
       await upsertEffect(trx, effect)
     }
 
@@ -308,3 +309,5 @@ export async function upsertFeature<N extends NodeSubjectCode>(
     throw error
   }
 }
+
+

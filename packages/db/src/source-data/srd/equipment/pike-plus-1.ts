@@ -10,7 +10,6 @@ export const pikePlus1: EquipmentVariantAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: pike.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
-  weight: S.lbs(18),
   rarityId: S.RARITY_UNCOMMON,
   maxBonus: 1,
   modifiers: S.meleeMagicWeaponModifiers(S.equipId(207), 1),

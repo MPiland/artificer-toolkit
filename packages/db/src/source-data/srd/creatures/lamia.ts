@@ -66,3 +66,4 @@ export const lamia: CreatureAuthored = {
     }
   ]
 }
+

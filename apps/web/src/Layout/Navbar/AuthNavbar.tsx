@@ -1,8 +1,15 @@
 import { AppShell, Group, Burger, Tooltip, Flex } from '@mantine/core'
 import { useEffect } from 'react'
-import { links, link_icon_wrapper, link as navbar_link, link_label, link_tooltip, footer } from './Navbar.css'
+import {
+  links,
+  link_icon_wrapper,
+  link as navbar_link,
+  link_label,
+  link_pill,
+  link_tooltip,
+  footer,
+} from './Navbar.css'
 import * as header from '../Header/Header.css'
-import clsx from 'clsx'
 import { startCase } from 'lodash-es'
 import Link from '@components/Link'
 import { useSuspenseQuery } from '@tanstack/react-query'
@@ -14,16 +21,12 @@ import { authLinks } from '../utils'
 const AuthNavbar = ({
   toggleMobile,
   mobileOpened,
-  desktopOpened,
   authUser,
-  toggleColorScheme,
   lg,
 }: {
   toggleMobile: () => void
   mobileOpened: boolean
-  desktopOpened: boolean
   authUser: unknown
-  toggleColorScheme: () => void
   lg: boolean
 }) => {
   const [systemPref, setSystemPref] = useSystemPref()
@@ -52,31 +55,36 @@ const AuthNavbar = ({
           <Tooltip
             label={startCase(link.title)}
             key={index}
-            disabled={desktopOpened}
+            disabled={!lg}
             position='right'
-            offset={12}
+            offset={8}
             className={link_tooltip}
             portalProps={{ target: '#app-shell' }}
           >
             <Link
               type='unstyled'
-              className={clsx(navbar_link, { ['collapsed']: !desktopOpened })}
+              className={navbar_link}
               to={link.to}
               state={{ form: link.title }}
               key={index}
+              onClick={() => {
+                if (!lg && mobileOpened) toggleMobile()
+              }}
             >
               {link?.icon && (
-                <Flex justify='center' align='center' className={link_icon_wrapper}>
-                  {link.icon}
-                </Flex>
+                <span className={link_pill}>
+                  <Flex justify='center' align='center' className={link_icon_wrapper}>
+                    {link.icon}
+                  </Flex>
+                </span>
               )}
-              <span className={clsx(link_label, { ['hidden']: !desktopOpened })}>{startCase(link.title)}</span>
+              {!lg && <span className={link_label}>{startCase(link.title)}</span>}
             </Link>
           </Tooltip>
         ))}
       </AppShell.Section>
       <AppShell.Section className={footer}>
-        <User toggleColorScheme={toggleColorScheme} lg={lg} />
+        <User lg={lg} />
       </AppShell.Section>
     </>
   )

@@ -8,7 +8,6 @@ export const navigatorsTools: EquipmentAuthored = {
   description: 'A sextant, compass, charts, and measuring instruments for charting courses at sea.',
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
-  abilities: [],
   cost: S.gp(25),
   weight: S.lbs(2),
   rarityId: S.RARITY_COMMON,

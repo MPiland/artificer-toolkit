@@ -12,6 +12,7 @@ import {
 import { upsertDetail } from '../../shared/upserts/index.js'
 import { upsertFeature } from '../../features/upserts/index.js'
 import { upsertProficiencyGrant } from '../../grants/upserts/index.js'
+import { normalizeSubjectStatus } from '../status.js'
 
 type CreatureRow = {
   id: string
@@ -20,6 +21,7 @@ type CreatureRow = {
   label: string
   quote: string | null
   description: string | null
+  status: CreatureAuthored['status']
   record_kind: string
   category: string
   creature_type_id: string | null
@@ -141,6 +143,7 @@ function buildBaseRow(jsonData: CreatureAuthored): CreatureRow {
     label: jsonData.label,
     quote: jsonData.quote ?? null,
     description: jsonData.description ?? null,
+    status: normalizeSubjectStatus(jsonData.status),
     record_kind: requireRecordKind(jsonData.id, jsonData.recordKind),
     category: requireCreatureCategory(jsonData.id, jsonData.category),
     creature_type_id: jsonData.creatureTypeId ?? null,
@@ -308,10 +311,10 @@ export async function upsertCreature(
       await upsertProficiencyGrant(trx, proficiency)
     }
 
-    await (trx as any)
+    await trx
       .insertInto('creatures')
       .values(creatureRow)
-      .onConflict((oc: any) => oc.column('id').doUpdateSet(creatureRow))
+      .onConflict((oc) => oc.column('id').doUpdateSet(creatureRow))
       .execute()
 
     await trx.deleteFrom('creature_details').where('creature_id', '=', jsonData.id).execute()

@@ -3,7 +3,7 @@
 *
 * Intent:
 *   A Feat is a top-level authored subject that grants
-*   persistent capabilities, modifiers, and/or features.
+*   persistent effects, modifiers, and/or features.
 *
 * Cardinality:
 *   systems 1 ──▶ N feats
@@ -24,10 +24,15 @@ CREATE TABLE IF NOT EXISTS public.feats (
   label text NOT NULL,
   description text NOT NULL,
   detail text,
+  status text NOT NULL DEFAULT 'DRAFT',
+  prerequisite_id uuid REFERENCES public.facets (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   charge_id uuid REFERENCES public.charges (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   is_master boolean,
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT feats_status_chk CHECK (
+    status IN ('DRAFT', 'ACTIVE')
+  )
 );
 
 SELECT
@@ -36,6 +41,8 @@ SELECT
 CREATE INDEX IF NOT EXISTS idx_feats_system ON public.feats (system_id);
 
 CREATE INDEX IF NOT EXISTS idx_feats_user ON public.feats (user_id);
+
+CREATE INDEX IF NOT EXISTS idx_feats_prerequisite ON public.feats (prerequisite_id);
 
 CREATE INDEX IF NOT EXISTS idx_feats_charge ON public.feats (charge_id);
 
@@ -49,7 +56,8 @@ BEGIN
     AFTER DELETE ON public.feats
     FOR EACH ROW
     EXECUTE FUNCTION public.cleanup_owned_rows('[
-      { "table": "public.charges", "columns": ["charge_id"] }
+      { "table": "public.charges", "columns": ["charge_id"] },
+      { "table": "public.facets", "columns": ["prerequisite_id"] }
     ]');
   END IF;
 END;
@@ -65,7 +73,8 @@ BEGIN
     AFTER UPDATE ON public.feats
     FOR EACH ROW
     EXECUTE FUNCTION public.cleanup_owned_rows_on_update('[
-      { "table": "public.charges", "columns": ["charge_id"] }
+      { "table": "public.charges", "columns": ["charge_id"] },
+      { "table": "public.facets", "columns": ["prerequisite_id"] }
     ]');
   END IF;
 END;

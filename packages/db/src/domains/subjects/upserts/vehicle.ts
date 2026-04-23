@@ -7,6 +7,7 @@ import {
 } from '@artificer-toolkit/shared'
 import { upsertDetail } from '../../shared/upserts/index.js'
 import { upsertFeature } from '../../features/upserts/index.js'
+import { normalizeSubjectStatus } from '../status.js'
 
 type VehicleRow = {
   id: string
@@ -14,6 +15,7 @@ type VehicleRow = {
   user_id: string
   label: string
   description: string | null
+  status: VehicleAuthored['status']
   category: string
   size_code: string | null
   armor_class: number | null
@@ -76,6 +78,7 @@ export async function upsertVehicle(
     user_id: json_data.userId,
     label: json_data.label,
     description: json_data.description ?? null,
+    status: normalizeSubjectStatus(json_data.status),
     category: requireCategory(json_data.id, json_data.category),
     size_code: json_data.size ? requireSizeCode(json_data.id, json_data.size) : null,
     armor_class: json_data.armorClass ?? null,
@@ -114,27 +117,10 @@ export async function upsertVehicle(
       await upsertFeature(trx, feature, json_data.systemId)
     }
 
-    await (trx as any)
+    await trx
       .insertInto('vehicles')
       .values(row)
-      .onConflict((oc: any) => oc.column('id').doUpdateSet(({ ref }: any) => ({
-        system_id: ref('excluded.system_id'),
-        user_id: ref('excluded.user_id'),
-        label: ref('excluded.label'),
-        description: ref('excluded.description'),
-        category: ref('excluded.category'),
-        size_code: ref('excluded.size_code'),
-        armor_class: ref('excluded.armor_class'),
-        hit_points: ref('excluded.hit_points'),
-        speed: ref('excluded.speed'),
-        speed_note: ref('excluded.speed_note'),
-        crew_min: ref('excluded.crew_min'),
-        crew_max: ref('excluded.crew_max'),
-        passenger_capacity: ref('excluded.passenger_capacity'),
-        cargo_capacity: ref('excluded.cargo_capacity'),
-        cost: ref('excluded.cost'),
-        properties: ref('excluded.properties')
-      })))
+      .onConflict((oc) => oc.column('id').doUpdateSet(row))
       .execute()
 
     await trx

@@ -8,7 +8,6 @@ export const holySymbolReliquary: EquipmentAuthored = {
     description: "A small box or locket containing sacred relics, used as a holy spellcasting focus.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(5),
     weight: S.lbs(2),
     rarityId: S.RARITY_COMMON,

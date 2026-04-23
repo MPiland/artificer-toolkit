@@ -1,82 +1,93 @@
-import type { CreatureAuthored } from '@artificer-toolkit/shared'
-import * as S from './shared.js'
-
+import type { CreatureAuthored } from '@artificer-toolkit/shared';
+import * as S from './shared.js';
 export const hyena: CreatureAuthored = {
-  id: S.CREATURE_IDS.HYENA,
-  label: 'Hyena',
-  userId: S.SRD_USER_ID,
-  systemId: S.SRD_SYSTEM_ID,
-  recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
-  category: S.CREATURE_CATEGORY_CODE.BEAST,
-  creatureTypeId: S.CREATURE_TYPE.BEAST,
-  size: S.SIZE_CODE.MEDIUM,
-  alignmentId: '00000000-0000-0000-0001-000a00000000',
-  abilityScores: {
-    STRENGTH: 11,
-    DEXTERITY: 13,
-    CONSTITUTION: 12,
-    INTELLIGENCE: 2,
-    WISDOM: 12,
-    CHARISMA: 5,
-    SPELLCASTING: 0
-  },
-  armorClass: 11,
-  hitPoints: 5,
-  hitDice: '1d8+1',
-  speeds: [...S.walk(50)],
-  proficiencies: [
-    S.grantedSkillProficiency(170, 1, 'PERCEPTION')
-  ],
-  passivePerception: 13,
-  challengeRatingId: S.CR.CR_0,
-  xp: 10,
-  features: [
-    {
-      id: S.featureId(170, 1),
-      label: 'Pack Tactics',
-      description: "Pack Tactics. The hyena has advantage on an attack roll against a creature if at least one of the hyena's allies is within 5 feet of the creature and the ally isn't incapacitated.",
-      order: 1
+    id: S.CREATURE_IDS.HYENA,
+    label: 'Hyena',
+    userId: S.SRD_USER_ID,
+    systemId: S.SRD_SYSTEM_ID,
+    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
+    category: S.CREATURE_CATEGORY_CODE.BEAST,
+    creatureTypeId: S.CREATURE_TYPE.BEAST,
+    size: S.SIZE_CODE.MEDIUM,
+    alignmentId: '00000000-0000-0000-0001-000a00000000',
+    abilityScores: {
+        STRENGTH: 11,
+        DEXTERITY: 13,
+        CONSTITUTION: 12,
+        INTELLIGENCE: 2,
+        WISDOM: 12,
+        CHARISMA: 5,
+        SPELLCASTING: 0
     },
-    {
-      id: S.featureId(170, 2),
-      label: 'Bite',
-      description: 'Melee Weapon Attack: +2 to hit, reach 5 ft., one target. Hit: 3 (1d6) piercing damage.',
-      capabilities: [
+    armorClass: 11,
+    hitPoints: 5,
+    hitDice: '1d8+1',
+    speeds: [...S.walk(50)],
+    proficiencies: [
+        S.grantedSkillProficiency(170, 1, 'PERCEPTION')
+    ],
+    passivePerception: 13,
+    challengeRatingId: S.CR.CR_0,
+    xp: 10,
+    features: [
         {
-          id: S.actionId(170, 1),
-          order: 1,
-          invocation: {
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
-            activation: {
-              code: S.ACTIVATION_CODE.ACTION,
-              amount: 1
-            },
-            range: {
-              id: S.actionId(170, 2),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 5,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
-            }
-          },
-          branches: [
-            {
-              id: S.actionId(170, 3),
-              branch: S.BRANCH.ON_HIT,
-              groupType: S.BRANCH_GROUP_TYPE.SINGLE,
-              resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
-              effectKind: S.EFFECT_KIND.DAMAGE,
-              damageTypeId: S.damageTypeId('PIERCING'),
-              valueKind: S.DAMAGE_VALUE_KIND.DICE,
-              scalingKind: S.SCALING.NONE,
-              diceConfig: '1d6'
-            }
-          ]
+            id: S.featureId(170, 1),
+            label: 'Pack Tactics',
+            description: "Pack Tactics. The hyena has advantage on an attack roll against a creature if at least one of the hyena's allies is within 5 feet of the creature and the ally isn't incapacitated.",
+            order: 1
+        },
+        {
+            id: S.featureId(170, 2),
+            label: 'Bite',
+            description: 'Melee Weapon Attack: +2 to hit, reach 5 ft., one target. Hit: 3 (1d6) piercing damage.',
+            effects: [
+                {
+                    id: S.actionId(170, 1),
+                    order: 1,
+                    invocation: {
+                        triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+                        activation: {
+                            code: S.ACTIVATION_CODE.ACTION,
+                            amount: 1
+                        },
+                        range: {
+                            id: S.actionId(170, 2),
+                            rangeKind: S.RANGE_KIND.DISTANCE,
+                            amount: 5,
+                            unit: S.MEASUREMENT_UNIT_CODE.FEET
+                        },
+                        targeting: {
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                        }
+                    },
+                    paths: [
+                        {
+                            id: S.actionId(170, 3),
+                            order: 1,
+                            pathCode: S.PATH_CODE.ON_HIT,
+                            groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            selectionKind: "FIXED" as const,
+                            resultBlock: {
+                                id: S.actionId(170, 3) + "__result",
+                                resultKind: "SINGLE" as const,
+                                outcomes: [
+                                    {
+                                        id: S.actionId(170, 3),
+                                        effectKind: S.EFFECT_KIND.DAMAGE,
+                                        damageTypeId: S.damageTypeId('PIERCING'),
+                                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                                        scalingKind: S.SCALING.NONE,
+                                        diceConfig: '1d6'
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ],
+            order: 2
         }
-      ],
-      order: 2
-    }
-  ]
-}
+    ]
+};
+
+

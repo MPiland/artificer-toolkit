@@ -8,7 +8,6 @@ export const druidicFocusTotem: EquipmentAuthored = {
     description: "A small carved figurine of an animal or nature spirit used as a druidic focus.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(1),
     weight: S.lbs(0),
     rarityId: S.RARITY_COMMON,

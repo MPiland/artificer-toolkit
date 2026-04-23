@@ -1,0 +1,77 @@
+import { z } from 'zod'
+import { abilityCodeSchema } from './enums.js'
+
+const numericExprCodeSchema = z.enum([
+  'FIXED',
+  'ADD',
+  'MUL',
+  'CLAMP',
+  'PROFICIENCY_BONUS',
+  'ABILITY_MODIFIER',
+  'SKILL_BONUS',
+  'CHARACTER_LEVEL',
+  'CLASS_LEVEL',
+  'SPELL_LEVEL',
+  'HIT_POINT_MAXIMUM'
+])
+
+const numericAtomSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('FIXED'),
+    value: z.number()
+  }),
+  z.object({
+    kind: z.literal('PROFICIENCY_BONUS')
+  }),
+  z.object({
+    kind: z.literal('ABILITY_MODIFIER'),
+    ability: abilityCodeSchema
+  }),
+  z.object({
+    kind: z.literal('SKILL_BONUS'),
+    skillId: z.string()
+  }),
+  z.object({
+    kind: z.literal('CHARACTER_LEVEL')
+  }),
+  z.object({
+    kind: z.literal('CLASS_LEVEL'),
+    classId: z.string().optional()
+  }),
+  z.object({
+    kind: z.literal('SPELL_LEVEL')
+  }),
+  z.object({
+    kind: z.literal('HIT_POINT_MAXIMUM')
+  })
+])
+
+const numericMulSchema = z.object({
+  kind: z.literal('MUL'),
+  left: numericAtomSchema,
+  right: numericAtomSchema
+})
+
+const numericTermSchema = z.union([numericAtomSchema, numericMulSchema])
+
+const numericAddSchema = z.object({
+  kind: z.literal('ADD'),
+  args: z.array(numericTermSchema).min(1)
+})
+
+export const numericExprSchema: z.ZodTypeAny = z.lazy(() =>
+  z.discriminatedUnion('kind', [
+    ...numericAtomSchema.options,
+    numericMulSchema,
+    numericAddSchema,
+    z.object({
+      kind: z.literal('CLAMP'),
+      value: z.union([numericAddSchema, numericTermSchema]),
+      min: z.number().optional(),
+      max: z.number().optional()
+    })
+  ])
+)
+
+export type NumericExprDto = z.infer<typeof numericExprSchema>
+export type NumericExprCodeDto = z.infer<typeof numericExprCodeSchema>

@@ -3,11 +3,13 @@ import type { RulesSystem } from './contracts/rulesSystem.js'
 import type { CharacterAssemblyRegistry } from './registry.js'
 import type { CharacterBuildSnapshot } from './snapshot.js'
 import { applyGrants } from './resolution/grantApplicator.js'
+import type { CompiledModifierGrant } from '../grants/compilers/modifier.js'
 import { resolveSpellGrantState } from './resolution/spellGrantResolver.js'
 import { resolveModifiers } from './resolution/modifierResolver.js'
 import { calculateDerivedStats } from './resolution/derivedStatCalculator.js'
 import { resolveSpellSlots } from './resolution/spellSlotResolver.js'
 import { resolveResources } from './resolution/resourceResolver.js'
+import { buildModifierDomainKey } from './resolution/modifierDomainKey.js'
 
 /**
  * Resolves a character build snapshot into derived statistics.
@@ -32,7 +34,11 @@ export function runEngine(
   // Grant accumulation uses the AssembledCharacterSnapshot shape via an adapter.
   const snapshotAsAssembled = adaptSnapshotForGrantApplicator(snapshot, resolvedSpellGrantState.spellAccess)
   const accumulated = applyGrants(snapshotAsAssembled, registry, rules)
-  const resolvedModifiers = resolveModifiers(accumulated.modifierEntries, rules)
+  collectEquippedItemModifiers(snapshot, accumulated)
+  const resolvedModifiers = resolveModifiers(accumulated.modifierEntries, rules, {
+    snapshot,
+    proficiencies: accumulated.proficiencies
+  })
   const derivedStats = calculateDerivedStats(snapshot, resolvedModifiers, accumulated.proficiencies, registry, rules)
 
   const spellSlots = resolveSpellSlots(snapshot, registry)
@@ -50,6 +56,78 @@ export function runEngine(
     resources,
     activeItemContributions
   }
+}
+
+function collectEquippedItemModifiers(
+  snapshot: CharacterBuildSnapshot,
+  accumulated: ReturnType<typeof applyGrants>
+): void {
+  const proficiencyKeys = new Set(
+    accumulated.proficiencies.map((prof) => `${prof.kind}:${prof.subjectId}`)
+  )
+
+  for (const item of snapshot.equippedItems) {
+    const modifiers = item.compiledItem.modifiers ?? []
+
+    for (const grant of modifiers) {
+      if (!isEquippedItemModifierEligible(grant, proficiencyKeys)) continue
+
+      accumulated.modifierEntries.push({
+        domainKey: buildModifierDomainKey(grant.valueDomainCode, grant.modifierKind, grant.domain),
+        modifierKind: grant.modifierKind,
+        grant
+      })
+    }
+  }
+}
+
+function isEquippedItemModifierEligible(
+  grant: CompiledModifierGrant,
+  proficiencyKeys: Set<string>
+): boolean {
+  const restrictions = (grant as { restrictions?: unknown }).restrictions as
+    | {
+        groups?: Array<{
+          contexts?: Array<{
+            subject?: string
+            conditions?: Array<{
+              predicateCode?: string
+              properties?: string[]
+              equipmentIds?: string[]
+            }>
+          }>
+        }>
+      }
+    | undefined
+
+  if (!restrictions?.groups?.length) return true
+
+  for (const group of restrictions.groups) {
+    for (const ctx of group.contexts ?? []) {
+      if (ctx.subject !== 'CHARACTER') continue
+
+      for (const condition of ctx.conditions ?? []) {
+        switch (condition.predicateCode) {
+          case 'WHILE_SOURCE_EQUIPPED':
+            break
+          case 'EQUIPMENT_PROPERTY_PROFICIENCY':
+            if ((condition.properties ?? []).some((property) => !proficiencyKeys.has(`EQUIPMENT_PROPERTY:${property}`))) {
+              return false
+            }
+            break
+          case 'EQUIPMENT_PROFICIENCY':
+            if ((condition.equipmentIds ?? []).some((equipmentId) => !proficiencyKeys.has(`EQUIPMENT:${equipmentId}`))) {
+              return false
+            }
+            break
+          default:
+            break
+        }
+      }
+    }
+  }
+
+  return true
 }
 
 /* ──────────────────────────────────────────────
@@ -79,8 +157,16 @@ function buildItemContributions(
     // Items with compiled modifiers — track which domain keys they contributed
     if (compiled.modifiers?.length) {
       for (const mod of compiled.modifiers) {
-        const g = mod as { valueDomainCode?: string, modifierKind?: string }
-        const key = `${g.valueDomainCode ?? 'UNKNOWN'}:${g.modifierKind ?? 'BONUS'}`
+        const g = mod as {
+          valueDomainCode?: string
+          modifierKind?: string
+          domain?: Record<string, unknown>
+        }
+        const key = buildModifierDomainKey(
+          g.valueDomainCode ?? 'UNKNOWN',
+          g.modifierKind ?? 'BONUS',
+          g.domain
+        )
         if (resolvedModifiers[key] !== undefined && !modifiersApplied.includes(key)) {
           modifiersApplied.push(key)
         }

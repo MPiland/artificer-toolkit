@@ -8,7 +8,6 @@ export const soap: EquipmentAuthored = {
     description: "A bar of tallow and lye soap for cleaning wounds, clothing, or equipment.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.cp(2),
     weight: S.lbs(0),
     rarityId: S.RARITY_COMMON,

@@ -28,3 +28,4 @@ export const druid: CreatureAuthored = {
   challengeRatingId: CR.CR_2,
   xp: 450
 }
+

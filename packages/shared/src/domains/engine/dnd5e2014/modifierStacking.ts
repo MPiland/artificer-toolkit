@@ -23,7 +23,8 @@ const STACKING_BY_KIND: Record<string, ModifierStackingConfig> = {
   REPLACE_SHAPE_KIND: { rule: 'last' },
   REPLACE_CHARGE_RESET_KIND: { rule: 'last' },
   MODIFY_CHARGE_LIMIT: { rule: 'additive' },
-  OPTIONAL_ABILITY_MODIFIER: { rule: 'additive' },
+  ABILITY_MODIFIER_BONUS: { rule: 'additive' },
+  OPTIONAL_ABILITY_MODIFIER_BONUS: { rule: 'additive' },
 }
 
 export function dnd5e2014StackingConfig(
@@ -32,3 +33,4 @@ export function dnd5e2014StackingConfig(
 ): ModifierStackingConfig {
   return STACKING_BY_KIND[modifierKind] ?? { rule: 'additive' }
 }
+

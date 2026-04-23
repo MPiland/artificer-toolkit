@@ -15,6 +15,7 @@ import { Route as LogoutRouteImport } from './routes/logout'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthConfirmedRouteImport } from './routes/auth.confirmed'
 import { Route as AuthedSpellsIndexRouteImport } from './routes/_authed/spells/index'
 import { Route as AuthedRacesIndexRouteImport } from './routes/_authed/races/index'
 import { Route as AuthedHomeIndexRouteImport } from './routes/_authed/home/index'
@@ -65,6 +66,11 @@ const AuthedRoute = AuthedRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthConfirmedRoute = AuthConfirmedRouteImport.update({
+  id: '/auth/confirmed',
+  path: '/auth/confirmed',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthedSpellsIndexRoute = AuthedSpellsIndexRouteImport.update({
@@ -194,6 +200,7 @@ export interface FileRoutesByFullPath {
   '/logout': typeof LogoutRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/auth/confirmed': typeof AuthConfirmedRoute
   '/backgrounds/$backgroundId': typeof AuthedBackgroundsBackgroundIdRoute
   '/characters/$characterId': typeof AuthedCharactersCharacterIdRoute
   '/classes/$classId': typeof AuthedClassesClassIdRoute
@@ -201,14 +208,14 @@ export interface FileRoutesByFullPath {
   '/feats/$featId': typeof AuthedFeatsFeatIdRoute
   '/races/$raceId': typeof AuthedRacesRaceIdRoute
   '/spells/$spellId': typeof AuthedSpellsSpellIdRoute
-  '/backgrounds': typeof AuthedBackgroundsIndexRoute
-  '/characters': typeof AuthedCharactersIndexRoute
-  '/classes': typeof AuthedClassesIndexRoute
-  '/equipment': typeof AuthedEquipmentIndexRoute
-  '/feats': typeof AuthedFeatsIndexRoute
-  '/home': typeof AuthedHomeIndexRoute
-  '/races': typeof AuthedRacesIndexRoute
-  '/spells': typeof AuthedSpellsIndexRoute
+  '/backgrounds/': typeof AuthedBackgroundsIndexRoute
+  '/characters/': typeof AuthedCharactersIndexRoute
+  '/classes/': typeof AuthedClassesIndexRoute
+  '/equipment/': typeof AuthedEquipmentIndexRoute
+  '/feats/': typeof AuthedFeatsIndexRoute
+  '/home/': typeof AuthedHomeIndexRoute
+  '/races/': typeof AuthedRacesIndexRoute
+  '/spells/': typeof AuthedSpellsIndexRoute
   '/backgrounds/$action/$_backgroundId': typeof AuthedBackgroundsAction_backgroundIdRoute
   '/characters/$action/$_characterId': typeof AuthedCharactersAction_characterIdRoute
   '/classes/$action/$_classId': typeof AuthedClassesAction_classIdRoute
@@ -223,6 +230,7 @@ export interface FileRoutesByTo {
   '/logout': typeof LogoutRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/auth/confirmed': typeof AuthConfirmedRoute
   '/backgrounds/$backgroundId': typeof AuthedBackgroundsBackgroundIdRoute
   '/characters/$characterId': typeof AuthedCharactersCharacterIdRoute
   '/classes/$classId': typeof AuthedClassesClassIdRoute
@@ -254,6 +262,7 @@ export interface FileRoutesById {
   '/logout': typeof LogoutRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/auth/confirmed': typeof AuthConfirmedRoute
   '/_authed/backgrounds/$backgroundId': typeof AuthedBackgroundsBackgroundIdRoute
   '/_authed/characters/$characterId': typeof AuthedCharactersCharacterIdRoute
   '/_authed/classes/$classId': typeof AuthedClassesClassIdRoute
@@ -285,6 +294,7 @@ export interface FileRouteTypes {
     | '/logout'
     | '/reset-password'
     | '/signup'
+    | '/auth/confirmed'
     | '/backgrounds/$backgroundId'
     | '/characters/$characterId'
     | '/classes/$classId'
@@ -292,14 +302,14 @@ export interface FileRouteTypes {
     | '/feats/$featId'
     | '/races/$raceId'
     | '/spells/$spellId'
-    | '/backgrounds'
-    | '/characters'
-    | '/classes'
-    | '/equipment'
-    | '/feats'
-    | '/home'
-    | '/races'
-    | '/spells'
+    | '/backgrounds/'
+    | '/characters/'
+    | '/classes/'
+    | '/equipment/'
+    | '/feats/'
+    | '/home/'
+    | '/races/'
+    | '/spells/'
     | '/backgrounds/$action/$_backgroundId'
     | '/characters/$action/$_characterId'
     | '/classes/$action/$_classId'
@@ -314,6 +324,7 @@ export interface FileRouteTypes {
     | '/logout'
     | '/reset-password'
     | '/signup'
+    | '/auth/confirmed'
     | '/backgrounds/$backgroundId'
     | '/characters/$characterId'
     | '/classes/$classId'
@@ -344,6 +355,7 @@ export interface FileRouteTypes {
     | '/logout'
     | '/reset-password'
     | '/signup'
+    | '/auth/confirmed'
     | '/_authed/backgrounds/$backgroundId'
     | '/_authed/characters/$characterId'
     | '/_authed/classes/$classId'
@@ -375,6 +387,7 @@ export interface RootRouteChildren {
   LogoutRoute: typeof LogoutRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  AuthConfirmedRoute: typeof AuthConfirmedRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -410,7 +423,7 @@ declare module '@tanstack/react-router' {
     '/_authed': {
       id: '/_authed'
       path: ''
-      fullPath: ''
+      fullPath: '/'
       preLoaderRoute: typeof AuthedRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -421,59 +434,66 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/confirmed': {
+      id: '/auth/confirmed'
+      path: '/auth/confirmed'
+      fullPath: '/auth/confirmed'
+      preLoaderRoute: typeof AuthConfirmedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authed/spells/': {
       id: '/_authed/spells/'
       path: '/spells'
-      fullPath: '/spells'
+      fullPath: '/spells/'
       preLoaderRoute: typeof AuthedSpellsIndexRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/races/': {
       id: '/_authed/races/'
       path: '/races'
-      fullPath: '/races'
+      fullPath: '/races/'
       preLoaderRoute: typeof AuthedRacesIndexRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/home/': {
       id: '/_authed/home/'
       path: '/home'
-      fullPath: '/home'
+      fullPath: '/home/'
       preLoaderRoute: typeof AuthedHomeIndexRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/feats/': {
       id: '/_authed/feats/'
       path: '/feats'
-      fullPath: '/feats'
+      fullPath: '/feats/'
       preLoaderRoute: typeof AuthedFeatsIndexRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/equipment/': {
       id: '/_authed/equipment/'
       path: '/equipment'
-      fullPath: '/equipment'
+      fullPath: '/equipment/'
       preLoaderRoute: typeof AuthedEquipmentIndexRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/classes/': {
       id: '/_authed/classes/'
       path: '/classes'
-      fullPath: '/classes'
+      fullPath: '/classes/'
       preLoaderRoute: typeof AuthedClassesIndexRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/characters/': {
       id: '/_authed/characters/'
       path: '/characters'
-      fullPath: '/characters'
+      fullPath: '/characters/'
       preLoaderRoute: typeof AuthedCharactersIndexRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/backgrounds/': {
       id: '/_authed/backgrounds/'
       path: '/backgrounds'
-      fullPath: '/backgrounds'
+      fullPath: '/backgrounds/'
       preLoaderRoute: typeof AuthedBackgroundsIndexRouteImport
       parentRoute: typeof AuthedRoute
     }
@@ -641,6 +661,7 @@ const rootRouteChildren: RootRouteChildren = {
   LogoutRoute: LogoutRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  AuthConfirmedRoute: AuthConfirmedRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -64,5 +64,8 @@
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "supabase"
-  ]
+  ],
+  "enabledPlugins": {
+    "figma@claude-plugins-official": true
+  }
 }

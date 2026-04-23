@@ -8,7 +8,6 @@ export const ironSpikes10: EquipmentAuthored = {
   description: 'A bundle of 10 iron spikes useful for securing ropes, propping doors, or climbing.',
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
-  abilities: [],
   cost: S.gp(1),
   weight: S.lbs(5),
   rarityId: S.RARITY_COMMON,

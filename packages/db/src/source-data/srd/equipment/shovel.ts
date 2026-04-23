@@ -8,7 +8,6 @@ export const shovel: EquipmentAuthored = {
     description: "An iron-bladed digging tool for excavating earth, sand, or loose stone.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(2),
     weight: S.lbs(5),
     rarityId: S.RARITY_COMMON,

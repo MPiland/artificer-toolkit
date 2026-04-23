@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS public.characters (
   user_id uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE DEFERRABLE,
   label text NOT NULL,
   description text,
+  status text NOT NULL DEFAULT 'DRAFT',
+  CONSTRAINT chk_characters_status CHECK (status IN ('DRAFT', 'ACTIVE')),
   -- Persisted CharacterBuildState snapshot (null until first command is processed)
   build_state jsonb,
   -- Optimistic concurrency guard — incremented on every command write
@@ -41,6 +43,52 @@ END;
 $$;
 
 ALTER TABLE IF EXISTS public.characters ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.character_profile (
+  character_id uuid PRIMARY KEY REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
+  alignment_id uuid REFERENCES public.alignments (id) ON DELETE SET NULL DEFERRABLE,
+  lifestyle_id uuid REFERENCES public.lifestyles (id) ON DELETE SET NULL DEFERRABLE,
+  faith text,
+  gender text,
+  age text,
+  eyes text,
+  hair text,
+  skin text,
+  height text,
+  weight text,
+  physical_characteristics text,
+  personality_traits text,
+  ideals text,
+  bonds text,
+  flaws text,
+  organizations text,
+  allies text,
+  enemies text,
+  backstory text,
+  notes text,
+  created_at timestamptz NOT NULL DEFAULT NOW(),
+  updated_at timestamptz NOT NULL DEFAULT NOW()
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT
+      1
+    FROM
+      pg_trigger
+    WHERE
+      tgname = 'trg_character_profile_updated_at'
+      AND tgrelid = 'public.character_profile'::regclass) THEN
+  CREATE TRIGGER trg_character_profile_updated_at
+    BEFORE UPDATE ON public.character_profile
+    FOR EACH ROW
+    EXECUTE FUNCTION public.set_updated_at ( );
+END IF;
+END;
+$$;
+
+ALTER TABLE IF EXISTS public.character_profile ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Character owners can read" ON public.characters;
 CREATE POLICY "Character owners can read"

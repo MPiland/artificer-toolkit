@@ -1,18 +1,15 @@
-import type { AbilityCode, SizeCode } from '#core'
+import type { AbilityCode, SizeCode, CreatureRecordKindCode, CreatureCategoryCode, AuthoredRecordStatus } from '#core'
 import type {
   CapacityAuthored,
   CostAuthored,
   DetailAuthored,
   FeatureAuthored,
   ProficiencyGrantAuthored,
-  SpeedAuthored,
+  SpeedAuthored
 } from '#authored'
 
-export type CreatureCategory = 'NPC' | 'MONSTER' | 'BEAST' | 'COMPANION' | 'SUMMON'
-export type CreatureRecordKind = 'STAT_BLOCK' | 'LOGISTICS'
-
 /**
- * @deprecated Prefer feature-owned capabilities with feature section metadata.
+ * @deprecated Prefer feature-owned effects with feature section metadata.
  * This remains only as a transitional creature stat-block surface.
  */
 export interface CreatureActionAuthored {
@@ -27,12 +24,9 @@ export interface CreatureActionAuthored {
 export interface CreatureLegendaryProfile {
   legendaryResistanceCount?: number
   actionsCount: number
-  /** @deprecated Prefer feature-owned capabilities in the LEGENDARY_ACTIONS section. */
-  actions: CreatureActionAuthored[]
 }
 
 export interface CreatureLairProfile {
-  lairActions?: CreatureActionAuthored[]
   regionalEffects?: string[]
 }
 
@@ -61,14 +55,15 @@ export interface CreatureBaseAuthored {
   label: string
   quote?: string
   description?: string
+  status?: AuthoredRecordStatus
   details?: DetailAuthored[]
   features?: FeatureAuthored[]
   proficiencies?: ProficiencyGrantAuthored[]
   userId: string
   systemId: string
 
-  recordKind: CreatureRecordKind
-  category: CreatureCategory
+  recordKind: CreatureRecordKindCode
+  category: CreatureCategoryCode
   creatureTypeId?: string
   size?: SizeCode
   alignmentId?: string

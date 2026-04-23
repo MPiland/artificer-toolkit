@@ -246,10 +246,10 @@ export const barbarian: ClassAuthored = {
             grantKind: GRANT_KIND.MODIFIER_GRANT,
             valueDomainCode: VALUE_DOMAIN_CODE.ARMOR_CLASS,
             domain: {},
-            modifierKind: MODIFIER_KIND.BONUS,
+            modifierKind: MODIFIER_KIND.ABILITY_MODIFIER_BONUS,
             scope: MODIFIER_SCOPE_KIND.SOURCE,
             selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-            payload: { valueKind: 'ABILITY_MODIFIER' as const, ability: ABILITY_CODE.CONSTITUTION },
+            payload: { ability: ABILITY_CODE.CONSTITUTION },
             order: 0
           }
         ]

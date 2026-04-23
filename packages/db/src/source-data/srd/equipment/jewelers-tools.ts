@@ -9,7 +9,6 @@ export const jewelersTools: EquipmentAuthored = {
     'Fine pliers, magnifying lenses, and polishing cloths for cutting, setting, and appraising gems.',
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
-  abilities: [],
   cost: S.gp(25),
   weight: S.lbs(2),
   rarityId: S.RARITY_COMMON,

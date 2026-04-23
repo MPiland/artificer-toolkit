@@ -8,7 +8,6 @@ export const pole10Foot: EquipmentAuthored = {
   description: 'A sturdy wooden pole 10 feet long for probing, pushing, or bridging narrow gaps.',
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
-  abilities: [],
   cost: S.cp(5),
   weight: S.lbs(7),
   rarityId: S.RARITY_COMMON,

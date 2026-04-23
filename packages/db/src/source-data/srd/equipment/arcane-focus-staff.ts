@@ -8,7 +8,6 @@ export const arcaneFocusStaff: EquipmentAuthored = {
     description: "A wooden or metal staff carved with arcane symbols, serving as a spellcasting focus.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(5),
     weight: S.lbs(4),
     rarityId: S.RARITY_COMMON,

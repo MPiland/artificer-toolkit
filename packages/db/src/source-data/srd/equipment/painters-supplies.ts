@@ -9,7 +9,6 @@ export const paintersSupplies: EquipmentAuthored = {
     'Brushes, pigments, and a palette for creating paintings on canvas or other surfaces.',
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
-  abilities: [],
   cost: S.gp(10),
   weight: S.lbs(5),
   rarityId: S.RARITY_COMMON,

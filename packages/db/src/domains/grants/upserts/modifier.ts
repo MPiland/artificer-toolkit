@@ -47,6 +47,8 @@ type ModifierGrantPayloadRow = {
   numeric_amount: number | null
   numeric_multiplier: number | null
   numeric_ability_code: string | null
+  numeric_min: number | null
+  numeric_max: number | null
   numeric_skill_id: string | null
   numeric_class_id: string | null
   set_amount: number | null
@@ -230,7 +232,6 @@ function requireNumericValueKind(
   if (
     value !== 'FIXED'
     && value !== 'PROFICIENCY_BONUS'
-    && value !== 'ABILITY_MODIFIER'
     && value !== 'SKILL_BONUS'
     && value !== 'CHARACTER_LEVEL'
     && value !== 'CLASS_LEVEL'
@@ -282,7 +283,7 @@ function mapModifierGrantDomainRow(
   json_data: ModifierGrantAuthored
 ): ModifierGrantDomainParamRow | null {
   switch (json_data.valueDomainCode) {
-    case 'ATTACK_ROLL_BONUS':
+    case 'ATTACK_ROLL':
     case 'DAMAGE':
       return {
         modifier_grant_id: json_data.id,
@@ -296,7 +297,7 @@ function mapModifierGrantDomainRow(
         condition_type_id: null
       }
 
-    case 'SAVING_THROW_BONUS':
+    case 'SAVING_THROW_MODIFIER':
       return {
         modifier_grant_id: json_data.id,
         value_domain_code: json_data.valueDomainCode,
@@ -322,7 +323,7 @@ function mapModifierGrantDomainRow(
         condition_type_id: null
       }
 
-    case 'SKILL_BONUS': {
+    case 'SKILL_MODIFIER': {
       const skillId = (json_data.domain as { skillId?: string }).skillId
       if (!skillId) {
         throw new Error(`Modifier grant "${json_data.id}" is missing domain skillId.`)
@@ -414,6 +415,8 @@ function createEmptyPayloadRow(
     numeric_amount: null,
     numeric_multiplier: null,
     numeric_ability_code: null,
+    numeric_min: null,
+    numeric_max: null,
     numeric_skill_id: null,
     numeric_class_id: null,
     set_amount: null,
@@ -468,11 +471,6 @@ function mapModifierGrantPayload(
           row.numeric_multiplier = (payload as { multiplier?: number }).multiplier ?? null
           break
 
-        case 'ABILITY_MODIFIER':
-          row.numeric_ability_code = requireAbilityCode(json_data.id, (payload as { ability?: string }).ability ?? '', 'payload ability')
-          row.numeric_multiplier = (payload as { multiplier?: number }).multiplier ?? null
-          break
-
         case 'SKILL_BONUS': {
           const skillId = (payload as { skillId?: string }).skillId
           if (!skillId) {
@@ -497,6 +495,21 @@ function mapModifierGrantPayload(
       }
 
       return { payload: row, chargeLevels, optionalAbilities }
+    }
+
+    case 'ABILITY_MODIFIER_BONUS': {
+      const payload = requirePayload(json_data.id, json_data.payload, json_data.modifierKind)
+      return {
+        payload: {
+          ...createEmptyPayloadRow(json_data),
+          numeric_ability_code: requireAbilityCode(json_data.id, (payload as { ability?: string }).ability ?? '', 'payload ability'),
+          numeric_multiplier: (payload as { multiplier?: number }).multiplier ?? null,
+          numeric_min: (payload as { min?: number }).min ?? null,
+          numeric_max: (payload as { max?: number }).max ?? null
+        },
+        chargeLevels,
+        optionalAbilities
+      }
     }
 
     case 'SET_VALUE': {
@@ -651,7 +664,7 @@ function mapModifierGrantPayload(
       }
     }
 
-    case 'OPTIONAL_ABILITY_MODIFIER': {
+    case 'OPTIONAL_ABILITY_MODIFIER_BONUS': {
       const payload = requirePayload(json_data.id, json_data.payload, json_data.modifierKind)
       const abilities = (payload as { abilities?: string[] }).abilities
       if (!abilities) {
@@ -821,3 +834,4 @@ export async function upsertModifierGrant(
     throw error
   }
 }
+

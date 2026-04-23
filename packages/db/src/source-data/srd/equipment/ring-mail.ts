@@ -8,7 +8,6 @@ export const ringMail: EquipmentAuthored = {
     description: 'Leather armor with heavy rings sewn into it.',
     category: S.EQUIPMENT_CATEGORY_CODE.ARMOR,
     properties: [S.EQUIPMENT_PROPERTY_CODE.HEAVY],
-    abilities: [],
     armorClass: 14,
     cost: S.gp(30),
     weight: S.lbs(40),

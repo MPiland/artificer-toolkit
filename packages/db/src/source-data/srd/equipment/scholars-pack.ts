@@ -8,7 +8,6 @@ export const scholarsPack: EquipmentAuthored = {
     description: "Books, inks, and writing materials for a learned academic or researcher.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(40),
     weight: S.lbs(0),
     rarityId: S.RARITY_COMMON,

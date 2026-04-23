@@ -8,7 +8,6 @@ export const lock: EquipmentAuthored = {
   description: "An iron lock with a key; DC 15 to pick with thieves' tools.",
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
-  abilities: [],
   cost: S.gp(10),
   weight: S.lbs(1),
   rarityId: S.RARITY_COMMON,

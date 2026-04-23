@@ -8,7 +8,6 @@ export const signalWhistle: EquipmentAuthored = {
     description: "A small metal whistle for sending audible signals over short distances.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.cp(5),
     weight: S.lbs(0),
     rarityId: S.RARITY_COMMON,

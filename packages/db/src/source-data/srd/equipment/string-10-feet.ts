@@ -8,7 +8,6 @@ export const string10Feet: EquipmentAuthored = {
     description: "Ten feet of thin but strong string useful for rigging simple traps or tying bundles.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.cp(1),
     weight: S.lbs(0),
     rarityId: S.RARITY_COMMON,

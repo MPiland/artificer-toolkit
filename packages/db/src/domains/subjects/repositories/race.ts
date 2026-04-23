@@ -1,14 +1,18 @@
 import {
   MEASUREMENT_UNIT_CODE,
   RACE_CATEGORY_CODE,
+  RACE_SELECTION_MODE,
   SIZE_CODE,
-  type RaceAuthored
+  resolveRaceAuthored,
+  type RaceAuthored,
+  type ResolvedRace
 } from '@artificer-toolkit/shared'
 import type { DBLike } from '#types'
 import { upsertRace } from '../upserts/race.js'
 import { createDetailRepository } from '../../shared/repositories/detail.js'
 import { createFeatureRepository } from '../../features/repositories/feature.js'
 import type { RaceRepository, RepositoryFindAllOptions } from '../../../repositories/contracts.js'
+import { hydrateSubjectStatus } from '../status.js'
 
 function requireLinkedRecord<T>(
   value: T | null,
@@ -44,27 +48,41 @@ function requireRaceCategory(
   return value
 }
 
+function requireSelectionMode(
+  raceId: string,
+  value: string
+): Extract<RaceAuthored, { category: 'BASE' }>['selectionMode'] {
+  if (
+    value !== RACE_SELECTION_MODE.DIRECT
+    && value !== RACE_SELECTION_MODE.REQUIRES_SUBRACE
+  ) {
+    throw new Error(`Race "${raceId}" has invalid selection_mode "${value}".`)
+  }
+
+  return value
+}
+
 function requireSizeCode(
   raceId: string,
   value: string
-): Exclude<RaceAuthored, { category: 'SUBRACE' }>['size'] {
+): Extract<RaceAuthored, { category: 'BASE' }>['size'] {
   if (!(value in SIZE_CODE)) {
     throw new Error(`Race "${raceId}" has invalid size_code "${value}".`)
   }
 
-  return value as Exclude<RaceAuthored, { category: 'SUBRACE' }>['size']
+  return value as Extract<RaceAuthored, { category: 'BASE' }>['size']
 }
 
 function requireMeasurementUnit(
   raceId: string,
   speedId: string,
   value: string
-): NonNullable<RaceAuthored['speeds']>[number]['unit'] {
+): Extract<RaceAuthored, { category: 'BASE' }>['speeds'][number]['unit'] {
   if (!(value in MEASUREMENT_UNIT_CODE)) {
     throw new Error(`Race "${raceId}" speed "${speedId}" has invalid unit_code "${value}".`)
   }
 
-  return value as NonNullable<RaceAuthored['speeds']>[number]['unit']
+  return value as Extract<RaceAuthored, { category: 'BASE' }>['speeds'][number]['unit']
 }
 
 async function hydrateRaceById(
@@ -80,8 +98,9 @@ async function hydrateRaceById(
       'label',
       'quote',
       'description',
+      'status',
       'category',
-      'playable',
+      'selection_mode',
       'parent_race_id',
       'size_code'
     ])
@@ -93,7 +112,7 @@ async function hydrateRaceById(
     throw new Error(`Race "${id}" is missing user ownership and cannot be hydrated.`)
   }
 
-  const [featureLinks, ancestryRows, detailLinks, speedRows] = await Promise.all([
+  const [featureLinks, ancestryRows, detailLinks, speedRows, heritageRows] = await Promise.all([
     db.selectFrom('race_features')
       .select(['feature_id', 'sort_order'])
       .where('race_id', '=', id)
@@ -112,6 +131,11 @@ async function hydrateRaceById(
       .select(['speed_id', 'amount', 'unit_code'])
       .where('race_id', '=', id)
       .orderBy('speed_id')
+      .execute(),
+    db.selectFrom('race_heritages')
+      .select(['heritage_id', 'sort_order'])
+      .where('race_id', '=', id)
+      .orderBy('sort_order')
       .execute()
   ])
 
@@ -184,12 +208,13 @@ async function hydrateRaceById(
     amount: speed.amount,
     unit: requireMeasurementUnit(id, speed.speed_id, speed.unit_code)
   }))
+  const heritageIds = heritageRows.map((entry) => entry.heritage_id)
 
   const category = requireRaceCategory(id, row.category)
 
   if (category === RACE_CATEGORY_CODE.BASE) {
-    if (row.playable == null) {
-      throw new Error(`Race "${id}" is missing playable for BASE payload.`)
+    if (row.selection_mode == null) {
+      throw new Error(`Race "${id}" is missing selection_mode for BASE payload.`)
     }
     if (!row.size_code) {
       throw new Error(`Race "${id}" is missing size_code for BASE payload.`)
@@ -200,12 +225,14 @@ async function hydrateRaceById(
       label: row.label,
       quote: row.quote ?? undefined,
       description: row.description ?? undefined,
+      status: hydrateSubjectStatus(row.status),
+      heritageIds: heritageIds.length > 0 ? heritageIds : undefined,
       details: authoredDetails.length > 0 ? authoredDetails : undefined,
       features: authoredFeatures.length > 0 ? authoredFeatures : undefined,
       userId: row.user_id,
       systemId: row.system_id,
       category,
-      playable: row.playable,
+      selectionMode: requireSelectionMode(id, row.selection_mode),
       ancestry,
       size: requireSizeCode(id, row.size_code),
       speeds: authoredSpeeds
@@ -217,6 +244,7 @@ async function hydrateRaceById(
     label: row.label,
     quote: row.quote ?? undefined,
     description: row.description ?? undefined,
+    status: hydrateSubjectStatus(row.status),
     details: authoredDetails.length > 0 ? authoredDetails : undefined,
     features: authoredFeatures.length > 0 ? authoredFeatures : undefined,
     userId: row.user_id,
@@ -225,13 +253,45 @@ async function hydrateRaceById(
     parentRaceId: requireLinkedRecord(
       row.parent_race_id,
       `Race "${id}" is missing parent_race_id for SUBRACE payload.`
-    ),
-    size: row.size_code ? requireSizeCode(id, row.size_code) : undefined,
-    speeds: authoredSpeeds.length > 0 ? authoredSpeeds : undefined
+    )
   }
 }
 
 export function createRaceRepository(db: DBLike): RaceRepository {
+  async function loadRaceLineage(
+    id: string,
+    cache: Map<string, RaceAuthored | null>
+  ): Promise<RaceAuthored | null> {
+    if (cache.has(id)) {
+      return cache.get(id) ?? null
+    }
+
+    const authored = await hydrateRaceById(db, id)
+    cache.set(id, authored)
+
+    if (authored?.category === RACE_CATEGORY_CODE.SUBRACE) {
+      await loadRaceLineage(authored.parentRaceId, cache)
+    }
+
+    return authored
+  }
+
+  async function hydrateResolvedRaceById(
+    id: string
+  ): Promise<ResolvedRace | null> {
+    const cache = new Map<string, RaceAuthored | null>()
+    const authored = await loadRaceLineage(id, cache)
+
+    if (!authored) {
+      return null
+    }
+
+    return resolveRaceAuthored(
+      authored,
+      (parentId: string) => cache.get(parentId) ?? undefined
+    )
+  }
+
   return {
     async upsert(entity) {
       await upsertRace(db, entity, entity.systemId)
@@ -239,6 +299,10 @@ export function createRaceRepository(db: DBLike): RaceRepository {
 
     async findById(id) {
       return hydrateRaceById(db, id)
+    },
+
+    async findResolvedById(id, _filter) {
+      return hydrateResolvedRaceById(id)
     },
 
     async findAll(filter?: RepositoryFindAllOptions) {
@@ -258,6 +322,41 @@ export function createRaceRepository(db: DBLike): RaceRepository {
       const rows = await query.execute()
       const records = await Promise.all(rows.map((row) => hydrateRaceById(db, row.id)))
       return records.filter((record): record is RaceAuthored => record !== null)
+    },
+
+    async findResolvedAll(filter?: RepositoryFindAllOptions) {
+      let query = db
+        .selectFrom('races')
+        .select('id')
+        .orderBy('label')
+
+      if (filter?.systemId) {
+        query = query.where('system_id', '=', filter.systemId)
+      }
+
+      if (filter?.userId) {
+        query = query.where('user_id', '=', filter.userId)
+      }
+
+      const rows = await query.execute()
+      const cache = new Map<string, RaceAuthored | null>()
+
+      await Promise.all(rows.map((row) => loadRaceLineage(row.id, cache)))
+
+      return rows.flatMap((row) => {
+        const authored = cache.get(row.id)
+
+        if (!authored) {
+          return []
+        }
+
+        return [
+          resolveRaceAuthored(
+            authored,
+            (parentId: string) => cache.get(parentId) ?? undefined
+          )
+        ]
+      })
     }
   }
 }

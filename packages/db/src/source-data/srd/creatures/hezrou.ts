@@ -1,164 +1,185 @@
-import type { CreatureAuthored } from '@artificer-toolkit/shared'
-import * as S from './shared.js'
-
+import type { CreatureAuthored } from '@artificer-toolkit/shared';
+import * as S from './shared.js';
 export const hezrou: CreatureAuthored = {
-  id: S.CREATURE_IDS.HEZROU,
-  label: 'Hezrou',
-  userId: S.SRD_USER_ID,
-  systemId: S.SRD_SYSTEM_ID,
-  recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
-  category: S.CREATURE_CATEGORY_CODE.MONSTER,
-  creatureTypeId: S.CREATURE_TYPE.FIEND,
-  size: S.SIZE_CODE.LARGE,
-  alignmentId: '00000000-0000-0000-0001-000900000000',
-  tags: ['demon'],
-  abilityScores: {
-    STRENGTH: 19,
-    DEXTERITY: 17,
-    CONSTITUTION: 20,
-    INTELLIGENCE: 5,
-    WISDOM: 12,
-    CHARISMA: 13,
-    SPELLCASTING: 0
-  },
-  armorClass: 16,
-  armorClassNote: 'natural armor',
-  hitPoints: 136,
-  hitDice: '13d10+65',
-  speeds: [...S.walk(30)],
-  proficiencies: [
-    S.grantedSaveProficiency(162, 1, 'STRENGTH', 'CONSTITUTION', 'WISDOM'),
-    S.grantedLanguageProficiency(162, 2, 'ABYSSAL')
-  ],
-  damageResistances: ['cold, fire, lightning; bludgeoning, piercing, and slashing from nonmagical attacks'],
-  damageImmunities: ['poison'],
-  conditionImmunities: ['poisoned'],
-  senses: ['darkvision 120 ft.'],
-  passivePerception: 11,
-  challengeRatingId: S.CR.CR_8,
-  xp: 3900,
-  features: [
-    {
-      id: S.featureId(162, 1),
-      label: 'Magic Resistance',
-      description: 'Magic Resistance. The hezrou has advantage on saving throws against spells and other magical effects.',
-      order: 1
+    id: S.CREATURE_IDS.HEZROU,
+    label: 'Hezrou',
+    userId: S.SRD_USER_ID,
+    systemId: S.SRD_SYSTEM_ID,
+    recordKind: S.CREATURE_RECORD_KIND_CODE.STAT_BLOCK,
+    category: S.CREATURE_CATEGORY_CODE.MONSTER,
+    creatureTypeId: S.CREATURE_TYPE.FIEND,
+    size: S.SIZE_CODE.LARGE,
+    alignmentId: '00000000-0000-0000-0001-000900000000',
+    tags: ['demon'],
+    abilityScores: {
+        STRENGTH: 19,
+        DEXTERITY: 17,
+        CONSTITUTION: 20,
+        INTELLIGENCE: 5,
+        WISDOM: 12,
+        CHARISMA: 13,
+        SPELLCASTING: 0
     },
-    {
-      id: S.featureId(162, 2),
-      label: 'Stench',
-      description: "Stench. Any creature that starts its turn within 10 feet of the hezrou must succeed on a DC 14 Constitution saving throw or be poisoned until the start of its next turn. On a successful saving throw, the creature is immune to the hezrou's stench for 24 hours.",
-      order: 2
-    },
-    {
-      id: S.featureId(162, 3),
-      label: 'Telepathy',
-      description: 'Telepathy 120 ft.',
-      order: 3
-    },
-    {
-      id: S.featureId(162, 4),
-      label: 'Multiattack',
-      description: 'The hezrou makes three attacks: one with its bite and two with its claws.',
-      order: 4
-    },
-    {
-      id: S.featureId(162, 5),
-      label: 'Bite',
-      description: 'Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 15 (2d10 + 4) piercing damage.',
-      capabilities: [
+    armorClass: 16,
+    armorClassNote: 'natural armor',
+    hitPoints: 136,
+    hitDice: '13d10+65',
+    speeds: [...S.walk(30)],
+    proficiencies: [
+        S.grantedSaveProficiency(162, 1, 'STRENGTH', 'CONSTITUTION', 'WISDOM'),
+        S.grantedLanguageProficiency(162, 2, 'ABYSSAL')
+    ],
+    damageResistances: ['cold, fire, lightning; bludgeoning, piercing, and slashing from nonmagical attacks'],
+    damageImmunities: ['poison'],
+    conditionImmunities: ['poisoned'],
+    senses: ['darkvision 120 ft.'],
+    passivePerception: 11,
+    challengeRatingId: S.CR.CR_8,
+    xp: 3900,
+    features: [
         {
-          id: S.actionId(162, 4),
-          order: 1,
-          invocation: {
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
-            activation: {
-              code: S.ACTIVATION_CODE.ACTION,
-              amount: 1
-            },
-            range: {
-              id: S.actionId(162, 5),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 5,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
-            }
-          },
-          branches: [
-            {
-              id: S.actionId(162, 6),
-              branch: S.BRANCH.ON_HIT,
-              groupType: S.BRANCH_GROUP_TYPE.SINGLE,
-              resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
-              effectKind: S.EFFECT_KIND.DAMAGE,
-              damageTypeId: S.damageTypeId('PIERCING'),
-              valueKind: S.DAMAGE_VALUE_KIND.DICE,
-              scalingKind: S.SCALING.NONE,
-              diceConfig: '2d10',
-              bonuses: [
-                {
-                  id: S.actionId(162, 7),
-                  bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
-                  ability: S.ABILITY_CODE.STRENGTH,
-                  order: 1
-                }
-              ]
-            }
-          ]
-        }
-      ],
-      order: 5
-    },
-    {
-      id: S.featureId(162, 6),
-      label: 'Claw',
-      description: 'Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 11 (2d6 + 4) slashing damage.',
-      capabilities: [
+            id: S.featureId(162, 1),
+            label: 'Magic Resistance',
+            description: 'Magic Resistance. The hezrou has advantage on saving throws against spells and other magical effects.',
+            order: 1
+        },
         {
-          id: S.actionId(162, 8),
-          order: 1,
-          invocation: {
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
-            activation: {
-              code: S.ACTIVATION_CODE.ACTION,
-              amount: 1
-            },
-            range: {
-              id: S.actionId(162, 9),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 5,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
-            }
-          },
-          branches: [
-            {
-              id: S.actionId(162, 10),
-              branch: S.BRANCH.ON_HIT,
-              groupType: S.BRANCH_GROUP_TYPE.SINGLE,
-              resolutionKind: S.BRANCH_RESOLUTION_KIND.DIRECT,
-              effectKind: S.EFFECT_KIND.DAMAGE,
-              damageTypeId: S.damageTypeId('SLASHING'),
-              valueKind: S.DAMAGE_VALUE_KIND.DICE,
-              scalingKind: S.SCALING.NONE,
-              diceConfig: '2d6',
-              bonuses: [
+            id: S.featureId(162, 2),
+            label: 'Stench',
+            description: "Stench. Any creature that starts its turn within 10 feet of the hezrou must succeed on a DC 14 Constitution saving throw or be poisoned until the start of its next turn. On a successful saving throw, the creature is immune to the hezrou's stench for 24 hours.",
+            order: 2
+        },
+        {
+            id: S.featureId(162, 3),
+            label: 'Telepathy',
+            description: 'Telepathy 120 ft.',
+            order: 3
+        },
+        {
+            id: S.featureId(162, 4),
+            label: 'Multiattack',
+            description: 'The hezrou makes three attacks: one with its bite and two with its claws.',
+            order: 4
+        },
+        {
+            id: S.featureId(162, 5),
+            label: 'Bite',
+            description: 'Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 15 (2d10 + 4) piercing damage.',
+            effects: [
                 {
-                  id: S.actionId(162, 11),
-                  bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
-                  ability: S.ABILITY_CODE.STRENGTH,
-                  order: 1
+                    id: S.actionId(162, 4),
+                    order: 1,
+                    invocation: {
+                        triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+                        activation: {
+                            code: S.ACTIVATION_CODE.ACTION,
+                            amount: 1
+                        },
+                        range: {
+                            id: S.actionId(162, 5),
+                            rangeKind: S.RANGE_KIND.DISTANCE,
+                            amount: 5,
+                            unit: S.MEASUREMENT_UNIT_CODE.FEET
+                        },
+                        targeting: {
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                        }
+                    },
+                    paths: [
+                        {
+                            id: S.actionId(162, 6),
+                            order: 1,
+                            pathCode: S.PATH_CODE.ON_HIT,
+                            groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            selectionKind: "FIXED" as const,
+                            resultBlock: {
+                                id: S.actionId(162, 6) + "__result",
+                                resultKind: "SINGLE" as const,
+                                outcomes: [
+                                    {
+                                        id: S.actionId(162, 6),
+                                        effectKind: S.EFFECT_KIND.DAMAGE,
+                                        damageTypeId: S.damageTypeId('PIERCING'),
+                                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                                        scalingKind: S.SCALING.NONE,
+                                        diceConfig: '2d10',
+                                        bonuses: [
+                                            {
+                                                id: S.actionId(162, 7),
+                                                bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
+                                                ability: S.ABILITY_CODE.STRENGTH,
+                                                order: 1
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    ]
                 }
-              ]
-            }
-          ]
+            ],
+            order: 5
+        },
+        {
+            id: S.featureId(162, 6),
+            label: 'Claw',
+            description: 'Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 11 (2d6 + 4) slashing damage.',
+            effects: [
+                {
+                    id: S.actionId(162, 8),
+                    order: 1,
+                    invocation: {
+                        triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+                        activation: {
+                            code: S.ACTIVATION_CODE.ACTION,
+                            amount: 1
+                        },
+                        range: {
+                            id: S.actionId(162, 9),
+                            rangeKind: S.RANGE_KIND.DISTANCE,
+                            amount: 5,
+                            unit: S.MEASUREMENT_UNIT_CODE.FEET
+                        },
+                        targeting: {
+                            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                        }
+                    },
+                    paths: [
+                        {
+                            id: S.actionId(162, 10),
+                            order: 1,
+                            pathCode: S.PATH_CODE.ON_HIT,
+                            groupType: S.PATH_GROUP_TYPE.SINGLE,
+                            selectionKind: "FIXED" as const,
+                            resultBlock: {
+                                id: S.actionId(162, 10) + "__result",
+                                resultKind: "SINGLE" as const,
+                                outcomes: [
+                                    {
+                                        id: S.actionId(162, 10),
+                                        effectKind: S.EFFECT_KIND.DAMAGE,
+                                        damageTypeId: S.damageTypeId('SLASHING'),
+                                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                                        scalingKind: S.SCALING.NONE,
+                                        diceConfig: '2d6',
+                                        bonuses: [
+                                            {
+                                                id: S.actionId(162, 11),
+                                                bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
+                                                ability: S.ABILITY_CODE.STRENGTH,
+                                                order: 1
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ],
+            order: 6
         }
-      ],
-      order: 6
-    }
-  ]
-}
+    ]
+};
+
+

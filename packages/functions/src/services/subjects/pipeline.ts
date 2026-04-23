@@ -2,7 +2,7 @@ import type { RepositoryFindAllOptions } from '@artificer-toolkit/db'
 
 export interface SubjectAuthoringPipelineDeps<TInput, TAuthored, TCompiled, TPersisted> {
   validate: (input: TInput) => TAuthored
-  compile: (authored: TAuthored) => TCompiled
+  compile: (authored: TAuthored) => Promise<TCompiled> | TCompiled
   persist: (payload: { authored: TAuthored, compiled: TCompiled }) => Promise<TPersisted> | TPersisted
   findById: (id: string) => Promise<TAuthored | null>
   findAll: (filter?: RepositoryFindAllOptions) => Promise<TAuthored[]>
@@ -20,7 +20,7 @@ export function createSubjectAuthoringService<TInput, TAuthored, TCompiled, TPer
   return {
     async execute(input: TInput): Promise<SubjectAuthoringPipelineResult<TAuthored, TCompiled, TPersisted>> {
       const authored = deps.validate(input)
-      const compiled = deps.compile(authored)
+      const compiled = await deps.compile(authored)
       const persisted = await deps.persist({ authored, compiled })
 
       return {

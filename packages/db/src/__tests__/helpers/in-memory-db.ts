@@ -1,4 +1,5 @@
 type Row = Record<string, unknown>
+type Filter = { column: string, op: string, value: unknown }
 
 type ConflictMode = 'none' | 'doNothing' | 'doUpdateSet'
 
@@ -6,8 +7,16 @@ function cloneRows(rows: Row[]): Row[] {
   return rows.map((row) => ({ ...row }))
 }
 
+function matchesFilter(row: Row, filter: Filter): boolean {
+  if (filter.op === 'in') {
+    return Array.isArray(filter.value) && filter.value.includes(row[filter.column])
+  }
+
+  return row[filter.column] === filter.value
+}
+
 class SelectBuilder {
-  private readonly filters: Array<{ column: string, value: unknown }> = []
+  private readonly filters: Filter[] = []
   private orderByColumn: string | null = null
 
   constructor(
@@ -24,7 +33,7 @@ class SelectBuilder {
   }
 
   where(column: string, _op: string, value: unknown) {
-    this.filters.push({ column, value })
+    this.filters.push({ column, op: _op, value })
     return this
   }
 
@@ -37,7 +46,7 @@ class SelectBuilder {
     let rows = cloneRows(this.db.readTable(this.table))
 
     for (const filter of this.filters) {
-      rows = rows.filter((row) => row[filter.column] === filter.value)
+      rows = rows.filter((row) => matchesFilter(row, filter))
     }
 
     if (this.orderByColumn) {
@@ -61,7 +70,7 @@ class SelectBuilder {
 }
 
 class DeleteBuilder {
-  private readonly filters: Array<{ column: string, value: unknown }> = []
+  private readonly filters: Filter[] = []
 
   constructor(
     private readonly db: InMemoryDb,
@@ -69,7 +78,7 @@ class DeleteBuilder {
   ) {}
 
   where(column: string, _op: string, value: unknown) {
-    this.filters.push({ column, value })
+    this.filters.push({ column, op: _op, value })
     return this
   }
 
@@ -243,18 +252,18 @@ export class InMemoryDb {
 
   deleteWhere(
     table: string,
-    columnOrFilters: string | Array<{ column: string, value: unknown }>,
+    columnOrFilters: string | Filter[],
     value?: unknown
   ) {
     const filters = Array.isArray(columnOrFilters)
       ? columnOrFilters
-      : [{ column: columnOrFilters, value }]
+      : [{ column: columnOrFilters, op: '=', value }]
     const rows = this.readTable(table)
     const kept: Row[] = []
     const removed: Row[] = []
 
     for (const row of rows) {
-      if (filters.every((filter) => row[filter.column] === filter.value)) {
+      if (filters.every((filter) => matchesFilter(row, filter))) {
         removed.push(row)
       } else {
         kept.push(row)
@@ -323,9 +332,15 @@ export class InMemoryDb {
     if (table === 'feats') {
       const previousChargeId = previous.charge_id
       const nextChargeId = next.charge_id
+      const previousPrerequisiteId = previous.prerequisite_id
+      const nextPrerequisiteId = next.prerequisite_id
 
       if (previousChargeId && previousChargeId !== nextChargeId) {
         this.deleteWhere('charges', 'id', previousChargeId)
+      }
+
+      if (previousPrerequisiteId && previousPrerequisiteId !== nextPrerequisiteId) {
+        this.deleteWhere('facets', 'id', previousPrerequisiteId)
       }
     }
 
@@ -455,6 +470,59 @@ export class InMemoryDb {
         this.deleteWhere('effects', 'id', row.effect_id)
         break
 
+      case 'effects':
+        this.deleteWhere('effect_invocations', 'effect_id', row.id)
+        this.deleteWhere('effect_paths', 'effect_id', row.id)
+        break
+
+      case 'effect_invocations':
+        if (row.range_characteristic_id) {
+          this.deleteWhere('characteristics', 'id', row.range_characteristic_id)
+        }
+        if (row.shape_characteristic_id) {
+          this.deleteWhere('characteristics', 'id', row.shape_characteristic_id)
+        }
+        if (row.saving_throw_id) {
+          this.deleteWhere('saving_throws', 'id', row.saving_throw_id)
+        }
+        break
+
+      case 'effect_paths':
+        this.deleteWhere('effect_path_choice_options', 'path_id', row.id)
+        this.deleteWhere('effect_path_roll_table_rows', 'path_id', row.id)
+        if (row.result_block_id) {
+          this.deleteWhere('effect_result_blocks', 'id', row.result_block_id)
+        }
+        if (row.range_override_characteristic_id) {
+          this.deleteWhere('characteristics', 'id', row.range_override_characteristic_id)
+        }
+        break
+
+      case 'effect_path_choice_options':
+        this.deleteWhere('effect_result_blocks', 'id', row.result_block_id)
+        break
+
+      case 'effect_path_roll_table_rows':
+        this.deleteWhere('effect_result_blocks', 'id', row.result_block_id)
+        break
+
+      case 'effect_result_blocks':
+        this.deleteWhere('effect_result_block_outcomes', 'result_block_id', row.id)
+        if (row.duration_id) {
+          this.deleteWhere('characteristics', 'id', row.duration_id)
+        }
+        break
+
+      case 'effect_result_block_outcomes':
+        if (row.effect_kind === 'DAMAGE') {
+          this.deleteWhere('damages', 'id', row.outcome_id)
+        } else if (row.effect_kind === 'CONDITION') {
+          this.deleteWhere('conditions', 'id', row.outcome_id)
+        } else {
+          this.deleteWhere('effect_generic_outcomes', 'id', row.outcome_id)
+        }
+        break
+
       case 'feature_options':
         this.deleteWhere('options', 'id', row.option_id)
         break
@@ -505,6 +573,21 @@ export class InMemoryDb {
 
       case 'feat_features':
         this.deleteWhere('features', 'id', row.feature_id)
+        break
+
+      case 'feats':
+        if (row.charge_id) {
+          this.deleteWhere('charges', 'id', row.charge_id)
+        }
+        if (row.prerequisite_id) {
+          this.deleteWhere('facets', 'id', row.prerequisite_id)
+        }
+        this.deleteWhere('feat_proficiency_grants', 'feat_id', row.id)
+        this.deleteWhere('feat_sense_grants', 'feat_id', row.id)
+        this.deleteWhere('feat_spell_grants', 'feat_id', row.id)
+        this.deleteWhere('feat_modifier_grants', 'feat_id', row.id)
+        this.deleteWhere('feat_effects', 'feat_id', row.id)
+        this.deleteWhere('feat_features', 'feat_id', row.id)
         break
 
       case 'spell_effects':
@@ -572,6 +655,7 @@ export class InMemoryDb {
         this.deleteWhere('facet_predicate_charge_reset_kind_items', 'facet_condition_id', row.id)
         this.deleteWhere('facet_predicate_spell_items', 'facet_condition_id', row.id)
         this.deleteWhere('facet_predicate_feat_items', 'facet_condition_id', row.id)
+        this.deleteWhere('facet_predicate_heritage_items', 'facet_condition_id', row.id)
         this.deleteWhere('facet_predicate_feature_items', 'facet_condition_id', row.id)
         this.deleteWhere('facet_predicate_option_items', 'facet_condition_id', row.id)
         this.deleteWhere('facet_predicate_equipment_items', 'facet_condition_id', row.id)
@@ -598,7 +682,6 @@ export class InMemoryDb {
         }
         this.deleteWhere('equipment_attributes', 'equipment_id', row.id)
         this.deleteWhere('equipment_properties', 'equipment_id', row.id)
-        this.deleteWhere('equipment_abilities', 'equipment_id', row.id)
         this.deleteWhere('equipment_effects', 'equipment_id', row.id)
         this.deleteWhere('equipment_modifier_grants', 'equipment_id', row.id)
         this.deleteWhere('equipment_features', 'equipment_id', row.id)

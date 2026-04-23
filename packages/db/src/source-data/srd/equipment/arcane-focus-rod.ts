@@ -8,7 +8,6 @@ export const arcaneFocusRod: EquipmentAuthored = {
     description: "A metal rod inscribed with runes, used as a focus for arcane spellcasting.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(10),
     weight: S.lbs(2),
     rarityId: S.RARITY_COMMON,

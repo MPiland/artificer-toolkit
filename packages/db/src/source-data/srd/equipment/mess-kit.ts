@@ -8,7 +8,6 @@ export const messKit: EquipmentAuthored = {
     description: "A tin box containing a cup, fork, knife, and spoon for eating in the field.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.sp(2),
     weight: S.lbs(1),
     rarityId: S.RARITY_COMMON,

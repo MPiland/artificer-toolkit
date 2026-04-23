@@ -287,7 +287,7 @@ export const ranger: ClassAuthored = {
               {
                 id: classRowId(RA, 4, 10),
                 grantKind: GRANT_KIND.MODIFIER_GRANT,
-                valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL_BONUS,
+                valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
                 domain: { attackDomain: 'RANGED' as const },
                 modifierKind: MODIFIER_KIND.BONUS,
                 scope: MODIFIER_SCOPE_KIND.SOURCE,
@@ -477,3 +477,4 @@ export const ranger: ClassAuthored = {
     }
   ]
 }
+

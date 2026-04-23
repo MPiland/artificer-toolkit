@@ -10,7 +10,6 @@ export const heavyCrossbowPlus3: EquipmentVariantAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: heavyCrossbow.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
-  weight: S.lbs(18),
   rarityId: S.RARITY_VERY_RARE,
   maxBonus: 3,
   modifiers: S.rangedMagicWeaponModifiers(S.equipId(239), 3),

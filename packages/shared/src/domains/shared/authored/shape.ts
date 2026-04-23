@@ -1,4 +1,7 @@
-import { type ShapePayloadByType, type ShapeKind } from '#core'
+import {
+  type ShapePayloadByType,
+  type ShapeKind
+} from '#core'
 
 export type ShapeAuthored = {
   [K in ShapeKind]: {

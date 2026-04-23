@@ -799,6 +799,26 @@ ALTER TABLE public.facet_predicate_feat_items ENABLE ROW LEVEL SECURITY;
 CREATE INDEX IF NOT EXISTS idx_facet_predicate_feat_items_condition
   ON public.facet_predicate_feat_items (facet_condition_id);
 
+CREATE TABLE IF NOT EXISTS public.facet_predicate_heritage_items (
+  facet_condition_id uuid NOT NULL
+    REFERENCES public.facet_conditions (id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+
+  heritage_id uuid NOT NULL
+    REFERENCES public.heritages (id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+  sort_order integer NOT NULL,
+
+  PRIMARY KEY (facet_condition_id, heritage_id)
+);
+
+ALTER TABLE public.facet_predicate_heritage_items ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_facet_predicate_heritage_items_condition
+  ON public.facet_predicate_heritage_items (facet_condition_id);
+
 /* Feature list payload */
 CREATE TABLE IF NOT EXISTS public.facet_predicate_feature_items (
   facet_condition_id uuid NOT NULL

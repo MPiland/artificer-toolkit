@@ -1,7 +1,7 @@
 import type { DBLike } from '#types'
 import { details } from './fragments/index.js'
 
-interface BackgroundListItem { id: string; label: string; description: string | null; systemId: string; details: unknown; userId: string }
+interface BackgroundListItem { id: string; label: string; description: string | null; status: string; systemId: string; details: unknown; userId: string }
 interface BackgroundMetaObject { id: string; backgroundIds: string[] }
 interface BackgroundMeta { features: BackgroundMetaObject[] }
 
@@ -12,6 +12,7 @@ export const getBackgroundListQuery = async (db: DBLike): Promise<{ items: Backg
       'id as id',
       'label as label',
       'description as description',
+      'status as status',
       'system_id as systemId',
       details(eb, (eb2) => eb2
         .selectFrom('background_details as bridge')

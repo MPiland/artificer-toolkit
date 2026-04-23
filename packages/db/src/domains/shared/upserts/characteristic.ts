@@ -20,7 +20,8 @@ export function mapRangeToRow(
         kind: 'DISTANCE',
         min: json_data.amount,
         max: null,
-        unit_code: json_data.unit
+        unit_code: json_data.unit,
+        scaling: json_data.scaling ?? null
       }
 
     case 'SELF':
@@ -33,7 +34,8 @@ export function mapRangeToRow(
         kind: json_data.rangeKind,
         min: null,
         max: null,
-        unit_code: null
+        unit_code: null,
+        scaling: null
       }
 
     default:
@@ -65,7 +67,8 @@ export async function upsertRange(db: DBLike, json_data: RangeAuthored) {
         kind: ref('excluded.kind'),
         min: ref('excluded.min'),
         max: ref('excluded.max'),
-        unit_code: ref('excluded.unit_code')
+        unit_code: ref('excluded.unit_code'),
+        scaling: ref('excluded.scaling')
       })))
     .returning('characteristic_id')
     .executeTakeFirstOrThrow()
@@ -83,7 +86,8 @@ export function mapDurationToRow(
       return {
         characteristic_id,
         kind: 'INSTANTANEOUS',
-        amount: null
+        amount: null,
+        scaling: null
       }
 
     case 'DAY':
@@ -97,7 +101,8 @@ export function mapDurationToRow(
       return {
         characteristic_id,
         kind: json_data.durationKind,
-        amount: json_data.amount ?? null
+        amount: json_data.amount ?? null,
+        scaling: json_data.scaling ?? null
       }
 
     default:
@@ -127,7 +132,8 @@ export async function upsertDuration(db: DBLike, json_data: DurationAuthored) {
     .onConflict((oc) => oc.column('characteristic_id')
       .doUpdateSet(({ ref }) => ({
         kind: ref('excluded.kind'),
-        amount: ref('excluded.amount')
+        amount: ref('excluded.amount'),
+        scaling: ref('excluded.scaling')
       })))
     .returning('characteristic_id')
     .executeTakeFirstOrThrow()
@@ -148,7 +154,8 @@ export function mapShapeDimensionsToRow(
           characteristic_id,
           dimension: 'LENGTH',
           amount: json_data.length.amount,
-          unit_code: json_data.length.unit
+          unit_code: json_data.length.unit,
+          scaling: json_data.length.scaling ?? null
         }
       ]
 
@@ -158,7 +165,8 @@ export function mapShapeDimensionsToRow(
           characteristic_id,
           dimension: 'EDGE_LENGTH',
           amount: json_data.edgeLength.amount,
-          unit_code: json_data.edgeLength.unit
+          unit_code: json_data.edgeLength.unit,
+          scaling: json_data.edgeLength.scaling ?? null
         }
       ]
     case 'CYLINDER': {
@@ -167,7 +175,8 @@ export function mapShapeDimensionsToRow(
           characteristic_id,
           dimension: 'RADIUS',
           amount: json_data.radius.amount,
-          unit_code: json_data.radius.unit
+          unit_code: json_data.radius.unit,
+          scaling: json_data.radius.scaling ?? null
         }
       ]
 
@@ -176,7 +185,8 @@ export function mapShapeDimensionsToRow(
           characteristic_id,
           dimension: 'HEIGHT',
           amount: json_data.height.amount,
-          unit_code: json_data.height.unit
+          unit_code: json_data.height.unit,
+          scaling: json_data.height.scaling ?? null
         })
       }
       return array
@@ -190,7 +200,8 @@ export function mapShapeDimensionsToRow(
           characteristic_id,
           dimension: 'RADIUS',
           amount: json_data.radius.amount,
-          unit_code: json_data.radius.unit
+          unit_code: json_data.radius.unit,
+          scaling: json_data.radius.scaling ?? null
         }
       ]
     case 'WALL': {
@@ -199,13 +210,15 @@ export function mapShapeDimensionsToRow(
           characteristic_id,
           dimension: 'LENGTH',
           amount: json_data.length.amount,
-          unit_code: json_data.length.unit
+          unit_code: json_data.length.unit,
+          scaling: json_data.length.scaling ?? null
         },
         {
           characteristic_id,
           dimension: 'HEIGHT',
           amount: json_data.height.amount,
-          unit_code: json_data.height.unit
+          unit_code: json_data.height.unit,
+          scaling: json_data.height.scaling ?? null
         }
       ]
 
@@ -214,7 +227,8 @@ export function mapShapeDimensionsToRow(
           characteristic_id,
           dimension: 'THICKNESS',
           amount: json_data.thickness.amount,
-          unit_code: json_data.thickness.unit
+          unit_code: json_data.thickness.unit,
+          scaling: json_data.thickness.scaling ?? null
         })
       }
       return array
@@ -264,7 +278,8 @@ export async function upsertShape(db: DBLike, json_data: ShapeAuthored) {
     .onConflict((oc) => oc.columns(['characteristic_id', 'dimension'])
       .doUpdateSet(({ ref }) => ({
         amount: ref('excluded.amount'),
-        unit_code: ref('excluded.unit_code')
+        unit_code: ref('excluded.unit_code'),
+        scaling: ref('excluded.scaling')
       })))
     .execute()
 }

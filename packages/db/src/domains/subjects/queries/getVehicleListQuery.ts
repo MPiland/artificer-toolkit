@@ -5,6 +5,7 @@ interface VehicleListItem {
   id: string
   label: string
   description: string | null
+  status: string
   systemId: string
   details: unknown
   userId: string
@@ -27,6 +28,7 @@ export async function getVehicleListQuery(db: DBLike): Promise<{ items: VehicleL
       'id',
       'label',
       'description',
+      'status',
       'system_id as systemId',
       details(eb, (eb2) => eb2
         .selectFrom('vehicle_details as bridge')

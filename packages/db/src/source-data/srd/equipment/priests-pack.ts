@@ -8,7 +8,6 @@ export const priestsPack: EquipmentAuthored = {
     description: "Devotional supplies and basic provisions for a traveling cleric or holy person.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(19),
     weight: S.lbs(0),
     rarityId: S.RARITY_COMMON,

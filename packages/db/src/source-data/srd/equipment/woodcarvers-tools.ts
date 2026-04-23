@@ -9,7 +9,6 @@ export const woodcarversTools: EquipmentAuthored = {
     'Chisels, gouges, and knives for carving decorative or functional objects from wood.',
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
-  abilities: [],
   cost: S.gp(1),
   weight: S.lbs(5),
   rarityId: S.RARITY_COMMON,

@@ -3,19 +3,29 @@ import {
   DAMAGE_BONUS_KIND,
   DAMAGE_VALUE_KIND,
   EFFECT_KIND,
+  SCALABLE_SCALING_KIND,
+  type ScalingBreakpoint,
   type ScalingSource,
   type ScalingSourcePayload
 } from '#core'
 
-export type DamageProgressionLevel<TPayload = object> = {
+export type DamageProgressionLevel<TPayload extends object = object> = {
   id: string
   level: number
   order: number
 } & TPayload
 
-export type DamageProgression<TPayload = object> = {
+export type DamageProgression<TPayload extends object = object> = {
   [S in ScalingSource]: {
     levels: DamageProgressionLevel<TPayload>[]
+  } & ScalingSourcePayload[S]
+}[ScalingSource]
+
+export type DamageBreakpointProgressionLevel<TPayload extends object = object> = ScalingBreakpoint<TPayload>
+
+export type DamageBreakpointProgression<TPayload extends object = object> = {
+  [S in ScalingSource]: {
+    breakpoints: DamageBreakpointProgressionLevel<TPayload>[]
   } & ScalingSourcePayload[S]
 }[ScalingSource]
 
@@ -58,6 +68,12 @@ export type DamageFixedPayload
           scalingKind: typeof SCALING.PER_LEVEL
         } & DamageProgression<{ amount: number }>
       )
+      | (
+        {
+          valueKind: typeof DAMAGE_VALUE_KIND.FIXED
+          scalingKind: typeof SCALABLE_SCALING_KIND.BREAKPOINTS
+        } & DamageBreakpointProgression<{ amount: number }>
+      )
 
 export type DamageDicePayload
   = | {
@@ -69,6 +85,12 @@ export type DamageDicePayload
           valueKind: typeof DAMAGE_VALUE_KIND.DICE
           scalingKind: typeof SCALING.PER_LEVEL
         } & DamageProgression<{ diceConfig: string }>
+      )
+      | (
+        {
+          valueKind: typeof DAMAGE_VALUE_KIND.DICE
+          scalingKind: typeof SCALABLE_SCALING_KIND.BREAKPOINTS
+        } & DamageBreakpointProgression<{ diceConfig: string }>
       )
 
 export type DamagePoolPayload

@@ -3,6 +3,8 @@ import type { RulesSystem } from '../contracts/rulesSystem.js'
 import type { CharacterBuildSnapshot } from '../snapshot.js'
 import type { CharacterAssemblyRegistry } from '../registry.js'
 import type { CompiledEquipment } from '../../subjects/compilers/equipment.js'
+import { resolveAbilityRecordKey } from './abilityKey.js'
+import { parseModifierDomainKey } from './modifierDomainKey.js'
 
 /**
  * Computes all derived stats from the character build snapshot and resolved modifiers.
@@ -21,10 +23,9 @@ export function calculateDerivedStats(
 
   // Step 2: Apply ABILITY_SCORE domain modifier grants on top
   for (const [key, value] of Object.entries(resolvedModifiers)) {
-    const parts = key.split(':')
-    const domain = parts[0]
-    const ability = parts[2]
-    if (domain === 'ABILITY_SCORE' && ability) {
+    const parsed = parseModifierDomainKey(key)
+    const ability = resolveAbilityRecordKey(abilityScores, parsed.params.ability)
+    if (parsed.valueDomainCode === 'ABILITY_SCORE' && ability) {
       abilityScores[ability] = (abilityScores[ability] ?? 10) + value
     }
   }
@@ -71,7 +72,7 @@ export function calculateDerivedStats(
   // Step 6: Skill bonuses — canonical D&D 5e 2014 skill → governing ability mapping
   const skillBonuses: Record<string, number> = {}
   for (const [skillId, governingAbility] of Object.entries(SKILL_ABILITY_MAP)) {
-    const mod = abilityModifiers[governingAbility] ?? 0
+    const mod = abilityModifiers[resolveAbilityRecordKey(abilityModifiers, governingAbility) ?? governingAbility] ?? 0
     const mult = profMultiplier('SKILL', skillId)
     skillBonuses[skillId] = mod + Math.floor(proficiencyBonus * mult)
   }
@@ -87,9 +88,9 @@ export function calculateDerivedStats(
   //   d) Fallback: 10 + DEX modifier (unarmored)
   const armorClass = resolveArmorClass(snapshot, abilityModifiers, resolvedModifiers)
 
-  // Step 9: Initiative — DEX modifier + INITIATIVE_BONUS domain modifiers
-  const initiativeBonus = resolvedModifiers['INITIATIVE_BONUS:BONUS'] ?? 0
-  const initiative = (abilityModifiers['DEX'] ?? 0) + initiativeBonus
+  // Step 9: Initiative — DEX modifier + INITIATIVE domain modifiers
+  const initiativeBonus = resolvedModifiers['INITIATIVE:BONUS'] ?? 0
+  const initiative = (abilityModifiers[resolveAbilityRecordKey(abilityModifiers, 'DEX') ?? 'DEX'] ?? 0) + initiativeBonus
 
   // Steps 10-11: Spell stats — present only if a spellcasting class is in the registry
   let spellSaveDC: number | undefined
@@ -97,7 +98,7 @@ export function calculateDerivedStats(
 
   const spellcastingAbility = resolveSpellcastingAbility(snapshot, registry)
   if (spellcastingAbility) {
-    const spellMod = abilityModifiers[spellcastingAbility] ?? 0
+    const spellMod = abilityModifiers[resolveAbilityRecordKey(abilityModifiers, spellcastingAbility) ?? spellcastingAbility] ?? 0
     spellSaveDC = 8 + proficiencyBonus + spellMod
     spellAttackBonus = proficiencyBonus + spellMod
   }
@@ -123,15 +124,11 @@ export function calculateDerivedStats(
 /**
  * Resolves armor class from equipped items.
  *
- * Armor type (LIGHT / MEDIUM / HEAVY) is determined by the item's `properties` array.
- * DEX contribution per armor type:
- *   - LIGHT: full DEX modifier
- *   - MEDIUM: DEX modifier capped at +2
- *   - HEAVY: no DEX modifier
- *   - Unarmored (no armor equipped): full DEX modifier
+ * Armor items contribute their base `armorClass` only.
+ * Ability-driven AC changes are authored through modifiers.
  *
- * Shields contribute their `armorClass` value (typically +2) regardless of worn armor.
- * ARMOR_CLASS:BONUS modifiers are always added on top.
+ * Shields still contribute their fixed `armorClass` value directly.
+ * ARMOR_CLASS numeric modifiers are always added on top.
  */
 function resolveArmorClass(
   snapshot: CharacterBuildSnapshot,
@@ -151,19 +148,7 @@ function resolveArmorClass(
     const equipment = compiled as CompiledEquipment
 
     if (equipment.category === 'ARMOR') {
-      const ac = equipment.armorClass ?? 10
-      const props = equipment.properties
-
-      if (props.includes('HEAVY')) {
-        // Heavy armor: fixed AC, no DEX
-        baseAC = ac
-      } else if (props.includes('MEDIUM')) {
-        // Medium armor: base AC + DEX (max +2)
-        baseAC = ac + Math.min(dex, 2)
-      } else {
-        // Light armor (or unclassified armor): base AC + full DEX
-        baseAC = ac + dex
-      }
+      baseAC = equipment.armorClass ?? 10
     }
 
     if (equipment.category === 'SHIELD') {
@@ -175,7 +160,10 @@ function resolveArmorClass(
   const armorBase = baseAC ?? (10 + dex)
 
   // Add shield and any bonus modifiers
-  const acBonus = resolvedModifiers['ARMOR_CLASS:BONUS'] ?? 0
+  const acBonus = Object.entries(resolvedModifiers)
+    .filter(([key]) => parseModifierDomainKey(key).valueDomainCode === 'ARMOR_CLASS')
+    .reduce((sum, [, value]) => sum + value, 0)
+
   return armorBase + shieldBonus + acBonus
 }
 
@@ -220,3 +208,4 @@ const SKILL_ABILITY_MAP: Record<string, string> = {
   'stealth': 'DEX',
   'survival': 'WIS'
 }
+

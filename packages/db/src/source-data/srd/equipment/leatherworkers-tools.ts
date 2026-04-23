@@ -8,7 +8,6 @@ export const leatherworkersTools: EquipmentAuthored = {
   description: 'Knives, punches, and dyes for cutting and stitching leather into goods.',
   category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
   properties: [],
-  abilities: [],
   cost: S.gp(5),
   weight: S.lbs(5),
   rarityId: S.RARITY_COMMON,

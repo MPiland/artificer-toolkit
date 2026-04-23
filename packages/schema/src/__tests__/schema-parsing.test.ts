@@ -11,7 +11,103 @@ import { startingEquipmentDtoSchema } from '../shared/startingEquipment.js'
 import { backgroundListResponseDtoSchema, featureResponseDtoSchema } from '../api/content.js'
 import { resourceIdParamsDtoSchema, systemAuthoredDtoSchema, systemListResponseDtoSchema } from '../index.js'
 import { classAuthoredDtoSchema } from '../subjects/class.js'
+import { featAuthoredDtoSchema } from '../subjects/feat.js'
+import { raceAuthoredDtoSchema } from '../subjects/race.js'
 import { spellAuthoredDtoSchema } from '../subjects/spell.js'
+
+function singleResultBlock(id: string, outcome: Record<string, unknown>, extra: Record<string, unknown> = {}) {
+  return {
+    id,
+    resultKind: 'SINGLE',
+    outcomes: [outcome],
+    ...extra
+  }
+}
+
+function sequenceResultBlock(id: string, outcomes: Record<string, unknown>[], extra: Record<string, unknown> = {}) {
+  return {
+    id,
+    resultKind: 'SEQUENCE',
+    outcomes,
+    ...extra
+  }
+}
+
+function fixedPath(
+  id: string,
+  order: number,
+  pathCode: string,
+  resultBlock: Record<string, unknown>,
+  extra: Record<string, unknown> = {}
+) {
+  return {
+    id,
+    order,
+    pathCode,
+    groupType: 'SINGLE',
+    selectionKind: 'FIXED',
+    resultBlock,
+    ...extra
+  }
+}
+
+function choicePath(
+  id: string,
+  order: number,
+  pathCode: string,
+  options: Record<string, unknown>[],
+  extra: Record<string, unknown> = {}
+) {
+  return {
+    id,
+    order,
+    pathCode,
+    groupType: 'CHOICE',
+    selectionKind: 'CHOICE',
+    options,
+    ...extra
+  }
+}
+
+function exactRollTablePath(
+  id: string,
+  order: number,
+  pathCode: string,
+  rows: Record<string, unknown>[],
+  extra: Record<string, unknown> = {}
+) {
+  return {
+    id,
+    order,
+    pathCode,
+    groupType: 'SINGLE',
+    selectionKind: 'ROLL_TABLE',
+    rollTableKind: 'EXACT',
+    dieConfig: '1d4',
+    rows,
+    ...extra
+  }
+}
+
+function rangeRollTablePath(
+  id: string,
+  order: number,
+  pathCode: string,
+  rows: Record<string, unknown>[],
+  extra: Record<string, unknown> = {}
+) {
+  return {
+    id,
+    order,
+    pathCode,
+    groupType: 'SINGLE',
+    selectionKind: 'ROLL_TABLE',
+    rollTableKind: 'RANGE',
+    dieConfig: '1d4',
+    rows,
+    ...extra
+  }
+}
 
 describe('schema package parsing', () => {
   it('parses per-level charges with nested bonuses', () => {
@@ -42,7 +138,7 @@ describe('schema package parsing', () => {
     expect(parsed.levels).toHaveLength(2)
   })
 
-  it('parses effects with nested saving throw invocations and branches', () => {
+  it('parses effects with nested saving throw invocations and fixed paths', () => {
     const parsed = effectDtoSchema.parse({
       id: 'burning-hands-effect',
       order: 1,
@@ -63,26 +159,146 @@ describe('schema package parsing', () => {
           rangeKind: 'SELF'
         }
       },
-      branches: [
-        {
-          id: 'burning-hands-direct',
-          branch: 'ON_SAVE_FAIL',
-          groupType: 'SINGLE',
-          resolutionKind: 'DIRECT',
-          effectKind: 'DAMAGE',
-          damageTypeId: 'fire',
-          valueKind: 'DICE',
-          scalingKind: 'NONE',
-          diceConfig: '3d6'
-        }
+      paths: [
+        fixedPath(
+          'burning-hands-direct',
+          1,
+          'ON_SAVE_FAIL',
+          singleResultBlock('burning-hands-result', {
+            id: 'burning-hands-direct-entry',
+            effectKind: 'DAMAGE',
+            damageTypeId: 'fire',
+            valueKind: 'DICE',
+            scalingKind: 'NONE',
+            diceConfig: '3d6'
+          })
+        )
       ]
-    })
+    }) as any
 
-    expect(parsed.branches).toHaveLength(1)
+    expect(parsed.paths).toHaveLength(1)
     expect(parsed.invocation.triggerCode).toBe('SAVING_THROW')
-    expect(parsed.branches[0]).toMatchObject({
-      branch: 'ON_SAVE_FAIL'
-    })
+    expect(parsed.paths[0]).toMatchObject({
+      pathCode: 'ON_SAVE_FAIL'
+    }) as any
+  })
+
+  it('parses passive effects with saving throw invocations', () => {
+    const parsed = effectDtoSchema.parse({
+      id: 'spirit-guardians-effect',
+      order: 1,
+      invocation: {
+        kind: 'PASSIVE',
+        triggerCode: 'SAVING_THROW',
+        savingThrow: {
+          id: 'spirit-guardians-save',
+          savingThrowKind: 'FIXED_VALUE',
+          ability: 'WISDOM',
+          dc: 15
+        },
+        range: {
+          id: 'spirit-guardians-range',
+          rangeKind: 'SELF'
+        },
+        shape: {
+          id: 'spirit-guardians-shape',
+          shapeKind: 'SPHERE',
+          radius: {
+            amount: 15,
+            unit: 'FEET'
+          }
+        }
+      },
+      paths: [
+        fixedPath(
+          'spirit-guardians-save-fail',
+          1,
+          'ON_SAVE_FAIL',
+          singleResultBlock('spirit-guardians-save-fail-result', {
+            id: 'spirit-guardians-save-fail-entry',
+            effectKind: 'DAMAGE',
+            damageTypeId: 'radiant',
+            valueKind: 'DICE',
+            scalingKind: 'NONE',
+            diceConfig: '3d8'
+          })
+        ),
+        fixedPath(
+          'spirit-guardians-save-success',
+          2,
+          'ON_SAVE_SUCCESS',
+          singleResultBlock('spirit-guardians-save-success-result', {
+            id: 'spirit-guardians-save-success-entry',
+            effectKind: 'DAMAGE',
+            damageTypeId: 'radiant',
+            valueKind: 'DICE',
+            scalingKind: 'NONE',
+            diceConfig: '3d8'
+          })
+        )
+      ]
+    }) as any
+
+    expect(parsed.invocation.kind).toBe('PASSIVE')
+    expect(parsed.invocation.triggerCode).toBe('SAVING_THROW')
+    expect('savingThrow' in parsed.invocation).toBe(true)
+  })
+
+  it('parses labeled choice options and roll-table rows for authored copy', () => {
+    const parsed = effectDtoSchema.parse({
+      id: 'choice-copy-effect',
+      order: 1,
+      invocation: {
+        triggerCode: 'SPELL_ATTACK',
+        activation: {
+          code: 'ACTION',
+          amount: 1
+        },
+        range: {
+          id: 'choice-copy-range',
+          rangeKind: 'DISTANCE',
+          amount: 30,
+          unit: 'FEET'
+        }
+      },
+      paths: [
+        choicePath('choice-copy-direct', 1, 'ON_HIT', [
+          {
+            id: 'choice-copy-direct-option',
+            order: 1,
+            label: 'Primary Result',
+            description: 'The main outcome when the effect resolves.',
+            resultBlock: singleResultBlock('choice-copy-direct-result', {
+              id: 'choice-copy-direct-entry',
+              effectKind: 'DAMAGE',
+              damageTypeId: 'fire',
+              valueKind: 'FIXED',
+              scalingKind: 'NONE',
+              amount: 10
+            })
+          }
+        ]),
+        exactRollTablePath('choice-copy-roll', 2, 'ON_HIT', [
+          {
+            id: 'choice-copy-roll-entry',
+            order: 1,
+            rollValue: 1,
+            resultBlock: singleResultBlock('choice-copy-roll-result', {
+              id: 'choice-copy-roll-outcome',
+              effectKind: 'RULE'
+            })
+          }
+        ])
+      ]
+    }) as any
+
+    expect(parsed.paths[0].options[0]).toMatchObject({
+      label: 'Primary Result',
+      description: 'The main outcome when the effect resolves.'
+    }) as any
+
+    expect(parsed.paths[1].rows[0]).not.toHaveProperty('label')
+    expect(parsed.paths[1].rows[0]).not.toHaveProperty('description')
   })
 
   it('parses non-damage outcome families such as apply-grant and rule fallbacks', () => {
@@ -100,45 +316,49 @@ describe('schema package parsing', () => {
           rangeKind: 'SELF'
         }
       },
-      branches: [
-        {
-          id: 'shield-grant',
-          branch: 'ON_CAST',
-          groupType: 'SINGLE',
-          resolutionKind: 'DIRECT',
-          effectKind: 'APPLY_GRANT',
-          grants: {
-            modifiers: [
-              {
-                grantKind: 'MODIFIER_GRANT',
-                id: 'shield-ac-bonus',
-                order: 1,
-                selectionKind: 'GRANTED',
-                valueDomainCode: 'ARMOR_CLASS',
-                modifierKind: 'BONUS',
-                scope: 'GLOBAL',
-                payload: {
-                  valueKind: 'FIXED',
-                  amount: 5
+      paths: [
+        fixedPath(
+          'shield-grant',
+          1,
+          'ON_CAST',
+          singleResultBlock('shield-grant-result', {
+            id: 'shield-grant-entry',
+            effectKind: 'APPLY_GRANT',
+            grants: {
+              modifiers: [
+                {
+                  grantKind: 'MODIFIER_GRANT',
+                  id: 'shield-ac-bonus',
+                  order: 1,
+                  selectionKind: 'GRANTED',
+                  valueDomainCode: 'ARMOR_CLASS',
+                  modifierKind: 'BONUS',
+                  scope: 'GLOBAL',
+                  payload: {
+                    valueKind: 'FIXED',
+                    amount: 5
+                  }
                 }
-              }
-            ]
-          }
-        },
-        {
-          id: 'shield-rule',
-          branch: 'ON_CAST',
-          groupType: 'SINGLE',
-          resolutionKind: 'DIRECT',
-          effectKind: 'RULE'
-        }
+              ]
+            }
+          })
+        ),
+        fixedPath(
+          'shield-rule',
+          2,
+          'ON_CAST',
+          singleResultBlock('shield-rule-result', {
+            id: 'shield-rule-entry',
+            effectKind: 'RULE'
+          })
+        )
       ]
-    })
+    }) as any
 
-    expect(parsed.branches).toHaveLength(2)
+    expect(parsed.paths).toHaveLength(2)
   })
 
-  it('parses branch lifecycle metadata and forced movement outcomes', () => {
+  it('parses result-block lifecycle metadata and sequential outcomes', () => {
     const parsed = effectDtoSchema.parse({
       id: 'dissonant-whispers-effect',
       order: 1,
@@ -161,50 +381,60 @@ describe('schema package parsing', () => {
           unit: 'FEET'
         }
       },
-      branches: [
-        {
-          id: 'dw-damage',
-          branch: 'ON_SAVE_FAIL',
-          groupType: 'SEQUENTIAL',
-          resolutionKind: 'DIRECT',
-          effectKind: 'DAMAGE',
-          damageTypeId: 'psychic',
-          valueKind: 'DICE',
-          scalingKind: 'NONE',
-          diceConfig: '3d6'
-        },
-        {
-          id: 'dw-move',
-          branch: 'ON_SAVE_FAIL',
-          groupType: 'SEQUENTIAL',
-          resolutionKind: 'DIRECT',
-          lifecycle: {
-            recurringKind: 'NONE',
-            consumeOnFirstEvent: 'ON_ATTACK_ROLL',
-            endOnEvents: ['ON_CAST_SPELL']
-          },
-          effectKind: 'FORCED_MOVEMENT',
-          direction: 'AWAY_FROM_SOURCE',
-          distanceMode: 'UP_TO_SPEED',
-          actionEconomy: 'REACTION'
-        }
+      paths: [
+        fixedPath(
+          'dw-sequence',
+          1,
+          'ON_SAVE_FAIL',
+          sequenceResultBlock(
+            'dw-sequence-result',
+            [
+              {
+                id: 'dw-damage-entry',
+                effectKind: 'DAMAGE',
+                damageTypeId: 'psychic',
+                valueKind: 'DICE',
+                scalingKind: 'NONE',
+                diceConfig: '3d6'
+              },
+              {
+                id: 'dw-move-entry',
+                effectKind: 'FORCED_MOVEMENT',
+                direction: 'AWAY_FROM_SOURCE',
+                distanceMode: 'UP_TO_SPEED',
+                actionEconomy: 'REACTION'
+              }
+            ],
+            {
+              lifecycle: {
+                recurringKind: 'NONE',
+                consumeOnFirstEvent: 'ON_ATTACK_ROLL',
+                endOnEvents: ['ON_CAST_SPELL']
+              }
+            }
+          )
+        )
       ]
     }) as {
-      branches?: Array<{
-        effectKind?: string
-        lifecycle?: { consumeOnFirstEvent?: string }
+      paths?: Array<{
+        resultBlock?: {
+          outcomes?: Array<{
+            effectKind?: string
+          }>
+          lifecycle?: { consumeOnFirstEvent?: string }
+        }
       }>
     }
 
-    expect(parsed.branches?.[1]).toMatchObject({
-      effectKind: 'FORCED_MOVEMENT',
+    expect(parsed.paths?.[0]?.resultBlock).toMatchObject({
+      outcomes: [{ effectKind: 'DAMAGE' }, { effectKind: 'FORCED_MOVEMENT' }],
       lifecycle: { consumeOnFirstEvent: 'ON_ATTACK_ROLL' }
-    })
+    }) as any
   })
 
-  it('parses activated feature-style capabilities with on-use healing bonuses', () => {
+  it('parses activated feature-style effects with on-use healing bonuses', () => {
     const parsed = effectDtoSchema.parse({
-      id: 'second-wind-capability',
+      id: 'second-wind-effect',
       order: 1,
       invocation: {
         triggerCode: 'ACTIVATED',
@@ -220,41 +450,48 @@ describe('schema package parsing', () => {
           selectionKind: 'SELF'
         }
       },
-      branches: [
-        {
-          id: 'second-wind-heal',
-          branch: 'ON_USE',
-          groupType: 'SINGLE',
-          resolutionKind: 'DIRECT',
-          effectKind: 'HEAL',
-          valueKind: 'DICE',
-          scalingKind: 'NONE',
-          diceConfig: '1d10',
-          bonuses: [
-            {
-              id: 'second-wind-fighter-level',
-              bonusKind: 'CLASS_LEVEL',
-              classId: 'fighter',
-              order: 1
-            }
-          ]
-        }
+      paths: [
+        fixedPath(
+          'second-wind-heal',
+          1,
+          'ON_USE',
+          singleResultBlock('second-wind-result', {
+            id: 'second-wind-heal-entry',
+            effectKind: 'HEAL',
+            valueKind: 'DICE',
+            scalingKind: 'NONE',
+            diceConfig: '1d10',
+            bonuses: [
+              {
+                id: 'second-wind-fighter-level',
+                bonusKind: 'CLASS_LEVEL',
+                classId: 'fighter'
+                ,
+                order: 1
+              }
+            ]
+          })
+        )
       ]
     }) as {
-      branches?: Array<{
-        branch?: string
-        bonuses?: Array<{ bonusKind?: string, classId?: string }>
+      paths?: Array<{
+        pathCode?: string
+        resultBlock?: {
+          outcomes?: Array<{
+            bonuses?: Array<{ bonusKind?: string, classId?: string }>
+          }>
+        }
       }>
     }
 
-    expect(parsed.branches?.[0]?.branch).toBe('ON_USE')
-    expect(parsed.branches?.[0]?.bonuses?.[0]).toMatchObject({
+    expect(parsed.paths?.[0]?.pathCode).toBe('ON_USE')
+    expect(parsed.paths?.[0]?.resultBlock?.outcomes?.[0]?.bonuses?.[0]).toMatchObject({
       bonusKind: 'CLASS_LEVEL',
       classId: 'fighter'
     })
   })
 
-  it('parses long-cast spell capabilities with separate activation and casting time layers', () => {
+  it('parses long-cast spell effects with separate activation and casting time layers', () => {
     const parsed = spellAuthoredDtoSchema.parse({
       kind: 'SPELL',
       id: 'find-familiar',
@@ -268,9 +505,10 @@ describe('schema package parsing', () => {
       classIds: ['wizard'],
       magicSchoolId: 'conjuration',
       attributes: ['RITUAL'],
-      capabilities: [
+      components: ['VERBAL', 'SOMATIC', 'MATERIAL'],
+      effects: [
         {
-          id: 'find-familiar-capability',
+          id: 'find-familiar-effect',
           order: 1,
           invocation: {
             triggerCode: 'ACTIVATED',
@@ -288,39 +526,389 @@ describe('schema package parsing', () => {
               selectionKind: 'AREA_CONTENTS'
             }
           },
-          branches: [
-            {
-              id: 'find-familiar-branch',
-              branch: 'ON_USE',
-              groupType: 'SINGLE',
-              resolutionKind: 'DIRECT',
-              duration: {
-                id: 'find-familiar-duration',
-                durationKind: 'UNTIL_DISPELLED'
-              },
-              effectKind: 'MANIFEST',
-              manifestKind: 'CREATURE',
-              detail: 'A spirit takes an animal form you choose and acts independently while obeying your commands.'
-            }
+          paths: [
+            fixedPath(
+              'find-familiar-path',
+              1,
+              'ON_USE',
+              singleResultBlock(
+                'find-familiar-result',
+                {
+                  id: 'find-familiar-entry',
+                  effectKind: 'MANIFEST',
+                  manifestKind: 'CREATURE'
+                },
+                {
+                  duration: {
+                    id: 'find-familiar-duration',
+                    durationKind: 'UNTIL_DISPELLED'
+                  }
+                }
+              )
+            )
           ]
         }
       ],
       userId: 'user-1',
       systemId: 'system-1'
     }) as {
-      capabilities?: Array<{
+      effects?: Array<{
         invocation?: { activation?: { code?: string, amount?: number } }
-        branches?: Array<{ effectKind?: string, manifestKind?: string }>
+        paths?: Array<{ resultBlock?: { outcomes?: Array<{ effectKind?: string, manifestKind?: string }> } }>
       }>
     }
 
-    expect(parsed.capabilities?.[0]?.invocation?.activation).toMatchObject({
+    expect(parsed.effects?.[0]?.invocation?.activation).toMatchObject({
       code: 'ACTION',
       amount: 1
     })
-    expect(parsed.capabilities?.[0]?.branches?.[0]).toMatchObject({
+    expect((parsed as { components?: string[] }).components).toEqual(['VERBAL', 'SOMATIC', 'MATERIAL'])
+    expect(parsed.effects?.[0]?.paths?.[0]?.resultBlock?.outcomes?.[0]).toMatchObject({
       effectKind: 'MANIFEST',
       manifestKind: 'CREATURE'
+    })
+  })
+
+  it('parses manifest-owned nested behaviors when they use non-manifest outcomes', () => {
+    const parsed = spellAuthoredDtoSchema.parse({
+      kind: 'SPELL',
+      id: 'arcane-sword',
+      label: 'Arcane Sword',
+      description: 'You create a sword-shaped plane of force.',
+      castingTime: {
+        unit: 'ROUND',
+        amount: 1
+      },
+      level: 7,
+      classIds: ['wizard'],
+      magicSchoolId: 'evocation',
+      effects: [
+        {
+          id: 'arcane-sword-effect',
+          order: 1,
+          invocation: {
+            triggerCode: 'ACTIVATED',
+            activation: {
+              code: 'ACTION',
+              amount: 1
+            },
+            range: {
+              id: 'arcane-sword-range',
+              rangeKind: 'DISTANCE',
+              amount: 60,
+              unit: 'FEET'
+            }
+          },
+          paths: [
+            fixedPath(
+              'arcane-sword-path',
+              1,
+              'ON_USE',
+              singleResultBlock('arcane-sword-result', {
+                id: 'arcane-sword-manifest',
+                effectKind: 'MANIFEST',
+                manifestKind: 'WEAPON',
+                behaviors: [
+                  {
+                    id: 'arcane-sword-attack',
+                    order: 1,
+                    invocation: {
+                      triggerCode: 'SPELL_ATTACK',
+                      activation: {
+                        code: 'BONUS_ACTION',
+                        amount: 1
+                      },
+                      range: {
+                        id: 'arcane-sword-attack-range',
+                        rangeKind: 'DISTANCE',
+                        amount: 5,
+                        unit: 'FEET'
+                      }
+                    },
+                    paths: [
+                      fixedPath(
+                        'arcane-sword-hit',
+                        1,
+                        'ON_HIT',
+                        singleResultBlock('arcane-sword-hit-result', {
+                          id: 'arcane-sword-damage',
+                          effectKind: 'DAMAGE',
+                          damageTypeId: 'force',
+                          valueKind: 'DICE',
+                          scalingKind: 'NONE',
+                          diceConfig: '3d10'
+                        })
+                      )
+                    ]
+                  }
+                ]
+              })
+            )
+          ]
+        }
+      ],
+      userId: 'user-1',
+      systemId: 'system-1'
+    }) as {
+      effects?: Array<{
+        paths?: Array<{
+          resultBlock?: {
+            outcomes?: Array<{
+              behaviors?: Array<{
+                paths?: Array<{
+                  resultBlock?: { outcomes?: Array<{ effectKind?: string }> }
+                }>
+              }>
+            }>
+          }
+        }>
+      }>
+    }
+
+    expect(parsed.effects?.[0]?.paths?.[0]?.resultBlock?.outcomes?.[0]?.behaviors?.[0]?.paths?.[0]?.resultBlock?.outcomes?.[0]).toMatchObject({
+      effectKind: 'DAMAGE'
+    })
+  })
+
+  it('rejects manifest-owned nested behaviors that try to manifest again', () => {
+    expect(() => spellAuthoredDtoSchema.parse({
+      kind: 'SPELL',
+      id: 'bad-nested-manifest',
+      label: 'Bad Nested Manifest',
+      description: 'A recursive manifest payload.',
+      castingTime: {
+        unit: 'ROUND',
+        amount: 1
+      },
+      level: 4,
+      classIds: ['wizard'],
+      magicSchoolId: 'conjuration',
+      effects: [
+        {
+          id: 'outer-effect',
+          order: 1,
+          invocation: {
+            triggerCode: 'ACTIVATED',
+            activation: {
+              code: 'ACTION',
+              amount: 1
+            },
+            range: {
+              id: 'outer-range',
+              rangeKind: 'DISTANCE',
+              amount: 30,
+              unit: 'FEET'
+            }
+          },
+          paths: [
+            fixedPath(
+              'outer-path',
+              1,
+              'ON_USE',
+              singleResultBlock('outer-result', {
+                id: 'outer-manifest',
+                effectKind: 'MANIFEST',
+                manifestKind: 'SUMMON',
+                behaviors: [
+                  {
+                    id: 'nested-effect',
+                    order: 1,
+                    invocation: {
+                      triggerCode: 'ACTIVATED',
+                      activation: {
+                        code: 'ACTION',
+                        amount: 1
+                      },
+                      range: {
+                        id: 'nested-range',
+                        rangeKind: 'SELF'
+                      }
+                    },
+                    paths: [
+                      fixedPath(
+                        'nested-path',
+                        1,
+                        'ON_USE',
+                        singleResultBlock('nested-result', {
+                          id: 'recursive-manifest',
+                          effectKind: 'MANIFEST',
+                          manifestKind: 'OBJECT'
+                        })
+                      )
+                    ]
+                  }
+                ]
+              })
+            )
+          ]
+        }
+      ],
+      userId: 'user-1',
+      systemId: 'system-1'
+    })).toThrow()
+  })
+
+  it('strips roll-table row labels and descriptions', () => {
+    const parsed = effectDtoSchema.parse({
+      id: 'bad-roll-table-metadata',
+      order: 1,
+      invocation: {
+        triggerCode: 'ACTIVATED',
+        activation: {
+          code: 'ACTION',
+          amount: 1
+        },
+        range: {
+          id: 'bad-roll-range',
+          rangeKind: 'DISTANCE',
+          amount: 30,
+          unit: 'FEET'
+        }
+      },
+      paths: [
+        exactRollTablePath('bad-roll-path', 1, 'ON_USE', [
+          {
+            id: 'bad-roll-entry',
+            order: 1,
+            label: 'Should fail',
+            description: 'Roll tables should not use entry metadata.',
+            rollValue: 1,
+            resultBlock: singleResultBlock('bad-roll-result', {
+              id: 'bad-roll-outcome',
+              effectKind: 'RULE'
+            })
+          }
+        ])
+      ]
+    })
+
+    expect((parsed as any).paths[0].rows[0]).not.toHaveProperty('label')
+    expect((parsed as any).paths[0].rows[0]).not.toHaveProperty('description')
+  })
+
+  it('strips creature manifest inline behaviors', () => {
+    const parsed = effectDtoSchema.parse({
+      id: 'bad-creature-manifest',
+      order: 1,
+      invocation: {
+        triggerCode: 'ACTIVATED',
+        activation: {
+          code: 'ACTION',
+          amount: 1
+        },
+        range: {
+          id: 'bad-creature-range',
+          rangeKind: 'DISTANCE',
+          amount: 10,
+          unit: 'FEET'
+        }
+      },
+      paths: [
+        fixedPath(
+          'bad-creature-path',
+          1,
+          'ON_USE',
+          singleResultBlock('bad-creature-result', {
+            id: 'bad-creature-entry',
+            effectKind: 'MANIFEST',
+            manifestKind: 'CREATURE',
+            creatureId: 'owl',
+            behaviors: []
+          })
+        )
+      ]
+    })
+
+    expect((parsed as any).paths[0].resultBlock.outcomes[0]).toMatchObject({
+      manifestKind: 'CREATURE',
+      creatureId: 'owl'
+    })
+    expect((parsed as any).paths[0].resultBlock.outcomes[0]).not.toHaveProperty('behaviors')
+  })
+
+  it('parses summon manifests with authored stat block data', () => {
+    const parsed = effectDtoSchema.parse({
+      id: 'summon-manifest',
+      order: 1,
+      invocation: {
+        triggerCode: 'ACTIVATED',
+        activation: {
+          code: 'ACTION',
+          amount: 1
+        },
+        range: {
+          id: 'summon-range',
+          rangeKind: 'DISTANCE',
+          amount: 120,
+          unit: 'FEET'
+        }
+      },
+      paths: [
+        fixedPath(
+          'summon-path',
+          1,
+          'ON_USE',
+          singleResultBlock('summon-result', {
+            id: 'summon-entry',
+            effectKind: 'MANIFEST',
+            manifestKind: 'SUMMON',
+            statBlock: {
+              size: 'LARGE',
+              armorClass: {
+                kind: 'FIXED',
+                value: 20
+              },
+              hitPoints: {
+                kind: 'HIT_POINT_MAXIMUM'
+              },
+              speeds: [
+                {
+                  speedId: 'arcane-hand-speed',
+                  amount: 60,
+                  unit: 'FEET'
+                }
+              ],
+              abilityScores: {
+                STRENGTH: {
+                  kind: 'FIXED',
+                  value: 26
+                }
+              },
+              damageabilityKind: 'INVULNERABLE',
+              occupiesSpace: true
+            }
+          })
+        )
+      ]
+    })
+
+    expect((parsed as any).paths[0].resultBlock.outcomes[0]).toMatchObject({
+      manifestKind: 'SUMMON',
+      statBlock: {
+        size: 'LARGE',
+        armorClass: {
+          kind: 'FIXED',
+          value: 20
+        },
+        hitPoints: {
+          kind: 'HIT_POINT_MAXIMUM'
+        },
+        speeds: [
+          {
+            speedId: 'arcane-hand-speed',
+            amount: 60,
+            unit: 'FEET'
+          }
+        ],
+        abilityScores: {
+          STRENGTH: {
+            kind: 'FIXED',
+            value: 26
+          }
+        },
+        damageabilityKind: 'INVULNERABLE',
+        occupiesSpace: true
+      }
     })
   })
 
@@ -454,20 +1042,19 @@ describe('schema package parsing', () => {
       id: 'spell-attack-bonus',
       order: 1,
       selectionKind: 'GRANTED',
-      valueDomainCode: 'ATTACK_ROLL_BONUS',
+      valueDomainCode: 'ATTACK_ROLL',
       domain: {
         attackDomain: 'SPELL'
       },
-      modifierKind: 'BONUS',
+      modifierKind: 'ABILITY_MODIFIER_BONUS',
       scope: 'GLOBAL',
       payload: {
-        valueKind: 'ABILITY_MODIFIER',
         ability: 'INTELLIGENCE',
         multiplier: 1
       }
     })
 
-    expect(parsed.valueDomainCode).toBe('ATTACK_ROLL_BONUS')
+    expect(parsed.valueDomainCode).toBe('ATTACK_ROLL')
     expect((parsed as { domain: { attackDomain: string } }).domain.attackDomain).toBe('SPELL')
   })
 
@@ -527,7 +1114,7 @@ describe('schema package parsing', () => {
       id: 'bad-modifier',
       order: 1,
       selectionKind: 'GRANTED',
-      valueDomainCode: 'ATTACK_ROLL_BONUS',
+      valueDomainCode: 'ATTACK_ROLL',
       domain: {
         ability: 'INTELLIGENCE'
       },
@@ -690,7 +1277,7 @@ describe('schema package parsing', () => {
     expect(parsed.features?.[0]?.id).toBe('arcane-recovery')
   })
 
-  it('parses a spell with capability-owned range/shape and structured effect scaling', () => {
+  it('parses a spell with effect-owned range/shape and structured scaling', () => {
     const parsed = spellAuthoredDtoSchema.parse({
       kind: 'SPELL',
       id: 'burning-hands',
@@ -703,7 +1290,7 @@ describe('schema package parsing', () => {
       level: 1,
       classIds: ['wizard', 'sorcerer'],
       magicSchoolId: 'evocation',
-      capabilities: [
+      effects: [
         {
           id: 'burning-hands-effect',
           order: 1,
@@ -734,50 +1321,52 @@ describe('schema package parsing', () => {
               }
             }
           },
-          branches: [
-            {
-              id: 'burning-hands-damage',
-              branch: 'ON_SAVE_FAIL',
-              groupType: 'SINGLE',
-              resolutionKind: 'DIRECT',
-              effectKind: 'DAMAGE',
-              damageTypeId: 'fire',
-              valueKind: 'DICE',
-              scalingKind: 'PER_LEVEL',
-              scalingSource: 'SPELL_CAST_LEVEL',
-              levels: [
-                {
-                  id: 'burning-hands-level-1',
-                  level: 1,
-                  order: 1,
-                  diceConfig: '3d6'
-                },
-                {
-                  id: 'burning-hands-level-2',
-                  level: 2,
-                  order: 2,
-                  diceConfig: '4d6'
-                }
-              ]
-            }
+          paths: [
+            fixedPath(
+              'burning-hands-damage',
+              1,
+              'ON_SAVE_FAIL',
+              singleResultBlock('burning-hands-result', {
+                id: 'burning-hands-damage-entry',
+                effectKind: 'DAMAGE',
+                damageTypeId: 'fire',
+                valueKind: 'DICE',
+                scalingKind: 'PER_LEVEL',
+                scalingSource: 'SPELL_CAST_LEVEL',
+                levels: [
+                  {
+                    id: 'burning-hands-level-1',
+                    level: 1,
+                    order: 1,
+                    diceConfig: '3d6'
+                  },
+                  {
+                    id: 'burning-hands-level-2',
+                    level: 2,
+                    order: 2,
+                    diceConfig: '4d6'
+                  }
+                ]
+              })
+            )
           ]
         }
       ],
       userId: 'user-1',
       systemId: 'system-1'
     }) as {
-      capabilities?: Array<{
+      effects?: Array<{
         invocation: {
           range: { rangeKind: string }
           targeting?: { selectionKind?: string }
         }
-        branches?: Array<Record<string, unknown>>
+        paths?: Array<{ resultBlock?: { outcomes?: Array<Record<string, unknown>> } }>
       }>
     }
 
-    expect(parsed.capabilities?.[0]?.invocation.range.rangeKind).toBe('SELF')
-    expect(parsed.capabilities?.[0]?.invocation.targeting?.selectionKind).toBe('AREA_CONTENTS')
-    expect(parsed.capabilities?.[0]?.branches?.[0]).toMatchObject({
+    expect(parsed.effects?.[0]?.invocation.range.rangeKind).toBe('SELF')
+    expect(parsed.effects?.[0]?.invocation.targeting?.selectionKind).toBe('AREA_CONTENTS')
+    expect(parsed.effects?.[0]?.paths?.[0]?.resultBlock?.outcomes?.[0]).toMatchObject({
       scalingKind: 'PER_LEVEL',
       scalingSource: 'SPELL_CAST_LEVEL'
     })
@@ -813,25 +1402,27 @@ describe('schema package parsing', () => {
           excludedCreatureTypeIds: ['undead', 'construct']
         }
       },
-      branches: [
-        {
-          id: 'mass-cure-wounds-heal',
-          branch: 'ON_CAST',
-          groupType: 'SINGLE',
-          resolutionKind: 'DIRECT',
-          effectKind: 'HEAL',
-          valueKind: 'DICE',
-          scalingKind: 'PER_LEVEL',
-          scalingSource: 'SPELL_CAST_LEVEL',
-          levels: [
-            {
-              id: 'mass-cure-wounds-level-5',
-              level: 5,
-              order: 1,
-              diceConfig: '3d8'
-            }
-          ]
-        }
+      paths: [
+        fixedPath(
+          'mass-cure-wounds-heal',
+          1,
+          'ON_CAST',
+          singleResultBlock('mass-cure-wounds-result', {
+            id: 'mass-cure-wounds-heal-entry',
+            effectKind: 'HEAL',
+            valueKind: 'DICE',
+            scalingKind: 'PER_LEVEL',
+            scalingSource: 'SPELL_CAST_LEVEL',
+            levels: [
+              {
+                id: 'mass-cure-wounds-level-5',
+                level: 5,
+                order: 1,
+                diceConfig: '3d8'
+              }
+            ]
+          })
+        )
       ]
     }) as {
       invocation?: {
@@ -871,18 +1462,20 @@ describe('schema package parsing', () => {
           rangeKind: 'SELF'
         }
       },
-      branches: [
-        {
-          id: 'bad-moment',
-          branch: 'IMMEDIATE',
-          groupType: 'SINGLE',
-          resolutionKind: 'DIRECT',
-          effectKind: 'DAMAGE',
-          damageTypeId: 'fire',
-          valueKind: 'DICE',
-          scalingKind: 'NONE',
-          diceConfig: '3d6'
-        }
+      paths: [
+        fixedPath(
+          'bad-moment',
+          1,
+          'IMMEDIATE',
+          singleResultBlock('bad-result', {
+            id: 'bad-moment-entry',
+            effectKind: 'DAMAGE',
+            damageTypeId: 'fire',
+            valueKind: 'DICE',
+            scalingKind: 'NONE',
+            diceConfig: '3d6'
+          })
+        )
       ]
     })).toThrow()
   })
@@ -896,7 +1489,9 @@ describe('schema package parsing', () => {
       conditionTypes: [],
       currencies: [],
       damageTypes: [],
+      heritages: [],
       languages: [],
+      lifestyles: [],
       magicSchools: [],
       passives: [],
       rarities: [],
@@ -922,6 +1517,71 @@ describe('schema package parsing', () => {
     expect(params.id).toBe(system.id)
   })
 
+  it('parses feat prerequisites authored on CHARACTER facets', () => {
+    const feat = featAuthoredDtoSchema.parse({
+      id: 'feat-elven-accuracy',
+      label: 'Elven Accuracy',
+      description: 'You have uncanny aim.',
+      prerequisites: {
+        id: 'feat-prereq-1',
+        groups: [
+          {
+            id: 'feat-prereq-group-1',
+            order: 1,
+            contexts: [
+              {
+                id: 'feat-prereq-context-1',
+                order: 1,
+                subject: 'CHARACTER',
+                conditions: [
+                  {
+                    id: 'feat-prereq-condition-1',
+                    order: 1,
+                    kind: 'PREDICATE',
+                    constraint: 'INCLUDE',
+                    predicateCode: 'HERITAGE',
+                    authoringModeKind: 'SELECTED',
+                    heritageIds: ['heritage-elven']
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      userId: 'master',
+      systemId: 'system-1'
+    }) as any
+
+    expect(feat.prerequisites?.groups[0]?.contexts[0]?.conditions?.[0]).toMatchObject({
+      predicateCode: 'HERITAGE',
+      heritageIds: ['heritage-elven']
+    })
+  })
+
+  it('parses race heritage memberships', () => {
+    const race = raceAuthoredDtoSchema.parse({
+      id: 'race-half-elf',
+      label: 'Half-Elf',
+      description: 'Bridges two lineages.',
+      heritageIds: ['heritage-human', 'heritage-elven'],
+      userId: 'master',
+      systemId: 'system-1',
+      category: 'BASE',
+      selectionMode: 'DIRECT',
+      size: 'MEDIUM',
+      speeds: [
+        {
+          speedId: 'walk',
+          amount: 30,
+          unit: 'FEET'
+        }
+      ]
+    }) as any
+
+    expect(race.heritageIds).toEqual(['heritage-human', 'heritage-elven'])
+  })
+
   it('parses authored content list and single-resource transport wrappers', () => {
     const list = backgroundListResponseDtoSchema.parse({
       items: [
@@ -929,6 +1589,7 @@ describe('schema package parsing', () => {
           id: 'acolyte',
           label: 'Acolyte',
           description: 'Temple-trained background.',
+          status: 'ACTIVE',
           userId: 'master',
           systemId: 'dnd-5e-srd'
         }
@@ -949,3 +1610,9 @@ describe('schema package parsing', () => {
     expect(feature?.label).toBe('Fighting Style')
   })
 })
+
+
+
+
+
+

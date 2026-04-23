@@ -1,4 +1,4 @@
-import { CoreMeta } from '#core'
+import type { CoreMeta } from '#core'
 import { valuesOf } from '#utils'
 
 export const SPELL_ATTRIBUTE = {
@@ -43,6 +43,44 @@ export const SPELL_ATTRIBUTE_REGISTRY: Record<
 export const SPELL_ATTRIBUTE_OPTIONS = valuesOf(
   SPELL_ATTRIBUTE_REGISTRY
 ) as readonly SpellAttributeOption[]
+
+export const SPELL_COMPONENT = {
+  VERBAL: 'VERBAL',
+  SOMATIC: 'SOMATIC',
+  MATERIAL: 'MATERIAL'
+} as const
+
+export type SpellComponent = keyof typeof SPELL_COMPONENT
+
+export type SpellComponentOption = CoreMeta<SpellComponent>
+
+export const SPELL_COMPONENT_REGISTRY: Record<
+  SpellComponent,
+  SpellComponentOption
+> = {
+  VERBAL: {
+    code: SPELL_COMPONENT.VERBAL,
+    label: 'Verbal',
+    tooltip: 'The spell requires spoken words as part of casting.',
+    description: 'The spell requires a verbal component.'
+  },
+  SOMATIC: {
+    code: SPELL_COMPONENT.SOMATIC,
+    label: 'Somatic',
+    tooltip: 'The spell requires gestures or hand movements to cast.',
+    description: 'The spell requires a somatic component.'
+  },
+  MATERIAL: {
+    code: SPELL_COMPONENT.MATERIAL,
+    label: 'Material',
+    tooltip: 'The spell requires one or more physical materials to cast.',
+    description: 'The spell requires a material component.'
+  }
+} as const
+
+export const SPELL_COMPONENT_OPTIONS = valuesOf(
+  SPELL_COMPONENT_REGISTRY
+) as readonly SpellComponentOption[]
 
 export const CASTING_TIME_UNIT_CODE = {
   ROUND: 'ROUND',

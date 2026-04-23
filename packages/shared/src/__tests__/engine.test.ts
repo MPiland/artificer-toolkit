@@ -46,6 +46,7 @@ function makeEmptyRegistry(): CharacterAssemblyRegistry {
     features: {},
     classes: {},
     feats: {},
+    races: {},
     equipment: {},
     spells: {},
   }
@@ -142,14 +143,14 @@ describe('resolveModifiers', () => {
   it('ADVANTAGE is boolean — any truthy value = 1', () => {
     const entries: EngineAccumulatedState['modifierEntries'] = [
       {
-        domainKey: 'ATTACK_ROLL_BONUS:ADVANTAGE',
+        domainKey: 'ATTACK_ROLL:ADVANTAGE',
         modifierKind: 'ADVANTAGE',
         grant: { modifierKind: 'ADVANTAGE' } as never,
       },
     ]
 
     const result = resolveModifiers(entries, rules)
-    expect(result['ATTACK_ROLL_BONUS:ADVANTAGE']).toBe(1)
+    expect(result['ATTACK_ROLL:ADVANTAGE']).toBe(1)
   })
 
   it('no entries for a key → key absent from result', () => {
@@ -292,7 +293,6 @@ describe('runEngine — armor class resolution', () => {
             cost: { amount: 1500, currencyId: 'gp' },
             weight: { amount: 65, unit: 'LB' },
             rarityId: 'common',
-            abilities: [],
           } as never,
         },
       ],
@@ -318,7 +318,17 @@ describe('runEngine — armor class resolution', () => {
             cost: { amount: 75, currencyId: 'gp' },
             weight: { amount: 55, unit: 'LB' },
             rarityId: 'common',
-            abilities: [],
+            modifiers: [{
+              id: 'chain-mail-dex-bonus',
+              grantKind: 'MODIFIER_GRANT',
+              order: 1,
+              selectionKind: 'GRANTED',
+              valueDomainCode: 'ARMOR_CLASS',
+              domain: {},
+              modifierKind: 'ABILITY_MODIFIER_BONUS',
+              scope: 'GLOBAL',
+              payload: { ability: 'DEXTERITY', max: 2 },
+            }],
           } as never,
         },
       ],
@@ -344,7 +354,17 @@ describe('runEngine — armor class resolution', () => {
             cost: { amount: 10, currencyId: 'gp' },
             weight: { amount: 10, unit: 'LB' },
             rarityId: 'common',
-            abilities: [],
+            modifiers: [{
+              id: 'leather-armor-dex-bonus',
+              grantKind: 'MODIFIER_GRANT',
+              order: 1,
+              selectionKind: 'GRANTED',
+              valueDomainCode: 'ARMOR_CLASS',
+              domain: {},
+              modifierKind: 'ABILITY_MODIFIER_BONUS',
+              scope: 'GLOBAL',
+              payload: { ability: 'DEXTERITY' },
+            }],
           } as never,
         },
       ],
@@ -370,7 +390,6 @@ describe('runEngine — armor class resolution', () => {
             cost: { amount: 10, currencyId: 'gp' },
             weight: { amount: 6, unit: 'LB' },
             rarityId: 'common',
-            abilities: [],
           } as never,
         },
       ],
@@ -397,3 +416,4 @@ describe('runEngine determinism', () => {
     expect(out1).toEqual(out2)
   })
 })
+

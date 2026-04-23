@@ -8,7 +8,6 @@ export const chainMail: EquipmentAuthored = {
     description: 'Interlocking metal rings forming a coat.',
     category: S.EQUIPMENT_CATEGORY_CODE.ARMOR,
     properties: [S.EQUIPMENT_PROPERTY_CODE.HEAVY],
-    abilities: [],
     armorClass: 16,
     cost: S.gp(75),
     weight: S.lbs(55),

@@ -41,12 +41,11 @@ const CREATURE_ACTION_NODE_MAP = actionNode.define('creatureAction', ({ map, nod
 const legendaryNode = buildNodeMap<CreatureLegendaryProfile>()
 
 const CREATURE_LEGENDARY_PROFILE_NODE_MAP = legendaryNode.define('creatureLegendaryProfile', ({ map, nodes }) => {
-  const { number, groupArray } = nodes
+  const { number } = nodes
 
   map
     .set('legendaryResistanceCount', number(['legendaryResistanceCount'], 'Legendary Resistance Uses'))
     .set('actionsCount', number(['actionsCount'], 'Legendary Actions Per Round'))
-    .set('actions', groupArray(['actions'], 'Legendary Actions', () => CREATURE_ACTION_NODE_MAP))
 })
 
 const lairNode = buildNodeMap<CreatureLairProfile>()
@@ -59,7 +58,6 @@ const CREATURE_LAIR_PROFILE_NODE_MAP = lairNode.define('creatureLairProfile', ({
   })
 
   map
-    .set('lairActions', groupArray(['lairActions'], 'Lair Actions', () => CREATURE_ACTION_NODE_MAP))
     .set('regionalEffects', groupArray(['regionalEffects'], 'Regional Effects', () => regionalEffectNode))
 })
 

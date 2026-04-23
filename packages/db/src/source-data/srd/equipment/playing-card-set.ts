@@ -8,7 +8,6 @@ export const playingCardSet: EquipmentAuthored = {
     description: "A deck of illustrated cards used for games and fortune-telling.",
     category: S.EQUIPMENT_CATEGORY_CODE.TOOL,
     properties: [],
-    abilities: [],
     cost: S.sp(5),
     weight: S.lbs(0),
     rarityId: S.RARITY_COMMON,

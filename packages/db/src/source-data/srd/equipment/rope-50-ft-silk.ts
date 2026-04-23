@@ -8,7 +8,6 @@ export const rope50FtSilk: EquipmentAuthored = {
     description: "Fifty feet of lightweight silk rope, easier to handle and resistant to cutting.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
-    abilities: [],
     cost: S.gp(10),
     weight: S.lbs(5),
     rarityId: S.RARITY_COMMON,

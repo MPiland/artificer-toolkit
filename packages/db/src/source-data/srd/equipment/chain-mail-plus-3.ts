@@ -10,7 +10,6 @@ export const chainMailPlus3: EquipmentVariantAuthored = {
   category: S.EQUIPMENT_CATEGORY_CODE.VARIANT,
   parentEquipmentId: chainMail.id,
   properties: [S.EQUIPMENT_PROPERTY_CODE.MAGIC],
-  weight: chainMail.weight,
   rarityId: S.RARITY_VERY_RARE,
   maxBonus: 3,
   modifiers: S.magicArmorModifiers(S.equipId(335), 3),

@@ -1,6 +1,7 @@
 import type { DBLike } from '#types'
 import type { FeatAuthored } from '@artificer-toolkit/shared'
 import { upsertCharge } from '../../shared/upserts/index.js'
+import { upsertFacet } from '../../shared/facets.js'
 import {
   upsertModifierGrant,
   upsertProficiencyGrant,
@@ -9,6 +10,7 @@ import {
 } from '../../grants/upserts/index.js'
 import { deleteEffectById, upsertEffect } from '../../effects/upserts/index.js'
 import { upsertFeature } from '../../features/upserts/index.js'
+import { normalizeSubjectStatus } from '../status.js'
 
 type FeatRow = {
   id: string
@@ -17,6 +19,8 @@ type FeatRow = {
   label: string
   description: string
   detail: string | null
+  status: FeatAuthored['status']
+  prerequisite_id: string | null
   charge_id: string | null
 }
 
@@ -52,6 +56,8 @@ function mapFeatRow(json_data: FeatAuthored): FeatRow {
     label: json_data.label,
     description: json_data.description,
     detail: json_data.detail ?? null,
+    status: normalizeSubjectStatus(json_data.status),
+    prerequisite_id: json_data.prerequisites?.id ?? null,
     charge_id: json_data.charges?.id ?? null
   }
 }
@@ -61,12 +67,13 @@ export async function upsertFeat(
   json_data: FeatAuthored,
   _systemId: string
 ) {
-  const effectRows = (json_data.effects ?? []).map((effect, index) => ({
+  const authoredEffects = json_data.effects ?? []
+  const effectRows = authoredEffects.map((effect, index) => ({
     feat_id: json_data.id,
     effect_id: effect.id,
     sort_order: index + 1
   }))
-  const nextEffectIds = new Set((json_data.effects ?? []).map((effect) => effect.id))
+  const nextEffectIds = new Set(authoredEffects.map((effect) => effect.id))
 
   const trx = await db.startTransaction().execute()
 
@@ -81,7 +88,11 @@ export async function upsertFeat(
       await upsertCharge(trx, json_data.charges)
     }
 
-    for (const effect of json_data.effects ?? []) {
+    if (json_data.prerequisites) {
+      await upsertFacet(trx, json_data.prerequisites)
+    }
+
+    for (const effect of authoredEffects) {
       await upsertEffect(trx, effect)
     }
 
@@ -124,6 +135,8 @@ export async function upsertFeat(
         label: ref('excluded.label'),
         description: ref('excluded.description'),
         detail: ref('excluded.detail'),
+        status: ref('excluded.status'),
+        prerequisite_id: ref('excluded.prerequisite_id'),
         charge_id: ref('excluded.charge_id')
       })))
       .execute()
@@ -245,3 +258,5 @@ export async function upsertFeat(
     throw error
   }
 }
+
+

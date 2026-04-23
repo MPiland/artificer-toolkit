@@ -1,5 +1,6 @@
 export * from './shared.js'
 export * from './background.js'
+export * from './character.js'
 export * from './class.js'
 export * from './creature.js'
 export * from './equipment.js'

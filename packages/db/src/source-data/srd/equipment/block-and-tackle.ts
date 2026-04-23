@@ -8,7 +8,6 @@ export const blockAndTackle: EquipmentAuthored = {
   description: 'A set of pulleys with a cable that allows lifting loads up to four times your normal capacity.',
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
-  abilities: [],
   cost: S.gp(1),
   weight: S.lbs(5),
   rarityId: S.RARITY_COMMON,

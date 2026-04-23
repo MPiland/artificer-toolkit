@@ -103,6 +103,8 @@ CREATE TABLE IF NOT EXISTS public.modifier_grant_payloads (
   numeric_amount numeric,
   numeric_multiplier numeric,
   numeric_ability_code text,
+  numeric_min integer,
+  numeric_max integer,
   numeric_skill_id uuid REFERENCES public.skills (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   numeric_class_id uuid,
   set_amount numeric,

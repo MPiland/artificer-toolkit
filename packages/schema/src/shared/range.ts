@@ -1,5 +1,11 @@
 import { z } from 'zod'
 import { measurementUnitCodeSchema, rangeKindSchema } from './enums.js'
+import { createBreakpointScalingDtoSchema } from './scaling.js'
+
+const rangeMeasurementDtoSchema = z.object({
+  amount: z.number(),
+  unit: measurementUnitCodeSchema
+})
 
 export const rangeDtoSchema = z.union([
   z.object({
@@ -16,7 +22,8 @@ export const rangeDtoSchema = z.union([
     id: z.string(),
     rangeKind: z.literal(rangeKindSchema.enum.DISTANCE),
     amount: z.number(),
-    unit: measurementUnitCodeSchema
+    unit: measurementUnitCodeSchema,
+    scaling: createBreakpointScalingDtoSchema(rangeMeasurementDtoSchema).optional()
   })
 ])
 

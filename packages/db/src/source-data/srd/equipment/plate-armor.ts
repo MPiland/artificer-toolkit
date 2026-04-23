@@ -8,7 +8,6 @@ export const plateArmor: EquipmentAuthored = {
     description: 'Full-body coverage with interlocking metal plates.',
     category: S.EQUIPMENT_CATEGORY_CODE.ARMOR,
     properties: [S.EQUIPMENT_PROPERTY_CODE.HEAVY],
-    abilities: [],
     armorClass: 18,
     cost: S.gp(1500),
     weight: S.lbs(65),

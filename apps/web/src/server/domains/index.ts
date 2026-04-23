@@ -1,4 +1,5 @@
 export * from './backgroundFns'
+export * from './characterFns'
 export * from './classFns'
 export * from './equipmentFns'
 export * from './featFns'

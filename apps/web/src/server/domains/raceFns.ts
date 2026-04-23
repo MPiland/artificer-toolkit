@@ -13,7 +13,7 @@ export const getRaceListFn = createServerFn({ method: 'GET' })
       items: [],
       meta: {
         categories: [],
-        playable: [],
+        selectionModes: [],
         parentRaces: [],
         features: []
       }

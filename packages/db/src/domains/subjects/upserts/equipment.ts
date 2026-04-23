@@ -1,19 +1,18 @@
 import type { DBLike } from '#types'
 import {
-  ABILITY_CODE,
+  type BaseEquipmentAuthored,
   EQUIPMENT_ATTRIBUTE,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
   MEASUREMENT_UNIT_CODE,
-  OPERATION_CODE,
-  type EquipmentAuthored,
-  type EquipmentVariantAuthored
+  type EquipmentAuthored
 } from '@artificer-toolkit/shared'
 import { deleteEffectById, upsertEffect } from '../../effects/upserts/index.js'
 import { upsertFacet } from '../../shared/facets.js'
 import { upsertCharge } from '../../shared/upserts/index.js'
 import { upsertModifierGrant } from '../../grants/upserts/index.js'
 import { upsertFeature } from '../../features/upserts/index.js'
+import { normalizeSubjectStatus } from '../status.js'
 
 type EquipmentRow = {
   id: string
@@ -22,12 +21,13 @@ type EquipmentRow = {
   label: string
   description: string | null
   quote: string | null
+  status: EquipmentAuthored['status']
   category: string
   rarity_id: string
   cost_amount: number | null
   cost_currency_id: string | null
-  weight_amount: number
-  weight_unit: string
+  weight_amount: number | null
+  weight_unit: string | null
   capacity_amount: number | null
   capacity_unit: string | null
   max_stack: number | null
@@ -49,13 +49,6 @@ type EquipmentPropertyRow = {
   property_code: string
 }
 
-type EquipmentAbilityRow = {
-  equipment_id: string
-  operation: string
-  ability_code: string
-  sort_order: number
-}
-
 type EquipmentContainsRow = {
   equipment_id: string
   contained_equipment_id: string
@@ -71,7 +64,7 @@ type EquipmentModifierGrantRow = {
 function requireCategory(
   equipmentId: string,
   value: string
-): EquipmentAuthored['category'] | EquipmentVariantAuthored['category'] {
+): EquipmentAuthored['category'] {
   if (
     value !== EQUIPMENT_CATEGORY_CODE.WEAPON
     && value !== EQUIPMENT_CATEGORY_CODE.ARMOR
@@ -87,67 +80,56 @@ function requireCategory(
 }
 
 function isBaseEquipment(
-  equipment: EquipmentAuthored | EquipmentVariantAuthored
-): equipment is EquipmentAuthored {
+  equipment: EquipmentAuthored
+): equipment is BaseEquipmentAuthored {
   return equipment.category !== EQUIPMENT_CATEGORY_CODE.VARIANT
 }
 
 function requireMeasurementUnit(
   equipmentId: string,
   value: string
-): EquipmentAuthored['weight']['unit'] {
+): BaseEquipmentAuthored['weight']['unit'] {
   if (!(value in MEASUREMENT_UNIT_CODE)) {
     throw new Error(`Equipment "${equipmentId}" has invalid measurement unit "${value}".`)
   }
 
-  return value as EquipmentAuthored['weight']['unit']
+  return value as BaseEquipmentAuthored['weight']['unit']
 }
 
 function requireAttribute(
   equipmentId: string,
   value: string
-): NonNullable<EquipmentAuthored['attributes']>[number] {
+): NonNullable<BaseEquipmentAuthored['attributes']>[number] {
   if (!(value in EQUIPMENT_ATTRIBUTE)) {
     throw new Error(`Equipment "${equipmentId}" has invalid attribute "${value}".`)
   }
 
-  return value as NonNullable<EquipmentAuthored['attributes']>[number]
+  return value as NonNullable<BaseEquipmentAuthored['attributes']>[number]
 }
 
 function requireProperty(
   equipmentId: string,
   value: string
-): EquipmentAuthored['properties'][number] {
+): BaseEquipmentAuthored['properties'][number] {
   if (!(value in EQUIPMENT_PROPERTY_CODE)) {
     throw new Error(`Equipment "${equipmentId}" has invalid property "${value}".`)
   }
 
-  return value as EquipmentAuthored['properties'][number]
+  return value as BaseEquipmentAuthored['properties'][number]
 }
 
-function requireOperation(
-  equipmentId: string,
-  value: string
-): EquipmentAuthored['abilities'][number]['op'] {
-  if (!(value in OPERATION_CODE)) {
-    throw new Error(`Equipment "${equipmentId}" has invalid operation "${value}".`)
-  }
+function mapEquipmentRow(json_data: EquipmentAuthored): EquipmentRow {
+  const weightAmount = isBaseEquipment(json_data) ? json_data.weight.amount : null
+  const weightUnit = isBaseEquipment(json_data)
+    ? requireMeasurementUnit(json_data.id, json_data.weight.unit)
+    : null
+  const costAmount = isBaseEquipment(json_data) ? json_data.cost?.amount ?? null : null
+  const costCurrencyId = isBaseEquipment(json_data) ? json_data.cost?.currencyId ?? null : null
+  const capacityAmount = isBaseEquipment(json_data) ? json_data.capacity?.amount ?? null : null
+  const capacityUnit = isBaseEquipment(json_data) && json_data.capacity?.unit
+    ? requireMeasurementUnit(json_data.id, json_data.capacity.unit)
+    : null
 
-  return value as EquipmentAuthored['abilities'][number]['op']
-}
-
-function requireAbility(
-  equipmentId: string,
-  value: string
-): EquipmentAuthored['abilities'][number]['abilities'][number]['ability'] {
-  if (!(value in ABILITY_CODE)) {
-    throw new Error(`Equipment "${equipmentId}" has invalid ability "${value}".`)
-  }
-
-  return value as EquipmentAuthored['abilities'][number]['abilities'][number]['ability']
-}
-
-function mapEquipmentRow(json_data: EquipmentAuthored | EquipmentVariantAuthored): EquipmentRow {
   return {
     id: json_data.id,
     system_id: json_data.systemId,
@@ -155,19 +137,18 @@ function mapEquipmentRow(json_data: EquipmentAuthored | EquipmentVariantAuthored
     label: json_data.label,
     description: json_data.description,
     quote: json_data.quote ?? null,
+    status: normalizeSubjectStatus(json_data.status),
     category: requireCategory(json_data.id, json_data.category),
     rarity_id: json_data.rarityId,
-    cost_amount: json_data.cost?.amount ?? null,
-    cost_currency_id: json_data.cost?.currencyId ?? null,
-    weight_amount: json_data.weight.amount,
-    weight_unit: requireMeasurementUnit(json_data.id, json_data.weight.unit),
-    capacity_amount: json_data.capacity?.amount ?? null,
-    capacity_unit: json_data.capacity?.unit
-      ? requireMeasurementUnit(json_data.id, json_data.capacity.unit)
-      : null,
-    max_stack: json_data.maxStack ?? null,
+    cost_amount: costAmount,
+    cost_currency_id: costCurrencyId,
+    weight_amount: weightAmount,
+    weight_unit: weightUnit,
+    capacity_amount: capacityAmount,
+    capacity_unit: capacityUnit,
+    max_stack: isBaseEquipment(json_data) ? json_data.maxStack ?? null : null,
     max_bonus: json_data.maxBonus ?? null,
-    armor_class: json_data.armorClass ?? null,
+    armor_class: isBaseEquipment(json_data) ? json_data.armorClass ?? null : null,
     charge_id: json_data.charges?.id ?? null,
     restriction_id: json_data.restrictions?.id ?? null,
     parent_equipment_id: isBaseEquipment(json_data)
@@ -178,10 +159,10 @@ function mapEquipmentRow(json_data: EquipmentAuthored | EquipmentVariantAuthored
 
 export async function upsertEquipment(
   db: DBLike,
-  json_data: EquipmentAuthored | EquipmentVariantAuthored,
+  json_data: EquipmentAuthored,
   _systemId: string
 ) {
-  const attributeRows: EquipmentAttributeRow[] = (json_data.attributes ?? []).map((attribute, index) => ({
+  const attributeRows: EquipmentAttributeRow[] = (isBaseEquipment(json_data) ? (json_data.attributes ?? []) : []).map((attribute, index) => ({
     equipment_id: json_data.id,
     attribute_code: requireAttribute(json_data.id, attribute),
     sort_order: index + 1
@@ -194,24 +175,15 @@ export async function upsertEquipment(
     equipment_id: json_data.id,
     property_code: requireProperty(json_data.id, property)
   }))
-  const authoredCapabilities = json_data.capabilities ?? json_data.effects ?? []
-  const effectRows = authoredCapabilities.map((effect, index) => ({
+  const authoredEffects = json_data.effects ?? []
+  const effectRows = authoredEffects.map((effect, index) => ({
     equipment_id: json_data.id,
     effect_id: effect.id,
     sort_order: index + 1
   }))
-  const nextEffectIds = new Set(authoredCapabilities.map((effect) => effect.id))
+  const nextEffectIds = new Set(authoredEffects.map((effect) => effect.id))
 
-  const abilityRows: EquipmentAbilityRow[] = isBaseEquipment(json_data)
-    ? json_data.abilities.flatMap((entry, groupIndex) => entry.abilities.map((ability, abilityIndex) => ({
-        equipment_id: json_data.id,
-        operation: requireOperation(json_data.id, entry.op),
-        ability_code: requireAbility(json_data.id, ability.ability),
-        sort_order: groupIndex * 100 + abilityIndex + 1
-      })))
-    : []
-
-  const containsRows: EquipmentContainsRow[] = (json_data.contains ?? []).map((entry) => ({
+  const containsRows: EquipmentContainsRow[] = (isBaseEquipment(json_data) ? (json_data.contains ?? []) : []).map((entry) => ({
     equipment_id: json_data.id,
     contained_equipment_id: entry.equipmentId,
     quantity: entry.quantity
@@ -244,7 +216,7 @@ export async function upsertEquipment(
       await upsertFacet(trx, json_data.restrictions)
     }
 
-    for (const effect of authoredCapabilities) {
+    for (const effect of authoredEffects) {
       await upsertEffect(trx, effect)
     }
 
@@ -269,6 +241,7 @@ export async function upsertEquipment(
         label: ref('excluded.label'),
         description: ref('excluded.description'),
         quote: ref('excluded.quote'),
+        status: ref('excluded.status'),
         category: ref('excluded.category'),
         rarity_id: ref('excluded.rarity_id'),
         cost_amount: ref('excluded.cost_amount'),
@@ -293,8 +266,6 @@ export async function upsertEquipment(
     await trx.deleteFrom('equipment_attributes').where('equipment_id', '=', json_data.id)
       .execute()
     await trx.deleteFrom('equipment_properties').where('equipment_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('equipment_abilities').where('equipment_id', '=', json_data.id)
       .execute()
     await trx.deleteFrom('equipment_contains').where('equipment_id', '=', json_data.id)
       .execute()
@@ -327,11 +298,6 @@ export async function upsertEquipment(
 
     if (propertyRows.length > 0) {
       await trx.insertInto('equipment_properties').values(propertyRows)
-        .execute()
-    }
-
-    if (abilityRows.length > 0) {
-      await trx.insertInto('equipment_abilities').values(abilityRows)
         .execute()
     }
 
@@ -368,3 +334,5 @@ export async function upsertEquipment(
     throw error
   }
 }
+
+

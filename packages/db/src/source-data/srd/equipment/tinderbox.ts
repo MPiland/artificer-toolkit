@@ -8,7 +8,6 @@ export const tinderbox: EquipmentAuthored = {
   description: 'A small container holding flint, fire steel, and tinder for starting fires.',
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
-  abilities: [],
   cost: S.sp(5),
   weight: S.lbs(1),
   rarityId: S.RARITY_COMMON,

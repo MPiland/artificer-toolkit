@@ -4,10 +4,10 @@ import { type EmptyObject, valuesOf } from '#utils'
 
 export const VALUE_DOMAIN_CODE = {
   SPEED: 'SPEED',
-  ATTACK_ROLL_BONUS: 'ATTACK_ROLL_BONUS',
+  ATTACK_ROLL: 'ATTACK_ROLL',
   ARMOR_CLASS: 'ARMOR_CLASS',
   SAVE_DC: 'SAVE_DC',
-  SAVING_THROW_BONUS: 'SAVING_THROW_BONUS',
+  SAVING_THROW_MODIFIER: 'SAVING_THROW_MODIFIER',
   DAMAGE: 'DAMAGE',
   CONDITION: 'CONDITION',
   HIT_POINTS_MAX: 'HIT_POINTS_MAX',
@@ -17,9 +17,9 @@ export const VALUE_DOMAIN_CODE = {
   SHAPE: 'SHAPE',
   CHARGE_LIMIT: 'CHARGE_LIMIT',
   CHARGE_RESET: 'CHARGE_RESET',
-  INITIATIVE_BONUS: 'INITIATIVE_BONUS',
+  INITIATIVE: 'INITIATIVE',
   ABILITY_SCORE: 'ABILITY_SCORE',
-  SKILL_BONUS: 'SKILL_BONUS',
+  SKILL_MODIFIER: 'SKILL_MODIFIER',
   PROFICIENCY_BONUS: 'PROFICIENCY_BONUS',
   MOVEMENT_MODE: 'MOVEMENT_MODE',
   SENSE_RANGE: 'SENSE_RANGE',
@@ -40,9 +40,9 @@ export const VALUE_DOMAIN_CODE = {
 export type ValueDomainCode = keyof typeof VALUE_DOMAIN_CODE
 
 export const PARAMETERIZED_VALUE_DOMAINS = {
-  ATTACK_ROLL_BONUS: true,
-  SAVING_THROW_BONUS: true,
-  SKILL_BONUS: true,
+  ATTACK_ROLL: true,
+  SAVING_THROW_MODIFIER: true,
+  SKILL_MODIFIER: true,
   ABILITY_SCORE: true,
   SPEED: true,
   SENSE_RANGE: true,
@@ -87,25 +87,25 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
       'Determines the character\'s Armor Class, which is used to resolve whether attacks hit or miss.'
   },
 
-  [VALUE_DOMAIN_CODE.INITIATIVE_BONUS]: {
-    code: VALUE_DOMAIN_CODE.INITIATIVE_BONUS,
-    label: 'Initiative Bonus',
+  [VALUE_DOMAIN_CODE.INITIATIVE]: {
+    code: VALUE_DOMAIN_CODE.INITIATIVE,
+    label: 'Initiative',
     tooltip: 'Bonus applied to initiative rolls.',
     description:
       'Modifies the bonus added when rolling initiative.'
   },
 
-  [VALUE_DOMAIN_CODE.ATTACK_ROLL_BONUS]: {
-    code: VALUE_DOMAIN_CODE.ATTACK_ROLL_BONUS,
-    label: 'Attack Roll Bonus',
+  [VALUE_DOMAIN_CODE.ATTACK_ROLL]: {
+    code: VALUE_DOMAIN_CODE.ATTACK_ROLL,
+    label: 'Attack Roll',
     tooltip: 'Bonuses or penalties applied to attack rolls.',
     description:
       'Modifies the total bonus added to an attack roll, such as melee, ranged, spell, or unarmed attacks.'
   },
 
-  [VALUE_DOMAIN_CODE.SAVING_THROW_BONUS]: {
-    code: VALUE_DOMAIN_CODE.SAVING_THROW_BONUS,
-    label: 'Saving Throw Bonus',
+  [VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER]: {
+    code: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
+    label: 'Saving Throw Modifier',
     tooltip: 'Bonuses or penalties applied to saving throws.',
     description:
       'Modifies the bonus added to a character\'s saving throws for a specific ability.'
@@ -119,9 +119,9 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
       'Sets or modifies the difficulty class that Targets must meet or exceed when making saving throws.'
   },
 
-  [VALUE_DOMAIN_CODE.SKILL_BONUS]: {
-    code: VALUE_DOMAIN_CODE.SKILL_BONUS,
-    label: 'Skill Bonus',
+  [VALUE_DOMAIN_CODE.SKILL_MODIFIER]: {
+    code: VALUE_DOMAIN_CODE.SKILL_MODIFIER,
+    label: 'Skill Modifier',
     tooltip: 'Bonuses or penalties applied to skill checks.',
     description:
       'Modifies the bonus applied when making a check with a specific skill.'
@@ -376,7 +376,7 @@ export type ValueDomainParamByCode = {
 
   HIT_POINTS_MAX: EmptyObject
   ARMOR_CLASS: EmptyObject
-  INITIATIVE_BONUS: EmptyObject
+  INITIATIVE: EmptyObject
   PROFICIENCY_BONUS: EmptyObject
 
   /* ──────────────────────────────────────────────
@@ -384,13 +384,13 @@ export type ValueDomainParamByCode = {
    * ────────────────────────────────────────────── */
 
   // Attack bonus is usually different for melee/ranged/spell/unarmed
-  ATTACK_ROLL_BONUS: { attackDomain: AttackDomainCode }
+  ATTACK_ROLL: { attackDomain: AttackDomainCode }
 
   // Save bonus is per ability (STR/DEX/etc); conditionTypeId scopes advantage/disadvantage to a specific condition
-  SAVING_THROW_BONUS: { ability: AbilityCode, conditionTypeId?: string }
+  SAVING_THROW_MODIFIER: { ability: AbilityCode, conditionTypeId?: string }
 
   // Skill bonus is per skill
-  SKILL_BONUS: { skillId: string }
+  SKILL_MODIFIER: { skillId: string }
 
   // Save DC is often contextual; if you want per-spellcasting ability later,
   // keep it global for MVP:
@@ -419,7 +419,7 @@ export type ValueDomainParamByCode = {
    * DAMAGE (parameterized by “attack domain” for sheet-style bonuses)
    * ────────────────────────────────────────────── */
 
-  // For MVP, mirror ATTACK_ROLL_BONUS and keep it by attackDomain.
+  // For MVP, mirror ATTACK_ROLL and keep it by attackDomain.
   // If you want “spell damage” separate from “weapon damage”, this works.
   DAMAGE: { attackDomain: AttackDomainCode }
   DAMAGE_RESISTANCE: EmptyObject
@@ -506,3 +506,4 @@ export type ValueDomainOptionPayloadByDomain = {
   DURATION: { durationKind: DurationKind }
   SHAPE: { shapeKind: ShapeKind }
 }
+

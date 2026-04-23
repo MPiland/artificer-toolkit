@@ -9,7 +9,6 @@ export const lamp: EquipmentAuthored = {
     'An oil lamp that casts bright light in a 15-foot radius and dim light for an additional 30 feet.',
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
-  abilities: [],
   cost: S.sp(5),
   weight: S.lbs(1),
   rarityId: S.RARITY_COMMON,

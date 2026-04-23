@@ -13,7 +13,7 @@ import {
   SHAPE_KIND_OPTIONS,
   VALUE_DOMAIN_OPTIONS
 } from '#core'
-import { FACET_NODE_MAP } from '#maps'
+import { FACET_NODE_MAP } from '../../shared/maps/facet.js'
 import { buildNodeMap } from '#utils'
 import type { AllUnionFields } from 'type-fest'
 
@@ -38,7 +38,7 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define('modifierGrant
     }, {
       showIf: or([
         parent.field(['valueDomainCode']).eq('ABILITY_SCORE'),
-        parent.field(['valueDomainCode']).eq('SAVING_THROW_BONUS')
+        parent.field(['valueDomainCode']).eq('SAVING_THROW_MODIFIER')
       ])
     }))
     .set('skillId', selectSingle(['skillId'], 'Skill', {
@@ -47,7 +47,7 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define('modifierGrant
         selectColumns: ['id', 'label', 'tooltip']
       })
     }, {
-      showIf: parent.field(['valueDomainCode']).eq('SKILL_BONUS')
+      showIf: parent.field(['valueDomainCode']).eq('SKILL_MODIFIER')
     }))
     .set('speedId', selectSingle(['speedId'], 'Speed', {
       kind: 'DATA',
@@ -70,7 +70,7 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define('modifierGrant
       ]
     }, {
       showIf: or([
-        parent.field(['valueDomainCode']).eq('ATTACK_ROLL_BONUS'),
+        parent.field(['valueDomainCode']).eq('ATTACK_ROLL'),
         parent.field(['valueDomainCode']).eq('DAMAGE')
       ])
     }))
@@ -89,7 +89,7 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define('modifierGrant
       })
     }, {
       showIf: and([
-        parent.field(['valueDomainCode']).eq('SAVING_THROW_BONUS'),
+        parent.field(['valueDomainCode']).eq('SAVING_THROW_MODIFIER'),
         or([
           parent.field(['modifierKind']).eq('ADVANTAGE'),
           parent.field(['modifierKind']).eq('DISADVANTAGE')
@@ -132,7 +132,7 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define('modifierGrantPay
       kind: 'INLINE',
       options: ABILITY_OPTIONS
     }, {
-      showIf: local.field(['valueKind']).eq('ABILITY_MODIFIER')
+      showIf: parent.field(['modifierKind']).eq('ABILITY_MODIFIER_BONUS')
     }))
     .set('skillId', selectSingle(['skillId'], 'Skill', {
       kind: 'DATA',
@@ -153,11 +153,11 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define('modifierGrantPay
     .set('multiplier', number(['multiplier'], 'Multiplier', {
       showIf: or([
         local.field(['valueKind']).eq('PROFICIENCY_BONUS'),
-        local.field(['valueKind']).eq('ABILITY_MODIFIER'),
         local.field(['valueKind']).eq('SKILL_BONUS'),
         local.field(['valueKind']).eq('CHARACTER_LEVEL'),
         local.field(['valueKind']).eq('CLASS_LEVEL'),
         local.field(['valueKind']).eq('SPELL_SLOT_LEVEL'),
+        parent.field(['modifierKind']).eq('ABILITY_MODIFIER_BONUS'),
         parent.field(['modifierKind']).eq('MODIFY_CHARGE_LIMIT')
       ])
     }))
@@ -198,7 +198,7 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define('modifierGrantPay
       kind: 'INLINE',
       options: ABILITY_OPTIONS
     }, {
-      showIf: parent.field(['modifierKind']).eq('OPTIONAL_ABILITY_MODIFIER')
+      showIf: parent.field(['modifierKind']).eq('OPTIONAL_ABILITY_MODIFIER_BONUS')
     }))
     .set('rangeKind', selectSingle(['rangeKind'], 'Range Kind', {
       kind: 'INLINE',
@@ -237,10 +237,16 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define('modifierGrantPay
       showIf: parent.field(['modifierKind']).eq('MODIFY_CHARGE_LIMIT')
     }))
     .set('min', number(['min'], 'Min', {
-      showIf: parent.field(['modifierKind']).eq('MODIFY_CHARGE_LIMIT')
+      showIf: or([
+        parent.field(['modifierKind']).eq('MODIFY_CHARGE_LIMIT'),
+        parent.field(['modifierKind']).eq('ABILITY_MODIFIER_BONUS')
+      ])
     }))
     .set('max', number(['max'], 'Max', {
-      showIf: parent.field(['modifierKind']).eq('MODIFY_CHARGE_LIMIT')
+      showIf: or([
+        parent.field(['modifierKind']).eq('MODIFY_CHARGE_LIMIT'),
+        parent.field(['modifierKind']).eq('ABILITY_MODIFIER_BONUS')
+      ])
     }))
     .set('amount', number(['amount'], 'Amount', {
       showIf: or([
@@ -289,9 +295,9 @@ export const MODIFIER_GRANT_NODE_MAP = modifierGrant.define('modifierGrant', ({ 
     }))
     .set('domain', groupObject(['domain'], 'Domain', () => MODIFIER_GRANT_DOMAIN_NODE_MAP, {
       showIf: or([
-        local.field(['valueDomainCode']).eq('ATTACK_ROLL_BONUS'),
-        local.field(['valueDomainCode']).eq('SAVING_THROW_BONUS'),
-        local.field(['valueDomainCode']).eq('SKILL_BONUS'),
+        local.field(['valueDomainCode']).eq('ATTACK_ROLL'),
+        local.field(['valueDomainCode']).eq('SAVING_THROW_MODIFIER'),
+        local.field(['valueDomainCode']).eq('SKILL_MODIFIER'),
         local.field(['valueDomainCode']).eq('ABILITY_SCORE'),
         local.field(['valueDomainCode']).eq('SPEED'),
         local.field(['valueDomainCode']).eq('SENSE_RANGE'),
@@ -312,10 +318,13 @@ export const MODIFIER_GRANT_NODE_MAP = modifierGrant.define('modifierGrant', ({ 
         local.field(['modifierKind']).eq('REPLACE_SHAPE_KIND'),
         local.field(['modifierKind']).eq('REPLACE_CHARGE_RESET_KIND'),
         local.field(['modifierKind']).eq('MODIFY_CHARGE_LIMIT'),
+        local.field(['modifierKind']).eq('ABILITY_MODIFIER_BONUS'),
         local.field(['modifierKind']).eq('ADD_OPTION'),
         local.field(['modifierKind']).eq('REMOVE_OPTION'),
-        local.field(['modifierKind']).eq('OPTIONAL_ABILITY_MODIFIER')
+        local.field(['modifierKind']).eq('OPTIONAL_ABILITY_MODIFIER_BONUS')
       ])
     }))
     .set('restrictions', groupObject(['restrictions'], 'Restrictions', () => FACET_NODE_MAP))
 })
+
+

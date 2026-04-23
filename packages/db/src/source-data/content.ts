@@ -1,4 +1,6 @@
+import { AUTHORED_RECORD_STATUS } from '@artificer-toolkit/shared'
 import type {
+  AuthoredRecordStatus,
   BackgroundAuthored,
   ChargeAuthored,
   ClassAuthored,
@@ -84,7 +86,9 @@ export interface SystemSeedRecord {
   creatureTypes: VocabularySeedRecord[]
   currencies: VocabularySeedRecord[]
   damageTypes: VocabularySeedRecord[]
+  heritages: VocabularySeedRecord[]
   languages: VocabularySeedRecord[]
+  lifestyles: VocabularySeedRecord[]
   magicSchools: VocabularySeedRecord[]
   passives: VocabularySeedRecord[]
   rarities: VocabularySeedRecord[]
@@ -109,8 +113,31 @@ export interface BaselineContentBundle {
   subjects: BaselineSubjectsContent
 }
 
+function withActiveStatus<T extends { status?: AuthoredRecordStatus }>(
+  records: T[]
+): T[] {
+  return records.map((record) => ({
+    ...record,
+    status: record.status ?? AUTHORED_RECORD_STATUS.ACTIVE
+  }))
+}
+
 export function defineBaselineContentBundle(
   bundle: BaselineContentBundle
 ): BaselineContentBundle {
-  return bundle
+  return {
+    ...bundle,
+    subjects: {
+      ...bundle.subjects,
+      backgrounds: withActiveStatus(bundle.subjects.backgrounds),
+      classes: withActiveStatus(bundle.subjects.classes),
+      creatures: withActiveStatus(bundle.subjects.creatures),
+      equipment: withActiveStatus(bundle.subjects.equipment),
+      feats: withActiveStatus(bundle.subjects.feats),
+      races: withActiveStatus(bundle.subjects.races),
+      spells: withActiveStatus(bundle.subjects.spells),
+      vehicles: withActiveStatus(bundle.subjects.vehicles)
+    }
+  }
 }
+
