@@ -17,7 +17,7 @@ import { getSupabaseBrowserClient } from '#supabase'
 import type { QueryClient } from '@tanstack/react-query'
 import type { User } from '@supabase/supabase-js'
 
-export const Route = createRootRouteWithContext<{ queryClient: QueryClient; user: User | null }>()({
+export const Route = createRootRouteWithContext<{ queryClient: QueryClient, user: User | null }>()({
   beforeLoad: async () => {
     const supabase = getSupabaseBrowserClient()
     const { data } = await supabase.auth.getUser()
@@ -34,7 +34,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient; user
       { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
       { name: 'msapplication-starturl', content: '/' },
       { title: 'Artificer Toolkit' },
-      { name: 'description', content: 'Your digital companion for TTRPG homebrew creation' },
+      { name: 'description', content: 'Your digital companion for TTRPG homebrew creation' }
     ],
     links: [
       { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
@@ -44,11 +44,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient; user
         // DM Sans: body — clean geometric sans
         // Syne: headings — distinctive, confident, zero genre connotations
         // JetBrains Mono: stats, badges, numbers
-        href: 'https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Syne:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap',
-      },
-    ],
+        href: 'https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Syne:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap'
+      }
+    ]
   }),
-  component: RootComponent,
+  component: RootComponent
 })
 
 function RootComponent() {
@@ -61,18 +61,18 @@ function RootComponent() {
 
 function RootDocument({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang='en'>
       <head>
-        <ColorSchemeScript defaultColorScheme="dark" />
+        <ColorSchemeScript defaultColorScheme='dark' />
         <HeadContent />
       </head>
       <body>
-        <MantineProvider theme={theme} cssVariablesResolver={resolver} defaultColorScheme="dark">
-          <Notifications position="top-right" zIndex={9999} />
+        <MantineProvider theme={theme} cssVariablesResolver={resolver} defaultColorScheme='dark'>
+          <Notifications position='top-right' zIndex={9999} />
           <ModalProvider>{children}</ModalProvider>
         </MantineProvider>
-        <TanStackRouterDevtools position="bottom-right" />
-        <ReactQueryDevtools buttonPosition="bottom-left" />
+        <TanStackRouterDevtools position='bottom-right' />
+        <ReactQueryDevtools buttonPosition='bottom-left' />
         <Scripts />
       </body>
     </html>

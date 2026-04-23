@@ -1,6 +1,5 @@
 import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
-import { getSystemFn } from '@server/domains'
-import { getSystemListFn } from '@server/domains'
+import { api } from '../../lib/api'
 
 const systemsKeys = {
   all: [
@@ -17,7 +16,7 @@ const systemsKeys = {
 export function getSystemList() {
   return queryOptions({
     queryKey: systemsKeys.lists(),
-    queryFn: async () => await getSystemListFn()
+    queryFn: async () => await api.systems.list()
   })
 }
 
@@ -28,9 +27,7 @@ export function useGetSystemList() {
 export function getSystem(id: string) {
   return queryOptions({
     queryKey: systemsKeys.single(id),
-    queryFn: async () => await getSystemFn({
-      data: id
-    })
+    queryFn: async () => await api.systems.get(id)
   })
 }
 

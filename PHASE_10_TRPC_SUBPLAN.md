@@ -1,106 +1,101 @@
-# Phase 10 — tRPC Transport Modernization (Hybrid Incremental)
+# Phase 10 - tRPC Transport Modernization (Hybrid Incremental)
 
-## Status: Paused (scaffold landed, active work deferred to Phase 9)
+## Status: Partially Landed / Deferred Behind Phase 9 REST Baseline
 
 ## Summary
 
-Phase 9 modernizes transport by introducing tRPC in `apps/apis` without breaking current REST behavior.
+Phase 10 modernizes transport by adding tRPC to `apps/apis` without breaking the active REST contract. The scaffold is already present, but frontend adoption stays intentionally behind the Phase 9 execution sequence so the new frontend can first normalize around one stable REST adapter.
 
-The rule for this phase is hybrid operation:
+This phase remains transport-only:
 
-- tRPC and REST run in parallel
-- Phase 8 frontend work can adopt tRPC where available
-- REST remains fallback until parity is proven
+- no domain-model rewrites
+- no DB contract rewrites just to satisfy tRPC
+- no bypass of `apps/apis`
+- no replacement of the Phase 9 review gates
 
-This phase is transport-only. Domain models, DB contracts, and engine behavior are not rewritten here.
+## Relationship to Phase 9
+
+- Phase 9 establishes:
+  - the public and authenticated shells
+  - the shared frontend data adapter
+  - explicit provenance and permissions contracts
+  - the authored-form runtime
+  - the rebuilt route families
+- Phase 10 only swaps selected reads from REST to tRPC after the shared adapter exists and parity is proven.
 
 ## Landed So Far
 
 The initial scaffold pass is complete in `apps/apis`:
 
-- tRPC dependency added (`@trpc/server`)
-- typed tRPC app router added with:
-  - `characters.*` namespace
-  - `content.*` namespace
-- tRPC context wiring added (JWT -> user context)
-- tRPC fetch handler export added
-- package root exports now include the tRPC surface
-
-Landed files:
-
 - `apps/apis/src/trpc.router.ts`
 - `apps/apis/src/trpc.context.ts`
 - `apps/apis/src/trpc.handler.ts`
 - `apps/apis/src/trpc.index.ts`
-- `apps/apis/src/index.ts`
-- `apps/apis/package.json`
+- package exports for the tRPC surface
 
-## Pause Decision
+## Locked Decisions
 
-Phase 9 implementation is intentionally paused here so the team can focus on Phase 8 frontend delivery.
-
-- Keep REST as the primary active transport during Phase 8.
-- Keep tRPC scaffold in place as optional follow-on integration work.
-- Resume Phase 9 only when Phase 8 vertical slices are stable enough for transport migration parity work.
-
-## Architecture Decision
-
-- Keep `apps/apis` as the transport package and add a parallel tRPC router.
-- Reuse existing services/repositories/queries from `packages/functions` and `packages/db`.
-- Reuse existing schema contracts from `packages/schema` for procedure inputs.
-- Keep REST endpoints stable until explicit deprecation gate is met.
+- REST remains the Phase 9 baseline.
+- tRPC and REST run in parallel during the transition.
+- `apps/web` consumes tRPC only through the same frontend adapter boundary used by REST.
+- Builder write flows stay on REST until parity is proven.
+- Character sheet reads can migrate earlier than builder writes.
 
 ## Procedure Surface
 
-The canonical tRPC namespaces for this phase are:
+The canonical procedure namespaces remain:
 
 - `characters.*`
   - `list`
-  - `create`
   - `get`
+  - `sheet`
   - `history`
   - `command`
 - `content.*`
+  - `backgrounds.{list,get,upsert}`
   - `classes.{list,get,upsert}`
+  - `equipment.{list,get,upsert}`
+  - `feats.{list,get,upsert}`
   - `races.{list,get,upsert}`
   - `spells.{list,get,upsert}`
-  - `feats.{list,get,upsert}`
-  - `equipment.{list,get,upsert}`
-  - `backgrounds.{list,get,upsert}`
   - `creatures.{list,get,upsert}`
   - `vehicles.{list,get,upsert}`
   - `features.{list,get,upsert}`
   - `featGrants.{get,upsert}`
   - `systems.{list,get}`
 
-## Migration Order
+## Adoption Order
 
-1. Character read endpoints (`list`, `get`, `history`) via tRPC.
-2. Character command dispatch via tRPC mutation.
-3. Content authoring routes via tRPC procedures.
-4. REST deprecation only after parity checks pass.
+1. Systems reads
+2. Content list reads
+3. Content detail reads
+4. Character list and history
+5. Character sheet reads
+6. Remaining low-risk read surfaces
+7. Write surfaces only after explicit parity review
 
-## Test and Parity Gates
+## Entry Conditions for Any tRPC Cutover
 
-- Procedure parity:
-  - tRPC result behavior must match REST semantics for migrated endpoints.
-- Validation parity:
-  - input validation uses the same schema-layer contracts.
-  - Zod issues are exposed through tRPC error formatting.
-- Concurrency parity:
-  - `characters.command` preserves optimistic concurrency behavior.
-- Regression gate:
-  - existing REST route tests stay green during hybrid period.
+Do not switch a surface from REST to tRPC until all of the following are true:
+
+- the REST and tRPC responses match the same schema-backed DTO shape
+- the shared frontend adapter can swap implementations without route-level changes
+- Storybook and Playwright coverage already exist for the affected surface
+- route behavior has been compared side-by-side against REST
+
+## Explicit Hold Line
+
+Keep these on REST until later:
+
+- character builder draft
+- character builder resolve
+- character builder preview-save
+- character builder upsert
+
+These flows depend on the engine-backed builder semantics and should not be migrated until the tRPC surface is genuinely equivalent.
 
 ## Exit Criteria
 
-- Character read + command flows are consumed successfully through tRPC in the Phase 8 app path.
-- Core content authoring flows are available through `content.*` procedures.
-- No transport regressions versus current REST behavior on migrated endpoints.
-- REST deprecation plan is documented with endpoint-by-endpoint cutover status.
-
-## Assumptions and Defaults
-
-- Hybrid operation is intentional and temporary.
-- tRPC replaces transport wiring, not domain logic.
-- REST removal is a final Phase 9 closure slice, not an entry condition.
+- tRPC is additive, verified, and never the cause of a frontend domain rewrite.
+- The frontend transport layer can mix REST and tRPC behind one adapter.
+- REST deprecation is considered only after endpoint-by-endpoint parity has been demonstrated.

@@ -1,68 +1,48 @@
-/**
- * Typed REST client for apps/apis.
- *
- * Client-side usage:
- *   const api = createApi()          // auto-injects JWT from Supabase session
- *   const chars = await api.characters.list()
- *
- * SSR server function usage:
- *   const api = createApi(jwt)       // JWT extracted from getSupabaseServerClient()
- *   const chars = await api.characters.list()
- */
-
 import { getSupabaseBrowserClient } from '#supabase'
 import type {
   BackgroundAuthoredDto,
-  ClassAuthoredDto,
-  EquipmentAuthoredDto,
-  FeatAuthoredDto,
-  RaceAuthoredDto,
-  SpellAuthoredDto,
-  FeatureDto,
-  SystemListItemDto,
-  CharacterCommandUnion,
   BackgroundListItemDto,
+  CharacterBuilderPayloadDto,
+  CharacterBuilderPreviewPayloadDto,
+  CharacterBuilderResolveRequestDto,
+  CharacterBuilderSaveRequestDto,
+  CharacterCommandUnion,
+  CharacterDraftRequestDto,
+  CharacterListItemDto,
+  CharacterListResponseDto,
+  CharacterSheetResponseDto,
+  ClassAuthoredDto,
   ClassListItemDto,
+  EquipmentAuthoredDto,
   EquipmentListItemDto,
+  FeatAuthoredDto,
   FeatListItemDto,
-  RaceListItemDto,
-  SpellListItemDto,
+  FeatureDto,
   FeatureListItemDto,
+  RaceAuthoredDto,
+  RaceListItemDto,
+  SpellAuthoredDto,
+  SpellListItemDto,
+  SystemListItemDto
 } from '@artificer-toolkit/schema'
-import type { CharacterBuildState, EngineCharacterOutput } from '@artificer-toolkit/shared'
 
 export type {
   BackgroundListItemDto,
+  CharacterBuilderPayloadDto,
+  CharacterBuilderPreviewPayloadDto,
+  CharacterBuilderResolveRequestDto,
+  CharacterBuilderSaveRequestDto,
+  CharacterDraftRequestDto,
+  CharacterListItemDto,
+  CharacterListResponseDto,
+  CharacterSheetResponseDto,
   ClassListItemDto,
   EquipmentListItemDto,
   FeatListItemDto,
+  FeatureListItemDto,
   RaceListItemDto,
   SpellListItemDto,
-  FeatureListItemDto,
-}
-
-// ─── Response shapes ────────────────────────────────────────────────────────
-
-export interface ListResponse<T> {
-  items: T[]
-  meta: Record<string, unknown>
-}
-
-export interface CharacterListItem {
-  id: string
-  name: string
-  systemId: string
-  systemLabel?: string
-  raceSummary?: string
-  classSummary?: string
-  level?: number
-  updatedAt: string
-  createdAt: string
-}
-
-export interface CharacterGetResponse {
-  buildState: CharacterBuildState
-  engineOutput: EngineCharacterOutput
+  SystemListItemDto
 }
 
 export interface CharacterHistoryEntry {
@@ -77,12 +57,10 @@ export interface CharacterHistoryResponse {
   events: CharacterHistoryEntry[]
 }
 
-export interface CreateCharacterInput {
-  name: string
-  systemId: string
+export interface ListResponse<T> {
+  items: T[]
+  meta: Record<string, unknown>
 }
-
-// ─── Core fetch helper ───────────────────────────────────────────────────────
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3001'
 
@@ -94,38 +72,8 @@ async function getClientJwt(): Promise<string | null> {
 
 function makeHeaders(jwt: string | null): HeadersInit {
   const headers: HeadersInit = { 'Content-Type': 'application/json' }
-  if (jwt) headers['Authorization'] = `Bearer ${jwt}`
+  if (jwt) headers.Authorization = `Bearer ${jwt}`
   return headers
-}
-
-async function apiFetch<T>(
-  path: string,
-  options: RequestInit,
-  jwt: string | null
-): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: {
-      ...makeHeaders(jwt),
-      ...(options.headers ?? {}),
-    },
-  })
-
-  if (!res.ok) {
-    let message = `API error ${res.status}`
-    try {
-      const body = await res.json()
-      message = body?.error ?? body?.message ?? message
-    } catch {
-      // ignore parse error
-    }
-    throw new ApiError(res.status, message)
-  }
-
-  // 204 No Content
-  if (res.status === 204) return undefined as unknown as T
-
-  return res.json() as Promise<T>
 }
 
 export class ApiError extends Error {
@@ -138,9 +86,38 @@ export class ApiError extends Error {
   }
 }
 
-// ─── Factory ─────────────────────────────────────────────────────────────────
+async function apiFetch<T>(
+  path: string,
+  options: RequestInit,
+  jwt: string | null
+): Promise<T> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers: {
+      ...makeHeaders(jwt),
+      ...(options.headers ?? {})
+    }
+  })
 
-function buildApi(getJwt: () => Promise<string | null> | string | null) {
+  if (!response.ok) {
+    let message = `API error ${response.status}`
+    try {
+      const body = await response.json()
+      message = body?.error ?? body?.message ?? message
+    } catch {
+      // Ignore JSON parse failures for non-JSON error bodies.
+    }
+    throw new ApiError(response.status, message)
+  }
+
+  if (response.status === 204) {
+    return undefined as T
+  }
+
+  return response.json() as Promise<T>
+}
+
+function buildApi(getJwt: (() => Promise<string | null>) | string | null) {
   async function resolveJwt() {
     return typeof getJwt === 'function' ? await getJwt() : getJwt
   }
@@ -152,12 +129,26 @@ function buildApi(getJwt: () => Promise<string | null> | string | null) {
 
   async function post<T>(path: string, body?: unknown): Promise<T> {
     const jwt = await resolveJwt()
-    return apiFetch<T>(path, { method: 'POST', body: JSON.stringify(body) }, jwt)
+    return apiFetch<T>(
+      path,
+      {
+        method: 'POST',
+        body: body == null ? undefined : JSON.stringify(body)
+      },
+      jwt
+    )
   }
 
   async function put<T>(path: string, body?: unknown): Promise<T> {
     const jwt = await resolveJwt()
-    return apiFetch<T>(path, { method: 'PUT', body: JSON.stringify(body) }, jwt)
+    return apiFetch<T>(
+      path,
+      {
+        method: 'PUT',
+        body: body == null ? undefined : JSON.stringify(body)
+      },
+      jwt
+    )
   }
 
   async function del<T>(path: string): Promise<T> {
@@ -165,34 +156,33 @@ function buildApi(getJwt: () => Promise<string | null> | string | null) {
     return apiFetch<T>(path, { method: 'DELETE' }, jwt)
   }
 
-  // ─── Content helpers ──────────────────────────────────────────────────────
-
   function contentDomain<TListItem, TDetail, TInput>(basePath: string) {
     return {
       list: () => get<ListResponse<TListItem>>(basePath),
       get: (id: string) => get<TDetail | null>(`${basePath}/${id}`),
-      upsert: (input: TInput) => post<TDetail>(`${basePath}`, input),
+      upsert: (input: TInput) => post<TDetail>(basePath, input)
     }
   }
 
-  // ─── API surface ──────────────────────────────────────────────────────────
-
   return {
     characters: {
-      list: () =>
-        get<ListResponse<CharacterListItem>>('/characters'),
-
+      list: () => get<CharacterListResponseDto>('/characters'),
+      draft: (input: CharacterDraftRequestDto) =>
+        post<CharacterBuilderPayloadDto>('/characters/draft', input),
       get: (id: string) =>
-        get<CharacterGetResponse>(`/characters/${id}`),
-
+        get<CharacterBuilderPayloadDto | null>(`/characters/${id}`),
+      sheet: (id: string) =>
+        get<CharacterSheetResponseDto | null>(`/characters/${id}/sheet`),
+      resolve: (input: CharacterBuilderResolveRequestDto) =>
+        post<CharacterBuilderPayloadDto>('/characters/resolve', input),
+      previewSave: (input: CharacterBuilderSaveRequestDto) =>
+        post<CharacterBuilderPreviewPayloadDto>('/characters/preview-save', input),
+      upsert: (input: CharacterBuilderSaveRequestDto) =>
+        post<CharacterBuilderPayloadDto>('/characters/upsert', input),
       history: (id: string) =>
         get<CharacterHistoryResponse>(`/characters/${id}/history`),
-
-      create: (input: CreateCharacterInput) =>
-        post<CharacterListItem>('/characters', input),
-
       command: (id: string, input: CharacterCommandUnion) =>
-        post<void>(`/characters/${id}/commands`, input),
+        post<void>(`/characters/${id}/commands`, input)
     },
 
     content: {
@@ -240,36 +230,32 @@ function buildApi(getJwt: () => Promise<string | null> | string | null) {
 
       creatures: {
         list: () =>
-          get<ListResponse<{ id: string; label: string; cr?: string }>>('/content/creatures'),
+          get<ListResponse<{ id: string, label: string, cr?: string }>>('/content/creatures'),
         get: (id: string) =>
-          get<unknown>(`/content/creatures/${id}`),
+          get<unknown>(`/content/creatures/${id}`)
       },
 
       vehicles: {
         list: () =>
-          get<ListResponse<{ id: string; label: string }>>('/content/vehicles'),
+          get<ListResponse<{ id: string, label: string }>>('/content/vehicles'),
         get: (id: string) =>
-          get<unknown>(`/content/vehicles/${id}`),
-      },
+          get<unknown>(`/content/vehicles/${id}`)
+      }
     },
 
     systems: {
       list: () => get<SystemListItemDto[]>('/systems'),
+      get: (id: string) => get<unknown>(`/systems/${id}`)
     },
 
-    // Expose raw verbs for one-off calls
-    _raw: { get, post, put, del },
+    _raw: { get, post, put, del }
   }
 }
 
-// ─── Client-side singleton (auto-injects JWT) ────────────────────────────────
-
 export const api = buildApi(getClientJwt)
 
-// ─── SSR factory (pass JWT from getSupabaseServerClient) ─────────────────────
-
 export function createServerApi(jwt: string) {
-  return buildApi(() => jwt)
+  return buildApi(() => Promise.resolve(jwt))
 }
 
 export type Api = ReturnType<typeof buildApi>

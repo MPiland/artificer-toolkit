@@ -1,6 +1,8 @@
 import {
   NotFoundError,
   buildSnapshot,
+  createCharacterBuilderChangePreview,
+  createEmptyCharacterAuthored,
   dispatchCharacterCommand,
   handleAcquireEquipment,
   handleApplyHitPoints,
@@ -15,7 +17,9 @@ import {
   handleRequest,
   handleUnequipItem,
   handleUpdateSpellSelection,
-  resolveCharacterBuilder
+  reconcileCharacterBuilderCharacter,
+  resolveCharacterBuilder,
+  type CharacterBuilderResolution
 } from '@artificer-toolkit/functions'
 import {
   type Json,
@@ -24,17 +28,32 @@ import {
   createCharacterRepository
 } from '@artificer-toolkit/db'
 import {
+  AUTHORED_RECORD_STATUS,
+  type CharacterAuthored,
   type CharacterBuildState,
   buildCharacterHistoryView,
   dnd5e2014RulesSystem,
   runEngine,
+  type AuthoredRecordStatus,
   type CharacterAssemblyRegistry
 } from '@artificer-toolkit/shared'
 import {
   characterAuthoredDtoSchema,
+  characterBuilderResolveRequestDtoSchema,
+  characterBuilderSaveRequestDtoSchema,
   characterCommandUnionSchema,
-  createCharacterCommandSchema
+  characterDraftRequestDtoSchema,
+  createCharacterCommandSchema,
+  type CharacterBuilderPayloadDto,
+  type CharacterBuilderPreviewPayloadDto,
+  type CharacterBuilderResolutionDto,
+  type CharacterListResponseDto,
+  type CharacterSheetResponseDto
 } from '@artificer-toolkit/schema'
+
+type CharacterBuilderMode = 'create' | 'edit'
+
+type CharacterBuilderPreview = ReturnType<typeof createCharacterBuilderChangePreview>
 
 function extractId(req: Request): string {
   const url = new URL(req.url)
@@ -46,13 +65,131 @@ function stubRegistry(): CharacterAssemblyRegistry {
   return { features: {}, classes: {}, feats: {}, races: {}, equipment: {}, spells: {} }
 }
 
+function stripCharacterBuilderResolution(
+  resolution: CharacterBuilderResolution
+): CharacterBuilderResolutionDto {
+  return {
+    mode: resolution.mode,
+    summary: resolution.summary,
+    grants: resolution.grants,
+    outstandingChoices: resolution.outstandingChoices,
+    validations: resolution.validations,
+    readiness: resolution.readiness,
+    recommendedSectionId: resolution.recommendedSectionId
+  }
+}
+
+function toCharacterBuilderPayload(
+  character: CharacterAuthored,
+  resolution: CharacterBuilderResolution
+): CharacterBuilderPayloadDto {
+  return {
+    character,
+    resolution: stripCharacterBuilderResolution(resolution)
+  }
+}
+
+function toCharacterBuilderPreviewPayload(params: {
+  character: CharacterAuthored
+  resolution: CharacterBuilderResolution
+  preview: CharacterBuilderPreview
+}): CharacterBuilderPreviewPayloadDto {
+  return {
+    character: params.character,
+    resolution: stripCharacterBuilderResolution(params.resolution),
+    preview: params.preview
+  }
+}
+
+function toCharacterSheetPayload(
+  character: CharacterAuthored,
+  resolution: CharacterBuilderResolution
+): CharacterSheetResponseDto {
+  return {
+    character,
+    resolution: stripCharacterBuilderResolution(resolution),
+    playState: character.state
+  }
+}
+
+function resolvePersistedCharacterStatus(params: {
+  existingStatus?: AuthoredRecordStatus
+  targetStatus?: AuthoredRecordStatus
+  ready: boolean
+}): AuthoredRecordStatus {
+  if (params.targetStatus === AUTHORED_RECORD_STATUS.ACTIVE) {
+    return params.ready
+      ? AUTHORED_RECORD_STATUS.ACTIVE
+      : AUTHORED_RECORD_STATUS.DRAFT
+  }
+
+  if (params.existingStatus === AUTHORED_RECORD_STATUS.ACTIVE) {
+    return params.ready
+      ? AUTHORED_RECORD_STATUS.ACTIVE
+      : AUTHORED_RECORD_STATUS.DRAFT
+  }
+
+  return AUTHORED_RECORD_STATUS.DRAFT
+}
+
+async function buildCharacterBuilderSavePayload(params: {
+  db: Parameters<typeof createCharacterRepository>[0]
+  character: CharacterAuthored
+  mode: CharacterBuilderMode
+  targetStatus?: AuthoredRecordStatus
+  existing: CharacterAuthored | null
+  userId: string
+}): Promise<{
+  character: CharacterAuthored
+  resolution: CharacterBuilderResolution
+  preview: CharacterBuilderPreview
+}> {
+  const authored = {
+    ...params.character,
+    userId: params.userId
+  }
+  const reconciled = await reconcileCharacterBuilderCharacter(params.db, authored, params.existing)
+  const draftResolution = await resolveCharacterBuilder(
+    params.db,
+    {
+      ...reconciled,
+      status: AUTHORED_RECORD_STATUS.DRAFT
+    },
+    params.mode
+  )
+  const persistedStatus = resolvePersistedCharacterStatus({
+    existingStatus: params.existing?.status,
+    targetStatus: params.targetStatus,
+    ready: draftResolution.readiness.ready
+  })
+  const character = {
+    ...reconciled,
+    status: persistedStatus
+  }
+  const resolution = await resolveCharacterBuilder(params.db, character, params.mode)
+
+  return {
+    character,
+    resolution,
+    preview: createCharacterBuilderChangePreview({
+      previousCharacter: params.existing,
+      nextCharacter: character,
+      predictedStatus: persistedStatus,
+      registry: resolution.registry
+    })
+  }
+}
+
 export const listCharacters = handleRequest(
-  async (db, userId: string) => {
+  async (db, userId: string): Promise<CharacterListResponseDto> => {
     const items = await createCharacterRepository(db).listByUser(userId)
     return {
       items: items.map((row) => ({
         id: row.id,
         label: row.label,
+        status: row.status === AUTHORED_RECORD_STATUS.ACTIVE
+          ? AUTHORED_RECORD_STATUS.ACTIVE
+          : AUTHORED_RECORD_STATUS.DRAFT,
         systemId: row.system_id,
         streamVersion: row.stream_version
       })),
@@ -62,9 +199,32 @@ export const listCharacters = handleRequest(
   (_req: Request, userId: string) => [userId] as [string]
 )
 
+export const createCharacterDraft = handleAuthoringRequest(
+  characterDraftRequestDtoSchema,
+  async (db, body, userId): Promise<CharacterBuilderPayloadDto> => {
+    const repository = createCharacterRepository(db)
+    const existing = await repository.findAuthoredById(body.id)
+    if (existing) {
+      return toCharacterBuilderPayload(existing, await resolveCharacterBuilder(db, existing, 'create'))
+    }
+
+    if (!body.systemId) {
+      throw new Error('System id is required when creating a new character draft.')
+    }
+
+    const character = createEmptyCharacterAuthored({
+      id: body.id,
+      systemId: body.systemId,
+      userId
+    })
+
+    return toCharacterBuilderPayload(character, await resolveCharacterBuilder(db, character, 'create'))
+  }
+)
+
 export const createCharacter = handleAuthoringRequest(
   characterAuthoredDtoSchema,
-  async (db, character, userId) => {
+  async (db, character, userId): Promise<CharacterBuilderPayloadDto> => {
     const authored = {
       ...character,
       userId
@@ -74,40 +234,80 @@ export const createCharacter = handleAuthoringRequest(
     await repository.upsertAuthored(authored)
 
     const persisted = await repository.findAuthoredById(authored.id)
-    const resolved = await resolveCharacterBuilder(db, persisted ?? authored, 'create')
-
-    return {
-      character: persisted ?? authored,
-      resolution: resolved
-    }
+    const nextCharacter = persisted ?? authored
+    return toCharacterBuilderPayload(nextCharacter, await resolveCharacterBuilder(db, nextCharacter, 'create'))
   }
 )
 
 export const getCharacter = handleRequest(
-  async (db, characterId: string) => {
+  async (db, characterId: string): Promise<CharacterBuilderPayloadDto | null> => {
     const character = await createCharacterRepository(db).findAuthoredById(characterId)
     if (!character) return null
 
-    return {
-      character,
-      resolution: await resolveCharacterBuilder(db, character, 'edit')
-    }
+    return toCharacterBuilderPayload(character, await resolveCharacterBuilder(db, character, 'edit'))
+  },
+  (req: Request) => [extractId(req)] as [string]
+)
+
+export const getCharacterSheet = handleRequest(
+  async (db, characterId: string): Promise<CharacterSheetResponseDto | null> => {
+    const character = await createCharacterRepository(db).findAuthoredById(characterId)
+    if (!character) return null
+
+    return toCharacterSheetPayload(character, await resolveCharacterBuilder(db, character, 'edit'))
   },
   (req: Request) => [extractId(req)] as [string]
 )
 
 export const resolveCharacter = handleAuthoringRequest(
-  characterAuthoredDtoSchema,
-  async (db, character, userId) => {
+  characterBuilderResolveRequestDtoSchema,
+  async (db, body, userId): Promise<CharacterBuilderPayloadDto> => {
     const authored = {
-      ...character,
+      ...body.character,
       userId
     }
 
-    return {
-      character: authored,
-      resolution: await resolveCharacterBuilder(db, authored, 'create')
-    }
+    return toCharacterBuilderPayload(authored, await resolveCharacterBuilder(db, authored, body.mode))
+  }
+)
+
+export const previewCharacterSave = handleAuthoringRequest(
+  characterBuilderSaveRequestDtoSchema,
+  async (db, body, userId): Promise<CharacterBuilderPreviewPayloadDto> => {
+    const repository = createCharacterRepository(db)
+    const existing = await repository.findAuthoredById(body.character.id)
+    const payload = await buildCharacterBuilderSavePayload({
+      db,
+      character: body.character,
+      mode: body.mode,
+      targetStatus: body.targetStatus,
+      existing,
+      userId
+    })
+
+    return toCharacterBuilderPreviewPayload(payload)
+  }
+)
+
+export const upsertCharacterBuilder = handleAuthoringRequest(
+  characterBuilderSaveRequestDtoSchema,
+  async (db, body, userId): Promise<CharacterBuilderPayloadDto> => {
+    const repository = createCharacterRepository(db)
+    const existing = await repository.findAuthoredById(body.character.id)
+    const payload = await buildCharacterBuilderSavePayload({
+      db,
+      character: body.character,
+      mode: body.mode,
+      targetStatus: body.targetStatus,
+      existing,
+      userId
+    })
+
+    await repository.upsertAuthored(payload.character)
+
+    const persisted = await repository.findAuthoredById(payload.character.id)
+    const nextCharacter = persisted ?? payload.character
+    return toCharacterBuilderPayload(nextCharacter, await resolveCharacterBuilder(db, nextCharacter, body.mode))
   }
 )
 
@@ -190,8 +390,14 @@ export const dispatchCommand = handleCommandRequest(
     }
 
     const handler = commandHandlerMap[command.type]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return dispatchCharacterCommand(characterId, expectedVersion, command, handler as any, db)
+    return dispatchCharacterCommand(
+      characterId,
+      expectedVersion,
+      command,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      handler as any,
+      db
+    )
   }
 )
 

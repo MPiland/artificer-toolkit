@@ -2,23 +2,26 @@ import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import { defineConfig } from 'vite'
 import { vanillaExtractPlugin } from '@vanilla-extract/vite-plugin'
 import viteReact from '@vitejs/plugin-react'
-import viteTsConfigPaths from 'vite-tsconfig-paths'
 
 export default defineConfig({
+  resolve: {
+    tsconfigPaths: true
+  },
   server: {
     port: 3000,
-    open: true
+    strictPort: true,
+    open: false
   },
   plugins: [
-    viteTsConfigPaths({
-      projects: [
-        './tsconfig.json'
-      ]
-    }),
     vanillaExtractPlugin({
       unstable_mode: 'inlineCssInDev'
     }),
-    tanstackStart(),
+    tanstackStart({
+      router: {
+        routesDirectory: 'app/routes',
+        generatedRouteTree: 'app/routeTree.gen.ts'
+      }
+    }),
     viteReact()
   ]
 })

@@ -1,97 +1,94 @@
 import { createGlobalThemeContract } from '@vanilla-extract/css'
 
-export const foundationVars = createGlobalThemeContract(
-  {
-    color: {
-      accent: {
-        solid: null,
-        hover: null,
-        soft: null,
-        border: null,
-        focus: null,
-        contrast: null,
-      },
-      text: {
-        primary: null,
-        secondary: null,
-        muted: null,
-        inverse: null,
-      },
-      surface: {
-        canvas: null,
-        subtle: null,
-        panel: null,
-        raised: null,
-      },
-      border: {
-        subtle: null,
-        strong: null,
-      },
-      status: {
-        success: null,
-        successSoft: null,
-        danger: null,
-        dangerSoft: null,
-      },
-      decorative: {
-        heroStart: null,
-        heroEnd: null,
-        glow: null,
-      },
-    },
-    font: {
-      sans: null,
-      display: null,
-      mono: null,
-    },
-    size: {
-      authStageMax: null,
-      authPanelMax: null,
-      contentMeasure: null,
-    },
-    space: {
-      2: null,
-      3: null,
-      4: null,
-      5: null,
-      6: null,
-      8: null,
-      10: null,
-      12: null,
-    },
-    radius: {
-      sm: null,
-      md: null,
-      lg: null,
-      xl: null,
-      pill: null,
-    },
-    shadow: {
-      card: null,
-      cardHover: null,
+export const foundationVars = createGlobalThemeContract({
+  color: {
+    accent: {
+      solid: null,
+      hover: null,
+      soft: null,
+      border: null,
       focus: null,
+      contrast: null
     },
-    motion: {
-      fast: null,
-      base: null,
-      slow: null,
+    text: {
+      primary: null,
+      secondary: null,
+      muted: null,
+      inverse: null
     },
+    surface: {
+      canvas: null,
+      subtle: null,
+      panel: null,
+      raised: null,
+      recessed: null,
+      sidebar: null,
+      header: null
+    },
+    border: {
+      subtle: null,
+      strong: null
+    },
+    status: {
+      success: null,
+      successSoft: null,
+      warning: null,
+      warningSoft: null,
+      danger: null,
+      dangerSoft: null
+    }
   },
-  (_value, path) => `at-${path.join('-')}`,
-)
+  font: {
+    sans: null,
+    display: null,
+    mono: null
+  },
+  size: {
+    authStageMax: null,
+    authPanelMax: null,
+    contentMeasure: null
+  },
+  space: {
+    2: null,
+    3: null,
+    4: null,
+    5: null,
+    6: null,
+    8: null,
+    10: null,
+    12: null
+  },
+  radius: {
+    sm: null,
+    md: null,
+    lg: null,
+    xl: null,
+    pill: null
+  },
+  shadow: {
+    card: null,
+    cardHover: null,
+    focus: null
+  },
+  motion: {
+    fast: null,
+    base: null,
+    slow: null
+  }
+}, (_value, path) => `at-${path.join('-')}`)
 
 export const sharedFoundationTokens = {
   font: {
     sans:
-      "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Segoe UI', sans-serif",
+      '-apple-system, BlinkMacSystemFont, \'SF Pro Text\', \'SF Pro Display\', \'Segoe UI\', sans-serif',
     display:
-      "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', sans-serif",
-    mono: "'SFMono-Regular', 'SF Mono', 'JetBrains Mono', 'Fira Code', monospace",
+      '-apple-system, BlinkMacSystemFont, \'SF Pro Display\', \'SF Pro Text\', \'Segoe UI\', sans-serif',
+    mono: '\'SFMono-Regular\', \'SF Mono\', \'JetBrains Mono\', \'Fira Code\', monospace'
   },
   size: {
     authStageMax: '1120px',
     authPanelMax: '440px',
-    contentMeasure: '32rem',
+    contentMeasure: '32rem'
   },
   space: {
     2: '0.5rem',
@@ -101,116 +98,116 @@ export const sharedFoundationTokens = {
     6: '1.5rem',
     8: '2rem',
     10: '2.5rem',
-    12: '3rem',
+    12: '3rem'
   },
   radius: {
-    sm: '12px',
-    md: '18px',
-    lg: '24px',
-    xl: '32px',
-    pill: '999px',
+    sm: '4px',
+    md: '8px',
+    lg: '12px',
+    xl: '16px',
+    pill: '9999px'
   },
   shadow: {
     card: '0 18px 50px rgba(7, 16, 20, 0.16)',
     cardHover: '0 24px 64px rgba(7, 16, 20, 0.22)',
-    focus: '0 0 0 4px rgba(81, 153, 145, 0.18)',
+    focus: '0 0 0 4px rgba(123, 159, 212, 0.22)'
   },
   motion: {
     fast: '120ms',
     base: '180ms',
-    slow: '320ms',
-  },
+    slow: '320ms'
+  }
 } as const
 
 export const lightFoundationTokens = {
   color: {
     accent: {
-      solid: '#3f8c84',
-      hover: '#33766f',
-      soft: 'rgba(63, 140, 132, 0.12)',
-      border: 'rgba(63, 140, 132, 0.28)',
-      focus: 'rgba(63, 140, 132, 0.2)',
-      contrast: '#f6fbfa',
+      solid: '#6082b6',
+      hover: '#5071a5',
+      soft: 'rgba(96, 130, 182, 0.16)',
+      border: '#3f6094',
+      focus: 'rgba(96, 130, 182, 0.24)',
+      contrast: '#ffffff'
     },
     text: {
-      primary: '#172024',
-      secondary: '#4d5d63',
-      muted: '#738189',
-      inverse: '#f5fbfa',
+      primary: '#151b20',
+      secondary: '#55626d',
+      muted: '#8a97a1',
+      inverse: '#eef4f6'
     },
     surface: {
-      canvas: '#f3f6f5',
-      subtle: '#ebf0ef',
+      canvas: '#f3f4f6',
+      subtle: '#ebedf2',
       panel: '#ffffff',
-      raised: '#f8fbfb',
+      raised: '#fafafc',
+      recessed: '#e0e2e9',
+      sidebar: '#e8e9ee',
+      header: '#ebedf2'
     },
     border: {
-      subtle: 'rgba(23, 32, 36, 0.08)',
-      strong: 'rgba(23, 32, 36, 0.14)',
+      subtle: '#d7dbe4',
+      strong: '#ced1db'
     },
     status: {
-      success: '#2f7d69',
-      successSoft: 'rgba(47, 125, 105, 0.1)',
-      danger: '#b45357',
-      dangerSoft: 'rgba(180, 83, 87, 0.1)',
-    },
-    decorative: {
-      heroStart: 'rgba(63, 140, 132, 0.14)',
-      heroEnd: 'rgba(18, 58, 70, 0.02)',
-      glow: 'rgba(63, 140, 132, 0.08)',
-    },
-  },
+      success: '#2f9b63',
+      successSoft: '#e3f6ea',
+      warning: '#b7822e',
+      warningSoft: '#fff2d8',
+      danger: '#ea6846',
+      dangerSoft: '#fee7e2'
+    }
+  }
 } as const
 
 export const darkFoundationTokens = {
   color: {
     accent: {
-      solid: '#78b3ac',
-      hover: '#90c4be',
-      soft: 'rgba(120, 179, 172, 0.14)',
-      border: 'rgba(120, 179, 172, 0.3)',
-      focus: 'rgba(120, 179, 172, 0.24)',
-      contrast: '#0f1618',
+      solid: '#7b9fd4',
+      hover: '#8aafde',
+      soft: 'rgba(123, 159, 212, 0.2)',
+      border: '#6082b6',
+      focus: 'rgba(123, 159, 212, 0.32)',
+      contrast: '#0f1418'
     },
     text: {
-      primary: '#edf4f2',
-      secondary: '#bcc9c6',
-      muted: '#879592',
-      inverse: '#0f1618',
+      primary: '#eef4f6',
+      secondary: '#a6b3bc',
+      muted: '#75828c',
+      inverse: '#0f1618'
     },
     surface: {
       canvas: '#0f1618',
-      subtle: '#121b1e',
-      panel: '#182227',
-      raised: '#1e2b31',
+      subtle: '#171d22',
+      panel: '#1a2127',
+      raised: '#151b20',
+      recessed: '#0b1014',
+      sidebar: '#12181d',
+      header: '#171d22'
     },
     border: {
-      subtle: 'rgba(237, 244, 242, 0.08)',
-      strong: 'rgba(237, 244, 242, 0.14)',
+      subtle: '#2e3942',
+      strong: '#334049'
     },
     status: {
-      success: '#78b69d',
-      successSoft: 'rgba(120, 182, 157, 0.12)',
-      danger: '#df8a86',
-      dangerSoft: 'rgba(223, 138, 134, 0.14)',
-    },
-    decorative: {
-      heroStart: 'rgba(120, 179, 172, 0.16)',
-      heroEnd: 'rgba(10, 18, 22, 0.02)',
-      glow: 'rgba(120, 179, 172, 0.08)',
-    },
-  },
+      success: '#69c488',
+      successSoft: '#103019',
+      warning: '#e2b663',
+      warningSoft: '#3a2c10',
+      danger: '#e88b6e',
+      dangerSoft: '#3a1612'
+    }
+  }
 } as const
 
 export const brandColorScale = [
-  '#edf8f7',
-  '#d7eeeb',
-  '#c0e3de',
-  '#a7d6cf',
-  '#8dc8c0',
-  '#78b3ac',
-  '#5f9b95',
-  '#4a817b',
-  '#386763',
-  '#274e4b',
+  '#eef4fb',
+  '#dde7f5',
+  '#cad9ef',
+  '#b4c8e5',
+  '#9ab3d7',
+  '#7b9fd4',
+  '#6082b6',
+  '#5071a5',
+  '#3f6094',
+  '#334f80'
 ] as const

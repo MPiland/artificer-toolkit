@@ -1,21 +1,39 @@
-import { Alert, Badge, Button, Card, Group, Loader, ScrollArea, Stack, Table, Text, Title } from '@mantine/core'
+import { Alert, Badge, Button, Card, Divider, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core'
+import { Backpack, BookOpen, Coins, HeartPulse, ScrollText, Sparkles, Swords } from 'lucide-react'
 
 import { Route } from '#routes/_authed/characters/$characterId'
-import { useGetCharacterBuilder } from '../../data/characters'
+import { useGetCharacterSheet } from '../../data/characters'
 
-const Character = () => {
-  const characterId = Route.useParams({ select: (r) => r.characterId })
-  const builderQuery = useGetCharacterBuilder(characterId)
+const heroStyle = {
+  background: 'linear-gradient(135deg, rgba(23, 28, 42, 0.98), rgba(58, 37, 26, 0.92))',
+  border: '1px solid rgba(255, 255, 255, 0.08)',
+  color: 'white'
+} as const
 
-  if (builderQuery.isLoading) {
-    return (
-      <Group justify='center' py='xl'>
-        <Loader />
-      </Group>
-    )
+const panelStyle = {
+  background: 'linear-gradient(180deg, rgba(248, 244, 235, 0.98), rgba(238, 230, 219, 0.98))',
+  border: '1px solid rgba(78, 55, 36, 0.14)'
+} as const
+
+function renderLines(lines: string[] | undefined) {
+  if (!lines || lines.length === 0) {
+    return <Text c='dimmed' size='sm'>None yet.</Text>
   }
 
-  if (!builderQuery.data) {
+  return (
+    <Stack gap={6}>
+      {lines.map((line) => (
+        <Text key={line} size='sm'>{line}</Text>
+      ))}
+    </Stack>
+  )
+}
+
+const Character = () => {
+  const characterId = Route.useParams({ select: (params) => params.characterId })
+  const sheetQuery = useGetCharacterSheet(characterId)
+
+  if (!sheetQuery.data) {
     return (
       <Alert color='red' title='Character Not Found'>
         We could not load this character.
@@ -23,153 +41,324 @@ const Character = () => {
     )
   }
 
-  const { character, resolution } = builderQuery.data
+  const { character, resolution, playState } = sheetQuery.data
+  const classes = resolution.summary.classes
+  const inventory = playState.equipment.inventory
+  const preparedSpells = (playState.classes ?? []).flatMap((entry) => entry.spells?.prepared ?? [])
+  const learnedSpells = (playState.classes ?? []).flatMap((entry) => entry.spells?.learned ?? [])
 
   return (
-    <Stack gap='lg'>
-      <Group justify='space-between' align='flex-start'>
-        <div>
-          <Title order={2}>{character.label || 'Untitled character'}</Title>
-          <Text c='dimmed'>{character.description || 'No concept description yet.'}</Text>
-        </div>
+    <Stack gap='xl'>
+      <Card radius='xl' p='xl' style={heroStyle}>
+        <Stack gap='lg'>
+          <Group justify='space-between' align='flex-start'>
+            <Stack gap={8}>
+              <Group gap='xs'>
+                <Sparkles size={18} />
+                <Text fw={700} tt='uppercase' size='xs' c='rgba(255,255,255,0.72)'>
+                  Character Sheet
+                </Text>
+              </Group>
+              <Title order={1} fz='clamp(2rem, 3vw, 3.1rem)'>
+                {character.label || 'Untitled character'}
+              </Title>
+              <Text size='lg' c='rgba(255,255,255,0.78)' maw={760}>
+                {character.description || 'No concept summary yet. Add one in the builder to ground the character.'}
+              </Text>
+            </Stack>
 
-        <Group gap='sm'>
-          <Badge color={character.status === 'ACTIVE' ? 'green' : 'yellow'}>
-            {character.status === 'ACTIVE' ? 'Active' : 'Draft'}
-          </Badge>
-          <Badge variant='light'>Level {resolution.summary.totalLevel || 0}</Badge>
-          <Badge color={resolution.readiness.ready ? 'green' : 'yellow'}>
-            {resolution.readiness.ready ? 'Ready' : 'Needs Attention'}
-          </Badge>
-          <Button component='a' href={character.status === 'ACTIVE' ? `/characters/edit/${character.id}` : `/characters/new/${character.id}`}>
-            {character.status === 'ACTIVE' ? 'Edit Character' : 'Continue Draft'}
-          </Button>
-        </Group>
-      </Group>
+            <Stack gap='sm' align='flex-end'>
+              <Group gap='xs'>
+                <Badge color={character.status === 'ACTIVE' ? 'green' : 'orange'} variant='light'>
+                  {character.status === 'ACTIVE' ? 'Playable' : 'Draft'}
+                </Badge>
+                <Badge variant='outline' c='white'>
+                  Level {resolution.summary.totalLevel || 1}
+                </Badge>
+              </Group>
+
+              <Button
+                component='a'
+                href={character.status === 'ACTIVE' ? `/characters/edit/${character.id}` : `/characters/new/${character.id}`}
+                radius='xl'
+                variant='white'
+                color='dark'
+              >
+                Edit Character
+              </Button>
+            </Stack>
+          </Group>
+
+          <SimpleGrid cols={{ base: 1, md: 4 }} spacing='md'>
+            <Card radius='lg' p='lg' style={{ background: 'rgba(255,255,255,0.08)' }}>
+              <Text size='xs' tt='uppercase' c='rgba(255,255,255,0.68)'>Race</Text>
+              <Text fw={700} mt={4}>{resolution.summary.selectedRace?.raceLabel ?? 'Unselected'}</Text>
+              {resolution.summary.selectedRace?.subraceLabel ? (
+                <Text size='sm' c='rgba(255,255,255,0.72)'>{resolution.summary.selectedRace.subraceLabel}</Text>
+              ) : null}
+            </Card>
+            <Card radius='lg' p='lg' style={{ background: 'rgba(255,255,255,0.08)' }}>
+              <Text size='xs' tt='uppercase' c='rgba(255,255,255,0.68)'>Background</Text>
+              <Text fw={700} mt={4}>{resolution.summary.selectedBackground?.label ?? 'Unselected'}</Text>
+            </Card>
+            <Card radius='lg' p='lg' style={{ background: 'rgba(255,255,255,0.08)' }}>
+              <Text size='xs' tt='uppercase' c='rgba(255,255,255,0.68)'>Hit Points</Text>
+              <Text fw={700} mt={4}>{playState.hitpoints.current} current</Text>
+              <Text size='sm' c='rgba(255,255,255,0.72)'>
+                Temp {playState.hitpoints.temp ?? 0}
+              </Text>
+            </Card>
+            <Card radius='lg' p='lg' style={{ background: 'rgba(255,255,255,0.08)' }}>
+              <Text size='xs' tt='uppercase' c='rgba(255,255,255,0.68)'>Loadout</Text>
+              <Text fw={700} mt={4}>{inventory.length} inventory items</Text>
+              <Text size='sm' c='rgba(255,255,255,0.72)'>
+                {playState.equipment.equipped.length} equipped / {playState.equipment.attuned.length} attuned
+              </Text>
+            </Card>
+          </SimpleGrid>
+        </Stack>
+      </Card>
 
       {character.status === 'DRAFT' ? (
-        <Alert color='yellow' title='Draft Character'>
-          <Stack gap={4}>
+        <Alert color='orange' title='Draft Character'>
+          <Stack gap={6}>
             <Text size='sm'>
-              This character is still in draft. You can review the sheet here, but structural build changes should continue in the builder.
+              This sheet is available as a play-surface preview, but structural choices should still be
+              completed in the builder.
             </Text>
-            <Text size='sm'>
-              Blocking issues: {resolution.readiness.blockingIssues.length} | Required outstanding choices: {resolution.readiness.outstandingRequiredChoices.length}
-            </Text>
-          </Stack>
-        </Alert>
-      ) : null}
-
-      <Group grow align='stretch'>
-        <Card withBorder>
-          <Text fw={600} mb='xs'>Species</Text>
-          <Stack gap={4}>
-            <Text size='sm'>Race: {resolution.summary.selectedRace?.raceLabel ?? 'Not selected'}</Text>
-            {resolution.summary.selectedRace?.subraceLabel ? (
-              <Text size='sm'>Subrace: {resolution.summary.selectedRace.subraceLabel}</Text>
-            ) : null}
-            {resolution.summary.selectedRace?.ancestryOptionLabel ? (
+            {resolution.readiness.blockingIssues.length > 0 ? (
               <Text size='sm'>
-                {resolution.summary.selectedRace.ancestryLabel}: {resolution.summary.selectedRace.ancestryOptionLabel}
+                Blocking issues: {resolution.readiness.blockingIssues.join(' | ')}
               </Text>
             ) : null}
-          </Stack>
-        </Card>
-
-        <Card withBorder>
-          <Text fw={600} mb='xs'>Background</Text>
-          <Text size='sm'>{resolution.summary.selectedBackground?.label ?? 'Not selected'}</Text>
-        </Card>
-      </Group>
-
-      <Card withBorder>
-        <Text fw={600} mb='xs'>Classes</Text>
-        {resolution.summary.classes.length === 0 ? (
-          <Text c='dimmed' size='sm'>No class rows selected yet.</Text>
-        ) : (
-          <Stack gap='sm'>
-            {resolution.summary.classes.map((entry) => (
-              <div key={`${entry.classId}:${entry.classLevel}:${entry.subclassId ?? 'base'}`}>
-                <Text fw={500} size='sm'>
-                  {entry.classLabel}
-                  {entry.subclassLabel ? ` / ${entry.subclassLabel}` : ''}
-                  {entry.specializationLabel ? ` / ${entry.specializationLabel}` : ''}
-                  {` (Level ${entry.classLevel})`}
-                </Text>
-                <Text size='sm' c='dimmed'>
-                  Features: {entry.featureLabels.join(', ') || 'None'} | Resources: {entry.resourceLabels.join(', ') || 'None'} | Spellcasting: {entry.spellcastingLabels.join(', ') || 'None'}
-                </Text>
-              </div>
-            ))}
-          </Stack>
-        )}
-      </Card>
-
-      {resolution.validations.length > 0 ? (
-        <Alert color='yellow' title='Validations'>
-          <Stack gap={4}>
-            {resolution.validations.map((validation) => (
-              <Text key={`${validation.code}:${validation.message}`} size='sm'>
-                {validation.message}
-              </Text>
-            ))}
           </Stack>
         </Alert>
       ) : null}
 
-      <Card withBorder>
-        <Text fw={600} mb='xs'>Outstanding Choices</Text>
-        {resolution.outstandingChoices.length === 0 ? (
-          <Text c='dimmed' size='sm'>No unresolved builder choices right now.</Text>
-        ) : (
-          <Stack gap='xs'>
-            {resolution.outstandingChoices.map((choice) => (
-              <Alert key={`${choice.code}:${choice.message}`} color={choice.required ? 'yellow' : 'blue'}>
-                <Text fw={500}>{choice.sourceLabel}</Text>
-                <Text size='sm'>{choice.message}</Text>
-              </Alert>
-            ))}
+      <SimpleGrid cols={{ base: 1, xl: 2 }} spacing='lg'>
+        <Card radius='xl' p='xl' style={panelStyle}>
+          <Stack gap='lg'>
+            <Group gap='sm'>
+              <Swords size={18} />
+              <Title order={3}>Actions and Features</Title>
+            </Group>
+            {resolution.grants.features.length === 0 ? (
+              <Text c='dimmed' size='sm'>No feature references yet.</Text>
+            ) : (
+              <Stack gap='sm'>
+                {resolution.grants.features.map((item) => (
+                  <Card key={`${item.id}:${item.sourceLabel}`} radius='lg' p='md' withBorder>
+                    <Text fw={700} size='sm'>{item.label}</Text>
+                    <Text size='sm' c='dimmed'>{item.sourceLabel}</Text>
+                  </Card>
+                ))}
+              </Stack>
+            )}
           </Stack>
-        )}
-      </Card>
+        </Card>
 
-      <Card withBorder>
-        <Text fw={600} mb='xs'>Granted Content</Text>
-        <ScrollArea.Autosize mah={280}>
-          <Table>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Type</Table.Th>
-                <Table.Th>Label</Table.Th>
-                <Table.Th>Source</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {resolution.grants.features.map((item) => (
-                <Table.Tr key={`feature:${item.id}:${item.sourceLabel}`}>
-                  <Table.Td>Feature</Table.Td>
-                  <Table.Td>{item.label}</Table.Td>
-                  <Table.Td>{item.sourceLabel}</Table.Td>
-                </Table.Tr>
-              ))}
-              {resolution.grants.resources.map((item) => (
-                <Table.Tr key={`resource:${item.id}:${item.sourceLabel}`}>
-                  <Table.Td>Resource</Table.Td>
-                  <Table.Td>{item.label}</Table.Td>
-                  <Table.Td>{item.sourceLabel}</Table.Td>
-                </Table.Tr>
-              ))}
-              {resolution.grants.spellcasting.map((item) => (
-                <Table.Tr key={`spellcasting:${item.id}:${item.sourceLabel}`}>
-                  <Table.Td>Spellcasting</Table.Td>
-                  <Table.Td>{item.label}</Table.Td>
-                  <Table.Td>{item.sourceLabel}</Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-        </ScrollArea.Autosize>
-      </Card>
+        <Card radius='xl' p='xl' style={panelStyle}>
+          <Stack gap='lg'>
+            <Group gap='sm'>
+              <HeartPulse size={18} />
+              <Title order={3}>Resources and Spellcasting</Title>
+            </Group>
+
+            <Stack gap='sm'>
+              <Text fw={700} size='sm'>Tracked resources</Text>
+              {playState.resources?.length ? (
+                <Stack gap={6}>
+                  {playState.resources.map((resource) => (
+                    <Text key={resource.resourceGrantId} size='sm'>
+                      {resource.resourceGrantId}: {resource.used} used
+                    </Text>
+                  ))}
+                </Stack>
+              ) : (
+                <Text c='dimmed' size='sm'>No tracked resources yet.</Text>
+              )}
+            </Stack>
+
+            <Divider />
+
+            <Stack gap='sm'>
+              <Text fw={700} size='sm'>Spell access</Text>
+              <Text size='sm'>
+                Prepared spells: {preparedSpells.length}
+              </Text>
+              <Text size='sm'>
+                Learned spells: {learnedSpells.length}
+              </Text>
+              {resolution.grants.spellcasting.length ? (
+                <Stack gap={6}>
+                  {resolution.grants.spellcasting.map((item) => (
+                    <Text key={item.id} size='sm'>{item.label}</Text>
+                  ))}
+                </Stack>
+              ) : (
+                <Text c='dimmed' size='sm'>No spellcasting grants yet.</Text>
+              )}
+            </Stack>
+          </Stack>
+        </Card>
+      </SimpleGrid>
+
+      <SimpleGrid cols={{ base: 1, xl: 2 }} spacing='lg'>
+        <Card radius='xl' p='xl' style={panelStyle}>
+          <Stack gap='lg'>
+            <Group gap='sm'>
+              <Backpack size={18} />
+              <Title order={3}>Inventory and Equipment</Title>
+            </Group>
+            {inventory.length === 0 ? (
+              <Text c='dimmed' size='sm'>No inventory items yet.</Text>
+            ) : (
+              <Stack gap='sm'>
+                {inventory.map((item) => (
+                  <Card key={item.id} radius='lg' p='md' withBorder>
+                    <Group justify='space-between' align='flex-start'>
+                      <div>
+                        <Text fw={700} size='sm'>{item.customName || item.equipmentId}</Text>
+                        <Text size='sm' c='dimmed'>
+                          Quantity {item.quantity}
+                          {playState.equipment.equipped.includes(item.id) ? ' | Equipped' : ''}
+                          {playState.equipment.attuned.includes(item.id) ? ' | Attuned' : ''}
+                        </Text>
+                      </div>
+                    </Group>
+                  </Card>
+                ))}
+              </Stack>
+            )}
+          </Stack>
+        </Card>
+
+        <Card radius='xl' p='xl' style={panelStyle}>
+          <Stack gap='lg'>
+            <Group gap='sm'>
+              <Coins size={18} />
+              <Title order={3}>Currency and Roster</Title>
+            </Group>
+
+            <Stack gap='sm'>
+              <Text fw={700} size='sm'>Currency</Text>
+              {playState.currency.length === 0 ? (
+                <Text c='dimmed' size='sm'>No currency tracked yet.</Text>
+              ) : (
+                <Stack gap={6}>
+                  {playState.currency.map((group, index) => (
+                    <Text key={`${group.containerId ?? 'root'}:${index}`} size='sm'>
+                      {(group.containerId ?? 'On Character')}: {group.currencies.map((currency) => `${currency.amount} ${currency.currencyId}`).join(', ')}
+                    </Text>
+                  ))}
+                </Stack>
+              )}
+            </Stack>
+
+            <Divider />
+
+            <Stack gap='sm'>
+              <Text fw={700} size='sm'>Companions and mounts</Text>
+              {playState.creatures?.length ? (
+                <Stack gap={6}>
+                  {playState.creatures.map((creature) => (
+                    <Text key={creature.id} size='sm'>
+                      {creature.customName || creature.creatureId} ({creature.relationshipKind.toLowerCase()})
+                    </Text>
+                  ))}
+                </Stack>
+              ) : (
+                <Text c='dimmed' size='sm'>No companion or mount records yet.</Text>
+              )}
+            </Stack>
+
+            <Divider />
+
+            <Stack gap='sm'>
+              <Text fw={700} size='sm'>Vehicles</Text>
+              {playState.vehicles?.length ? (
+                <Stack gap={6}>
+                  {playState.vehicles.map((vehicle) => (
+                    <Text key={vehicle.id} size='sm'>
+                      {vehicle.customName || vehicle.vehicleId}
+                    </Text>
+                  ))}
+                </Stack>
+              ) : (
+                <Text c='dimmed' size='sm'>No vehicle records yet.</Text>
+              )}
+            </Stack>
+          </Stack>
+        </Card>
+      </SimpleGrid>
+
+      <SimpleGrid cols={{ base: 1, xl: 2 }} spacing='lg'>
+        <Card radius='xl' p='xl' style={panelStyle}>
+          <Stack gap='lg'>
+            <Group gap='sm'>
+              <ScrollText size={18} />
+              <Title order={3}>Class and Build Reference</Title>
+            </Group>
+            {classes.length === 0 ? (
+              <Text c='dimmed' size='sm'>No class selections yet.</Text>
+            ) : (
+              <Stack gap='sm'>
+                {classes.map((entry) => (
+                  <Card key={`${entry.classId}:${entry.classLevel}:${entry.subclassId ?? 'base'}`} radius='lg' p='md' withBorder>
+                    <Text fw={700} size='sm'>
+                      {entry.classLabel}
+                      {entry.subclassLabel ? ` / ${entry.subclassLabel}` : ''}
+                      {entry.specializationLabel ? ` / ${entry.specializationLabel}` : ''}
+                    </Text>
+                    <Text size='sm' c='dimmed'>
+                      Level {entry.classLevel}
+                    </Text>
+                    <Divider my='sm' />
+                    <Text size='sm' fw={700}>Features</Text>
+                    {renderLines(entry.featureLabels)}
+                    <Text size='sm' fw={700} mt='sm'>Resources</Text>
+                    {renderLines(entry.resourceLabels)}
+                    <Text size='sm' fw={700} mt='sm'>Spellcasting</Text>
+                    {renderLines(entry.spellcastingLabels)}
+                  </Card>
+                ))}
+              </Stack>
+            )}
+          </Stack>
+        </Card>
+
+        <Card radius='xl' p='xl' style={panelStyle}>
+          <Stack gap='lg'>
+            <Group gap='sm'>
+              <BookOpen size={18} />
+              <Title order={3}>Reference and Notes</Title>
+            </Group>
+
+            <Stack gap='sm'>
+              <Text fw={700} size='sm'>Personality and backstory</Text>
+              {renderLines([
+                character.profile.personalityTraits,
+                character.profile.ideals,
+                character.profile.bonds,
+                character.profile.flaws,
+                character.profile.backstory
+              ].filter((value): value is string => Boolean(value)))}
+            </Stack>
+
+            <Divider />
+
+            <Stack gap='sm'>
+              <Text fw={700} size='sm'>Campaign notes</Text>
+              {renderLines([
+                character.profile.organizations,
+                character.profile.allies,
+                character.profile.enemies,
+                character.profile.notes
+              ].filter((value): value is string => Boolean(value)))}
+            </Stack>
+          </Stack>
+        </Card>
+      </SimpleGrid>
     </Stack>
   )
 }

@@ -1,6 +1,5 @@
 import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
-import { getClassFn } from '@server/domains'
-import { getClassListFn } from '@server/domains'
+import { api } from '../../lib/api'
 
 const classsKeys = {
   all: ['classs'] as const,
@@ -11,7 +10,7 @@ const classsKeys = {
 export function getClassList() {
   return queryOptions({
     queryKey: classsKeys.lists(),
-    queryFn: async () => await getClassListFn()
+    queryFn: async () => await api.content.classes.list()
   })
 }
 
@@ -22,9 +21,7 @@ export function useGetClassList() {
 export function getClass(id: string) {
   return queryOptions({
     queryKey: classsKeys.single(id),
-    queryFn: async () => await getClassFn({
-      data: id
-    })
+    queryFn: async () => await api.content.classes.get(id)
   })
 }
 

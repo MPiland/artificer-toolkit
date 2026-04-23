@@ -1,6 +1,5 @@
 import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
-import { getFeatFn } from '@server/domains'
-import { getFeatListFn } from '@server/domains'
+import { api } from '../../lib/api'
 
 const featsKeys = {
   all: [
@@ -17,7 +16,7 @@ const featsKeys = {
 export function getFeatList() {
   return queryOptions({
     queryKey: featsKeys.lists(),
-    queryFn: async () => await getFeatListFn()
+    queryFn: async () => await api.content.feats.list()
   })
 }
 
@@ -28,9 +27,7 @@ export function useGetFeatList() {
 export function getFeat(id: string) {
   return queryOptions({
     queryKey: featsKeys.single(id),
-    queryFn: async () => await getFeatFn({
-      data: id
-    })
+    queryFn: async () => await api.content.feats.get(id)
   })
 }
 

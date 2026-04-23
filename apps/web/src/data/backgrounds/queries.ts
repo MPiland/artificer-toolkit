@@ -1,6 +1,5 @@
 import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
-import { getBackgroundFn } from '@server/domains'
-import { getBackgroundListFn } from '@server/domains'
+import { api } from '../../lib/api'
 
 const backgroundsKeys = {
   all: ['backgrounds'] as const,
@@ -11,7 +10,7 @@ const backgroundsKeys = {
 export function getBackgroundList() {
   return queryOptions({
     queryKey: backgroundsKeys.lists(),
-    queryFn: async () => await getBackgroundListFn()
+    queryFn: async () => await api.content.backgrounds.list()
   })
 }
 
@@ -22,9 +21,7 @@ export function useGetBackgroundList() {
 export function getBackground(id: string) {
   return queryOptions({
     queryKey: backgroundsKeys.single(id),
-    queryFn: async () => await getBackgroundFn({
-      data: id
-    })
+    queryFn: async () => await api.content.backgrounds.get(id)
   })
 }
 

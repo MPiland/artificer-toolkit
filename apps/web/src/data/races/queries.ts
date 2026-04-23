@@ -1,6 +1,5 @@
 import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
-import { getRaceFn } from '@server/domains'
-import { getRaceListFn } from '@server/domains'
+import { api } from '../../lib/api'
 
 const racesKeys = {
   all: [
@@ -17,7 +16,7 @@ const racesKeys = {
 export function getRaceList() {
   return queryOptions({
     queryKey: racesKeys.lists(),
-    queryFn: async () => await getRaceListFn()
+    queryFn: async () => await api.content.races.list()
   })
 }
 
@@ -28,9 +27,7 @@ export function useGetRaceList() {
 export function getRace(id: string) {
   return queryOptions({
     queryKey: racesKeys.single(id),
-    queryFn: async () => await getRaceFn({
-      data: id
-    })
+    queryFn: async () => await api.content.races.get(id)
   })
 }
 

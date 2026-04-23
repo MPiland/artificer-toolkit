@@ -116,13 +116,14 @@ export interface CharacterBuilderReadiness {
 }
 
 export type CharacterBuilderSectionId
-  = | 'HOME'
-    | 'SPECIES'
+  = | 'BASICS'
+    | 'RACE'
     | 'CLASSES'
     | 'BACKGROUND'
+    | 'DETAILS'
+    | 'NOTES'
     | 'ABILITIES'
     | 'EQUIPMENT'
-    | 'SELECTIONS'
     | 'REVIEW'
 
 export interface CharacterBuilderPreviewEntry {
@@ -406,10 +407,10 @@ export function resolveRecommendedCharacterBuilderSection(
   outstandingChoices: CharacterBuilderIssue[]
 ): CharacterBuilderSectionId {
   if (mode === 'edit' && character.status === AUTHORED_RECORD_STATUS.ACTIVE) {
-    return 'HOME'
+    return 'BASICS'
   }
 
-  if (!character.label.trim()) return 'HOME'
+  if (!character.label.trim()) return 'BASICS'
 
   if (
     !character.intent.race.raceId
@@ -421,7 +422,7 @@ export function resolveRecommendedCharacterBuilderSection(
     ])
     || hasOutstandingCode(outstandingChoices, ['ANCESTRY_SELECTION_REQUIRED'])
   ) {
-    return 'SPECIES'
+    return 'RACE'
   }
 
   if (
@@ -466,14 +467,14 @@ export function resolveRecommendedCharacterBuilderSection(
       'FEATURE_SELECTION_INCOMPLETE'
     ])
   ) {
-    return 'SELECTIONS'
+    return 'REVIEW'
   }
 
   if (validations.length > 0 || outstandingChoices.length > 0) {
     return 'REVIEW'
   }
 
-  return mode === 'edit' ? 'HOME' : 'REVIEW'
+  return mode === 'edit' ? 'BASICS' : 'REVIEW'
 }
 
 function buildAncestrySelectionLabel(
