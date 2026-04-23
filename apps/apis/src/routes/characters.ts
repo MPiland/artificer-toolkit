@@ -61,6 +61,13 @@ function extractId(req: Request): string {
   return segments[segments.length - 1]
 }
 
+function extractCharacterIdFromSheetRoute(req: Request): string {
+  const url = new URL(req.url)
+  const segments = url.pathname.split('/').filter(Boolean)
+  const sheetIdx = segments.lastIndexOf('sheet')
+  return sheetIdx > 0 ? segments[sheetIdx - 1] : extractId(req)
+}
+
 function stubRegistry(): CharacterAssemblyRegistry {
   return { features: {}, classes: {}, feats: {}, races: {}, equipment: {}, spells: {} }
 }
@@ -256,7 +263,7 @@ export const getCharacterSheet = handleRequest(
 
     return toCharacterSheetPayload(character, await resolveCharacterBuilder(db, character, 'edit'))
   },
-  (req: Request) => [extractId(req)] as [string]
+  (req: Request) => [extractCharacterIdFromSheetRoute(req)] as [string]
 )
 
 export const resolveCharacter = handleAuthoringRequest(
