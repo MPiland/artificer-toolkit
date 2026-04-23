@@ -1,54 +1,47 @@
-# Phase 9: Frontend Code — All Domains
+# Phase 9: Frontend Code - All Domains
 
-## Status: Not Started (blocked on Phase 8 Figma approval per domain)
+## Status: Ready for Implementation Planning
 
 ## Objective
 
-Implement all frontend screens as React components using the approved Figma designs from Phase 8 as the reference.
-
-## Deliverable
-
-Working React components wired to the REST API. No Figma work happens in this phase.
+Implement frontend screens from the locked Phase 8 Figma designs. Phase 9 should start from the checkpointed Figma file and the aligned character planning docs, not from older pre-checkpoint builder assumptions.
 
 ## Prerequisite
 
-Per domain: the corresponding Phase 8 Figma subplan must be approved before coding begins. Coding can start domain-by-domain as approvals land.
+- Phase 8 checkpoint committed
+- Shared Figma file treated as the visual source of truth
+- Per-domain code subplans written just before coding begins for that domain
 
-## Rule
+## Shared Figma File
 
-Per-domain code subplans (9.3 onward) are written just before coding begins for that domain — not all upfront.
+- [App Design v2](https://www.figma.com/design/go78XTRyvTifjh2HsA14qv/App-Design-v2)
 
----
+## Kickoff Order
 
-## Domain Subplans
+1. shared frontend foundation and shell patterns
+2. character builder
+3. character sheet
+4. the remaining authoring domains in implementation order
 
-| # | Domain | Figma reference | Code subplan | Status |
-|---|---|---|---|---|
-| 9.1 | Foundation & design system | PHASE_8_1_FIGMA_FOUNDATION_SUBPLAN.md | PHASE_9_1_CODE_FOUNDATION_SUBPLAN.md | Not started |
-| 9.2 | Spell | PHASE_8_2_FIGMA_SPELL_SUBPLAN.md | [PHASE_9_2_CODE_SPELL_SUBPLAN.md](PHASE_9_2_CODE_SPELL_SUBPLAN.md) | Not started |
-| 9.3 | Background | PHASE_8_3_FIGMA_BACKGROUND_SUBPLAN.md | PHASE_9_3_CODE_BACKGROUND_SUBPLAN.md | Not started |
-| 9.4 | Feat | PHASE_8_4_FIGMA_FEAT_SUBPLAN.md | PHASE_9_4_CODE_FEAT_SUBPLAN.md | Not started |
-| 9.5 | Features (standalone) | PHASE_8_5_FIGMA_FEATURES_SUBPLAN.md | PHASE_9_5_CODE_FEATURES_SUBPLAN.md | Not started |
-| 9.6 | Race | PHASE_8_6_FIGMA_RACE_SUBPLAN.md | PHASE_9_6_CODE_RACE_SUBPLAN.md | Not started |
-| 9.7 | Equipment | PHASE_8_7_FIGMA_EQUIPMENT_SUBPLAN.md | PHASE_9_7_CODE_EQUIPMENT_SUBPLAN.md | Not started |
-| 9.8 | Creature | PHASE_8_8_FIGMA_CREATURE_SUBPLAN.md | PHASE_9_8_CODE_CREATURE_SUBPLAN.md | Not started |
-| 9.9 | Vehicle | PHASE_8_9_FIGMA_VEHICLE_SUBPLAN.md | PHASE_9_9_CODE_VEHICLE_SUBPLAN.md | Not started |
-| 9.10 | Class | PHASE_8_10_FIGMA_CLASS_SUBPLAN.md | PHASE_9_10_CODE_CLASS_SUBPLAN.md | Not started |
-| 9.11 | Character Wizard | PHASE_8_11_FIGMA_CHARACTER_WIZARD_SUBPLAN.md | PHASE_9_11_CODE_CHARACTER_WIZARD_SUBPLAN.md | Not started |
-| 9.12 | Character Sheet | PHASE_8_12_FIGMA_CHARACTER_SHEET_SUBPLAN.md | PHASE_9_12_CODE_CHARACTER_SHEET_SUBPLAN.md | Not started |
+## Domain Planning Index
 
----
-
-## Stack
-
-- React 19, TanStack Router, TanStack Query
-- Mantine UI, Vanilla Extract CSS
-- Zustand form store (`useTypedFormStore`, `useFormField`, `useFieldUpdates`)
-- REST transport via `apps/web/src/lib/api.ts`
-- Zod schemas from `packages/schema`
+| Domain | Phase 8 reference | Current code-planning state |
+|---|---|---|
+| Foundation & design system | [PHASE_8_2_FIGMA_FOUNDATION_SUBPLAN.md](PHASE_8_2_FIGMA_FOUNDATION_SUBPLAN.md) | Write code subplan just before implementation |
+| Spell | [PHASE_8_3_FIGMA_SPELL_SUBPLAN.md](PHASE_8_3_FIGMA_SPELL_SUBPLAN.md) | Existing draft: [PHASE_9_3_CODE_SPELL_SUBPLAN.md](PHASE_9_3_CODE_SPELL_SUBPLAN.md) |
+| Background | [PHASE_8_4_FIGMA_BACKGROUND_SUBPLAN.md](PHASE_8_4_FIGMA_BACKGROUND_SUBPLAN.md) | Write code subplan just before implementation |
+| Feat | [PHASE_8_5_FIGMA_FEAT_SUBPLAN.md](PHASE_8_5_FIGMA_FEAT_SUBPLAN.md) | Write code subplan just before implementation |
+| Features (standalone) | [PHASE_8_6_FIGMA_FEATURES_SUBPLAN.md](PHASE_8_6_FIGMA_FEATURES_SUBPLAN.md) | Write code subplan just before implementation |
+| Race | [PHASE_8_7_FIGMA_RACE_SUBPLAN.md](PHASE_8_7_FIGMA_RACE_SUBPLAN.md) | Write code subplan just before implementation |
+| Equipment | [PHASE_8_8_FIGMA_EQUIPMENT_SUBPLAN.md](PHASE_8_8_FIGMA_EQUIPMENT_SUBPLAN.md) | Write code subplan just before implementation |
+| Creature | [PHASE_8_9_FIGMA_CREATURE_SUBPLAN.md](PHASE_8_9_FIGMA_CREATURE_SUBPLAN.md) | Write code subplan just before implementation |
+| Vehicle | [PHASE_8_10_FIGMA_VEHICLE_SUBPLAN.md](PHASE_8_10_FIGMA_VEHICLE_SUBPLAN.md) | Write code subplan just before implementation |
+| Class | [PHASE_8_11_FIGMA_CLASS_SUBPLAN.md](PHASE_8_11_FIGMA_CLASS_SUBPLAN.md) | Write code subplan just before implementation |
+| Character Builder | [PHASE_8_12_FIGMA_CHARACTER_WIZARD_SUBPLAN.md](PHASE_8_12_FIGMA_CHARACTER_WIZARD_SUBPLAN.md) | Write code subplan before implementation |
+| Character Sheet | [PHASE_8_13_FIGMA_CHARACTER_SHEET_SUBPLAN.md](PHASE_8_13_FIGMA_CHARACTER_SHEET_SUBPLAN.md) | Write code subplan before implementation |
 
 ## Rules
 
-- Do not write Figma work here — that is Phase 8
-- Do not modify domain models, DB schema, or API routes unless a blocker is found (log it, don't silently fix it)
-- Every screen implemented must have a corresponding approved Figma frame
+- Do not reintroduce removed builder concepts such as `Species`, global `Selections`, or generic builder status dashboards.
+- Implement the screens that were actually designed, not older placeholder subplans.
+- Keep frontend planning behavior-level and Figma-driven before committing to file-by-file implementation work.

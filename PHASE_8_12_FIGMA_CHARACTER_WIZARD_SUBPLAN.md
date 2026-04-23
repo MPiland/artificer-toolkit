@@ -1,160 +1,146 @@
-# Phase 8.10 - Figma: Character Builder
+# Phase 8.12 - Figma: Character Builder
+
+## Status: Designed in Figma / Ready for Phase 9 Planning
+
+## Figma Reference
+
+- [Characters page](https://www.figma.com/design/go78XTRyvTifjh2HsA14qv/App-Design-v2?node-id=4044-182)
 
 ## Objective
 
-Design the shared character builder that now powers both character creation and post-creation structural edits.
+Design the shared character builder for both creation and post-creation structural edits. The builder is modern, source-local, 2014-correct, and separate from the play-state sheet.
 
-The builder is not a final-submit-only wizard anymore. It is a screen-staged authored builder with explicit section saves, destructive-change previews, and a draft/active lifecycle.
+## Locked UX Decisions
 
-## Route Semantics
+- Use `Race`, never `Species`.
+- Keep source-local choices on the screen that grants them.
+- Do not use a standalone `Selections` screen.
+- Do not use persistent builder `Status` or `Edit Rules` panels.
+- Keep invalid multiclass class options visible but disabled before selection.
+- Use expandable class cards with contextual `Overview`, `Features`, and conditional `Spells`.
+- Keep review screens minimal and concrete.
+- Keep edit save preview as a plain-language consequence modal.
 
-The route structure stays the same:
+## Screen Set
 
-```text
-routes/_authed/
-  characters/
-    index.tsx
-    $characterId.tsx
-    $action/
-      $_characterId.tsx
-```
+### Creation flow
 
-Visible route behavior:
+1. `CC1 - Character Basics`
+2. `CC2 - Character Race`
+3. `CC3 - Character Classes`
+4. `CC4 - Character Background`
+5. `CC5 - Character Details`
+6. `CC6 - Character Personality & Notes`
+7. `CC7 - Character Abilities & Hit Points`
+8. `CC8 - Character Equipment & Currency`
+9. `CC9 - Character Review`
 
-- `/characters/new[/id]`
-  - creation draft flow
-  - opening the builder does not persist anything
-  - the first successful section save creates or resumes a persisted `DRAFT`
-  - finalizing promotes the character to `ACTIVE`
-- `/characters/edit/:id`
-  - post-creation structural edit flow for an existing character
-  - uses the same builder screens and backend semantics as creation
-- `/characters/:id`
-  - character sheet / read-play surface
-  - drafts stay visible here with warnings
+### Structural edit flow
 
-## Builder Contract
+1. `EC1 - Edit Character Basics`
+2. `EC2 - Edit Character Race`
+3. `EC3 - Edit Character Classes`
+4. `EC4 - Edit Character Background`
+5. `EC5 - Edit Character Details`
+6. `EC6 - Edit Character Personality & Notes`
+7. `EC7 - Edit Character Abilities & Hit Points`
+8. `EC8 - Edit Character Equipment Choices`
+9. `EC9 - Edit Character Review`
+10. `EC10 - Edit Save Preview`
 
-The builder is shared between create and edit. We do not maintain a separate inline edit product.
+## Screen Contracts
 
-Core UX rules:
+### Basics
 
-- each screen keeps local staged changes
-- each screen has `Save Section` and `Reset Section`
-- no per-field autosave
-- saves that would remove dependent choices or downgrade `ACTIVE -> DRAFT` must show a preview before persisting
-- obvious source-local choices stay on their source screens
-- unresolved or deferred choices collect in `Selections`
-
-## Builder Screens
-
-1. `Home`
 - `Name`
 - concept `Description`
 - `Advancement Method`
 
-2. `Species`
+### Race
+
 - `Race`
-- `Subrace`
-- ancestry selections
-- resolved species summary
+- conditional `Subrace`
+- inline ancestry choices
+- read-only granted and inherited summary
 
-3. `Classes`
-- class rows
-- class level per row
-- subclass selection
-- specialization selection
-- multiclass validation summary
+### Classes
 
-4. `Background`
+- prominent add-class chooser
+- invalid multiclass options shown but disabled with prerequisite helper copy
+- selected classes rendered as expandable cards
+- each class card shows class identity, level, subclass, specialization, and remove action
+- each class card supports:
+  - `Overview`
+  - `Features`
+  - `Spells` when the class can cast at the chosen level
+
+### Background
+
 - `Background`
-- profile subgroups:
-  - character details
-  - physical characteristics
-  - personal characteristics
-  - other notes
+- background-owned choices stay on this screen
+- granted summary stays on this screen
 
-5. `Abilities & HP`
+### Details
+
+- alignment
+- lifestyle
+- faith
+- gender
+- age
+- eyes / hair / skin / height / weight
+- physical characteristics
+
+### Personality & Notes
+
+- personality traits
+- ideals
+- bonds
+- flaws
+- organizations
+- allies
+- enemies
+- backstory
+- notes
+
+### Abilities & Hit Points
+
 - ability generation method
-- assignments / rolled provenance
-- hit point method
-- per-level HP entries
+- method-specific assignment UI
+- roll provenance summary
+- HP method
+- per-level HP entries for higher-level starts
 
-6. `Equipment`
-- starting-equipment intent
-- create flow may include initial inventory/currency seeding
-- edit flow should not own ongoing inventory/currency management
+### Equipment & Currency
 
-7. `Selections`
-- unresolved feature choices
-- spell choices
-- proficiency or expertise choices
-- ancestry choices not already resolved inline
+- class starting-equipment choices
+- background starting-equipment choices
+- manual inventory seed rows
+- manual currency seed rows
 
-8. `Review`
-- readiness summary
-- blocking validations
-- finalization action
+### Review
 
-## Draft / Active Lifecycle
+- concrete missing items only
+- no abstract readiness dashboard
+- no global choice-cleanup surface
+- finalize / save action
 
-- new user-authored characters begin as `DRAFT`
-- section saves persist draft progress
-- `Finalize Character` promotes to `ACTIVE` only when readiness passes
-- editing an `ACTIVE` character into an invalid or incomplete state drops it back to `DRAFT`
-- resolving blockers and finalizing again restores `ACTIVE`
+### Edit Save Preview
 
-## Destructive Save Preview
-
-Before a section save persists, the client performs a dry-run preview when needed.
-
-Preview-worthy changes include:
-
-- removed ancestry selections
-- removed feature acquisitions
-- removed option-derived acquisitions
-- removed spell selections
-- removed resource grants
-- cleared starting-equipment intent for changed sources
-- status downgrade from `ACTIVE` to `DRAFT`
-
-If no destructive changes are predicted, the section save can continue immediately.
+- removed downstream choices
+- cleared starting-equipment intent
+- next-step guidance in plain language
 
 ## Ownership Split
 
-Builder-owned structural choices:
-
-- species
-- classes / subclass / specialization
-- background
-- ability method and assignments
-- HP intent
-- starting-equipment intent
-- explicit feature / spell / resource selections
-- profile fields
-
-Sheet or play-surface-owned mutable state:
-
-- inventory changes
-- currency changes
-- HP and resource tracking
-- equipped / attuned state
-
-## What This Replaced
-
-This document supersedes the older assumptions that:
-
-- creation only persists on a final submit
-- edit mode is primarily an inline accordion
-- editing should dispatch granular command diffs from a final review submit
-
-The current builder is section-staged and backed by authored upsert plus reconciliation semantics.
+- Structural build choices belong in the builder.
+- Play-state interactions belong on the character sheet.
+- The builder is the place for class, race, background, HP intent, equipment intent, and profile edits.
+- The sheet is the place for inventory management, spell use, attunement, equipped state, and resource tracking.
 
 ## Exit Criteria
 
-- `/characters/new[/id]` stays in the create flow until finalization
-- `/characters/edit/:id` uses the same builder with edit semantics
-- drafts remain visible and resumable
-- destructive saves show a preview before persisting
-- finalization promotes to `ACTIVE` and returns to the sheet
-- the builder no longer depends on final-submit-only wizard assumptions
+- No user-facing `Species` wording remains.
+- No standalone `Selections` screen remains.
+- Class choices, feature picks, and spell picks are handled in source context.
+- Review screens show concrete completion issues instead of generic status panels.
+- The builder can be implemented without reintroducing older wizard-era assumptions.

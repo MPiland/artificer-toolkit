@@ -1,91 +1,125 @@
-# Phase 8.11 - Figma: Character Sheet
+# Phase 8.13 - Figma: Character Sheet
+
+## Status: Designed in Figma / Ready for Phase 9 Planning
+
+## Figma Reference
+
+- [Characters page](https://www.figma.com/design/go78XTRyvTifjh2HsA14qv/App-Design-v2?node-id=4044-182)
 
 ## Objective
 
-Design the character sheet as a separate read/play surface from the structural builder.
+Design the responsive character sheet as the read and play surface. Structural edits belong in the builder; the sheet is where players read the character, manage play-state, and interact with the most common at-table controls.
 
-The sheet is not the primary place for structural edits. Structural changes belong in the builder. The sheet remains visible for both `ACTIVE` and `DRAFT` characters.
+## Locked UX Decisions
 
-## Route Semantics
+- The sheet is separate from the structural builder.
+- Structural edits happen through `Edit Character`, not inline across the sheet.
+- High-frequency play actions stay on the sheet:
+  - actions
+  - spells
+  - inventory
+  - resources
+  - equip / attune
+  - currency
+- Dense areas use filters, chips, and progressive disclosure instead of flat long lists.
+- Builder-style starting-equipment semantics do not appear on the sheet.
 
-```text
-routes/_authed/
-  characters/
-    $characterId.tsx
-```
+## Screen Set
 
-The sheet should support two states:
+### Desktop sheet screens
 
-- `ACTIVE`
-  - normal read/play presentation
-  - primary CTA: `Edit Character`
-- `DRAFT`
-  - still readable
-  - prominent warning banner
-  - readiness and unresolved-choice summary
-  - primary CTA: `Continue Draft`
+1. `CS1 - Character Sheet Overview`
+2. `CS2 - Character Sheet Actions`
+3. `CS3 - Character Sheet Resources`
+4. `CS4 - Character Sheet Spells`
+5. `CS5 - Character Sheet Inventory`
+6. `CS6 - Character Sheet Reference`
+7. `CS7 - Character Sheet Background & Notes`
 
-## UX Contract
+### Mobile sheet states
 
-The character sheet is separate from the builder:
+1. `CM1 - Mobile Character Sheet Overview`
+2. `CM2 - Mobile Character Sheet Inventory & Spells`
 
-- structural build edits happen in `/characters/new[/id]` or `/characters/edit/:id`
-- the sheet remains the place for reading the build and, later, managing play-state updates
-- drafts are not hidden or redirected away from the sheet
+## Surface Contracts
 
-## Core Surfaces
+### Overview
 
-1. Header
-- character name
-- short concept or description
-- draft or active badge
-- level summary
-- readiness badge
-- primary CTA based on status
+- name
+- concept / short description
+- class and level summary
+- race and background summary
+- portrait surface
+- short rest / long rest entry points
+- `Edit Character`
+- core stats snapshot
 
-2. Build Summary
-- species summary
+### Actions
+
+- filtered views for:
+  - `Actions`
+  - `Bonus Actions`
+  - `Reactions`
+  - `Other`
+- weapon attacks
+- spell attacks
+- action-granting features
+
+### Resources
+
+- limited-use class, race, and feat resources
+- recovery context tied to rest cadence
+- hit dice as a tracked resource
+
+### Spells
+
+- spell save DC
+- spell attack
+- prepared / granted / cantrip organization
+- slot tracking
+- spell filtering
+- sheet-side spell management emphasis, not spell browser semantics
+
+### Inventory
+
+- carried gear
+- notable possessions
+- currency
+- add item
+- remove item
+- equip / unequip
+- attune / unattune
+- quantity-visible item management
+
+### Reference
+
+- defenses
+- traits / features reference
+- proficiencies / languages / training
+
+### Background & Notes
+
 - background summary
-- classes summary
-- granted content summary
+- alignment
+- lifestyle
+- backstory
+- notes
+- personality traits
+- ideals
+- bonds
+- flaws
+- allies / enemies
+- organizations
 
-3. Draft Warning State
-- visible only for `DRAFT`
-- explains that the build is incomplete
-- shows blocking issue count and required outstanding-choice count
-- links back to `Continue Draft`
+## Implementation Guidance
 
-4. Outstanding Choices / Validations
-- unresolved builder choices remain visible on the sheet
-- blocking validations remain visible on the sheet
-
-5. Later Play-State Surfaces
-These belong to the sheet or play phase, not the structural builder:
-
-- inventory management
-- currency management
-- equipped / attuned state
-- HP and resource tracking
-
-Those surfaces may be incomplete in the current implementation, but this is still their ownership boundary.
-
-## What This Replaced
-
-This document supersedes the older assumptions that:
-
-- the sheet is driven only by a separate engine-output route contract
-- draft characters should be blocked from the sheet
-- inline sheet editing is the primary post-creation edit UX
-
-The current product direction is:
-
-- sheet = read/play surface
-- builder = structural edit surface
-- drafts remain visible with warnings
+- Use the sheet as the source of truth for play-state interaction surfaces.
+- Keep class/build ownership out of the sheet except for summary and navigation back to `Edit Character`.
+- Desktop and mobile layouts should preserve the same information architecture even when the presentation condenses.
 
 ## Exit Criteria
 
-- `DRAFT` and `ACTIVE` characters are both readable on the sheet
-- draft sheet state shows a clear warning banner and unresolved summary
-- primary CTA is `Continue Draft` for drafts and `Edit Character` for active characters
-- the sheet no longer assumes inline structural editing as the main edit workflow
+- The sheet clearly separates play-state interaction from structural editing.
+- Actions, spells, inventory, resources, and reference surfaces all exist in Figma.
+- Desktop and mobile states both exist for the sheet.
+- The sheet no longer depends on earlier builder-summary or inline-edit assumptions.

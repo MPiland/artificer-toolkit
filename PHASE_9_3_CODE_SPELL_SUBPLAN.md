@@ -1,14 +1,14 @@
-# Phase 9.3 — Code: Spell Form
+# Phase 9.3 - Code: Spell Form
 
-## Status: Not Started (blocked on PHASE_8_2_FIGMA_SPELL_SUBPLAN.md approval)
+## Status: Not Started (blocked on PHASE_8_3_FIGMA_SPELL_SUBPLAN.md approval)
 
 ## Prerequisite
 
-All 14 Figma screens in [PHASE_8_2_FIGMA_SPELL_SUBPLAN.md](PHASE_8_2_FIGMA_SPELL_SUBPLAN.md) must be reviewed and approved before coding begins.
+All approved spell screens in [PHASE_8_3_FIGMA_SPELL_SUBPLAN.md](PHASE_8_3_FIGMA_SPELL_SUBPLAN.md) must be treated as the frontend source of truth before coding begins.
 
-## Figma reference
+## Figma Reference
 
-_Link to approved Figma file to be added here once Phase 8.2 is approved._
+- [App Design v2](https://www.figma.com/design/go78XTRyvTifjh2HsA14qv/App-Design-v2)
 
 ---
 
@@ -50,22 +50,21 @@ apps/web/src/domains/spells/
 
 ## Store / State Changes Required
 
-The existing form store (`useFormStore`, `useTypedFormStore`) manages `editing` meta with indices for features, options, ancestry options, etc. The following additions are needed:
+The existing form store (`useFormStore`, `useTypedFormStore`) manages `editing` meta with indices for features, options, ancestry options, and similar nested builders. The following additions are needed:
 
 ```typescript
 // apps/web/src/store/formStore.ts
-// Add to editing meta:
 editing: {
-  featureIndex: number | null         // existing
-  sectionIndex: number | null         // existing
-  optionIndex: number | null          // existing
-  ancestryOptionIndex: number | null  // existing
-  capabilityIndex: number | null      // NEW — which capability is being edited in EffectEditor
-  manifestCapabilityIndex: number | null  // NEW — nested capability within a Manifest outcome
+  featureIndex: number | null
+  sectionIndex: number | null
+  optionIndex: number | null
+  ancestryOptionIndex: number | null
+  capabilityIndex: number | null
+  manifestCapabilityIndex: number | null
 }
 ```
 
-The `<Header>` component already checks `steps.length > 1` to render `<Stepper>`. It must additionally check `capabilityIndex !== null` and hide the `<Stepper>` when the Effect Editor is active.
+The header should hide the stepper whenever the full effect editor is active.
 
 ---
 
@@ -97,94 +96,51 @@ The `<Header>` component already checks `steps.length > 1` to render `<Stepper>`
 
 ## Implementation Steps
 
-### Phase A — Foundation
+### Phase A - Foundation
 
-- [ ] A1. Audit `SpellInput` / `SpellAuthored` alignment — confirm form store type uses `SpellAuthored` directly (no legacy fields: duration, range, shape, damage, upcast at spell level).
-- [ ] A2. Confirm `capabilityAuthoredDtoSchema` exists in `packages/schema` and covers all 8 `OutcomeAuthored` types.
-- [ ] A3. Add `capabilityIndex: number | null` and `manifestCapabilityIndex: number | null` to `editing` meta in `formStore.ts`.
-- [ ] A4. Update `<Header>` to hide `<Stepper>` when `capabilityIndex !== null`.
+- [ ] Audit `SpellInput` / `SpellAuthored` alignment and remove legacy spell-form assumptions.
+- [ ] Confirm capability DTO coverage for the full effect-editor surface.
+- [ ] Add `capabilityIndex` and `manifestCapabilityIndex` to editing meta.
+- [ ] Hide the stepper while the full effect editor is active.
 
-### Phase B — Parent Spell Form
+### Phase B - Parent Spell Form
 
-- [ ] B1. Archive legacy `steps/Attributes.tsx` (legacy step with incorrect spell-level fields).
-- [ ] B2. Create `Basics.tsx` — Step 1: label, level, magicSchoolId, classIds, description.
-- [ ] B3. Create `CastingAndTraits.tsx` — Step 2: castingTime (unit + amount), attributes multiselect, components multiselect, materialDescription conditional on MATERIAL.
-- [ ] B4. Create `Effects.tsx` — Step 3: empty state + populated summary card list.
-- [ ] B5. Update `SpellForm.tsx` to define 3 steps: basics / casting / effects, typed to `SpellAuthored`.
+- [ ] Replace legacy spell steps with `Basics`, `CastingAndTraits`, and `Effects`.
+- [ ] Align these steps to the approved Phase 8 spell screens.
+- [ ] Keep the form typed directly to `SpellAuthored`.
 
-### Phase C — Capability Summary Card
+### Phase C - Capability Summary
 
-- [ ] C1. Create `CapabilitySummaryCard.tsx`: trigger label, path summaries, outcome counts, Edit / Remove / drag-handle affordances.
-- [ ] C2. Wire drag-and-drop reorder in `Effects.tsx` using `@dnd-kit`.
-- [ ] C3. Wire "Add Effect" to set `capabilityIndex` to a new empty capability.
+- [ ] Build the capability summary list used by the `Effects` step.
+- [ ] Support add, edit, remove, and reorder.
 
-### Phase D — Effect Editor Shell
+### Phase D - Effect Editor Shell
 
-- [ ] D1. Create `EffectEditor.tsx`: renders when `capabilityIndex !== null`, breadcrumb, close button, rail, content area, sticky Save / Cancel footer.
-- [ ] D2. Create `EffectEditorRail.tsx`: Setup item + Outcome Paths header + trigger-derived path items.
+- [ ] Build the full editor shell with rail, section navigation, and save/cancel controls.
+- [ ] Support setup plus path-specific editing states.
 
-### Phase E — Setup Section
+### Phase E - Outcomes
 
-- [ ] E1. Create `EffectEditorSetup.tsx`: trigger, activation, range (with DISTANCE conditional), shape (with type-specific measurement pairs), targeting, saving throw conditional section.
-- [ ] E2. Trigger change re-derives path items in rail.
+- [ ] Implement all outcome editors required by the effect model.
+- [ ] Keep scaling and nested manifest behaviors aligned to the approved effect-editor design.
 
-### Phase F — Outcome Paths Section
+### Phase F - Save / Load Wiring
 
-- [ ] F1. Create `EffectEditorOutcomePaths.tsx`: per-path shared fields (groupType, originKind, rangeOverride, targetingOverride, resolutionKind toggle).
-- [ ] F2. Create `DirectPath.tsx`: duration, lifecycle (collapsible), outcomes list.
-- [ ] F3. Create `RollTablePath.tsx`: dieConfig, rollTableKind toggle, row list (Range/Exact).
-- [ ] F4. SEQUENTIAL path: visible outcome ordering + reorder affordances.
+- [ ] Save full capability arrays through spell create/update.
+- [ ] Load existing spells back into the spell form and effect editor correctly.
+- [ ] Invalidate caches after create/update.
 
-### Phase G — Outcomes Editor
+### Phase G - Polish
 
-- [ ] G1. Create `OutcomeEditor.tsx`: type picker dropdown, delegates to type components.
-- [ ] G2. Create `DamageOutcome.tsx`: damageTypeId, valueKind, value, multiplier, amountKind, bonuses.
-- [ ] G3. Create `ScalingBreakpointTable.tsx` + `ScalingBreakpointRow.tsx`: explicit per-level breakpoint rows.
-- [ ] G4. Wire scaling into `DamageOutcome.tsx` and `HealOutcome.tsx`.
-- [ ] G5. Create `HealOutcome.tsx`: temporary, valueKind, value, bonuses, scaling.
-- [ ] G6. Create `ConditionOutcome.tsx`: conditionId dropdown.
-- [ ] G7. Create `ApplyGrantOutcome.tsx`: modifiers / proficiencies / senses / spells collapsible sub-sections.
-- [ ] G8. Create `ForcedMovementOutcome.tsx`: direction, actionEconomy, distanceMode, conditional distance.
-- [ ] G9. Create `TeleportOutcome.tsx`: targetKind, destinationKind, optional distance.
-- [ ] G10. Create `ManifestOutcome.tsx`: manifestKind, shape, creatureId picker, nested capabilities mini-list ("Add Behavior" re-enters editor with `manifestCapabilityIndex`, breadcrumb deepened, MANIFEST excluded).
-- [ ] G11. Create `RuleOutcome.tsx`: static informational message only.
-
-### Phase H — Save / Load Wiring
-
-- [ ] H1. "Save Effect" writes capability back to `capabilities[]` at `capabilityIndex` (or appends if new).
-- [ ] H2. Validate capability before save (trigger + range required at minimum).
-- [ ] H3. "Cancel" resets in-progress edits and clears `capabilityIndex`.
-- [ ] H4. Parent form "Submit" includes full `capabilities[]` in payload.
-- [ ] H5. Load existing spell: populate `capabilities[]` from API response into form store.
-
-### Phase I — API Integration
-
-- [ ] I1. Confirm `apps/apis` spell routes handle `capabilities[]` in create/update payload.
-- [ ] I2. Wire spell list page to API.
-- [ ] I3. Wire spell detail page to API.
-- [ ] I4. Wire create to `POST /spells`, edit to `PUT /spells/:id`.
-- [ ] I5. Invalidate React Query cache on create/update.
-
-### Phase J — Polish
-
-- [ ] J1. Dirty-check guard on Effect Editor close.
-- [ ] J2. Empty path state: clean display when a path has no outcomes yet.
-- [ ] J3. Capability reorder: write updated `order` values after drag.
-- [ ] J4. Outcome reorder in SEQUENTIAL paths.
-- [ ] J5. Mobile responsiveness at 375px.
-- [ ] J6. Validation error display: field-level in Setup, path-level in Outcome Paths.
+- [ ] Mobile layout at 375px matches the approved Figma screens.
+- [ ] Validation and empty states match the Figma behavior.
+- [ ] Reorder and nested manifest editing flows are stable.
 
 ---
 
 ## Exit Criteria
 
-- [ ] Can create a new spell with 0 capabilities and submit successfully
-- [ ] Can add an Effect with trigger + range + at least one branch with one outcome and save it
-- [ ] SAVING_THROW trigger: saving throw section appears, ON_SAVE_FAIL + ON_SAVE_SUCCESS in rail
-- [ ] Attack trigger: ON_ATTACK + ON_HIT + ON_MISS + ON_CRIT in rail
-- [ ] SEQUENTIAL outcomes: ordering and reorder affordances visible
-- [ ] Roll table path: die config + rows (Range and Exact) author correctly
-- [ ] Manifest outcome: nested behaviors re-enter the editor with deepened breadcrumb, MANIFEST excluded
-- [ ] Damage + Heal: per-level scaling breakpoint rows save and load correctly
-- [ ] Edit spell: loads existing capabilities from API, re-opens in Effect Editor correctly
-- [ ] Mobile (375px) and desktop (1280px) layouts match Figma
+- [ ] A spell can be created and edited using the approved three-step form.
+- [ ] Effects can be added, edited, removed, and reordered.
+- [ ] Saving-throw, attack, sequential, roll-table, and manifest flows all behave correctly.
+- [ ] The spell form no longer depends on stale pre-checkpoint planning language.
