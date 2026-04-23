@@ -27,13 +27,33 @@ function getRequestedProjects(argv: string[]) {
       continue
     }
 
-    if (arg === '--project' && argv[index + 1]) {
-      requestedProjects.add(argv[index + 1])
-      index += 1
+    if (arg === '--project') {
+      while (argv[index + 1] && !argv[index + 1].startsWith('-')) {
+        requestedProjects.add(argv[index + 1])
+        index += 1
+      }
     }
   }
 
   return requestedProjects
+}
+
+function escapeRegex(value: string) {
+  return value.replace(/[|\\{}()[\]^$+?.]/g, '\\$&')
+}
+
+function matchesProjectSelection(projectName: string, requestedProjects: Set<string>) {
+  for (const projectPattern of requestedProjects) {
+    const matcher = new RegExp(
+      `^${escapeRegex(projectPattern).replace(/\\\*/g, '.*').replace(/\\\?/g, '.')}$`
+    )
+
+    if (matcher.test(projectName)) {
+      return true
+    }
+  }
+
+  return false
 }
 
 function getScopedWebServers() {
@@ -44,8 +64,8 @@ function getScopedWebServers() {
   }
 
   return [
-    requestedProjects.has('app') ? appWebServer : null,
-    requestedProjects.has('storybook') ? storybookWebServer : null
+    matchesProjectSelection('app', requestedProjects) ? appWebServer : null,
+    matchesProjectSelection('storybook', requestedProjects) ? storybookWebServer : null
   ].filter((server): server is typeof appWebServer | typeof storybookWebServer => Boolean(server))
 }
 
