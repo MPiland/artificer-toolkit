@@ -18,8 +18,8 @@ export default defineConfig({
     }),
     tanstackStart({
       router: {
-        routesDirectory: 'app/routes',
-        generatedRouteTree: 'app/routeTree.gen.ts'
+        routesDirectory: 'routes',
+        generatedRouteTree: 'routeTree.gen.ts'
       }
     }),
     viteReact()

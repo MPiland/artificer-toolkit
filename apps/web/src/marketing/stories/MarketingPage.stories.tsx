@@ -1,0 +1,44 @@
+import type { Meta, StoryObj } from '@storybook/react-vite'
+import {
+  MarketingFeatureSection,
+  MarketingFooter,
+  MarketingHeader,
+  MarketingHero,
+  MarketingPricingSection
+} from '../components'
+import { MarketingPage } from '../pages'
+
+const meta = {
+  title: 'Guest/Marketing',
+  parameters: {
+    layout: 'fullscreen'
+  }
+} satisfies Meta
+
+export default meta
+
+type Story = StoryObj<typeof meta>
+
+export const Page: Story = {
+  render: () => <MarketingPage />
+}
+
+export const Header: Story = {
+  render: () => <MarketingHeader />
+}
+
+export const Hero: Story = {
+  render: () => <MarketingHero />
+}
+
+export const Features: Story = {
+  render: () => <MarketingFeatureSection />
+}
+
+export const Pricing: Story = {
+  render: () => <MarketingPricingSection />
+}
+
+export const Footer: Story = {
+  render: () => <MarketingFooter />
+}

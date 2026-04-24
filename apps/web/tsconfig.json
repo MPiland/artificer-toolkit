@@ -7,23 +7,8 @@
       "DOM.Iterable"
     ],
     "paths": {
-      "#app/auth/AuthForms": [
-        "./src/app/auth/AuthForms.tsx"
-      ],
-      "#app/providers/AppProviders": [
-        "./src/app/providers/AppProviders.tsx"
-      ],
-      "#app/query/createAppQueryClient": [
-        "./src/app/query/createAppQueryClient.ts"
-      ],
-      "#app/routeStates": [
-        "./src/app/routeStates.tsx"
-      ],
-      "#app/shell": [
-        "./src/app/shell/index.ts"
-      ],
       "#app/*": [
-        "./src/app/*"
+        "./src/*"
       ],
       "#css/foundations.css": [
         "./src/css/foundations.css.ts"
@@ -92,7 +77,9 @@
     "allowImportingTsExtensions": true,
     "jsx": "react-jsx",
     "types": [
-      "vite/client"
+      "vite/client",
+      "vitest/globals",
+      "@testing-library/jest-dom"
     ],
     "noEmit": true,
     "useDefineForClassFields": true,
@@ -100,6 +87,7 @@
     "moduleResolution": "bundler"
   },
   "include": [
+    ".storybook/**/*",
     "src",
     "vite.config.ts",
     "vite-env.d.ts"

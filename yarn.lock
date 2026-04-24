@@ -94,6 +94,7 @@ __metadata:
     "@react-three/fiber": "npm:^9.5.0"
     "@react-three/rapier": "npm:^2.2.0"
     "@storybook/addon-a11y": "npm:^10.3.5"
+    "@storybook/addon-themes": "npm:^10.3.5"
     "@storybook/react-vite": "npm:^10.3.5"
     "@supabase/auth-ui-react": "npm:^0.4.7"
     "@supabase/auth-ui-shared": "npm:^0.1.8"
@@ -139,8 +140,8 @@ __metadata:
     jsdom: "npm:^27.0.1"
     lodash-es: "npm:^4.17.23"
     lucide-react: "npm:^0.575.0"
-    msw: "npm:^2.11.2"
-    msw-storybook-addon: "npm:^2.0.6"
+    msw: "npm:^2.13.5"
+    msw-storybook-addon: "npm:^2.0.7"
     playwright: "npm:^1.59.1"
     postcss: "npm:^8.5.6"
     postcss-preset-mantine: "npm:^1.18.0"
@@ -2731,6 +2732,17 @@ __metadata:
   peerDependencies:
     storybook: ^10.3.5
   checksum: 10c0/e12228948d85cea75014f8d81c94cabf9ab73614d4d3ecae3064013d4dbc7d25f1e3a10306f613db0c508a098a376b1dc2113aa57afb3fd196b22ae613776943
+  languageName: node
+  linkType: hard
+
+"@storybook/addon-themes@npm:^10.3.5":
+  version: 10.3.5
+  resolution: "@storybook/addon-themes@npm:10.3.5"
+  dependencies:
+    ts-dedent: "npm:^2.0.0"
+  peerDependencies:
+    storybook: ^10.3.5
+  checksum: 10c0/fef56bb9c6d45fea53f4a5f0d209a7ba77a16f2b6665f38526e20bc50b755fbf3976f87848c85955e86828ec1a02762ac9b82c275f7f69b14b22b8fc8913eb60
   languageName: node
   linkType: hard
 
@@ -7758,7 +7770,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"msw-storybook-addon@npm:^2.0.6":
+"msw-storybook-addon@npm:^2.0.7":
   version: 2.0.7
   resolution: "msw-storybook-addon@npm:2.0.7"
   dependencies:
@@ -7769,7 +7781,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"msw@npm:^2.11.2":
+"msw@npm:^2.13.5":
   version: 2.13.5
   resolution: "msw@npm:2.13.5"
   dependencies:

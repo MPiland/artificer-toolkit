@@ -55,10 +55,10 @@ const Header = ({
             </Group>
             <Group className={right_group}>
               <SchemeToggle onClick={toggleColorScheme} />
-              <Link to={'/login'} variant='default'>
-                Login
+              <Link to={'/sign-in'} variant='default'>
+                Sign in
               </Link>
-              <Link to={'/register'}>Sign up</Link>
+              <Link to={'/sign-up'}>Sign up</Link>
             </Group>
           </>
         )}

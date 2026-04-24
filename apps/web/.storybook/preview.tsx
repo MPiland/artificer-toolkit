@@ -14,22 +14,45 @@ initialize({
 
 const preview: Preview = {
   decorators: [
-    (Story) => (
-      <TestRouterProvider>
+    (Story, context) => (
+      <TestRouterProvider defaultColorScheme={context.globals.theme === 'light' ? 'light' : 'dark'}>
         <Story />
       </TestRouterProvider>
     )
   ],
-  loaders: [
-    mswLoader
-  ],
+  loaders: [mswLoader],
+  globalTypes: {
+    theme: {
+      name: 'Theme',
+      description: 'Mantine color scheme',
+      defaultValue: 'dark',
+      toolbar: {
+        icon: 'mirror',
+        items: [
+          { value: 'light', title: 'Light' },
+          { value: 'dark', title: 'Dark' }
+        ],
+        dynamicTitle: true
+      }
+    }
+  },
   parameters: {
     layout: 'fullscreen',
+    backgrounds: {
+      disable: true
+    },
     controls: {
       expanded: true
     },
     msw: {
       handlers
+    },
+    options: {
+      showPanel: false,
+      storySort: {
+        method: 'alphabetical',
+        locales: 'en-US'
+      }
     }
   }
 }

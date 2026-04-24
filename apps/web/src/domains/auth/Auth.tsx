@@ -26,7 +26,7 @@ const modeConfig: Record<AuthMode, { title: string; subtitle: ReactNode; submitL
     subtitle: (
       <>
         Sign in to continue your work. New here?{' '}
-        <Link to='/signup' className={authLink}>
+        <Link to='/sign-up' className={authLink}>
           Create an account
         </Link>
         .
@@ -39,7 +39,7 @@ const modeConfig: Record<AuthMode, { title: string; subtitle: ReactNode; submitL
     subtitle: (
       <>
         Set up your workspace and start building. Already have one?{' '}
-        <Link to='/login' className={authLink}>
+        <Link to='/sign-in' className={authLink}>
           Sign in
         </Link>
         .

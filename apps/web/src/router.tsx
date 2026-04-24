@@ -1,5 +1,5 @@
 import { createRouter } from '@tanstack/react-router'
-import { routeTree } from './app/routeTree.gen'
+import { routeTree } from './routeTree.gen'
 import { setupRouterSsrQueryIntegration } from '@tanstack/react-router-ssr-query'
 import type { User } from '@supabase/supabase-js'
 import { createAppQueryClient } from '#app/query/createAppQueryClient'
