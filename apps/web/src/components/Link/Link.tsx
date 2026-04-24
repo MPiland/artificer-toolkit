@@ -7,7 +7,7 @@ import {
   Anchor,
   type AnchorProps,
   Alert,
-  type AlertProps,
+  type AlertProps
 } from '@mantine/core'
 import type { AnchorHTMLAttributes, Ref, ReactNode } from 'react'
 
@@ -18,27 +18,28 @@ type LinkBaseProps = {
   type?: 'styled' | 'unstyled' | 'anchor' | 'alert'
   to: ToOptions['to']
   params?: NavigateOptions['params']
-} & LinkComponentProps &
-  Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'href'>
+} & LinkComponentProps
+& Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'href'>
 
 export type LinkProps = LinkBaseProps & (ButtonProps | UnstyledButtonProps | AnchorProps | AlertProps)
 
-const Link = ({ children, className, ref, type = 'styled', ...props }: LinkProps) => {
+export function Link({ children, className, ref, type = 'styled', ...props }: LinkProps) {
   const sharedProps = {
     ...props,
     className,
     component: LinkTanstack,
     ref,
     activeProps: { ...props.activeProps, 'data-active': true },
-    children,
+    children
   }
 
   return (
-    type === 'unstyled' ? <UnstyledButton {...(sharedProps as UnstyledButtonProps)} />
-    : type === 'anchor' ? <Anchor {...(sharedProps as AnchorProps)} />
-    : type === 'alert' ? <Alert {...(sharedProps as AlertProps)} />
-    : <Button {...(sharedProps as ButtonProps)} />
+    type === 'unstyled'
+      ? <UnstyledButton {...(sharedProps as UnstyledButtonProps)} />
+      : type === 'anchor'
+        ? <Anchor {...(sharedProps as AnchorProps)} />
+        : type === 'alert'
+          ? <Alert {...(sharedProps as AlertProps)} />
+          : <Button {...(sharedProps as ButtonProps)} />
   )
 }
-
-export default Link

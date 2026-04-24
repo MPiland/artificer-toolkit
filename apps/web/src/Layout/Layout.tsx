@@ -2,21 +2,18 @@ import { useDisclosure, useMediaQuery } from '@mantine/hooks'
 import { AppShell, Modal, useComputedColorScheme, useMantineColorScheme } from '@mantine/core'
 import { Outlet } from '@tanstack/react-router'
 import { use, Suspense, useEffect } from 'react'
-import { AuthContext } from '@auth'
+import { AuthContext } from '#auth'
 import * as layout from './Layout.css'
 import * as navbar from './Navbar/Navbar.css'
-import Loading from '@components/Loading'
+import Loading from '#components/Loading'
 import clsx from 'clsx'
-import { ModalContext } from '@components/Modal'
+import { ModalContext } from '#components/Modal'
 import AuthNavbar from './Navbar/AuthNavbar'
 import UnAuthNavbar from './Navbar/UnAuthNavbar'
 import Header from './Header/Header'
 
 const Layout = () => {
-  const [
-    mobileOpened,
-    { toggle: toggleMobile }
-  ] = useDisclosure()
+  const [mobileOpened, { toggle: toggleMobile }] = useDisclosure()
   const { setColorScheme } = useMantineColorScheme()
   const computedColorScheme = useComputedColorScheme('light', { getInitialValueInEffect: true })
   const { showModal, hideModal } = use(ModalContext)
@@ -34,9 +31,7 @@ const Layout = () => {
     if (!isLoading) {
       hideModal()
     }
-  }, [
-    hideModal, showModal, isLoading
-  ])
+  }, [hideModal, showModal, isLoading])
 
   const toggleColorScheme = () => {
     setColorScheme(computedColorScheme === 'light' ? 'dark' : 'light')
@@ -46,9 +41,7 @@ const Layout = () => {
     if (mobileOpened && lg) {
       toggleMobile()
     }
-  }, [
-    lg, mobileOpened, toggleMobile
-  ])
+  }, [lg, mobileOpened, toggleMobile])
 
   return (
     <AppShell
@@ -59,8 +52,8 @@ const Layout = () => {
         breakpoint: 'xs',
         collapsed: { mobile: !mobileOpened, desktop: !signedIn }
       }}
-      padding="md"
-      id="app-shell"
+      padding='md'
+      id='app-shell'
       className={clsx(layout.base, { ['unAuth']: !signedIn }, { ['iconOnly']: signedIn && !!lg })}
     >
       <Header
@@ -85,7 +78,7 @@ const Layout = () => {
       <AppShell.Main className={layout.main}>
         <Suspense
           fallback={(
-            <Modal opened onClose={() => {}} centered size="auto" withCloseButton={false}>
+            <Modal opened onClose={() => {}} centered size='auto' withCloseButton={false}>
               <Loading />
             </Modal>
           )}

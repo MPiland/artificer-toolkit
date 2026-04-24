@@ -13,12 +13,8 @@ const config: StorybookConfig = {
       }
     }
   },
-  stories: [
-    '../src/**/*.stories.@(ts|tsx)'
-  ],
-  addons: [
-    '@storybook/addon-a11y'
-  ]
+  stories: ['../src/**/*.stories.@(ts|tsx)'],
+  addons: ['@storybook/addon-a11y', '@storybook/addon-themes']
 }
 
 export default config

@@ -6,6 +6,7 @@ test('marketing route renders the Phase 9.2 public page', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Run your table from one toolkit.' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'One place for the whole table' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Sign in' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Switch to light mode' })).toBeVisible()
 })
 
 test('public auth routes render the rebuilt auth shell', async ({ page }) => {
@@ -32,4 +33,27 @@ test('public auth routes render the rebuilt auth shell', async ({ page }) => {
   await page.goto('/auth/confirmed')
   await expect(page.getByRole('heading', { name: 'Your confirmation link has been accepted.' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Continue to login' })).toBeVisible()
+})
+
+test('logged-out routes share the same theme provider state', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'networkidle' })
+
+  await expect(page.getByRole('button', { name: 'Switch to light mode' })).toBeEnabled()
+  await page.getByRole('button', { name: 'Switch to light mode' }).click()
+  await page.waitForFunction(() => {
+    return document.documentElement.getAttribute('data-mantine-color-scheme') === 'light'
+  })
+
+  await Promise.all([
+    page.waitForURL(/\/login$/),
+    page.getByRole('link', { name: 'Sign in' }).click()
+  ])
+  await expect(page).toHaveURL(/\/login$/)
+  await expect(page.locator('html')).toHaveAttribute('data-mantine-color-scheme', /light/)
+  await expect(page.getByRole('button', { name: 'Switch to dark mode' })).toBeEnabled()
+
+  await page.getByRole('button', { name: 'Switch to dark mode' }).click()
+  await page.waitForFunction(() => {
+    return document.documentElement.getAttribute('data-mantine-color-scheme') === 'dark'
+  })
 })

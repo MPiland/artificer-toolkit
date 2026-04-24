@@ -15,6 +15,8 @@ import { RouteErrorState, RouteNotFound } from '#app/routeStates'
 interface TestRouterProviderProps {
   children: ReactNode
   initialPath?: string
+  forceColorScheme?: 'light' | 'dark'
+  defaultColorScheme?: 'light' | 'dark'
 }
 
 function createStaticRoute(path: string, getParentRoute: () => ReturnType<typeof createTestRootRoute>) {
@@ -26,7 +28,7 @@ function createStaticRoute(path: string, getParentRoute: () => ReturnType<typeof
 }
 
 function createTestRootRoute() {
-  return createRootRouteWithContext<{ queryClient: QueryClient; user: User | null }>()()
+  return createRootRouteWithContext<{ queryClient: QueryClient, user: User | null }>()()
 }
 
 function createTestRouter(initialPath: string) {
@@ -58,12 +60,21 @@ function createTestRouter(initialPath: string) {
   return { queryClient, router }
 }
 
-export function TestRouterProvider({ children, initialPath = '/' }: TestRouterProviderProps) {
+export function TestRouterProvider({
+  children,
+  initialPath = '/',
+  forceColorScheme,
+  defaultColorScheme
+}: TestRouterProviderProps) {
   const [{ queryClient, router }] = useState(() => createTestRouter(initialPath))
 
   return (
     <RouterContextProvider router={router}>
-      <AppProviders queryClient={queryClient}>
+      <AppProviders
+        queryClient={queryClient}
+        forceColorScheme={forceColorScheme}
+        defaultColorScheme={defaultColorScheme}
+      >
         {children}
       </AppProviders>
     </RouterContextProvider>

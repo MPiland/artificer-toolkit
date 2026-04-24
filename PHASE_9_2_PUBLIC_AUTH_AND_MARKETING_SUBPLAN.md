@@ -1,6 +1,6 @@
 # Phase 9.2 - Public Auth and Marketing
 
-## Status: Ready for Manual Review - Gate Passed
+## Status: Complete
 
 ## Objective
 
@@ -85,7 +85,7 @@ Rebuild the public experience first on the new foundation: the Figma marketing h
 - [x] Logged-out SSR builds without hydration regressions.
 - [x] Playwright covers marketing, login, signup navigation, reset, update password, confirmed, and Storybook shell stories.
 - [x] Storybook covers reusable shell and auth pieces.
-- [ ] Manual review confirms the marketing page and auth routes are ready before app-shell work begins.
+- [x] Manual review confirms the marketing page and auth routes are ready before app-shell work begins.
 
 ## Gate Results
 

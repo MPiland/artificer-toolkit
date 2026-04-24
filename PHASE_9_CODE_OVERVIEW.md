@@ -65,20 +65,21 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
 
 ## Current Checkpoint
 
-- Phase 9.1 passed review and Phase 9.2 has passed its automated review gate.
-- The active web build now runs the rebuilt public marketing page and auth routes from the new `src/app` slice.
+- Phase 9.1 and Phase 9.2 are complete.
+- The active web build now runs the rebuilt public marketing page and auth routes from the new public/auth slices.
 - Follow-up review fixes are landed for password recovery completion, router-aware test/story wrappers, and scoped Playwright web servers.
 - Supabase free-tier auth constraints are now documented as a Phase 9 design constraint.
-- Pause here for manual Storybook and Playwright review before starting Phase 9.3.
-- Gate commands passed: `yarn build:web`, `yarn workspace @artificer-toolkit/web test`, `yarn workspace @artificer-toolkit/web test:browser`, `yarn workspace @artificer-toolkit/web build`, `yarn workspace @artificer-toolkit/web build-storybook`, and `yarn workspace @artificer-toolkit/web test:e2e`.
+- Manual Storybook review accepted the public marketing and auth surfaces.
+- Phase 9.3 is the next active tranche: authenticated shell, navigation, and canonical list patterns.
+- Latest closeout commands passed: `yarn workspace @artificer-toolkit/web test` and `yarn build:web`.
 
 ## Subplan Index
 
 | # | Subplan | Focus | Status |
 |---|---|---|---|
 | 9.1 | [PHASE_9_1_FRONTEND_PLATFORM_AND_TESTING_SUBPLAN.md](PHASE_9_1_FRONTEND_PLATFORM_AND_TESTING_SUBPLAN.md) | Toolchain, SSR defaults, Storybook, Playwright, Vitest | Complete |
-| 9.2 | [PHASE_9_2_PUBLIC_AUTH_AND_MARKETING_SUBPLAN.md](PHASE_9_2_PUBLIC_AUTH_AND_MARKETING_SUBPLAN.md) | Marketing page, logged-out shell, auth routes | Ready for Manual Review |
-| 9.3 | [PHASE_9_3_APP_SHELL_NAV_AND_LIST_PATTERNS_SUBPLAN.md](PHASE_9_3_APP_SHELL_NAV_AND_LIST_PATTERNS_SUBPLAN.md) | Authenticated shell, navigation, canonical list pattern | Not Started |
+| 9.2 | [PHASE_9_2_PUBLIC_AUTH_AND_MARKETING_SUBPLAN.md](PHASE_9_2_PUBLIC_AUTH_AND_MARKETING_SUBPLAN.md) | Marketing page, logged-out shell, auth routes | Complete |
+| 9.3 | [PHASE_9_3_APP_SHELL_NAV_AND_LIST_PATTERNS_SUBPLAN.md](PHASE_9_3_APP_SHELL_NAV_AND_LIST_PATTERNS_SUBPLAN.md) | Authenticated shell, navigation, canonical list pattern | Next |
 | 9.4 | [PHASE_9_4_FRONTEND_DATA_RUNTIME_SUBPLAN.md](PHASE_9_4_FRONTEND_DATA_RUNTIME_SUBPLAN.md) | REST-first adapter, SSR query hydration, provenance/editability | Not Started |
 | 9.5 | [PHASE_9_5_SHARED_FORM_RUNTIME_SUBPLAN.md](PHASE_9_5_SHARED_FORM_RUNTIME_SUBPLAN.md) | Node-map sections, typed stores, field runtime | Not Started |
 | 9.6 | [PHASE_9_6_CODE_SPELL_SUBPLAN.md](PHASE_9_6_CODE_SPELL_SUBPLAN.md) | Spell list and form implementation | Not Started |

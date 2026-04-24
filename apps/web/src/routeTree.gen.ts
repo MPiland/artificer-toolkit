@@ -9,403 +9,173 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SignupRouteImport } from './routes/signup'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LogoutRouteImport } from './routes/logout'
-import { Route as LoginRouteImport } from './routes/login'
+import { Route as GuestRouteImport } from './routes/_guest'
 import { Route as AuthedRouteImport } from './routes/_authed'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthConfirmedRouteImport } from './routes/auth.confirmed'
-import { Route as AuthedSpellsIndexRouteImport } from './routes/_authed/spells/index'
-import { Route as AuthedRacesIndexRouteImport } from './routes/_authed/races/index'
+import { Route as GuestIndexRouteImport } from './routes/_guest/index'
+import { Route as GuestAuthRouteImport } from './routes/_guest/_auth'
 import { Route as AuthedHomeIndexRouteImport } from './routes/_authed/home/index'
-import { Route as AuthedFeatsIndexRouteImport } from './routes/_authed/feats/index'
-import { Route as AuthedEquipmentIndexRouteImport } from './routes/_authed/equipment/index'
-import { Route as AuthedClassesIndexRouteImport } from './routes/_authed/classes/index'
-import { Route as AuthedCharactersIndexRouteImport } from './routes/_authed/characters/index'
-import { Route as AuthedBackgroundsIndexRouteImport } from './routes/_authed/backgrounds/index'
-import { Route as AuthedSpellsSpellIdRouteImport } from './routes/_authed/spells/$spellId'
-import { Route as AuthedRacesRaceIdRouteImport } from './routes/_authed/races/$raceId'
-import { Route as AuthedFeatsFeatIdRouteImport } from './routes/_authed/feats/$featId'
-import { Route as AuthedEquipmentEquipmentIdRouteImport } from './routes/_authed/equipment/$equipmentId'
-import { Route as AuthedClassesClassIdRouteImport } from './routes/_authed/classes/$classId'
-import { Route as AuthedCharactersCharacterIdRouteImport } from './routes/_authed/characters/$characterId'
-import { Route as AuthedBackgroundsBackgroundIdRouteImport } from './routes/_authed/backgrounds/$backgroundId'
-import { Route as AuthedSpellsAction_spellIdRouteImport } from './routes/_authed/spells/$action/$_spellId'
-import { Route as AuthedRacesAction_raceIdRouteImport } from './routes/_authed/races/$action/$_raceId'
-import { Route as AuthedFeatsAction_featIdRouteImport } from './routes/_authed/feats/$action/$_featId'
-import { Route as AuthedEquipmentAction_equipmentIdRouteImport } from './routes/_authed/equipment/$action/$_equipmentId'
-import { Route as AuthedClassesAction_classIdRouteImport } from './routes/_authed/classes/$action/$_classId'
-import { Route as AuthedCharactersAction_characterIdRouteImport } from './routes/_authed/characters/$action/$_characterId'
-import { Route as AuthedBackgroundsAction_backgroundIdRouteImport } from './routes/_authed/backgrounds/$action/$_backgroundId'
+import { Route as GuestAuthUpdatePasswordRouteImport } from './routes/_guest/_auth/update-password'
+import { Route as GuestAuthSignupRouteImport } from './routes/_guest/_auth/signup'
+import { Route as GuestAuthSignUpRouteImport } from './routes/_guest/_auth/sign-up'
+import { Route as GuestAuthSignInRouteImport } from './routes/_guest/_auth/sign-in'
+import { Route as GuestAuthResetPasswordRouteImport } from './routes/_guest/_auth/reset-password'
+import { Route as GuestAuthLoginRouteImport } from './routes/_guest/_auth/login'
+import { Route as GuestAuthAuthConfirmedRouteImport } from './routes/_guest/_auth/auth.confirmed'
 
-const SignupRoute = SignupRouteImport.update({
-  id: '/signup',
-  path: '/signup',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LogoutRoute = LogoutRouteImport.update({
   id: '/logout',
   path: '/logout',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
+const GuestRoute = GuestRouteImport.update({
+  id: '/_guest',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthedRoute = AuthedRouteImport.update({
   id: '/_authed',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
+const GuestIndexRoute = GuestIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => GuestRoute,
 } as any)
-const AuthConfirmedRoute = AuthConfirmedRouteImport.update({
-  id: '/auth/confirmed',
-  path: '/auth/confirmed',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthedSpellsIndexRoute = AuthedSpellsIndexRouteImport.update({
-  id: '/spells/',
-  path: '/spells/',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedRacesIndexRoute = AuthedRacesIndexRouteImport.update({
-  id: '/races/',
-  path: '/races/',
-  getParentRoute: () => AuthedRoute,
+const GuestAuthRoute = GuestAuthRouteImport.update({
+  id: '/_auth',
+  getParentRoute: () => GuestRoute,
 } as any)
 const AuthedHomeIndexRoute = AuthedHomeIndexRouteImport.update({
   id: '/home/',
   path: '/home/',
   getParentRoute: () => AuthedRoute,
 } as any)
-const AuthedFeatsIndexRoute = AuthedFeatsIndexRouteImport.update({
-  id: '/feats/',
-  path: '/feats/',
-  getParentRoute: () => AuthedRoute,
+const GuestAuthUpdatePasswordRoute = GuestAuthUpdatePasswordRouteImport.update({
+  id: '/update-password',
+  path: '/update-password',
+  getParentRoute: () => GuestAuthRoute,
 } as any)
-const AuthedEquipmentIndexRoute = AuthedEquipmentIndexRouteImport.update({
-  id: '/equipment/',
-  path: '/equipment/',
-  getParentRoute: () => AuthedRoute,
+const GuestAuthSignupRoute = GuestAuthSignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => GuestAuthRoute,
 } as any)
-const AuthedClassesIndexRoute = AuthedClassesIndexRouteImport.update({
-  id: '/classes/',
-  path: '/classes/',
-  getParentRoute: () => AuthedRoute,
+const GuestAuthSignUpRoute = GuestAuthSignUpRouteImport.update({
+  id: '/sign-up',
+  path: '/sign-up',
+  getParentRoute: () => GuestAuthRoute,
 } as any)
-const AuthedCharactersIndexRoute = AuthedCharactersIndexRouteImport.update({
-  id: '/characters/',
-  path: '/characters/',
-  getParentRoute: () => AuthedRoute,
+const GuestAuthSignInRoute = GuestAuthSignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
+  getParentRoute: () => GuestAuthRoute,
 } as any)
-const AuthedBackgroundsIndexRoute = AuthedBackgroundsIndexRouteImport.update({
-  id: '/backgrounds/',
-  path: '/backgrounds/',
-  getParentRoute: () => AuthedRoute,
+const GuestAuthResetPasswordRoute = GuestAuthResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => GuestAuthRoute,
 } as any)
-const AuthedSpellsSpellIdRoute = AuthedSpellsSpellIdRouteImport.update({
-  id: '/spells/$spellId',
-  path: '/spells/$spellId',
-  getParentRoute: () => AuthedRoute,
+const GuestAuthLoginRoute = GuestAuthLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => GuestAuthRoute,
 } as any)
-const AuthedRacesRaceIdRoute = AuthedRacesRaceIdRouteImport.update({
-  id: '/races/$raceId',
-  path: '/races/$raceId',
-  getParentRoute: () => AuthedRoute,
+const GuestAuthAuthConfirmedRoute = GuestAuthAuthConfirmedRouteImport.update({
+  id: '/auth/confirmed',
+  path: '/auth/confirmed',
+  getParentRoute: () => GuestAuthRoute,
 } as any)
-const AuthedFeatsFeatIdRoute = AuthedFeatsFeatIdRouteImport.update({
-  id: '/feats/$featId',
-  path: '/feats/$featId',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedEquipmentEquipmentIdRoute =
-  AuthedEquipmentEquipmentIdRouteImport.update({
-    id: '/equipment/$equipmentId',
-    path: '/equipment/$equipmentId',
-    getParentRoute: () => AuthedRoute,
-  } as any)
-const AuthedClassesClassIdRoute = AuthedClassesClassIdRouteImport.update({
-  id: '/classes/$classId',
-  path: '/classes/$classId',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedCharactersCharacterIdRoute =
-  AuthedCharactersCharacterIdRouteImport.update({
-    id: '/characters/$characterId',
-    path: '/characters/$characterId',
-    getParentRoute: () => AuthedRoute,
-  } as any)
-const AuthedBackgroundsBackgroundIdRoute =
-  AuthedBackgroundsBackgroundIdRouteImport.update({
-    id: '/backgrounds/$backgroundId',
-    path: '/backgrounds/$backgroundId',
-    getParentRoute: () => AuthedRoute,
-  } as any)
-const AuthedSpellsAction_spellIdRoute =
-  AuthedSpellsAction_spellIdRouteImport.update({
-    id: '/spells/$action/$_spellId',
-    path: '/spells/$action/$_spellId',
-    getParentRoute: () => AuthedRoute,
-  } as any)
-const AuthedRacesAction_raceIdRoute =
-  AuthedRacesAction_raceIdRouteImport.update({
-    id: '/races/$action/$_raceId',
-    path: '/races/$action/$_raceId',
-    getParentRoute: () => AuthedRoute,
-  } as any)
-const AuthedFeatsAction_featIdRoute =
-  AuthedFeatsAction_featIdRouteImport.update({
-    id: '/feats/$action/$_featId',
-    path: '/feats/$action/$_featId',
-    getParentRoute: () => AuthedRoute,
-  } as any)
-const AuthedEquipmentAction_equipmentIdRoute =
-  AuthedEquipmentAction_equipmentIdRouteImport.update({
-    id: '/equipment/$action/$_equipmentId',
-    path: '/equipment/$action/$_equipmentId',
-    getParentRoute: () => AuthedRoute,
-  } as any)
-const AuthedClassesAction_classIdRoute =
-  AuthedClassesAction_classIdRouteImport.update({
-    id: '/classes/$action/$_classId',
-    path: '/classes/$action/$_classId',
-    getParentRoute: () => AuthedRoute,
-  } as any)
-const AuthedCharactersAction_characterIdRoute =
-  AuthedCharactersAction_characterIdRouteImport.update({
-    id: '/characters/$action/$_characterId',
-    path: '/characters/$action/$_characterId',
-    getParentRoute: () => AuthedRoute,
-  } as any)
-const AuthedBackgroundsAction_backgroundIdRoute =
-  AuthedBackgroundsAction_backgroundIdRouteImport.update({
-    id: '/backgrounds/$action/$_backgroundId',
-    path: '/backgrounds/$action/$_backgroundId',
-    getParentRoute: () => AuthedRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/login': typeof LoginRoute
+  '/': typeof GuestIndexRoute
   '/logout': typeof LogoutRoute
-  '/reset-password': typeof ResetPasswordRoute
-  '/signup': typeof SignupRoute
-  '/auth/confirmed': typeof AuthConfirmedRoute
-  '/backgrounds/$backgroundId': typeof AuthedBackgroundsBackgroundIdRoute
-  '/characters/$characterId': typeof AuthedCharactersCharacterIdRoute
-  '/classes/$classId': typeof AuthedClassesClassIdRoute
-  '/equipment/$equipmentId': typeof AuthedEquipmentEquipmentIdRoute
-  '/feats/$featId': typeof AuthedFeatsFeatIdRoute
-  '/races/$raceId': typeof AuthedRacesRaceIdRoute
-  '/spells/$spellId': typeof AuthedSpellsSpellIdRoute
-  '/backgrounds/': typeof AuthedBackgroundsIndexRoute
-  '/characters/': typeof AuthedCharactersIndexRoute
-  '/classes/': typeof AuthedClassesIndexRoute
-  '/equipment/': typeof AuthedEquipmentIndexRoute
-  '/feats/': typeof AuthedFeatsIndexRoute
+  '/login': typeof GuestAuthLoginRoute
+  '/reset-password': typeof GuestAuthResetPasswordRoute
+  '/sign-in': typeof GuestAuthSignInRoute
+  '/sign-up': typeof GuestAuthSignUpRoute
+  '/signup': typeof GuestAuthSignupRoute
+  '/update-password': typeof GuestAuthUpdatePasswordRoute
   '/home/': typeof AuthedHomeIndexRoute
-  '/races/': typeof AuthedRacesIndexRoute
-  '/spells/': typeof AuthedSpellsIndexRoute
-  '/backgrounds/$action/$_backgroundId': typeof AuthedBackgroundsAction_backgroundIdRoute
-  '/characters/$action/$_characterId': typeof AuthedCharactersAction_characterIdRoute
-  '/classes/$action/$_classId': typeof AuthedClassesAction_classIdRoute
-  '/equipment/$action/$_equipmentId': typeof AuthedEquipmentAction_equipmentIdRoute
-  '/feats/$action/$_featId': typeof AuthedFeatsAction_featIdRoute
-  '/races/$action/$_raceId': typeof AuthedRacesAction_raceIdRoute
-  '/spells/$action/$_spellId': typeof AuthedSpellsAction_spellIdRoute
+  '/auth/confirmed': typeof GuestAuthAuthConfirmedRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/login': typeof LoginRoute
+  '/': typeof GuestIndexRoute
   '/logout': typeof LogoutRoute
-  '/reset-password': typeof ResetPasswordRoute
-  '/signup': typeof SignupRoute
-  '/auth/confirmed': typeof AuthConfirmedRoute
-  '/backgrounds/$backgroundId': typeof AuthedBackgroundsBackgroundIdRoute
-  '/characters/$characterId': typeof AuthedCharactersCharacterIdRoute
-  '/classes/$classId': typeof AuthedClassesClassIdRoute
-  '/equipment/$equipmentId': typeof AuthedEquipmentEquipmentIdRoute
-  '/feats/$featId': typeof AuthedFeatsFeatIdRoute
-  '/races/$raceId': typeof AuthedRacesRaceIdRoute
-  '/spells/$spellId': typeof AuthedSpellsSpellIdRoute
-  '/backgrounds': typeof AuthedBackgroundsIndexRoute
-  '/characters': typeof AuthedCharactersIndexRoute
-  '/classes': typeof AuthedClassesIndexRoute
-  '/equipment': typeof AuthedEquipmentIndexRoute
-  '/feats': typeof AuthedFeatsIndexRoute
+  '/login': typeof GuestAuthLoginRoute
+  '/reset-password': typeof GuestAuthResetPasswordRoute
+  '/sign-in': typeof GuestAuthSignInRoute
+  '/sign-up': typeof GuestAuthSignUpRoute
+  '/signup': typeof GuestAuthSignupRoute
+  '/update-password': typeof GuestAuthUpdatePasswordRoute
   '/home': typeof AuthedHomeIndexRoute
-  '/races': typeof AuthedRacesIndexRoute
-  '/spells': typeof AuthedSpellsIndexRoute
-  '/backgrounds/$action/$_backgroundId': typeof AuthedBackgroundsAction_backgroundIdRoute
-  '/characters/$action/$_characterId': typeof AuthedCharactersAction_characterIdRoute
-  '/classes/$action/$_classId': typeof AuthedClassesAction_classIdRoute
-  '/equipment/$action/$_equipmentId': typeof AuthedEquipmentAction_equipmentIdRoute
-  '/feats/$action/$_featId': typeof AuthedFeatsAction_featIdRoute
-  '/races/$action/$_raceId': typeof AuthedRacesAction_raceIdRoute
-  '/spells/$action/$_spellId': typeof AuthedSpellsAction_spellIdRoute
+  '/auth/confirmed': typeof GuestAuthAuthConfirmedRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
   '/_authed': typeof AuthedRouteWithChildren
-  '/login': typeof LoginRoute
+  '/_guest': typeof GuestRouteWithChildren
   '/logout': typeof LogoutRoute
-  '/reset-password': typeof ResetPasswordRoute
-  '/signup': typeof SignupRoute
-  '/auth/confirmed': typeof AuthConfirmedRoute
-  '/_authed/backgrounds/$backgroundId': typeof AuthedBackgroundsBackgroundIdRoute
-  '/_authed/characters/$characterId': typeof AuthedCharactersCharacterIdRoute
-  '/_authed/classes/$classId': typeof AuthedClassesClassIdRoute
-  '/_authed/equipment/$equipmentId': typeof AuthedEquipmentEquipmentIdRoute
-  '/_authed/feats/$featId': typeof AuthedFeatsFeatIdRoute
-  '/_authed/races/$raceId': typeof AuthedRacesRaceIdRoute
-  '/_authed/spells/$spellId': typeof AuthedSpellsSpellIdRoute
-  '/_authed/backgrounds/': typeof AuthedBackgroundsIndexRoute
-  '/_authed/characters/': typeof AuthedCharactersIndexRoute
-  '/_authed/classes/': typeof AuthedClassesIndexRoute
-  '/_authed/equipment/': typeof AuthedEquipmentIndexRoute
-  '/_authed/feats/': typeof AuthedFeatsIndexRoute
+  '/_guest/_auth': typeof GuestAuthRouteWithChildren
+  '/_guest/': typeof GuestIndexRoute
+  '/_guest/_auth/login': typeof GuestAuthLoginRoute
+  '/_guest/_auth/reset-password': typeof GuestAuthResetPasswordRoute
+  '/_guest/_auth/sign-in': typeof GuestAuthSignInRoute
+  '/_guest/_auth/sign-up': typeof GuestAuthSignUpRoute
+  '/_guest/_auth/signup': typeof GuestAuthSignupRoute
+  '/_guest/_auth/update-password': typeof GuestAuthUpdatePasswordRoute
   '/_authed/home/': typeof AuthedHomeIndexRoute
-  '/_authed/races/': typeof AuthedRacesIndexRoute
-  '/_authed/spells/': typeof AuthedSpellsIndexRoute
-  '/_authed/backgrounds/$action/$_backgroundId': typeof AuthedBackgroundsAction_backgroundIdRoute
-  '/_authed/characters/$action/$_characterId': typeof AuthedCharactersAction_characterIdRoute
-  '/_authed/classes/$action/$_classId': typeof AuthedClassesAction_classIdRoute
-  '/_authed/equipment/$action/$_equipmentId': typeof AuthedEquipmentAction_equipmentIdRoute
-  '/_authed/feats/$action/$_featId': typeof AuthedFeatsAction_featIdRoute
-  '/_authed/races/$action/$_raceId': typeof AuthedRacesAction_raceIdRoute
-  '/_authed/spells/$action/$_spellId': typeof AuthedSpellsAction_spellIdRoute
+  '/_guest/_auth/auth/confirmed': typeof GuestAuthAuthConfirmedRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/login'
     | '/logout'
+    | '/login'
     | '/reset-password'
+    | '/sign-in'
+    | '/sign-up'
     | '/signup'
-    | '/auth/confirmed'
-    | '/backgrounds/$backgroundId'
-    | '/characters/$characterId'
-    | '/classes/$classId'
-    | '/equipment/$equipmentId'
-    | '/feats/$featId'
-    | '/races/$raceId'
-    | '/spells/$spellId'
-    | '/backgrounds/'
-    | '/characters/'
-    | '/classes/'
-    | '/equipment/'
-    | '/feats/'
+    | '/update-password'
     | '/home/'
-    | '/races/'
-    | '/spells/'
-    | '/backgrounds/$action/$_backgroundId'
-    | '/characters/$action/$_characterId'
-    | '/classes/$action/$_classId'
-    | '/equipment/$action/$_equipmentId'
-    | '/feats/$action/$_featId'
-    | '/races/$action/$_raceId'
-    | '/spells/$action/$_spellId'
+    | '/auth/confirmed'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/login'
     | '/logout'
+    | '/login'
     | '/reset-password'
+    | '/sign-in'
+    | '/sign-up'
     | '/signup'
-    | '/auth/confirmed'
-    | '/backgrounds/$backgroundId'
-    | '/characters/$characterId'
-    | '/classes/$classId'
-    | '/equipment/$equipmentId'
-    | '/feats/$featId'
-    | '/races/$raceId'
-    | '/spells/$spellId'
-    | '/backgrounds'
-    | '/characters'
-    | '/classes'
-    | '/equipment'
-    | '/feats'
+    | '/update-password'
     | '/home'
-    | '/races'
-    | '/spells'
-    | '/backgrounds/$action/$_backgroundId'
-    | '/characters/$action/$_characterId'
-    | '/classes/$action/$_classId'
-    | '/equipment/$action/$_equipmentId'
-    | '/feats/$action/$_featId'
-    | '/races/$action/$_raceId'
-    | '/spells/$action/$_spellId'
+    | '/auth/confirmed'
   id:
     | '__root__'
-    | '/'
     | '/_authed'
-    | '/login'
+    | '/_guest'
     | '/logout'
-    | '/reset-password'
-    | '/signup'
-    | '/auth/confirmed'
-    | '/_authed/backgrounds/$backgroundId'
-    | '/_authed/characters/$characterId'
-    | '/_authed/classes/$classId'
-    | '/_authed/equipment/$equipmentId'
-    | '/_authed/feats/$featId'
-    | '/_authed/races/$raceId'
-    | '/_authed/spells/$spellId'
-    | '/_authed/backgrounds/'
-    | '/_authed/characters/'
-    | '/_authed/classes/'
-    | '/_authed/equipment/'
-    | '/_authed/feats/'
+    | '/_guest/_auth'
+    | '/_guest/'
+    | '/_guest/_auth/login'
+    | '/_guest/_auth/reset-password'
+    | '/_guest/_auth/sign-in'
+    | '/_guest/_auth/sign-up'
+    | '/_guest/_auth/signup'
+    | '/_guest/_auth/update-password'
     | '/_authed/home/'
-    | '/_authed/races/'
-    | '/_authed/spells/'
-    | '/_authed/backgrounds/$action/$_backgroundId'
-    | '/_authed/characters/$action/$_characterId'
-    | '/_authed/classes/$action/$_classId'
-    | '/_authed/equipment/$action/$_equipmentId'
-    | '/_authed/feats/$action/$_featId'
-    | '/_authed/races/$action/$_raceId'
-    | '/_authed/spells/$action/$_spellId'
+    | '/_guest/_auth/auth/confirmed'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
   AuthedRoute: typeof AuthedRouteWithChildren
-  LoginRoute: typeof LoginRoute
+  GuestRoute: typeof GuestRouteWithChildren
   LogoutRoute: typeof LogoutRoute
-  ResetPasswordRoute: typeof ResetPasswordRoute
-  SignupRoute: typeof SignupRoute
-  AuthConfirmedRoute: typeof AuthConfirmedRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/signup': {
-      id: '/signup'
-      path: '/signup'
-      fullPath: '/signup'
-      preLoaderRoute: typeof SignupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/logout': {
       id: '/logout'
       path: '/logout'
@@ -413,11 +183,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LogoutRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
+    '/_guest': {
+      id: '/_guest'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof GuestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authed': {
@@ -427,33 +197,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
+    '/_guest/': {
+      id: '/_guest/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof GuestIndexRouteImport
+      parentRoute: typeof GuestRoute
     }
-    '/auth/confirmed': {
-      id: '/auth/confirmed'
-      path: '/auth/confirmed'
-      fullPath: '/auth/confirmed'
-      preLoaderRoute: typeof AuthConfirmedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authed/spells/': {
-      id: '/_authed/spells/'
-      path: '/spells'
-      fullPath: '/spells/'
-      preLoaderRoute: typeof AuthedSpellsIndexRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/races/': {
-      id: '/_authed/races/'
-      path: '/races'
-      fullPath: '/races/'
-      preLoaderRoute: typeof AuthedRacesIndexRouteImport
-      parentRoute: typeof AuthedRoute
+    '/_guest/_auth': {
+      id: '/_guest/_auth'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof GuestAuthRouteImport
+      parentRoute: typeof GuestRoute
     }
     '/_authed/home/': {
       id: '/_authed/home/'
@@ -462,216 +218,110 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedHomeIndexRouteImport
       parentRoute: typeof AuthedRoute
     }
-    '/_authed/feats/': {
-      id: '/_authed/feats/'
-      path: '/feats'
-      fullPath: '/feats/'
-      preLoaderRoute: typeof AuthedFeatsIndexRouteImport
-      parentRoute: typeof AuthedRoute
+    '/_guest/_auth/update-password': {
+      id: '/_guest/_auth/update-password'
+      path: '/update-password'
+      fullPath: '/update-password'
+      preLoaderRoute: typeof GuestAuthUpdatePasswordRouteImport
+      parentRoute: typeof GuestAuthRoute
     }
-    '/_authed/equipment/': {
-      id: '/_authed/equipment/'
-      path: '/equipment'
-      fullPath: '/equipment/'
-      preLoaderRoute: typeof AuthedEquipmentIndexRouteImport
-      parentRoute: typeof AuthedRoute
+    '/_guest/_auth/signup': {
+      id: '/_guest/_auth/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof GuestAuthSignupRouteImport
+      parentRoute: typeof GuestAuthRoute
     }
-    '/_authed/classes/': {
-      id: '/_authed/classes/'
-      path: '/classes'
-      fullPath: '/classes/'
-      preLoaderRoute: typeof AuthedClassesIndexRouteImport
-      parentRoute: typeof AuthedRoute
+    '/_guest/_auth/sign-up': {
+      id: '/_guest/_auth/sign-up'
+      path: '/sign-up'
+      fullPath: '/sign-up'
+      preLoaderRoute: typeof GuestAuthSignUpRouteImport
+      parentRoute: typeof GuestAuthRoute
     }
-    '/_authed/characters/': {
-      id: '/_authed/characters/'
-      path: '/characters'
-      fullPath: '/characters/'
-      preLoaderRoute: typeof AuthedCharactersIndexRouteImport
-      parentRoute: typeof AuthedRoute
+    '/_guest/_auth/sign-in': {
+      id: '/_guest/_auth/sign-in'
+      path: '/sign-in'
+      fullPath: '/sign-in'
+      preLoaderRoute: typeof GuestAuthSignInRouteImport
+      parentRoute: typeof GuestAuthRoute
     }
-    '/_authed/backgrounds/': {
-      id: '/_authed/backgrounds/'
-      path: '/backgrounds'
-      fullPath: '/backgrounds/'
-      preLoaderRoute: typeof AuthedBackgroundsIndexRouteImport
-      parentRoute: typeof AuthedRoute
+    '/_guest/_auth/reset-password': {
+      id: '/_guest/_auth/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof GuestAuthResetPasswordRouteImport
+      parentRoute: typeof GuestAuthRoute
     }
-    '/_authed/spells/$spellId': {
-      id: '/_authed/spells/$spellId'
-      path: '/spells/$spellId'
-      fullPath: '/spells/$spellId'
-      preLoaderRoute: typeof AuthedSpellsSpellIdRouteImport
-      parentRoute: typeof AuthedRoute
+    '/_guest/_auth/login': {
+      id: '/_guest/_auth/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof GuestAuthLoginRouteImport
+      parentRoute: typeof GuestAuthRoute
     }
-    '/_authed/races/$raceId': {
-      id: '/_authed/races/$raceId'
-      path: '/races/$raceId'
-      fullPath: '/races/$raceId'
-      preLoaderRoute: typeof AuthedRacesRaceIdRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/feats/$featId': {
-      id: '/_authed/feats/$featId'
-      path: '/feats/$featId'
-      fullPath: '/feats/$featId'
-      preLoaderRoute: typeof AuthedFeatsFeatIdRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/equipment/$equipmentId': {
-      id: '/_authed/equipment/$equipmentId'
-      path: '/equipment/$equipmentId'
-      fullPath: '/equipment/$equipmentId'
-      preLoaderRoute: typeof AuthedEquipmentEquipmentIdRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/classes/$classId': {
-      id: '/_authed/classes/$classId'
-      path: '/classes/$classId'
-      fullPath: '/classes/$classId'
-      preLoaderRoute: typeof AuthedClassesClassIdRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/characters/$characterId': {
-      id: '/_authed/characters/$characterId'
-      path: '/characters/$characterId'
-      fullPath: '/characters/$characterId'
-      preLoaderRoute: typeof AuthedCharactersCharacterIdRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/backgrounds/$backgroundId': {
-      id: '/_authed/backgrounds/$backgroundId'
-      path: '/backgrounds/$backgroundId'
-      fullPath: '/backgrounds/$backgroundId'
-      preLoaderRoute: typeof AuthedBackgroundsBackgroundIdRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/spells/$action/$_spellId': {
-      id: '/_authed/spells/$action/$_spellId'
-      path: '/spells/$action/$_spellId'
-      fullPath: '/spells/$action/$_spellId'
-      preLoaderRoute: typeof AuthedSpellsAction_spellIdRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/races/$action/$_raceId': {
-      id: '/_authed/races/$action/$_raceId'
-      path: '/races/$action/$_raceId'
-      fullPath: '/races/$action/$_raceId'
-      preLoaderRoute: typeof AuthedRacesAction_raceIdRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/feats/$action/$_featId': {
-      id: '/_authed/feats/$action/$_featId'
-      path: '/feats/$action/$_featId'
-      fullPath: '/feats/$action/$_featId'
-      preLoaderRoute: typeof AuthedFeatsAction_featIdRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/equipment/$action/$_equipmentId': {
-      id: '/_authed/equipment/$action/$_equipmentId'
-      path: '/equipment/$action/$_equipmentId'
-      fullPath: '/equipment/$action/$_equipmentId'
-      preLoaderRoute: typeof AuthedEquipmentAction_equipmentIdRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/classes/$action/$_classId': {
-      id: '/_authed/classes/$action/$_classId'
-      path: '/classes/$action/$_classId'
-      fullPath: '/classes/$action/$_classId'
-      preLoaderRoute: typeof AuthedClassesAction_classIdRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/characters/$action/$_characterId': {
-      id: '/_authed/characters/$action/$_characterId'
-      path: '/characters/$action/$_characterId'
-      fullPath: '/characters/$action/$_characterId'
-      preLoaderRoute: typeof AuthedCharactersAction_characterIdRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/backgrounds/$action/$_backgroundId': {
-      id: '/_authed/backgrounds/$action/$_backgroundId'
-      path: '/backgrounds/$action/$_backgroundId'
-      fullPath: '/backgrounds/$action/$_backgroundId'
-      preLoaderRoute: typeof AuthedBackgroundsAction_backgroundIdRouteImport
-      parentRoute: typeof AuthedRoute
+    '/_guest/_auth/auth/confirmed': {
+      id: '/_guest/_auth/auth/confirmed'
+      path: '/auth/confirmed'
+      fullPath: '/auth/confirmed'
+      preLoaderRoute: typeof GuestAuthAuthConfirmedRouteImport
+      parentRoute: typeof GuestAuthRoute
     }
   }
 }
 
 interface AuthedRouteChildren {
-  AuthedBackgroundsBackgroundIdRoute: typeof AuthedBackgroundsBackgroundIdRoute
-  AuthedCharactersCharacterIdRoute: typeof AuthedCharactersCharacterIdRoute
-  AuthedClassesClassIdRoute: typeof AuthedClassesClassIdRoute
-  AuthedEquipmentEquipmentIdRoute: typeof AuthedEquipmentEquipmentIdRoute
-  AuthedFeatsFeatIdRoute: typeof AuthedFeatsFeatIdRoute
-  AuthedRacesRaceIdRoute: typeof AuthedRacesRaceIdRoute
-  AuthedSpellsSpellIdRoute: typeof AuthedSpellsSpellIdRoute
-  AuthedBackgroundsIndexRoute: typeof AuthedBackgroundsIndexRoute
-  AuthedCharactersIndexRoute: typeof AuthedCharactersIndexRoute
-  AuthedClassesIndexRoute: typeof AuthedClassesIndexRoute
-  AuthedEquipmentIndexRoute: typeof AuthedEquipmentIndexRoute
-  AuthedFeatsIndexRoute: typeof AuthedFeatsIndexRoute
   AuthedHomeIndexRoute: typeof AuthedHomeIndexRoute
-  AuthedRacesIndexRoute: typeof AuthedRacesIndexRoute
-  AuthedSpellsIndexRoute: typeof AuthedSpellsIndexRoute
-  AuthedBackgroundsAction_backgroundIdRoute: typeof AuthedBackgroundsAction_backgroundIdRoute
-  AuthedCharactersAction_characterIdRoute: typeof AuthedCharactersAction_characterIdRoute
-  AuthedClassesAction_classIdRoute: typeof AuthedClassesAction_classIdRoute
-  AuthedEquipmentAction_equipmentIdRoute: typeof AuthedEquipmentAction_equipmentIdRoute
-  AuthedFeatsAction_featIdRoute: typeof AuthedFeatsAction_featIdRoute
-  AuthedRacesAction_raceIdRoute: typeof AuthedRacesAction_raceIdRoute
-  AuthedSpellsAction_spellIdRoute: typeof AuthedSpellsAction_spellIdRoute
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
-  AuthedBackgroundsBackgroundIdRoute: AuthedBackgroundsBackgroundIdRoute,
-  AuthedCharactersCharacterIdRoute: AuthedCharactersCharacterIdRoute,
-  AuthedClassesClassIdRoute: AuthedClassesClassIdRoute,
-  AuthedEquipmentEquipmentIdRoute: AuthedEquipmentEquipmentIdRoute,
-  AuthedFeatsFeatIdRoute: AuthedFeatsFeatIdRoute,
-  AuthedRacesRaceIdRoute: AuthedRacesRaceIdRoute,
-  AuthedSpellsSpellIdRoute: AuthedSpellsSpellIdRoute,
-  AuthedBackgroundsIndexRoute: AuthedBackgroundsIndexRoute,
-  AuthedCharactersIndexRoute: AuthedCharactersIndexRoute,
-  AuthedClassesIndexRoute: AuthedClassesIndexRoute,
-  AuthedEquipmentIndexRoute: AuthedEquipmentIndexRoute,
-  AuthedFeatsIndexRoute: AuthedFeatsIndexRoute,
   AuthedHomeIndexRoute: AuthedHomeIndexRoute,
-  AuthedRacesIndexRoute: AuthedRacesIndexRoute,
-  AuthedSpellsIndexRoute: AuthedSpellsIndexRoute,
-  AuthedBackgroundsAction_backgroundIdRoute:
-    AuthedBackgroundsAction_backgroundIdRoute,
-  AuthedCharactersAction_characterIdRoute:
-    AuthedCharactersAction_characterIdRoute,
-  AuthedClassesAction_classIdRoute: AuthedClassesAction_classIdRoute,
-  AuthedEquipmentAction_equipmentIdRoute:
-    AuthedEquipmentAction_equipmentIdRoute,
-  AuthedFeatsAction_featIdRoute: AuthedFeatsAction_featIdRoute,
-  AuthedRacesAction_raceIdRoute: AuthedRacesAction_raceIdRoute,
-  AuthedSpellsAction_spellIdRoute: AuthedSpellsAction_spellIdRoute,
 }
 
 const AuthedRouteWithChildren =
   AuthedRoute._addFileChildren(AuthedRouteChildren)
 
+interface GuestAuthRouteChildren {
+  GuestAuthLoginRoute: typeof GuestAuthLoginRoute
+  GuestAuthResetPasswordRoute: typeof GuestAuthResetPasswordRoute
+  GuestAuthSignInRoute: typeof GuestAuthSignInRoute
+  GuestAuthSignUpRoute: typeof GuestAuthSignUpRoute
+  GuestAuthSignupRoute: typeof GuestAuthSignupRoute
+  GuestAuthUpdatePasswordRoute: typeof GuestAuthUpdatePasswordRoute
+  GuestAuthAuthConfirmedRoute: typeof GuestAuthAuthConfirmedRoute
+}
+
+const GuestAuthRouteChildren: GuestAuthRouteChildren = {
+  GuestAuthLoginRoute: GuestAuthLoginRoute,
+  GuestAuthResetPasswordRoute: GuestAuthResetPasswordRoute,
+  GuestAuthSignInRoute: GuestAuthSignInRoute,
+  GuestAuthSignUpRoute: GuestAuthSignUpRoute,
+  GuestAuthSignupRoute: GuestAuthSignupRoute,
+  GuestAuthUpdatePasswordRoute: GuestAuthUpdatePasswordRoute,
+  GuestAuthAuthConfirmedRoute: GuestAuthAuthConfirmedRoute,
+}
+
+const GuestAuthRouteWithChildren = GuestAuthRoute._addFileChildren(
+  GuestAuthRouteChildren,
+)
+
+interface GuestRouteChildren {
+  GuestAuthRoute: typeof GuestAuthRouteWithChildren
+  GuestIndexRoute: typeof GuestIndexRoute
+}
+
+const GuestRouteChildren: GuestRouteChildren = {
+  GuestAuthRoute: GuestAuthRouteWithChildren,
+  GuestIndexRoute: GuestIndexRoute,
+}
+
+const GuestRouteWithChildren = GuestRoute._addFileChildren(GuestRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
   AuthedRoute: AuthedRouteWithChildren,
-  LoginRoute: LoginRoute,
+  GuestRoute: GuestRouteWithChildren,
   LogoutRoute: LogoutRoute,
-  ResetPasswordRoute: ResetPasswordRoute,
-  SignupRoute: SignupRoute,
-  AuthConfirmedRoute: AuthConfirmedRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
