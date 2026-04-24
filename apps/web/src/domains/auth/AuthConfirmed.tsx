@@ -19,7 +19,7 @@ export function AuthConfirmed() {
           </div>
         </Stack>
 
-        <Button component={Link} to='/login' fullWidth className={submitButton}>
+        <Button component={Link} to='/sign-in' fullWidth className={submitButton}>
           Go to sign in
         </Button>
       </Stack>

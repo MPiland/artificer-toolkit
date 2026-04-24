@@ -7,7 +7,7 @@ export function AuthConfirmedPage() {
   return (
     <AuthPageShell
       title='Your confirmation link has been accepted.'
-      description='Continue into the login flow or return to the public homepage.'
+      description='Continue into sign in or return to the public homepage.'
     >
       <div className={transitionContent}>
         <div className={ctaRow}>

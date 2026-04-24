@@ -38,9 +38,9 @@ function createTestRouter(initialPath: string) {
 
   const routeTree = rootRoute.addChildren([
     createStaticRoute('/', getParentRoute),
-    createStaticRoute('/login', getParentRoute),
     createStaticRoute('/logout', getParentRoute),
-    createStaticRoute('/signup', getParentRoute),
+    createStaticRoute('/sign-in', getParentRoute),
+    createStaticRoute('/sign-up', getParentRoute),
     createStaticRoute('/reset-password', getParentRoute),
     createStaticRoute('/update-password', getParentRoute),
     createStaticRoute('/auth/confirmed', getParentRoute),

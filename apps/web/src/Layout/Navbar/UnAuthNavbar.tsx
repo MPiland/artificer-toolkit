@@ -27,10 +27,10 @@ const UnAuthNavbar = ({ toggleMobile, mobileOpened }: { toggleMobile: () => void
       <Divider my='sm' />
       <AppShell.Section>
         <Group grow px='md'>
-          <Link to={'/login'} variant='default' onClick={() => toggleMobile()}>
-            Log in
+          <Link to={'/sign-in'} variant='default' onClick={() => toggleMobile()}>
+            Sign in
           </Link>
-          <Link to={'/register'} onClick={() => toggleMobile()}>
+          <Link to={'/sign-up'} onClick={() => toggleMobile()}>
             Sign up
           </Link>
         </Group>

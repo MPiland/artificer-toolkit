@@ -10,14 +10,14 @@ test('marketing route renders the Phase 9.2 public page', async ({ page }) => {
 })
 
 test('public auth routes render the rebuilt auth shell', async ({ page }) => {
-  await page.goto('/login')
+  await page.goto('/sign-in')
   await expect(page.getByTestId('auth-shell')).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible()
   await expect(page.getByLabel('Email address')).toBeVisible()
   await expect(page.getByLabel('Password')).toBeVisible()
 
-  await page.getByRole('link', { name: 'Sign up ->' }).click()
-  await expect(page).toHaveURL(/\/signup$/)
+  await page.getByRole('link', { name: 'Sign up' }).click()
+  await expect(page).toHaveURL(/\/sign-up$/)
   await expect(page.getByRole('heading', { name: 'Create an account' })).toBeVisible()
   await expect(page.getByLabel('Name')).toBeVisible()
 
@@ -32,7 +32,7 @@ test('public auth routes render the rebuilt auth shell', async ({ page }) => {
 
   await page.goto('/auth/confirmed')
   await expect(page.getByRole('heading', { name: 'Your confirmation link has been accepted.' })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Continue to login' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Continue to sign in' })).toBeVisible()
 })
 
 test('logged-out routes share the same theme provider state', async ({ page }) => {
@@ -45,10 +45,10 @@ test('logged-out routes share the same theme provider state', async ({ page }) =
   })
 
   await Promise.all([
-    page.waitForURL(/\/login$/),
+    page.waitForURL(/\/sign-in$/),
     page.getByRole('link', { name: 'Sign in' }).click()
   ])
-  await expect(page).toHaveURL(/\/login$/)
+  await expect(page).toHaveURL(/\/sign-in$/)
   await expect(page.locator('html')).toHaveAttribute('data-mantine-color-scheme', /light/)
   await expect(page.getByRole('button', { name: 'Switch to dark mode' })).toBeEnabled()
 

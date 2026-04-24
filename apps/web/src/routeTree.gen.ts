@@ -16,11 +16,9 @@ import { Route as GuestIndexRouteImport } from './routes/_guest/index'
 import { Route as GuestAuthRouteImport } from './routes/_guest/_auth'
 import { Route as AuthedHomeIndexRouteImport } from './routes/_authed/home/index'
 import { Route as GuestAuthUpdatePasswordRouteImport } from './routes/_guest/_auth/update-password'
-import { Route as GuestAuthSignupRouteImport } from './routes/_guest/_auth/signup'
 import { Route as GuestAuthSignUpRouteImport } from './routes/_guest/_auth/sign-up'
 import { Route as GuestAuthSignInRouteImport } from './routes/_guest/_auth/sign-in'
 import { Route as GuestAuthResetPasswordRouteImport } from './routes/_guest/_auth/reset-password'
-import { Route as GuestAuthLoginRouteImport } from './routes/_guest/_auth/login'
 import { Route as GuestAuthAuthConfirmedRouteImport } from './routes/_guest/_auth/auth.confirmed'
 
 const LogoutRoute = LogoutRouteImport.update({
@@ -55,11 +53,6 @@ const GuestAuthUpdatePasswordRoute = GuestAuthUpdatePasswordRouteImport.update({
   path: '/update-password',
   getParentRoute: () => GuestAuthRoute,
 } as any)
-const GuestAuthSignupRoute = GuestAuthSignupRouteImport.update({
-  id: '/signup',
-  path: '/signup',
-  getParentRoute: () => GuestAuthRoute,
-} as any)
 const GuestAuthSignUpRoute = GuestAuthSignUpRouteImport.update({
   id: '/sign-up',
   path: '/sign-up',
@@ -75,11 +68,6 @@ const GuestAuthResetPasswordRoute = GuestAuthResetPasswordRouteImport.update({
   path: '/reset-password',
   getParentRoute: () => GuestAuthRoute,
 } as any)
-const GuestAuthLoginRoute = GuestAuthLoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => GuestAuthRoute,
-} as any)
 const GuestAuthAuthConfirmedRoute = GuestAuthAuthConfirmedRouteImport.update({
   id: '/auth/confirmed',
   path: '/auth/confirmed',
@@ -89,11 +77,9 @@ const GuestAuthAuthConfirmedRoute = GuestAuthAuthConfirmedRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof GuestIndexRoute
   '/logout': typeof LogoutRoute
-  '/login': typeof GuestAuthLoginRoute
   '/reset-password': typeof GuestAuthResetPasswordRoute
   '/sign-in': typeof GuestAuthSignInRoute
   '/sign-up': typeof GuestAuthSignUpRoute
-  '/signup': typeof GuestAuthSignupRoute
   '/update-password': typeof GuestAuthUpdatePasswordRoute
   '/home/': typeof AuthedHomeIndexRoute
   '/auth/confirmed': typeof GuestAuthAuthConfirmedRoute
@@ -101,11 +87,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof GuestIndexRoute
   '/logout': typeof LogoutRoute
-  '/login': typeof GuestAuthLoginRoute
   '/reset-password': typeof GuestAuthResetPasswordRoute
   '/sign-in': typeof GuestAuthSignInRoute
   '/sign-up': typeof GuestAuthSignUpRoute
-  '/signup': typeof GuestAuthSignupRoute
   '/update-password': typeof GuestAuthUpdatePasswordRoute
   '/home': typeof AuthedHomeIndexRoute
   '/auth/confirmed': typeof GuestAuthAuthConfirmedRoute
@@ -117,11 +101,9 @@ export interface FileRoutesById {
   '/logout': typeof LogoutRoute
   '/_guest/_auth': typeof GuestAuthRouteWithChildren
   '/_guest/': typeof GuestIndexRoute
-  '/_guest/_auth/login': typeof GuestAuthLoginRoute
   '/_guest/_auth/reset-password': typeof GuestAuthResetPasswordRoute
   '/_guest/_auth/sign-in': typeof GuestAuthSignInRoute
   '/_guest/_auth/sign-up': typeof GuestAuthSignUpRoute
-  '/_guest/_auth/signup': typeof GuestAuthSignupRoute
   '/_guest/_auth/update-password': typeof GuestAuthUpdatePasswordRoute
   '/_authed/home/': typeof AuthedHomeIndexRoute
   '/_guest/_auth/auth/confirmed': typeof GuestAuthAuthConfirmedRoute
@@ -131,11 +113,9 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/logout'
-    | '/login'
     | '/reset-password'
     | '/sign-in'
     | '/sign-up'
-    | '/signup'
     | '/update-password'
     | '/home/'
     | '/auth/confirmed'
@@ -143,11 +123,9 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/logout'
-    | '/login'
     | '/reset-password'
     | '/sign-in'
     | '/sign-up'
-    | '/signup'
     | '/update-password'
     | '/home'
     | '/auth/confirmed'
@@ -158,11 +136,9 @@ export interface FileRouteTypes {
     | '/logout'
     | '/_guest/_auth'
     | '/_guest/'
-    | '/_guest/_auth/login'
     | '/_guest/_auth/reset-password'
     | '/_guest/_auth/sign-in'
     | '/_guest/_auth/sign-up'
-    | '/_guest/_auth/signup'
     | '/_guest/_auth/update-password'
     | '/_authed/home/'
     | '/_guest/_auth/auth/confirmed'
@@ -225,13 +201,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GuestAuthUpdatePasswordRouteImport
       parentRoute: typeof GuestAuthRoute
     }
-    '/_guest/_auth/signup': {
-      id: '/_guest/_auth/signup'
-      path: '/signup'
-      fullPath: '/signup'
-      preLoaderRoute: typeof GuestAuthSignupRouteImport
-      parentRoute: typeof GuestAuthRoute
-    }
     '/_guest/_auth/sign-up': {
       id: '/_guest/_auth/sign-up'
       path: '/sign-up'
@@ -251,13 +220,6 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof GuestAuthResetPasswordRouteImport
-      parentRoute: typeof GuestAuthRoute
-    }
-    '/_guest/_auth/login': {
-      id: '/_guest/_auth/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof GuestAuthLoginRouteImport
       parentRoute: typeof GuestAuthRoute
     }
     '/_guest/_auth/auth/confirmed': {
@@ -282,21 +244,17 @@ const AuthedRouteWithChildren =
   AuthedRoute._addFileChildren(AuthedRouteChildren)
 
 interface GuestAuthRouteChildren {
-  GuestAuthLoginRoute: typeof GuestAuthLoginRoute
   GuestAuthResetPasswordRoute: typeof GuestAuthResetPasswordRoute
   GuestAuthSignInRoute: typeof GuestAuthSignInRoute
   GuestAuthSignUpRoute: typeof GuestAuthSignUpRoute
-  GuestAuthSignupRoute: typeof GuestAuthSignupRoute
   GuestAuthUpdatePasswordRoute: typeof GuestAuthUpdatePasswordRoute
   GuestAuthAuthConfirmedRoute: typeof GuestAuthAuthConfirmedRoute
 }
 
 const GuestAuthRouteChildren: GuestAuthRouteChildren = {
-  GuestAuthLoginRoute: GuestAuthLoginRoute,
   GuestAuthResetPasswordRoute: GuestAuthResetPasswordRoute,
   GuestAuthSignInRoute: GuestAuthSignInRoute,
   GuestAuthSignUpRoute: GuestAuthSignUpRoute,
-  GuestAuthSignupRoute: GuestAuthSignupRoute,
   GuestAuthUpdatePasswordRoute: GuestAuthUpdatePasswordRoute,
   GuestAuthAuthConfirmedRoute: GuestAuthAuthConfirmedRoute,
 }
@@ -325,3 +283,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}

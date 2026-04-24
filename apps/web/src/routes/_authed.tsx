@@ -5,7 +5,7 @@ import { AppShellFrame, platformNavigation } from '#app/shell'
 export const Route = createFileRoute('/_authed')({
   beforeLoad: ({ context }) => {
     if (!context.user) {
-      throw redirect({ to: '/login' })
+      throw redirect({ to: '/sign-in' })
     }
   },
   component: AuthedLayout

@@ -7,7 +7,6 @@ describe('guest auth route guard', () => {
   })
 
   it('keeps other auth routes guest-only', () => {
-    expect(canAuthenticatedUserVisitGuestAuthPath('/login')).toBe(false)
     expect(canAuthenticatedUserVisitGuestAuthPath('/sign-in')).toBe(false)
     expect(canAuthenticatedUserVisitGuestAuthPath('/sign-up')).toBe(false)
     expect(canAuthenticatedUserVisitGuestAuthPath('/reset-password')).toBe(false)
