@@ -1,8 +1,10 @@
 import { getSupabaseBrowserClient } from '../supabase/client'
+import type { Session } from '@supabase/supabase-js'
 
 export interface AuthResult {
   ok: boolean
   message?: string
+  session?: Session | null
 }
 
 export interface SignInInput {
@@ -37,11 +39,11 @@ function getAuthRedirectUrl(path: string) {
 
 export const browserAuthClient: AuthClient = {
   async signIn(input) {
-    const { error } = await getSupabaseBrowserClient().auth.signInWithPassword(input)
-    return error ? { ok: false, message: error.message } : { ok: true }
+    const { data, error } = await getSupabaseBrowserClient().auth.signInWithPassword(input)
+    return error ? { ok: false, message: error.message } : { ok: true, session: data.session ?? null }
   },
   async signUp(input) {
-    const { error } = await getSupabaseBrowserClient().auth.signUp({
+    const { data, error } = await getSupabaseBrowserClient().auth.signUp({
       email: input.email,
       password: input.password,
       options: {
@@ -51,7 +53,7 @@ export const browserAuthClient: AuthClient = {
         emailRedirectTo: getAuthRedirectUrl('/auth/confirmed')
       }
     })
-    return error ? { ok: false, message: error.message } : { ok: true }
+    return error ? { ok: false, message: error.message } : { ok: true, session: data.session ?? null }
   },
   async requestPasswordReset(input) {
     const { error } = await getSupabaseBrowserClient().auth.resetPasswordForEmail(input.email, {

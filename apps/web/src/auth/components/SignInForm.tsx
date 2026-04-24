@@ -26,7 +26,7 @@ export function SignInForm({ authClient = browserAuthClient, onSuccess }: AuthFo
       }
 
       showSuccess('Signed in', 'Your workspace is ready.')
-      await onSuccess?.()
+      await onSuccess?.(result)
     } finally {
       setIsSubmitting(false)
     }

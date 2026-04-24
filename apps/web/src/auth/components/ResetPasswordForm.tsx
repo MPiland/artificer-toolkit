@@ -31,7 +31,7 @@ export function ResetPasswordForm({ authClient = browserAuthClient, onSuccess }:
       }
 
       showSuccess('Reset link sent', 'Check your inbox for the secure link.')
-      await onSuccess?.()
+      await onSuccess?.(result)
     } finally {
       setIsSubmitting(false)
     }

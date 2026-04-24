@@ -33,8 +33,12 @@ export function SignUpForm({ authClient = browserAuthClient, onSuccess }: AuthFo
         return
       }
 
-      showSuccess('Check your email', 'Confirmation instructions were sent.')
-      await onSuccess?.()
+      if (result.session) {
+        showSuccess('Account created', 'Your workspace is ready.')
+      } else {
+        showSuccess('Check your email', 'Confirmation instructions were sent.')
+      }
+      await onSuccess?.(result)
     } finally {
       setIsSubmitting(false)
     }

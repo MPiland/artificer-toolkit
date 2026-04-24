@@ -1,6 +1,6 @@
-import { AuthClient } from '../authClient'
+import { AuthClient, AuthResult } from '../authClient'
 
 export interface AuthFormProps {
   authClient?: AuthClient
-  onSuccess?: () => void | Promise<void>
+  onSuccess?: (result: AuthResult) => void | Promise<void>
 }

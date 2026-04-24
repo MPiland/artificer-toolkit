@@ -61,6 +61,32 @@ describe('AuthForms', () => {
     }))
   })
 
+  it('passes auto-confirm signup sessions to the success handler', async () => {
+    const session = { access_token: 'token' }
+    const signUp = vi.fn(async () => ({ ok: true, session }))
+    const onSuccess = vi.fn()
+
+    renderWithAppProviders(
+      <SignUpForm authClient={createAuthClient({ signUp })} onSuccess={onSuccess} />
+    )
+
+    fireEvent.change(screen.getByRole('textbox', { name: /name/i }), {
+      target: { value: 'Morgan' }
+    })
+    fireEvent.change(screen.getByRole('textbox', { name: /email address/i }), {
+      target: { value: 'morgan@example.com' }
+    })
+    fireEvent.change(screen.getByLabelText(/password/i), {
+      target: { value: 'password123' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Create account' }))
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledWith({
+      ok: true,
+      session
+    }))
+  })
+
   it('requests a password reset', async () => {
     const requestPasswordReset = vi.fn(async () => ({ ok: true }))
 

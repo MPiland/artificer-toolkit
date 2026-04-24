@@ -38,7 +38,7 @@ export function UpdatePasswordForm({ authClient = browserAuthClient, onSuccess }
       }
 
       showSuccess('Password updated', 'Use your new password the next time you sign in.')
-      await onSuccess?.()
+      await onSuccess?.(result)
     } finally {
       setIsSubmitting(false)
     }
