@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
-import ILogo from '#assets/icons/ILogo'
+import ILogo from '#assets/Icons/ILogo'
 import { authHeroBullets } from '#app/marketing/data'
 import { ThemeToggle } from '#app/ui/primitives'
 import {

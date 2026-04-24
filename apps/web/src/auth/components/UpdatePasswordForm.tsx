@@ -12,7 +12,7 @@ import {
 import { AuthDivider } from './AuthDivider'
 import { showError, showSuccess } from './authForm.utils'
 import { AuthFormProps } from './authForm.types'
-import IArrowLeft from '#app/assets/icons/IArrowLeft'
+import IArrowLeft from '#assets/Icons/IArrowLeft'
 
 export function UpdatePasswordForm({ authClient = browserAuthClient, onSuccess }: AuthFormProps) {
   const [password, setPassword] = useState('')

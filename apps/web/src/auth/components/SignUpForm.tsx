@@ -1,7 +1,7 @@
 import { type SubmitEvent, useState } from 'react'
 import { Button, PasswordInput, TextInput } from '@mantine/core'
 import { Link } from '#app/components/Link/Link'
-import IArrowRight from '#assets/icons/IArrowRight'
+import IArrowRight from '#assets/Icons/IArrowRight'
 import { browserAuthClient } from '../authClient'
 import {
   authButton,

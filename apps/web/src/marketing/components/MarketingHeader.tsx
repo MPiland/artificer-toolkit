@@ -1,4 +1,4 @@
-import ILogo from '#assets/icons/ILogo'
+import ILogo from '#assets/Icons/ILogo'
 import { ThemeToggle } from '#app/ui/primitives'
 import { marketingNavigation } from '../data/marketingContent'
 import {

@@ -6,7 +6,7 @@ import { authButton, authFooterRow, authForm, forgotRow, inlineLink, inlineLinkI
 import { Link } from '#app/components/Link/Link'
 import { AuthDivider } from './AuthDivider'
 import { Button, PasswordInput, TextInput } from '@mantine/core'
-import IArrowRight from '#assets/icons/IArrowRight'
+import IArrowRight from '#assets/Icons/IArrowRight'
 
 export function SignInForm({ authClient = browserAuthClient, onSuccess }: AuthFormProps) {
   const [email, setEmail] = useState('')
