@@ -25,7 +25,7 @@ export function SignOutPage() {
   }, [navigate])
 
   return (
-    <AuthPageShell title='Closing the current session.' description='Returning you to sign in.'>
+    <AuthPageShell title='Closing this session.' description='Returning you to sign in.'>
       <div className={transitionContent}>
         <p>Signing you out and returning to sign in...</p>
       </div>

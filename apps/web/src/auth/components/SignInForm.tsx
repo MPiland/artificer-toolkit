@@ -2,30 +2,48 @@ import { type SubmitEvent, useState } from 'react'
 import { showError, showSuccess } from './authForm.utils'
 import { browserAuthClient } from '../authClient'
 import { AuthFormProps } from './authForm.types'
-import { authButton, authFooterRow, authForm, forgotRow, inlineLink, inlineLinkIcon, textInput } from '../auth.css'
+import {
+  authButton,
+  authFooterRow,
+  authForm,
+  authFormMessage,
+  authFormMessageError,
+  authFormMessageSuccess,
+  forgotRow,
+  inlineLink,
+  inlineLinkIcon,
+  inlineLinkIconGlyph,
+  textInput
+} from '../auth.css'
 import { Link } from '#app/components/Link/Link'
 import { AuthDivider } from './AuthDivider'
 import { Button, PasswordInput, TextInput } from '@mantine/core'
-import IArrowRight from '#assets/Icons/IArrowRight'
+import IArrowRight from '#assets/icons/IArrowRight'
 
 export function SignInForm({ authClient = browserAuthClient, onSuccess }: AuthFormProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [feedback, setFeedback] = useState<{ tone: 'error' | 'success'; message: string } | null>(null)
 
   async function handleSubmit(event: SubmitEvent) {
     event.preventDefault()
     setIsSubmitting(true)
+    setFeedback(null)
 
     try {
       const result = await authClient.signIn({ email, password })
 
       if (!result.ok) {
-        showError('Unable to sign in', result.message ?? 'Please try again.')
+        const message = result.message ?? 'Check your email and password, then try again.'
+        setFeedback({ tone: 'error', message })
+        showError('Unable to sign in', message)
         return
       }
 
-      showSuccess('Signed in', 'Your workspace is ready.')
+      const message = 'Your toolkit is ready.'
+      setFeedback({ tone: 'success', message })
+      showSuccess('Signed in', message)
       await onSuccess?.(result)
     } finally {
       setIsSubmitting(false)
@@ -64,15 +82,26 @@ export function SignInForm({ authClient = browserAuthClient, onSuccess }: AuthFo
         </Link>
       </div>
       <Button className={authButton} type='submit' disabled={isSubmitting}>
-        {isSubmitting ? 'Signing in...' : 'Sign in'}
+        {isSubmitting ? 'Opening toolkit...' : 'Sign in'}
       </Button>
+      {feedback && (
+        <div
+          className={`${authFormMessage} ${
+            feedback.tone === 'error' ? authFormMessageError : authFormMessageSuccess
+          }`}
+          role={feedback.tone === 'error' ? 'alert' : 'status'}
+          aria-live={feedback.tone === 'error' ? 'assertive' : 'polite'}
+        >
+          {feedback.message}
+        </div>
+      )}
       <AuthDivider />
       <div className={authFooterRow}>
         <span>{`Don't have an account?`}</span>
         <Link className={inlineLink} to='/sign-up' type='anchor'>
           Sign up
           <span className={inlineLinkIcon} aria-hidden='true'>
-            <IArrowRight size={14} />
+            <IArrowRight className={inlineLinkIconGlyph} size={14} />
           </span>
         </Link>
       </div>

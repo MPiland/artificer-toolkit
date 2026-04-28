@@ -14,6 +14,7 @@ import { Route as GuestRouteImport } from './routes/_guest'
 import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as GuestIndexRouteImport } from './routes/_guest/index'
 import { Route as GuestAuthRouteImport } from './routes/_guest/_auth'
+import { Route as AuthedSpellsIndexRouteImport } from './routes/_authed/spells/index'
 import { Route as AuthedHomeIndexRouteImport } from './routes/_authed/home/index'
 import { Route as GuestAuthUpdatePasswordRouteImport } from './routes/_guest/_auth/update-password'
 import { Route as GuestAuthSignUpRouteImport } from './routes/_guest/_auth/sign-up'
@@ -42,6 +43,11 @@ const GuestIndexRoute = GuestIndexRouteImport.update({
 const GuestAuthRoute = GuestAuthRouteImport.update({
   id: '/_auth',
   getParentRoute: () => GuestRoute,
+} as any)
+const AuthedSpellsIndexRoute = AuthedSpellsIndexRouteImport.update({
+  id: '/spells/',
+  path: '/spells/',
+  getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedHomeIndexRoute = AuthedHomeIndexRouteImport.update({
   id: '/home/',
@@ -82,6 +88,7 @@ export interface FileRoutesByFullPath {
   '/sign-up': typeof GuestAuthSignUpRoute
   '/update-password': typeof GuestAuthUpdatePasswordRoute
   '/home/': typeof AuthedHomeIndexRoute
+  '/spells/': typeof AuthedSpellsIndexRoute
   '/auth/confirmed': typeof GuestAuthAuthConfirmedRoute
 }
 export interface FileRoutesByTo {
@@ -92,6 +99,7 @@ export interface FileRoutesByTo {
   '/sign-up': typeof GuestAuthSignUpRoute
   '/update-password': typeof GuestAuthUpdatePasswordRoute
   '/home': typeof AuthedHomeIndexRoute
+  '/spells': typeof AuthedSpellsIndexRoute
   '/auth/confirmed': typeof GuestAuthAuthConfirmedRoute
 }
 export interface FileRoutesById {
@@ -106,6 +114,7 @@ export interface FileRoutesById {
   '/_guest/_auth/sign-up': typeof GuestAuthSignUpRoute
   '/_guest/_auth/update-password': typeof GuestAuthUpdatePasswordRoute
   '/_authed/home/': typeof AuthedHomeIndexRoute
+  '/_authed/spells/': typeof AuthedSpellsIndexRoute
   '/_guest/_auth/auth/confirmed': typeof GuestAuthAuthConfirmedRoute
 }
 export interface FileRouteTypes {
@@ -118,6 +127,7 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/update-password'
     | '/home/'
+    | '/spells/'
     | '/auth/confirmed'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/update-password'
     | '/home'
+    | '/spells'
     | '/auth/confirmed'
   id:
     | '__root__'
@@ -141,6 +152,7 @@ export interface FileRouteTypes {
     | '/_guest/_auth/sign-up'
     | '/_guest/_auth/update-password'
     | '/_authed/home/'
+    | '/_authed/spells/'
     | '/_guest/_auth/auth/confirmed'
   fileRoutesById: FileRoutesById
 }
@@ -186,6 +198,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof GuestAuthRouteImport
       parentRoute: typeof GuestRoute
+    }
+    '/_authed/spells/': {
+      id: '/_authed/spells/'
+      path: '/spells'
+      fullPath: '/spells/'
+      preLoaderRoute: typeof AuthedSpellsIndexRouteImport
+      parentRoute: typeof AuthedRoute
     }
     '/_authed/home/': {
       id: '/_authed/home/'
@@ -234,10 +253,12 @@ declare module '@tanstack/react-router' {
 
 interface AuthedRouteChildren {
   AuthedHomeIndexRoute: typeof AuthedHomeIndexRoute
+  AuthedSpellsIndexRoute: typeof AuthedSpellsIndexRoute
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedHomeIndexRoute: AuthedHomeIndexRoute,
+  AuthedSpellsIndexRoute: AuthedSpellsIndexRoute,
 }
 
 const AuthedRouteWithChildren =

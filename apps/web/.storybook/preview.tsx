@@ -39,7 +39,7 @@ const preview: Preview = {
   parameters: {
     layout: 'fullscreen',
     backgrounds: {
-      disable: true
+      disabled: true
     },
     controls: {
       expanded: true

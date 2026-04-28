@@ -5,7 +5,10 @@ export function SignUpPage() {
   const navigate = useNavigate()
 
   return (
-    <AuthPageShell title='Create an account' description='Start building your world today'>
+    <AuthPageShell
+      title='Create your account'
+      description='Start with a character or homebrew draft, then keep it ready for play.'
+    >
       <SignUpForm
         onSuccess={(result) => result.session ? navigate({ to: '/home' }) : undefined}
       />

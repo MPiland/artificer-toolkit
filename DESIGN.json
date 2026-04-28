@@ -1,0 +1,241 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-04-27T09:38:30.0447623-05:00",
+  "title": "Design System: Artificer Toolkit",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Workshop Cyan",
+        "canonical": "#0891b2",
+        "tonalRamp": [
+          "#164e63",
+          "#155e75",
+          "#0e7490",
+          "#0891b2",
+          "#0ea5c5",
+          "#38bdd6",
+          "#84ddec",
+          "#d8f6fb"
+        ]
+      },
+      "secondary-accent": {
+        "role": "secondary",
+        "displayName": "Signal Indigo",
+        "canonical": "#4f46e5",
+        "tonalRamp": [
+          "#1e1b4b",
+          "#312e81",
+          "#4338ca",
+          "#4f46e5",
+          "#6366f1",
+          "#818cf8",
+          "#a5b4fc",
+          "#e0e7ff"
+        ]
+      },
+      "surface-canvas-light": {
+        "role": "neutral",
+        "displayName": "Paper Canvas",
+        "canonical": "#f3f4f6",
+        "tonalRamp": [
+          "#151b20",
+          "#55626d",
+          "#8a97a1",
+          "#ced1db",
+          "#d7dbe4",
+          "#ebedf2",
+          "#f3f4f6",
+          "#ffffff"
+        ]
+      },
+      "surface-canvas-dark": {
+        "role": "neutral",
+        "displayName": "Night Canvas",
+        "canonical": "#0d1117",
+        "tonalRamp": [
+          "#0b1014",
+          "#0d1117",
+          "#12181d",
+          "#171d22",
+          "#17202a",
+          "#202830",
+          "#334049",
+          "#75828c"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Entry moments, auth heroes, and large marketing headlines only."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page-level titles and major shell headings."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Section and card titles inside product surfaces."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Primary application copy and descriptive text."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Fields, overlines, and compact metadata."
+      }
+    },
+    "shadows": [
+      {
+        "name": "working-surface",
+        "value": "0 18px 50px rgba(7, 16, 20, 0.16)",
+        "purpose": "Panels, auth cards, mockups, and framed product surfaces."
+      },
+      {
+        "name": "hover-lift",
+        "value": "0 24px 64px rgba(7, 16, 20, 0.22)",
+        "purpose": "Interactive framed surfaces that need a stronger hover response."
+      },
+      {
+        "name": "focus-halo",
+        "value": "0 0 0 4px rgba(14, 165, 197, 0.24)",
+        "purpose": "Keyboard focus and selected input emphasis."
+      }
+    ],
+    "motion": [
+      {
+        "name": "fast",
+        "value": "120ms",
+        "purpose": "Small state changes such as hover, focus, and accent transitions."
+      },
+      {
+        "name": "base",
+        "value": "180ms",
+        "purpose": "Default interface transition timing."
+      },
+      {
+        "name": "slow",
+        "value": "320ms",
+        "purpose": "Larger surface transitions when needed."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "720px"
+      },
+      {
+        "name": "md",
+        "value": "900px"
+      },
+      {
+        "name": "lg",
+        "value": "960px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Default action button for the main task on a surface.",
+      "html": "<button class=\"ds-btn-primary\">Sign in</button>",
+      "css": ".ds-btn-primary { display:inline-flex; align-items:center; justify-content:center; min-height:40px; padding:0 20px; border:1px solid var(--at-color-button-primary-border); border-radius:var(--at-radius-md); background:var(--at-color-button-primary-background); color:var(--at-color-button-primary-text); font-family:var(--at-font-sans); font-size:0.875rem; font-weight:500; line-height:1; text-decoration:none; cursor:pointer; transition:background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease; } .ds-btn-primary:hover { background:var(--at-color-button-primary-hover); } .ds-btn-primary:focus-visible { outline:none; box-shadow:var(--at-shadow-focus); }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Support action button that stays quiet beside the primary path.",
+      "html": "<button class=\"ds-btn-secondary\">Cancel</button>",
+      "css": ".ds-btn-secondary { display:inline-flex; align-items:center; justify-content:center; min-height:40px; padding:0 20px; border:1px solid var(--at-color-border-subtle); border-radius:var(--at-radius-md); background:var(--at-color-button-secondary-background); color:var(--at-color-button-secondary-text); font-family:var(--at-font-sans); font-size:0.875rem; font-weight:700; line-height:1; cursor:pointer; transition:color 120ms ease, border-color 120ms ease, background-color 120ms ease; } .ds-btn-secondary:hover { border-color:var(--at-color-border-strong); color:var(--at-color-text-primary); background:var(--at-color-button-secondary-hover); } .ds-btn-secondary:focus-visible { outline:none; box-shadow:var(--at-shadow-focus); }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input-default",
+      "description": "Base text field for auth and authored forms.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Email address</span><input class=\"ds-input\" type=\"email\" placeholder=\"you@example.com\" /></label>",
+      "css": ".ds-field { display:grid; gap:8px; width:100%; } .ds-field-label { color:var(--at-color-text-primary); font-family:var(--at-font-sans); font-size:var(--at-typography-label-fontSize); font-weight:var(--at-typography-label-fontWeight); line-height:var(--at-typography-label-lineHeight); } .ds-input { width:100%; min-height:40px; padding:8px 12px; border:1px solid var(--at-color-input-border-default); border-radius:var(--at-radius-md); background:var(--at-color-input-background-default); color:var(--at-color-text-primary); font-family:var(--at-font-sans); font-size:0.875rem; line-height:1.45; transition:border-color 120ms ease, box-shadow 120ms ease; } .ds-input::placeholder { color:var(--at-color-input-placeholder); } .ds-input:hover { background:var(--at-color-input-background-hover); } .ds-input:focus-visible { outline:none; border-color:var(--at-color-input-border-focus); box-shadow:var(--at-shadow-focus); }"
+    },
+    {
+      "name": "Navigation Pill",
+      "kind": "nav",
+      "refersTo": "nav-pill-active",
+      "description": "Sidebar navigation row for the authenticated shell.",
+      "html": "<a class=\"ds-nav-item ds-nav-item-active\" href=\"#\"><span class=\"ds-nav-icon\"></span><span class=\"ds-nav-copy\"><span class=\"ds-nav-label\">Spells</span><span class=\"ds-nav-description\">Reference list pattern</span></span><span class=\"ds-nav-badge\">Live</span></a>",
+      "css": ".ds-nav-item { display:grid; grid-template-columns:2rem minmax(0,1fr) auto; align-items:center; gap:12px; width:100%; padding:12px 12px; border:1px solid transparent; border-radius:var(--at-radius-md); background:transparent; color:var(--at-color-text-secondary); text-decoration:none; transition:background-color 120ms ease, border-color 120ms ease, color 120ms ease; } .ds-nav-item:hover { color:var(--at-color-text-primary); background:var(--at-color-nav-pillHover); border-color:var(--at-color-border-subtle); } .ds-nav-item-active { color:var(--at-color-text-primary); background:var(--at-color-nav-pillActive); border-color:var(--at-color-accent-border); } .ds-nav-icon { width:2rem; height:2rem; border-radius:var(--at-radius-sm); background:var(--at-color-surface-raised); display:block; } .ds-nav-copy { min-width:0; display:grid; gap:2px; } .ds-nav-label { font-family:var(--at-font-sans); font-size:0.875rem; font-weight:600; line-height:1.25; } .ds-nav-description { color:var(--at-color-text-muted); font-family:var(--at-font-sans); font-size:13px; line-height:1.4; } .ds-nav-badge { display:inline-flex; align-items:center; min-height:20px; padding:0 8px; border-radius:9999px; background:var(--at-color-accent-soft); color:var(--at-color-text-primary); font-family:var(--at-font-sans); font-size:11px; font-weight:700; }"
+    },
+    {
+      "name": "Surface Card",
+      "kind": "card",
+      "refersTo": "card-surface",
+      "description": "Base framed work surface used for auth cards, marketing feature cards, and raised utility blocks.",
+      "html": "<section class=\"ds-card\"><h3 class=\"ds-card-title\">Create an account</h3><p class=\"ds-card-copy\">Start building your world today.</p></section>",
+      "css": ".ds-card { display:grid; gap:16px; padding:24px; border:1px solid var(--at-color-card-border-default); border-radius:var(--at-radius-lg); background:var(--at-color-card-background-default); box-shadow:var(--at-shadow-card); } .ds-card-title { margin:0; color:var(--at-color-text-primary); font-family:var(--at-font-display); font-size:var(--at-typography-title-fontSize); font-weight:var(--at-typography-title-fontWeight); line-height:var(--at-typography-title-lineHeight); } .ds-card-copy { margin:0; color:var(--at-color-text-secondary); font-family:var(--at-font-sans); font-size:0.875rem; line-height:1.45; }"
+    },
+    {
+      "name": "Theme Toggle",
+      "kind": "custom",
+      "refersTo": "button-secondary",
+      "description": "Compact light-dark mode control used in public and authenticated headers.",
+      "html": "<button class=\"ds-theme-toggle\" type=\"button\" aria-label=\"Toggle color scheme\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M12 3.5a1 1 0 0 1 1 1v1.25a1 1 0 1 1-2 0V4.5a1 1 0 0 1 1-1Zm0 13.75a5.25 5.25 0 1 0 0-10.5 5.25 5.25 0 0 0 0 10.5Zm7.5-6.25a1 1 0 0 1 1 1 1 1 0 0 1-1 1h-1.25a1 1 0 1 1 0-2h1.25ZM5.75 12a1 1 0 0 1-1 1H3.5a1 1 0 1 1 0-2h1.25a1 1 0 0 1 1 1Zm9.61-5.36a1 1 0 0 1 0-1.41l.88-.88a1 1 0 1 1 1.41 1.41l-.88.88a1 1 0 0 1-1.41 0ZM6.35 15.65a1 1 0 0 1 1.41 0l.88.88a1 1 0 0 1-1.41 1.41l-.88-.88a1 1 0 0 1 0-1.41Zm9.89 1.29.88-.88a1 1 0 1 1 1.41 1.41l-.88.88a1 1 0 1 1-1.41-1.41ZM6.35 8.35l-.88-.88A1 1 0 0 1 6.88 6.06l.88.88a1 1 0 1 1-1.41 1.41Z\" fill=\"currentColor\"></path></svg></button>",
+      "css": ".ds-theme-toggle { display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; padding:0; border:1px solid var(--at-color-border-subtle); border-radius:9999px; background:var(--at-color-surface-panel); color:var(--at-color-text-secondary); box-shadow:var(--at-shadow-card); cursor:pointer; transition:background-color 120ms ease, border-color 120ms ease, color 120ms ease, transform 120ms ease, box-shadow 120ms ease; } .ds-theme-toggle:hover { border-color:var(--at-color-accent-border); color:var(--at-color-text-primary); transform:translateY(-1px); } .ds-theme-toggle:focus-visible { outline:none; box-shadow:var(--at-shadow-focus); } .ds-theme-toggle svg { width:18px; height:18px; display:block; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Structured Workshop",
+    "overview": "Artificer Toolkit is a product UI first. It is not trying to look like a marketing site dressed up as an app, and it is not trying to romanticize complexity. The system is built around one idea: serious tabletop authoring work should feel ordered, legible, and dependable, even when the underlying data model is dense. The interface should feel like a well-laid-out workbench, not a toy chest and not an enterprise relic.\n\nThe visual language is restrained, but not cold. A cyan-led accent system gives the product a recognizable identity without turning every screen into a branded poster. Neutral surfaces do most of the work. Color is used to orient, confirm, and prioritize. The system rejects cluttered form pages, decorative gradients as a default move, and dense authoring screens that reveal everything at once.\n\nThis system explicitly rejects the anti-references captured in PRODUCT.md: Azure DevOps form clutter, D&D Beyond content-creation brittleness, and any UI that treats responsive support as secondary. Desktop and mobile are equal citizens.",
+    "keyCharacteristics": [
+      "Structured, not noisy",
+      "Familiar, not generic",
+      "Creative, not ornamental",
+      "Dense when needed, but always navigable",
+      "Dual-theme by design, not as an afterthought"
+    ],
+    "rules": [
+      {
+        "name": "The Accent Scarcity Rule",
+        "body": "Cyan is a directional signal, not wallpaper. Most screens should read as neutral first, with cyan used to show focus, action, or state.",
+        "section": "colors"
+      },
+      {
+        "name": "The Dual-Surface Rule",
+        "body": "Light and dark themes keep the same hierarchy. Do not redesign the interface per theme. Invert the surfaces, preserve the structure.",
+        "section": "colors"
+      },
+      {
+        "name": "The Density Hierarchy Rule",
+        "body": "Dense screens do not use hero type. Large type is reserved for true entry moments, not repeated work surfaces.",
+        "section": "typography"
+      },
+      {
+        "name": "The One-Step Rule",
+        "body": "Move between adjacent sizes with purpose. Flat scales make the product feel vague and cluttered.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-at-Rest Rule",
+        "body": "Resting content stays quiet. Elevation appears when a surface genuinely needs separation or interaction state.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep authored screens neutral-first, with cyan reserved for action, focus, and state.",
+      "Do preserve the same information hierarchy across light and dark themes.",
+      "Do use framed surfaces only when they clarify structure or interaction.",
+      "Do make desktop and mobile layouts feel intentionally composed, not mechanically collapsed.",
+      "Do keep long-form authoring surfaces strongly sectioned, with obvious location and next-action cues."
+    ],
+    "donts": [
+      "Don't recreate Azure DevOps forms: avoid cluttered pages, weak hierarchy, and outdated organization patterns for dense authoring flows.",
+      "Don't recreate D&D Beyond content creation: avoid brittle creation flows, weak data structure, and poor conditional disclosure.",
+      "Don't treat responsive support as secondary: desktop and mobile both need intentional layouts rather than desktop-first leftovers.",
+      "Don't use decorative gradients, glassmorphism, or side-stripe card accents as default styling moves.",
+      "Don't turn every repeated surface into an identical card grid. Density needs hierarchy, not repetition."
+    ]
+  }
+}

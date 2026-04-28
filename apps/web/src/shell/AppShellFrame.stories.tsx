@@ -1,26 +1,40 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { List, Stack, Text } from '@mantine/core'
-import { AppShellFrame } from './AppShellFrame'
-import { platformNavigation } from './navigation'
+import { Button, SimpleGrid, Stack, Text } from '@mantine/core'
+import { AppShellFrame, PageHeader } from './AppShellFrame'
+import { storybookNavigation } from './navigation'
 
 const meta = {
   title: 'Platform/Shells/AppShellFrame',
   component: AppShellFrame,
+  tags: ['autodocs'],
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'Authenticated app shell for rebuilt product surfaces. Provides the compact desktop rail, mobile drawer behavior, header utility area, route-aware navigation, theme toggle, user menu, and shared page header pattern.'
+      }
+    }
+  },
   args: {
-    title: 'Authenticated shell foundation',
-    description: 'Shared frame for the rebuilt home screen, list pages, builder, and sheet surfaces.',
-    navigation: platformNavigation,
+    navigation: storybookNavigation,
+    currentPath: '/home',
+    userEmail: 'creator@example.com',
     children: (
       <Stack gap='md'>
-        <Text c='dimmed'>
-          This content area is intentionally simple in 9.1 so we can validate the shell before the list and
-          form runtime lands.
-        </Text>
-        <List spacing='xs' size='sm'>
-          <List.Item>Route-level loading and error states</List.Item>
-          <List.Item>Shared footer actions and drawers</List.Item>
-          <List.Item>List pattern rollout in the next tranche</List.Item>
-        </List>
+        <PageHeader
+          eyebrow='Workspace'
+          title='Authenticated shell foundation'
+          description='Shared frame for the rebuilt home screen, authored lists, builder, and sheet surfaces.'
+          actions={<Button>Primary action</Button>}
+        />
+        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing='md'>
+          <Text c='dimmed'>
+            The shell provides the stable navigation spine, route context, mobile drawer, and utility area.
+          </Text>
+          <Text c='dimmed'>
+            Domain pages should bring their own content composition without rebuilding the shell.
+          </Text>
+        </SimpleGrid>
       </Stack>
     )
   }
@@ -31,3 +45,11 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Default: Story = {}
+
+export const Mobile: Story = {
+  parameters: {
+    viewport: {
+      defaultViewport: 'mobile1'
+    }
+  }
+}

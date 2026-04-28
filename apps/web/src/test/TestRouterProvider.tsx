@@ -44,7 +44,8 @@ function createTestRouter(initialPath: string) {
     createStaticRoute('/reset-password', getParentRoute),
     createStaticRoute('/update-password', getParentRoute),
     createStaticRoute('/auth/confirmed', getParentRoute),
-    createStaticRoute('/home', getParentRoute)
+    createStaticRoute('/home', getParentRoute),
+    createStaticRoute('/spells', getParentRoute)
   ])
 
   const router = createRouter({

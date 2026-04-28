@@ -4,26 +4,43 @@ import { Link } from '#app/components/Link/Link'
 import { browserAuthClient } from '../authClient'
 import {
   authButton,
+  authFieldHint,
+  authFooterRow,
   authForm,
+  authFormMessage,
+  authFormMessageError,
+  authFormMessageSuccess,
   inlineLink,
   inlineLinkIcon,
+  inlineLinkIconGlyph,
   textInput
 } from '../auth.css'
 import { AuthDivider } from './AuthDivider'
 import { showError, showSuccess } from './authForm.utils'
 import { AuthFormProps } from './authForm.types'
-import IArrowLeft from '#assets/Icons/IArrowLeft'
+import IArrowLeft from '#assets/icons/IArrowLeft'
 
 export function UpdatePasswordForm({ authClient = browserAuthClient, onSuccess }: AuthFormProps) {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [feedback, setFeedback] = useState<{ tone: 'error' | 'success'; message: string } | null>(null)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    setFeedback(null)
+
+    if (password.length < 8) {
+      const message = 'Use at least 8 characters for your new password.'
+      setFeedback({ tone: 'error', message })
+      showError('Password is too short', message)
+      return
+    }
 
     if (password !== confirmPassword) {
-      showError('Passwords do not match', 'Enter the same password in both fields.')
+      const message = 'Enter the same password in both fields.'
+      setFeedback({ tone: 'error', message })
+      showError('Passwords do not match', message)
       return
     }
 
@@ -33,11 +50,15 @@ export function UpdatePasswordForm({ authClient = browserAuthClient, onSuccess }
       const result = await authClient.updatePassword({ password })
 
       if (!result.ok) {
-        showError('Unable to update password', result.message ?? 'Please try again.')
+        const message = result.message ?? 'Try the recovery link again or request a new reset email.'
+        setFeedback({ tone: 'error', message })
+        showError('Unable to update password', message)
         return
       }
 
-      showSuccess('Password updated', 'Use your new password the next time you sign in.')
+      const message = 'Use your new password the next time you sign in.'
+      setFeedback({ tone: 'success', message })
+      showSuccess('Password updated', message)
       await onSuccess?.(result)
     } finally {
       setIsSubmitting(false)
@@ -58,6 +79,7 @@ export function UpdatePasswordForm({ authClient = browserAuthClient, onSuccess }
         onChange={(event) => setPassword(event.currentTarget.value)}
         required
       />
+      <p className={authFieldHint}>Use at least 8 characters. Avoid a password you use at another table or tool.</p>
       <PasswordInput
         label='Confirm password'
         classNames={{
@@ -73,13 +95,26 @@ export function UpdatePasswordForm({ authClient = browserAuthClient, onSuccess }
       <Button className={authButton} type='submit' disabled={isSubmitting}>
         {isSubmitting ? 'Updating password...' : 'Update password'}
       </Button>
+      {feedback && (
+        <div
+          className={`${authFormMessage} ${
+            feedback.tone === 'error' ? authFormMessageError : authFormMessageSuccess
+          }`}
+          role={feedback.tone === 'error' ? 'alert' : 'status'}
+          aria-live={feedback.tone === 'error' ? 'assertive' : 'polite'}
+        >
+          {feedback.message}
+        </div>
+      )}
       <AuthDivider />
-      <Link className={inlineLink} to='/sign-in' type='anchor'>
-        <span className={inlineLinkIcon} aria-hidden='true'>
-          <IArrowLeft size={14} />
-        </span>
-        Back to sign in
-      </Link>
+      <div className={authFooterRow}>
+        <Link className={inlineLink} to='/sign-in' type='anchor'>
+          <span className={inlineLinkIcon} aria-hidden='true'>
+            <IArrowLeft className={inlineLinkIconGlyph} size={14} />
+          </span>
+          Back to sign in
+        </Link>
+      </div>
     </form>
   )
 }

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import ILogo from '@assets/Icons/ILogo'
+import ILogo from '@assets/icons/ILogo'
 import {
   authBrandBlock,
   authBrandEyebrow,
