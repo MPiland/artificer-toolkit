@@ -49,6 +49,51 @@ describe('AuthoredListPage', () => {
     expect(onView).toHaveBeenCalledWith(expect.objectContaining({ id: 'magic-missile' }))
   })
 
+  it('does not open table rows or cards when view permission is false', async () => {
+    const user = userEvent.setup()
+    const onView = vi.fn()
+    const nonViewableItems = [
+      {
+        ...spellListItems[0],
+        permissions: {
+          ...spellListItems[0].permissions,
+          canView: false
+        }
+      }
+    ]
+
+    const { rerender } = renderWithAppProviders(
+      <AuthoredListPage
+        title='Spells'
+        summary='312 spells / 312 SRD / 0 homebrew'
+        createLabel='Create Spell'
+        items={nonViewableItems}
+        filters={spellListFilters}
+        onView={onView}
+      />
+    )
+
+    await user.click(screen.getByRole('row', { name: /magic missile/i }))
+
+    expect(onView).not.toHaveBeenCalled()
+
+    rerender(
+      <AuthoredListPage
+        title='Spells'
+        summary='312 spells / 312 SRD / 0 homebrew'
+        createLabel='Create Spell'
+        items={nonViewableItems}
+        filters={spellListFilters}
+        initialViewMode='cards'
+        onView={onView}
+      />
+    )
+
+    await user.click(screen.getByLabelText(/view magic missile/i))
+
+    expect(onView).not.toHaveBeenCalled()
+  })
+
   it('filters records by search text', async () => {
     const user = userEvent.setup()
 

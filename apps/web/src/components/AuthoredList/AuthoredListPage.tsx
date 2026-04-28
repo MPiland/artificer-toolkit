@@ -352,10 +352,15 @@ function AuthoredListRow({
   actionHandlers: AuthoredListActionHandlers
 }) {
   const sourceLabel = item.sourceKind === 'master' ? 'SRD' : item.sourceLabel
+  const handleView = () => {
+    if (item.permissions.canView) {
+      onView?.(item)
+    }
+  }
   const handleRowKeyDown = (event: KeyboardEvent<HTMLTableRowElement>) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()
-      onView?.(item)
+      handleView()
     }
   }
 
@@ -364,7 +369,7 @@ function AuthoredListRow({
       className={styles.listRow}
       tabIndex={item.permissions.canView ? 0 : -1}
       aria-label={`View ${item.name}`}
-      onClick={() => onView?.(item)}
+      onClick={handleView}
       onKeyDown={handleRowKeyDown}
     >
       <Table.Td className={styles.dotCell}>
@@ -406,10 +411,15 @@ function AuthoredListCard({
 }) {
   const sourceLabel = item.sourceKind === 'master' ? 'SRD' : item.sourceLabel
   const levelLabel = item.level === '0' ? 'Cantrip' : `Level ${item.level ?? '-'}`
+  const handleView = () => {
+    if (item.permissions.canView) {
+      onView?.(item)
+    }
+  }
   const handleCardKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()
-      onView?.(item)
+      handleView()
     }
   }
 
@@ -417,7 +427,7 @@ function AuthoredListCard({
     <article
       aria-label={`View ${item.name}`}
       className={styles.card}
-      onClick={() => onView?.(item)}
+      onClick={handleView}
       onKeyDown={handleCardKeyDown}
       tabIndex={item.permissions.canView ? 0 : -1}
     >

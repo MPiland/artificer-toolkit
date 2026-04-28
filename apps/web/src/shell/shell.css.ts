@@ -2,7 +2,7 @@ import { globalStyle, style } from '@vanilla-extract/css'
 import { foundationVars } from '../css/foundations.css.ts'
 import { app } from '../css/layers.css.ts'
 
-const mobileBreakpoint = 'screen and (max-width: 768px)'
+const mobileBreakpoint = 'screen and (max-width: 992px)'
 
 export const skipLink = style({
   '@layer': {
