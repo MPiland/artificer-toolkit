@@ -1,15 +1,39 @@
-import { style } from '@vanilla-extract/css'
+import { keyframes, style } from '@vanilla-extract/css'
 import { foundationVars } from '../css/foundations.css.ts'
 import { app } from '../css/layers.css.ts'
+
+const authPanelEnter = keyframes({
+  from: {
+    opacity: 0,
+    transform: 'translateY(10px)'
+  },
+  to: {
+    opacity: 1,
+    transform: 'translateY(0)'
+  }
+})
 
 export const authRoot = style({
   '@layer': {
     [app]: {
       minHeight: '100dvh',
       display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
+      gridTemplateColumns: 'minmax(420px, 1fr) minmax(420px, 1fr)',
       backgroundColor: foundationVars.color.surface.canvas,
       color: foundationVars.color.text.primary
+    }
+  },
+  '@media': {
+    'screen and (max-width: 900px)': {
+      gridTemplateColumns: '1fr'
+    }
+  }
+})
+
+export const authRootSupport = style({
+  '@layer': {
+    [app]: {
+      gridTemplateColumns: 'minmax(420px, 1fr) minmax(420px, 1fr)'
     }
   },
   '@media': {
@@ -22,18 +46,39 @@ export const authRoot = style({
 export const authHeroPanel = style({
   '@layer': {
     [app]: {
+      position: 'relative',
       display: 'grid',
       gridTemplateRows: 'auto 1fr',
       minHeight: '100dvh',
-      padding: '80px',
-      backgroundColor: foundationVars.color.surface.header
+      overflow: 'hidden',
+      padding: `clamp(${foundationVars.space[8]}, 5vw, ${foundationVars.space[13]})`,
+      backgroundColor: foundationVars.color.surface.header,
+      borderRight: `1px solid ${foundationVars.color.border.subtle}`
     }
   },
   '@media': {
     'screen and (max-width: 900px)': {
       minHeight: 'auto',
-      gap: foundationVars.space[8],
-      padding: `${foundationVars.space[8]} ${foundationVars.space[6]}`
+      gap: foundationVars.space[6],
+      padding: `${foundationVars.space[8]} ${foundationVars.space[6]}`,
+      borderRight: 0,
+      borderBottom: `1px solid ${foundationVars.color.border.subtle}`
+    },
+    'screen and (max-width: 600px)': {
+      padding: `${foundationVars.space[6]} ${foundationVars.space[5]}`
+    }
+  }
+})
+
+export const authHeroPanelSupport = style({
+  '@layer': {
+    [app]: {
+      alignContent: 'stretch'
+    }
+  },
+  '@media': {
+    'screen and (max-width: 900px)': {
+      paddingBottom: foundationVars.space[5]
     }
   }
 })
@@ -46,14 +91,13 @@ export const authHeroHeader = style({
       justifyContent: 'space-between',
       gap: foundationVars.space[4],
       width: '100%',
-      paddingBottom: foundationVars.space[3],
+      paddingBottom: foundationVars.space[4],
       borderBottom: `1px solid ${foundationVars.color.border.strong}`
     }
   },
   '@media': {
     'screen and (max-width: 600px)': {
-      alignItems: 'start',
-      flexDirection: 'column'
+      gap: foundationVars.space[3]
     }
   }
 })
@@ -88,12 +132,21 @@ export const authHeroCopy = style({
     [app]: {
       display: 'grid',
       alignContent: 'center',
-      justifyItems: 'center',
-      gap: foundationVars.space[8],
+      justifyItems: 'start',
+      gap: foundationVars.space[4],
       justifySelf: 'center',
       width: '100%',
       maxWidth: '560px',
-      textAlign: 'center'
+      textAlign: 'left',
+      transform: 'translateY(2vh)'
+    }
+  },
+  '@media': {
+    'screen and (max-width: 900px)': {
+      justifyItems: 'center',
+      maxWidth: '520px',
+      textAlign: 'center',
+      transform: 'none'
     }
   }
 })
@@ -101,12 +154,44 @@ export const authHeroCopy = style({
 export const authHeroTitle = style({
   '@layer': {
     [app]: {
-      margin: 0,
+      maxWidth: '560px',
+      margin: `0 0 ${foundationVars.space[6]}`,
       color: foundationVars.color.text.primary,
-      fontSize: foundationVars.typography.display.fontSize,
-      fontWeight: foundationVars.typography.display.fontWeight,
-      letterSpacing: foundationVars.typography.display.letterSpacing,
-      lineHeight: foundationVars.typography.display.lineHeight
+      fontSize: '3.25rem',
+      fontWeight: foundationVars.fontWeight.heavy,
+      letterSpacing: '-0.032em',
+      lineHeight: 1.06
+    }
+  },
+  '@media': {
+    'screen and (max-width: 1100px)': {
+      fontSize: '2.75rem'
+    },
+    'screen and (max-width: 900px)': {
+      maxWidth: '680px',
+      fontSize: '2.25rem',
+      letterSpacing: '-0.025em'
+    },
+    'screen and (max-width: 600px)': {
+      fontSize: foundationVars.typography.title.fontSize,
+      lineHeight: foundationVars.typography.title.lineHeight,
+      marginBottom: foundationVars.space[4]
+    }
+  }
+})
+
+export const authHeroTitleSupport = style({
+  '@layer': {
+    [app]: {
+      maxWidth: '520px'
+    }
+  },
+  '@media': {
+    'screen and (max-width: 900px)': {
+      fontSize: foundationVars.typography.heading.fontSize
+    },
+    'screen and (max-width: 600px)': {
+      fontSize: foundationVars.typography.heading.fontSize
     }
   }
 })
@@ -114,27 +199,16 @@ export const authHeroTitle = style({
 export const authHeroSubtitle = style({
   '@layer': {
     [app]: {
+      maxWidth: '42ch',
       margin: 0,
       color: foundationVars.color.text.secondary,
-      fontSize: foundationVars.typography.body.fontSize,
-      lineHeight: foundationVars.typography.body.lineHeight
+      fontSize: '1.125rem',
+      lineHeight: 1.62
     }
-  }
-})
-
-export const authBulletList = style({
-  '@layer': {
-    [app]: {
-      display: 'grid',
-      gap: foundationVars.space[4],
-      justifySelf: 'center',
-      width: 'fit-content',
-      padding: 0,
-      margin: 0,
-      color: foundationVars.color.text.secondary,
-      fontSize: '0.875rem',
-      listStyle: 'none',
-      textAlign: 'left'
+  },
+  '@media': {
+    'screen and (max-width: 900px)': {
+      fontSize: foundationVars.typography.body.fontSize
     }
   }
 })
@@ -145,13 +219,29 @@ export const authPanel = style({
       display: 'grid',
       placeItems: 'center',
       minHeight: '100dvh',
-      padding: '80px'
+      padding: `clamp(${foundationVars.space[8]}, 5vw, ${foundationVars.space[13]}) ${foundationVars.space[8]}`
     }
   },
   '@media': {
     'screen and (max-width: 900px)': {
       minHeight: 'auto',
       padding: `${foundationVars.space[6]} ${foundationVars.space[5]} ${foundationVars.space[10]}`
+    },
+    'screen and (max-width: 600px)': {
+      padding: `${foundationVars.space[5]} ${foundationVars.space[5]} ${foundationVars.space[8]}`
+    }
+  }
+})
+
+export const authPanelSupport = style({
+  '@layer': {
+    [app]: {
+      placeItems: 'center'
+    }
+  },
+  '@media': {
+    'screen and (max-width: 900px)': {
+      placeItems: 'center'
     }
   }
 })
@@ -160,13 +250,22 @@ export const authCard = style({
   '@layer': {
     [app]: {
       display: 'grid',
-      gap: foundationVars.space[4],
-      width: 'min(440px, 100%)',
+      gap: foundationVars.space[5],
+      width: 'min(460px, 100%)',
       padding: foundationVars.space[8],
       border: `1px solid ${foundationVars.color.card.border.default}`,
-      borderRadius: foundationVars.radius.lg,
+      borderRadius: foundationVars.radius.xl,
       backgroundColor: foundationVars.color.card.background.default,
-      boxShadow: foundationVars.shadow.card
+      boxShadow: foundationVars.shadow.card,
+      animation: `${authPanelEnter} 260ms cubic-bezier(0.16, 1, 0.3, 1)`
+    }
+  },
+  '@media': {
+    'screen and (max-width: 600px)': {
+      padding: foundationVars.space[6]
+    },
+    '(prefers-reduced-motion: reduce)': {
+      animation: 'none'
     }
   }
 })
@@ -209,6 +308,53 @@ export const authForm = style({
     [app]: {
       display: 'grid',
       gap: foundationVars.space[4]
+    }
+  }
+})
+
+export const authFormMessage = style({
+  '@layer': {
+    [app]: {
+      display: 'grid',
+      gap: foundationVars.space[2],
+      padding: `${foundationVars.space[3]} ${foundationVars.space[4]}`,
+      border: `1px solid ${foundationVars.color.border.subtle}`,
+      borderRadius: foundationVars.radius.lg,
+      backgroundColor: foundationVars.color.surface.raised,
+      color: foundationVars.color.text.secondary,
+      fontSize: foundationVars.typography.bodySm.fontSize,
+      lineHeight: foundationVars.typography.bodySm.lineHeight
+    }
+  }
+})
+
+export const authFormMessageError = style({
+  '@layer': {
+    [app]: {
+      borderColor: foundationVars.color.status.danger,
+      backgroundColor: foundationVars.color.status.dangerSoft,
+      color: foundationVars.color.text.primary
+    }
+  }
+})
+
+export const authFormMessageSuccess = style({
+  '@layer': {
+    [app]: {
+      borderColor: foundationVars.color.status.success,
+      backgroundColor: foundationVars.color.status.successSoft,
+      color: foundationVars.color.text.primary
+    }
+  }
+})
+
+export const authFieldHint = style({
+  '@layer': {
+    [app]: {
+      margin: `-${foundationVars.space[2]} 0 0`,
+      color: foundationVars.color.text.muted,
+      fontSize: foundationVars.typography.caption.fontSize,
+      lineHeight: foundationVars.typography.caption.lineHeight
     }
   }
 })
@@ -286,6 +432,11 @@ export const inlineLink = style({
         '&:hover': {
           color: foundationVars.color.icon.hover,
           textDecoration: 'none'
+        },
+        '&:focus-visible': {
+          borderRadius: foundationVars.radius.sm,
+          outline: `2px solid ${foundationVars.color.accent.solid}`,
+          outlineOffset: '3px'
         }
       }
     }
@@ -296,7 +447,19 @@ export const inlineLinkIcon = style({
   '@layer': {
     [app]: {
       display: 'inline-flex',
-      color: foundationVars.color.text.accent
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: foundationVars.color.text.accent,
+      lineHeight: 1
+    }
+  }
+})
+
+export const inlineLinkIconGlyph = style({
+  '@layer': {
+    [app]: {
+      display: 'block',
+      flexShrink: 0
     }
   }
 })
@@ -304,8 +467,8 @@ export const inlineLinkIcon = style({
 export const authButton = style({
   '@layer': {
     [app]: {
-      justifySelf: 'start',
-      minHeight: '40px',
+      justifySelf: 'stretch',
+      minHeight: '44px',
       padding: `0 ${foundationVars.space[4]}`,
       border: `1px solid ${foundationVars.color.button.primary.border}`,
       borderRadius: foundationVars.radius.lg,
@@ -314,6 +477,7 @@ export const authButton = style({
       cursor: 'pointer',
       fontSize: foundationVars.typography.bodySm.fontSize,
       fontWeight: foundationVars.fontWeight.medium,
+      transition: `background-color ${foundationVars.motion.fast} ease, transform ${foundationVars.motion.fast} ease`,
 
       selectors: {
         '&:disabled': {
@@ -321,7 +485,14 @@ export const authButton = style({
           opacity: 0.62
         },
         '&:hover:not(:disabled)': {
-          backgroundColor: foundationVars.color.button.primary.hover
+          backgroundColor: foundationVars.color.button.primary.hover,
+          transform: 'translateY(-1px)'
+        },
+        '&:active:not(:disabled)': {
+          transform: 'translateY(0)'
+        },
+        '&:focus-visible': {
+          boxShadow: foundationVars.shadow.focus
         }
       }
     }

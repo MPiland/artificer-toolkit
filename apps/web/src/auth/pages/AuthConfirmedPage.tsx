@@ -6,8 +6,8 @@ import { ctaRow, primaryLink, secondaryLink } from '#app/marketing/marketing.css
 export function AuthConfirmedPage() {
   return (
     <AuthPageShell
-      title='Your confirmation link has been accepted.'
-      description='Continue into sign in or return to the public homepage.'
+      title='Your account is confirmed.'
+      description='Continue to sign in, then start creating.'
     >
       <div className={transitionContent}>
         <div className={ctaRow}>

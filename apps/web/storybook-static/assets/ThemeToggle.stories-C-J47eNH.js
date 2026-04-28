@@ -1,3 +1,0 @@
-import{n as e}from"./chunk-DnJy8xQt.js";import{V as t}from"./layers.css.ts.vanilla-B9Gujw8f.js";import{t as n}from"./ThemeToggle-C41ejDem.js";import{t as r}from"./ThemeToggle-ClNgrVGU.js";var i=e((()=>{r()})),a,o,s,c;e((()=>{i(),a=t(),o={title:`Platform/Theme/ThemeToggle`,component:n},s={render:()=>(0,a.jsx)(n,{})},s.parameters={...s.parameters,docs:{...s.parameters?.docs,source:{originalSource:`{
-  render: () => <ThemeToggle />
-}`,...s.parameters?.docs?.source}}},c=[`Default`]}))();export{s as Default,c as __namedExportsOrder,o as default};

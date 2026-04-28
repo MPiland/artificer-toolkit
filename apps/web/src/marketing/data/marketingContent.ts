@@ -10,30 +10,49 @@ export function isMarketingSectionEnabled(hash: MarketingSectionHash) {
   return marketingNavigation.some((item) => item.href === hash)
 }
 
+export const marketingHeroHighlights = [
+  {
+    label: 'Create',
+    copy: 'Build homebrew that follows real game structure without fighting the form'
+  },
+  {
+    label: 'Connect',
+    copy: 'Move from builder to sheet without losing the content you just authored'
+  },
+  {
+    label: 'Play',
+    copy: 'Keep lists, rules, characters, and prep ready when the session starts'
+  }
+] as const
+
 export const marketingFeatures = [
   {
-    title: 'Character Builder',
-    copy: 'Create and manage characters with full class, race, background, and equipment support.'
+    audience: 'For players',
+    title: 'Characters stay playable, not just editable',
+    copy: 'Build characters with guided structure, then switch to a dedicated sheet built for actions, spells, resources, and inventory at the table.',
+    bullets: ['Structural builder flow with review steps', 'Separate play-state sheet for real session use'],
+    icon: 'character'
   },
   {
-    title: 'Full SRD Reference',
-    copy: 'Browse every spell, creature, item, and rule from the System Reference Document.'
+    audience: 'For homebrewers',
+    title: 'Homebrew creation keeps complex rules readable',
+    copy: 'Author spells, equipment, races, classes, creatures, and vehicles in organized flows that surface the right structure at the right time.',
+    bullets: ['Sectioned authoring instead of endless forms', 'Shared patterns across every major content domain'],
+    icon: 'scroll'
   },
   {
-    title: 'Homebrew Content',
-    copy: 'Build custom classes, races, backgrounds, spells, and items. Free tier gets a head start.'
+    audience: 'For reference',
+    title: 'Rules and content stay close to the work',
+    copy: 'Keep SRD material, owned drafts, and copied master data in one place so creators and players can move without losing context.',
+    bullets: ['Fast reference for spells, creatures, items, and rules', 'Master content can be copied into owned drafts safely'],
+    icon: 'book'
   },
   {
-    title: 'Campaign Management',
-    copy: 'Create campaigns, add players, and keep your world organized. Dungeon Master tier.'
-  },
-  {
-    title: 'Encounter Builder',
-    copy: 'Plan and run combat encounters with initiative tracking and creature management.'
-  },
-  {
-    title: 'Content Sharing',
-    copy: 'Share homebrew content directly with players in your campaign. DM tier feature.'
+    audience: 'For DMs',
+    title: 'Campaign prep and table support share one workspace',
+    copy: 'Organize encounters, notes, shared content, and campaign context without splitting prep work from live play support.',
+    bullets: ['Campaign-aware prep surfaces', 'Ready for encounter, sharing, and table-facing workflows'],
+    icon: 'campaign'
   }
 ] as const
 
@@ -83,10 +102,4 @@ export const pricingPlans = [
       'Share content with players'
     ]
   }
-] as const
-
-export const authHeroBullets = [
-  'Full SRD content library built in',
-  'Custom homebrew races, classes and spells',
-  'Character sheet with auto-calculated stats'
 ] as const

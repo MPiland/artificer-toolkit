@@ -1,5 +1,5 @@
 import List, { type FooterConfig } from '@components/List'
-import ICategory from '@assets/Icons/ICategory'
+import ICategory from '@assets/icons/ICategory'
 import { useDeleteClass, useListClasses } from '@apis'
 import type { ClassMeta } from '@types'
 

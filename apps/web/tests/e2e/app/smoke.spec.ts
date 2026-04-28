@@ -3,8 +3,8 @@ import { expect, test } from '@playwright/test'
 test('marketing route renders the Phase 9.2 public page', async ({ page }) => {
   await page.goto('/')
 
-  await expect(page.getByRole('heading', { name: 'Run your table from one toolkit.' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'One place for the whole table' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Create the content you want to run, then bring it straight into play.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Characters stay playable, not just editable' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Sign in' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Switch to light mode' })).toBeVisible()
 })
@@ -18,7 +18,7 @@ test('public auth routes render the rebuilt auth shell', async ({ page }) => {
 
   await page.getByRole('link', { name: 'Sign up' }).click()
   await expect(page).toHaveURL(/\/sign-up$/)
-  await expect(page.getByRole('heading', { name: 'Create an account' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Create your account' })).toBeVisible()
   await expect(page.getByLabel('Name')).toBeVisible()
 
   await page.goto('/reset-password')
@@ -31,7 +31,7 @@ test('public auth routes render the rebuilt auth shell', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Update password' })).toBeVisible()
 
   await page.goto('/auth/confirmed')
-  await expect(page.getByRole('heading', { name: 'Your confirmation link has been accepted.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Your account is confirmed.' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Continue to sign in' })).toBeVisible()
 })
 

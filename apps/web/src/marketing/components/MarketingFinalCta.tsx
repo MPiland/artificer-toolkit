@@ -1,16 +1,21 @@
-import { finalCta, primaryLink, sectionCopy, sectionTitle } from '../marketing.css'
+import { finalCta, finalCtaPanel, primaryLink, sectionCopy, sectionTitle } from '../marketing.css'
 import { MarketingRouteLink } from './MarketingLinks'
 
 export function MarketingFinalCta() {
   return (
     <section className={finalCta} aria-labelledby='final-cta-title'>
-      <h2 id='final-cta-title' className={sectionTitle}>
-        Ready to build your world?
-      </h2>
-      <p className={sectionCopy}>Join adventurers for free, upgrade when you are ready.</p>
-      <MarketingRouteLink className={primaryLink} to='/sign-up'>
-        Start for free - no card required
-      </MarketingRouteLink>
+      <div className={finalCtaPanel}>
+        <h2 id='final-cta-title' className={sectionTitle}>
+          Start your first character or your first piece of homebrew.
+        </h2>
+        <p className={sectionCopy}>
+          Open the toolkit, create something real, and keep it ready for play as the rest of the app
+          grows around it.
+        </p>
+        <MarketingRouteLink className={primaryLink} to='/sign-up'>
+          Start creating for free
+        </MarketingRouteLink>
+      </div>
     </section>
   )
 }

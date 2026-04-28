@@ -10,8 +10,16 @@ describe('MarketingPage', () => {
     renderWithAppProviders(<MarketingPage />)
 
     expect(screen.getByTestId('marketing-page')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Run your table from one toolkit.' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'One place for the whole table' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', {
+        name: 'Create the content you want to run, then bring it straight into play.'
+      })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', {
+        name: 'Built for real tabletop workflows, not generic content forms'
+      })
+    ).toBeInTheDocument()
     if (isMarketingSectionEnabled('#pricing')) {
       expect(screen.getByRole('heading', { name: /Start free/ })).toBeInTheDocument()
       expect(screen.getByRole('link', { name: 'View pricing' })).toBeInTheDocument()

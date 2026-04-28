@@ -70,8 +70,9 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
 - Follow-up review fixes are landed for password recovery completion, router-aware test/story wrappers, and scoped Playwright web servers.
 - Supabase free-tier auth constraints are now documented as a Phase 9 design constraint.
 - Manual Storybook review accepted the public marketing and auth surfaces.
-- Phase 9.3 is the next active tranche: authenticated shell, navigation, and canonical list patterns.
-- Latest closeout commands passed: `yarn workspace @artificer-toolkit/web test` and `yarn build:web`.
+- Phase 9.3 is complete: authenticated shell, navigation, Storybook autodocs, and canonical authored list patterns are accepted for the current checkpoint.
+- Phase 9.4 is the next active tranche: frontend data runtime, REST-first adapter, SSR query hydration, and provenance/editability contracts.
+- Latest closeout commands passed for 9.3 include focused authored-list tests, `build:web`, Storybook build, Storybook Playwright smoke, and browser component tests.
 
 ## Subplan Index
 
@@ -79,8 +80,8 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
 |---|---|---|---|
 | 9.1 | [PHASE_9_1_FRONTEND_PLATFORM_AND_TESTING_SUBPLAN.md](PHASE_9_1_FRONTEND_PLATFORM_AND_TESTING_SUBPLAN.md) | Toolchain, SSR defaults, Storybook, Playwright, Vitest | Complete |
 | 9.2 | [PHASE_9_2_PUBLIC_AUTH_AND_MARKETING_SUBPLAN.md](PHASE_9_2_PUBLIC_AUTH_AND_MARKETING_SUBPLAN.md) | Marketing page, logged-out shell, auth routes | Complete |
-| 9.3 | [PHASE_9_3_APP_SHELL_NAV_AND_LIST_PATTERNS_SUBPLAN.md](PHASE_9_3_APP_SHELL_NAV_AND_LIST_PATTERNS_SUBPLAN.md) | Authenticated shell, navigation, canonical list pattern | Next |
-| 9.4 | [PHASE_9_4_FRONTEND_DATA_RUNTIME_SUBPLAN.md](PHASE_9_4_FRONTEND_DATA_RUNTIME_SUBPLAN.md) | REST-first adapter, SSR query hydration, provenance/editability | Not Started |
+| 9.3 | [PHASE_9_3_APP_SHELL_NAV_AND_LIST_PATTERNS_SUBPLAN.md](PHASE_9_3_APP_SHELL_NAV_AND_LIST_PATTERNS_SUBPLAN.md) | Authenticated shell, navigation, canonical list pattern | Complete |
+| 9.4 | [PHASE_9_4_FRONTEND_DATA_RUNTIME_SUBPLAN.md](PHASE_9_4_FRONTEND_DATA_RUNTIME_SUBPLAN.md) | REST-first adapter, SSR query hydration, provenance/editability | Next |
 | 9.5 | [PHASE_9_5_SHARED_FORM_RUNTIME_SUBPLAN.md](PHASE_9_5_SHARED_FORM_RUNTIME_SUBPLAN.md) | Node-map sections, typed stores, field runtime | Not Started |
 | 9.6 | [PHASE_9_6_CODE_SPELL_SUBPLAN.md](PHASE_9_6_CODE_SPELL_SUBPLAN.md) | Spell list and form implementation | Not Started |
 | 9.7 | [PHASE_9_7_CODE_BACKGROUND_SUBPLAN.md](PHASE_9_7_CODE_BACKGROUND_SUBPLAN.md) | Background list and form implementation | Not Started |
@@ -99,7 +100,7 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
 No subplan is considered complete until all of the following are true:
 
 - Typecheck and build targets touched by the tranche are green.
-- Storybook stories exist for every reusable component or shell pattern introduced in the tranche.
+- Storybook stories and docs/autodocs exist for every reusable component or shell pattern introduced in the tranche.
 - Playwright covers:
   - Storybook component verification for reusable UI
   - app-route verification for real flows

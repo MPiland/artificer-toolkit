@@ -1,13 +1,18 @@
 import { type FormEvent, useState } from 'react'
 import { Button, TextInput } from '@mantine/core'
 import { Link } from '#app/components/Link/Link'
-import IArrowLeft from '#assets/Icons/IArrowLeft'
+import IArrowLeft from '#assets/icons/IArrowLeft'
 import { browserAuthClient } from '../authClient'
 import {
   authButton,
+  authFooterRow,
   authForm,
+  authFormMessage,
+  authFormMessageError,
+  authFormMessageSuccess,
   inlineLink,
   inlineLinkIcon,
+  inlineLinkIconGlyph,
   textInput
 } from '../auth.css'
 import { AuthDivider } from './AuthDivider'
@@ -17,20 +22,26 @@ import { AuthFormProps } from './authForm.types'
 export function ResetPasswordForm({ authClient = browserAuthClient, onSuccess }: AuthFormProps) {
   const [email, setEmail] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [feedback, setFeedback] = useState<{ tone: 'error' | 'success'; message: string } | null>(null)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setIsSubmitting(true)
+    setFeedback(null)
 
     try {
       const result = await authClient.requestPasswordReset({ email })
 
       if (!result.ok) {
-        showError('Unable to send reset link', result.message ?? 'Please try again.')
+        const message = result.message ?? 'Check the email address and try again.'
+        setFeedback({ tone: 'error', message })
+        showError('Unable to send reset link', message)
         return
       }
 
-      showSuccess('Reset link sent', 'Check your inbox for the secure link.')
+      const message = 'If email delivery is enabled, a secure reset link is on its way.'
+      setFeedback({ tone: 'success', message })
+      showSuccess('Reset link sent', message)
       await onSuccess?.(result)
     } finally {
       setIsSubmitting(false)
@@ -54,13 +65,26 @@ export function ResetPasswordForm({ authClient = browserAuthClient, onSuccess }:
       <Button className={authButton} type='submit' disabled={isSubmitting}>
         {isSubmitting ? 'Sending link...' : 'Send reset link'}
       </Button>
+      {feedback && (
+        <div
+          className={`${authFormMessage} ${
+            feedback.tone === 'error' ? authFormMessageError : authFormMessageSuccess
+          }`}
+          role={feedback.tone === 'error' ? 'alert' : 'status'}
+          aria-live={feedback.tone === 'error' ? 'assertive' : 'polite'}
+        >
+          {feedback.message}
+        </div>
+      )}
       <AuthDivider />
-      <Link className={inlineLink} to='/sign-in' type='anchor'>
-        <span className={inlineLinkIcon} aria-hidden='true'>
-          <IArrowLeft size={14} />
-        </span>
-        Back to sign in
-      </Link>
+      <div className={authFooterRow}>
+        <Link className={inlineLink} to='/sign-in' type='anchor'>
+          <span className={inlineLinkIcon} aria-hidden='true'>
+            <IArrowLeft className={inlineLinkIconGlyph} size={14} />
+          </span>
+          Back to sign in
+        </Link>
+      </div>
     </form>
   )
 }

@@ -1,7 +1,7 @@
 import { useComputedColorScheme, useMantineColorScheme } from '@mantine/core'
 import clsx from 'clsx'
-import IDarkMode from '#assets/Icons/IDarkMode'
-import ILightMode from '#assets/Icons/ILightMode'
+import IDarkMode from '#assets/icons/IDarkMode'
+import ILightMode from '#assets/icons/ILightMode'
 import {
   themeToggleButton,
   themeToggleButtonIntent,

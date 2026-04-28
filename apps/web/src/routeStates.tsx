@@ -1,9 +1,9 @@
 import { Alert, Button, Group, Stack, Text, Title } from '@mantine/core'
 import { Link } from '@tanstack/react-router'
 import type { ErrorComponentProps } from '@tanstack/react-router'
-import IAlertCircle from '#assets/Icons/IAlertCircle'
-import IArrowLeft from '#assets/Icons/IArrowLeft'
-import IMapOff from '#assets/Icons/IMapOff'
+import IAlertCircle from '#assets/icons/IAlertCircle'
+import IArrowLeft from '#assets/icons/IArrowLeft'
+import IMapOff from '#assets/icons/IMapOff'
 
 export function RouteNotFound() {
   return (

@@ -144,12 +144,15 @@ export const foundationVars = createGlobalThemeContract({
     contentMeasure: null
   },
   space: {
+    1: null,
     2: null,
     3: null,
     4: null,
     5: null,
     6: null,
+    7: null,
     8: null,
+    9: null,
     10: null,
     12: null,
     13: null,
@@ -240,12 +243,15 @@ export const sharedFoundationTokens = {
     contentMeasure: '32rem'
   },
   space: {
+    1: '0.25rem',
     2: '0.5rem',
     3: '0.75rem',
     4: '1rem',
     5: '1.25rem',
     6: '1.5rem',
+    7: '1.75rem',
     8: '2rem',
+    9: '2.25rem',
     10: '2.5rem',
     12: '3rem',
     13: '4rem',
@@ -406,8 +412,8 @@ export const lightFoundationTokens = {
       selected: '#0891b2'
     },
     logo: {
-      background: '#6082b6',
-      icon: '#0891b2'
+      background: '#0891b2',
+      icon: '#ffffff'
     },
     nav: {
       pillHover: 'rgba(8, 145, 178, 0.1)',
@@ -534,8 +540,8 @@ export const darkFoundationTokens = {
       selected: '#0ea5c5'
     },
     logo: {
-      background: '#eef4f6',
-      icon: '#0ea5c5'
+      background: '#0ea5c5',
+      icon: '#0f1418'
     },
     nav: {
       pillHover: 'rgba(14, 165, 197, 0.13)',
