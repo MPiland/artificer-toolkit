@@ -1,7 +1,14 @@
 import { handleRequest, handleAuthoringRequest, createEquipmentSubjectAuthoringService } from '@artificer-toolkit/functions'
 import { getEquipmentListQuery } from '@artificer-toolkit/db'
 import { createEquipmentRepository } from '@artificer-toolkit/db'
-import { equipmentAuthoredDtoSchema } from '@artificer-toolkit/schema'
+import { equipmentAuthoredDtoSchema, type EquipmentAuthoredDto } from '@artificer-toolkit/schema'
+import type { EquipmentAuthored, EquipmentVariantAuthored } from '@artificer-toolkit/shared'
+import {
+  normalizeAuthoredDetailResponse,
+  normalizeAuthoredListResponse,
+  normalizeAuthoringInput,
+  normalizeAuthoringResult
+} from './authoredContent.js'
 
 function extractId(req: Request): string {
   const url = new URL(req.url)
@@ -10,19 +17,23 @@ function extractId(req: Request): string {
 }
 
 // list
-export const getEquipmentList = handleRequest(getEquipmentListQuery, () => [] as [])
+export const getEquipmentList = handleRequest(
+  async (db, userId) => normalizeAuthoredListResponse(await getEquipmentListQuery(db), userId),
+  (_req: Request, userId: string) => [userId] as [string]
+)
 
 // single
-export const getEquipment = handleRequest(
-  (db, id: string) => createEquipmentRepository(db).findById(id),
-  (req: Request, _userId: string) => [extractId(req)] as [string]
+export const getEquipment = handleRequest<[string, string], Awaited<ReturnType<typeof normalizeAuthoredDetailResponse<EquipmentAuthored | EquipmentVariantAuthored>>>>(
+  async (db, id, userId) => normalizeAuthoredDetailResponse(db, 'equipment', await createEquipmentRepository(db).findById(id), userId),
+  (req: Request, userId: string) => [extractId(req), userId] as [string, string]
 )
 
 // create/update
 export const createEquipment = handleAuthoringRequest(
-  equipmentAuthoredDtoSchema,
-  async (db, body) => {
+  async (db, body: EquipmentAuthoredDto, userId) => {
     const service = createEquipmentSubjectAuthoringService(db)
-    return service.execute(body)
-  }
+    const result = await service.execute(normalizeAuthoringInput(body, userId))
+    return normalizeAuthoringResult(db, 'equipment', result, userId)
+  },
+  (raw) => equipmentAuthoredDtoSchema.parse(raw) as EquipmentAuthoredDto
 )

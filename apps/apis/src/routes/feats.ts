@@ -2,7 +2,13 @@ import { handleRequest, handleAuthoringRequest, createFeatSubjectAuthoringServic
 import { getFeatListQuery } from '@artificer-toolkit/db'
 import { createFeatRepository } from '@artificer-toolkit/db'
 import type { FeatAuthored } from '@artificer-toolkit/shared'
-import { featAuthoredDtoSchema } from '@artificer-toolkit/schema'
+import { featAuthoredDtoSchema, type FeatAuthoredDto } from '@artificer-toolkit/schema'
+import {
+  normalizeAuthoredDetailResponse,
+  normalizeAuthoredListResponse,
+  normalizeAuthoringInput,
+  normalizeAuthoringResult
+} from './authoredContent.js'
 
 function extractId(req: Request): string {
   const url = new URL(req.url)
@@ -11,19 +17,23 @@ function extractId(req: Request): string {
 }
 
 // list
-export const getFeatList = handleRequest(getFeatListQuery, () => [] as [])
+export const getFeatList = handleRequest(
+  async (db, userId) => normalizeAuthoredListResponse(await getFeatListQuery(db), userId),
+  (_req: Request, userId: string) => [userId] as [string]
+)
 
 // single
-export const getFeat = handleRequest<[string], FeatAuthored | null>(
-  (db, id) => createFeatRepository(db).findById(id),
-  (req: Request, _userId: string) => [extractId(req)] as [string]
+export const getFeat = handleRequest<[string, string], Awaited<ReturnType<typeof normalizeAuthoredDetailResponse<FeatAuthored>>>>(
+  async (db, id, userId) => normalizeAuthoredDetailResponse(db, 'feats', await createFeatRepository(db).findById(id), userId),
+  (req: Request, userId: string) => [extractId(req), userId] as [string, string]
 )
 
 // create/update
 export const createFeat = handleAuthoringRequest(
-  featAuthoredDtoSchema,
-  async (db, body) => {
+  async (db, body: FeatAuthoredDto, userId) => {
     const service = createFeatSubjectAuthoringService(db)
-    return service.execute(body)
-  }
+    const result = await service.execute(normalizeAuthoringInput(body as FeatAuthored, userId))
+    return normalizeAuthoringResult(db, 'feats', result as { authored: FeatAuthored }, userId)
+  },
+  (raw) => featAuthoredDtoSchema.parse(raw) as FeatAuthoredDto
 )

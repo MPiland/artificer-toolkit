@@ -39,6 +39,13 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
   - avoid UX that requires high-volume auth email delivery
   - keep email confirmation and password recovery copy resilient when provider delivery is rate-limited or restricted
   - validate auth flows without depending on live email delivery in Playwright or Storybook
+- Supabase SSR session cookies are allowed for browser-to-`apps/web` session continuity, but product-data calls from `apps/web` to `apps/apis` must use the shared API adapter and `Authorization` headers.
+- Before production launch, run an auth/session security hardening pass that verifies:
+  - deployed session cookies use HTTPS-only `Secure` behavior
+  - refresh/session token material is `HttpOnly` where supported by the Supabase SSR flow
+  - `SameSite` behavior fits the app's auth routes
+  - no long-lived token material is stored in `localStorage` or JavaScript-readable ad hoc cookies
+  - local development cookie behavior is not mistaken for production posture
 
 ## Cross-Cutting Product Rules
 
@@ -71,8 +78,11 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
 - Supabase free-tier auth constraints are now documented as a Phase 9 design constraint.
 - Manual Storybook review accepted the public marketing and auth surfaces.
 - Phase 9.3 is complete: authenticated shell, navigation, Storybook autodocs, and canonical authored list patterns are accepted for the current checkpoint.
-- Phase 9.4 is the next active tranche: frontend data runtime, REST-first adapter, SSR query hydration, and provenance/editability contracts.
-- Latest closeout commands passed for 9.3 include focused authored-list tests, `build:web`, Storybook build, Storybook Playwright smoke, and browser component tests.
+- Phase 9.4 is complete: frontend data runtime, REST-first adapter, SSR query hydration, and provenance/editability contracts are accepted.
+- Phase 9.5 is active next: shared form runtime, node-map sections, typed stores, and the retained `AppField` pattern.
+- Phase 9.4 landed authored content DTO provenance and permissions, REST response normalization, schema-parsed web adapter, SSR query client injection, and real REST-backed `/spells` list data.
+- Full web typecheck is still expected to be constrained by known legacy `src/utils` alias/type failures until the later cleanup/form tranches retire those surfaces.
+- Latest closeout commands passed for 9.4 include `build:schema`, `build:db`, `build:functions`, `build:apis`, `test:schema`, web unit tests, app Playwright smoke, Storybook build, and Storybook Playwright smoke.
 
 ## Subplan Index
 
@@ -81,8 +91,8 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
 | 9.1 | [PHASE_9_1_FRONTEND_PLATFORM_AND_TESTING_SUBPLAN.md](PHASE_9_1_FRONTEND_PLATFORM_AND_TESTING_SUBPLAN.md) | Toolchain, SSR defaults, Storybook, Playwright, Vitest | Complete |
 | 9.2 | [PHASE_9_2_PUBLIC_AUTH_AND_MARKETING_SUBPLAN.md](PHASE_9_2_PUBLIC_AUTH_AND_MARKETING_SUBPLAN.md) | Marketing page, logged-out shell, auth routes | Complete |
 | 9.3 | [PHASE_9_3_APP_SHELL_NAV_AND_LIST_PATTERNS_SUBPLAN.md](PHASE_9_3_APP_SHELL_NAV_AND_LIST_PATTERNS_SUBPLAN.md) | Authenticated shell, navigation, canonical list pattern | Complete |
-| 9.4 | [PHASE_9_4_FRONTEND_DATA_RUNTIME_SUBPLAN.md](PHASE_9_4_FRONTEND_DATA_RUNTIME_SUBPLAN.md) | REST-first adapter, SSR query hydration, provenance/editability | Next |
-| 9.5 | [PHASE_9_5_SHARED_FORM_RUNTIME_SUBPLAN.md](PHASE_9_5_SHARED_FORM_RUNTIME_SUBPLAN.md) | Node-map sections, typed stores, field runtime | Not Started |
+| 9.4 | [PHASE_9_4_FRONTEND_DATA_RUNTIME_SUBPLAN.md](PHASE_9_4_FRONTEND_DATA_RUNTIME_SUBPLAN.md) | REST-first adapter, SSR query hydration, provenance/editability | Complete |
+| 9.5 | [PHASE_9_5_SHARED_FORM_RUNTIME_SUBPLAN.md](PHASE_9_5_SHARED_FORM_RUNTIME_SUBPLAN.md) | Node-map sections, typed stores, field runtime | Active |
 | 9.6 | [PHASE_9_6_CODE_SPELL_SUBPLAN.md](PHASE_9_6_CODE_SPELL_SUBPLAN.md) | Spell list and form implementation | Not Started |
 | 9.7 | [PHASE_9_7_CODE_BACKGROUND_SUBPLAN.md](PHASE_9_7_CODE_BACKGROUND_SUBPLAN.md) | Background list and form implementation | Not Started |
 | 9.8 | [PHASE_9_8_CODE_FEAT_SUBPLAN.md](PHASE_9_8_CODE_FEAT_SUBPLAN.md) | Feat list and form implementation | Not Started |

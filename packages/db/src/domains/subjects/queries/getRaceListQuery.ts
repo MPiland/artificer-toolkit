@@ -10,6 +10,8 @@ interface RaceListItem {
   systemId: string
   details: unknown
   userId: string
+  ownerUserId: string | null
+  isMaster: boolean | null
 }
 
 interface RaceMetaObject {
@@ -34,6 +36,8 @@ export async function getRaceListQuery(db: DBLike): Promise<{ items: RaceListIte
       'quote',
       'status',
       'system_id as systemId',
+      'user_id as ownerUserId',
+      'is_master as isMaster',
       details(eb, (eb2) => eb2
         .selectFrom('race_details as bridge')
         .whereRef('bridge.race_id', '=', 'id')

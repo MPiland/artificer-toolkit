@@ -9,6 +9,8 @@ interface VehicleListItem {
   systemId: string
   details: unknown
   userId: string
+  ownerUserId: string | null
+  isMaster: boolean | null
 }
 
 interface VehicleMetaObject {
@@ -30,6 +32,8 @@ export async function getVehicleListQuery(db: DBLike): Promise<{ items: VehicleL
       'description',
       'status',
       'system_id as systemId',
+      'user_id as ownerUserId',
+      'is_master as isMaster',
       details(eb, (eb2) => eb2
         .selectFrom('vehicle_details as bridge')
         .whereRef('bridge.vehicle_id', '=', 'id')

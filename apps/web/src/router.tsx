@@ -10,7 +10,7 @@ export function getRouter(user: User | null) {
 
   const router = createRouter({
     routeTree,
-    context: { queryClient, user },
+    context: { queryClient, user, accessToken: null },
     defaultPreload: 'intent',
     defaultErrorComponent: RouteErrorState,
     defaultNotFoundComponent: RouteNotFound,

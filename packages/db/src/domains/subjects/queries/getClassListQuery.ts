@@ -9,6 +9,8 @@ interface ClassListItem {
   systemId: string
   details: unknown
   userId: string
+  ownerUserId: string | null
+  isMaster: boolean | null
 }
 
 interface ClassMetaObject {
@@ -32,6 +34,8 @@ export const getClassListQuery = async (db: DBLike): Promise<{ items: ClassListI
       'description',
       'status',
       'system_id as systemId',
+      'user_id as ownerUserId',
+      'is_master as isMaster',
       details(eb, (eb2) => eb2
         .selectFrom('class_details as bridge')
         .whereRef('bridge.class_id', '=', 'id')

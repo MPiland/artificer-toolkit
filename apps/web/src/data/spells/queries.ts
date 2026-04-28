@@ -1,22 +1,11 @@
 import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
-import { api } from '../../lib/api'
+import { api, type Api } from '../../lib/api'
+import { queryKeys } from '../../lib/queryKeys'
 
-const spellsKeys = {
-  all: [
-    'spells'
-  ] as const,
-  lists: () => [
-    ...spellsKeys.all, 'list'
-  ] as const,
-  single: (id: string) => [
-    ...spellsKeys.all, 'single', id
-  ] as const
-}
-
-export function getSpellList() {
+export function getSpellList(client: Api = api) {
   return queryOptions({
-    queryKey: spellsKeys.lists(),
-    queryFn: async () => await api.content.spells.list()
+    queryKey: queryKeys.content.spells.list(),
+    queryFn: async () => await client.content.spells.list()
   })
 }
 
@@ -24,10 +13,10 @@ export function useGetSpellList() {
   return useSuspenseQuery(getSpellList())
 }
 
-export function getSpell(id: string) {
+export function getSpell(id: string, client: Api = api) {
   return queryOptions({
-    queryKey: spellsKeys.single(id),
-    queryFn: async () => await api.content.spells.get(id)
+    queryKey: queryKeys.content.spells.detail(id),
+    queryFn: async () => await client.content.spells.get(id)
   })
 }
 

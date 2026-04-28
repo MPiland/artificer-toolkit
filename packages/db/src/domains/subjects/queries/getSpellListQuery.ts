@@ -6,7 +6,12 @@ interface SpellListItem {
   description: string | null
   status: string
   systemId: string
+  magicSchoolId: string | null
+  castingTimeUnit: string
+  castingTimeAmount: number
   userId: string
+  ownerUserId: string | null
+  isMaster: boolean | null
 }
 
 interface SpellMetaObject {
@@ -36,6 +41,11 @@ export async function getSpellListQuery(db: DBLike): Promise<{ items: SpellListI
       'description',
       'status',
       'system_id as systemId',
+      'magic_school_id as magicSchoolId',
+      'casting_time_unit as castingTimeUnit',
+      'casting_time_amount as castingTimeAmount',
+      'user_id as ownerUserId',
+      'is_master as isMaster',
       eb
         .case()
         .when(eb.ref('is_master'), 'is', true)

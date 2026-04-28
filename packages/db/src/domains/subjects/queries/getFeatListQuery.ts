@@ -1,6 +1,6 @@
 import type { DBLike } from '#types'
 
-interface FeatListItem { id: string; label: string; description: string; detail: string | null; status: string; systemId: string; userId: string }
+interface FeatListItem { id: string; label: string; description: string; detail: string | null; status: string; systemId: string; userId: string; ownerUserId: string | null; isMaster: boolean | null }
 interface FeatMetaObject { id: string; featIds: string[] }
 interface FeatMeta { features: FeatMetaObject[] }
 
@@ -14,6 +14,8 @@ export async function getFeatListQuery(db: DBLike): Promise<{ items: FeatListIte
       'detail as detail',
       'status as status',
       'system_id as systemId',
+      'user_id as ownerUserId',
+      'is_master as isMaster',
       eb
         .case()
         .when(eb.ref('is_master'), 'is', true)

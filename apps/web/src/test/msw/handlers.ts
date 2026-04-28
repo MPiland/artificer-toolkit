@@ -10,7 +10,30 @@ export const handlers = [
     }
   ])),
   http.get(`${API_BASE}/content/spells`, () => HttpResponse.json({
-    items: [],
+    items: [
+      {
+        id: 'magic-missile',
+        label: 'Magic Missile',
+        description: 'Force darts that strike unerringly.',
+        status: 'ACTIVE',
+        userId: 'master',
+        systemId: 'dnd5e-2014',
+        level: 1,
+        magicSchoolId: 'Evocation',
+        castingTimeUnit: 'ACTION',
+        castingTimeAmount: 1,
+        provenance: {
+          kind: 'MASTER',
+          ownerUserId: null
+        },
+        permissions: {
+          canView: true,
+          canEdit: false,
+          canCopy: true,
+          canDelete: false
+        }
+      }
+    ],
     meta: {}
   }))
 ]

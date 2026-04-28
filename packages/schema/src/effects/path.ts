@@ -35,7 +35,7 @@ const createOutcomePayloadDtoSchema = ({
       applyGrantDtoSchema,
       forcedMovementDtoSchema,
       teleportDtoSchema,
-      manifestDtoSchema,
+      z.lazy(() => manifestDtoSchema),
       moveManifestDtoSchema,
       commandManifestDtoSchema,
       ruleDtoSchema
