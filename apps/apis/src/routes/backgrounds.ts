@@ -29,8 +29,11 @@ export const getBackground = handleRequest<[string, string], Awaited<ReturnType<
 )
 
 // create/update
-export const createBackground = handleAuthoringRequest(async (db, body: BackgroundAuthoredDto, userId) => {
-  const service = createBackgroundSubjectAuthoringService(db)
-  const result = await service.execute(normalizeAuthoringInput(body, userId))
-  return normalizeAuthoringResult(db, 'backgrounds', result, userId)
-}, (raw) => backgroundAuthoredDtoSchema.parse(raw) as BackgroundAuthoredDto)
+export const createBackground = handleAuthoringRequest(
+  backgroundAuthoredDtoSchema,
+  async (db, body: BackgroundAuthoredDto, userId) => {
+    const service = createBackgroundSubjectAuthoringService(db)
+    const result = await service.execute(normalizeAuthoringInput(body, userId))
+    return normalizeAuthoringResult(db, 'backgrounds', result, userId)
+  }
+)

@@ -30,10 +30,10 @@ export const getRace = handleRequest<[string, string], Awaited<ReturnType<typeof
 
 // create/update
 export const createRace = handleAuthoringRequest(
+  raceAuthoredDtoSchema,
   async (db, body: RaceAuthoredDto, userId) => {
     const service = createRaceSubjectAuthoringService(db)
     const result = await service.execute(normalizeAuthoringInput(body as RaceAuthored, userId))
     return normalizeAuthoringResult(db, 'races', result as { authored: RaceAuthored }, userId)
-  },
-  (raw) => raceAuthoredDtoSchema.parse(raw) as RaceAuthoredDto
+  }
 )

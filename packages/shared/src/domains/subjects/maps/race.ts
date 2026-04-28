@@ -12,6 +12,14 @@ import type {
   RaceAuthored
 } from '#authored'
 
+const RACE_SECTIONS = {
+  basics: { id: 'basics', label: 'Basics', order: 10 },
+  classification: { id: 'classification', label: 'Classification', order: 20 },
+  ancestry: { id: 'ancestry', label: 'Ancestry', order: 30 },
+  traits: { id: 'traits', label: 'Traits', order: 40 },
+  features: { id: 'features', label: 'Features', order: 50 }
+} as const
+
 const detailNode = buildNodeMap<DetailAuthored>()
 
 const DETAIL_NODE_MAP = detailNode.define('raceDetail', ({ map, nodes }) => {
@@ -61,19 +69,21 @@ export const RACE_NODE_MAP = raceNode.define('race', ({ map, nodes, cond, data, 
 
   map
     .set('id', text(['id'], 'ID'))
-    .set('label', text(['label'], 'Label'))
-    .set('quote', text(['quote'], 'Quote'))
-    .set('description', text(['description'], 'Description'))
+    .set('label', text(['label'], 'Name', { section: RACE_SECTIONS.basics, order: 10 }))
+    .set('quote', text(['quote'], 'Quote', { section: RACE_SECTIONS.basics, order: 20 }))
+    .set('description', text(['description'], 'Description', { section: RACE_SECTIONS.basics, order: 30 }))
     .set('heritageIds', selectMulti(['heritageIds'], 'Heritages', {
       kind: 'DATA',
       relationship: table('heritages', {
         selectColumns: ['id', 'label']
       })
     }, {
+      section: RACE_SECTIONS.classification,
+      order: 30,
       showIf: isBaseRace
     }))
-    .set('details', groupArray(['details'], 'Details', () => DETAIL_NODE_MAP))
-    .set('features', groupArray(['features'], 'Features', () => FEATURE_NODE_MAP))
+    .set('details', groupArray(['details'], 'Details', () => DETAIL_NODE_MAP, { section: RACE_SECTIONS.traits, order: 10 }))
+    .set('features', groupArray(['features'], 'Features', () => FEATURE_NODE_MAP, { section: RACE_SECTIONS.features, order: 10 }))
     .set('userId', text(['userId'], 'User ID'))
     .set('systemId', text(['systemId'], 'System ID'))
     .set('category', selectSingle(['category'], 'Category', {
@@ -82,23 +92,31 @@ export const RACE_NODE_MAP = raceNode.define('race', ({ map, nodes, cond, data, 
         { code: RACE_CATEGORY_CODE.BASE, label: 'Base Race' },
         { code: RACE_CATEGORY_CODE.SUBRACE, label: 'Subrace' }
       ]
-    }))
+    }, { section: RACE_SECTIONS.classification, order: 10 }))
     .set('selectionMode', selectSingle(['selectionMode'], 'Selection Mode', {
       kind: 'INLINE',
       options: RACE_SELECTION_MODE_OPTIONS
     }, {
+      section: RACE_SECTIONS.classification,
+      order: 20,
       showIf: isBaseRace
     }))
     .set('ancestry', groupObject(['ancestry'], 'Ancestry', () => RACE_ANCESTRY_NODE_MAP, {
+      section: RACE_SECTIONS.ancestry,
+      order: 10,
       showIf: isBaseRace
     }))
     .set('size', selectSingle(['size'], 'Size', {
       kind: 'INLINE',
       options: SIZE_OPTIONS
     }, {
+      section: RACE_SECTIONS.traits,
+      order: 20,
       showIf: isBaseRace
     }))
     .set('speeds', groupArray(['speeds'], 'Speeds', () => SPEED_NODE_MAP, {
+      section: RACE_SECTIONS.traits,
+      order: 30,
       showIf: isBaseRace
     }))
     .set('parentRaceId', selectSingle(['parentRaceId'], 'Parent Race', {
@@ -108,6 +126,8 @@ export const RACE_NODE_MAP = raceNode.define('race', ({ map, nodes, cond, data, 
         where: (col) => col('category').eq('BASE')
       })
     }, {
+      section: RACE_SECTIONS.classification,
+      order: 40,
       showIf: isSubrace
     }))
 })

@@ -9,10 +9,8 @@ export interface AuthSessionSnapshot {
 
 export const loadCurrentSessionFn = createServerFn({ method: 'GET' }).handler(async (): Promise<AuthSessionSnapshot> => {
   const supabase = getSupabaseServerClient()
-  const [{ data: userData }, { data: sessionData }] = await Promise.all([
-    supabase.auth.getUser(),
-    supabase.auth.getSession()
-  ])
+  const { data: userData } = await supabase.auth.getUser()
+  const { data: sessionData } = await supabase.auth.getSession()
 
   return {
     user: userData.user ?? null,

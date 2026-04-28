@@ -3,6 +3,7 @@ import { getClassListQuery } from '@artificer-toolkit/db'
 import { createClassRepository } from '@artificer-toolkit/db'
 import type { ClassAuthored } from '@artificer-toolkit/shared'
 import { classAuthoredDtoSchema, type ClassAuthoredDto } from '@artificer-toolkit/schema'
+import type { ZodType } from 'zod'
 import {
   normalizeAuthoredDetailResponse,
   normalizeAuthoredListResponse,
@@ -30,10 +31,10 @@ export const getClass = handleRequest<[string, string], Awaited<ReturnType<typeo
 
 // create/update
 export const createClass = handleAuthoringRequest(
+  classAuthoredDtoSchema as ZodType<ClassAuthoredDto>,
   async (db, body: ClassAuthoredDto, userId) => {
     const service = createClassSubjectAuthoringService(db)
     const result = await service.execute(normalizeAuthoringInput(body, userId))
     return normalizeAuthoringResult(db, 'classes', result, userId)
-  },
-  (raw) => classAuthoredDtoSchema.parse(raw) as ClassAuthoredDto
+  }
 )

@@ -30,10 +30,10 @@ export const getFeat = handleRequest<[string, string], Awaited<ReturnType<typeof
 
 // create/update
 export const createFeat = handleAuthoringRequest(
+  featAuthoredDtoSchema,
   async (db, body: FeatAuthoredDto, userId) => {
     const service = createFeatSubjectAuthoringService(db)
     const result = await service.execute(normalizeAuthoringInput(body as FeatAuthored, userId))
     return normalizeAuthoringResult(db, 'feats', result as { authored: FeatAuthored }, userId)
-  },
-  (raw) => featAuthoredDtoSchema.parse(raw) as FeatAuthoredDto
+  }
 )

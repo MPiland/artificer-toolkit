@@ -94,3 +94,38 @@ test('theme toggle story switches between light and dark', async ({ page }) => {
   await page.getByRole('button', { name: 'Switch to dark mode' }).click()
   await storyExpect(page.locator('html')).toHaveAttribute('data-mantine-color-scheme', /dark/)
 })
+
+test('form runtime field primitives accept input in Storybook', async ({ page }) => {
+  await openStory(page, 'platform-form-runtime--field-primitives')
+
+  const nameField = page.getByRole('textbox', { name: 'Name' })
+  await storyExpect(nameField).toHaveValue('Ember Ward')
+  await nameField.fill('Frost Lace')
+  await storyExpect(nameField).toHaveValue('Frost Lace')
+  await storyExpect(page.getByText('Rich Text Notes')).toBeVisible()
+  await storyExpect(page.getByText('Use this field for formatted longform notes.')).toBeVisible()
+})
+
+test('form runtime sectioned node map switches sections in Storybook', async ({ page }) => {
+  await openStory(page, 'platform-form-runtime--sectioned-node-map')
+
+  await storyExpect(page.getByRole('heading', { name: 'Basics' })).toBeVisible()
+  await page.getByRole('button', { name: 'Casting' }).click()
+  await storyExpect(page.getByRole('heading', { name: 'Casting' })).toBeVisible()
+  await storyExpect(page.getByRole('heading', { name: 'Basics' })).toHaveCount(0)
+})
+
+test('form runtime locked master story is read-only and copyable', async ({ page }) => {
+  await openStory(page, 'platform-form-runtime--locked-master-readonly')
+
+  await storyExpect(page.getByRole('button', { name: 'Copy to edit' })).toBeVisible()
+  await storyExpect(page.getByRole('textbox', { name: 'Name' })).toHaveAttribute('readonly')
+})
+
+test('form runtime nested collection story adds items', async ({ page }) => {
+  await openStory(page, 'platform-form-runtime--nested-collection')
+
+  await storyExpect(page.getByText('Useful for playtest encounters')).toBeVisible()
+  await page.getByRole('button', { name: 'Add note' }).click()
+  await storyExpect(page.getByText('Note 1')).toBeVisible()
+})
