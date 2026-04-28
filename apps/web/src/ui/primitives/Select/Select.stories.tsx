@@ -132,7 +132,7 @@ function StoryFrame({ children }: { children: ReactNode }) {
 }
 
 const meta = {
-  title: 'Components/Select',
+  title: 'UI/Primitives/Select',
   parameters: {
     docs: {
       description: {

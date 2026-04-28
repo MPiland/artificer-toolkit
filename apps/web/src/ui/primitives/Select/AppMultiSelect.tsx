@@ -1,7 +1,7 @@
 import { MultiSelect } from '@mantine/core'
 import type { AppMultiSelectProps } from './Select.types'
 import { addAllOption, DEFAULT_ALL_OPTION_LABEL, DEFAULT_ALL_OPTION_VALUE, resolveMultiSelectValue, toComboboxData } from './selectOptions'
-import * as selectStyles from './Select.css'
+import * as selectStyles from './Select.css.ts'
 
 export function AppMultiSelect({
   data,

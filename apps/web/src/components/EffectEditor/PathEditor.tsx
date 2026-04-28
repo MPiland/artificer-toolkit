@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Button, Menu, Stack, Text, TextInput } from '@mantine/core'
 import type { PathDto } from '@artificer-toolkit/schema'
-import { AppSelect } from '#components/Select'
+import { AppSelect } from '#app/ui/primitives/Select'
 import { EffectCollapse } from './EffectCollapse'
 import { OutcomeEditor } from './OutcomeEditor'
 import {

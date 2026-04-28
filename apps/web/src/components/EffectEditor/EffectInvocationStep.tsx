@@ -1,6 +1,6 @@
 import { NumberInput } from '@mantine/core'
 import type { EffectDto } from '@artificer-toolkit/schema'
-import { AppSelect } from '#components/Select'
+import { AppSelect } from '#app/ui/primitives/Select'
 import { editorGrid, effectEditor } from './EffectEditor.css'
 import { EffectCollapse } from './EffectCollapse'
 import type { EffectInvocation } from './effectEditor.types'

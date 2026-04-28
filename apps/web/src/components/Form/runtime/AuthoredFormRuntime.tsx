@@ -1,7 +1,7 @@
 import { Button, Group, Stack, Text } from '@mantine/core'
 import type { NodeMap } from '@artificer-toolkit/shared'
 import { resolveNodeMapSections } from '@artificer-toolkit/shared'
-import { NodeMapRenderer, type NodeOptionResolver } from './NodeMapRenderer'
+import { NodeMapRenderer, type NodeOptionResolver, type RuntimeNodeForm } from './NodeMapRenderer'
 import { SectionNavigator } from './SectionNavigator'
 import { runtimeShell } from './runtimeStyles.css.ts'
 import { useAuthoredFormUiState } from './useAuthoredFormUiState'
@@ -14,12 +14,12 @@ export function AuthoredFormRuntime<TValues extends object>({
   onCopy,
   optionResolver
 }: {
-  form: any
+  form: RuntimeNodeForm<TValues>
   nodeMap: NodeMap<TValues>
   readOnly?: boolean
   lockedCopyLabel?: string
   onCopy?: () => void
-  optionResolver?: NodeOptionResolver
+  optionResolver?: NodeOptionResolver<TValues>
 }) {
   const sections = resolveNodeMapSections(nodeMap)
   const firstSectionId = sections[0]?.id ?? ''

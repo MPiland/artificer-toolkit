@@ -10,8 +10,8 @@ import {
 import { createFormHook, createFormHookContexts } from '@tanstack/react-form'
 import type { ReactNode } from 'react'
 import RichTextEditor from '#components/RichTextEditor'
-import { AppMultiSelect, AppSelect } from '#components/Select'
-import * as inputStyles from '#components/Select/Select.css'
+import { AppMultiSelect, AppSelect } from '#app/ui/primitives/Select'
+import * as inputStyles from '#app/ui/primitives/Select/Select.css'
 import { getFieldError, toInputValue, type SelectOption } from './formUtils'
 
 export const { fieldContext, formContext, useFieldContext, useFormContext } = createFormHookContexts()

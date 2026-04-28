@@ -3,7 +3,7 @@ import { ActionIcon, NumberInput, Text, TextInput, Tooltip } from '@mantine/core
 import IEdit from '#assets/icons/IEdit'
 import { IExternalLink } from '#assets/icons/IExternalLink'
 import { IMinus } from '#assets/icons/IMinus'
-import { AppSelect } from '#components/Select'
+import { AppSelect } from '#app/ui/primitives/Select'
 import {
   destructiveActionIcon,
   outcomeActions,

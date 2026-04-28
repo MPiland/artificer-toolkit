@@ -96,7 +96,7 @@ test('theme toggle story switches between light and dark', async ({ page }) => {
 })
 
 test('select primitives expose Mantine-backed keyboardable options', async ({ page }) => {
-  await openStory(page, 'components-select--single')
+  await openStory(page, 'ui-primitives-select--single')
 
   await storyExpect(page.getByText('Selected: evocation')).toBeVisible()
   await page.getByRole('textbox', { name: 'Magic School' }).click()
@@ -106,7 +106,7 @@ test('select primitives expose Mantine-backed keyboardable options', async ({ pa
 })
 
 test('multiselect all shortcut switches to explicit selections', async ({ page }) => {
-  await openStory(page, 'components-select--multi-with-all-shortcut')
+  await openStory(page, 'ui-primitives-select--multi-with-all-shortcut')
 
   await storyExpect(page.getByText('Model value: all')).toBeVisible()
   await page.getByRole('textbox', { name: 'Eligible options' }).click()

@@ -1,6 +1,6 @@
 import { globalStyle, style } from '@vanilla-extract/css'
-import { foundationVars } from '../../css/foundations.css.ts'
-import { app } from '../../css/layers.css.ts'
+import { foundationVars } from '../../../css/foundations.css.ts'
+import { app } from '../../../css/layers.css.ts'
 
 export const root = style({
   '@layer': {
