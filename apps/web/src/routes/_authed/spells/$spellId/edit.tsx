@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { getSpell } from '#app/data/spells/queries'
 import { getSpellReferenceData } from '#app/data/spells/referenceData'
 import { createServerApi } from '#app/lib/api'
-import { SpellDetailPage } from '#domains/spells/modern'
+import { SpellDetailPage } from '#domains/spells'
 
 export const Route = createFileRoute('/_authed/spells/$spellId/edit')({
   loader: async ({ context, params }) => {

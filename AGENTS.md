@@ -106,6 +106,14 @@ Web workspace commands:
 - If you land architectural or phase-significant changes, update the relevant phase doc in the same change.
 - Preserve existing user changes in a dirty worktree unless explicitly asked to revert them.
 
+## TypeScript Quality Rules
+
+- Do not introduce `any` in new or modified active code.
+- Prefer `unknown`, generics, discriminated unions, or schema-derived types instead of `any`.
+- If an existing legacy file already contains `any`, do not expand it. Quarantine it as legacy or replace it when touching that surface.
+- Do not leave unused variables, unused imports, dead code, commented-out code, or temporary debug logging.
+- Treat TypeScript, lint, and test warnings in touched active code as blockers unless they are already documented legacy non-blockers.
+
 ## When in Doubt
 
 - Trust the repo docs over memory.

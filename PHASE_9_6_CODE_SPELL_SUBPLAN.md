@@ -137,19 +137,21 @@ Derive sections from `SPELL_NODE_MAP` and the locked Figma screens:
 - Multiselect selected values are now visually constrained to one input row with ellipsis overflow instead of wrapping into multiline input height. This keeps authored forms visually consistent with ordinary text, number, textarea, and select controls.
 - Disabled/read-only input-like controls now use the same visual treatment across text, textarea, number, tags, select, and multiselect surfaces so locked master content does not appear partially editable or inconsistently disabled.
 - Page-level authored form constraints are owned by a reusable `AuthoredFormPageFrame`, not by individual form components. Spell routes and Spell stories now wrap the fluid `SpellForm` in that frame so future authored domains can reuse the same max-width/gutter ownership rule.
+- The rebuilt Spell implementation is now the canonical `apps/web/src/domains/spells` implementation. The temporary `modern` folder was removed; older provisional Spell files were moved under `apps/web/src/legacy/domains/spells` as explicit retirement targets.
+- Active Spell routes import from `#domains/spells`, not a versioned or temporary subfolder.
 - Spell owns only the Spell-specific form sections and effect summary placement.
 - Legacy spell form code remains in place as a retirement target until the review gate accepts the replacement route path.
 
 ## Validation Notes
 
 - `cmd /c yarn build:schema` passes.
-- `cmd /c yarn workspace @artificer-toolkit/web test src/components/EffectEditor/EffectEditor.test.ts src/domains/spells/modern/spellAuthoring.test.ts` passes.
+- `cmd /c yarn workspace @artificer-toolkit/web test src/components/EffectEditor/EffectEditor.test.ts src/domains/spells/spellAuthoring.test.ts` passes.
 - `cmd /c yarn workspace @artificer-toolkit/web test` passes.
 - `cmd /c yarn workspace @artificer-toolkit/web build-storybook` passes with the existing Storybook chunk-size warning.
 - `cmd /c yarn workspace @artificer-toolkit/web test:e2e:storybook` passes.
 - `cmd /c yarn workspace @artificer-toolkit/web test src/components/Form/runtime/FormRuntime.test.tsx src/components/EffectEditor/EffectEditor.test.ts` passes after the shared input disabled-state and multiselect overflow polish.
 - `cmd /c yarn workspace @artificer-toolkit/web test:e2e:storybook --grep "effect editor|spell form story|select"` passes after the shared select/form frame polish.
-- `cmd /c yarn workspace @artificer-toolkit/web test src/components/Form/runtime/FormRuntime.test.tsx src/components/EffectEditor/EffectEditor.test.ts src/domains/spells/modern/spellAuthoring.test.ts` passes after the authored form page-frame extraction.
+- `cmd /c yarn workspace @artificer-toolkit/web test src/components/Form/runtime/FormRuntime.test.tsx src/components/EffectEditor/EffectEditor.test.ts src/domains/spells/spellAuthoring.test.ts` passes after the authored form page-frame extraction.
 - `cmd /c yarn workspace @artificer-toolkit/web test` passes.
 - `cmd /c yarn workspace @artificer-toolkit/web test:e2e:app` passes for the current public/auth smoke suite.
 - `cmd /c yarn workspace @artificer-toolkit/web build-storybook` passes with the existing Storybook chunk-size warning.
