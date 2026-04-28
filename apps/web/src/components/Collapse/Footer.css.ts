@@ -1,20 +1,12 @@
 import { globalStyle, style } from '@vanilla-extract/css'
-import { theme, vars } from '@css/theme'
-import { size } from '@css/size.css'
-import { app } from '@css/layers.css'
-import { fontSize } from '@css/typography.css'
+import { foundationVars } from '../../css/foundations.css.ts'
+import { app } from '../../css/layers.css.ts'
 
 export const base = style({
   '@layer': {
     [app]: {
-      padding: `${size['size-3']} ${size['size-4']}`,
-      borderTop: `${theme.other?.border.width.thin} ${theme.other?.border.style} ${vars.colors.gray[5]}`,
-
-      selectors: {
-        [vars.darkSelector]: {
-          borderColor: vars.colors.dark[3],
-        },
-      },
+      padding: `${foundationVars.space[3]} ${foundationVars.space[4]}`,
+      borderTop: `1px solid ${foundationVars.color.border.subtle}`,
     },
   },
 })
@@ -22,7 +14,7 @@ export const base = style({
 globalStyle(`${base} *`, {
   '@layer': {
     [app]: {
-      fontSize: fontSize['font-size-00'],
+      fontSize: foundationVars.typography.caption.fontSize,
     },
   },
 })

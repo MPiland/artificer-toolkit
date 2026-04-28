@@ -14,3 +14,5 @@ export const systemListResponseDtoSchema = z.array(systemListItemDtoSchema)
 export const systemResponseDtoSchema = singleResourceResponseDtoSchema(systemAuthoredDtoSchema)
 
 export type SystemListItemDto = z.infer<typeof systemListItemDtoSchema>
+export type SystemListResponseDto = z.infer<typeof systemListResponseDtoSchema>
+export type SystemResponseDto = z.infer<typeof systemResponseDtoSchema>

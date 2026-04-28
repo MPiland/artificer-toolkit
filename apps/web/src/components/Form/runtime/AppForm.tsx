@@ -1,9 +1,7 @@
 import {
   Button,
   Group,
-  MultiSelect,
   NumberInput,
-  Select,
   Stack,
   TagsInput,
   TextInput,
@@ -12,6 +10,8 @@ import {
 import { createFormHook, createFormHookContexts } from '@tanstack/react-form'
 import type { ReactNode } from 'react'
 import RichTextEditor from '#components/RichTextEditor'
+import { AppMultiSelect, AppSelect } from '#components/Select'
+import * as inputStyles from '#components/Select/Select.css'
 import { getFieldError, toInputValue, type SelectOption } from './formUtils'
 
 export const { fieldContext, formContext, useFieldContext, useFormContext } = createFormHookContexts()
@@ -27,6 +27,19 @@ export type RuntimeSelectFieldProps = RuntimeFieldProps & {
   data: SelectOption[]
 }
 
+const fieldClassNames = {
+  label: inputStyles.label,
+  description: inputStyles.description,
+  input: inputStyles.input
+}
+
+const pillsFieldClassNames = {
+  ...fieldClassNames,
+  pill: inputStyles.pill,
+  pillsList: inputStyles.pillsList,
+  inputField: inputStyles.inputField
+}
+
 function TextField({ label, description, placeholder, readOnly }: RuntimeFieldProps) {
   const field = useFieldContext<string>()
 
@@ -39,6 +52,7 @@ function TextField({ label, description, placeholder, readOnly }: RuntimeFieldPr
       value={toInputValue(field.state.value)}
       error={getFieldError(field)}
       readOnly={readOnly}
+      classNames={fieldClassNames}
       onBlur={field.handleBlur}
       onChange={(event) => {
         if (!readOnly) field.handleChange(event.currentTarget.value)
@@ -61,6 +75,7 @@ function TextareaField({ label, description, placeholder, readOnly }: RuntimeFie
       value={toInputValue(field.state.value)}
       error={getFieldError(field)}
       readOnly={readOnly}
+      classNames={fieldClassNames}
       onBlur={field.handleBlur}
       onChange={(event) => {
         if (!readOnly) field.handleChange(event.currentTarget.value)
@@ -81,6 +96,7 @@ function NumberField({ label, description, placeholder, readOnly }: RuntimeField
       value={field.state.value}
       error={getFieldError(field)}
       readOnly={readOnly}
+      classNames={fieldClassNames}
       onBlur={field.handleBlur}
       onChange={(value) => {
         if (!readOnly) field.handleChange(typeof value === 'number' ? value : undefined)
@@ -93,7 +109,7 @@ function SelectField({ label, description, placeholder, readOnly, data }: Runtim
   const field = useFieldContext<string | undefined>()
 
   return (
-    <Select
+    <AppSelect
       label={label}
       description={description}
       placeholder={placeholder}
@@ -115,7 +131,7 @@ function MultiSelectField({ label, description, placeholder, readOnly, data }: R
   const field = useFieldContext<string[] | undefined>()
 
   return (
-    <MultiSelect
+    <AppMultiSelect
       label={label}
       description={description}
       placeholder={placeholder}
@@ -145,6 +161,7 @@ function TagsField({ label, description, placeholder, readOnly }: RuntimeFieldPr
       value={field.state.value ?? []}
       error={getFieldError(field)}
       readOnly={readOnly}
+      classNames={pillsFieldClassNames}
       onBlur={field.handleBlur}
       onChange={(value) => {
         if (!readOnly) field.handleChange(value)

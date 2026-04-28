@@ -1,6 +1,6 @@
 import { notifications } from '@mantine/notifications'
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { AuthoredListPage } from '#components/AuthoredList'
 import { createServerApi } from '#lib/api'
 import { getSpellList } from '#app/data/spells/queries'
@@ -18,16 +18,20 @@ export const Route = createFileRoute('/_authed/spells/')({
 })
 
 function SpellsRoute() {
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { data } = useSuspenseQuery(getSpellList())
   const duplicateMutation = useMutation({
     mutationFn: (id: string) => api.content.spells.duplicate(id),
-    onSuccess: async () => {
+    onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.content.spells.all() })
       notifications.show({
         color: 'green',
         message: 'Spell duplicated as owned content.'
       })
+      if (response?.item.id) {
+        await navigate({ to: '/spells/$spellId/edit', params: { spellId: response.item.id } })
+      }
     },
     onError: () => {
       notifications.show({
@@ -44,6 +48,9 @@ function SpellsRoute() {
       createLabel='Create Spell'
       items={mapSpellListToAuthoredItems(data)}
       filters={buildSpellListFilters(data)}
+      onCreate={() => navigate({ to: '/spells/new' })}
+      onView={(item) => navigate({ to: '/spells/$spellId', params: { spellId: item.id } })}
+      onEdit={(item) => navigate({ to: '/spells/$spellId/edit', params: { spellId: item.id } })}
       onCopy={(item) => duplicateMutation.mutate(item.id)}
     />
   )

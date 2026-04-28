@@ -1,7 +1,7 @@
 import type { ConditionIfExpr } from '@artificer-toolkit/shared'
 import { get } from 'lodash-es'
 
-export function isConditionVisible(condition: ConditionIfExpr | undefined, values: unknown) {
+export function isConditionVisible(condition: ConditionIfExpr | undefined, values: unknown): boolean {
   if (!condition) return true
 
   if ('and' in condition) return condition.and.every((entry) => isConditionVisible(entry, values))

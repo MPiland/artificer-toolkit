@@ -9,7 +9,7 @@ import type { SelectOption } from './formUtils'
 
 export type NodeOptionResolver = (args: {
   nodeId: string
-  node: NodeEntry<object>
+  node: any
   source: NodeSelectSource
   values?: unknown
 }) => SelectOption[]
@@ -84,7 +84,7 @@ function renderNode({
 }: {
   form: any
   nodeId: string
-  node: NodeEntry<object>
+  node: any
   values: unknown
   readOnly?: boolean
   optionResolver: NodeOptionResolver

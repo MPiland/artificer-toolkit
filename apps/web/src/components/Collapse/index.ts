@@ -1,1 +1,2 @@
-export { default } from './Collapse'
+export { Collapse } from './Collapse'
+export type { TriggerProps } from './Trigger'
