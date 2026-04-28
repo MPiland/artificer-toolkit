@@ -79,9 +79,14 @@ The canonical procedure namespaces remain:
 Do not switch a surface from REST to tRPC until all of the following are true:
 
 - the REST and tRPC responses match the same schema-backed DTO shape
+- authored content responses include the Phase 9.4 `{ item, provenance, permissions }` detail envelope and list-item provenance/permissions fields
 - the shared frontend adapter can swap implementations without route-level changes
 - Storybook and Playwright coverage already exist for the affected surface
 - route behavior has been compared side-by-side against REST
+
+## Adapter Parity Rule
+
+The frontend must continue importing one adapter boundary. A tRPC procedure can replace a REST call only inside that adapter, and only after the procedure returns the same schema-parseable DTO shape as REST. Route loaders, query factories, and page components should not know whether the backing transport is REST or tRPC.
 
 ## Explicit Hold Line
 

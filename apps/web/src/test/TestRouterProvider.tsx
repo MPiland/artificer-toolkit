@@ -28,7 +28,7 @@ function createStaticRoute(path: string, getParentRoute: () => ReturnType<typeof
 }
 
 function createTestRootRoute() {
-  return createRootRouteWithContext<{ queryClient: QueryClient, user: User | null }>()()
+  return createRootRouteWithContext<{ queryClient: QueryClient, user: User | null, accessToken: string | null }>()()
 }
 
 function createTestRouter(initialPath: string) {
@@ -50,7 +50,7 @@ function createTestRouter(initialPath: string) {
 
   const router = createRouter({
     routeTree,
-    context: { queryClient, user: null },
+    context: { queryClient, user: null, accessToken: null },
     history: createMemoryHistory({
       initialEntries: [initialPath]
     }),

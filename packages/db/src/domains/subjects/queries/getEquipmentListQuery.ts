@@ -8,6 +8,8 @@ interface EquipmentListItem {
   status: string
   systemId: string
   userId: string
+  ownerUserId: string | null
+  isMaster: boolean | null
 }
 
 interface EquipmentMetaObject {
@@ -32,6 +34,8 @@ export async function getEquipmentListQuery(db: DBLike): Promise<{ items: Equipm
       'quote',
       'status',
       'system_id as systemId',
+      'user_id as ownerUserId',
+      'is_master as isMaster',
       eb
         .case()
         .when(eb.ref('is_master'), 'is', true)

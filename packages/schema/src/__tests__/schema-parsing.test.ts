@@ -8,7 +8,7 @@ import { featGrantDtoSchema } from '../grants/feat.js'
 import { modifierGrantDtoSchema } from '../grants/modifier.js'
 import { proficiencyGrantDtoSchema } from '../grants/proficiency.js'
 import { startingEquipmentDtoSchema } from '../shared/startingEquipment.js'
-import { backgroundListResponseDtoSchema, featureResponseDtoSchema } from '../api/content.js'
+import { backgroundListResponseDtoSchema, featureResponseDtoSchema, spellResponseDtoSchema } from '../api/content.js'
 import { resourceIdParamsDtoSchema, systemAuthoredDtoSchema, systemListResponseDtoSchema } from '../index.js'
 import { classAuthoredDtoSchema } from '../subjects/class.js'
 import { featAuthoredDtoSchema } from '../subjects/feat.js'
@@ -1591,7 +1591,17 @@ describe('schema package parsing', () => {
           description: 'Temple-trained background.',
           status: 'ACTIVE',
           userId: 'master',
-          systemId: 'dnd-5e-srd'
+          systemId: 'dnd-5e-srd',
+          provenance: {
+            kind: 'MASTER',
+            ownerUserId: null
+          },
+          permissions: {
+            canView: true,
+            canEdit: false,
+            canCopy: true,
+            canDelete: false
+          }
         }
       ],
       meta: {
@@ -1606,8 +1616,37 @@ describe('schema package parsing', () => {
       order: 1
     }) as { label?: string }
 
+    const spell = spellResponseDtoSchema.parse({
+      item: {
+        kind: 'SPELL',
+        id: 'magic-missile',
+        label: 'Magic Missile',
+        description: 'Force darts.',
+        castingTime: {
+          unit: 'ROUND',
+          amount: 1
+        },
+        level: 1,
+        classIds: ['wizard'],
+        magicSchoolId: 'evocation',
+        userId: 'master',
+        systemId: 'dnd-5e-srd'
+      },
+      provenance: {
+        kind: 'MASTER',
+        ownerUserId: null
+      },
+      permissions: {
+        canView: true,
+        canEdit: false,
+        canCopy: true,
+        canDelete: false
+      }
+    }) as { item?: { id?: string }, permissions?: { canEdit?: boolean } }
+
     expect(list.items[0]?.id).toBe('acolyte')
     expect(feature?.label).toBe('Fighting Style')
+    expect(spell?.permissions?.canEdit).toBe(false)
   })
 })
 

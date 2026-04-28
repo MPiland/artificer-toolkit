@@ -1,33 +1,77 @@
-import { getSupabaseBrowserClient } from '#supabase'
-import type {
-  BackgroundAuthoredDto,
-  BackgroundListItemDto,
-  CharacterBuilderPayloadDto,
-  CharacterBuilderPreviewPayloadDto,
-  CharacterBuilderResolveRequestDto,
-  CharacterBuilderSaveRequestDto,
-  CharacterCommandUnion,
-  CharacterDraftRequestDto,
-  CharacterListItemDto,
-  CharacterListResponseDto,
-  CharacterSheetResponseDto,
-  ClassAuthoredDto,
-  ClassListItemDto,
-  EquipmentAuthoredDto,
-  EquipmentListItemDto,
-  FeatAuthoredDto,
-  FeatListItemDto,
-  FeatureDto,
-  FeatureListItemDto,
-  RaceAuthoredDto,
-  RaceListItemDto,
-  SpellAuthoredDto,
-  SpellListItemDto,
-  SystemListItemDto
+import { z } from 'zod'
+import { getSupabaseBrowserClient } from '#supabase/client'
+import {
+  backgroundListResponseDtoSchema,
+  backgroundResponseDtoSchema,
+  characterBuilderPreviewPayloadDtoSchema,
+  characterBuilderPayloadDtoSchema,
+  characterListResponseDtoSchema,
+  characterSheetResponseDtoSchema,
+  classListResponseDtoSchema,
+  classResponseDtoSchema,
+  creatureListResponseDtoSchema,
+  creatureResponseDtoSchema,
+  equipmentListResponseDtoSchema,
+  equipmentResponseDtoSchema,
+  featListResponseDtoSchema,
+  featResponseDtoSchema,
+  featureListResponseDtoSchema,
+  featureResponseDtoSchema,
+  raceListResponseDtoSchema,
+  raceResponseDtoSchema,
+  spellListResponseDtoSchema,
+  spellResponseDtoSchema,
+  systemListResponseDtoSchema,
+  vehicleListResponseDtoSchema,
+  vehicleResponseDtoSchema,
+  type BackgroundAuthoredDto,
+  type BackgroundListItemDto,
+  type BackgroundListResponseDto,
+  type BackgroundResponseDto,
+  type CharacterBuilderPayloadDto,
+  type CharacterBuilderPreviewPayloadDto,
+  type CharacterBuilderResolveRequestDto,
+  type CharacterBuilderSaveRequestDto,
+  type CharacterCommandUnion,
+  type CharacterDraftRequestDto,
+  type CharacterListItemDto,
+  type CharacterListResponseDto,
+  type CharacterSheetResponseDto,
+  type ClassAuthoredDto,
+  type ClassListItemDto,
+  type ClassListResponseDto,
+  type ClassResponseDto,
+  type CreatureListItemDto,
+  type CreatureListResponseDto,
+  type CreatureResponseDto,
+  type EquipmentAuthoredDto,
+  type EquipmentListItemDto,
+  type EquipmentListResponseDto,
+  type EquipmentResponseDto,
+  type FeatListItemDto,
+  type FeatListResponseDto,
+  type FeatResponseDto,
+  type FeatureDto,
+  type FeatureListItemDto,
+  type FeatureListResponseDto,
+  type FeatureResponseDto,
+  type RaceListItemDto,
+  type RaceListResponseDto,
+  type RaceResponseDto,
+  type SpellAuthoredDto,
+  type SpellListItemDto,
+  type SpellListResponseDto,
+  type SpellResponseDto,
+  type SystemListItemDto,
+  type VehicleListItemDto,
+  type VehicleListResponseDto,
+  type VehicleResponseDto
 } from '@artificer-toolkit/schema'
 
 export type {
   BackgroundListItemDto,
+  BackgroundListResponseDto,
+  BackgroundResponseDto,
   CharacterBuilderPayloadDto,
   CharacterBuilderPreviewPayloadDto,
   CharacterBuilderResolveRequestDto,
@@ -37,12 +81,30 @@ export type {
   CharacterListResponseDto,
   CharacterSheetResponseDto,
   ClassListItemDto,
+  ClassListResponseDto,
+  ClassResponseDto,
+  CreatureListItemDto,
+  CreatureListResponseDto,
+  CreatureResponseDto,
   EquipmentListItemDto,
+  EquipmentListResponseDto,
+  EquipmentResponseDto,
   FeatListItemDto,
+  FeatListResponseDto,
+  FeatResponseDto,
   FeatureListItemDto,
+  FeatureListResponseDto,
+  FeatureResponseDto,
   RaceListItemDto,
+  RaceListResponseDto,
+  RaceResponseDto,
   SpellListItemDto,
-  SystemListItemDto
+  SpellListResponseDto,
+  SpellResponseDto,
+  SystemListItemDto,
+  VehicleListItemDto,
+  VehicleListResponseDto,
+  VehicleResponseDto
 }
 
 export interface CharacterHistoryEntry {
@@ -57,12 +119,16 @@ export interface CharacterHistoryResponse {
   events: CharacterHistoryEntry[]
 }
 
-export interface ListResponse<T> {
-  items: T[]
-  meta: Record<string, unknown>
-}
-
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3001'
+const characterHistoryResponseSchema = z.object({
+  events: z.array(z.object({
+    id: z.string(),
+    characterId: z.string(),
+    eventType: z.string(),
+    summary: z.string(),
+    occurredAt: z.string()
+  }))
+})
 
 async function getClientJwt(): Promise<string | null> {
   const supabase = getSupabaseBrowserClient()
@@ -86,11 +152,21 @@ export class ApiError extends Error {
   }
 }
 
-async function apiFetch<T>(
+export class ApiParseError extends Error {
+  constructor(
+    public readonly path: string,
+    public readonly issues: z.ZodIssue[]
+  ) {
+    super(`API response for ${path} did not match the expected schema.`)
+    this.name = 'ApiParseError'
+  }
+}
+
+async function apiFetch(
   path: string,
   options: RequestInit,
   jwt: string | null
-): Promise<T> {
+): Promise<unknown> {
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
@@ -105,16 +181,48 @@ async function apiFetch<T>(
       const body = await response.json()
       message = body?.error ?? body?.message ?? message
     } catch {
-      // Ignore JSON parse failures for non-JSON error bodies.
+      // Non-JSON error bodies keep the status-derived message.
     }
     throw new ApiError(response.status, message)
   }
 
   if (response.status === 204) {
-    return undefined as T
+    return undefined
   }
 
-  return response.json() as Promise<T>
+  return response.json()
+}
+
+function parseResponse<TSchema extends z.ZodTypeAny>(
+  path: string,
+  schema: TSchema,
+  value: unknown
+): z.infer<TSchema> {
+  const result = schema.safeParse(value)
+  if (!result.success) {
+    throw new ApiParseError(path, result.error.issues)
+  }
+
+  return result.data
+}
+
+function cloneAuthoredItem<TInput extends { id: string, label: string, status?: unknown }>(
+  input: TInput
+): TInput {
+  return {
+    ...input,
+    id: crypto.randomUUID(),
+    label: `${input.label} Copy`,
+    ...('status' in input ? { status: 'DRAFT' } : {})
+  }
+}
+
+interface AuthoredContentInput {
+  id: string
+  label: string
+  status?: unknown
+  userId: string
+  systemId: string
 }
 
 function buildApi(getJwt: (() => Promise<string | null>) | string | null) {
@@ -122,139 +230,136 @@ function buildApi(getJwt: (() => Promise<string | null>) | string | null) {
     return typeof getJwt === 'function' ? await getJwt() : getJwt
   }
 
-  async function get<T>(path: string): Promise<T> {
+  async function request<TSchema extends z.ZodTypeAny>(
+    path: string,
+    schema: TSchema,
+    options: RequestInit = { method: 'GET' }
+  ): Promise<z.infer<TSchema>> {
     const jwt = await resolveJwt()
-    return apiFetch<T>(path, { method: 'GET' }, jwt)
+    const value = await apiFetch(path, options, jwt)
+    return parseResponse(path, schema, value)
   }
 
-  async function post<T>(path: string, body?: unknown): Promise<T> {
-    const jwt = await resolveJwt()
-    return apiFetch<T>(
-      path,
-      {
-        method: 'POST',
-        body: body == null ? undefined : JSON.stringify(body)
-      },
-      jwt
-    )
+  async function get<TSchema extends z.ZodTypeAny>(path: string, schema: TSchema): Promise<z.infer<TSchema>> {
+    return request(path, schema, { method: 'GET' })
   }
 
-  async function put<T>(path: string, body?: unknown): Promise<T> {
-    const jwt = await resolveJwt()
-    return apiFetch<T>(
-      path,
-      {
-        method: 'PUT',
-        body: body == null ? undefined : JSON.stringify(body)
-      },
-      jwt
-    )
+  async function post<TSchema extends z.ZodTypeAny>(
+    path: string,
+    schema: TSchema,
+    body?: unknown
+  ): Promise<z.infer<TSchema>> {
+    return request(path, schema, {
+      method: 'POST',
+      body: body == null ? undefined : JSON.stringify(body)
+    })
   }
 
-  async function del<T>(path: string): Promise<T> {
+  async function del(path: string): Promise<void> {
     const jwt = await resolveJwt()
-    return apiFetch<T>(path, { method: 'DELETE' }, jwt)
+    await apiFetch(path, { method: 'DELETE' }, jwt)
   }
 
-  function contentDomain<TListItem, TDetail, TInput>(basePath: string) {
+  function contentDomain<TListSchema extends z.ZodTypeAny, TResponseSchema extends z.ZodTypeAny, TInput extends AuthoredContentInput>(
+    basePath: string,
+    listSchema: TListSchema,
+    responseSchema: TResponseSchema
+  ) {
     return {
-      list: () => get<ListResponse<TListItem>>(basePath),
-      get: (id: string) => get<TDetail | null>(`${basePath}/${id}`),
-      upsert: (input: TInput) => post<TDetail>(basePath, input)
+      list: () => get(basePath, listSchema),
+      get: (id: string) => get(`${basePath}/${id}`, responseSchema),
+      upsert: (input: TInput) => post(basePath, responseSchema, input),
+      duplicate: async (id: string) => {
+        const detail = await get(`${basePath}/${id}`, responseSchema)
+        if (!detail) return null
+
+        const cloned = cloneAuthoredItem((detail as unknown as { item: TInput }).item)
+        return post(basePath, responseSchema, cloned)
+      }
     }
   }
 
   return {
     characters: {
-      list: () => get<CharacterListResponseDto>('/characters'),
+      list: () => get('/characters', characterListResponseDtoSchema),
       draft: (input: CharacterDraftRequestDto) =>
-        post<CharacterBuilderPayloadDto>('/characters/draft', input),
+        post('/characters/draft', characterBuilderPayloadDtoSchema, input),
       get: (id: string) =>
-        get<CharacterBuilderPayloadDto | null>(`/characters/${id}`),
+        get(`/characters/${id}`, characterBuilderPayloadDtoSchema.nullable()),
       sheet: (id: string) =>
-        get<CharacterSheetResponseDto | null>(`/characters/${id}/sheet`),
+        get(`/characters/${id}/sheet`, characterSheetResponseDtoSchema.nullable()),
       resolve: (input: CharacterBuilderResolveRequestDto) =>
-        post<CharacterBuilderPayloadDto>('/characters/resolve', input),
+        post('/characters/resolve', characterBuilderPayloadDtoSchema, input),
       previewSave: (input: CharacterBuilderSaveRequestDto) =>
-        post<CharacterBuilderPreviewPayloadDto>('/characters/preview-save', input),
+        post('/characters/preview-save', characterBuilderPreviewPayloadDtoSchema, input),
       upsert: (input: CharacterBuilderSaveRequestDto) =>
-        post<CharacterBuilderPayloadDto>('/characters/upsert', input),
+        post('/characters/upsert', characterBuilderPayloadDtoSchema, input),
       history: (id: string) =>
-        get<CharacterHistoryResponse>(`/characters/${id}/history`),
+        get(`/characters/${id}/history`, characterHistoryResponseSchema),
       command: (id: string, input: CharacterCommandUnion) =>
-        post<void>(`/characters/${id}/commands`, input)
+        post(`/characters/${id}/commands`, z.void(), input)
     },
 
     content: {
-      backgrounds: contentDomain<
-        BackgroundListItemDto,
-        BackgroundAuthoredDto,
-        BackgroundAuthoredDto
-      >('/content/backgrounds'),
-
-      classes: contentDomain<
-        ClassListItemDto,
-        ClassAuthoredDto,
-        ClassAuthoredDto
-      >('/content/classes'),
-
-      equipment: contentDomain<
-        EquipmentListItemDto,
-        EquipmentAuthoredDto,
-        EquipmentAuthoredDto
-      >('/content/equipment'),
-
-      feats: contentDomain<
-        FeatListItemDto,
-        FeatAuthoredDto,
-        FeatAuthoredDto
-      >('/content/feats'),
-
-      races: contentDomain<
-        RaceListItemDto,
-        RaceAuthoredDto,
-        RaceAuthoredDto
-      >('/content/races'),
-
-      spells: contentDomain<
-        SpellListItemDto,
-        SpellAuthoredDto,
-        SpellAuthoredDto
-      >('/content/spells'),
-
-      features: contentDomain<
-        FeatureListItemDto,
-        FeatureDto,
-        FeatureDto
-      >('/content/features'),
-
-      creatures: {
-        list: () =>
-          get<ListResponse<{ id: string, label: string, cr?: string }>>('/content/creatures'),
-        get: (id: string) =>
-          get<unknown>(`/content/creatures/${id}`)
-      },
-
-      vehicles: {
-        list: () =>
-          get<ListResponse<{ id: string, label: string }>>('/content/vehicles'),
-        get: (id: string) =>
-          get<unknown>(`/content/vehicles/${id}`)
+      backgrounds: contentDomain<typeof backgroundListResponseDtoSchema, typeof backgroundResponseDtoSchema, BackgroundAuthoredDto>(
+        '/content/backgrounds',
+        backgroundListResponseDtoSchema,
+        backgroundResponseDtoSchema
+      ),
+      classes: contentDomain<typeof classListResponseDtoSchema, typeof classResponseDtoSchema, ClassAuthoredDto>(
+        '/content/classes',
+        classListResponseDtoSchema,
+        classResponseDtoSchema
+      ),
+      equipment: contentDomain<typeof equipmentListResponseDtoSchema, typeof equipmentResponseDtoSchema, EquipmentAuthoredDto>(
+        '/content/equipment',
+        equipmentListResponseDtoSchema,
+        equipmentResponseDtoSchema
+      ),
+      feats: contentDomain<typeof featListResponseDtoSchema, typeof featResponseDtoSchema, AuthoredContentInput>(
+        '/content/feats',
+        featListResponseDtoSchema,
+        featResponseDtoSchema
+      ),
+      races: contentDomain<typeof raceListResponseDtoSchema, typeof raceResponseDtoSchema, AuthoredContentInput>(
+        '/content/races',
+        raceListResponseDtoSchema,
+        raceResponseDtoSchema
+      ),
+      spells: contentDomain<typeof spellListResponseDtoSchema, typeof spellResponseDtoSchema, SpellAuthoredDto>(
+        '/content/spells',
+        spellListResponseDtoSchema,
+        spellResponseDtoSchema
+      ),
+      creatures: contentDomain<typeof creatureListResponseDtoSchema, typeof creatureResponseDtoSchema, AuthoredContentInput>(
+        '/content/creatures',
+        creatureListResponseDtoSchema,
+        creatureResponseDtoSchema
+      ),
+      vehicles: contentDomain<typeof vehicleListResponseDtoSchema, typeof vehicleResponseDtoSchema, AuthoredContentInput>(
+        '/content/vehicles',
+        vehicleListResponseDtoSchema,
+        vehicleResponseDtoSchema
+      ),
+      features: {
+        list: () => get('/content/features', featureListResponseDtoSchema),
+        get: (id: string) => get(`/content/features/${id}`, featureResponseDtoSchema),
+        upsert: (input: FeatureDto) => post('/content/features', featureResponseDtoSchema, input)
       }
     },
 
     systems: {
-      list: () => get<SystemListItemDto[]>('/systems'),
-      get: (id: string) => get<unknown>(`/systems/${id}`)
+      list: () => get('/systems', systemListResponseDtoSchema),
+      get: (id: string) => get(`/systems/${id}`, z.unknown())
     },
 
-    _raw: { get, post, put, del }
+    _raw: { get, post, del }
   }
 }
 
 export const api = buildApi(getClientJwt)
 
-export function createServerApi(jwt: string) {
+export function createServerApi(jwt: string | null) {
   return buildApi(() => Promise.resolve(jwt))
 }
 

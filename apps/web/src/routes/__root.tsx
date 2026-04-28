@@ -7,28 +7,16 @@ import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import type { User } from '@supabase/supabase-js'
 import { AppProviders } from '#app/providers/AppProviders'
 import { RouteErrorState, RouteNotFound } from '#app/routeStates'
+import { loadCurrentSessionFn } from '#app/server/auth/sessionFn'
 import '#css/main.css'
 import '@mantine/notifications/styles.layer.css'
 import '@mantine/core/styles.layer.css'
 import '@mantine/tiptap/styles.layer.css'
 import '#css/theme.css'
 
-async function loadCurrentUser() {
-  if (import.meta.env.SSR) {
-    const { getSupabaseServerClient } = await import('../supabase/server')
-    const { data } = await getSupabaseServerClient().auth.getUser()
-    return data.user ?? null
-  }
-
-  const { getSupabaseBrowserClient } = await import('../supabase/client')
-  const { data } = await getSupabaseBrowserClient().auth.getUser()
-  return data.user ?? null
-}
-
-export const Route = createRootRouteWithContext<{ queryClient: QueryClient, user: User | null }>()({
+export const Route = createRootRouteWithContext<{ queryClient: QueryClient, user: User | null, accessToken: string | null }>()({
   beforeLoad: async () => {
-    const user = await loadCurrentUser()
-    return { user }
+    return loadCurrentSessionFn()
   },
   head: () => ({
     meta: [
