@@ -139,6 +139,8 @@ Derive sections from `SPELL_NODE_MAP` and the locked Figma screens:
 - Page-level authored form constraints are owned by a reusable `AuthoredFormPageFrame`, not by individual form components. Spell routes and Spell stories now wrap the fluid `SpellForm` in that frame so future authored domains can reuse the same max-width/gutter ownership rule.
 - The rebuilt Spell implementation is now the canonical `apps/web/src/domains/spells` implementation. The temporary `modern` folder was removed; older provisional Spell files were moved under `apps/web/src/legacy/domains/spells` as explicit retirement targets.
 - Active Spell routes import from `#domains/spells`, not a versioned or temporary subfolder.
+- `/spells/$spellId` now acts as the nested spell-detail layout/data route and renders an `Outlet`. The view surface lives at the index child route, while `/spells/$spellId/edit` mounts the edit child route correctly.
+- The shared parent spell-detail loader owns the spell detail and reference-data prefetch for both view and edit routes so the edit child does not duplicate the same REST prefetch work.
 - Spell owns only the Spell-specific form sections and effect summary placement.
 - Legacy spell form code remains in place as a retirement target until the review gate accepts the replacement route path.
 
@@ -156,6 +158,8 @@ Derive sections from `SPELL_NODE_MAP` and the locked Figma screens:
 - `cmd /c yarn workspace @artificer-toolkit/web test:e2e:app` passes for the current public/auth smoke suite.
 - `cmd /c yarn workspace @artificer-toolkit/web build-storybook` passes with the existing Storybook chunk-size warning.
 - Targeted typecheck filtering for the touched Spell, Select, Form runtime, and EffectEditor files reports no matching errors.
+- `cmd /c yarn workspace @artificer-toolkit/web test src/routes/-spellRoutes.test.ts src/domains/spells/spellAuthoring.test.ts` passes after the nested spell edit route correction.
+- Targeted typecheck filtering for the touched Spell route files reports no matching errors after the nested spell edit route correction.
 - `cmd /c yarn build:web` remains blocked only by the documented legacy `apps/web/src/utils` alias/type failures, not by 9.6 Spell or EffectEditor files.
 
 ## Manual Review Checklist

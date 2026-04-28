@@ -1,8 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { Outlet, createFileRoute } from '@tanstack/react-router'
 import { getSpell } from '#app/data/spells/queries'
 import { getSpellReferenceData } from '#app/data/spells/referenceData'
 import { createServerApi } from '#app/lib/api'
-import { SpellDetailPage } from '#domains/spells'
 
 export const Route = createFileRoute('/_authed/spells/$spellId')({
   loader: async ({ context, params }) => {
@@ -16,8 +15,5 @@ export const Route = createFileRoute('/_authed/spells/$spellId')({
 })
 
 function SpellRoute() {
-  const { user } = Route.useRouteContext()
-  const { spellId } = Route.useParams()
-
-  return <SpellDetailPage spellId={spellId} mode='view' userId={user?.id ?? 'unknown-user'} />
+  return <Outlet />
 }

@@ -22,6 +22,7 @@ import { Route as GuestAuthSignInRouteImport } from './routes/_guest/_auth/sign-
 import { Route as GuestAuthResetPasswordRouteImport } from './routes/_guest/_auth/reset-password'
 import { Route as AuthedSpellsNewRouteImport } from './routes/_authed/spells/new'
 import { Route as AuthedSpellsSpellIdRouteImport } from './routes/_authed/spells/$spellId'
+import { Route as AuthedSpellsSpellIdIndexRouteImport } from './routes/_authed/spells/$spellId/index'
 import { Route as GuestAuthAuthConfirmedRouteImport } from './routes/_guest/_auth/auth.confirmed'
 import { Route as AuthedSpellsSpellIdEditRouteImport } from './routes/_authed/spells/$spellId/edit'
 
@@ -87,6 +88,12 @@ const AuthedSpellsSpellIdRoute = AuthedSpellsSpellIdRouteImport.update({
   path: '/spells/$spellId',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedSpellsSpellIdIndexRoute =
+  AuthedSpellsSpellIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthedSpellsSpellIdRoute,
+  } as any)
 const GuestAuthAuthConfirmedRoute = GuestAuthAuthConfirmedRouteImport.update({
   id: '/auth/confirmed',
   path: '/auth/confirmed',
@@ -111,11 +118,11 @@ export interface FileRoutesByFullPath {
   '/spells/': typeof AuthedSpellsIndexRoute
   '/spells/$spellId/edit': typeof AuthedSpellsSpellIdEditRoute
   '/auth/confirmed': typeof GuestAuthAuthConfirmedRoute
+  '/spells/$spellId/': typeof AuthedSpellsSpellIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof GuestIndexRoute
   '/logout': typeof LogoutRoute
-  '/spells/$spellId': typeof AuthedSpellsSpellIdRouteWithChildren
   '/spells/new': typeof AuthedSpellsNewRoute
   '/reset-password': typeof GuestAuthResetPasswordRoute
   '/sign-in': typeof GuestAuthSignInRoute
@@ -125,6 +132,7 @@ export interface FileRoutesByTo {
   '/spells': typeof AuthedSpellsIndexRoute
   '/spells/$spellId/edit': typeof AuthedSpellsSpellIdEditRoute
   '/auth/confirmed': typeof GuestAuthAuthConfirmedRoute
+  '/spells/$spellId': typeof AuthedSpellsSpellIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -143,6 +151,7 @@ export interface FileRoutesById {
   '/_authed/spells/': typeof AuthedSpellsIndexRoute
   '/_authed/spells/$spellId/edit': typeof AuthedSpellsSpellIdEditRoute
   '/_guest/_auth/auth/confirmed': typeof GuestAuthAuthConfirmedRoute
+  '/_authed/spells/$spellId/': typeof AuthedSpellsSpellIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -159,11 +168,11 @@ export interface FileRouteTypes {
     | '/spells/'
     | '/spells/$spellId/edit'
     | '/auth/confirmed'
+    | '/spells/$spellId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/logout'
-    | '/spells/$spellId'
     | '/spells/new'
     | '/reset-password'
     | '/sign-in'
@@ -173,6 +182,7 @@ export interface FileRouteTypes {
     | '/spells'
     | '/spells/$spellId/edit'
     | '/auth/confirmed'
+    | '/spells/$spellId'
   id:
     | '__root__'
     | '/_authed'
@@ -190,6 +200,7 @@ export interface FileRouteTypes {
     | '/_authed/spells/'
     | '/_authed/spells/$spellId/edit'
     | '/_guest/_auth/auth/confirmed'
+    | '/_authed/spells/$spellId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -291,6 +302,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedSpellsSpellIdRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/spells/$spellId/': {
+      id: '/_authed/spells/$spellId/'
+      path: '/'
+      fullPath: '/spells/$spellId/'
+      preLoaderRoute: typeof AuthedSpellsSpellIdIndexRouteImport
+      parentRoute: typeof AuthedSpellsSpellIdRoute
+    }
     '/_guest/_auth/auth/confirmed': {
       id: '/_guest/_auth/auth/confirmed'
       path: '/auth/confirmed'
@@ -310,10 +328,12 @@ declare module '@tanstack/react-router' {
 
 interface AuthedSpellsSpellIdRouteChildren {
   AuthedSpellsSpellIdEditRoute: typeof AuthedSpellsSpellIdEditRoute
+  AuthedSpellsSpellIdIndexRoute: typeof AuthedSpellsSpellIdIndexRoute
 }
 
 const AuthedSpellsSpellIdRouteChildren: AuthedSpellsSpellIdRouteChildren = {
   AuthedSpellsSpellIdEditRoute: AuthedSpellsSpellIdEditRoute,
+  AuthedSpellsSpellIdIndexRoute: AuthedSpellsSpellIdIndexRoute,
 }
 
 const AuthedSpellsSpellIdRouteWithChildren =
