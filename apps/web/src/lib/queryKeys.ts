@@ -49,6 +49,7 @@ export const queryKeys = {
       all: () => ['content', 'spells'] as const,
       list: () => ['content', 'spells', 'list'] as const,
       detail: (id: string) => ['content', 'spells', 'detail', id] as const,
+      referenceData: () => ['content', 'spells', 'reference-data'] as const,
     },
     features: {
       all: () => ['content', 'features'] as const,
@@ -70,5 +71,6 @@ export const queryKeys = {
   systems: {
     all: () => ['systems'] as const,
     list: () => ['systems', 'list'] as const,
+    detail: (id: string) => ['systems', 'detail', id] as const,
   },
 } as const

@@ -5,7 +5,7 @@ const storyExpect = expect.configure({ timeout: 20_000 })
 test.describe.configure({ mode: 'serial' })
 
 async function openStory(page: Page, storyId: string) {
-  await page.goto(`/iframe.html?id=${storyId}&viewMode=story`, { waitUntil: 'domcontentloaded' })
+  await page.goto(`/iframe.html?id=${storyId}&viewMode=story`, { waitUntil: 'commit', timeout: 60_000 })
 }
 
 async function getGridColumnCount(page: Page) {
@@ -95,6 +95,26 @@ test('theme toggle story switches between light and dark', async ({ page }) => {
   await storyExpect(page.locator('html')).toHaveAttribute('data-mantine-color-scheme', /dark/)
 })
 
+test('select primitives expose Mantine-backed keyboardable options', async ({ page }) => {
+  await openStory(page, 'ui-primitives-select--single')
+
+  await storyExpect(page.getByText('Selected: evocation')).toBeVisible()
+  await page.getByRole('textbox', { name: 'Magic School' }).click()
+  await storyExpect(page.getByRole('option', { name: 'Abjuration' })).toBeVisible()
+  await page.getByRole('option', { name: 'Abjuration' }).click()
+  await storyExpect(page.getByText('Selected: abjuration')).toBeVisible()
+})
+
+test('multiselect all shortcut switches to explicit selections', async ({ page }) => {
+  await openStory(page, 'ui-primitives-select--multi-with-all-shortcut')
+
+  await storyExpect(page.getByText('Model value: all')).toBeVisible()
+  await page.getByRole('textbox', { name: 'Eligible options' }).click()
+  await storyExpect(page.getByRole('option', { name: 'Wizard' })).toBeVisible()
+  await page.getByRole('option', { name: 'Wizard' }).click()
+  await storyExpect(page.getByText('Model value: wizard')).toBeVisible()
+})
+
 test('form runtime field primitives accept input in Storybook', async ({ page }) => {
   await openStory(page, 'platform-form-runtime--field-primitives')
 
@@ -135,4 +155,48 @@ test('form runtime nested collection story adds items', async ({ page }) => {
   await storyExpect(page.getByText('Useful for playtest encounters')).toBeVisible()
   await page.getByRole('button', { name: 'Add note' }).click()
   await storyExpect(page.getByText('Note 1')).toBeVisible()
+})
+
+test('reusable effect editor opens as a full-screen modal', async ({ page }) => {
+  await openStory(page, 'components-effecteditor--editable')
+
+  await storyExpect(page.getByRole('heading', { name: 'Effects' })).toBeVisible()
+  await page.getByRole('button', { name: 'Edit effect 1' }).click()
+  const dialog = page.getByRole('dialog')
+  await storyExpect(dialog).toBeVisible()
+  await storyExpect(dialog.getByRole('heading', { name: 'How it Starts' })).toBeVisible()
+  await storyExpect(dialog.locator('#effect-1-trigger-heading')).toBeVisible()
+  await storyExpect(dialog.locator('#effect-1-reach-heading')).toBeVisible()
+  await storyExpect(dialog.locator('#effect-1-targeting-heading')).toBeVisible()
+  await page.getByRole('button', { name: 'Next: outcome paths' }).click()
+  await storyExpect(dialog.getByRole('heading', { name: 'Outcome Paths', level: 2 })).toBeVisible()
+  await page.getByRole('button', { name: /open on use/i }).click()
+  await page.getByRole('button', { name: '+ Add outcome' }).click()
+  await page.getByRole('menuitem', { name: /Damage/ }).click()
+  await storyExpect(page.getByRole('textbox', { name: 'Damage type' })).toBeVisible()
+})
+
+test('reusable effect editor read-only story hides destructive actions', async ({ page }) => {
+  await openStory(page, 'components-effecteditor--readonly')
+
+  await storyExpect(page.getByRole('button', { name: 'View effect 1' })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: 'Remove effect 1' })).toHaveCount(0)
+})
+
+test('spell form story switches sections and opens effect editor', async ({ page }) => {
+  await openStory(page, 'domains-spells-form--edit-owned')
+
+  await storyExpect(page.getByRole('heading', { name: 'Spell Info' })).toBeVisible()
+  await storyExpect(page.getByRole('heading', { name: 'Basics' })).toBeVisible()
+  await storyExpect(page.getByRole('heading', { name: 'Details' })).toBeVisible()
+  await storyExpect(page.getByRole('heading', { name: 'Components & Attributes' })).toBeVisible()
+  await storyExpect(page.getByRole('textbox', { name: 'Material Description' })).toBeVisible()
+  await page.getByRole('button', { name: 'Next' }).click()
+  await storyExpect(page.getByRole('heading', { name: 'Effects', level: 1 })).toBeVisible()
+  await page.getByRole('button', { name: 'Edit effect 1' }).click()
+  await storyExpect(page.getByRole('dialog')).toBeVisible()
+  await storyExpect(page.getByLabel('Effect editor location').getByText('Fire Lace')).toBeVisible()
+  await storyExpect(page.getByRole('heading', { name: 'How it Starts' })).toBeVisible()
+  await page.getByRole('button', { name: 'Next: outcome paths' }).click()
+  await storyExpect(page.getByRole('heading', { name: 'Outcome Paths', level: 2 })).toBeVisible()
 })

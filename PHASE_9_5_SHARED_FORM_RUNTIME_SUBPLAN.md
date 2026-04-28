@@ -61,6 +61,7 @@ The runtime includes:
 
 - `useAppForm` from TanStack `createFormHook`
 - pre-bound Mantine/Tiptap field components
+- app-level `AppSelect` and `AppMultiSelect` wrappers around Mantine select controls for new runtime fields
 - `AuthoredFormRuntime`
 - `NodeMapRenderer`
 - `SectionNavigator`
@@ -91,6 +92,7 @@ The following remain temporary and should not be used by new 9.5+ runtime code:
 - `apps/web/src/hooks/useDomainForm.ts`
 - `apps/web/src/hooks/useFormField.tsx`
 - old domain form components that depend on step metadata or web-local draft stores
+- `apps/web/src/components/Dropdown`, which remains a legacy compatibility surface until old forms are retired
 
 Do not delete these until the relevant domain route has been rebuilt and imports are clean.
 
@@ -99,6 +101,7 @@ Do not delete these until the relevant domain route has been rebuilt and imports
 Storybook coverage now exists for:
 
 - text, textarea, number, single select, multiselect, tags, and rich text field primitives
+- standalone `AppSelect` and `AppMultiSelect` states, including grouped options, disabled fields, and the opt-in All shortcut
 - sectioned node-map rendering
 - locked-master read-only rendering with copy affordance
 - nested collection editing

@@ -1,14 +1,24 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { Button, Paper, Stack, Text } from '@mantine/core'
-import { SPELL_ATTRIBUTE_OPTIONS, SPELL_COMPONENT_OPTIONS, SPELL_NODE_MAP, type SpellAuthored } from '@artificer-toolkit/shared'
+import { SPELL_ATTRIBUTE_OPTIONS, SPELL_COMPONENT_OPTIONS, SPELL_NODE_MAP } from '@artificer-toolkit/shared'
 import { AuthoredFormRuntime, useAppForm } from '.'
 
-type SpellFormFixture = Partial<SpellAuthored> & {
-  notes?: string[]
+type SpellFormFixture = {
+  id: string
+  label: string
+  description: string
+  level: number
+  magicSchoolId: string
+  attributes: string[]
+  components: string[]
+  materialDescription: string
+  classIds: string[]
+  effects: Array<Record<string, unknown>>
+  notes: string[]
   nestedObject?: {
     summary?: string
   }
-  richNotes?: string
+  richNotes: string
 }
 
 const defaultValues: SpellFormFixture = {
@@ -17,7 +27,7 @@ const defaultValues: SpellFormFixture = {
   description: '<p>A soft ring of protective heat surrounds the target.</p>',
   level: 2,
   magicSchoolId: 'abjuration',
-  attributes: ['REQUIRES_CONCENTRATION'],
+  attributes: ['CONCENTRATION'],
   components: ['VERBAL', 'SOMATIC'],
   materialDescription: '',
   classIds: ['wizard'],

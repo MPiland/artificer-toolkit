@@ -1,17 +1,44 @@
 import { Alert, Stack, Text, Title } from '@mantine/core'
+import type { ComponentType, ReactNode } from 'react'
+import type { AnyFieldApi } from '@tanstack/react-form'
 import type { NodeEntry, NodeMap, NodeSelectSource, SectionedNodeGroup } from '@artificer-toolkit/shared'
 import { resolveNodeMapSections } from '@artificer-toolkit/shared'
 import { clsx } from 'clsx'
 import { fieldGrid, sectionPanel, sectionStack, wideField } from './runtimeStyles.css.ts'
 import { NestedCollectionShell, NestedObjectShell } from './NestedEditors'
 import { isConditionVisible } from './nodeVisibility'
+import type { RuntimeFieldProps, RuntimeSelectFieldProps } from './AppForm'
 import type { SelectOption } from './formUtils'
 
-export type NodeOptionResolver = (args: {
+type RuntimeFieldApi = AnyFieldApi & {
+  TextField: ComponentType<RuntimeFieldProps>
+  NumberField: ComponentType<RuntimeFieldProps>
+  RichTextField: ComponentType<RuntimeFieldProps>
+  SelectField: ComponentType<RuntimeSelectFieldProps>
+  MultiSelectField: ComponentType<RuntimeSelectFieldProps>
+}
+
+type RuntimeFormState<TValues extends object> = {
+  values: TValues
+}
+
+export type RuntimeNodeForm<TValues extends object> = {
+  Subscribe: ComponentType<{
+    selector: (state: RuntimeFormState<TValues>) => TValues
+    children: (values: TValues) => ReactNode
+  }>
+  AppField: ComponentType<{
+    name: string
+    mode?: 'array'
+    children: (field: RuntimeFieldApi) => ReactNode
+  }>
+}
+
+export type NodeOptionResolver<TValues extends object = object> = (args: {
   nodeId: string
-  node: NodeEntry<object>
+  node: NodeEntry<TValues>
   source: NodeSelectSource
-  values?: unknown
+  values?: TValues
 }) => SelectOption[]
 
 export function NodeMapRenderer<TValues extends object>({
@@ -21,11 +48,11 @@ export function NodeMapRenderer<TValues extends object>({
   readOnly,
   optionResolver = defaultOptionResolver
 }: {
-  form: any
+  form: RuntimeNodeForm<TValues>
   nodeMap: NodeMap<TValues>
   activeSectionId?: string
   readOnly?: boolean
-  optionResolver?: NodeOptionResolver
+  optionResolver?: NodeOptionResolver<TValues>
 }) {
   const sections = resolveNodeMapSections(nodeMap)
   const visibleSections = activeSectionId
@@ -47,22 +74,22 @@ export function NodeMapRenderer<TValues extends object>({
   )
 }
 
-function SectionPanel({
+function SectionPanel<TValues extends object>({
   form,
   section,
   readOnly,
   optionResolver
 }: {
-  form: any
-  section: SectionedNodeGroup
+  form: RuntimeNodeForm<TValues>
+  section: SectionedNodeGroup<TValues>
   readOnly?: boolean
-  optionResolver: NodeOptionResolver
+  optionResolver: NodeOptionResolver<TValues>
 }) {
   return (
     <section className={sectionPanel} aria-labelledby={`section-${section.id}`}>
       <Title order={2} id={`section-${section.id}`}>{section.label}</Title>
-      <form.Subscribe selector={(state: any) => state.values}>
-        {(values: unknown) => (
+      <form.Subscribe selector={(state) => state.values}>
+        {(values) => (
           <div className={fieldGrid}>
             {section.nodes.map(({ id, node }) => isConditionVisible(node.showIf, values)
               ? renderNode({ form, nodeId: id, node, values, readOnly, optionResolver })
@@ -74,7 +101,7 @@ function SectionPanel({
   )
 }
 
-function renderNode({
+function renderNode<TValues extends object>({
   form,
   nodeId,
   node,
@@ -82,12 +109,12 @@ function renderNode({
   readOnly,
   optionResolver
 }: {
-  form: any
+  form: RuntimeNodeForm<TValues>
   nodeId: string
-  node: NodeEntry<object>
-  values: unknown
+  node: NodeEntry<TValues>
+  values: TValues
   readOnly?: boolean
-  optionResolver: NodeOptionResolver
+  optionResolver: NodeOptionResolver<TValues>
 }) {
   const name = node.path.join('.')
   const isWide = node.kind === 'GROUP' || node.type === 'RICH_TEXT'
@@ -97,7 +124,7 @@ function renderNode({
       return (
         <div key={nodeId} className={wideField}>
           <form.AppField name={name} mode='array'>
-            {(field: any) => (
+            {(field) => (
               <NestedCollectionShell field={field} label={node.label} readOnly={readOnly} />
             )}
           </form.AppField>
@@ -113,13 +140,14 @@ function renderNode({
   }
 
   const fieldClass = clsx(isWide && wideField)
+  const nodeLabel = node.label
 
   switch (node.type) {
     case 'TEXT':
       return (
         <div key={nodeId} className={fieldClass}>
           <form.AppField name={name}>
-            {(field: any) => <field.TextField label={node.label} readOnly={readOnly} />}
+            {(field) => <field.TextField label={node.label} readOnly={readOnly} />}
           </form.AppField>
         </div>
       )
@@ -127,7 +155,7 @@ function renderNode({
       return (
         <div key={nodeId} className={fieldClass}>
           <form.AppField name={name}>
-            {(field: any) => <field.NumberField label={node.label} readOnly={readOnly} />}
+            {(field) => <field.NumberField label={node.label} readOnly={readOnly} />}
           </form.AppField>
         </div>
       )
@@ -135,7 +163,7 @@ function renderNode({
       return (
         <div key={nodeId} className={fieldClass}>
           <form.AppField name={name}>
-            {(field: any) => <field.RichTextField label={node.label} readOnly={readOnly} />}
+            {(field) => <field.RichTextField label={node.label} readOnly={readOnly} />}
           </form.AppField>
         </div>
       )
@@ -143,7 +171,7 @@ function renderNode({
       return (
         <div key={nodeId} className={fieldClass}>
           <form.AppField name={name}>
-            {(field: any) => (
+            {(field) => (
               <field.SelectField
                 label={node.label}
                 readOnly={readOnly}
@@ -157,7 +185,7 @@ function renderNode({
       return (
         <div key={nodeId} className={fieldClass}>
           <form.AppField name={name}>
-            {(field: any) => (
+            {(field) => (
               <field.MultiSelectField
                 label={node.label}
                 readOnly={readOnly}
@@ -170,13 +198,16 @@ function renderNode({
     default:
       return (
         <Alert key={nodeId} className={wideField} color='yellow'>
-          <Text>{`Unsupported field: ${node.label}`}</Text>
+          <Text>{`Unsupported field: ${nodeLabel}`}</Text>
         </Alert>
       )
   }
 }
 
-export function defaultOptionResolver({ source, values }: Parameters<NodeOptionResolver>[0]): SelectOption[] {
+export function defaultOptionResolver<TValues extends object>({
+  source,
+  values
+}: Parameters<NodeOptionResolver<TValues>>[0]): SelectOption[] {
   if (source.kind === 'INLINE' && 'options' in source) {
     return source.options.map((option) => ({
       value: String(option.code),

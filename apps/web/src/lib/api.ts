@@ -22,6 +22,7 @@ import {
   spellListResponseDtoSchema,
   spellResponseDtoSchema,
   systemListResponseDtoSchema,
+  systemResponseDtoSchema,
   vehicleListResponseDtoSchema,
   vehicleResponseDtoSchema,
   type BackgroundAuthoredDto,
@@ -350,7 +351,7 @@ function buildApi(getJwt: (() => Promise<string | null>) | string | null) {
 
     systems: {
       list: () => get('/systems', systemListResponseDtoSchema),
-      get: (id: string) => get(`/systems/${id}`, z.unknown())
+      get: (id: string) => get(`/systems/${id}`, systemResponseDtoSchema)
     },
 
     _raw: { get, post, del }

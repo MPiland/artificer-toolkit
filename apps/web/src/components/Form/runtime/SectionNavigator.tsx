@@ -1,13 +1,19 @@
 import { Button } from '@mantine/core'
-import type { SectionedNodeGroup } from '@artificer-toolkit/shared'
 import { sectionNav } from './runtimeStyles.css.ts'
+
+type SectionNavigationItem = {
+  id: string
+  label: string
+  order?: number
+  nodes?: unknown
+}
 
 export function SectionNavigator({
   sections,
   activeSectionId,
   onSectionChange
 }: {
-  sections: SectionedNodeGroup[]
+  sections: SectionNavigationItem[]
   activeSectionId: string
   onSectionChange: (sectionId: string) => void
 }) {
