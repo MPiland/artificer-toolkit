@@ -49,23 +49,6 @@ export const effectEditor = style({
   }
 })
 
-export const editorModalContent = style({
-  '@layer': {
-    [app]: {
-      backgroundColor: foundationVars.color.surface.canvas
-    }
-  }
-})
-
-export const editorModalBody = style({
-  '@layer': {
-    [app]: {
-      padding: 0,
-      backgroundColor: foundationVars.color.surface.canvas
-    }
-  }
-})
-
 export const editorFrame = style({
   '@layer': {
     [app]: {

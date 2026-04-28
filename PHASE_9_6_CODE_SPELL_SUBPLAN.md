@@ -131,6 +131,7 @@ Derive sections from `SPELL_NODE_MAP` and the locked Figma screens:
 - EffectEditor sections now use the existing `Collapse` component with borderless Figma-style rows and icon chevrons. The Effects flow avoids artificial cards/panels on the Figma `How it Starts` and `Outcome Paths` screens.
 - The `How it Starts` effect editor screen now includes the Figma section structure: `Trigger`, `Reach & Area`, `Targeting`, and `Activation`.
 - The EffectEditor monolith was split into composable pieces for the modal shell, invocation step, outcome path list, path editor, outcome rows, summary cards, shared collapse wrapper, and shared types.
+- The EffectEditor modal drill-in was separated from the summary section. `EffectEditor` owns the local active-effect state, `EffectEditorModal` owns the drill-in flow, and `components/Modal/FullscreenModal` provides the reusable Mantine full-screen overlay foundation without routing form-local draft state through the global `ModalProvider`.
 - The path detail outcomes screen now follows the Figma row pattern: `Path Basics` and `Outcomes` are separate collapsible sections, outcomes render as compact rows, and `+ Add outcome` is an action button/menu rather than an inline select field.
 - The existing `Collapse` component was lightly modernized for this use: default-open support, explicit title id/class support, custom collapse icons, current `#`/relative imports, and foundation-token styling.
 - New Phase 9 form fields now use split `AppSelect` and `AppMultiSelect` controls built on Mantine instead of the legacy overloaded `Dropdown`. The legacy dropdown remains only for unrebuilt forms. Ordinary multiselects do not expose authoring mode; the All shortcut is opt-in and can map to implicit `ALL` authoring semantics where a domain needs it.
@@ -160,6 +161,8 @@ Derive sections from `SPELL_NODE_MAP` and the locked Figma screens:
 - Targeted typecheck filtering for the touched Spell, Select, Form runtime, and EffectEditor files reports no matching errors.
 - `cmd /c yarn workspace @artificer-toolkit/web test src/routes/-spellRoutes.test.ts src/domains/spells/spellAuthoring.test.ts` passes after the nested spell edit route correction.
 - Targeted typecheck filtering for the touched Spell route files reports no matching errors after the nested spell edit route correction.
+- `cmd /c yarn workspace @artificer-toolkit/web test src/components/EffectEditor/EffectEditor.test.ts src/domains/spells/spellAuthoring.test.ts src/routes/-spellRoutes.test.ts` passes after the EffectEditor modal extraction.
+- `cmd /c yarn workspace @artificer-toolkit/web test:e2e:storybook --grep "effect editor|spell form story|select"` passes after the EffectEditor modal extraction.
 - `cmd /c yarn build:web` remains blocked only by the documented legacy `apps/web/src/utils` alias/type failures, not by 9.6 Spell or EffectEditor files.
 
 ## Manual Review Checklist
