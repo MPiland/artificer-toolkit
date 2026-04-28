@@ -25,8 +25,11 @@ export const getVehicle = handleRequest<[string, string], Awaited<ReturnType<typ
   (req: Request, userId: string) => [extractId(req), userId] as [string, string]
 )
 
-export const createVehicle = handleAuthoringRequest(async (db, body: VehicleAuthoredDto, userId) => {
-  const service = createVehicleSubjectAuthoringService(db)
-  const result = await service.execute(normalizeAuthoringInput(body, userId))
-  return normalizeAuthoringResult(db, 'vehicles', result, userId)
-}, (raw) => vehicleAuthoredDtoSchema.parse(raw) as VehicleAuthoredDto)
+export const createVehicle = handleAuthoringRequest(
+  vehicleAuthoredDtoSchema,
+  async (db, body: VehicleAuthoredDto, userId) => {
+    const service = createVehicleSubjectAuthoringService(db)
+    const result = await service.execute(normalizeAuthoringInput(body, userId))
+    return normalizeAuthoringResult(db, 'vehicles', result, userId)
+  }
+)

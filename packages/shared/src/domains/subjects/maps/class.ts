@@ -32,6 +32,14 @@ import type {
   DetailAuthored
 } from '#authored'
 
+const CLASS_SECTIONS = {
+  basics: { id: 'basics', label: 'Basics', order: 10 },
+  classDetails: { id: 'classDetails', label: 'Class Details', order: 20 },
+  spellcasting: { id: 'spellcasting', label: 'Spellcasting', order: 30 },
+  equipment: { id: 'equipment', label: 'Equipment', order: 40 },
+  advancement: { id: 'advancement', label: 'Advancement', order: 50 }
+} as const
+
 const detailNode = buildNodeMap<DetailAuthored>()
 
 const DETAIL_NODE_MAP = detailNode.define('classDetail', ({ map, nodes }) => {
@@ -242,41 +250,53 @@ export const CLASS_NODE_MAP = classNode.define('class', ({ map, nodes, cond, dat
 
   map
     .set('id', text(['id'], 'ID'))
-    .set('label', text(['label'], 'Label'))
-    .set('description', text(['description'], 'Description'))
-    .set('details', groupArray(['details'], 'Details', () => DETAIL_NODE_MAP))
-    .set('proficiencies', groupArray(['proficiencies'], 'Proficiencies', () => PROFICIENCY_NODE_MAP))
-    .set('spellcasting', groupObject(['spellcasting'], 'Spellcasting', () => CLASS_SPELLCASTING_NODE_MAP))
-    .set('resources', groupObject(['resources'], 'Resource', () => CLASS_RESOURCE_NODE_MAP))
-    .set('features', groupArray(['features'], 'Features', () => FEATURE_NODE_MAP))
+    .set('label', text(['label'], 'Name', { section: CLASS_SECTIONS.basics, order: 10 }))
+    .set('description', text(['description'], 'Description', { section: CLASS_SECTIONS.basics, order: 20 }))
+    .set('details', groupArray(['details'], 'Details', () => DETAIL_NODE_MAP, { section: CLASS_SECTIONS.classDetails, order: 10 }))
+    .set('proficiencies', groupArray(['proficiencies'], 'Proficiencies', () => PROFICIENCY_NODE_MAP, { section: CLASS_SECTIONS.classDetails, order: 20 }))
+    .set('spellcasting', groupObject(['spellcasting'], 'Spellcasting', () => CLASS_SPELLCASTING_NODE_MAP, { section: CLASS_SECTIONS.spellcasting, order: 10 }))
+    .set('resources', groupObject(['resources'], 'Resource', () => CLASS_RESOURCE_NODE_MAP, { section: CLASS_SECTIONS.advancement, order: 20 }))
+    .set('features', groupArray(['features'], 'Features', () => FEATURE_NODE_MAP, { section: CLASS_SECTIONS.advancement, order: 10 }))
     .set('userId', text(['userId'], 'User ID'))
     .set('systemId', text(['systemId'], 'System ID'))
     .set('category', selectSingle(['category'], 'Category', {
       kind: 'INLINE',
       options: CLASS_CATEGORY_OPTIONS
-    }))
+    }, { section: CLASS_SECTIONS.basics, order: 30 }))
     .set('attributes', selectMulti(['attributes'], 'Attributes', {
       kind: 'INLINE',
       options: CLASS_ATTRIBUTE_OPTIONS
     }, {
+      section: CLASS_SECTIONS.classDetails,
+      order: 30,
       showIf: isBaseClass
     }))
     .set('startingGold', groupObject(['startingGold'], 'Starting Gold', () => CLASS_STARTING_GOLD_NODE_MAP, {
+      section: CLASS_SECTIONS.equipment,
+      order: 10,
       showIf: isBaseClass
     }))
     .set('startingEquipment', groupObject(['startingEquipment'], 'Starting Equipment', () => STARTING_EQUIPMENT_NODE_MAP, {
+      section: CLASS_SECTIONS.equipment,
+      order: 20,
       showIf: isBaseClass
     }))
     .set('hitpoint', groupObject(['hitpoint'], 'Hit Point', () => CLASS_HITPOINT_NODE_MAP, {
+      section: CLASS_SECTIONS.classDetails,
+      order: 40,
       showIf: isBaseClass
     }))
     .set('multiclass', groupObject(['multiclass'], 'Multiclass', () => CLASS_MULTICLASS_NODE_MAP, {
+      section: CLASS_SECTIONS.classDetails,
+      order: 50,
       showIf: isBaseClass
     }))
     .set('attributes', selectMulti(['attributes'], 'Attributes', {
       kind: 'INLINE',
       options: SUBCLASS_ATTRIBUTE_OPTIONS
     }, {
+      section: CLASS_SECTIONS.classDetails,
+      order: 30,
       showIf: isSubclass
     }))
     .set('parentClassId', selectSingle(['parentClassId'], 'Parent Class', {
@@ -286,9 +306,13 @@ export const CLASS_NODE_MAP = classNode.define('class', ({ map, nodes, cond, dat
         where: (col) => col('category').eq('BASE')
       })
     }, {
+      section: CLASS_SECTIONS.basics,
+      order: 40,
       showIf: isSubclass
     }))
     .set('specializations', groupArray(['specializations'], 'Specializations', () => CLASS_SPECIALIZATION_NODE_MAP, {
+      section: CLASS_SECTIONS.classDetails,
+      order: 60,
       showIf: isSubclass
     }))
 })

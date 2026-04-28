@@ -7,6 +7,13 @@ import type {
   VehicleAuthored
 } from '#authored'
 
+const VEHICLE_SECTIONS = {
+  basics: { id: 'basics', label: 'Basics', order: 10 },
+  stats: { id: 'stats', label: 'Stats', order: 20 },
+  capacity: { id: 'capacity', label: 'Capacity', order: 30 },
+  features: { id: 'features', label: 'Features', order: 40 }
+} as const
+
 const detailNode = buildNodeMap<DetailAuthored>()
 
 const VEHICLE_DETAIL_NODE_MAP = detailNode.define('vehicleDetail', ({ map, nodes }) => {
@@ -40,9 +47,9 @@ export const VEHICLE_NODE_MAP = vehicleNode.define('vehicle', ({ map, nodes }) =
 
   map
     .set('id', text(['id'], 'ID'))
-    .set('label', text(['label'], 'Label'))
-    .set('description', text(['description'], 'Description'))
-    .set('details', groupArray(['details'], 'Details', () => VEHICLE_DETAIL_NODE_MAP))
+    .set('label', text(['label'], 'Name', { section: VEHICLE_SECTIONS.basics, order: 10 }))
+    .set('description', text(['description'], 'Description', { section: VEHICLE_SECTIONS.basics, order: 20 }))
+    .set('details', groupArray(['details'], 'Details', () => VEHICLE_DETAIL_NODE_MAP, { section: VEHICLE_SECTIONS.basics, order: 30 }))
     .set('userId', text(['userId'], 'User ID'))
     .set('systemId', text(['systemId'], 'System ID'))
     .set('category', selectSingle(['category'], 'Category', {
@@ -53,20 +60,20 @@ export const VEHICLE_NODE_MAP = vehicleNode.define('vehicle', ({ map, nodes }) =
         { code: VEHICLE_CATEGORY_CODE.AIR, label: 'Air' },
         { code: VEHICLE_CATEGORY_CODE.SPELLJAMMER, label: 'Spelljammer' }
       ]
-    }))
+    }, { section: VEHICLE_SECTIONS.basics, order: 40 }))
     .set('size', selectSingle(['size'], 'Size', {
       kind: 'INLINE',
       options: SIZE_OPTIONS
-    }))
-    .set('armorClass', number(['armorClass'], 'Armor Class'))
-    .set('hitPoints', number(['hitPoints'], 'Hit Points'))
-    .set('speed', number(['speed'], 'Speed'))
-    .set('speedNote', text(['speedNote'], 'Speed Note'))
-    .set('crewMin', number(['crewMin'], 'Minimum Crew'))
-    .set('crewMax', number(['crewMax'], 'Maximum Crew'))
-    .set('passengerCapacity', number(['passengerCapacity'], 'Passenger Capacity'))
-    .set('cargoCapacity', text(['cargoCapacity'], 'Cargo Capacity'))
-    .set('cost', groupObject(['cost'], 'Cost', () => VEHICLE_COST_NODE_MAP))
-    .set('properties', groupArray(['properties'], 'Properties', () => stringNode))
-    .set('features', groupArray(['features'], 'Features', () => FEATURE_NODE_MAP))
+    }, { section: VEHICLE_SECTIONS.stats, order: 10 }))
+    .set('armorClass', number(['armorClass'], 'Armor Class', { section: VEHICLE_SECTIONS.stats, order: 20 }))
+    .set('hitPoints', number(['hitPoints'], 'Hit Points', { section: VEHICLE_SECTIONS.stats, order: 30 }))
+    .set('speed', number(['speed'], 'Speed', { section: VEHICLE_SECTIONS.stats, order: 40 }))
+    .set('speedNote', text(['speedNote'], 'Speed Note', { section: VEHICLE_SECTIONS.stats, order: 50 }))
+    .set('crewMin', number(['crewMin'], 'Minimum Crew', { section: VEHICLE_SECTIONS.capacity, order: 10 }))
+    .set('crewMax', number(['crewMax'], 'Maximum Crew', { section: VEHICLE_SECTIONS.capacity, order: 20 }))
+    .set('passengerCapacity', number(['passengerCapacity'], 'Passenger Capacity', { section: VEHICLE_SECTIONS.capacity, order: 30 }))
+    .set('cargoCapacity', text(['cargoCapacity'], 'Cargo Capacity', { section: VEHICLE_SECTIONS.capacity, order: 40 }))
+    .set('cost', groupObject(['cost'], 'Cost', () => VEHICLE_COST_NODE_MAP, { section: VEHICLE_SECTIONS.capacity, order: 50 }))
+    .set('properties', groupArray(['properties'], 'Properties', () => stringNode, { section: VEHICLE_SECTIONS.features, order: 10 }))
+    .set('features', groupArray(['features'], 'Features', () => FEATURE_NODE_MAP, { section: VEHICLE_SECTIONS.features, order: 20 }))
 })

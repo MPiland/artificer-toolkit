@@ -1187,9 +1187,16 @@ export type NodeSelectSource = NodeInlineSource | NodeDataSource
 type NodeMetaBase = {
   label: string
   order?: number
+  section?: NodeSectionSpec
   hiddenBehavior?: HiddenBehavior
   showIf?: ConditionIfExpr
   requiredIf?: true | ConditionIfExpr
+}
+
+export type NodeSectionSpec = {
+  id: string
+  label: string
+  order: number
 }
 
 export type NodeInput<NLocal extends object>
@@ -1206,7 +1213,7 @@ export type NodeInput<NLocal extends object>
   })
 
 export type NodeGroupObject<NLocal extends object, K extends GroupKey<NLocal>>
-  = Pick<NodeMetaBase, 'label' | 'order' | 'hiddenBehavior' | 'showIf'> & {
+  = Pick<NodeMetaBase, 'label' | 'order' | 'section' | 'hiddenBehavior' | 'showIf'> & {
     kind: typeof NODE_KIND.GROUP
     groupKind: 'OBJECT'
     path: readonly [K]
@@ -1214,7 +1221,7 @@ export type NodeGroupObject<NLocal extends object, K extends GroupKey<NLocal>>
   }
 
 export type NodeGroupArray<NLocal extends object, K extends GroupKey<NLocal>>
-  = Pick<NodeMetaBase, 'label' | 'order' | 'hiddenBehavior' | 'showIf'> & {
+  = Pick<NodeMetaBase, 'label' | 'order' | 'section' | 'hiddenBehavior' | 'showIf'> & {
     kind: typeof NODE_KIND.GROUP
     groupKind: 'ARRAY'
     path: readonly [K]
@@ -1240,8 +1247,8 @@ export type NodeMap<NLocal extends object> = {
  * Node helpers
  * ────────────────────────────────────────────────────────────── */
 
-type NodeMetaSpec = Pick<NodeMetaBase, 'order' | 'hiddenBehavior' | 'showIf' | 'requiredIf'>
-type GroupMetaSpec = Pick<NodeMetaBase, 'order' | 'hiddenBehavior' | 'showIf' | 'requiredIf'>
+type NodeMetaSpec = Pick<NodeMetaBase, 'order' | 'section' | 'hiddenBehavior' | 'showIf' | 'requiredIf'>
+type GroupMetaSpec = Pick<NodeMetaBase, 'order' | 'section' | 'hiddenBehavior' | 'showIf' | 'requiredIf'>
 
 export type NodeBuilder<NLocal extends object> = {
   text(path: InputPathFor<NLocal>, label: string, meta?: NodeMetaSpec): NodeInput<NLocal>
@@ -1274,6 +1281,7 @@ function createNodeBuilder<NLocal extends object>(): NodeBuilder<NLocal> {
       path,
       label,
       order: meta?.order,
+      section: meta?.section,
       hiddenBehavior: meta?.hiddenBehavior,
       showIf: meta?.showIf,
       requiredIf: meta?.requiredIf
@@ -1285,6 +1293,7 @@ function createNodeBuilder<NLocal extends object>(): NodeBuilder<NLocal> {
       path,
       label,
       order: meta?.order,
+      section: meta?.section,
       hiddenBehavior: meta?.hiddenBehavior,
       showIf: meta?.showIf,
       requiredIf: meta?.requiredIf
@@ -1296,6 +1305,7 @@ function createNodeBuilder<NLocal extends object>(): NodeBuilder<NLocal> {
       path,
       label,
       order: meta?.order,
+      section: meta?.section,
       hiddenBehavior: meta?.hiddenBehavior,
       showIf: meta?.showIf,
       requiredIf: meta?.requiredIf
@@ -1308,6 +1318,7 @@ function createNodeBuilder<NLocal extends object>(): NodeBuilder<NLocal> {
       label,
       source,
       order: meta?.order,
+      section: meta?.section,
       hiddenBehavior: meta?.hiddenBehavior,
       showIf: meta?.showIf,
       requiredIf: meta?.requiredIf
@@ -1320,6 +1331,7 @@ function createNodeBuilder<NLocal extends object>(): NodeBuilder<NLocal> {
       label,
       source,
       order: meta?.order,
+      section: meta?.section,
       hiddenBehavior: meta?.hiddenBehavior,
       showIf: meta?.showIf,
       requiredIf: meta?.requiredIf
@@ -1331,6 +1343,7 @@ function createNodeBuilder<NLocal extends object>(): NodeBuilder<NLocal> {
       path,
       label,
       order: meta?.order,
+      section: meta?.section,
       hiddenBehavior: meta?.hiddenBehavior,
       showIf: meta?.showIf,
       nodes: child
@@ -1343,6 +1356,7 @@ function createNodeBuilder<NLocal extends object>(): NodeBuilder<NLocal> {
       label,
       itemIdKey: meta?.itemIdKey,
       order: meta?.order,
+      section: meta?.section,
       hiddenBehavior: meta?.hiddenBehavior,
       showIf: meta?.showIf,
       nodes: child

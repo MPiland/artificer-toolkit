@@ -9,6 +9,13 @@ import {
 } from '#maps'
 import type { SpellAuthored, CastingTimeAuthored } from '#authored'
 
+const SPELL_SECTIONS = {
+  basics: { id: 'basics', label: 'Basics', order: 10 },
+  casting: { id: 'casting', label: 'Casting', order: 20 },
+  relationships: { id: 'relationships', label: 'Relationships', order: 30 },
+  effects: { id: 'effects', label: 'Effects', order: 40 }
+} as const
+
 // Casting Time Node Map - Fixed with proper DSL
 const castingTimeNode = buildNodeMap<CastingTimeAuthored>()
 export const CASTING_TIME_NODE_MAP = castingTimeNode.define('castingTime', ({ map, nodes }) => {
@@ -29,33 +36,33 @@ export const SPELL_NODE_MAP = spellNode.define('spell', ({ map, nodes, data }) =
   map
     .set('kind', text(['kind'], 'Kind'))
     .set('id', text(['id'], 'ID'))
-    .set('label', text(['label'], 'Label'))
-    .set('description', text(['description'], 'Description'))
-    .set('level', number(['level'], 'Level'))
-    .set('materialDescription', text(['materialDescription'], 'Material Description'))
+    .set('label', text(['label'], 'Name', { section: SPELL_SECTIONS.basics, order: 10 }))
+    .set('description', text(['description'], 'Description', { section: SPELL_SECTIONS.basics, order: 20 }))
+    .set('level', number(['level'], 'Level', { section: SPELL_SECTIONS.basics, order: 30 }))
+    .set('materialDescription', text(['materialDescription'], 'Material Description', { section: SPELL_SECTIONS.casting, order: 40 }))
     .set('userId', text(['userId'], 'User ID'))
     .set('systemId', text(['systemId'], 'System ID'))
     .set('attributes', selectMulti(['attributes'], 'Attributes', {
       kind: 'INLINE',
       options: SPELL_ATTRIBUTE_OPTIONS
-    }))
+    }, { section: SPELL_SECTIONS.casting, order: 20 }))
     .set('components', selectMulti(['components'], 'Components', {
       kind: 'INLINE',
       options: SPELL_COMPONENT_OPTIONS
-    }))
+    }, { section: SPELL_SECTIONS.casting, order: 30 }))
     .set('classIds', selectMulti(['classIds'], 'Classes', {
       kind: 'DATA',
       relationship: table('classes', {
         selectColumns: ['id', 'label']
       })
-    }))
+    }, { section: SPELL_SECTIONS.relationships, order: 10 }))
     .set('magicSchoolId', selectSingle(['magicSchoolId'], 'Magic School', {
       kind: 'DATA',
       relationship: table('magic_schools', {
         selectColumns: ['id', 'label']
       })
-    }))
-    .set('castingTime', groupObject(['castingTime'], 'Casting Time', () => CASTING_TIME_NODE_MAP))
-    .set('effects', groupArray(['effects'], 'Effects', () => EFFECT_NODE_MAP))
+    }, { section: SPELL_SECTIONS.casting, order: 10 }))
+    .set('castingTime', groupObject(['castingTime'], 'Casting Time', () => CASTING_TIME_NODE_MAP, { section: SPELL_SECTIONS.casting, order: 5 }))
+    .set('effects', groupArray(['effects'], 'Effects', () => EFFECT_NODE_MAP, { section: SPELL_SECTIONS.effects, order: 10 }))
 })
 

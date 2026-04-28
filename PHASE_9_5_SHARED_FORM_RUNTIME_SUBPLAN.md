@@ -1,14 +1,17 @@
 # Phase 9.5 - Shared Form Runtime
 
-## Status: Not Started
+## Status: Complete
 
 ## Objective
 
-Build the shared authored-form runtime used by all non-character domains. This tranche keeps the `AppField` pattern but replaces the old global step-store architecture with section-aware node maps, typed per-domain stores, and a reusable renderer that can drive every authored domain from shared metadata.
+Build the shared authored-form runtime used by all non-character authored domains. This tranche replaces the old global Zustand step-store model for new work with TanStack Form composition, section-aware node maps, Mantine-backed field primitives, and a reusable renderer that can drive domain forms from shared metadata.
+
+Full domain form pages begin in 9.6. The legacy store and old provisional domain forms remain only to keep unrebuilt routes alive until each domain cutover.
 
 ## Inputs
 
 - [PHASE_9_4_FRONTEND_DATA_RUNTIME_SUBPLAN.md](PHASE_9_4_FRONTEND_DATA_RUNTIME_SUBPLAN.md)
+- TanStack Form composition, array, and SSR/TanStack Start guidance
 - `apps/web/src/hooks/useFormField.tsx`
 - `apps/web/src/components/Form/*`
 - `apps/web/src/store/formStore.ts`
@@ -18,92 +21,141 @@ Build the shared authored-form runtime used by all non-character domains. This t
 
 ## Locked Decisions
 
-- Keep the `AppField` pattern for type-safe binding.
-- Replace the old global union store and step model with a typed store factory per domain and surface.
-- Put section descriptors in shared node-map metadata.
-- Use proper textarea controls for longform fields.
+- Use TanStack Form as the authored form engine for new Phase 9 forms.
+- Keep the `form.AppField` ergonomics through TanStack `createFormHook`.
+- Do not create a new global form draft store.
+- TanStack Form owns draft values, dirty/touched/error/submission state per form instance.
+- A small UI state helper owns only active section, nested editor state, and read-only mode.
+- Add section descriptors to shared node-map metadata.
+- Use proper Mantine controls for text, textarea, number, select, multiselect, tags, buttons, and accessible form behavior.
+- Use the existing rich text editor as the registered rich-text field, with required Tiptap extension dependencies installed.
 - Support locked-master read-only forms with copy-to-edit entry points.
+- Preserve the Phase 9.4 `apps/apis` transport boundary for saves; do not make TanStack Start server actions the primary submit path in 9.5.
 
-## Required Shared Metadata Change
+## Shared Metadata Change
 
-Extend `NodeMetaSpec` so renderable fields and groups can declare their form section. Use this shape for the shared runtime:
+`NodeMetaBase`, `NodeMetaSpec`, and `GroupMetaSpec` now accept:
 
 - `section.id`
 - `section.label`
 - `section.order`
 
-Child nodes inherit the nearest parent section unless they explicitly override it. Top-level authored maps should assign every user-visible field or group to a stable section.
+Top-level authored maps now assign user-visible nodes and groups to stable sections for:
 
-## Scope
+- spell
+- background
+- feat
+- race
+- equipment
+- creature
+- vehicle
+- class
 
-- Typed store factory for authored forms
-- Shared node-map renderer
-- Section navigation model
-- Field primitive catalog
-- Nested array and object editing model
-- Read-only locked-master mode
+Section helper utilities now resolve grouped sections and nested inherited sections from shared node maps.
 
-## Store Model
+## Runtime Shape
 
-Each authored form store should manage:
+New runtime code lives under `apps/web/src/components/Form/runtime` and is exported alongside legacy form components from `apps/web/src/components/Form`.
 
-- `initial`
-- `draft`
-- `dirtyPaths`
-- `validation`
-- `activeSectionId`
-- nested collection UI state
-- modal or drawer UI state
-- read-only mode and copy-to-edit affordances
+The runtime includes:
 
-No store state may hard-code character-only editing indices or old stepper assumptions.
+- `useAppForm` from TanStack `createFormHook`
+- pre-bound Mantine/Tiptap field components
+- `AuthoredFormRuntime`
+- `NodeMapRenderer`
+- `SectionNavigator`
+- `NestedObjectShell`
+- `NestedCollectionShell`
+- `useAuthoredFormUiState`
+- node visibility handling for basic local `showIf` conditions
 
-## Required Field Catalog
+The runtime intentionally does not yet build full Spell/Background/etc. form pages. Domain-specific layout, relationship picker transport, and submit behavior begin in 9.6 and reuse this runtime.
 
-- text input
-- textarea
-- rich text
-- number input
-- single select
-- multi select
-- inline chips or tags where the design calls for them
-- nested object editors
-- nested collection editors
-- relationship pickers backed by transport data
+## SSR / TanStack Start Rule
 
-## Deliverables
+For rebuilt domain form pages:
 
-- Shared section-aware authored-form renderer.
-- Typed store factory reusable across spells, backgrounds, feats, races, equipment, creatures, vehicles, classes, features, and feat grants.
-- Rebuilt field primitive layer under `AppField`.
-- Storybook stories for:
-  - text
-  - textarea
-  - single select
-  - multi select
-  - rich text
-  - nested arrays
-  - section navigator
-  - locked-master read-only form with copy action
+- route loaders fetch initial authored detail payloads
+- initial values flow into TanStack Form `defaultValues`
+- drafts are not persisted globally through Zustand
+- saves go through the Phase 9.4 REST adapter
+- server validation state can later follow TanStack's `formOptions` / `mergeForm` SSR pattern if needed
+- `@tanstack/react-form-start` server-action submission remains a future option, not the 9.5 baseline
 
-## Implementation Plan
+## Legacy Handling
 
-1. Extend shared node metadata with section descriptors.
-2. Update subject node maps so their top-level authored surfaces emit stable section groupings.
-3. Build the new typed store factory and retire the old step-based global form store.
-4. Rebuild the field catalog under `AppField`, including proper textarea support.
-5. Build section navigation and nested editor composition around the node maps.
-6. Add locked-master read-only form mode and copy affordances.
-7. Add Storybook, Vitest, and Playwright coverage for the shared runtime.
+The following remain temporary and should not be used by new 9.5+ runtime code:
+
+- `apps/web/src/store/formStore.ts`
+- `apps/web/src/hooks/useTypedFormStore`
+- `apps/web/src/hooks/useDomainForm.ts`
+- `apps/web/src/hooks/useFormField.tsx`
+- old domain form components that depend on step metadata or web-local draft stores
+
+Do not delete these until the relevant domain route has been rebuilt and imports are clean.
+
+## Stories
+
+Storybook coverage now exists for:
+
+- text, textarea, number, single select, multiselect, tags, and rich text field primitives
+- sectioned node-map rendering
+- locked-master read-only rendering with copy affordance
+- nested collection editing
+- nested object editing
+
+## Tests
+
+Shared package tests cover:
+
+- section metadata accepted by node builder helpers
+- nested section inheritance
+- stable sections for every authored subject node map
+
+Web tests cover:
+
+- TanStack Form field value updates
+- SSR-style initial values
+- section navigation without draft mutation
+- read-only locked mode
+- nested array add/remove through TanStack array APIs
+- locked-master copy wiring
+
+Storybook Playwright covers:
+
+- field primitive input behavior
+- section switching
+- locked/read-only behavior
+- nested collection add behavior
+
+## Validation Notes
+
+Passed:
+
+- `yarn build:shared`
+- `yarn test:shared`
+- `yarn workspace @artificer-toolkit/web test`
+- `yarn workspace @artificer-toolkit/web build-storybook`
+- `yarn workspace @artificer-toolkit/web test:e2e:storybook`
+
+Accepted non-blocker:
+
+- `yarn build:web` still fails on known legacy `src/utils` alias/type failures that predate 9.5 and are already tracked as retirement targets. No new 9.5 runtime failure was exposed by the focused web tests or Storybook build.
+
+Known follow-up:
+
+- Storybook emits chunk-size warnings, especially for the rich text runtime story. This is acceptable for 9.5 Storybook coverage, but domain routes should avoid eagerly loading rich text where it is not needed.
+- Manual Storybook review accepted the runtime as directionally good enough. Token and radius tightening is deferred to integrated domain form polish during 9.6, when the runtime is visible inside the real Spell form.
 
 ## Review Gate
 
-- Node maps can emit stable sections for every authored domain.
-- Shared field primitives and nested editors are story-driven and browser-reviewed before domain rollout.
-- Unit tests cover store updates, section resolution, and nested editing paths.
-- A locked-master record can render read-only and transition into a copy flow.
+- Node maps emit stable sections for every authored subject map.
+- Shared field primitives and nested editors are story-driven.
+- Unit tests cover runtime updates, section resolution, and nested editing paths.
+- Locked-master forms render read-only and expose copy-to-edit wiring.
+- Manual Storybook review is accepted; 9.6 can begin.
 
 ## Exit Criteria
 
 - The authored-domain runtime is ready before the first domain rebuild starts.
-- Later domain subplans can focus on domain-specific UX rather than inventing new store or form primitives.
+- Later domain subplans can focus on domain-specific UX and transport rather than inventing new form state or field primitives.

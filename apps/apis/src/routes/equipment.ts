@@ -30,10 +30,10 @@ export const getEquipment = handleRequest<[string, string], Awaited<ReturnType<t
 
 // create/update
 export const createEquipment = handleAuthoringRequest(
+  equipmentAuthoredDtoSchema,
   async (db, body: EquipmentAuthoredDto, userId) => {
     const service = createEquipmentSubjectAuthoringService(db)
     const result = await service.execute(normalizeAuthoringInput(body, userId))
     return normalizeAuthoringResult(db, 'equipment', result, userId)
-  },
-  (raw) => equipmentAuthoredDtoSchema.parse(raw) as EquipmentAuthoredDto
+  }
 )

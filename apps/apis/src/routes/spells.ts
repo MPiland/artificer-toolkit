@@ -30,10 +30,10 @@ export const getSpell = handleRequest<[string, string], Awaited<ReturnType<typeo
 
 // create/update
 export const createSpell = handleAuthoringRequest(
+  spellAuthoredDtoSchema,
   async (db, body: SpellAuthoredDto, userId) => {
     const service = createSpellSubjectAuthoringService(db)
     const result = await service.execute(normalizeAuthoringInput(body, userId))
     return normalizeAuthoringResult(db, 'spells', result, userId)
-  },
-  (raw) => spellAuthoredDtoSchema.parse(raw) as SpellAuthoredDto
+  }
 )

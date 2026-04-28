@@ -2,6 +2,7 @@ import { handleRequest, handleAuthoringRequest, createCreatureSubjectAuthoringSe
 import { getCreatureListQuery, createCreatureRepository } from '@artificer-toolkit/db'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { creatureAuthoredDtoSchema, type CreatureAuthoredDto } from '@artificer-toolkit/schema'
+import type { ZodType } from 'zod'
 import {
   normalizeAuthoredDetailResponse,
   normalizeAuthoredListResponse,
@@ -25,8 +26,11 @@ export const getCreature = handleRequest<[string, string], Awaited<ReturnType<ty
   (req: Request, userId: string) => [extractId(req), userId] as [string, string]
 )
 
-export const createCreature = handleAuthoringRequest(async (db, body: CreatureAuthoredDto, userId) => {
-  const service = createCreatureSubjectAuthoringService(db)
-  const result = await service.execute(normalizeAuthoringInput(body, userId))
-  return normalizeAuthoringResult(db, 'creatures', result, userId)
-}, (raw) => creatureAuthoredDtoSchema.parse(raw) as CreatureAuthoredDto)
+export const createCreature = handleAuthoringRequest(
+  creatureAuthoredDtoSchema as ZodType<CreatureAuthoredDto>,
+  async (db, body: CreatureAuthoredDto, userId) => {
+    const service = createCreatureSubjectAuthoringService(db)
+    const result = await service.execute(normalizeAuthoringInput(body, userId))
+    return normalizeAuthoringResult(db, 'creatures', result, userId)
+  }
+)
