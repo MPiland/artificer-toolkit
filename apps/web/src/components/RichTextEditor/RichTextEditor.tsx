@@ -1,4 +1,5 @@
 import { RichTextEditor as MantineRichTextEditor, Link } from '@mantine/tiptap'
+import { useEffect } from 'react'
 import { useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
@@ -18,9 +19,10 @@ export interface RichTextEditorProps {
   label?: string
   onBlur?: ({ target: { name, value } }: { target: { name: string; value: string } }) => void
   name: string
+  readOnly?: boolean
 }
 
-const RichTextEditor = ({ value, onChange, placeholder, label, onBlur, name }: RichTextEditorProps) => {
+const RichTextEditor = ({ value, onChange, placeholder, label, onBlur, name, readOnly }: RichTextEditorProps) => {
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -50,8 +52,9 @@ const RichTextEditor = ({ value, onChange, placeholder, label, onBlur, name }: R
       Placeholder.configure({ placeholder: placeholder ?? '' }),
     ],
     content: value,
+    editable: !readOnly,
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML())
+      if (!readOnly) onChange(editor.getHTML())
     },
     onBlur: ({ editor }) => {
       if (onBlur) {
@@ -60,54 +63,60 @@ const RichTextEditor = ({ value, onChange, placeholder, label, onBlur, name }: R
     },
   })
 
+  useEffect(() => {
+    editor?.setEditable(!readOnly)
+  }, [editor, readOnly])
+
   return (
     <>
       {label && <span>{label}</span>}
       <MantineRichTextEditor editor={editor}>
-        <MantineRichTextEditor.Toolbar>
-          <MantineRichTextEditor.ControlsGroup>
-            <MantineRichTextEditor.Bold />
-            <MantineRichTextEditor.Italic />
-            <MantineRichTextEditor.Underline />
-            <MantineRichTextEditor.Strikethrough />
-            <MantineRichTextEditor.ClearFormatting />
-            <MantineRichTextEditor.Highlight />
-            <MantineRichTextEditor.Code />
-          </MantineRichTextEditor.ControlsGroup>
+        {!readOnly ? (
+          <MantineRichTextEditor.Toolbar>
+            <MantineRichTextEditor.ControlsGroup>
+              <MantineRichTextEditor.Bold />
+              <MantineRichTextEditor.Italic />
+              <MantineRichTextEditor.Underline />
+              <MantineRichTextEditor.Strikethrough />
+              <MantineRichTextEditor.ClearFormatting />
+              <MantineRichTextEditor.Highlight />
+              <MantineRichTextEditor.Code />
+            </MantineRichTextEditor.ControlsGroup>
 
-          <MantineRichTextEditor.ControlsGroup>
-            <MantineRichTextEditor.H1 />
-            <MantineRichTextEditor.H2 />
-            <MantineRichTextEditor.H3 />
-            <MantineRichTextEditor.H4 />
-          </MantineRichTextEditor.ControlsGroup>
+            <MantineRichTextEditor.ControlsGroup>
+              <MantineRichTextEditor.H1 />
+              <MantineRichTextEditor.H2 />
+              <MantineRichTextEditor.H3 />
+              <MantineRichTextEditor.H4 />
+            </MantineRichTextEditor.ControlsGroup>
 
-          <MantineRichTextEditor.ControlsGroup>
-            <MantineRichTextEditor.Blockquote />
-            <MantineRichTextEditor.Hr />
-            <MantineRichTextEditor.BulletList />
-            <MantineRichTextEditor.OrderedList />
-            <MantineRichTextEditor.Subscript />
-            <MantineRichTextEditor.Superscript />
-          </MantineRichTextEditor.ControlsGroup>
+            <MantineRichTextEditor.ControlsGroup>
+              <MantineRichTextEditor.Blockquote />
+              <MantineRichTextEditor.Hr />
+              <MantineRichTextEditor.BulletList />
+              <MantineRichTextEditor.OrderedList />
+              <MantineRichTextEditor.Subscript />
+              <MantineRichTextEditor.Superscript />
+            </MantineRichTextEditor.ControlsGroup>
 
-          <MantineRichTextEditor.ControlsGroup>
-            <MantineRichTextEditor.Link />
-            <MantineRichTextEditor.Unlink />
-          </MantineRichTextEditor.ControlsGroup>
+            <MantineRichTextEditor.ControlsGroup>
+              <MantineRichTextEditor.Link />
+              <MantineRichTextEditor.Unlink />
+            </MantineRichTextEditor.ControlsGroup>
 
-          <MantineRichTextEditor.ControlsGroup>
-            <MantineRichTextEditor.AlignLeft />
-            <MantineRichTextEditor.AlignCenter />
-            <MantineRichTextEditor.AlignJustify />
-            <MantineRichTextEditor.AlignRight />
-          </MantineRichTextEditor.ControlsGroup>
+            <MantineRichTextEditor.ControlsGroup>
+              <MantineRichTextEditor.AlignLeft />
+              <MantineRichTextEditor.AlignCenter />
+              <MantineRichTextEditor.AlignJustify />
+              <MantineRichTextEditor.AlignRight />
+            </MantineRichTextEditor.ControlsGroup>
 
-          <MantineRichTextEditor.ControlsGroup>
-            <MantineRichTextEditor.Undo />
-            <MantineRichTextEditor.Redo />
-          </MantineRichTextEditor.ControlsGroup>
-        </MantineRichTextEditor.Toolbar>
+            <MantineRichTextEditor.ControlsGroup>
+              <MantineRichTextEditor.Undo />
+              <MantineRichTextEditor.Redo />
+            </MantineRichTextEditor.ControlsGroup>
+          </MantineRichTextEditor.Toolbar>
+        ) : null}
 
         <MantineRichTextEditor.Content />
       </MantineRichTextEditor>

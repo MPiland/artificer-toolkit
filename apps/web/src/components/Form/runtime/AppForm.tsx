@@ -162,6 +162,7 @@ function RichTextField({ label, placeholder, readOnly }: RuntimeFieldProps) {
       name={field.name}
       placeholder={placeholder}
       value={toInputValue(field.state.value)}
+      readOnly={readOnly}
       onBlur={() => field.handleBlur()}
       onChange={(value) => {
         if (!readOnly) field.handleChange(value)

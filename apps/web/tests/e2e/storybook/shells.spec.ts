@@ -122,6 +122,13 @@ test('form runtime locked master story is read-only and copyable', async ({ page
   await storyExpect(page.getByRole('textbox', { name: 'Name' })).toHaveAttribute('readonly')
 })
 
+test('form runtime read-only rich text disables editing controls', async ({ page }) => {
+  await openStory(page, 'platform-form-runtime--field-primitives-readonly')
+
+  await storyExpect(page.locator('.ProseMirror').first()).toHaveAttribute('contenteditable', 'false')
+  await storyExpect(page.getByRole('button', { name: 'Bold' })).toHaveCount(0)
+})
+
 test('form runtime nested collection story adds items', async ({ page }) => {
   await openStory(page, 'platform-form-runtime--nested-collection')
 

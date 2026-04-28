@@ -7,6 +7,7 @@ import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { AuthoredFormRuntime } from './AuthoredFormRuntime'
 import { NestedCollectionShell } from './NestedEditors'
 import { SectionNavigator } from './SectionNavigator'
+import { defaultOptionResolver } from './NodeMapRenderer'
 import { useAppForm } from './AppForm'
 import { useAuthoredFormUiState } from './useAuthoredFormUiState'
 
@@ -183,5 +184,28 @@ describe('Phase 9.5 form runtime', () => {
 
     expect(onCopy).toHaveBeenCalledTimes(1)
     expect(screen.getByRole('textbox', { name: 'Name' })).toHaveAttribute('readonly')
+  })
+
+  it('resolves inline option groups without a custom option resolver', () => {
+    const options = defaultOptionResolver({
+      nodeId: 'properties',
+      node: {} as never,
+      values: { category: 'weapon' },
+      source: {
+        kind: 'INLINE',
+        optionGroups: [
+          {
+            showIf: { from: 'LOCAL', path: ['category'], op: '=', value: 'weapon' },
+            options: [{ code: 'FINESSE', label: 'Finesse' }]
+          },
+          {
+            showIf: { from: 'LOCAL', path: ['category'], op: '=', value: 'armor' },
+            options: [{ code: 'HEAVY', label: 'Heavy' }]
+          }
+        ]
+      }
+    })
+
+    expect(options).toEqual([{ value: 'FINESSE', label: 'Finesse' }])
   })
 })

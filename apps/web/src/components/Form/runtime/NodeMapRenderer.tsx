@@ -11,6 +11,7 @@ export type NodeOptionResolver = (args: {
   nodeId: string
   node: NodeEntry<object>
   source: NodeSelectSource
+  values?: unknown
 }) => SelectOption[]
 
 export function NodeMapRenderer<TValues extends object>({
@@ -64,7 +65,7 @@ function SectionPanel({
         {(values: unknown) => (
           <div className={fieldGrid}>
             {section.nodes.map(({ id, node }) => isConditionVisible(node.showIf, values)
-              ? renderNode({ form, nodeId: id, node, readOnly, optionResolver })
+              ? renderNode({ form, nodeId: id, node, values, readOnly, optionResolver })
               : null)}
           </div>
         )}
@@ -77,12 +78,14 @@ function renderNode({
   form,
   nodeId,
   node,
+  values,
   readOnly,
   optionResolver
 }: {
   form: any
   nodeId: string
   node: NodeEntry<object>
+  values: unknown
   readOnly?: boolean
   optionResolver: NodeOptionResolver
 }) {
@@ -144,7 +147,7 @@ function renderNode({
               <field.SelectField
                 label={node.label}
                 readOnly={readOnly}
-                data={optionResolver({ nodeId, node, source: node.source })}
+                data={optionResolver({ nodeId, node, source: node.source, values })}
               />
             )}
           </form.AppField>
@@ -158,7 +161,7 @@ function renderNode({
               <field.MultiSelectField
                 label={node.label}
                 readOnly={readOnly}
-                data={optionResolver({ nodeId, node, source: node.source })}
+                data={optionResolver({ nodeId, node, source: node.source, values })}
               />
             )}
           </form.AppField>
@@ -173,12 +176,21 @@ function renderNode({
   }
 }
 
-function defaultOptionResolver({ source }: Parameters<NodeOptionResolver>[0]): SelectOption[] {
+export function defaultOptionResolver({ source, values }: Parameters<NodeOptionResolver>[0]): SelectOption[] {
   if (source.kind === 'INLINE' && 'options' in source) {
     return source.options.map((option) => ({
       value: String(option.code),
       label: option.label
     }))
+  }
+
+  if (source.kind === 'INLINE' && 'optionGroups' in source) {
+    return source.optionGroups
+      .filter((group) => values === undefined || isConditionVisible(group.showIf, values))
+      .flatMap((group) => group.options.map((option) => ({
+        value: String(option.code),
+        label: option.label
+      })))
   }
 
   return []

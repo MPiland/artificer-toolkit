@@ -182,6 +182,10 @@ export const FieldPrimitives: Story = {
   render: () => <RuntimePrimitiveDemo />
 }
 
+export const FieldPrimitivesReadonly: Story = {
+  render: () => <RuntimePrimitiveDemo readOnly />
+}
+
 export const SectionedNodeMap: Story = {
   render: () => <RuntimeRendererDemo />
 }
