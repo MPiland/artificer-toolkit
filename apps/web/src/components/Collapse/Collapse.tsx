@@ -66,3 +66,5 @@ export function Collapse({
     </div>
   )
 }
+
+export default Collapse
