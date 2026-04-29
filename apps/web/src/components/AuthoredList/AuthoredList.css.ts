@@ -66,6 +66,11 @@ export const viewToggleButton = style({
 
       ':focus-visible': {
         boxShadow: foundationVars.shadow.focus
+      },
+
+      ':disabled': {
+        cursor: 'not-allowed',
+        opacity: 0.5
       }
     }
   },
@@ -262,6 +267,33 @@ export const nameCell = style({
     [app]: {
       color: foundationVars.color.text.primary,
       fontWeight: foundationVars.fontWeight.medium
+    }
+  }
+})
+
+export const itemNameButton = style({
+  '@layer': {
+    [app]: {
+      display: 'inline-flex',
+      maxWidth: '100%',
+      padding: 0,
+      border: 0,
+      background: 'transparent',
+      color: foundationVars.color.text.primary,
+      cursor: 'pointer',
+      font: 'inherit',
+      fontWeight: foundationVars.fontWeight.medium,
+      textAlign: 'left',
+
+      ':hover': {
+        color: foundationVars.color.text.accent
+      },
+
+      ':focus-visible': {
+        borderRadius: foundationVars.radius.sm,
+        boxShadow: foundationVars.shadow.focus,
+        outline: 'none'
+      }
     }
   }
 })
@@ -507,6 +539,36 @@ export const cardTitle = style({
       lineHeight: foundationVars.typography.body.lineHeight,
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap'
+    }
+  }
+})
+
+export const cardTitleButton = style({
+  '@layer': {
+    [app]: {
+      display: 'inline-block',
+      overflow: 'hidden',
+      maxWidth: '100%',
+      padding: 0,
+      border: 0,
+      background: 'transparent',
+      color: 'inherit',
+      cursor: 'pointer',
+      font: 'inherit',
+      fontWeight: 'inherit',
+      textAlign: 'left',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+
+      ':hover': {
+        color: foundationVars.color.text.accent
+      },
+
+      ':focus-visible': {
+        borderRadius: foundationVars.radius.sm,
+        boxShadow: foundationVars.shadow.focus,
+        outline: 'none'
+      }
     }
   }
 })

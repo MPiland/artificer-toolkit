@@ -11,7 +11,7 @@ import {
   SPELL_NODE_MAP,
   VEHICLE_NODE_MAP
 } from '#maps'
-import { buildNodeMap, resolveNestedNodeSections, resolveNodeMapSections } from '#utils'
+import { buildNodeMap, evaluateConditionIf, resolveNestedNodeSections, resolveNodeMapSections } from '#utils'
 
 describe('node map sections', () => {
   it('resolves section groups in stable order', () => {
@@ -43,6 +43,18 @@ describe('node map sections', () => {
       'details:child',
       'details:label'
     ])
+  })
+
+  it('models spell material details as a conditional clearable field', () => {
+    const materialNode = SPELL_NODE_MAP.nodes.materialDescription
+
+    expect(materialNode.hiddenBehavior).toBe('CLEAR')
+    expect(evaluateConditionIf(materialNode.showIf, {
+      values: { components: ['MATERIAL'] }
+    })).toBe(true)
+    expect(evaluateConditionIf(materialNode.showIf, {
+      values: { components: ['VERBAL'] }
+    })).toBe(false)
   })
 
   it('provides sections for every authored subject map', () => {

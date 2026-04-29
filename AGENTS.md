@@ -23,7 +23,13 @@ Current default focus is Phase 9 frontend modernization.
 
 - 9.1 platform/testing: complete
 - 9.2 public/auth/marketing: complete
-- 9.3 authenticated shell, navigation, and authored list patterns: active
+- 9.3 authenticated shell, navigation, and authored list patterns: complete
+- 9.4 frontend data runtime: complete
+- 9.5 shared form runtime: complete
+- 9.6 spell implementation: complete
+- 9.6.1 node-map runtime resolver: complete
+- 9.7 background implementation: complete
+- 9.8 feat implementation: active
 
 Before starting a new frontend task, confirm the active tranche in [PHASE_9_CODE_OVERVIEW.md](/c:/Users/pilan/Desktop/artificer-toolkit/PHASE_9_CODE_OVERVIEW.md).
 
@@ -67,7 +73,8 @@ Current frontend posture:
 - Phase 9 is incremental and gated.
 - 9.1 platform/testing is complete.
 - 9.2 public/auth/marketing is complete.
-- 9.3 authenticated shell, navigation, and authored list patterns is the next active tranche.
+- 9.3 authenticated shell, navigation, and authored list patterns is complete.
+- 9.8 feat implementation is the next active tranche.
 
 Per-tranche expectations:
 

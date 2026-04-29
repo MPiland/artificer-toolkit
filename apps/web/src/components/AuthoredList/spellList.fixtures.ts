@@ -18,10 +18,10 @@ export const spellListItems: AuthoredListItem[] = [
   {
     id: 'magic-missile',
     name: 'Magic Missile',
-    level: '1',
-    school: 'Evocation',
-    castingTime: '1 Action',
-    classes: ['Sorcerer', 'Wizard'],
+    attributes: { level: '1', school: 'Evocation', castingTime: '1 Action' },
+    badges: ['Sorcerer', 'Wizard'],
+    filterValues: { level: '1', school: 'Evocation', class: ['Sorcerer', 'Wizard'] },
+    sortValues: { name: 'Magic Missile', level: 1 },
     sourceLabel: 'SRD',
     sourceKind: 'master',
     permissions: masterPermissions
@@ -29,10 +29,10 @@ export const spellListItems: AuthoredListItem[] = [
   {
     id: 'misty-step',
     name: 'Misty Step',
-    level: '2',
-    school: 'Conjuration',
-    castingTime: '1 Bonus Action',
-    classes: ['Sorcerer', 'Warlock', 'Wizard'],
+    attributes: { level: '2', school: 'Conjuration', castingTime: '1 Bonus Action' },
+    badges: ['Sorcerer', 'Warlock', 'Wizard'],
+    filterValues: { level: '2', school: 'Conjuration', class: ['Sorcerer', 'Warlock', 'Wizard'] },
+    sortValues: { name: 'Misty Step', level: 2 },
     sourceLabel: 'SRD',
     sourceKind: 'master',
     permissions: masterPermissions
@@ -40,10 +40,10 @@ export const spellListItems: AuthoredListItem[] = [
   {
     id: 'ember-lace',
     name: 'Ember Lace',
-    level: '3',
-    school: 'Evocation',
-    castingTime: '1 Action',
-    classes: ['Bard', 'Sorcerer', 'Wizard'],
+    attributes: { level: '3', school: 'Evocation', castingTime: '1 Action' },
+    badges: ['Bard', 'Sorcerer', 'Wizard'],
+    filterValues: { level: '3', school: 'Evocation', class: ['Bard', 'Sorcerer', 'Wizard'] },
+    sortValues: { name: 'Ember Lace', level: 3 },
     sourceLabel: 'Homebrew',
     sourceKind: 'owned',
     permissions: ownedPermissions
@@ -51,10 +51,10 @@ export const spellListItems: AuthoredListItem[] = [
   {
     id: 'warding-rune',
     name: 'Warding Rune',
-    level: '2',
-    school: 'Abjuration',
-    castingTime: '1 Reaction',
-    classes: ['Cleric', 'Wizard'],
+    attributes: { level: '2', school: 'Abjuration', castingTime: '1 Reaction' },
+    badges: ['Cleric', 'Wizard'],
+    filterValues: { level: '2', school: 'Abjuration', class: ['Cleric', 'Wizard'] },
+    sortValues: { name: 'Warding Rune', level: 2 },
     sourceLabel: 'Homebrew',
     sourceKind: 'owned',
     permissions: ownedPermissions
@@ -62,10 +62,10 @@ export const spellListItems: AuthoredListItem[] = [
   {
     id: 'healing-word',
     name: 'Healing Word',
-    level: '1',
-    school: 'Evocation',
-    castingTime: '1 Bonus Action',
-    classes: ['Bard', 'Cleric', 'Druid'],
+    attributes: { level: '1', school: 'Evocation', castingTime: '1 Bonus Action' },
+    badges: ['Bard', 'Cleric', 'Druid'],
+    filterValues: { level: '1', school: 'Evocation', class: ['Bard', 'Cleric', 'Druid'] },
+    sortValues: { name: 'Healing Word', level: 1 },
     sourceLabel: 'SRD',
     sourceKind: 'master',
     permissions: masterPermissions

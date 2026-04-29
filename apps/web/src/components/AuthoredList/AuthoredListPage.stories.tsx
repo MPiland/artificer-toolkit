@@ -2,6 +2,12 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { AuthoredListPage } from './AuthoredListPage'
 import { spellListFilters, spellListItems } from './spellList.fixtures'
 
+const spellAttributeColumns = [
+  { key: 'level', label: 'Lvl' },
+  { key: 'school', label: 'School' },
+  { key: 'castingTime', label: 'Casting Time' }
+]
+
 const meta = {
   title: 'Platform/Authored List/AuthoredListPage',
   component: AuthoredListPage,
@@ -19,7 +25,8 @@ const meta = {
     summary: '312 spells / 312 SRD / 0 homebrew',
     createLabel: 'Create Spell',
     items: spellListItems,
-    filters: spellListFilters
+    filters: spellListFilters,
+    attributeColumns: spellAttributeColumns
   }
 } satisfies Meta<typeof AuthoredListPage>
 

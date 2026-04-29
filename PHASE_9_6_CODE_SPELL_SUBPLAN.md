@@ -124,6 +124,8 @@ Derive sections from `SPELL_NODE_MAP` and the locked Figma screens:
 - `/spells/new`, `/spells/$spellId`, and `/spells/$spellId/edit` are live route files with SSR query loaders.
 - Spell reference data is fetched through the shared REST adapter and `apps/apis`, including systems, classes, creatures, damage types, condition types, and magic schools.
 - Spell's explicit reference-data loader and partial web-local node-condition handling are accepted as a temporary bridge for the first domain slice, not the long-term authored-form pattern. [PHASE_9_6_1_NODE_MAP_RESOLVER_SUBPLAN.md](PHASE_9_6_1_NODE_MAP_RESOLVER_SUBPLAN.md) has now added the trusted runtime path for resolved node visibility, requiredness, hidden behavior, and node-map `DATA` option sources behind `packages/functions` and `apps/apis`.
+- 9.7 closeout corrected the Spell bridge: the isolated Spell form now consumes the node-runtime resolver for top-level class, school, component, attribute, and material-description field metadata while keeping the Figma IF layout and reusable EffectEditor composition. The remaining explicit Spell reference data is for effect-editor/reference inputs outside the current top-level node-map field option path.
+- `SPELL_NODE_MAP` now owns the material-description `showIf` and `CLEAR` behavior, so client UX clearing and backend save normalization share the same authored metadata.
 - Spell saves now run through node-runtime value normalization before persistence, so hidden `CLEAR` behavior is enforced server-side even while some field-option reference wiring remains temporary.
 - `components/EffectEditor` owns the reusable effect authoring surface and opens as a full-screen modal/drill-in editor.
 - The EffectEditor full-screen shell was reworked toward the Figma Effects frame: custom header, breadcrumb trail, canvas body, content panel, and footer actions instead of stock modal chrome.
@@ -140,6 +142,7 @@ Derive sections from `SPELL_NODE_MAP` and the locked Figma screens:
 - Multiselect selected values are now visually constrained to one input row with ellipsis overflow instead of wrapping into multiline input height. This keeps authored forms visually consistent with ordinary text, number, textarea, and select controls.
 - Disabled/read-only input-like controls now use the same visual treatment across text, textarea, number, tags, select, and multiselect surfaces so locked master content does not appear partially editable or inconsistently disabled.
 - Page-level authored form constraints are owned by a reusable `AuthoredFormPageFrame`, not by individual form components. Spell routes and Spell stories now wrap the fluid `SpellForm` in that frame so future authored domains can reuse the same max-width/gutter ownership rule.
+- 9.7 consistency review extracted shared authored-form layout primitives (`AuthoredFormRoot`, `AuthoredFormHeader`, `AuthoredFormShell`, `AuthoredFormSectionStack`, `AuthoredFormSection`, and `AuthoredFormFooter`) so Spell uses the same form structure as Background while keeping its own Spell Info and Effects flow.
 - The rebuilt Spell implementation is now the canonical `apps/web/src/domains/spells` implementation. The temporary `modern` folder was removed; older provisional Spell files were moved under `apps/web/src/legacy/domains/spells` as explicit retirement targets.
 - Active Spell routes import from `#domains/spells`, not a versioned or temporary subfolder.
 - `/spells/$spellId` now acts as the nested spell-detail layout/data route and renders an `Outlet`. The view surface lives at the index child route, while `/spells/$spellId/edit` mounts the edit child route correctly.
@@ -166,6 +169,14 @@ Derive sections from `SPELL_NODE_MAP` and the locked Figma screens:
 - `cmd /c yarn workspace @artificer-toolkit/web test src/components/EffectEditor/EffectEditor.test.ts src/domains/spells/spellAuthoring.test.ts src/routes/-spellRoutes.test.ts` passes after the EffectEditor modal extraction.
 - `cmd /c yarn workspace @artificer-toolkit/web test:e2e:storybook --grep "effect editor|spell form story|select"` passes after the EffectEditor modal extraction.
 - `cmd /c yarn build:web` remains blocked only by the documented legacy `apps/web/src/utils` alias/type failures, not by 9.6 Spell or EffectEditor files.
+- 9.7 closeout Spell correction validation:
+  - `yarn test:shared node-sections` passes.
+  - `yarn build:shared` passes.
+  - `yarn build:functions` passes.
+  - `yarn workspace @artificer-toolkit/web test src/components/Form/runtime/FormRuntime.test.tsx src/domains/spells/spellAuthoring.test.ts` passes.
+  - `yarn workspace @artificer-toolkit/web test:e2e:storybook --grep "spell form"` passes.
+  - `yarn workspace @artificer-toolkit/web build-storybook` passes with the existing Storybook chunk-size warning.
+  - `yarn build:web` remains blocked only by the documented legacy `apps/web/src/utils` alias/type failures, not by Spell runtime files.
 
 ## Manual Review Checklist
 

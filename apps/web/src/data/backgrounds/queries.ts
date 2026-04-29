@@ -1,16 +1,11 @@
 import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
-import { api } from '../../lib/api'
+import { api, type Api } from '#app/lib/api'
+import { queryKeys } from '#app/lib/queryKeys'
 
-const backgroundsKeys = {
-  all: ['backgrounds'] as const,
-  lists: () => [...backgroundsKeys.all, 'list'] as const,
-  single: (id: string) => [...backgroundsKeys.all, 'single', id] as const
-}
-
-export function getBackgroundList() {
+export function getBackgroundList(client: Api = api) {
   return queryOptions({
-    queryKey: backgroundsKeys.lists(),
-    queryFn: async () => await api.content.backgrounds.list()
+    queryKey: queryKeys.content.backgrounds.list(),
+    queryFn: async () => await client.content.backgrounds.list()
   })
 }
 
@@ -18,10 +13,10 @@ export function useGetBackgroundList() {
   return useSuspenseQuery(getBackgroundList())
 }
 
-export function getBackground(id: string) {
+export function getBackground(id: string, client: Api = api) {
   return queryOptions({
-    queryKey: backgroundsKeys.single(id),
-    queryFn: async () => await api.content.backgrounds.get(id)
+    queryKey: queryKeys.content.backgrounds.detail(id),
+    queryFn: async () => await client.content.backgrounds.get(id)
   })
 }
 

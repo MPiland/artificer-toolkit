@@ -12,6 +12,11 @@ import { SectionNavigator } from './SectionNavigator'
 import { defaultOptionResolver } from './NodeMapRenderer'
 import { useAppForm } from './AppForm'
 import { applyNodeRuntimeClearPaths, getNodeRuntimeDebounceMs } from './nodeRuntime'
+import {
+  getRuntimeNodeOptions,
+  getRuntimeNodeRequired,
+  getRuntimeNodeVisible
+} from './runtimeModelUtils'
 import { useAuthoredFormUiState } from './useAuthoredFormUiState'
 
 type RuntimeFixture = {
@@ -41,6 +46,50 @@ const runtimeFixtureNodeMap = buildNodeMap<RuntimeFixture>().define('runtimeFixt
     }, { section, order: 20 }))
     .set('hiddenText', nodes.text(['hiddenText'], 'Hidden Text', { section, order: 30 }))
 })
+
+const resolvedRuntimeFixture: NodeRuntimeResolveResponseDto = {
+  mapId: 'runtimeFixture',
+  clearPaths: [['hiddenText']],
+  sections: [{
+    id: 'basics',
+    label: 'Basics',
+    order: 10,
+    nodes: [
+      {
+        id: 'label',
+        path: ['label'],
+        label: 'Name',
+        kind: 'INPUT',
+        type: 'TEXT',
+        visible: true,
+        required: true,
+        clearPaths: []
+      },
+      {
+        id: 'category',
+        path: ['category'],
+        label: 'Category',
+        kind: 'INPUT',
+        type: 'SELECT_SINGLE',
+        visible: true,
+        required: false,
+        clearPaths: [],
+        options: [{ value: 'arcane', label: 'Arcane' }]
+      },
+      {
+        id: 'hiddenText',
+        path: ['hiddenText'],
+        label: 'Hidden Text',
+        kind: 'INPUT',
+        type: 'TEXT',
+        visible: false,
+        required: false,
+        hiddenBehavior: 'CLEAR',
+        clearPaths: [['hiddenText']]
+      }
+    ]
+  }]
+}
 
 function PrimitiveHarness({ readOnly = false }: { readOnly?: boolean }) {
   const appForm = useAppForm({
@@ -146,56 +195,12 @@ function ResolvedRuntimeHarness({ onClearPaths }: { onClearPaths?: (paths: reado
     onSubmit: () => undefined
   })
 
-  const runtimeModel: NodeRuntimeResolveResponseDto = {
-    mapId: 'runtimeFixture',
-    clearPaths: [['hiddenText']],
-    sections: [{
-      id: 'basics',
-      label: 'Basics',
-      order: 10,
-      nodes: [
-        {
-          id: 'label',
-          path: ['label'],
-          label: 'Name',
-          kind: 'INPUT',
-          type: 'TEXT',
-          visible: true,
-          required: true,
-          clearPaths: []
-        },
-        {
-          id: 'category',
-          path: ['category'],
-          label: 'Category',
-          kind: 'INPUT',
-          type: 'SELECT_SINGLE',
-          visible: true,
-          required: false,
-          clearPaths: [],
-          options: [{ value: 'arcane', label: 'Arcane' }]
-        },
-        {
-          id: 'hiddenText',
-          path: ['hiddenText'],
-          label: 'Hidden Text',
-          kind: 'INPUT',
-          type: 'TEXT',
-          visible: false,
-          required: false,
-          hiddenBehavior: 'CLEAR',
-          clearPaths: [['hiddenText']]
-        }
-      ]
-    }]
-  }
-
   return (
     <appForm.AppForm>
       <AuthoredFormRuntime
         form={appForm}
         nodeMap={runtimeFixtureNodeMap}
-        runtimeModel={runtimeModel}
+        runtimeModel={resolvedRuntimeFixture}
         onClearPaths={onClearPaths}
       />
     </appForm.AppForm>
@@ -307,6 +312,19 @@ describe('Phase 9.5 form runtime', () => {
     await user.click(screen.getByRole('textbox', { name: /category/i }))
 
     expect(await screen.findByText('Arcane')).toBeInTheDocument()
+  })
+
+  it('exposes runtime node helpers for custom form layouts', () => {
+    expect(getRuntimeNodeRequired(resolvedRuntimeFixture, 'label')).toBe(true)
+    expect(getRuntimeNodeVisible(resolvedRuntimeFixture, 'hiddenText')).toBe(false)
+    expect(getRuntimeNodeOptions(resolvedRuntimeFixture, 'category', [])).toEqual([{
+      value: 'arcane',
+      label: 'Arcane'
+    }])
+    expect(getRuntimeNodeOptions(resolvedRuntimeFixture, 'missing', [{ value: 'fallback', label: 'Fallback' }])).toEqual([{
+      value: 'fallback',
+      label: 'Fallback'
+    }])
   })
 
   it('does not silently render empty options for unresolved DATA sources', () => {

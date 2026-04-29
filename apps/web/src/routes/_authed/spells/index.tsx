@@ -7,6 +7,8 @@ import { getSpellList } from '#app/data/spells/queries'
 import {
   buildSpellListFilters,
   mapSpellListToAuthoredItems,
+  spellListAttributeColumns,
+  spellListSortOptions,
   summarizeSpellList
 } from '#app/data/spells/spellListMapper'
 import { queryKeys } from '#app/lib/queryKeys'
@@ -48,6 +50,8 @@ function SpellsRoute() {
       createLabel='Create Spell'
       items={mapSpellListToAuthoredItems(data)}
       filters={buildSpellListFilters(data)}
+      attributeColumns={spellListAttributeColumns}
+      sortOptions={spellListSortOptions}
       onCreate={() => navigate({ to: '/spells/new' })}
       onView={(item) => navigate({ to: '/spells/$spellId', params: { spellId: item.id } })}
       onEdit={(item) => navigate({ to: '/spells/$spellId/edit', params: { spellId: item.id } })}

@@ -1,4 +1,9 @@
-import { handleRequest, handleAuthoringRequest, createBackgroundSubjectAuthoringService } from '@artificer-toolkit/functions'
+import {
+  handleRequest,
+  handleAuthoringRequest,
+  createBackgroundSubjectAuthoringService,
+  normalizeNodeRuntimeValues
+} from '@artificer-toolkit/functions'
 import { getBackgroundListQuery } from '@artificer-toolkit/db'
 import { createBackgroundRepository } from '@artificer-toolkit/db'
 import type { BackgroundAuthored } from '@artificer-toolkit/shared'
@@ -33,7 +38,12 @@ export const createBackground = handleAuthoringRequest(
   backgroundAuthoredDtoSchema,
   async (db, body: BackgroundAuthoredDto, userId) => {
     const service = createBackgroundSubjectAuthoringService(db)
-    const result = await service.execute(normalizeAuthoringInput(body, userId))
+    const normalized = await normalizeNodeRuntimeValues(db, {
+      mapId: 'background',
+      values: { ...body }
+    })
+    const normalizedBody = backgroundAuthoredDtoSchema.parse(normalized.values)
+    const result = await service.execute(normalizeAuthoringInput(normalizedBody, userId))
     return normalizeAuthoringResult(db, 'backgrounds', result, userId)
   }
 )

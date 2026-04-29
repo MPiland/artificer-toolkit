@@ -1,9 +1,8 @@
 import { Alert, Stack, Text, Title } from '@mantine/core'
 import type { ComponentType, ReactNode } from 'react'
-import { useEffect, useMemo } from 'react'
+import { useEffect } from 'react'
 import type { AnyFieldApi } from '@tanstack/react-form'
-import type { NodeEntry, NodeMap, NodeSelectSource, SectionedNodeGroup } from '@artificer-toolkit/shared'
-import { resolveNodeMapSections } from '@artificer-toolkit/shared'
+import { resolveNodeMapSections, type NodeEntry, type NodeMap, type NodeSelectSource, type SectionedNodeGroup } from '@artificer-toolkit/shared/utils'
 import type { NodeRuntimeNodeDto, NodeRuntimePathDto, NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema'
 import { clsx } from 'clsx'
 import { fieldGrid, sectionPanel, sectionStack, wideField } from './runtimeStyles.css.ts'
@@ -11,6 +10,7 @@ import { NestedCollectionShell, NestedObjectShell } from './NestedEditors'
 import { isConditionVisible } from './nodeVisibility'
 import type { RuntimeFieldProps, RuntimeSelectFieldProps } from './AppForm'
 import type { SelectOption } from './formUtils'
+import { resolveRuntimeOptions, useRuntimeNodeById } from './runtimeModelUtils'
 
 const EMPTY_RUNTIME_PATHS: readonly NodeRuntimePathDto[] = []
 
@@ -230,21 +230,6 @@ function isNodeVisible<TValues extends object>(
   runtimeNode?: NodeRuntimeNodeDto
 ): boolean {
   return runtimeNode?.visible ?? isConditionVisible(node.showIf, values)
-}
-
-function resolveRuntimeOptions(
-  runtimeNode: NodeRuntimeNodeDto | undefined,
-  fallback: () => SelectOption[]
-): SelectOption[] {
-  if (runtimeNode?.options) return runtimeNode.options
-  return fallback()
-}
-
-function useRuntimeNodeById(runtimeModel: NodeRuntimeResolveResponseDto | undefined) {
-  return useMemo(() => {
-    const nodes = runtimeModel?.sections.flatMap((section) => section.nodes) ?? []
-    return new Map(nodes.map((node) => [node.id, node]))
-  }, [runtimeModel])
 }
 
 function useRuntimeClearPaths(
