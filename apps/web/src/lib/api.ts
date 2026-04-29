@@ -17,6 +17,8 @@ import {
   featResponseDtoSchema,
   featureListResponseDtoSchema,
   featureResponseDtoSchema,
+  nodeRuntimeNormalizeValuesResponseDtoSchema,
+  nodeRuntimeResolveResponseDtoSchema,
   raceListResponseDtoSchema,
   raceResponseDtoSchema,
   spellListResponseDtoSchema,
@@ -56,6 +58,10 @@ import {
   type FeatureListItemDto,
   type FeatureListResponseDto,
   type FeatureResponseDto,
+  type NodeRuntimeNormalizeValuesRequestDto,
+  type NodeRuntimeNormalizeValuesResponseDto,
+  type NodeRuntimeResolveRequestDto,
+  type NodeRuntimeResolveResponseDto,
   type RaceListItemDto,
   type RaceListResponseDto,
   type RaceResponseDto,
@@ -96,6 +102,10 @@ export type {
   FeatureListItemDto,
   FeatureListResponseDto,
   FeatureResponseDto,
+  NodeRuntimeNormalizeValuesRequestDto,
+  NodeRuntimeNormalizeValuesResponseDto,
+  NodeRuntimeResolveRequestDto,
+  NodeRuntimeResolveResponseDto,
   RaceListItemDto,
   RaceListResponseDto,
   RaceResponseDto,
@@ -352,6 +362,13 @@ function buildApi(getJwt: (() => Promise<string | null>) | string | null) {
     systems: {
       list: () => get('/systems', systemListResponseDtoSchema),
       get: (id: string) => get(`/systems/${id}`, systemResponseDtoSchema)
+    },
+
+    nodeRuntime: {
+      resolve: (input: NodeRuntimeResolveRequestDto) =>
+        post('/node-runtime/resolve', nodeRuntimeResolveResponseDtoSchema, input),
+      normalizeValues: (input: NodeRuntimeNormalizeValuesRequestDto) =>
+        post('/node-runtime/normalize-values', nodeRuntimeNormalizeValuesResponseDtoSchema, input)
     },
 
     _raw: { get, post, del }

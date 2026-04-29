@@ -20,6 +20,7 @@ export type RuntimeFieldProps = {
   label?: string
   description?: string
   placeholder?: string
+  required?: boolean
   readOnly?: boolean
 }
 
@@ -40,7 +41,7 @@ const pillsFieldClassNames = {
   inputField: inputStyles.inputField
 }
 
-function TextField({ label, description, placeholder, readOnly }: RuntimeFieldProps) {
+function TextField({ label, description, placeholder, required, readOnly }: RuntimeFieldProps) {
   const field = useFieldContext<string>()
 
   return (
@@ -48,6 +49,7 @@ function TextField({ label, description, placeholder, readOnly }: RuntimeFieldPr
       label={label}
       description={description}
       placeholder={placeholder}
+      required={required}
       name={field.name}
       value={toInputValue(field.state.value)}
       error={getFieldError(field)}
@@ -61,7 +63,7 @@ function TextField({ label, description, placeholder, readOnly }: RuntimeFieldPr
   )
 }
 
-function TextareaField({ label, description, placeholder, readOnly }: RuntimeFieldProps) {
+function TextareaField({ label, description, placeholder, required, readOnly }: RuntimeFieldProps) {
   const field = useFieldContext<string>()
 
   return (
@@ -71,6 +73,7 @@ function TextareaField({ label, description, placeholder, readOnly }: RuntimeFie
       label={label}
       description={description}
       placeholder={placeholder}
+      required={required}
       name={field.name}
       value={toInputValue(field.state.value)}
       error={getFieldError(field)}
@@ -84,7 +87,7 @@ function TextareaField({ label, description, placeholder, readOnly }: RuntimeFie
   )
 }
 
-function NumberField({ label, description, placeholder, readOnly }: RuntimeFieldProps) {
+function NumberField({ label, description, placeholder, required, readOnly }: RuntimeFieldProps) {
   const field = useFieldContext<number | undefined>()
 
   return (
@@ -92,6 +95,7 @@ function NumberField({ label, description, placeholder, readOnly }: RuntimeField
       label={label}
       description={description}
       placeholder={placeholder}
+      required={required}
       name={field.name}
       value={field.state.value}
       error={getFieldError(field)}
@@ -105,7 +109,7 @@ function NumberField({ label, description, placeholder, readOnly }: RuntimeField
   )
 }
 
-function SelectField({ label, description, placeholder, readOnly, data }: RuntimeSelectFieldProps) {
+function SelectField({ label, description, placeholder, required, readOnly, data }: RuntimeSelectFieldProps) {
   const field = useFieldContext<string | undefined>()
 
   return (
@@ -113,6 +117,7 @@ function SelectField({ label, description, placeholder, readOnly, data }: Runtim
       label={label}
       description={description}
       placeholder={placeholder}
+      required={required}
       data={data}
       name={field.name}
       value={field.state.value ?? null}
@@ -127,7 +132,7 @@ function SelectField({ label, description, placeholder, readOnly, data }: Runtim
   )
 }
 
-function MultiSelectField({ label, description, placeholder, readOnly, data }: RuntimeSelectFieldProps) {
+function MultiSelectField({ label, description, placeholder, required, readOnly, data }: RuntimeSelectFieldProps) {
   const field = useFieldContext<string[] | undefined>()
 
   return (
@@ -135,6 +140,7 @@ function MultiSelectField({ label, description, placeholder, readOnly, data }: R
       label={label}
       description={description}
       placeholder={placeholder}
+      required={required}
       data={data}
       name={field.name}
       value={field.state.value ?? []}
@@ -149,7 +155,7 @@ function MultiSelectField({ label, description, placeholder, readOnly, data }: R
   )
 }
 
-function TagsField({ label, description, placeholder, readOnly }: RuntimeFieldProps) {
+function TagsField({ label, description, placeholder, required, readOnly }: RuntimeFieldProps) {
   const field = useFieldContext<string[] | undefined>()
 
   return (
@@ -157,6 +163,7 @@ function TagsField({ label, description, placeholder, readOnly }: RuntimeFieldPr
       label={label}
       description={description}
       placeholder={placeholder}
+      required={required}
       name={field.name}
       value={field.state.value ?? []}
       error={getFieldError(field)}
@@ -170,7 +177,7 @@ function TagsField({ label, description, placeholder, readOnly }: RuntimeFieldPr
   )
 }
 
-function RichTextField({ label, placeholder, readOnly }: RuntimeFieldProps) {
+function RichTextField({ label, placeholder, required, readOnly }: RuntimeFieldProps) {
   const field = useFieldContext<string>()
 
   return (
@@ -178,6 +185,7 @@ function RichTextField({ label, placeholder, readOnly }: RuntimeFieldProps) {
       label={label}
       name={field.name}
       placeholder={placeholder}
+      required={required}
       value={toInputValue(field.state.value)}
       readOnly={readOnly}
       onBlur={() => field.handleBlur()}

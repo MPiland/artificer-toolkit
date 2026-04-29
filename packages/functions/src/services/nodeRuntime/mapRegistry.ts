@@ -1,0 +1,81 @@
+import type { NodeMap } from '@artificer-toolkit/shared'
+import {
+  BACKGROUND_NODE_MAP,
+  CLASS_NODE_MAP,
+  CREATURE_NODE_MAP,
+  EFFECT_NODE_MAP,
+  EQUIPMENT_NODE_MAP,
+  FEAT_NODE_MAP,
+  PROFICIENCY_NODE_MAP,
+  RACE_NODE_MAP,
+  SPELL_NODE_MAP,
+  STARTING_EQUIPMENT_NODE_MAP,
+  VEHICLE_NODE_MAP
+} from '@artificer-toolkit/shared'
+
+export type RuntimeNodeMap = NodeMap<Record<string, unknown>>
+
+const rootMaps = [
+  SPELL_NODE_MAP,
+  BACKGROUND_NODE_MAP,
+  FEAT_NODE_MAP,
+  RACE_NODE_MAP,
+  EQUIPMENT_NODE_MAP,
+  CREATURE_NODE_MAP,
+  VEHICLE_NODE_MAP,
+  CLASS_NODE_MAP,
+  EFFECT_NODE_MAP,
+  PROFICIENCY_NODE_MAP,
+  STARTING_EQUIPMENT_NODE_MAP
+] as const
+
+const nodeMapRegistry = buildNodeMapRegistry(rootMaps)
+
+export function getRuntimeNodeMap(mapId: string): RuntimeNodeMap {
+  const nodeMap = nodeMapRegistry.get(mapId)
+  if (!nodeMap) {
+    throw new NodeRuntimeInputError(`Unknown node map: ${mapId}`)
+  }
+
+  return nodeMap
+}
+
+export function listRuntimeNodeMapIds(): readonly string[] {
+  return Array.from(nodeMapRegistry.keys()).sort()
+}
+
+export class NodeRuntimeInputError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'NodeRuntimeInputError'
+  }
+}
+
+function buildNodeMapRegistry(
+  maps: readonly unknown[]
+): Map<string, RuntimeNodeMap> {
+  const registry = new Map<string, RuntimeNodeMap>()
+
+  for (const nodeMap of maps) {
+    collectNodeMap(nodeMap, registry)
+  }
+
+  return registry
+}
+
+function collectNodeMap(
+  nodeMap: unknown,
+  registry: Map<string, RuntimeNodeMap>
+) {
+  const runtimeNodeMap = nodeMap as unknown as RuntimeNodeMap
+  if (registry.has(runtimeNodeMap.mapId)) return
+
+  registry.set(runtimeNodeMap.mapId, runtimeNodeMap)
+
+  for (const node of Object.values(runtimeNodeMap.nodes)) {
+    if (node.kind !== 'GROUP') continue
+
+    const childMap = typeof node.nodes === 'function' ? node.nodes() : node.nodes
+    collectNodeMap(childMap, registry)
+  }
+}

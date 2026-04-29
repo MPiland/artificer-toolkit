@@ -81,13 +81,16 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
 - Phase 9.4 is complete: frontend data runtime, REST-first adapter, SSR query hydration, and provenance/editability contracts are accepted.
 - Phase 9.5 is complete: shared TanStack Form runtime, node-map sections, Mantine/Tiptap fields, section navigation, nested editor shells, and retained `form.AppField` ergonomics are accepted.
 - Phase 9.6 is complete: Spell create/view/edit routes, REST-backed reference data, rebuilt Spell form, reusable full-screen EffectEditor, shared select controls, and authored form page-frame ownership are accepted.
+- Phase 9.6.1 is complete: shared node maps now have a trusted `packages/functions` + `apps/apis` runtime resolver path for conditional visibility, requiredness, hidden behavior, data-backed option sources, and relationship filters instead of repeating Spell-style hand-wired reference-data and partial web-local node resolution.
+- The 9.6.1 resolver exposes `POST /node-runtime/resolve` and `POST /node-runtime/normalize-values`, keeps relationship-plan execution server-side against a trusted map registry, and lets the web form runtime consume resolved section/node state and options through the Phase 9.4 adapter.
+- Phase 9.7 Background is the active next tranche.
 - Phase 9.6 latest correction aligns the isolated Spell form and EffectEditor more closely to the Figma IF/Effects frames, including a no-sidebar `Spell Info` form page, source-aware breadcrumbs, read-only ExternalLink view actions, removal of destructive actions from read-only effect summaries, single-line multiselect overflow, consistent disabled/read-only field coloring, and reusable authored-form page framing.
 - Phase 9.6 route correction is landed: `/spells/$spellId` is now a nested layout/data route with an `Outlet`, `/spells/$spellId` view content lives in the index child, and `/spells/$spellId/edit` mounts the dedicated edit child.
 - Phase 9.4 landed authored content DTO provenance and permissions, REST response normalization, schema-parsed web adapter, SSR query client injection, and real REST-backed `/spells` list data.
 - Full web typecheck is still expected to be constrained by known legacy `src/utils` alias/type failures until the later cleanup/form tranches retire those surfaces.
 - 9.5 validation passed shared build/tests, web unit tests, Storybook build, Storybook Playwright, and manual Storybook review. `build:web` remains blocked only by the documented legacy `src/utils` failures.
 - 9.6 validation passed `build:schema`, web unit tests, Storybook build, and Storybook Playwright. `build:web` remains blocked only by the documented legacy `src/utils` failures.
-- Phase 9.7 Background is the active next tranche after the 9.6 PR is reviewed and merged.
+- Phase 9.7 Background follows the 9.6.1 node-map runtime resolver correction so Background does not become another hand-wired reference-data or web-local node-condition implementation.
 - 9.5 visual follow-up: token/radius tightening is deferred to 9.6 integrated Spell form polish instead of blocking the shared runtime closeout.
 - Latest closeout commands passed for 9.4 include `build:schema`, `build:db`, `build:functions`, `build:apis`, `test:schema`, web unit tests, app Playwright smoke, Storybook build, and Storybook Playwright smoke.
 
@@ -101,7 +104,8 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
 | 9.4 | [PHASE_9_4_FRONTEND_DATA_RUNTIME_SUBPLAN.md](PHASE_9_4_FRONTEND_DATA_RUNTIME_SUBPLAN.md) | REST-first adapter, SSR query hydration, provenance/editability | Complete |
 | 9.5 | [PHASE_9_5_SHARED_FORM_RUNTIME_SUBPLAN.md](PHASE_9_5_SHARED_FORM_RUNTIME_SUBPLAN.md) | TanStack Form runtime, node-map sections, field runtime | Complete |
 | 9.6 | [PHASE_9_6_CODE_SPELL_SUBPLAN.md](PHASE_9_6_CODE_SPELL_SUBPLAN.md) | Spell list and form implementation | Complete |
-| 9.7 | [PHASE_9_7_CODE_BACKGROUND_SUBPLAN.md](PHASE_9_7_CODE_BACKGROUND_SUBPLAN.md) | Background list and form implementation | Active Next |
+| 9.6.1 | [PHASE_9_6_1_NODE_MAP_RESOLVER_SUBPLAN.md](PHASE_9_6_1_NODE_MAP_RESOLVER_SUBPLAN.md) | Trusted node-map runtime resolver and engine-backed form runtime correction | Complete |
+| 9.7 | [PHASE_9_7_CODE_BACKGROUND_SUBPLAN.md](PHASE_9_7_CODE_BACKGROUND_SUBPLAN.md) | Background list and form implementation | Active |
 | 9.8 | [PHASE_9_8_CODE_FEAT_SUBPLAN.md](PHASE_9_8_CODE_FEAT_SUBPLAN.md) | Feat list and form implementation | Not Started |
 | 9.9 | [PHASE_9_9_CODE_RACE_SUBPLAN.md](PHASE_9_9_CODE_RACE_SUBPLAN.md) | Race list and form implementation | Not Started |
 | 9.10 | [PHASE_9_10_CODE_EQUIPMENT_SUBPLAN.md](PHASE_9_10_CODE_EQUIPMENT_SUBPLAN.md) | Equipment list and form implementation | Not Started |

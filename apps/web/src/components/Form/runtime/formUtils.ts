@@ -3,6 +3,8 @@ import type { AnyFieldApi } from '@tanstack/react-form'
 export type SelectOption = {
   value: string
   label: string
+  disabled?: boolean
+  group?: string
 }
 
 export function getFieldError(field: AnyFieldApi) {

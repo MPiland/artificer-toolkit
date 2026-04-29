@@ -3,6 +3,7 @@ export * from './allOrSelected.js'
 export * from './compileResult.js'
 export { buildNodeMap, NODE_KIND, buildRegistryOptionGroups } from './nodeDefinition.js'
 export * from './nodeSections.js'
+export * from './nodeRuntime.js'
 export * from './valuesOf.js'
 
 export type {
@@ -18,6 +19,7 @@ export type {
   ConditionIfExpr,
   DataBuilder,
   IdRef,
+  InlineFilter,
   Logic,
   NodeBuilder,
   NodeMapBuilder,
