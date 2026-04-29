@@ -13,9 +13,7 @@ const references = {
     { value: 'blinded', label: 'Blinded' },
     { value: 'restrained', label: 'Restrained' }
   ],
-  creatures: [
-    { value: 'sprite', label: 'Sprite' }
-  ]
+  creatures: [{ value: 'sprite', label: 'Sprite' }]
 }
 
 function EffectEditorStory({ readOnly = false }: { readOnly?: boolean }) {
@@ -24,9 +22,7 @@ function EffectEditorStory({ readOnly = false }: { readOnly?: boolean }) {
   return (
     <EffectEditor
       effects={effects}
-      form={{
-        setFieldValue: (_field: 'effects', value: EffectDto[]) => setEffects(value)
-      }}
+      onEffectsChange={setEffects}
       references={references}
       readOnly={readOnly}
     />
@@ -52,9 +48,7 @@ type Story = StoryObj<typeof meta>
 export const Editable: Story = {
   args: {
     effects: [],
-    form: {
-      setFieldValue: () => {}
-    },
+    onEffectsChange: () => undefined,
     references
   },
   render: () => <EffectEditorStory />
@@ -63,9 +57,7 @@ export const Editable: Story = {
 export const Readonly: Story = {
   args: {
     effects: [],
-    form: {
-      setFieldValue: () => {}
-    },
+    onEffectsChange: () => undefined,
     references,
     readOnly: true
   },

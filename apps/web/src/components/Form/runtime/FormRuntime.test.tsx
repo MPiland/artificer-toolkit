@@ -6,18 +6,23 @@ import { describe, expect, it, vi } from 'vitest'
 import { buildNodeMap, SPELL_NODE_MAP } from '@artificer-toolkit/shared'
 import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
-import { AuthoredFormRuntime } from './AuthoredFormRuntime'
-import { NestedCollectionShell } from './NestedEditors'
-import { SectionNavigator } from './SectionNavigator'
-import { defaultOptionResolver } from './NodeMapRenderer'
-import { useAppForm } from './AppForm'
-import { applyNodeRuntimeClearPaths, getNodeRuntimeDebounceMs } from './nodeRuntime'
+import { AuthoredFormStepNav } from '../AuthoredFormStepNav'
 import {
+  applyNodeRuntimeClearPaths,
+  AuthoredFormRuntime,
+  defaultOptionResolver,
+  getNodeRuntimeDebounceMs,
   getRuntimeNodeOptions,
   getRuntimeNodeRequired,
-  getRuntimeNodeVisible
-} from './runtimeModelUtils'
-import { useAuthoredFormUiState } from './useAuthoredFormUiState'
+  getRuntimeNodeVisible,
+  getStepStatuses,
+  NestedCollectionShell,
+  requiredString,
+  SectionNavigator,
+  useAppForm,
+  useAuthoredFormUiState,
+  validatorsFor
+} from '.'
 
 type RuntimeFixture = {
   label: string
@@ -50,45 +55,47 @@ const runtimeFixtureNodeMap = buildNodeMap<RuntimeFixture>().define('runtimeFixt
 const resolvedRuntimeFixture: NodeRuntimeResolveResponseDto = {
   mapId: 'runtimeFixture',
   clearPaths: [['hiddenText']],
-  sections: [{
-    id: 'basics',
-    label: 'Basics',
-    order: 10,
-    nodes: [
-      {
-        id: 'label',
-        path: ['label'],
-        label: 'Name',
-        kind: 'INPUT',
-        type: 'TEXT',
-        visible: true,
-        required: true,
-        clearPaths: []
-      },
-      {
-        id: 'category',
-        path: ['category'],
-        label: 'Category',
-        kind: 'INPUT',
-        type: 'SELECT_SINGLE',
-        visible: true,
-        required: false,
-        clearPaths: [],
-        options: [{ value: 'arcane', label: 'Arcane' }]
-      },
-      {
-        id: 'hiddenText',
-        path: ['hiddenText'],
-        label: 'Hidden Text',
-        kind: 'INPUT',
-        type: 'TEXT',
-        visible: false,
-        required: false,
-        hiddenBehavior: 'CLEAR',
-        clearPaths: [['hiddenText']]
-      }
-    ]
-  }]
+  sections: [
+    {
+      id: 'basics',
+      label: 'Basics',
+      order: 10,
+      nodes: [
+        {
+          id: 'label',
+          path: ['label'],
+          label: 'Name',
+          kind: 'INPUT',
+          type: 'TEXT',
+          visible: true,
+          required: true,
+          clearPaths: []
+        },
+        {
+          id: 'category',
+          path: ['category'],
+          label: 'Category',
+          kind: 'INPUT',
+          type: 'SELECT_SINGLE',
+          visible: true,
+          required: false,
+          clearPaths: [],
+          options: [{ value: 'arcane', label: 'Arcane' }]
+        },
+        {
+          id: 'hiddenText',
+          path: ['hiddenText'],
+          label: 'Hidden Text',
+          kind: 'INPUT',
+          type: 'TEXT',
+          visible: false,
+          required: false,
+          hiddenBehavior: 'CLEAR',
+          clearPaths: [['hiddenText']]
+        }
+      ]
+    }
+  ]
 }
 
 function PrimitiveHarness({ readOnly = false }: { readOnly?: boolean }) {
@@ -207,6 +214,35 @@ function ResolvedRuntimeHarness({ onClearPaths }: { onClearPaths?: (paths: reado
   )
 }
 
+function ValidationHarness() {
+  const appForm = useAppForm({
+    defaultValues: {
+      label: ''
+    },
+    onSubmit: () => undefined
+  })
+
+  return (
+    <appForm.AppForm>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          void appForm.handleSubmit()
+        }}
+      >
+        <appForm.AppField
+          name='label'
+          validators={validatorsFor(requiredString('Name'))}
+        >
+          {(field) => <field.TextField label='Name' required />}
+        </appForm.AppField>
+        <Button type='submit'>Save</Button>
+      </form>
+    </appForm.AppForm>
+  )
+}
+
 describe('Phase 9.5 form runtime', () => {
   it('updates values through TanStack Form field state', async () => {
     const user = userEvent.setup()
@@ -317,14 +353,18 @@ describe('Phase 9.5 form runtime', () => {
   it('exposes runtime node helpers for custom form layouts', () => {
     expect(getRuntimeNodeRequired(resolvedRuntimeFixture, 'label')).toBe(true)
     expect(getRuntimeNodeVisible(resolvedRuntimeFixture, 'hiddenText')).toBe(false)
-    expect(getRuntimeNodeOptions(resolvedRuntimeFixture, 'category', [])).toEqual([{
-      value: 'arcane',
-      label: 'Arcane'
-    }])
-    expect(getRuntimeNodeOptions(resolvedRuntimeFixture, 'missing', [{ value: 'fallback', label: 'Fallback' }])).toEqual([{
-      value: 'fallback',
-      label: 'Fallback'
-    }])
+    expect(getRuntimeNodeOptions(resolvedRuntimeFixture, 'category', [])).toEqual([
+      {
+        value: 'arcane',
+        label: 'Arcane'
+      }
+    ])
+    expect(getRuntimeNodeOptions(resolvedRuntimeFixture, 'missing', [{ value: 'fallback', label: 'Fallback' }])).toEqual([
+      {
+        value: 'fallback',
+        label: 'Fallback'
+      }
+    ])
   })
 
   it('does not silently render empty options for unresolved DATA sources', () => {
@@ -341,11 +381,13 @@ describe('Phase 9.5 form runtime', () => {
       }
     })
 
-    expect(options).toEqual([{
-      value: '__runtime_options_unresolved__',
-      label: 'Runtime options unavailable',
-      disabled: true
-    }])
+    expect(options).toEqual([
+      {
+        value: '__runtime_options_unresolved__',
+        label: 'Runtime options unavailable',
+        disabled: true
+      }
+    ])
   })
 
   it('clears hidden runtime values from draft data', () => {
@@ -364,5 +406,49 @@ describe('Phase 9.5 form runtime', () => {
     expect(getNodeRuntimeDebounceMs('SELECT_SINGLE')).toBe(50)
     expect(getNodeRuntimeDebounceMs('TEXT')).toBe(200)
     expect(getNodeRuntimeDebounceMs(undefined)).toBe(150)
+  })
+
+  it('shows TanStack field validation errors through app fields', async () => {
+    const user = userEvent.setup()
+    renderWithAppProviders(<ValidationHarness />)
+
+    await user.click(screen.getByRole('textbox', { name: /name/i }))
+    await user.tab()
+
+    expect(await screen.findByText('Name is required.')).toBeVisible()
+  })
+
+  it('maps nested field errors to authored form steps', () => {
+    expect(getStepStatuses({
+      fieldMeta: {
+        'label': { isDirty: true },
+        'effects[0].invocation.triggerCode': { errors: ['Trigger is required.'] }
+      },
+      stepFields: {
+        info: ['label'],
+        effects: ['effects']
+      }
+    })).toEqual({
+      info: 'dirty',
+      effects: 'error'
+    })
+  })
+
+  it('renders breadcrumb step error state for inactive steps', () => {
+    const onStepChange = vi.fn()
+    renderWithAppProviders(
+      <AuthoredFormStepNav
+        activeStep='info'
+        onStepChange={onStepChange}
+        stepStatuses={{ effects: 'error' }}
+        steps={[
+          { id: 'info', label: 'Info', description: 'Player-facing details' },
+          { id: 'effects', label: 'Effects', description: 'Outcomes' }
+        ]}
+      />
+    )
+
+    const effectsStep = screen.getByRole('button', { name: /effects: outcomes, has errors/i })
+    expect(effectsStep).toHaveAttribute('aria-invalid', 'true')
   })
 })

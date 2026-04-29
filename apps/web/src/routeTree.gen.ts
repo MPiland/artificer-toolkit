@@ -16,6 +16,7 @@ import { Route as GuestIndexRouteImport } from './routes/_guest/index'
 import { Route as GuestAuthRouteImport } from './routes/_guest/_auth'
 import { Route as AuthedSpellsIndexRouteImport } from './routes/_authed/spells/index'
 import { Route as AuthedHomeIndexRouteImport } from './routes/_authed/home/index'
+import { Route as AuthedFeatsIndexRouteImport } from './routes/_authed/feats/index'
 import { Route as AuthedBackgroundsIndexRouteImport } from './routes/_authed/backgrounds/index'
 import { Route as GuestAuthUpdatePasswordRouteImport } from './routes/_guest/_auth/update-password'
 import { Route as GuestAuthSignUpRouteImport } from './routes/_guest/_auth/sign-up'
@@ -23,12 +24,16 @@ import { Route as GuestAuthSignInRouteImport } from './routes/_guest/_auth/sign-
 import { Route as GuestAuthResetPasswordRouteImport } from './routes/_guest/_auth/reset-password'
 import { Route as AuthedSpellsNewRouteImport } from './routes/_authed/spells/new'
 import { Route as AuthedSpellsSpellIdRouteImport } from './routes/_authed/spells/$spellId'
+import { Route as AuthedFeatsNewRouteImport } from './routes/_authed/feats/new'
+import { Route as AuthedFeatsFeatIdRouteImport } from './routes/_authed/feats/$featId'
 import { Route as AuthedBackgroundsNewRouteImport } from './routes/_authed/backgrounds/new'
 import { Route as AuthedBackgroundsBackgroundIdRouteImport } from './routes/_authed/backgrounds/$backgroundId'
 import { Route as AuthedSpellsSpellIdIndexRouteImport } from './routes/_authed/spells/$spellId/index'
+import { Route as AuthedFeatsFeatIdIndexRouteImport } from './routes/_authed/feats/$featId/index'
 import { Route as AuthedBackgroundsBackgroundIdIndexRouteImport } from './routes/_authed/backgrounds/$backgroundId/index'
 import { Route as GuestAuthAuthConfirmedRouteImport } from './routes/_guest/_auth/auth.confirmed'
 import { Route as AuthedSpellsSpellIdEditRouteImport } from './routes/_authed/spells/$spellId/edit'
+import { Route as AuthedFeatsFeatIdEditRouteImport } from './routes/_authed/feats/$featId/edit'
 import { Route as AuthedBackgroundsBackgroundIdEditRouteImport } from './routes/_authed/backgrounds/$backgroundId/edit'
 
 const LogoutRoute = LogoutRouteImport.update({
@@ -61,6 +66,11 @@ const AuthedSpellsIndexRoute = AuthedSpellsIndexRouteImport.update({
 const AuthedHomeIndexRoute = AuthedHomeIndexRouteImport.update({
   id: '/home/',
   path: '/home/',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedFeatsIndexRoute = AuthedFeatsIndexRouteImport.update({
+  id: '/feats/',
+  path: '/feats/',
   getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedBackgroundsIndexRoute = AuthedBackgroundsIndexRouteImport.update({
@@ -98,6 +108,16 @@ const AuthedSpellsSpellIdRoute = AuthedSpellsSpellIdRouteImport.update({
   path: '/spells/$spellId',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedFeatsNewRoute = AuthedFeatsNewRouteImport.update({
+  id: '/feats/new',
+  path: '/feats/new',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedFeatsFeatIdRoute = AuthedFeatsFeatIdRouteImport.update({
+  id: '/feats/$featId',
+  path: '/feats/$featId',
+  getParentRoute: () => AuthedRoute,
+} as any)
 const AuthedBackgroundsNewRoute = AuthedBackgroundsNewRouteImport.update({
   id: '/backgrounds/new',
   path: '/backgrounds/new',
@@ -115,6 +135,11 @@ const AuthedSpellsSpellIdIndexRoute =
     path: '/',
     getParentRoute: () => AuthedSpellsSpellIdRoute,
   } as any)
+const AuthedFeatsFeatIdIndexRoute = AuthedFeatsFeatIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthedFeatsFeatIdRoute,
+} as any)
 const AuthedBackgroundsBackgroundIdIndexRoute =
   AuthedBackgroundsBackgroundIdIndexRouteImport.update({
     id: '/',
@@ -131,6 +156,11 @@ const AuthedSpellsSpellIdEditRoute = AuthedSpellsSpellIdEditRouteImport.update({
   path: '/edit',
   getParentRoute: () => AuthedSpellsSpellIdRoute,
 } as any)
+const AuthedFeatsFeatIdEditRoute = AuthedFeatsFeatIdEditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => AuthedFeatsFeatIdRoute,
+} as any)
 const AuthedBackgroundsBackgroundIdEditRoute =
   AuthedBackgroundsBackgroundIdEditRouteImport.update({
     id: '/edit',
@@ -143,6 +173,8 @@ export interface FileRoutesByFullPath {
   '/logout': typeof LogoutRoute
   '/backgrounds/$backgroundId': typeof AuthedBackgroundsBackgroundIdRouteWithChildren
   '/backgrounds/new': typeof AuthedBackgroundsNewRoute
+  '/feats/$featId': typeof AuthedFeatsFeatIdRouteWithChildren
+  '/feats/new': typeof AuthedFeatsNewRoute
   '/spells/$spellId': typeof AuthedSpellsSpellIdRouteWithChildren
   '/spells/new': typeof AuthedSpellsNewRoute
   '/reset-password': typeof GuestAuthResetPasswordRoute
@@ -150,30 +182,37 @@ export interface FileRoutesByFullPath {
   '/sign-up': typeof GuestAuthSignUpRoute
   '/update-password': typeof GuestAuthUpdatePasswordRoute
   '/backgrounds/': typeof AuthedBackgroundsIndexRoute
+  '/feats/': typeof AuthedFeatsIndexRoute
   '/home/': typeof AuthedHomeIndexRoute
   '/spells/': typeof AuthedSpellsIndexRoute
   '/backgrounds/$backgroundId/edit': typeof AuthedBackgroundsBackgroundIdEditRoute
+  '/feats/$featId/edit': typeof AuthedFeatsFeatIdEditRoute
   '/spells/$spellId/edit': typeof AuthedSpellsSpellIdEditRoute
   '/auth/confirmed': typeof GuestAuthAuthConfirmedRoute
   '/backgrounds/$backgroundId/': typeof AuthedBackgroundsBackgroundIdIndexRoute
+  '/feats/$featId/': typeof AuthedFeatsFeatIdIndexRoute
   '/spells/$spellId/': typeof AuthedSpellsSpellIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof GuestIndexRoute
   '/logout': typeof LogoutRoute
   '/backgrounds/new': typeof AuthedBackgroundsNewRoute
+  '/feats/new': typeof AuthedFeatsNewRoute
   '/spells/new': typeof AuthedSpellsNewRoute
   '/reset-password': typeof GuestAuthResetPasswordRoute
   '/sign-in': typeof GuestAuthSignInRoute
   '/sign-up': typeof GuestAuthSignUpRoute
   '/update-password': typeof GuestAuthUpdatePasswordRoute
   '/backgrounds': typeof AuthedBackgroundsIndexRoute
+  '/feats': typeof AuthedFeatsIndexRoute
   '/home': typeof AuthedHomeIndexRoute
   '/spells': typeof AuthedSpellsIndexRoute
   '/backgrounds/$backgroundId/edit': typeof AuthedBackgroundsBackgroundIdEditRoute
+  '/feats/$featId/edit': typeof AuthedFeatsFeatIdEditRoute
   '/spells/$spellId/edit': typeof AuthedSpellsSpellIdEditRoute
   '/auth/confirmed': typeof GuestAuthAuthConfirmedRoute
   '/backgrounds/$backgroundId': typeof AuthedBackgroundsBackgroundIdIndexRoute
+  '/feats/$featId': typeof AuthedFeatsFeatIdIndexRoute
   '/spells/$spellId': typeof AuthedSpellsSpellIdIndexRoute
 }
 export interface FileRoutesById {
@@ -185,6 +224,8 @@ export interface FileRoutesById {
   '/_guest/': typeof GuestIndexRoute
   '/_authed/backgrounds/$backgroundId': typeof AuthedBackgroundsBackgroundIdRouteWithChildren
   '/_authed/backgrounds/new': typeof AuthedBackgroundsNewRoute
+  '/_authed/feats/$featId': typeof AuthedFeatsFeatIdRouteWithChildren
+  '/_authed/feats/new': typeof AuthedFeatsNewRoute
   '/_authed/spells/$spellId': typeof AuthedSpellsSpellIdRouteWithChildren
   '/_authed/spells/new': typeof AuthedSpellsNewRoute
   '/_guest/_auth/reset-password': typeof GuestAuthResetPasswordRoute
@@ -192,12 +233,15 @@ export interface FileRoutesById {
   '/_guest/_auth/sign-up': typeof GuestAuthSignUpRoute
   '/_guest/_auth/update-password': typeof GuestAuthUpdatePasswordRoute
   '/_authed/backgrounds/': typeof AuthedBackgroundsIndexRoute
+  '/_authed/feats/': typeof AuthedFeatsIndexRoute
   '/_authed/home/': typeof AuthedHomeIndexRoute
   '/_authed/spells/': typeof AuthedSpellsIndexRoute
   '/_authed/backgrounds/$backgroundId/edit': typeof AuthedBackgroundsBackgroundIdEditRoute
+  '/_authed/feats/$featId/edit': typeof AuthedFeatsFeatIdEditRoute
   '/_authed/spells/$spellId/edit': typeof AuthedSpellsSpellIdEditRoute
   '/_guest/_auth/auth/confirmed': typeof GuestAuthAuthConfirmedRoute
   '/_authed/backgrounds/$backgroundId/': typeof AuthedBackgroundsBackgroundIdIndexRoute
+  '/_authed/feats/$featId/': typeof AuthedFeatsFeatIdIndexRoute
   '/_authed/spells/$spellId/': typeof AuthedSpellsSpellIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -207,6 +251,8 @@ export interface FileRouteTypes {
     | '/logout'
     | '/backgrounds/$backgroundId'
     | '/backgrounds/new'
+    | '/feats/$featId'
+    | '/feats/new'
     | '/spells/$spellId'
     | '/spells/new'
     | '/reset-password'
@@ -214,30 +260,37 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/update-password'
     | '/backgrounds/'
+    | '/feats/'
     | '/home/'
     | '/spells/'
     | '/backgrounds/$backgroundId/edit'
+    | '/feats/$featId/edit'
     | '/spells/$spellId/edit'
     | '/auth/confirmed'
     | '/backgrounds/$backgroundId/'
+    | '/feats/$featId/'
     | '/spells/$spellId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/logout'
     | '/backgrounds/new'
+    | '/feats/new'
     | '/spells/new'
     | '/reset-password'
     | '/sign-in'
     | '/sign-up'
     | '/update-password'
     | '/backgrounds'
+    | '/feats'
     | '/home'
     | '/spells'
     | '/backgrounds/$backgroundId/edit'
+    | '/feats/$featId/edit'
     | '/spells/$spellId/edit'
     | '/auth/confirmed'
     | '/backgrounds/$backgroundId'
+    | '/feats/$featId'
     | '/spells/$spellId'
   id:
     | '__root__'
@@ -248,6 +301,8 @@ export interface FileRouteTypes {
     | '/_guest/'
     | '/_authed/backgrounds/$backgroundId'
     | '/_authed/backgrounds/new'
+    | '/_authed/feats/$featId'
+    | '/_authed/feats/new'
     | '/_authed/spells/$spellId'
     | '/_authed/spells/new'
     | '/_guest/_auth/reset-password'
@@ -255,12 +310,15 @@ export interface FileRouteTypes {
     | '/_guest/_auth/sign-up'
     | '/_guest/_auth/update-password'
     | '/_authed/backgrounds/'
+    | '/_authed/feats/'
     | '/_authed/home/'
     | '/_authed/spells/'
     | '/_authed/backgrounds/$backgroundId/edit'
+    | '/_authed/feats/$featId/edit'
     | '/_authed/spells/$spellId/edit'
     | '/_guest/_auth/auth/confirmed'
     | '/_authed/backgrounds/$backgroundId/'
+    | '/_authed/feats/$featId/'
     | '/_authed/spells/$spellId/'
   fileRoutesById: FileRoutesById
 }
@@ -321,6 +379,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedHomeIndexRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/feats/': {
+      id: '/_authed/feats/'
+      path: '/feats'
+      fullPath: '/feats/'
+      preLoaderRoute: typeof AuthedFeatsIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_authed/backgrounds/': {
       id: '/_authed/backgrounds/'
       path: '/backgrounds'
@@ -370,6 +435,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedSpellsSpellIdRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/feats/new': {
+      id: '/_authed/feats/new'
+      path: '/feats/new'
+      fullPath: '/feats/new'
+      preLoaderRoute: typeof AuthedFeatsNewRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/feats/$featId': {
+      id: '/_authed/feats/$featId'
+      path: '/feats/$featId'
+      fullPath: '/feats/$featId'
+      preLoaderRoute: typeof AuthedFeatsFeatIdRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_authed/backgrounds/new': {
       id: '/_authed/backgrounds/new'
       path: '/backgrounds/new'
@@ -391,6 +470,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedSpellsSpellIdIndexRouteImport
       parentRoute: typeof AuthedSpellsSpellIdRoute
     }
+    '/_authed/feats/$featId/': {
+      id: '/_authed/feats/$featId/'
+      path: '/'
+      fullPath: '/feats/$featId/'
+      preLoaderRoute: typeof AuthedFeatsFeatIdIndexRouteImport
+      parentRoute: typeof AuthedFeatsFeatIdRoute
+    }
     '/_authed/backgrounds/$backgroundId/': {
       id: '/_authed/backgrounds/$backgroundId/'
       path: '/'
@@ -411,6 +497,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/spells/$spellId/edit'
       preLoaderRoute: typeof AuthedSpellsSpellIdEditRouteImport
       parentRoute: typeof AuthedSpellsSpellIdRoute
+    }
+    '/_authed/feats/$featId/edit': {
+      id: '/_authed/feats/$featId/edit'
+      path: '/edit'
+      fullPath: '/feats/$featId/edit'
+      preLoaderRoute: typeof AuthedFeatsFeatIdEditRouteImport
+      parentRoute: typeof AuthedFeatsFeatIdRoute
     }
     '/_authed/backgrounds/$backgroundId/edit': {
       id: '/_authed/backgrounds/$backgroundId/edit'
@@ -440,6 +533,19 @@ const AuthedBackgroundsBackgroundIdRouteWithChildren =
     AuthedBackgroundsBackgroundIdRouteChildren,
   )
 
+interface AuthedFeatsFeatIdRouteChildren {
+  AuthedFeatsFeatIdEditRoute: typeof AuthedFeatsFeatIdEditRoute
+  AuthedFeatsFeatIdIndexRoute: typeof AuthedFeatsFeatIdIndexRoute
+}
+
+const AuthedFeatsFeatIdRouteChildren: AuthedFeatsFeatIdRouteChildren = {
+  AuthedFeatsFeatIdEditRoute: AuthedFeatsFeatIdEditRoute,
+  AuthedFeatsFeatIdIndexRoute: AuthedFeatsFeatIdIndexRoute,
+}
+
+const AuthedFeatsFeatIdRouteWithChildren =
+  AuthedFeatsFeatIdRoute._addFileChildren(AuthedFeatsFeatIdRouteChildren)
+
 interface AuthedSpellsSpellIdRouteChildren {
   AuthedSpellsSpellIdEditRoute: typeof AuthedSpellsSpellIdEditRoute
   AuthedSpellsSpellIdIndexRoute: typeof AuthedSpellsSpellIdIndexRoute
@@ -456,9 +562,12 @@ const AuthedSpellsSpellIdRouteWithChildren =
 interface AuthedRouteChildren {
   AuthedBackgroundsBackgroundIdRoute: typeof AuthedBackgroundsBackgroundIdRouteWithChildren
   AuthedBackgroundsNewRoute: typeof AuthedBackgroundsNewRoute
+  AuthedFeatsFeatIdRoute: typeof AuthedFeatsFeatIdRouteWithChildren
+  AuthedFeatsNewRoute: typeof AuthedFeatsNewRoute
   AuthedSpellsSpellIdRoute: typeof AuthedSpellsSpellIdRouteWithChildren
   AuthedSpellsNewRoute: typeof AuthedSpellsNewRoute
   AuthedBackgroundsIndexRoute: typeof AuthedBackgroundsIndexRoute
+  AuthedFeatsIndexRoute: typeof AuthedFeatsIndexRoute
   AuthedHomeIndexRoute: typeof AuthedHomeIndexRoute
   AuthedSpellsIndexRoute: typeof AuthedSpellsIndexRoute
 }
@@ -467,9 +576,12 @@ const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedBackgroundsBackgroundIdRoute:
     AuthedBackgroundsBackgroundIdRouteWithChildren,
   AuthedBackgroundsNewRoute: AuthedBackgroundsNewRoute,
+  AuthedFeatsFeatIdRoute: AuthedFeatsFeatIdRouteWithChildren,
+  AuthedFeatsNewRoute: AuthedFeatsNewRoute,
   AuthedSpellsSpellIdRoute: AuthedSpellsSpellIdRouteWithChildren,
   AuthedSpellsNewRoute: AuthedSpellsNewRoute,
   AuthedBackgroundsIndexRoute: AuthedBackgroundsIndexRoute,
+  AuthedFeatsIndexRoute: AuthedFeatsIndexRoute,
   AuthedHomeIndexRoute: AuthedHomeIndexRoute,
   AuthedSpellsIndexRoute: AuthedSpellsIndexRoute,
 }
@@ -517,3 +629,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}

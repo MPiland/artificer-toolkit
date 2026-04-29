@@ -242,7 +242,7 @@ export const collapseChevron = style({
       transition: `transform ${foundationVars.motion.base} ease`
     }
   },
-  selectors: {
+  'selectors': {
     [`${editorPanel} [data-state="closed"] &`]: {
       transform: 'rotate(180deg)'
     }
@@ -342,7 +342,7 @@ export const outcomeRollBadge = style({
       fontWeight: foundationVars.fontWeight.medium
     }
   },
-  selectors: {
+  'selectors': {
     '&:empty': {
       visibility: 'hidden'
     }
@@ -463,7 +463,7 @@ export const outcomeCard = style({
       backgroundColor: 'transparent'
     }
   },
-  selectors: {
+  'selectors': {
     '& + &': {
       borderTop: `1px solid ${foundationVars.color.border.subtle}`
     }

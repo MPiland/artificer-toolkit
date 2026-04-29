@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import {
+  featGrantDtoSchema,
   modifierGrantDtoSchema,
   proficiencyGrantDtoSchema,
   senseGrantDtoSchema,
@@ -11,7 +12,7 @@ import { featureDtoSchema } from '../features/index.js'
 import { chargeDtoSchema, facetDtoSchema } from '../shared/index.js'
 import { authoredRecordStatusSchema } from '../shared/enums.js'
 
-const featAuthoredDtoSchemaBase: z.ZodTypeAny = z.object({
+export const featAuthoredDtoSchema = z.object({
   id: z.string(),
   label: z.string(),
   description: z.string(),
@@ -21,6 +22,7 @@ const featAuthoredDtoSchemaBase: z.ZodTypeAny = z.object({
   effects: z.array(effectDtoSchema).optional(),
   charges: chargeDtoSchema.optional(),
   grants: z.object({
+    feats: z.array(featGrantDtoSchema).optional(),
     modifiers: z.array(modifierGrantDtoSchema).optional(),
     proficiencies: z.array(proficiencyGrantDtoSchema).optional(),
     senses: z.array(senseGrantDtoSchema).optional(),
@@ -31,7 +33,5 @@ const featAuthoredDtoSchemaBase: z.ZodTypeAny = z.object({
   systemId: z.string()
 })
 
-export type FeatAuthoredDto = z.infer<typeof featAuthoredDtoSchemaBase>
-export const featAuthoredDtoSchema = featAuthoredDtoSchemaBase
-
+export type FeatAuthoredDto = z.infer<typeof featAuthoredDtoSchema>
 

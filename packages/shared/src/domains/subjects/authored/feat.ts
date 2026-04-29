@@ -1,6 +1,7 @@
 import type {
   EffectAuthored,
   FacetAuthored,
+  FeatGrantAuthored,
   ModifierGrantAuthored,
   ProficiencyGrantAuthored,
   SenseGrantAuthored,
@@ -19,6 +20,7 @@ export interface FeatAuthored {
   effects?: EffectAuthored[]
   charges?: ChargeAuthored
   grants?: {
+    feats?: FeatGrantAuthored[]
     modifiers?: ModifierGrantAuthored[]
     proficiencies?: ProficiencyGrantAuthored[]
     senses?: SenseGrantAuthored[]

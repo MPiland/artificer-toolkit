@@ -1,22 +1,11 @@
 import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
-import { api } from '../../lib/api'
+import { api, type Api } from '#app/lib/api'
+import { queryKeys } from '#app/lib/queryKeys'
 
-const featsKeys = {
-  all: [
-    'feats'
-  ] as const,
-  lists: () => [
-    ...featsKeys.all, 'list'
-  ] as const,
-  single: (id: string) => [
-    ...featsKeys.all, 'single', id
-  ] as const
-}
-
-export function getFeatList() {
+export function getFeatList(client: Api = api) {
   return queryOptions({
-    queryKey: featsKeys.lists(),
-    queryFn: async () => await api.content.feats.list()
+    queryKey: queryKeys.content.feats.list(),
+    queryFn: async () => await client.content.feats.list()
   })
 }
 
@@ -24,10 +13,10 @@ export function useGetFeatList() {
   return useSuspenseQuery(getFeatList())
 }
 
-export function getFeat(id: string) {
+export function getFeat(id: string, client: Api = api) {
   return queryOptions({
-    queryKey: featsKeys.single(id),
-    queryFn: async () => await api.content.feats.get(id)
+    queryKey: queryKeys.content.feats.detail(id),
+    queryFn: async () => await client.content.feats.get(id)
   })
 }
 

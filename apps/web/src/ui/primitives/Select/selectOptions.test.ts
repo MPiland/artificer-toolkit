@@ -6,25 +6,19 @@ describe('select option helpers', () => {
     expect(toComboboxData([
       { value: 'wizard', label: 'Wizard' },
       { value: 'blank', label: '   ' }
-    ])).toEqual([
-      { value: 'wizard', label: 'Wizard', disabled: undefined }
-    ])
+    ])).toEqual([{ value: 'wizard', label: 'Wizard', disabled: undefined }])
   })
 
   it('normalizes grouped select options for Mantine', () => {
     expect(toComboboxData([
       {
         group: 'Spellcasters',
-        items: [
-          { value: 'wizard', label: 'Wizard' }
-        ]
+        items: [{ value: 'wizard', label: 'Wizard' }]
       }
     ])).toEqual([
       {
         group: 'Spellcasters',
-        items: [
-          { value: 'wizard', label: 'Wizard', disabled: undefined }
-        ]
+        items: [{ value: 'wizard', label: 'Wizard', disabled: undefined }]
       }
     ])
   })

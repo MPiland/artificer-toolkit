@@ -1564,6 +1564,34 @@ describe('schema package parsing', () => {
     })
   })
 
+  it('parses feat grants authored directly on feats', () => {
+    const feat = featAuthoredDtoSchema.parse({
+      id: 'feat-chain',
+      label: 'Feat Chain',
+      description: 'Unlocks a related feat.',
+      grants: {
+        feats: [
+          {
+            id: 'feat-grant-1',
+            order: 1,
+            grantKind: 'FEAT_GRANT',
+            selectionKind: 'GRANTED',
+            scalingKind: 'NONE',
+            authoringModeKind: 'SELECTED',
+            featIds: ['grappler']
+          }
+        ]
+      },
+      userId: 'user-1',
+      systemId: 'system-1'
+    })
+
+    expect(feat.grants?.feats?.[0]).toMatchObject({
+      grantKind: 'FEAT_GRANT',
+      featIds: ['grappler']
+    })
+  })
+
   it('parses race heritage memberships', () => {
     const race = raceAuthoredDtoSchema.parse({
       id: 'race-half-elf',

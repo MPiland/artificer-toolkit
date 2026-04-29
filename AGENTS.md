@@ -29,7 +29,8 @@ Current default focus is Phase 9 frontend modernization.
 - 9.6 spell implementation: complete
 - 9.6.1 node-map runtime resolver: complete
 - 9.7 background implementation: complete
-- 9.8 feat implementation: active
+- 9.8 feat implementation: complete
+- 9.9 race implementation: active
 
 Before starting a new frontend task, confirm the active tranche in [PHASE_9_CODE_OVERVIEW.md](/c:/Users/pilan/Desktop/artificer-toolkit/PHASE_9_CODE_OVERVIEW.md).
 
@@ -54,6 +55,8 @@ Before starting a new frontend task, confirm the active tranche in [PHASE_9_CODE
 - Sheet owns play-state interaction.
 - Master or seeded records are locked from direct edit in the UI, but copyable into owned drafts.
 - Preserve Mantine, vanilla-extract, TanStack Start, SSR where appropriate, and the existing CSS layer override model.
+- No bandaids. All code should be DRY and use best practices.
+- Pass work to sub agents as needed for efficiency and parallel work. Don't abuse sub agents. Use only as necessary when it would increase efficiency.
 
 ## Design Context
 
@@ -74,7 +77,7 @@ Current frontend posture:
 - 9.1 platform/testing is complete.
 - 9.2 public/auth/marketing is complete.
 - 9.3 authenticated shell, navigation, and authored list patterns is complete.
-- 9.8 feat implementation is the next active tranche.
+- 9.9 race implementation is the next active tranche.
 
 Per-tranche expectations:
 
@@ -82,6 +85,22 @@ Per-tranche expectations:
 - add Vitest/Testing Library for touched runtime logic
 - add Playwright for route and component verification
 - pause for review before moving to the next tranche
+
+## Web Folder Organization
+
+Phase 9 frontend code should use stable ownership folders instead of flat catch-all folders.
+
+- `apps/web/src/ui/primitives`: low-level reusable controls such as select, link, spinner, collapse, rich text, and theme toggle.
+- `apps/web/src/ui/overlays`: reusable modal, drawer, and overlay infrastructure.
+- `apps/web/src/components`: app-level reusable composites and patterns such as authored lists, authored forms, and effect editing.
+- `apps/web/src/domains`: active rebuilt authored domains only.
+- `apps/web/src/auth`, `marketing`, `home`, and `shell`: top-level app features or app system areas.
+- `apps/web/src/data`: frontend API/query adapters by domain.
+- `apps/web/src/legacy`: quarantined provisional code and old route/domain/form implementations.
+
+Prefer colocated `components`, `hooks`, `utils`, `validation`, `stories`, and `tests` folders inside the owning feature or component package. Do not add new Phase 9 runtime hooks to the global `src/hooks` folder unless they are genuinely app-wide and not owned by a feature/runtime.
+
+Legacy compatibility pockets that remain outside `src/legacy` must be treated as retirement targets, not homes for new work. This currently includes the old global `src/hooks`, `src/store`, and legacy exports inside `components/Form`; active rebuilt Phase 9 code should prefer colocated runtime hooks and TanStack Form composition instead.
 
 ## Commands
 

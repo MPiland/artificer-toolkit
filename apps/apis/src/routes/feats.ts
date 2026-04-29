@@ -1,4 +1,9 @@
-import { handleRequest, handleAuthoringRequest, createFeatSubjectAuthoringService } from '@artificer-toolkit/functions'
+import {
+  handleRequest,
+  handleAuthoringRequest,
+  createFeatSubjectAuthoringService,
+  normalizeNodeRuntimeValues
+} from '@artificer-toolkit/functions'
 import { getFeatListQuery } from '@artificer-toolkit/db'
 import { createFeatRepository } from '@artificer-toolkit/db'
 import type { FeatAuthored } from '@artificer-toolkit/shared'
@@ -33,7 +38,13 @@ export const createFeat = handleAuthoringRequest(
   featAuthoredDtoSchema,
   async (db, body: FeatAuthoredDto, userId) => {
     const service = createFeatSubjectAuthoringService(db)
-    const result = await service.execute(normalizeAuthoringInput(body as FeatAuthored, userId))
+    const input = featAuthoredDtoSchema.parse(body)
+    const normalized = await normalizeNodeRuntimeValues(db, {
+      mapId: 'feat',
+      values: input
+    })
+    const normalizedBody = featAuthoredDtoSchema.parse(normalized.values)
+    const result = await service.execute(normalizeAuthoringInput(normalizedBody as FeatAuthored, userId))
     return normalizeAuthoringResult(db, 'feats', result as { authored: FeatAuthored }, userId)
   }
 )

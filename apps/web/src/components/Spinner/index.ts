@@ -1,1 +1,1 @@
-export { default } from './Spinner';
+export { default } from '#app/ui/primitives/Spinner'

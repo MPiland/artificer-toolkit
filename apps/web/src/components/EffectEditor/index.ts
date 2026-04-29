@@ -1,5 +1,6 @@
 export { EffectEditor } from './EffectEditor'
-export type { EffectEditorFormApi, EffectEditorReferenceData } from './effectEditor.types'
+export { EffectEditorFieldGroup } from './EffectEditorFieldGroup'
+export type { EffectEditorReferenceData } from './effectEditor.types'
 export {
   createDefaultEffect,
   createDefaultPath,

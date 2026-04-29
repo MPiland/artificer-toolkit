@@ -1,3 +1,0 @@
-import{n as e}from"./chunk-DnJy8xQt.js";import{t}from"./jsx-runtime-BX9360Lk.js";import{t as n}from"./ThemeToggle-C7PFdBVD.js";import{t as r}from"./ThemeToggle-C1I2lhg1.js";var i,a,o,s;e((()=>{r(),i=t(),a={title:`Platform/Theme/ThemeToggle`,component:n},o={render:()=>(0,i.jsx)(n,{})},o.parameters={...o.parameters,docs:{...o.parameters?.docs,source:{originalSource:`{
-  render: () => <ThemeToggle />
-}`,...o.parameters?.docs?.source}}},s=[`Default`]}))();export{o as Default,s as __namedExportsOrder,a as default};

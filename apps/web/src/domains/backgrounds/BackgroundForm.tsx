@@ -27,15 +27,20 @@ import {
   AuthoredFormShell
 } from '#components/Form/AuthoredFormLayout'
 import { AuthoredFormStepNav } from '#components/Form/AuthoredFormStepNav'
-import { FullscreenModal } from '#components/Modal/FullscreenModal'
+import { FullscreenModal } from '#app/ui/overlays/Modal/FullscreenModal'
 import {
   NodeMapRenderer,
   clearRuntimeFormPaths,
+  getFirstErroredStep,
+  getStepStatuses,
+  requiredString,
   toRuntimeValues,
+  validatorsFor,
   type ClearableRuntimeForm,
   type RuntimeNodeForm,
   useAppForm,
-  useNodeRuntimeModel
+  useNodeRuntimeModel,
+  withForm
 } from '#components/Form/runtime'
 import {
   createEmptyBackground,
@@ -78,6 +83,119 @@ type AuthoredFormStepConfig = {
   description: string
 }
 
+const backgroundFormDefaults = createEmptyBackground({ systemId: '', userId: '' })
+
+const backgroundStepFields = {
+  basics: ['label', 'description'],
+  content: ['proficiencies', 'features', 'startingEquipment'],
+  details: ['details']
+} satisfies Record<BackgroundFormStep, readonly string[]>
+
+const BasicsStep = withForm({
+  defaultValues: backgroundFormDefaults,
+  props: {
+    readOnly: false
+  },
+  render: function BasicsStepRender({ form, readOnly }) {
+    return (
+      <>
+        <AuthoredFormSection
+          description='Give players a clear name they can recognize when choosing this background.'
+          title='Basics'
+          titleId='background-basics-heading'
+        >
+          <div className={styles.singleField}>
+            <form.AppField
+              name='label'
+              validators={validatorsFor(requiredString('Name'))}
+            >
+              {(field) => <field.TextField label='Name' readOnly={readOnly} required />}
+            </form.AppField>
+          </div>
+        </AuthoredFormSection>
+        <AuthoredFormSection
+          description='Describe the place this background has in the world and why a player might pick it.'
+          title='Description'
+          titleId='background-description-heading'
+        >
+          <form.AppField
+            name='description'
+            validators={validatorsFor(requiredString('Description'))}
+          >
+            {(field) => <field.TextareaField label='Description' readOnly={readOnly} required />}
+          </form.AppField>
+        </AuthoredFormSection>
+      </>
+    )
+  }
+})
+
+const ContentStep = withForm({
+  defaultValues: backgroundFormDefaults,
+  props: {
+    readOnly: false,
+    resolveRuntime: true
+  },
+  render: function ContentStepRender({ form, readOnly, resolveRuntime }) {
+    return (
+      <>
+        <form.Subscribe selector={(state) => ({
+          proficiencies: state.values.proficiencies ?? []
+        })}
+        >
+          {({ proficiencies }) => (
+            <ProficienciesSection
+              items={proficiencies}
+              readOnly={readOnly}
+              resolveRuntime={resolveRuntime}
+              onChange={(next) => form.setFieldValue('proficiencies', next)}
+            />
+          )}
+        </form.Subscribe>
+        <form.Subscribe selector={(state) => state.values.features ?? []}>
+          {(features) => (
+            <FeaturesSection
+              items={features}
+              readOnly={readOnly}
+              onChange={(next) => form.setFieldValue('features', next)}
+            />
+          )}
+        </form.Subscribe>
+        <form.Subscribe selector={(state) => state.values.startingEquipment}>
+          {(startingEquipment) => (
+            <StartingEquipmentSection
+              startingEquipment={startingEquipment}
+              readOnly={readOnly}
+              resolveRuntime={resolveRuntime}
+              onChange={(next) => form.setFieldValue('startingEquipment', next)}
+            />
+          )}
+        </form.Subscribe>
+      </>
+    )
+  }
+})
+
+const DetailsStep = withForm({
+  defaultValues: backgroundFormDefaults,
+  props: {
+    readOnly: false
+  },
+  render: function DetailsStepRender({ form, readOnly }) {
+    return (
+      <form.Subscribe selector={(state) => state.values.details ?? []}>
+        {(details) => (
+          <DetailsSection
+            items={details}
+            readOnly={readOnly}
+            onChange={(next) => form.setFieldValue('details', next)}
+          />
+        )}
+      </form.Subscribe>
+    )
+  }
+})
+
 export function BackgroundForm({
   mode,
   initialBackground,
@@ -107,40 +225,62 @@ export function BackgroundForm({
     defaultValues: background,
     onSubmit: async ({ value }) => {
       if (readOnly) return
-      await onSubmit(normalizeBackgroundForSubmit(value as BackgroundAuthoredDto))
+      await onSubmit(normalizeBackgroundForSubmit(value))
     }
   })
   const title = getBackgroundStepTitle(activeStep)
 
+  async function handleFormSubmit() {
+    await form.handleSubmit()
+    const firstErroredStep = getFirstErroredStep(getStepStatuses({ fieldMeta: form.state.fieldMeta, stepFields: backgroundStepFields }), backgroundSteps)
+    if (firstErroredStep) setActiveStep(firstErroredStep)
+  }
+
+  async function handleNextStep() {
+    await form.validate('submit')
+    const statuses = getStepStatuses({ fieldMeta: form.state.fieldMeta, stepFields: backgroundStepFields })
+    if (statuses[activeStep] === 'error') return
+    setActiveStep(getNextStep(activeStep))
+  }
+
   return (
     <AuthoredFormRoot>
-      <AuthoredFormStepNav
-        activeStep={activeStep}
-        ariaLabel='Background form sections'
-        onStepChange={setActiveStep}
-        steps={backgroundSteps}
-      />
+      <form.Subscribe selector={(state) => getStepStatuses({ fieldMeta: state.fieldMeta, stepFields: backgroundStepFields })}>
+        {(stepStatuses) => (
+          <AuthoredFormStepNav
+            activeStep={activeStep}
+            ariaLabel='Background form sections'
+            onStepChange={setActiveStep}
+            stepStatuses={stepStatuses}
+            steps={backgroundSteps}
+          />
+        )}
+      </form.Subscribe>
 
       <AuthoredFormHeader
-        action={readOnly && response?.permissions.canCopy ? (
-          <Button onClick={onCopy}>Duplicate to edit</Button>
-        ) : null}
+        action={readOnly && response?.permissions.canCopy
+          ? (
+              <Button onClick={onCopy}>Duplicate to edit</Button>
+            )
+          : null}
         eyebrow={mode !== 'create' ? background.label || 'Untitled Background' : undefined}
         title={title}
       />
 
-      {readOnly ? (
-        <Alert color='cyan'>
-          This background is locked for direct editing. Duplicate it to make your own draft.
-        </Alert>
-      ) : null}
+      {readOnly
+        ? (
+            <Alert color='cyan'>
+              This background is locked for direct editing. Duplicate it to make your own draft.
+            </Alert>
+          )
+        : null}
 
       <form.AppForm>
         <AuthoredFormShell
           onSubmit={(event) => {
             event.preventDefault()
             event.stopPropagation()
-            form.handleSubmit()
+            void handleFormSubmit()
           }}
         >
           <form.Subscribe selector={(state) => state.values}>
@@ -148,21 +288,27 @@ export function BackgroundForm({
               <BackgroundRuntimeBridge
                 enabled={resolveRuntime}
                 values={values}
-                onClearPaths={(paths) => clearRuntimeFormPaths(form as unknown as ClearableRuntimeForm<BackgroundAuthoredDto>, paths)}
+                onClearPaths={(paths) => clearRuntimeFormPaths(form, paths)}
               />
             )}
           </form.Subscribe>
 
           <AuthoredFormSectionStack>
-            {activeStep === 'basics' ? (
-              <BasicsStep form={form as unknown as ReturnType<typeof useAppForm>} readOnly={readOnly} />
-            ) : null}
-            {activeStep === 'content' ? (
-              <ContentStep form={form as unknown as ReturnType<typeof useAppForm>} readOnly={readOnly} resolveRuntime={resolveRuntime} />
-            ) : null}
-            {activeStep === 'details' ? (
-              <DetailsStep form={form as unknown as ReturnType<typeof useAppForm>} readOnly={readOnly} />
-            ) : null}
+            {activeStep === 'basics'
+              ? (
+                  <BasicsStep form={form} readOnly={readOnly} />
+                )
+              : null}
+            {activeStep === 'content'
+              ? (
+                  <ContentStep form={form} readOnly={readOnly} resolveRuntime={resolveRuntime} />
+                )
+              : null}
+            {activeStep === 'details'
+              ? (
+                  <DetailsStep form={form} readOnly={readOnly} />
+                )
+              : null}
           </AuthoredFormSectionStack>
 
           <AuthoredFormFooter>
@@ -178,13 +324,15 @@ export function BackgroundForm({
               >
                 Back
               </Button>
-              {activeStep === 'details' ? (
-                <form.SubmitButton label={mode === 'create' ? 'Create Background' : 'Save Background'} disabled={readOnly} />
-              ) : (
-                <Button type='button' onClick={() => setActiveStep(getNextStep(activeStep))}>
-                  Next
-                </Button>
-              )}
+              {activeStep === 'details'
+                ? (
+                    <form.SubmitButton label={mode === 'create' ? 'Create Background' : 'Save Background'} disabled={readOnly} />
+                  )
+                : (
+                    <Button type='button' onClick={() => void handleNextStep()}>
+                      Next
+                    </Button>
+                  )}
             </Group>
           </AuthoredFormFooter>
         </AuthoredFormShell>
@@ -211,103 +359,6 @@ function BackgroundRuntimeBridge({
   })
 
   return null
-}
-
-function BasicsStep({
-  form,
-  readOnly
-}: {
-  form: ReturnType<typeof useAppForm>
-  readOnly: boolean
-}) {
-  return (
-    <>
-      <AuthoredFormSection
-        description='Give players a clear name they can recognize when choosing this background.'
-        title='Basics'
-        titleId='background-basics-heading'
-      >
-        <div className={styles.singleField}>
-          <form.AppField name='label'>
-            {(field) => <field.TextField label='Name' readOnly={readOnly} />}
-          </form.AppField>
-        </div>
-      </AuthoredFormSection>
-      <AuthoredFormSection
-        description='Describe the place this background has in the world and why a player might pick it.'
-        title='Description'
-        titleId='background-description-heading'
-      >
-        <form.AppField name='description'>
-          {(field) => <field.TextareaField label='Description' readOnly={readOnly} />}
-        </form.AppField>
-      </AuthoredFormSection>
-    </>
-  )
-}
-
-function ContentStep({
-  form,
-  readOnly,
-  resolveRuntime
-}: {
-  form: ReturnType<typeof useAppForm>
-  readOnly: boolean
-  resolveRuntime: boolean
-}) {
-  return (
-    <>
-      <form.Subscribe selector={(state) => (state.values as BackgroundAuthoredDto).proficiencies ?? []}>
-        {(proficiencies) => (
-          <ProficienciesSection
-            items={proficiencies}
-            readOnly={readOnly}
-            resolveRuntime={resolveRuntime}
-            onChange={(next) => setBackgroundField(form, 'proficiencies', next)}
-          />
-        )}
-      </form.Subscribe>
-      <form.Subscribe selector={(state) => (state.values as BackgroundAuthoredDto).features ?? []}>
-        {(features) => (
-          <FeaturesSection
-            items={features}
-            readOnly={readOnly}
-            onChange={(next) => setBackgroundField(form, 'features', next)}
-          />
-        )}
-      </form.Subscribe>
-      <form.Subscribe selector={(state) => (state.values as BackgroundAuthoredDto).startingEquipment}>
-        {(startingEquipment) => (
-          <StartingEquipmentSection
-            startingEquipment={startingEquipment}
-            readOnly={readOnly}
-            resolveRuntime={resolveRuntime}
-            onChange={(next) => setBackgroundField(form, 'startingEquipment', next)}
-          />
-        )}
-      </form.Subscribe>
-    </>
-  )
-}
-
-function DetailsStep({
-  form,
-  readOnly
-}: {
-  form: ReturnType<typeof useAppForm>
-  readOnly: boolean
-}) {
-  return (
-    <form.Subscribe selector={(state) => (state.values as BackgroundAuthoredDto).details ?? []}>
-      {(details) => (
-        <DetailsSection
-          items={details}
-          readOnly={readOnly}
-          onChange={(next) => setBackgroundField(form, 'details', next)}
-        />
-      )}
-    </form.Subscribe>
-  )
 }
 
 function DetailsSection({
@@ -516,11 +567,13 @@ function CollectionSection({
       titleId={`${title.toLowerCase().replaceAll(' ', '-')}-heading`}
     >
       <div className={styles.collectionList}>{children}</div>
-      {!readOnly ? (
-        <Button className={styles.sectionAction} type='button' onClick={onAdd}>
-          {addLabel}
-        </Button>
-      ) : null}
+      {!readOnly
+        ? (
+            <Button className={styles.sectionAction} type='button' onClick={onAdd}>
+              {addLabel}
+            </Button>
+          )
+        : null}
     </AuthoredFormSection>
   )
 }
@@ -550,13 +603,15 @@ function CollectionRow({
             <IEdit />
           </ActionIcon>
         </Tooltip>
-        {!readOnly ? (
-          <Tooltip label='Remove' withArrow>
-            <ActionIcon aria-label={`Remove ${title}`} variant='subtle' onClick={onRemove}>
-              <IMinus />
-            </ActionIcon>
-          </Tooltip>
-        ) : null}
+        {!readOnly
+          ? (
+              <Tooltip label='Remove' withArrow>
+                <ActionIcon aria-label={`Remove ${title}`} variant='subtle' onClick={onRemove}>
+                  <IMinus />
+                </ActionIcon>
+              </Tooltip>
+            )
+          : null}
       </div>
     </div>
   )
@@ -577,7 +632,7 @@ function DetailEditorModal({
 }) {
   const form = useAppForm({
     defaultValues: item ?? createEmptyDetail(1),
-    onSubmit: async ({ value }) => onSave(value as DetailDto)
+    onSubmit: async ({ value }) => onSave(value)
   })
 
   return (
@@ -622,7 +677,7 @@ function FeatureEditorModal({
 }) {
   const form = useAppForm({
     defaultValues: item ?? createEmptyFeature(1),
-    onSubmit: async ({ value }) => onSave(value as FeatureDto)
+    onSubmit: async ({ value }) => onSave(value)
   })
 
   return (
@@ -669,7 +724,7 @@ function ProficiencyEditorModal({
 }) {
   const form = useAppForm({
     defaultValues: item ?? createEmptyProficiency(1),
-    onSubmit: async ({ value }) => onSave(value as ProficiencyGrantDto)
+    onSubmit: async ({ value }) => onSave(value)
   })
 
   return (
@@ -686,7 +741,7 @@ function ProficiencyEditorModal({
             {(values) => (
               <RuntimeNodeEditor
                 enabled={resolveRuntime}
-                form={form as unknown as ReturnType<typeof useAppForm>}
+                form={form}
                 mapId='proficiencyGrant'
                 nodeMap={PROFICIENCY_NODE_MAP as unknown as NodeMap<ProficiencyGrantDto>}
                 readOnly={readOnly}
@@ -717,7 +772,7 @@ function StartingEquipmentItemEditorModal({
 }) {
   const form = useAppForm({
     defaultValues: item ?? createEmptyStartingEquipmentItem(1),
-    onSubmit: async ({ value }) => onSave(value as StartingEquipmentItemDto)
+    onSubmit: async ({ value }) => onSave(value)
   })
 
   return (
@@ -734,7 +789,7 @@ function StartingEquipmentItemEditorModal({
             {(values) => (
               <RuntimeNodeEditor
                 enabled={resolveRuntime}
-                form={form as unknown as ReturnType<typeof useAppForm>}
+                form={form}
                 mapId='startingEquipmentItem'
                 nodeMap={STARTING_EQUIPMENT_ITEM_NODE_MAP as unknown as NodeMap<StartingEquipmentItemDto>}
                 readOnly={readOnly}
@@ -757,7 +812,7 @@ function RuntimeNodeEditor<TValues extends object>({
   values
 }: {
   enabled: boolean
-  form: ReturnType<typeof useAppForm>
+  form: RuntimeNodeForm & ClearableRuntimeForm<TValues>
   mapId: string
   nodeMap: NodeMap<TValues>
   readOnly: boolean
@@ -768,12 +823,12 @@ function RuntimeNodeEditor<TValues extends object>({
     values: toRuntimeValues(values),
     enabled,
     debounceMs: 100,
-    onClearPaths: (paths) => clearRuntimeFormPaths(form as unknown as ClearableRuntimeForm<TValues>, paths)
+    onClearPaths: (paths) => clearRuntimeFormPaths(form, paths)
   })
 
   return (
     <NodeMapRenderer
-      form={form as unknown as RuntimeNodeForm<TValues>}
+      form={form}
       nodeMap={nodeMap}
       readOnly={readOnly}
       runtimeModel={runtimeModel}
@@ -824,14 +879,6 @@ function upsertById<TItem extends { id: string }>(items: TItem[], item: TItem): 
   const index = items.findIndex((current) => current.id === item.id)
   if (index === -1) return [...items, item]
   return items.map((current) => current.id === item.id ? item : current)
-}
-
-function setBackgroundField<TField extends keyof BackgroundAuthoredDto>(
-  form: ReturnType<typeof useAppForm>,
-  field: TField,
-  value: BackgroundAuthoredDto[TField]
-) {
-  form.setFieldValue(field as never, value as never)
 }
 
 function getBackgroundStepTitle(step: BackgroundFormStep) {

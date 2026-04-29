@@ -51,6 +51,7 @@ import {
   type EquipmentListItemDto,
   type EquipmentListResponseDto,
   type EquipmentResponseDto,
+  type FeatAuthoredDto,
   type FeatListItemDto,
   type FeatListResponseDto,
   type FeatResponseDto,
@@ -327,7 +328,7 @@ function buildApi(getJwt: (() => Promise<string | null>) | string | null) {
         equipmentListResponseDtoSchema,
         equipmentResponseDtoSchema
       ),
-      feats: contentDomain<typeof featListResponseDtoSchema, typeof featResponseDtoSchema, AuthoredContentInput>(
+      feats: contentDomain<typeof featListResponseDtoSchema, typeof featResponseDtoSchema, FeatAuthoredDto>(
         '/content/feats',
         featListResponseDtoSchema,
         featResponseDtoSchema

@@ -4,6 +4,8 @@ import {
   type CompiledCharge,
   compileSpellGrant,
   type CompiledSpellGrant,
+  compileFeatGrant,
+  type CompiledFeatGrant,
   compileSenseGrant,
   type CompiledSenseGrant,
   compileModifierGrant,
@@ -21,6 +23,7 @@ export type CompiledFeat = {
   prerequisites?: FeatAuthored['prerequisites']
   effects?: CompiledEffectGroup[]
   charges?: CompiledCharge
+  feats?: CompiledFeatGrant[]
   modifiers?: CompiledModifierGrant[]
   proficiencies?: CompiledProficiencyGrant[]
   senses?: CompiledSenseGrant[]
@@ -37,6 +40,11 @@ export function compileFeat(authored: FeatAuthored): CompiledFeat {
   const modifiers
     = authored.grants?.modifiers && authored.grants.modifiers.length
       ? authored.grants.modifiers.map(compileModifierGrant)
+      : undefined
+
+  const feats
+    = authored.grants?.feats && authored.grants.feats.length
+      ? authored.grants.feats.map(compileFeatGrant)
       : undefined
 
   const senses
@@ -64,6 +72,7 @@ export function compileFeat(authored: FeatAuthored): CompiledFeat {
   return {
     id: authored.id,
     prerequisites: authored.prerequisites,
+    feats,
     modifiers,
     spells,
     proficiencies,

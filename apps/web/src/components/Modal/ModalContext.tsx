@@ -1,4 +1,1 @@
-import { createContext } from 'react'
-import { ModalOptions } from './ModalProvider'
-
-export const ModalContext = createContext<ModalOptions>({} as ModalOptions)
+export { ModalContext } from '#app/ui/overlays/Modal/ModalContext'

@@ -13,15 +13,22 @@ import {
 import { AuthoredFormStepNav } from '#components/Form/AuthoredFormStepNav'
 import {
   clearRuntimeFormPaths,
+  getFirstErroredStep,
   getRuntimeNodeOptions,
   getRuntimeNodeRequired,
   getRuntimeNodeVisible,
+  getStepStatuses,
+  integerMinimum,
+  requiredArray,
+  requiredSelect,
+  requiredString,
   toRuntimeValues,
   useAppForm,
   useNodeRuntimeModel,
-  type ClearableRuntimeForm
+  validatorsFor,
+  withForm
 } from '#components/Form/runtime'
-import { EffectEditor, type EffectEditorFormApi } from '#components/EffectEditor'
+import { EffectEditorFieldGroup } from '#components/EffectEditor'
 import type { SpellReferenceData } from '#app/data/spells/referenceData'
 import {
   castingTimeUnitOptions,
@@ -57,6 +64,206 @@ const spellSteps = [
   description: string
 }[]
 
+const emptySpellReferenceData: SpellReferenceData = {
+  systemId: '',
+  magicSchools: [],
+  classes: [],
+  damageTypes: [],
+  conditionTypes: [],
+  skills: [],
+  speeds: [],
+  creatures: []
+}
+
+const emptySpellRuntimeModel: NodeRuntimeResolveResponseDto = {
+  mapId: 'spell',
+  sections: [],
+  clearPaths: []
+}
+
+const spellFormDefaults = createEmptySpell({ systemId: '', userId: '' })
+
+const spellStepFields = {
+  info: [
+    'label',
+    'level',
+    'classIds',
+    'magicSchoolId',
+    'castingTime',
+    'description',
+    'components',
+    'materialDescription',
+    'attributes'
+  ],
+  effects: ['effects']
+} satisfies Record<SpellFormStep, readonly string[]>
+
+const SpellInfoStep = withForm({
+  defaultValues: spellFormDefaults,
+  props: {
+    readOnly: false,
+    references: emptySpellReferenceData,
+    runtimeModel: emptySpellRuntimeModel
+  },
+  render: function SpellInfoStepRender({ form, readOnly, references, runtimeModel }) {
+    const classOptions = getRuntimeNodeOptions(runtimeModel, 'classIds', getSelectData(references.classes))
+    const magicSchoolOptions = getRuntimeNodeOptions(runtimeModel, 'magicSchoolId', getSelectData(references.magicSchools))
+    const componentOptions = getRuntimeNodeOptions(runtimeModel, 'components', spellComponentOptions)
+    const attributeOptions = getRuntimeNodeOptions(runtimeModel, 'attributes', spellAttributeOptions)
+
+    return (
+      <form.Subscribe selector={(state) => ({
+        components: state.values.components,
+        materialDescription: state.values.materialDescription
+      })}
+      >
+        {({ components, materialDescription }) => {
+          const showMaterialDescription = getRuntimeNodeVisible(runtimeModel, 'materialDescription', hasMaterialComponent({ components, materialDescription }))
+
+          return (
+            <>
+              <AuthoredFormSection title='Basics' titleId='spell-basics-heading'>
+                <div className={fieldGrid}>
+                  <form.AppField
+                    name='label'
+                    validators={validatorsFor(requiredString('Spell name'))}
+                  >
+                    {(field) => (
+                      <field.TextField
+                        label='Spell Name'
+                        readOnly={readOnly}
+                        required={getRuntimeNodeRequired(runtimeModel, 'label')}
+                      />
+                    )}
+                  </form.AppField>
+                  <form.AppField
+                    name='level'
+                    validators={validatorsFor(integerMinimum('Level', 0))}
+                  >
+                    {(field) => (
+                      <field.NumberField
+                        label='Level'
+                        readOnly={readOnly}
+                        required={getRuntimeNodeRequired(runtimeModel, 'level')}
+                      />
+                    )}
+                  </form.AppField>
+                  <form.AppField
+                    name='classIds'
+                    validators={validatorsFor(requiredArray('Classes'))}
+                  >
+                    {(field) => (
+                      <field.MultiSelectField
+                        label='Classes'
+                        readOnly={readOnly}
+                        data={classOptions}
+                        required={getRuntimeNodeRequired(runtimeModel, 'classIds')}
+                      />
+                    )}
+                  </form.AppField>
+                </div>
+              </AuthoredFormSection>
+
+              <AuthoredFormSection title='Details' titleId='spell-details-heading'>
+                <div className={fieldGrid}>
+                  <form.AppField
+                    name='magicSchoolId'
+                    validators={validatorsFor(requiredSelect('Magic school'))}
+                  >
+                    {(field) => (
+                      <field.SelectField
+                        label='Magic School'
+                        readOnly={readOnly}
+                        data={magicSchoolOptions}
+                        required={getRuntimeNodeRequired(runtimeModel, 'magicSchoolId')}
+                      />
+                    )}
+                  </form.AppField>
+                  <form.AppField
+                    name='castingTime.amount'
+                    validators={validatorsFor(integerMinimum('Casting time', 1))}
+                  >
+                    {(field) => <field.NumberField label='Casting Time' readOnly={readOnly} />}
+                  </form.AppField>
+                  <form.AppField name='castingTime.unit'>
+                    {(field) => (
+                      <field.SelectField
+                        label='Unit'
+                        readOnly={readOnly}
+                        data={castingTimeUnitOptions}
+                      />
+                    )}
+                  </form.AppField>
+                  <div className={wide}>
+                    <form.AppField
+                      name='description'
+                      validators={validatorsFor(requiredString('Description'))}
+                    >
+                      {(field) => (
+                        <field.TextareaField
+                          label='Description'
+                          readOnly={readOnly}
+                          required={getRuntimeNodeRequired(runtimeModel, 'description')}
+                        />
+                      )}
+                    </form.AppField>
+                  </div>
+                </div>
+              </AuthoredFormSection>
+
+              <AuthoredFormSection title='Components & Attributes' titleId='spell-components-heading'>
+                <div className={inputRow}>
+                  <form.AppField
+                    name='components'
+                    validators={validatorsFor(requiredArray('Components'))}
+                  >
+                    {(field) => (
+                      <field.MultiSelectField
+                        label='Components'
+                        readOnly={readOnly}
+                        data={componentOptions}
+                        required={getRuntimeNodeRequired(runtimeModel, 'components')}
+                      />
+                    )}
+                  </form.AppField>
+                </div>
+                {showMaterialDescription
+                  ? (
+                      <form.AppField
+                        name='materialDescription'
+                        validators={validatorsFor(requiredString('Material description'))}
+                      >
+                        {(field) => (
+                          <field.TextField
+                            label='Material Description'
+                            readOnly={readOnly}
+                            required={getRuntimeNodeRequired(runtimeModel, 'materialDescription')}
+                          />
+                        )}
+                      </form.AppField>
+                    )
+                  : null}
+                <div className={inputRow}>
+                  <form.AppField name='attributes'>
+                    {(field) => (
+                      <field.MultiSelectField
+                        label='Attributes'
+                        readOnly={readOnly}
+                        data={attributeOptions}
+                        required={getRuntimeNodeRequired(runtimeModel, 'attributes')}
+                      />
+                    )}
+                  </form.AppField>
+                </div>
+              </AuthoredFormSection>
+            </>
+          )
+        }}
+      </form.Subscribe>
+    )
+  }
+})
+
 export function SpellForm({
   mode,
   initialSpell,
@@ -84,171 +291,62 @@ export function SpellForm({
     defaultValues: spell,
     onSubmit: async ({ value }) => {
       if (readOnly) return
-      await onSubmit(normalizeSpellForSubmit(value as SpellAuthoredDto, references))
+      await onSubmit(normalizeSpellForSubmit(value, references))
     }
   })
-  const effectEditorForm: EffectEditorFormApi = {
-    setFieldValue: (_field, value) => form.setFieldValue('effects', value)
-  }
   const pageTitle = getSpellStepTitle(activeStep)
 
-  function renderSpellInfoStep(
-    runtimeModel: NodeRuntimeResolveResponseDto | undefined,
-    values: SpellAuthoredDto
-  ) {
-    const classOptions = getRuntimeNodeOptions(runtimeModel, 'classIds', getSelectData(references.classes))
-    const magicSchoolOptions = getRuntimeNodeOptions(runtimeModel, 'magicSchoolId', getSelectData(references.magicSchools))
-    const componentOptions = getRuntimeNodeOptions(runtimeModel, 'components', spellComponentOptions)
-    const attributeOptions = getRuntimeNodeOptions(runtimeModel, 'attributes', spellAttributeOptions)
-    const showMaterialDescription = getRuntimeNodeVisible(
-      runtimeModel,
-      'materialDescription',
-      hasMaterialComponent(values)
-    )
+  async function handleFormSubmit() {
+    await form.handleSubmit()
+    const firstErroredStep = getFirstErroredStep(getStepStatuses({ fieldMeta: form.state.fieldMeta, stepFields: spellStepFields }), spellSteps)
+    if (firstErroredStep) setActiveStep(firstErroredStep)
+  }
 
-    return (
-      <>
-        <AuthoredFormSection title='Basics' titleId='spell-basics-heading'>
-          <div className={fieldGrid}>
-            <form.AppField name='label'>
-              {(field) => (
-                <field.TextField
-                  label='Spell Name'
-                  readOnly={readOnly}
-                  required={getRuntimeNodeRequired(runtimeModel, 'label')}
-                />
-              )}
-            </form.AppField>
-            <form.AppField name='level'>
-              {(field) => (
-                <field.NumberField
-                  label='Level'
-                  readOnly={readOnly}
-                  required={getRuntimeNodeRequired(runtimeModel, 'level')}
-                />
-              )}
-            </form.AppField>
-            <form.AppField name='classIds'>
-              {(field) => (
-                <field.MultiSelectField
-                  label='Classes'
-                  readOnly={readOnly}
-                  data={classOptions}
-                  required={getRuntimeNodeRequired(runtimeModel, 'classIds')}
-                />
-              )}
-            </form.AppField>
-          </div>
-        </AuthoredFormSection>
-
-        <AuthoredFormSection title='Details' titleId='spell-details-heading'>
-          <div className={fieldGrid}>
-            <form.AppField name='magicSchoolId'>
-              {(field) => (
-                <field.SelectField
-                  label='Magic School'
-                  readOnly={readOnly}
-                  data={magicSchoolOptions}
-                  required={getRuntimeNodeRequired(runtimeModel, 'magicSchoolId')}
-                />
-              )}
-            </form.AppField>
-            <form.AppField name='castingTime.amount'>
-              {(field) => <field.NumberField label='Casting Time' readOnly={readOnly} />}
-            </form.AppField>
-            <form.AppField name='castingTime.unit'>
-              {(field) => (
-                <field.SelectField
-                  label='Unit'
-                  readOnly={readOnly}
-                  data={castingTimeUnitOptions}
-                />
-              )}
-            </form.AppField>
-            <div className={wide}>
-              <form.AppField name='description'>
-                {(field) => (
-                  <field.TextareaField
-                    label='Description'
-                    readOnly={readOnly}
-                    required={getRuntimeNodeRequired(runtimeModel, 'description')}
-                  />
-                )}
-              </form.AppField>
-            </div>
-          </div>
-        </AuthoredFormSection>
-
-        <AuthoredFormSection title='Components & Attributes' titleId='spell-components-heading'>
-          <div className={inputRow}>
-            <form.AppField name='components'>
-              {(field) => (
-                <field.MultiSelectField
-                  label='Components'
-                  readOnly={readOnly}
-                  data={componentOptions}
-                  required={getRuntimeNodeRequired(runtimeModel, 'components')}
-                />
-              )}
-            </form.AppField>
-          </div>
-          {showMaterialDescription ? (
-            <form.AppField name='materialDescription'>
-              {(field) => (
-                <field.TextField
-                  label='Material Description'
-                  readOnly={readOnly}
-                  required={getRuntimeNodeRequired(runtimeModel, 'materialDescription')}
-                />
-              )}
-            </form.AppField>
-          ) : null}
-          <div className={inputRow}>
-            <form.AppField name='attributes'>
-              {(field) => (
-                <field.MultiSelectField
-                  label='Attributes'
-                  readOnly={readOnly}
-                  data={attributeOptions}
-                  required={getRuntimeNodeRequired(runtimeModel, 'attributes')}
-                />
-              )}
-            </form.AppField>
-          </div>
-        </AuthoredFormSection>
-      </>
-    )
+  async function handleNextStep() {
+    await form.validate('submit')
+    const statuses = getStepStatuses({ fieldMeta: form.state.fieldMeta, stepFields: spellStepFields })
+    if (statuses.info === 'error') return
+    setActiveStep('effects')
   }
 
   return (
     <AuthoredFormRoot>
-      <AuthoredFormStepNav
-        activeStep={activeStep}
-        ariaLabel='Spell form sections'
-        onStepChange={setActiveStep}
-        steps={spellSteps}
-      />
+      <form.Subscribe selector={(state) => getStepStatuses({ fieldMeta: state.fieldMeta, stepFields: spellStepFields })}>
+        {(stepStatuses) => (
+          <AuthoredFormStepNav
+            activeStep={activeStep}
+            ariaLabel='Spell form sections'
+            onStepChange={setActiveStep}
+            stepStatuses={stepStatuses}
+            steps={spellSteps}
+          />
+        )}
+      </form.Subscribe>
 
       <AuthoredFormHeader
-        action={readOnly && response?.permissions.canCopy ? (
-          <Button onClick={onCopy}>Duplicate to edit</Button>
-        ) : null}
+        action={readOnly && response?.permissions.canCopy
+          ? (
+              <Button onClick={onCopy}>Duplicate to edit</Button>
+            )
+          : null}
         eyebrow={mode !== 'create' ? spell.label || 'Untitled Spell' : undefined}
         title={pageTitle}
       />
 
-      {readOnly ? (
-        <Alert color='cyan'>
-          This spell is locked for direct editing. Duplicate it to make your own draft.
-        </Alert>
-      ) : null}
+      {readOnly
+        ? (
+            <Alert color='cyan'>
+              This spell is locked for direct editing. Duplicate it to make your own draft.
+            </Alert>
+          )
+        : null}
 
       <form.AppForm>
         <AuthoredFormShell
           onSubmit={(event) => {
             event.preventDefault()
             event.stopPropagation()
-            form.handleSubmit()
+            void handleFormSubmit()
           }}
         >
           <form.Subscribe selector={(state) => state.values}>
@@ -256,22 +354,35 @@ export function SpellForm({
               <SpellRuntimeBridge
                 enabled={resolveRuntime}
                 references={references}
-                values={values as SpellAuthoredDto}
+                values={values}
                 onClearPaths={(paths) => {
-                  clearRuntimeFormPaths(form as unknown as ClearableRuntimeForm<SpellAuthoredDto>, paths)
+                  clearRuntimeFormPaths(form, paths)
                 }}
               >
                 {(runtimeModel) => (
                   <AuthoredFormSectionStack>
-                    {activeStep === 'info' ? renderSpellInfoStep(runtimeModel, values as SpellAuthoredDto) : (
-                      <EffectEditor
-                        effects={(values as SpellAuthoredDto).effects ?? []}
-                        form={effectEditorForm}
-                        references={references}
-                        readOnly={readOnly}
-                        sourceLabel={(values as SpellAuthoredDto).label || 'Spell'}
-                      />
-                    )}
+                    {activeStep === 'info'
+                      ? (
+                          <SpellInfoStep
+                            form={form}
+                            readOnly={readOnly}
+                            references={references}
+                            runtimeModel={runtimeModel ?? emptySpellRuntimeModel}
+                          />
+                        )
+                      : (
+                          <form.Subscribe selector={(state) => state.values.label}>
+                            {(label) => (
+                              <EffectEditorFieldGroup
+                                form={form}
+                                fields={{ effects: 'effects' }}
+                                references={references}
+                                readOnly={readOnly}
+                                sourceLabel={label || 'Spell'}
+                              />
+                            )}
+                          </form.Subscribe>
+                        )}
                   </AuthoredFormSectionStack>
                 )}
               </SpellRuntimeBridge>
@@ -291,16 +402,18 @@ export function SpellForm({
               >
                 Back
               </Button>
-              {activeStep === 'effects' ? (
-                <form.SubmitButton label={mode === 'create' ? 'Create Spell' : 'Save Spell'} disabled={readOnly} />
-              ) : (
-                <Button
-                  type='button'
-                  onClick={() => setActiveStep('effects')}
-                >
-                  Next
-                </Button>
-              )}
+              {activeStep === 'effects'
+                ? (
+                    <form.SubmitButton label={mode === 'create' ? 'Create Spell' : 'Save Spell'} disabled={readOnly} />
+                  )
+                : (
+                    <Button
+                      type='button'
+                      onClick={() => void handleNextStep()}
+                    >
+                      Next
+                    </Button>
+                  )}
             </Group>
           </AuthoredFormFooter>
         </AuthoredFormShell>

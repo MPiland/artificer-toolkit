@@ -1,0 +1,1 @@
+import{n as e}from"./chunk-DnJy8xQt.js";import{a as t}from"./spellList.fixtures-Bg_F-pT6.js";var n=e((()=>{t()}));export{n as t};

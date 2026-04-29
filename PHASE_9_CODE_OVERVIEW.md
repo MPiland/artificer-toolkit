@@ -34,6 +34,15 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
 - `packages/schema` owns frontend-facing transport DTOs.
 - `packages/shared` owns node maps and authored model metadata.
 - The frontend should become lighter by deleting web-owned domain logic and using the backend stack correctly.
+- Phase 9 web folders follow the locked taxonomy:
+  - `ui/primitives` for low-level reusable controls
+  - `ui/overlays` for modal/drawer/overlay infrastructure
+  - `components` for reusable app-level composites and patterns
+  - `domains` for active rebuilt authored domains only
+  - `auth`, `marketing`, `home`, and `shell` for top-level app feature/system areas
+  - `data` for frontend API/query adapters
+  - `legacy` for quarantined provisional code and old route/domain/form implementations
+- Remaining global legacy pockets such as `src/hooks`, `src/store`, and the old `components/Form` monolith are compatibility surfaces only. Do not add new Phase 9 logic there; retire or move them as the dependent legacy routes are replaced.
 - Supabase Auth must stay compatible with the hosted free-tier posture unless explicitly changed:
   - do not assume custom SMTP is configured
   - avoid UX that requires high-volume auth email delivery
@@ -84,7 +93,8 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
 - Phase 9.6.1 is complete: shared node maps now have a trusted `packages/functions` + `apps/apis` runtime resolver path for conditional visibility, requiredness, hidden behavior, data-backed option sources, and relationship filters instead of repeating Spell-style hand-wired reference-data and partial web-local node resolution.
 - The 9.6.1 resolver exposes `POST /node-runtime/resolve` and `POST /node-runtime/normalize-values`, keeps relationship-plan execution server-side against a trusted map registry, and lets the web form runtime consume resolved section/node state and options through the Phase 9.4 adapter.
 - Phase 9.7 is complete: Background list/form implementation, node-runtime-backed nested editors, locked-master behavior, shared authored-form layout consistency, and corrected Spell runtime alignment are accepted.
-- Phase 9.8 Feat is the active next tranche.
+- Phase 9.8 is complete: Feat list/form implementation, node-runtime-backed requirements/mechanics, reusable EffectEditor integration, locked-master behavior, route coverage, and folder-organization cleanup are accepted.
+- Latest 9.8 implementation rebuilt Feat on the accepted stack: REST through `apps/apis`, SSR-aware TanStack Query helpers, shared authored list/form layouts, node-runtime-backed nested editors, reusable EffectEditor, locked-master duplicate-only behavior, and active `/feats` route coverage.
 - Latest 9.7 closeout correction backfilled Spell onto the node-runtime resolver path for top-level field options, material-description visibility, and hidden-value clearing while preserving the accepted Figma-aligned Spell form and EffectEditor layout.
 - Latest 9.7 authored-form consistency correction extracted shared authored-form layout components so Spell and Background use the same root, header, shell, section, section stack, and footer primitives while keeping their distinct domain flows.
 - Phase 9.6 latest correction aligns the isolated Spell form and EffectEditor more closely to the Figma IF/Effects frames, including a no-sidebar `Spell Info` form page, source-aware breadcrumbs, read-only ExternalLink view actions, removal of destructive actions from read-only effect summaries, single-line multiselect overflow, consistent disabled/read-only field coloring, and reusable authored-form page framing.
@@ -95,6 +105,7 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
 - 9.6 validation passed `build:schema`, web unit tests, Storybook build, and Storybook Playwright. `build:web` remains blocked only by the documented legacy `src/utils` failures.
 - Phase 9.7 Background follows the 9.6.1 node-map runtime resolver correction so Background does not become another hand-wired reference-data or web-local node-condition implementation.
 - Phase 9.7 validation passed `build:schema`, `build:shared`, `build:functions`, `build:apis`, web unit tests, app Playwright smoke, Storybook build, and Storybook Playwright smoke. `build:web` remains blocked only by the documented legacy `src/utils` failures.
+- Phase 9.8 validation passed `build:schema`, `build:shared`, `build:functions`, `build:apis`, `test:schema`, shared compiler/node tests, focused Feat web tests, full web unit tests, app Playwright smoke, Storybook build, and Storybook Playwright smoke. `build:web` remains blocked only by the documented legacy `src/utils` failures.
 - 9.5 visual follow-up: token/radius tightening is deferred to 9.6 integrated Spell form polish instead of blocking the shared runtime closeout.
 - Latest closeout commands passed for 9.4 include `build:schema`, `build:db`, `build:functions`, `build:apis`, `test:schema`, web unit tests, app Playwright smoke, Storybook build, and Storybook Playwright smoke.
 
@@ -110,8 +121,8 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
 | 9.6 | [PHASE_9_6_CODE_SPELL_SUBPLAN.md](PHASE_9_6_CODE_SPELL_SUBPLAN.md) | Spell list and form implementation | Complete |
 | 9.6.1 | [PHASE_9_6_1_NODE_MAP_RESOLVER_SUBPLAN.md](PHASE_9_6_1_NODE_MAP_RESOLVER_SUBPLAN.md) | Trusted node-map runtime resolver and engine-backed form runtime correction | Complete |
 | 9.7 | [PHASE_9_7_CODE_BACKGROUND_SUBPLAN.md](PHASE_9_7_CODE_BACKGROUND_SUBPLAN.md) | Background list and form implementation | Complete |
-| 9.8 | [PHASE_9_8_CODE_FEAT_SUBPLAN.md](PHASE_9_8_CODE_FEAT_SUBPLAN.md) | Feat list and form implementation | Active |
-| 9.9 | [PHASE_9_9_CODE_RACE_SUBPLAN.md](PHASE_9_9_CODE_RACE_SUBPLAN.md) | Race list and form implementation | Not Started |
+| 9.8 | [PHASE_9_8_CODE_FEAT_SUBPLAN.md](PHASE_9_8_CODE_FEAT_SUBPLAN.md) | Feat list and form implementation | Complete |
+| 9.9 | [PHASE_9_9_CODE_RACE_SUBPLAN.md](PHASE_9_9_CODE_RACE_SUBPLAN.md) | Race list and form implementation | Active |
 | 9.10 | [PHASE_9_10_CODE_EQUIPMENT_SUBPLAN.md](PHASE_9_10_CODE_EQUIPMENT_SUBPLAN.md) | Equipment list and form implementation | Not Started |
 | 9.11 | [PHASE_9_11_CODE_CREATURE_SUBPLAN.md](PHASE_9_11_CODE_CREATURE_SUBPLAN.md) | Creature list and form implementation | Not Started |
 | 9.12 | [PHASE_9_12_CODE_VEHICLE_SUBPLAN.md](PHASE_9_12_CODE_VEHICLE_SUBPLAN.md) | Vehicle list and form implementation | Not Started |
