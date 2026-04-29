@@ -19,19 +19,27 @@ import type { NodeRuntimeOptionDto } from '@artificer-toolkit/schema'
 import { NodeRuntimeInputError } from './mapRegistry.js'
 
 const trustedTables = new Set([
+  'alignments',
   'background_features',
   'background_proficiency_grants',
+  'backgrounds',
   'characteristic_durations',
   'characteristic_ranges',
+  'challenge_ratings',
   'charge_limits',
   'charges',
   'class_features',
   'class_proficiency_grants',
   'class_resources',
+  'class_specializations',
   'class_spellcasting',
   'classes',
+  'condition_types',
   'conditions',
+  'creature_types',
+  'creatures',
   'currencies',
+  'damage_types',
   'damages',
   'effect_invocations',
   'effect_path_choice_options',
@@ -51,6 +59,7 @@ const trustedTables = new Set([
   'feature_options',
   'feature_proficiency_grants',
   'features',
+  'heritages',
   'languages',
   'magic_schools',
   'option_effects',
@@ -66,8 +75,11 @@ const trustedTables = new Set([
   'race_features',
   'races',
   'rarities',
+  'senses',
   'skills',
-  'spell_effects'
+  'speeds',
+  'spell_effects',
+  'spells'
 ])
 
 const trustedColumns = new Set([

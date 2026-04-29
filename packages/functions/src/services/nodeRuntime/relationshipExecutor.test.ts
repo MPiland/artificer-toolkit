@@ -45,6 +45,99 @@ describe('node runtime relationship executor', () => {
     ])
   })
 
+  it('trusts all table relationships used by shipped node maps', async () => {
+    const shippedRuntimeTables = [
+      'alignments',
+      'background_features',
+      'background_proficiency_grants',
+      'backgrounds',
+      'challenge_ratings',
+      'characteristic_durations',
+      'characteristic_ranges',
+      'charge_limits',
+      'charges',
+      'class_features',
+      'class_proficiency_grants',
+      'class_resources',
+      'class_specializations',
+      'class_spellcasting',
+      'classes',
+      'condition_types',
+      'conditions',
+      'creature_types',
+      'creatures',
+      'currencies',
+      'damage_types',
+      'damages',
+      'effect_invocations',
+      'effect_path_choice_options',
+      'effect_path_roll_table_rows',
+      'effect_paths',
+      'effect_result_block_outcomes',
+      'effect_result_blocks',
+      'equipment',
+      'equipment_effects',
+      'equipment_features',
+      'equipment_properties',
+      'feat_effects',
+      'feat_features',
+      'feat_proficiency_grants',
+      'feats',
+      'feature_effects',
+      'feature_options',
+      'feature_proficiency_grants',
+      'features',
+      'heritages',
+      'languages',
+      'magic_schools',
+      'option_effects',
+      'option_proficiency_grants',
+      'options',
+      'proficiency_grant_equipment',
+      'proficiency_grant_equipment_properties',
+      'proficiency_grant_languages',
+      'proficiency_grant_save_abilities',
+      'race_ancestries',
+      'race_ancestry_option_features',
+      'race_ancestry_options',
+      'race_features',
+      'races',
+      'rarities',
+      'senses',
+      'skills',
+      'speeds',
+      'spell_effects',
+      'spells'
+    ] as const
+
+    shippedRuntimeTables.forEach((tableName) => {
+      nodeRuntimeQueryMock.rowsByTable.set(tableName, [
+        { id: `${tableName}-id`, label: tableName }
+      ])
+    })
+
+    const results = await Promise.all(shippedRuntimeTables.map(async (tableName) => {
+      const plan = {
+        kind: 'TABLE',
+        table: tableName,
+        selectColumns: ['id', 'label']
+      } satisfies RelationshipPlan
+
+      return streamToOptions(await executeRelationshipPlan(dbMock, plan, { values: {} }))
+    }))
+
+    expect(results).toHaveLength(shippedRuntimeTables.length)
+    expect(results.at(shippedRuntimeTables.indexOf('creature_types'))).toEqual([
+      { value: 'creature_types-id', label: 'creature_types', description: undefined }
+    ])
+    expect(results.at(shippedRuntimeTables.indexOf('alignments'))).toEqual([
+      { value: 'alignments-id', label: 'alignments', description: undefined }
+    ])
+    expect(results.at(shippedRuntimeTables.indexOf('challenge_ratings'))).toEqual([
+      { value: 'challenge_ratings-id', label: 'challenge_ratings', description: undefined }
+    ])
+  })
+
   it('applies trusted where expressions with local IdRefs', async () => {
     nodeRuntimeQueryMock.rowsByTable.set('equipment', [
       { id: 'rapier', label: 'Rapier', category: 'WEAPON' },
