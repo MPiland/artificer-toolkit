@@ -73,4 +73,10 @@ export const queryKeys = {
     list: () => ['systems', 'list'] as const,
     detail: (id: string) => ['systems', 'detail', id] as const,
   },
+
+  nodeRuntime: {
+    all: () => ['node-runtime'] as const,
+    resolve: (mapId: string, fingerprint: string) => ['node-runtime', mapId, fingerprint] as const,
+    normalizeValues: (mapId: string, fingerprint: string) => ['node-runtime', mapId, 'normalize-values', fingerprint] as const,
+  },
 } as const

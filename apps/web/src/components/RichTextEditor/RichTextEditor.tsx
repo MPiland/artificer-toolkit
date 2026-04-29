@@ -17,12 +17,13 @@ export interface RichTextEditorProps {
   onChange: (value: string) => void
   placeholder?: string
   label?: string
+  required?: boolean
   onBlur?: ({ target: { name, value } }: { target: { name: string; value: string } }) => void
   name: string
   readOnly?: boolean
 }
 
-const RichTextEditor = ({ value, onChange, placeholder, label, onBlur, name, readOnly }: RichTextEditorProps) => {
+const RichTextEditor = ({ value, onChange, placeholder, label, required, onBlur, name, readOnly }: RichTextEditorProps) => {
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -69,7 +70,7 @@ const RichTextEditor = ({ value, onChange, placeholder, label, onBlur, name, rea
 
   return (
     <>
-      {label && <span>{label}</span>}
+      {label && <span>{required ? `${label} *` : label}</span>}
       <MantineRichTextEditor editor={editor}>
         {!readOnly ? (
           <MantineRichTextEditor.Toolbar>

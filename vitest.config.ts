@@ -27,7 +27,8 @@ export default defineConfig({
       'packages/schema/src/__tests__/**/*.test.ts',
       'packages/db/src/__tests__/**/*.test.ts',
       'packages/functions/src/__tests__/**/*.test.ts',
-      'packages/functions/src/**/*.test.ts'
+      'packages/functions/src/**/*.test.ts',
+      'apps/apis/src/**/*.test.ts'
     ]
   }
 })

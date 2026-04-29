@@ -1,14 +1,17 @@
 import { Button, Stack, Text } from '@mantine/core'
 import { screen, within } from '@testing-library/react'
+import { waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import { SPELL_NODE_MAP } from '@artificer-toolkit/shared'
+import { buildNodeMap, SPELL_NODE_MAP } from '@artificer-toolkit/shared'
+import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { AuthoredFormRuntime } from './AuthoredFormRuntime'
 import { NestedCollectionShell } from './NestedEditors'
 import { SectionNavigator } from './SectionNavigator'
 import { defaultOptionResolver } from './NodeMapRenderer'
 import { useAppForm } from './AppForm'
+import { applyNodeRuntimeClearPaths, getNodeRuntimeDebounceMs } from './nodeRuntime'
 import { useAuthoredFormUiState } from './useAuthoredFormUiState'
 
 type RuntimeFixture = {
@@ -16,14 +19,28 @@ type RuntimeFixture = {
   description: string
   level?: number
   notes: string[]
+  category?: string
+  hiddenText?: string
 }
 
 const defaultValues: RuntimeFixture = {
   label: 'Ember Ward',
   description: 'A protective spell.',
   level: 2,
-  notes: ['Playtest note']
+  notes: ['Playtest note'],
+  hiddenText: 'Temporary'
 }
+
+const runtimeFixtureNodeMap = buildNodeMap<RuntimeFixture>().define('runtimeFixture', ({ map, nodes }) => {
+  const section = { id: 'basics', label: 'Basics', order: 10 }
+  map
+    .set('label', nodes.text(['label'], 'Name', { section, order: 10 }))
+    .set('category', nodes.selectSingle(['category'], 'Category', {
+      kind: 'INLINE',
+      options: []
+    }, { section, order: 20 }))
+    .set('hiddenText', nodes.text(['hiddenText'], 'Hidden Text', { section, order: 30 }))
+})
 
 function PrimitiveHarness({ readOnly = false }: { readOnly?: boolean }) {
   const appForm = useAppForm({
@@ -123,6 +140,68 @@ function LockedRuntimeHarness({ onCopy }: { onCopy: () => void }) {
   )
 }
 
+function ResolvedRuntimeHarness({ onClearPaths }: { onClearPaths?: (paths: readonly (readonly (string | number)[])[]) => void }) {
+  const appForm = useAppForm({
+    defaultValues,
+    onSubmit: () => undefined
+  })
+
+  const runtimeModel: NodeRuntimeResolveResponseDto = {
+    mapId: 'runtimeFixture',
+    clearPaths: [['hiddenText']],
+    sections: [{
+      id: 'basics',
+      label: 'Basics',
+      order: 10,
+      nodes: [
+        {
+          id: 'label',
+          path: ['label'],
+          label: 'Name',
+          kind: 'INPUT',
+          type: 'TEXT',
+          visible: true,
+          required: true,
+          clearPaths: []
+        },
+        {
+          id: 'category',
+          path: ['category'],
+          label: 'Category',
+          kind: 'INPUT',
+          type: 'SELECT_SINGLE',
+          visible: true,
+          required: false,
+          clearPaths: [],
+          options: [{ value: 'arcane', label: 'Arcane' }]
+        },
+        {
+          id: 'hiddenText',
+          path: ['hiddenText'],
+          label: 'Hidden Text',
+          kind: 'INPUT',
+          type: 'TEXT',
+          visible: false,
+          required: false,
+          hiddenBehavior: 'CLEAR',
+          clearPaths: [['hiddenText']]
+        }
+      ]
+    }]
+  }
+
+  return (
+    <appForm.AppForm>
+      <AuthoredFormRuntime
+        form={appForm}
+        nodeMap={runtimeFixtureNodeMap}
+        runtimeModel={runtimeModel}
+        onClearPaths={onClearPaths}
+      />
+    </appForm.AppForm>
+  )
+}
+
 describe('Phase 9.5 form runtime', () => {
   it('updates values through TanStack Form field state', async () => {
     const user = userEvent.setup()
@@ -207,5 +286,65 @@ describe('Phase 9.5 form runtime', () => {
     })
 
     expect(options).toEqual([{ value: 'FINESSE', label: 'Finesse' }])
+  })
+
+  it('uses resolver visibility and clear paths as the active runtime model', async () => {
+    const onClearPaths = vi.fn()
+    renderWithAppProviders(<ResolvedRuntimeHarness onClearPaths={onClearPaths} />)
+
+    expect(screen.getByRole('textbox', { name: /name/i })).toBeVisible()
+    expect(screen.queryByRole('textbox', { name: /hidden text/i })).not.toBeInTheDocument()
+
+    await waitFor(() => {
+      expect(onClearPaths).toHaveBeenCalledWith([['hiddenText']])
+    })
+  })
+
+  it('uses resolver options for select fields', async () => {
+    const user = userEvent.setup()
+    renderWithAppProviders(<ResolvedRuntimeHarness />)
+
+    await user.click(screen.getByRole('textbox', { name: /category/i }))
+
+    expect(await screen.findByText('Arcane')).toBeInTheDocument()
+  })
+
+  it('does not silently render empty options for unresolved DATA sources', () => {
+    const options = defaultOptionResolver({
+      nodeId: 'classes',
+      node: {} as never,
+      values: defaultValues,
+      source: {
+        kind: 'DATA',
+        relationship: {
+          kind: 'TABLE',
+          table: 'classes'
+        }
+      }
+    })
+
+    expect(options).toEqual([{
+      value: '__runtime_options_unresolved__',
+      label: 'Runtime options unavailable',
+      disabled: true
+    }])
+  })
+
+  it('clears hidden runtime values from draft data', () => {
+    expect(applyNodeRuntimeClearPaths(defaultValues, [['hiddenText']])).toEqual({
+      values: {
+        label: 'Ember Ward',
+        description: 'A protective spell.',
+        level: 2,
+        notes: ['Playtest note']
+      },
+      clearedPaths: [['hiddenText']]
+    })
+  })
+
+  it('uses kind-specific runtime debounce defaults', () => {
+    expect(getNodeRuntimeDebounceMs('SELECT_SINGLE')).toBe(50)
+    expect(getNodeRuntimeDebounceMs('TEXT')).toBe(200)
+    expect(getNodeRuntimeDebounceMs(undefined)).toBe(150)
   })
 })

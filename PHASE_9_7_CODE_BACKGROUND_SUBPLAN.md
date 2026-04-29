@@ -1,6 +1,6 @@
 # Phase 9.7 - Code: Background
 
-## Status: Not Started
+## Status: Active
 
 ## Objective
 
@@ -9,6 +9,7 @@ Rebuild the background authoring surfaces on the shared list and form runtime. B
 ## Prerequisite
 
 - [PHASE_9_6_CODE_SPELL_SUBPLAN.md](PHASE_9_6_CODE_SPELL_SUBPLAN.md)
+- [PHASE_9_6_1_NODE_MAP_RESOLVER_SUBPLAN.md](PHASE_9_6_1_NODE_MAP_RESOLVER_SUBPLAN.md)
 - [PHASE_8_4_FIGMA_BACKGROUND_SUBPLAN.md](PHASE_8_4_FIGMA_BACKGROUND_SUBPLAN.md)
 
 ## Surface Set
@@ -40,18 +41,26 @@ Derive sections from `BACKGROUND_NODE_MAP` and the locked Figma screens:
 - `GET /content/backgrounds/:id`
 - `POST /content/backgrounds`
 - explicit `provenance` and `permissions`
-- reference data for:
+- node-map runtime resolution for:
+  - rendered sections and visible nodes
+  - required state
+  - hidden-value behavior
   - proficiencies
   - equipment
   - features
   - systems and currencies where required by starting equipment
+- explicit page-level reference data only where the UI needs data outside field option resolution
+- 9.6.1 runtime status:
+  - use `POST /node-runtime/resolve` for Background root and nested editor scopes
+  - use `POST /node-runtime/normalize-values` before saving rebuilt Background drafts
+  - do not add Background-specific reference loaders for node-map field options unless the node-map DSL is missing required metadata
 
 ## Implementation Tracks
 
 1. Rebuild the background list with the shared list pattern and locked-master affordances.
 2. Render the background form from shared node-map sections rather than hand-written step components.
 3. Use proper textarea or rich-text treatment for longform description fields.
-4. Build starting-equipment editing on the shared nested object and relationship-picker runtime.
+4. Build starting-equipment editing on the shared nested object and relationship-picker runtime, using the node-map runtime resolver for visibility, required state, hidden behavior, and `DATA` sources instead of hard-wired Background reference loaders or web-local condition logic.
 5. Keep save, edit, and copy flows entirely transport-backed through `apps/apis`.
 
 ## Stories, Tests, and Playwright

@@ -1,6 +1,7 @@
 import { Button, Group, Stack, Text } from '@mantine/core'
 import type { NodeMap } from '@artificer-toolkit/shared'
 import { resolveNodeMapSections } from '@artificer-toolkit/shared'
+import type { NodeRuntimePathDto, NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema'
 import { NodeMapRenderer, type NodeOptionResolver, type RuntimeNodeForm } from './NodeMapRenderer'
 import { SectionNavigator } from './SectionNavigator'
 import { runtimeShell } from './runtimeStyles.css.ts'
@@ -12,7 +13,9 @@ export function AuthoredFormRuntime<TValues extends object>({
   readOnly,
   lockedCopyLabel = 'Copy to edit',
   onCopy,
-  optionResolver
+  optionResolver,
+  runtimeModel,
+  onClearPaths
 }: {
   form: RuntimeNodeForm<TValues>
   nodeMap: NodeMap<TValues>
@@ -20,6 +23,8 @@ export function AuthoredFormRuntime<TValues extends object>({
   lockedCopyLabel?: string
   onCopy?: () => void
   optionResolver?: NodeOptionResolver<TValues>
+  runtimeModel?: NodeRuntimeResolveResponseDto
+  onClearPaths?: (paths: readonly NodeRuntimePathDto[]) => void
 }) {
   const sections = resolveNodeMapSections(nodeMap)
   const firstSectionId = sections[0]?.id ?? ''
@@ -46,6 +51,8 @@ export function AuthoredFormRuntime<TValues extends object>({
           activeSectionId={activeSectionId}
           readOnly={readOnly}
           optionResolver={optionResolver}
+          runtimeModel={runtimeModel}
+          onClearPaths={onClearPaths}
         />
       </div>
     </Stack>

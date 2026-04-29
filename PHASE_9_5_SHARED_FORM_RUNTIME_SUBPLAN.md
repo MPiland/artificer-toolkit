@@ -149,6 +149,7 @@ Known follow-up:
 
 - Storybook emits chunk-size warnings, especially for the rich text runtime story. This is acceptable for 9.5 Storybook coverage, but domain routes should avoid eagerly loading rich text where it is not needed.
 - Manual Storybook review accepted the runtime as directionally good enough. Token and radius tightening is deferred to integrated domain form polish during 9.6, when the runtime is visible inside the real Spell form.
+- Follow-up correction: the 9.5 runtime resolves sections, inline options, and basic local visibility, but it does not yet execute the complete node-map runtime model: `source.kind === 'DATA'`, relationship filters, requiredness, hidden behavior, and cross-client resolved node state. [PHASE_9_6_1_NODE_MAP_RESOLVER_SUBPLAN.md](PHASE_9_6_1_NODE_MAP_RESOLVER_SUBPLAN.md) is required before later domains repeat hand-wired reference-data loaders or web-local node-condition logic.
 
 ## Review Gate
 

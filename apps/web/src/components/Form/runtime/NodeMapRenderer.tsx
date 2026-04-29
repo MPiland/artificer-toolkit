@@ -1,14 +1,18 @@
 import { Alert, Stack, Text, Title } from '@mantine/core'
 import type { ComponentType, ReactNode } from 'react'
+import { useEffect, useMemo } from 'react'
 import type { AnyFieldApi } from '@tanstack/react-form'
 import type { NodeEntry, NodeMap, NodeSelectSource, SectionedNodeGroup } from '@artificer-toolkit/shared'
 import { resolveNodeMapSections } from '@artificer-toolkit/shared'
+import type { NodeRuntimeNodeDto, NodeRuntimePathDto, NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema'
 import { clsx } from 'clsx'
 import { fieldGrid, sectionPanel, sectionStack, wideField } from './runtimeStyles.css.ts'
 import { NestedCollectionShell, NestedObjectShell } from './NestedEditors'
 import { isConditionVisible } from './nodeVisibility'
 import type { RuntimeFieldProps, RuntimeSelectFieldProps } from './AppForm'
 import type { SelectOption } from './formUtils'
+
+const EMPTY_RUNTIME_PATHS: readonly NodeRuntimePathDto[] = []
 
 type RuntimeFieldApi = AnyFieldApi & {
   TextField: ComponentType<RuntimeFieldProps>
@@ -46,18 +50,25 @@ export function NodeMapRenderer<TValues extends object>({
   nodeMap,
   activeSectionId,
   readOnly,
-  optionResolver = defaultOptionResolver
+  optionResolver = defaultOptionResolver,
+  runtimeModel,
+  onClearPaths
 }: {
   form: RuntimeNodeForm<TValues>
   nodeMap: NodeMap<TValues>
   activeSectionId?: string
   readOnly?: boolean
   optionResolver?: NodeOptionResolver<TValues>
+  runtimeModel?: NodeRuntimeResolveResponseDto
+  onClearPaths?: (paths: readonly NodeRuntimePathDto[]) => void
 }) {
   const sections = resolveNodeMapSections(nodeMap)
+  const runtimeNodeById = useRuntimeNodeById(runtimeModel)
   const visibleSections = activeSectionId
     ? sections.filter((section) => section.id === activeSectionId)
     : sections
+
+  useRuntimeClearPaths(runtimeModel, onClearPaths)
 
   return (
     <Stack className={sectionStack}>
@@ -68,6 +79,7 @@ export function NodeMapRenderer<TValues extends object>({
           section={section}
           readOnly={readOnly}
           optionResolver={optionResolver}
+          runtimeNodeById={runtimeNodeById}
         />
       ))}
     </Stack>
@@ -78,12 +90,14 @@ function SectionPanel<TValues extends object>({
   form,
   section,
   readOnly,
-  optionResolver
+  optionResolver,
+  runtimeNodeById
 }: {
   form: RuntimeNodeForm<TValues>
   section: SectionedNodeGroup<TValues>
   readOnly?: boolean
   optionResolver: NodeOptionResolver<TValues>
+  runtimeNodeById: ReadonlyMap<string, NodeRuntimeNodeDto>
 }) {
   return (
     <section className={sectionPanel} aria-labelledby={`section-${section.id}`}>
@@ -91,8 +105,8 @@ function SectionPanel<TValues extends object>({
       <form.Subscribe selector={(state) => state.values}>
         {(values) => (
           <div className={fieldGrid}>
-            {section.nodes.map(({ id, node }) => isConditionVisible(node.showIf, values)
-              ? renderNode({ form, nodeId: id, node, values, readOnly, optionResolver })
+            {section.nodes.map(({ id, node }) => isNodeVisible(node, values, runtimeNodeById.get(id))
+              ? renderNode({ form, nodeId: id, node, values, readOnly, optionResolver, runtimeNode: runtimeNodeById.get(id) })
               : null)}
           </div>
         )}
@@ -107,7 +121,8 @@ function renderNode<TValues extends object>({
   node,
   values,
   readOnly,
-  optionResolver
+  optionResolver,
+  runtimeNode
 }: {
   form: RuntimeNodeForm<TValues>
   nodeId: string
@@ -115,9 +130,12 @@ function renderNode<TValues extends object>({
   values: TValues
   readOnly?: boolean
   optionResolver: NodeOptionResolver<TValues>
+  runtimeNode?: NodeRuntimeNodeDto
 }) {
   const name = node.path.join('.')
   const isWide = node.kind === 'GROUP' || node.type === 'RICH_TEXT'
+  const resolvedReadOnly = readOnly || runtimeNode?.readOnly || runtimeNode?.disabled
+  const resolvedRequired = runtimeNode?.required
 
   if (node.kind === 'GROUP') {
     if (node.groupKind === 'ARRAY') {
@@ -125,7 +143,7 @@ function renderNode<TValues extends object>({
         <div key={nodeId} className={wideField}>
           <form.AppField name={name} mode='array'>
             {(field) => (
-              <NestedCollectionShell field={field} label={node.label} readOnly={readOnly} />
+              <NestedCollectionShell field={field} label={node.label} readOnly={resolvedReadOnly} />
             )}
           </form.AppField>
         </div>
@@ -134,7 +152,7 @@ function renderNode<TValues extends object>({
 
     return (
       <div key={nodeId} className={wideField}>
-        <NestedObjectShell label={node.label} readOnly={readOnly} />
+        <NestedObjectShell label={node.label} readOnly={resolvedReadOnly} />
       </div>
     )
   }
@@ -147,7 +165,7 @@ function renderNode<TValues extends object>({
       return (
         <div key={nodeId} className={fieldClass}>
           <form.AppField name={name}>
-            {(field) => <field.TextField label={node.label} readOnly={readOnly} />}
+            {(field) => <field.TextField label={node.label} required={resolvedRequired} readOnly={resolvedReadOnly} />}
           </form.AppField>
         </div>
       )
@@ -155,7 +173,7 @@ function renderNode<TValues extends object>({
       return (
         <div key={nodeId} className={fieldClass}>
           <form.AppField name={name}>
-            {(field) => <field.NumberField label={node.label} readOnly={readOnly} />}
+            {(field) => <field.NumberField label={node.label} required={resolvedRequired} readOnly={resolvedReadOnly} />}
           </form.AppField>
         </div>
       )
@@ -163,7 +181,7 @@ function renderNode<TValues extends object>({
       return (
         <div key={nodeId} className={fieldClass}>
           <form.AppField name={name}>
-            {(field) => <field.RichTextField label={node.label} readOnly={readOnly} />}
+            {(field) => <field.RichTextField label={node.label} required={resolvedRequired} readOnly={resolvedReadOnly} />}
           </form.AppField>
         </div>
       )
@@ -174,8 +192,9 @@ function renderNode<TValues extends object>({
             {(field) => (
               <field.SelectField
                 label={node.label}
-                readOnly={readOnly}
-                data={optionResolver({ nodeId, node, source: node.source, values })}
+                required={resolvedRequired}
+                readOnly={resolvedReadOnly}
+                data={resolveRuntimeOptions(runtimeNode, () => optionResolver({ nodeId, node, source: node.source, values }))}
               />
             )}
           </form.AppField>
@@ -188,8 +207,9 @@ function renderNode<TValues extends object>({
             {(field) => (
               <field.MultiSelectField
                 label={node.label}
-                readOnly={readOnly}
-                data={optionResolver({ nodeId, node, source: node.source, values })}
+                required={resolvedRequired}
+                readOnly={resolvedReadOnly}
+                data={resolveRuntimeOptions(runtimeNode, () => optionResolver({ nodeId, node, source: node.source, values }))}
               />
             )}
           </form.AppField>
@@ -202,6 +222,42 @@ function renderNode<TValues extends object>({
         </Alert>
       )
   }
+}
+
+function isNodeVisible<TValues extends object>(
+  node: NodeEntry<TValues>,
+  values: TValues,
+  runtimeNode?: NodeRuntimeNodeDto
+): boolean {
+  return runtimeNode?.visible ?? isConditionVisible(node.showIf, values)
+}
+
+function resolveRuntimeOptions(
+  runtimeNode: NodeRuntimeNodeDto | undefined,
+  fallback: () => SelectOption[]
+): SelectOption[] {
+  if (runtimeNode?.options) return runtimeNode.options
+  return fallback()
+}
+
+function useRuntimeNodeById(runtimeModel: NodeRuntimeResolveResponseDto | undefined) {
+  return useMemo(() => {
+    const nodes = runtimeModel?.sections.flatMap((section) => section.nodes) ?? []
+    return new Map(nodes.map((node) => [node.id, node]))
+  }, [runtimeModel])
+}
+
+function useRuntimeClearPaths(
+  runtimeModel: NodeRuntimeResolveResponseDto | undefined,
+  onClearPaths: ((paths: readonly NodeRuntimePathDto[]) => void) | undefined
+) {
+  const clearPaths = runtimeModel?.clearPaths ?? EMPTY_RUNTIME_PATHS
+  const clearPathKey = clearPaths.map((path) => path.join('.')).join('|')
+
+  useEffect(() => {
+    if (!onClearPaths || clearPaths.length === 0) return
+    onClearPaths(clearPaths)
+  }, [clearPathKey, clearPaths, onClearPaths])
 }
 
 export function defaultOptionResolver<TValues extends object>({
@@ -222,6 +278,14 @@ export function defaultOptionResolver<TValues extends object>({
         value: String(option.code),
         label: option.label
       })))
+  }
+
+  if (source.kind === 'DATA') {
+    return [{
+      value: '__runtime_options_unresolved__',
+      label: 'Runtime options unavailable',
+      disabled: true
+    }]
   }
 
   return []

@@ -123,6 +123,8 @@ Derive sections from `SPELL_NODE_MAP` and the locked Figma screens:
 - `/spells` now navigates to create, view, edit, and locked-master duplicate flows instead of staying fixture/list-only.
 - `/spells/new`, `/spells/$spellId`, and `/spells/$spellId/edit` are live route files with SSR query loaders.
 - Spell reference data is fetched through the shared REST adapter and `apps/apis`, including systems, classes, creatures, damage types, condition types, and magic schools.
+- Spell's explicit reference-data loader and partial web-local node-condition handling are accepted as a temporary bridge for the first domain slice, not the long-term authored-form pattern. [PHASE_9_6_1_NODE_MAP_RESOLVER_SUBPLAN.md](PHASE_9_6_1_NODE_MAP_RESOLVER_SUBPLAN.md) has now added the trusted runtime path for resolved node visibility, requiredness, hidden behavior, and node-map `DATA` option sources behind `packages/functions` and `apps/apis`.
+- Spell saves now run through node-runtime value normalization before persistence, so hidden `CLEAR` behavior is enforced server-side even while some field-option reference wiring remains temporary.
 - `components/EffectEditor` owns the reusable effect authoring surface and opens as a full-screen modal/drill-in editor.
 - The EffectEditor full-screen shell was reworked toward the Figma Effects frame: custom header, breadcrumb trail, canvas body, content panel, and footer actions instead of stock modal chrome.
 - Read-only EffectEditor stories now hide remove actions and use the reusable `IExternalLink` icon for view/open.

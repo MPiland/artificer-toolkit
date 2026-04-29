@@ -81,4 +81,42 @@ describe('REST api adapter', () => {
 
     expect(response?.item.label).toBe('Magic Missile Copy')
   })
+
+  it('resolves node runtime models through the REST adapter', async () => {
+    expect.assertions(3)
+    server.use(
+      http.post(`${API_BASE}/node-runtime/resolve`, async ({ request }) => {
+        expect(request.headers.get('authorization')).toBe('Bearer test-token')
+        const body = await request.json() as { mapId: string }
+        expect(body.mapId).toBe('spell')
+        return HttpResponse.json({
+          mapId: 'spell',
+          clearPaths: [],
+          sections: [{
+            id: 'basics',
+            label: 'Basics',
+            order: 10,
+            nodes: [{
+              id: 'magicSchoolId',
+              path: ['magicSchoolId'],
+              label: 'Magic School',
+              kind: 'INPUT',
+              type: 'SELECT_SINGLE',
+              visible: true,
+              required: false,
+              clearPaths: [],
+              options: [{ value: 'evocation', label: 'Evocation' }]
+            }]
+          }]
+        })
+      })
+    )
+
+    const response = await createServerApi('test-token').nodeRuntime.resolve({
+      mapId: 'spell',
+      values: {}
+    })
+
+    expect(response.sections[0]?.nodes[0]?.options?.[0]?.value).toBe('evocation')
+  })
 })

@@ -82,6 +82,13 @@ export function handleAuthoringRequest<TBody, TResult>(
         await db.destroy()
       }
     } catch (err) {
+      if (err instanceof Error && err.name === 'NodeRuntimeInputError') {
+        return new Response(
+          JSON.stringify({ error: err.message }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        )
+      }
+
       console.error(err)
       return new Response('Internal Server Error', { status: 500 })
     }

@@ -1,4 +1,9 @@
-import { handleRequest, handleAuthoringRequest, createSpellSubjectAuthoringService } from '@artificer-toolkit/functions'
+import {
+  handleRequest,
+  handleAuthoringRequest,
+  createSpellSubjectAuthoringService,
+  normalizeNodeRuntimeValues
+} from '@artificer-toolkit/functions'
 import { getSpellListQuery } from '@artificer-toolkit/db'
 import { createSpellRepository } from '@artificer-toolkit/db'
 import type { SpellAuthored } from '@artificer-toolkit/shared'
@@ -33,7 +38,12 @@ export const createSpell = handleAuthoringRequest(
   spellAuthoredDtoSchema,
   async (db, body: SpellAuthoredDto, userId) => {
     const service = createSpellSubjectAuthoringService(db)
-    const result = await service.execute(normalizeAuthoringInput(body, userId))
+    const normalized = await normalizeNodeRuntimeValues(db, {
+      mapId: 'spell',
+      values: { ...body }
+    })
+    const normalizedBody = spellAuthoredDtoSchema.parse(normalized.values)
+    const result = await service.execute(normalizeAuthoringInput(normalizedBody, userId))
     return normalizeAuthoringResult(db, 'spells', result, userId)
   }
 )

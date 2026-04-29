@@ -9,6 +9,11 @@ import { modifierGrantDtoSchema } from '../grants/modifier.js'
 import { proficiencyGrantDtoSchema } from '../grants/proficiency.js'
 import { startingEquipmentDtoSchema } from '../shared/startingEquipment.js'
 import { backgroundListResponseDtoSchema, featureResponseDtoSchema, spellResponseDtoSchema } from '../api/content.js'
+import {
+  nodeRuntimeNormalizeValuesRequestDtoSchema,
+  nodeRuntimeResolveRequestDtoSchema,
+  nodeRuntimeResolveResponseDtoSchema
+} from '../api/nodeRuntime.js'
 import { resourceIdParamsDtoSchema, systemAuthoredDtoSchema, systemListResponseDtoSchema } from '../index.js'
 import { classAuthoredDtoSchema } from '../subjects/class.js'
 import { featAuthoredDtoSchema } from '../subjects/feat.js'
@@ -1647,6 +1652,54 @@ describe('schema package parsing', () => {
     expect(list.items[0]?.id).toBe('acolyte')
     expect(feature?.label).toBe('Fighting Style')
     expect(spell?.permissions?.canEdit).toBe(false)
+  })
+
+  it('parses node runtime resolve and normalize contracts', () => {
+    const request = nodeRuntimeResolveRequestDtoSchema.parse({
+      mapId: 'startingEquipmentItem',
+      values: {
+        category: 'WEAPON',
+        authoringModeKind: 'SELECTED'
+      },
+      parentValues: {
+        selectionKind: 'CHOSEN'
+      },
+      ancestors: [{ systemId: 'dnd-5e-srd' }],
+      systemId: 'dnd-5e-srd'
+    })
+
+    const response = nodeRuntimeResolveResponseDtoSchema.parse({
+      mapId: 'startingEquipmentItem',
+      clearPaths: [['equipmentIds']],
+      sections: [{
+        id: 'basics',
+        label: 'Basics',
+        order: 10,
+        nodes: [{
+          id: 'equipmentIds',
+          path: ['equipmentIds'],
+          label: 'Equipment',
+          kind: 'INPUT',
+          type: 'SELECT_MULTI',
+          visible: true,
+          required: false,
+          clearPaths: [],
+          options: [{
+            value: 'longsword',
+            label: 'Longsword',
+            description: 'A martial melee weapon.',
+            disabled: false,
+            group: 'Weapons',
+            metadata: { category: 'WEAPON' }
+          }]
+        }]
+      }]
+    })
+
+    const normalizeRequest = nodeRuntimeNormalizeValuesRequestDtoSchema.parse(request)
+
+    expect(response.sections[0]?.nodes[0]?.options?.[0]?.value).toBe('longsword')
+    expect(normalizeRequest.mapId).toBe('startingEquipmentItem')
   })
 })
 
