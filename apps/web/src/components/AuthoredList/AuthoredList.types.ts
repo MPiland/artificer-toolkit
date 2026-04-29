@@ -13,20 +13,33 @@ export interface AuthoredListPermissions {
 export interface AuthoredListItem {
   id: string
   name: string
-  level?: string
-  school?: string
-  castingTime?: string
-  classes?: string[]
+  description?: string
+  attributes?: Record<string, string | undefined>
+  badges?: string[]
+  searchText?: string
+  filterValues?: Record<string, string | string[] | undefined>
+  sortValues?: Record<string, string | number | undefined>
   sourceLabel: string
   sourceKind: AuthoredListProvenance
   permissions: AuthoredListPermissions
 }
 
 export interface AuthoredListFilter {
-  key: 'school' | 'level' | 'class'
+  key: string
   label: string
   placeholder: string
   options: Array<{ value: string, label: string }>
+}
+
+export interface AuthoredListAttributeColumn {
+  key: string
+  label: string
+  fallback?: string
+}
+
+export interface AuthoredListSortOption {
+  value: string
+  label: string
 }
 
 export interface AuthoredListPageProps {
@@ -35,6 +48,9 @@ export interface AuthoredListPageProps {
   createLabel: string
   items: AuthoredListItem[]
   filters: AuthoredListFilter[]
+  attributeColumns?: AuthoredListAttributeColumn[]
+  sortOptions?: AuthoredListSortOption[]
+  defaultSort?: string
   emptyState?: ReactNode
   error?: string
   loading?: boolean

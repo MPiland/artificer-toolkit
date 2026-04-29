@@ -1,7 +1,7 @@
 import { ActionIcon, Button, Group, Menu, Select, Skeleton, Table, Text, TextInput, Tooltip } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import type { CSSProperties, KeyboardEvent, ReactNode, RefObject } from 'react'
+import type { CSSProperties, ReactNode, RefObject } from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import IMore from '#assets/icons/IMore'
 import ICreate from '#assets/icons/ICreate'
@@ -11,7 +11,14 @@ import IGrid from '#assets/icons/IGrid'
 import IList from '#assets/icons/IList'
 import ITrash from '#assets/icons/ITrash'
 import { PageHeader } from '#app/shell'
-import type { AuthoredListFilter, AuthoredListItem, AuthoredListPageProps, AuthoredListViewMode } from './AuthoredList.types'
+import type {
+  AuthoredListAttributeColumn,
+  AuthoredListFilter,
+  AuthoredListItem,
+  AuthoredListPageProps,
+  AuthoredListSortOption,
+  AuthoredListViewMode
+} from './AuthoredList.types'
 import * as styles from './AuthoredList.css'
 
 const mobileQuery = '(max-width: 760px)'
@@ -23,6 +30,9 @@ export function AuthoredListPage({
   createLabel,
   items,
   filters,
+  attributeColumns = [],
+  sortOptions = [{ value: 'name', label: 'Name A-Z' }],
+  defaultSort = 'name',
   emptyState,
   error,
   loading = false,
@@ -36,12 +46,8 @@ export function AuthoredListPage({
   const isMobile = useMediaQuery(mobileQuery, false)
   const isTablet = useMediaQuery(tabletQuery, false)
   const [query, setQuery] = useState('')
-  const [filterValues, setFilterValues] = useState<Record<AuthoredListFilter['key'], string | null>>({
-    school: null,
-    level: null,
-    class: null
-  })
-  const [sort, setSort] = useState('name')
+  const [filterValues, setFilterValues] = useState<Record<string, string | null>>(() => buildInitialFilters(filters))
+  const [sort, setSort] = useState(defaultSort)
   const [viewMode, setViewMode] = useState<AuthoredListViewMode>(() => {
     if (initialViewMode) {
       return initialViewMode
@@ -59,23 +65,40 @@ export function AuthoredListPage({
     const normalizedQuery = query.trim().toLowerCase()
 
     const matchingItems = items.filter((item) => {
-      const matchesQuery = normalizedQuery.length === 0 || item.name.toLowerCase().includes(normalizedQuery)
-      const matchesSchool = !filterValues.school || item.school === filterValues.school
-      const matchesLevel = !filterValues.level || item.level === filterValues.level
-      const matchesClass = !filterValues.class || item.classes?.includes(filterValues.class)
+      const searchable = [
+        item.name,
+        item.description,
+        item.searchText,
+        ...Object.values(item.attributes ?? {}),
+        ...(item.badges ?? [])
+      ]
+        .filter((value): value is string => Boolean(value))
+        .join(' ')
+        .toLowerCase()
+      const matchesQuery = normalizedQuery.length === 0 || searchable.includes(normalizedQuery)
+      const matchesFilters = filters.every((filter) => {
+        const selected = filterValues[filter.key]
+        if (!selected) return true
+        const value = item.filterValues?.[filter.key]
+        if (Array.isArray(value)) return value.includes(selected)
+        return value === selected
+      })
 
-      return matchesQuery && matchesSchool && matchesLevel && matchesClass
+      return matchesQuery && matchesFilters
     })
 
     return [...matchingItems].sort((left, right) => {
-      if (sort === 'level') {
-        return Number(left.level ?? 0) - Number(right.level ?? 0) || left.name.localeCompare(right.name)
+      const leftValue = left.sortValues?.[sort]
+      const rightValue = right.sortValues?.[sort]
+
+      if (typeof leftValue === 'number' || typeof rightValue === 'number') {
+        return Number(leftValue ?? 0) - Number(rightValue ?? 0) || left.name.localeCompare(right.name)
       }
 
-      return left.name.localeCompare(right.name)
+      return String(leftValue ?? left.name).localeCompare(String(rightValue ?? right.name))
     })
   }, [
-    filterValues, items, query, sort
+    filterValues, filters, items, query, sort
   ])
 
   const cardColumnCount = viewMode === 'cards'
@@ -110,6 +133,12 @@ export function AuthoredListPage({
     cardColumnCount, filterValues, query, rowVirtualizer, sort, viewMode
   ])
 
+  useEffect(() => {
+    if (isMobile && viewMode !== 'cards') {
+      setViewMode('cards')
+    }
+  }, [isMobile, viewMode])
+
   const actionHandlers = {
     onEdit,
     onCopy,
@@ -136,7 +165,7 @@ export function AuthoredListPage({
           value={query}
           onChange={(event) => setQuery(event.currentTarget.value)}
         />
-        {filters.map((filter) => (
+          {filters.map((filter) => (
           <Select
             key={filter.key}
             label={filter.label}
@@ -152,10 +181,7 @@ export function AuthoredListPage({
         ))}
         <Select
           label='Sort'
-          data={[
-            { value: 'name', label: 'Name A-Z' },
-            { value: 'level', label: 'Level' }
-          ]}
+          data={sortOptions}
           classNames={{ input: styles.fieldInput, label: styles.fieldLabel }}
           value={sort}
           allowDeselect={false}
@@ -167,6 +193,7 @@ export function AuthoredListPage({
               aria-label='Table view'
               aria-pressed={viewMode === 'table'}
               className={`${styles.viewToggleButton} ${viewMode === 'table' ? styles.viewToggleButtonActive : ''}`}
+              disabled={isMobile}
               variant='subtle'
               onClick={() => setViewMode('table')}
             >
@@ -200,6 +227,7 @@ export function AuthoredListPage({
                     <CardList
                       cardColumnCount={cardColumnCount}
                       filteredItems={filteredItems}
+                      attributeColumns={attributeColumns}
                       onView={onView}
                       paddingBottom={paddingBottom}
                       paddingTop={paddingTop}
@@ -212,6 +240,7 @@ export function AuthoredListPage({
                 : (
                     <TableList
                       filteredItems={filteredItems}
+                      attributeColumns={attributeColumns}
                       onView={onView}
                       paddingBottom={paddingBottom}
                       paddingTop={paddingTop}
@@ -229,6 +258,7 @@ export function AuthoredListPage({
 
 function TableList({
   filteredItems,
+  attributeColumns,
   renderedRows,
   paddingTop,
   paddingBottom,
@@ -237,6 +267,7 @@ function TableList({
   actionHandlers
 }: {
   filteredItems: AuthoredListItem[]
+  attributeColumns: AuthoredListAttributeColumn[]
   renderedRows: number[]
   paddingTop: number
   paddingBottom: number
@@ -244,6 +275,8 @@ function TableList({
   onView?: (item: AuthoredListItem) => void
   actionHandlers: AuthoredListActionHandlers
 }) {
+  const columnCount = attributeColumns.length + 5
+
   return (
     <div className={styles.tableScroll} ref={viewportRef}>
       <Table
@@ -256,25 +289,26 @@ function TableList({
           <Table.Tr>
             <Table.Th className={styles.dotCell} aria-label='Provenance' />
             <Table.Th>Name</Table.Th>
-            <Table.Th>Lvl</Table.Th>
-            <Table.Th>School</Table.Th>
-            <Table.Th>Casting Time</Table.Th>
-            <Table.Th>Classes</Table.Th>
+            {attributeColumns.map((column) => (
+              <Table.Th key={column.key}>{column.label}</Table.Th>
+            ))}
+            <Table.Th>Tags</Table.Th>
             <Table.Th>Source</Table.Th>
             <Table.Th className={styles.actionCell}>Actions</Table.Th>
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
-          {paddingTop > 0 ? <SpacerRow height={paddingTop} /> : null}
+          {paddingTop > 0 ? <SpacerRow height={paddingTop} columnCount={columnCount} /> : null}
           {renderedRows.map((itemIndex) => (
             <AuthoredListRow
               item={filteredItems[itemIndex]}
+              attributeColumns={attributeColumns}
               key={filteredItems[itemIndex].id}
               onView={onView}
               actionHandlers={actionHandlers}
             />
           ))}
-          {paddingBottom > 0 ? <SpacerRow height={paddingBottom} /> : null}
+          {paddingBottom > 0 ? <SpacerRow height={paddingBottom} columnCount={columnCount} /> : null}
         </Table.Tbody>
       </Table>
     </div>
@@ -284,6 +318,7 @@ function TableList({
 function CardList({
   cardColumnCount,
   filteredItems,
+  attributeColumns,
   renderedRows,
   paddingTop,
   paddingBottom,
@@ -294,6 +329,7 @@ function CardList({
 }: {
   cardColumnCount: number
   filteredItems: AuthoredListItem[]
+  attributeColumns: AuthoredListAttributeColumn[]
   renderedRows: number[]
   paddingTop: number
   paddingBottom: number
@@ -319,6 +355,7 @@ function CardList({
               {rowItems.map((item) => (
                 <AuthoredListCard
                   item={item}
+                  attributeColumns={attributeColumns}
                   key={item.id}
                   onView={onView}
                   actionHandlers={actionHandlers}
@@ -334,20 +371,22 @@ function CardList({
   )
 }
 
-function SpacerRow({ height }: { height: number }) {
+function SpacerRow({ height, columnCount }: { height: number, columnCount: number }) {
   return (
     <Table.Tr aria-hidden='true'>
-      <Table.Td colSpan={8} style={{ height, padding: 0, border: 0 }} />
+      <Table.Td colSpan={columnCount} style={{ height, padding: 0, border: 0 }} />
     </Table.Tr>
   )
 }
 
 function AuthoredListRow({
   item,
+  attributeColumns,
   onView,
   actionHandlers
 }: {
   item: AuthoredListItem
+  attributeColumns: AuthoredListAttributeColumn[]
   onView?: (item: AuthoredListItem) => void
   actionHandlers: AuthoredListActionHandlers
 }) {
@@ -357,32 +396,40 @@ function AuthoredListRow({
       onView?.(item)
     }
   }
-  const handleRowKeyDown = (event: KeyboardEvent<HTMLTableRowElement>) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault()
-      handleView()
-    }
-  }
 
   return (
     <Table.Tr
       className={styles.listRow}
-      tabIndex={item.permissions.canView ? 0 : -1}
       aria-label={`View ${item.name}`}
       onClick={handleView}
-      onKeyDown={handleRowKeyDown}
     >
       <Table.Td className={styles.dotCell}>
         <span className={`${styles.sourceDot} ${item.sourceKind === 'master' ? styles.masterDot : ''}`} />
       </Table.Td>
-      <Table.Td className={styles.nameCell}>{item.name}</Table.Td>
-      <Table.Td className={styles.monoCell}>{item.level ?? '-'}</Table.Td>
-      <Table.Td>{item.school ?? '-'}</Table.Td>
-      <Table.Td>{item.castingTime ?? '-'}</Table.Td>
+      <Table.Td className={styles.nameCell}>
+        {item.permissions.canView ? (
+          <button
+            aria-label={`Open ${item.name}`}
+            className={styles.itemNameButton}
+            onClick={(event) => {
+              event.stopPropagation()
+              handleView()
+            }}
+            type='button'
+          >
+            {item.name}
+          </button>
+        ) : item.name}
+      </Table.Td>
+      {attributeColumns.map((column) => (
+        <Table.Td key={column.key} className={styles.monoCell}>
+          {item.attributes?.[column.key] ?? column.fallback ?? '-'}
+        </Table.Td>
+      ))}
       <Table.Td>
         <span className={styles.chipGroup}>
-          {item.classes?.slice(0, 3).map((className) => (
-            <span key={className} className={styles.classChip}>{className}</span>
+          {item.badges?.slice(0, 3).map((badge) => (
+            <span key={badge} className={styles.classChip}>{badge}</span>
           ))}
         </span>
       </Table.Td>
@@ -400,26 +447,29 @@ function AuthoredListRow({
 
 function AuthoredListCard({
   item,
+  attributeColumns,
   onView,
   actionHandlers,
   useMenuActions
 }: {
   item: AuthoredListItem
+  attributeColumns: AuthoredListAttributeColumn[]
   onView?: (item: AuthoredListItem) => void
   actionHandlers: AuthoredListActionHandlers
   useMenuActions: boolean
 }) {
   const sourceLabel = item.sourceKind === 'master' ? 'SRD' : item.sourceLabel
-  const levelLabel = item.level === '0' ? 'Cantrip' : `Level ${item.level ?? '-'}`
+  const primaryAttribute = attributeColumns[0]
+  const secondaryAttribute = attributeColumns[1]
+  const primaryLabel = primaryAttribute
+    ? item.attributes?.[primaryAttribute.key] ?? primaryAttribute.fallback ?? primaryAttribute.label
+    : item.description ?? 'Details not set'
+  const secondaryLabel = secondaryAttribute
+    ? item.attributes?.[secondaryAttribute.key] ?? secondaryAttribute.fallback ?? secondaryAttribute.label
+    : item.description ?? 'Summary not set'
   const handleView = () => {
     if (item.permissions.canView) {
       onView?.(item)
-    }
-  }
-  const handleCardKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault()
-      handleView()
     }
   }
 
@@ -428,15 +478,27 @@ function AuthoredListCard({
       aria-label={`View ${item.name}`}
       className={styles.card}
       onClick={handleView}
-      onKeyDown={handleCardKeyDown}
-      tabIndex={item.permissions.canView ? 0 : -1}
     >
       <div className={styles.cardHeader}>
         <div className={styles.cardTitleGroup}>
           <span className={`${styles.sourceDot} ${item.sourceKind === 'master' ? styles.masterDot : ''}`} />
           <div className={styles.cardTitleStack}>
-            <h2 className={styles.cardTitle}>{item.name}</h2>
-            <span className={styles.cardSubline}>{item.school ?? 'Unassigned school'}</span>
+            <h2 className={styles.cardTitle}>
+              {item.permissions.canView ? (
+                <button
+                  aria-label={`Open ${item.name}`}
+                  className={styles.cardTitleButton}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    handleView()
+                  }}
+                  type='button'
+                >
+                  {item.name}
+                </button>
+              ) : item.name}
+            </h2>
+            {secondaryAttribute ? <span className={styles.cardSubline}>{secondaryLabel}</span> : null}
           </div>
         </div>
         <span className={item.sourceKind === 'master' ? styles.masterSourceChip : styles.sourceChip}>
@@ -444,13 +506,13 @@ function AuthoredListCard({
         </span>
       </div>
       <div className={styles.cardFeatureRow}>
-        <span className={styles.levelBadge}>{levelLabel}</span>
-        <span className={styles.cardFeatureText}>{item.castingTime ?? 'Casting time not set'}</span>
+        {primaryAttribute ? <span className={styles.levelBadge}>{primaryLabel}</span> : null}
+        <span className={styles.cardFeatureText}>{item.description ?? 'No description yet.'}</span>
       </div>
       <div className={styles.cardFooter} onClick={(event) => event.stopPropagation()}>
         <span className={styles.chipGroup}>
-          {item.classes?.slice(0, 3).map((className) => (
-            <span key={className} className={styles.classChip}>{className}</span>
+          {item.badges?.slice(0, 3).map((badge) => (
+            <span key={badge} className={styles.classChip}>{badge}</span>
           ))}
         </span>
         <AuthoredListActions item={item} actionHandlers={actionHandlers} itemName={item.name} menu={useMenuActions} />
@@ -517,7 +579,7 @@ function AuthoredListActions({
       {actions.map((action) => (
         <Tooltip key={action.label} label={`${action.label} ${itemName}`} withArrow>
           <ActionIcon
-            aria-label={action.label}
+            aria-label={`${action.label} ${itemName}`}
             className={`${styles.rowActionButton} ${action.tone === 'danger' ? styles.dangerActionButton : ''}`}
             variant='default'
             onClick={(event) => {
@@ -569,4 +631,11 @@ function StatePanel({ title, copy }: { title: string, copy: string }) {
       <Text size='sm' c='dimmed'>{copy}</Text>
     </div>
   )
+}
+
+function buildInitialFilters(filters: AuthoredListFilter[]): Record<string, string | null> {
+  return filters.reduce<Record<string, string | null>>((values, filter) => {
+    values[filter.key] = null
+    return values
+  }, {})
 }

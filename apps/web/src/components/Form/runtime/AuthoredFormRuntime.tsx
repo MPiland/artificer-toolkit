@@ -1,6 +1,5 @@
 import { Button, Group, Stack, Text } from '@mantine/core'
-import type { NodeMap } from '@artificer-toolkit/shared'
-import { resolveNodeMapSections } from '@artificer-toolkit/shared'
+import { resolveNodeMapSections, type NodeMap } from '@artificer-toolkit/shared/utils'
 import type { NodeRuntimePathDto, NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema'
 import { NodeMapRenderer, type NodeOptionResolver, type RuntimeNodeForm } from './NodeMapRenderer'
 import { SectionNavigator } from './SectionNavigator'

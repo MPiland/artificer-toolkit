@@ -40,16 +40,39 @@ export function mapSpellListToAuthoredItems(response: SpellListResponseDto): Aut
     return {
       id: item.id,
       name: item.label,
-      level: item.level == null ? undefined : String(item.level),
-      school,
-      castingTime: formatCastingTime(item.castingTimeAmount, item.castingTimeUnit),
-      classes,
+      description: item.description ?? undefined,
+      attributes: {
+        level: item.level == null ? undefined : Number(item.level) === 0 ? 'Cantrip' : String(item.level),
+        school,
+        castingTime: formatCastingTime(item.castingTimeAmount, item.castingTimeUnit)
+      },
+      badges: classes,
+      filterValues: {
+        level: item.level == null ? undefined : String(item.level),
+        school,
+        class: classes
+      },
+      sortValues: {
+        level: item.level ?? 0,
+        name: item.label
+      },
       sourceLabel: item.provenance.kind === 'MASTER' ? 'SRD' : 'Homebrew',
       sourceKind: item.provenance.kind === 'MASTER' ? 'master' : 'owned',
       permissions: mapPermissions(item)
     }
   })
 }
+
+export const spellListAttributeColumns = [
+  { key: 'level', label: 'Lvl' },
+  { key: 'school', label: 'School' },
+  { key: 'castingTime', label: 'Casting Time' }
+]
+
+export const spellListSortOptions = [
+  { value: 'name', label: 'Name A-Z' },
+  { value: 'level', label: 'Level' }
+]
 
 export function buildSpellListFilters(response: SpellListResponseDto): AuthoredListFilter[] {
   const spellMeta = response.meta as {

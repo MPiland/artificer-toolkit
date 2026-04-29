@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { Button, Paper, Stack, Text } from '@mantine/core'
-import { SPELL_ATTRIBUTE_OPTIONS, SPELL_COMPONENT_OPTIONS, SPELL_NODE_MAP } from '@artificer-toolkit/shared'
-import { AuthoredFormRuntime, useAppForm } from '.'
+import type { NodeMap } from '@artificer-toolkit/shared/utils'
+import { AuthoredFormRuntime } from './AuthoredFormRuntime'
+import { useAppForm } from './AppForm'
 
 type SpellFormFixture = {
   id: string
@@ -39,14 +40,88 @@ const defaultValues: SpellFormFixture = {
   richNotes: '<p>Use this field for formatted longform notes.</p>'
 }
 
+const spellAttributeOptions = [
+  { code: 'CONCENTRATION', label: 'Concentration' },
+  { code: 'RITUAL', label: 'Ritual' }
+] as const
+
+const spellComponentOptions = [
+  { code: 'VERBAL', label: 'Verbal' },
+  { code: 'SOMATIC', label: 'Somatic' },
+  { code: 'MATERIAL', label: 'Material' }
+] as const
+
+const magicSchoolOptions = [
+  { code: 'abjuration', label: 'Abjuration' },
+  { code: 'evocation', label: 'Evocation' }
+] as const
+
 const inlineOptions = [
-  ...SPELL_ATTRIBUTE_OPTIONS.map((option) => ({ value: option.code, label: option.label })),
-  ...SPELL_COMPONENT_OPTIONS.map((option) => ({ value: option.code, label: option.label })),
+  ...spellAttributeOptions.map((option) => ({ value: option.code, label: option.label })),
+  ...spellComponentOptions.map((option) => ({ value: option.code, label: option.label })),
   { value: 'abjuration', label: 'Abjuration' },
   { value: 'evocation', label: 'Evocation' },
   { value: 'wizard', label: 'Wizard' },
   { value: 'cleric', label: 'Cleric' }
 ]
+
+const storybookSpellNodeMap = {
+  schemaVersion: 1,
+  mapId: 'storybookSpell',
+  nodes: {
+    label: {
+      kind: 'INPUT',
+      type: 'TEXT',
+      path: ['label'],
+      label: 'Name',
+      order: 1,
+      section: { id: 'basics', label: 'Basics', order: 1 }
+    },
+    description: {
+      kind: 'INPUT',
+      type: 'RICH_TEXT',
+      path: ['description'],
+      label: 'Description',
+      order: 2,
+      section: { id: 'basics', label: 'Basics', order: 1 }
+    },
+    level: {
+      kind: 'INPUT',
+      type: 'NUMBER',
+      path: ['level'],
+      label: 'Level',
+      order: 1,
+      section: { id: 'casting', label: 'Casting', order: 2 }
+    },
+    magicSchoolId: {
+      kind: 'INPUT',
+      type: 'SELECT_SINGLE',
+      path: ['magicSchoolId'],
+      label: 'Magic School',
+      source: { kind: 'INLINE', options: magicSchoolOptions },
+      order: 2,
+      section: { id: 'casting', label: 'Casting', order: 2 }
+    },
+    components: {
+      kind: 'INPUT',
+      type: 'SELECT_MULTI',
+      path: ['components'],
+      label: 'Components',
+      source: { kind: 'INLINE', options: spellComponentOptions },
+      order: 3,
+      section: { id: 'casting', label: 'Casting', order: 2 }
+    },
+    attributes: {
+      kind: 'INPUT',
+      type: 'SELECT_MULTI',
+      path: ['attributes'],
+      label: 'Attributes',
+      source: { kind: 'INLINE', options: spellAttributeOptions },
+      order: 4,
+      section: { id: 'casting', label: 'Casting', order: 2 }
+    }
+  }
+} satisfies NodeMap<SpellFormFixture>
 
 function RuntimePrimitiveDemo({ readOnly = false }: { readOnly?: boolean }) {
   const form = useAppForm({
@@ -111,10 +186,9 @@ function RuntimeRendererDemo({ readOnly = false }: { readOnly?: boolean }) {
       >
         <AuthoredFormRuntime
           form={form}
-          nodeMap={SPELL_NODE_MAP}
+          nodeMap={storybookSpellNodeMap}
           readOnly={readOnly}
           onCopy={() => undefined}
-          optionResolver={() => inlineOptions}
         />
       </form>
     </form.AppForm>

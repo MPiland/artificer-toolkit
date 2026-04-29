@@ -84,6 +84,38 @@ test('authored list mobile card menu exposes permission-aware actions', async ({
   await storyExpect(emberLaceMenu.getByRole('menuitem', { name: 'Delete' })).toBeVisible()
 })
 
+test('background list story renders owned and locked master states', async ({ page }) => {
+  await openStory(page, 'domains-backgrounds-list--default')
+
+  await storyExpect(page.getByRole('heading', { name: 'Backgrounds' })).toBeVisible()
+  await storyExpect(page.getByRole('row', { name: /acolyte/i })).toBeVisible()
+  await storyExpect(page.getByRole('row', { name: /urban investigator/i })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: 'Create Background' })).toBeVisible()
+})
+
+test('background form story moves through content sections', async ({ page }) => {
+  await openStory(page, 'domains-backgrounds-form--edit-owned')
+
+  await storyExpect(page.getByRole('heading', { name: 'Background Basics' })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: /Basics: Name and concept/i })).toHaveAttribute('aria-current', 'step')
+  await storyExpect(page.getByRole('textbox', { name: 'Name' })).toHaveValue('Urban Investigator')
+  await page.getByRole('button', { name: 'Next' }).click()
+  await storyExpect(page.getByRole('heading', { name: 'Background Content' })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: /Content: Features, proficiencies, and gear/i })).toHaveAttribute('aria-current', 'step')
+  await storyExpect(page.getByRole('heading', { name: 'Proficiencies' })).toBeVisible()
+  await storyExpect(page.getByRole('heading', { name: 'Features' })).toBeVisible()
+  await storyExpect(page.getByRole('heading', { name: 'Starting Equipment' })).toBeVisible()
+})
+
+test('background locked master story is duplicate-only', async ({ page }) => {
+  await openStory(page, 'domains-backgrounds-form--locked-master-readonly')
+
+  await storyExpect(page.getByRole('heading', { name: 'Background Basics' })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: 'Duplicate to edit' })).toBeVisible()
+  await storyExpect(page.getByRole('textbox', { name: 'Name' })).toHaveAttribute('readonly')
+  await storyExpect(page.getByRole('button', { name: 'Save Background' })).toHaveCount(0)
+})
+
 test('theme toggle story switches between light and dark', async ({ page }) => {
   await openStory(page, 'platform-theme-themetoggle--default')
 
@@ -187,12 +219,14 @@ test('spell form story switches sections and opens effect editor', async ({ page
   await openStory(page, 'domains-spells-form--edit-owned')
 
   await storyExpect(page.getByRole('heading', { name: 'Spell Info' })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: /Spell Info: Name, level, casting, and components/i })).toHaveAttribute('aria-current', 'step')
   await storyExpect(page.getByRole('heading', { name: 'Basics' })).toBeVisible()
   await storyExpect(page.getByRole('heading', { name: 'Details' })).toBeVisible()
   await storyExpect(page.getByRole('heading', { name: 'Components & Attributes' })).toBeVisible()
   await storyExpect(page.getByRole('textbox', { name: 'Material Description' })).toBeVisible()
   await page.getByRole('button', { name: 'Next' }).click()
   await storyExpect(page.getByRole('heading', { name: 'Effects', level: 1 })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: /Effects: What happens when the spell is used/i })).toHaveAttribute('aria-current', 'step')
   await page.getByRole('button', { name: 'Edit effect 1' }).click()
   await storyExpect(page.getByRole('dialog')).toBeVisible()
   await storyExpect(page.getByLabel('Effect editor location').getByText('Fire Lace')).toBeVisible()
