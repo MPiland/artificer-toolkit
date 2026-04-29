@@ -55,7 +55,7 @@ export const queryKeys = {
       referenceData: () => ['content', 'spells', 'reference-data'] as const,
     },
     effects: {
-      referenceData: () => ['content', 'effects', 'reference-data'] as const,
+      referenceData: (systemId: string) => ['content', 'effects', 'reference-data', systemId] as const,
     },
     features: {
       all: () => ['content', 'features'] as const,

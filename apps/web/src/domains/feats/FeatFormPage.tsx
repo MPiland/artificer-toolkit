@@ -17,8 +17,8 @@ export function FeatCreatePage({ userId }: { userId: string }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { data: systems } = useSuspenseQuery(getSystemList())
-  const { data: references } = useSuspenseQuery(getEffectReferenceData())
   const systemId = resolveCreateFeatSystemId(systems)
+  const { data: references } = useSuspenseQuery(getEffectReferenceData(systemId ?? undefined))
   const mutation = useMutation({
     mutationFn: (feat: FeatAuthoredDto) => api.content.feats.activate(feat),
     onSuccess: async (response) => {
@@ -79,7 +79,8 @@ export function FeatDetailPage({
   const queryClient = useQueryClient()
   const { data: response } = useSuspenseQuery(getFeat(featId))
   const { data: draft } = useSuspenseQuery(getFeatDraft(featId))
-  const { data: references } = useSuspenseQuery(getEffectReferenceData())
+  const systemId = draft?.systemId ?? response?.item.systemId ?? ''
+  const { data: references } = useSuspenseQuery(getEffectReferenceData(systemId))
   const saveMutation = useMutation({
     mutationFn: (feat: FeatAuthoredDto) => api.content.feats.activate(feat),
     onSuccess: async (saved) => {
@@ -128,7 +129,7 @@ export function FeatDetailPage({
     <AuthoredFormPageFrame contentClassName={styles.contentWide}>
       <FeatForm
         mode={mode}
-        systemId={draft?.systemId ?? response?.item.systemId ?? ''}
+        systemId={systemId}
         userId={userId}
         references={references}
         initialFeat={draft ? draft.payload as unknown as FeatAuthoredDto : undefined}

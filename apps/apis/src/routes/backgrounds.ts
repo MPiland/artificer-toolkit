@@ -20,6 +20,7 @@ import {
   normalizeAuthoredListResponseWithDrafts,
   normalizeActivatedAuthoringInput,
   normalizeAuthoringResult,
+  normalizeStoredDraftPayloadForActivation,
   requireAuthoredDraft,
   saveAuthoredDraft
 } from './authoredContent.js'
@@ -76,7 +77,7 @@ export const activateBackgroundDraft = handleAuthoringRequest(
   async (db, body, userId) => {
     const draft = await requireAuthoredDraft(db, 'BACKGROUND', body.subjectId, userId)
     const service = createBackgroundSubjectAuthoringService(db)
-    const input = backgroundAuthoredDtoSchema.parse(draft.payload)
+    const input = backgroundAuthoredDtoSchema.parse(normalizeStoredDraftPayloadForActivation(draft, userId))
     const normalized = await normalizeNodeRuntimeValues(db, {
       mapId: 'background',
       values: { ...input }

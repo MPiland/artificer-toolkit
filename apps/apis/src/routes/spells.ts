@@ -20,6 +20,7 @@ import {
   normalizeAuthoredListResponseWithDrafts,
   normalizeActivatedAuthoringInput,
   normalizeAuthoringResult,
+  normalizeStoredDraftPayloadForActivation,
   requireAuthoredDraft,
   saveAuthoredDraft
 } from './authoredContent.js'
@@ -76,7 +77,7 @@ export const activateSpellDraft = handleAuthoringRequest(
   async (db, body, userId) => {
     const draft = await requireAuthoredDraft(db, 'SPELL', body.subjectId, userId)
     const service = createSpellSubjectAuthoringService(db)
-    const input = spellAuthoredDtoSchema.parse(draft.payload)
+    const input = spellAuthoredDtoSchema.parse(normalizeStoredDraftPayloadForActivation(draft, userId))
     const normalized = await normalizeNodeRuntimeValues(db, {
       mapId: 'spell',
       values: { ...input }

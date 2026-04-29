@@ -3,12 +3,16 @@ import { getEffectReferenceData } from '#app/data/effects'
 import { getSystemList } from '#app/data/systems/queries'
 import { createServerApi } from '#app/lib/api'
 import { FeatCreatePage } from '#domains/feats'
+import { resolveCreateFeatSystemId } from '#domains/feats/featAuthoring.utils'
 
 export const Route = createFileRoute('/_authed/feats/new')({
-  loader: ({ context }) => Promise.all([
-    context.queryClient.ensureQueryData(getSystemList(createServerApi(context.accessToken))),
-    context.queryClient.ensureQueryData(getEffectReferenceData(createServerApi(context.accessToken)))
-  ]),
+  loader: async ({ context }) => {
+    const client = createServerApi(context.accessToken)
+    const systems = await context.queryClient.ensureQueryData(getSystemList(client))
+    const systemId = resolveCreateFeatSystemId(systems)
+
+    await context.queryClient.ensureQueryData(getEffectReferenceData(systemId ?? undefined, client))
+  },
   component: NewFeatRoute
 })
 

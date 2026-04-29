@@ -20,6 +20,7 @@ import {
   normalizeAuthoredListResponseWithDrafts,
   normalizeActivatedAuthoringInput,
   normalizeAuthoringResult,
+  normalizeStoredDraftPayloadForActivation,
   requireAuthoredDraft,
   saveAuthoredDraft
 } from './authoredContent.js'
@@ -76,7 +77,7 @@ export const activateFeatDraft = handleAuthoringRequest(
   async (db, body, userId) => {
     const draft = await requireAuthoredDraft(db, 'FEAT', body.subjectId, userId)
     const service = createFeatSubjectAuthoringService(db)
-    const input = featAuthoredDtoSchema.parse(draft.payload)
+    const input = featAuthoredDtoSchema.parse(normalizeStoredDraftPayloadForActivation(draft, userId))
     const normalized = await normalizeNodeRuntimeValues(db, {
       mapId: 'feat',
       values: input

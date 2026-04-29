@@ -275,20 +275,49 @@ export async function saveAuthoredDraft(
   body: AuthoredDraftSaveRequestDto,
   userId: string
 ) {
-  const payload = {
-    ...body.payload,
-    userId,
-    systemId: body.systemId
-  } as Json
-
   return createAuthoredSubjectDraftRepository(db).save({
     subjectKind: body.subjectKind,
     subjectId: body.subjectId,
     userId,
     systemId: body.systemId,
     label: body.label,
-    payload,
+    payload: normalizeAuthoredDraftPayload(body.payload, {
+      subjectId: body.subjectId,
+      label: body.label,
+      systemId: body.systemId,
+      userId
+    }),
     baseActiveUpdatedAt: body.baseActiveUpdatedAt ?? null
+  })
+}
+
+export function normalizeAuthoredDraftPayload(
+  payload: Record<string, unknown> | Json,
+  identity: {
+    subjectId: string
+    label: string
+    systemId: string
+    userId: string
+  }
+): Json {
+  return {
+    ...(payload as Record<string, unknown>),
+    id: identity.subjectId,
+    label: identity.label,
+    userId: identity.userId,
+    systemId: identity.systemId
+  } as Json
+}
+
+export function normalizeStoredDraftPayloadForActivation(
+  draft: AuthoredSubjectDraft,
+  userId: string
+): Json {
+  return normalizeAuthoredDraftPayload(draft.payload, {
+    subjectId: draft.subjectId,
+    label: draft.label,
+    systemId: draft.systemId,
+    userId
   })
 }
 

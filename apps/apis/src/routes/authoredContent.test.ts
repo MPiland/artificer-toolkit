@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AuthoredSubjectDraft, DBLike } from '@artificer-toolkit/db'
 import {
   normalizeActivatedAuthoringInput,
+  normalizeStoredDraftPayloadForActivation,
   normalizeAuthoredListResponseWithDrafts,
   requireAuthoredDraft,
   saveAuthoredDraft
@@ -97,7 +98,7 @@ describe('authored content draft helpers', () => {
     })
   })
 
-  it('saves draft ownership from the authenticated user', async () => {
+  it('saves draft identity and ownership from the server-owned subject', async () => {
     const draft = createDraft({ userId: 'server-user' })
     draftRepositoryMock.save.mockResolvedValue(draft)
 
@@ -106,7 +107,12 @@ describe('authored content draft helpers', () => {
       subjectId: 'spell-1',
       systemId: 'system-1',
       label: 'Client Draft',
-      payload: { id: 'spell-1', label: 'Client Draft', userId: 'client-controlled-user' }
+      payload: {
+        id: 'client-controlled-id',
+        label: 'Client Controlled Label',
+        userId: 'client-controlled-user',
+        systemId: 'client-controlled-system'
+      }
     }, 'server-user')).resolves.toEqual(draft)
 
     expect(draftRepositoryMock.save).toHaveBeenCalledWith({
@@ -115,7 +121,12 @@ describe('authored content draft helpers', () => {
       userId: 'server-user',
       systemId: 'system-1',
       label: 'Client Draft',
-      payload: { id: 'spell-1', label: 'Client Draft', userId: 'server-user', systemId: 'system-1' },
+      payload: {
+        id: 'spell-1',
+        label: 'Client Draft',
+        userId: 'server-user',
+        systemId: 'system-1'
+      },
       baseActiveUpdatedAt: null
     })
   })
@@ -133,6 +144,27 @@ describe('authored content draft helpers', () => {
       userId: 'server-user',
       systemId: 'system-1',
       status: 'ACTIVE'
+    })
+  })
+
+  it('normalizes stored draft payload identity before activation', () => {
+    const draft = createDraft({
+      subjectId: 'server-subject-id',
+      systemId: 'server-system',
+      label: 'Server Label',
+      payload: {
+        id: 'stale-payload-id',
+        label: 'Stale Payload Label',
+        userId: 'stale-user',
+        systemId: 'stale-system'
+      }
+    })
+
+    expect(normalizeStoredDraftPayloadForActivation(draft, 'server-user')).toEqual({
+      id: 'server-subject-id',
+      label: 'Server Label',
+      userId: 'server-user',
+      systemId: 'server-system'
     })
   })
 

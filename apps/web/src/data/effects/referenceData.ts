@@ -15,6 +15,13 @@ export type EffectReferenceData = {
   creatures: EffectReferenceOption[]
 }
 
+export type EffectReferenceApi = {
+  systems: Pick<Api['systems'], 'get' | 'list'>
+  content: {
+    creatures: Pick<Api['content']['creatures'], 'list'>
+  }
+}
+
 function toVocabularyOptions(items: Array<{ id: string, label: string }>): EffectReferenceOption[] {
   return items.map((item) => ({ value: item.id, label: item.label }))
 }
@@ -23,9 +30,9 @@ function toContentOptions(items: CreatureListItemDto[]): EffectReferenceOption[]
   return items.map((item) => ({ value: item.id, label: item.label }))
 }
 
-function emptySystem(): SystemAuthoredDto {
+function emptySystem(systemId = 'default-system'): SystemAuthoredDto {
   return {
-    id: 'default-system',
+    id: systemId,
     label: 'Default System',
     alignments: [],
     conditionTypes: [],
@@ -57,22 +64,36 @@ export function buildEffectReferenceData(
   }
 }
 
-export function getEffectReferenceData(client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.content.effects.referenceData(),
-    queryFn: async (): Promise<EffectReferenceData> => {
-      const systems = await client.systems.list()
-      const systemId = systems[0]?.id ?? 'default-system'
-      const [system, creatures] = await Promise.all([
-        systems[0] ? client.systems.get(systemId) : Promise.resolve(emptySystem()),
-        client.content.creatures.list()
-      ])
+export async function loadEffectReferenceData(
+  systemId: string | undefined,
+  client: EffectReferenceApi = api
+): Promise<EffectReferenceData> {
+  const systems = await client.systems.list()
+  const targetSystemId = systemId ?? systems[0]?.id
+  if (!targetSystemId) return emptySystemReferenceData()
 
-      return buildEffectReferenceData(system ?? emptySystem(), creatures.items)
-    }
+  const [system, creatures] = await Promise.all([
+    client.systems.get(targetSystemId),
+    client.content.creatures.list()
+  ])
+  const systemCreatureItems = creatures.items.filter((creature) => creature.systemId === targetSystemId)
+
+  return buildEffectReferenceData(system ?? emptySystem(targetSystemId), systemCreatureItems)
+}
+
+export function getEffectReferenceData(systemId?: string, client: EffectReferenceApi = api) {
+  const querySystemId = systemId ?? 'default-system'
+
+  return queryOptions({
+    queryKey: queryKeys.content.effects.referenceData(querySystemId),
+    queryFn: async () => loadEffectReferenceData(systemId, client)
   })
 }
 
-export function useGetEffectReferenceData() {
-  return useSuspenseQuery(getEffectReferenceData())
+function emptySystemReferenceData(): EffectReferenceData {
+  return buildEffectReferenceData(emptySystem(), [])
+}
+
+export function useGetEffectReferenceData(systemId?: string) {
+  return useSuspenseQuery(getEffectReferenceData(systemId))
 }
