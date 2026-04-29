@@ -2,9 +2,11 @@ import viteReact from '@vitejs/plugin-react'
 import { vanillaExtractPlugin } from '@vanilla-extract/vite-plugin'
 import { playwright } from '@vitest/browser-playwright'
 import { defineConfig } from 'vitest/config'
+import { webAliases } from './vite.aliases.ts'
 
 export default defineConfig({
   resolve: {
+    alias: webAliases,
     tsconfigPaths: true
   },
   optimizeDeps: {
@@ -20,9 +22,7 @@ export default defineConfig({
     viteReact()
   ],
   test: {
-    include: [
-      'src/**/*.browser.test.tsx'
-    ],
+    include: ['src/**/*.browser.test.tsx'],
     browser: {
       enabled: true,
       headless: true,

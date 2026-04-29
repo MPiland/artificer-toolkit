@@ -4,7 +4,7 @@ import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-q
 import { useNavigate } from '@tanstack/react-router'
 import type { SpellAuthoredDto } from '@artificer-toolkit/schema'
 import { AuthoredFormPageFrame } from '#components/Form/AuthoredFormPageFrame'
-import { getSpell } from '#app/data/spells/queries'
+import { getSpell, getSpellDraft } from '#app/data/spells/queries'
 import { getSpellReferenceData } from '#app/data/spells/referenceData'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
@@ -16,7 +16,7 @@ export function SpellCreatePage({ userId }: { userId: string }) {
   const queryClient = useQueryClient()
   const { data: references } = useSuspenseQuery(getSpellReferenceData())
   const mutation = useMutation({
-    mutationFn: (spell: SpellAuthoredDto) => api.content.spells.upsert(spell),
+    mutationFn: (spell: SpellAuthoredDto) => api.content.spells.activate(spell),
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.content.spells.all() })
       notifications.show({ color: 'green', message: 'Spell created.' })
@@ -25,6 +25,15 @@ export function SpellCreatePage({ userId }: { userId: string }) {
       }
     },
     onError: () => notifications.show({ color: 'red', message: 'Could not save that spell yet.' })
+  })
+  const draftMutation = useMutation({
+    mutationFn: (spell: SpellAuthoredDto) => api.content.spells.saveDraft(spell),
+    onSuccess: async (draft) => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.content.spells.all() })
+      notifications.show({ color: 'green', message: 'Spell draft saved.' })
+      await navigate({ to: '/spells/$spellId/edit', params: { spellId: draft.subjectId } })
+    },
+    onError: () => notifications.show({ color: 'red', message: 'Could not save that draft yet.' })
   })
 
   return (
@@ -35,6 +44,7 @@ export function SpellCreatePage({ userId }: { userId: string }) {
         references={references}
         initialSpell={createEmptySpell({ systemId: references.systemId, userId })}
         onSubmit={async (spell) => mutation.mutateAsync(spell).then(() => undefined)}
+        onSaveDraft={async (spell) => draftMutation.mutateAsync(spell).then(() => undefined)}
       />
     </AuthoredFormPageFrame>
   )
@@ -52,9 +62,10 @@ export function SpellDetailPage({
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { data: response } = useSuspenseQuery(getSpell(spellId))
+  const { data: draft } = useSuspenseQuery(getSpellDraft(spellId))
   const { data: references } = useSuspenseQuery(getSpellReferenceData())
   const saveMutation = useMutation({
-    mutationFn: (spell: SpellAuthoredDto) => api.content.spells.upsert(spell),
+    mutationFn: (spell: SpellAuthoredDto) => api.content.spells.activate(spell),
     onSuccess: async (saved) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.content.spells.all() })
       if (saved?.item.id) {
@@ -65,19 +76,28 @@ export function SpellDetailPage({
     },
     onError: () => notifications.show({ color: 'red', message: 'Could not save that spell yet.' })
   })
+  const draftMutation = useMutation({
+    mutationFn: (spell: SpellAuthoredDto) => api.content.spells.saveDraft(spell),
+    onSuccess: async (savedDraft) => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.content.spells.all() })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.content.spells.draft(savedDraft.subjectId) })
+      notifications.show({ color: 'green', message: 'Spell draft saved.' })
+    },
+    onError: () => notifications.show({ color: 'red', message: 'Could not save that draft yet.' })
+  })
   const copyMutation = useMutation({
     mutationFn: () => api.content.spells.duplicate(spellId),
     onSuccess: async (copied) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.content.spells.all() })
       notifications.show({ color: 'green', message: 'Spell duplicated as an owned draft.' })
-      if (copied?.item.id) {
-        await navigate({ to: '/spells/$spellId/edit', params: { spellId: copied.item.id } })
+      if (copied?.subjectId) {
+        await navigate({ to: '/spells/$spellId/edit', params: { spellId: copied.subjectId } })
       }
     },
     onError: () => notifications.show({ color: 'red', message: 'Could not duplicate that spell yet.' })
   })
 
-  if (!response) {
+  if (!response && !draft) {
     return (
       <AuthoredFormPageFrame>
         <Stack>
@@ -94,9 +114,11 @@ export function SpellDetailPage({
         mode={mode}
         userId={userId}
         references={references}
+        initialSpell={draft?.payload as unknown as SpellAuthoredDto | undefined}
         response={response}
         onCopy={() => copyMutation.mutate()}
         onSubmit={async (spell) => saveMutation.mutateAsync(spell).then(() => undefined)}
+        onSaveDraft={async (spell) => draftMutation.mutateAsync(spell).then(() => undefined)}
       />
     </AuthoredFormPageFrame>
   )

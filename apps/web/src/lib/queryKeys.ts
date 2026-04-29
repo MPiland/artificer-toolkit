@@ -24,6 +24,7 @@ export const queryKeys = {
       all: () => ['content', 'backgrounds'] as const,
       list: () => ['content', 'backgrounds', 'list'] as const,
       detail: (id: string) => ['content', 'backgrounds', 'detail', id] as const,
+      draft: (id: string) => ['content', 'backgrounds', 'draft', id] as const,
     },
     classes: {
       all: () => ['content', 'classes'] as const,
@@ -39,6 +40,7 @@ export const queryKeys = {
       all: () => ['content', 'feats'] as const,
       list: () => ['content', 'feats', 'list'] as const,
       detail: (id: string) => ['content', 'feats', 'detail', id] as const,
+      draft: (id: string) => ['content', 'feats', 'draft', id] as const,
     },
     races: {
       all: () => ['content', 'races'] as const,
@@ -49,6 +51,7 @@ export const queryKeys = {
       all: () => ['content', 'spells'] as const,
       list: () => ['content', 'spells', 'list'] as const,
       detail: (id: string) => ['content', 'spells', 'detail', id] as const,
+      draft: (id: string) => ['content', 'spells', 'draft', id] as const,
       referenceData: () => ['content', 'spells', 'reference-data'] as const,
     },
     effects: {

@@ -24,6 +24,10 @@ export function createEmptyFeat({
   }
 }
 
+export function resolveCreateFeatSystemId(systems: readonly { id: string }[]): string | null {
+  return systems[0]?.id ?? null
+}
+
 export function normalizeFeatForSubmit(feat: FeatAuthoredDto): FeatAuthoredDto {
   return {
     ...feat,

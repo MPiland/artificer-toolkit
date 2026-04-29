@@ -9,7 +9,7 @@ import { fieldGrid, sectionPanel, sectionStack, wideField } from '../components/
 import { NestedCollectionShell, NestedObjectShell } from '../components/NestedEditors'
 import { isConditionVisible } from './nodeVisibility'
 import type { RuntimeFieldProps, RuntimeSelectFieldProps } from '../app-form/AppForm'
-import { requiredArray, requiredSelect, requiredString, validatorsFor } from '../validation/formValidation'
+import { requiredArray, requiredNumber, requiredSelect, requiredString, validatorsFor } from '../validation/formValidation'
 import { defaultOptionResolver, type NodeOptionResolver } from './NodeMapOptions'
 import { resolveRuntimeOptions, useRuntimeNodeById } from './runtimeModelUtils'
 
@@ -236,6 +236,7 @@ function isRichTextNode<TValues extends object>(node: NodeEntry<TValues>): boole
 function getRequiredValidators(type: string | undefined, label: string) {
   if (type === 'SELECT_MULTI') return validatorsFor(requiredArray(label))
   if (type === 'SELECT_SINGLE') return validatorsFor(requiredSelect(label))
+  if (type === 'NUMBER') return validatorsFor(requiredNumber(label))
   return validatorsFor(requiredString(label))
 }
 

@@ -5,6 +5,7 @@ import {
   createEmptyFeature,
   createEmptyGrants,
   normalizeFeatForSubmit,
+  resolveCreateFeatSystemId,
   upsertById
 } from './featAuthoring.utils'
 
@@ -31,6 +32,11 @@ describe('feat authoring helpers', () => {
     })
   })
 
+  it('uses only real system list data when creating feats', () => {
+    expect(resolveCreateFeatSystemId([])).toBeNull()
+    expect(resolveCreateFeatSystemId([{ id: 'dnd-5e-srd' }])).toBe('dnd-5e-srd')
+  })
+
   it('normalizes missing optional collections before save', () => {
     const feat = createEmptyFeat({ systemId: 'dnd-5e-srd', userId: 'user-1' })
     const normalized = normalizeFeatForSubmit({
@@ -42,15 +48,17 @@ describe('feat authoring helpers', () => {
       features: undefined,
       grants: {
         ...createEmptyGrants(),
-        feats: [{
-          id: 'grant-feat',
-          order: 1,
-          grantKind: 'FEAT_GRANT',
-          selectionKind: 'GRANTED',
-          scalingKind: 'NONE',
-          authoringModeKind: 'SELECTED',
-          featIds: ['grappler']
-        }]
+        feats: [
+          {
+            id: 'grant-feat',
+            order: 1,
+            grantKind: 'FEAT_GRANT',
+            selectionKind: 'GRANTED',
+            scalingKind: 'NONE',
+            authoringModeKind: 'SELECTED',
+            featIds: ['grappler']
+          }
+        ]
       }
     })
 

@@ -17,6 +17,7 @@ Rebuild race authoring using the shared runtime while preserving locked product 
 - race create route
 - race view or edit route
 - locked-master copy flow
+- save draft / resume draft / activate draft flow through `authored_subject_drafts`
 
 ## Section Map
 
@@ -43,7 +44,12 @@ Derive sections from `RACE_NODE_MAP` and the locked Figma screens:
 - `GET /content/races`
 - `GET /content/races/:id`
 - `POST /content/races`
+- `GET /content/races/:id/draft`
+- `POST /content/races/draft`
+- `DELETE /content/races/:id/draft`
+- `POST /content/races/:id/draft/activate`
 - explicit `provenance` and `permissions`
+- list/detail loaders merge owned drafts using the Phase 9.8.1 sidecar model
 - reference data for:
   - heritages
   - base races for subrace relationships
@@ -56,7 +62,8 @@ Derive sections from `RACE_NODE_MAP` and the locked Figma screens:
 2. Render category-specific sections through node-map metadata instead of ad hoc conditional form code.
 3. Keep player-facing UI copy aligned to `Race`, never `Species`.
 4. Build ancestry-option editing on the shared nested collection runtime.
-5. Use the standard locked-master copy flow for authored race data.
+5. Use the standard locked-master copy flow for authored race data, creating an owned draft sidecar instead of immediately writing normalized rows.
+6. Keep normalized race upserts strict; incomplete base race/subrace drafts stay in `authored_subject_drafts` until activation.
 
 ## Stories, Tests, and Playwright
 
@@ -70,6 +77,7 @@ Derive sections from `RACE_NODE_MAP` and the locked Figma screens:
   - category-driven section visibility
   - ancestry-option nested edits
   - copy-to-edit behavior
+  - save draft, resume draft, discard draft, and activate draft behavior
 - Playwright:
   - create base race
   - create subrace

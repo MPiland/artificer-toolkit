@@ -1,4 +1,5 @@
 export * from './background.js'
+export * from './authoredSubjectDraft.js'
 export * from './character.js'
 export * from './characterEvent.js'
 export * from './class.js'

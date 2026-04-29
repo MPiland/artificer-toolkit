@@ -272,6 +272,7 @@ export function SpellForm({
   userId,
   resolveRuntime = true,
   onSubmit,
+  onSaveDraft,
   onCopy
 }: {
   mode: 'create' | 'view' | 'edit'
@@ -281,11 +282,13 @@ export function SpellForm({
   userId: string
   resolveRuntime?: boolean
   onSubmit: (spell: SpellAuthoredDto) => Promise<void>
+  onSaveDraft?: (spell: SpellAuthoredDto) => Promise<void>
   onCopy?: () => void
 }) {
   const navigate = useNavigate()
   const [activeStep, setActiveStep] = useState<SpellFormStep>('info')
   const readOnly = mode === 'view' || response?.permissions.canEdit === false
+  const hasActiveDraft = mode === 'edit' && response != null && initialSpell != null
   const spell = initialSpell ?? response?.item ?? createEmptySpell({ systemId: references.systemId, userId })
   const form = useAppForm({
     defaultValues: spell,
@@ -300,6 +303,11 @@ export function SpellForm({
     await form.handleSubmit()
     const firstErroredStep = getFirstErroredStep(getStepStatuses({ fieldMeta: form.state.fieldMeta, stepFields: spellStepFields }), spellSteps)
     if (firstErroredStep) setActiveStep(firstErroredStep)
+  }
+
+  async function handleSaveDraft() {
+    if (readOnly || !onSaveDraft) return
+    await onSaveDraft(normalizeSpellForSubmit(form.state.values, references))
   }
 
   async function handleNextStep() {
@@ -337,6 +345,14 @@ export function SpellForm({
         ? (
             <Alert color='cyan'>
               This spell is locked for direct editing. Duplicate it to make your own draft.
+            </Alert>
+          )
+        : null}
+
+      {hasActiveDraft
+        ? (
+            <Alert color='blue'>
+              You are editing a draft. The active spell stays unchanged until you activate these changes.
             </Alert>
           )
         : null}
@@ -404,7 +420,16 @@ export function SpellForm({
               </Button>
               {activeStep === 'effects'
                 ? (
-                    <form.SubmitButton label={mode === 'create' ? 'Create Spell' : 'Save Spell'} disabled={readOnly} />
+                    <>
+                      {!readOnly && onSaveDraft
+                        ? (
+                            <Button type='button' variant='default' onClick={() => void handleSaveDraft()}>
+                              Save Draft
+                            </Button>
+                          )
+                        : null}
+                      <form.SubmitButton label='Activate Spell' disabled={readOnly} />
+                    </>
                   )
                 : (
                     <Button

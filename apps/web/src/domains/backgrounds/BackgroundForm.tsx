@@ -204,6 +204,7 @@ export function BackgroundForm({
   userId,
   resolveRuntime = true,
   onSubmit,
+  onSaveDraft,
   onCopy
 }: {
   mode: 'create' | 'view' | 'edit'
@@ -213,11 +214,13 @@ export function BackgroundForm({
   userId: string
   resolveRuntime?: boolean
   onSubmit: (background: BackgroundAuthoredDto) => Promise<void>
+  onSaveDraft?: (background: BackgroundAuthoredDto) => Promise<void>
   onCopy?: () => void
 }) {
   const navigate = useNavigate()
   const [activeStep, setActiveStep] = useState<BackgroundFormStep>('basics')
   const readOnly = mode === 'view' || response?.permissions.canEdit === false
+  const hasActiveDraft = mode === 'edit' && response != null && initialBackground != null
   const background = initialBackground
     ?? response?.item
     ?? createEmptyBackground({ systemId, userId })
@@ -234,6 +237,11 @@ export function BackgroundForm({
     await form.handleSubmit()
     const firstErroredStep = getFirstErroredStep(getStepStatuses({ fieldMeta: form.state.fieldMeta, stepFields: backgroundStepFields }), backgroundSteps)
     if (firstErroredStep) setActiveStep(firstErroredStep)
+  }
+
+  async function handleSaveDraft() {
+    if (readOnly || !onSaveDraft) return
+    await onSaveDraft(normalizeBackgroundForSubmit(form.state.values))
   }
 
   async function handleNextStep() {
@@ -271,6 +279,14 @@ export function BackgroundForm({
         ? (
             <Alert color='cyan'>
               This background is locked for direct editing. Duplicate it to make your own draft.
+            </Alert>
+          )
+        : null}
+
+      {hasActiveDraft
+        ? (
+            <Alert color='blue'>
+              You are editing a draft. The active background stays unchanged until you activate these changes.
             </Alert>
           )
         : null}
@@ -326,7 +342,16 @@ export function BackgroundForm({
               </Button>
               {activeStep === 'details'
                 ? (
-                    <form.SubmitButton label={mode === 'create' ? 'Create Background' : 'Save Background'} disabled={readOnly} />
+                    <>
+                      {!readOnly && onSaveDraft
+                        ? (
+                            <Button type='button' variant='default' onClick={() => void handleSaveDraft()}>
+                              Save Draft
+                            </Button>
+                          )
+                        : null}
+                      <form.SubmitButton label='Activate Background' disabled={readOnly} />
+                    </>
                   )
                 : (
                     <Button type='button' onClick={() => void handleNextStep()}>

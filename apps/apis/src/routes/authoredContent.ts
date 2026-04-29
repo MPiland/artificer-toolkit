@@ -1,4 +1,15 @@
-import type { DBLike, TableName } from '@artificer-toolkit/db'
+import {
+  createAuthoredSubjectDraftRepository,
+  type AuthoredSubjectDraft,
+  type AuthoredSubjectDraftKind,
+  type DBLike,
+  type Json,
+  type TableName
+} from '@artificer-toolkit/db'
+import type {
+  AuthoredDraftSaveRequestDto,
+  AuthoredDraftSummaryDto
+} from '@artificer-toolkit/schema'
 
 type AuthoredContentTable =
   | 'backgrounds'
@@ -24,6 +35,9 @@ interface AuthoredListRow {
 interface AuthoredRecord {
   id: string
   userId: string
+  systemId: string
+  label: string
+  status?: 'ACTIVE' | 'DRAFT'
 }
 
 interface AuthoringPipelineResult<TRecord extends AuthoredRecord> {
@@ -38,6 +52,15 @@ function getPermissions(ownership: AuthoredOwnership, userId: string) {
     canEdit: ownsRecord,
     canCopy: true,
     canDelete: ownsRecord
+  }
+}
+
+function getOwnedPermissions() {
+  return {
+    canView: true,
+    canEdit: true,
+    canCopy: true,
+    canDelete: true
   }
 }
 
@@ -75,6 +98,80 @@ export function normalizeAuthoredListResponse<
         permissions: getPermissions(ownership, userId)
       }
     })
+  }
+}
+
+function toDraftSummary(draft: AuthoredSubjectDraft): AuthoredDraftSummaryDto {
+  return {
+    subjectKind: draft.subjectKind,
+    subjectId: draft.subjectId,
+    userId: draft.userId,
+    systemId: draft.systemId,
+    label: draft.label,
+    status: draft.status,
+    draftState: draft.draftState,
+    baseActiveUpdatedAt: draft.baseActiveUpdatedAt,
+    createdAt: draft.createdAt,
+    updatedAt: draft.updatedAt
+  }
+}
+
+export async function normalizeAuthoredListResponseWithDrafts<
+  TItem extends AuthoredListRow & {
+    id: string
+    label: string
+    status: string
+    systemId: string
+    description?: string | null
+  },
+  TResponse extends { items: TItem[], meta: unknown }
+>(
+  db: DBLike,
+  response: TResponse,
+  userId: string,
+  subjectKind: AuthoredSubjectDraftKind
+) {
+  const normalized = normalizeAuthoredListResponse(response, userId)
+  const drafts = await createAuthoredSubjectDraftRepository(db).listByUser({
+    userId,
+    subjectKind
+  })
+  const draftBySubjectId = new Map(drafts.map((draft) => [draft.subjectId, draft]))
+  const activeIds = new Set(normalized.items.map((item) => item.id))
+  const activeItems = normalized.items.map((item) => {
+    const draft = draftBySubjectId.get(item.id)
+    if (!draft) return item
+
+    return {
+      ...item,
+      label: draft.label,
+      status: 'DRAFT',
+      draft: toDraftSummary(draft)
+    }
+  })
+  const draftOnlyItems = drafts
+    .filter((draft) => !activeIds.has(draft.subjectId))
+    .map((draft) => ({
+      id: draft.subjectId,
+      label: draft.label,
+      status: 'DRAFT',
+      description: null,
+      userId: draft.userId,
+      systemId: draft.systemId,
+      provenance: {
+        kind: 'OWNED' as const,
+        ownerUserId: draft.userId
+      },
+      permissions: getOwnedPermissions(),
+      draft: toDraftSummary(draft)
+    }))
+
+  return {
+    ...normalized,
+    items: [
+      ...activeItems,
+      ...draftOnlyItems
+    ]
   }
 }
 
@@ -126,6 +223,86 @@ export function normalizeAuthoringInput<TRecord extends AuthoredRecord>(
     ...input,
     userId
   }
+}
+
+export function normalizeActivatedAuthoringInput<TRecord extends AuthoredRecord>(
+  input: TRecord,
+  userId: string
+): TRecord {
+  return {
+    ...input,
+    userId,
+    status: 'ACTIVE'
+  }
+}
+
+export async function getAuthoredDraft(
+  db: DBLike,
+  subjectKind: AuthoredSubjectDraftKind,
+  subjectId: string,
+  userId: string
+) {
+  return createAuthoredSubjectDraftRepository(db).findBySubject({
+    subjectKind,
+    subjectId,
+    userId
+  })
+}
+
+export class AuthoredDraftNotFoundError extends Error {
+  constructor(subjectKind: AuthoredSubjectDraftKind, subjectId: string) {
+    super(`${subjectKind} draft "${subjectId}" was not found.`)
+    this.name = 'AuthoredDraftNotFoundError'
+  }
+}
+
+export async function requireAuthoredDraft(
+  db: DBLike,
+  subjectKind: AuthoredSubjectDraftKind,
+  subjectId: string,
+  userId: string
+): Promise<AuthoredSubjectDraft> {
+  const draft = await getAuthoredDraft(db, subjectKind, subjectId, userId)
+  if (!draft) {
+    throw new AuthoredDraftNotFoundError(subjectKind, subjectId)
+  }
+
+  return draft
+}
+
+export async function saveAuthoredDraft(
+  db: DBLike,
+  body: AuthoredDraftSaveRequestDto,
+  userId: string
+) {
+  const payload = {
+    ...body.payload,
+    userId,
+    systemId: body.systemId
+  } as Json
+
+  return createAuthoredSubjectDraftRepository(db).save({
+    subjectKind: body.subjectKind,
+    subjectId: body.subjectId,
+    userId,
+    systemId: body.systemId,
+    label: body.label,
+    payload,
+    baseActiveUpdatedAt: body.baseActiveUpdatedAt ?? null
+  })
+}
+
+export async function discardAuthoredDraft(
+  db: DBLike,
+  subjectKind: AuthoredSubjectDraftKind,
+  subjectId: string,
+  userId: string
+) {
+  await createAuthoredSubjectDraftRepository(db).delete({
+    subjectKind,
+    subjectId,
+    userId
+  })
 }
 
 export async function normalizeAuthoringResult<TRecord extends AuthoredRecord>(

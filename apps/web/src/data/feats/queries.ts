@@ -23,3 +23,10 @@ export function getFeat(id: string, client: Api = api) {
 export function useGetFeat(id: string) {
   return useSuspenseQuery(getFeat(id))
 }
+
+export function getFeatDraft(id: string, client: Api = api) {
+  return queryOptions({
+    queryKey: queryKeys.content.feats.draft(id),
+    queryFn: async () => await client.content.feats.getDraft(id)
+  })
+}

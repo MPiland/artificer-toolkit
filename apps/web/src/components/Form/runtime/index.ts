@@ -39,6 +39,7 @@ export {
   integerMinimum,
   minimumNumber,
   requiredArray,
+  requiredNumber,
   requiredSelect,
   requiredString,
   rollConfig,

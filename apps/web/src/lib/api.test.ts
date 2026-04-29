@@ -49,6 +49,27 @@ const spellDetail = {
   permissions: spellItem.permissions
 }
 
+const spellDraft = {
+  id: 'draft-1',
+  subjectKind: 'SPELL',
+  subjectId: 'copy-spell',
+  userId: 'test-user',
+  systemId: 'dnd5e-2014',
+  label: 'Magic Missile Copy',
+  status: 'DRAFT',
+  draftState: 'DRAFT_ONLY',
+  payload: {
+    ...spellDetail.item,
+    id: 'copy-spell',
+    label: 'Magic Missile Copy',
+    status: 'DRAFT',
+    userId: 'test-user'
+  },
+  baseActiveUpdatedAt: null,
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-01T00:00:00.000Z'
+}
+
 describe('REST api adapter', () => {
   it('attaches bearer auth and parses authored list responses', async () => {
     expect.assertions(2)
@@ -64,22 +85,57 @@ describe('REST api adapter', () => {
     expect(response.items[0]?.permissions.canCopy).toBe(true)
   })
 
-  it('duplicates an authored detail as a new draft copy', async () => {
-    expect.assertions(4)
+  it('duplicates an authored detail as a sidecar draft copy', async () => {
+    expect.assertions(6)
     server.use(
       http.get(`${API_BASE}/content/spells/magic-missile`, () => HttpResponse.json(spellDetail)),
-      http.post(`${API_BASE}/content/spells`, async ({ request }) => {
-        const body = await request.json() as { id: string, label: string, status: string }
-        expect(body.id).not.toBe('magic-missile')
+      http.post(`${API_BASE}/content/spells/draft`, async ({ request }) => {
+        const body = await request.json() as {
+          subjectKind: string
+          subjectId: string
+          label: string
+          payload: { id: string, label: string, status: string }
+        }
+        expect(body.subjectKind).toBe('SPELL')
+        expect(body.subjectId).not.toBe('magic-missile')
         expect(body.label).toBe('Magic Missile Copy')
-        expect(body.status).toBe('DRAFT')
-        return HttpResponse.json({ ...spellDetail, item: body })
+        expect(body.payload.id).toBe(body.subjectId)
+        expect(body.payload.status).toBe('DRAFT')
+        return HttpResponse.json({
+          ...spellDraft,
+          subjectId: body.subjectId,
+          payload: body.payload
+        })
       })
     )
 
     const response = await createServerApi('test-token').content.spells.duplicate('magic-missile')
 
-    expect(response?.item.label).toBe('Magic Missile Copy')
+    expect(response?.payload.label).toBe('Magic Missile Copy')
+  })
+
+  it('activates a stored authored draft through the draft endpoint', async () => {
+    expect.assertions(2)
+    server.use(
+      http.post(`${API_BASE}/content/spells/copy-spell/draft/activate`, async ({ request }) => {
+        const body = await request.json() as { subjectKind: string, subjectId: string }
+        expect(body).toEqual({ subjectKind: 'SPELL', subjectId: 'copy-spell' })
+        return HttpResponse.json({
+          ...spellDetail,
+          item: {
+            ...spellDetail.item,
+            id: 'copy-spell',
+            label: 'Magic Missile Copy',
+            status: 'ACTIVE',
+            userId: 'test-user'
+          }
+        })
+      })
+    )
+
+    const response = await createServerApi('test-token').content.spells.activateDraft('copy-spell')
+
+    expect(response.item.label).toBe('Magic Missile Copy')
   })
 
   it('resolves node runtime models through the REST adapter', async () => {

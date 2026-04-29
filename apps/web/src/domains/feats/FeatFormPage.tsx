@@ -5,12 +5,12 @@ import { useNavigate } from '@tanstack/react-router'
 import type { FeatAuthoredDto } from '@artificer-toolkit/schema'
 import { AuthoredFormPageFrame } from '#components/Form/AuthoredFormPageFrame'
 import { getEffectReferenceData } from '#app/data/effects'
-import { getFeat } from '#app/data/feats/queries'
+import { getFeat, getFeatDraft } from '#app/data/feats/queries'
 import { getSystemList } from '#app/data/systems/queries'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import { FeatForm } from './FeatForm'
-import { createEmptyFeat } from './featAuthoring.utils'
+import { createEmptyFeat, resolveCreateFeatSystemId } from './featAuthoring.utils'
 import * as styles from './featAuthoring.css'
 
 export function FeatCreatePage({ userId }: { userId: string }) {
@@ -18,9 +18,9 @@ export function FeatCreatePage({ userId }: { userId: string }) {
   const queryClient = useQueryClient()
   const { data: systems } = useSuspenseQuery(getSystemList())
   const { data: references } = useSuspenseQuery(getEffectReferenceData())
-  const systemId = systems[0]?.id ?? references.systemId
+  const systemId = resolveCreateFeatSystemId(systems)
   const mutation = useMutation({
-    mutationFn: (feat: FeatAuthoredDto) => api.content.feats.upsert(feat),
+    mutationFn: (feat: FeatAuthoredDto) => api.content.feats.activate(feat),
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.content.feats.all() })
       notifications.show({ color: 'green', message: 'Feat created.' })
@@ -29,6 +29,15 @@ export function FeatCreatePage({ userId }: { userId: string }) {
       }
     },
     onError: () => notifications.show({ color: 'red', message: 'Could not save that feat yet.' })
+  })
+  const draftMutation = useMutation({
+    mutationFn: (feat: FeatAuthoredDto) => api.content.feats.saveDraft(feat),
+    onSuccess: async (draft) => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.content.feats.all() })
+      notifications.show({ color: 'green', message: 'Feat draft saved.' })
+      await navigate({ to: '/feats/$featId/edit', params: { featId: draft.subjectId } })
+    },
+    onError: () => notifications.show({ color: 'red', message: 'Could not save that draft yet.' })
   })
 
   if (!systemId) {
@@ -51,6 +60,7 @@ export function FeatCreatePage({ userId }: { userId: string }) {
         references={references}
         initialFeat={createEmptyFeat({ systemId, userId })}
         onSubmit={async (feat) => mutation.mutateAsync(feat).then(() => undefined)}
+        onSaveDraft={async (feat) => draftMutation.mutateAsync(feat).then(() => undefined)}
       />
     </AuthoredFormPageFrame>
   )
@@ -68,9 +78,10 @@ export function FeatDetailPage({
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { data: response } = useSuspenseQuery(getFeat(featId))
+  const { data: draft } = useSuspenseQuery(getFeatDraft(featId))
   const { data: references } = useSuspenseQuery(getEffectReferenceData())
   const saveMutation = useMutation({
-    mutationFn: (feat: FeatAuthoredDto) => api.content.feats.upsert(feat),
+    mutationFn: (feat: FeatAuthoredDto) => api.content.feats.activate(feat),
     onSuccess: async (saved) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.content.feats.all() })
       if (saved?.item.id) {
@@ -81,19 +92,28 @@ export function FeatDetailPage({
     },
     onError: () => notifications.show({ color: 'red', message: 'Could not save that feat yet.' })
   })
+  const draftMutation = useMutation({
+    mutationFn: (feat: FeatAuthoredDto) => api.content.feats.saveDraft(feat),
+    onSuccess: async (savedDraft) => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.content.feats.all() })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.content.feats.draft(savedDraft.subjectId) })
+      notifications.show({ color: 'green', message: 'Feat draft saved.' })
+    },
+    onError: () => notifications.show({ color: 'red', message: 'Could not save that draft yet.' })
+  })
   const copyMutation = useMutation({
     mutationFn: () => api.content.feats.duplicate(featId),
     onSuccess: async (copied) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.content.feats.all() })
       notifications.show({ color: 'green', message: 'Feat duplicated as an owned draft.' })
-      if (copied?.item.id) {
-        await navigate({ to: '/feats/$featId/edit', params: { featId: copied.item.id } })
+      if (copied?.subjectId) {
+        await navigate({ to: '/feats/$featId/edit', params: { featId: copied.subjectId } })
       }
     },
     onError: () => notifications.show({ color: 'red', message: 'Could not duplicate that feat yet.' })
   })
 
-  if (!response) {
+  if (!response && !draft) {
     return (
       <AuthoredFormPageFrame contentClassName={styles.contentWide}>
         <Stack>
@@ -108,12 +128,14 @@ export function FeatDetailPage({
     <AuthoredFormPageFrame contentClassName={styles.contentWide}>
       <FeatForm
         mode={mode}
-        systemId={response.item.systemId}
+        systemId={draft?.systemId ?? response?.item.systemId ?? ''}
         userId={userId}
         references={references}
+        initialFeat={draft ? draft.payload as unknown as FeatAuthoredDto : undefined}
         response={response}
         onCopy={() => copyMutation.mutate()}
         onSubmit={async (feat) => saveMutation.mutateAsync(feat).then(() => undefined)}
+        onSaveDraft={async (feat) => draftMutation.mutateAsync(feat).then(() => undefined)}
       />
     </AuthoredFormPageFrame>
   )

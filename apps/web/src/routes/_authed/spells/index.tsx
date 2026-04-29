@@ -31,8 +31,8 @@ function SpellsRoute() {
         color: 'green',
         message: 'Spell duplicated as owned content.'
       })
-      if (response?.item.id) {
-        await navigate({ to: '/spells/$spellId/edit', params: { spellId: response.item.id } })
+      if (response?.subjectId) {
+        await navigate({ to: '/spells/$spellId/edit', params: { spellId: response.subjectId } })
       }
     },
     onError: () => {

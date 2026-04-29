@@ -222,21 +222,24 @@ export function FeatForm({
   userId,
   resolveRuntime = true,
   onSubmit,
+  onSaveDraft,
   onCopy
 }: {
   mode: 'create' | 'view' | 'edit'
   initialFeat?: FeatAuthoredDto
-  response?: NonNullable<FeatResponseDto>
+  response?: FeatResponseDto
   references: EffectEditorReferenceData
   systemId: string
   userId: string
   resolveRuntime?: boolean
   onSubmit: (feat: FeatAuthoredDto) => Promise<void>
+  onSaveDraft?: (feat: FeatAuthoredDto) => Promise<void>
   onCopy?: () => void
 }) {
   const navigate = useNavigate()
   const [activeStep, setActiveStep] = useState<FeatFormStep>('basics')
   const readOnly = mode === 'view' || response?.permissions.canEdit === false
+  const hasActiveDraft = mode === 'edit' && response != null && initialFeat != null
   const feat = initialFeat ?? response?.item ?? createEmptyFeat({ systemId, userId })
   const form = useAppForm({
     defaultValues: feat,
@@ -250,6 +253,11 @@ export function FeatForm({
     await form.handleSubmit()
     const firstErroredStep = getFirstErroredStep(getStepStatuses({ fieldMeta: form.state.fieldMeta, stepFields: featStepFields }), featSteps)
     if (firstErroredStep) setActiveStep(firstErroredStep)
+  }
+
+  async function handleSaveDraft() {
+    if (readOnly || !onSaveDraft) return
+    await onSaveDraft(normalizeFeatForSubmit(form.state.values))
   }
 
   async function handleNextStep() {
@@ -287,6 +295,14 @@ export function FeatForm({
         ? (
             <Alert color='cyan'>
               This feat is locked for direct editing. Duplicate it to make your own draft.
+            </Alert>
+          )
+        : null}
+
+      {hasActiveDraft
+        ? (
+            <Alert color='blue'>
+              You are editing a draft. The active feat stays unchanged until you activate these changes.
             </Alert>
           )
         : null}
@@ -348,7 +364,20 @@ export function FeatForm({
               </Button>
               {activeStep === 'features'
                 ? (
-                    readOnly ? null : <form.SubmitButton label={mode === 'create' ? 'Create Feat' : 'Save Feat'} />
+                    readOnly
+                      ? null
+                      : (
+                          <>
+                            {onSaveDraft
+                              ? (
+                                  <Button type='button' variant='default' onClick={() => void handleSaveDraft()}>
+                                    Save Draft
+                                  </Button>
+                                )
+                              : null}
+                            <form.SubmitButton label='Activate Feat' />
+                          </>
+                        )
                   )
                 : (
                     <Button type='button' onClick={() => void handleNextStep()}>
@@ -678,8 +707,35 @@ function FeatureEditorModal({
   onClose: () => void
   onSave: (item: FeatureDto) => void
 }) {
+  const formValue = item ?? createEmptyFeature(1)
+
+  return (
+    <FeatureEditorModalForm
+      key={getRuntimeEditorFormKey('feat-feature-editor-heading', item)}
+      item={formValue}
+      opened={opened}
+      readOnly={readOnly}
+      onClose={onClose}
+      onSave={onSave}
+    />
+  )
+}
+
+function FeatureEditorModalForm({
+  item,
+  opened,
+  readOnly,
+  onClose,
+  onSave
+}: {
+  item: FeatureDto
+  opened: boolean
+  readOnly: boolean
+  onClose: () => void
+  onSave: (item: FeatureDto) => void
+}) {
   const form = useAppForm({
-    defaultValues: item ?? createEmptyFeature(1),
+    defaultValues: item,
     onSubmit: async ({ value }) => onSave(value)
   })
 
@@ -735,8 +791,50 @@ function RuntimeEditorModal<TValues extends object>({
   onClose: () => void
   onSave: (item: TValues) => void
 }) {
+  const formValue = item ?? defaultValue
+
+  return (
+    <RuntimeEditorModalForm
+      key={getRuntimeEditorFormKey(titleId, item)}
+      defaultValue={formValue}
+      opened={opened}
+      readOnly={readOnly}
+      resolveRuntime={resolveRuntime}
+      mapId={mapId}
+      nodeMap={nodeMap}
+      title={title}
+      titleId={titleId}
+      onClose={onClose}
+      onSave={onSave}
+    />
+  )
+}
+
+function RuntimeEditorModalForm<TValues extends object>({
+  defaultValue,
+  opened,
+  readOnly,
+  resolveRuntime,
+  mapId,
+  nodeMap,
+  title,
+  titleId,
+  onClose,
+  onSave
+}: {
+  defaultValue: TValues
+  opened: boolean
+  readOnly: boolean
+  resolveRuntime: boolean
+  mapId: string
+  nodeMap: NodeMap<TValues>
+  title: string
+  titleId: string
+  onClose: () => void
+  onSave: (item: TValues) => void
+}) {
   const form = useAppForm({
-    defaultValues: item ?? defaultValue,
+    defaultValues: defaultValue,
     onSubmit: async ({ value }) => onSave(value)
   })
 
@@ -766,6 +864,10 @@ function RuntimeEditorModal<TValues extends object>({
       </EditorShell>
     </FullscreenModal>
   )
+}
+
+function getRuntimeEditorFormKey<TValues extends object>(titleId: string, item: TValues | null): string {
+  return item === null ? `${titleId}:closed` : `${titleId}:${JSON.stringify(item)}`
 }
 
 function RuntimeNodeEditor<TValues extends object>({

@@ -34,6 +34,12 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
 - `packages/schema` owns frontend-facing transport DTOs.
 - `packages/shared` owns node maps and authored model metadata.
 - The frontend should become lighter by deleting web-owned domain logic and using the backend stack correctly.
+- Phase 9 authored forms use the draft sidecar persistence model:
+  - TanStack Form owns local editor state.
+  - `Save Draft` writes JSON to `authored_subject_drafts` through `apps/apis`.
+  - `Activate` writes complete normalized domain rows only after node-runtime normalization and strict validation.
+  - editing an active record keeps the active normalized version live until activation succeeds.
+  - GraphQL remains out of MVP transport.
 - Phase 9 web folders follow the locked taxonomy:
   - `ui/primitives` for low-level reusable controls
   - `ui/overlays` for modal/drawer/overlay infrastructure
@@ -94,6 +100,9 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
 - The 9.6.1 resolver exposes `POST /node-runtime/resolve` and `POST /node-runtime/normalize-values`, keeps relationship-plan execution server-side against a trusted map registry, and lets the web form runtime consume resolved section/node state and options through the Phase 9.4 adapter.
 - Phase 9.7 is complete: Background list/form implementation, node-runtime-backed nested editors, locked-master behavior, shared authored-form layout consistency, and corrected Spell runtime alignment are accepted.
 - Phase 9.8 is complete: Feat list/form implementation, node-runtime-backed requirements/mechanics, reusable EffectEditor integration, locked-master behavior, route coverage, and folder-organization cleanup are accepted.
+- Phase 9.8.1 is complete: authored draft/form persistence now uses the generic `authored_subject_drafts` sidecar for Spell, Background, and Feat, with activation preserving strict normalized saves.
+- Phase 9.9 Race is the active domain tranche and must use the draft sidecar model from the start.
+- Phase 9.8.1 validation passed `build:schema`, `build:db`, `build:functions`, `build:apis`, `test:schema`, focused API draft tests, focused web adapter/domain tests, full web unit tests, and Storybook build. `build:web` remains blocked only by documented legacy `src/utils` failures; `test:db` remains blocked by pre-existing repository expectation drift outside the draft sidecar path.
 - Latest 9.8 implementation rebuilt Feat on the accepted stack: REST through `apps/apis`, SSR-aware TanStack Query helpers, shared authored list/form layouts, node-runtime-backed nested editors, reusable EffectEditor, locked-master duplicate-only behavior, and active `/feats` route coverage.
 - Latest 9.7 closeout correction backfilled Spell onto the node-runtime resolver path for top-level field options, material-description visibility, and hidden-value clearing while preserving the accepted Figma-aligned Spell form and EffectEditor layout.
 - Latest 9.7 authored-form consistency correction extracted shared authored-form layout components so Spell and Background use the same root, header, shell, section, section stack, and footer primitives while keeping their distinct domain flows.
@@ -122,6 +131,7 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
 | 9.6.1 | [PHASE_9_6_1_NODE_MAP_RESOLVER_SUBPLAN.md](PHASE_9_6_1_NODE_MAP_RESOLVER_SUBPLAN.md) | Trusted node-map runtime resolver and engine-backed form runtime correction | Complete |
 | 9.7 | [PHASE_9_7_CODE_BACKGROUND_SUBPLAN.md](PHASE_9_7_CODE_BACKGROUND_SUBPLAN.md) | Background list and form implementation | Complete |
 | 9.8 | [PHASE_9_8_CODE_FEAT_SUBPLAN.md](PHASE_9_8_CODE_FEAT_SUBPLAN.md) | Feat list and form implementation | Complete |
+| 9.8.1 | [PHASE_9_8_1_DRAFT_FORM_PERSISTENCE_SUBPLAN.md](PHASE_9_8_1_DRAFT_FORM_PERSISTENCE_SUBPLAN.md) | Draft sidecar persistence and activation correction | Complete |
 | 9.9 | [PHASE_9_9_CODE_RACE_SUBPLAN.md](PHASE_9_9_CODE_RACE_SUBPLAN.md) | Race list and form implementation | Active |
 | 9.10 | [PHASE_9_10_CODE_EQUIPMENT_SUBPLAN.md](PHASE_9_10_CODE_EQUIPMENT_SUBPLAN.md) | Equipment list and form implementation | Not Started |
 | 9.11 | [PHASE_9_11_CODE_CREATURE_SUBPLAN.md](PHASE_9_11_CODE_CREATURE_SUBPLAN.md) | Creature list and form implementation | Not Started |

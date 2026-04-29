@@ -17,6 +17,7 @@ import {
   getRuntimeNodeVisible,
   getStepStatuses,
   NestedCollectionShell,
+  requiredNumber,
   requiredString,
   SectionNavigator,
   useAppForm,
@@ -416,6 +417,16 @@ describe('Phase 9.5 form runtime', () => {
     await user.tab()
 
     expect(await screen.findByText('Name is required.')).toBeVisible()
+  })
+
+  it('treats real numbers as valid required numeric values', () => {
+    const validateAmount = requiredNumber('Amount')
+
+    expect(validateAmount({ value: 0 })).toBeUndefined()
+    expect(validateAmount({ value: 3 })).toBeUndefined()
+    expect(validateAmount({ value: undefined })).toBe('Amount is required.')
+    expect(validateAmount({ value: Number.NaN })).toBe('Amount is required.')
+    expect(validateAmount({ value: '3' })).toBe('Amount is required.')
   })
 
   it('maps nested field errors to authored form steps', () => {

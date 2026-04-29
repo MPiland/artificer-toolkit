@@ -30,6 +30,12 @@ export function requiredArray(label: string): FieldValidator {
   }
 }
 
+export function requiredNumber(label: string): FieldValidator {
+  return ({ value }) => {
+    return typeof value === 'number' && !Number.isNaN(value) ? undefined : `${label} is required.`
+  }
+}
+
 export function minimumNumber(label: string, minimum: number): FieldValidator {
   return ({ value }) => {
     if (typeof value !== 'number' || Number.isNaN(value)) return `${label} must be a number.`

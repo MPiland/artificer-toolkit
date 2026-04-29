@@ -3,6 +3,7 @@ import { getSupabaseBrowserClient } from '#supabase/client'
 import {
   backgroundListResponseDtoSchema,
   backgroundResponseDtoSchema,
+  authoredDraftDtoSchema,
   characterBuilderPreviewPayloadDtoSchema,
   characterBuilderPayloadDtoSchema,
   characterListResponseDtoSchema,
@@ -28,6 +29,9 @@ import {
   vehicleListResponseDtoSchema,
   vehicleResponseDtoSchema,
   type BackgroundAuthoredDto,
+  type AuthoredDraftDto,
+  type AuthoredDraftSaveRequestDto,
+  type AuthoredSubjectKindDto,
   type BackgroundListItemDto,
   type BackgroundListResponseDto,
   type BackgroundResponseDto,
@@ -77,6 +81,9 @@ import {
 } from '@artificer-toolkit/schema'
 
 export type {
+  AuthoredDraftDto,
+  AuthoredDraftSaveRequestDto,
+  AuthoredSubjectKindDto,
   BackgroundListItemDto,
   BackgroundListResponseDto,
   BackgroundResponseDto,
@@ -272,7 +279,21 @@ function buildApi(getJwt: (() => Promise<string | null>) | string | null) {
     await apiFetch(path, { method: 'DELETE' }, jwt)
   }
 
+  function buildDraftRequest<TInput extends AuthoredContentInput>(
+    subjectKind: AuthoredSubjectKindDto,
+    input: TInput
+  ): AuthoredDraftSaveRequestDto {
+    return {
+      subjectKind,
+      subjectId: input.id,
+      systemId: input.systemId,
+      label: input.label,
+      payload: input as unknown as Record<string, unknown>
+    }
+  }
+
   function contentDomain<TListSchema extends z.ZodTypeAny, TResponseSchema extends z.ZodTypeAny, TInput extends AuthoredContentInput>(
+    subjectKind: AuthoredSubjectKindDto,
     basePath: string,
     listSchema: TListSchema,
     responseSchema: TResponseSchema
@@ -280,13 +301,21 @@ function buildApi(getJwt: (() => Promise<string | null>) | string | null) {
     return {
       list: () => get(basePath, listSchema),
       get: (id: string) => get(`${basePath}/${id}`, responseSchema),
+      getDraft: (id: string) => get(`${basePath}/${id}/draft`, authoredDraftDtoSchema.nullable()),
+      saveDraft: (input: TInput) => post(`${basePath}/draft`, authoredDraftDtoSchema, buildDraftRequest(subjectKind, input)),
+      discardDraft: (id: string) => del(`${basePath}/${id}/draft`),
+      activateDraft: (id: string) => post(`${basePath}/${id}/draft/activate`, responseSchema, {
+        subjectKind,
+        subjectId: id
+      }),
+      activate: (input: TInput) => post(basePath, responseSchema, input),
       upsert: (input: TInput) => post(basePath, responseSchema, input),
       duplicate: async (id: string) => {
         const detail = await get(`${basePath}/${id}`, responseSchema)
         if (!detail) return null
 
         const cloned = cloneAuthoredItem((detail as unknown as { item: TInput }).item)
-        return post(basePath, responseSchema, cloned)
+        return post(`${basePath}/draft`, authoredDraftDtoSchema, buildDraftRequest(subjectKind, cloned))
       }
     }
   }
@@ -314,41 +343,49 @@ function buildApi(getJwt: (() => Promise<string | null>) | string | null) {
 
     content: {
       backgrounds: contentDomain<typeof backgroundListResponseDtoSchema, typeof backgroundResponseDtoSchema, BackgroundAuthoredDto>(
+        'BACKGROUND',
         '/content/backgrounds',
         backgroundListResponseDtoSchema,
         backgroundResponseDtoSchema
       ),
       classes: contentDomain<typeof classListResponseDtoSchema, typeof classResponseDtoSchema, ClassAuthoredDto>(
+        'CLASS',
         '/content/classes',
         classListResponseDtoSchema,
         classResponseDtoSchema
       ),
       equipment: contentDomain<typeof equipmentListResponseDtoSchema, typeof equipmentResponseDtoSchema, EquipmentAuthoredDto>(
+        'EQUIPMENT',
         '/content/equipment',
         equipmentListResponseDtoSchema,
         equipmentResponseDtoSchema
       ),
       feats: contentDomain<typeof featListResponseDtoSchema, typeof featResponseDtoSchema, FeatAuthoredDto>(
+        'FEAT',
         '/content/feats',
         featListResponseDtoSchema,
         featResponseDtoSchema
       ),
       races: contentDomain<typeof raceListResponseDtoSchema, typeof raceResponseDtoSchema, AuthoredContentInput>(
+        'RACE',
         '/content/races',
         raceListResponseDtoSchema,
         raceResponseDtoSchema
       ),
       spells: contentDomain<typeof spellListResponseDtoSchema, typeof spellResponseDtoSchema, SpellAuthoredDto>(
+        'SPELL',
         '/content/spells',
         spellListResponseDtoSchema,
         spellResponseDtoSchema
       ),
       creatures: contentDomain<typeof creatureListResponseDtoSchema, typeof creatureResponseDtoSchema, AuthoredContentInput>(
+        'CREATURE',
         '/content/creatures',
         creatureListResponseDtoSchema,
         creatureResponseDtoSchema
       ),
       vehicles: contentDomain<typeof vehicleListResponseDtoSchema, typeof vehicleResponseDtoSchema, AuthoredContentInput>(
+        'VEHICLE',
         '/content/vehicles',
         vehicleListResponseDtoSchema,
         vehicleResponseDtoSchema

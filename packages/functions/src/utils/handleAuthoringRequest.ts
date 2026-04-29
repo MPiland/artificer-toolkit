@@ -1,4 +1,4 @@
-import type { ZodType } from 'zod'
+import { ZodError, type ZodType } from 'zod'
 import type { DBLike } from '@artificer-toolkit/db'
 import { createDb, withUserContext } from '@artificer-toolkit/db'
 import { createSupabaseClient } from '../clients/supabaseClient.js'
@@ -82,10 +82,21 @@ export function handleAuthoringRequest<TBody, TResult>(
         await db.destroy()
       }
     } catch (err) {
+      if (err instanceof ZodError) {
+        return validationErrorResponse(err.issues)
+      }
+
       if (err instanceof Error && err.name === 'NodeRuntimeInputError') {
         return new Response(
           JSON.stringify({ error: err.message }),
           { status: 400, headers: { 'Content-Type': 'application/json' } }
+        )
+      }
+
+      if (err instanceof Error && err.name === 'AuthoredDraftNotFoundError') {
+        return new Response(
+          JSON.stringify({ error: err.message }),
+          { status: 404, headers: { 'Content-Type': 'application/json' } }
         )
       }
 

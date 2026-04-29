@@ -31,8 +31,8 @@ function FeatsRoute() {
         color: 'green',
         message: 'Feat duplicated as owned content.'
       })
-      if (response?.item.id) {
-        await navigate({ to: '/feats/$featId/edit', params: { featId: response.item.id } })
+      if (response?.subjectId) {
+        await navigate({ to: '/feats/$featId/edit', params: { featId: response.subjectId } })
       }
     },
     onError: () => {
