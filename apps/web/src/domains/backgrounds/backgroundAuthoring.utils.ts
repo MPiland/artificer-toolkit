@@ -109,27 +109,9 @@ export function createEmptyStartingEquipmentItem(order: number): StartingEquipme
 
 export function addStartingEquipmentItem(startingEquipment: StartingEquipmentDto | undefined): StartingEquipmentDto {
   const next = startingEquipment ?? createEmptyStartingEquipment()
-  const set = next.sets[0] ?? createEmptyStartingEquipment().sets[0]
-  const group = set.groups[0] ?? createEmptyStartingEquipment().sets[0].groups[0]
-  const option = group.options[0] ?? createEmptyStartingEquipment().sets[0].groups[0].options[0]
-  const itemCount = option.items.length
+  const itemCount = getStartingEquipmentItems(next).length
 
-  return {
-    ...next,
-    sets: [{
-      ...set,
-      groups: [{
-        ...group,
-        options: [{
-          ...option,
-          items: [
-            ...option.items,
-            createEmptyStartingEquipmentItem(itemCount + 1)
-          ]
-        }]
-      }]
-    }]
-  }
+  return appendStartingEquipmentItem(next, createEmptyStartingEquipmentItem(itemCount + 1))
 }
 
 export function upsertStartingEquipmentItem(
@@ -137,26 +119,11 @@ export function upsertStartingEquipmentItem(
   item: StartingEquipmentItemDto
 ): StartingEquipmentDto {
   const next = startingEquipment ?? createEmptyStartingEquipment()
-  const set = next.sets[0] ?? createEmptyStartingEquipment().sets[0]
-  const group = set.groups[0] ?? createEmptyStartingEquipment().sets[0].groups[0]
-  const option = group.options[0] ?? createEmptyStartingEquipment().sets[0].groups[0].options[0]
-  const hasItem = option.items.some((current) => current.id === item.id)
+  const hasItem = getStartingEquipmentItems(next).some((current) => current.id === item.id)
 
-  return {
-    ...next,
-    sets: [{
-      ...set,
-      groups: [{
-        ...group,
-        options: [{
-          ...option,
-          items: hasItem
-            ? option.items.map((current) => current.id === item.id ? item : current)
-            : [...option.items, item]
-        }]
-      }]
-    }]
-  }
+  return hasItem
+    ? replaceStartingEquipmentItem(next, item.id, item)
+    : appendStartingEquipmentItem(next, item)
 }
 
 export function replaceStartingEquipmentItem(
@@ -201,4 +168,95 @@ export function getStartingEquipmentItems(startingEquipment: StartingEquipmentDt
       group.options.flatMap((option) => option.items)
     )
   ) ?? []
+}
+
+function appendStartingEquipmentItem(
+  startingEquipment: StartingEquipmentDto,
+  item: StartingEquipmentItemDto
+): StartingEquipmentDto {
+  if (startingEquipment.sets.length === 0) {
+    return {
+      ...startingEquipment,
+      sets: [createEmptyStartingEquipmentSet(item)]
+    }
+  }
+
+  let appended = false
+
+  return {
+    ...startingEquipment,
+    sets: startingEquipment.sets.map((set) => {
+      if (appended) return set
+
+      if (set.groups.length === 0) {
+        appended = true
+        return {
+          ...set,
+          groups: [createEmptyStartingEquipmentGroup(item)]
+        }
+      }
+
+      return {
+        ...set,
+        groups: set.groups.map((group) => {
+          if (appended) return group
+
+          if (group.options.length === 0) {
+            appended = true
+            return {
+              ...group,
+              options: [createEmptyStartingEquipmentOption(item)]
+            }
+          }
+
+          appended = true
+          const [firstOption, ...remainingOptions] = group.options
+
+          return {
+            ...group,
+            options: [
+              {
+                ...firstOption,
+                items: [...firstOption.items, item]
+              },
+              ...remainingOptions
+            ]
+          }
+        })
+      }
+    })
+  }
+}
+
+function createEmptyStartingEquipmentSet(
+  item: StartingEquipmentItemDto
+): StartingEquipmentDto['sets'][number] {
+  const set = createEmptyStartingEquipment().sets[0]
+
+  return {
+    ...set,
+    groups: [createEmptyStartingEquipmentGroup(item)]
+  }
+}
+
+function createEmptyStartingEquipmentGroup(
+  item: StartingEquipmentItemDto
+): StartingEquipmentDto['sets'][number]['groups'][number] {
+  const group = createEmptyStartingEquipment().sets[0].groups[0]
+
+  return {
+    ...group,
+    options: [createEmptyStartingEquipmentOption(item)]
+  }
+}
+
+function createEmptyStartingEquipmentOption(
+  item: StartingEquipmentItemDto
+): StartingEquipmentDto['sets'][number]['groups'][number]['options'][number] {
+  const option = createEmptyStartingEquipment().sets[0].groups[0].options[0]
+
+  return {
+    ...option,
+    items: [item]
+  }
 }
