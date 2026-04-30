@@ -89,6 +89,11 @@ Derive sections from `BACKGROUND_NODE_MAP` and the locked Figma screens:
   - Spell and Background now share `AuthoredFormRoot`, `AuthoredFormHeader`, `AuthoredFormShell`, `AuthoredFormSectionStack`, `AuthoredFormSection`, and `AuthoredFormFooter`.
   - domain files now own only domain-specific flow, collection editing, field grid sizing, and effect/background-specific behavior.
   - removed stale per-domain copies of the form shell, header, section panel, footer, and input styling from active Spell/Background CSS.
+- Post-closeout impeccable technical audit follow-up:
+  - Background detail/edit now parses draft payloads through `backgroundAuthoredDtoSchema` before passing them into the form.
+  - Background detail/edit remounts the TanStack form with a route/draft-aware key so switching records or active/draft state cannot retain stale form state.
+  - Background activation invalidates the owned draft query after successful save so stale sidecar drafts do not mask the active record.
+  - Background proficiency and starting-equipment nested editors now use shared typed node-map exports instead of active-web `as unknown` casts.
 
 ## Implementation Tracks
 

@@ -31,7 +31,9 @@ Current default focus is Phase 9 frontend modernization.
 - 9.7 background implementation: complete
 - 9.8 feat implementation: complete
 - 9.8.1 draft/form persistence correction: complete
-- 9.9 race implementation: active
+- 9.9 race implementation: complete
+- 9.10 equipment implementation: complete
+- 9.11 creature implementation: active
 
 Before starting a new frontend task, confirm the active tranche in [PHASE_9_CODE_OVERVIEW.md](/c:/Users/pilan/Desktop/artificer-toolkit/PHASE_9_CODE_OVERVIEW.md).
 
@@ -79,7 +81,9 @@ Current frontend posture:
 - 9.2 public/auth/marketing is complete.
 - 9.3 authenticated shell, navigation, and authored list patterns is complete.
 - 9.8.1 draft/form persistence correction is complete.
-- 9.9 race implementation is the active tranche.
+- 9.9 race implementation is complete.
+- 9.10 equipment implementation is complete.
+- 9.11 creature implementation is the active tranche.
 
 Per-tranche expectations:
 

@@ -103,21 +103,25 @@ export const costDtoSchema = z.object({
   amount: z.number(),
   currencyId: z.string()
 })
+export type CostDto = z.infer<typeof costDtoSchema>
 
 export const weightDtoSchema = z.object({
   amount: z.number(),
   unit: measurementUnitCodeSchema
 })
+export type WeightDto = z.infer<typeof weightDtoSchema>
 
 export const capacityDtoSchema = z.object({
   amount: z.number(),
   unit: measurementUnitCodeSchema
 })
+export type CapacityDto = z.infer<typeof capacityDtoSchema>
 
 export const containsDtoSchema = z.object({
   equipmentId: z.string(),
   quantity: z.number()
 })
+export type ContainsDto = z.infer<typeof containsDtoSchema>
 
 export const equipmentAbilityDtoSchema = z.object({
   op: operationCodeSchema,

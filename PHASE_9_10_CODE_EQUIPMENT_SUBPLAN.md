@@ -1,6 +1,6 @@
 # Phase 9.10 - Code: Equipment
 
-## Status: Not Started
+## Status: Complete
 
 ## Objective
 
@@ -69,6 +69,21 @@ Derive sections from `EQUIPMENT_NODE_MAP` and the locked Figma screens:
 4. Reuse shared effect and modifier editing primitives where applicable.
 5. Support locked-master copy the same way as other authored domains.
 
+## Implementation Notes
+
+- Equipment now has active `/equipment`, `/equipment/new`, `/equipment/$equipmentId`, and `/equipment/$equipmentId/edit` routes on the shared Phase 9 stack.
+- Equipment REST routes support list/detail plus draft `get`, `save`, `discard`, and `activate`, with activation using node-runtime normalization before strict DTO persistence.
+- Equipment list data maps provenance, permissions, status, category, and source metadata into the shared authored-list pattern.
+- Equipment form uses TanStack Form composition, the shared authored-form frame, node-runtime-backed options/visibility, draft sidecar persistence, and locked-master duplicate-only behavior.
+- Base equipment and variants use the same form runtime while hiding base-only Inventory and Contents steps for variants.
+- Nested equipment structures are editable through focused runtime-backed editors:
+  - features use the equipment feature map
+  - restrictions use the equipment restrictions/facet map
+  - modifiers use the shared modifier grant map
+  - charges use the equipment charge map
+  - contents use the shared contains map
+- The shared equipment node map now exposes typed child maps for equipment-owned features, restrictions, charges, and modifiers.
+
 ## Stories, Tests, and Playwright
 
 - Storybook:
@@ -96,3 +111,20 @@ Derive sections from `EQUIPMENT_NODE_MAP` and the locked Figma screens:
 - Equipment authoring works on the shared runtime without domain-specific fallback architecture.
 - Nested inventory relationships render honestly.
 - Locked-master equipment copy is stable.
+
+## Validation
+
+- Passed: `yarn build:schema`
+- Passed: `yarn build:shared`
+- Passed: `yarn build:functions`
+- Passed: `yarn build:db`
+- Passed: `yarn build:apis`
+- Passed: `yarn workspace @artificer-toolkit/web test`
+- Passed: `yarn workspace @artificer-toolkit/web typecheck` except documented legacy `src/utils` blockers
+- Passed: `yarn workspace @artificer-toolkit/web build-storybook`
+- Passed: `yarn workspace @artificer-toolkit/web test:e2e:app`
+- Passed: `yarn workspace @artificer-toolkit/web test:e2e:storybook`
+- Accepted non-blocker: `yarn build:web` still fails only on the documented legacy `src/utils` alias/type issues outside the active Phase 9 Equipment implementation.
+- Accepted non-blocker: Storybook build reports existing large chunk warnings.
+- Accepted non-blocker: app Playwright smoke reports the known TanStack Start dev-style warning for Mantine ScrollArea CSS while tests pass.
+- Accepted non-blocker: Storybook Playwright reports existing Tiptap duplicate extension warnings while tests pass.

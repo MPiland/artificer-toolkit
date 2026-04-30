@@ -42,7 +42,7 @@ describe('feat authoring helpers', () => {
     const normalized = normalizeFeatForSubmit({
       ...feat,
       label: '  ',
-      description: undefined as unknown as string,
+      description: '',
       detail: undefined,
       effects: undefined,
       features: undefined,

@@ -102,6 +102,7 @@ Manual review accepted:
 
 - Feat list/form stories are accepted as consistent enough with the shared Spell/Background visual pattern for Phase 9.8 closeout.
 - The folder-organization cleanup and Vite/Storybook alias correction landed after implementation so the active Feat code sits in the locked Phase 9 web taxonomy.
+- Post-closeout impeccable technical audit completed during 9.9 approval. P1 fixes applied for draft parsing, route-keyed form remounting, and shared typed node-map contracts for Feat prerequisites/grants/charges instead of active-web `as unknown` casts.
 
 ## Legacy Cleanup
 

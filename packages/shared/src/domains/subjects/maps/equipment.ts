@@ -85,8 +85,10 @@ export const CONTAINS_NODE_MAP = containsNode.define('contains', ({ map, nodes, 
 
 type EquipmentMapAuthored = EquipmentAuthored | EquipmentVariantAuthored
 
-const EQUIPMENT_FEATURE_NODE_MAP = FEATURE_NODE_MAP as NodeMap<FeatureAuthored<'EQUIPMENT'>>
-const EQUIPMENT_RESTRICTIONS_NODE_MAP = FACET_NODE_MAP as NodeMap<FacetAuthored<'EQUIPMENT'>>
+export const EQUIPMENT_FEATURE_NODE_MAP = FEATURE_NODE_MAP as NodeMap<FeatureAuthored<'EQUIPMENT'>>
+export const EQUIPMENT_RESTRICTIONS_NODE_MAP = FACET_NODE_MAP as NodeMap<FacetAuthored<'EQUIPMENT'>>
+export const EQUIPMENT_CHARGE_NODE_MAP = CHARGE_NODE_MAP as NodeMap<NonNullable<EquipmentAuthored['charges']>>
+export const EQUIPMENT_MODIFIER_NODE_MAP = MODIFIER_GRANT_NODE_MAP as NodeMap<NonNullable<EquipmentAuthored['modifiers']>[number]>
 
 const EQUIPMENT_SECTIONS = {
   basics: { id: 'basics', label: 'Basics', order: 10 },
@@ -119,21 +121,24 @@ export const EQUIPMENT_NODE_MAP = equipment.define('equipment', ({ map, nodes, c
     }, {
       section: EQUIPMENT_SECTIONS.properties,
       order: 20,
-      showIf: isBaseEquipment
+      showIf: isBaseEquipment,
+      hiddenBehavior: 'CLEAR'
     }))
     .set('quote', text(['quote'], 'Quote', { section: EQUIPMENT_SECTIONS.basics, order: 30 }))
     .set('cost', groupObject(['cost'], 'Cost', () => COST_NODE_MAP, {
       section: EQUIPMENT_SECTIONS.economy,
       order: 10,
-      showIf: isBaseEquipment
+      showIf: isBaseEquipment,
+      hiddenBehavior: 'CLEAR'
     }))
     .set('weight', groupObject(['weight'], 'Weight', () => WEIGHT_NODE_MAP, {
       section: EQUIPMENT_SECTIONS.economy,
       order: 20,
-      showIf: isBaseEquipment
+      showIf: isBaseEquipment,
+      hiddenBehavior: 'CLEAR'
     }))
     .set('effects', groupArray(['effects'], 'Effects', () => EFFECT_NODE_MAP, { section: EQUIPMENT_SECTIONS.mechanics, order: 10 }))
-    .set('charges', groupObject(['charges'], 'Charges', () => CHARGE_NODE_MAP, {
+    .set('charges', groupObject(['charges'], 'Charges', () => EQUIPMENT_CHARGE_NODE_MAP, {
       section: EQUIPMENT_SECTIONS.mechanics,
       order: 20,
       showIf: {
@@ -141,14 +146,16 @@ export const EQUIPMENT_NODE_MAP = equipment.define('equipment', ({ map, nodes, c
           isVariant,
           local.field(['attributes']).contains(['LIMITED_USE'])
         ]
-      }
+      },
+      hiddenBehavior: 'CLEAR'
     }))
     .set('capacity', groupObject(['capacity'], 'Capacity', () => CAPACITY_NODE_MAP, {
       section: EQUIPMENT_SECTIONS.properties,
       order: 30,
-      showIf: isBaseEquipment
+      showIf: isBaseEquipment,
+      hiddenBehavior: 'CLEAR'
     }))
-    .set('modifiers', groupArray(['modifiers'], 'Modifiers', () => MODIFIER_GRANT_NODE_MAP, { section: EQUIPMENT_SECTIONS.mechanics, order: 30 }))
+    .set('modifiers', groupArray(['modifiers'], 'Modifiers', () => EQUIPMENT_MODIFIER_NODE_MAP, { section: EQUIPMENT_SECTIONS.mechanics, order: 30 }))
     .set('maxStack', number(['maxStack'], 'Max Stack', {
       section: EQUIPMENT_SECTIONS.properties,
       order: 40,
@@ -157,7 +164,8 @@ export const EQUIPMENT_NODE_MAP = equipment.define('equipment', ({ map, nodes, c
           isBaseEquipment,
           local.field(['attributes']).contains(['STACKABLE'])
         ]
-      }
+      },
+      hiddenBehavior: 'CLEAR'
     }))
     .set('rarityId', selectSingle(['rarityId'], 'Rarity', {
       kind: 'DATA',
@@ -169,12 +177,14 @@ export const EQUIPMENT_NODE_MAP = equipment.define('equipment', ({ map, nodes, c
     .set('armorClass', number(['armorClass'], 'Armor Class', {
       section: EQUIPMENT_SECTIONS.mechanics,
       order: 50,
-      showIf: isBaseEquipment
+      showIf: isBaseEquipment,
+      hiddenBehavior: 'CLEAR'
     }))
     .set('contains', groupArray(['contains'], 'Contains', () => CONTAINS_NODE_MAP, {
       section: EQUIPMENT_SECTIONS.contents,
       order: 10,
-      showIf: isBaseEquipment
+      showIf: isBaseEquipment,
+      hiddenBehavior: 'CLEAR'
     }))
     .set('features', groupArray(['features'], 'Features', () => EQUIPMENT_FEATURE_NODE_MAP, { section: EQUIPMENT_SECTIONS.mechanics, order: 60 }))
     .set('restrictions', groupObject(['restrictions'], 'Restrictions', () => EQUIPMENT_RESTRICTIONS_NODE_MAP, { section: EQUIPMENT_SECTIONS.mechanics, order: 70 }))
@@ -192,7 +202,8 @@ export const EQUIPMENT_NODE_MAP = equipment.define('equipment', ({ map, nodes, c
     }, {
       section: EQUIPMENT_SECTIONS.properties,
       order: 60,
-      showIf: isVariant
+      showIf: isVariant,
+      hiddenBehavior: 'CLEAR'
     }))
     .set('properties', selectMulti(['properties'], 'Properties', {
       kind: 'INLINE',

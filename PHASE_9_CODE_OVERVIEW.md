@@ -101,7 +101,10 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
 - Phase 9.7 is complete: Background list/form implementation, node-runtime-backed nested editors, locked-master behavior, shared authored-form layout consistency, and corrected Spell runtime alignment are accepted.
 - Phase 9.8 is complete: Feat list/form implementation, node-runtime-backed requirements/mechanics, reusable EffectEditor integration, locked-master behavior, route coverage, and folder-organization cleanup are accepted.
 - Phase 9.8.1 is complete: authored draft/form persistence now uses the generic `authored_subject_drafts` sidecar for Spell, Background, and Feat, with activation preserving strict normalized saves.
-- Phase 9.9 Race is the active domain tranche and must use the draft sidecar model from the start.
+- Phase 9.9 is complete: Race routes, list, base-race form, subrace form, node-runtime metadata, draft sidecar persistence, category-aware filters, and Storybook/app validation are accepted on the Phase 9 stack.
+- Phase 9.10 is complete: Equipment routes, list, base equipment form, variant equipment form, node-runtime metadata, draft sidecar persistence, category-aware filters, nested restrictions/modifiers/charges/contents editors, locked-master behavior, and Storybook/app validation are accepted on the Phase 9 stack.
+- Phase 9.11 Creature is the active next tranche. Continue the current pattern: wire the domain end-to-end first, run impeccable critique/audit/polish at tranche closeout, and defer deeper real-world UI iteration until the full authored domain set is available for integrated testing.
+- Phase 9.10 validation passed `build:schema`, `build:shared`, `build:functions`, `build:db`, `build:apis`, focused Equipment web tests, full web unit tests, app Playwright smoke, Storybook build, and Storybook Playwright smoke. `build:web` remains blocked only by documented legacy `src/utils` failures.
 - Phase 9.8.1 validation passed `build:schema`, `build:db`, `build:functions`, `build:apis`, `test:schema`, focused API draft tests, focused web adapter/domain tests, full web unit tests, and Storybook build. `build:web` remains blocked only by documented legacy `src/utils` failures; `test:db` remains blocked by pre-existing repository expectation drift outside the draft sidecar path.
 - Latest 9.8 implementation rebuilt Feat on the accepted stack: REST through `apps/apis`, SSR-aware TanStack Query helpers, shared authored list/form layouts, node-runtime-backed nested editors, reusable EffectEditor, locked-master duplicate-only behavior, and active `/feats` route coverage.
 - Latest 9.7 closeout correction backfilled Spell onto the node-runtime resolver path for top-level field options, material-description visibility, and hidden-value clearing while preserving the accepted Figma-aligned Spell form and EffectEditor layout.
@@ -132,9 +135,9 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
 | 9.7 | [PHASE_9_7_CODE_BACKGROUND_SUBPLAN.md](PHASE_9_7_CODE_BACKGROUND_SUBPLAN.md) | Background list and form implementation | Complete |
 | 9.8 | [PHASE_9_8_CODE_FEAT_SUBPLAN.md](PHASE_9_8_CODE_FEAT_SUBPLAN.md) | Feat list and form implementation | Complete |
 | 9.8.1 | [PHASE_9_8_1_DRAFT_FORM_PERSISTENCE_SUBPLAN.md](PHASE_9_8_1_DRAFT_FORM_PERSISTENCE_SUBPLAN.md) | Draft sidecar persistence and activation correction | Complete |
-| 9.9 | [PHASE_9_9_CODE_RACE_SUBPLAN.md](PHASE_9_9_CODE_RACE_SUBPLAN.md) | Race list and form implementation | Active |
-| 9.10 | [PHASE_9_10_CODE_EQUIPMENT_SUBPLAN.md](PHASE_9_10_CODE_EQUIPMENT_SUBPLAN.md) | Equipment list and form implementation | Not Started |
-| 9.11 | [PHASE_9_11_CODE_CREATURE_SUBPLAN.md](PHASE_9_11_CODE_CREATURE_SUBPLAN.md) | Creature list and form implementation | Not Started |
+| 9.9 | [PHASE_9_9_CODE_RACE_SUBPLAN.md](PHASE_9_9_CODE_RACE_SUBPLAN.md) | Race list and form implementation | Complete |
+| 9.10 | [PHASE_9_10_CODE_EQUIPMENT_SUBPLAN.md](PHASE_9_10_CODE_EQUIPMENT_SUBPLAN.md) | Equipment list and form implementation | Complete |
+| 9.11 | [PHASE_9_11_CODE_CREATURE_SUBPLAN.md](PHASE_9_11_CODE_CREATURE_SUBPLAN.md) | Creature list and form implementation | Active |
 | 9.12 | [PHASE_9_12_CODE_VEHICLE_SUBPLAN.md](PHASE_9_12_CODE_VEHICLE_SUBPLAN.md) | Vehicle list and form implementation | Not Started |
 | 9.13 | [PHASE_9_13_CODE_CLASS_SUBPLAN.md](PHASE_9_13_CODE_CLASS_SUBPLAN.md) | Base class and subclass authoring implementation | Not Started |
 | 9.14 | [PHASE_9_14_CHARACTER_BUILDER_SUBPLAN.md](PHASE_9_14_CHARACTER_BUILDER_SUBPLAN.md) | Engine-backed builder implementation | Not Started |

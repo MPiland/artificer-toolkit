@@ -2,7 +2,7 @@ import { RACE_SELECTION_MODE } from '@artificer-toolkit/shared'
 import { z } from 'zod'
 
 import {
-  raceAncestryDtoSchema,
+  raceAncestryDtoSchema
 } from './shared.js'
 import { detailDtoSchema, speedDtoSchema } from '../shared/index.js'
 import { featureDtoSchema } from '../features/index.js'
@@ -18,7 +18,7 @@ const raceBaseDtoSchema = z.object({
   systemId: z.string()
 })
 
-const baseRaceAuthoredDtoSchemaRaw: z.ZodTypeAny = raceBaseDtoSchema.extend({
+export const baseRaceAuthoredDtoSchema = raceBaseDtoSchema.extend({
   category: z.literal('BASE'),
   selectionMode: z.union([
     z.literal(RACE_SELECTION_MODE.DIRECT),
@@ -32,24 +32,18 @@ const baseRaceAuthoredDtoSchemaRaw: z.ZodTypeAny = raceBaseDtoSchema.extend({
   speeds: z.array(speedDtoSchema)
 })
 
-const subraceAuthoredDtoSchemaRaw: z.ZodTypeAny = raceBaseDtoSchema.extend({
+export const subraceAuthoredDtoSchema = raceBaseDtoSchema.extend({
   category: z.literal('SUBRACE'),
   parentRaceId: z.string(),
   details: z.array(detailDtoSchema).optional(),
   features: z.array(featureDtoSchema).optional()
 })
 
-const raceAuthoredDtoSchemaRaw: z.ZodTypeAny = z.union([
-  baseRaceAuthoredDtoSchemaRaw,
-  subraceAuthoredDtoSchemaRaw
-])
-
-export type BaseRaceAuthoredDto = z.infer<typeof baseRaceAuthoredDtoSchemaRaw>
-export type SubraceAuthoredDto = z.infer<typeof subraceAuthoredDtoSchemaRaw>
+export type BaseRaceAuthoredDto = z.infer<typeof baseRaceAuthoredDtoSchema>
+export type SubraceAuthoredDto = z.infer<typeof subraceAuthoredDtoSchema>
 export type RaceAuthoredDto = BaseRaceAuthoredDto | SubraceAuthoredDto
-const baseRaceAuthoredDtoSchemaBase: z.ZodTypeAny = baseRaceAuthoredDtoSchemaRaw
-const subraceAuthoredDtoSchemaBase: z.ZodTypeAny = subraceAuthoredDtoSchemaRaw
-const raceAuthoredDtoSchemaBase: z.ZodTypeAny = raceAuthoredDtoSchemaRaw
-export const baseRaceAuthoredDtoSchema = baseRaceAuthoredDtoSchemaBase
-export const subraceAuthoredDtoSchema = subraceAuthoredDtoSchemaBase
-export const raceAuthoredDtoSchema = raceAuthoredDtoSchemaBase
+
+export const raceAuthoredDtoSchema: z.ZodType<RaceAuthoredDto> = z.discriminatedUnion('category', [
+  baseRaceAuthoredDtoSchema,
+  subraceAuthoredDtoSchema
+])

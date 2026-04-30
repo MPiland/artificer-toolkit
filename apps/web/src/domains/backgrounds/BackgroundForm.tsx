@@ -11,9 +11,9 @@ import type {
   StartingEquipmentDto
 } from '@artificer-toolkit/schema'
 import {
+  BACKGROUND_PROFICIENCY_NODE_MAP,
+  BACKGROUND_STARTING_EQUIPMENT_ITEM_NODE_MAP,
   type NodeMap,
-  PROFICIENCY_NODE_MAP,
-  STARTING_EQUIPMENT_ITEM_NODE_MAP
 } from '@artificer-toolkit/shared'
 import IEdit from '#assets/icons/IEdit'
 import { IMinus } from '#assets/icons/IMinus'
@@ -768,7 +768,7 @@ function ProficiencyEditorModal({
                 enabled={resolveRuntime}
                 form={form}
                 mapId='proficiencyGrant'
-                nodeMap={PROFICIENCY_NODE_MAP as unknown as NodeMap<ProficiencyGrantDto>}
+                nodeMap={BACKGROUND_PROFICIENCY_NODE_MAP as NodeMap<ProficiencyGrantDto>}
                 readOnly={readOnly}
                 values={values}
               />
@@ -816,7 +816,7 @@ function StartingEquipmentItemEditorModal({
                 enabled={resolveRuntime}
                 form={form}
                 mapId='startingEquipmentItem'
-                nodeMap={STARTING_EQUIPMENT_ITEM_NODE_MAP as unknown as NodeMap<StartingEquipmentItemDto>}
+                nodeMap={BACKGROUND_STARTING_EQUIPMENT_ITEM_NODE_MAP as NodeMap<StartingEquipmentItemDto>}
                 readOnly={readOnly}
                 values={values}
               />

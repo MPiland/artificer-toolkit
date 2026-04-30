@@ -1,5 +1,5 @@
 import type { BackgroundAuthored, DetailAuthored } from '#authored'
-import { FEATURE_NODE_MAP, PROFICIENCY_NODE_MAP, STARTING_EQUIPMENT_NODE_MAP } from '#maps'
+import { FEATURE_NODE_MAP, PROFICIENCY_NODE_MAP, STARTING_EQUIPMENT_ITEM_NODE_MAP, STARTING_EQUIPMENT_NODE_MAP } from '#maps'
 import { buildNodeMap, type NodeMap } from '#utils'
 
 const BACKGROUND_SECTIONS = {
@@ -22,6 +22,9 @@ const DETAIL_NODE_MAP = detailNode.define('detail', ({ map, nodes }) => {
 
 const background = buildNodeMap<BackgroundAuthored>()
 
+export const BACKGROUND_PROFICIENCY_NODE_MAP = PROFICIENCY_NODE_MAP as NodeMap<NonNullable<BackgroundAuthored['proficiencies']>[number]>
+export const BACKGROUND_STARTING_EQUIPMENT_ITEM_NODE_MAP = STARTING_EQUIPMENT_ITEM_NODE_MAP as NodeMap<NonNullable<BackgroundAuthored['startingEquipment']>['sets'][number]['groups'][number]['options'][number]['items'][number]>
+
 export const BACKGROUND_NODE_MAP: NodeMap<BackgroundAuthored> = background.define('background', ({ map, nodes }) => {
   const { text, richText, groupArray, groupObject } = nodes
 
@@ -31,7 +34,7 @@ export const BACKGROUND_NODE_MAP: NodeMap<BackgroundAuthored> = background.defin
     .set('label', text(['label'], 'Name', { section: BACKGROUND_SECTIONS.basics, order: 10 }))
     .set('description', richText(['description'], 'Description', { section: BACKGROUND_SECTIONS.basics, order: 20 }))
     .set('details', groupArray(['details'], 'Details', () => DETAIL_NODE_MAP, { section: BACKGROUND_SECTIONS.details, order: 10 }))
-    .set('proficiencies', groupArray(['proficiencies'], 'Proficiencies', () => PROFICIENCY_NODE_MAP, { section: BACKGROUND_SECTIONS.grants, order: 10 }))
+    .set('proficiencies', groupArray(['proficiencies'], 'Proficiencies', () => BACKGROUND_PROFICIENCY_NODE_MAP, { section: BACKGROUND_SECTIONS.grants, order: 10 }))
     .set('features', groupArray(['features'], 'Features', () => FEATURE_NODE_MAP, { section: BACKGROUND_SECTIONS.grants, order: 20 }))
     .set('startingEquipment', groupObject(['startingEquipment'], 'Starting Equipment', () => STARTING_EQUIPMENT_NODE_MAP, { section: BACKGROUND_SECTIONS.equipment, order: 10 }))
     .set('userId', text(['userId'], 'User ID'))

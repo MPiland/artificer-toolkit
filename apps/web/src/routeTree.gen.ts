@@ -15,8 +15,10 @@ import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as GuestIndexRouteImport } from './routes/_guest/index'
 import { Route as GuestAuthRouteImport } from './routes/_guest/_auth'
 import { Route as AuthedSpellsIndexRouteImport } from './routes/_authed/spells/index'
+import { Route as AuthedRacesIndexRouteImport } from './routes/_authed/races/index'
 import { Route as AuthedHomeIndexRouteImport } from './routes/_authed/home/index'
 import { Route as AuthedFeatsIndexRouteImport } from './routes/_authed/feats/index'
+import { Route as AuthedEquipmentIndexRouteImport } from './routes/_authed/equipment/index'
 import { Route as AuthedBackgroundsIndexRouteImport } from './routes/_authed/backgrounds/index'
 import { Route as GuestAuthUpdatePasswordRouteImport } from './routes/_guest/_auth/update-password'
 import { Route as GuestAuthSignUpRouteImport } from './routes/_guest/_auth/sign-up'
@@ -24,16 +26,24 @@ import { Route as GuestAuthSignInRouteImport } from './routes/_guest/_auth/sign-
 import { Route as GuestAuthResetPasswordRouteImport } from './routes/_guest/_auth/reset-password'
 import { Route as AuthedSpellsNewRouteImport } from './routes/_authed/spells/new'
 import { Route as AuthedSpellsSpellIdRouteImport } from './routes/_authed/spells/$spellId'
+import { Route as AuthedRacesNewRouteImport } from './routes/_authed/races/new'
+import { Route as AuthedRacesRaceIdRouteImport } from './routes/_authed/races/$raceId'
 import { Route as AuthedFeatsNewRouteImport } from './routes/_authed/feats/new'
 import { Route as AuthedFeatsFeatIdRouteImport } from './routes/_authed/feats/$featId'
+import { Route as AuthedEquipmentNewRouteImport } from './routes/_authed/equipment/new'
+import { Route as AuthedEquipmentEquipmentIdRouteImport } from './routes/_authed/equipment/$equipmentId'
 import { Route as AuthedBackgroundsNewRouteImport } from './routes/_authed/backgrounds/new'
 import { Route as AuthedBackgroundsBackgroundIdRouteImport } from './routes/_authed/backgrounds/$backgroundId'
 import { Route as AuthedSpellsSpellIdIndexRouteImport } from './routes/_authed/spells/$spellId/index'
+import { Route as AuthedRacesRaceIdIndexRouteImport } from './routes/_authed/races/$raceId/index'
 import { Route as AuthedFeatsFeatIdIndexRouteImport } from './routes/_authed/feats/$featId/index'
+import { Route as AuthedEquipmentEquipmentIdIndexRouteImport } from './routes/_authed/equipment/$equipmentId/index'
 import { Route as AuthedBackgroundsBackgroundIdIndexRouteImport } from './routes/_authed/backgrounds/$backgroundId/index'
 import { Route as GuestAuthAuthConfirmedRouteImport } from './routes/_guest/_auth/auth.confirmed'
 import { Route as AuthedSpellsSpellIdEditRouteImport } from './routes/_authed/spells/$spellId/edit'
+import { Route as AuthedRacesRaceIdEditRouteImport } from './routes/_authed/races/$raceId/edit'
 import { Route as AuthedFeatsFeatIdEditRouteImport } from './routes/_authed/feats/$featId/edit'
+import { Route as AuthedEquipmentEquipmentIdEditRouteImport } from './routes/_authed/equipment/$equipmentId/edit'
 import { Route as AuthedBackgroundsBackgroundIdEditRouteImport } from './routes/_authed/backgrounds/$backgroundId/edit'
 
 const LogoutRoute = LogoutRouteImport.update({
@@ -63,6 +73,11 @@ const AuthedSpellsIndexRoute = AuthedSpellsIndexRouteImport.update({
   path: '/spells/',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedRacesIndexRoute = AuthedRacesIndexRouteImport.update({
+  id: '/races/',
+  path: '/races/',
+  getParentRoute: () => AuthedRoute,
+} as any)
 const AuthedHomeIndexRoute = AuthedHomeIndexRouteImport.update({
   id: '/home/',
   path: '/home/',
@@ -71,6 +86,11 @@ const AuthedHomeIndexRoute = AuthedHomeIndexRouteImport.update({
 const AuthedFeatsIndexRoute = AuthedFeatsIndexRouteImport.update({
   id: '/feats/',
   path: '/feats/',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedEquipmentIndexRoute = AuthedEquipmentIndexRouteImport.update({
+  id: '/equipment/',
+  path: '/equipment/',
   getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedBackgroundsIndexRoute = AuthedBackgroundsIndexRouteImport.update({
@@ -108,6 +128,16 @@ const AuthedSpellsSpellIdRoute = AuthedSpellsSpellIdRouteImport.update({
   path: '/spells/$spellId',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedRacesNewRoute = AuthedRacesNewRouteImport.update({
+  id: '/races/new',
+  path: '/races/new',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedRacesRaceIdRoute = AuthedRacesRaceIdRouteImport.update({
+  id: '/races/$raceId',
+  path: '/races/$raceId',
+  getParentRoute: () => AuthedRoute,
+} as any)
 const AuthedFeatsNewRoute = AuthedFeatsNewRouteImport.update({
   id: '/feats/new',
   path: '/feats/new',
@@ -118,6 +148,17 @@ const AuthedFeatsFeatIdRoute = AuthedFeatsFeatIdRouteImport.update({
   path: '/feats/$featId',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedEquipmentNewRoute = AuthedEquipmentNewRouteImport.update({
+  id: '/equipment/new',
+  path: '/equipment/new',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedEquipmentEquipmentIdRoute =
+  AuthedEquipmentEquipmentIdRouteImport.update({
+    id: '/equipment/$equipmentId',
+    path: '/equipment/$equipmentId',
+    getParentRoute: () => AuthedRoute,
+  } as any)
 const AuthedBackgroundsNewRoute = AuthedBackgroundsNewRouteImport.update({
   id: '/backgrounds/new',
   path: '/backgrounds/new',
@@ -135,11 +176,22 @@ const AuthedSpellsSpellIdIndexRoute =
     path: '/',
     getParentRoute: () => AuthedSpellsSpellIdRoute,
   } as any)
+const AuthedRacesRaceIdIndexRoute = AuthedRacesRaceIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthedRacesRaceIdRoute,
+} as any)
 const AuthedFeatsFeatIdIndexRoute = AuthedFeatsFeatIdIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthedFeatsFeatIdRoute,
 } as any)
+const AuthedEquipmentEquipmentIdIndexRoute =
+  AuthedEquipmentEquipmentIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthedEquipmentEquipmentIdRoute,
+  } as any)
 const AuthedBackgroundsBackgroundIdIndexRoute =
   AuthedBackgroundsBackgroundIdIndexRouteImport.update({
     id: '/',
@@ -156,11 +208,22 @@ const AuthedSpellsSpellIdEditRoute = AuthedSpellsSpellIdEditRouteImport.update({
   path: '/edit',
   getParentRoute: () => AuthedSpellsSpellIdRoute,
 } as any)
+const AuthedRacesRaceIdEditRoute = AuthedRacesRaceIdEditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => AuthedRacesRaceIdRoute,
+} as any)
 const AuthedFeatsFeatIdEditRoute = AuthedFeatsFeatIdEditRouteImport.update({
   id: '/edit',
   path: '/edit',
   getParentRoute: () => AuthedFeatsFeatIdRoute,
 } as any)
+const AuthedEquipmentEquipmentIdEditRoute =
+  AuthedEquipmentEquipmentIdEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthedEquipmentEquipmentIdRoute,
+  } as any)
 const AuthedBackgroundsBackgroundIdEditRoute =
   AuthedBackgroundsBackgroundIdEditRouteImport.update({
     id: '/edit',
@@ -173,8 +236,12 @@ export interface FileRoutesByFullPath {
   '/logout': typeof LogoutRoute
   '/backgrounds/$backgroundId': typeof AuthedBackgroundsBackgroundIdRouteWithChildren
   '/backgrounds/new': typeof AuthedBackgroundsNewRoute
+  '/equipment/$equipmentId': typeof AuthedEquipmentEquipmentIdRouteWithChildren
+  '/equipment/new': typeof AuthedEquipmentNewRoute
   '/feats/$featId': typeof AuthedFeatsFeatIdRouteWithChildren
   '/feats/new': typeof AuthedFeatsNewRoute
+  '/races/$raceId': typeof AuthedRacesRaceIdRouteWithChildren
+  '/races/new': typeof AuthedRacesNewRoute
   '/spells/$spellId': typeof AuthedSpellsSpellIdRouteWithChildren
   '/spells/new': typeof AuthedSpellsNewRoute
   '/reset-password': typeof GuestAuthResetPasswordRoute
@@ -182,37 +249,51 @@ export interface FileRoutesByFullPath {
   '/sign-up': typeof GuestAuthSignUpRoute
   '/update-password': typeof GuestAuthUpdatePasswordRoute
   '/backgrounds/': typeof AuthedBackgroundsIndexRoute
+  '/equipment/': typeof AuthedEquipmentIndexRoute
   '/feats/': typeof AuthedFeatsIndexRoute
   '/home/': typeof AuthedHomeIndexRoute
+  '/races/': typeof AuthedRacesIndexRoute
   '/spells/': typeof AuthedSpellsIndexRoute
   '/backgrounds/$backgroundId/edit': typeof AuthedBackgroundsBackgroundIdEditRoute
+  '/equipment/$equipmentId/edit': typeof AuthedEquipmentEquipmentIdEditRoute
   '/feats/$featId/edit': typeof AuthedFeatsFeatIdEditRoute
+  '/races/$raceId/edit': typeof AuthedRacesRaceIdEditRoute
   '/spells/$spellId/edit': typeof AuthedSpellsSpellIdEditRoute
   '/auth/confirmed': typeof GuestAuthAuthConfirmedRoute
   '/backgrounds/$backgroundId/': typeof AuthedBackgroundsBackgroundIdIndexRoute
+  '/equipment/$equipmentId/': typeof AuthedEquipmentEquipmentIdIndexRoute
   '/feats/$featId/': typeof AuthedFeatsFeatIdIndexRoute
+  '/races/$raceId/': typeof AuthedRacesRaceIdIndexRoute
   '/spells/$spellId/': typeof AuthedSpellsSpellIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof GuestIndexRoute
   '/logout': typeof LogoutRoute
   '/backgrounds/new': typeof AuthedBackgroundsNewRoute
+  '/equipment/new': typeof AuthedEquipmentNewRoute
   '/feats/new': typeof AuthedFeatsNewRoute
+  '/races/new': typeof AuthedRacesNewRoute
   '/spells/new': typeof AuthedSpellsNewRoute
   '/reset-password': typeof GuestAuthResetPasswordRoute
   '/sign-in': typeof GuestAuthSignInRoute
   '/sign-up': typeof GuestAuthSignUpRoute
   '/update-password': typeof GuestAuthUpdatePasswordRoute
   '/backgrounds': typeof AuthedBackgroundsIndexRoute
+  '/equipment': typeof AuthedEquipmentIndexRoute
   '/feats': typeof AuthedFeatsIndexRoute
   '/home': typeof AuthedHomeIndexRoute
+  '/races': typeof AuthedRacesIndexRoute
   '/spells': typeof AuthedSpellsIndexRoute
   '/backgrounds/$backgroundId/edit': typeof AuthedBackgroundsBackgroundIdEditRoute
+  '/equipment/$equipmentId/edit': typeof AuthedEquipmentEquipmentIdEditRoute
   '/feats/$featId/edit': typeof AuthedFeatsFeatIdEditRoute
+  '/races/$raceId/edit': typeof AuthedRacesRaceIdEditRoute
   '/spells/$spellId/edit': typeof AuthedSpellsSpellIdEditRoute
   '/auth/confirmed': typeof GuestAuthAuthConfirmedRoute
   '/backgrounds/$backgroundId': typeof AuthedBackgroundsBackgroundIdIndexRoute
+  '/equipment/$equipmentId': typeof AuthedEquipmentEquipmentIdIndexRoute
   '/feats/$featId': typeof AuthedFeatsFeatIdIndexRoute
+  '/races/$raceId': typeof AuthedRacesRaceIdIndexRoute
   '/spells/$spellId': typeof AuthedSpellsSpellIdIndexRoute
 }
 export interface FileRoutesById {
@@ -224,8 +305,12 @@ export interface FileRoutesById {
   '/_guest/': typeof GuestIndexRoute
   '/_authed/backgrounds/$backgroundId': typeof AuthedBackgroundsBackgroundIdRouteWithChildren
   '/_authed/backgrounds/new': typeof AuthedBackgroundsNewRoute
+  '/_authed/equipment/$equipmentId': typeof AuthedEquipmentEquipmentIdRouteWithChildren
+  '/_authed/equipment/new': typeof AuthedEquipmentNewRoute
   '/_authed/feats/$featId': typeof AuthedFeatsFeatIdRouteWithChildren
   '/_authed/feats/new': typeof AuthedFeatsNewRoute
+  '/_authed/races/$raceId': typeof AuthedRacesRaceIdRouteWithChildren
+  '/_authed/races/new': typeof AuthedRacesNewRoute
   '/_authed/spells/$spellId': typeof AuthedSpellsSpellIdRouteWithChildren
   '/_authed/spells/new': typeof AuthedSpellsNewRoute
   '/_guest/_auth/reset-password': typeof GuestAuthResetPasswordRoute
@@ -233,15 +318,21 @@ export interface FileRoutesById {
   '/_guest/_auth/sign-up': typeof GuestAuthSignUpRoute
   '/_guest/_auth/update-password': typeof GuestAuthUpdatePasswordRoute
   '/_authed/backgrounds/': typeof AuthedBackgroundsIndexRoute
+  '/_authed/equipment/': typeof AuthedEquipmentIndexRoute
   '/_authed/feats/': typeof AuthedFeatsIndexRoute
   '/_authed/home/': typeof AuthedHomeIndexRoute
+  '/_authed/races/': typeof AuthedRacesIndexRoute
   '/_authed/spells/': typeof AuthedSpellsIndexRoute
   '/_authed/backgrounds/$backgroundId/edit': typeof AuthedBackgroundsBackgroundIdEditRoute
+  '/_authed/equipment/$equipmentId/edit': typeof AuthedEquipmentEquipmentIdEditRoute
   '/_authed/feats/$featId/edit': typeof AuthedFeatsFeatIdEditRoute
+  '/_authed/races/$raceId/edit': typeof AuthedRacesRaceIdEditRoute
   '/_authed/spells/$spellId/edit': typeof AuthedSpellsSpellIdEditRoute
   '/_guest/_auth/auth/confirmed': typeof GuestAuthAuthConfirmedRoute
   '/_authed/backgrounds/$backgroundId/': typeof AuthedBackgroundsBackgroundIdIndexRoute
+  '/_authed/equipment/$equipmentId/': typeof AuthedEquipmentEquipmentIdIndexRoute
   '/_authed/feats/$featId/': typeof AuthedFeatsFeatIdIndexRoute
+  '/_authed/races/$raceId/': typeof AuthedRacesRaceIdIndexRoute
   '/_authed/spells/$spellId/': typeof AuthedSpellsSpellIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -251,8 +342,12 @@ export interface FileRouteTypes {
     | '/logout'
     | '/backgrounds/$backgroundId'
     | '/backgrounds/new'
+    | '/equipment/$equipmentId'
+    | '/equipment/new'
     | '/feats/$featId'
     | '/feats/new'
+    | '/races/$raceId'
+    | '/races/new'
     | '/spells/$spellId'
     | '/spells/new'
     | '/reset-password'
@@ -260,37 +355,51 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/update-password'
     | '/backgrounds/'
+    | '/equipment/'
     | '/feats/'
     | '/home/'
+    | '/races/'
     | '/spells/'
     | '/backgrounds/$backgroundId/edit'
+    | '/equipment/$equipmentId/edit'
     | '/feats/$featId/edit'
+    | '/races/$raceId/edit'
     | '/spells/$spellId/edit'
     | '/auth/confirmed'
     | '/backgrounds/$backgroundId/'
+    | '/equipment/$equipmentId/'
     | '/feats/$featId/'
+    | '/races/$raceId/'
     | '/spells/$spellId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/logout'
     | '/backgrounds/new'
+    | '/equipment/new'
     | '/feats/new'
+    | '/races/new'
     | '/spells/new'
     | '/reset-password'
     | '/sign-in'
     | '/sign-up'
     | '/update-password'
     | '/backgrounds'
+    | '/equipment'
     | '/feats'
     | '/home'
+    | '/races'
     | '/spells'
     | '/backgrounds/$backgroundId/edit'
+    | '/equipment/$equipmentId/edit'
     | '/feats/$featId/edit'
+    | '/races/$raceId/edit'
     | '/spells/$spellId/edit'
     | '/auth/confirmed'
     | '/backgrounds/$backgroundId'
+    | '/equipment/$equipmentId'
     | '/feats/$featId'
+    | '/races/$raceId'
     | '/spells/$spellId'
   id:
     | '__root__'
@@ -301,8 +410,12 @@ export interface FileRouteTypes {
     | '/_guest/'
     | '/_authed/backgrounds/$backgroundId'
     | '/_authed/backgrounds/new'
+    | '/_authed/equipment/$equipmentId'
+    | '/_authed/equipment/new'
     | '/_authed/feats/$featId'
     | '/_authed/feats/new'
+    | '/_authed/races/$raceId'
+    | '/_authed/races/new'
     | '/_authed/spells/$spellId'
     | '/_authed/spells/new'
     | '/_guest/_auth/reset-password'
@@ -310,15 +423,21 @@ export interface FileRouteTypes {
     | '/_guest/_auth/sign-up'
     | '/_guest/_auth/update-password'
     | '/_authed/backgrounds/'
+    | '/_authed/equipment/'
     | '/_authed/feats/'
     | '/_authed/home/'
+    | '/_authed/races/'
     | '/_authed/spells/'
     | '/_authed/backgrounds/$backgroundId/edit'
+    | '/_authed/equipment/$equipmentId/edit'
     | '/_authed/feats/$featId/edit'
+    | '/_authed/races/$raceId/edit'
     | '/_authed/spells/$spellId/edit'
     | '/_guest/_auth/auth/confirmed'
     | '/_authed/backgrounds/$backgroundId/'
+    | '/_authed/equipment/$equipmentId/'
     | '/_authed/feats/$featId/'
+    | '/_authed/races/$raceId/'
     | '/_authed/spells/$spellId/'
   fileRoutesById: FileRoutesById
 }
@@ -372,6 +491,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedSpellsIndexRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/races/': {
+      id: '/_authed/races/'
+      path: '/races'
+      fullPath: '/races/'
+      preLoaderRoute: typeof AuthedRacesIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_authed/home/': {
       id: '/_authed/home/'
       path: '/home'
@@ -384,6 +510,13 @@ declare module '@tanstack/react-router' {
       path: '/feats'
       fullPath: '/feats/'
       preLoaderRoute: typeof AuthedFeatsIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/equipment/': {
+      id: '/_authed/equipment/'
+      path: '/equipment'
+      fullPath: '/equipment/'
+      preLoaderRoute: typeof AuthedEquipmentIndexRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/backgrounds/': {
@@ -435,6 +568,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedSpellsSpellIdRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/races/new': {
+      id: '/_authed/races/new'
+      path: '/races/new'
+      fullPath: '/races/new'
+      preLoaderRoute: typeof AuthedRacesNewRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/races/$raceId': {
+      id: '/_authed/races/$raceId'
+      path: '/races/$raceId'
+      fullPath: '/races/$raceId'
+      preLoaderRoute: typeof AuthedRacesRaceIdRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_authed/feats/new': {
       id: '/_authed/feats/new'
       path: '/feats/new'
@@ -447,6 +594,20 @@ declare module '@tanstack/react-router' {
       path: '/feats/$featId'
       fullPath: '/feats/$featId'
       preLoaderRoute: typeof AuthedFeatsFeatIdRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/equipment/new': {
+      id: '/_authed/equipment/new'
+      path: '/equipment/new'
+      fullPath: '/equipment/new'
+      preLoaderRoute: typeof AuthedEquipmentNewRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/equipment/$equipmentId': {
+      id: '/_authed/equipment/$equipmentId'
+      path: '/equipment/$equipmentId'
+      fullPath: '/equipment/$equipmentId'
+      preLoaderRoute: typeof AuthedEquipmentEquipmentIdRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/backgrounds/new': {
@@ -470,12 +631,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedSpellsSpellIdIndexRouteImport
       parentRoute: typeof AuthedSpellsSpellIdRoute
     }
+    '/_authed/races/$raceId/': {
+      id: '/_authed/races/$raceId/'
+      path: '/'
+      fullPath: '/races/$raceId/'
+      preLoaderRoute: typeof AuthedRacesRaceIdIndexRouteImport
+      parentRoute: typeof AuthedRacesRaceIdRoute
+    }
     '/_authed/feats/$featId/': {
       id: '/_authed/feats/$featId/'
       path: '/'
       fullPath: '/feats/$featId/'
       preLoaderRoute: typeof AuthedFeatsFeatIdIndexRouteImport
       parentRoute: typeof AuthedFeatsFeatIdRoute
+    }
+    '/_authed/equipment/$equipmentId/': {
+      id: '/_authed/equipment/$equipmentId/'
+      path: '/'
+      fullPath: '/equipment/$equipmentId/'
+      preLoaderRoute: typeof AuthedEquipmentEquipmentIdIndexRouteImport
+      parentRoute: typeof AuthedEquipmentEquipmentIdRoute
     }
     '/_authed/backgrounds/$backgroundId/': {
       id: '/_authed/backgrounds/$backgroundId/'
@@ -498,12 +673,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedSpellsSpellIdEditRouteImport
       parentRoute: typeof AuthedSpellsSpellIdRoute
     }
+    '/_authed/races/$raceId/edit': {
+      id: '/_authed/races/$raceId/edit'
+      path: '/edit'
+      fullPath: '/races/$raceId/edit'
+      preLoaderRoute: typeof AuthedRacesRaceIdEditRouteImport
+      parentRoute: typeof AuthedRacesRaceIdRoute
+    }
     '/_authed/feats/$featId/edit': {
       id: '/_authed/feats/$featId/edit'
       path: '/edit'
       fullPath: '/feats/$featId/edit'
       preLoaderRoute: typeof AuthedFeatsFeatIdEditRouteImport
       parentRoute: typeof AuthedFeatsFeatIdRoute
+    }
+    '/_authed/equipment/$equipmentId/edit': {
+      id: '/_authed/equipment/$equipmentId/edit'
+      path: '/edit'
+      fullPath: '/equipment/$equipmentId/edit'
+      preLoaderRoute: typeof AuthedEquipmentEquipmentIdEditRouteImport
+      parentRoute: typeof AuthedEquipmentEquipmentIdRoute
     }
     '/_authed/backgrounds/$backgroundId/edit': {
       id: '/_authed/backgrounds/$backgroundId/edit'
@@ -533,6 +722,22 @@ const AuthedBackgroundsBackgroundIdRouteWithChildren =
     AuthedBackgroundsBackgroundIdRouteChildren,
   )
 
+interface AuthedEquipmentEquipmentIdRouteChildren {
+  AuthedEquipmentEquipmentIdEditRoute: typeof AuthedEquipmentEquipmentIdEditRoute
+  AuthedEquipmentEquipmentIdIndexRoute: typeof AuthedEquipmentEquipmentIdIndexRoute
+}
+
+const AuthedEquipmentEquipmentIdRouteChildren: AuthedEquipmentEquipmentIdRouteChildren =
+  {
+    AuthedEquipmentEquipmentIdEditRoute: AuthedEquipmentEquipmentIdEditRoute,
+    AuthedEquipmentEquipmentIdIndexRoute: AuthedEquipmentEquipmentIdIndexRoute,
+  }
+
+const AuthedEquipmentEquipmentIdRouteWithChildren =
+  AuthedEquipmentEquipmentIdRoute._addFileChildren(
+    AuthedEquipmentEquipmentIdRouteChildren,
+  )
+
 interface AuthedFeatsFeatIdRouteChildren {
   AuthedFeatsFeatIdEditRoute: typeof AuthedFeatsFeatIdEditRoute
   AuthedFeatsFeatIdIndexRoute: typeof AuthedFeatsFeatIdIndexRoute
@@ -545,6 +750,19 @@ const AuthedFeatsFeatIdRouteChildren: AuthedFeatsFeatIdRouteChildren = {
 
 const AuthedFeatsFeatIdRouteWithChildren =
   AuthedFeatsFeatIdRoute._addFileChildren(AuthedFeatsFeatIdRouteChildren)
+
+interface AuthedRacesRaceIdRouteChildren {
+  AuthedRacesRaceIdEditRoute: typeof AuthedRacesRaceIdEditRoute
+  AuthedRacesRaceIdIndexRoute: typeof AuthedRacesRaceIdIndexRoute
+}
+
+const AuthedRacesRaceIdRouteChildren: AuthedRacesRaceIdRouteChildren = {
+  AuthedRacesRaceIdEditRoute: AuthedRacesRaceIdEditRoute,
+  AuthedRacesRaceIdIndexRoute: AuthedRacesRaceIdIndexRoute,
+}
+
+const AuthedRacesRaceIdRouteWithChildren =
+  AuthedRacesRaceIdRoute._addFileChildren(AuthedRacesRaceIdRouteChildren)
 
 interface AuthedSpellsSpellIdRouteChildren {
   AuthedSpellsSpellIdEditRoute: typeof AuthedSpellsSpellIdEditRoute
@@ -562,13 +780,19 @@ const AuthedSpellsSpellIdRouteWithChildren =
 interface AuthedRouteChildren {
   AuthedBackgroundsBackgroundIdRoute: typeof AuthedBackgroundsBackgroundIdRouteWithChildren
   AuthedBackgroundsNewRoute: typeof AuthedBackgroundsNewRoute
+  AuthedEquipmentEquipmentIdRoute: typeof AuthedEquipmentEquipmentIdRouteWithChildren
+  AuthedEquipmentNewRoute: typeof AuthedEquipmentNewRoute
   AuthedFeatsFeatIdRoute: typeof AuthedFeatsFeatIdRouteWithChildren
   AuthedFeatsNewRoute: typeof AuthedFeatsNewRoute
+  AuthedRacesRaceIdRoute: typeof AuthedRacesRaceIdRouteWithChildren
+  AuthedRacesNewRoute: typeof AuthedRacesNewRoute
   AuthedSpellsSpellIdRoute: typeof AuthedSpellsSpellIdRouteWithChildren
   AuthedSpellsNewRoute: typeof AuthedSpellsNewRoute
   AuthedBackgroundsIndexRoute: typeof AuthedBackgroundsIndexRoute
+  AuthedEquipmentIndexRoute: typeof AuthedEquipmentIndexRoute
   AuthedFeatsIndexRoute: typeof AuthedFeatsIndexRoute
   AuthedHomeIndexRoute: typeof AuthedHomeIndexRoute
+  AuthedRacesIndexRoute: typeof AuthedRacesIndexRoute
   AuthedSpellsIndexRoute: typeof AuthedSpellsIndexRoute
 }
 
@@ -576,13 +800,19 @@ const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedBackgroundsBackgroundIdRoute:
     AuthedBackgroundsBackgroundIdRouteWithChildren,
   AuthedBackgroundsNewRoute: AuthedBackgroundsNewRoute,
+  AuthedEquipmentEquipmentIdRoute: AuthedEquipmentEquipmentIdRouteWithChildren,
+  AuthedEquipmentNewRoute: AuthedEquipmentNewRoute,
   AuthedFeatsFeatIdRoute: AuthedFeatsFeatIdRouteWithChildren,
   AuthedFeatsNewRoute: AuthedFeatsNewRoute,
+  AuthedRacesRaceIdRoute: AuthedRacesRaceIdRouteWithChildren,
+  AuthedRacesNewRoute: AuthedRacesNewRoute,
   AuthedSpellsSpellIdRoute: AuthedSpellsSpellIdRouteWithChildren,
   AuthedSpellsNewRoute: AuthedSpellsNewRoute,
   AuthedBackgroundsIndexRoute: AuthedBackgroundsIndexRoute,
+  AuthedEquipmentIndexRoute: AuthedEquipmentIndexRoute,
   AuthedFeatsIndexRoute: AuthedFeatsIndexRoute,
   AuthedHomeIndexRoute: AuthedHomeIndexRoute,
+  AuthedRacesIndexRoute: AuthedRacesIndexRoute,
   AuthedSpellsIndexRoute: AuthedSpellsIndexRoute,
 }
 
@@ -629,12 +859,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

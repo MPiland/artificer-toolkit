@@ -35,6 +35,7 @@ export const queryKeys = {
       all: () => ['content', 'equipment'] as const,
       list: () => ['content', 'equipment', 'list'] as const,
       detail: (id: string) => ['content', 'equipment', 'detail', id] as const,
+      draft: (id: string) => ['content', 'equipment', 'draft', id] as const,
     },
     feats: {
       all: () => ['content', 'feats'] as const,
@@ -46,6 +47,7 @@ export const queryKeys = {
       all: () => ['content', 'races'] as const,
       list: () => ['content', 'races', 'list'] as const,
       detail: (id: string) => ['content', 'races', 'detail', id] as const,
+      draft: (id: string) => ['content', 'races', 'draft', id] as const,
     },
     spells: {
       all: () => ['content', 'spells'] as const,

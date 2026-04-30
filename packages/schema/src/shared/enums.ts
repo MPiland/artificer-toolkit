@@ -372,7 +372,13 @@ export const equipmentPropertyCodeSchema = z.enum([
   'PROFESSIONAL_TOOL',
   'WOOD',
   'METAL',
-  'MAGIC'
+  'MAGIC',
+  'CLOTHING'
+])
+
+export const equipmentAttributeCodeSchema = z.enum([
+  'LIMITED_USE',
+  'STACKABLE'
 ])
 
 export const spellAttributeSchema = z.enum([

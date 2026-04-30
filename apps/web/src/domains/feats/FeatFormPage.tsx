@@ -2,8 +2,13 @@ import { Alert, Button, Stack } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import type { FeatAuthoredDto } from '@artificer-toolkit/schema'
+import {
+  featAuthoredDtoSchema,
+  type FeatAuthoredDto
+} from '@artificer-toolkit/schema'
 import { AuthoredFormPageFrame } from '#components/Form/AuthoredFormPageFrame'
+import { InvalidDraftAlert } from '#components/Form/InvalidDraftAlert'
+import { parseAuthoredDraftPayload } from '#app/data/authoredDrafts'
 import { getEffectReferenceData } from '#app/data/effects'
 import { getFeat, getFeatDraft } from '#app/data/feats/queries'
 import { getSystemList } from '#app/data/systems/queries'
@@ -79,7 +84,9 @@ export function FeatDetailPage({
   const queryClient = useQueryClient()
   const { data: response } = useSuspenseQuery(getFeat(featId))
   const { data: draft } = useSuspenseQuery(getFeatDraft(featId))
-  const systemId = draft?.systemId ?? response?.item.systemId ?? ''
+  const parsedDraft = parseAuthoredDraftPayload(draft, featAuthoredDtoSchema)
+  const draftFeat = parsedDraft.item
+  const systemId = draftFeat?.systemId ?? response?.item.systemId ?? ''
   const { data: references } = useSuspenseQuery(getEffectReferenceData(systemId))
   const saveMutation = useMutation({
     mutationFn: (feat: FeatAuthoredDto) => api.content.feats.activate(feat),
@@ -87,6 +94,7 @@ export function FeatDetailPage({
       await queryClient.invalidateQueries({ queryKey: queryKeys.content.feats.all() })
       if (saved?.item.id) {
         await queryClient.invalidateQueries({ queryKey: queryKeys.content.feats.detail(saved.item.id) })
+        await queryClient.invalidateQueries({ queryKey: queryKeys.content.feats.draft(saved.item.id) })
         await navigate({ to: '/feats/$featId', params: { featId: saved.item.id } })
       }
       notifications.show({ color: 'green', message: 'Feat saved.' })
@@ -102,6 +110,18 @@ export function FeatDetailPage({
     },
     onError: () => notifications.show({ color: 'red', message: 'Could not save that draft yet.' })
   })
+  const discardDraftMutation = useMutation({
+    mutationFn: () => api.content.feats.discardDraft(featId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.content.feats.all() })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.content.feats.draft(featId) })
+      notifications.show({ color: 'green', message: 'Stale feat draft discarded.' })
+      if (!response) {
+        await navigate({ to: '/feats' })
+      }
+    },
+    onError: () => notifications.show({ color: 'red', message: 'Could not discard that draft yet.' })
+  })
   const copyMutation = useMutation({
     mutationFn: () => api.content.feats.duplicate(featId),
     onSuccess: async (copied) => {
@@ -114,7 +134,22 @@ export function FeatDetailPage({
     onError: () => notifications.show({ color: 'red', message: 'Could not duplicate that feat yet.' })
   })
 
-  if (!response && !draft) {
+  if (!response && parsedDraft.isInvalid) {
+    return (
+      <AuthoredFormPageFrame contentClassName={styles.contentWide}>
+        <Stack>
+          <InvalidDraftAlert
+            domainLabel='feat'
+            isDiscarding={discardDraftMutation.isPending}
+            onDiscard={() => discardDraftMutation.mutate()}
+          />
+          <Button onClick={() => navigate({ to: '/feats' })}>Back to feats</Button>
+        </Stack>
+      </AuthoredFormPageFrame>
+    )
+  }
+
+  if (!response && !draftFeat) {
     return (
       <AuthoredFormPageFrame contentClassName={styles.contentWide}>
         <Stack>
@@ -125,19 +160,33 @@ export function FeatDetailPage({
     )
   }
 
+  const formKey = `${mode}:${featId}:${draft?.updatedAt ?? response?.item.id ?? 'missing'}:${draftFeat ? 'draft' : 'active'}`
+
   return (
     <AuthoredFormPageFrame contentClassName={styles.contentWide}>
-      <FeatForm
-        mode={mode}
-        systemId={systemId}
-        userId={userId}
-        references={references}
-        initialFeat={draft ? draft.payload as unknown as FeatAuthoredDto : undefined}
-        response={response}
-        onCopy={() => copyMutation.mutate()}
-        onSubmit={async (feat) => saveMutation.mutateAsync(feat).then(() => undefined)}
-        onSaveDraft={async (feat) => draftMutation.mutateAsync(feat).then(() => undefined)}
-      />
+      <Stack>
+        {parsedDraft.isInvalid
+          ? (
+              <InvalidDraftAlert
+                domainLabel='feat'
+                isDiscarding={discardDraftMutation.isPending}
+                onDiscard={() => discardDraftMutation.mutate()}
+              />
+            )
+          : null}
+        <FeatForm
+          key={formKey}
+          mode={mode}
+          systemId={systemId}
+          userId={userId}
+          references={references}
+          initialFeat={draftFeat}
+          response={response}
+          onCopy={() => copyMutation.mutate()}
+          onSubmit={async (feat) => saveMutation.mutateAsync(feat).then(() => undefined)}
+          onSaveDraft={async (feat) => draftMutation.mutateAsync(feat).then(() => undefined)}
+        />
+      </Stack>
     </AuthoredFormPageFrame>
   )
 }

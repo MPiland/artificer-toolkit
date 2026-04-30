@@ -10,6 +10,8 @@ import {
 import {
   authoredRecordStatusSchema,
   chargeDtoSchema,
+  equipmentAttributeCodeSchema,
+  equipmentPropertyCodeSchema,
   facetDtoSchema
 } from '../shared/index.js'
 import { effectDtoSchema } from '../effects/index.js'
@@ -29,7 +31,7 @@ const equipmentBaseDtoSchema = z.object({
 })
 
 const baseEquipmentAuthoredDtoSchemaBase = equipmentBaseDtoSchema.extend({
-  attributes: z.array(z.string()).optional(),
+  attributes: z.array(equipmentAttributeCodeSchema).optional(),
   cost: costDtoSchema.optional(),
   weight: weightDtoSchema,
   effects: z.array(effectDtoSchema).optional(),
@@ -42,14 +44,20 @@ const baseEquipmentAuthoredDtoSchemaBase = equipmentBaseDtoSchema.extend({
   contains: z.array(containsDtoSchema).optional(),
   features: z.array(featureDtoSchema).optional(),
   restrictions: facetDtoSchema.optional(),
-  properties: z.array(z.string()),
-  category: z.string()
+  properties: z.array(equipmentPropertyCodeSchema),
+  category: z.enum([
+    EQUIPMENT_CATEGORY_CODE.WEAPON,
+    EQUIPMENT_CATEGORY_CODE.ARMOR,
+    EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
+    EQUIPMENT_CATEGORY_CODE.TOOL,
+    EQUIPMENT_CATEGORY_CODE.SHIELD
+  ])
 })
 
 const equipmentVariantAuthoredDtoSchemaBase = equipmentBaseDtoSchema.extend({
   category: z.literal(EQUIPMENT_CATEGORY_CODE.VARIANT),
   parentEquipmentId: z.string(),
-  properties: z.array(z.string()).optional(),
+  properties: z.array(equipmentPropertyCodeSchema).optional(),
   effects: z.array(effectDtoSchema).optional(),
   charges: chargeDtoSchema.optional(),
   modifiers: z.array(modifierGrantDtoSchema).optional(),
@@ -65,7 +73,7 @@ export const baseEquipmentAuthoredDtoSchema: z.ZodType<BaseEquipmentAuthoredDto>
 export const equipmentVariantAuthoredDtoSchema: z.ZodType<EquipmentVariantAuthoredDto> = equipmentVariantAuthoredDtoSchemaBase
 export const equipmentAuthoredDtoSchema: z.ZodType<EquipmentAuthoredDto> = z.union([
   baseEquipmentAuthoredDtoSchema,
-  equipmentVariantAuthoredDtoSchemaBase
+  equipmentVariantAuthoredDtoSchema
 ])
 
 

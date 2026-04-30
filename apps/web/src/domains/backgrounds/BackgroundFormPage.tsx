@@ -2,8 +2,13 @@ import { Alert, Button, Stack } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import type { BackgroundAuthoredDto } from '@artificer-toolkit/schema'
+import {
+  backgroundAuthoredDtoSchema,
+  type BackgroundAuthoredDto
+} from '@artificer-toolkit/schema'
 import { AuthoredFormPageFrame } from '#components/Form/AuthoredFormPageFrame'
+import { InvalidDraftAlert } from '#components/Form/InvalidDraftAlert'
+import { parseAuthoredDraftPayload } from '#app/data/authoredDrafts'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import { getBackground, getBackgroundDraft } from '#app/data/backgrounds/queries'
@@ -76,12 +81,15 @@ export function BackgroundDetailPage({
   const queryClient = useQueryClient()
   const { data: response } = useSuspenseQuery(getBackground(backgroundId))
   const { data: draft } = useSuspenseQuery(getBackgroundDraft(backgroundId))
+  const parsedDraft = parseAuthoredDraftPayload(draft, backgroundAuthoredDtoSchema)
+  const draftBackground = parsedDraft.item
   const saveMutation = useMutation({
     mutationFn: (background: BackgroundAuthoredDto) => api.content.backgrounds.activate(background),
     onSuccess: async (saved) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.content.backgrounds.all() })
       if (saved?.item.id) {
         await queryClient.invalidateQueries({ queryKey: queryKeys.content.backgrounds.detail(saved.item.id) })
+        await queryClient.invalidateQueries({ queryKey: queryKeys.content.backgrounds.draft(saved.item.id) })
         await navigate({ to: '/backgrounds/$backgroundId', params: { backgroundId: saved.item.id } })
       }
       notifications.show({ color: 'green', message: 'Background saved.' })
@@ -97,6 +105,18 @@ export function BackgroundDetailPage({
     },
     onError: () => notifications.show({ color: 'red', message: 'Could not save that draft yet.' })
   })
+  const discardDraftMutation = useMutation({
+    mutationFn: () => api.content.backgrounds.discardDraft(backgroundId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.content.backgrounds.all() })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.content.backgrounds.draft(backgroundId) })
+      notifications.show({ color: 'green', message: 'Stale background draft discarded.' })
+      if (!response) {
+        await navigate({ to: '/backgrounds' })
+      }
+    },
+    onError: () => notifications.show({ color: 'red', message: 'Could not discard that draft yet.' })
+  })
   const copyMutation = useMutation({
     mutationFn: () => api.content.backgrounds.duplicate(backgroundId),
     onSuccess: async (copied) => {
@@ -109,7 +129,22 @@ export function BackgroundDetailPage({
     onError: () => notifications.show({ color: 'red', message: 'Could not duplicate that background yet.' })
   })
 
-  if (!response && !draft) {
+  if (!response && parsedDraft.isInvalid) {
+    return (
+      <AuthoredFormPageFrame contentClassName={styles.contentWide}>
+        <Stack>
+          <InvalidDraftAlert
+            domainLabel='background'
+            isDiscarding={discardDraftMutation.isPending}
+            onDiscard={() => discardDraftMutation.mutate()}
+          />
+          <Button onClick={() => navigate({ to: '/backgrounds' })}>Back to backgrounds</Button>
+        </Stack>
+      </AuthoredFormPageFrame>
+    )
+  }
+
+  if (!response && !draftBackground) {
     return (
       <AuthoredFormPageFrame contentClassName={styles.contentWide}>
         <Stack>
@@ -120,18 +155,32 @@ export function BackgroundDetailPage({
     )
   }
 
+  const formKey = `${mode}:${backgroundId}:${draft?.updatedAt ?? response?.item.id ?? 'missing'}:${draftBackground ? 'draft' : 'active'}`
+
   return (
     <AuthoredFormPageFrame contentClassName={styles.contentWide}>
-      <BackgroundForm
-        mode={mode}
-        systemId={draft?.systemId ?? response?.item.systemId ?? ''}
-        userId={userId}
-        initialBackground={draft ? draft.payload as unknown as BackgroundAuthoredDto : undefined}
-        response={response}
-        onCopy={() => copyMutation.mutate()}
-        onSubmit={async (background) => saveMutation.mutateAsync(background).then(() => undefined)}
-        onSaveDraft={async (background) => draftMutation.mutateAsync(background).then(() => undefined)}
-      />
+      <Stack>
+        {parsedDraft.isInvalid
+          ? (
+              <InvalidDraftAlert
+                domainLabel='background'
+                isDiscarding={discardDraftMutation.isPending}
+                onDiscard={() => discardDraftMutation.mutate()}
+              />
+            )
+          : null}
+        <BackgroundForm
+          key={formKey}
+          mode={mode}
+          systemId={draftBackground?.systemId ?? response?.item.systemId ?? ''}
+          userId={userId}
+          initialBackground={draftBackground}
+          response={response}
+          onCopy={() => copyMutation.mutate()}
+          onSubmit={async (background) => saveMutation.mutateAsync(background).then(() => undefined)}
+          onSaveDraft={async (background) => draftMutation.mutateAsync(background).then(() => undefined)}
+        />
+      </Stack>
     </AuthoredFormPageFrame>
   )
 }
