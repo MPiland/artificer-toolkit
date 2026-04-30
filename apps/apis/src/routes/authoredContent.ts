@@ -256,6 +256,43 @@ export class AuthoredDraftNotFoundError extends Error {
   }
 }
 
+export class AuthoredDraftSubjectMismatchError extends Error {
+  constructor(subjectKind: AuthoredSubjectDraftKind, pathSubjectId: string, bodySubjectId: string) {
+    super(`${subjectKind} draft route id "${pathSubjectId}" does not match request body subjectId "${bodySubjectId}".`)
+    this.name = 'AuthoredDraftSubjectMismatchError'
+  }
+}
+
+export function extractDraftSubjectIdFromRequest(req: Request): string {
+  const url = new URL(req.url)
+  const segments = url.pathname.split('/').filter(Boolean)
+  const last = segments[segments.length - 1]
+  const previous = segments[segments.length - 2]
+
+  if (last === 'activate' && previous === 'draft') {
+    return segments[segments.length - 3] ?? ''
+  }
+
+  if (last === 'draft') {
+    return previous ?? ''
+  }
+
+  return last ?? ''
+}
+
+export function resolveDraftActivationSubjectId(
+  subjectKind: AuthoredSubjectDraftKind,
+  bodySubjectId: string,
+  req: Request
+): string {
+  const pathSubjectId = extractDraftSubjectIdFromRequest(req)
+  if (pathSubjectId !== bodySubjectId) {
+    throw new AuthoredDraftSubjectMismatchError(subjectKind, pathSubjectId, bodySubjectId)
+  }
+
+  return pathSubjectId
+}
+
 export async function requireAuthoredDraft(
   db: DBLike,
   subjectKind: AuthoredSubjectDraftKind,

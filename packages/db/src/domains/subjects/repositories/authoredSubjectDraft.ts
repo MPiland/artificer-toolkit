@@ -50,6 +50,7 @@ interface AuthoredSubjectDraftRow {
   base_active_updated_at: Date | string | null
   created_at: Date | string
   updated_at: Date | string
+  active_exists?: boolean | null
 }
 
 function toIsoString(value: Date | string): string {
@@ -60,7 +61,10 @@ function toNullableIsoString(value: Date | string | null): string | null {
   return value == null ? null : toIsoString(value)
 }
 
-function mapDraft(row: AuthoredSubjectDraftRow, activeExists: boolean): AuthoredSubjectDraft {
+function mapDraft(
+  row: AuthoredSubjectDraftRow,
+  activeExists = row.active_exists ?? false
+): AuthoredSubjectDraft {
   return {
     id: row.id,
     subjectKind: row.subject_kind,
@@ -75,6 +79,38 @@ function mapDraft(row: AuthoredSubjectDraftRow, activeExists: boolean): Authored
     createdAt: toIsoString(row.created_at),
     updatedAt: toIsoString(row.updated_at)
   }
+}
+
+function activeExistsProjection() {
+  return sql<boolean>`
+    case authored_subject_drafts.subject_kind
+      when 'BACKGROUND' then exists(
+        select 1 from backgrounds where backgrounds.id = authored_subject_drafts.subject_id
+      )
+      when 'CLASS' then exists(
+        select 1 from classes where classes.id = authored_subject_drafts.subject_id
+      )
+      when 'CREATURE' then exists(
+        select 1 from creatures where creatures.id = authored_subject_drafts.subject_id
+      )
+      when 'EQUIPMENT' then exists(
+        select 1 from equipment where equipment.id = authored_subject_drafts.subject_id
+      )
+      when 'FEAT' then exists(
+        select 1 from feats where feats.id = authored_subject_drafts.subject_id
+      )
+      when 'RACE' then exists(
+        select 1 from races where races.id = authored_subject_drafts.subject_id
+      )
+      when 'SPELL' then exists(
+        select 1 from spells where spells.id = authored_subject_drafts.subject_id
+      )
+      when 'VEHICLE' then exists(
+        select 1 from vehicles where vehicles.id = authored_subject_drafts.subject_id
+      )
+      else false
+    end
+  `
 }
 
 async function activeSubjectExists(
@@ -134,7 +170,8 @@ export function createAuthoredSubjectDraftRepository(db: DBLike) {
           payload,
           base_active_updated_at,
           created_at,
-          updated_at
+          updated_at,
+          ${activeExistsProjection()} as active_exists
         from authored_subject_drafts
         where subject_kind = ${params.subjectKind}
           and subject_id = ${params.subjectId}
@@ -144,10 +181,7 @@ export function createAuthoredSubjectDraftRepository(db: DBLike) {
       const row = result.rows[0]
       if (!row) return null
 
-      return mapDraft(
-        row,
-        await activeSubjectExists(db, params.subjectKind, params.subjectId)
-      )
+      return mapDraft(row)
     },
 
     async listByUser(params: {
@@ -167,7 +201,8 @@ export function createAuthoredSubjectDraftRepository(db: DBLike) {
             payload,
             base_active_updated_at,
             created_at,
-            updated_at
+            updated_at,
+            ${activeExistsProjection()} as active_exists
           from authored_subject_drafts
           where user_id = ${params.userId}
           order by updated_at desc
@@ -184,19 +219,15 @@ export function createAuthoredSubjectDraftRepository(db: DBLike) {
             payload,
             base_active_updated_at,
             created_at,
-            updated_at
+            updated_at,
+            ${activeExistsProjection()} as active_exists
           from authored_subject_drafts
           where user_id = ${params.userId}
             and subject_kind = ${params.subjectKind}
           order by updated_at desc
         `.execute(db)
 
-      return Promise.all(
-        result.rows.map(async (row) => mapDraft(
-          row,
-          await activeSubjectExists(db, row.subject_kind, row.subject_id)
-        ))
-      )
+      return result.rows.map((row) => mapDraft(row))
     },
 
     async save(input: SaveAuthoredSubjectDraftInput): Promise<AuthoredSubjectDraft> {

@@ -4,6 +4,7 @@ import {
   normalizeActivatedAuthoringInput,
   normalizeStoredDraftPayloadForActivation,
   normalizeAuthoredListResponseWithDrafts,
+  resolveDraftActivationSubjectId,
   requireAuthoredDraft,
   saveAuthoredDraft
 } from './authoredContent.js'
@@ -177,5 +178,14 @@ describe('authored content draft helpers', () => {
         name: 'AuthoredDraftNotFoundError',
         message: 'SPELL draft "missing-spell" was not found.'
       })
+  })
+
+  it('uses the activation route id as the authoritative draft subject id', () => {
+    const req = new Request('https://api.test/content/spells/route-spell-id/draft/activate')
+
+    expect(resolveDraftActivationSubjectId('SPELL', 'route-spell-id', req)).toBe('route-spell-id')
+    expect(() => resolveDraftActivationSubjectId('SPELL', 'body-spell-id', req)).toThrowError(
+      'SPELL draft route id "route-spell-id" does not match request body subjectId "body-spell-id".'
+    )
   })
 })

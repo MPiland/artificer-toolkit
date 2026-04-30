@@ -15,6 +15,7 @@ import {
 } from '@artificer-toolkit/schema'
 import {
   discardAuthoredDraft,
+  extractDraftSubjectIdFromRequest,
   getAuthoredDraft,
   normalizeAuthoredDetailResponse,
   normalizeAuthoredListResponseWithDrafts,
@@ -22,6 +23,7 @@ import {
   normalizeAuthoringResult,
   normalizeStoredDraftPayloadForActivation,
   requireAuthoredDraft,
+  resolveDraftActivationSubjectId,
   saveAuthoredDraft
 } from './authoredContent.js'
 
@@ -29,14 +31,6 @@ function extractId(req: Request): string {
   const url = new URL(req.url)
   const segments = url.pathname.split('/').filter(Boolean)
   return segments[segments.length - 1]
-}
-
-function extractDraftSubjectId(req: Request): string {
-  const url = new URL(req.url)
-  const segments = url.pathname.split('/').filter(Boolean)
-  return segments[segments.length - 1] === 'draft'
-    ? segments[segments.length - 2]
-    : segments[segments.length - 1]
 }
 
 // list
@@ -53,7 +47,7 @@ export const getFeat = handleRequest<[string, string], Awaited<ReturnType<typeof
 
 export const getFeatDraft = handleRequest(
   async (db, id, userId) => getAuthoredDraft(db, 'FEAT', id, userId),
-  (req: Request, userId: string) => [extractDraftSubjectId(req), userId] as [string, string]
+  (req: Request, userId: string) => [extractDraftSubjectIdFromRequest(req), userId] as [string, string]
 )
 
 export const saveFeatDraft = handleAuthoringRequest(
@@ -69,13 +63,14 @@ export const discardFeatDraft = handleRequest(
     await discardAuthoredDraft(db, 'FEAT', id, userId)
     return { ok: true }
   },
-  (req: Request, userId: string) => [extractDraftSubjectId(req), userId] as [string, string]
+  (req: Request, userId: string) => [extractDraftSubjectIdFromRequest(req), userId] as [string, string]
 )
 
 export const activateFeatDraft = handleAuthoringRequest(
   authoredDraftActivateRequestDtoSchema,
-  async (db, body, userId) => {
-    const draft = await requireAuthoredDraft(db, 'FEAT', body.subjectId, userId)
+  async (db, body, userId, req) => {
+    const subjectId = resolveDraftActivationSubjectId('FEAT', body.subjectId, req)
+    const draft = await requireAuthoredDraft(db, 'FEAT', subjectId, userId)
     const service = createFeatSubjectAuthoringService(db)
     const input = featAuthoredDtoSchema.parse(normalizeStoredDraftPayloadForActivation(draft, userId))
     const normalized = await normalizeNodeRuntimeValues(db, {
@@ -84,7 +79,7 @@ export const activateFeatDraft = handleAuthoringRequest(
     })
     const normalizedBody = featAuthoredDtoSchema.parse(normalized.values)
     const result = await service.execute(normalizeActivatedAuthoringInput(normalizedBody as FeatAuthored, userId))
-    await discardAuthoredDraft(db, 'FEAT', normalizedBody.id, userId)
+    await discardAuthoredDraft(db, 'FEAT', subjectId, userId)
     return normalizeAuthoringResult(db, 'feats', result as { authored: FeatAuthored }, userId)
   }
 )
