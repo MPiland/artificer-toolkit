@@ -39,6 +39,11 @@ export const platformNavigation: AppShellNavGroup[] = [
         label: 'Backgrounds',
         href: '/backgrounds',
         icon: IBook
+      },
+      {
+        label: 'Feats',
+        href: '/feats',
+        icon: IFeat
       }
     ]
   }
@@ -52,10 +57,6 @@ export const storybookNavigation: AppShellNavGroup[] = [
       {
         label: 'Characters',
         icon: IChar
-      },
-      {
-        label: 'Feats',
-        icon: IFeat
       },
       {
         label: 'Races',

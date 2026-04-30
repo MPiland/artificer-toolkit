@@ -6,10 +6,6 @@ export type EffectEditorReferenceData = {
   creatures: Array<{ value: string, label: string }>
 }
 
-export type EffectEditorFormApi = {
-  setFieldValue: (field: 'effects', value: EffectDto[]) => void
-}
-
 export type EffectInvocation = EffectDto['invocation']
 export type EffectActivation = Extract<EffectInvocation, { activation: unknown }>['activation']
 export type OutcomeDraft = Record<string, unknown>

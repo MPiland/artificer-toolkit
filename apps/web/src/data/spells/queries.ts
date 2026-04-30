@@ -23,3 +23,10 @@ export function getSpell(id: string, client: Api = api) {
 export function useGetSpell(id: string) {
   return useSuspenseQuery(getSpell(id))
 }
+
+export function getSpellDraft(id: string, client: Api = api) {
+  return queryOptions({
+    queryKey: queryKeys.content.spells.draft(id),
+    queryFn: async () => await client.content.spells.getDraft(id)
+  })
+}

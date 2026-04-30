@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { FeatureAuthored } from '#authored';
+import type { FeatAuthored, FeatureAuthored } from '#authored';
 import { AUTHORING_MODE_KIND, AUTHORING_SELECTION_KIND, ACTIVATION_CODE, DAMAGE_VALUE_KIND, CHARGE_RESET_KIND, EFFECT_KIND, GRANT_KIND, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, PATH_ROLL_TABLE_KIND, FORCED_MOVEMENT_ACTION_ECONOMY, FORCED_MOVEMENT_DIRECTION, RANGE_KIND, NUMERIC_EXPR_CODE, SIZE_CODE, SCALING, SCALING_SOURCE, TRIGGER } from '#core';
-import { compileCharge, compileDamageEffect, compileEffectResult, compileFeatGrant, compileFeatGrantResult, compileFeatureResult, compileScalingSource, compileSpellGrant } from '#compilers';
+import { compileCharge, compileDamageEffect, compileEffectResult, compileFeat, compileFeatGrant, compileFeatGrantResult, compileFeatureResult, compileScalingSource, compileSpellGrant } from '#compilers';
 describe('shared compiler scaling', () => {
     it('compiles scaling sources with their required payload', () => {
         expect(compileScalingSource({
@@ -128,6 +128,34 @@ describe('shared compiler scaling', () => {
                     spellIds: ['misty-step']
                 }
             ]
+        });
+    });
+    it('preserves feat grants on authored feats during compilation', () => {
+        const authored = {
+            id: 'feat-with-feat-grant',
+            label: 'Feat Chain',
+            description: 'Unlocks a related feat.',
+            grants: {
+                feats: [
+                    {
+                        grantKind: GRANT_KIND.FEAT_GRANT,
+                        id: 'feat-grant-1',
+                        order: 1,
+                        selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                        scalingKind: SCALING.NONE,
+                        authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                        featIds: ['grappler']
+                    }
+                ]
+            },
+            userId: 'user-1',
+            systemId: 'system-1'
+        } satisfies FeatAuthored;
+        const compiled = compileFeat(authored);
+        expect(compiled.feats).toHaveLength(1);
+        expect(compiled.feats?.[0]).toMatchObject({
+            grantKind: GRANT_KIND.FEAT_GRANT,
+            featIds: ['grappler']
         });
     });
     it('preserves spell grant restrictions and filters in the compiled grant shape', () => {

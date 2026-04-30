@@ -8,7 +8,13 @@ import { featGrantDtoSchema } from '../grants/feat.js'
 import { modifierGrantDtoSchema } from '../grants/modifier.js'
 import { proficiencyGrantDtoSchema } from '../grants/proficiency.js'
 import { startingEquipmentDtoSchema } from '../shared/startingEquipment.js'
-import { backgroundListResponseDtoSchema, featureResponseDtoSchema, spellResponseDtoSchema } from '../api/content.js'
+import {
+  authoredDraftDtoSchema,
+  authoredDraftSaveRequestDtoSchema,
+  backgroundListResponseDtoSchema,
+  featureResponseDtoSchema,
+  spellResponseDtoSchema
+} from '../api/content.js'
 import {
   nodeRuntimeNormalizeValuesRequestDtoSchema,
   nodeRuntimeResolveRequestDtoSchema,
@@ -115,6 +121,34 @@ function rangeRollTablePath(
 }
 
 describe('schema package parsing', () => {
+  it('parses generic authored draft save and response contracts', () => {
+    const saveRequest = authoredDraftSaveRequestDtoSchema.parse({
+      subjectKind: 'SPELL',
+      subjectId: 'spell-1',
+      systemId: 'system-1',
+      label: 'Fire Lace',
+      payload: {
+        id: 'spell-1',
+        kind: 'SPELL',
+        label: 'Fire Lace',
+        status: 'DRAFT'
+      }
+    })
+    const draft = authoredDraftDtoSchema.parse({
+      id: 'draft-1',
+      ...saveRequest,
+      userId: 'user-1',
+      status: 'DRAFT',
+      draftState: 'DRAFT_ONLY',
+      baseActiveUpdatedAt: null,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z'
+    })
+
+    expect(saveRequest.subjectKind).toBe('SPELL')
+    expect(draft.payload.label).toBe('Fire Lace')
+  })
+
   it('parses per-level charges with nested bonuses', () => {
     const parsed = chargeDtoSchema.parse({
       id: 'arcane-recovery',
@@ -1561,6 +1595,34 @@ describe('schema package parsing', () => {
     expect(feat.prerequisites?.groups[0]?.contexts[0]?.conditions?.[0]).toMatchObject({
       predicateCode: 'HERITAGE',
       heritageIds: ['heritage-elven']
+    })
+  })
+
+  it('parses feat grants authored directly on feats', () => {
+    const feat = featAuthoredDtoSchema.parse({
+      id: 'feat-chain',
+      label: 'Feat Chain',
+      description: 'Unlocks a related feat.',
+      grants: {
+        feats: [
+          {
+            id: 'feat-grant-1',
+            order: 1,
+            grantKind: 'FEAT_GRANT',
+            selectionKind: 'GRANTED',
+            scalingKind: 'NONE',
+            authoringModeKind: 'SELECTED',
+            featIds: ['grappler']
+          }
+        ]
+      },
+      userId: 'user-1',
+      systemId: 'system-1'
+    })
+
+    expect(feat.grants?.feats?.[0]).toMatchObject({
+      grantKind: 'FEAT_GRANT',
+      featIds: ['grappler']
     })
   })
 

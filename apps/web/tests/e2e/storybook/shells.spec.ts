@@ -116,6 +116,44 @@ test('background locked master story is duplicate-only', async ({ page }) => {
   await storyExpect(page.getByRole('button', { name: 'Save Background' })).toHaveCount(0)
 })
 
+test('feat list story renders owned and locked master states', async ({ page }) => {
+  await openStory(page, 'domains-feats-list--default')
+
+  await storyExpect(page.getByRole('heading', { name: 'Feats' })).toBeVisible()
+  await storyExpect(page.getByRole('row', { name: /grappler/i })).toBeVisible()
+  await storyExpect(page.getByRole('row', { name: /battlefield reader/i })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: 'Create Feat' })).toBeVisible()
+})
+
+test('feat form story moves through requirements, mechanics, and features', async ({ page }) => {
+  await openStory(page, 'domains-feats-form--edit-owned')
+
+  await storyExpect(page.getByRole('heading', { name: 'Feat Basics' })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: /Basics: Name, description, and player-facing details/i })).toHaveAttribute('aria-current', 'step')
+  await storyExpect(page.getByRole('textbox', { name: 'Name' })).toHaveValue('Battlefield Reader')
+  await page.getByRole('button', { name: 'Next' }).click()
+  await storyExpect(page.getByRole('heading', { name: 'Feat Requirements' })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: /Requirements: Character prerequisites and unlock rules/i })).toHaveAttribute('aria-current', 'step')
+  await page.getByRole('button', { name: 'Next' }).click()
+  await storyExpect(page.getByRole('heading', { name: 'Feat Mechanics' })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: /Mechanics: Effects, charges, and grants/i })).toHaveAttribute('aria-current', 'step')
+  await storyExpect(page.getByRole('heading', { name: 'Effects' })).toBeVisible()
+  await storyExpect(page.getByRole('heading', { name: 'Charges' })).toBeVisible()
+  await storyExpect(page.getByRole('heading', { name: 'Grants' })).toBeVisible()
+  await page.getByRole('button', { name: 'Next' }).click()
+  await storyExpect(page.getByRole('heading', { name: 'Feat Features', level: 1 })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: /Features: Feat-owned feature basics/i })).toHaveAttribute('aria-current', 'step')
+})
+
+test('feat locked master story is duplicate-only', async ({ page }) => {
+  await openStory(page, 'domains-feats-form--locked-master-readonly')
+
+  await storyExpect(page.getByRole('heading', { name: 'Feat Basics' })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: 'Duplicate to edit' })).toBeVisible()
+  await storyExpect(page.getByRole('textbox', { name: 'Name' })).toHaveAttribute('readonly')
+  await storyExpect(page.getByRole('button', { name: 'Save Feat' })).toHaveCount(0)
+})
+
 test('theme toggle story switches between light and dark', async ({ page }) => {
   await openStory(page, 'platform-theme-themetoggle--default')
 

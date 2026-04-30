@@ -1,9 +1,12 @@
-import type { EffectDto, PathDto, RangeDto, TargetingDto } from '@artificer-toolkit/schema'
+import type { EffectDto, PathDto, RangeDto, SavingThrowDto, TargetingDto } from '@artificer-toolkit/schema'
 import type { EffectEditorReferenceData, OutcomeDraft } from './effectEditor.types'
 
 type ResultBlockLike = {
   outcomes?: unknown
 }
+
+type TriggerCode = EffectDto['invocation']['triggerCode']
+type TargetDispositionKind = Exclude<Extract<TargetingDto, { dispositionKind?: unknown }>['dispositionKind'], undefined>
 
 export const triggerOptions = [
   { value: 'ACTIVATED', label: 'Activated' },
@@ -13,7 +16,7 @@ export const triggerOptions = [
   { value: 'MELEE_WEAPON_ATTACK', label: 'Melee weapon attack' },
   { value: 'RANGED_WEAPON_ATTACK', label: 'Ranged weapon attack' },
   { value: 'UNARMED_ATTACK', label: 'Unarmed attack' }
-]
+] satisfies Array<{ value: TriggerCode, label: string }>
 
 export const pathCodeOptions = [
   { value: 'ON_USE', label: 'On use' },
@@ -70,26 +73,26 @@ export const abilityOptions = [
   { value: 'INTELLIGENCE', label: 'Intelligence' },
   { value: 'WISDOM', label: 'Wisdom' },
   { value: 'CHARISMA', label: 'Charisma' }
-]
+] satisfies Array<{ value: SavingThrowDto['ability'], label: string }>
 
 export const unitOptions = [
   { value: 'FEET', label: 'Feet' },
   { value: 'MILES', label: 'Miles' },
   { value: 'INCHES', label: 'Inches' }
-]
+] satisfies Array<{ value: Extract<RangeDto, { rangeKind: 'DISTANCE' }>['unit'], label: string }>
 
 export const targetingSelectionOptions = [
   { value: 'SELF', label: 'Self' },
   { value: 'SINGLE_TARGET', label: 'Single target' },
   { value: 'CHOSEN_CREATURES', label: 'Chosen creatures' },
   { value: 'AREA_CONTENTS', label: 'Area contents' }
-]
+] satisfies Array<{ value: TargetingDto['selectionKind'], label: string }>
 
 export const targetDispositionOptions = [
   { value: 'ANY', label: 'Any' },
   { value: 'WILLING', label: 'Willing' },
   { value: 'HOSTILE', label: 'Hostile' }
-]
+] satisfies Array<{ value: TargetDispositionKind, label: string }>
 
 export const emptyOption = { value: '', label: 'None yet' }
 
@@ -233,6 +236,10 @@ export function formatEffectSummary(effect: EffectDto): string {
     : `${outcomes} outcome${outcomes === 1 ? '' : 's'}`
 
   return `${invocation}, ${pathText}, ${outcomeText}`
+}
+
+export function getEffectEditorTitleId(effectId: string) {
+  return `effect-editor-${effectId}-title`
 }
 
 export function getPathOutcomes(path: PathDto): OutcomeDraft[] {

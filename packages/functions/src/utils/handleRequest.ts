@@ -41,6 +41,13 @@ export function handleRequest<TArgs extends unknown[], TResult>(
         await db.destroy()
       }
     } catch (err) {
+      if (err instanceof Error && err.name === 'AuthoredDraftNotFoundError') {
+        return new Response(
+          JSON.stringify({ error: err.message }),
+          { status: 404, headers: { 'Content-Type': 'application/json' } }
+        )
+      }
+
       console.error(err)
       return new Response('Internal Server Error', { status: 500 })
     }

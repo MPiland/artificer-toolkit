@@ -1,2 +1,2 @@
-export { default } from './RichTextEditor'
-export { type RichTextEditorProps } from './RichTextEditor'
+export { default } from '#app/ui/primitives/RichTextEditor'
+export type { RichTextEditorProps } from '#app/ui/primitives/RichTextEditor'

@@ -80,19 +80,25 @@ export function createEmptyFeature(order: number): FeatureDto {
 export function createEmptyStartingEquipment(): StartingEquipmentDto {
   return {
     id: crypto.randomUUID(),
-    sets: [{
-      id: crypto.randomUUID(),
-      order: 1,
-      groups: [{
+    sets: [
+      {
         id: crypto.randomUUID(),
         order: 1,
-        options: [{
-          id: crypto.randomUUID(),
-          order: 1,
-          items: []
-        }]
-      }]
-    }]
+        groups: [
+          {
+            id: crypto.randomUUID(),
+            order: 1,
+            options: [
+              {
+                id: crypto.randomUUID(),
+                order: 1,
+                items: []
+              }
+            ]
+          }
+        ]
+      }
+    ]
   }
 }
 
@@ -163,11 +169,7 @@ export function removeStartingEquipmentItem(startingEquipment: StartingEquipment
 }
 
 export function getStartingEquipmentItems(startingEquipment: StartingEquipmentDto | undefined) {
-  return startingEquipment?.sets.flatMap((set) =>
-    set.groups.flatMap((group) =>
-      group.options.flatMap((option) => option.items)
-    )
-  ) ?? []
+  return startingEquipment?.sets.flatMap((set) => set.groups.flatMap((group) => group.options.flatMap((option) => option.items))) ?? []
 }
 
 function appendStartingEquipmentItem(

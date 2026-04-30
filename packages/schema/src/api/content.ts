@@ -20,6 +20,55 @@ import {
   singleResourceResponseDtoSchema
 } from './common.js'
 import { authoredRecordStatusSchema } from '../shared/enums.js'
+import { unknownObjectSchema } from '../shared/facet.js'
+
+export const authoredSubjectKindDtoSchema = z.enum([
+  'BACKGROUND',
+  'CLASS',
+  'CREATURE',
+  'EQUIPMENT',
+  'FEAT',
+  'RACE',
+  'SPELL',
+  'VEHICLE'
+])
+
+export const authoredDraftStateDtoSchema = z.enum([
+  'DRAFT_ONLY',
+  'ACTIVE_WITH_DRAFT'
+])
+
+export const authoredDraftSummaryDtoSchema = z.object({
+  subjectKind: authoredSubjectKindDtoSchema,
+  subjectId: z.string(),
+  userId: z.string(),
+  systemId: z.string(),
+  label: z.string(),
+  status: z.literal('DRAFT'),
+  draftState: authoredDraftStateDtoSchema,
+  baseActiveUpdatedAt: z.string().nullable().optional(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional()
+})
+
+export const authoredDraftDtoSchema = authoredDraftSummaryDtoSchema.extend({
+  id: z.string(),
+  payload: unknownObjectSchema
+})
+
+export const authoredDraftSaveRequestDtoSchema = z.object({
+  subjectKind: authoredSubjectKindDtoSchema,
+  subjectId: z.string(),
+  systemId: z.string(),
+  label: z.string(),
+  payload: unknownObjectSchema,
+  baseActiveUpdatedAt: z.string().nullable().optional()
+})
+
+export const authoredDraftActivateRequestDtoSchema = z.object({
+  subjectKind: authoredSubjectKindDtoSchema,
+  subjectId: z.string()
+})
 
 const authoredContentListItemBaseDtoSchema = z.object({
   id: z.string(),
@@ -27,6 +76,7 @@ const authoredContentListItemBaseDtoSchema = z.object({
   status: authoredRecordStatusSchema,
   description: z.string().nullable()
     .optional(),
+  draft: authoredDraftSummaryDtoSchema.nullable().optional(),
   provenance: authoredContentProvenanceDtoSchema,
   permissions: authoredContentPermissionsDtoSchema
 }).merge(ownerContextDtoSchema)
@@ -93,6 +143,12 @@ export type SpellListItemDto = z.infer<typeof spellListItemDtoSchema>
 export type CreatureListItemDto = z.infer<typeof creatureListItemDtoSchema>
 export type VehicleListItemDto = z.infer<typeof vehicleListItemDtoSchema>
 export type FeatureListItemDto = z.infer<typeof featureListItemDtoSchema>
+export type AuthoredSubjectKindDto = z.infer<typeof authoredSubjectKindDtoSchema>
+export type AuthoredDraftStateDto = z.infer<typeof authoredDraftStateDtoSchema>
+export type AuthoredDraftSummaryDto = z.infer<typeof authoredDraftSummaryDtoSchema>
+export type AuthoredDraftDto = z.infer<typeof authoredDraftDtoSchema>
+export type AuthoredDraftSaveRequestDto = z.infer<typeof authoredDraftSaveRequestDtoSchema>
+export type AuthoredDraftActivateRequestDto = z.infer<typeof authoredDraftActivateRequestDtoSchema>
 
 // Named TypeScript types for response DTOs
 export type BackgroundListResponseDto = z.infer<typeof backgroundListResponseDtoSchema>

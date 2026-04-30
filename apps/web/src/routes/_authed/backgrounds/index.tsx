@@ -31,8 +31,8 @@ function BackgroundsRoute() {
         color: 'green',
         message: 'Background duplicated as owned content.'
       })
-      if (response?.item.id) {
-        await navigate({ to: '/backgrounds/$backgroundId/edit', params: { backgroundId: response.item.id } })
+      if (response?.subjectId) {
+        await navigate({ to: '/backgrounds/$backgroundId/edit', params: { backgroundId: response.subjectId } })
       }
     },
     onError: () => {

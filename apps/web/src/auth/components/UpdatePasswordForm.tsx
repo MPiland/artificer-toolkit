@@ -1,6 +1,6 @@
 import { type FormEvent, useState } from 'react'
 import { Button, PasswordInput } from '@mantine/core'
-import { Link } from '#app/components/Link/Link'
+import { Link } from '#app/ui/primitives/Link/Link'
 import { browserAuthClient } from '../authClient'
 import {
   authButton,

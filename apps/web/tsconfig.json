@@ -56,7 +56,7 @@
         "./src/supabase/*"
       ],
       "#auth": [
-        "./src/domains/auth/index.ts"
+        "./src/auth/index.ts"
       ],
       "#test/msw/handlers": [
         "./src/test/msw/handlers.ts"

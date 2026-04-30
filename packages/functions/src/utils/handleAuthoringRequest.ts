@@ -1,4 +1,4 @@
-import type { ZodType } from 'zod'
+import { ZodError, type ZodType } from 'zod'
 import type { DBLike } from '@artificer-toolkit/db'
 import { createDb, withUserContext } from '@artificer-toolkit/db'
 import { createSupabaseClient } from '../clients/supabaseClient.js'
@@ -10,7 +10,12 @@ function validationErrorResponse(issues: unknown): Response {
   )
 }
 
-type AuthoringHandler<TBody, TResult> = (db: DBLike, body: TBody, userId: string) => Promise<TResult>
+type AuthoringHandler<TBody, TResult> = (
+  db: DBLike,
+  body: TBody,
+  userId: string,
+  req: Request
+) => Promise<TResult>
 
 /**
  * Generic wrapper for authenticated RLS-safe authoring requests (POST/PUT).
@@ -73,7 +78,7 @@ export function handleAuthoringRequest<TBody, TResult>(
       // 3. Create DB + run inside RLS-impersonated session
       const db = createDb()
       try {
-        const result = await withUserContext(db, userId, (ctx) => handler(ctx, body, userId))
+        const result = await withUserContext(db, userId, (ctx) => handler(ctx, body, userId, req))
         return new Response(JSON.stringify(result), {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
@@ -82,11 +87,32 @@ export function handleAuthoringRequest<TBody, TResult>(
         await db.destroy()
       }
     } catch (err) {
+      if (err instanceof ZodError) {
+        return validationErrorResponse(err.issues)
+      }
+
       if (err instanceof Error && err.name === 'NodeRuntimeInputError') {
         return new Response(
           JSON.stringify({ error: err.message }),
           { status: 400, headers: { 'Content-Type': 'application/json' } }
         )
+      }
+
+      if (err instanceof Error && err.name === 'AuthoredDraftNotFoundError') {
+        return new Response(
+          JSON.stringify({ error: err.message }),
+          { status: 404, headers: { 'Content-Type': 'application/json' } }
+        )
+      }
+
+      if (err instanceof Error && err.name === 'AuthoredDraftSubjectMismatchError') {
+        return validationErrorResponse([
+          {
+            code: 'custom',
+            path: ['subjectId'],
+            message: err.message
+          }
+        ])
       }
 
       console.error(err)

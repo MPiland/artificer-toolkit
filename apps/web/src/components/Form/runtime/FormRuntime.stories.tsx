@@ -1,8 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { Button, Paper, Stack, Text } from '@mantine/core'
 import type { NodeMap } from '@artificer-toolkit/shared/utils'
-import { AuthoredFormRuntime } from './AuthoredFormRuntime'
-import { useAppForm } from './AppForm'
+import { AuthoredFormRuntime, useAppForm } from '.'
 
 type SpellFormFixture = {
   id: string

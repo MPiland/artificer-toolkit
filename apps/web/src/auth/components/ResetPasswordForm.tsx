@@ -1,6 +1,6 @@
 import { type FormEvent, useState } from 'react'
 import { Button, TextInput } from '@mantine/core'
-import { Link } from '#app/components/Link/Link'
+import { Link } from '#app/ui/primitives/Link/Link'
 import IArrowLeft from '#assets/icons/IArrowLeft'
 import { browserAuthClient } from '../authClient'
 import {

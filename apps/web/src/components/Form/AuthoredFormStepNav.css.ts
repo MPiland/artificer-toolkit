@@ -57,19 +57,19 @@ export const item = style({
 export const stepButton = style({
   '@layer': {
     [app]: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      minWidth: 0,
-      padding: 0,
-      border: 0,
-      borderRadius: foundationVars.radius.sm,
-      backgroundColor: 'transparent',
-      color: foundationVars.color.text.accent,
-      fontSize: foundationVars.typography.caption.fontSize,
-      fontWeight: foundationVars.fontWeight.medium,
-      lineHeight: foundationVars.typography.caption.lineHeight,
-      textAlign: 'left',
-      transition: `color ${foundationVars.motion.fast} ease`,
+      'display': 'inline-flex',
+      'alignItems': 'center',
+      'minWidth': 0,
+      'padding': 0,
+      'border': 0,
+      'borderRadius': foundationVars.radius.sm,
+      'backgroundColor': 'transparent',
+      'color': foundationVars.color.text.accent,
+      'fontSize': foundationVars.typography.caption.fontSize,
+      'fontWeight': foundationVars.fontWeight.medium,
+      'lineHeight': foundationVars.typography.caption.lineHeight,
+      'textAlign': 'left',
+      'transition': `color ${foundationVars.motion.fast} ease`,
 
       ':hover': {
         color: foundationVars.color.accent.hover,
@@ -90,6 +90,31 @@ export const stepButtonActive = style({
       color: foundationVars.color.text.primary,
       fontWeight: foundationVars.fontWeight.semibold,
       textDecoration: 'none'
+    }
+  }
+})
+
+export const stepButtonError = style({
+  '@layer': {
+    [app]: {
+      'color': foundationVars.color.status.danger,
+
+      ':hover': {
+        color: foundationVars.color.status.danger
+      }
+    }
+  }
+})
+
+export const errorDot = style({
+  '@layer': {
+    [app]: {
+      display: 'inline-block',
+      width: 6,
+      height: 6,
+      marginLeft: foundationVars.space[1],
+      borderRadius: 9999,
+      backgroundColor: foundationVars.color.status.danger
     }
   }
 })

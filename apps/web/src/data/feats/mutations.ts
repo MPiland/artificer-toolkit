@@ -1,40 +1,19 @@
-import { useQueryClient, useMutation } from '@tanstack/react-query'
-import { useServerFn } from '@tanstack/react-start'
-import { deleteFeatFn, upsertFeatFn } from '@server/domains'
-import type { FeatInput } from '@types'
-
-const featsKeys = {
-  all: ['feats'] as const,
-  lists: () => [...featsKeys.all, 'list'] as const,
-  single: (id: string) => [...featsKeys.all, 'single', id] as const
-}
-
-export function useDeleteFeat() {
-  const queryClient = useQueryClient()
-  const deleteFn = useServerFn(deleteFeatFn)
-
-  return useMutation({
-    mutationFn: (id: string) => deleteFn({ data: id }),
-    onSuccess: async (_, id) => {
-      queryClient.removeQueries({ queryKey: featsKeys.single(id) })
-      await queryClient.invalidateQueries({ queryKey: featsKeys.lists() })
-    }
-  })
-}
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import type { FeatAuthoredDto } from '@artificer-toolkit/schema'
+import { api } from '#app/lib/api'
+import { queryKeys } from '#app/lib/queryKeys'
 
 export function useUpsertFeat() {
   const queryClient = useQueryClient()
-  const upsertFn = useServerFn(upsertFeatFn)
 
   return useMutation({
-    mutationFn: (data: FeatInput) => upsertFn({ data }),
+    mutationFn: (data: FeatAuthoredDto) => api.content.feats.upsert(data),
     onSuccess: async (data) => {
-      await queryClient.invalidateQueries({ queryKey: featsKeys.lists() })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.content.feats.all() })
 
-      queryClient.setQueryData(
-        featsKeys.single(data.id),
-        data
-      )
+      if (data?.item.id) {
+        queryClient.setQueryData(queryKeys.content.feats.detail(data.item.id), data)
+      }
     }
   })
 }

@@ -1,2 +1,8 @@
 export * from './ThemeToggle'
 export * from './Select'
+export * from './Collapse'
+export { default as Link } from './Link'
+export type { LinkProps } from './Link'
+export { default as RichTextEditor } from './RichTextEditor'
+export type { RichTextEditorProps } from './RichTextEditor'
+export { default as Spinner } from './Spinner'

@@ -7,12 +7,24 @@ import {
 import { getSpellListQuery } from '@artificer-toolkit/db'
 import { createSpellRepository } from '@artificer-toolkit/db'
 import type { SpellAuthored } from '@artificer-toolkit/shared'
-import { spellAuthoredDtoSchema, type SpellAuthoredDto } from '@artificer-toolkit/schema'
 import {
+  authoredDraftActivateRequestDtoSchema,
+  authoredDraftSaveRequestDtoSchema,
+  spellAuthoredDtoSchema,
+  type SpellAuthoredDto
+} from '@artificer-toolkit/schema'
+import {
+  discardAuthoredDraft,
+  extractDraftSubjectIdFromRequest,
+  getAuthoredDraft,
   normalizeAuthoredDetailResponse,
-  normalizeAuthoredListResponse,
-  normalizeAuthoringInput,
-  normalizeAuthoringResult
+  normalizeAuthoredListResponseWithDrafts,
+  normalizeActivatedAuthoringInput,
+  normalizeAuthoringResult,
+  normalizeStoredDraftPayloadForActivation,
+  requireAuthoredDraft,
+  resolveDraftActivationSubjectId,
+  saveAuthoredDraft
 } from './authoredContent.js'
 
 function extractId(req: Request): string {
@@ -23,7 +35,7 @@ function extractId(req: Request): string {
 
 // list
 export const getSpellList = handleRequest(
-  async (db, userId) => normalizeAuthoredListResponse(await getSpellListQuery(db), userId),
+  async (db, userId) => normalizeAuthoredListResponseWithDrafts(db, await getSpellListQuery(db), userId, 'SPELL'),
   (_req: Request, userId: string) => [userId] as [string]
 )
 
@@ -31,6 +43,45 @@ export const getSpellList = handleRequest(
 export const getSpell = handleRequest<[string, string], Awaited<ReturnType<typeof normalizeAuthoredDetailResponse<SpellAuthored>>>>(
   async (db, id, userId) => normalizeAuthoredDetailResponse(db, 'spells', await createSpellRepository(db).findById(id), userId),
   (req: Request, userId: string) => [extractId(req), userId] as [string, string]
+)
+
+export const getSpellDraft = handleRequest(
+  async (db, id, userId) => getAuthoredDraft(db, 'SPELL', id, userId),
+  (req: Request, userId: string) => [extractDraftSubjectIdFromRequest(req), userId] as [string, string]
+)
+
+export const saveSpellDraft = handleAuthoringRequest(
+  authoredDraftSaveRequestDtoSchema,
+  async (db, body, userId) => saveAuthoredDraft(db, {
+    ...body,
+    subjectKind: 'SPELL'
+  }, userId)
+)
+
+export const discardSpellDraft = handleRequest(
+  async (db, id, userId) => {
+    await discardAuthoredDraft(db, 'SPELL', id, userId)
+    return { ok: true }
+  },
+  (req: Request, userId: string) => [extractDraftSubjectIdFromRequest(req), userId] as [string, string]
+)
+
+export const activateSpellDraft = handleAuthoringRequest(
+  authoredDraftActivateRequestDtoSchema,
+  async (db, body, userId, req) => {
+    const subjectId = resolveDraftActivationSubjectId('SPELL', body.subjectId, req)
+    const draft = await requireAuthoredDraft(db, 'SPELL', subjectId, userId)
+    const service = createSpellSubjectAuthoringService(db)
+    const input = spellAuthoredDtoSchema.parse(normalizeStoredDraftPayloadForActivation(draft, userId))
+    const normalized = await normalizeNodeRuntimeValues(db, {
+      mapId: 'spell',
+      values: { ...input }
+    })
+    const normalizedBody = spellAuthoredDtoSchema.parse(normalized.values)
+    const result = await service.execute(normalizeActivatedAuthoringInput(normalizedBody, userId))
+    await discardAuthoredDraft(db, 'SPELL', subjectId, userId)
+    return normalizeAuthoringResult(db, 'spells', result, userId)
+  }
 )
 
 // create/update
@@ -43,7 +94,8 @@ export const createSpell = handleAuthoringRequest(
       values: { ...body }
     })
     const normalizedBody = spellAuthoredDtoSchema.parse(normalized.values)
-    const result = await service.execute(normalizeAuthoringInput(normalizedBody, userId))
+    const result = await service.execute(normalizeActivatedAuthoringInput(normalizedBody, userId))
+    await discardAuthoredDraft(db, 'SPELL', normalizedBody.id, userId)
     return normalizeAuthoringResult(db, 'spells', result, userId)
   }
 )

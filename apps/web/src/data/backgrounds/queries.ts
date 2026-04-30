@@ -23,3 +23,10 @@ export function getBackground(id: string, client: Api = api) {
 export function useGetBackground(id: string) {
   return useSuspenseQuery(getBackground(id))
 }
+
+export function getBackgroundDraft(id: string, client: Api = api) {
+  return queryOptions({
+    queryKey: queryKeys.content.backgrounds.draft(id),
+    queryFn: async () => await client.content.backgrounds.getDraft(id)
+  })
+}

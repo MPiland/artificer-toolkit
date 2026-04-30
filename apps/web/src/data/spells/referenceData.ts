@@ -2,6 +2,7 @@ import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
 import type { ClassListItemDto, CreatureListItemDto, SystemAuthoredDto } from '@artificer-toolkit/schema'
 import { api, type Api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
+import { buildEffectReferenceData } from '#app/data/effects'
 
 export type SpellReferenceOption = {
   value: string
@@ -62,16 +63,17 @@ export function getSpellReferenceData(client: Api = api) {
       ])
 
       const resolvedSystem = system ?? emptySystem()
+      const effectReferences = buildEffectReferenceData(resolvedSystem, creatures.items)
 
       return {
         systemId: resolvedSystem.id,
         magicSchools: toVocabularyOptions(resolvedSystem.magicSchools),
         classes: toContentOptions(classes.items),
-        damageTypes: toVocabularyOptions(resolvedSystem.damageTypes),
-        conditionTypes: toVocabularyOptions(resolvedSystem.conditionTypes),
+        damageTypes: effectReferences.damageTypes,
+        conditionTypes: effectReferences.conditionTypes,
         skills: toVocabularyOptions(resolvedSystem.skills),
         speeds: toVocabularyOptions(resolvedSystem.speeds),
-        creatures: toContentOptions(creatures.items)
+        creatures: effectReferences.creatures
       }
     }
   })
