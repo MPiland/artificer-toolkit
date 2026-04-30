@@ -1,0 +1,244 @@
+import type {
+  EquipmentAuthoredDto,
+  EquipmentListResponseDto,
+  EquipmentResponseDto,
+  NodeRuntimeResolveResponseDto
+} from '@artificer-toolkit/schema'
+
+export const ownedEquipmentFixture: EquipmentAuthoredDto = {
+  kind: 'EQUIPMENT',
+  id: 'explorers-pack',
+  label: 'Explorer Pack',
+  description: 'A practical bundle of travel supplies for a new adventurer.',
+  quote: 'Everything you need when the road gets muddy.',
+  status: 'DRAFT',
+  category: 'ADVENTURING_GEAR',
+  rarityId: 'common',
+  attributes: ['STACKABLE'],
+  properties: ['CONTAINER'],
+  cost: {
+    amount: 10,
+    currencyId: 'gp'
+  },
+  weight: {
+    amount: 12,
+    unit: 'POUNDS'
+  },
+  maxStack: 1,
+  contains: [
+    {
+      equipmentId: 'torch',
+      quantity: 10
+    }
+  ],
+  effects: [],
+  modifiers: [],
+  features: [
+    {
+      id: 'explorer-pack-feature',
+      label: 'Packed Supplies',
+      description: 'Contains basic travel equipment.',
+      order: 1
+    }
+  ],
+  userId: 'user-1',
+  systemId: 'dnd-5e-srd'
+}
+
+export const ownedVariantEquipmentFixture: EquipmentAuthoredDto = {
+  kind: 'EQUIPMENT',
+  id: 'longsword-plus-one',
+  label: 'Longsword +1',
+  description: 'A magically sharpened longsword.',
+  quote: 'A clean edge, humming faintly.',
+  status: 'DRAFT',
+  category: 'VARIANT',
+  parentEquipmentId: 'longsword',
+  rarityId: 'uncommon',
+  properties: ['MAGIC'],
+  effects: [],
+  modifiers: [],
+  features: [],
+  userId: 'user-1',
+  systemId: 'dnd-5e-srd'
+}
+
+export const masterEquipmentFixture: EquipmentAuthoredDto = {
+  ...ownedEquipmentFixture,
+  id: 'backpack',
+  label: 'Backpack',
+  description: 'A sturdy pack for carrying adventuring gear.',
+  status: 'ACTIVE',
+  userId: 'master'
+}
+
+export const equipmentListResponseFixture: EquipmentListResponseDto = {
+  items: [
+    {
+      id: masterEquipmentFixture.id,
+      label: masterEquipmentFixture.label,
+      description: masterEquipmentFixture.description,
+      status: 'ACTIVE',
+      userId: 'master',
+      systemId: masterEquipmentFixture.systemId,
+      category: masterEquipmentFixture.category,
+      provenance: {
+        kind: 'MASTER',
+        ownerUserId: null
+      },
+      permissions: {
+        canView: true,
+        canEdit: false,
+        canCopy: true,
+        canDelete: false
+      }
+    },
+    {
+      id: ownedVariantEquipmentFixture.id,
+      label: ownedVariantEquipmentFixture.label,
+      description: ownedVariantEquipmentFixture.description,
+      status: 'DRAFT',
+      userId: ownedVariantEquipmentFixture.userId,
+      systemId: ownedVariantEquipmentFixture.systemId,
+      category: ownedVariantEquipmentFixture.category,
+      provenance: {
+        kind: 'OWNED',
+        ownerUserId: ownedVariantEquipmentFixture.userId
+      },
+      permissions: {
+        canView: true,
+        canEdit: true,
+        canCopy: true,
+        canDelete: true
+      }
+    }
+  ],
+  meta: {}
+}
+
+export const ownedEquipmentResponseFixture: NonNullable<EquipmentResponseDto> = {
+  item: ownedEquipmentFixture,
+  provenance: {
+    kind: 'OWNED',
+    ownerUserId: ownedEquipmentFixture.userId
+  },
+  permissions: {
+    canView: true,
+    canEdit: true,
+    canCopy: true,
+    canDelete: true
+  }
+}
+
+export const ownedVariantEquipmentResponseFixture: NonNullable<EquipmentResponseDto> = {
+  item: ownedVariantEquipmentFixture,
+  provenance: {
+    kind: 'OWNED',
+    ownerUserId: ownedVariantEquipmentFixture.userId
+  },
+  permissions: {
+    canView: true,
+    canEdit: true,
+    canCopy: true,
+    canDelete: true
+  }
+}
+
+export const masterEquipmentResponseFixture: NonNullable<EquipmentResponseDto> = {
+  item: masterEquipmentFixture,
+  provenance: {
+    kind: 'MASTER',
+    ownerUserId: null
+  },
+  permissions: {
+    canView: true,
+    canEdit: false,
+    canCopy: true,
+    canDelete: false
+  }
+}
+
+export const equipmentRuntimeFixture: NodeRuntimeResolveResponseDto = {
+  mapId: 'equipment',
+  clearPaths: [],
+  sections: [
+    {
+      id: 'properties',
+      label: 'Properties',
+      order: 20,
+      nodes: [
+        selectNode('category', ['category'], 'Category', [
+          { value: 'WEAPON', label: 'Weapon' },
+          { value: 'ARMOR', label: 'Armor' },
+          { value: 'ADVENTURING_GEAR', label: 'Adventuring Gear' },
+          { value: 'TOOL', label: 'Tool' },
+          { value: 'SHIELD', label: 'Shield' },
+          { value: 'VARIANT', label: 'Variant' }
+        ], true),
+        selectNode('attributes', ['attributes'], 'Attributes', [
+          { value: 'LIMITED_USE', label: 'Limited Use' },
+          { value: 'STACKABLE', label: 'Stackable' }
+        ], false, 'SELECT_MULTI'),
+        selectNode('rarityId', ['rarityId'], 'Rarity', [
+          { value: 'common', label: 'Common' },
+          { value: 'uncommon', label: 'Uncommon' }
+        ], true),
+        selectNode('parentEquipmentId', ['parentEquipmentId'], 'Parent Equipment', [
+          { value: 'longsword', label: 'Longsword' },
+          { value: 'backpack', label: 'Backpack' }
+        ], true),
+        selectNode('properties', ['properties'], 'Properties', [
+          { value: 'CONTAINER', label: 'Container' },
+          { value: 'MAGIC', label: 'Magic' }
+        ], false, 'SELECT_MULTI')
+      ]
+    },
+    {
+      id: 'economy',
+      label: 'Cost and Weight',
+      order: 30,
+      nodes: [
+        selectNode('currencyId', ['cost', 'currencyId'], 'Currency', [
+          { value: 'gp', label: 'Gold' },
+          { value: 'sp', label: 'Silver' }
+        ], false),
+        selectNode('unit', ['weight', 'unit'], 'Unit', [
+          { value: 'POUNDS', label: 'Pounds' },
+          { value: 'GALLONS', label: 'Gallons' }
+        ], true)
+      ]
+    },
+    {
+      id: 'contents',
+      label: 'Contents',
+      order: 50,
+      nodes: [
+        selectNode('equipmentId', ['contains', 'equipmentId'], 'Equipment', [
+          { value: 'torch', label: 'Torch' },
+          { value: 'rations', label: 'Rations' }
+        ], true)
+      ]
+    }
+  ]
+}
+
+function selectNode(
+  id: string,
+  path: string[],
+  label: string,
+  options: Array<{ value: string, label: string }>,
+  required: boolean,
+  type: 'SELECT_SINGLE' | 'SELECT_MULTI' = 'SELECT_SINGLE'
+): NodeRuntimeResolveResponseDto['sections'][number]['nodes'][number] {
+  return {
+    id,
+    path,
+    label,
+    kind: 'INPUT',
+    type,
+    visible: true,
+    required,
+    clearPaths: [],
+    options
+  }
+}

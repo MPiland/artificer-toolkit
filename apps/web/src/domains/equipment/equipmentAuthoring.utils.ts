@@ -1,0 +1,263 @@
+import type {
+  CapacityDto,
+  ChargeDto,
+  ContainsDto,
+  CostDto,
+  EquipmentAuthoredDto,
+  FacetDto,
+  FeatureDto,
+  ModifierGrantDto,
+  WeightDto
+} from '@artificer-toolkit/schema'
+import {
+  AUTHORING_SELECTION_KIND,
+  CHARGE_LIMIT_KIND,
+  CHARGE_RESET_KIND,
+  EQUIPMENT_CATEGORY_CODE,
+  MEASUREMENT_UNIT_CODE,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
+  MODIFIER_VALUE_SOURCE_CODE,
+  VALUE_DOMAIN_CODE
+} from '@artificer-toolkit/shared'
+
+type BaseEquipmentDto = Exclude<EquipmentAuthoredDto, { category: typeof EQUIPMENT_CATEGORY_CODE.VARIANT }>
+type VariantEquipmentDto = Extract<EquipmentAuthoredDto, { category: typeof EQUIPMENT_CATEGORY_CODE.VARIANT }>
+
+export type EquipmentFormStep = 'basics' | 'inventory' | 'rules' | 'content' | 'charges' | 'contents'
+
+export type EquipmentFormValues = {
+  kind: 'EQUIPMENT'
+  id: string
+  label: string
+  description: string
+  status?: EquipmentAuthoredDto['status']
+  quote?: string
+  rarityId: string
+  userId: string
+  systemId: string
+  category: EquipmentAuthoredDto['category']
+  parentEquipmentId?: string
+  attributes?: BaseEquipmentDto['attributes']
+  properties?: NonNullable<EquipmentAuthoredDto['properties']>
+  cost?: CostDto
+  weight?: WeightDto
+  capacity?: CapacityDto
+  maxStack?: number
+  maxBonus?: number
+  armorClass?: number
+  contains?: ContainsDto[]
+  effects?: EquipmentAuthoredDto['effects']
+  charges?: ChargeDto
+  modifiers?: ModifierGrantDto[]
+  features?: FeatureDto[]
+  restrictions?: EquipmentAuthoredDto['restrictions']
+}
+
+export interface CreateEmptyEquipmentInput {
+  systemId: string
+  userId: string
+}
+
+export function createEmptyBaseEquipment({
+  systemId,
+  userId
+}: CreateEmptyEquipmentInput): EquipmentFormValues {
+  return {
+    kind: 'EQUIPMENT',
+    id: crypto.randomUUID(),
+    label: '',
+    description: '',
+    status: 'DRAFT',
+    quote: '',
+    rarityId: '',
+    userId,
+    systemId,
+    category: EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
+    attributes: [],
+    properties: [],
+    weight: createEmptyWeight(),
+    effects: [],
+    modifiers: [],
+    features: [],
+    contains: []
+  }
+}
+
+export function createEmptyVariantEquipment({
+  systemId,
+  userId
+}: CreateEmptyEquipmentInput): EquipmentFormValues {
+  return {
+    kind: 'EQUIPMENT',
+    id: crypto.randomUUID(),
+    label: '',
+    description: '',
+    status: 'DRAFT',
+    quote: '',
+    rarityId: '',
+    userId,
+    systemId,
+    category: EQUIPMENT_CATEGORY_CODE.VARIANT,
+    parentEquipmentId: '',
+    properties: [],
+    effects: [],
+    modifiers: [],
+    features: []
+  }
+}
+
+export function createEmptyEquipment(input: CreateEmptyEquipmentInput): EquipmentFormValues {
+  return createEmptyBaseEquipment(input)
+}
+
+export function createEmptyCost(): CostDto {
+  return {
+    amount: 0,
+    currencyId: ''
+  }
+}
+
+export function createEmptyWeight(): WeightDto {
+  return {
+    amount: 0,
+    unit: MEASUREMENT_UNIT_CODE.POUNDS
+  }
+}
+
+export function createEmptyCapacity(): CapacityDto {
+  return {
+    amount: 0,
+    unit: MEASUREMENT_UNIT_CODE.POUNDS
+  }
+}
+
+export function createEmptyContains(): ContainsDto {
+  return {
+    equipmentId: '',
+    quantity: 1
+  }
+}
+
+export function createEmptyCharge(): ChargeDto {
+  return {
+    id: crypto.randomUUID(),
+    resetKind: CHARGE_RESET_KIND.LONG_REST,
+    limitKind: CHARGE_LIMIT_KIND.FIXED_AMOUNT,
+    scalingKind: 'NONE',
+    amount: 1
+  }
+}
+
+export function createEmptyFeature(order: number): FeatureDto {
+  return {
+    id: crypto.randomUUID(),
+    label: '',
+    description: '',
+    order
+  }
+}
+
+export function createEmptyRestrictions(): FacetDto {
+  return {
+    id: crypto.randomUUID(),
+    groups: []
+  }
+}
+
+export function createEmptyModifier(order: number): ModifierGrantDto {
+  return {
+    id: crypto.randomUUID(),
+    order,
+    grantKind: 'MODIFIER_GRANT',
+    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+    valueDomainCode: VALUE_DOMAIN_CODE.HIT_POINTS_MAX,
+    modifierKind: MODIFIER_KIND.BONUS,
+    scope: MODIFIER_SCOPE_KIND.SOURCE,
+    domain: {},
+    payload: {
+      valueKind: MODIFIER_VALUE_SOURCE_CODE.FIXED,
+      amount: 1
+    }
+  }
+}
+
+export function toEquipmentFormValues(equipment: EquipmentAuthoredDto | EquipmentFormValues): EquipmentFormValues {
+  if (equipment.category === EQUIPMENT_CATEGORY_CODE.VARIANT) {
+    return {
+      ...equipment,
+      description: equipment.description ?? '',
+      quote: equipment.quote ?? '',
+      properties: equipment.properties ?? [],
+      effects: equipment.effects ?? [],
+      modifiers: equipment.modifiers ?? [],
+      features: equipment.features ?? []
+    }
+  }
+
+  return {
+    ...equipment,
+    description: equipment.description ?? '',
+    quote: equipment.quote ?? '',
+    attributes: equipment.attributes ?? [],
+    properties: equipment.properties ?? [],
+    effects: equipment.effects ?? [],
+    modifiers: equipment.modifiers ?? [],
+    features: equipment.features ?? [],
+    contains: equipment.contains ?? [],
+    weight: equipment.weight ?? createEmptyWeight()
+  }
+}
+
+export function normalizeEquipmentForSubmit(equipment: EquipmentFormValues): EquipmentAuthoredDto {
+  const common = {
+    kind: 'EQUIPMENT' as const,
+    id: equipment.id,
+    label: equipment.label.trim() || 'Untitled Equipment',
+    description: equipment.description ?? '',
+    status: equipment.status ?? 'DRAFT',
+    quote: equipment.quote ?? '',
+    rarityId: equipment.rarityId,
+    userId: equipment.userId,
+    systemId: equipment.systemId,
+    effects: equipment.effects ?? [],
+    charges: equipment.charges,
+    modifiers: equipment.modifiers ?? [],
+    maxBonus: equipment.maxBonus,
+    features: equipment.features ?? [],
+    restrictions: equipment.restrictions
+  }
+
+  if (equipment.category === EQUIPMENT_CATEGORY_CODE.VARIANT) {
+    return {
+      ...common,
+      category: EQUIPMENT_CATEGORY_CODE.VARIANT,
+      parentEquipmentId: equipment.parentEquipmentId ?? '',
+      properties: equipment.properties ?? []
+    } satisfies VariantEquipmentDto
+  }
+
+  return {
+    ...common,
+    category: equipment.category,
+    attributes: equipment.attributes ?? [],
+    cost: equipment.cost,
+    weight: equipment.weight ?? createEmptyWeight(),
+    capacity: equipment.capacity,
+    maxStack: equipment.maxStack,
+    armorClass: equipment.armorClass,
+    contains: equipment.contains ?? [],
+    properties: equipment.properties ?? []
+  } satisfies BaseEquipmentDto
+}
+
+export function resolveCreateEquipmentSystemId(systems: readonly { id: string }[]): string | null {
+  return systems[0]?.id ?? null
+}
+
+export function upsertById<TItem extends { id: string }>(items: TItem[], item: TItem): TItem[] {
+  const exists = items.some((current) => current.id === item.id)
+  return exists
+    ? items.map((current) => current.id === item.id ? item : current)
+    : [...items, item]
+}

@@ -4,10 +4,11 @@ import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-q
 import { useNavigate } from '@tanstack/react-router'
 import {
   spellAuthoredDtoSchema,
-  type AuthoredDraftDto,
   type SpellAuthoredDto
 } from '@artificer-toolkit/schema'
 import { AuthoredFormPageFrame } from '#components/Form/AuthoredFormPageFrame'
+import { InvalidDraftAlert } from '#components/Form/InvalidDraftAlert'
+import { parseAuthoredDraftPayload } from '#app/data/authoredDrafts'
 import { getSpell, getSpellDraft } from '#app/data/spells/queries'
 import { getSpellReferenceData } from '#app/data/spells/referenceData'
 import { api } from '#app/lib/api'
@@ -67,7 +68,8 @@ export function SpellDetailPage({
   const queryClient = useQueryClient()
   const { data: response } = useSuspenseQuery(getSpell(spellId))
   const { data: draft } = useSuspenseQuery(getSpellDraft(spellId))
-  const draftSpell = getDraftSpell(draft)
+  const parsedDraft = parseAuthoredDraftPayload(draft, spellAuthoredDtoSchema)
+  const draftSpell = parsedDraft.item
   const { data: references } = useSuspenseQuery(getSpellReferenceData())
   const saveMutation = useMutation({
     mutationFn: (spell: SpellAuthoredDto) => api.content.spells.activate(spell),
@@ -91,6 +93,18 @@ export function SpellDetailPage({
     },
     onError: () => notifications.show({ color: 'red', message: 'Could not save that draft yet.' })
   })
+  const discardDraftMutation = useMutation({
+    mutationFn: () => api.content.spells.discardDraft(spellId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.content.spells.all() })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.content.spells.draft(spellId) })
+      notifications.show({ color: 'green', message: 'Stale spell draft discarded.' })
+      if (!response) {
+        await navigate({ to: '/spells' })
+      }
+    },
+    onError: () => notifications.show({ color: 'red', message: 'Could not discard that draft yet.' })
+  })
   const copyMutation = useMutation({
     mutationFn: () => api.content.spells.duplicate(spellId),
     onSuccess: async (copied) => {
@@ -102,6 +116,21 @@ export function SpellDetailPage({
     },
     onError: () => notifications.show({ color: 'red', message: 'Could not duplicate that spell yet.' })
   })
+
+  if (!response && parsedDraft.isInvalid) {
+    return (
+      <AuthoredFormPageFrame>
+        <Stack>
+          <InvalidDraftAlert
+            domainLabel='spell'
+            isDiscarding={discardDraftMutation.isPending}
+            onDiscard={() => discardDraftMutation.mutate()}
+          />
+          <Button onClick={() => navigate({ to: '/spells' })}>Back to spells</Button>
+        </Stack>
+      </AuthoredFormPageFrame>
+    )
+  }
 
   if (!response && !draftSpell) {
     return (
@@ -118,22 +147,28 @@ export function SpellDetailPage({
 
   return (
     <AuthoredFormPageFrame>
-      <SpellForm
-        key={formKey}
-        mode={mode}
-        userId={userId}
-        references={references}
-        initialSpell={draftSpell}
-        response={response}
-        onCopy={() => copyMutation.mutate()}
-        onSubmit={async (spell) => saveMutation.mutateAsync(spell).then(() => undefined)}
-        onSaveDraft={async (spell) => draftMutation.mutateAsync(spell).then(() => undefined)}
-      />
+      <Stack>
+        {parsedDraft.isInvalid
+          ? (
+              <InvalidDraftAlert
+                domainLabel='spell'
+                isDiscarding={discardDraftMutation.isPending}
+                onDiscard={() => discardDraftMutation.mutate()}
+              />
+            )
+          : null}
+        <SpellForm
+          key={formKey}
+          mode={mode}
+          userId={userId}
+          references={references}
+          initialSpell={draftSpell}
+          response={response}
+          onCopy={() => copyMutation.mutate()}
+          onSubmit={async (spell) => saveMutation.mutateAsync(spell).then(() => undefined)}
+          onSaveDraft={async (spell) => draftMutation.mutateAsync(spell).then(() => undefined)}
+        />
+      </Stack>
     </AuthoredFormPageFrame>
   )
-}
-
-function getDraftSpell(draft: AuthoredDraftDto | null): SpellAuthoredDto | undefined {
-  if (!draft) return undefined
-  return spellAuthoredDtoSchema.parse(draft.payload)
 }

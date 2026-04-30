@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { ActionIcon, Alert, Button, Group, Stack, Text, Tooltip } from '@mantine/core'
 import { useNavigate } from '@tanstack/react-router'
 import type {
+  ChargeDto,
   FeatAuthoredDto,
   FeatResponseDto,
   FeatureDto,
@@ -11,8 +12,6 @@ import {
   CHARGE_NODE_MAP,
   FEAT_GRANTS_NODE_MAP,
   FEAT_PREREQUISITES_NODE_MAP,
-  type ChargeAuthored,
-  type FeatAuthored,
   type NodeMap
 } from '@artificer-toolkit/shared'
 import IEdit from '#assets/icons/IEdit'
@@ -56,8 +55,8 @@ import {
 } from './featAuthoring.utils'
 import * as styles from './featAuthoring.css'
 
-type FeatPrerequisites = NonNullable<FeatAuthored['prerequisites']>
-type FeatGrants = NonNullable<FeatAuthored['grants']>
+type FeatPrerequisites = NonNullable<FeatAuthoredDto['prerequisites']>
+type FeatGrants = NonNullable<FeatAuthoredDto['grants']>
 
 const featSteps = [
   {
@@ -456,7 +455,7 @@ function PrerequisitesSection({
         defaultValue={createEmptyPrerequisites()}
         item={editing}
         mapId='facet'
-        nodeMap={FEAT_PREREQUISITES_NODE_MAP}
+        nodeMap={FEAT_PREREQUISITES_NODE_MAP as NodeMap<FeatPrerequisites>}
         opened={editing !== null}
         readOnly={readOnly}
         resolveRuntime={resolveRuntime}
@@ -478,12 +477,12 @@ function ChargesSection({
   resolveRuntime,
   onChange
 }: {
-  charges?: ChargeAuthored
+  charges?: ChargeDto
   readOnly: boolean
   resolveRuntime: boolean
-  onChange: (charges: ChargeAuthored) => void
+  onChange: (charges: ChargeDto) => void
 }) {
-  const [editing, setEditing] = useState<ChargeAuthored | null>(null)
+  const [editing, setEditing] = useState<ChargeDto | null>(null)
 
   return (
     <AuthoredFormSection
@@ -510,7 +509,7 @@ function ChargesSection({
         defaultValue={createEmptyCharge()}
         item={editing}
         mapId='charges'
-        nodeMap={CHARGE_NODE_MAP}
+        nodeMap={CHARGE_NODE_MAP as NodeMap<ChargeDto>}
         opened={editing !== null}
         readOnly={readOnly}
         resolveRuntime={resolveRuntime}
@@ -564,7 +563,7 @@ function GrantsSection({
         defaultValue={createEmptyGrants()}
         item={editing}
         mapId='featureGrants'
-        nodeMap={FEAT_GRANTS_NODE_MAP}
+        nodeMap={FEAT_GRANTS_NODE_MAP as NodeMap<FeatGrants>}
         opened={editing !== null}
         readOnly={readOnly}
         resolveRuntime={resolveRuntime}
@@ -965,7 +964,7 @@ function getPreviousStep(step: FeatFormStep): FeatFormStep {
   return 'basics'
 }
 
-function formatCharges(charges: ChargeAuthored): string {
+function formatCharges(charges: ChargeDto): string {
   if (charges.limitKind === 'FIXED_AMOUNT' && charges.scalingKind === 'NONE') {
     return `${charges.amount} use${charges.amount === 1 ? '' : 's'} / ${formatCode(charges.resetKind).toLowerCase()}`
   }

@@ -1,13 +1,30 @@
-import { handleRequest, handleAuthoringRequest, createEquipmentSubjectAuthoringService } from '@artificer-toolkit/functions'
+import {
+  handleRequest,
+  handleAuthoringRequest,
+  createEquipmentSubjectAuthoringService,
+  normalizeNodeRuntimeValues
+} from '@artificer-toolkit/functions'
 import { getEquipmentListQuery } from '@artificer-toolkit/db'
 import { createEquipmentRepository } from '@artificer-toolkit/db'
-import { equipmentAuthoredDtoSchema, type EquipmentAuthoredDto } from '@artificer-toolkit/schema'
+import {
+  authoredDraftActivateRequestDtoSchema,
+  authoredDraftSaveRequestDtoSchema,
+  equipmentAuthoredDtoSchema,
+  type EquipmentAuthoredDto
+} from '@artificer-toolkit/schema'
 import type { EquipmentAuthored, EquipmentVariantAuthored } from '@artificer-toolkit/shared'
 import {
+  discardAuthoredDraft,
+  extractDraftSubjectIdFromRequest,
+  getAuthoredDraft,
   normalizeAuthoredDetailResponse,
-  normalizeAuthoredListResponse,
-  normalizeAuthoringInput,
-  normalizeAuthoringResult
+  normalizeAuthoredListResponseWithDrafts,
+  normalizeActivatedAuthoringInput,
+  normalizeAuthoringResult,
+  normalizeStoredDraftPayloadForActivation,
+  requireAuthoredDraft,
+  resolveDraftActivationSubjectId,
+  saveAuthoredDraft
 } from './authoredContent.js'
 
 function extractId(req: Request): string {
@@ -18,7 +35,7 @@ function extractId(req: Request): string {
 
 // list
 export const getEquipmentList = handleRequest(
-  async (db, userId) => normalizeAuthoredListResponse(await getEquipmentListQuery(db), userId),
+  async (db, userId) => normalizeAuthoredListResponseWithDrafts(db, await getEquipmentListQuery(db), userId, 'EQUIPMENT'),
   (_req: Request, userId: string) => [userId] as [string]
 )
 
@@ -28,12 +45,57 @@ export const getEquipment = handleRequest<[string, string], Awaited<ReturnType<t
   (req: Request, userId: string) => [extractId(req), userId] as [string, string]
 )
 
+export const getEquipmentDraft = handleRequest(
+  async (db, id, userId) => getAuthoredDraft(db, 'EQUIPMENT', id, userId),
+  (req: Request, userId: string) => [extractDraftSubjectIdFromRequest(req), userId] as [string, string]
+)
+
+export const saveEquipmentDraft = handleAuthoringRequest(
+  authoredDraftSaveRequestDtoSchema,
+  async (db, body, userId) => saveAuthoredDraft(db, {
+    ...body,
+    subjectKind: 'EQUIPMENT'
+  }, userId)
+)
+
+export const discardEquipmentDraft = handleRequest(
+  async (db, id, userId) => {
+    await discardAuthoredDraft(db, 'EQUIPMENT', id, userId)
+    return { ok: true }
+  },
+  (req: Request, userId: string) => [extractDraftSubjectIdFromRequest(req), userId] as [string, string]
+)
+
+export const activateEquipmentDraft = handleAuthoringRequest(
+  authoredDraftActivateRequestDtoSchema,
+  async (db, body, userId, req) => {
+    const subjectId = resolveDraftActivationSubjectId('EQUIPMENT', body.subjectId, req)
+    const draft = await requireAuthoredDraft(db, 'EQUIPMENT', subjectId, userId)
+    const service = createEquipmentSubjectAuthoringService(db)
+    const input = equipmentAuthoredDtoSchema.parse(normalizeStoredDraftPayloadForActivation(draft, userId))
+    const normalized = await normalizeNodeRuntimeValues(db, {
+      mapId: 'equipment',
+      values: { ...input }
+    })
+    const normalizedBody = equipmentAuthoredDtoSchema.parse(normalized.values)
+    const result = await service.execute(normalizeActivatedAuthoringInput(normalizedBody, userId))
+    await discardAuthoredDraft(db, 'EQUIPMENT', subjectId, userId)
+    return normalizeAuthoringResult(db, 'equipment', result, userId)
+  }
+)
+
 // create/update
 export const createEquipment = handleAuthoringRequest(
   equipmentAuthoredDtoSchema,
   async (db, body: EquipmentAuthoredDto, userId) => {
     const service = createEquipmentSubjectAuthoringService(db)
-    const result = await service.execute(normalizeAuthoringInput(body, userId))
+    const normalized = await normalizeNodeRuntimeValues(db, {
+      mapId: 'equipment',
+      values: { ...body }
+    })
+    const normalizedBody = equipmentAuthoredDtoSchema.parse(normalized.values)
+    const result = await service.execute(normalizeActivatedAuthoringInput(normalizedBody, userId))
+    await discardAuthoredDraft(db, 'EQUIPMENT', normalizedBody.id, userId)
     return normalizeAuthoringResult(db, 'equipment', result, userId)
   }
 )

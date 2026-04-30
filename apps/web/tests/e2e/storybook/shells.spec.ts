@@ -195,6 +195,49 @@ test('race locked master story is duplicate-only', async ({ page }) => {
   await storyExpect(page.getByRole('button', { name: 'Activate Race' })).toHaveCount(0)
 })
 
+test('equipment list story renders category and locked master states', async ({ page }) => {
+  await openStory(page, 'domains-equipment-list--default')
+
+  await storyExpect(page.getByRole('heading', { name: 'Equipment' })).toBeVisible()
+  await storyExpect(page.getByRole('row', { name: /backpack/i })).toBeVisible()
+  await storyExpect(page.getByRole('row', { name: /longsword \+1/i })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: 'Create Equipment' })).toBeVisible()
+})
+
+test('base equipment form story moves through equipment sections', async ({ page }) => {
+  await openStory(page, 'domains-equipment-form--edit-base-equipment')
+
+  await storyExpect(page.getByRole('heading', { name: 'Base Equipment Basics' })).toBeVisible()
+  await storyExpect(page.getByRole('textbox', { name: 'Name' })).toHaveValue('Explorer Pack')
+  await page.getByRole('button', { name: 'Next' }).click()
+  await storyExpect(page.getByRole('heading', { name: 'Base Equipment Inventory' })).toBeVisible()
+  await page.getByRole('button', { name: 'Next' }).click()
+  await storyExpect(page.getByRole('heading', { name: 'Base Equipment Rules' })).toBeVisible()
+  await page.getByRole('button', { name: 'Next' }).click()
+  await storyExpect(page.getByRole('heading', { name: 'Base Equipment Content' })).toBeVisible()
+  await storyExpect(page.getByRole('heading', { name: 'Effects' })).toBeVisible()
+  await storyExpect(page.getByRole('heading', { name: 'Features' })).toBeVisible()
+})
+
+test('variant equipment form omits base-only inventory and contents sections', async ({ page }) => {
+  await openStory(page, 'domains-equipment-form--edit-variant-equipment')
+
+  await storyExpect(page.getByRole('heading', { name: 'Variant Equipment Basics' })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: /Inventory/i })).toHaveCount(0)
+  await storyExpect(page.getByRole('button', { name: /Contents/i })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Next' }).click()
+  await storyExpect(page.getByRole('heading', { name: 'Variant Equipment Rules' })).toBeVisible()
+})
+
+test('equipment locked master story is duplicate-only', async ({ page }) => {
+  await openStory(page, 'domains-equipment-form--locked-master-readonly')
+
+  await storyExpect(page.getByRole('heading', { name: 'Base Equipment Basics' })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: 'Duplicate to edit' })).toBeVisible()
+  await storyExpect(page.getByRole('textbox', { name: 'Name' })).toHaveAttribute('readonly')
+  await storyExpect(page.getByRole('button', { name: 'Activate Equipment' })).toHaveCount(0)
+})
+
 test('theme toggle story switches between light and dark', async ({ page }) => {
   await openStory(page, 'platform-theme-themetoggle--default')
 

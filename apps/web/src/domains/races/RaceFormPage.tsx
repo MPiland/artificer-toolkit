@@ -4,10 +4,11 @@ import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-q
 import { useNavigate } from '@tanstack/react-router'
 import {
   raceAuthoredDtoSchema,
-  type AuthoredDraftDto,
   type RaceAuthoredDto
 } from '@artificer-toolkit/schema'
 import { AuthoredFormPageFrame } from '#components/Form/AuthoredFormPageFrame'
+import { InvalidDraftAlert } from '#components/Form/InvalidDraftAlert'
+import { parseAuthoredDraftPayload } from '#app/data/authoredDrafts'
 import { getRace, getRaceDraft } from '#app/data/races/queries'
 import { getSystemList } from '#app/data/systems/queries'
 import { api } from '#app/lib/api'
@@ -80,7 +81,8 @@ export function RaceDetailPage({
   const queryClient = useQueryClient()
   const { data: response } = useSuspenseQuery(getRace(raceId))
   const { data: draft } = useSuspenseQuery(getRaceDraft(raceId))
-  const draftRace = getDraftRace(draft)
+  const parsedDraft = parseAuthoredDraftPayload(draft, raceAuthoredDtoSchema)
+  const draftRace = parsedDraft.item
   const systemId = draftRace?.systemId ?? response?.item.systemId ?? ''
   const saveMutation = useMutation({
     mutationFn: (race: RaceAuthoredDto) => api.content.races.activate(race),
@@ -104,6 +106,18 @@ export function RaceDetailPage({
     },
     onError: () => notifications.show({ color: 'red', message: 'Could not save that draft yet.' })
   })
+  const discardDraftMutation = useMutation({
+    mutationFn: () => api.content.races.discardDraft(raceId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.content.races.all() })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.content.races.draft(raceId) })
+      notifications.show({ color: 'green', message: 'Stale race draft discarded.' })
+      if (!response) {
+        await navigate({ to: '/races' })
+      }
+    },
+    onError: () => notifications.show({ color: 'red', message: 'Could not discard that draft yet.' })
+  })
   const copyMutation = useMutation({
     mutationFn: () => api.content.races.duplicate(raceId),
     onSuccess: async (copied) => {
@@ -115,6 +129,21 @@ export function RaceDetailPage({
     },
     onError: () => notifications.show({ color: 'red', message: 'Could not duplicate that race yet.' })
   })
+
+  if (!response && parsedDraft.isInvalid) {
+    return (
+      <AuthoredFormPageFrame contentClassName={styles.contentWide}>
+        <Stack>
+          <InvalidDraftAlert
+            domainLabel='race'
+            isDiscarding={discardDraftMutation.isPending}
+            onDiscard={() => discardDraftMutation.mutate()}
+          />
+          <Button onClick={() => navigate({ to: '/races' })}>Back to races</Button>
+        </Stack>
+      </AuthoredFormPageFrame>
+    )
+  }
 
   if (!response && !draftRace) {
     return (
@@ -131,22 +160,28 @@ export function RaceDetailPage({
 
   return (
     <AuthoredFormPageFrame contentClassName={styles.contentWide}>
-      <RaceForm
-        key={formKey}
-        mode={mode}
-        systemId={systemId}
-        userId={userId}
-        initialRace={draftRace}
-        response={response}
-        onCopy={() => copyMutation.mutate()}
-        onSubmit={async (race) => saveMutation.mutateAsync(race).then(() => undefined)}
-        onSaveDraft={async (race) => draftMutation.mutateAsync(race).then(() => undefined)}
-      />
+      <Stack>
+        {parsedDraft.isInvalid
+          ? (
+              <InvalidDraftAlert
+                domainLabel='race'
+                isDiscarding={discardDraftMutation.isPending}
+                onDiscard={() => discardDraftMutation.mutate()}
+              />
+            )
+          : null}
+        <RaceForm
+          key={formKey}
+          mode={mode}
+          systemId={systemId}
+          userId={userId}
+          initialRace={draftRace}
+          response={response}
+          onCopy={() => copyMutation.mutate()}
+          onSubmit={async (race) => saveMutation.mutateAsync(race).then(() => undefined)}
+          onSaveDraft={async (race) => draftMutation.mutateAsync(race).then(() => undefined)}
+        />
+      </Stack>
     </AuthoredFormPageFrame>
   )
-}
-
-function getDraftRace(draft: AuthoredDraftDto | null): RaceAuthoredDto | undefined {
-  if (!draft) return undefined
-  return raceAuthoredDtoSchema.parse(draft.payload)
 }

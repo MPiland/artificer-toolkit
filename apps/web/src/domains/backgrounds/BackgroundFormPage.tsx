@@ -4,10 +4,11 @@ import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-q
 import { useNavigate } from '@tanstack/react-router'
 import {
   backgroundAuthoredDtoSchema,
-  type AuthoredDraftDto,
   type BackgroundAuthoredDto
 } from '@artificer-toolkit/schema'
 import { AuthoredFormPageFrame } from '#components/Form/AuthoredFormPageFrame'
+import { InvalidDraftAlert } from '#components/Form/InvalidDraftAlert'
+import { parseAuthoredDraftPayload } from '#app/data/authoredDrafts'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import { getBackground, getBackgroundDraft } from '#app/data/backgrounds/queries'
@@ -80,7 +81,8 @@ export function BackgroundDetailPage({
   const queryClient = useQueryClient()
   const { data: response } = useSuspenseQuery(getBackground(backgroundId))
   const { data: draft } = useSuspenseQuery(getBackgroundDraft(backgroundId))
-  const draftBackground = getDraftBackground(draft)
+  const parsedDraft = parseAuthoredDraftPayload(draft, backgroundAuthoredDtoSchema)
+  const draftBackground = parsedDraft.item
   const saveMutation = useMutation({
     mutationFn: (background: BackgroundAuthoredDto) => api.content.backgrounds.activate(background),
     onSuccess: async (saved) => {
@@ -103,6 +105,18 @@ export function BackgroundDetailPage({
     },
     onError: () => notifications.show({ color: 'red', message: 'Could not save that draft yet.' })
   })
+  const discardDraftMutation = useMutation({
+    mutationFn: () => api.content.backgrounds.discardDraft(backgroundId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.content.backgrounds.all() })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.content.backgrounds.draft(backgroundId) })
+      notifications.show({ color: 'green', message: 'Stale background draft discarded.' })
+      if (!response) {
+        await navigate({ to: '/backgrounds' })
+      }
+    },
+    onError: () => notifications.show({ color: 'red', message: 'Could not discard that draft yet.' })
+  })
   const copyMutation = useMutation({
     mutationFn: () => api.content.backgrounds.duplicate(backgroundId),
     onSuccess: async (copied) => {
@@ -114,6 +128,21 @@ export function BackgroundDetailPage({
     },
     onError: () => notifications.show({ color: 'red', message: 'Could not duplicate that background yet.' })
   })
+
+  if (!response && parsedDraft.isInvalid) {
+    return (
+      <AuthoredFormPageFrame contentClassName={styles.contentWide}>
+        <Stack>
+          <InvalidDraftAlert
+            domainLabel='background'
+            isDiscarding={discardDraftMutation.isPending}
+            onDiscard={() => discardDraftMutation.mutate()}
+          />
+          <Button onClick={() => navigate({ to: '/backgrounds' })}>Back to backgrounds</Button>
+        </Stack>
+      </AuthoredFormPageFrame>
+    )
+  }
 
   if (!response && !draftBackground) {
     return (
@@ -130,22 +159,28 @@ export function BackgroundDetailPage({
 
   return (
     <AuthoredFormPageFrame contentClassName={styles.contentWide}>
-      <BackgroundForm
-        key={formKey}
-        mode={mode}
-        systemId={draftBackground?.systemId ?? response?.item.systemId ?? ''}
-        userId={userId}
-        initialBackground={draftBackground}
-        response={response}
-        onCopy={() => copyMutation.mutate()}
-        onSubmit={async (background) => saveMutation.mutateAsync(background).then(() => undefined)}
-        onSaveDraft={async (background) => draftMutation.mutateAsync(background).then(() => undefined)}
-      />
+      <Stack>
+        {parsedDraft.isInvalid
+          ? (
+              <InvalidDraftAlert
+                domainLabel='background'
+                isDiscarding={discardDraftMutation.isPending}
+                onDiscard={() => discardDraftMutation.mutate()}
+              />
+            )
+          : null}
+        <BackgroundForm
+          key={formKey}
+          mode={mode}
+          systemId={draftBackground?.systemId ?? response?.item.systemId ?? ''}
+          userId={userId}
+          initialBackground={draftBackground}
+          response={response}
+          onCopy={() => copyMutation.mutate()}
+          onSubmit={async (background) => saveMutation.mutateAsync(background).then(() => undefined)}
+          onSaveDraft={async (background) => draftMutation.mutateAsync(background).then(() => undefined)}
+        />
+      </Stack>
     </AuthoredFormPageFrame>
   )
-}
-
-function getDraftBackground(draft: AuthoredDraftDto | null): BackgroundAuthoredDto | undefined {
-  if (!draft) return undefined
-  return backgroundAuthoredDtoSchema.parse(draft.payload)
 }
