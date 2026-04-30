@@ -2,7 +2,6 @@ import { useState, type ReactNode } from 'react'
 import { ActionIcon, Alert, Button, Group, Stack, Text, Tooltip } from '@mantine/core'
 import { useNavigate } from '@tanstack/react-router'
 import type {
-  ChargeDto,
   FeatAuthoredDto,
   FeatResponseDto,
   FeatureDto,
@@ -10,8 +9,10 @@ import type {
 } from '@artificer-toolkit/schema'
 import {
   CHARGE_NODE_MAP,
-  FACET_NODE_MAP,
-  FEATURE_GRANTS_NODE_MAP,
+  FEAT_GRANTS_NODE_MAP,
+  FEAT_PREREQUISITES_NODE_MAP,
+  type ChargeAuthored,
+  type FeatAuthored,
   type NodeMap
 } from '@artificer-toolkit/shared'
 import IEdit from '#assets/icons/IEdit'
@@ -54,6 +55,9 @@ import {
   type FeatFormStep
 } from './featAuthoring.utils'
 import * as styles from './featAuthoring.css'
+
+type FeatPrerequisites = NonNullable<FeatAuthored['prerequisites']>
+type FeatGrants = NonNullable<FeatAuthored['grants']>
 
 const featSteps = [
   {
@@ -419,12 +423,12 @@ function PrerequisitesSection({
   resolveRuntime,
   onChange
 }: {
-  prerequisites?: FeatAuthoredDto['prerequisites']
+  prerequisites?: FeatPrerequisites
   readOnly: boolean
   resolveRuntime: boolean
-  onChange: (prerequisites: NonNullable<FeatAuthoredDto['prerequisites']>) => void
+  onChange: (prerequisites: FeatPrerequisites) => void
 }) {
-  const [editing, setEditing] = useState<NonNullable<FeatAuthoredDto['prerequisites']> | null>(null)
+  const [editing, setEditing] = useState<FeatPrerequisites | null>(null)
   const groupCount = prerequisites?.groups.length ?? 0
 
   return (
@@ -452,7 +456,7 @@ function PrerequisitesSection({
         defaultValue={createEmptyPrerequisites()}
         item={editing}
         mapId='facet'
-        nodeMap={FACET_NODE_MAP as unknown as NodeMap<NonNullable<FeatAuthoredDto['prerequisites']>>}
+        nodeMap={FEAT_PREREQUISITES_NODE_MAP}
         opened={editing !== null}
         readOnly={readOnly}
         resolveRuntime={resolveRuntime}
@@ -474,12 +478,12 @@ function ChargesSection({
   resolveRuntime,
   onChange
 }: {
-  charges?: ChargeDto
+  charges?: ChargeAuthored
   readOnly: boolean
   resolveRuntime: boolean
-  onChange: (charges: ChargeDto) => void
+  onChange: (charges: ChargeAuthored) => void
 }) {
-  const [editing, setEditing] = useState<ChargeDto | null>(null)
+  const [editing, setEditing] = useState<ChargeAuthored | null>(null)
 
   return (
     <AuthoredFormSection
@@ -506,7 +510,7 @@ function ChargesSection({
         defaultValue={createEmptyCharge()}
         item={editing}
         mapId='charges'
-        nodeMap={CHARGE_NODE_MAP as unknown as NodeMap<ChargeDto>}
+        nodeMap={CHARGE_NODE_MAP}
         opened={editing !== null}
         readOnly={readOnly}
         resolveRuntime={resolveRuntime}
@@ -528,12 +532,12 @@ function GrantsSection({
   resolveRuntime,
   onChange
 }: {
-  grants?: FeatAuthoredDto['grants']
+  grants?: FeatGrants
   readOnly: boolean
   resolveRuntime: boolean
-  onChange: (grants: NonNullable<FeatAuthoredDto['grants']>) => void
+  onChange: (grants: FeatGrants) => void
 }) {
-  const [editing, setEditing] = useState<NonNullable<FeatAuthoredDto['grants']> | null>(null)
+  const [editing, setEditing] = useState<FeatGrants | null>(null)
 
   return (
     <AuthoredFormSection
@@ -560,7 +564,7 @@ function GrantsSection({
         defaultValue={createEmptyGrants()}
         item={editing}
         mapId='featureGrants'
-        nodeMap={FEATURE_GRANTS_NODE_MAP as unknown as NodeMap<NonNullable<FeatAuthoredDto['grants']>>}
+        nodeMap={FEAT_GRANTS_NODE_MAP}
         opened={editing !== null}
         readOnly={readOnly}
         resolveRuntime={resolveRuntime}
@@ -961,7 +965,7 @@ function getPreviousStep(step: FeatFormStep): FeatFormStep {
   return 'basics'
 }
 
-function formatCharges(charges: ChargeDto): string {
+function formatCharges(charges: ChargeAuthored): string {
   if (charges.limitKind === 'FIXED_AMOUNT' && charges.scalingKind === 'NONE') {
     return `${charges.amount} use${charges.amount === 1 ? '' : 's'} / ${formatCode(charges.resetKind).toLowerCase()}`
   }

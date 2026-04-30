@@ -2,7 +2,11 @@ import { Alert, Button, Stack } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import type { SpellAuthoredDto } from '@artificer-toolkit/schema'
+import {
+  spellAuthoredDtoSchema,
+  type AuthoredDraftDto,
+  type SpellAuthoredDto
+} from '@artificer-toolkit/schema'
 import { AuthoredFormPageFrame } from '#components/Form/AuthoredFormPageFrame'
 import { getSpell, getSpellDraft } from '#app/data/spells/queries'
 import { getSpellReferenceData } from '#app/data/spells/referenceData'
@@ -63,6 +67,7 @@ export function SpellDetailPage({
   const queryClient = useQueryClient()
   const { data: response } = useSuspenseQuery(getSpell(spellId))
   const { data: draft } = useSuspenseQuery(getSpellDraft(spellId))
+  const draftSpell = getDraftSpell(draft)
   const { data: references } = useSuspenseQuery(getSpellReferenceData())
   const saveMutation = useMutation({
     mutationFn: (spell: SpellAuthoredDto) => api.content.spells.activate(spell),
@@ -70,6 +75,7 @@ export function SpellDetailPage({
       await queryClient.invalidateQueries({ queryKey: queryKeys.content.spells.all() })
       if (saved?.item.id) {
         await queryClient.invalidateQueries({ queryKey: queryKeys.content.spells.detail(saved.item.id) })
+        await queryClient.invalidateQueries({ queryKey: queryKeys.content.spells.draft(saved.item.id) })
         await navigate({ to: '/spells/$spellId', params: { spellId: saved.item.id } })
       }
       notifications.show({ color: 'green', message: 'Spell saved.' })
@@ -97,7 +103,7 @@ export function SpellDetailPage({
     onError: () => notifications.show({ color: 'red', message: 'Could not duplicate that spell yet.' })
   })
 
-  if (!response && !draft) {
+  if (!response && !draftSpell) {
     return (
       <AuthoredFormPageFrame>
         <Stack>
@@ -108,13 +114,16 @@ export function SpellDetailPage({
     )
   }
 
+  const formKey = `${mode}:${spellId}:${draft?.updatedAt ?? response?.item.id ?? 'missing'}:${draftSpell ? 'draft' : 'active'}`
+
   return (
     <AuthoredFormPageFrame>
       <SpellForm
+        key={formKey}
         mode={mode}
         userId={userId}
         references={references}
-        initialSpell={draft?.payload as unknown as SpellAuthoredDto | undefined}
+        initialSpell={draftSpell}
         response={response}
         onCopy={() => copyMutation.mutate()}
         onSubmit={async (spell) => saveMutation.mutateAsync(spell).then(() => undefined)}
@@ -122,4 +131,9 @@ export function SpellDetailPage({
       />
     </AuthoredFormPageFrame>
   )
+}
+
+function getDraftSpell(draft: AuthoredDraftDto | null): SpellAuthoredDto | undefined {
+  if (!draft) return undefined
+  return spellAuthoredDtoSchema.parse(draft.payload)
 }

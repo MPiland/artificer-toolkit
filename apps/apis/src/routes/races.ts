@@ -1,13 +1,29 @@
-import { handleRequest, handleAuthoringRequest, createRaceSubjectAuthoringService } from '@artificer-toolkit/functions'
+import {
+  handleRequest,
+  handleAuthoringRequest,
+  createRaceSubjectAuthoringService,
+  normalizeNodeRuntimeValues
+} from '@artificer-toolkit/functions'
 import { getRaceListQuery } from '@artificer-toolkit/db'
 import { createRaceRepository } from '@artificer-toolkit/db'
 import type { RaceAuthored } from '@artificer-toolkit/shared'
-import { raceAuthoredDtoSchema, type RaceAuthoredDto } from '@artificer-toolkit/schema'
 import {
+  authoredDraftActivateRequestDtoSchema,
+  authoredDraftSaveRequestDtoSchema,
+  raceAuthoredDtoSchema
+} from '@artificer-toolkit/schema'
+import {
+  discardAuthoredDraft,
+  extractDraftSubjectIdFromRequest,
+  getAuthoredDraft,
   normalizeAuthoredDetailResponse,
-  normalizeAuthoredListResponse,
-  normalizeAuthoringInput,
-  normalizeAuthoringResult
+  normalizeAuthoredListResponseWithDrafts,
+  normalizeActivatedAuthoringInput,
+  normalizeAuthoringResult,
+  normalizeStoredDraftPayloadForActivation,
+  requireAuthoredDraft,
+  resolveDraftActivationSubjectId,
+  saveAuthoredDraft
 } from './authoredContent.js'
 
 function extractId(req: Request): string {
@@ -16,9 +32,13 @@ function extractId(req: Request): string {
   return segments[segments.length - 1]
 }
 
+function parseRaceAuthored(input: unknown): RaceAuthored {
+  return raceAuthoredDtoSchema.parse(input) as RaceAuthored
+}
+
 // list
 export const getRaceList = handleRequest(
-  async (db, userId) => normalizeAuthoredListResponse(await getRaceListQuery(db), userId),
+  async (db, userId) => normalizeAuthoredListResponseWithDrafts(db, await getRaceListQuery(db), userId, 'RACE'),
   (_req: Request, userId: string) => [userId] as [string]
 )
 
@@ -28,12 +48,58 @@ export const getRace = handleRequest<[string, string], Awaited<ReturnType<typeof
   (req: Request, userId: string) => [extractId(req), userId] as [string, string]
 )
 
+export const getRaceDraft = handleRequest(
+  async (db, id, userId) => getAuthoredDraft(db, 'RACE', id, userId),
+  (req: Request, userId: string) => [extractDraftSubjectIdFromRequest(req), userId] as [string, string]
+)
+
+export const saveRaceDraft = handleAuthoringRequest(
+  authoredDraftSaveRequestDtoSchema,
+  async (db, body, userId) => saveAuthoredDraft(db, {
+    ...body,
+    subjectKind: 'RACE'
+  }, userId)
+)
+
+export const discardRaceDraft = handleRequest(
+  async (db, id, userId) => {
+    await discardAuthoredDraft(db, 'RACE', id, userId)
+    return { ok: true }
+  },
+  (req: Request, userId: string) => [extractDraftSubjectIdFromRequest(req), userId] as [string, string]
+)
+
+export const activateRaceDraft = handleAuthoringRequest(
+  authoredDraftActivateRequestDtoSchema,
+  async (db, body, userId, req) => {
+    const subjectId = resolveDraftActivationSubjectId('RACE', body.subjectId, req)
+    const draft = await requireAuthoredDraft(db, 'RACE', subjectId, userId)
+    const service = createRaceSubjectAuthoringService(db)
+    const input = parseRaceAuthored(normalizeStoredDraftPayloadForActivation(draft, userId))
+    const normalized = await normalizeNodeRuntimeValues(db, {
+      mapId: 'race',
+      values: { ...input }
+    })
+    const normalizedBody = parseRaceAuthored(normalized.values)
+    const result = await service.execute(normalizeActivatedAuthoringInput(normalizedBody, userId))
+    await discardAuthoredDraft(db, 'RACE', subjectId, userId)
+    return normalizeAuthoringResult(db, 'races', result as { authored: RaceAuthored }, userId)
+  }
+)
+
 // create/update
 export const createRace = handleAuthoringRequest(
   raceAuthoredDtoSchema,
-  async (db, body: RaceAuthoredDto, userId) => {
+  async (db, body, userId) => {
     const service = createRaceSubjectAuthoringService(db)
-    const result = await service.execute(normalizeAuthoringInput(body as RaceAuthored, userId))
+    const input = parseRaceAuthored(body)
+    const normalized = await normalizeNodeRuntimeValues(db, {
+      mapId: 'race',
+      values: { ...input }
+    })
+    const normalizedBody = parseRaceAuthored(normalized.values)
+    const result = await service.execute(normalizeActivatedAuthoringInput(normalizedBody, userId))
+    await discardAuthoredDraft(db, 'RACE', normalizedBody.id, userId)
     return normalizeAuthoringResult(db, 'races', result as { authored: RaceAuthored }, userId)
   }
 )

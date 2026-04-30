@@ -154,6 +154,47 @@ test('feat locked master story is duplicate-only', async ({ page }) => {
   await storyExpect(page.getByRole('button', { name: 'Save Feat' })).toHaveCount(0)
 })
 
+test('race list story renders category and locked master states', async ({ page }) => {
+  await openStory(page, 'domains-races-list--default')
+
+  await storyExpect(page.getByRole('heading', { name: 'Races' })).toBeVisible()
+  await storyExpect(page.getByRole('row', { name: 'View Elf' })).toBeVisible()
+  await storyExpect(page.getByRole('row', { name: /wood elf/i })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: 'Create Race' })).toBeVisible()
+})
+
+test('base race form story moves through Figma-aligned sections', async ({ page }) => {
+  await openStory(page, 'domains-races-form--edit-base-race')
+
+  await storyExpect(page.getByRole('heading', { name: 'Base Race Basics' })).toBeVisible()
+  await storyExpect(page.getByRole('textbox', { name: 'Name' })).toHaveValue('Dragonborn')
+  await page.getByRole('button', { name: 'Next' }).click()
+  await storyExpect(page.getByRole('heading', { name: 'Base Race Content' })).toBeVisible()
+  await storyExpect(page.getByRole('heading', { name: 'Speeds' })).toBeVisible()
+  await page.getByRole('button', { name: 'Next' }).click()
+  await storyExpect(page.getByRole('heading', { name: 'Base Race Ancestry' })).toBeVisible()
+  await storyExpect(page.getByRole('heading', { name: 'Ancestry', exact: true })).toBeVisible()
+})
+
+test('subrace form story shows inherited content without base ancestry step', async ({ page }) => {
+  await openStory(page, 'domains-races-form--edit-subrace')
+
+  await storyExpect(page.getByRole('heading', { name: 'Subrace Basics' })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: /Ancestry/i })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Next' }).click()
+  await storyExpect(page.getByRole('heading', { name: 'Subrace Content' })).toBeVisible()
+  await storyExpect(page.getByRole('heading', { name: 'Inherited From Base Race' })).toBeVisible()
+})
+
+test('race locked master story is duplicate-only', async ({ page }) => {
+  await openStory(page, 'domains-races-form--locked-master-readonly')
+
+  await storyExpect(page.getByRole('heading', { name: 'Base Race Basics' })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: 'Duplicate to edit' })).toBeVisible()
+  await storyExpect(page.getByRole('textbox', { name: 'Name' })).toHaveAttribute('readonly')
+  await storyExpect(page.getByRole('button', { name: 'Activate Race' })).toHaveCount(0)
+})
+
 test('theme toggle story switches between light and dark', async ({ page }) => {
   await openStory(page, 'platform-theme-themetoggle--default')
 

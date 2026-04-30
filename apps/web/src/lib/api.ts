@@ -63,6 +63,7 @@ import {
   type FeatureListItemDto,
   type FeatureListResponseDto,
   type FeatureResponseDto,
+  type RaceAuthoredDto,
   type NodeRuntimeNormalizeValuesRequestDto,
   type NodeRuntimeNormalizeValuesResponseDto,
   type NodeRuntimeResolveRequestDto,
@@ -110,6 +111,7 @@ export type {
   FeatureListItemDto,
   FeatureListResponseDto,
   FeatureResponseDto,
+  RaceAuthoredDto,
   NodeRuntimeNormalizeValuesRequestDto,
   NodeRuntimeNormalizeValuesResponseDto,
   NodeRuntimeResolveRequestDto,
@@ -366,7 +368,7 @@ function buildApi(getJwt: (() => Promise<string | null>) | string | null) {
         featListResponseDtoSchema,
         featResponseDtoSchema
       ),
-      races: contentDomain<typeof raceListResponseDtoSchema, typeof raceResponseDtoSchema, AuthoredContentInput>(
+      races: contentDomain<typeof raceListResponseDtoSchema, typeof raceResponseDtoSchema, RaceAuthoredDto>(
         'RACE',
         '/content/races',
         raceListResponseDtoSchema,

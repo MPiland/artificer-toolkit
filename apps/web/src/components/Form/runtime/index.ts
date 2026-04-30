@@ -12,7 +12,7 @@ export { NestedCollectionShell, NestedObjectShell } from './components/NestedEdi
 export { SectionNavigator } from './components/SectionNavigator'
 export { NodeMapRenderer } from './node-map/NodeMapRenderer'
 export type { RuntimeNodeForm } from './node-map/NodeMapRenderer'
-export { defaultOptionResolver } from './node-map/NodeMapOptions'
+export { defaultOptionResolver, defaultSourceOptionResolver } from './node-map/NodeMapOptions'
 export type { NodeOptionResolver } from './node-map/NodeMapOptions'
 export {
   applyNodeRuntimeClearPaths,

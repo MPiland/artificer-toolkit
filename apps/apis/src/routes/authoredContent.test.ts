@@ -188,4 +188,13 @@ describe('authored content draft helpers', () => {
       'SPELL draft route id "route-spell-id" does not match request body subjectId "body-spell-id".'
     )
   })
+
+  it('uses Race activation route ids to reject mismatched draft bodies', () => {
+    const req = new Request('https://api.test/content/races/route-race-id/draft/activate')
+
+    expect(resolveDraftActivationSubjectId('RACE', 'route-race-id', req)).toBe('route-race-id')
+    expect(() => resolveDraftActivationSubjectId('RACE', 'body-race-id', req)).toThrowError(
+      'RACE draft route id "route-race-id" does not match request body subjectId "body-race-id".'
+    )
+  })
 })

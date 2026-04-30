@@ -8,6 +8,7 @@ interface RaceListItem {
   quote: string | null
   status: string
   systemId: string
+  category: string
   details: unknown
   userId: string
   ownerUserId: string | null
@@ -36,6 +37,7 @@ export async function getRaceListQuery(db: DBLike): Promise<{ items: RaceListIte
       'quote',
       'status',
       'system_id as systemId',
+      'category',
       'user_id as ownerUserId',
       'is_master as isMaster',
       details(eb, (eb2) => eb2

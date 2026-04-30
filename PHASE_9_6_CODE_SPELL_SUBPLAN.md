@@ -105,6 +105,13 @@ Derive sections from `SPELL_NODE_MAP` and the locked Figma screens:
   - edit owned spell
   - copy locked master spell into owned draft
 
+## Post-Closeout Technical Audit
+
+- Verified against the 9.9 impeccable technical audit issue class after Race approval.
+- Spell detail/edit now parses draft payloads through `spellAuthoredDtoSchema` before passing them into the form.
+- Spell detail/edit remounts the TanStack form with a route/draft-aware key so switching records or active/draft state cannot retain stale form state.
+- Spell activation invalidates the owned draft query after successful save so the UI does not keep showing a stale draft over the active record.
+
 ## Legacy Cleanup
 
 - retire the old spell form step implementation

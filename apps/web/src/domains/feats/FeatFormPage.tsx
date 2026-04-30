@@ -2,7 +2,11 @@ import { Alert, Button, Stack } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import type { FeatAuthoredDto } from '@artificer-toolkit/schema'
+import {
+  featAuthoredDtoSchema,
+  type AuthoredDraftDto,
+  type FeatAuthoredDto
+} from '@artificer-toolkit/schema'
 import { AuthoredFormPageFrame } from '#components/Form/AuthoredFormPageFrame'
 import { getEffectReferenceData } from '#app/data/effects'
 import { getFeat, getFeatDraft } from '#app/data/feats/queries'
@@ -79,7 +83,8 @@ export function FeatDetailPage({
   const queryClient = useQueryClient()
   const { data: response } = useSuspenseQuery(getFeat(featId))
   const { data: draft } = useSuspenseQuery(getFeatDraft(featId))
-  const systemId = draft?.systemId ?? response?.item.systemId ?? ''
+  const draftFeat = getDraftFeat(draft)
+  const systemId = draftFeat?.systemId ?? response?.item.systemId ?? ''
   const { data: references } = useSuspenseQuery(getEffectReferenceData(systemId))
   const saveMutation = useMutation({
     mutationFn: (feat: FeatAuthoredDto) => api.content.feats.activate(feat),
@@ -87,6 +92,7 @@ export function FeatDetailPage({
       await queryClient.invalidateQueries({ queryKey: queryKeys.content.feats.all() })
       if (saved?.item.id) {
         await queryClient.invalidateQueries({ queryKey: queryKeys.content.feats.detail(saved.item.id) })
+        await queryClient.invalidateQueries({ queryKey: queryKeys.content.feats.draft(saved.item.id) })
         await navigate({ to: '/feats/$featId', params: { featId: saved.item.id } })
       }
       notifications.show({ color: 'green', message: 'Feat saved.' })
@@ -114,7 +120,7 @@ export function FeatDetailPage({
     onError: () => notifications.show({ color: 'red', message: 'Could not duplicate that feat yet.' })
   })
 
-  if (!response && !draft) {
+  if (!response && !draftFeat) {
     return (
       <AuthoredFormPageFrame contentClassName={styles.contentWide}>
         <Stack>
@@ -125,14 +131,17 @@ export function FeatDetailPage({
     )
   }
 
+  const formKey = `${mode}:${featId}:${draft?.updatedAt ?? response?.item.id ?? 'missing'}:${draftFeat ? 'draft' : 'active'}`
+
   return (
     <AuthoredFormPageFrame contentClassName={styles.contentWide}>
       <FeatForm
+        key={formKey}
         mode={mode}
         systemId={systemId}
         userId={userId}
         references={references}
-        initialFeat={draft ? draft.payload as unknown as FeatAuthoredDto : undefined}
+        initialFeat={draftFeat}
         response={response}
         onCopy={() => copyMutation.mutate()}
         onSubmit={async (feat) => saveMutation.mutateAsync(feat).then(() => undefined)}
@@ -140,4 +149,9 @@ export function FeatDetailPage({
       />
     </AuthoredFormPageFrame>
   )
+}
+
+function getDraftFeat(draft: AuthoredDraftDto | null): FeatAuthoredDto | undefined {
+  if (!draft) return undefined
+  return featAuthoredDtoSchema.parse(draft.payload)
 }

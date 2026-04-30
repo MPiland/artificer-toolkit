@@ -2,7 +2,11 @@ import { Alert, Button, Stack } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import type { BackgroundAuthoredDto } from '@artificer-toolkit/schema'
+import {
+  backgroundAuthoredDtoSchema,
+  type AuthoredDraftDto,
+  type BackgroundAuthoredDto
+} from '@artificer-toolkit/schema'
 import { AuthoredFormPageFrame } from '#components/Form/AuthoredFormPageFrame'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
@@ -76,12 +80,14 @@ export function BackgroundDetailPage({
   const queryClient = useQueryClient()
   const { data: response } = useSuspenseQuery(getBackground(backgroundId))
   const { data: draft } = useSuspenseQuery(getBackgroundDraft(backgroundId))
+  const draftBackground = getDraftBackground(draft)
   const saveMutation = useMutation({
     mutationFn: (background: BackgroundAuthoredDto) => api.content.backgrounds.activate(background),
     onSuccess: async (saved) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.content.backgrounds.all() })
       if (saved?.item.id) {
         await queryClient.invalidateQueries({ queryKey: queryKeys.content.backgrounds.detail(saved.item.id) })
+        await queryClient.invalidateQueries({ queryKey: queryKeys.content.backgrounds.draft(saved.item.id) })
         await navigate({ to: '/backgrounds/$backgroundId', params: { backgroundId: saved.item.id } })
       }
       notifications.show({ color: 'green', message: 'Background saved.' })
@@ -109,7 +115,7 @@ export function BackgroundDetailPage({
     onError: () => notifications.show({ color: 'red', message: 'Could not duplicate that background yet.' })
   })
 
-  if (!response && !draft) {
+  if (!response && !draftBackground) {
     return (
       <AuthoredFormPageFrame contentClassName={styles.contentWide}>
         <Stack>
@@ -120,13 +126,16 @@ export function BackgroundDetailPage({
     )
   }
 
+  const formKey = `${mode}:${backgroundId}:${draft?.updatedAt ?? response?.item.id ?? 'missing'}:${draftBackground ? 'draft' : 'active'}`
+
   return (
     <AuthoredFormPageFrame contentClassName={styles.contentWide}>
       <BackgroundForm
+        key={formKey}
         mode={mode}
-        systemId={draft?.systemId ?? response?.item.systemId ?? ''}
+        systemId={draftBackground?.systemId ?? response?.item.systemId ?? ''}
         userId={userId}
-        initialBackground={draft ? draft.payload as unknown as BackgroundAuthoredDto : undefined}
+        initialBackground={draftBackground}
         response={response}
         onCopy={() => copyMutation.mutate()}
         onSubmit={async (background) => saveMutation.mutateAsync(background).then(() => undefined)}
@@ -134,4 +143,9 @@ export function BackgroundDetailPage({
       />
     </AuthoredFormPageFrame>
   )
+}
+
+function getDraftBackground(draft: AuthoredDraftDto | null): BackgroundAuthoredDto | undefined {
+  if (!draft) return undefined
+  return backgroundAuthoredDtoSchema.parse(draft.payload)
 }

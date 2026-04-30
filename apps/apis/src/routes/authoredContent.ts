@@ -116,6 +116,23 @@ function toDraftSummary(draft: AuthoredSubjectDraft): AuthoredDraftSummaryDto {
   }
 }
 
+function getDraftPayloadRecord(draft: AuthoredSubjectDraft): Record<string, unknown> {
+  return typeof draft.payload === 'object' && draft.payload !== null && !Array.isArray(draft.payload)
+    ? draft.payload as Record<string, unknown>
+    : {}
+}
+
+function getDraftListMetadata(draft: AuthoredSubjectDraft) {
+  const payload = getDraftPayloadRecord(draft)
+  const description = typeof payload.description === 'string' ? payload.description : null
+  const category = typeof payload.category === 'string' ? payload.category : undefined
+
+  return {
+    description,
+    ...(category ? { category } : {})
+  }
+}
+
 export async function normalizeAuthoredListResponseWithDrafts<
   TItem extends AuthoredListRow & {
     id: string
@@ -151,20 +168,24 @@ export async function normalizeAuthoredListResponseWithDrafts<
   })
   const draftOnlyItems = drafts
     .filter((draft) => !activeIds.has(draft.subjectId))
-    .map((draft) => ({
-      id: draft.subjectId,
-      label: draft.label,
-      status: 'DRAFT',
-      description: null,
-      userId: draft.userId,
-      systemId: draft.systemId,
-      provenance: {
-        kind: 'OWNED' as const,
-        ownerUserId: draft.userId
-      },
-      permissions: getOwnedPermissions(),
-      draft: toDraftSummary(draft)
-    }))
+    .map((draft) => {
+      const metadata = getDraftListMetadata(draft)
+
+      return {
+        id: draft.subjectId,
+        label: draft.label,
+        status: 'DRAFT',
+        ...metadata,
+        userId: draft.userId,
+        systemId: draft.systemId,
+        provenance: {
+          kind: 'OWNED' as const,
+          ownerUserId: draft.userId
+        },
+        permissions: getOwnedPermissions(),
+        draft: toDraftSummary(draft)
+      }
+    })
 
   return {
     ...normalized,

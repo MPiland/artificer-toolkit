@@ -9,10 +9,15 @@ export type NodeOptionResolver<TValues extends object = object> = (args: {
   values?: TValues
 }) => SelectOption[]
 
-export function defaultOptionResolver<TValues extends object>({
+export type DefaultSourceOptionResolverArgs<TValues extends object> = {
+  source: NodeSelectSource
+  values?: TValues
+}
+
+export function defaultSourceOptionResolver<TValues extends object>({
   source,
   values
-}: Parameters<NodeOptionResolver<TValues>>[0]): SelectOption[] {
+}: DefaultSourceOptionResolverArgs<TValues>): SelectOption[] {
   if (source.kind === 'INLINE' && 'options' in source) {
     return source.options.map((option) => ({
       value: String(option.code),
@@ -40,4 +45,11 @@ export function defaultOptionResolver<TValues extends object>({
   }
 
   return []
+}
+
+export function defaultOptionResolver<TValues extends object>({
+  source,
+  values
+}: Parameters<NodeOptionResolver<TValues>>[0]): SelectOption[] {
+  return defaultSourceOptionResolver({ source, values })
 }

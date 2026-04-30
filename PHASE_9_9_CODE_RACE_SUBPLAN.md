@@ -1,6 +1,6 @@
 # Phase 9.9 - Code: Race
 
-## Status: Not Started
+## Status: Complete
 
 ## Objective
 
@@ -94,3 +94,30 @@ Derive sections from `RACE_NODE_MAP` and the locked Figma screens:
 - Race authoring works through the shared runtime with category-aware sections.
 - The UI preserves `Race` terminology.
 - Locked-master copy and nested ancestry editing are stable.
+
+## Implementation Notes
+
+- Race now follows the Phase 9 stack: REST through `apps/apis`, draft sidecar persistence, SSR-aware TanStack Query loaders, shared authored list/form shells, TanStack Form composition, and node-runtime-backed options/visibility.
+- Race routes are live at `/races`, `/races/new`, `/races/$raceId`, and `/races/$raceId/edit`; the detail parent renders an `Outlet`.
+- Race is modeled as two category-driven records only: `BASE` and `SUBRACE`. `VARIANT` remains excluded from 9.9.
+- Base-race and subrace forms use the Figma Races frames as flow guidance: BF1-BF4 for base race and SF1-SF2 for subrace, with subrace inherited content shown as summary rather than inline parent editing.
+- `RACE_NODE_MAP` now marks category-specific fields with hidden clearing/required metadata so the runtime can clear base-only/subrace-only values.
+- List rows preserve draft-only category metadata, so Base Race/Subrace filters work before activation.
+
+## Validation Notes
+
+- Passed: `yarn build:schema`
+- Passed: `yarn build:shared`
+- Passed: `yarn build:db`
+- Passed: `yarn build:functions`
+- Passed: `yarn build:apis`
+- Passed: `yarn test:schema`
+- Passed: `yarn vitest run apps/apis/src/routes/authoredContent.test.ts`
+- Passed: `yarn workspace @artificer-toolkit/web test`
+- Passed: `yarn workspace @artificer-toolkit/web build-storybook`
+- Passed: `yarn workspace @artificer-toolkit/web test:e2e:storybook`
+- Passed: `yarn workspace @artificer-toolkit/web test:e2e:app`
+- Accepted non-blocker: `yarn build:web` still fails only on the documented legacy `apps/web/src/utils` alias/type failures outside the active Phase 9.9 Race implementation.
+- Accepted warning: app e2e still logs the existing TanStack Start dev-style collection warning for Mantine `ScrollArea.module.css.mjs`; tests pass and no Race route failure is exposed.
+- Manual review accepted for Phase 9.9. Deeper real-world UI feedback is deferred until the remaining authored domains are wired together, but each later tranche should still run an impeccable critique/audit/polish pass before closeout.
+- Post-approval impeccable technical audit completed. P1 fixes applied for route-keyed form remounting and typed node option fallback without weakening the node-map contract in active Race code.
