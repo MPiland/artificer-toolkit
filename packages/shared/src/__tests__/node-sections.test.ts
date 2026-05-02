@@ -147,6 +147,36 @@ describe('node map sections', () => {
     })
   })
 
+  it('models class authoring as category-driven node steps', () => {
+    const steps = resolveNodeMapSteps(CLASS_NODE_MAP)
+    const nodes = steps.flatMap((step) => step.sections).flatMap((section) => section.nodes)
+    const descriptionNode = CLASS_NODE_MAP.nodes.description
+
+    expect(steps.map((step) => step.id)).toEqual([
+      'basics',
+      'classDetails',
+      'equipment',
+      'spellcasting',
+      'advancement'
+    ])
+    expect(descriptionNode.kind).toBe('INPUT')
+    if (descriptionNode.kind === 'INPUT') {
+      expect(descriptionNode.type).toBe('RICH_TEXT')
+    }
+    expect(nodes.find((entry) => entry.id === 'category')?.node).toMatchObject({
+      kind: 'INPUT',
+      type: 'SELECT_SINGLE'
+    })
+    expect(nodes.find((entry) => entry.id === 'baseAttributes')?.node.path).toEqual(['attributes'])
+    expect(nodes.find((entry) => entry.id === 'subclassAttributes')?.node.path).toEqual(['attributes'])
+    expect(evaluateConditionIf(CLASS_NODE_MAP.nodes.parentClassId.showIf, {
+      values: { category: 'SUBCLASS' }
+    })).toBe(true)
+    expect(evaluateConditionIf(CLASS_NODE_MAP.nodes.startingEquipment.showIf, {
+      values: { category: 'SUBCLASS' }
+    })).toBe(false)
+  })
+
   it('provides sections for every authored subject map', () => {
     const maps: NodeMap<object>[] = [
       BACKGROUND_NODE_MAP,

@@ -16,16 +16,16 @@ export const CLASS_CATEGORY_REGISTRY: Record<
 > = {
   BASE: {
     code: CLASS_CATEGORY.BASE,
-    label: 'Base Race',
+    label: 'Base Class',
     description:
-      'A primary race selection that defines the core attributes of a character.'
+      'A primary class selection that defines a character progression path.'
   },
 
   SUBCLASS: {
     code: CLASS_CATEGORY.SUBCLASS,
     label: 'Subclass',
     description:
-      'A subdivision of a base race that modifies or extends its attributes.'
+      'A specialization of a base class that modifies or extends its progression.'
   }
 } as const
 
@@ -120,7 +120,7 @@ export const SPELLCASTING_ATTRIBUTE_REGISTRY: Record<
   [SPELLCASTING_ATTRIBUTE.CUSTOM_MAGIC_NAME]: {
     code: SPELLCASTING_ATTRIBUTE.CUSTOM_MAGIC_NAME,
     label: 'Custom Magic Name',
-    tooltip: 'Uses a custom term instead of “spells.”',
+    tooltip: 'Uses a custom term instead of "spells".',
     description:
       'This class uses a custom name for its magical abilities, such as invocations, maneuvers, or techniques.'
   },

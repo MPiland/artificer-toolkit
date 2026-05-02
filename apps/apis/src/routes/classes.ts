@@ -1,14 +1,31 @@
-import { handleRequest, handleAuthoringRequest, createClassSubjectAuthoringService } from '@artificer-toolkit/functions'
-import { getClassListQuery } from '@artificer-toolkit/db'
-import { createClassRepository } from '@artificer-toolkit/db'
-import type { ClassAuthored } from '@artificer-toolkit/shared'
-import { classAuthoredDtoSchema, type ClassAuthoredDto } from '@artificer-toolkit/schema'
-import type { ZodType } from 'zod'
 import {
+  handleRequest,
+  handleAuthoringRequest,
+  createClassSubjectAuthoringService,
+  normalizeNodeRuntimeValues
+} from '@artificer-toolkit/functions'
+import { getClassListQuery, createClassRepository } from '@artificer-toolkit/db'
+import type { ClassAuthored } from '@artificer-toolkit/shared'
+import {
+  authoredDraftActivateRequestDtoSchema,
+  authoredDraftSaveRequestDtoSchema,
+  classAuthoringInputDtoSchema,
+  classAuthoredDtoSchema,
+  type ClassAuthoringInputDto
+} from '@artificer-toolkit/schema'
+import {
+  assertWritableAuthoredSubject,
+  discardAuthoredDraft,
+  extractDraftSubjectIdFromRequest,
+  getAuthoredDraft,
   normalizeAuthoredDetailResponse,
-  normalizeAuthoredListResponse,
-  normalizeAuthoringInput,
-  normalizeAuthoringResult
+  normalizeAuthoredListResponseWithDrafts,
+  normalizeActivatedAuthoringInput,
+  normalizeAuthoringResult,
+  normalizeStoredDraftPayloadForActivation,
+  requireAuthoredDraft,
+  resolveDraftActivationSubjectId,
+  saveAuthoredDraft
 } from './authoredContent.js'
 
 function extractId(req: Request): string {
@@ -17,24 +34,51 @@ function extractId(req: Request): string {
   return segments[segments.length - 1]
 }
 
-// list
-export const getClassList = handleRequest(
-  async (db, userId) => normalizeAuthoredListResponse(await getClassListQuery(db), userId),
-  (_req: Request, userId: string) => [userId] as [string]
-)
+function parseClassAuthored(input: unknown): ClassAuthored {
+  return classAuthoredDtoSchema.parse(input) as ClassAuthored
+}
 
-// single
-export const getClass = handleRequest<[string, string], Awaited<ReturnType<typeof normalizeAuthoredDetailResponse<ClassAuthored>>>>(
-  async (db, id, userId) => normalizeAuthoredDetailResponse(db, 'classes', await createClassRepository(db).findById(id), userId),
-  (req: Request, userId: string) => [extractId(req), userId] as [string, string]
-)
+export const getClassList = handleRequest(async (db, userId) => normalizeAuthoredListResponseWithDrafts(db, await getClassListQuery(db), userId, 'CLASS'), (_req: Request, userId: string) => [userId] as [string])
 
-// create/update
-export const createClass = handleAuthoringRequest(
-  classAuthoredDtoSchema as ZodType<ClassAuthoredDto>,
-  async (db, body: ClassAuthoredDto, userId) => {
-    const service = createClassSubjectAuthoringService(db)
-    const result = await service.execute(normalizeAuthoringInput(body, userId))
-    return normalizeAuthoringResult(db, 'classes', result, userId)
-  }
-)
+export const getClass = handleRequest<[string, string], Awaited<ReturnType<typeof normalizeAuthoredDetailResponse<ClassAuthored>>>>(async (db, id, userId) => normalizeAuthoredDetailResponse(db, 'classes', await createClassRepository(db).findById(id), userId), (req: Request, userId: string) => [extractId(req), userId] as [string, string])
+
+export const getClassDraft = handleRequest(async (db, id, userId) => getAuthoredDraft(db, 'CLASS', id, userId), (req: Request, userId: string) => [extractDraftSubjectIdFromRequest(req), userId] as [string, string])
+
+export const saveClassDraft = handleAuthoringRequest(authoredDraftSaveRequestDtoSchema, async (db, body, userId) => {
+  await assertWritableAuthoredSubject(db, 'classes', 'CLASS', body.subjectId, userId)
+  return saveAuthoredDraft(db, { ...body, subjectKind: 'CLASS' }, userId)
+})
+
+export const discardClassDraft = handleRequest(async (db, id, userId) => {
+  await discardAuthoredDraft(db, 'CLASS', id, userId)
+  return { ok: true }
+}, (req: Request, userId: string) => [extractDraftSubjectIdFromRequest(req), userId] as [string, string])
+
+export const activateClassDraft = handleAuthoringRequest(authoredDraftActivateRequestDtoSchema, async (db, body, userId, req) => {
+  const subjectId = resolveDraftActivationSubjectId('CLASS', body.subjectId, req)
+  const draft = await requireAuthoredDraft(db, 'CLASS', subjectId, userId)
+  await assertWritableAuthoredSubject(db, 'classes', 'CLASS', subjectId, userId)
+  const service = createClassSubjectAuthoringService(db)
+  const input = normalizeStoredDraftPayloadForActivation(draft, userId) as Record<string, unknown>
+  const normalized = await normalizeNodeRuntimeValues(db, { mapId: 'class', values: input })
+  const normalizedBody = parseClassAuthored(normalized.values)
+  const result = await service.execute(normalizeActivatedAuthoringInput(normalizedBody, userId))
+  await discardAuthoredDraft(db, 'CLASS', subjectId, userId)
+  return normalizeAuthoringResult(db, 'classes', result, userId)
+})
+
+export const createClass = handleAuthoringRequest(classAuthoringInputDtoSchema, async (db, body: ClassAuthoringInputDto, userId) => {
+  await assertWritableAuthoredSubject(db, 'classes', 'CLASS', body.id, userId)
+  const service = createClassSubjectAuthoringService(db)
+  const normalized = await normalizeNodeRuntimeValues(db, {
+    mapId: 'class',
+    values: {
+      ...body,
+      userId
+    }
+  })
+  const normalizedBody = parseClassAuthored(normalized.values)
+  const result = await service.execute(normalizeActivatedAuthoringInput(normalizedBody, userId))
+  await discardAuthoredDraft(db, 'CLASS', normalizedBody.id, userId)
+  return normalizeAuthoringResult(db, 'classes', result, userId)
+})

@@ -122,7 +122,8 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
 - Phase 9.11 is implemented and ready for PR review: Creature routes, list, category-driven forms, node-runtime metadata, draft sidecar persistence, category-aware filters, nested profile/action editors, locked-master behavior, and Storybook/app validation are on the Phase 9 stack.
 - The authoring-form architecture cleanup is now the active form baseline: authored forms use the canonical node-driven `steps -> sections -> nodes` renderer instead of domain-local wrapper stacks.
 - Authored detail pages are deferred: all active authored `/:id` routes should redirect to `/:id/edit` until [PHASE_9_AUTHORED_DETAIL_PAGES_DEFERRED_SUBPLAN.md](PHASE_9_AUTHORED_DETAIL_PAGES_DEFERRED_SUBPLAN.md) is completed with Figma-backed detail designs.
-- Phase 9.12 is implemented and ready for PR review: Vehicle routes, list, shared vehicle form, node-runtime metadata, draft sidecar persistence, category-aware filters, locked-master behavior, and Storybook/app validation are on the Phase 9 stack.
+- Phase 9.12 is complete: Vehicle routes, list, shared vehicle form, node-runtime metadata, draft sidecar persistence, category-aware filters, locked-master behavior, and Storybook/app validation are on the Phase 9 stack.
+- Phase 9.13 is active: Class and Subclass are category-driven `CLASS` authored records in one node-driven authoring flow with frozen detail routes.
 - Phase 9.11 validation passed `build:schema`, `build:shared`, `build:db`, `build:functions`, `build:apis`, `test:schema`, `test:shared`, focused API authored-content tests, focused Creature web tests, full web unit tests, app Playwright smoke, Storybook build, static Storybook Playwright, and focused Creature Storybook Playwright. `build:web` remains blocked only by documented legacy `src/utils` failures.
 - Phase 9.10 validation passed `build:schema`, `build:shared`, `build:functions`, `build:db`, `build:apis`, focused Equipment web tests, full web unit tests, app Playwright smoke, Storybook build, and Storybook Playwright smoke. `build:web` remains blocked only by documented legacy `src/utils` failures.
 - Phase 9.8.1 validation passed `build:schema`, `build:db`, `build:functions`, `build:apis`, `test:schema`, focused API draft tests, focused web adapter/domain tests, full web unit tests, and Storybook build. `build:web` remains blocked only by documented legacy `src/utils` failures; `test:db` remains blocked by pre-existing repository expectation drift outside the draft sidecar path.
@@ -159,8 +160,8 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
 | 9.10 | [PHASE_9_10_CODE_EQUIPMENT_SUBPLAN.md](PHASE_9_10_CODE_EQUIPMENT_SUBPLAN.md) | Equipment list and form implementation | Complete |
 | 9.11 | [PHASE_9_11_CODE_CREATURE_SUBPLAN.md](PHASE_9_11_CODE_CREATURE_SUBPLAN.md) | Creature list and form implementation | Implemented - Ready for PR Review |
 | 9.x | [PHASE_9_AUTHORED_DETAIL_PAGES_DEFERRED_SUBPLAN.md](PHASE_9_AUTHORED_DETAIL_PAGES_DEFERRED_SUBPLAN.md) | Deferred authored detail page design and route unfreeze | Deferred |
-| 9.12 | [PHASE_9_12_CODE_VEHICLE_SUBPLAN.md](PHASE_9_12_CODE_VEHICLE_SUBPLAN.md) | Vehicle list and form implementation | Implemented - Ready for PR Review |
-| 9.13 | [PHASE_9_13_CODE_CLASS_SUBPLAN.md](PHASE_9_13_CODE_CLASS_SUBPLAN.md) | Base class and subclass authoring implementation | Not Started |
+| 9.12 | [PHASE_9_12_CODE_VEHICLE_SUBPLAN.md](PHASE_9_12_CODE_VEHICLE_SUBPLAN.md) | Vehicle list and form implementation | Complete |
+| 9.13 | [PHASE_9_13_CODE_CLASS_SUBPLAN.md](PHASE_9_13_CODE_CLASS_SUBPLAN.md) | Class and subclass authoring implementation | Active |
 | 9.14 | [PHASE_9_14_CHARACTER_BUILDER_SUBPLAN.md](PHASE_9_14_CHARACTER_BUILDER_SUBPLAN.md) | Engine-backed builder implementation | Not Started |
 | 9.15 | [PHASE_9_15_CHARACTER_SHEET_SUBPLAN.md](PHASE_9_15_CHARACTER_SHEET_SUBPLAN.md) | Play-state character sheet implementation | Not Started |
 | 9.16 | [PHASE_9_16_SUPPORTING_SURFACES_SUBPLAN.md](PHASE_9_16_SUPPORTING_SURFACES_SUBPLAN.md) | Features, feat grants, systems, cleanup | Not Started |

@@ -13,6 +13,7 @@ import type { InlineFilter, NodeEntry, NodeSelectSource, SectionedNodeGroup, Ste
 import {
   clearValuesAtPaths,
   evaluateConditionIf,
+  getValueAtPath,
   isRuntimeRecord,
   resolveNodeMapSteps,
   type NodeRuntimeScope,
@@ -65,12 +66,86 @@ export async function normalizeNodeRuntimeValues(
 ): Promise<NodeRuntimeNormalizeValuesResponseDto> {
   const resolved = await resolveNodeRuntime(db, request)
   const values = isRuntimeRecord(request.values) ? request.values : {}
-  const normalized = clearValuesAtPaths(values, resolved.clearPaths)
+  const optionNormalized = normalizeVisibleSelectOptions(values, resolved.steps)
+  const normalized = clearValuesAtPaths(optionNormalized.values, resolved.clearPaths)
 
   return {
     values: normalized.values,
-    clearedPaths: normalized.clearedPaths
+    clearedPaths: [
+      ...optionNormalized.clearedPaths,
+      ...normalized.clearedPaths
+    ]
   }
+}
+
+function normalizeVisibleSelectOptions(
+  values: Record<string, unknown>,
+  steps: readonly NodeRuntimeStepDto[]
+): { values: Record<string, unknown>, clearedPaths: RuntimePath[] } {
+  let nextValues = values
+  const clearedPaths: RuntimePath[] = []
+
+  for (const step of steps) {
+    for (const section of step.sections) {
+      for (const node of section.nodes) {
+        if (!node.visible || node.kind !== 'INPUT') continue
+        if (node.type !== 'SELECT_SINGLE' && node.type !== 'SELECT_MULTI') continue
+
+        const allowedValues = new Set((node.options ?? []).map((option) => option.value))
+        if (allowedValues.size === 0) continue
+
+        const currentValue = getValueAtPath(nextValues, node.path)
+
+        if (node.type === 'SELECT_SINGLE') {
+          if (currentValue == null || currentValue === '') continue
+          if (typeof currentValue === 'string' && allowedValues.has(currentValue)) continue
+
+          const normalized = clearValuesAtPaths(nextValues, [node.path])
+          nextValues = normalized.values
+          if (normalized.clearedPaths.length > 0) clearedPaths.push(node.path)
+          continue
+        }
+
+        if (!Array.isArray(currentValue)) continue
+
+        const nextArrayValue = currentValue.filter((value): value is string => {
+          return typeof value === 'string' && allowedValues.has(value)
+        })
+
+        if (nextArrayValue.length === currentValue.length) continue
+
+        nextValues = setValueAtPath(nextValues, node.path, nextArrayValue)
+        clearedPaths.push(node.path)
+      }
+    }
+  }
+
+  return { values: nextValues, clearedPaths }
+}
+
+function setValueAtPath(
+  source: Record<string, unknown>,
+  path: RuntimePath,
+  value: unknown
+): Record<string, unknown> {
+  const nextValue = setValueAtPathSegment(source, path, value)
+  return isRuntimeRecord(nextValue) ? nextValue : source
+}
+
+function setValueAtPathSegment(source: unknown, path: RuntimePath, value: unknown): unknown {
+  if (path.length === 0) return value
+
+  const [head, ...tail] = path
+
+  if (typeof head === 'number') {
+    const nextArray = Array.isArray(source) ? [...source] : []
+    nextArray[head] = setValueAtPathSegment(nextArray[head], tail, value)
+    return nextArray
+  }
+
+  const nextRecord = isRuntimeRecord(source) ? { ...source } : {}
+  nextRecord[head] = setValueAtPathSegment(nextRecord[head], tail, value)
+  return nextRecord
 }
 
 async function resolveSectionNodes(
@@ -205,12 +280,14 @@ function resolveRuntimeSteps(
       }))
   }
 
-  return [{
-    id: 'default',
-    label: 'Details',
-    order: 10,
-    sections: [defaultSection]
-  }]
+  return [
+    {
+      id: 'default',
+      label: 'Details',
+      order: 10,
+      sections: [defaultSection]
+    }
+  ]
 }
 
 function toOptions(options: readonly { code: unknown, label: string, tooltip?: string | null, description?: string | null }[]): NodeRuntimeOptionDto[] {

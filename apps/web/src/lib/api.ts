@@ -44,7 +44,7 @@ import {
   type CharacterListItemDto,
   type CharacterListResponseDto,
   type CharacterSheetResponseDto,
-  type ClassAuthoredDto,
+  type ClassAuthoringInputDto,
   type ClassListItemDto,
   type ClassListResponseDto,
   type ClassResponseDto,
@@ -101,6 +101,7 @@ export type {
   ClassListItemDto,
   ClassListResponseDto,
   ClassResponseDto,
+  ClassAuthoringInputDto,
   CreatureAuthoredDto,
   CreatureListItemDto,
   CreatureListResponseDto,
@@ -298,11 +299,11 @@ function buildApi(getJwt: (() => Promise<string | null>) | string | null) {
     }
   }
 
-  function contentDomain<TListSchema extends z.ZodTypeAny, TResponseSchema extends z.ZodTypeAny, TInput extends AuthoredContentInput>(
+  function contentDomain<TList, TResponse, TInput extends AuthoredContentInput>(
     subjectKind: AuthoredSubjectKindDto,
     basePath: string,
-    listSchema: TListSchema,
-    responseSchema: TResponseSchema
+    listSchema: z.ZodType<TList>,
+    responseSchema: z.ZodType<TResponse>
   ) {
     return {
       list: () => get(basePath, listSchema),
@@ -340,14 +341,14 @@ function buildApi(getJwt: (() => Promise<string | null>) | string | null) {
     },
 
     content: {
-      backgrounds: contentDomain<typeof backgroundListResponseDtoSchema, typeof backgroundResponseDtoSchema, BackgroundAuthoredDto>('BACKGROUND', '/content/backgrounds', backgroundListResponseDtoSchema, backgroundResponseDtoSchema),
-      classes: contentDomain<typeof classListResponseDtoSchema, typeof classResponseDtoSchema, ClassAuthoredDto>('CLASS', '/content/classes', classListResponseDtoSchema, classResponseDtoSchema),
-      equipment: contentDomain<typeof equipmentListResponseDtoSchema, typeof equipmentResponseDtoSchema, EquipmentAuthoringInputDto>('EQUIPMENT', '/content/equipment', equipmentListResponseDtoSchema, equipmentResponseDtoSchema),
-      feats: contentDomain<typeof featListResponseDtoSchema, typeof featResponseDtoSchema, FeatAuthoredDto>('FEAT', '/content/feats', featListResponseDtoSchema, featResponseDtoSchema),
-      races: contentDomain<typeof raceListResponseDtoSchema, typeof raceResponseDtoSchema, RaceAuthoredDto>('RACE', '/content/races', raceListResponseDtoSchema, raceResponseDtoSchema),
-      spells: contentDomain<typeof spellListResponseDtoSchema, typeof spellResponseDtoSchema, SpellAuthoredDto>('SPELL', '/content/spells', spellListResponseDtoSchema, spellResponseDtoSchema),
-      creatures: contentDomain<typeof creatureListResponseDtoSchema, typeof creatureResponseDtoSchema, CreatureAuthoredDto>('CREATURE', '/content/creatures', creatureListResponseDtoSchema, creatureResponseDtoSchema),
-      vehicles: contentDomain<typeof vehicleListResponseDtoSchema, typeof vehicleResponseDtoSchema, VehicleAuthoringInputDto>('VEHICLE', '/content/vehicles', vehicleListResponseDtoSchema, vehicleResponseDtoSchema),
+      backgrounds: contentDomain<BackgroundListResponseDto, BackgroundResponseDto, BackgroundAuthoredDto>('BACKGROUND', '/content/backgrounds', backgroundListResponseDtoSchema, backgroundResponseDtoSchema),
+      classes: contentDomain<ClassListResponseDto, ClassResponseDto, ClassAuthoringInputDto>('CLASS', '/content/classes', classListResponseDtoSchema, classResponseDtoSchema),
+      equipment: contentDomain<EquipmentListResponseDto, EquipmentResponseDto, EquipmentAuthoringInputDto>('EQUIPMENT', '/content/equipment', equipmentListResponseDtoSchema, equipmentResponseDtoSchema),
+      feats: contentDomain<FeatListResponseDto, FeatResponseDto, FeatAuthoredDto>('FEAT', '/content/feats', featListResponseDtoSchema, featResponseDtoSchema),
+      races: contentDomain<RaceListResponseDto, RaceResponseDto, RaceAuthoredDto>('RACE', '/content/races', raceListResponseDtoSchema, raceResponseDtoSchema),
+      spells: contentDomain<SpellListResponseDto, SpellResponseDto, SpellAuthoredDto>('SPELL', '/content/spells', spellListResponseDtoSchema, spellResponseDtoSchema),
+      creatures: contentDomain<CreatureListResponseDto, CreatureResponseDto, CreatureAuthoredDto>('CREATURE', '/content/creatures', creatureListResponseDtoSchema, creatureResponseDtoSchema),
+      vehicles: contentDomain<VehicleListResponseDto, VehicleResponseDto, VehicleAuthoringInputDto>('VEHICLE', '/content/vehicles', vehicleListResponseDtoSchema, vehicleResponseDtoSchema),
       features: {
         list: () => get('/content/features', featureListResponseDtoSchema),
         get: (id: string) => get(`/content/features/${id}`, featureResponseDtoSchema),
