@@ -1,6 +1,8 @@
 import type { ClassListResponseDto } from '#app/lib/api'
 import type { AuthoredListAttributeColumn, AuthoredListFilter, AuthoredListItem } from '#components/AuthoredList'
 
+const UNCATEGORIZED_CLASS_CATEGORY = 'UNCATEGORIZED'
+
 function mapPermissions(item: ClassListResponseDto['items'][number]): AuthoredListItem['permissions'] {
   return {
     canView: item.permissions.canView,
@@ -19,8 +21,13 @@ function formatStatus(status: string | undefined): string {
 }
 
 export function formatClassCategory(category: string | undefined): string {
-  if (!category) return 'Class'
-  return category === 'SUBCLASS' ? 'Subclass' : 'Base Class'
+  if (!category || category === UNCATEGORIZED_CLASS_CATEGORY) return 'Uncategorized'
+  if (category === 'BASE') return 'Base Class'
+  if (category === 'SUBCLASS') return 'Subclass'
+  return category
+    .toLowerCase()
+    .replaceAll('_', ' ')
+    .replace(/^\w/, (letter) => letter.toUpperCase())
 }
 
 function summarizeDescription(description: string | null | undefined): string {
@@ -30,14 +37,15 @@ function summarizeDescription(description: string | null | undefined): string {
 
 export function mapClassListToAuthoredItems(response: ClassListResponseDto): AuthoredListItem[] {
   return response.items.map((item) => {
-    const category = item.category ?? 'CLASS'
+    const category = item.category ?? UNCATEGORIZED_CLASS_CATEGORY
+    const categoryLabel = formatClassCategory(category)
 
     return {
       id: item.id,
       name: item.label,
       description: summarizeDescription(item.description),
       attributes: {
-        Category: formatClassCategory(category)
+        Category: categoryLabel
       },
       badges: [formatStatus(item.status)],
       filterValues: {
@@ -46,11 +54,11 @@ export function mapClassListToAuthoredItems(response: ClassListResponseDto): Aut
         source: item.provenance.kind
       },
       sortValues: {
-        category: formatClassCategory(category),
+        category: categoryLabel,
         name: item.label,
         status: formatStatus(item.status)
       },
-      searchText: `${summarizeDescription(item.description)} ${formatClassCategory(category)}`,
+      searchText: `${summarizeDescription(item.description)} ${categoryLabel}`,
       sourceLabel: item.provenance.kind === 'MASTER' ? 'SRD' : 'Homebrew',
       sourceKind: item.provenance.kind === 'MASTER' ? 'master' : 'owned',
       permissions: mapPermissions(item)
@@ -60,7 +68,7 @@ export function mapClassListToAuthoredItems(response: ClassListResponseDto): Aut
 
 export function buildClassListFilters(response: ClassListResponseDto): AuthoredListFilter[] {
   const statuses = Array.from(new Set(response.items.map((item) => item.status))).sort()
-  const categories = Array.from(new Set(response.items.map((item) => item.category ?? 'CLASS'))).sort()
+  const categories = Array.from(new Set(response.items.map((item) => item.category ?? UNCATEGORIZED_CLASS_CATEGORY))).sort()
 
   return [
     {

@@ -55,6 +55,21 @@ describe('class authoring utilities', () => {
     expect(subclass).not.toHaveProperty('startingEquipment')
   })
 
+  it('does not coerce missing subclass parent ids to empty strings', () => {
+    const subclass = normalizeClassForSubmit({
+      ...createEmptyClass({ systemId: 'system-1' }),
+      label: 'Champion',
+      category: 'SUBCLASS',
+      parentClassId: '   '
+    })
+
+    expect(subclass).toMatchObject({
+      label: 'Champion',
+      category: 'SUBCLASS'
+    })
+    expect(subclass).not.toHaveProperty('parentClassId')
+  })
+
   it('creates nested row defaults for common class groups', () => {
     vi.spyOn(crypto, 'randomUUID').mockReturnValue('generated-id')
 

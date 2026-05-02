@@ -80,10 +80,12 @@ export function normalizeClassForSubmit(classRecord: ClassFormValues): ClassAuth
   }
 
   if (classRecord.category === CLASS_CATEGORY.SUBCLASS) {
+    const parentClassId = classRecord.parentClassId?.trim()
+
     return {
       ...base,
       category: CLASS_CATEGORY.SUBCLASS,
-      parentClassId: classRecord.parentClassId ?? '',
+      ...(parentClassId ? { parentClassId } : {}),
       specializations: classRecord.specializations ?? []
     }
   }
