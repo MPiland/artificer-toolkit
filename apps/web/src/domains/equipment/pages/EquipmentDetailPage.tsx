@@ -49,9 +49,12 @@ export function EquipmentDetailPage({
   })
   const actions = useAuthoredDetailActions({
     discard: api.content.equipment.discardDraft,
+    detailQueryKey: queryKeys.content.equipment.detail(equipmentId),
     domainLabel: 'Equipment',
     domainQueryKey: queryKeys.content.equipment.all(),
+    draftQueryKey: queryKeys.content.equipment.draft(equipmentId),
     duplicate: api.content.equipment.duplicate,
+    hasActiveContent: Boolean(detailState.activeItem),
     id: equipmentId,
     navigateEdit: async (id) => navigate({ to: '/equipment/$equipmentId/edit', params: { equipmentId: id } }),
     navigateList: async () => navigate({ to: '/equipment' })

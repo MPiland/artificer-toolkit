@@ -48,9 +48,12 @@ export function ClassDetailPage({
   })
   const actions = useAuthoredDetailActions({
     discard: api.content.classes.discardDraft,
+    detailQueryKey: queryKeys.content.classes.detail(classId),
     domainLabel: 'Class',
     domainQueryKey: queryKeys.content.classes.all(),
+    draftQueryKey: queryKeys.content.classes.draft(classId),
     duplicate: api.content.classes.duplicate,
+    hasActiveContent: Boolean(detailState.activeItem),
     id: classId,
     navigateEdit: async (id) => navigate({ to: '/classes/$classId/edit', params: { classId: id } }),
     navigateList: async () => navigate({ to: '/classes' })

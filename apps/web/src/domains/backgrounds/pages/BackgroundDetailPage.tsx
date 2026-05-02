@@ -45,9 +45,12 @@ export function BackgroundDetailPage({
   })
   const actions = useAuthoredDetailActions({
     discard: api.content.backgrounds.discardDraft,
+    detailQueryKey: queryKeys.content.backgrounds.detail(backgroundId),
     domainLabel: 'Background',
     domainQueryKey: queryKeys.content.backgrounds.all(),
+    draftQueryKey: queryKeys.content.backgrounds.draft(backgroundId),
     duplicate: api.content.backgrounds.duplicate,
+    hasActiveContent: Boolean(detailState.activeItem),
     id: backgroundId,
     navigateEdit: async (id) => navigate({ to: '/backgrounds/$backgroundId/edit', params: { backgroundId: id } }),
     navigateList: async () => navigate({ to: '/backgrounds' })

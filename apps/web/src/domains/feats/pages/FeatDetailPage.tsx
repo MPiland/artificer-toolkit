@@ -46,9 +46,12 @@ export function FeatDetailPage({
   })
   const actions = useAuthoredDetailActions({
     discard: api.content.feats.discardDraft,
+    detailQueryKey: queryKeys.content.feats.detail(featId),
     domainLabel: 'Feat',
     domainQueryKey: queryKeys.content.feats.all(),
+    draftQueryKey: queryKeys.content.feats.draft(featId),
     duplicate: api.content.feats.duplicate,
+    hasActiveContent: Boolean(detailState.activeItem),
     id: featId,
     navigateEdit: async (id) => navigate({ to: '/feats/$featId/edit', params: { featId: id } }),
     navigateList: async () => navigate({ to: '/feats' })

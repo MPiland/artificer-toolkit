@@ -48,9 +48,12 @@ export function RaceDetailPage({
   })
   const actions = useAuthoredDetailActions({
     discard: api.content.races.discardDraft,
+    detailQueryKey: queryKeys.content.races.detail(raceId),
     domainLabel: 'Race',
     domainQueryKey: queryKeys.content.races.all(),
+    draftQueryKey: queryKeys.content.races.draft(raceId),
     duplicate: api.content.races.duplicate,
+    hasActiveContent: Boolean(detailState.activeItem),
     id: raceId,
     navigateEdit: async (id) => navigate({ to: '/races/$raceId/edit', params: { raceId: id } }),
     navigateList: async () => navigate({ to: '/races' })

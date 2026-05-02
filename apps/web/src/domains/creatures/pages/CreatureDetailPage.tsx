@@ -47,9 +47,12 @@ export function CreatureDetailPage({
   })
   const actions = useAuthoredDetailActions({
     discard: api.content.creatures.discardDraft,
+    detailQueryKey: queryKeys.content.creatures.detail(creatureId),
     domainLabel: 'Creature',
     domainQueryKey: queryKeys.content.creatures.all(),
+    draftQueryKey: queryKeys.content.creatures.draft(creatureId),
     duplicate: api.content.creatures.duplicate,
+    hasActiveContent: Boolean(detailState.activeItem),
     id: creatureId,
     navigateEdit: async (id) => navigate({ to: '/creatures/$creatureId/edit', params: { creatureId: id } }),
     navigateList: async () => navigate({ to: '/creatures' })

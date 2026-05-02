@@ -47,9 +47,12 @@ export function SpellDetailPage({
   })
   const actions = useAuthoredDetailActions({
     discard: api.content.spells.discardDraft,
+    detailQueryKey: queryKeys.content.spells.detail(spellId),
     domainLabel: 'Spell',
     domainQueryKey: queryKeys.content.spells.all(),
+    draftQueryKey: queryKeys.content.spells.draft(spellId),
     duplicate: api.content.spells.duplicate,
+    hasActiveContent: Boolean(detailState.activeItem),
     id: spellId,
     navigateEdit: async (id) => navigate({ to: '/spells/$spellId/edit', params: { spellId: id } }),
     navigateList: async () => navigate({ to: '/spells' })

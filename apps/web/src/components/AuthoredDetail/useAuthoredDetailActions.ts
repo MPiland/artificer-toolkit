@@ -2,22 +2,28 @@ import { useCallback } from 'react'
 import { notifications } from '@mantine/notifications'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
-import type { QueryKey } from '@tanstack/react-query'
+import type { QueryClient, QueryKey } from '@tanstack/react-query'
 import type { AuthoredDraftDto } from '@artificer-toolkit/schema'
 
 export function useAuthoredDetailActions({
   discard,
+  detailQueryKey,
   domainLabel,
   domainQueryKey,
+  draftQueryKey,
   duplicate,
+  hasActiveContent,
   id,
   navigateEdit,
   navigateList
 }: {
   discard: (id: string) => Promise<void>
+  detailQueryKey: QueryKey
   domainLabel: string
   domainQueryKey: QueryKey
+  draftQueryKey: QueryKey
   duplicate: (id: string) => Promise<AuthoredDraftDto | null>
+  hasActiveContent: boolean
   id: string
   navigateEdit: (id: string) => Promise<void>
   navigateList: () => Promise<void>
@@ -50,7 +56,13 @@ export function useAuthoredDetailActions({
   const discardDraft = useCallback(async ({ backToList = false }: { backToList?: boolean } = {}) => {
     try {
       await discardMutation.mutateAsync()
-      await queryClient.invalidateQueries({ queryKey: domainQueryKey })
+      await refreshAuthoredDetailAfterDraftDiscard({
+        detailQueryKey,
+        domainQueryKey,
+        draftQueryKey,
+        hasActiveContent,
+        queryClient
+      })
       notifications.show({ color: 'green', message: `Stale ${domainLabel.toLowerCase()} draft discarded.` })
 
       if (backToList) {
@@ -63,9 +75,12 @@ export function useAuthoredDetailActions({
       notifications.show({ color: 'red', message: `Could not discard that ${domainLabel.toLowerCase()} draft yet.` })
     }
   }, [
+    detailQueryKey,
     discardMutation,
     domainLabel,
     domainQueryKey,
+    draftQueryKey,
+    hasActiveContent,
     navigateList,
     queryClient,
     router
@@ -77,4 +92,29 @@ export function useAuthoredDetailActions({
     isDiscardingDraft: discardMutation.isPending,
     isDuplicating: duplicateMutation.isPending
   }
+}
+
+export async function refreshAuthoredDetailAfterDraftDiscard({
+  detailQueryKey,
+  domainQueryKey,
+  draftQueryKey,
+  hasActiveContent,
+  queryClient
+}: {
+  detailQueryKey: QueryKey
+  domainQueryKey: QueryKey
+  draftQueryKey: QueryKey
+  hasActiveContent: boolean
+  queryClient: QueryClient
+}) {
+  await queryClient.cancelQueries({ queryKey: draftQueryKey, exact: true })
+  await queryClient.refetchQueries({ queryKey: draftQueryKey, exact: true, type: 'all' })
+
+  if (hasActiveContent) {
+    await queryClient.refetchQueries({ queryKey: detailQueryKey, exact: true, type: 'all' })
+  } else {
+    queryClient.removeQueries({ queryKey: detailQueryKey, exact: true })
+  }
+
+  await queryClient.invalidateQueries({ queryKey: domainQueryKey })
 }

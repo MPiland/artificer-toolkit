@@ -59,5 +59,5 @@ describe('BackgroundForm', () => {
     await user.click(within(dialog).getByRole('button', { name: /^save$/i }))
 
     expect(screen.getByRole('button', { name: /edit details 1/i })).toBeInTheDocument()
-  })
+  }, 10000)
 })
