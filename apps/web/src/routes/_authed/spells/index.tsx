@@ -53,7 +53,7 @@ function SpellsRoute() {
       attributeColumns={spellListAttributeColumns}
       sortOptions={spellListSortOptions}
       onCreate={() => navigate({ to: '/spells/new' })}
-      onView={(item) => navigate({ to: '/spells/$spellId/edit', params: { spellId: item.id } })}
+      onView={(item) => navigate({ to: '/spells/$spellId', params: { spellId: item.id } })}
       onEdit={(item) => navigate({ to: '/spells/$spellId/edit', params: { spellId: item.id } })}
       onCopy={(item) => duplicateMutation.mutate(item.id)}
     />

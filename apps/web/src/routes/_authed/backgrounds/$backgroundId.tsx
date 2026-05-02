@@ -1,14 +1,18 @@
 import { Outlet, createFileRoute } from '@tanstack/react-router'
 import { getBackground, getBackgroundDraft } from '#app/data/backgrounds/queries'
+import { ensureOptionalActiveContent } from '#app/data/optionalActiveContent'
 import { createServerApi } from '#app/lib/api'
 
 export const Route = createFileRoute('/_authed/backgrounds/$backgroundId')({
-  loader: ({ context, params }) => {
+  loader: async ({ context, params }) => {
     const client = createServerApi(context.accessToken)
-    return Promise.all([
-      context.queryClient.ensureQueryData(getBackground(params.backgroundId, client)),
+    const activeBackgroundQuery = getBackground(params.backgroundId, client)
+    const [response, draft] = await Promise.all([
+      ensureOptionalActiveContent(context.queryClient, activeBackgroundQuery),
       context.queryClient.ensureQueryData(getBackgroundDraft(params.backgroundId, client))
     ])
+
+    return { draft, response }
   },
   component: BackgroundRoute
 })

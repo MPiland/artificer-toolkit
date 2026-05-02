@@ -51,7 +51,7 @@ function ClassesRoute() {
       attributeColumns={classListAttributeColumns}
       sortOptions={classListSortOptions}
       onCreate={() => navigate({ to: '/classes/new' })}
-      onView={(item) => navigate({ to: '/classes/$classId/edit', params: { classId: item.id } })}
+      onView={(item) => navigate({ to: '/classes/$classId', params: { classId: item.id } })}
       onEdit={(item) => navigate({ to: '/classes/$classId/edit', params: { classId: item.id } })}
       onCopy={(item) => void handleDuplicate(item.id)}
     />

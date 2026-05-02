@@ -90,6 +90,15 @@ test('authored list mobile card menu exposes permission-aware actions', async ({
   await storyExpect(emberLaceMenu.getByRole('menuitem', { name: 'Delete' })).toBeVisible()
 })
 
+test('authored detail story renders draft preview reader surface', async ({ page }) => {
+  await openStory(page, 'platform-authored-detail-authoreddetaillayout--draft-preview')
+
+  await storyExpect(page.getByRole('heading', { name: 'Sea Elf' })).toBeVisible()
+  await storyExpect(page.getByText('Draft Preview', { exact: true })).toBeVisible()
+  await storyExpect(page.getByRole('navigation', { name: 'Detail sections' })).toBeVisible()
+  await storyExpect(page.getByRole('link', { name: 'Features' })).toBeVisible()
+})
+
 test('background list story renders owned and locked master states', async ({ page }) => {
   await openStory(page, 'domains-backgrounds-list--default')
 

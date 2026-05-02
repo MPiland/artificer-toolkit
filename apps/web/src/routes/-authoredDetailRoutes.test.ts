@@ -1,69 +1,46 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { describe, expect, it } from 'vitest'
-import { Route as BackgroundDetailIndexRoute } from './_authed/backgrounds/$backgroundId/index'
-import { Route as CreatureDetailIndexRoute } from './_authed/creatures/$creatureId/index'
-import { Route as EquipmentDetailIndexRoute } from './_authed/equipment/$equipmentId/index'
-import { Route as FeatDetailIndexRoute } from './_authed/feats/$featId/index'
-import { Route as RaceDetailIndexRoute } from './_authed/races/$raceId/index'
-import { Route as SpellDetailIndexRoute } from './_authed/spells/$spellId/index'
-import { Route as VehicleDetailIndexRoute } from './_authed/vehicles/$vehicleId/index'
 
-type DetailRoute = {
-  options: {
-    beforeLoad?: (args: { params: Record<string, string> }) => unknown
-  }
-}
-
-const frozenDetailRoutes = [
+const authoredDetailRoutes = [
   {
     name: 'spell',
-    route: SpellDetailIndexRoute,
-    idParam: 'spellId',
-    idValue: 'test-spell',
-    to: '/spells/$spellId/edit'
+    sourcePath: 'src/routes/_authed/spells/$spellId/index.tsx',
+    expectedPage: 'SpellDetailPage'
   },
   {
     name: 'background',
-    route: BackgroundDetailIndexRoute,
-    idParam: 'backgroundId',
-    idValue: 'test-background',
-    to: '/backgrounds/$backgroundId/edit'
+    sourcePath: 'src/routes/_authed/backgrounds/$backgroundId/index.tsx',
+    expectedPage: 'BackgroundDetailPage'
   },
   {
     name: 'feat',
-    route: FeatDetailIndexRoute,
-    idParam: 'featId',
-    idValue: 'test-feat',
-    to: '/feats/$featId/edit'
+    sourcePath: 'src/routes/_authed/feats/$featId/index.tsx',
+    expectedPage: 'FeatDetailPage'
   },
   {
     name: 'race',
-    route: RaceDetailIndexRoute,
-    idParam: 'raceId',
-    idValue: 'test-race',
-    to: '/races/$raceId/edit'
+    sourcePath: 'src/routes/_authed/races/$raceId/index.tsx',
+    expectedPage: 'RaceDetailPage'
   },
   {
     name: 'creature',
-    route: CreatureDetailIndexRoute,
-    idParam: 'creatureId',
-    idValue: 'test-creature',
-    to: '/creatures/$creatureId/edit'
+    sourcePath: 'src/routes/_authed/creatures/$creatureId/index.tsx',
+    expectedPage: 'CreatureDetailPage'
   },
   {
     name: 'equipment',
-    route: EquipmentDetailIndexRoute,
-    idParam: 'equipmentId',
-    idValue: 'test-equipment',
-    to: '/equipment/$equipmentId/edit'
+    sourcePath: 'src/routes/_authed/equipment/$equipmentId/index.tsx',
+    expectedPage: 'EquipmentDetailPage'
   },
   {
     name: 'vehicle',
-    route: VehicleDetailIndexRoute,
-    idParam: 'vehicleId',
-    idValue: 'test-vehicle',
-    to: '/vehicles/$vehicleId/edit'
+    sourcePath: 'src/routes/_authed/vehicles/$vehicleId/index.tsx',
+    expectedPage: 'VehicleDetailPage'
+  },
+  {
+    name: 'class',
+    sourcePath: 'src/routes/_authed/classes/$classId/index.tsx',
+    expectedPage: 'ClassDetailPage'
   }
 ] as const
 
@@ -71,56 +48,62 @@ const authoredListRoutes = [
   {
     name: 'spell',
     sourcePath: 'src/routes/_authed/spells/index.tsx',
-    expectedViewTarget: 'to: \'/spells/$spellId/edit\''
+    expectedViewTarget: 'to: \'/spells/$spellId\''
   },
   {
     name: 'background',
     sourcePath: 'src/routes/_authed/backgrounds/index.tsx',
-    expectedViewTarget: 'to: \'/backgrounds/$backgroundId/edit\''
+    expectedViewTarget: 'to: \'/backgrounds/$backgroundId\''
   },
   {
     name: 'feat',
     sourcePath: 'src/routes/_authed/feats/index.tsx',
-    expectedViewTarget: 'to: \'/feats/$featId/edit\''
+    expectedViewTarget: 'to: \'/feats/$featId\''
   },
   {
     name: 'race',
     sourcePath: 'src/routes/_authed/races/index.tsx',
-    expectedViewTarget: 'to: \'/races/$raceId/edit\''
+    expectedViewTarget: 'to: \'/races/$raceId\''
   },
   {
     name: 'creature',
     sourcePath: 'src/routes/_authed/creatures/index.tsx',
-    expectedViewTarget: 'to: \'/creatures/$creatureId/edit\''
+    expectedViewTarget: 'to: \'/creatures/$creatureId\''
   },
   {
     name: 'equipment',
     sourcePath: 'src/routes/_authed/equipment/index.tsx',
-    expectedViewTarget: 'to: \'/equipment/$equipmentId/edit\''
+    expectedViewTarget: 'to: \'/equipment/$equipmentId\''
   },
   {
     name: 'vehicle',
     sourcePath: 'src/routes/_authed/vehicles/index.tsx',
-    expectedViewTarget: 'to: \'/vehicles/$vehicleId/edit\''
+    expectedViewTarget: 'to: \'/vehicles/$vehicleId\''
+  },
+  {
+    name: 'class',
+    sourcePath: 'src/routes/_authed/classes/index.tsx',
+    expectedViewTarget: 'to: \'/classes/$classId\''
   }
 ] as const
 
 describe('authored detail routes', () => {
-  it.each(frozenDetailRoutes)('redirects $name detail index routes to edit', ({ idParam, idValue, route, to }) => {
-    const beforeLoad = (route as DetailRoute).options.beforeLoad
+  it.each(authoredDetailRoutes)('renders the $name detail index route instead of redirecting to edit', ({
+    expectedPage,
+    sourcePath
+  }) => {
+    const source = readFileSync(join(process.cwd(), sourcePath), 'utf8')
 
-    expect(beforeLoad).toBeDefined()
-    expect(() => beforeLoad?.({ params: { [idParam]: idValue } })).toThrow(
-      expect.objectContaining({
-        options: expect.objectContaining({
-          params: { [idParam]: idValue },
-          to
-        })
-      })
-    )
+    expect(source).toContain(expectedPage)
+    expect(source).toContain('component:')
+    expect(source).not.toContain('redirect')
+    expect(source).not.toContain('/edit')
   })
 
-  it.each(authoredListRoutes)('uses the edit route for $name list view actions', ({ expectedViewTarget, sourcePath }) => {
+  it.each(authoredListRoutes)('uses the detail route for $name list view actions', ({
+    expectedViewTarget,
+    sourcePath
+  }) => {
     const source = readFileSync(join(process.cwd(), sourcePath), 'utf8')
 
     expect(source).toContain('onView={(item) => navigate({')

@@ -53,7 +53,7 @@ function CreaturesRoute() {
       attributeColumns={creatureListAttributeColumns}
       sortOptions={creatureListSortOptions}
       onCreate={() => navigate({ to: '/creatures/new' })}
-      onView={(item) => navigate({ to: '/creatures/$creatureId/edit', params: { creatureId: item.id } })}
+      onView={(item) => navigate({ to: '/creatures/$creatureId', params: { creatureId: item.id } })}
       onEdit={(item) => navigate({ to: '/creatures/$creatureId/edit', params: { creatureId: item.id } })}
       onCopy={(item) => duplicateMutation.mutate(item.id)}
     />

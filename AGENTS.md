@@ -123,7 +123,7 @@ Active Phase 9 authored forms are node-driven:
 - Array/object group nodes should stay connected to TanStack Form state. Use TanStack field APIs directly in the renderer/editor path; do not create local Zustand draft state or nested local forms.
 - `AuthoringEditorModal` is the one fullscreen editor shell for resolved group nodes. Do not create domain-local modal/form resolver stacks.
 - Keep `ui/primitives` and `ui/overlays` as the canonical homes for primitive controls and overlay infrastructure. Do not add duplicate wrappers in `components`.
-- Authored detail pages are frozen until a Figma-backed read-only design exists. Direct authored `/:id` routes should redirect to `/:id/edit`, list view actions should navigate to edit, and new authored domains such as Vehicle should not add standalone detail pages until the deferred detail-page subplan is completed.
+- Authored detail pages are reader/reference surfaces. Direct authored `/:id` routes should render shared `AuthoredDetail` pages, list view actions should navigate to detail, edit actions should navigate to `/edit`, and domain detail pages should use shared detail primitives plus domain-specific presenter mappers rather than authoring-form wrappers.
 - Remove the word `runtime` from frontend names unless the name refers to the backend/API node-runtime contract.
 - Component files should export React components only. Move helpers, constants, types, factories, and static models to separate non-component files to satisfy Fast Refresh.
 - Do not call hooks conditionally, define React components inside React components, pass fake TanStack form/field objects as props, or use `AnyFieldApi`, `any`, `as never`, unused exports, dead code, or compatibility aliases in active form code.

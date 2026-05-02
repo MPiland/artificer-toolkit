@@ -1,26 +1,43 @@
-# Phase 9 Authored Detail Pages Deferred Subplan
+# Phase 9.x Authored Detail Pages Subplan
 
 ## Summary
 
-Authored-content detail pages are intentionally frozen until they have a Figma-backed design. The current authored form is not a canonical detail page; it is the temporary read-only inspection surface for locked/master records and direct `/:id` navigation.
+Authored-content detail pages are unfrozen as a Phase 9.x interruption before Character Builder. These pages are reader/reference surfaces, not authoring forms. They use a shared `AuthoredDetail` system with domain-specific presenter mappers for spells, backgrounds, feats, races, equipment, creatures, vehicles, and classes.
 
-## Decision
+## Design Decision
 
-- Direct authored detail URLs redirect from `/:id` to `/:id/edit`.
-- List row view actions navigate to `/:id/edit`.
-- Locked/master records render through the authoring form in read-only mode and expose duplicate-to-draft when allowed.
-- Active code should not add new `DetailPage` components or standalone authored detail routes until a detail-page design is accepted.
-- Future authored domains, including Vehicle, should follow this rule from the start.
+- D&D Beyond is an information-architecture reference only: strong title, compact facts, jump navigation, prose, and mechanics/trait sections.
+- Artificer detail pages should be cleaner, more modern, less busy, and aligned to the current product design system.
+- Do not clone D&D Beyond visuals, parchment skinning, nested cards, browse buttons, or fantasy-cliche decoration.
+- Use compact header actions for `Create New`, `Edit`, `Resume Draft`, and `Duplicate` when permissions allow.
 
-## Deferred Design Requirements
+## Route Behavior
 
-Before unfreezing detail pages, create or accept Figma designs that define:
+- Direct authored `/:id` routes render detail pages.
+- `/edit` routes remain the authoring routes.
+- List row click/view navigates to `/:id`; explicit edit actions navigate to `/:id/edit`.
+- Locked/master records are readable on detail pages and expose duplicate-to-draft when `permissions.canCopy` allows.
 
-- Information architecture for player-facing read-only content.
-- Provenance, ownership, draft, and locked/master status presentation.
-- Primary actions for duplicate, edit, resume draft, and navigation.
-- Responsive layout and copy rules that differ from authoring form language.
+## Draft Behavior
 
-## Reopen Criteria
+- Valid owned drafts are previewed by default.
+- Active-with-draft detail pages clearly state that the active version remains unchanged until activation.
+- Active records with invalid drafts show the active detail page plus an invalid-draft recovery notice.
+- Invalid draft-only records show a recovery state with discard/back behavior instead of crashing.
+- Draft preview state must be visually unmistakable.
 
-Detail pages can be reintroduced once the design is approved, route behavior is updated intentionally, and list view actions have tests proving the new detail flow.
+## Implementation Criteria
+
+- Shared detail primitives live in `apps/web/src/components/AuthoredDetail`.
+- Domain detail pages live under each active domain `pages` folder.
+- Domain presenters avoid raw UUIDs when labels are unavailable, using neutral configured/count copy instead.
+- Node-runtime/reference data may hydrate labels later, but detail pages are not a fully node-driven renderer.
+- Vehicle and future authored domains should add detail pages only through this shared detail system.
+
+## Acceptance
+
+- Detail routes render for spells, backgrounds, feats, races, equipment, creatures, vehicles, and classes.
+- `/edit` routes still mount authoring forms.
+- Draft preview, invalid-draft fallback, locked/master read-only, and duplicate-to-draft behavior are covered.
+- Storybook includes the shared detail layout states.
+- `$impeccable` audit/critique/polish is run before closeout.
