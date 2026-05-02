@@ -26,16 +26,6 @@ type AuthoringHandler<TBody, TResult> = (
   request: Request
 ) => Promise<TResult>
 
-const dbMock = {
-  selectFrom: () => ({
-    select: () => ({
-      where: () => ({
-        executeTakeFirst: async () => undefined
-      })
-    })
-  })
-} as unknown as DBLike
-
 const routeMocks = vi.hoisted(() => ({
   draftRepository: {
     findBySubject: vi.fn(),
@@ -46,8 +36,19 @@ const routeMocks = vi.hoisted(() => ({
   executeVehicle: vi.fn(),
   findVehicleById: vi.fn(),
   getVehicleListQuery: vi.fn(),
-  normalizeNodeRuntimeValues: vi.fn()
+  normalizeNodeRuntimeValues: vi.fn(),
+  ownershipRow: undefined as { isMaster: boolean, ownerUserId: string | null } | undefined
 }))
+
+const dbMock = {
+  selectFrom: () => ({
+    select: () => ({
+      where: () => ({
+        executeTakeFirst: async () => routeMocks.ownershipRow
+      })
+    })
+  })
+} as unknown as DBLike
 
 vi.mock('@artificer-toolkit/db', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@artificer-toolkit/db')>()
@@ -107,6 +108,7 @@ describe('vehicle REST route handlers', () => {
     routeMocks.findVehicleById.mockReset()
     routeMocks.getVehicleListQuery.mockReset()
     routeMocks.normalizeNodeRuntimeValues.mockReset()
+    routeMocks.ownershipRow = undefined
   })
 
   it('merges owned vehicle drafts into list responses', async () => {
@@ -181,6 +183,33 @@ describe('vehicle REST route handlers', () => {
         systemId: 'system-1'
       })
     }))
+  })
+
+  it.each([
+    {
+      label: 'master',
+      ownershipRow: { isMaster: true, ownerUserId: null }
+    },
+    {
+      label: 'foreign',
+      ownershipRow: { isMaster: false, ownerUserId: 'other-user' }
+    }
+  ])('rejects saving drafts against $label vehicle records', async ({ ownershipRow }) => {
+    routeMocks.ownershipRow = ownershipRow
+
+    const { saveVehicleDraft } = await import('./vehicles.js')
+    const response = await saveVehicleDraft(jsonRequest('https://api.test/content/vehicles/draft', {
+      subjectKind: 'VEHICLE',
+      subjectId: 'vehicle-1',
+      systemId: 'system-1',
+      label: 'Draft Vehicle',
+      payload: createVehiclePayload()
+    } satisfies AuthoredDraftSaveRequestDto))
+    const body = await response.json() as { error: string }
+
+    expect(response.status).toBe(400)
+    expect(body.error).toContain('VEHICLE "vehicle-1" cannot be edited by the current user.')
+    expect(routeMocks.draftRepository.save).not.toHaveBeenCalled()
   })
 
   it('rejects draft activation id mismatches using the route id', async () => {

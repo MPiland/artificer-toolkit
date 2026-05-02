@@ -44,7 +44,10 @@ export const getVehicle = handleRequest<[string, string], Awaited<ReturnType<typ
 
 export const getVehicleDraft = handleRequest(async (db, id, userId) => getAuthoredDraft(db, 'VEHICLE', id, userId), (req: Request, userId: string) => [extractDraftSubjectIdFromRequest(req), userId] as [string, string])
 
-export const saveVehicleDraft = handleAuthoringRequest(authoredDraftSaveRequestDtoSchema, async (db, body, userId) => saveAuthoredDraft(db, { ...body, subjectKind: 'VEHICLE' }, userId))
+export const saveVehicleDraft = handleAuthoringRequest(authoredDraftSaveRequestDtoSchema, async (db, body, userId) => {
+  await assertWritableAuthoredSubject(db, 'vehicles', 'VEHICLE', body.subjectId, userId)
+  return saveAuthoredDraft(db, { ...body, subjectKind: 'VEHICLE' }, userId)
+})
 
 export const discardVehicleDraft = handleRequest(async (db, id, userId) => {
   await discardAuthoredDraft(db, 'VEHICLE', id, userId)
