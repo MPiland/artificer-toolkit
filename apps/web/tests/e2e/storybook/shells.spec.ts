@@ -301,6 +301,32 @@ test('vehicle locked master story is duplicate-only', async ({ page }) => {
   await storyExpect(page.getByRole('button', { name: 'Activate Vehicle' })).toHaveCount(0)
 })
 
+test('class list story renders base and subclass states', async ({ page }) => {
+  await openStory(page, 'domains-classes-list--default')
+
+  await storyExpect(page.getByRole('heading', { name: 'Classes' })).toBeVisible()
+  await storyExpect(page.getByRole('row', { name: /fighter/i })).toBeVisible()
+  await storyExpect(page.getByRole('row', { name: /champion/i })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: 'Create Class' })).toBeVisible()
+})
+
+test('class form story moves through class sections', async ({ page }) => {
+  await openStory(page, 'domains-classes-form--edit-base-class')
+
+  await storyExpect(page.getByRole('heading', { name: 'Basics', level: 1 })).toBeVisible()
+  await storyExpect(page.getByText('Fighter').first()).toBeVisible()
+  await page.getByRole('button', { name: 'Next' }).click()
+  await storyExpect(page.getByRole('heading', { name: 'Class Details', level: 1 })).toBeVisible()
+})
+
+test('class locked master story is duplicate-only', async ({ page }) => {
+  await openStory(page, 'domains-classes-form--locked-subclass')
+
+  await storyExpect(page.getByRole('heading', { name: 'Basics', level: 1 })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: 'Duplicate to edit' })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: 'Activate Class' })).toHaveCount(0)
+})
+
 test('theme toggle story switches between light and dark', async ({ page }) => {
   await openStory(page, 'ui-primitives-themetoggle--default')
 

@@ -32,23 +32,31 @@ import type {
   DetailAuthored
 } from '#authored'
 
-const CLASS_SECTIONS = {
+const CLASS_STEPS = {
   basics: { id: 'basics', label: 'Basics', order: 10 },
   classDetails: { id: 'classDetails', label: 'Class Details', order: 20 },
-  spellcasting: { id: 'spellcasting', label: 'Spellcasting', order: 30 },
-  equipment: { id: 'equipment', label: 'Equipment', order: 40 },
+  equipment: { id: 'equipment', label: 'Equipment', order: 30 },
+  spellcasting: { id: 'spellcasting', label: 'Spellcasting', order: 40 },
   advancement: { id: 'advancement', label: 'Advancement', order: 50 }
+} as const
+
+const CLASS_SECTIONS = {
+  basics: { id: 'basics', label: 'Basics', order: 10, step: CLASS_STEPS.basics },
+  classDetails: { id: 'classDetails', label: 'Class Details', order: 10, step: CLASS_STEPS.classDetails },
+  equipment: { id: 'equipment', label: 'Equipment', order: 10, step: CLASS_STEPS.equipment },
+  spellcasting: { id: 'spellcasting', label: 'Spellcasting', order: 10, step: CLASS_STEPS.spellcasting },
+  advancement: { id: 'advancement', label: 'Advancement', order: 10, step: CLASS_STEPS.advancement }
 } as const
 
 const detailNode = buildNodeMap<DetailAuthored>()
 
-const DETAIL_NODE_MAP = detailNode.define('classDetail', ({ map, nodes }) => {
-  const { text, number } = nodes
+export const CLASS_DETAIL_NODE_MAP = detailNode.define('classDetail', ({ map, nodes }) => {
+  const { text, richText, number } = nodes
 
   map
     .set('id', text(['id'], 'ID'))
     .set('label', text(['label'], 'Label'))
-    .set('description', text(['description'], 'Description'))
+    .set('description', richText(['description'], 'Description'))
     .set('order', number(['order'], 'Order'))
 })
 
@@ -144,12 +152,12 @@ export const CLASS_SPELLCASTING_NODE_MAP = classSpellcastingNode.define('classSp
 const classResourceNode = buildNodeMap<ClassResourceAuthored>()
 
 export const CLASS_RESOURCE_NODE_MAP = classResourceNode.define('classResource', ({ map, nodes }) => {
-  const { text, number, groupObject } = nodes
+  const { text, richText, number, groupObject } = nodes
 
   map
     .set('id', text(['id'], 'ID'))
     .set('label', text(['label'], 'Label'))
-    .set('description', text(['description'], 'Description'))
+    .set('description', richText(['description'], 'Description'))
     .set('availableAtLevel', number(['availableAtLevel'], 'Available At Level'))
     .set('charges', groupObject(['charges'], 'Charges', () => CHARGE_NODE_MAP))
 })
@@ -241,7 +249,7 @@ const CLASS_SPECIALIZATION_NODE_MAP = classSpecializationNode.define('classSpeci
 const classNode = buildNodeMap<ClassAuthored>()
 
 export const CLASS_NODE_MAP = classNode.define('class', ({ map, nodes, cond, data }) => {
-  const { text, selectMulti, selectSingle, groupArray, groupObject } = nodes
+  const { text, richText, selectMulti, selectSingle, groupArray, groupObject } = nodes
   const local = cond.local()
   const { table } = data
 
@@ -250,9 +258,9 @@ export const CLASS_NODE_MAP = classNode.define('class', ({ map, nodes, cond, dat
 
   map
     .set('id', text(['id'], 'ID'))
-    .set('label', text(['label'], 'Name', { section: CLASS_SECTIONS.basics, order: 10 }))
-    .set('description', text(['description'], 'Description', { section: CLASS_SECTIONS.basics, order: 20 }))
-    .set('details', groupArray(['details'], 'Details', () => DETAIL_NODE_MAP, { section: CLASS_SECTIONS.classDetails, order: 10 }))
+    .set('label', text(['label'], 'Name', { section: CLASS_SECTIONS.basics, order: 10, requiredIf: true }))
+    .set('description', richText(['description'], 'Description', { section: CLASS_SECTIONS.basics, order: 20 }))
+    .set('details', groupArray(['details'], 'Details', () => CLASS_DETAIL_NODE_MAP, { section: CLASS_SECTIONS.classDetails, order: 10 }))
     .set('proficiencies', groupArray(['proficiencies'], 'Proficiencies', () => PROFICIENCY_NODE_MAP, { section: CLASS_SECTIONS.classDetails, order: 20 }))
     .set('spellcasting', groupObject(['spellcasting'], 'Spellcasting', () => CLASS_SPELLCASTING_NODE_MAP, { section: CLASS_SECTIONS.spellcasting, order: 10 }))
     .set('resources', groupObject(['resources'], 'Resource', () => CLASS_RESOURCE_NODE_MAP, { section: CLASS_SECTIONS.advancement, order: 20 }))
@@ -262,8 +270,8 @@ export const CLASS_NODE_MAP = classNode.define('class', ({ map, nodes, cond, dat
     .set('category', selectSingle(['category'], 'Category', {
       kind: 'INLINE',
       options: CLASS_CATEGORY_OPTIONS
-    }, { section: CLASS_SECTIONS.basics, order: 30 }))
-    .set('attributes', selectMulti(['attributes'], 'Attributes', {
+    }, { section: CLASS_SECTIONS.basics, order: 30, requiredIf: true }))
+    .set('baseAttributes', selectMulti(['attributes'], 'Attributes', {
       kind: 'INLINE',
       options: CLASS_ATTRIBUTE_OPTIONS
     }, {
@@ -291,7 +299,7 @@ export const CLASS_NODE_MAP = classNode.define('class', ({ map, nodes, cond, dat
       order: 50,
       showIf: isBaseClass
     }))
-    .set('attributes', selectMulti(['attributes'], 'Attributes', {
+    .set('subclassAttributes', selectMulti(['attributes'], 'Attributes', {
       kind: 'INLINE',
       options: SUBCLASS_ATTRIBUTE_OPTIONS
     }, {
@@ -308,7 +316,8 @@ export const CLASS_NODE_MAP = classNode.define('class', ({ map, nodes, cond, dat
     }, {
       section: CLASS_SECTIONS.basics,
       order: 40,
-      showIf: isSubclass
+      showIf: isSubclass,
+      requiredIf: isSubclass
     }))
     .set('specializations', groupArray(['specializations'], 'Specializations', () => CLASS_SPECIALIZATION_NODE_MAP, {
       section: CLASS_SECTIONS.classDetails,

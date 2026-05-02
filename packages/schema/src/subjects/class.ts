@@ -7,7 +7,7 @@ import {
   classResourceDtoSchema,
   classSpellLimitDtoSchema,
   classStartingGoldDtoSchema,
-  classSpecializationDtoSchema,
+  classSpecializationDtoSchema
 } from './shared.js'
 import {
   abilityCodeSchema,
@@ -57,17 +57,29 @@ const subclassAuthoredDtoSchemaRaw = classBaseDtoSchema.extend({
   specializations: z.array(classSpecializationDtoSchema).optional()
 })
 
-const classAuthoredDtoSchemaRaw: z.ZodTypeAny = z.union([
+const classAuthoredDtoSchemaRaw = z.union([
   parentClassAuthoredDtoSchemaRaw,
   subclassAuthoredDtoSchemaRaw
 ])
 
+const classAuthoringInputDtoSchemaBase = classBaseDtoSchema.extend({
+  userId: z.string().optional(),
+  category: z.enum(['BASE', 'SUBCLASS']).optional(),
+  attributes: z.array(z.string()).optional(),
+  startingGold: classStartingGoldDtoSchema.optional(),
+  startingEquipment: startingEquipmentDtoSchema.optional(),
+  hitpoint: classHitpointDtoSchema.optional(),
+  multiclass: classMulticlassDtoSchema.optional(),
+  parentClassId: z.string().optional(),
+  specializations: z.array(classSpecializationDtoSchema).optional()
+})
+
 export type ParentClassAuthoredDto = z.infer<typeof parentClassAuthoredDtoSchemaRaw>
 export type SubclassAuthoredDto = z.infer<typeof subclassAuthoredDtoSchemaRaw>
 export type ClassAuthoredDto = ParentClassAuthoredDto | SubclassAuthoredDto
-const parentClassAuthoredDtoSchemaBase: z.ZodTypeAny = parentClassAuthoredDtoSchemaRaw
-const subclassAuthoredDtoSchemaBase: z.ZodTypeAny = subclassAuthoredDtoSchemaRaw
-const classAuthoredDtoSchemaBase: z.ZodTypeAny = classAuthoredDtoSchemaRaw
-export const parentClassAuthoredDtoSchema = parentClassAuthoredDtoSchemaBase
-export const subclassAuthoredDtoSchema = subclassAuthoredDtoSchemaBase
-export const classAuthoredDtoSchema = classAuthoredDtoSchemaBase
+export type ClassAuthoringInputDto = z.infer<typeof classAuthoringInputDtoSchemaBase>
+export type ClassSpellcastingDto = NonNullable<ClassAuthoredDto['spellcasting']>
+export const parentClassAuthoredDtoSchema: z.ZodType<ParentClassAuthoredDto> = parentClassAuthoredDtoSchemaRaw
+export const subclassAuthoredDtoSchema: z.ZodType<SubclassAuthoredDto> = subclassAuthoredDtoSchemaRaw
+export const classAuthoredDtoSchema: z.ZodType<ClassAuthoredDto> = classAuthoredDtoSchemaRaw
+export const classAuthoringInputDtoSchema: z.ZodType<ClassAuthoringInputDto> = classAuthoringInputDtoSchemaBase

@@ -35,6 +35,9 @@ export const queryKeys = {
       list: () => ['content', 'classes', 'list'] as const,
       detail: (id: string) => [
         'content', 'classes', 'detail', id
+      ] as const,
+      draft: (id: string) => [
+        'content', 'classes', 'draft', id
       ] as const
     },
     equipment: {

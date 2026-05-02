@@ -1,107 +1,58 @@
 # Phase 9.13 - Code: Class
 
-## Status: Not Started
+## Status
+
+In progress.
 
 ## Objective
 
-Rebuild class authoring with separate base-class and subclass flows that match the locked Figma direction. This tranche should validate the most structurally dense authored domain while preserving honest starting-equipment structure, multiclass messaging, and separate subclass authoring instead of embedding subclass forms inside the base-class flow.
+Build Class authoring on the accepted Phase 9 stack: REST through `apps/apis`, draft sidecar persistence, route-loader create/edit pages, frozen detail routes, shared authored list UI, and the generic node-driven TanStack renderer.
 
-## Prerequisite
+Base Classes and Subclasses are separate authored `CLASS` records. They share `/classes/new`, `/classes/$classId/edit`, and `CLASS_NODE_MAP`; the form `category` field drives base-only and subclass-only visibility.
 
-- [PHASE_9_5_SHARED_FORM_RUNTIME_SUBPLAN.md](PHASE_9_5_SHARED_FORM_RUNTIME_SUBPLAN.md)
-- [PHASE_8_11_FIGMA_CLASS_SUBPLAN.md](PHASE_8_11_FIGMA_CLASS_SUBPLAN.md)
+## Architecture Decisions
+
+- `/classes/new` is the only create route. Category belongs to form state, not the URL.
+- `/classes/$classId` redirects to `/classes/$classId/edit` until detail pages have a Figma-backed read-only design.
+- The stale Phase 8 inline subclass drawer pattern is not canonical for Phase 9.
+- Draft and incomplete Class work stays in `authored_subject_drafts`; normalized Class tables are written only on activation.
+- `CLASS_NODE_MAP` owns steps, sections, fields, groups, visibility, required state, options, and hidden clearing.
 
 ## Surface Set
 
 - class list route
-- base-class create route
-- base-class view or edit route
-- subclass create route
-- subclass view or edit route
-- locked-master copy flow for both base classes and subclasses
+- class create route
+- class edit/read-only authoring route
+- draft save/resume/discard/activate
+- locked-master duplicate-to-draft
+- category filters for Base Class and Subclass
 
-## Section Map
+## Node-Driven Form Steps
 
-Derive sections from `CLASS_NODE_MAP` and the locked Figma screens.
+1. Basics
+2. Class Details
+3. Equipment
+4. Spellcasting
+5. Advancement
 
-### Base class flow
+Base-only fields include starting gold, starting equipment, hit points, and multiclass data. Subclass-only fields include parent class and specializations. Shared fields include details, proficiencies, spellcasting, resources, and features.
 
-1. Overview
-   - `Name`
-   - description
-   - details
-   - attributes
-2. Proficiencies
-3. Hit Points and Starting Package
-   - hitpoint
-   - starting gold
-   - starting equipment
-4. Multiclass
-   - requirement groups
-   - multiclass proficiencies
-5. Spellcasting
-6. Resources
-7. Features
-
-### Subclass flow
-
-1. Overview
-   - `Name`
-   - description
-   - details
-2. Parent Class
-3. Attributes
-4. Features
-5. Specializations
-
-## Transport and Data Requirements
+## Transport
 
 - `GET /content/classes`
 - `GET /content/classes/:id`
+- `GET /content/classes/:id/draft`
+- `POST /content/classes/draft`
+- `DELETE /content/classes/:id/draft`
+- `POST /content/classes/:id/draft/activate`
 - `POST /content/classes`
-- explicit `provenance` and `permissions`
-- reference data for:
-  - parent classes
-  - currencies
-  - proficiencies
-  - starting equipment
-  - spellcasting support data
-  - features
 
-## Implementation Tracks
-
-1. Rebuild the class list with clear segmentation or filtering for base class vs subclass.
-2. Build separate route and form entry points for base-class and subclass authoring.
-3. Render starting equipment as honest nested structure, not flattened summary text.
-4. Communicate multiclass requirements through the right UI behavior instead of validation panels divorced from the form.
-5. Keep locked-master copy consistent for both base classes and subclasses.
-
-## Stories, Tests, and Playwright
-
-- Storybook:
-  - class list states
-  - base-class overview
-  - subclass overview
-  - multiclass section
-  - starting-equipment section
-  - locked-master class view
-- Vitest:
-  - base vs subclass section visibility
-  - nested starting-equipment updates
-  - copy-to-edit behavior
-- Playwright:
-  - create base class
-  - create subclass
-  - edit owned class
-  - copy locked-master class
-
-## Legacy Cleanup
-
-- retire old inline subclass assumptions and stepper structures that conflict with the locked Figma
-- remove class mutations outside the shared adapter
+Class activation normalizes through `normalizeNodeRuntimeValues({ mapId: 'class' })`, validates against strict active Class DTOs, writes through `createClassSubjectAuthoringService`, and discards successful drafts.
 
 ## Exit Criteria
 
-- Base class and subclass authoring are separate flows.
-- Starting equipment and multiclass behavior are represented honestly in the UI.
-- Locked-master copy is stable for both class categories.
+- Class list, create, edit, draft, activation, locked-master read-only, and duplicate-to-draft work through the shared Phase 9 architecture.
+- Base Class and Subclass are category-driven records in the same authoring flow.
+- No active detail page is introduced.
+- No local web option lists are added.
+- Focused tests, Storybook, build gates, and an impeccable audit pass before PR.

@@ -17,14 +17,19 @@ export const classSpellSlotDtoSchema = z.object({
   spellLevel: z.number().int(),
   slotCount: z.number().int()
 })
+export type ClassSpellSlotDto = z.infer<typeof classSpellSlotDtoSchema>
 
 export const classSpellLimitDtoSchema = z.object({
   classLevel: z.number().int(),
   slots: z.array(classSpellSlotDtoSchema),
-  learnedSpellsLimit: z.number().int().optional(),
-  preparedSpellsLimit: z.number().int().optional(),
-  cantripsLimit: z.number().int().optional()
+  learnedSpellsLimit: z.number().int()
+    .optional(),
+  preparedSpellsLimit: z.number().int()
+    .optional(),
+  cantripsLimit: z.number().int()
+    .optional()
 })
+export type ClassSpellLimitDto = z.infer<typeof classSpellLimitDtoSchema>
 
 export const classPrepareLimitPerLevelDtoSchema = z.object({
   classLevel: z.number().int(),
@@ -37,6 +42,7 @@ export const classPrepareLimitDtoSchema = z.object({
   rounding: z.string().optional(),
   perLevel: z.array(classPrepareLimitPerLevelDtoSchema).optional()
 })
+export type ClassPrepareLimitDto = z.infer<typeof classPrepareLimitDtoSchema>
 
 export const classResourceDtoSchema = z.object({
   id: z.string(),
@@ -45,17 +51,20 @@ export const classResourceDtoSchema = z.object({
   availableAtLevel: z.number().int(),
   charges: chargeDtoSchema
 })
+export type ClassResourceDto = z.infer<typeof classResourceDtoSchema>
 
 export const classHitpointDtoSchema = z.object({
   ability: abilityCodeSchema,
   dieConfig: z.string()
 })
+export type ClassHitpointDto = z.infer<typeof classHitpointDtoSchema>
 
 export const classStartingGoldDtoSchema = z.object({
   multiplier: z.number().int(),
   currencyId: z.string(),
   dieConfig: z.string()
 })
+export type ClassStartingGoldDto = z.infer<typeof classStartingGoldDtoSchema>
 
 export const classMulticlassRequirementDtoSchema = z.object({
   id: z.string(),
@@ -77,12 +86,14 @@ export const classMulticlassDtoSchema = z.object({
   requirementGroups: classMulticlassRequirementGroupsDtoSchema,
   proficiencies: z.array(proficiencyGrantDtoSchema).optional()
 })
+export type ClassMulticlassDto = z.infer<typeof classMulticlassDtoSchema>
 
 export const classSpecializationDtoSchema = z.object({
   id: z.string(),
   label: z.string(),
   order: z.number().int()
 })
+export type ClassSpecializationDto = z.infer<typeof classSpecializationDtoSchema>
 
 export const raceAncestryOptionDtoSchema = z.object({
   id: z.string(),
@@ -95,7 +106,8 @@ export const raceAncestryOptionDtoSchema = z.object({
 export const raceAncestryDtoSchema = z.object({
   id: z.string(),
   label: z.string(),
-  description: z.string().nullable().optional(),
+  description: z.string().nullable()
+    .optional(),
   options: z.array(raceAncestryOptionDtoSchema)
 })
 
@@ -136,4 +148,3 @@ export const castingTimeDtoSchema = z.object({
   unit: z.enum(['ROUND', 'MINUTE', 'HOUR']),
   amount: z.number()
 })
-

@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { DBLike } from '@artificer-toolkit/db'
+import type { DBLike, NodeRuntimeQueryRow } from '@artificer-toolkit/db'
 import { normalizeNodeRuntimeValues, resolveNodeRuntime } from './nodeRuntimeService.js'
 
 const unusedDb = {} as DBLike
 const nodeRuntimeQueryMock = vi.hoisted(() => ({
-  selectNodeRuntimeRows: vi.fn(async () => [])
+  selectNodeRuntimeRows: vi.fn(async (_db: DBLike, _table: string): Promise<NodeRuntimeQueryRow[]> => [])
 }))
 
 vi.mock('@artificer-toolkit/db', async (importOriginal) => {
@@ -82,6 +82,64 @@ describe('node runtime service', () => {
     expect(result.clearedPaths).not.toContainEqual(['carryingCapacity'])
     expect(result.clearedPaths).not.toContainEqual(['logisticsNotes'])
     expect(result.clearedPaths).toContainEqual(['mountProfile'])
+  })
+
+  it('resolves class category branches and parent class options', async () => {
+    nodeRuntimeQueryMock.selectNodeRuntimeRows.mockImplementation(async (_db, table) => {
+      if (table === 'classes') {
+        return [
+          { id: 'fighter', label: 'Fighter', category: 'BASE' },
+          { id: 'champion', label: 'Champion', category: 'SUBCLASS' }
+        ]
+      }
+
+      return []
+    })
+
+    const result = await resolveNodeRuntime(unusedDb, {
+      mapId: 'class',
+      values: {
+        category: 'SUBCLASS'
+      }
+    })
+
+    const flattened = result.steps.flatMap((step) => step.sections).flatMap((section) => section.nodes)
+    expect(result.steps.map((step) => step.id)).toEqual([
+      'basics',
+      'classDetails',
+      'equipment',
+      'spellcasting',
+      'advancement'
+    ])
+    expect(flattened.find((node) => node.id === 'parentClassId')).toMatchObject({
+      visible: true,
+      required: true,
+      options: [{ value: 'fighter', label: 'Fighter' }]
+    })
+    expect(flattened.find((node) => node.id === 'startingEquipment')).toMatchObject({
+      visible: false
+    })
+    expect(flattened.find((node) => node.id === 'subclassAttributes')).toMatchObject({
+      visible: true
+    })
+  })
+
+  it('normalizes class attributes to the visible category option set', async () => {
+    nodeRuntimeQueryMock.selectNodeRuntimeRows.mockResolvedValue([])
+
+    const result = await normalizeNodeRuntimeValues(unusedDb, {
+      mapId: 'class',
+      values: {
+        category: 'BASE',
+        attributes: ['SPELLCASTER', 'SPECIALIZATION']
+      }
+    })
+
+    expect(result.values).toMatchObject({
+      category: 'BASE',
+      attributes: ['SPELLCASTER']
+    })
+    expect(result.clearedPaths).toContainEqual(['attributes'])
   })
 
   it('rejects unknown map ids safely', async () => {
