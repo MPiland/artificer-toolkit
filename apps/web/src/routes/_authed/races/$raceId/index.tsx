@@ -1,13 +1,10 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { RaceDetailPage } from '#domains/races'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/_authed/races/$raceId/')({
-  component: RaceViewRoute
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: '/races/$raceId/edit',
+      params: { raceId: params.raceId }
+    })
+  }
 })
-
-function RaceViewRoute() {
-  const { user } = Route.useRouteContext()
-  const { raceId } = Route.useParams()
-
-  return <RaceDetailPage raceId={raceId} mode='view' userId={user?.id ?? 'unknown-user'} />
-}

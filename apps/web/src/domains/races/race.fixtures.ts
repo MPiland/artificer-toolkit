@@ -182,40 +182,54 @@ export const masterRaceResponseFixture: NonNullable<RaceResponseDto> = {
 export const raceRuntimeFixture: NodeRuntimeResolveResponseDto = {
   mapId: 'race',
   clearPaths: [],
-  sections: [
+  steps: [
     {
       id: 'classification',
       label: 'Classification',
       order: 20,
-      nodes: [
-        selectNode('category', ['category'], 'Category', [
-          { value: 'BASE', label: 'Base Race' },
-          { value: 'SUBRACE', label: 'Subrace' }
-        ], true),
-        selectNode('selectionMode', ['selectionMode'], 'Selection Mode', [
-          { value: 'DIRECT', label: 'Direct' },
-          { value: 'REQUIRES_SUBRACE', label: 'Requires Subrace' }
-        ], true),
-        selectNode('heritageIds', ['heritageIds'], 'Heritages', [
-          { value: 'draconic', label: 'Draconic' },
-          { value: 'elven', label: 'Elven' }
-        ], false, 'SELECT_MULTI'),
-        selectNode('parentRaceId', ['parentRaceId'], 'Parent Race', [
-          { value: 'elf', label: 'Elf' },
-          { value: 'dragonborn', label: 'Dragonborn' }
-        ], true)
+      sections: [
+        {
+          id: 'classification',
+          label: 'Classification',
+          order: 20,
+          nodes: [
+            selectNode('category', ['category'], 'Category', [
+              { value: 'BASE', label: 'Base Race' },
+              { value: 'SUBRACE', label: 'Subrace' }
+            ], true),
+            selectNode('selectionMode', ['selectionMode'], 'Selection Mode', [
+              { value: 'DIRECT', label: 'Direct' },
+              { value: 'REQUIRES_SUBRACE', label: 'Requires Subrace' }
+            ], true),
+            selectNode('heritageIds', ['heritageIds'], 'Heritages', [
+              { value: 'draconic', label: 'Draconic' },
+              { value: 'elven', label: 'Elven' }
+            ], false, 'SELECT_MULTI'),
+            selectNode('parentRaceId', ['parentRaceId'], 'Parent Race', [
+              { value: 'elf', label: 'Elf' },
+              { value: 'dragonborn', label: 'Dragonborn' }
+            ], true)
+          ]
+        }
       ]
     },
     {
       id: 'traits',
       label: 'Traits',
       order: 40,
-      nodes: [
-        selectNode('size', ['size'], 'Size', [
-          { value: 'SMALL', label: 'Small' },
-          { value: 'MEDIUM', label: 'Medium' },
-          { value: 'LARGE', label: 'Large' }
-        ], true)
+      sections: [
+        {
+          id: 'traits',
+          label: 'Traits',
+          order: 40,
+          nodes: [
+            selectNode('size', ['size'], 'Size', [
+              { value: 'SMALL', label: 'Small' },
+              { value: 'MEDIUM', label: 'Medium' },
+              { value: 'LARGE', label: 'Large' }
+            ], true)
+          ]
+        }
       ]
     }
   ]
@@ -228,7 +242,7 @@ function selectNode(
   options: Array<{ value: string, label: string }>,
   required: boolean,
   type: 'SELECT_SINGLE' | 'SELECT_MULTI' = 'SELECT_SINGLE'
-): NodeRuntimeResolveResponseDto['sections'][number]['nodes'][number] {
+): NodeRuntimeResolveResponseDto['steps'][number]['sections'][number]['nodes'][number] {
   return {
     id,
     path,

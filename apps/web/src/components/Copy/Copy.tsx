@@ -12,7 +12,7 @@ import type {
   BackgroundListItem,
   FeatListItem,
 } from '@types'
-import Modal, { ModalContext, type CopyModalProps } from '@components/Modal'
+import Modal, { ModalContext, type CopyModalProps } from '#ui/overlays/Modal'
 import { Grid } from '@mantine/core'
 
 type ValidFilterBy = 'races' | 'classes' | 'equipment' | 'backgrounds' | 'feats'

@@ -2,6 +2,7 @@ import type {
   CapacityDto,
   ChargeDto,
   ContainsDto,
+  EquipmentAuthoringInputDto,
   CostDto,
   EquipmentAuthoredDto,
   FacetDto,
@@ -21,8 +22,8 @@ import {
   VALUE_DOMAIN_CODE
 } from '@artificer-toolkit/shared'
 
-type BaseEquipmentDto = Exclude<EquipmentAuthoredDto, { category: typeof EQUIPMENT_CATEGORY_CODE.VARIANT }>
-type VariantEquipmentDto = Extract<EquipmentAuthoredDto, { category: typeof EQUIPMENT_CATEGORY_CODE.VARIANT }>
+type BaseEquipmentDto = Exclude<EquipmentAuthoringInputDto, { category: typeof EQUIPMENT_CATEGORY_CODE.VARIANT }>
+type VariantEquipmentDto = Extract<EquipmentAuthoringInputDto, { category: typeof EQUIPMENT_CATEGORY_CODE.VARIANT }>
 
 export type EquipmentFormStep = 'basics' | 'inventory' | 'rules' | 'content' | 'charges' | 'contents'
 
@@ -34,7 +35,6 @@ export type EquipmentFormValues = {
   status?: EquipmentAuthoredDto['status']
   quote?: string
   rarityId: string
-  userId: string
   systemId: string
   category: EquipmentAuthoredDto['category']
   parentEquipmentId?: string
@@ -56,12 +56,10 @@ export type EquipmentFormValues = {
 
 export interface CreateEmptyEquipmentInput {
   systemId: string
-  userId: string
 }
 
 export function createEmptyBaseEquipment({
-  systemId,
-  userId
+  systemId
 }: CreateEmptyEquipmentInput): EquipmentFormValues {
   return {
     kind: 'EQUIPMENT',
@@ -71,7 +69,6 @@ export function createEmptyBaseEquipment({
     status: 'DRAFT',
     quote: '',
     rarityId: '',
-    userId,
     systemId,
     category: EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     attributes: [],
@@ -85,8 +82,7 @@ export function createEmptyBaseEquipment({
 }
 
 export function createEmptyVariantEquipment({
-  systemId,
-  userId
+  systemId
 }: CreateEmptyEquipmentInput): EquipmentFormValues {
   return {
     kind: 'EQUIPMENT',
@@ -96,7 +92,6 @@ export function createEmptyVariantEquipment({
     status: 'DRAFT',
     quote: '',
     rarityId: '',
-    userId,
     systemId,
     category: EQUIPMENT_CATEGORY_CODE.VARIANT,
     parentEquipmentId: '',
@@ -182,7 +177,7 @@ export function createEmptyModifier(order: number): ModifierGrantDto {
   }
 }
 
-export function toEquipmentFormValues(equipment: EquipmentAuthoredDto | EquipmentFormValues): EquipmentFormValues {
+export function toEquipmentFormValues(equipment: EquipmentAuthoringInputDto | EquipmentAuthoredDto | EquipmentFormValues): EquipmentFormValues {
   if (equipment.category === EQUIPMENT_CATEGORY_CODE.VARIANT) {
     return {
       ...equipment,
@@ -209,7 +204,7 @@ export function toEquipmentFormValues(equipment: EquipmentAuthoredDto | Equipmen
   }
 }
 
-export function normalizeEquipmentForSubmit(equipment: EquipmentFormValues): EquipmentAuthoredDto {
+export function normalizeEquipmentForSubmit(equipment: EquipmentFormValues): EquipmentAuthoringInputDto {
   const common = {
     kind: 'EQUIPMENT' as const,
     id: equipment.id,
@@ -218,7 +213,6 @@ export function normalizeEquipmentForSubmit(equipment: EquipmentFormValues): Equ
     status: equipment.status ?? 'DRAFT',
     quote: equipment.quote ?? '',
     rarityId: equipment.rarityId,
-    userId: equipment.userId,
     systemId: equipment.systemId,
     effects: equipment.effects ?? [],
     charges: equipment.charges,

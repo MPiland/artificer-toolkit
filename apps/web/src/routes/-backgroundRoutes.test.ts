@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { getRouter } from '#app/router'
 
 describe('background routes', () => {
-  it('matches the view route through the background detail index child', () => {
+  it('matches the frozen detail index child for direct background URLs', () => {
     const router = getRouter(null)
     const matches = router.matchRoutes('/backgrounds/test-background')
 

@@ -1,13 +1,23 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { EquipmentDetailPage } from '#domains/equipment'
+import { getEquipment, getEquipmentDraft } from '#app/data/equipment/queries'
+import { getSystemList } from '#app/data/systems/queries'
+import { createServerApi } from '#app/lib/api'
+import { EquipmentEditPage } from '#domains/equipment'
 
 export const Route = createFileRoute('/_authed/equipment/$equipmentId/edit')({
-  component: EditEquipmentRoute
+  loader: async ({ context, params }) => {
+    const client = createServerApi(context.accessToken)
+    const [response, draft, systems] = await Promise.all([
+      context.queryClient.ensureQueryData(getEquipment(params.equipmentId, client)),
+      context.queryClient.ensureQueryData(getEquipmentDraft(params.equipmentId, client)),
+      context.queryClient.ensureQueryData(getSystemList(client))
+    ])
+
+    return {
+      draft,
+      response,
+      systems
+    }
+  },
+  component: () => <EquipmentEditPage />
 })
-
-function EditEquipmentRoute() {
-  const { user } = Route.useRouteContext()
-  const { equipmentId } = Route.useParams()
-
-  return <EquipmentDetailPage equipmentId={equipmentId} mode='edit' userId={user?.id ?? 'unknown-user'} />
-}

@@ -48,10 +48,11 @@ import {
   type ClassListItemDto,
   type ClassListResponseDto,
   type ClassResponseDto,
+  type CreatureAuthoredDto,
   type CreatureListItemDto,
   type CreatureListResponseDto,
   type CreatureResponseDto,
-  type EquipmentAuthoredDto,
+  type EquipmentAuthoringInputDto,
   type EquipmentListItemDto,
   type EquipmentListResponseDto,
   type EquipmentResponseDto,
@@ -76,6 +77,7 @@ import {
   type SpellListResponseDto,
   type SpellResponseDto,
   type SystemListItemDto,
+  type VehicleAuthoringInputDto,
   type VehicleListItemDto,
   type VehicleListResponseDto,
   type VehicleResponseDto
@@ -99,6 +101,7 @@ export type {
   ClassListItemDto,
   ClassListResponseDto,
   ClassResponseDto,
+  CreatureAuthoredDto,
   CreatureListItemDto,
   CreatureListResponseDto,
   CreatureResponseDto,
@@ -123,6 +126,7 @@ export type {
   SpellListResponseDto,
   SpellResponseDto,
   SystemListItemDto,
+  VehicleAuthoringInputDto,
   VehicleListItemDto,
   VehicleListResponseDto,
   VehicleResponseDto
@@ -242,7 +246,7 @@ interface AuthoredContentInput {
   id: string
   label: string
   status?: unknown
-  userId: string
+  userId?: string
   systemId: string
 }
 
@@ -325,73 +329,25 @@ function buildApi(getJwt: (() => Promise<string | null>) | string | null) {
   return {
     characters: {
       list: () => get('/characters', characterListResponseDtoSchema),
-      draft: (input: CharacterDraftRequestDto) =>
-        post('/characters/draft', characterBuilderPayloadDtoSchema, input),
-      get: (id: string) =>
-        get(`/characters/${id}`, characterBuilderPayloadDtoSchema.nullable()),
-      sheet: (id: string) =>
-        get(`/characters/${id}/sheet`, characterSheetResponseDtoSchema.nullable()),
-      resolve: (input: CharacterBuilderResolveRequestDto) =>
-        post('/characters/resolve', characterBuilderPayloadDtoSchema, input),
-      previewSave: (input: CharacterBuilderSaveRequestDto) =>
-        post('/characters/preview-save', characterBuilderPreviewPayloadDtoSchema, input),
-      upsert: (input: CharacterBuilderSaveRequestDto) =>
-        post('/characters/upsert', characterBuilderPayloadDtoSchema, input),
-      history: (id: string) =>
-        get(`/characters/${id}/history`, characterHistoryResponseSchema),
-      command: (id: string, input: CharacterCommandUnion) =>
-        post(`/characters/${id}/commands`, z.void(), input)
+      draft: (input: CharacterDraftRequestDto) => post('/characters/draft', characterBuilderPayloadDtoSchema, input),
+      get: (id: string) => get(`/characters/${id}`, characterBuilderPayloadDtoSchema.nullable()),
+      sheet: (id: string) => get(`/characters/${id}/sheet`, characterSheetResponseDtoSchema.nullable()),
+      resolve: (input: CharacterBuilderResolveRequestDto) => post('/characters/resolve', characterBuilderPayloadDtoSchema, input),
+      previewSave: (input: CharacterBuilderSaveRequestDto) => post('/characters/preview-save', characterBuilderPreviewPayloadDtoSchema, input),
+      upsert: (input: CharacterBuilderSaveRequestDto) => post('/characters/upsert', characterBuilderPayloadDtoSchema, input),
+      history: (id: string) => get(`/characters/${id}/history`, characterHistoryResponseSchema),
+      command: (id: string, input: CharacterCommandUnion) => post(`/characters/${id}/commands`, z.void(), input)
     },
 
     content: {
-      backgrounds: contentDomain<typeof backgroundListResponseDtoSchema, typeof backgroundResponseDtoSchema, BackgroundAuthoredDto>(
-        'BACKGROUND',
-        '/content/backgrounds',
-        backgroundListResponseDtoSchema,
-        backgroundResponseDtoSchema
-      ),
-      classes: contentDomain<typeof classListResponseDtoSchema, typeof classResponseDtoSchema, ClassAuthoredDto>(
-        'CLASS',
-        '/content/classes',
-        classListResponseDtoSchema,
-        classResponseDtoSchema
-      ),
-      equipment: contentDomain<typeof equipmentListResponseDtoSchema, typeof equipmentResponseDtoSchema, EquipmentAuthoredDto>(
-        'EQUIPMENT',
-        '/content/equipment',
-        equipmentListResponseDtoSchema,
-        equipmentResponseDtoSchema
-      ),
-      feats: contentDomain<typeof featListResponseDtoSchema, typeof featResponseDtoSchema, FeatAuthoredDto>(
-        'FEAT',
-        '/content/feats',
-        featListResponseDtoSchema,
-        featResponseDtoSchema
-      ),
-      races: contentDomain<typeof raceListResponseDtoSchema, typeof raceResponseDtoSchema, RaceAuthoredDto>(
-        'RACE',
-        '/content/races',
-        raceListResponseDtoSchema,
-        raceResponseDtoSchema
-      ),
-      spells: contentDomain<typeof spellListResponseDtoSchema, typeof spellResponseDtoSchema, SpellAuthoredDto>(
-        'SPELL',
-        '/content/spells',
-        spellListResponseDtoSchema,
-        spellResponseDtoSchema
-      ),
-      creatures: contentDomain<typeof creatureListResponseDtoSchema, typeof creatureResponseDtoSchema, AuthoredContentInput>(
-        'CREATURE',
-        '/content/creatures',
-        creatureListResponseDtoSchema,
-        creatureResponseDtoSchema
-      ),
-      vehicles: contentDomain<typeof vehicleListResponseDtoSchema, typeof vehicleResponseDtoSchema, AuthoredContentInput>(
-        'VEHICLE',
-        '/content/vehicles',
-        vehicleListResponseDtoSchema,
-        vehicleResponseDtoSchema
-      ),
+      backgrounds: contentDomain<typeof backgroundListResponseDtoSchema, typeof backgroundResponseDtoSchema, BackgroundAuthoredDto>('BACKGROUND', '/content/backgrounds', backgroundListResponseDtoSchema, backgroundResponseDtoSchema),
+      classes: contentDomain<typeof classListResponseDtoSchema, typeof classResponseDtoSchema, ClassAuthoredDto>('CLASS', '/content/classes', classListResponseDtoSchema, classResponseDtoSchema),
+      equipment: contentDomain<typeof equipmentListResponseDtoSchema, typeof equipmentResponseDtoSchema, EquipmentAuthoringInputDto>('EQUIPMENT', '/content/equipment', equipmentListResponseDtoSchema, equipmentResponseDtoSchema),
+      feats: contentDomain<typeof featListResponseDtoSchema, typeof featResponseDtoSchema, FeatAuthoredDto>('FEAT', '/content/feats', featListResponseDtoSchema, featResponseDtoSchema),
+      races: contentDomain<typeof raceListResponseDtoSchema, typeof raceResponseDtoSchema, RaceAuthoredDto>('RACE', '/content/races', raceListResponseDtoSchema, raceResponseDtoSchema),
+      spells: contentDomain<typeof spellListResponseDtoSchema, typeof spellResponseDtoSchema, SpellAuthoredDto>('SPELL', '/content/spells', spellListResponseDtoSchema, spellResponseDtoSchema),
+      creatures: contentDomain<typeof creatureListResponseDtoSchema, typeof creatureResponseDtoSchema, CreatureAuthoredDto>('CREATURE', '/content/creatures', creatureListResponseDtoSchema, creatureResponseDtoSchema),
+      vehicles: contentDomain<typeof vehicleListResponseDtoSchema, typeof vehicleResponseDtoSchema, VehicleAuthoringInputDto>('VEHICLE', '/content/vehicles', vehicleListResponseDtoSchema, vehicleResponseDtoSchema),
       features: {
         list: () => get('/content/features', featureListResponseDtoSchema),
         get: (id: string) => get(`/content/features/${id}`, featureResponseDtoSchema),
@@ -405,10 +361,8 @@ function buildApi(getJwt: (() => Promise<string | null>) | string | null) {
     },
 
     nodeRuntime: {
-      resolve: (input: NodeRuntimeResolveRequestDto) =>
-        post('/node-runtime/resolve', nodeRuntimeResolveResponseDtoSchema, input),
-      normalizeValues: (input: NodeRuntimeNormalizeValuesRequestDto) =>
-        post('/node-runtime/normalize-values', nodeRuntimeNormalizeValuesResponseDtoSchema, input)
+      resolve: (input: NodeRuntimeResolveRequestDto) => post('/node-runtime/resolve', nodeRuntimeResolveResponseDtoSchema, input),
+      normalizeValues: (input: NodeRuntimeNormalizeValuesRequestDto) => post('/node-runtime/normalize-values', nodeRuntimeNormalizeValuesResponseDtoSchema, input)
     },
 
     _raw: { get, post, del }

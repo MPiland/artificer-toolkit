@@ -46,7 +46,7 @@ export const handlers = [
 
     return HttpResponse.json({
       mapId: body.mapId,
-      sections: [],
+      steps: [],
       clearPaths: []
     } satisfies NodeRuntimeResolveResponseDto)
   })
@@ -61,46 +61,56 @@ function buildSpellRuntimeResponse(body: NodeRuntimeResolveRequestDto): NodeRunt
   return {
     mapId: 'spell',
     clearPaths: hasMaterial ? [] : [['materialDescription']],
-    sections: [
+    steps: [
       {
         id: 'basics',
         label: 'Basics',
         order: 10,
-        nodes: [
-          textNode('label', ['label'], 'Name'),
-          numberNode('level', ['level'], 'Level'),
-          selectNode('classIds', ['classIds'], 'Classes', 'SELECT_MULTI', [
-            { value: 'wizard', label: 'Wizard' },
-            { value: 'sorcerer', label: 'Sorcerer' }
-          ])
-        ]
+        sections: [{
+          id: 'basics',
+          label: 'Basics',
+          order: 10,
+          nodes: [
+            textNode('label', ['label'], 'Name'),
+            numberNode('level', ['level'], 'Level'),
+            selectNode('classIds', ['classIds'], 'Classes', 'SELECT_MULTI', [
+              { value: 'wizard', label: 'Wizard' },
+              { value: 'sorcerer', label: 'Sorcerer' }
+            ])
+          ]
+        }]
       },
       {
         id: 'casting',
         label: 'Casting',
         order: 20,
-        nodes: [
-          selectNode('magicSchoolId', ['magicSchoolId'], 'Magic School', 'SELECT_SINGLE', [
-            { value: 'evocation', label: 'Evocation' },
-            { value: 'abjuration', label: 'Abjuration' }
-          ]),
-          selectNode('attributes', ['attributes'], 'Attributes', 'SELECT_MULTI', [
-            { value: 'CONCENTRATION', label: 'Concentration' },
-            { value: 'RITUAL', label: 'Ritual' },
-            { value: 'ADDS_TO_WEAPON_ATTACK', label: 'Adds to weapon attack' }
-          ]),
-          selectNode('components', ['components'], 'Components', 'SELECT_MULTI', [
-            { value: 'VERBAL', label: 'Verbal' },
-            { value: 'SOMATIC', label: 'Somatic' },
-            { value: 'MATERIAL', label: 'Material' }
-          ]),
-          {
-            ...textNode('materialDescription', ['materialDescription'], 'Material Description'),
-            visible: hasMaterial,
-            hiddenBehavior: 'CLEAR',
-            clearPaths: hasMaterial ? [] : [['materialDescription']]
-          }
-        ]
+        sections: [{
+          id: 'casting',
+          label: 'Casting',
+          order: 20,
+          nodes: [
+            selectNode('magicSchoolId', ['magicSchoolId'], 'Magic School', 'SELECT_SINGLE', [
+              { value: 'evocation', label: 'Evocation' },
+              { value: 'abjuration', label: 'Abjuration' }
+            ]),
+            selectNode('attributes', ['attributes'], 'Attributes', 'SELECT_MULTI', [
+              { value: 'CONCENTRATION', label: 'Concentration' },
+              { value: 'RITUAL', label: 'Ritual' },
+              { value: 'ADDS_TO_WEAPON_ATTACK', label: 'Adds to weapon attack' }
+            ]),
+            selectNode('components', ['components'], 'Components', 'SELECT_MULTI', [
+              { value: 'VERBAL', label: 'Verbal' },
+              { value: 'SOMATIC', label: 'Somatic' },
+              { value: 'MATERIAL', label: 'Material' }
+            ]),
+            {
+              ...textNode('materialDescription', ['materialDescription'], 'Material Description'),
+              visible: hasMaterial,
+              hiddenBehavior: 'CLEAR',
+              clearPaths: hasMaterial ? [] : [['materialDescription']]
+            }
+          ]
+        }]
       }
     ]
   }
@@ -110,7 +120,7 @@ function textNode(
   id: string,
   path: readonly string[],
   label: string
-): NodeRuntimeResolveResponseDto['sections'][number]['nodes'][number] {
+): NodeRuntimeResolveResponseDto['steps'][number]['sections'][number]['nodes'][number] {
   return {
     id,
     path: [...path],
@@ -127,7 +137,7 @@ function numberNode(
   id: string,
   path: readonly string[],
   label: string
-): NodeRuntimeResolveResponseDto['sections'][number]['nodes'][number] {
+): NodeRuntimeResolveResponseDto['steps'][number]['sections'][number]['nodes'][number] {
   return {
     id,
     path: [...path],
@@ -145,8 +155,8 @@ function selectNode(
   path: readonly string[],
   label: string,
   type: 'SELECT_SINGLE' | 'SELECT_MULTI',
-  options: NonNullable<NodeRuntimeResolveResponseDto['sections'][number]['nodes'][number]['options']>
-): NodeRuntimeResolveResponseDto['sections'][number]['nodes'][number] {
+  options: NonNullable<NodeRuntimeResolveResponseDto['steps'][number]['sections'][number]['nodes'][number]['options']>
+): NodeRuntimeResolveResponseDto['steps'][number]['sections'][number]['nodes'][number] {
   return {
     id,
     path: [...path],

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { CREATURE_CATEGORY_CODE } from '#core'
 import {
   type NodeMap,
   BACKGROUND_NODE_MAP,
@@ -11,7 +12,13 @@ import {
   SPELL_NODE_MAP,
   VEHICLE_NODE_MAP
 } from '#maps'
-import { buildNodeMap, evaluateConditionIf, resolveNestedNodeSections, resolveNodeMapSections } from '#utils'
+import {
+  buildNodeMap,
+  evaluateConditionIf,
+  resolveNestedNodeSections,
+  resolveNodeMapSections,
+  resolveNodeMapSteps
+} from '#utils'
 
 describe('node map sections', () => {
   it('resolves section groups in stable order', () => {
@@ -55,6 +62,89 @@ describe('node map sections', () => {
     expect(evaluateConditionIf(materialNode.showIf, {
       values: { components: ['VERBAL'] }
     })).toBe(false)
+  })
+
+  it('models creature category-specific profiles as conditional clearable groups', () => {
+    const mountNode = CREATURE_NODE_MAP.nodes.mountProfile
+    const legendaryNode = CREATURE_NODE_MAP.nodes.legendaryProfile
+    const companionNode = CREATURE_NODE_MAP.nodes.companionProfile
+
+    expect(mountNode.hiddenBehavior).toBe('CLEAR')
+    expect(evaluateConditionIf(mountNode.showIf, {
+      values: { category: CREATURE_CATEGORY_CODE.BEAST }
+    })).toBe(true)
+    expect(evaluateConditionIf(mountNode.showIf, {
+      values: { category: CREATURE_CATEGORY_CODE.MONSTER }
+    })).toBe(false)
+
+    expect(legendaryNode.hiddenBehavior).toBe('CLEAR')
+    expect(evaluateConditionIf(legendaryNode.showIf, {
+      values: { category: CREATURE_CATEGORY_CODE.MONSTER }
+    })).toBe(true)
+    expect(evaluateConditionIf(legendaryNode.showIf, {
+      values: { category: CREATURE_CATEGORY_CODE.BEAST }
+    })).toBe(false)
+
+    expect(companionNode.hiddenBehavior).toBe('CLEAR')
+    expect(evaluateConditionIf(companionNode.showIf, {
+      values: { category: CREATURE_CATEGORY_CODE.COMPANION }
+    })).toBe(true)
+    expect(evaluateConditionIf(companionNode.showIf, {
+      values: { category: CREATURE_CATEGORY_CODE.SUMMON }
+    })).toBe(true)
+  })
+
+  it('keeps creature logistics fields hidden for non-beasts without clearing preserved data', () => {
+    const costNode = CREATURE_NODE_MAP.nodes.cost
+    const capacityNode = CREATURE_NODE_MAP.nodes.carryingCapacity
+    const notesNode = CREATURE_NODE_MAP.nodes.logisticsNotes
+
+    expect(costNode.hiddenBehavior).toBeUndefined()
+    expect(capacityNode.hiddenBehavior).toBeUndefined()
+    expect(notesNode.hiddenBehavior).toBeUndefined()
+    expect(evaluateConditionIf(costNode.showIf, {
+      values: { category: CREATURE_CATEGORY_CODE.BEAST }
+    })).toBe(true)
+    expect(evaluateConditionIf(costNode.showIf, {
+      values: { category: CREATURE_CATEGORY_CODE.MONSTER }
+    })).toBe(false)
+    expect(evaluateConditionIf(capacityNode.showIf, {
+      values: { category: CREATURE_CATEGORY_CODE.MONSTER }
+    })).toBe(false)
+    expect(evaluateConditionIf(notesNode.showIf, {
+      values: { category: CREATURE_CATEGORY_CODE.MONSTER }
+    })).toBe(false)
+  })
+
+  it('models vehicle authoring as stable node-driven steps', () => {
+    const steps = resolveNodeMapSteps(VEHICLE_NODE_MAP)
+    const nodes = steps.flatMap((step) => step.sections).flatMap((section) => section.nodes)
+
+    expect(steps.map((step) => step.id)).toEqual([
+      'overview',
+      'stats',
+      'capacity',
+      'economy',
+      'content'
+    ])
+    const descriptionNode = VEHICLE_NODE_MAP.nodes.description
+
+    expect(descriptionNode.kind).toBe('INPUT')
+    if (descriptionNode.kind === 'INPUT') {
+      expect(descriptionNode.type).toBe('RICH_TEXT')
+    }
+    expect(nodes.find((entry) => entry.id === 'category')?.node).toMatchObject({
+      kind: 'INPUT',
+      type: 'SELECT_SINGLE'
+    })
+    expect(nodes.find((entry) => entry.id === 'cost')?.node).toMatchObject({
+      kind: 'GROUP',
+      groupKind: 'OBJECT'
+    })
+    expect(nodes.find((entry) => entry.id === 'features')?.node).toMatchObject({
+      kind: 'GROUP',
+      groupKind: 'ARRAY'
+    })
   })
 
   it('provides sections for every authored subject map', () => {

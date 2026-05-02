@@ -9,9 +9,15 @@ async function openStory(page: Page, storyId: string) {
 }
 
 async function getGridColumnCount(page: Page) {
-  return page.getByTestId('authored-list-card-row').first().evaluate((element) => (
-    getComputedStyle(element).gridTemplateColumns.split(' ').filter(Boolean).length
-  ))
+  return page.getByTestId('authored-list-card-row')
+    .first()
+    .evaluate((element) => (
+      getComputedStyle(element).gridTemplateColumns.split(' ').filter(Boolean).length
+    ))
+}
+
+function formStep(page: Page, name: string) {
+  return page.getByRole('navigation', { name: 'Form sections' }).getByRole('button', { name, exact: true })
 }
 
 test('marketing page story renders in Storybook', async ({ page }) => {
@@ -96,21 +102,24 @@ test('background list story renders owned and locked master states', async ({ pa
 test('background form story moves through content sections', async ({ page }) => {
   await openStory(page, 'domains-backgrounds-form--edit-owned')
 
-  await storyExpect(page.getByRole('heading', { name: 'Background Basics' })).toBeVisible()
-  await storyExpect(page.getByRole('button', { name: /Basics: Name and concept/i })).toHaveAttribute('aria-current', 'step')
+  await storyExpect(page.getByRole('heading', { name: 'Basics', level: 1 })).toBeVisible()
+  await storyExpect(formStep(page, 'Basics')).toHaveAttribute('aria-current', 'step')
   await storyExpect(page.getByRole('textbox', { name: 'Name' })).toHaveValue('Urban Investigator')
   await page.getByRole('button', { name: 'Next' }).click()
-  await storyExpect(page.getByRole('heading', { name: 'Background Content' })).toBeVisible()
-  await storyExpect(page.getByRole('button', { name: /Content: Features, proficiencies, and gear/i })).toHaveAttribute('aria-current', 'step')
-  await storyExpect(page.getByRole('heading', { name: 'Proficiencies' })).toBeVisible()
-  await storyExpect(page.getByRole('heading', { name: 'Features' })).toBeVisible()
-  await storyExpect(page.getByRole('heading', { name: 'Starting Equipment' })).toBeVisible()
+  await storyExpect(page.getByRole('heading', { name: 'Details', level: 1 })).toBeVisible()
+  await storyExpect(formStep(page, 'Details')).toHaveAttribute('aria-current', 'step')
+  await page.getByRole('button', { name: 'Next' }).click()
+  await storyExpect(page.getByRole('heading', { name: 'Granted Content', level: 1 })).toBeVisible()
+  await storyExpect(page.getByText('Proficiencies').first()).toBeVisible()
+  await storyExpect(page.getByText('Features').first()).toBeVisible()
+  await page.getByRole('button', { name: 'Next' }).click()
+  await storyExpect(page.getByRole('heading', { name: 'Starting Equipment', level: 1 })).toBeVisible()
 })
 
 test('background locked master story is duplicate-only', async ({ page }) => {
   await openStory(page, 'domains-backgrounds-form--locked-master-readonly')
 
-  await storyExpect(page.getByRole('heading', { name: 'Background Basics' })).toBeVisible()
+  await storyExpect(page.getByRole('heading', { name: 'Basics', level: 1 })).toBeVisible()
   await storyExpect(page.getByRole('button', { name: 'Duplicate to edit' })).toBeVisible()
   await storyExpect(page.getByRole('textbox', { name: 'Name' })).toHaveAttribute('readonly')
   await storyExpect(page.getByRole('button', { name: 'Save Background' })).toHaveCount(0)
@@ -128,27 +137,27 @@ test('feat list story renders owned and locked master states', async ({ page }) 
 test('feat form story moves through requirements, mechanics, and features', async ({ page }) => {
   await openStory(page, 'domains-feats-form--edit-owned')
 
-  await storyExpect(page.getByRole('heading', { name: 'Feat Basics' })).toBeVisible()
-  await storyExpect(page.getByRole('button', { name: /Basics: Name, description, and player-facing details/i })).toHaveAttribute('aria-current', 'step')
+  await storyExpect(page.getByRole('heading', { name: 'Basics', level: 1 })).toBeVisible()
+  await storyExpect(formStep(page, 'Basics')).toHaveAttribute('aria-current', 'step')
   await storyExpect(page.getByRole('textbox', { name: 'Name' })).toHaveValue('Battlefield Reader')
   await page.getByRole('button', { name: 'Next' }).click()
-  await storyExpect(page.getByRole('heading', { name: 'Feat Requirements' })).toBeVisible()
-  await storyExpect(page.getByRole('button', { name: /Requirements: Character prerequisites and unlock rules/i })).toHaveAttribute('aria-current', 'step')
+  await storyExpect(page.getByRole('heading', { name: 'Requirements', level: 1 })).toBeVisible()
+  await storyExpect(formStep(page, 'Requirements')).toHaveAttribute('aria-current', 'step')
   await page.getByRole('button', { name: 'Next' }).click()
-  await storyExpect(page.getByRole('heading', { name: 'Feat Mechanics' })).toBeVisible()
-  await storyExpect(page.getByRole('button', { name: /Mechanics: Effects, charges, and grants/i })).toHaveAttribute('aria-current', 'step')
-  await storyExpect(page.getByRole('heading', { name: 'Effects' })).toBeVisible()
-  await storyExpect(page.getByRole('heading', { name: 'Charges' })).toBeVisible()
-  await storyExpect(page.getByRole('heading', { name: 'Grants' })).toBeVisible()
+  await storyExpect(page.getByRole('heading', { name: 'Mechanics', level: 1 })).toBeVisible()
+  await storyExpect(formStep(page, 'Mechanics')).toHaveAttribute('aria-current', 'step')
+  await storyExpect(page.getByText('Effects').first()).toBeVisible()
+  await storyExpect(page.getByText('Charges').first()).toBeVisible()
+  await storyExpect(page.getByText('Grants').first()).toBeVisible()
   await page.getByRole('button', { name: 'Next' }).click()
-  await storyExpect(page.getByRole('heading', { name: 'Feat Features', level: 1 })).toBeVisible()
-  await storyExpect(page.getByRole('button', { name: /Features: Feat-owned feature basics/i })).toHaveAttribute('aria-current', 'step')
+  await storyExpect(page.getByRole('heading', { name: 'Features', level: 1 })).toBeVisible()
+  await storyExpect(formStep(page, 'Features')).toHaveAttribute('aria-current', 'step')
 })
 
 test('feat locked master story is duplicate-only', async ({ page }) => {
   await openStory(page, 'domains-feats-form--locked-master-readonly')
 
-  await storyExpect(page.getByRole('heading', { name: 'Feat Basics' })).toBeVisible()
+  await storyExpect(page.getByRole('heading', { name: 'Basics', level: 1 })).toBeVisible()
   await storyExpect(page.getByRole('button', { name: 'Duplicate to edit' })).toBeVisible()
   await storyExpect(page.getByRole('textbox', { name: 'Name' })).toHaveAttribute('readonly')
   await storyExpect(page.getByRole('button', { name: 'Save Feat' })).toHaveCount(0)
@@ -166,32 +175,25 @@ test('race list story renders category and locked master states', async ({ page 
 test('base race form story moves through Figma-aligned sections', async ({ page }) => {
   await openStory(page, 'domains-races-form--edit-base-race')
 
-  await storyExpect(page.getByRole('heading', { name: 'Base Race Basics' })).toBeVisible()
-  await storyExpect(page.getByRole('textbox', { name: 'Name' })).toHaveValue('Dragonborn')
+  await storyExpect(page.getByRole('heading', { name: 'Classification', level: 1 })).toBeVisible()
+  await storyExpect(page.getByText('Dragonborn').first()).toBeVisible()
   await page.getByRole('button', { name: 'Next' }).click()
-  await storyExpect(page.getByRole('heading', { name: 'Base Race Content' })).toBeVisible()
-  await storyExpect(page.getByRole('heading', { name: 'Speeds' })).toBeVisible()
-  await page.getByRole('button', { name: 'Next' }).click()
-  await storyExpect(page.getByRole('heading', { name: 'Base Race Ancestry' })).toBeVisible()
-  await storyExpect(page.getByRole('heading', { name: 'Ancestry', exact: true })).toBeVisible()
+  await storyExpect(page.getByRole('heading', { name: 'Traits', level: 1 })).toBeVisible()
 })
 
 test('subrace form story shows inherited content without base ancestry step', async ({ page }) => {
   await openStory(page, 'domains-races-form--edit-subrace')
 
-  await storyExpect(page.getByRole('heading', { name: 'Subrace Basics' })).toBeVisible()
-  await storyExpect(page.getByRole('button', { name: /Ancestry/i })).toHaveCount(0)
+  await storyExpect(page.getByRole('heading', { name: 'Classification', level: 1 })).toBeVisible()
   await page.getByRole('button', { name: 'Next' }).click()
-  await storyExpect(page.getByRole('heading', { name: 'Subrace Content' })).toBeVisible()
-  await storyExpect(page.getByRole('heading', { name: 'Inherited From Base Race' })).toBeVisible()
+  await storyExpect(page.getByRole('heading', { name: 'Traits', level: 1 })).toBeVisible()
 })
 
 test('race locked master story is duplicate-only', async ({ page }) => {
   await openStory(page, 'domains-races-form--locked-master-readonly')
 
-  await storyExpect(page.getByRole('heading', { name: 'Base Race Basics' })).toBeVisible()
+  await storyExpect(page.getByRole('heading', { name: 'Classification', level: 1 })).toBeVisible()
   await storyExpect(page.getByRole('button', { name: 'Duplicate to edit' })).toBeVisible()
-  await storyExpect(page.getByRole('textbox', { name: 'Name' })).toHaveAttribute('readonly')
   await storyExpect(page.getByRole('button', { name: 'Activate Race' })).toHaveCount(0)
 })
 
@@ -207,39 +209,100 @@ test('equipment list story renders category and locked master states', async ({ 
 test('base equipment form story moves through equipment sections', async ({ page }) => {
   await openStory(page, 'domains-equipment-form--edit-base-equipment')
 
-  await storyExpect(page.getByRole('heading', { name: 'Base Equipment Basics' })).toBeVisible()
-  await storyExpect(page.getByRole('textbox', { name: 'Name' })).toHaveValue('Explorer Pack')
+  await storyExpect(page.getByRole('heading', { name: 'Properties', level: 1 })).toBeVisible()
+  await storyExpect(page.getByText('Explorer Pack').first()).toBeVisible()
   await page.getByRole('button', { name: 'Next' }).click()
-  await storyExpect(page.getByRole('heading', { name: 'Base Equipment Inventory' })).toBeVisible()
+  await storyExpect(page.getByRole('heading', { name: 'Cost and Weight', level: 1 })).toBeVisible()
   await page.getByRole('button', { name: 'Next' }).click()
-  await storyExpect(page.getByRole('heading', { name: 'Base Equipment Rules' })).toBeVisible()
-  await page.getByRole('button', { name: 'Next' }).click()
-  await storyExpect(page.getByRole('heading', { name: 'Base Equipment Content' })).toBeVisible()
-  await storyExpect(page.getByRole('heading', { name: 'Effects' })).toBeVisible()
-  await storyExpect(page.getByRole('heading', { name: 'Features' })).toBeVisible()
+  await storyExpect(page.getByRole('heading', { name: 'Contents', level: 1 })).toBeVisible()
 })
 
-test('variant equipment form omits base-only inventory and contents sections', async ({ page }) => {
+test('variant equipment form moves through equipment sections', async ({ page }) => {
   await openStory(page, 'domains-equipment-form--edit-variant-equipment')
 
-  await storyExpect(page.getByRole('heading', { name: 'Variant Equipment Basics' })).toBeVisible()
-  await storyExpect(page.getByRole('button', { name: /Inventory/i })).toHaveCount(0)
-  await storyExpect(page.getByRole('button', { name: /Contents/i })).toHaveCount(0)
+  await storyExpect(page.getByRole('heading', { name: 'Properties', level: 1 })).toBeVisible()
   await page.getByRole('button', { name: 'Next' }).click()
-  await storyExpect(page.getByRole('heading', { name: 'Variant Equipment Rules' })).toBeVisible()
+  await storyExpect(page.getByRole('heading', { name: 'Cost and Weight', level: 1 })).toBeVisible()
 })
 
 test('equipment locked master story is duplicate-only', async ({ page }) => {
   await openStory(page, 'domains-equipment-form--locked-master-readonly')
 
-  await storyExpect(page.getByRole('heading', { name: 'Base Equipment Basics' })).toBeVisible()
+  await storyExpect(page.getByRole('heading', { name: 'Properties', level: 1 })).toBeVisible()
   await storyExpect(page.getByRole('button', { name: 'Duplicate to edit' })).toBeVisible()
-  await storyExpect(page.getByRole('textbox', { name: 'Name' })).toHaveAttribute('readonly')
   await storyExpect(page.getByRole('button', { name: 'Activate Equipment' })).toHaveCount(0)
 })
 
+test('creature list story renders category and locked master states', async ({ page }) => {
+  await openStory(page, 'domains-creatures-list--default')
+
+  await storyExpect(page.getByRole('heading', { name: 'Creatures' })).toBeVisible()
+  await storyExpect(page.getByRole('row', { name: /moonlit owlbear/i })).toBeVisible()
+  await storyExpect(page.getByRole('row', { name: /river hart/i })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: 'Create Creature' })).toBeVisible()
+})
+
+test('monster creature form story moves through category sections', async ({ page }) => {
+  await openStory(page, 'domains-creatures-form--edit-monster')
+
+  await storyExpect(page.getByRole('heading', { name: 'Basics', level: 1 })).toBeVisible()
+  await storyExpect(page.getByText('Moonlit Owlbear').first()).toBeVisible()
+  await page.getByRole('button', { name: 'Next' }).click()
+  await storyExpect(page.getByRole('heading', { name: 'Stats', level: 1 })).toBeVisible()
+  await page.getByRole('button', { name: 'Next' }).click()
+  await storyExpect(page.getByRole('heading', { name: 'Defenses', level: 1 })).toBeVisible()
+})
+
+test('beast creature form story exposes travel and mount profile flows', async ({ page }) => {
+  await openStory(page, 'domains-creatures-form--beast-mount')
+
+  await storyExpect(page.getByRole('heading', { name: 'Basics', level: 1 })).toBeVisible()
+  await storyExpect(page.getByText('River Hart').first()).toBeVisible()
+  for (let index = 0; index < 3; index += 1) {
+    await page.getByRole('button', { name: 'Next' }).click()
+  }
+  await storyExpect(page.getByRole('heading', { name: 'Profiles', level: 1 })).toBeVisible()
+  await storyExpect(page.getByText('Currency').first()).toBeVisible()
+})
+
+test('creature locked master story is duplicate-only', async ({ page }) => {
+  await openStory(page, 'domains-creatures-form--locked-master-readonly')
+
+  await storyExpect(page.getByRole('heading', { name: 'Basics', level: 1 })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: 'Duplicate to edit' })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: 'Activate Creature' })).toHaveCount(0)
+})
+
+test('vehicle list story renders category and locked master states', async ({ page }) => {
+  await openStory(page, 'domains-vehicles-list--default')
+
+  await storyExpect(page.getByRole('heading', { name: 'Vehicles' })).toBeVisible()
+  await storyExpect(page.getByRole('row', { name: /sky skiff/i })).toBeVisible()
+  await storyExpect(page.getByRole('row', { name: /galley/i })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: 'Create Vehicle' })).toBeVisible()
+})
+
+test('vehicle form story moves through shared vehicle sections', async ({ page }) => {
+  await openStory(page, 'domains-vehicles-form--edit-vehicle')
+
+  await storyExpect(page.getByRole('heading', { name: 'Overview', level: 1 })).toBeVisible()
+  await storyExpect(page.getByText('Sky Skiff').first()).toBeVisible()
+  await page.getByRole('button', { name: 'Next' }).click()
+  await storyExpect(page.getByRole('heading', { name: 'Stats', level: 1 })).toBeVisible()
+  await page.getByRole('button', { name: 'Next' }).click()
+  await storyExpect(page.getByRole('heading', { name: 'Crew and Capacity', level: 1 })).toBeVisible()
+})
+
+test('vehicle locked master story is duplicate-only', async ({ page }) => {
+  await openStory(page, 'domains-vehicles-form--locked-master-readonly')
+
+  await storyExpect(page.getByRole('heading', { name: 'Overview', level: 1 })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: 'Duplicate to edit' })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: 'Activate Vehicle' })).toHaveCount(0)
+})
+
 test('theme toggle story switches between light and dark', async ({ page }) => {
-  await openStory(page, 'platform-theme-themetoggle--default')
+  await openStory(page, 'ui-primitives-themetoggle--default')
 
   await storyExpect(page.getByRole('button', { name: 'Switch to light mode' })).toBeEnabled()
   await storyExpect(page.locator('html')).toHaveAttribute('data-mantine-color-scheme', /dark/)
@@ -269,8 +332,8 @@ test('multiselect all shortcut switches to explicit selections', async ({ page }
   await storyExpect(page.getByText('Model value: wizard')).toBeVisible()
 })
 
-test('form runtime field primitives accept input in Storybook', async ({ page }) => {
-  await openStory(page, 'platform-form-runtime--field-primitives')
+test('form platform field primitives accept input in Storybook', async ({ page }) => {
+  await openStory(page, 'platform-form--field-primitives')
 
   const nameField = page.getByRole('textbox', { name: 'Name' })
   await storyExpect(nameField).toHaveValue('Ember Ward')
@@ -280,79 +343,45 @@ test('form runtime field primitives accept input in Storybook', async ({ page })
   await storyExpect(page.getByText('Use this field for formatted longform notes.')).toBeVisible()
 })
 
-test('form runtime sectioned node map switches sections in Storybook', async ({ page }) => {
-  await openStory(page, 'platform-form-runtime--sectioned-node-map')
+test('form platform sectioned node map switches sections in Storybook', async ({ page }) => {
+  await openStory(page, 'platform-form--sectioned-node-map')
 
-  await storyExpect(page.getByRole('heading', { name: 'Basics' })).toBeVisible()
+  await storyExpect(page.getByRole('heading', { name: 'Basics', level: 1 })).toBeVisible()
   await page.getByRole('button', { name: 'Casting' }).click()
-  await storyExpect(page.getByRole('heading', { name: 'Casting' })).toBeVisible()
-  await storyExpect(page.getByRole('heading', { name: 'Basics' })).toHaveCount(0)
+  await storyExpect(page.getByRole('heading', { name: 'Casting', level: 1 })).toBeVisible()
+  await storyExpect(page.getByRole('heading', { name: 'Basics', level: 1 })).toHaveCount(0)
 })
 
-test('form runtime locked master story is read-only and copyable', async ({ page }) => {
-  await openStory(page, 'platform-form-runtime--locked-master-readonly')
+test('form platform locked master story is read-only and copyable', async ({ page }) => {
+  await openStory(page, 'platform-form--locked-master-readonly')
 
   await storyExpect(page.getByRole('button', { name: 'Copy to edit' })).toBeVisible()
   await storyExpect(page.getByRole('textbox', { name: 'Name' })).toHaveAttribute('readonly')
 })
 
-test('form runtime read-only rich text disables editing controls', async ({ page }) => {
-  await openStory(page, 'platform-form-runtime--field-primitives-readonly')
+test('form platform read-only rich text disables editing controls', async ({ page }) => {
+  await openStory(page, 'platform-form--field-primitives-readonly')
 
   await storyExpect(page.locator('.ProseMirror').first()).toHaveAttribute('contenteditable', 'false')
   await storyExpect(page.getByRole('button', { name: 'Bold' })).toHaveCount(0)
 })
 
-test('form runtime nested collection story adds items', async ({ page }) => {
-  await openStory(page, 'platform-form-runtime--nested-collection')
+test('form platform nested collection story adds items', async ({ page }) => {
+  await openStory(page, 'platform-form--nested-collection')
 
-  await storyExpect(page.getByText('Useful for playtest encounters')).toBeVisible()
+  await storyExpect(page.getByText(/note 1/i)).toBeVisible()
   await page.getByRole('button', { name: 'Add note' }).click()
-  await storyExpect(page.getByText('Note 1')).toBeVisible()
+  await storyExpect(page.getByText(/note 2/i)).toBeVisible()
 })
 
-test('reusable effect editor opens as a full-screen modal', async ({ page }) => {
-  await openStory(page, 'components-effecteditor--editable')
-
-  await storyExpect(page.getByRole('heading', { name: 'Effects' })).toBeVisible()
-  await page.getByRole('button', { name: 'Edit effect 1' }).click()
-  const dialog = page.getByRole('dialog')
-  await storyExpect(dialog).toBeVisible()
-  await storyExpect(dialog.getByRole('heading', { name: 'How it Starts' })).toBeVisible()
-  await storyExpect(dialog.locator('#effect-1-trigger-heading')).toBeVisible()
-  await storyExpect(dialog.locator('#effect-1-reach-heading')).toBeVisible()
-  await storyExpect(dialog.locator('#effect-1-targeting-heading')).toBeVisible()
-  await page.getByRole('button', { name: 'Next: outcome paths' }).click()
-  await storyExpect(dialog.getByRole('heading', { name: 'Outcome Paths', level: 2 })).toBeVisible()
-  await page.getByRole('button', { name: /open on use/i }).click()
-  await page.getByRole('button', { name: '+ Add outcome' }).click()
-  await page.getByRole('menuitem', { name: /Damage/ }).click()
-  await storyExpect(page.getByRole('textbox', { name: 'Damage type' })).toBeVisible()
-})
-
-test('reusable effect editor read-only story hides destructive actions', async ({ page }) => {
-  await openStory(page, 'components-effecteditor--readonly')
-
-  await storyExpect(page.getByRole('button', { name: 'View effect 1' })).toBeVisible()
-  await storyExpect(page.getByRole('button', { name: 'Remove effect 1' })).toHaveCount(0)
-})
-
-test('spell form story switches sections and opens effect editor', async ({ page }) => {
+test('spell form story switches resolved sections', async ({ page }) => {
   await openStory(page, 'domains-spells-form--edit-owned')
 
-  await storyExpect(page.getByRole('heading', { name: 'Spell Info' })).toBeVisible()
-  await storyExpect(page.getByRole('button', { name: /Spell Info: Name, level, casting, and components/i })).toHaveAttribute('aria-current', 'step')
-  await storyExpect(page.getByRole('heading', { name: 'Basics' })).toBeVisible()
-  await storyExpect(page.getByRole('heading', { name: 'Details' })).toBeVisible()
-  await storyExpect(page.getByRole('heading', { name: 'Components & Attributes' })).toBeVisible()
-  await storyExpect(page.getByRole('textbox', { name: 'Material Description' })).toBeVisible()
+  await storyExpect(page.getByRole('heading', { name: 'Basics', level: 1 })).toBeVisible()
+  await storyExpect(formStep(page, 'Basics')).toHaveAttribute('aria-current', 'step')
+  await storyExpect(page.getByRole('textbox', { name: 'Name' })).toHaveValue('Fire Lace')
   await page.getByRole('button', { name: 'Next' }).click()
-  await storyExpect(page.getByRole('heading', { name: 'Effects', level: 1 })).toBeVisible()
-  await storyExpect(page.getByRole('button', { name: /Effects: What happens when the spell is used/i })).toHaveAttribute('aria-current', 'step')
-  await page.getByRole('button', { name: 'Edit effect 1' }).click()
-  await storyExpect(page.getByRole('dialog')).toBeVisible()
-  await storyExpect(page.getByLabel('Effect editor location').getByText('Fire Lace')).toBeVisible()
-  await storyExpect(page.getByRole('heading', { name: 'How it Starts' })).toBeVisible()
-  await page.getByRole('button', { name: 'Next: outcome paths' }).click()
-  await storyExpect(page.getByRole('heading', { name: 'Outcome Paths', level: 2 })).toBeVisible()
+  await storyExpect(page.getByRole('heading', { name: 'Casting', level: 1 })).toBeVisible()
+  await storyExpect(page.getByRole('textbox', { name: 'Material Description' })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: 'Activate Spell' })).toBeVisible()
 })

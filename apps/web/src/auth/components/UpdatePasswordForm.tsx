@@ -1,6 +1,6 @@
-import { type FormEvent, useState } from 'react'
+import { type SubmitEvent, useState } from 'react'
 import { Button, PasswordInput } from '@mantine/core'
-import { Link } from '#app/ui/primitives/Link/Link'
+import { Link } from '#ui/primitives/Link'
 import { browserAuthClient } from '../authClient'
 import {
   authButton,
@@ -24,9 +24,9 @@ export function UpdatePasswordForm({ authClient = browserAuthClient, onSuccess }
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [feedback, setFeedback] = useState<{ tone: 'error' | 'success'; message: string } | null>(null)
+  const [feedback, setFeedback] = useState<{ tone: 'error' | 'success', message: string } | null>(null)
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
     setFeedback(null)
 

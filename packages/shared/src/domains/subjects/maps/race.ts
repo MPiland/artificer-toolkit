@@ -22,7 +22,7 @@ const RACE_SECTIONS = {
 
 const detailNode = buildNodeMap<DetailAuthored>()
 
-const DETAIL_NODE_MAP = detailNode.define('raceDetail', ({ map, nodes }) => {
+export const RACE_DETAIL_NODE_MAP = detailNode.define('raceDetail', ({ map, nodes }) => {
   const { text, number } = nodes
 
   map
@@ -87,7 +87,7 @@ export const RACE_NODE_MAP = raceNode.define('race', ({ map, nodes, cond, data, 
       showIf: isBaseRace,
       hiddenBehavior: 'CLEAR'
     }))
-    .set('details', groupArray(['details'], 'Details', () => DETAIL_NODE_MAP, { section: RACE_SECTIONS.traits, order: 10 }))
+    .set('details', groupArray(['details'], 'Details', () => RACE_DETAIL_NODE_MAP, { section: RACE_SECTIONS.traits, order: 10 }))
     .set('features', groupArray(['features'], 'Features', () => FEATURE_NODE_MAP, { section: RACE_SECTIONS.features, order: 10 }))
     .set('userId', text(['userId'], 'User ID'))
     .set('systemId', text(['systemId'], 'System ID'))

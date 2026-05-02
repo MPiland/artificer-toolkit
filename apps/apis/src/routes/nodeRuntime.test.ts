@@ -27,19 +27,24 @@ const functionsMock = vi.hoisted(() => ({
   ): Promise<NodeRuntimeResolveResponseDto> => ({
     mapId: request.mapId,
     clearPaths: [],
-    sections: [{
+    steps: [{
       id: 'basics',
       label: 'Basics',
       order: 10,
-      nodes: [{
-        id: 'label',
-        path: ['label'],
-        label: 'Name',
-        kind: 'INPUT',
-        type: 'TEXT',
-        visible: true,
-        required: false,
-        clearPaths: []
+      sections: [{
+        id: 'basics',
+        label: 'Basics',
+        order: 10,
+        nodes: [{
+          id: 'label',
+          path: ['label'],
+          label: 'Name',
+          kind: 'INPUT',
+          type: 'TEXT',
+          visible: true,
+          required: false,
+          clearPaths: []
+        }]
       }]
     }]
   })),

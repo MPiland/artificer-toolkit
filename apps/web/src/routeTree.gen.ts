@@ -14,16 +14,19 @@ import { Route as GuestRouteImport } from './routes/_guest'
 import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as GuestIndexRouteImport } from './routes/_guest/index'
 import { Route as GuestAuthRouteImport } from './routes/_guest/_auth'
+import { Route as AuthedVehiclesIndexRouteImport } from './routes/_authed/vehicles/index'
 import { Route as AuthedSpellsIndexRouteImport } from './routes/_authed/spells/index'
 import { Route as AuthedRacesIndexRouteImport } from './routes/_authed/races/index'
 import { Route as AuthedHomeIndexRouteImport } from './routes/_authed/home/index'
 import { Route as AuthedFeatsIndexRouteImport } from './routes/_authed/feats/index'
 import { Route as AuthedEquipmentIndexRouteImport } from './routes/_authed/equipment/index'
+import { Route as AuthedCreaturesIndexRouteImport } from './routes/_authed/creatures/index'
 import { Route as AuthedBackgroundsIndexRouteImport } from './routes/_authed/backgrounds/index'
 import { Route as GuestAuthUpdatePasswordRouteImport } from './routes/_guest/_auth/update-password'
 import { Route as GuestAuthSignUpRouteImport } from './routes/_guest/_auth/sign-up'
 import { Route as GuestAuthSignInRouteImport } from './routes/_guest/_auth/sign-in'
 import { Route as GuestAuthResetPasswordRouteImport } from './routes/_guest/_auth/reset-password'
+import { Route as AuthedVehiclesNewRouteImport } from './routes/_authed/vehicles/new'
 import { Route as AuthedSpellsNewRouteImport } from './routes/_authed/spells/new'
 import { Route as AuthedSpellsSpellIdRouteImport } from './routes/_authed/spells/$spellId'
 import { Route as AuthedRacesNewRouteImport } from './routes/_authed/races/new'
@@ -31,19 +34,24 @@ import { Route as AuthedRacesRaceIdRouteImport } from './routes/_authed/races/$r
 import { Route as AuthedFeatsNewRouteImport } from './routes/_authed/feats/new'
 import { Route as AuthedFeatsFeatIdRouteImport } from './routes/_authed/feats/$featId'
 import { Route as AuthedEquipmentNewRouteImport } from './routes/_authed/equipment/new'
-import { Route as AuthedEquipmentEquipmentIdRouteImport } from './routes/_authed/equipment/$equipmentId'
+import { Route as AuthedCreaturesNewRouteImport } from './routes/_authed/creatures/new'
+import { Route as AuthedCreaturesCreatureIdRouteImport } from './routes/_authed/creatures/$creatureId'
 import { Route as AuthedBackgroundsNewRouteImport } from './routes/_authed/backgrounds/new'
 import { Route as AuthedBackgroundsBackgroundIdRouteImport } from './routes/_authed/backgrounds/$backgroundId'
+import { Route as AuthedVehiclesVehicleIdIndexRouteImport } from './routes/_authed/vehicles/$vehicleId/index'
 import { Route as AuthedSpellsSpellIdIndexRouteImport } from './routes/_authed/spells/$spellId/index'
 import { Route as AuthedRacesRaceIdIndexRouteImport } from './routes/_authed/races/$raceId/index'
 import { Route as AuthedFeatsFeatIdIndexRouteImport } from './routes/_authed/feats/$featId/index'
 import { Route as AuthedEquipmentEquipmentIdIndexRouteImport } from './routes/_authed/equipment/$equipmentId/index'
+import { Route as AuthedCreaturesCreatureIdIndexRouteImport } from './routes/_authed/creatures/$creatureId/index'
 import { Route as AuthedBackgroundsBackgroundIdIndexRouteImport } from './routes/_authed/backgrounds/$backgroundId/index'
 import { Route as GuestAuthAuthConfirmedRouteImport } from './routes/_guest/_auth/auth.confirmed'
+import { Route as AuthedVehiclesVehicleIdEditRouteImport } from './routes/_authed/vehicles/$vehicleId/edit'
 import { Route as AuthedSpellsSpellIdEditRouteImport } from './routes/_authed/spells/$spellId/edit'
 import { Route as AuthedRacesRaceIdEditRouteImport } from './routes/_authed/races/$raceId/edit'
 import { Route as AuthedFeatsFeatIdEditRouteImport } from './routes/_authed/feats/$featId/edit'
 import { Route as AuthedEquipmentEquipmentIdEditRouteImport } from './routes/_authed/equipment/$equipmentId/edit'
+import { Route as AuthedCreaturesCreatureIdEditRouteImport } from './routes/_authed/creatures/$creatureId/edit'
 import { Route as AuthedBackgroundsBackgroundIdEditRouteImport } from './routes/_authed/backgrounds/$backgroundId/edit'
 
 const LogoutRoute = LogoutRouteImport.update({
@@ -67,6 +75,11 @@ const GuestIndexRoute = GuestIndexRouteImport.update({
 const GuestAuthRoute = GuestAuthRouteImport.update({
   id: '/_auth',
   getParentRoute: () => GuestRoute,
+} as any)
+const AuthedVehiclesIndexRoute = AuthedVehiclesIndexRouteImport.update({
+  id: '/vehicles/',
+  path: '/vehicles/',
+  getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedSpellsIndexRoute = AuthedSpellsIndexRouteImport.update({
   id: '/spells/',
@@ -93,6 +106,11 @@ const AuthedEquipmentIndexRoute = AuthedEquipmentIndexRouteImport.update({
   path: '/equipment/',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedCreaturesIndexRoute = AuthedCreaturesIndexRouteImport.update({
+  id: '/creatures/',
+  path: '/creatures/',
+  getParentRoute: () => AuthedRoute,
+} as any)
 const AuthedBackgroundsIndexRoute = AuthedBackgroundsIndexRouteImport.update({
   id: '/backgrounds/',
   path: '/backgrounds/',
@@ -117,6 +135,11 @@ const GuestAuthResetPasswordRoute = GuestAuthResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
   getParentRoute: () => GuestAuthRoute,
+} as any)
+const AuthedVehiclesNewRoute = AuthedVehiclesNewRouteImport.update({
+  id: '/vehicles/new',
+  path: '/vehicles/new',
+  getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedSpellsNewRoute = AuthedSpellsNewRouteImport.update({
   id: '/spells/new',
@@ -153,10 +176,15 @@ const AuthedEquipmentNewRoute = AuthedEquipmentNewRouteImport.update({
   path: '/equipment/new',
   getParentRoute: () => AuthedRoute,
 } as any)
-const AuthedEquipmentEquipmentIdRoute =
-  AuthedEquipmentEquipmentIdRouteImport.update({
-    id: '/equipment/$equipmentId',
-    path: '/equipment/$equipmentId',
+const AuthedCreaturesNewRoute = AuthedCreaturesNewRouteImport.update({
+  id: '/creatures/new',
+  path: '/creatures/new',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedCreaturesCreatureIdRoute =
+  AuthedCreaturesCreatureIdRouteImport.update({
+    id: '/creatures/$creatureId',
+    path: '/creatures/$creatureId',
     getParentRoute: () => AuthedRoute,
   } as any)
 const AuthedBackgroundsNewRoute = AuthedBackgroundsNewRouteImport.update({
@@ -168,6 +196,12 @@ const AuthedBackgroundsBackgroundIdRoute =
   AuthedBackgroundsBackgroundIdRouteImport.update({
     id: '/backgrounds/$backgroundId',
     path: '/backgrounds/$backgroundId',
+    getParentRoute: () => AuthedRoute,
+  } as any)
+const AuthedVehiclesVehicleIdIndexRoute =
+  AuthedVehiclesVehicleIdIndexRouteImport.update({
+    id: '/vehicles/$vehicleId/',
+    path: '/vehicles/$vehicleId/',
     getParentRoute: () => AuthedRoute,
   } as any)
 const AuthedSpellsSpellIdIndexRoute =
@@ -188,9 +222,15 @@ const AuthedFeatsFeatIdIndexRoute = AuthedFeatsFeatIdIndexRouteImport.update({
 } as any)
 const AuthedEquipmentEquipmentIdIndexRoute =
   AuthedEquipmentEquipmentIdIndexRouteImport.update({
+    id: '/equipment/$equipmentId/',
+    path: '/equipment/$equipmentId/',
+    getParentRoute: () => AuthedRoute,
+  } as any)
+const AuthedCreaturesCreatureIdIndexRoute =
+  AuthedCreaturesCreatureIdIndexRouteImport.update({
     id: '/',
     path: '/',
-    getParentRoute: () => AuthedEquipmentEquipmentIdRoute,
+    getParentRoute: () => AuthedCreaturesCreatureIdRoute,
   } as any)
 const AuthedBackgroundsBackgroundIdIndexRoute =
   AuthedBackgroundsBackgroundIdIndexRouteImport.update({
@@ -203,6 +243,12 @@ const GuestAuthAuthConfirmedRoute = GuestAuthAuthConfirmedRouteImport.update({
   path: '/auth/confirmed',
   getParentRoute: () => GuestAuthRoute,
 } as any)
+const AuthedVehiclesVehicleIdEditRoute =
+  AuthedVehiclesVehicleIdEditRouteImport.update({
+    id: '/vehicles/$vehicleId/edit',
+    path: '/vehicles/$vehicleId/edit',
+    getParentRoute: () => AuthedRoute,
+  } as any)
 const AuthedSpellsSpellIdEditRoute = AuthedSpellsSpellIdEditRouteImport.update({
   id: '/edit',
   path: '/edit',
@@ -220,9 +266,15 @@ const AuthedFeatsFeatIdEditRoute = AuthedFeatsFeatIdEditRouteImport.update({
 } as any)
 const AuthedEquipmentEquipmentIdEditRoute =
   AuthedEquipmentEquipmentIdEditRouteImport.update({
+    id: '/equipment/$equipmentId/edit',
+    path: '/equipment/$equipmentId/edit',
+    getParentRoute: () => AuthedRoute,
+  } as any)
+const AuthedCreaturesCreatureIdEditRoute =
+  AuthedCreaturesCreatureIdEditRouteImport.update({
     id: '/edit',
     path: '/edit',
-    getParentRoute: () => AuthedEquipmentEquipmentIdRoute,
+    getParentRoute: () => AuthedCreaturesCreatureIdRoute,
   } as any)
 const AuthedBackgroundsBackgroundIdEditRoute =
   AuthedBackgroundsBackgroundIdEditRouteImport.update({
@@ -236,7 +288,8 @@ export interface FileRoutesByFullPath {
   '/logout': typeof LogoutRoute
   '/backgrounds/$backgroundId': typeof AuthedBackgroundsBackgroundIdRouteWithChildren
   '/backgrounds/new': typeof AuthedBackgroundsNewRoute
-  '/equipment/$equipmentId': typeof AuthedEquipmentEquipmentIdRouteWithChildren
+  '/creatures/$creatureId': typeof AuthedCreaturesCreatureIdRouteWithChildren
+  '/creatures/new': typeof AuthedCreaturesNewRoute
   '/equipment/new': typeof AuthedEquipmentNewRoute
   '/feats/$featId': typeof AuthedFeatsFeatIdRouteWithChildren
   '/feats/new': typeof AuthedFeatsNewRoute
@@ -244,57 +297,72 @@ export interface FileRoutesByFullPath {
   '/races/new': typeof AuthedRacesNewRoute
   '/spells/$spellId': typeof AuthedSpellsSpellIdRouteWithChildren
   '/spells/new': typeof AuthedSpellsNewRoute
+  '/vehicles/new': typeof AuthedVehiclesNewRoute
   '/reset-password': typeof GuestAuthResetPasswordRoute
   '/sign-in': typeof GuestAuthSignInRoute
   '/sign-up': typeof GuestAuthSignUpRoute
   '/update-password': typeof GuestAuthUpdatePasswordRoute
   '/backgrounds/': typeof AuthedBackgroundsIndexRoute
+  '/creatures/': typeof AuthedCreaturesIndexRoute
   '/equipment/': typeof AuthedEquipmentIndexRoute
   '/feats/': typeof AuthedFeatsIndexRoute
   '/home/': typeof AuthedHomeIndexRoute
   '/races/': typeof AuthedRacesIndexRoute
   '/spells/': typeof AuthedSpellsIndexRoute
+  '/vehicles/': typeof AuthedVehiclesIndexRoute
   '/backgrounds/$backgroundId/edit': typeof AuthedBackgroundsBackgroundIdEditRoute
+  '/creatures/$creatureId/edit': typeof AuthedCreaturesCreatureIdEditRoute
   '/equipment/$equipmentId/edit': typeof AuthedEquipmentEquipmentIdEditRoute
   '/feats/$featId/edit': typeof AuthedFeatsFeatIdEditRoute
   '/races/$raceId/edit': typeof AuthedRacesRaceIdEditRoute
   '/spells/$spellId/edit': typeof AuthedSpellsSpellIdEditRoute
+  '/vehicles/$vehicleId/edit': typeof AuthedVehiclesVehicleIdEditRoute
   '/auth/confirmed': typeof GuestAuthAuthConfirmedRoute
   '/backgrounds/$backgroundId/': typeof AuthedBackgroundsBackgroundIdIndexRoute
+  '/creatures/$creatureId/': typeof AuthedCreaturesCreatureIdIndexRoute
   '/equipment/$equipmentId/': typeof AuthedEquipmentEquipmentIdIndexRoute
   '/feats/$featId/': typeof AuthedFeatsFeatIdIndexRoute
   '/races/$raceId/': typeof AuthedRacesRaceIdIndexRoute
   '/spells/$spellId/': typeof AuthedSpellsSpellIdIndexRoute
+  '/vehicles/$vehicleId/': typeof AuthedVehiclesVehicleIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof GuestIndexRoute
   '/logout': typeof LogoutRoute
   '/backgrounds/new': typeof AuthedBackgroundsNewRoute
+  '/creatures/new': typeof AuthedCreaturesNewRoute
   '/equipment/new': typeof AuthedEquipmentNewRoute
   '/feats/new': typeof AuthedFeatsNewRoute
   '/races/new': typeof AuthedRacesNewRoute
   '/spells/new': typeof AuthedSpellsNewRoute
+  '/vehicles/new': typeof AuthedVehiclesNewRoute
   '/reset-password': typeof GuestAuthResetPasswordRoute
   '/sign-in': typeof GuestAuthSignInRoute
   '/sign-up': typeof GuestAuthSignUpRoute
   '/update-password': typeof GuestAuthUpdatePasswordRoute
   '/backgrounds': typeof AuthedBackgroundsIndexRoute
+  '/creatures': typeof AuthedCreaturesIndexRoute
   '/equipment': typeof AuthedEquipmentIndexRoute
   '/feats': typeof AuthedFeatsIndexRoute
   '/home': typeof AuthedHomeIndexRoute
   '/races': typeof AuthedRacesIndexRoute
   '/spells': typeof AuthedSpellsIndexRoute
+  '/vehicles': typeof AuthedVehiclesIndexRoute
   '/backgrounds/$backgroundId/edit': typeof AuthedBackgroundsBackgroundIdEditRoute
+  '/creatures/$creatureId/edit': typeof AuthedCreaturesCreatureIdEditRoute
   '/equipment/$equipmentId/edit': typeof AuthedEquipmentEquipmentIdEditRoute
   '/feats/$featId/edit': typeof AuthedFeatsFeatIdEditRoute
   '/races/$raceId/edit': typeof AuthedRacesRaceIdEditRoute
   '/spells/$spellId/edit': typeof AuthedSpellsSpellIdEditRoute
+  '/vehicles/$vehicleId/edit': typeof AuthedVehiclesVehicleIdEditRoute
   '/auth/confirmed': typeof GuestAuthAuthConfirmedRoute
   '/backgrounds/$backgroundId': typeof AuthedBackgroundsBackgroundIdIndexRoute
+  '/creatures/$creatureId': typeof AuthedCreaturesCreatureIdIndexRoute
   '/equipment/$equipmentId': typeof AuthedEquipmentEquipmentIdIndexRoute
   '/feats/$featId': typeof AuthedFeatsFeatIdIndexRoute
   '/races/$raceId': typeof AuthedRacesRaceIdIndexRoute
   '/spells/$spellId': typeof AuthedSpellsSpellIdIndexRoute
+  '/vehicles/$vehicleId': typeof AuthedVehiclesVehicleIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -305,7 +373,8 @@ export interface FileRoutesById {
   '/_guest/': typeof GuestIndexRoute
   '/_authed/backgrounds/$backgroundId': typeof AuthedBackgroundsBackgroundIdRouteWithChildren
   '/_authed/backgrounds/new': typeof AuthedBackgroundsNewRoute
-  '/_authed/equipment/$equipmentId': typeof AuthedEquipmentEquipmentIdRouteWithChildren
+  '/_authed/creatures/$creatureId': typeof AuthedCreaturesCreatureIdRouteWithChildren
+  '/_authed/creatures/new': typeof AuthedCreaturesNewRoute
   '/_authed/equipment/new': typeof AuthedEquipmentNewRoute
   '/_authed/feats/$featId': typeof AuthedFeatsFeatIdRouteWithChildren
   '/_authed/feats/new': typeof AuthedFeatsNewRoute
@@ -313,27 +382,34 @@ export interface FileRoutesById {
   '/_authed/races/new': typeof AuthedRacesNewRoute
   '/_authed/spells/$spellId': typeof AuthedSpellsSpellIdRouteWithChildren
   '/_authed/spells/new': typeof AuthedSpellsNewRoute
+  '/_authed/vehicles/new': typeof AuthedVehiclesNewRoute
   '/_guest/_auth/reset-password': typeof GuestAuthResetPasswordRoute
   '/_guest/_auth/sign-in': typeof GuestAuthSignInRoute
   '/_guest/_auth/sign-up': typeof GuestAuthSignUpRoute
   '/_guest/_auth/update-password': typeof GuestAuthUpdatePasswordRoute
   '/_authed/backgrounds/': typeof AuthedBackgroundsIndexRoute
+  '/_authed/creatures/': typeof AuthedCreaturesIndexRoute
   '/_authed/equipment/': typeof AuthedEquipmentIndexRoute
   '/_authed/feats/': typeof AuthedFeatsIndexRoute
   '/_authed/home/': typeof AuthedHomeIndexRoute
   '/_authed/races/': typeof AuthedRacesIndexRoute
   '/_authed/spells/': typeof AuthedSpellsIndexRoute
+  '/_authed/vehicles/': typeof AuthedVehiclesIndexRoute
   '/_authed/backgrounds/$backgroundId/edit': typeof AuthedBackgroundsBackgroundIdEditRoute
+  '/_authed/creatures/$creatureId/edit': typeof AuthedCreaturesCreatureIdEditRoute
   '/_authed/equipment/$equipmentId/edit': typeof AuthedEquipmentEquipmentIdEditRoute
   '/_authed/feats/$featId/edit': typeof AuthedFeatsFeatIdEditRoute
   '/_authed/races/$raceId/edit': typeof AuthedRacesRaceIdEditRoute
   '/_authed/spells/$spellId/edit': typeof AuthedSpellsSpellIdEditRoute
+  '/_authed/vehicles/$vehicleId/edit': typeof AuthedVehiclesVehicleIdEditRoute
   '/_guest/_auth/auth/confirmed': typeof GuestAuthAuthConfirmedRoute
   '/_authed/backgrounds/$backgroundId/': typeof AuthedBackgroundsBackgroundIdIndexRoute
+  '/_authed/creatures/$creatureId/': typeof AuthedCreaturesCreatureIdIndexRoute
   '/_authed/equipment/$equipmentId/': typeof AuthedEquipmentEquipmentIdIndexRoute
   '/_authed/feats/$featId/': typeof AuthedFeatsFeatIdIndexRoute
   '/_authed/races/$raceId/': typeof AuthedRacesRaceIdIndexRoute
   '/_authed/spells/$spellId/': typeof AuthedSpellsSpellIdIndexRoute
+  '/_authed/vehicles/$vehicleId/': typeof AuthedVehiclesVehicleIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -342,7 +418,8 @@ export interface FileRouteTypes {
     | '/logout'
     | '/backgrounds/$backgroundId'
     | '/backgrounds/new'
-    | '/equipment/$equipmentId'
+    | '/creatures/$creatureId'
+    | '/creatures/new'
     | '/equipment/new'
     | '/feats/$featId'
     | '/feats/new'
@@ -350,57 +427,72 @@ export interface FileRouteTypes {
     | '/races/new'
     | '/spells/$spellId'
     | '/spells/new'
+    | '/vehicles/new'
     | '/reset-password'
     | '/sign-in'
     | '/sign-up'
     | '/update-password'
     | '/backgrounds/'
+    | '/creatures/'
     | '/equipment/'
     | '/feats/'
     | '/home/'
     | '/races/'
     | '/spells/'
+    | '/vehicles/'
     | '/backgrounds/$backgroundId/edit'
+    | '/creatures/$creatureId/edit'
     | '/equipment/$equipmentId/edit'
     | '/feats/$featId/edit'
     | '/races/$raceId/edit'
     | '/spells/$spellId/edit'
+    | '/vehicles/$vehicleId/edit'
     | '/auth/confirmed'
     | '/backgrounds/$backgroundId/'
+    | '/creatures/$creatureId/'
     | '/equipment/$equipmentId/'
     | '/feats/$featId/'
     | '/races/$raceId/'
     | '/spells/$spellId/'
+    | '/vehicles/$vehicleId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/logout'
     | '/backgrounds/new'
+    | '/creatures/new'
     | '/equipment/new'
     | '/feats/new'
     | '/races/new'
     | '/spells/new'
+    | '/vehicles/new'
     | '/reset-password'
     | '/sign-in'
     | '/sign-up'
     | '/update-password'
     | '/backgrounds'
+    | '/creatures'
     | '/equipment'
     | '/feats'
     | '/home'
     | '/races'
     | '/spells'
+    | '/vehicles'
     | '/backgrounds/$backgroundId/edit'
+    | '/creatures/$creatureId/edit'
     | '/equipment/$equipmentId/edit'
     | '/feats/$featId/edit'
     | '/races/$raceId/edit'
     | '/spells/$spellId/edit'
+    | '/vehicles/$vehicleId/edit'
     | '/auth/confirmed'
     | '/backgrounds/$backgroundId'
+    | '/creatures/$creatureId'
     | '/equipment/$equipmentId'
     | '/feats/$featId'
     | '/races/$raceId'
     | '/spells/$spellId'
+    | '/vehicles/$vehicleId'
   id:
     | '__root__'
     | '/_authed'
@@ -410,7 +502,8 @@ export interface FileRouteTypes {
     | '/_guest/'
     | '/_authed/backgrounds/$backgroundId'
     | '/_authed/backgrounds/new'
-    | '/_authed/equipment/$equipmentId'
+    | '/_authed/creatures/$creatureId'
+    | '/_authed/creatures/new'
     | '/_authed/equipment/new'
     | '/_authed/feats/$featId'
     | '/_authed/feats/new'
@@ -418,27 +511,34 @@ export interface FileRouteTypes {
     | '/_authed/races/new'
     | '/_authed/spells/$spellId'
     | '/_authed/spells/new'
+    | '/_authed/vehicles/new'
     | '/_guest/_auth/reset-password'
     | '/_guest/_auth/sign-in'
     | '/_guest/_auth/sign-up'
     | '/_guest/_auth/update-password'
     | '/_authed/backgrounds/'
+    | '/_authed/creatures/'
     | '/_authed/equipment/'
     | '/_authed/feats/'
     | '/_authed/home/'
     | '/_authed/races/'
     | '/_authed/spells/'
+    | '/_authed/vehicles/'
     | '/_authed/backgrounds/$backgroundId/edit'
+    | '/_authed/creatures/$creatureId/edit'
     | '/_authed/equipment/$equipmentId/edit'
     | '/_authed/feats/$featId/edit'
     | '/_authed/races/$raceId/edit'
     | '/_authed/spells/$spellId/edit'
+    | '/_authed/vehicles/$vehicleId/edit'
     | '/_guest/_auth/auth/confirmed'
     | '/_authed/backgrounds/$backgroundId/'
+    | '/_authed/creatures/$creatureId/'
     | '/_authed/equipment/$equipmentId/'
     | '/_authed/feats/$featId/'
     | '/_authed/races/$raceId/'
     | '/_authed/spells/$spellId/'
+    | '/_authed/vehicles/$vehicleId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -484,6 +584,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GuestAuthRouteImport
       parentRoute: typeof GuestRoute
     }
+    '/_authed/vehicles/': {
+      id: '/_authed/vehicles/'
+      path: '/vehicles'
+      fullPath: '/vehicles/'
+      preLoaderRoute: typeof AuthedVehiclesIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_authed/spells/': {
       id: '/_authed/spells/'
       path: '/spells'
@@ -517,6 +624,13 @@ declare module '@tanstack/react-router' {
       path: '/equipment'
       fullPath: '/equipment/'
       preLoaderRoute: typeof AuthedEquipmentIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/creatures/': {
+      id: '/_authed/creatures/'
+      path: '/creatures'
+      fullPath: '/creatures/'
+      preLoaderRoute: typeof AuthedCreaturesIndexRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/backgrounds/': {
@@ -553,6 +667,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/reset-password'
       preLoaderRoute: typeof GuestAuthResetPasswordRouteImport
       parentRoute: typeof GuestAuthRoute
+    }
+    '/_authed/vehicles/new': {
+      id: '/_authed/vehicles/new'
+      path: '/vehicles/new'
+      fullPath: '/vehicles/new'
+      preLoaderRoute: typeof AuthedVehiclesNewRouteImport
+      parentRoute: typeof AuthedRoute
     }
     '/_authed/spells/new': {
       id: '/_authed/spells/new'
@@ -603,11 +724,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedEquipmentNewRouteImport
       parentRoute: typeof AuthedRoute
     }
-    '/_authed/equipment/$equipmentId': {
-      id: '/_authed/equipment/$equipmentId'
-      path: '/equipment/$equipmentId'
-      fullPath: '/equipment/$equipmentId'
-      preLoaderRoute: typeof AuthedEquipmentEquipmentIdRouteImport
+    '/_authed/creatures/new': {
+      id: '/_authed/creatures/new'
+      path: '/creatures/new'
+      fullPath: '/creatures/new'
+      preLoaderRoute: typeof AuthedCreaturesNewRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/creatures/$creatureId': {
+      id: '/_authed/creatures/$creatureId'
+      path: '/creatures/$creatureId'
+      fullPath: '/creatures/$creatureId'
+      preLoaderRoute: typeof AuthedCreaturesCreatureIdRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/backgrounds/new': {
@@ -622,6 +750,13 @@ declare module '@tanstack/react-router' {
       path: '/backgrounds/$backgroundId'
       fullPath: '/backgrounds/$backgroundId'
       preLoaderRoute: typeof AuthedBackgroundsBackgroundIdRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/vehicles/$vehicleId/': {
+      id: '/_authed/vehicles/$vehicleId/'
+      path: '/vehicles/$vehicleId'
+      fullPath: '/vehicles/$vehicleId/'
+      preLoaderRoute: typeof AuthedVehiclesVehicleIdIndexRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/spells/$spellId/': {
@@ -647,10 +782,17 @@ declare module '@tanstack/react-router' {
     }
     '/_authed/equipment/$equipmentId/': {
       id: '/_authed/equipment/$equipmentId/'
-      path: '/'
+      path: '/equipment/$equipmentId'
       fullPath: '/equipment/$equipmentId/'
       preLoaderRoute: typeof AuthedEquipmentEquipmentIdIndexRouteImport
-      parentRoute: typeof AuthedEquipmentEquipmentIdRoute
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/creatures/$creatureId/': {
+      id: '/_authed/creatures/$creatureId/'
+      path: '/'
+      fullPath: '/creatures/$creatureId/'
+      preLoaderRoute: typeof AuthedCreaturesCreatureIdIndexRouteImport
+      parentRoute: typeof AuthedCreaturesCreatureIdRoute
     }
     '/_authed/backgrounds/$backgroundId/': {
       id: '/_authed/backgrounds/$backgroundId/'
@@ -665,6 +807,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth/confirmed'
       preLoaderRoute: typeof GuestAuthAuthConfirmedRouteImport
       parentRoute: typeof GuestAuthRoute
+    }
+    '/_authed/vehicles/$vehicleId/edit': {
+      id: '/_authed/vehicles/$vehicleId/edit'
+      path: '/vehicles/$vehicleId/edit'
+      fullPath: '/vehicles/$vehicleId/edit'
+      preLoaderRoute: typeof AuthedVehiclesVehicleIdEditRouteImport
+      parentRoute: typeof AuthedRoute
     }
     '/_authed/spells/$spellId/edit': {
       id: '/_authed/spells/$spellId/edit'
@@ -689,10 +838,17 @@ declare module '@tanstack/react-router' {
     }
     '/_authed/equipment/$equipmentId/edit': {
       id: '/_authed/equipment/$equipmentId/edit'
-      path: '/edit'
+      path: '/equipment/$equipmentId/edit'
       fullPath: '/equipment/$equipmentId/edit'
       preLoaderRoute: typeof AuthedEquipmentEquipmentIdEditRouteImport
-      parentRoute: typeof AuthedEquipmentEquipmentIdRoute
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/creatures/$creatureId/edit': {
+      id: '/_authed/creatures/$creatureId/edit'
+      path: '/edit'
+      fullPath: '/creatures/$creatureId/edit'
+      preLoaderRoute: typeof AuthedCreaturesCreatureIdEditRouteImport
+      parentRoute: typeof AuthedCreaturesCreatureIdRoute
     }
     '/_authed/backgrounds/$backgroundId/edit': {
       id: '/_authed/backgrounds/$backgroundId/edit'
@@ -722,20 +878,20 @@ const AuthedBackgroundsBackgroundIdRouteWithChildren =
     AuthedBackgroundsBackgroundIdRouteChildren,
   )
 
-interface AuthedEquipmentEquipmentIdRouteChildren {
-  AuthedEquipmentEquipmentIdEditRoute: typeof AuthedEquipmentEquipmentIdEditRoute
-  AuthedEquipmentEquipmentIdIndexRoute: typeof AuthedEquipmentEquipmentIdIndexRoute
+interface AuthedCreaturesCreatureIdRouteChildren {
+  AuthedCreaturesCreatureIdEditRoute: typeof AuthedCreaturesCreatureIdEditRoute
+  AuthedCreaturesCreatureIdIndexRoute: typeof AuthedCreaturesCreatureIdIndexRoute
 }
 
-const AuthedEquipmentEquipmentIdRouteChildren: AuthedEquipmentEquipmentIdRouteChildren =
+const AuthedCreaturesCreatureIdRouteChildren: AuthedCreaturesCreatureIdRouteChildren =
   {
-    AuthedEquipmentEquipmentIdEditRoute: AuthedEquipmentEquipmentIdEditRoute,
-    AuthedEquipmentEquipmentIdIndexRoute: AuthedEquipmentEquipmentIdIndexRoute,
+    AuthedCreaturesCreatureIdEditRoute: AuthedCreaturesCreatureIdEditRoute,
+    AuthedCreaturesCreatureIdIndexRoute: AuthedCreaturesCreatureIdIndexRoute,
   }
 
-const AuthedEquipmentEquipmentIdRouteWithChildren =
-  AuthedEquipmentEquipmentIdRoute._addFileChildren(
-    AuthedEquipmentEquipmentIdRouteChildren,
+const AuthedCreaturesCreatureIdRouteWithChildren =
+  AuthedCreaturesCreatureIdRoute._addFileChildren(
+    AuthedCreaturesCreatureIdRouteChildren,
   )
 
 interface AuthedFeatsFeatIdRouteChildren {
@@ -780,7 +936,8 @@ const AuthedSpellsSpellIdRouteWithChildren =
 interface AuthedRouteChildren {
   AuthedBackgroundsBackgroundIdRoute: typeof AuthedBackgroundsBackgroundIdRouteWithChildren
   AuthedBackgroundsNewRoute: typeof AuthedBackgroundsNewRoute
-  AuthedEquipmentEquipmentIdRoute: typeof AuthedEquipmentEquipmentIdRouteWithChildren
+  AuthedCreaturesCreatureIdRoute: typeof AuthedCreaturesCreatureIdRouteWithChildren
+  AuthedCreaturesNewRoute: typeof AuthedCreaturesNewRoute
   AuthedEquipmentNewRoute: typeof AuthedEquipmentNewRoute
   AuthedFeatsFeatIdRoute: typeof AuthedFeatsFeatIdRouteWithChildren
   AuthedFeatsNewRoute: typeof AuthedFeatsNewRoute
@@ -788,19 +945,27 @@ interface AuthedRouteChildren {
   AuthedRacesNewRoute: typeof AuthedRacesNewRoute
   AuthedSpellsSpellIdRoute: typeof AuthedSpellsSpellIdRouteWithChildren
   AuthedSpellsNewRoute: typeof AuthedSpellsNewRoute
+  AuthedVehiclesNewRoute: typeof AuthedVehiclesNewRoute
   AuthedBackgroundsIndexRoute: typeof AuthedBackgroundsIndexRoute
+  AuthedCreaturesIndexRoute: typeof AuthedCreaturesIndexRoute
   AuthedEquipmentIndexRoute: typeof AuthedEquipmentIndexRoute
   AuthedFeatsIndexRoute: typeof AuthedFeatsIndexRoute
   AuthedHomeIndexRoute: typeof AuthedHomeIndexRoute
   AuthedRacesIndexRoute: typeof AuthedRacesIndexRoute
   AuthedSpellsIndexRoute: typeof AuthedSpellsIndexRoute
+  AuthedVehiclesIndexRoute: typeof AuthedVehiclesIndexRoute
+  AuthedEquipmentEquipmentIdEditRoute: typeof AuthedEquipmentEquipmentIdEditRoute
+  AuthedVehiclesVehicleIdEditRoute: typeof AuthedVehiclesVehicleIdEditRoute
+  AuthedEquipmentEquipmentIdIndexRoute: typeof AuthedEquipmentEquipmentIdIndexRoute
+  AuthedVehiclesVehicleIdIndexRoute: typeof AuthedVehiclesVehicleIdIndexRoute
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedBackgroundsBackgroundIdRoute:
     AuthedBackgroundsBackgroundIdRouteWithChildren,
   AuthedBackgroundsNewRoute: AuthedBackgroundsNewRoute,
-  AuthedEquipmentEquipmentIdRoute: AuthedEquipmentEquipmentIdRouteWithChildren,
+  AuthedCreaturesCreatureIdRoute: AuthedCreaturesCreatureIdRouteWithChildren,
+  AuthedCreaturesNewRoute: AuthedCreaturesNewRoute,
   AuthedEquipmentNewRoute: AuthedEquipmentNewRoute,
   AuthedFeatsFeatIdRoute: AuthedFeatsFeatIdRouteWithChildren,
   AuthedFeatsNewRoute: AuthedFeatsNewRoute,
@@ -808,12 +973,19 @@ const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedRacesNewRoute: AuthedRacesNewRoute,
   AuthedSpellsSpellIdRoute: AuthedSpellsSpellIdRouteWithChildren,
   AuthedSpellsNewRoute: AuthedSpellsNewRoute,
+  AuthedVehiclesNewRoute: AuthedVehiclesNewRoute,
   AuthedBackgroundsIndexRoute: AuthedBackgroundsIndexRoute,
+  AuthedCreaturesIndexRoute: AuthedCreaturesIndexRoute,
   AuthedEquipmentIndexRoute: AuthedEquipmentIndexRoute,
   AuthedFeatsIndexRoute: AuthedFeatsIndexRoute,
   AuthedHomeIndexRoute: AuthedHomeIndexRoute,
   AuthedRacesIndexRoute: AuthedRacesIndexRoute,
   AuthedSpellsIndexRoute: AuthedSpellsIndexRoute,
+  AuthedVehiclesIndexRoute: AuthedVehiclesIndexRoute,
+  AuthedEquipmentEquipmentIdEditRoute: AuthedEquipmentEquipmentIdEditRoute,
+  AuthedVehiclesVehicleIdEditRoute: AuthedVehiclesVehicleIdEditRoute,
+  AuthedEquipmentEquipmentIdIndexRoute: AuthedEquipmentEquipmentIdIndexRoute,
+  AuthedVehiclesVehicleIdIndexRoute: AuthedVehiclesVehicleIdIndexRoute,
 }
 
 const AuthedRouteWithChildren =
@@ -859,3 +1031,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}

@@ -27,6 +27,7 @@ export interface CreatureLegendaryProfile {
 }
 
 export interface CreatureLairProfile {
+  lairActions?: CreatureActionAuthored[]
   regionalEffects?: string[]
 }
 
@@ -62,7 +63,11 @@ export interface CreatureBaseAuthored {
   userId: string
   systemId: string
 
-  recordKind: CreatureRecordKindCode
+  /**
+   * Internal persistence compatibility only. Creature authoring is category-driven
+   * and should not expose stat-block/logistics choices in the UI.
+   */
+  recordKind?: CreatureRecordKindCode
   category: CreatureCategoryCode
   creatureTypeId?: string
   size?: SizeCode
@@ -70,12 +75,15 @@ export interface CreatureBaseAuthored {
   tags?: string[]
 
   speeds: SpeedAuthored[]
+  cost?: CostAuthored
+  carryingCapacity?: CapacityAuthored
+  logisticsNotes?: string[]
   mountProfile?: CreatureMountProfile
   companionProfile?: CreatureCompanionProfile
 }
 
-export interface StatBlockCreatureAuthored extends CreatureBaseAuthored {
-  recordKind: 'STAT_BLOCK'
+export interface CreatureAuthored extends CreatureBaseAuthored {
+  recordKind?: CreatureRecordKindCode
   creatureTypeId: string
   size: SizeCode
 
@@ -107,32 +115,10 @@ export interface StatBlockCreatureAuthored extends CreatureBaseAuthored {
   npcProfile?: CreatureNpcProfile
 }
 
-export interface LogisticsCreatureAuthored extends CreatureBaseAuthored {
-  recordKind: 'LOGISTICS'
-
-  cost?: CostAuthored
-  carryingCapacity?: CapacityAuthored
-  logisticsNotes?: string[]
-
-  abilityScores?: never
-  armorClass?: never
-  armorClassNote?: never
-  hitPoints?: never
-  hitDice?: never
-  senses?: never
-  passivePerception?: never
-  damageVulnerabilities?: never
-  damageResistances?: never
-  damageImmunities?: never
-  conditionImmunities?: never
-  challengeRatingId?: never
-  xp?: never
-  actions?: never
-  bonusActions?: never
-  reactions?: never
-  legendaryProfile?: never
-  lairProfile?: never
-  npcProfile?: never
+export interface StatBlockCreatureAuthored extends CreatureAuthored {
+  recordKind?: 'STAT_BLOCK'
 }
 
-export type CreatureAuthored = StatBlockCreatureAuthored | LogisticsCreatureAuthored
+export interface LogisticsCreatureAuthored extends CreatureAuthored {
+  recordKind: 'LOGISTICS'
+}

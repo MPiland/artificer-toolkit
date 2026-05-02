@@ -1,13 +1,10 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { FeatDetailPage } from '#domains/feats'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/_authed/feats/$featId/')({
-  component: FeatViewRoute
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: '/feats/$featId/edit',
+      params: { featId: params.featId }
+    })
+  }
 })
-
-function FeatViewRoute() {
-  const { user } = Route.useRouteContext()
-  const { featId } = Route.useParams()
-
-  return <FeatDetailPage featId={featId} mode='view' userId={user?.id ?? 'unknown-user'} />
-}

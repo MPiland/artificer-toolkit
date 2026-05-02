@@ -22,6 +22,7 @@ import {
 } from '../api/nodeRuntime.js'
 import { resourceIdParamsDtoSchema, systemAuthoredDtoSchema, systemListResponseDtoSchema } from '../index.js'
 import { classAuthoredDtoSchema } from '../subjects/class.js'
+import { creatureAuthoredDtoSchema } from '../subjects/creature.js'
 import { featAuthoredDtoSchema } from '../subjects/feat.js'
 import { raceAuthoredDtoSchema } from '../subjects/race.js'
 import { spellAuthoredDtoSchema } from '../subjects/spell.js'
@@ -1649,6 +1650,46 @@ describe('schema package parsing', () => {
     expect(race.heritageIds).toEqual(['heritage-human', 'heritage-elven'])
   })
 
+  it('parses category-driven creatures with category-specific profile data', () => {
+    const creature = creatureAuthoredDtoSchema.parse({
+      id: 'river-hart',
+      label: 'River Hart',
+      description: 'A sure-footed beast trained for river crossings.',
+      quote: 'It lowers its antlers when the water rises.',
+      status: 'ACTIVE',
+      category: 'BEAST',
+      creatureTypeId: 'beast',
+      size: 'LARGE',
+      userId: 'user-1',
+      systemId: 'system-1',
+      abilityScores: {
+        STRENGTH: 18,
+        DEXTERITY: 14,
+        CONSTITUTION: 15,
+        INTELLIGENCE: 3,
+        WISDOM: 12,
+        CHARISMA: 7,
+        SPELLCASTING: 0
+      },
+      armorClass: 12,
+      hitPoints: 32,
+      speeds: [{ speedId: 'walk', amount: 50, unit: 'FEET' }],
+      actions: [{ id: 'gore', label: 'Gore', description: 'Melee weapon attack.' }],
+      cost: { amount: 75, currencyId: 'gold' },
+      carryingCapacity: { amount: 480, unit: 'POUNDS' },
+      logisticsNotes: ['Can carry a rider and light travel gear.'],
+      mountProfile: {
+        mountType: 'CONTROLLED',
+        riderCount: 1,
+        notes: 'Trained for shallow river crossings.'
+      }
+    })
+
+    expect(creature.category).toBe('BEAST')
+    expect(creature.mountProfile?.riderCount).toBe(1)
+    expect(creature.recordKind).toBe('STAT_BLOCK')
+  })
+
   it('parses authored content list and single-resource transport wrappers', () => {
     const list = backgroundListResponseDtoSchema.parse({
       items: [
@@ -1733,26 +1774,31 @@ describe('schema package parsing', () => {
     const response = nodeRuntimeResolveResponseDtoSchema.parse({
       mapId: 'startingEquipmentItem',
       clearPaths: [['equipmentIds']],
-      sections: [{
+      steps: [{
         id: 'basics',
         label: 'Basics',
         order: 10,
-        nodes: [{
-          id: 'equipmentIds',
-          path: ['equipmentIds'],
-          label: 'Equipment',
-          kind: 'INPUT',
-          type: 'SELECT_MULTI',
-          visible: true,
-          required: false,
-          clearPaths: [],
-          options: [{
-            value: 'longsword',
-            label: 'Longsword',
-            description: 'A martial melee weapon.',
-            disabled: false,
-            group: 'Weapons',
-            metadata: { category: 'WEAPON' }
+        sections: [{
+          id: 'basics',
+          label: 'Basics',
+          order: 10,
+          nodes: [{
+            id: 'equipmentIds',
+            path: ['equipmentIds'],
+            label: 'Equipment',
+            kind: 'INPUT',
+            type: 'SELECT_MULTI',
+            visible: true,
+            required: false,
+            clearPaths: [],
+            options: [{
+              value: 'longsword',
+              label: 'Longsword',
+              description: 'A martial melee weapon.',
+              disabled: false,
+              group: 'Weapons',
+              metadata: { category: 'WEAPON' }
+            }]
           }]
         }]
       }]
@@ -1760,7 +1806,7 @@ describe('schema package parsing', () => {
 
     const normalizeRequest = nodeRuntimeNormalizeValuesRequestDtoSchema.parse(request)
 
-    expect(response.sections[0]?.nodes[0]?.options?.[0]?.value).toBe('longsword')
+    expect(response.steps[0]?.sections[0]?.nodes[0]?.options?.[0]?.value).toBe('longsword')
     expect(normalizeRequest.mapId).toBe('startingEquipmentItem')
   })
 })

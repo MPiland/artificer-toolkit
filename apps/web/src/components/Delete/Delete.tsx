@@ -1,6 +1,6 @@
 import { use, useEffect, useState } from 'react'
 import { sprinkles } from '@css/sprinkles.css'
-import Modal, { ModalContext, type DeleteModalProps } from '@components/Modal'
+import Modal, { ModalContext, type DeleteModalProps } from '#ui/overlays/Modal'
 import { Group, Grid, TextInput, Button } from '@mantine/core'
 
 const Delete = () => {

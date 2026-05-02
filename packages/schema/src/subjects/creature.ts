@@ -3,7 +3,7 @@ import { detailDtoSchema, speedDtoSchema } from '../shared/index.js'
 import { featureDtoSchema } from '../features/index.js'
 import { proficiencyGrantDtoSchema } from '../grants/index.js'
 import { costDtoSchema } from './shared.js'
-import { authoredRecordStatusSchema } from '../shared/enums.js'
+import { authoredRecordStatusSchema, measurementUnitCodeSchema } from '../shared/enums.js'
 
 const creatureActionDtoSchema = z.object({
   id: z.string(),
@@ -16,8 +16,7 @@ const creatureActionDtoSchema = z.object({
 
 const creatureLegendaryProfileDtoSchema = z.object({
   legendaryResistanceCount: z.number().int().nonnegative().optional(),
-  actionsCount: z.number().int().positive(),
-  actions: z.array(creatureActionDtoSchema)
+  actionsCount: z.number().int().positive()
 })
 
 const creatureLairProfileDtoSchema = z.object({
@@ -45,7 +44,17 @@ const creatureNpcProfileDtoSchema = z.object({
   personalityTraits: z.array(z.string()).optional()
 })
 
-const creatureBaseSchema = z.object({
+const creatureAbilityScoresDtoSchema = z.object({
+  STRENGTH: z.number(),
+  DEXTERITY: z.number(),
+  CONSTITUTION: z.number(),
+  INTELLIGENCE: z.number(),
+  WISDOM: z.number(),
+  CHARISMA: z.number(),
+  SPELLCASTING: z.number()
+})
+
+const creatureAuthoredDtoSchemaBase = z.object({
   id: z.string(),
   label: z.string(),
   quote: z.string().optional(),
@@ -56,25 +65,18 @@ const creatureBaseSchema = z.object({
   proficiencies: z.array(proficiencyGrantDtoSchema).optional(),
   userId: z.string(),
   systemId: z.string(),
+  recordKind: z.enum(['STAT_BLOCK', 'LOGISTICS']).optional().default('STAT_BLOCK'),
   category: z.enum(['NPC', 'MONSTER', 'BEAST', 'COMPANION', 'SUMMON']),
-  creatureTypeId: z.string().optional(),
-  size: z.string().optional(),
-  alignmentId: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-  speeds: z.array(speedDtoSchema),
-  mountProfile: creatureMountProfileDtoSchema.optional(),
-  companionProfile: creatureCompanionProfileDtoSchema.optional()
-})
-
-const statBlockCreatureSchema = creatureBaseSchema.extend({
-  recordKind: z.literal('STAT_BLOCK'),
   creatureTypeId: z.string(),
   size: z.string(),
-  abilityScores: z.record(z.string(), z.number()),
+  alignmentId: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  abilityScores: creatureAbilityScoresDtoSchema,
   armorClass: z.number().int().nonnegative(),
   armorClassNote: z.string().optional(),
   hitPoints: z.number().int().nonnegative(),
   hitDice: z.string().optional(),
+  speeds: z.array(speedDtoSchema),
   senses: z.array(z.string()).optional(),
   passivePerception: z.number().optional(),
   damageVulnerabilities: z.array(z.string()).optional(),
@@ -88,24 +90,16 @@ const statBlockCreatureSchema = creatureBaseSchema.extend({
   reactions: z.array(creatureActionDtoSchema).optional(),
   legendaryProfile: creatureLegendaryProfileDtoSchema.optional(),
   lairProfile: creatureLairProfileDtoSchema.optional(),
-  npcProfile: creatureNpcProfileDtoSchema.optional()
-})
-
-const logisticsCreatureSchema = creatureBaseSchema.extend({
-  recordKind: z.literal('LOGISTICS'),
+  npcProfile: creatureNpcProfileDtoSchema.optional(),
   cost: costDtoSchema.optional(),
   carryingCapacity: z.object({
     amount: z.number(),
-    unit: z.string()
+    unit: measurementUnitCodeSchema
   }).optional(),
-  logisticsNotes: z.array(z.string()).optional()
+  logisticsNotes: z.array(z.string()).optional(),
+  mountProfile: creatureMountProfileDtoSchema.optional(),
+  companionProfile: creatureCompanionProfileDtoSchema.optional()
 })
 
-const creatureAuthoredDtoSchemaRaw: z.ZodTypeAny = z.discriminatedUnion('recordKind', [
-  statBlockCreatureSchema,
-  logisticsCreatureSchema
-])
-
-export type CreatureAuthoredDto = z.infer<typeof statBlockCreatureSchema> | z.infer<typeof logisticsCreatureSchema>
-const creatureAuthoredDtoSchemaBase: z.ZodTypeAny = creatureAuthoredDtoSchemaRaw
+export type CreatureAuthoredDto = z.infer<typeof creatureAuthoredDtoSchemaBase>
 export const creatureAuthoredDtoSchema = creatureAuthoredDtoSchemaBase

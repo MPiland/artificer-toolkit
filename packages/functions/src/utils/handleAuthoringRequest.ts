@@ -115,6 +115,13 @@ export function handleAuthoringRequest<TBody, TResult>(
         ])
       }
 
+      if (err instanceof Error && err.name === 'AuthoredContentOwnershipError') {
+        return new Response(
+          JSON.stringify({ error: err.message }),
+          { status: 403, headers: { 'Content-Type': 'application/json' } }
+        )
+      }
+
       console.error(err)
       return new Response('Internal Server Error', { status: 500 })
     }

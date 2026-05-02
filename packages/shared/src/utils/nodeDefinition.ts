@@ -1197,6 +1197,13 @@ export type NodeSectionSpec = {
   id: string
   label: string
   order: number
+  step?: NodeStepSpec
+}
+
+export type NodeStepSpec = {
+  id: string
+  label: string
+  order: number
 }
 
 export type NodeInput<NLocal extends object>

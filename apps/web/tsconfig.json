@@ -31,8 +31,20 @@
       "#lib/*": [
         "./src/lib/*"
       ],
+      "#forms": [
+        "./src/forms/index.ts"
+      ],
+      "#forms/*": [
+        "./src/forms/*"
+      ],
       "#components/*": [
         "./src/components/*"
+      ],
+      "#ui": [
+        "./src/ui/index.ts"
+      ],
+      "#ui/*": [
+        "./src/ui/*"
       ],
       "#domains/*": [
         "./src/domains/*"

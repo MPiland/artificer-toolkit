@@ -11,6 +11,7 @@ export type {
   NodeEntry,
   NodeId,
   NodeSectionSpec,
+  NodeStepSpec,
   NodeSelectSource,
   BuildNodeMap,
   EmptyObject,
