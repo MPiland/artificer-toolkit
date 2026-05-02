@@ -27,6 +27,7 @@ import {
 } from '#app/data/classes/mutations'
 import {
   normalizeClassForSubmit,
+  resolveClassEditReadOnly,
   toClassFormValues
 } from '../classAuthoring.utils'
 import { ClassAuthoringRenderer } from '../components/ClassAuthoringRenderer'
@@ -106,7 +107,10 @@ function ClassEditAuthoring({
   const draftMutation = useSaveClassDraftMutation()
   const duplicateMutation = useDuplicateClassMutation()
   const [formValues] = useState(() => toClassFormValues(classRecord))
-  const readOnly = permissions?.canEdit === false && !draft
+  const readOnly = resolveClassEditReadOnly({
+    canEdit: permissions?.canEdit,
+    hasActiveClass: Boolean(activeClass)
+  })
   const canCopy = Boolean(permissions?.canCopy && classId)
 
   const handleCancel = useCallback(async () => {

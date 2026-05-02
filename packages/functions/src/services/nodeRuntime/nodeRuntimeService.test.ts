@@ -113,6 +113,7 @@ describe('node runtime service', () => {
     ])
     expect(flattened.find((node) => node.id === 'parentClassId')).toMatchObject({
       visible: true,
+      required: true,
       options: [{ value: 'fighter', label: 'Fighter' }]
     })
     expect(flattened.find((node) => node.id === 'startingEquipment')).toMatchObject({

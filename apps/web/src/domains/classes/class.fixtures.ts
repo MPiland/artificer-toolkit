@@ -130,7 +130,7 @@ export function createClassRuntimeFixture(
                 { value: 'BASE', label: 'Base Class' },
                 { value: 'SUBCLASS', label: 'Subclass' }
               ], true),
-              selectNode('parentClassId', ['parentClassId'], 'Parent Class', [{ value: 'class-owned', label: 'Fighter' }], false, isSubclass)
+              selectNode('parentClassId', ['parentClassId'], 'Parent Class', [{ value: 'class-owned', label: 'Fighter' }], true, isSubclass)
             ]
           }
         ]

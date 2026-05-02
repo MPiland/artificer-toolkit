@@ -9,6 +9,7 @@ import {
 } from '#forms'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import {
+  createClassRuntimeFixture,
   classRuntimeFixture,
   masterSubclassResponseFixture,
   ownedClassResponseFixture
@@ -47,16 +48,31 @@ describe('ClassAuthoringRenderer', () => {
     expect(screen.getByRole('button', { name: /duplicate to edit/i })).toBeEnabled()
     expect(screen.getByRole('textbox', { name: /category/i })).toHaveAttribute('readonly')
   })
+
+  it('marks parent class as required when subclass fields are visible', () => {
+    renderClassAuthoringHarness({
+      classRecord: {
+        ...toClassFormValues(masterSubclassResponseFixture.item),
+        parentClassId: undefined
+      },
+      readOnly: false,
+      runtimeModel: createClassRuntimeFixture('SUBCLASS')
+    })
+
+    expect(screen.getByRole('textbox', { name: /parent class/i })).toBeRequired()
+  })
 })
 
 function renderClassAuthoringHarness({
   canCopy = false,
   classRecord,
-  readOnly
+  readOnly,
+  runtimeModel = classRuntimeFixture
 }: {
   canCopy?: boolean
   classRecord: ClassFormValues
   readOnly: boolean
+  runtimeModel?: typeof classRuntimeFixture
 }) {
   return renderWithAppProviders(
     <AuthoringFormProvider>
@@ -64,6 +80,7 @@ function renderClassAuthoringHarness({
         canCopy={canCopy}
         classRecord={classRecord}
         readOnly={readOnly}
+        runtimeModel={runtimeModel}
       />
     </AuthoringFormProvider>
   )
@@ -72,11 +89,13 @@ function renderClassAuthoringHarness({
 function ClassAuthoringTestHarness({
   canCopy,
   classRecord,
-  readOnly
+  readOnly,
+  runtimeModel
 }: {
   canCopy: boolean
   classRecord: ClassFormValues
   readOnly: boolean
+  runtimeModel: typeof classRuntimeFixture
 }) {
   const form = useAppForm({
     defaultValues: classRecord,
@@ -88,7 +107,7 @@ function ClassAuthoringTestHarness({
     canCopy,
     mapId: 'class',
     mode: readOnly ? 'view' : 'edit',
-    providedModel: classRuntimeFixture,
+    providedModel: runtimeModel,
     readOnly,
     resolveModel: false,
     subjectKindLabel: 'Class',

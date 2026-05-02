@@ -27,6 +27,11 @@ export interface CreateEmptyClassInput {
   systemId: string
 }
 
+export interface ResolveClassEditReadOnlyInput {
+  canEdit?: boolean
+  hasActiveClass: boolean
+}
+
 export function createEmptyClass({
   systemId
 }: CreateEmptyClassInput): ClassFormValues {
@@ -95,6 +100,13 @@ export function normalizeClassForSubmit(classRecord: ClassFormValues): ClassAuth
 
 export function resolveCreateClassSystemId(systems: readonly { id: string }[]): string | null {
   return systems[0]?.id ?? null
+}
+
+export function resolveClassEditReadOnly({
+  canEdit,
+  hasActiveClass
+}: ResolveClassEditReadOnlyInput): boolean {
+  return hasActiveClass && canEdit === false
 }
 
 export function createEmptyDetail(order: number): DetailDto {

@@ -6,6 +6,7 @@ import {
   createEmptyMulticlass,
   createEmptySpecialization,
   normalizeClassForSubmit,
+  resolveClassEditReadOnly,
   resolveCreateClassSystemId
 } from '../classAuthoring.utils'
 
@@ -82,5 +83,20 @@ describe('class authoring utilities', () => {
   it('requires a real system id for create mode', () => {
     expect(resolveCreateClassSystemId([{ id: 'system-1' }])).toBe('system-1')
     expect(resolveCreateClassSystemId([])).toBeNull()
+  })
+
+  it('keeps locked active classes read-only even when a draft row exists', () => {
+    expect(resolveClassEditReadOnly({
+      canEdit: false,
+      hasActiveClass: true
+    })).toBe(true)
+    expect(resolveClassEditReadOnly({
+      canEdit: false,
+      hasActiveClass: false
+    })).toBe(false)
+    expect(resolveClassEditReadOnly({
+      canEdit: true,
+      hasActiveClass: true
+    })).toBe(false)
   })
 })

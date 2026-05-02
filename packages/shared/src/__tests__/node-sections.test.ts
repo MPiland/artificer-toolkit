@@ -172,6 +172,14 @@ describe('node map sections', () => {
     expect(evaluateConditionIf(CLASS_NODE_MAP.nodes.parentClassId.showIf, {
       values: { category: 'SUBCLASS' }
     })).toBe(true)
+    expect(CLASS_NODE_MAP.nodes.parentClassId.kind).toBe('INPUT')
+    if (CLASS_NODE_MAP.nodes.parentClassId.kind === 'INPUT') {
+      const requiredIf = CLASS_NODE_MAP.nodes.parentClassId.requiredIf
+
+      expect(requiredIf === true || evaluateConditionIf(requiredIf, {
+        values: { category: 'SUBCLASS' }
+      })).toBe(true)
+    }
     expect(evaluateConditionIf(CLASS_NODE_MAP.nodes.startingEquipment.showIf, {
       values: { category: 'SUBCLASS' }
     })).toBe(false)

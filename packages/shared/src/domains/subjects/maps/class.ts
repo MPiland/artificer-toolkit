@@ -316,7 +316,8 @@ export const CLASS_NODE_MAP = classNode.define('class', ({ map, nodes, cond, dat
     }, {
       section: CLASS_SECTIONS.basics,
       order: 40,
-      showIf: isSubclass
+      showIf: isSubclass,
+      requiredIf: isSubclass
     }))
     .set('specializations', groupArray(['specializations'], 'Specializations', () => CLASS_SPECIALIZATION_NODE_MAP, {
       section: CLASS_SECTIONS.classDetails,
