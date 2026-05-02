@@ -51,7 +51,7 @@ function VehiclesRoute() {
       attributeColumns={vehicleListAttributeColumns}
       sortOptions={vehicleListSortOptions}
       onCreate={() => navigate({ to: '/vehicles/new' })}
-      onView={(item) => navigate({ to: '/vehicles/$vehicleId/edit', params: { vehicleId: item.id } })}
+      onView={(item) => navigate({ to: '/vehicles/$vehicleId', params: { vehicleId: item.id } })}
       onEdit={(item) => navigate({ to: '/vehicles/$vehicleId/edit', params: { vehicleId: item.id } })}
       onCopy={(item) => void handleDuplicate(item.id)}
     />

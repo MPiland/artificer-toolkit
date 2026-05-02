@@ -1,4 +1,5 @@
 import { Outlet, createFileRoute } from '@tanstack/react-router'
+import { ensureOptionalActiveContent } from '#app/data/optionalActiveContent'
 import { getSpell, getSpellDraft } from '#app/data/spells/queries'
 import { getSpellReferenceData } from '#app/data/spells/referenceData'
 import { createServerApi } from '#app/lib/api'
@@ -6,11 +7,15 @@ import { createServerApi } from '#app/lib/api'
 export const Route = createFileRoute('/_authed/spells/$spellId')({
   loader: async ({ context, params }) => {
     const client = createServerApi(context.accessToken)
-    await Promise.all([
-      context.queryClient.ensureQueryData(getSpell(params.spellId, client)),
-      context.queryClient.ensureQueryData(getSpellDraft(params.spellId, client)),
-      context.queryClient.ensureQueryData(getSpellReferenceData(client))
+    const activeSpellQuery = getSpell(params.spellId, client)
+    const [response, draft] = await Promise.all([
+      ensureOptionalActiveContent(context.queryClient, activeSpellQuery),
+      context.queryClient.ensureQueryData(getSpellDraft(params.spellId, client))
     ])
+
+    await context.queryClient.ensureQueryData(getSpellReferenceData(client))
+
+    return { draft, response }
   },
   component: SpellRoute
 })

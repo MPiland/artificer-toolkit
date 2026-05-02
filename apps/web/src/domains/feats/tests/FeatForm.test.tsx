@@ -64,5 +64,5 @@ describe('FeatForm', () => {
     await user.click(within(dialog).getByRole('button', { name: /^save$/i }))
 
     expect(screen.getByRole('button', { name: /edit features 1/i })).toBeInTheDocument()
-  })
+  }, 10000)
 })

@@ -53,7 +53,7 @@ function RacesRoute() {
       attributeColumns={raceListAttributeColumns}
       sortOptions={raceListSortOptions}
       onCreate={() => navigate({ to: '/races/new' })}
-      onView={(item) => navigate({ to: '/races/$raceId/edit', params: { raceId: item.id } })}
+      onView={(item) => navigate({ to: '/races/$raceId', params: { raceId: item.id } })}
       onEdit={(item) => navigate({ to: '/races/$raceId/edit', params: { raceId: item.id } })}
       onCopy={(item) => duplicateMutation.mutate(item.id)}
     />

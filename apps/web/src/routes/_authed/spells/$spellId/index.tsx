@@ -1,10 +1,14 @@
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute, getRouteApi } from '@tanstack/react-router'
+import { SpellDetailPage } from '#domains/spells/pages/SpellDetailPage'
 
 export const Route = createFileRoute('/_authed/spells/$spellId/')({
-  beforeLoad: ({ params }) => {
-    throw redirect({
-      to: '/spells/$spellId/edit',
-      params: { spellId: params.spellId }
-    })
-  }
+  component: SpellDetailRoute
 })
+
+function SpellDetailRoute() {
+  const parentRoute = getRouteApi('/_authed/spells/$spellId')
+  const { draft, response } = parentRoute.useLoaderData()
+  const { spellId } = parentRoute.useParams()
+
+  return <SpellDetailPage draft={draft} response={response} spellId={spellId} />
+}
