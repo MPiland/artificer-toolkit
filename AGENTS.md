@@ -33,7 +33,8 @@ Current default focus is Phase 9 frontend modernization.
 - 9.8.1 draft/form persistence correction: complete
 - 9.9 race implementation: complete
 - 9.10 equipment implementation: complete
-- 9.11 creature implementation: active
+- 9.11 creature implementation: implemented - ready for PR review
+- 9.12 vehicle implementation: active next
 
 Before starting a new frontend task, confirm the active tranche in [PHASE_9_CODE_OVERVIEW.md](/c:/Users/pilan/Desktop/artificer-toolkit/PHASE_9_CODE_OVERVIEW.md).
 
@@ -60,6 +61,7 @@ Before starting a new frontend task, confirm the active tranche in [PHASE_9_CODE
 - Preserve Mantine, vanilla-extract, TanStack Start, SSR where appropriate, and the existing CSS layer override model.
 - No bandaids. All code should be DRY and use best practices.
 - Pass work to sub agents as needed for efficiency and parallel work. Don't abuse sub agents. Use only as necessary when it would increase efficiency.
+- Do not blindly agree with my suggestions if they break best practices or don't make sense. Build for efficiency and correctness. Push back critically.
 
 ## Design Context
 
@@ -83,7 +85,8 @@ Current frontend posture:
 - 9.8.1 draft/form persistence correction is complete.
 - 9.9 race implementation is complete.
 - 9.10 equipment implementation is complete.
-- 9.11 creature implementation is the active tranche.
+- 9.11 creature implementation is implemented and ready for PR review.
+- 9.12 vehicle implementation is the active next tranche after 9.11 review/merge.
 
 Per-tranche expectations:
 
@@ -98,15 +101,30 @@ Phase 9 frontend code should use stable ownership folders instead of flat catch-
 
 - `apps/web/src/ui/primitives`: low-level reusable controls such as select, link, spinner, collapse, rich text, and theme toggle.
 - `apps/web/src/ui/overlays`: reusable modal, drawer, and overlay infrastructure.
-- `apps/web/src/components`: app-level reusable composites and patterns such as authored lists, authored forms, and effect editing.
+- `apps/web/src/components`: app-level reusable composites and patterns such as authored lists.
+- `apps/web/src/forms`: the canonical frontend authoring form platform, including app-form composition, field primitives, node-driven rendering, authoring layout, editor modal shell, validation, and hooks.
 - `apps/web/src/domains`: active rebuilt authored domains only.
 - `apps/web/src/auth`, `marketing`, `home`, and `shell`: top-level app features or app system areas.
 - `apps/web/src/data`: frontend API/query adapters by domain.
 - `apps/web/src/legacy`: quarantined provisional code and old route/domain/form implementations.
 
-Prefer colocated `components`, `hooks`, `utils`, `validation`, `stories`, and `tests` folders inside the owning feature or component package. Do not add new Phase 9 runtime hooks to the global `src/hooks` folder unless they are genuinely app-wide and not owned by a feature/runtime.
+Prefer colocated `components`, `hooks`, `utils`, `validation`, `stories`, and `tests` folders inside the owning feature or component package. For the form platform, use `apps/web/src/forms` as the canonical home and keep internal folders lowercase. Do not add new Phase 9 form hooks to the global `src/hooks` folder unless they are genuinely app-wide and not owned by a feature.
 
-Legacy compatibility pockets that remain outside `src/legacy` must be treated as retirement targets, not homes for new work. This currently includes the old global `src/hooks`, `src/store`, and legacy exports inside `components/Form`; active rebuilt Phase 9 code should prefer colocated runtime hooks and TanStack Form composition instead.
+Legacy compatibility pockets that remain outside `src/legacy` must be treated as retirement targets, not homes for new work. This currently includes the old global `src/hooks`, `src/store`, and legacy exports inside `components/Form`; active rebuilt Phase 9 code should prefer colocated form hooks, TanStack Form composition, and the new `src/forms` home instead.
+
+Active Phase 9 authored forms are node-driven:
+
+- Shared node maps plus backend node-runtime resolution define authored form `steps -> sections -> nodes`, including visibility, required state, options, hidden clearing, object groups, and array groups.
+- Only top-level domain form containers and isolated Storybook/test harnesses should call `useAppForm`.
+- Domain forms should stay thin: create the top-level TanStack form, load/save/activate through `apps/apis`, register authoring page state, and render `AuthoringFormLayout` plus a domain adapter created by `createAuthoringFormRenderer`.
+- The shared renderer maps resolved nodes directly to real `form.AppField` controls. Domain adapters should only provide default values and item/object factories. Do not add separate resolved-field wrappers, duplicate section shells, generic array/object wrappers, or "just in case" props.
+- Array/object group nodes should stay connected to TanStack Form state. Use TanStack field APIs directly in the renderer/editor path; do not create local Zustand draft state or nested local forms.
+- `AuthoringEditorModal` is the one fullscreen editor shell for resolved group nodes. Do not create domain-local modal/form resolver stacks.
+- Keep `ui/primitives` and `ui/overlays` as the canonical homes for primitive controls and overlay infrastructure. Do not add duplicate wrappers in `components`.
+- Authored detail pages are frozen until a Figma-backed read-only design exists. Direct authored `/:id` routes should redirect to `/:id/edit`, list view actions should navigate to edit, and new authored domains such as Vehicle should not add standalone detail pages until the deferred detail-page subplan is completed.
+- Remove the word `runtime` from frontend names unless the name refers to the backend/API node-runtime contract.
+- Component files should export React components only. Move helpers, constants, types, factories, and static models to separate non-component files to satisfy Fast Refresh.
+- Do not call hooks conditionally, define React components inside React components, pass fake TanStack form/field objects as props, or use `AnyFieldApi`, `any`, `as never`, unused exports, dead code, or compatibility aliases in active form code.
 
 ## Commands
 
@@ -134,7 +152,7 @@ Web workspace commands:
 ## Editing Guidance
 
 - Prefer focused edits over broad refactors.
-- Do not delete legacy code until the replacement route or runtime is actually live.
+- Do not keep legacy compatibility shims in active code when the replacement route or form path is live.
 - If you land architectural or phase-significant changes, update the relevant phase doc in the same change.
 - Preserve existing user changes in a dirty worktree unless explicitly asked to revert them.
 

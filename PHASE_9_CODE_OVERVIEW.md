@@ -40,6 +40,7 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
   - `Activate` writes complete normalized domain rows only after node-runtime normalization and strict validation.
   - editing an active record keeps the active normalized version live until activation succeeds.
   - GraphQL remains out of MVP transport.
+- Frontend form-platform code lives under `apps/web/src/forms`; reserve `runtime` for backend/API node-runtime contracts only.
 - Phase 9 web folders follow the locked taxonomy:
   - `ui/primitives` for low-level reusable controls
   - `ui/overlays` for modal/drawer/overlay infrastructure
@@ -49,6 +50,21 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
   - `data` for frontend API/query adapters
   - `legacy` for quarantined provisional code and old route/domain/form implementations
 - Remaining global legacy pockets such as `src/hooks`, `src/store`, and the old `components/Form` monolith are compatibility surfaces only. Do not add new Phase 9 logic there; retire or move them as the dependent legacy routes are replaced.
+- Rebuilt authored forms are node-driven:
+  - shared node maps plus backend node-runtime responses define `steps -> sections -> nodes`
+  - only top-level domain form containers and isolated Storybook/test harnesses should call `useAppForm`
+  - domain forms create the top-level TanStack form, load/save/activate through `apps/apis`, register authoring page state, and render `AuthoringFormLayout` plus a domain adapter created by `createAuthoringFormRenderer`
+  - the shared renderer maps resolved nodes directly to real `form.AppField` controls, while domain adapters only provide default values and item/object factories
+  - `AuthoringEditorModal` is the single fullscreen editor shell for resolved group nodes
+  - array/object groups stay connected to TanStack Form state and use TanStack field APIs directly
+  - do not add duplicate section shells, resolved-field wrappers, generic array/object wrappers, local nested forms, "just in case" props, compatibility aliases, or domain-local modal/form resolver stacks
+  - keep primitive controls in `ui/primitives` and overlays in `ui/overlays`, not duplicate wrappers in `components`
+- Authored detail pages are frozen until a Figma-backed read-only design exists:
+  - direct authored `/:id` URLs redirect to `/:id/edit`
+  - list view actions navigate to the edit route
+  - read-only authoring forms remain the temporary inspection surface for locked/master records
+  - future authored domains, including Vehicle, should not add active standalone detail pages without an approved detail design
+- Fast Refresh and React hooks rules are blockers for active form code: component files export components only, hooks are not conditional, components are not defined inside components, and active code does not use fake TanStack form/field casts, `AnyFieldApi`, `any`, or `as never`.
 - Supabase Auth must stay compatible with the hosted free-tier posture unless explicitly changed:
   - do not assume custom SMTP is configured
   - avoid UX that requires high-volume auth email delivery
@@ -78,7 +94,7 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
 2. Public shell, auth, and marketing
 3. Authenticated shell, navigation, and list patterns
 4. Frontend data runtime and API boundary cleanup
-5. Shared form runtime and node-map sections
+5. Shared form platform and node-map sections
 6. Authored domains in rollout order
 7. Character builder
 8. Character sheet
@@ -94,7 +110,7 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
 - Manual Storybook review accepted the public marketing and auth surfaces.
 - Phase 9.3 is complete: authenticated shell, navigation, Storybook autodocs, and canonical authored list patterns are accepted for the current checkpoint.
 - Phase 9.4 is complete: frontend data runtime, REST-first adapter, SSR query hydration, and provenance/editability contracts are accepted.
-- Phase 9.5 is complete: shared TanStack Form runtime, node-map sections, Mantine/Tiptap fields, section navigation, nested editor shells, and retained `form.AppField` ergonomics are accepted.
+- Phase 9.5 is complete: shared TanStack Form platform, node-map sections, Mantine/Tiptap fields, section navigation, nested editor shells, and retained `form.AppField` ergonomics are accepted.
 - Phase 9.6 is complete: Spell create/view/edit routes, REST-backed reference data, rebuilt Spell form, reusable full-screen EffectEditor, shared select controls, and authored form page-frame ownership are accepted.
 - Phase 9.6.1 is complete: shared node maps now have a trusted `packages/functions` + `apps/apis` runtime resolver path for conditional visibility, requiredness, hidden behavior, data-backed option sources, and relationship filters instead of repeating Spell-style hand-wired reference-data and partial web-local node resolution.
 - The 9.6.1 resolver exposes `POST /node-runtime/resolve` and `POST /node-runtime/normalize-values`, keeps relationship-plan execution server-side against a trusted map registry, and lets the web form runtime consume resolved section/node state and options through the Phase 9.4 adapter.
@@ -103,7 +119,11 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
 - Phase 9.8.1 is complete: authored draft/form persistence now uses the generic `authored_subject_drafts` sidecar for Spell, Background, and Feat, with activation preserving strict normalized saves.
 - Phase 9.9 is complete: Race routes, list, base-race form, subrace form, node-runtime metadata, draft sidecar persistence, category-aware filters, and Storybook/app validation are accepted on the Phase 9 stack.
 - Phase 9.10 is complete: Equipment routes, list, base equipment form, variant equipment form, node-runtime metadata, draft sidecar persistence, category-aware filters, nested restrictions/modifiers/charges/contents editors, locked-master behavior, and Storybook/app validation are accepted on the Phase 9 stack.
-- Phase 9.11 Creature is the active next tranche. Continue the current pattern: wire the domain end-to-end first, run impeccable critique/audit/polish at tranche closeout, and defer deeper real-world UI iteration until the full authored domain set is available for integrated testing.
+- Phase 9.11 is implemented and ready for PR review: Creature routes, list, category-driven forms, node-runtime metadata, draft sidecar persistence, category-aware filters, nested profile/action editors, locked-master behavior, and Storybook/app validation are on the Phase 9 stack.
+- A holistic authoring-form architecture cleanup is in progress before 9.12 so active authored forms use the canonical node-driven `steps -> sections -> nodes` renderer instead of domain-local wrapper stacks.
+- Authored detail pages are deferred: all active authored `/:id` routes should redirect to `/:id/edit` until [PHASE_9_AUTHORED_DETAIL_PAGES_DEFERRED_SUBPLAN.md](PHASE_9_AUTHORED_DETAIL_PAGES_DEFERRED_SUBPLAN.md) is completed with Figma-backed detail designs.
+- Phase 9.12 Vehicle is the active next tranche after 9.11 PR review/merge and the form architecture cleanup. Continue the current pattern: wire the domain end-to-end first, run impeccable critique/audit/polish at tranche closeout, and defer deeper real-world UI iteration until the full authored domain set is available for integrated testing.
+- Phase 9.11 validation passed `build:schema`, `build:shared`, `build:db`, `build:functions`, `build:apis`, `test:schema`, `test:shared`, focused API authored-content tests, focused Creature web tests, full web unit tests, app Playwright smoke, Storybook build, static Storybook Playwright, and focused Creature Storybook Playwright. `build:web` remains blocked only by documented legacy `src/utils` failures.
 - Phase 9.10 validation passed `build:schema`, `build:shared`, `build:functions`, `build:db`, `build:apis`, focused Equipment web tests, full web unit tests, app Playwright smoke, Storybook build, and Storybook Playwright smoke. `build:web` remains blocked only by documented legacy `src/utils` failures.
 - Phase 9.8.1 validation passed `build:schema`, `build:db`, `build:functions`, `build:apis`, `test:schema`, focused API draft tests, focused web adapter/domain tests, full web unit tests, and Storybook build. `build:web` remains blocked only by documented legacy `src/utils` failures; `test:db` remains blocked by pre-existing repository expectation drift outside the draft sidecar path.
 - Latest 9.8 implementation rebuilt Feat on the accepted stack: REST through `apps/apis`, SSR-aware TanStack Query helpers, shared authored list/form layouts, node-runtime-backed nested editors, reusable EffectEditor, locked-master duplicate-only behavior, and active `/feats` route coverage.
@@ -129,7 +149,7 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
 | 9.2 | [PHASE_9_2_PUBLIC_AUTH_AND_MARKETING_SUBPLAN.md](PHASE_9_2_PUBLIC_AUTH_AND_MARKETING_SUBPLAN.md) | Marketing page, logged-out shell, auth routes | Complete |
 | 9.3 | [PHASE_9_3_APP_SHELL_NAV_AND_LIST_PATTERNS_SUBPLAN.md](PHASE_9_3_APP_SHELL_NAV_AND_LIST_PATTERNS_SUBPLAN.md) | Authenticated shell, navigation, canonical list pattern | Complete |
 | 9.4 | [PHASE_9_4_FRONTEND_DATA_RUNTIME_SUBPLAN.md](PHASE_9_4_FRONTEND_DATA_RUNTIME_SUBPLAN.md) | REST-first adapter, SSR query hydration, provenance/editability | Complete |
-| 9.5 | [PHASE_9_5_SHARED_FORM_RUNTIME_SUBPLAN.md](PHASE_9_5_SHARED_FORM_RUNTIME_SUBPLAN.md) | TanStack Form runtime, node-map sections, field runtime | Complete |
+| 9.5 | [PHASE_9_5_SHARED_FORM_RUNTIME_SUBPLAN.md](PHASE_9_5_SHARED_FORM_RUNTIME_SUBPLAN.md) | TanStack Form platform, node-map sections, field composition | Complete |
 | 9.6 | [PHASE_9_6_CODE_SPELL_SUBPLAN.md](PHASE_9_6_CODE_SPELL_SUBPLAN.md) | Spell list and form implementation | Complete |
 | 9.6.1 | [PHASE_9_6_1_NODE_MAP_RESOLVER_SUBPLAN.md](PHASE_9_6_1_NODE_MAP_RESOLVER_SUBPLAN.md) | Trusted node-map runtime resolver and engine-backed form runtime correction | Complete |
 | 9.7 | [PHASE_9_7_CODE_BACKGROUND_SUBPLAN.md](PHASE_9_7_CODE_BACKGROUND_SUBPLAN.md) | Background list and form implementation | Complete |
@@ -137,8 +157,9 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
 | 9.8.1 | [PHASE_9_8_1_DRAFT_FORM_PERSISTENCE_SUBPLAN.md](PHASE_9_8_1_DRAFT_FORM_PERSISTENCE_SUBPLAN.md) | Draft sidecar persistence and activation correction | Complete |
 | 9.9 | [PHASE_9_9_CODE_RACE_SUBPLAN.md](PHASE_9_9_CODE_RACE_SUBPLAN.md) | Race list and form implementation | Complete |
 | 9.10 | [PHASE_9_10_CODE_EQUIPMENT_SUBPLAN.md](PHASE_9_10_CODE_EQUIPMENT_SUBPLAN.md) | Equipment list and form implementation | Complete |
-| 9.11 | [PHASE_9_11_CODE_CREATURE_SUBPLAN.md](PHASE_9_11_CODE_CREATURE_SUBPLAN.md) | Creature list and form implementation | Active |
-| 9.12 | [PHASE_9_12_CODE_VEHICLE_SUBPLAN.md](PHASE_9_12_CODE_VEHICLE_SUBPLAN.md) | Vehicle list and form implementation | Not Started |
+| 9.11 | [PHASE_9_11_CODE_CREATURE_SUBPLAN.md](PHASE_9_11_CODE_CREATURE_SUBPLAN.md) | Creature list and form implementation | Implemented - Ready for PR Review |
+| 9.x | [PHASE_9_AUTHORED_DETAIL_PAGES_DEFERRED_SUBPLAN.md](PHASE_9_AUTHORED_DETAIL_PAGES_DEFERRED_SUBPLAN.md) | Deferred authored detail page design and route unfreeze | Deferred |
+| 9.12 | [PHASE_9_12_CODE_VEHICLE_SUBPLAN.md](PHASE_9_12_CODE_VEHICLE_SUBPLAN.md) | Vehicle list and form implementation | Active Next |
 | 9.13 | [PHASE_9_13_CODE_CLASS_SUBPLAN.md](PHASE_9_13_CODE_CLASS_SUBPLAN.md) | Base class and subclass authoring implementation | Not Started |
 | 9.14 | [PHASE_9_14_CHARACTER_BUILDER_SUBPLAN.md](PHASE_9_14_CHARACTER_BUILDER_SUBPLAN.md) | Engine-backed builder implementation | Not Started |
 | 9.15 | [PHASE_9_15_CHARACTER_SHEET_SUBPLAN.md](PHASE_9_15_CHARACTER_SHEET_SUBPLAN.md) | Play-state character sheet implementation | Not Started |

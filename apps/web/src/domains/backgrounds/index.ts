@@ -1,3 +1,4 @@
-export { BackgroundCreatePage, BackgroundDetailPage } from './BackgroundFormPage'
-export { BackgroundForm } from './BackgroundForm'
+export { BackgroundCreatePage } from './pages/BackgroundCreatePage'
+export { BackgroundEditPage } from './pages/BackgroundEditPage'
+export { BackgroundForm } from './components/BackgroundForm'
 export * from './backgroundAuthoring.utils'

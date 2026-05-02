@@ -31,6 +31,32 @@ function requireSizeCode(creatureId: string, value?: string | null): CreatureAut
   return value as CreatureAuthored['size']
 }
 
+function hydrateAbilityScores(value: unknown): CreatureAuthored['abilityScores'] {
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    const scores = value as Partial<Record<keyof CreatureAuthored['abilityScores'], number>>
+
+    return {
+      STRENGTH: Number(scores.STRENGTH ?? 10),
+      DEXTERITY: Number(scores.DEXTERITY ?? 10),
+      CONSTITUTION: Number(scores.CONSTITUTION ?? 10),
+      INTELLIGENCE: Number(scores.INTELLIGENCE ?? 10),
+      WISDOM: Number(scores.WISDOM ?? 10),
+      CHARISMA: Number(scores.CHARISMA ?? 10),
+      SPELLCASTING: Number(scores.SPELLCASTING ?? 0),
+    }
+  }
+
+  return {
+    STRENGTH: 10,
+    DEXTERITY: 10,
+    CONSTITUTION: 10,
+    INTELLIGENCE: 10,
+    WISDOM: 10,
+    CHARISMA: 10,
+    SPELLCASTING: 0,
+  }
+}
+
 function requireMeasurementUnit(
   creatureId: string,
   speedId: string,
@@ -184,38 +210,16 @@ async function hydrateCreatureById(
     proficiencies: authoredProficiencies.length > 0 ? authoredProficiencies : undefined,
     userId: row.user_id,
     systemId: row.system_id,
-    recordKind: row.record_kind as CreatureAuthored['recordKind'],
+    recordKind: row.record_kind as NonNullable<CreatureAuthored['recordKind']>,
     category: row.category as CreatureAuthored['category'],
-    creatureTypeId: row.creature_type_id ?? undefined,
-    size: requireSizeCode(id, row.size_code),
+    creatureTypeId: row.creature_type_id ?? '',
+    size: requireSizeCode(id, row.size_code) ?? SIZE_CODE.MEDIUM,
     alignmentId: row.alignment_id ?? undefined,
     tags: row.tags ?? undefined,
     speeds: authoredSpeeds,
     mountProfile: row.mount_profile ? (row.mount_profile as unknown as CreatureMountProfile) : undefined,
     companionProfile: row.companion_profile ? (row.companion_profile as unknown as CreatureCompanionProfile) : undefined,
-  }
-
-  if (row.record_kind === 'LOGISTICS') {
-    return {
-      ...base,
-      recordKind: 'LOGISTICS',
-      cost: row.cost ? row.cost as never : undefined,
-      carryingCapacity: row.carrying_capacity_amount != null && row.carrying_capacity_unit
-        ? {
-            amount: Number(row.carrying_capacity_amount),
-            unit: row.carrying_capacity_unit as never
-          }
-        : undefined,
-      logisticsNotes: row.logistics_notes ?? undefined,
-    } as CreatureAuthored
-  }
-
-  return {
-    ...base,
-    recordKind: 'STAT_BLOCK',
-    creatureTypeId: row.creature_type_id ?? '',
-    size: requireLinkedRecord(requireSizeCode(id, row.size_code), `Creature "${id}" is missing size_code.`),
-    abilityScores: row.ability_scores as never,
+    abilityScores: hydrateAbilityScores(row.ability_scores),
     armorClass: Number(row.armor_class ?? 0),
     armorClassNote: row.armor_class_note ?? undefined,
     hitPoints: Number(row.hit_points ?? 0),
@@ -233,8 +237,18 @@ async function hydrateCreatureById(
     reactions: actionRows.filter((action) => action.action_type === 'REACTION').map(mapAction),
     legendaryProfile: row.legendary_profile ? (row.legendary_profile as unknown as CreatureLegendaryProfile) : undefined,
     lairProfile: row.lair_profile ? (row.lair_profile as unknown as CreatureLairProfile) : undefined,
-    npcProfile: row.npc_profile ? (row.npc_profile as unknown as CreatureNpcProfile) : undefined
-  } as CreatureAuthored
+    npcProfile: row.npc_profile ? (row.npc_profile as unknown as CreatureNpcProfile) : undefined,
+    cost: row.cost ? row.cost as unknown as CreatureAuthored['cost'] : undefined,
+    carryingCapacity: row.carrying_capacity_amount != null && row.carrying_capacity_unit
+      ? {
+          amount: Number(row.carrying_capacity_amount),
+          unit: requireMeasurementUnit(id, 'carryingCapacity', row.carrying_capacity_unit)
+        }
+      : undefined,
+    logisticsNotes: row.logistics_notes ?? undefined,
+  }
+
+  return base satisfies CreatureAuthored
 }
 
 export function createCreatureRepository(db: DBLike): CreatureRepository {

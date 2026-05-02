@@ -1,6 +1,6 @@
-import { type FormEvent, useState } from 'react'
+import { type SubmitEvent, useState } from 'react'
 import { Button, TextInput } from '@mantine/core'
-import { Link } from '#app/ui/primitives/Link/Link'
+import { Link } from '#ui/primitives/Link'
 import IArrowLeft from '#assets/icons/IArrowLeft'
 import { browserAuthClient } from '../authClient'
 import {
@@ -22,9 +22,9 @@ import { AuthFormProps } from './authForm.types'
 export function ResetPasswordForm({ authClient = browserAuthClient, onSuccess }: AuthFormProps) {
   const [email, setEmail] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [feedback, setFeedback] = useState<{ tone: 'error' | 'success'; message: string } | null>(null)
+  const [feedback, setFeedback] = useState<{ tone: 'error' | 'success', message: string } | null>(null)
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
     setIsSubmitting(true)
     setFeedback(null)

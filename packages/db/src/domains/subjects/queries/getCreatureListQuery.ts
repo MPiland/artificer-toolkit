@@ -6,6 +6,7 @@ interface CreatureListItem {
   label: string
   description: string | null
   status: string
+  category: string | null
   systemId: string
   details: unknown
   userId: string
@@ -33,6 +34,7 @@ export async function getCreatureListQuery(db: DBLike): Promise<{ items: Creatur
       'label',
       'description',
       'status',
+      'category',
       'system_id as systemId',
       'user_id as ownerUserId',
       'is_master as isMaster',

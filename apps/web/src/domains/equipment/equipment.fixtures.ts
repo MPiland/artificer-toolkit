@@ -2,8 +2,18 @@ import type {
   EquipmentAuthoredDto,
   EquipmentListResponseDto,
   EquipmentResponseDto,
-  NodeRuntimeResolveResponseDto
+  NodeRuntimeResolveResponseDto,
+  SystemListResponseDto
 } from '@artificer-toolkit/schema'
+
+export const systemListFixture: SystemListResponseDto = [
+  {
+    id: 'dnd-5e-srd',
+    label: 'Dungeons & Dragons 5e SRD',
+    description: 'Default system fixture for Equipment authoring stories and tests.',
+    userId: 'master'
+  }
+]
 
 export const ownedEquipmentFixture: EquipmentAuthoredDto = {
   kind: 'EQUIPMENT',
@@ -161,62 +171,83 @@ export const masterEquipmentResponseFixture: NonNullable<EquipmentResponseDto> =
 export const equipmentRuntimeFixture: NodeRuntimeResolveResponseDto = {
   mapId: 'equipment',
   clearPaths: [],
-  sections: [
+  steps: [
     {
       id: 'properties',
       label: 'Properties',
       order: 20,
-      nodes: [
-        selectNode('category', ['category'], 'Category', [
-          { value: 'WEAPON', label: 'Weapon' },
-          { value: 'ARMOR', label: 'Armor' },
-          { value: 'ADVENTURING_GEAR', label: 'Adventuring Gear' },
-          { value: 'TOOL', label: 'Tool' },
-          { value: 'SHIELD', label: 'Shield' },
-          { value: 'VARIANT', label: 'Variant' }
-        ], true),
-        selectNode('attributes', ['attributes'], 'Attributes', [
-          { value: 'LIMITED_USE', label: 'Limited Use' },
-          { value: 'STACKABLE', label: 'Stackable' }
-        ], false, 'SELECT_MULTI'),
-        selectNode('rarityId', ['rarityId'], 'Rarity', [
-          { value: 'common', label: 'Common' },
-          { value: 'uncommon', label: 'Uncommon' }
-        ], true),
-        selectNode('parentEquipmentId', ['parentEquipmentId'], 'Parent Equipment', [
-          { value: 'longsword', label: 'Longsword' },
-          { value: 'backpack', label: 'Backpack' }
-        ], true),
-        selectNode('properties', ['properties'], 'Properties', [
-          { value: 'CONTAINER', label: 'Container' },
-          { value: 'MAGIC', label: 'Magic' }
-        ], false, 'SELECT_MULTI')
+      sections: [
+        {
+          id: 'properties',
+          label: 'Properties',
+          order: 20,
+          nodes: [
+            selectNode('category', ['category'], 'Category', [
+              { value: 'WEAPON', label: 'Weapon' },
+              { value: 'ARMOR', label: 'Armor' },
+              { value: 'ADVENTURING_GEAR', label: 'Adventuring Gear' },
+              { value: 'TOOL', label: 'Tool' },
+              { value: 'SHIELD', label: 'Shield' },
+              { value: 'VARIANT', label: 'Variant' }
+            ], true),
+            selectNode('attributes', ['attributes'], 'Attributes', [
+              { value: 'LIMITED_USE', label: 'Limited Use' },
+              { value: 'STACKABLE', label: 'Stackable' }
+            ], false, 'SELECT_MULTI'),
+            selectNode('rarityId', ['rarityId'], 'Rarity', [
+              { value: 'common', label: 'Common' },
+              { value: 'uncommon', label: 'Uncommon' }
+            ], true),
+            selectNode('parentEquipmentId', ['parentEquipmentId'], 'Parent Equipment', [
+              { value: 'longsword', label: 'Longsword' },
+              { value: 'backpack', label: 'Backpack' }
+            ], true),
+            selectNode('properties', ['properties'], 'Properties', [
+              { value: 'CONTAINER', label: 'Container' },
+              { value: 'MAGIC', label: 'Magic' }
+            ], false, 'SELECT_MULTI')
+          ]
+        }
       ]
     },
     {
       id: 'economy',
       label: 'Cost and Weight',
       order: 30,
-      nodes: [
-        selectNode('currencyId', ['cost', 'currencyId'], 'Currency', [
-          { value: 'gp', label: 'Gold' },
-          { value: 'sp', label: 'Silver' }
-        ], false),
-        selectNode('unit', ['weight', 'unit'], 'Unit', [
-          { value: 'POUNDS', label: 'Pounds' },
-          { value: 'GALLONS', label: 'Gallons' }
-        ], true)
+      sections: [
+        {
+          id: 'economy',
+          label: 'Cost and Weight',
+          order: 30,
+          nodes: [
+            selectNode('currencyId', ['cost', 'currencyId'], 'Currency', [
+              { value: 'gp', label: 'Gold' },
+              { value: 'sp', label: 'Silver' }
+            ], false),
+            selectNode('unit', ['weight', 'unit'], 'Unit', [
+              { value: 'POUNDS', label: 'Pounds' },
+              { value: 'GALLONS', label: 'Gallons' }
+            ], true)
+          ]
+        }
       ]
     },
     {
       id: 'contents',
       label: 'Contents',
       order: 50,
-      nodes: [
-        selectNode('equipmentId', ['contains', 'equipmentId'], 'Equipment', [
-          { value: 'torch', label: 'Torch' },
-          { value: 'rations', label: 'Rations' }
-        ], true)
+      sections: [
+        {
+          id: 'contents',
+          label: 'Contents',
+          order: 50,
+          nodes: [
+            selectNode('equipmentId', ['contains', 'equipmentId'], 'Equipment', [
+              { value: 'torch', label: 'Torch' },
+              { value: 'rations', label: 'Rations' }
+            ], true)
+          ]
+        }
       ]
     }
   ]
@@ -229,7 +260,7 @@ function selectNode(
   options: Array<{ value: string, label: string }>,
   required: boolean,
   type: 'SELECT_SINGLE' | 'SELECT_MULTI' = 'SELECT_SINGLE'
-): NodeRuntimeResolveResponseDto['sections'][number]['nodes'][number] {
+): NodeRuntimeResolveResponseDto['steps'][number]['sections'][number]['nodes'][number] {
   return {
     id,
     path,

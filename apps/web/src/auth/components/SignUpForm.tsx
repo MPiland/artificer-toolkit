@@ -1,6 +1,6 @@
 import { type SubmitEvent, useState } from 'react'
 import { Button, PasswordInput, TextInput } from '@mantine/core'
-import { Link } from '#app/ui/primitives/Link/Link'
+import { Link } from '#ui/primitives/Link'
 import IArrowRight from '#assets/icons/IArrowRight'
 import { browserAuthClient } from '../authClient'
 import {

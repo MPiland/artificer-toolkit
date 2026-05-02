@@ -1,0 +1,98 @@
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import {
+  createEmptyCharge,
+  createEmptyFeat,
+  createEmptyFeature,
+  createEmptyGrants,
+  normalizeFeatForSubmit,
+  resolveCreateFeatSystemId,
+  upsertById
+} from '../featAuthoring.utils'
+
+describe('feat authoring helpers', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('creates a draft feat with editable defaults', () => {
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue('generated-id')
+
+    const feat = createEmptyFeat({ systemId: 'dnd-5e-srd', userId: 'user-1' })
+
+    expect(feat).toMatchObject({
+      id: 'generated-id',
+      label: '',
+      description: '',
+      detail: '',
+      status: 'DRAFT',
+      effects: [],
+      features: [],
+      userId: 'user-1',
+      systemId: 'dnd-5e-srd'
+    })
+  })
+
+  it('uses only real system list data when creating feats', () => {
+    expect(resolveCreateFeatSystemId([])).toBeNull()
+    expect(resolveCreateFeatSystemId([{ id: 'dnd-5e-srd' }])).toBe('dnd-5e-srd')
+  })
+
+  it('normalizes missing optional collections before save', () => {
+    const feat = createEmptyFeat({ systemId: 'dnd-5e-srd', userId: 'user-1' })
+    const normalized = normalizeFeatForSubmit({
+      ...feat,
+      label: '  ',
+      description: '',
+      detail: undefined,
+      effects: undefined,
+      features: undefined,
+      grants: {
+        ...createEmptyGrants(),
+        feats: [
+          {
+            id: 'grant-feat',
+            order: 1,
+            grantKind: 'FEAT_GRANT',
+            selectionKind: 'GRANTED',
+            scalingKind: 'NONE',
+            authoringModeKind: 'SELECTED',
+            featIds: ['grappler']
+          }
+        ]
+      }
+    })
+
+    expect(normalized.label).toBe('Untitled Feat')
+    expect(normalized.description).toBe('')
+    expect(normalized.detail).toBe('')
+    expect(normalized.effects).toEqual([])
+    expect(normalized.features).toEqual([])
+    expect(normalized.grants?.feats).toHaveLength(1)
+  })
+
+  it('creates valid feature and charge defaults', () => {
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue('generated-id')
+
+    expect(createEmptyFeature(2)).toMatchObject({
+      id: 'generated-id',
+      label: '',
+      description: '',
+      order: 2
+    })
+    expect(createEmptyCharge()).toMatchObject({
+      id: 'generated-id',
+      resetKind: 'LONG_REST',
+      limitKind: 'FIXED_AMOUNT',
+      scalingKind: 'NONE',
+      amount: 1
+    })
+  })
+
+  it('upserts feature basics by id', () => {
+    const original = createEmptyFeature(1)
+    const updated = { ...original, label: 'Opening Read' }
+
+    expect(upsertById([], original)).toEqual([original])
+    expect(upsertById([original], updated)).toEqual([updated])
+  })
+})

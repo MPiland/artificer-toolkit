@@ -1,5 +1,5 @@
 import ILogo from '#assets/icons/ILogo'
-import { ThemeToggle } from '#app/ui/primitives'
+import { ThemeToggle } from '#ui/primitives'
 import { marketingNavigation } from '../data/marketingContent'
 import {
   brandLink,

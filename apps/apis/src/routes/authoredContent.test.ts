@@ -6,7 +6,8 @@ import {
   normalizeAuthoredListResponseWithDrafts,
   resolveDraftActivationSubjectId,
   requireAuthoredDraft,
-  saveAuthoredDraft
+  saveAuthoredDraft,
+  assertWritableAuthoredSubject
 } from './authoredContent.js'
 
 const draftRepositoryMock = vi.hoisted(() => ({
@@ -21,6 +22,18 @@ vi.mock('@artificer-toolkit/db', () => ({
 }))
 
 const db = {} as DBLike
+
+function createOwnershipDb(row: { isMaster: boolean, ownerUserId: string | null } | undefined): DBLike {
+  return {
+    selectFrom: () => ({
+      select: () => ({
+        where: () => ({
+          executeTakeFirst: async () => row
+        })
+      })
+    })
+  } as unknown as DBLike
+}
 
 function createDraft(overrides: Partial<AuthoredSubjectDraft> = {}): AuthoredSubjectDraft {
   return {
@@ -196,5 +209,44 @@ describe('authored content draft helpers', () => {
     expect(() => resolveDraftActivationSubjectId('RACE', 'body-race-id', req)).toThrowError(
       'RACE draft route id "route-race-id" does not match request body subjectId "body-race-id".'
     )
+  })
+
+  it('uses Creature activation route ids to reject mismatched draft bodies', () => {
+    const req = new Request('https://api.test/content/creatures/route-creature-id/draft/activate')
+
+    expect(resolveDraftActivationSubjectId('CREATURE', 'route-creature-id', req)).toBe('route-creature-id')
+    expect(() => resolveDraftActivationSubjectId('CREATURE', 'body-creature-id', req)).toThrowError(
+      'CREATURE draft route id "route-creature-id" does not match request body subjectId "body-creature-id".'
+    )
+  })
+
+  it('rejects writes to master or foreign authored records', async () => {
+    await expect(assertWritableAuthoredSubject(
+      createOwnershipDb({ isMaster: true, ownerUserId: null }),
+      'creatures',
+      'CREATURE',
+      'master-creature',
+      'user-1'
+    )).rejects.toMatchObject({
+      name: 'AuthoredContentOwnershipError'
+    })
+
+    await expect(assertWritableAuthoredSubject(
+      createOwnershipDb({ isMaster: false, ownerUserId: 'other-user' }),
+      'creatures',
+      'CREATURE',
+      'foreign-creature',
+      'user-1'
+    )).rejects.toMatchObject({
+      name: 'AuthoredContentOwnershipError'
+    })
+
+    await expect(assertWritableAuthoredSubject(
+      createOwnershipDb({ isMaster: false, ownerUserId: 'user-1' }),
+      'creatures',
+      'CREATURE',
+      'owned-creature',
+      'user-1'
+    )).resolves.toBeUndefined()
   })
 })

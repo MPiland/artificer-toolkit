@@ -55,18 +55,19 @@ Section helper utilities now resolve grouped sections and nested inherited secti
 
 ## Runtime Shape
 
-New runtime code lives under `apps/web/src/components/Form/runtime` and is exported alongside legacy form components from `apps/web/src/components/Form`.
+The frontend form platform now lives under `apps/web/src/forms`. The old `components/Form` tree remains only as a compatibility surface for legacy callers while routes migrate.
 
-The runtime includes:
+The form platform includes:
 
 - `useAppForm` from TanStack `createFormHook`
 - pre-bound Mantine/Tiptap field components
 - app-level `AppSelect` and `AppMultiSelect` wrappers around Mantine select controls for new runtime fields
-- `AuthoredFormRuntime`
-- `NodeMapRenderer`
+- `ModalEditorFrame`
+- `ResolvedNodeFields`
 - `SectionNavigator`
 - `NestedObjectShell`
 - `NestedCollectionShell`
+- `useResolvedNodeModel`
 - `useAuthoredFormUiState`
 - node visibility handling for basic local `showIf` conditions
 

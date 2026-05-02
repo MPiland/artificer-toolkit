@@ -53,7 +53,7 @@ function FeatsRoute() {
       attributeColumns={featListAttributeColumns}
       sortOptions={featListSortOptions}
       onCreate={() => navigate({ to: '/feats/new' })}
-      onView={(item) => navigate({ to: '/feats/$featId', params: { featId: item.id } })}
+      onView={(item) => navigate({ to: '/feats/$featId/edit', params: { featId: item.id } })}
       onEdit={(item) => navigate({ to: '/feats/$featId/edit', params: { featId: item.id } })}
       onCopy={(item) => duplicateMutation.mutate(item.id)}
     />

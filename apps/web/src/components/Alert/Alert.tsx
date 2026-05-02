@@ -1,4 +1,4 @@
-import Modal, { ModalContext, type AlertModalProps } from '@components/Modal'
+import Modal, { ModalContext, type AlertModalProps } from '#ui/overlays/Modal'
 import { Button } from '@mantine/core'
 import { use, useEffect } from 'react'
 import { Group } from '@mantine/core'

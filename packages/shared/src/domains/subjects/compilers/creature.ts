@@ -6,8 +6,6 @@ import type {
   CreatureLegendaryProfile,
   CreatureMountProfile,
   CreatureNpcProfile,
-  LogisticsCreatureAuthored,
-  StatBlockCreatureAuthored,
 } from '#authored'
 import type { AbilityCode, SizeCode } from '#core'
 import {
@@ -34,6 +32,7 @@ export interface CompiledCreatureLegendaryProfile {
 }
 
 export interface CompiledCreatureLairProfile {
+  lairActions?: CompiledCreatureAction[]
   regionalEffects?: string[]
 }
 
@@ -59,7 +58,7 @@ export interface CompiledCreatureNpcProfile {
 
 export interface CompiledCreatureBase {
   id: string
-  recordKind: CreatureAuthored['recordKind']
+  recordKind: NonNullable<CreatureAuthored['recordKind']>
   category: string
   creatureTypeId?: string
   size?: SizeCode
@@ -73,7 +72,7 @@ export interface CompiledCreatureBase {
 }
 
 export interface CompiledStatBlockCreature extends CompiledCreatureBase {
-  recordKind: 'STAT_BLOCK'
+  recordKind: 'STAT_BLOCK' | 'LOGISTICS'
   creatureTypeId: string
   size: SizeCode
   abilityScores: Record<AbilityCode, number>
@@ -99,16 +98,12 @@ export interface CompiledStatBlockCreature extends CompiledCreatureBase {
   legendaryProfile?: CompiledCreatureLegendaryProfile
   lairProfile?: CompiledCreatureLairProfile
   npcProfile?: CompiledCreatureNpcProfile
-}
-
-export interface CompiledLogisticsCreature extends CompiledCreatureBase {
-  recordKind: 'LOGISTICS'
-  cost?: LogisticsCreatureAuthored['cost']
-  carryingCapacity?: LogisticsCreatureAuthored['carryingCapacity']
+  cost?: CreatureAuthored['cost']
+  carryingCapacity?: CreatureAuthored['carryingCapacity']
   logisticsNotes?: string[]
 }
 
-export type CompiledCreature = CompiledStatBlockCreature | CompiledLogisticsCreature
+export type CompiledCreature = CompiledStatBlockCreature
 
 function compileAction(authored: CreatureActionAuthored): CompiledCreatureAction {
   return {
@@ -132,6 +127,7 @@ function compileLegendaryProfile(
 
 function compileLairProfile(authored: CreatureLairProfile): CompiledCreatureLairProfile {
   return {
+    lairActions: authored.lairActions?.map(compileAction),
     regionalEffects: authored.regionalEffects,
   }
 }
@@ -169,7 +165,7 @@ function compileBase(
 ): CompiledCreatureBase {
   return {
     id: authored.id,
-    recordKind: authored.recordKind,
+    recordKind: authored.recordKind ?? 'STAT_BLOCK',
     category: authored.category,
     creatureTypeId: authored.creatureTypeId,
     size: authored.size,
@@ -187,10 +183,10 @@ function compileBase(
   }
 }
 
-function compileStatBlockCreature(authored: StatBlockCreatureAuthored): CompiledStatBlockCreature {
+function compileStatBlockCreature(authored: CreatureAuthored): CompiledStatBlockCreature {
   return {
     ...compileBase(authored),
-    recordKind: 'STAT_BLOCK',
+    recordKind: authored.recordKind ?? 'STAT_BLOCK',
     creatureTypeId: authored.creatureTypeId,
     size: authored.size,
     abilityScores: authored.abilityScores,
@@ -218,13 +214,6 @@ function compileStatBlockCreature(authored: StatBlockCreatureAuthored): Compiled
     npcProfile: authored.npcProfile
       ? compileNpcProfile(authored.npcProfile)
       : undefined,
-  }
-}
-
-function compileLogisticsCreature(authored: LogisticsCreatureAuthored): CompiledLogisticsCreature {
-  return {
-    ...compileBase(authored),
-    recordKind: 'LOGISTICS',
     cost: authored.cost,
     carryingCapacity: authored.carryingCapacity,
     logisticsNotes: authored.logisticsNotes,
@@ -232,9 +221,5 @@ function compileLogisticsCreature(authored: LogisticsCreatureAuthored): Compiled
 }
 
 export function compileCreature(authored: CreatureAuthored): CompiledCreature {
-  if (authored.recordKind === 'LOGISTICS') {
-    return compileLogisticsCreature(authored)
-  }
-
   return compileStatBlockCreature(authored)
 }

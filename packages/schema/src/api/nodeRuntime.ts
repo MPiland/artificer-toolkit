@@ -32,6 +32,7 @@ export const nodeRuntimeNodeDtoSchema = z.object({
   kind: z.enum(['INPUT', 'GROUP']),
   type: z.enum(['TEXT', 'NUMBER', 'RICH_TEXT', 'SELECT_SINGLE', 'SELECT_MULTI']).optional(),
   groupKind: z.enum(['OBJECT', 'ARRAY']).optional(),
+  childMapId: z.string().optional(),
   visible: z.boolean(),
   required: z.boolean(),
   hiddenBehavior: z.enum(['KEEP', 'CLEAR']).optional(),
@@ -48,9 +49,16 @@ export const nodeRuntimeSectionDtoSchema = z.object({
   nodes: z.array(nodeRuntimeNodeDtoSchema)
 })
 
+export const nodeRuntimeStepDtoSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  order: z.number(),
+  sections: z.array(nodeRuntimeSectionDtoSchema)
+})
+
 export const nodeRuntimeResolveResponseDtoSchema = z.object({
   mapId: z.string(),
-  sections: z.array(nodeRuntimeSectionDtoSchema),
+  steps: z.array(nodeRuntimeStepDtoSchema),
   clearPaths: z.array(nodeRuntimePathDtoSchema)
 })
 
@@ -67,5 +75,6 @@ export type NodeRuntimeNormalizeValuesRequestDto = z.infer<typeof nodeRuntimeNor
 export type NodeRuntimeOptionDto = z.infer<typeof nodeRuntimeOptionDtoSchema>
 export type NodeRuntimeNodeDto = z.infer<typeof nodeRuntimeNodeDtoSchema>
 export type NodeRuntimeSectionDto = z.infer<typeof nodeRuntimeSectionDtoSchema>
+export type NodeRuntimeStepDto = z.infer<typeof nodeRuntimeStepDtoSchema>
 export type NodeRuntimeResolveResponseDto = z.infer<typeof nodeRuntimeResolveResponseDtoSchema>
 export type NodeRuntimeNormalizeValuesResponseDto = z.infer<typeof nodeRuntimeNormalizeValuesResponseDtoSchema>

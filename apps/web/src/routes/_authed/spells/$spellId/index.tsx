@@ -1,13 +1,10 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { SpellDetailPage } from '#domains/spells'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/_authed/spells/$spellId/')({
-  component: SpellViewRoute
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: '/spells/$spellId/edit',
+      params: { spellId: params.spellId }
+    })
+  }
 })
-
-function SpellViewRoute() {
-  const { user } = Route.useRouteContext()
-  const { spellId } = Route.useParams()
-
-  return <SpellDetailPage spellId={spellId} mode='view' userId={user?.id ?? 'unknown-user'} />
-}

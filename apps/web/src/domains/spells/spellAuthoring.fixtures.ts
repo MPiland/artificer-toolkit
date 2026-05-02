@@ -19,15 +19,9 @@ export const spellReferenceFixture: SpellReferenceData = {
     { value: 'blinded', label: 'Blinded' },
     { value: 'restrained', label: 'Restrained' }
   ],
-  skills: [
-    { value: 'arcana', label: 'Arcana' }
-  ],
-  speeds: [
-    { value: 'walk', label: 'Walk' }
-  ],
-  creatures: [
-    { value: 'sprite', label: 'Sprite' }
-  ]
+  skills: [{ value: 'arcana', label: 'Arcana' }],
+  speeds: [{ value: 'walk', label: 'Walk' }],
+  creatures: [{ value: 'sprite', label: 'Sprite' }]
 }
 
 export const spellFixture: SpellAuthoredDto = {

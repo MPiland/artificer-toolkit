@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { getRouter } from '#app/router'
 
 describe('spell routes', () => {
-  it('matches the view route through the spell detail index child', () => {
+  it('matches the frozen detail index child for direct spell URLs', () => {
     const router = getRouter(null)
     const matches = router.matchRoutes('/spells/test-spell')
 

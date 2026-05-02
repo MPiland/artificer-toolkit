@@ -1,13 +1,10 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { EquipmentDetailPage } from '#domains/equipment'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/_authed/equipment/$equipmentId/')({
-  component: EquipmentViewRoute
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: '/equipment/$equipmentId/edit',
+      params: { equipmentId: params.equipmentId }
+    })
+  }
 })
-
-function EquipmentViewRoute() {
-  const { user } = Route.useRouteContext()
-  const { equipmentId } = Route.useParams()
-
-  return <EquipmentDetailPage equipmentId={equipmentId} mode='view' userId={user?.id ?? 'unknown-user'} />
-}

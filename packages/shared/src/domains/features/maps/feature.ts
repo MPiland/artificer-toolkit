@@ -17,14 +17,27 @@ const FEATURE_OPTION_CHOICE_NODE_MAP = optionChoice.define('featureOptionChoice'
 
 const feature = buildNodeMap<FeatureAuthored>()
 
+const FEATURE_BASICS_SECTIONS = {
+  basics: { id: 'basics', label: 'Feature Basics', order: 10 }
+} as const
+
+export const FEATURE_BASICS_NODE_MAP = feature.define('featureBasics', ({ map, nodes }) => {
+  const { text, number } = nodes
+
+  map
+    .set('label', text(['label'], 'Name', { section: FEATURE_BASICS_SECTIONS.basics, order: 10 }))
+    .set('description', text(['description'], 'Description', { section: FEATURE_BASICS_SECTIONS.basics, order: 20 }))
+    .set('order', number(['order'], 'Order', { section: FEATURE_BASICS_SECTIONS.basics, order: 30 }))
+})
+
 export const FEATURE_NODE_MAP = feature.define('feature', ({ map, nodes, cond }) => {
   const { text, selectMulti, groupArray, groupObject, number } = nodes
   const local = cond.local()
 
   map
     .set('id', text(['id'], 'ID'))
-    .set('label', text(['label'], 'Label'))
-    .set('description', text(['description'], 'Description'))
+    .set('label', text(['label'], 'Name', { section: FEATURE_BASICS_SECTIONS.basics, order: 10 }))
+    .set('description', text(['description'], 'Description', { section: FEATURE_BASICS_SECTIONS.basics, order: 20 }))
     .set('attributes', selectMulti(['attributes'], 'Attributes', {
       kind: 'INLINE',
       options: FEATURE_ATTRIBUTE_OPTIONS
@@ -36,7 +49,7 @@ export const FEATURE_NODE_MAP = feature.define('feature', ({ map, nodes, cond })
     }))
     .set('grants', groupObject(['grants'], 'Grants', () => FEATURE_GRANTS_NODE_MAP))
     .set('restrictions', groupObject(['restrictions'], 'Restrictions', () => FACET_NODE_MAP))
-    .set('order', number(['order'], 'Order'))
+    .set('order', number(['order'], 'Order', { section: FEATURE_BASICS_SECTIONS.basics, order: 30 }))
     .set('availableAtLevel', number(['availableAtLevel'], 'Available At Level'))
     .set('optionChoices', groupArray(['optionChoices'], 'Option Choices', () => FEATURE_OPTION_CHOICE_NODE_MAP))
     .set('options', groupArray(['options'], 'Options', () => OPTION_NODE_MAP))

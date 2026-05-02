@@ -1,13 +1,10 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { BackgroundDetailPage } from '#domains/backgrounds'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/_authed/backgrounds/$backgroundId/')({
-  component: BackgroundViewRoute
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: '/backgrounds/$backgroundId/edit',
+      params: { backgroundId: params.backgroundId }
+    })
+  }
 })
-
-function BackgroundViewRoute() {
-  const { user } = Route.useRouteContext()
-  const { backgroundId } = Route.useParams()
-
-  return <BackgroundDetailPage backgroundId={backgroundId} mode='view' userId={user?.id ?? 'unknown-user'} />
-}

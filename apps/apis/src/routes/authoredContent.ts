@@ -284,6 +284,28 @@ export class AuthoredDraftSubjectMismatchError extends Error {
   }
 }
 
+export class AuthoredContentOwnershipError extends Error {
+  constructor(subjectKind: AuthoredSubjectDraftKind, subjectId: string) {
+    super(`${subjectKind} "${subjectId}" cannot be edited by the current user.`)
+    this.name = 'AuthoredContentOwnershipError'
+  }
+}
+
+export async function assertWritableAuthoredSubject(
+  db: DBLike,
+  table: AuthoredContentTable,
+  subjectKind: AuthoredSubjectDraftKind,
+  subjectId: string,
+  userId: string
+): Promise<void> {
+  const ownership = await getAuthoredOwnership(db, table, subjectId)
+  if (!ownership) return
+
+  if (ownership.isMaster || ownership.ownerUserId !== userId) {
+    throw new AuthoredContentOwnershipError(subjectKind, subjectId)
+  }
+}
+
 export function extractDraftSubjectIdFromRequest(req: Request): string {
   const url = new URL(req.url)
   const segments = url.pathname.split('/').filter(Boolean)

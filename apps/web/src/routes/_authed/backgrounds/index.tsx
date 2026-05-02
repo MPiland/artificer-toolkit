@@ -53,7 +53,7 @@ function BackgroundsRoute() {
       attributeColumns={backgroundListAttributeColumns}
       sortOptions={backgroundListSortOptions}
       onCreate={() => navigate({ to: '/backgrounds/new' })}
-      onView={(item) => navigate({ to: '/backgrounds/$backgroundId', params: { backgroundId: item.id } })}
+      onView={(item) => navigate({ to: '/backgrounds/$backgroundId/edit', params: { backgroundId: item.id } })}
       onEdit={(item) => navigate({ to: '/backgrounds/$backgroundId/edit', params: { backgroundId: item.id } })}
       onCopy={(item) => duplicateMutation.mutate(item.id)}
     />

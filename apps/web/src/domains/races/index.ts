@@ -1,2 +1,3 @@
-export { RaceCreatePage, RaceDetailPage } from './RaceFormPage'
-export { RaceForm } from './RaceForm'
+export { RaceCreatePage } from './pages/RaceCreatePage'
+export { RaceEditPage } from './pages/RaceEditPage'
+export { RaceForm } from './components/RaceForm'

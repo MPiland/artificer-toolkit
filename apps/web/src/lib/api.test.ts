@@ -148,20 +148,25 @@ describe('REST api adapter', () => {
         return HttpResponse.json({
           mapId: 'spell',
           clearPaths: [],
-          sections: [{
+          steps: [{
             id: 'basics',
             label: 'Basics',
             order: 10,
-            nodes: [{
-              id: 'magicSchoolId',
-              path: ['magicSchoolId'],
-              label: 'Magic School',
-              kind: 'INPUT',
-              type: 'SELECT_SINGLE',
-              visible: true,
-              required: false,
-              clearPaths: [],
-              options: [{ value: 'evocation', label: 'Evocation' }]
+            sections: [{
+              id: 'basics',
+              label: 'Basics',
+              order: 10,
+              nodes: [{
+                id: 'magicSchoolId',
+                path: ['magicSchoolId'],
+                label: 'Magic School',
+                kind: 'INPUT',
+                type: 'SELECT_SINGLE',
+                visible: true,
+                required: false,
+                clearPaths: [],
+                options: [{ value: 'evocation', label: 'Evocation' }]
+              }]
             }]
           }]
         })
@@ -173,6 +178,6 @@ describe('REST api adapter', () => {
       values: {}
     })
 
-    expect(response.sections[0]?.nodes[0]?.options?.[0]?.value).toBe('evocation')
+    expect(response.steps[0]?.sections[0]?.nodes[0]?.options?.[0]?.value).toBe('evocation')
   })
 })

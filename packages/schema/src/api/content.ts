@@ -46,7 +46,8 @@ export const authoredDraftSummaryDtoSchema = z.object({
   label: z.string(),
   status: z.literal('DRAFT'),
   draftState: authoredDraftStateDtoSchema,
-  baseActiveUpdatedAt: z.string().nullable().optional(),
+  baseActiveUpdatedAt: z.string().nullable()
+    .optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional()
 })
@@ -62,7 +63,8 @@ export const authoredDraftSaveRequestDtoSchema = z.object({
   systemId: z.string(),
   label: z.string(),
   payload: unknownObjectSchema,
-  baseActiveUpdatedAt: z.string().nullable().optional()
+  baseActiveUpdatedAt: z.string().nullable()
+    .optional()
 })
 
 export const authoredDraftActivateRequestDtoSchema = z.object({
@@ -95,9 +97,11 @@ export const raceListItemDtoSchema = authoredContentListItemBaseDtoSchema.extend
 export const spellListItemDtoSchema = authoredContentListItemBaseDtoSchema.extend({
   level: z.number().int()
     .optional(),
-  magicSchoolId: z.string().nullable().optional(),
+  magicSchoolId: z.string().nullable()
+    .optional(),
   castingTimeUnit: z.string().optional(),
-  castingTimeAmount: z.number().int().optional()
+  castingTimeAmount: z.number().int()
+    .optional()
 })
 export const creatureListItemDtoSchema = authoredContentListItemBaseDtoSchema.extend({
   category: z.string().optional()

@@ -6,14 +6,15 @@ import type {
   NodeRuntimeOptionDto,
   NodeRuntimeResolveRequestDto,
   NodeRuntimeResolveResponseDto,
-  NodeRuntimeSectionDto
+  NodeRuntimeSectionDto,
+  NodeRuntimeStepDto
 } from '@artificer-toolkit/schema'
-import type { InlineFilter, NodeEntry, NodeSelectSource, SectionedNodeGroup } from '@artificer-toolkit/shared'
+import type { InlineFilter, NodeEntry, NodeSelectSource, SectionedNodeGroup, SteppedNodeGroup } from '@artificer-toolkit/shared'
 import {
   clearValuesAtPaths,
   evaluateConditionIf,
   isRuntimeRecord,
-  resolveNodeMapSections,
+  resolveNodeMapSteps,
   type NodeRuntimeScope,
   type RuntimePath
 } from '@artificer-toolkit/shared'
@@ -26,23 +27,34 @@ export async function resolveNodeRuntime(
 ): Promise<NodeRuntimeResolveResponseDto> {
   const nodeMap = getRuntimeNodeMap(request.mapId)
   const scope = toScope(request)
-  const sections = resolveRuntimeSections(nodeMap)
-  const resolvedSections: NodeRuntimeSectionDto[] = []
+  const steps = resolveRuntimeSteps(nodeMap)
+  const resolvedSteps: NodeRuntimeStepDto[] = []
   const clearPaths: RuntimePath[] = []
 
-  for (const section of sections) {
-    const nodes = await resolveSectionNodes(db, section, scope, clearPaths)
-    resolvedSections.push({
-      id: section.id,
-      label: section.label,
-      order: section.order,
-      nodes
+  for (const step of steps) {
+    const resolvedSections: NodeRuntimeSectionDto[] = []
+
+    for (const section of step.sections) {
+      const nodes = await resolveSectionNodes(db, section, scope, clearPaths)
+      resolvedSections.push({
+        id: section.id,
+        label: section.label,
+        order: section.order,
+        nodes
+      })
+    }
+
+    resolvedSteps.push({
+      id: step.id,
+      label: step.label,
+      order: step.order,
+      sections: resolvedSections
     })
   }
 
   return {
     mapId: nodeMap.mapId,
-    sections: resolvedSections,
+    steps: resolvedSteps,
     clearPaths
   }
 }
@@ -104,9 +116,12 @@ async function resolveNode(
   } satisfies Omit<NodeRuntimeNodeDto, 'type' | 'groupKind' | 'options'>
 
   if (node.kind === 'GROUP') {
+    const childMap = typeof node.nodes === 'function' ? node.nodes() : node.nodes
+
     return {
       ...baseNode,
-      groupKind: node.groupKind
+      groupKind: node.groupKind,
+      childMapId: childMap.mapId
     }
   }
 
@@ -171,13 +186,13 @@ function toScope(request: NodeRuntimeResolveRequestDto): NodeRuntimeScope {
   }
 }
 
-function resolveRuntimeSections(
+function resolveRuntimeSteps(
   nodeMap: ReturnType<typeof getRuntimeNodeMap>
-): SectionedNodeGroup<Record<string, unknown>>[] {
-  const sections = resolveNodeMapSections(nodeMap)
-  if (sections.length > 0) return sections
+): SteppedNodeGroup<Record<string, unknown>>[] {
+  const steps = resolveNodeMapSteps(nodeMap)
+  if (steps.length > 0) return steps
 
-  return [{
+  const defaultSection: SectionedNodeGroup<Record<string, unknown>> = {
     id: 'default',
     label: 'Details',
     order: 10,
@@ -188,6 +203,13 @@ function resolveRuntimeSections(
         node,
         section: { id: 'default', label: 'Details', order: 10 }
       }))
+  }
+
+  return [{
+    id: 'default',
+    label: 'Details',
+    order: 10,
+    sections: [defaultSection]
   }]
 }
 

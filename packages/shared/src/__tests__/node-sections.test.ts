@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { CREATURE_CATEGORY_CODE } from '#core'
 import {
   type NodeMap,
   BACKGROUND_NODE_MAP,
@@ -55,6 +56,36 @@ describe('node map sections', () => {
     expect(evaluateConditionIf(materialNode.showIf, {
       values: { components: ['VERBAL'] }
     })).toBe(false)
+  })
+
+  it('models creature category-specific profiles as conditional clearable groups', () => {
+    const mountNode = CREATURE_NODE_MAP.nodes.mountProfile
+    const legendaryNode = CREATURE_NODE_MAP.nodes.legendaryProfile
+    const companionNode = CREATURE_NODE_MAP.nodes.companionProfile
+
+    expect(mountNode.hiddenBehavior).toBe('CLEAR')
+    expect(evaluateConditionIf(mountNode.showIf, {
+      values: { category: CREATURE_CATEGORY_CODE.BEAST }
+    })).toBe(true)
+    expect(evaluateConditionIf(mountNode.showIf, {
+      values: { category: CREATURE_CATEGORY_CODE.MONSTER }
+    })).toBe(false)
+
+    expect(legendaryNode.hiddenBehavior).toBe('CLEAR')
+    expect(evaluateConditionIf(legendaryNode.showIf, {
+      values: { category: CREATURE_CATEGORY_CODE.MONSTER }
+    })).toBe(true)
+    expect(evaluateConditionIf(legendaryNode.showIf, {
+      values: { category: CREATURE_CATEGORY_CODE.BEAST }
+    })).toBe(false)
+
+    expect(companionNode.hiddenBehavior).toBe('CLEAR')
+    expect(evaluateConditionIf(companionNode.showIf, {
+      values: { category: CREATURE_CATEGORY_CODE.COMPANION }
+    })).toBe(true)
+    expect(evaluateConditionIf(companionNode.showIf, {
+      values: { category: CREATURE_CATEGORY_CODE.SUMMON }
+    })).toBe(true)
   })
 
   it('provides sections for every authored subject map', () => {

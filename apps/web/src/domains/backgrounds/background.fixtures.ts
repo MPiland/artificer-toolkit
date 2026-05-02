@@ -29,26 +29,34 @@ export const ownedBackgroundFixture: BackgroundAuthoredDto = {
   ],
   startingEquipment: {
     id: 'investigator-equipment',
-    sets: [{
-      id: 'investigator-set',
-      order: 1,
-      groups: [{
-        id: 'investigator-group',
+    sets: [
+      {
+        id: 'investigator-set',
         order: 1,
-        options: [{
-          id: 'investigator-option',
-          order: 1,
-          items: [{
-            id: 'investigator-item',
+        groups: [
+          {
+            id: 'investigator-group',
             order: 1,
-            startingEquipmentKind: 'EQUIPMENT',
-            selectionKind: 'GRANTED',
-            quantity: 1,
-            authoringModeKind: 'ALL'
-          }]
-        }]
-      }]
-    }]
+            options: [
+              {
+                id: 'investigator-option',
+                order: 1,
+                items: [
+                  {
+                    id: 'investigator-item',
+                    order: 1,
+                    startingEquipmentKind: 'EQUIPMENT',
+                    selectionKind: 'GRANTED',
+                    quantity: 1,
+                    authoringModeKind: 'ALL'
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
   },
   userId: 'user-1',
   systemId: 'dnd-5e-srd'

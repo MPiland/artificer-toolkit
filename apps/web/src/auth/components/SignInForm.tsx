@@ -15,7 +15,7 @@ import {
   inlineLinkIconGlyph,
   textInput
 } from '../auth.css'
-import { Link } from '#app/ui/primitives/Link/Link'
+import { Link } from '#ui/primitives/Link'
 import { AuthDivider } from './AuthDivider'
 import { Button, PasswordInput, TextInput } from '@mantine/core'
 import IArrowRight from '#assets/icons/IArrowRight'

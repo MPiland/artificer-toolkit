@@ -15,7 +15,7 @@ describe('node runtime service', () => {
       }
     })
 
-    const flattened = result.sections.flatMap((section) => section.nodes)
+    const flattened = result.steps.flatMap((step) => step.sections).flatMap((section) => section.nodes)
     expect(flattened.find((node) => node.id === 'rounding')).toMatchObject({
       visible: true,
       required: true

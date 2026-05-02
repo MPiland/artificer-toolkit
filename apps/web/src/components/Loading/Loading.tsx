@@ -1,8 +1,7 @@
 import { useState, useEffect, use } from 'react'
-import Modal from '@components/Modal'
-import Spinner from '@components/Spinner'
+import Modal, { ModalContext } from '#ui/overlays/Modal'
+import Spinner from '#ui/primitives/Spinner'
 import { loading_message, loading_wrapper } from './Loading.css'
-import { ModalContext } from '@components/Modal'
 
 const loadingMessages = [
   'Preparing your adventure...',

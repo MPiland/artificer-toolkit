@@ -1,6 +1,7 @@
-import type { NodeEntry, NodeId, NodeMap, NodeSectionSpec } from './nodeDefinition.js'
+import type { NodeEntry, NodeId, NodeMap, NodeSectionSpec, NodeStepSpec } from './nodeDefinition.js'
 
 export type ResolvedNodeSection = NodeSectionSpec
+export type ResolvedNodeStep = NodeStepSpec
 
 export type SectionedNodeEntry<NLocal extends object> = {
   id: NodeId
@@ -10,6 +11,28 @@ export type SectionedNodeEntry<NLocal extends object> = {
 
 export type SectionedNodeGroup<NLocal extends object = Record<string, unknown>> = ResolvedNodeSection & {
   nodes: SectionedNodeEntry<NLocal>[]
+}
+
+export type SteppedNodeGroup<NLocal extends object = Record<string, unknown>> = ResolvedNodeStep & {
+  sections: SectionedNodeGroup<NLocal>[]
+}
+
+export function resolveNodeMapSteps<NLocal extends object>(
+  nodeMap: NodeMap<NLocal>
+): SteppedNodeGroup<NLocal>[] {
+  const steps = new Map<string, SteppedNodeGroup<NLocal>>()
+
+  for (const section of resolveNodeMapSections(nodeMap)) {
+    const step = upsertStep(steps, section.step ?? sectionToStep(section))
+    step.sections.push(section)
+  }
+
+  return Array.from(steps.values())
+    .sort((a, b) => a.order - b.order)
+    .map((step) => ({
+      ...step,
+      sections: step.sections.sort((a, b) => a.order - b.order)
+    }))
 }
 
 export function resolveNodeMapSections<NLocal extends object>(
@@ -54,6 +77,21 @@ export function resolveNestedNodeSections<NLocal extends object>(
     })
 }
 
+function upsertStep<NLocal extends object>(
+  steps: Map<string, SteppedNodeGroup<NLocal>>,
+  step: NodeStepSpec
+) {
+  const existing = steps.get(step.id)
+  if (existing) return existing
+
+  const next = {
+    ...step,
+    sections: [] as SectionedNodeGroup<NLocal>[]
+  }
+  steps.set(step.id, next)
+  return next
+}
+
 function upsertSection<NLocal extends object>(
   sections: Map<string, SectionedNodeGroup<NLocal>>,
   section: NodeSectionSpec
@@ -67,4 +105,12 @@ function upsertSection<NLocal extends object>(
   }
   sections.set(section.id, next)
   return next
+}
+
+function sectionToStep(section: NodeSectionSpec): NodeStepSpec {
+  return {
+    id: section.id,
+    label: section.label,
+    order: section.order
+  }
 }
