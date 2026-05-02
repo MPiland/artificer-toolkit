@@ -34,7 +34,8 @@ Current default focus is Phase 9 frontend modernization.
 - 9.9 race implementation: complete
 - 9.10 equipment implementation: complete
 - 9.11 creature implementation: implemented - ready for PR review
-- 9.12 vehicle implementation: active next
+- 9.12 vehicle implementation: implemented - ready for PR review
+- 9.13 class implementation: active next
 
 Before starting a new frontend task, confirm the active tranche in [PHASE_9_CODE_OVERVIEW.md](/c:/Users/pilan/Desktop/artificer-toolkit/PHASE_9_CODE_OVERVIEW.md).
 
@@ -86,7 +87,8 @@ Current frontend posture:
 - 9.9 race implementation is complete.
 - 9.10 equipment implementation is complete.
 - 9.11 creature implementation is implemented and ready for PR review.
-- 9.12 vehicle implementation is the active next tranche after 9.11 review/merge.
+- 9.12 vehicle implementation is implemented and ready for PR review.
+- 9.13 class implementation is the active next tranche after 9.12 review/merge.
 
 Per-tranche expectations:
 

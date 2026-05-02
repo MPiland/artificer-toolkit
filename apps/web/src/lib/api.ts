@@ -77,6 +77,7 @@ import {
   type SpellListResponseDto,
   type SpellResponseDto,
   type SystemListItemDto,
+  type VehicleAuthoringInputDto,
   type VehicleListItemDto,
   type VehicleListResponseDto,
   type VehicleResponseDto
@@ -125,6 +126,7 @@ export type {
   SpellListResponseDto,
   SpellResponseDto,
   SystemListItemDto,
+  VehicleAuthoringInputDto,
   VehicleListItemDto,
   VehicleListResponseDto,
   VehicleResponseDto
@@ -345,7 +347,7 @@ function buildApi(getJwt: (() => Promise<string | null>) | string | null) {
       races: contentDomain<typeof raceListResponseDtoSchema, typeof raceResponseDtoSchema, RaceAuthoredDto>('RACE', '/content/races', raceListResponseDtoSchema, raceResponseDtoSchema),
       spells: contentDomain<typeof spellListResponseDtoSchema, typeof spellResponseDtoSchema, SpellAuthoredDto>('SPELL', '/content/spells', spellListResponseDtoSchema, spellResponseDtoSchema),
       creatures: contentDomain<typeof creatureListResponseDtoSchema, typeof creatureResponseDtoSchema, CreatureAuthoredDto>('CREATURE', '/content/creatures', creatureListResponseDtoSchema, creatureResponseDtoSchema),
-      vehicles: contentDomain<typeof vehicleListResponseDtoSchema, typeof vehicleResponseDtoSchema, AuthoredContentInput>('VEHICLE', '/content/vehicles', vehicleListResponseDtoSchema, vehicleResponseDtoSchema),
+      vehicles: contentDomain<typeof vehicleListResponseDtoSchema, typeof vehicleResponseDtoSchema, VehicleAuthoringInputDto>('VEHICLE', '/content/vehicles', vehicleListResponseDtoSchema, vehicleResponseDtoSchema),
       features: {
         list: () => get('/content/features', featureListResponseDtoSchema),
         get: (id: string) => get(`/content/features/${id}`, featureResponseDtoSchema),

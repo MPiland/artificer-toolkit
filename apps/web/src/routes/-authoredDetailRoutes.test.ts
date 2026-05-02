@@ -7,6 +7,7 @@ import { Route as EquipmentDetailIndexRoute } from './_authed/equipment/$equipme
 import { Route as FeatDetailIndexRoute } from './_authed/feats/$featId/index'
 import { Route as RaceDetailIndexRoute } from './_authed/races/$raceId/index'
 import { Route as SpellDetailIndexRoute } from './_authed/spells/$spellId/index'
+import { Route as VehicleDetailIndexRoute } from './_authed/vehicles/$vehicleId/index'
 
 type DetailRoute = {
   options: {
@@ -56,6 +57,13 @@ const frozenDetailRoutes = [
     idParam: 'equipmentId',
     idValue: 'test-equipment',
     to: '/equipment/$equipmentId/edit'
+  },
+  {
+    name: 'vehicle',
+    route: VehicleDetailIndexRoute,
+    idParam: 'vehicleId',
+    idValue: 'test-vehicle',
+    to: '/vehicles/$vehicleId/edit'
   }
 ] as const
 
@@ -89,6 +97,11 @@ const authoredListRoutes = [
     name: 'equipment',
     sourcePath: 'src/routes/_authed/equipment/index.tsx',
     expectedViewTarget: 'to: \'/equipment/$equipmentId/edit\''
+  },
+  {
+    name: 'vehicle',
+    sourcePath: 'src/routes/_authed/vehicles/index.tsx',
+    expectedViewTarget: 'to: \'/vehicles/$vehicleId/edit\''
   }
 ] as const
 

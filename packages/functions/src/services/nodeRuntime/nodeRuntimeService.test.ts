@@ -1,8 +1,19 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { DBLike } from '@artificer-toolkit/db'
 import { normalizeNodeRuntimeValues, resolveNodeRuntime } from './nodeRuntimeService.js'
 
 const unusedDb = {} as DBLike
+const nodeRuntimeQueryMock = vi.hoisted(() => ({
+  selectNodeRuntimeRows: vi.fn(async () => [])
+}))
+
+vi.mock('@artificer-toolkit/db', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@artificer-toolkit/db')>()
+  return {
+    ...actual,
+    selectNodeRuntimeRows: nodeRuntimeQueryMock.selectNodeRuntimeRows
+  }
+})
 
 describe('node runtime service', () => {
   it('resolves visibility, requiredness, and inline options from a trusted map', async () => {
@@ -43,6 +54,34 @@ describe('node runtime service', () => {
       level: 'FULL'
     })
     expect(result.clearedPaths).toEqual([])
+  })
+
+  it('preserves hidden non-clear creature logistics values during normalization', async () => {
+    const logistics = {
+      cost: { amount: 125, currencyId: 'gp' },
+      carryingCapacity: { amount: 500, unit: 'POUND' },
+      logisticsNotes: [{ value: 'Can haul a compact supply wagon.' }]
+    }
+
+    const result = await normalizeNodeRuntimeValues(unusedDb, {
+      mapId: 'creature',
+      values: {
+        id: 'creature-1',
+        label: 'Clockwork Porter',
+        userId: 'user-1',
+        systemId: 'system-1',
+        category: 'MONSTER',
+        ...logistics,
+        mountProfile: { mountType: 'CONTROLLED' }
+      }
+    })
+
+    expect(result.values).toMatchObject(logistics)
+    expect(result.values).not.toHaveProperty('mountProfile')
+    expect(result.clearedPaths).not.toContainEqual(['cost'])
+    expect(result.clearedPaths).not.toContainEqual(['carryingCapacity'])
+    expect(result.clearedPaths).not.toContainEqual(['logisticsNotes'])
+    expect(result.clearedPaths).toContainEqual(['mountProfile'])
   })
 
   it('rejects unknown map ids safely', async () => {

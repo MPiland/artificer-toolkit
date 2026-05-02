@@ -6,7 +6,6 @@ import IClass from '#assets/icons/IClass'
 import ICreature from '#assets/icons/ICreature'
 import IFeat from '#assets/icons/IFeat'
 import IHome from '#assets/icons/IHome'
-import IProps from '#assets/icons/IProps'
 import IRaces from '#assets/icons/IRaces'
 import IScroll from '#assets/icons/IScroll'
 import ISack from '#assets/icons/ISack'
@@ -60,6 +59,11 @@ export const platformNavigation: AppShellNavGroup[] = [
         label: 'Creatures',
         href: '/creatures',
         icon: ICreature
+      },
+      {
+        label: 'Vehicles',
+        href: '/vehicles',
+        icon: ICategory
       }
     ]
   }
@@ -77,10 +81,6 @@ export const storybookNavigation: AppShellNavGroup[] = [
       {
         label: 'Classes',
         icon: IClass
-      },
-      {
-        label: 'Vehicles',
-        icon: ICategory
       },
       {
         label: 'Systems',

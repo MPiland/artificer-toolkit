@@ -288,22 +288,19 @@ export const CREATURE_NODE_MAP = creatureNode.define('creature', ({ map, nodes, 
     .set('cost', groupObject(['cost'], 'Cost', () => CREATURE_COST_NODE_MAP, {
       section: CREATURE_SECTIONS.profiles,
       order: 5,
-      showIf: isBeast,
-      hiddenBehavior: 'CLEAR'
+      showIf: isBeast
     }))
     .set('carryingCapacity', groupObject(['carryingCapacity'], 'Carrying Capacity', () => CREATURE_CAPACITY_NODE_MAP, {
       section: CREATURE_SECTIONS.profiles,
       order: 6,
-      showIf: isBeast,
-      hiddenBehavior: 'CLEAR'
+      showIf: isBeast
     }))
     .set('logisticsNotes', groupArray(['logisticsNotes'], 'Usage Notes', () => buildNodeMap<{ value: string }>().define('logisticsNote', ({ map: m, nodes: n }) => {
       m.set('value', n.text(['value'], 'Note'))
     }), {
       section: CREATURE_SECTIONS.profiles,
       order: 7,
-      showIf: isBeast,
-      hiddenBehavior: 'CLEAR'
+      showIf: isBeast
     }))
 
     // Standard actions

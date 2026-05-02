@@ -273,6 +273,34 @@ test('creature locked master story is duplicate-only', async ({ page }) => {
   await storyExpect(page.getByRole('button', { name: 'Activate Creature' })).toHaveCount(0)
 })
 
+test('vehicle list story renders category and locked master states', async ({ page }) => {
+  await openStory(page, 'domains-vehicles-list--default')
+
+  await storyExpect(page.getByRole('heading', { name: 'Vehicles' })).toBeVisible()
+  await storyExpect(page.getByRole('row', { name: /sky skiff/i })).toBeVisible()
+  await storyExpect(page.getByRole('row', { name: /galley/i })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: 'Create Vehicle' })).toBeVisible()
+})
+
+test('vehicle form story moves through shared vehicle sections', async ({ page }) => {
+  await openStory(page, 'domains-vehicles-form--edit-vehicle')
+
+  await storyExpect(page.getByRole('heading', { name: 'Overview', level: 1 })).toBeVisible()
+  await storyExpect(page.getByText('Sky Skiff').first()).toBeVisible()
+  await page.getByRole('button', { name: 'Next' }).click()
+  await storyExpect(page.getByRole('heading', { name: 'Stats', level: 1 })).toBeVisible()
+  await page.getByRole('button', { name: 'Next' }).click()
+  await storyExpect(page.getByRole('heading', { name: 'Crew and Capacity', level: 1 })).toBeVisible()
+})
+
+test('vehicle locked master story is duplicate-only', async ({ page }) => {
+  await openStory(page, 'domains-vehicles-form--locked-master-readonly')
+
+  await storyExpect(page.getByRole('heading', { name: 'Overview', level: 1 })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: 'Duplicate to edit' })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: 'Activate Vehicle' })).toHaveCount(0)
+})
+
 test('theme toggle story switches between light and dark', async ({ page }) => {
   await openStory(page, 'ui-primitives-themetoggle--default')
 

@@ -12,7 +12,13 @@ import {
   SPELL_NODE_MAP,
   VEHICLE_NODE_MAP
 } from '#maps'
-import { buildNodeMap, evaluateConditionIf, resolveNestedNodeSections, resolveNodeMapSections } from '#utils'
+import {
+  buildNodeMap,
+  evaluateConditionIf,
+  resolveNestedNodeSections,
+  resolveNodeMapSections,
+  resolveNodeMapSteps
+} from '#utils'
 
 describe('node map sections', () => {
   it('resolves section groups in stable order', () => {
@@ -86,6 +92,59 @@ describe('node map sections', () => {
     expect(evaluateConditionIf(companionNode.showIf, {
       values: { category: CREATURE_CATEGORY_CODE.SUMMON }
     })).toBe(true)
+  })
+
+  it('keeps creature logistics fields hidden for non-beasts without clearing preserved data', () => {
+    const costNode = CREATURE_NODE_MAP.nodes.cost
+    const capacityNode = CREATURE_NODE_MAP.nodes.carryingCapacity
+    const notesNode = CREATURE_NODE_MAP.nodes.logisticsNotes
+
+    expect(costNode.hiddenBehavior).toBeUndefined()
+    expect(capacityNode.hiddenBehavior).toBeUndefined()
+    expect(notesNode.hiddenBehavior).toBeUndefined()
+    expect(evaluateConditionIf(costNode.showIf, {
+      values: { category: CREATURE_CATEGORY_CODE.BEAST }
+    })).toBe(true)
+    expect(evaluateConditionIf(costNode.showIf, {
+      values: { category: CREATURE_CATEGORY_CODE.MONSTER }
+    })).toBe(false)
+    expect(evaluateConditionIf(capacityNode.showIf, {
+      values: { category: CREATURE_CATEGORY_CODE.MONSTER }
+    })).toBe(false)
+    expect(evaluateConditionIf(notesNode.showIf, {
+      values: { category: CREATURE_CATEGORY_CODE.MONSTER }
+    })).toBe(false)
+  })
+
+  it('models vehicle authoring as stable node-driven steps', () => {
+    const steps = resolveNodeMapSteps(VEHICLE_NODE_MAP)
+    const nodes = steps.flatMap((step) => step.sections).flatMap((section) => section.nodes)
+
+    expect(steps.map((step) => step.id)).toEqual([
+      'overview',
+      'stats',
+      'capacity',
+      'economy',
+      'content'
+    ])
+    const descriptionNode = VEHICLE_NODE_MAP.nodes.description
+
+    expect(descriptionNode.kind).toBe('INPUT')
+    if (descriptionNode.kind === 'INPUT') {
+      expect(descriptionNode.type).toBe('RICH_TEXT')
+    }
+    expect(nodes.find((entry) => entry.id === 'category')?.node).toMatchObject({
+      kind: 'INPUT',
+      type: 'SELECT_SINGLE'
+    })
+    expect(nodes.find((entry) => entry.id === 'cost')?.node).toMatchObject({
+      kind: 'GROUP',
+      groupKind: 'OBJECT'
+    })
+    expect(nodes.find((entry) => entry.id === 'features')?.node).toMatchObject({
+      kind: 'GROUP',
+      groupKind: 'ARRAY'
+    })
   })
 
   it('provides sections for every authored subject map', () => {

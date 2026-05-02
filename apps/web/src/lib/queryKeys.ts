@@ -105,6 +105,9 @@ export const queryKeys = {
       list: () => ['content', 'vehicles', 'list'] as const,
       detail: (id: string) => [
         'content', 'vehicles', 'detail', id
+      ] as const,
+      draft: (id: string) => [
+        'content', 'vehicles', 'draft', id
       ] as const
     }
   },
