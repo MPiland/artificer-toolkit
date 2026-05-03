@@ -11,6 +11,7 @@ import {
   createCharacterBuilderChangePreview,
   createEmptyCharacterAuthored,
   getInvalidSpellSelectionIds,
+  isCharacterBuilderProvenanceStillValid,
   isStartingEquipmentDecisionComplete,
   resolveRecommendedCharacterBuilderSection,
   type CharacterBuilderIssue,
@@ -396,6 +397,101 @@ describe('character builder source-local choice validation', () => {
 
     expect(isStartingEquipmentDecisionComplete(startingEquipment, validDecision, registry)).toBe(true)
     expect(isStartingEquipmentDecisionComplete(startingEquipment, invalidDecision, registry)).toBe(false)
+  })
+})
+
+describe('isCharacterBuilderProvenanceStillValid', () => {
+  it('rejects class and subclass provenance above the current class level', () => {
+    const registry = createRegistry()
+    const character = createCharacter({
+      intent: {
+        ...createCharacter().intent,
+        classes: [
+          {
+            classId: 'wizard',
+            classLevel: 2,
+            subclassId: 'evoker'
+          }
+        ]
+      }
+    })
+
+    expect(isCharacterBuilderProvenanceStillValid({
+      source: { kind: 'CLASS', classId: 'wizard', classLevel: 2 },
+      character,
+      registry
+    })).toBe(true)
+    expect(isCharacterBuilderProvenanceStillValid({
+      source: { kind: 'CLASS', classId: 'wizard', classLevel: 3 },
+      character,
+      registry
+    })).toBe(false)
+    expect(isCharacterBuilderProvenanceStillValid({
+      source: { kind: 'SUBCLASS', subclassId: 'evoker', classLevel: 3 },
+      character,
+      registry
+    })).toBe(false)
+  })
+
+  it('rejects ancestry provenance that is not the current ancestry option', () => {
+    const registry = createRegistry()
+    registry.races[0]?.ancestry?.options.push({
+      id: 'blue',
+      label: 'Blue',
+      description: 'Blue ancestry.',
+      order: 2
+    })
+    const character = createCharacter({
+      intent: {
+        ...createCharacter().intent,
+        race: { raceId: 'dragonborn' },
+        ancestrySelections: [
+          {
+            id: 'ancestry-1',
+            ancestryId: 'draconic-ancestry',
+            optionId: 'blue',
+            source: { kind: 'RACE', raceId: 'dragonborn' },
+            timing: { kind: 'IMMEDIATE' }
+          }
+        ]
+      }
+    })
+
+    expect(isCharacterBuilderProvenanceStillValid({
+      source: { kind: 'ANCESTRY', ancestryId: 'draconic-ancestry', optionId: 'blue' },
+      character,
+      registry
+    })).toBe(true)
+    expect(isCharacterBuilderProvenanceStillValid({
+      source: { kind: 'ANCESTRY', ancestryId: 'draconic-ancestry', optionId: 'red' },
+      character,
+      registry
+    })).toBe(false)
+  })
+
+  it('rejects ancestry provenance when the selected ancestry source is stale', () => {
+    const registry = createRegistry()
+    const character = createCharacter({
+      intent: {
+        ...createCharacter().intent,
+        race: { raceId: 'dragonborn' },
+        ancestrySelections: [
+          {
+            id: 'ancestry-1',
+            ancestryId: 'draconic-ancestry',
+            optionId: 'red',
+            source: { kind: 'SUBRACE', subraceId: 'sea-elf' },
+            timing: { kind: 'IMMEDIATE' }
+          }
+        ]
+      }
+    })
+
+    expect(isCharacterBuilderProvenanceStillValid({
+      source: { kind: 'ANCESTRY', ancestryId: 'draconic-ancestry', optionId: 'red' },
+      character,
+      registry
+    })).toBe(false)
   })
 })
 

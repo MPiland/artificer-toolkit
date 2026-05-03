@@ -176,6 +176,7 @@ type ChosenStartingEquipmentItem = StartingEquipmentItem & {
   equipmentIds?: string[]
 }
 type CharacterSpellSelectionSource = CharacterSpellSelectionRecord['source']
+type CharacterBuilderGrantedFeatureLookup = readonly { feature: Pick<FeatureAuthored, 'id'> }[]
 
 export interface CharacterSpellChoiceRequirement {
   label: string
@@ -454,23 +455,75 @@ function isValidAncestrySource(
   return character.intent.race.subraceId === source.subraceId
 }
 
-function isProvenanceStillValid(
-  source: CharacterProvenance,
-  character: CharacterAuthored,
-  registry: CharacterBuilderRegistry,
-  grantedFeatures: GrantedFeatureRecord[]
+function isClassSourceLevelStillAvailable(
+  source: Extract<CharacterProvenance, { kind: 'CLASS' | 'SUBCLASS' }>,
+  row: CharacterClassIntent
 ): boolean {
+  return source.classLevel == null || source.classLevel <= row.classLevel
+}
+
+function getCharacterRaceSelection(
+  character: CharacterAuthored,
+  registry: CharacterBuilderRegistry
+): {
+  baseRace?: ResolvedRace
+  selectedRace?: ResolvedRace
+  selectedAncestry?: NonNullable<CharacterAuthored['intent']['ancestrySelections']>[number]
+  selectedAncestryOption?: NonNullable<ResolvedRace['ancestry']>['options'][number]
+} {
+  const baseRace = character.intent.race.raceId
+    ? registry.races.find((record) => record.category === RACE_CATEGORY_CODE.BASE && record.id === character.intent.race.raceId)
+    : undefined
+  const selectedRace = character.intent.race.subraceId
+    ? registry.races.find((record) => record.id === character.intent.race.subraceId)
+    : baseRace
+  const selectedAncestry = selectedRace?.ancestry
+    ? character.intent.ancestrySelections?.find(
+        (selection) => selection.ancestryId === selectedRace.ancestry?.id
+      )
+    : undefined
+  const selectedAncestryOption = selectedAncestry && isValidAncestrySource(character, selectedAncestry.source)
+    ? selectedRace?.ancestry?.options.find((option) => option.id === selectedAncestry.optionId)
+    : undefined
+
+  return {
+    baseRace,
+    selectedRace,
+    selectedAncestry,
+    selectedAncestryOption
+  }
+}
+
+export function isCharacterBuilderProvenanceStillValid({
+  source,
+  character,
+  registry,
+  grantedFeatures = []
+}: {
+  source: CharacterProvenance
+  character: CharacterAuthored
+  registry: CharacterBuilderRegistry
+  grantedFeatures?: CharacterBuilderGrantedFeatureLookup
+}): boolean {
   switch (source.kind) {
     case 'CLASS':
-      return character.intent.classes.some((row) => row.classId === source.classId)
+      return character.intent.classes.some((row) => row.classId === source.classId && isClassSourceLevelStillAvailable(source, row))
     case 'SUBCLASS':
-      return character.intent.classes.some((row) => row.subclassId === source.subclassId)
+      return character.intent.classes.some((row) => row.subclassId === source.subclassId && isClassSourceLevelStillAvailable(source, row))
     case 'RACE':
       return character.intent.race.raceId === source.raceId
     case 'SUBRACE':
       return character.intent.race.subraceId === source.subraceId
-    case 'ANCESTRY':
-      return registry.races.some((record) => record.ancestry?.options.some((option) => option.id === source.optionId))
+    case 'ANCESTRY': {
+      const { selectedRace, selectedAncestry, selectedAncestryOption } = getCharacterRaceSelection(character, registry)
+      return Boolean(
+        selectedRace?.ancestry
+        && selectedAncestry
+        && selectedAncestryOption
+        && selectedAncestry.ancestryId === source.ancestryId
+        && selectedAncestry.optionId === source.optionId
+      )
+    }
     case 'BACKGROUND':
       return character.intent.background.backgroundId === source.backgroundId
     case 'FEAT':
@@ -484,6 +537,20 @@ function isProvenanceStillValid(
     default:
       return false
   }
+}
+
+function isProvenanceStillValid(
+  source: CharacterProvenance,
+  character: CharacterAuthored,
+  registry: CharacterBuilderRegistry,
+  grantedFeatures: GrantedFeatureRecord[]
+): boolean {
+  return isCharacterBuilderProvenanceStillValid({
+    source,
+    character,
+    registry,
+    grantedFeatures
+  })
 }
 
 function getRequiredClassResourceGrants(
@@ -973,25 +1040,15 @@ function collectGrantedFeaturesForCharacter(
 } {
   const classSelections = character.intent.classes.map((row) => loadClassSelection(row, registry))
   const totalLevel = character.intent.classes.reduce((sum, row) => sum + row.classLevel, 0)
-
-  const baseRace = character.intent.race.raceId
-    ? registry.races.find((record) => record.category === RACE_CATEGORY_CODE.BASE && record.id === character.intent.race.raceId)
-    : undefined
-  const selectedRace = character.intent.race.subraceId
-    ? registry.races.find((record) => record.id === character.intent.race.subraceId)
-    : baseRace
+  const {
+    baseRace,
+    selectedRace,
+    selectedAncestry,
+    selectedAncestryOption
+  } = getCharacterRaceSelection(character, registry)
   const selectedBackground = character.intent.background.backgroundId
     ? registry.backgrounds.find((record) => record.id === character.intent.background.backgroundId)
     : undefined
-
-  const selectedAncestry = selectedRace?.ancestry
-    ? character.intent.ancestrySelections?.find(
-        (selection) => selection.ancestryId === selectedRace.ancestry?.id
-      )
-    : undefined
-  const selectedAncestryOption = selectedRace?.ancestry?.options.find(
-    (option) => option.id === selectedAncestry?.optionId
-  )
 
   const grantedFeatures: GrantedFeatureRecord[] = []
 
