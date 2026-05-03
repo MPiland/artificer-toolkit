@@ -29,12 +29,12 @@ export const CharacterReviewStep = withForm({
         </Group>
         <Stack gap='md' className={styles.inlinePanel}>
           <Text fw={700}>Build summary</Text>
-          <Text c='dimmed'>
+          <Text className={styles.mutedText}>
             {summary.classes.length
               ? summary.classes.map((classRecord) => `${classRecord.classLabel} ${classRecord.classLevel}`).join(', ')
               : 'No classes selected.'}
           </Text>
-          <Text c='dimmed'>{`${Object.keys(summary.abilities).length} of 6 ability scores assigned.`}</Text>
+          <Text className={styles.mutedText}>{`${Object.keys(summary.abilities).length} of 6 ability scores assigned.`}</Text>
         </Stack>
         {messages.length
           ? (

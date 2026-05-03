@@ -66,7 +66,7 @@ export const CharacterClassesStep = withForm({
                     )
                   : null}
                 {rows.length === 0
-                  ? <Text c='dimmed'>No classes have been added yet.</Text>
+                  ? <Text className={styles.mutedText}>No classes have been added yet.</Text>
                   : rows.map((row, index) => {
                       const view = payload.view.classes.selectedClasses[index]
                       const rowLabel = view?.classLabel ?? row.classId ?? `Class ${index + 1}`
@@ -76,7 +76,7 @@ export const CharacterClassesStep = withForm({
                           <Group justify='space-between' align='flex-start'>
                             <div>
                               <Text fw={700}>{rowLabel}</Text>
-                              <Text c='dimmed' size='sm'>{`Level ${row.classLevel}`}</Text>
+                              <Text className={styles.mutedText} size='sm'>{`Level ${row.classLevel}`}</Text>
                             </div>
                             {!readOnly
                               ? (
@@ -122,6 +122,7 @@ export const CharacterClassesStep = withForm({
                             </div>
                             <div className={styles.fieldSpan4}>
                               <NumberInput
+                                hideControls
                                 label='Class Level'
                                 min={1}
                                 max={20}

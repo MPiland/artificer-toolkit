@@ -30,7 +30,7 @@ export function CharacterFeatureChoices({
     <Stack gap='md' className={styles.inlinePanel}>
       <div>
         <Text fw={700}>Feature choices</Text>
-        <Text c='dimmed' size='sm'>Resolve source-local feature options before finalizing.</Text>
+        <Text className={styles.mutedText} size='sm'>Resolve source-local feature options before finalizing.</Text>
       </div>
       {choices.map((choice) => {
         const selectedOptionIds = getSelectedFeatureOptionIds(acquisitions, choice)

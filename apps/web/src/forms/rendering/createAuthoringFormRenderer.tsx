@@ -154,7 +154,7 @@ export function createAuthoringFormRenderer<TValues extends object>({
                                         : null}
                                     </Group>
                                     {items.length === 0
-                                      ? <Text c='dimmed' size='sm'>{`No ${node.label.toLowerCase()} yet.`}</Text>
+                                      ? <Text className={styles.mutedText} size='sm'>{`No ${node.label.toLowerCase()} yet.`}</Text>
                                       : items.map((_, index) => (
                                           <AuthoringFormSectionRow
                                             key={`${node.id}-${index}`}
@@ -438,7 +438,7 @@ export function createAuthoringFormRenderer<TValues extends object>({
                                         : null}
                                     </Group>
                                     {items.length === 0
-                                      ? <Text c='dimmed' size='sm'>{`No ${node.label.toLowerCase()} yet.`}</Text>
+                                      ? <Text className={styles.mutedText} size='sm'>{`No ${node.label.toLowerCase()} yet.`}</Text>
                                       : items.map((_, index) => (
                                           <AuthoringFormSectionRow
                                             key={`${node.id}-${index}`}

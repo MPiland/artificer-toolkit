@@ -15,6 +15,7 @@ export function AppMultiSelect({
   disabled,
   comboboxProps,
   classNames,
+  clearButtonProps,
   styles,
   ...props
 }: AppMultiSelectProps) {
@@ -26,7 +27,7 @@ export function AppMultiSelect({
     ? {
         backgroundColor: 'var(--at-color-input-background-disabled)',
         borderColor: 'var(--at-color-input-border-disabled)',
-        color: 'var(--at-color-text-muted)'
+        color: 'var(--at-color-text-secondary)'
       }
     : {
         backgroundColor: 'var(--at-color-input-background-default)',
@@ -45,6 +46,10 @@ export function AppMultiSelect({
       }}
       disabled={disabled}
       clearable={clearable}
+      clearButtonProps={{
+        'aria-label': props.label ? `Clear ${props.label}` : 'Clear selected options',
+        ...clearButtonProps
+      }}
       searchable={searchable}
       checkIconPosition='right'
       comboboxProps={{

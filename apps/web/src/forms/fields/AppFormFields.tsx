@@ -89,6 +89,7 @@ export function NumberField({ label, description, placeholder, required, readOnl
 
   return (
     <NumberInput
+      hideControls
       label={label}
       description={description}
       placeholder={placeholder}

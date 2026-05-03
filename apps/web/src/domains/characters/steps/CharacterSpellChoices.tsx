@@ -31,7 +31,7 @@ export function CharacterSpellChoices({
     <Stack gap='md' className={styles.inlinePanel}>
       <div>
         <Text fw={700}>Spell choices</Text>
-        <Text c='dimmed' size='sm'>Choose class-owned cantrips and spells from the resolver-approved list.</Text>
+        <Text className={styles.mutedText} size='sm'>Choose class-owned cantrips and spells from the resolver-approved list.</Text>
       </div>
       {choices.map((choice) => {
         const selectedCantripIds = getSelectedCantripIds(currentSelections, choice)
@@ -41,7 +41,7 @@ export function CharacterSpellChoices({
           <Stack key={choice.id} gap='sm'>
             <div>
               <Text fw={600}>{choice.label}</Text>
-              <Text c='dimmed' size='sm'>{choice.sourceLabel}</Text>
+              <Text className={styles.mutedText} size='sm'>{choice.sourceLabel}</Text>
             </div>
             {choice.cantripLimit > 0
               ? (

@@ -67,11 +67,11 @@ export const input = style({
           vars: {
             '--input-bg': foundationVars.color.input.background.disabled,
             '--input-bd': foundationVars.color.input.border.disabled,
-            '--input-color': foundationVars.color.text.muted
+            '--input-color': foundationVars.color.text.secondary
           },
           backgroundColor: `${foundationVars.color.input.background.disabled} !important`,
           borderColor: foundationVars.color.input.border.disabled,
-          color: foundationVars.color.text.muted
+          color: foundationVars.color.text.secondary
         }
       }
     }
@@ -153,6 +153,19 @@ globalStyle(`${pill} .mantine-Pill-label`, {
       overflow: 'hidden',
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap'
+    }
+  }
+})
+
+globalStyle(`${pill} .mantine-Pill-remove`, {
+  '@layer': {
+    [app]: {
+      '@media': {
+        '(max-width: 760px)': {
+          minWidth: '44px',
+          minHeight: '44px'
+        }
+      }
     }
   }
 })

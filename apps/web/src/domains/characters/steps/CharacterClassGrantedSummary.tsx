@@ -1,4 +1,5 @@
 import { Text } from '@mantine/core'
+import * as styles from '../characterBuilder.css'
 
 export function CharacterClassGrantedSummary({
   featureLabels,
@@ -16,8 +17,8 @@ export function CharacterClassGrantedSummary({
   ]
 
   if (summary.length === 0) {
-    return <Text c='dimmed' size='sm'>No class grants are active at this level yet.</Text>
+    return <Text className={styles.mutedText} size='sm'>No class grants are active at this level yet.</Text>
   }
 
-  return <Text c='dimmed' size='sm'>{summary.join(' | ')}</Text>
+  return <Text className={styles.mutedText} size='sm'>{summary.join(' | ')}</Text>
 }

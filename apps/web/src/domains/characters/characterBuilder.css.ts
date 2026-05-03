@@ -32,7 +32,7 @@ export const builderShell = style({
   background: foundationVars.color.surface.panel,
   border: `1px solid ${foundationVars.color.border.subtle}`,
   borderRadius: '20px',
-  boxShadow: '0 18px 50px rgba(7, 16, 20, 0.12)',
+  boxShadow: foundationVars.shadow.card,
   display: 'grid',
   gap: '24px',
   padding: '24px'
@@ -55,6 +55,19 @@ export const sectionTitle = style({
   fontSize: '1.25rem',
   fontWeight: 750,
   margin: 0
+})
+
+export const mutedText = style({
+  color: foundationVars.color.text.secondary
+})
+
+export const modalCloseButton = style({
+  minWidth: '44px',
+  minHeight: '44px'
+})
+
+export const modalActionButton = style({
+  minHeight: '44px'
 })
 
 export const fieldGrid = style({

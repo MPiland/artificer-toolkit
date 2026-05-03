@@ -1,5 +1,6 @@
 import { Button, Group, List, Modal, Stack, Text } from '@mantine/core'
 import type { CharacterBuilderPreviewPayloadDto } from '@artificer-toolkit/schema/api/characters'
+import * as styles from '../characterBuilder.css'
 
 export function CharacterSavePreviewModal({
   isCommitting,
@@ -19,6 +20,10 @@ export function CharacterSavePreviewModal({
       opened={opened}
       title='Finalize Character'
       size='lg'
+      closeButtonProps={{
+        'aria-label': 'Close finalize preview',
+        'className': styles.modalCloseButton
+      }}
       onClose={onClose}
     >
       <Stack gap='md'>
@@ -32,10 +37,10 @@ export function CharacterSavePreviewModal({
                 {preview.preview.summaryLines.map((line) => <List.Item key={line}>{line}</List.Item>)}
               </List>
             )
-          : <Text c='dimmed'>No destructive changes were predicted.</Text>}
+          : <Text className={styles.mutedText}>No destructive changes were predicted.</Text>}
         <Group justify='flex-end'>
-          <Button type='button' variant='default' onClick={onClose}>Cancel</Button>
-          <Button type='button' loading={isCommitting} onClick={onConfirm}>Finalize</Button>
+          <Button className={styles.modalActionButton} type='button' variant='default' onClick={onClose}>Cancel</Button>
+          <Button className={styles.modalActionButton} type='button' loading={isCommitting} onClick={onConfirm}>Finalize</Button>
         </Group>
       </Stack>
     </Modal>

@@ -2,6 +2,7 @@ import { globalStyle, style } from '@vanilla-extract/css'
 import { theme } from '#css/theme'
 import { app } from '#css/layers.css'
 import { size } from '#css/size.css'
+import { foundationVars } from '#css/foundations.css'
 
 export const editor_container = style({
   '@layer': {
@@ -202,6 +203,33 @@ globalStyle('.resize-cursor', {
     [app]: {
       cursor: ['ew-resize', 'col-resize'],
       zIndex: '10'
+    }
+  }
+})
+
+globalStyle('.mantine-RichTextEditor-control', {
+  '@layer': {
+    [app]: {
+      minWidth: '32px',
+      minHeight: '32px'
+    }
+  },
+  '@media': {
+    'screen and (max-width: 760px)': {
+      '@layer': {
+        [app]: {
+          minWidth: '44px',
+          minHeight: '44px'
+        }
+      }
+    }
+  }
+})
+
+globalStyle('.mantine-RichTextEditor-toolbar', {
+  '@layer': {
+    [app]: {
+      gap: foundationVars.space[1]
     }
   }
 })

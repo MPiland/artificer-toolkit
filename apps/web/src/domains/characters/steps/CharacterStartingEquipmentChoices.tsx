@@ -43,7 +43,7 @@ export function CharacterStartingEquipmentChoices({
     <Stack gap='md' className={styles.inlinePanel}>
       <div>
         <Text fw={700}>{`${view.sourceLabel} starting equipment`}</Text>
-        <Text c='dimmed' size='sm'>Choose the source-local equipment groups before finalizing.</Text>
+        <Text className={styles.mutedText} size='sm'>Choose the source-local equipment groups before finalizing.</Text>
       </div>
       {view.startingEquipment.sets.flatMap((set) => set.groups).map((group) => {
         const groupSelection = currentDecision.groups?.find((selection) => selection.groupId === group.id)

@@ -1,4 +1,5 @@
 import { Button, Group, List, Modal, Stack, Text } from '@mantine/core'
+import * as styles from '../characterBuilder.css'
 
 export function CharacterDraftSaveNoticeModal({
   inactiveAbilityMethodLabels,
@@ -18,6 +19,10 @@ export function CharacterDraftSaveNoticeModal({
       opened={opened}
       title='Save Character Draft'
       size='lg'
+      closeButtonProps={{
+        'aria-label': 'Close draft save notice',
+        'className': styles.modalCloseButton
+      }}
       onClose={onClose}
     >
       <Stack gap='md'>
@@ -29,8 +34,8 @@ export function CharacterDraftSaveNoticeModal({
           {inactiveAbilityMethodLabels.map((label) => <List.Item key={label}>{label}</List.Item>)}
         </List>
         <Group justify='flex-end'>
-          <Button type='button' variant='default' onClick={onClose}>Cancel</Button>
-          <Button type='button' loading={isSaving} onClick={onConfirm}>Save Draft</Button>
+          <Button className={styles.modalActionButton} type='button' variant='default' onClick={onClose}>Cancel</Button>
+          <Button className={styles.modalActionButton} type='button' loading={isSaving} onClick={onConfirm}>Save Draft</Button>
         </Group>
       </Stack>
     </Modal>

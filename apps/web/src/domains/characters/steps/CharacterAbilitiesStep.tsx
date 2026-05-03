@@ -103,7 +103,7 @@ export const CharacterAbilitiesStep = withForm({
                                   : null}
                               </Group>
                               {rows.length === 0
-                                ? <Text c='dimmed'>No ability scores assigned yet.</Text>
+                                ? <Text className={styles.mutedText}>No ability scores assigned yet.</Text>
                                 : rows.map((row, index) => (
                                     <Group key={`${row.ability}-${index}`} align='flex-end'>
                                       <AppSelect
@@ -171,11 +171,12 @@ export const CharacterAbilitiesStep = withForm({
                     : null}
                 </Group>
                 {rows.length === 0
-                  ? <Text c='dimmed'>No hit point levels have been added yet.</Text>
+                  ? <Text className={styles.mutedText}>No hit point levels have been added yet.</Text>
                   : rows.map((row, index) => (
                       <Group key={`hp-${row.level}-${index}`} align='flex-end'>
-                        <NumberInput label='Level' value={row.level} readOnly />
+                        <NumberInput hideControls label='Level' value={row.level} readOnly />
                         <NumberInput
+                          hideControls
                           label='Hit Points'
                           min={1}
                           value={row.value}

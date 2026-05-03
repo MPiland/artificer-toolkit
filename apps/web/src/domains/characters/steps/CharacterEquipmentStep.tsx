@@ -87,7 +87,7 @@ export const CharacterEquipmentStep = withForm({
                     : null}
                 </Group>
                 {rows.length === 0
-                  ? <Text c='dimmed'>No manual inventory has been added.</Text>
+                  ? <Text className={styles.mutedText}>No manual inventory has been added.</Text>
                   : rows.map((row, index) => (
                       <Group key={row.id} align='flex-end'>
                         <AppSelect
@@ -103,6 +103,7 @@ export const CharacterEquipmentStep = withForm({
                           }}
                         />
                         <NumberInput
+                          hideControls
                           label='Quantity'
                           min={1}
                           value={row.quantity}
@@ -159,7 +160,7 @@ export const CharacterEquipmentStep = withForm({
                     : null}
                 </Group>
                 {rows.length === 0
-                  ? <Text c='dimmed'>No manual currency has been added.</Text>
+                  ? <Text className={styles.mutedText}>No manual currency has been added.</Text>
                   : rows.map((row, index) => (
                       <Group key={`currency-${index}`} align='flex-end'>
                         <AppSelect
@@ -175,6 +176,7 @@ export const CharacterEquipmentStep = withForm({
                           }}
                         />
                         <NumberInput
+                          hideControls
                           label='Amount'
                           value={row.currencies[0]?.amount ?? 0}
                           disabled={readOnly}
