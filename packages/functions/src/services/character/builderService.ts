@@ -17,7 +17,9 @@ import {
   HITPOINT_CALCULATION_METHOD_CODE,
   RACE_CATEGORY_CODE,
   type AbilityCode,
-  type AuthoredRecordStatus
+  type AuthoredRecordStatus,
+  type EquipmentCategoryCode,
+  type EquipmentPropertyCode
 } from '@artificer-toolkit/shared/core'
 import {
   CharacterStartingEquipmentSource,
@@ -167,10 +169,23 @@ type CharacterStartingEquipmentDecision = NonNullable<NonNullable<CharacterAutho
 type StartingEquipmentItem = StartingEquipmentAuthored['sets'][number]['groups'][number]['options'][number]['items'][number]
 type ChosenStartingEquipmentItem = StartingEquipmentItem & {
   startingEquipmentKind: 'EQUIPMENT'
+  category?: EquipmentCategoryCode
+  properties?: EquipmentPropertyCode[]
   selectionKind: 'CHOSEN'
   count: number
+  equipmentIds?: string[]
 }
 type CharacterSpellSelectionSource = CharacterSpellSelectionRecord['source']
+
+export interface CharacterSpellChoiceRequirement {
+  label: string
+  sourceLabel: string
+  source: CharacterSpellSelectionSource
+  cantripLimit: number
+  learnedSpellLimit: number
+  maxSpellLevel: number
+  allowedClassIds: string[]
+}
 
 type ResolvedClassSelection = {
   row: CharacterClassIntent
@@ -225,33 +240,50 @@ function getSpellSelectionCounts(
   }
 }
 
+function isSpellAllowedForClassRequirement(
+  spell: SpellAuthored,
+  requirement: CharacterSpellChoiceRequirement
+): boolean {
+  const matchesClass = spell.classIds.some((classId) => requirement.allowedClassIds.includes(classId))
+  if (!matchesClass) return false
+  if (spell.level === 0) return true
+
+  return spell.level <= requirement.maxSpellLevel
+}
+
+export function getInvalidSpellSelectionIds(
+  selection: CharacterSpellSelectionRecord | undefined,
+  requirement: CharacterSpellChoiceRequirement,
+  registry: CharacterBuilderRegistry
+): string[] {
+  if (!selection) return []
+
+  return selection.spells.filter((spellId) => {
+    const spell = registry.spells.find((record) => record.id === spellId)
+
+    return !spell || !isSpellAllowedForClassRequirement(spell, requirement)
+  })
+}
+
 function getClassSpellChoiceRequirements(
   classSelections: ResolvedClassSelection[]
-): {
-  label: string
-  sourceLabel: string
-  source: CharacterSpellSelectionSource
-  cantripLimit: number
-  learnedSpellLimit: number
-}[] {
+): CharacterSpellChoiceRequirement[] {
   return classSelections.flatMap((selection) => {
-    const requirements: {
-      label: string
-      sourceLabel: string
-      source: CharacterSpellSelectionSource
-      cantripLimit: number
-      learnedSpellLimit: number
-    }[] = []
+    const requirements: CharacterSpellChoiceRequirement[] = []
 
     if (selection.baseClass?.spellcasting) {
       const activeLimit = getActiveSpellLimit(selection.baseClass.spellcasting, selection.row.classLevel)
       if (activeLimit && ((activeLimit.cantripsLimit ?? 0) > 0 || (activeLimit.learnedSpellsLimit ?? 0) > 0)) {
+        const spellSlotLevels = activeLimit.slots.map((slot) => slot.spellLevel)
+
         requirements.push({
           label: selection.baseClass.spellcasting.magicName ?? `${selection.baseClass.label} Spellcasting`,
           sourceLabel: selection.baseClass.label,
           source: { kind: 'CLASS', classId: selection.baseClass.id, classLevel: selection.row.classLevel },
           cantripLimit: activeLimit.cantripsLimit ?? 0,
-          learnedSpellLimit: activeLimit.learnedSpellsLimit ?? 0
+          learnedSpellLimit: activeLimit.learnedSpellsLimit ?? 0,
+          maxSpellLevel: Math.max(...spellSlotLevels, 0) || selection.baseClass.spellcasting.maxSpellLevel,
+          allowedClassIds: [selection.baseClass.id]
         })
       }
     }
@@ -259,12 +291,16 @@ function getClassSpellChoiceRequirements(
     if (selection.subclass?.spellcasting) {
       const activeLimit = getActiveSpellLimit(selection.subclass.spellcasting, selection.row.classLevel)
       if (activeLimit && ((activeLimit.cantripsLimit ?? 0) > 0 || (activeLimit.learnedSpellsLimit ?? 0) > 0)) {
+        const spellSlotLevels = activeLimit.slots.map((slot) => slot.spellLevel)
+
         requirements.push({
           label: selection.subclass.spellcasting.magicName ?? `${selection.subclass.label} Spellcasting`,
           sourceLabel: selection.subclass.label,
           source: { kind: 'SUBCLASS', subclassId: selection.subclass.id, classLevel: selection.row.classLevel },
           cantripLimit: activeLimit.cantripsLimit ?? 0,
-          learnedSpellLimit: activeLimit.learnedSpellsLimit ?? 0
+          learnedSpellLimit: activeLimit.learnedSpellsLimit ?? 0,
+          maxSpellLevel: Math.max(...spellSlotLevels, 0) || selection.subclass.spellcasting.maxSpellLevel,
+          allowedClassIds: [...new Set([selection.row.classId, selection.subclass.id])]
         })
       }
     }
@@ -273,9 +309,25 @@ function getClassSpellChoiceRequirements(
   })
 }
 
-function isStartingEquipmentDecisionComplete(
+function isEquipmentAllowedForStartingItem(
+  item: ChosenStartingEquipmentItem,
+  equipmentId: string,
+  registry: CharacterBuilderRegistry
+): boolean {
+  const equipment = registry.equipment.find((record) => record.id === equipmentId)
+  if (!equipment) return false
+
+  if (Array.isArray(item.equipmentIds) && !item.equipmentIds.includes(equipmentId)) return false
+  if (item.category && equipment.category !== item.category) return false
+  if (item.properties?.some((property) => !equipment.properties.includes(property))) return false
+
+  return true
+}
+
+export function isStartingEquipmentDecisionComplete(
   startingEquipment: StartingEquipmentAuthored,
-  decision: CharacterStartingEquipmentDecision | undefined
+  decision: CharacterStartingEquipmentDecision | undefined,
+  registry: CharacterBuilderRegistry
 ): boolean {
   if (startingEquipment.sets.length === 0) return true
   if (!decision) return false
@@ -288,13 +340,21 @@ function isStartingEquipmentDecisionComplete(
     const option = group.options.find((candidate) => candidate.id === groupSelection?.optionId)
     if (!groupSelection || !option) return false
 
+    const selectableItemIds = new Set(option.items.filter(isChosenStartingEquipmentItem).map((item) => item.id))
+    const hasInvalidSelectionKey = groupSelection.selections?.some((selection) => !selectableItemIds.has(selection.selectionKey))
+    if (hasInvalidSelectionKey) return false
+
     return option.items.every((item) => {
       if (!isChosenStartingEquipmentItem(item)) return true
 
       const selections = groupSelection.selections?.filter((selection) => selection.selectionKey === item.id) ?? []
 
-      return selections.length >= item.count
-        && selections.every((selection) => selection.equipmentId.trim().length > 0 && selection.quantity > 0)
+      return selections.length === item.count
+        && selections.every((selection) => (
+          selection.equipmentId.trim().length > 0
+          && selection.quantity > 0
+          && isEquipmentAllowedForStartingItem(item, selection.equipmentId, registry)
+        ))
     })
   }))
 }
@@ -597,7 +657,8 @@ export function resolveRecommendedCharacterBuilderSection(
       'SPECIALIZATION_REQUIRED',
       'SPELL_SELECTION_REQUIRED',
       'SPELL_SELECTION_INCOMPLETE',
-      'SPELL_SELECTION_OVER_LIMIT'
+      'SPELL_SELECTION_OVER_LIMIT',
+      'SPELL_SELECTION_INVALID'
     ])
   ) {
     return 'CLASSES'
@@ -1266,19 +1327,27 @@ export async function resolveCharacterBuilder(
     const missingSpells = selectedCounts.spells < requirement.learnedSpellLimit
     const tooManyCantrips = selectedCounts.cantrips > requirement.cantripLimit
     const tooManySpells = selectedCounts.spells > requirement.learnedSpellLimit
-    if (!missingCantrips && !missingSpells && !tooManyCantrips && !tooManySpells) continue
+    const invalidSpellIds = getInvalidSpellSelectionIds(spellSelection, requirement, registry)
+    const invalidSpells = invalidSpellIds.length > 0
+    if (!missingCantrips && !missingSpells && !tooManyCantrips && !tooManySpells && !invalidSpells) continue
 
     const overLimit = tooManyCantrips || tooManySpells
-
-    outstandingChoices.push({
-      code: overLimit
+    const spellSelectionIssueCode = invalidSpells
+      ? 'SPELL_SELECTION_INVALID'
+      : overLimit
         ? 'SPELL_SELECTION_OVER_LIMIT'
         : spellSelection
           ? 'SPELL_SELECTION_INCOMPLETE'
-          : 'SPELL_SELECTION_REQUIRED',
-      message: overLimit
+          : 'SPELL_SELECTION_REQUIRED'
+    const spellSelectionIssueMessage = invalidSpells
+      ? `${requirement.label} includes spells outside the allowed class spell list.`
+      : overLimit
         ? `${requirement.label} has too many selected spells for the current class level.`
-        : `${requirement.label} requires spell selections.`,
+        : `${requirement.label} requires spell selections.`
+
+    outstandingChoices.push({
+      code: spellSelectionIssueCode,
+      message: spellSelectionIssueMessage,
       sourceLabel: requirement.sourceLabel,
       source: requirement.source,
       required: true
@@ -1288,7 +1357,7 @@ export async function resolveCharacterBuilder(
   const primaryClass = classSelections[0]?.baseClass
   if (
     primaryClass?.startingEquipment.sets.length
-    && !isStartingEquipmentDecisionComplete(primaryClass.startingEquipment, character.intent.startingEquipment?.class)
+    && !isStartingEquipmentDecisionComplete(primaryClass.startingEquipment, character.intent.startingEquipment?.class, registry)
   ) {
     outstandingChoices.push({
       code: 'CLASS_STARTING_EQUIPMENT_REQUIRED',
@@ -1300,7 +1369,7 @@ export async function resolveCharacterBuilder(
 
   if (
     selectedBackground?.startingEquipment?.sets.length
-    && !isStartingEquipmentDecisionComplete(selectedBackground.startingEquipment, character.intent.startingEquipment?.background)
+    && !isStartingEquipmentDecisionComplete(selectedBackground.startingEquipment, character.intent.startingEquipment?.background, registry)
   ) {
     outstandingChoices.push({
       code: 'BACKGROUND_STARTING_EQUIPMENT_REQUIRED',

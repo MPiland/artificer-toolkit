@@ -5,13 +5,17 @@ import {
   CharacterStartingEquipmentSource,
   type CharacterAuthored
 } from '@artificer-toolkit/shared/subjects/authored'
+import type { StartingEquipmentAuthored } from '@artificer-toolkit/shared/authored'
 
 import {
   createCharacterBuilderChangePreview,
   createEmptyCharacterAuthored,
+  getInvalidSpellSelectionIds,
+  isStartingEquipmentDecisionComplete,
   resolveRecommendedCharacterBuilderSection,
   type CharacterBuilderIssue,
-  type CharacterBuilderRegistry
+  type CharacterBuilderRegistry,
+  type CharacterSpellChoiceRequirement
 } from './builderService.js'
 
 function createCharacter(overrides?: Partial<CharacterAuthored>): CharacterAuthored {
@@ -51,7 +55,9 @@ function createRegistry(): CharacterBuilderRegistry {
     spells: [
       {
         id: 'magic-missile',
-        label: 'Magic Missile'
+        label: 'Magic Missile',
+        level: 1,
+        classIds: ['wizard']
       } as CharacterBuilderRegistry['spells'][number]
     ],
     features: [
@@ -59,6 +65,42 @@ function createRegistry(): CharacterBuilderRegistry {
         id: 'arcane-recovery',
         label: 'Arcane Recovery'
       } as CharacterBuilderRegistry['features'][number]
+    ]
+  }
+}
+
+function createChoiceStartingEquipment(): StartingEquipmentAuthored {
+  return {
+    id: 'fighter-start',
+    sets: [
+      {
+        id: 'fighter-set',
+        order: 1,
+        groups: [
+          {
+            id: 'fighter-group',
+            order: 1,
+            options: [
+              {
+                id: 'fighter-option',
+                order: 1,
+                items: [
+                  {
+                    id: 'martial-weapon-choice',
+                    order: 1,
+                    startingEquipmentKind: 'EQUIPMENT',
+                    category: 'WEAPON',
+                    selectionKind: 'CHOSEN',
+                    count: 1,
+                    authoringModeKind: 'SELECTED',
+                    equipmentIds: ['longsword']
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
     ]
   }
 }
@@ -256,6 +298,104 @@ describe('resolveRecommendedCharacterBuilderSection', () => {
     ] satisfies CharacterBuilderIssue[])
 
     expect(overLimitSection).toBe('CLASSES')
+  })
+})
+
+describe('character builder source-local choice validation', () => {
+  it('rejects class spell selections outside the allowed class and spell level', () => {
+    const registry = createRegistry()
+    registry.spells = [
+      {
+        id: 'magic-missile',
+        label: 'Magic Missile',
+        level: 1,
+        classIds: ['wizard']
+      } as CharacterBuilderRegistry['spells'][number],
+      {
+        id: 'cure-wounds',
+        label: 'Cure Wounds',
+        level: 1,
+        classIds: ['cleric']
+      } as CharacterBuilderRegistry['spells'][number],
+      {
+        id: 'fireball',
+        label: 'Fireball',
+        level: 3,
+        classIds: ['wizard']
+      } as CharacterBuilderRegistry['spells'][number]
+    ]
+
+    const requirement: CharacterSpellChoiceRequirement = {
+      label: 'Wizard Spellcasting',
+      sourceLabel: 'Wizard',
+      source: { kind: 'CLASS', classId: 'wizard', classLevel: 1 },
+      cantripLimit: 0,
+      learnedSpellLimit: 1,
+      maxSpellLevel: 1,
+      allowedClassIds: ['wizard']
+    }
+
+    expect(getInvalidSpellSelectionIds({
+      id: 'wizard-spells',
+      source: requirement.source,
+      timing: { kind: 'CLASS_LEVEL', classId: 'wizard', classLevel: 1 },
+      spells: ['magic-missile', 'cure-wounds', 'fireball']
+    }, requirement, registry)).toEqual(['cure-wounds', 'fireball'])
+  })
+
+  it('rejects starting equipment selections outside the chosen item allow-list', () => {
+    const registry = createRegistry()
+    registry.equipment = [
+      {
+        id: 'longsword',
+        label: 'Longsword',
+        category: 'WEAPON',
+        properties: ['MARTIAL']
+      } as CharacterBuilderRegistry['equipment'][number],
+      {
+        id: 'dagger',
+        label: 'Dagger',
+        category: 'WEAPON',
+        properties: ['SIMPLE']
+      } as CharacterBuilderRegistry['equipment'][number]
+    ]
+    const startingEquipment = createChoiceStartingEquipment()
+    const validDecision = {
+      source: CharacterStartingEquipmentSource.CLASS,
+      tookGold: false,
+      groups: [
+        {
+          groupId: 'fighter-group',
+          optionId: 'fighter-option',
+          selections: [
+            {
+              selectionKey: 'martial-weapon-choice',
+              equipmentId: 'longsword',
+              quantity: 1
+            }
+          ]
+        }
+      ]
+    }
+    const invalidDecision = {
+      ...validDecision,
+      groups: [
+        {
+          groupId: 'fighter-group',
+          optionId: 'fighter-option',
+          selections: [
+            {
+              selectionKey: 'martial-weapon-choice',
+              equipmentId: 'dagger',
+              quantity: 1
+            }
+          ]
+        }
+      ]
+    }
+
+    expect(isStartingEquipmentDecisionComplete(startingEquipment, validDecision, registry)).toBe(true)
+    expect(isStartingEquipmentDecisionComplete(startingEquipment, invalidDecision, registry)).toBe(false)
   })
 })
 
