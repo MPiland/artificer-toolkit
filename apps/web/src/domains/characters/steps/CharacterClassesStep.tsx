@@ -137,6 +137,7 @@ export const CharacterClassesStep = withForm({
                             </div>
                             <div className={styles.fieldSpan4}>
                               <NumberInput
+                                allowDecimal={false}
                                 hideControls
                                 label='Class Level'
                                 min={1}
@@ -146,7 +147,7 @@ export const CharacterClassesStep = withForm({
                                 onChange={(value) => {
                                   field.replaceValue(index, toClassRow({
                                     ...row,
-                                    classLevel: typeof value === 'number' ? value : 1
+                                    classLevel: toClassLevel(value)
                                   }))
                                 }}
                               />
@@ -240,4 +241,10 @@ export const CharacterClassesStep = withForm({
 
 function toClassRow(row: CharacterClassRow): CharacterClassRow {
   return row
+}
+
+function toClassLevel(value: number | string): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 1
+
+  return Math.min(20, Math.max(1, Math.trunc(value)))
 }

@@ -1058,12 +1058,22 @@ export async function reconcileCharacterBuilderCharacter(
   const spellSelections = (nextCharacter.intent.spellSelections ?? []).filter((selection) => isProvenanceStillValid(selection.source, filteredCharacter, registry, grantedFeatures))
   nextCharacter.intent.spellSelections = spellSelections.length > 0 ? spellSelections : undefined
 
+  const requiredResourceGrants = getRequiredClassResourceGrants(classSelections)
   const validResourceGrants = (nextCharacter.intent.resourceGrants ?? [])
     .filter((grant) => isProvenanceStillValid(grant.source, filteredCharacter, registry, grantedFeatures))
-  const resourceGrants = mergeRequiredResourceGrants(validResourceGrants, getRequiredClassResourceGrants(classSelections))
+    .filter((grant) => (
+      isClassResourceGrantSource(grant.source)
+        ? requiredResourceGrants.some((requiredGrant) => isSameRequiredResourceGrant(grant, requiredGrant))
+        : true
+    ))
+  const resourceGrants = mergeRequiredResourceGrants(validResourceGrants, requiredResourceGrants)
   nextCharacter.intent.resourceGrants = resourceGrants.length > 0 ? resourceGrants : undefined
 
   return nextCharacter
+}
+
+function isClassResourceGrantSource(source: CharacterProvenance): boolean {
+  return source.kind === 'CLASS' || source.kind === 'SUBCLASS'
 }
 
 export async function resolveCharacterBuilder(

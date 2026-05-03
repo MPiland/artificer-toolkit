@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { CharacterBuilderPayloadDto } from '@artificer-toolkit/schema/api/characters'
 import { CHARACTER_ABILITY_GENERATION_METHOD } from '@artificer-toolkit/shared/core'
@@ -370,6 +370,34 @@ describe('CharacterBuilderRenderer', () => {
     expect(latestValues?.intent.featureAcquisitions.map((acquisition) => acquisition.id)).toEqual(['background-feature-choice'])
     expect(latestValues?.intent.spellSelections).toBeUndefined()
     expect(latestValues?.intent.resourceGrants).toBeUndefined()
+  })
+
+  it('normalizes class levels to integers before resolver refresh', async () => {
+    const resolvedValues: CharacterFormValues[] = []
+
+    renderCharacterBuilderHarness({
+      payload: {
+        ...characterBuilderPayloadFixture,
+        resolution: {
+          ...characterBuilderPayloadFixture.resolution,
+          recommendedSectionId: 'CLASSES'
+        }
+      },
+      resolveDebounceMs: 1,
+      onResolve: (character) => {
+        resolvedValues.push(character)
+      }
+    })
+
+    const classLevelInput = screen.getAllByLabelText(/class level/i)
+      .find((element) => element instanceof HTMLInputElement)
+    expect(classLevelInput).toBeDefined()
+
+    fireEvent.change(classLevelInput as HTMLInputElement, { target: { value: '1.5' } })
+
+    await waitFor(() => {
+      expect(resolvedValues.at(-1)?.intent.classes[0]?.classLevel).toBe(1)
+    })
   })
 
   it('updates ability method UI from the live form value before resolver refresh', async () => {
