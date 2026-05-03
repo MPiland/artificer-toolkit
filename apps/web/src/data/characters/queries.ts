@@ -29,7 +29,7 @@ export function getCharacterDraft(id: string, client: Api = api) {
 
 export function getCharacterSheetPlaceholder(id: string, client: Api = api) {
   return queryOptions({
-    queryKey: queryKeys.characters.sheet(id),
+    queryKey: queryKeys.characters.sheetPlaceholder(id),
     queryFn: async () => await client.characters.get(id)
   })
 }
