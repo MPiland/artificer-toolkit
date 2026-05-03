@@ -78,6 +78,7 @@ function activeExistsProjection() {
       select 1
       from characters
       where characters.id = character_builder_drafts.character_id
+        and characters.status = 'ACTIVE'
     )
   `
 }
@@ -91,6 +92,7 @@ async function activeCharacterExists(
       select 1
       from characters
       where id = ${characterId}
+        and status = 'ACTIVE'
     ) as exists
   `.execute(db)
 

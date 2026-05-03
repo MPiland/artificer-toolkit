@@ -461,15 +461,38 @@ function mergeRequiredResourceGrants(
   const grants = [...currentGrants]
 
   for (const requiredGrant of requiredGrants) {
-    const hasGrant = grants.some((grant) => (
-      grant.resourceId === requiredGrant.resourceId && isSameCharacterProvenanceIdentity(grant.source, requiredGrant.source)
-    ))
+    const hasGrant = grants.some((grant) => isSameRequiredResourceGrant(grant, requiredGrant))
     if (!hasGrant) {
       grants.push(requiredGrant)
     }
   }
 
   return grants
+}
+
+function isSameRequiredResourceGrant(
+  left: CharacterResourceGrantRecord,
+  right: CharacterResourceGrantRecord
+): boolean {
+  return left.resourceId === right.resourceId
+    && isSameRequiredResourceGrantSource(left.source, right.source)
+}
+
+function isSameRequiredResourceGrantSource(
+  left: CharacterProvenance,
+  right: CharacterProvenance
+): boolean {
+  if (left.kind !== right.kind) return false
+
+  if (left.kind === 'CLASS' && right.kind === 'CLASS') {
+    return left.classId === right.classId
+  }
+
+  if (left.kind === 'SUBCLASS' && right.kind === 'SUBCLASS') {
+    return left.subclassId === right.subclassId
+  }
+
+  return isSameCharacterProvenanceIdentity(left, right)
 }
 
 function createReadiness(

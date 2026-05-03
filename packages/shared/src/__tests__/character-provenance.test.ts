@@ -9,15 +9,19 @@ describe('character provenance identity', () => {
   it('matches class-owned sources by stable class identity instead of class level', () => {
     const firstLevelSource: CharacterProvenance = { kind: 'CLASS', classId: 'wizard', classLevel: 1 }
     const fifthLevelSource: CharacterProvenance = { kind: 'CLASS', classId: 'wizard', classLevel: 5 }
+    const levelAgnosticSource: CharacterProvenance = { kind: 'CLASS', classId: 'wizard' }
 
     expect(isSameCharacterProvenanceIdentity(firstLevelSource, fifthLevelSource)).toBe(true)
+    expect(isSameCharacterProvenanceIdentity(firstLevelSource, levelAgnosticSource)).toBe(true)
   })
 
   it('matches subclass-owned sources by stable subclass identity instead of class level', () => {
     const thirdLevelSource: CharacterProvenance = { kind: 'SUBCLASS', subclassId: 'evoker', classLevel: 3 }
     const seventhLevelSource: CharacterProvenance = { kind: 'SUBCLASS', subclassId: 'evoker', classLevel: 7 }
+    const levelAgnosticSource: CharacterProvenance = { kind: 'SUBCLASS', subclassId: 'evoker' }
 
     expect(isSameCharacterProvenanceIdentity(thirdLevelSource, seventhLevelSource)).toBe(true)
+    expect(isSameCharacterProvenanceIdentity(thirdLevelSource, levelAgnosticSource)).toBe(true)
   })
 
   it('does not collapse different source identities of the same kind', () => {
