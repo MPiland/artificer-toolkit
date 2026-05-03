@@ -26,10 +26,6 @@ export const CharacterAbilitiesStep = withForm({
   defaultValues: createFallbackCharacterFormValues(),
   props: {} as CharacterBuilderStepProps,
   render: function RenderCharacterAbilities({ form, payload, readOnly }) {
-    const abilityMethod = payload.character.intent.abilities.method
-    const assignmentOptions = abilityMethod === CHARACTER_ABILITY_GENERATION_METHOD.POINT_BUY
-      ? pointBuyOptions
-      : standardArrayOptions
     const requiredLevels = Math.max(payload.resolution.summary.totalLevel, 1)
 
     return (
@@ -37,114 +33,123 @@ export const CharacterAbilitiesStep = withForm({
         <div className={styles.sectionHeader}>
           <h3 id='character-abilities-title' className={styles.sectionTitle}>Abilities & hit points</h3>
         </div>
-        <div className={styles.fieldGrid}>
-          <div className={styles.fieldSpan6}>
-            <form.AppField name='intent.abilities'>
-              {(field) => (
-                <AppSelect
-                  label='Ability Method'
-                  data={abilityMethodOptions}
-                  value={field.state.value.method}
-                  disabled={readOnly}
-                  onChange={(value) => {
-                    if (!value) return
-                    const cache = cacheActiveAbilityIntent(form.state.values.builderIntent?.abilities, field.state.value)
+        <form.AppField name='intent.abilities'>
+          {(abilityField) => {
+            const abilityMethod = abilityField.state.value.method
+            const assignmentOptions = abilityMethod === CHARACTER_ABILITY_GENERATION_METHOD.POINT_BUY
+              ? pointBuyOptions
+              : standardArrayOptions
 
-                    field.handleChange(getCachedAbilityIntent(cache, value))
-                    form.setFieldValue('builderIntent.abilities', {
-                      ...cache,
-                      activeMethod: value
-                    })
-                  }}
-                />
-              )}
-            </form.AppField>
-          </div>
-          <div className={styles.fieldSpan6}>
-            <form.AppField name='intent.hitpoints.method'>
-              {(field) => (
-                <field.SelectField
-                  label='Hit Point Method'
-                  data={hitpointMethodOptions}
-                  required
-                  readOnly={readOnly}
-                />
-              )}
-            </form.AppField>
-          </div>
-        </div>
-        {abilityMethod === CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED
-          ? (
-              <Alert color='yellow'>
-                Manual roll provenance is preserved by the schema, but the MVP builder currently records finalized
-                ability assignments through standard array or point buy.
-              </Alert>
+            return (
+              <>
+                <div className={styles.fieldGrid}>
+                  <div className={styles.fieldSpan6}>
+                    <AppSelect
+                      label='Ability Method'
+                      data={abilityMethodOptions}
+                      value={abilityMethod}
+                      disabled={readOnly}
+                      onChange={(value) => {
+                        if (!value) return
+                        const cache = cacheActiveAbilityIntent(form.state.values.builderIntent?.abilities, abilityField.state.value)
+
+                        abilityField.handleChange(getCachedAbilityIntent(cache, value))
+                        form.setFieldValue('builderIntent.abilities', {
+                          ...cache,
+                          activeMethod: value
+                        })
+                      }}
+                    />
+                  </div>
+                  <div className={styles.fieldSpan6}>
+                    <form.AppField name='intent.hitpoints.method'>
+                      {(field) => (
+                        <field.SelectField
+                          label='Hit Point Method'
+                          data={hitpointMethodOptions}
+                          required
+                          readOnly={readOnly}
+                        />
+                      )}
+                    </form.AppField>
+                  </div>
+                </div>
+                {abilityMethod === CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED
+                  ? (
+                      <Alert color='yellow'>
+                        Manual roll provenance is preserved by the schema, but the MVP builder currently records finalized
+                        ability assignments through standard array or point buy.
+                      </Alert>
+                    )
+                  : (
+                      <form.AppField name='intent.abilities.assignments' mode='array'>
+                        {(field) => {
+                          const rows = field.state.value ?? []
+
+                          return (
+                            <Stack gap='md' className={styles.inlinePanel}>
+                              <Group justify='space-between'>
+                                <Text fw={700}>Ability assignments</Text>
+                                {!readOnly
+                                  ? (
+                                      <Button
+                                        type='button'
+                                        variant='default'
+                                        onClick={() => field.handleChange(createDefaultAbilityAssignments())}
+                                      >
+                                        Fill Six Abilities
+                                      </Button>
+                                    )
+                                  : null}
+                              </Group>
+                              {rows.length === 0
+                                ? <Text c='dimmed'>No ability scores assigned yet.</Text>
+                                : rows.map((row, index) => (
+                                    <Group key={`${row.ability}-${index}`} align='flex-end'>
+                                      <AppSelect
+                                        label='Ability'
+                                        data={abilityOptions}
+                                        value={row.ability}
+                                        disabled={readOnly}
+                                        onChange={(value) => {
+                                          if (!value || !isCharacterAbilityCode(value)) return
+                                          field.replaceValue(index, {
+                                            ...row,
+                                            ability: value
+                                          })
+                                        }}
+                                      />
+                                      <AppSelect
+                                        label='Score'
+                                        data={assignmentOptions}
+                                        value={row.option}
+                                        disabled={readOnly}
+                                        onChange={(value) => {
+                                          if (!value) return
+                                          field.replaceValue(index, {
+                                            ...row,
+                                            option: value
+                                          })
+                                        }}
+                                      />
+                                      {!readOnly
+                                        ? (
+                                            <Button type='button' variant='subtle' color='red' onClick={() => field.removeValue(index)}>
+                                              Remove
+                                            </Button>
+                                          )
+                                        : null}
+                                    </Group>
+                                  ))}
+                            </Stack>
+                          )
+                        }}
+                      </form.AppField>
+                    )}
+              </>
             )
-          : (
-              <form.AppField name='intent.abilities.assignments' mode='array'>
-                {(field) => {
-                  const rows = field.state.value ?? []
-
-                  return (
-                    <Stack gap='md' className={styles.inlinePanel}>
-                      <Group justify='space-between'>
-                        <Text fw={700}>Ability assignments</Text>
-                        {!readOnly
-                          ? (
-                              <Button
-                                type='button'
-                                variant='default'
-                                onClick={() => field.handleChange(createDefaultAbilityAssignments())}
-                              >
-                                Fill Six Abilities
-                              </Button>
-                            )
-                          : null}
-                      </Group>
-                      {rows.length === 0
-                        ? <Text c='dimmed'>No ability scores assigned yet.</Text>
-                        : rows.map((row, index) => (
-                            <Group key={`${row.ability}-${index}`} align='flex-end'>
-                              <AppSelect
-                                label='Ability'
-                                data={abilityOptions}
-                                value={row.ability}
-                                disabled={readOnly}
-                                onChange={(value) => {
-                                  if (!value || !isCharacterAbilityCode(value)) return
-                                  field.replaceValue(index, {
-                                    ...row,
-                                    ability: value
-                                  })
-                                }}
-                              />
-                              <AppSelect
-                                label='Score'
-                                data={assignmentOptions}
-                                value={row.option}
-                                disabled={readOnly}
-                                onChange={(value) => {
-                                  if (!value) return
-                                  field.replaceValue(index, {
-                                    ...row,
-                                    option: value
-                                  })
-                                }}
-                              />
-                              {!readOnly
-                                ? (
-                                    <Button type='button' variant='subtle' color='red' onClick={() => field.removeValue(index)}>
-                                      Remove
-                                    </Button>
-                                  )
-                                : null}
-                            </Group>
-                          ))}
-                    </Stack>
-                  )
-                }}
-              </form.AppField>
-            )}
+          }}
+        </form.AppField>
         <form.AppField name='intent.hitpoints.levels' mode='array'>
           {(field) => {
             const rows = field.state.value ?? []

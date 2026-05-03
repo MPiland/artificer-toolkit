@@ -1,6 +1,7 @@
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { CharacterBuilderPayloadDto } from '@artificer-toolkit/schema/api/characters'
+import { CHARACTER_ABILITY_GENERATION_METHOD } from '@artificer-toolkit/shared/core'
 import {
   AuthoringFormLayout,
   AuthoringFormProvider,
@@ -183,6 +184,27 @@ describe('CharacterBuilderRenderer', () => {
     expect(screen.getByRole('textbox', { name: /choose 1 spell/i })).toBeInTheDocument()
   })
 
+  it('updates ability method UI from the live form value before resolver refresh', async () => {
+    const user = userEvent.setup()
+
+    renderCharacterBuilderHarness({
+      payload: {
+        ...characterBuilderPayloadFixture,
+        resolution: {
+          ...characterBuilderPayloadFixture.resolution,
+          recommendedSectionId: 'ABILITIES'
+        }
+      },
+      showAbilityMethodTestToggle: true
+    })
+
+    expect(screen.queryByText(/manual roll provenance is preserved/i)).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /set manual ability method/i }))
+
+    expect(screen.getByText(/manual roll provenance is preserved/i)).toBeInTheDocument()
+  })
+
   it('renders read-only builder fields when the authoring state is read-only', () => {
     renderCharacterBuilderHarness({
       payload: characterBuilderPayloadFixture,
@@ -195,16 +217,19 @@ describe('CharacterBuilderRenderer', () => {
 
 function renderCharacterBuilderHarness({
   payload,
-  readOnly = false
+  readOnly = false,
+  showAbilityMethodTestToggle = false
 }: {
   payload: CharacterBuilderPayloadDto
   readOnly?: boolean
+  showAbilityMethodTestToggle?: boolean
 }) {
   return renderWithAppProviders(
     <AuthoringFormProvider>
       <CharacterBuilderTestHarness
         payload={payload}
         readOnly={readOnly}
+        showAbilityMethodTestToggle={showAbilityMethodTestToggle}
       />
     </AuthoringFormProvider>
   )
@@ -212,10 +237,12 @@ function renderCharacterBuilderHarness({
 
 function CharacterBuilderTestHarness({
   payload,
-  readOnly
+  readOnly,
+  showAbilityMethodTestToggle
 }: {
   payload: CharacterBuilderPayloadDto
   readOnly: boolean
+  showAbilityMethodTestToggle: boolean
 }) {
   const form = useAppForm({
     defaultValues: toCharacterFormValues(payload),
@@ -239,6 +266,25 @@ function CharacterBuilderTestHarness({
   return (
     <form.AppForm>
       <AuthoringFormLayout>
+        {showAbilityMethodTestToggle
+          ? (
+              <button
+                type='button'
+                onClick={() => {
+                  form.setFieldValue('intent.abilities', {
+                    method: CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED,
+                    assignments: [],
+                    state: {
+                      assignments: [],
+                      rollGroups: []
+                    }
+                  })
+                }}
+              >
+                Set Manual Ability Method
+              </button>
+            )
+          : null}
         <CharacterBuilderRenderer
           form={form}
           payload={payload}
