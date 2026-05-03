@@ -394,6 +394,12 @@ export const characterBuilderSaveRequestDtoSchema = z.object({
   targetStatus: authoredRecordStatusSchema.optional()
 })
 
+export const characterBuilderCommitRequestDtoSchema = z.object({
+  character: characterAuthoredDtoSchema,
+  mode: characterBuilderModeDtoSchema,
+  targetStatus: z.literal('ACTIVE').optional()
+})
+
 export const characterSheetResponseDtoSchema = z.object({
   character: characterAuthoredDtoSchema,
   resolution: characterBuilderResolutionDtoSchema,
@@ -560,4 +566,5 @@ export type CharacterDraftRequestDto = z.infer<typeof characterDraftRequestDtoSc
 export type CharacterBuilderDraftSaveRequestDto = z.infer<typeof characterBuilderDraftSaveRequestDtoSchema>
 export type CharacterBuilderResolveRequestDto = z.infer<typeof characterBuilderResolveRequestDtoSchema>
 export type CharacterBuilderSaveRequestDto = z.infer<typeof characterBuilderSaveRequestDtoSchema>
+export type CharacterBuilderCommitRequestDto = z.infer<typeof characterBuilderCommitRequestDtoSchema>
 export type CharacterSheetResponseDto = z.infer<typeof characterSheetResponseDtoSchema>

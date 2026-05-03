@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type {
   CharacterBuilderDraftSaveRequestDto,
   CharacterBuilderResolveRequestDto,
+  CharacterBuilderCommitRequestDto,
   CharacterBuilderSaveRequestDto,
   CharacterDraftRequestDto
 } from '#app/lib/api'
@@ -62,7 +63,7 @@ export function useCommitCharacterBuilderMutation() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (input: CharacterBuilderSaveRequestDto) => api.characters.upsert(input),
+    mutationFn: (input: CharacterBuilderCommitRequestDto) => api.characters.upsert(input),
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.characters.all() })
       queryClient.setQueryData(queryKeys.characters.detail(response.character.id), response)

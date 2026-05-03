@@ -50,6 +50,7 @@ import {
   characterBuilderDraftPayloadDtoSchema,
   characterBuilderResolveRequestDtoSchema,
   characterBuilderDraftSaveRequestDtoSchema,
+  characterBuilderCommitRequestDtoSchema,
   characterBuilderSaveRequestDtoSchema,
   characterDraftRequestDtoSchema,
   type CharacterBuilderPayloadDto,
@@ -889,14 +890,14 @@ export const previewCharacterSave = handleAuthoringRequest(characterBuilderSaveR
   return toCharacterBuilderPreviewPayload(payload)
 })
 
-export const upsertCharacterBuilder = handleAuthoringRequest(characterBuilderSaveRequestDtoSchema, async (db, body, userId): Promise<CharacterBuilderPayloadDto> => {
+export const upsertCharacterBuilder = handleAuthoringRequest(characterBuilderCommitRequestDtoSchema, async (db, body, userId): Promise<CharacterBuilderPayloadDto> => {
   const repository = createCharacterRepository(db)
   const existing = await repository.findAuthoredById(body.character.id)
   const payload = await buildCharacterBuilderSavePayload({
     db,
     character: body.character,
     mode: body.mode,
-    targetStatus: AUTHORED_RECORD_STATUS.ACTIVE,
+    targetStatus: body.targetStatus ?? AUTHORED_RECORD_STATUS.ACTIVE,
     existing,
     userId
   })
