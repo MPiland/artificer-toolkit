@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { CharacterBuilderPayloadDto } from '@artificer-toolkit/schema/api/characters'
 import { CHARACTER_ABILITY_GENERATION_METHOD } from '@artificer-toolkit/shared/core'
@@ -14,6 +14,7 @@ import {
   characterBuilderPayloadFixture
 } from '../character.fixtures'
 import {
+  createStartingEquipmentDecision,
   toCharacterFormValues,
   type CharacterFormValues
 } from '../characterBuilder.utils'
@@ -299,6 +300,78 @@ describe('CharacterBuilderRenderer', () => {
     expect(screen.getAllByText(/mage hand/i)).toHaveLength(2)
   })
 
+  it('clears class-owned choices and primary equipment when removing the primary class', async () => {
+    const user = userEvent.setup()
+    const resolvedValues: CharacterFormValues[] = []
+
+    renderCharacterBuilderHarness({
+      payload: {
+        ...characterBuilderPayloadFixture,
+        character: {
+          ...characterBuilderPayloadFixture.character,
+          intent: {
+            ...characterBuilderPayloadFixture.character.intent,
+            startingEquipment: {
+              class: createStartingEquipmentDecision('CLASS'),
+              background: createStartingEquipmentDecision('BACKGROUND')
+            },
+            featureAcquisitions: [
+              {
+                id: 'class-feature-choice',
+                featureId: 'class-feature',
+                source: { kind: 'CLASS', classId: 'class-wizard', classLevel: 1 },
+                timing: { kind: 'IMMEDIATE' }
+              },
+              {
+                id: 'background-feature-choice',
+                featureId: 'background-feature',
+                source: { kind: 'BACKGROUND', backgroundId: 'background-sage' },
+                timing: { kind: 'IMMEDIATE' }
+              }
+            ],
+            spellSelections: [
+              {
+                id: 'class-spell-choice',
+                source: { kind: 'CLASS', classId: 'class-wizard', classLevel: 1 },
+                timing: { kind: 'IMMEDIATE' },
+                spells: ['spell-magic-missile']
+              }
+            ],
+            resourceGrants: [
+              {
+                id: 'class-resource-choice',
+                resourceId: 'resource-arcane-recovery',
+                source: { kind: 'CLASS', classId: 'class-wizard', classLevel: 1 },
+                timing: { kind: 'IMMEDIATE' }
+              }
+            ]
+          }
+        },
+        resolution: {
+          ...characterBuilderPayloadFixture.resolution,
+          recommendedSectionId: 'CLASSES'
+        }
+      },
+      resolveDebounceMs: 1,
+      onResolve: (character) => {
+        resolvedValues.push(character)
+      }
+    })
+
+    await user.click(screen.getByRole('button', { name: /remove/i }))
+
+    await waitFor(() => {
+      expect(resolvedValues.at(-1)?.intent.classes).toHaveLength(0)
+    })
+
+    const latestValues = resolvedValues.at(-1)
+    expect(latestValues?.intent.startingEquipment?.class).toBeUndefined()
+    expect(latestValues?.intent.startingEquipment?.background).toBeDefined()
+    expect(latestValues?.intent.featureAcquisitions.map((acquisition) => acquisition.id)).toEqual(['background-feature-choice'])
+    expect(latestValues?.intent.spellSelections).toBeUndefined()
+    expect(latestValues?.intent.resourceGrants).toBeUndefined()
+  })
+
   it('updates ability method UI from the live form value before resolver refresh', async () => {
     const user = userEvent.setup()
 
@@ -333,17 +406,23 @@ describe('CharacterBuilderRenderer', () => {
 function renderCharacterBuilderHarness({
   payload,
   readOnly = false,
-  showAbilityMethodTestToggle = false
+  showAbilityMethodTestToggle = false,
+  resolveDebounceMs = 60_000,
+  onResolve = () => undefined
 }: {
   payload: CharacterBuilderPayloadDto
   readOnly?: boolean
   showAbilityMethodTestToggle?: boolean
+  resolveDebounceMs?: number
+  onResolve?: (character: CharacterFormValues) => Promise<void> | void
 }) {
   return renderWithAppProviders(
     <AuthoringFormProvider>
       <CharacterBuilderTestHarness
+        onResolve={onResolve}
         payload={payload}
         readOnly={readOnly}
+        resolveDebounceMs={resolveDebounceMs}
         showAbilityMethodTestToggle={showAbilityMethodTestToggle}
       />
     </AuthoringFormProvider>
@@ -351,12 +430,16 @@ function renderCharacterBuilderHarness({
 }
 
 function CharacterBuilderTestHarness({
+  onResolve,
   payload,
   readOnly,
+  resolveDebounceMs,
   showAbilityMethodTestToggle
 }: {
+  onResolve: (character: CharacterFormValues) => Promise<void> | void
   payload: CharacterBuilderPayloadDto
   readOnly: boolean
+  resolveDebounceMs: number
   showAbilityMethodTestToggle: boolean
 }) {
   const form = useAppForm({
@@ -403,8 +486,8 @@ function CharacterBuilderTestHarness({
         <CharacterBuilderRenderer
           form={form}
           payload={payload}
-          resolveDebounceMs={60_000}
-          onResolve={(_: CharacterFormValues) => undefined}
+          resolveDebounceMs={resolveDebounceMs}
+          onResolve={onResolve}
         />
       </AuthoringFormLayout>
     </form.AppForm>

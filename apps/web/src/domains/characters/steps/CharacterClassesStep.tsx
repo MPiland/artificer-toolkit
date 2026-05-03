@@ -7,6 +7,7 @@ import {
   clearClassOwnedChoices,
   clearPrimaryClassDependents,
   clearSubclassDependents,
+  clearSubclassOwnedChoices,
   choiceOptions,
   createFallbackCharacterFormValues,
   isChoiceOptionDisabled
@@ -84,7 +85,21 @@ export const CharacterClassesStep = withForm({
                                     type='button'
                                     variant='subtle'
                                     color='red'
-                                    onClick={() => field.removeValue(index)}
+                                    onClick={() => {
+                                      const nextRows = rows.filter((_, rowIndex) => rowIndex !== index)
+                                      const nextCharacter = clearClassOwnedChoices({
+                                        ...form.state.values,
+                                        intent: {
+                                          ...form.state.values.intent,
+                                          classes: nextRows
+                                        }
+                                      }, row)
+                                      const nextIntent = index === 0
+                                        ? clearPrimaryClassDependents(nextCharacter).intent
+                                        : nextCharacter.intent
+
+                                      form.setFieldValue('intent', nextIntent)
+                                    }}
                                   >
                                     Remove
                                   </Button>
@@ -152,7 +167,7 @@ export const CharacterClassesStep = withForm({
                                               subclassId: value ?? undefined
                                             }))
                                           : candidate)
-                                        const nextCharacter = clearClassOwnedChoices({
+                                        const nextCharacter = clearSubclassOwnedChoices({
                                           ...form.state.values,
                                           intent: {
                                             ...form.state.values.intent,

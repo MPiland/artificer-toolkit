@@ -412,6 +412,23 @@ export function clearClassOwnedChoices(
   }
 }
 
+export function clearSubclassOwnedChoices(
+  character: CharacterFormValues,
+  previousRow: CharacterClassRow
+): CharacterFormValues {
+  return {
+    ...character,
+    intent: {
+      ...character.intent,
+      featureAcquisitions: character.intent.featureAcquisitions.filter(
+        (acquisition) => !isSubclassOwnedSource(acquisition.source, previousRow)
+      ),
+      spellSelections: filterOptionalIntentRows(character.intent.spellSelections, (selection) => !isSubclassOwnedSource(selection.source, previousRow)),
+      resourceGrants: filterOptionalIntentRows(character.intent.resourceGrants, (grant) => !isSubclassOwnedSource(grant.source, previousRow))
+    }
+  }
+}
+
 export function clearPrimaryClassDependents(character: CharacterFormValues): CharacterFormValues {
   return {
     ...character,
@@ -470,9 +487,19 @@ function isClassOwnedSource(
 ): boolean {
   const kind = getSourceKind(source)
   if (kind === 'CLASS') return getSourceString(source, 'classId') === previousRow.classId
-  if (kind === 'SUBCLASS') return getSourceString(source, 'subclassId') === previousRow.subclassId
+  if (kind === 'SUBCLASS') return isSubclassOwnedSource(source, previousRow)
 
   return false
+}
+
+function isSubclassOwnedSource(
+  source: unknown,
+  previousRow: CharacterClassRow
+): boolean {
+  if (!previousRow.subclassId) return false
+  if (getSourceKind(source) !== 'SUBCLASS') return false
+
+  return getSourceString(source, 'subclassId') === previousRow.subclassId
 }
 
 function filterOptionalIntentRows<T>(

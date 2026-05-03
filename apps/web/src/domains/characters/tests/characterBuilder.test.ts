@@ -10,6 +10,7 @@ import {
   clearClassOwnedChoices,
   clearPrimaryClassDependents,
   clearRaceDependents,
+  clearSubclassOwnedChoices,
   createFallbackCharacterFormValues,
   createStartingEquipmentDecision,
   getInactiveAbilityIntentMethodLabels,
@@ -236,6 +237,63 @@ describe('character builder utilities', () => {
     expect(withoutPrimaryEquipment.intent.featureAcquisitions.map((acquisition) => acquisition.id)).toEqual(['background-feature-choice'])
     expect(withoutPrimaryEquipment.intent.spellSelections).toBeUndefined()
     expect(withoutPrimaryEquipment.intent.resourceGrants).toBeUndefined()
+  })
+
+  it('clears subclass-owned choices without dropping base class choices', () => {
+    const values = toCharacterFormValues(characterBuilderPayloadFixture)
+    const classRow = {
+      ...values.intent.classes[0],
+      subclassId: 'subclass-evoker'
+    }
+    values.intent.classes = [classRow]
+    values.intent.featureAcquisitions = [
+      {
+        id: 'class-feature-choice',
+        featureId: 'class-feature',
+        source: { kind: 'CLASS', classId: 'class-wizard', classLevel: 1 },
+        timing: { kind: 'IMMEDIATE' }
+      },
+      {
+        id: 'subclass-feature-choice',
+        featureId: 'subclass-feature',
+        source: { kind: 'SUBCLASS', subclassId: 'subclass-evoker', classId: 'class-wizard', classLevel: 1 },
+        timing: { kind: 'IMMEDIATE' }
+      }
+    ]
+    values.intent.spellSelections = [
+      {
+        id: 'class-spell-choice',
+        source: { kind: 'CLASS', classId: 'class-wizard', classLevel: 1 },
+        timing: { kind: 'IMMEDIATE' },
+        spells: ['spell-magic-missile']
+      },
+      {
+        id: 'subclass-spell-choice',
+        source: { kind: 'SUBCLASS', subclassId: 'subclass-evoker', classId: 'class-wizard', classLevel: 1 },
+        timing: { kind: 'IMMEDIATE' },
+        spells: ['spell-burning-hands']
+      }
+    ]
+    values.intent.resourceGrants = [
+      {
+        id: 'class-resource-choice',
+        resourceId: 'resource-arcane-recovery',
+        source: { kind: 'CLASS', classId: 'class-wizard', classLevel: 1 },
+        timing: { kind: 'IMMEDIATE' }
+      },
+      {
+        id: 'subclass-resource-choice',
+        resourceId: 'resource-evocation-sculpting',
+        source: { kind: 'SUBCLASS', subclassId: 'subclass-evoker', classId: 'class-wizard', classLevel: 1 },
+        timing: { kind: 'IMMEDIATE' }
+      }
+    ]
+
+    const cleared = clearSubclassOwnedChoices(values, classRow)
+
+    expect(cleared.intent.featureAcquisitions.map((acquisition) => acquisition.id)).toEqual(['class-feature-choice'])
+    expect(cleared.intent.spellSelections?.map((selection) => selection.id)).toEqual(['class-spell-choice'])
+    expect(cleared.intent.resourceGrants?.map((grant) => grant.id)).toEqual(['class-resource-choice'])
   })
 
   it('clears background-owned choices and starting equipment when background changes', () => {
