@@ -21,6 +21,7 @@ import {
 } from '@artificer-toolkit/shared/core'
 import {
   CharacterStartingEquipmentSource,
+  isSameCharacterProvenanceIdentity,
   type BackgroundAuthored,
   type CharacterAbilityScoresIntent,
   type CharacterAncestryAcquisition,
@@ -198,10 +199,6 @@ function optionCount(values: NonNullable<CharacterFeatureAcquisitionRecord['sele
     }
   }
   return count
-}
-
-function sameProvenance(left: CharacterProvenance, right: CharacterProvenance): boolean {
-  return JSON.stringify(left) === JSON.stringify(right)
 }
 
 function getActiveSpellLimit(
@@ -465,7 +462,7 @@ function mergeRequiredResourceGrants(
 
   for (const requiredGrant of requiredGrants) {
     const hasGrant = grants.some((grant) => (
-      grant.resourceId === requiredGrant.resourceId && sameProvenance(grant.source, requiredGrant.source)
+      grant.resourceId === requiredGrant.resourceId && isSameCharacterProvenanceIdentity(grant.source, requiredGrant.source)
     ))
     if (!hasGrant) {
       grants.push(requiredGrant)
@@ -1229,7 +1226,7 @@ export async function resolveCharacterBuilder(
   }
 
   for (const requirement of getClassSpellChoiceRequirements(classSelections)) {
-    const spellSelection = character.intent.spellSelections?.find((selection) => sameProvenance(selection.source, requirement.source))
+    const spellSelection = character.intent.spellSelections?.find((selection) => isSameCharacterProvenanceIdentity(selection.source, requirement.source))
     const selectedCounts = getSpellSelectionCounts(spellSelection, registry)
     const missingCantrips = selectedCounts.cantrips < requirement.cantripLimit
     const missingSpells = selectedCounts.spells < requirement.learnedSpellLimit
@@ -1276,7 +1273,7 @@ export async function resolveCharacterBuilder(
 
     if (requiredOptionCount <= 0) continue
 
-    const acquisition = character.intent.featureAcquisitions.find((record) => record.featureId === granted.feature.id && sameProvenance(record.source, granted.source))
+    const acquisition = character.intent.featureAcquisitions.find((record) => record.featureId === granted.feature.id && isSameCharacterProvenanceIdentity(record.source, granted.source))
 
     if (!acquisition) {
       outstandingChoices.push({

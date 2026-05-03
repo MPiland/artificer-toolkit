@@ -39,7 +39,11 @@ import {
   type AuthoredRecordStatus,
   type CharacterAssemblyRegistry
 } from '@artificer-toolkit/shared/core'
-import type { CharacterAuthored, ClassAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import {
+  isSameCharacterProvenanceIdentity,
+  type CharacterAuthored,
+  type ClassAuthored
+} from '@artificer-toolkit/shared/subjects/authored'
 import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import {
@@ -171,10 +175,6 @@ function getClassDisabledReason(
   return passes ? undefined : `Requires ${formatMulticlassRequirement(classRecord)}.`
 }
 
-function sameProvenance(left: CharacterProvenance, right: CharacterProvenance): boolean {
-  return JSON.stringify(left) === JSON.stringify(right)
-}
-
 function getFeatureChoiceViews(params: {
   character: CharacterAuthored
   resolution: CharacterBuilderResolution
@@ -195,7 +195,7 @@ function getFeatureChoiceViews(params: {
       if (requiredCount <= 0) return []
 
       const acquisition = params.character.intent.featureAcquisitions.find((record) => (
-        record.featureId === grant.id && sameProvenance(record.source, grant.source)
+        record.featureId === grant.id && isSameCharacterProvenanceIdentity(record.source, grant.source)
       ))
 
       return [
@@ -297,7 +297,7 @@ function getSpellChoiceViews(params: {
   if (cantripLimit <= 0 && learnedSpellLimit <= 0) return []
 
   const selectedSpellIds = params.character.intent.spellSelections
-    ?.find((selection) => sameProvenance(selection.source, params.source))
+    ?.find((selection) => isSameCharacterProvenanceIdentity(selection.source, params.source))
     ?.spells ?? []
   const selectedCantripIds = selectedSpellIds.filter((spellId) => {
     const spell = params.resolution.registry.spells.find((record) => record.id === spellId)
