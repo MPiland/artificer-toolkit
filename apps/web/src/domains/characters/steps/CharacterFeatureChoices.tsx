@@ -1,4 +1,5 @@
 import { Stack, Text } from '@mantine/core'
+import { isSameCharacterProvenanceIdentity } from '@artificer-toolkit/shared/subjects/authored'
 import { AppMultiSelect, AppSelect } from '#ui/primitives/Select'
 import {
   choiceOptions,
@@ -148,5 +149,5 @@ function isChoiceAcquisition(
 }
 
 function sameSource(left: CharacterFeatureAcquisition['source'], right: FeatureChoiceSource): boolean {
-  return JSON.stringify(left) === JSON.stringify(right)
+  return isSameCharacterProvenanceIdentity(left, right)
 }

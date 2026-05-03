@@ -142,6 +142,67 @@ describe('CharacterBuilderRenderer', () => {
     expect(screen.getByRole('textbox', { name: /elven training choice/i })).toBeInTheDocument()
   })
 
+  it('keeps class-owned feature choices selected when only class level changes', () => {
+    renderCharacterBuilderHarness({
+      payload: {
+        ...characterBuilderPayloadFixture,
+        character: {
+          ...characterBuilderPayloadFixture.character,
+          intent: {
+            ...characterBuilderPayloadFixture.character.intent,
+            featureAcquisitions: [
+              {
+                id: 'feature-acquisition-arcane-training',
+                featureId: 'feature-arcane-training',
+                source: { kind: 'CLASS', classId: 'class-wizard', classLevel: 1 },
+                timing: { kind: 'CLASS_LEVEL', classId: 'class-wizard', classLevel: 1 },
+                selections: [
+                  {
+                    selectionKey: 'options',
+                    values: [{ kind: 'ID', id: 'option-arcana' }]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        resolution: {
+          ...characterBuilderPayloadFixture.resolution,
+          recommendedSectionId: 'CLASSES'
+        },
+        view: {
+          ...characterBuilderPayloadFixture.view,
+          classes: {
+            ...characterBuilderPayloadFixture.view.classes,
+            selectedClasses: [
+              {
+                ...characterBuilderPayloadFixture.view.classes.selectedClasses[0],
+                classLevel: 5,
+                featureChoices: [
+                  {
+                    featureId: 'feature-arcane-training',
+                    featureLabel: 'Arcane Training',
+                    sourceLabel: 'Wizard',
+                    source: { kind: 'CLASS', classId: 'class-wizard', classLevel: 5 },
+                    selectionKey: 'options',
+                    requiredCount: 1,
+                    selectedOptionIds: ['option-arcana'],
+                    options: [
+                      { id: 'option-arcana', label: 'Arcana' },
+                      { id: 'option-history', label: 'History' }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    })
+
+    expect(screen.getByRole('textbox', { name: /arcane training choice/i })).toHaveValue('Arcana')
+  })
+
   it('renders resolver-provided class spell choices on the class step', () => {
     renderCharacterBuilderHarness({
       payload: {
@@ -182,6 +243,60 @@ describe('CharacterBuilderRenderer', () => {
     expect(screen.getByText(/spell choices/i)).toBeInTheDocument()
     expect(screen.getByRole('textbox', { name: /choose 1 cantrip/i })).toBeInTheDocument()
     expect(screen.getByRole('textbox', { name: /choose 1 spell/i })).toBeInTheDocument()
+  })
+
+  it('keeps class-owned spell choices selected when only class level changes', () => {
+    renderCharacterBuilderHarness({
+      payload: {
+        ...characterBuilderPayloadFixture,
+        character: {
+          ...characterBuilderPayloadFixture.character,
+          intent: {
+            ...characterBuilderPayloadFixture.character.intent,
+            spellSelections: [
+              {
+                id: 'spell-selection-wizard',
+                source: { kind: 'CLASS', classId: 'class-wizard', classLevel: 1 },
+                timing: { kind: 'CLASS_LEVEL', classId: 'class-wizard', classLevel: 1 },
+                spells: ['spell-mage-hand']
+              }
+            ]
+          }
+        },
+        resolution: {
+          ...characterBuilderPayloadFixture.resolution,
+          recommendedSectionId: 'CLASSES'
+        },
+        view: {
+          ...characterBuilderPayloadFixture.view,
+          classes: {
+            ...characterBuilderPayloadFixture.view.classes,
+            selectedClasses: [
+              {
+                ...characterBuilderPayloadFixture.view.classes.selectedClasses[0],
+                classLevel: 5,
+                spellChoices: [
+                  {
+                    id: 'class-wizard:spellcasting',
+                    label: 'Wizard Spellcasting',
+                    sourceLabel: 'Wizard',
+                    source: { kind: 'CLASS', classId: 'class-wizard', classLevel: 5 },
+                    cantripLimit: 1,
+                    learnedSpellLimit: 0,
+                    selectedCantripIds: ['spell-mage-hand'],
+                    selectedSpellIds: [],
+                    cantripOptions: [{ id: 'spell-mage-hand', label: 'Mage Hand' }],
+                    spellOptions: []
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    })
+
+    expect(screen.getAllByText(/mage hand/i)).toHaveLength(2)
   })
 
   it('updates ability method UI from the live form value before resolver refresh', async () => {

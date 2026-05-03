@@ -1,4 +1,5 @@
 import { Stack, Text } from '@mantine/core'
+import { isSameCharacterProvenanceIdentity } from '@artificer-toolkit/shared/subjects/authored'
 import { AppMultiSelect } from '#ui/primitives/Select'
 import {
   choiceOptions,
@@ -156,5 +157,5 @@ function isSpellSelectionSource(source: CharacterBuilderSpellChoiceViewDto['sour
 }
 
 function sameSource(left: SpellSelectionSource, right: SpellSelectionSource): boolean {
-  return JSON.stringify(left) === JSON.stringify(right)
+  return isSameCharacterProvenanceIdentity(left, right)
 }
