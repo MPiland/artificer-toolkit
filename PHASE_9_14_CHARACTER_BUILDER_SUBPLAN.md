@@ -1,6 +1,6 @@
 # Phase 9.14 - Character Builder
 
-## Status: Active - Builder Foundation Implemented
+## Status: Active - Builder Choice Flow Implemented
 
 ## Objective
 
@@ -94,12 +94,21 @@ The builder consumes authored character state plus backend resolution and previe
 
 ## Remaining Builder Work
 
-- Complete source-local choice editors that need richer resolver payloads:
-  - class-owned feature/spell/resource choices
-  - background-owned choices
-  - class/background starting equipment decisions
-- Keep these choices on their granting steps, not a global selections screen.
+- Complete closeout validation and review hardening:
+  - focused API/schema/web tests for PR feedback regressions
+  - Storybook build and visual inspection for the builder step states
+  - an impeccable audit/polish pass before marking 9.14 complete
+- Keep source-local choices on their granting steps, not a global selections screen.
 - Do not fake completion by writing placeholder IDs or bypassing backend readiness.
+
+## Implemented Builder Choice Coverage
+
+- Race, subrace, ancestry, and race-owned feature choices render from resolver view state.
+- Class rows render resolver-approved class, subclass, specialization, feature choice, spell choice, and granted summary state.
+- Background-owned feature choices render on the Background step.
+- Class and background starting equipment decisions render on the Equipment step.
+- Ability method draft intent preserves inactive method data in `builderIntent` while finalization only commits the active method.
+- Review blockers render from backend readiness and keep finalize unavailable until the resolver marks the build ready.
 
 ## Stories, Tests, and Playwright
 
