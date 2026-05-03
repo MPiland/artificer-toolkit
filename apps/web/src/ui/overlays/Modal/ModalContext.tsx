@@ -1,4 +1,4 @@
 import { createContext } from 'react'
-import { ModalOptions } from './ModalProvider'
+import type { ModalOptions } from './Modal.types'
 
 export const ModalContext = createContext<ModalOptions>({} as ModalOptions)

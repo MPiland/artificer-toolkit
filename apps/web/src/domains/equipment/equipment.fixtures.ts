@@ -1,10 +1,10 @@
+import type { EquipmentAuthoredDto } from '@artificer-toolkit/schema/subjects/equipment'
 import type {
-  EquipmentAuthoredDto,
   EquipmentListResponseDto,
-  EquipmentResponseDto,
-  NodeRuntimeResolveResponseDto,
-  SystemListResponseDto
-} from '@artificer-toolkit/schema'
+  EquipmentResponseDto
+} from '@artificer-toolkit/schema/api/content'
+import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
+import type { SystemListResponseDto } from '@artificer-toolkit/schema/api/systems'
 
 export const systemListFixture: SystemListResponseDto = [
   {

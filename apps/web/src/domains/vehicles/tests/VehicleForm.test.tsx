@@ -1,6 +1,6 @@
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema'
+import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import {
   AuthoringFormLayout,
   AuthoringFormProvider,

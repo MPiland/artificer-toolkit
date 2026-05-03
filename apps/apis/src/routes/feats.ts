@@ -6,13 +6,15 @@ import {
 } from '@artificer-toolkit/functions'
 import { getFeatListQuery } from '@artificer-toolkit/db'
 import { createFeatRepository } from '@artificer-toolkit/db'
-import type { FeatAuthored } from '@artificer-toolkit/shared'
+import type { FeatAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import {
   authoredDraftActivateRequestDtoSchema,
-  authoredDraftSaveRequestDtoSchema,
+  authoredDraftSaveRequestDtoSchema
+} from '@artificer-toolkit/schema/api/content'
+import {
   featAuthoredDtoSchema,
   type FeatAuthoredDto
-} from '@artificer-toolkit/schema'
+} from '@artificer-toolkit/schema/subjects/feat'
 import {
   discardAuthoredDraft,
   extractDraftSubjectIdFromRequest,

@@ -1,5 +1,10 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { StartingEquipmentDto } from '@artificer-toolkit/schema'
+import {
+  afterEach,
+  describe,
+  expect,
+  it,
+  vi } from 'vitest'
+import type { StartingEquipmentDto } from '@artificer-toolkit/schema/shared'
 import {
   addStartingEquipmentItem,
   createEmptyBackground,

@@ -6,13 +6,15 @@ import {
 } from '@artificer-toolkit/functions'
 import { getSpellListQuery } from '@artificer-toolkit/db'
 import { createSpellRepository } from '@artificer-toolkit/db'
-import type { SpellAuthored } from '@artificer-toolkit/shared'
+import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import {
   authoredDraftActivateRequestDtoSchema,
-  authoredDraftSaveRequestDtoSchema,
+  authoredDraftSaveRequestDtoSchema
+} from '@artificer-toolkit/schema/api/content'
+import {
   spellAuthoredDtoSchema,
   type SpellAuthoredDto
-} from '@artificer-toolkit/schema'
+} from '@artificer-toolkit/schema/subjects/spell'
 import {
   discardAuthoredDraft,
   extractDraftSubjectIdFromRequest,

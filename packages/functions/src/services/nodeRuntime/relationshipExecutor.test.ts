@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DBLike } from '@artificer-toolkit/db'
-import type { RelationshipPlan } from '@artificer-toolkit/shared'
+import type { RelationshipPlan } from '@artificer-toolkit/shared/maps'
 import { executeRelationshipPlan, streamToOptions } from './relationshipExecutor.js'
 
 const dbMock = {} as DBLike

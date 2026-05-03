@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Alert, Button, Group, Text } from '@mantine/core'
 import { useStore } from '@tanstack/react-form'
-import type { NodeRuntimeNodeDto, NodeRuntimePathDto } from '@artificer-toolkit/schema'
+import type { NodeRuntimeNodeDto, NodeRuntimePathDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import { AuthoringEditorModal } from '../editors/AuthoringEditorModal'
 import { AuthoringFormSectionRow } from '../components/AuthoringFormSectionRow'
 import { useAuthoringForm, useAuthoringFormRegistration } from '../components/AuthoringFormContext'

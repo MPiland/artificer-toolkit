@@ -9,7 +9,7 @@ import {
 import type {
   AuthoredDraftSaveRequestDto,
   AuthoredDraftSummaryDto
-} from '@artificer-toolkit/schema'
+} from '@artificer-toolkit/schema/api/content'
 
 type AuthoredContentTable =
   | 'backgrounds'

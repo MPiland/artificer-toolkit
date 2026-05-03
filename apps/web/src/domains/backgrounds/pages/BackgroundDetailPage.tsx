@@ -1,12 +1,15 @@
-import { useState } from 'react'
-import { Alert, Button, Stack } from '@mantine/core'
-import { useNavigate } from '@tanstack/react-router'
 import {
-  backgroundAuthoredDtoSchema,
+  useState } from 'react'
+import { Alert,
+  Button,
+  Stack } from '@mantine/core'
+import { useNavigate } from '@tanstack/react-router'
+import { backgroundAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/background'
+import {
   type AuthoredDraftDto,
-  type BackgroundAuthoredDto,
   type BackgroundResponseDto
-} from '@artificer-toolkit/schema'
+} from '@artificer-toolkit/schema/api/content'
+import { type BackgroundAuthoredDto } from '@artificer-toolkit/schema/subjects/background'
 import {
   AuthoredDetailItemList,
   AuthoredDetailLayout,

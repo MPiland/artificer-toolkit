@@ -1,8 +1,8 @@
+import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import type {
-  NodeRuntimeResolveResponseDto,
   VehicleListResponseDto,
   VehicleResponseDto
-} from '@artificer-toolkit/schema'
+} from '@artificer-toolkit/schema/api/content'
 
 export const ownedVehicleResponseFixture = {
   item: {

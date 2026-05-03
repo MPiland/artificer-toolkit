@@ -16,6 +16,8 @@ export const queryKeys = {
     all: () => ['characters'] as const,
     list: () => ['characters', 'list'] as const,
     detail: (id: string) => ['characters', 'detail', id] as const,
+    draft: (id: string) => ['characters', 'draft', id] as const,
+    sheet: (id: string) => ['characters', 'sheet', id] as const,
     history: (id: string) => ['characters', 'history', id] as const
   },
 

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { AuthoredDraftDto } from '@artificer-toolkit/schema'
+import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
 import { resolveAuthoredDetailState } from './authoredDetailState'
 
 const itemSchema = z.object({

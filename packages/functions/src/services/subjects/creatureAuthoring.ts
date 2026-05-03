@@ -1,8 +1,8 @@
 import type { DBLike, RepositoryFindAllOptions } from '@artificer-toolkit/db'
 import { createCreatureRepository, upsertCreature } from '@artificer-toolkit/db'
-import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema'
-import type { CompiledCreature, CreatureAuthored } from '@artificer-toolkit/shared'
-import { compileCreature } from '@artificer-toolkit/shared'
+import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
+import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { compileCreature, type CompiledCreature } from '@artificer-toolkit/shared/subjects/compilers'
 import { createSubjectAuthoringService } from './pipeline.js'
 
 export interface CreatureSubjectAuthoringDeps {

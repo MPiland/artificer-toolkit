@@ -1,7 +1,5 @@
-import type {
-  AuthoredContentProvenanceDto,
-  AuthoredDraftDto
-} from '@artificer-toolkit/schema'
+import type { AuthoredContentProvenanceDto } from '@artificer-toolkit/schema/api/common'
+import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
 import type { AuthoredDetailAction } from './AuthoredDetail.types'
 import type { AuthoredDetailViewMode } from './authoredDetailState'
 import { formatEnumLabel } from './detailFormatters'

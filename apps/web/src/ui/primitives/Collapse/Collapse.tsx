@@ -2,7 +2,7 @@ import { type ComponentProps, type ReactNode, type RefObject, useId } from 'reac
 import { base, borderless } from './Collapse.css'
 import * as footer from './Footer.css'
 import clsx from 'clsx'
-import HTMLReactParser from '#app/utils/reactParser/dom-to-react'
+import parseHtml from 'html-react-parser'
 import { Collapse as MantineCollapse } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { Trigger, type TriggerProps } from './Trigger'
@@ -38,7 +38,7 @@ export function Collapse({
   const generatedId = useId()
   const contentId = collapseProps.id ?? `${generatedId}-content`
   const titleId = props.trigger.titleId ?? `${generatedId}-title`
-  const parsedContent = typeof children === 'string' ? HTMLReactParser(children) : children
+  const parsedContent = typeof children === 'string' ? parseHtml(children) : children
 
   return (
     <div ref={ref} className={clsx(variant === 'borderless' ? borderless : base, className)}>

@@ -35,7 +35,8 @@ Current default focus is Phase 9 frontend modernization.
 - 9.10 equipment implementation: complete
 - 9.11 creature implementation: implemented - ready for PR review
 - 9.12 vehicle implementation: implemented - ready for PR review
-- 9.13 class implementation: active next
+- 9.13 class implementation: complete
+- 9.14 character builder: active, builder foundation implemented
 
 Before starting a new frontend task, confirm the active tranche in [PHASE_9_CODE_OVERVIEW.md](/c:/Users/pilan/Desktop/artificer-toolkit/PHASE_9_CODE_OVERVIEW.md).
 
@@ -88,7 +89,8 @@ Current frontend posture:
 - 9.10 equipment implementation is complete.
 - 9.11 creature implementation is implemented and ready for PR review.
 - 9.12 vehicle implementation is implemented and ready for PR review.
-- 9.13 class implementation is the active next tranche after 9.12 review/merge.
+- 9.13 class implementation is complete.
+- 9.14 character builder is active. The builder foundation is implemented; source-local choice editors remain before closeout.
 
 Per-tranche expectations:
 
@@ -146,6 +148,11 @@ Common repo commands:
 Web workspace commands:
 
 - `yarn workspace @artificer-toolkit/web generate:routes`
+- `yarn workspace @artificer-toolkit/web typecheck:app`
+- `yarn workspace @artificer-toolkit/web typecheck:stories`
+- `yarn workspace @artificer-toolkit/web typecheck:tests`
+- `yarn workspace @artificer-toolkit/web typecheck:config`
+- `yarn workspace @artificer-toolkit/web typecheck:diagnostics`
 - `yarn workspace @artificer-toolkit/web storybook`
 - `yarn workspace @artificer-toolkit/web test`
 - `yarn workspace @artificer-toolkit/web test:e2e:app`
@@ -163,6 +170,9 @@ Web workspace commands:
 - Do not introduce `any` in new or modified active code.
 - Prefer `unknown`, generics, discriminated unions, or schema-derived types instead of `any`.
 - If an existing legacy file already contains `any`, do not expand it. Quarantine it as legacy or replace it when touching that surface.
+- Active Phase 9 code should use focused package imports instead of package root barrels: prefer `@artificer-toolkit/schema/api/...`, `@artificer-toolkit/schema/subjects/...`, `@artificer-toolkit/schema/grants/...`, `@artificer-toolkit/shared/core`, `@artificer-toolkit/shared/maps`, `@artificer-toolkit/shared/authored`, or other narrow subpaths over `@artificer-toolkit/schema` and `@artificer-toolkit/shared`.
+- Root `@artificer-toolkit/schema` and `@artificer-toolkit/shared` imports remain compatibility surfaces only. Treat new root-barrel imports in active web/API/functions code as type-graph regressions unless there is a documented reason.
+- Keep very large inferred DTOs localized at package boundaries. Prefer explicit exported DTO/input types for app-facing payloads when repeated `z.infer` expansion would spread through web, API, and function layers.
 - Do not leave unused variables, unused imports, dead code, commented-out code, or temporary debug logging.
 - Treat TypeScript, lint, and test warnings in touched active code as blockers unless they are already documented legacy non-blockers.
 

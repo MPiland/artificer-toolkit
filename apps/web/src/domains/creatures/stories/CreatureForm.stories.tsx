@@ -34,6 +34,7 @@ const meta = {
 export default meta
 
 type Story = StoryObj<typeof meta>
+const masterCreatureStoryResponse = masterCreatureResponseFixture!
 
 export const CreateMonster: Story = {
   args: {
@@ -117,9 +118,9 @@ export const SummonProfile: Story = {
 export const LockedMasterReadonly: Story = {
   args: {
     mode: 'view',
-    systemId: masterCreatureResponseFixture.item.systemId,
+    systemId: masterCreatureStoryResponse.item?.systemId ?? 'dnd5e2014',
     userId: 'user-1',
-    response: masterCreatureResponseFixture,
+    response: masterCreatureStoryResponse,
     resolveRuntime: false,
     runtimeModel: creatureRuntimeFixture,
     onSubmit: async () => undefined,

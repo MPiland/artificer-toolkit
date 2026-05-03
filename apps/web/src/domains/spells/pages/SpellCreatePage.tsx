@@ -1,7 +1,10 @@
-import { notifications } from '@mantine/notifications'
-import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import {
+  notifications } from '@mantine/notifications'
+import { useMutation,
+  useQueryClient,
+  useSuspenseQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import type { SpellAuthoredDto } from '@artificer-toolkit/schema'
+import type { SpellAuthoredDto } from '@artificer-toolkit/schema/subjects/spell'
 import { getSpellReferenceData } from '#app/data/spells/referenceData'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'

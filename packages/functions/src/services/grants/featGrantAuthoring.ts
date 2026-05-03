@@ -1,8 +1,8 @@
 import type { DBLike } from '@artificer-toolkit/db'
 import { createFeatGrantRepository, upsertFeatGrant } from '@artificer-toolkit/db'
-import { featGrantDtoSchema } from '@artificer-toolkit/schema'
-import type { CompiledFeatGrant, FeatGrantAuthored } from '@artificer-toolkit/shared'
-import { compileFeatGrant } from '@artificer-toolkit/shared'
+import { featGrantDtoSchema } from '@artificer-toolkit/schema/grants/feat'
+import type { FeatGrantAuthored } from '@artificer-toolkit/shared/authored'
+import { compileFeatGrant, type CompiledFeatGrant } from '@artificer-toolkit/shared/compilers'
 import type { RepositoryFindAllOptions } from '@artificer-toolkit/db'
 import { createGrantAuthoringService } from './pipeline.js'
 

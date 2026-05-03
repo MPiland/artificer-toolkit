@@ -1,9 +1,7 @@
-import type {
-  BackgroundAuthoredDto,
-  DetailDto,
-  FeatureDto,
-  ProficiencyGrantDto
-} from '@artificer-toolkit/schema'
+import type { BackgroundAuthoredDto } from '@artificer-toolkit/schema/subjects/background'
+import type { DetailDto } from '@artificer-toolkit/schema/shared'
+import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
+import type { ProficiencyGrantDto } from '@artificer-toolkit/schema/grants'
 import { createEmptyStartingEquipment } from '#components/editors'
 
 export {

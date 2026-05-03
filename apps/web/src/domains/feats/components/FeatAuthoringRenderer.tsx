@@ -1,4 +1,4 @@
-import type { NodeRuntimeNodeDto } from '@artificer-toolkit/schema'
+import type { NodeRuntimeNodeDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import { createAuthoringFormRenderer } from '#forms'
 import {
   createDefaultEffect,

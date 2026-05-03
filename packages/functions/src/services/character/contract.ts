@@ -5,13 +5,13 @@ import type {
   AssembledCharacterSpellAccess,
   AssembledCharacterSnapshot,
   AssemblerCharacterInput,
-  CompileToAssembleContract,
-  CompiledCharacter
-} from '@artificer-toolkit/shared'
+  CompileToAssembleContract
+} from '@artificer-toolkit/shared/core'
 import {
   buildAssemblerCharacterInput,
   buildCompileToAssembleContract
-} from '@artificer-toolkit/shared'
+} from '@artificer-toolkit/shared/core'
+import type { CompiledCharacter } from '@artificer-toolkit/shared/subjects/compilers'
 
 import type { CharacterAssemblyRegistry } from './types.js'
 

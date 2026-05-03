@@ -1,5 +1,10 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema'
+import {
+  afterEach,
+  describe,
+  expect,
+  it,
+  vi } from 'vitest'
+import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 import {
   createDefaultAbilityScores,
   createEmptyAction,

@@ -1,8 +1,8 @@
+import type { BackgroundAuthoredDto } from '@artificer-toolkit/schema/subjects/background'
 import type {
-  BackgroundAuthoredDto,
   BackgroundListResponseDto,
   BackgroundResponseDto
-} from '@artificer-toolkit/schema'
+} from '@artificer-toolkit/schema/api/content'
 
 export const ownedBackgroundFixture: BackgroundAuthoredDto = {
   kind: 'BACKGROUND',

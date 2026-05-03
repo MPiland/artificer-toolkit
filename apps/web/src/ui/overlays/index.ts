@@ -1,12 +1,14 @@
 export {
   default as Modal,
   FullscreenModal,
-  ModalContext,
-  ModalProvider,
-  type ModalConfig,
-  type ShowModal,
-  type CopyModalProps,
-  type AlertModalProps,
-  type DeleteModalProps,
-  type AddSectionModalProps
+  ModalContext
+} from './Modal'
+export type {
+  ModalOptions,
+  ModalConfig,
+  ShowModal,
+  CopyModalProps,
+  AlertModalProps,
+  DeleteModalProps,
+  AddSectionModalProps
 } from './Modal'

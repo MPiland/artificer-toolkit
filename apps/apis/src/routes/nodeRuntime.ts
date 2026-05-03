@@ -6,7 +6,7 @@ import {
 import {
   nodeRuntimeNormalizeValuesRequestDtoSchema,
   nodeRuntimeResolveRequestDtoSchema
-} from '@artificer-toolkit/schema'
+} from '@artificer-toolkit/schema/api/nodeRuntime'
 
 export const resolveNodeMapRuntime = handleAuthoringRequest(
   nodeRuntimeResolveRequestDtoSchema,

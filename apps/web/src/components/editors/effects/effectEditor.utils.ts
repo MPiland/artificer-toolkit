@@ -1,4 +1,12 @@
-import type { EffectDto, PathDto, RangeDto, SavingThrowDto, TargetingDto } from '@artificer-toolkit/schema'
+import type {
+  EffectDto,
+  PathDto,
+  TargetingDto
+} from '@artificer-toolkit/schema/effects'
+import type {
+  RangeDto,
+  SavingThrowDto
+} from '@artificer-toolkit/schema/shared'
 import type { EffectEditorReferenceData, OutcomeDraft } from './effectEditor.types'
 
 type ResultBlockLike = {

@@ -1,8 +1,8 @@
 import type { DBLike, RepositoryFindAllOptions } from '@artificer-toolkit/db'
 import { createVehicleRepository, upsertVehicle } from '@artificer-toolkit/db'
-import { vehicleAuthoredDtoSchema } from '@artificer-toolkit/schema'
-import type { CompiledVehicle, VehicleAuthored } from '@artificer-toolkit/shared'
-import { compileVehicle } from '@artificer-toolkit/shared'
+import { vehicleAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/vehicle'
+import type { VehicleAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { compileVehicle, type CompiledVehicle } from '@artificer-toolkit/shared/subjects/compilers'
 import { createSubjectAuthoringService } from './pipeline.js'
 
 export interface VehicleSubjectAuthoringDeps {

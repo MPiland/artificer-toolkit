@@ -1,12 +1,15 @@
-import { useState } from 'react'
-import { Alert, Button, Stack } from '@mantine/core'
-import { useNavigate } from '@tanstack/react-router'
 import {
-  creatureAuthoredDtoSchema,
+  useState } from 'react'
+import { Alert,
+  Button,
+  Stack } from '@mantine/core'
+import { useNavigate } from '@tanstack/react-router'
+import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
+import {
   type AuthoredDraftDto,
-  type CreatureAuthoredDto,
   type CreatureResponseDto
-} from '@artificer-toolkit/schema'
+} from '@artificer-toolkit/schema/api/content'
+import { type CreatureAuthoredDto } from '@artificer-toolkit/schema/subjects/creature'
 import {
   AuthoredDetailItemList,
   AuthoredDetailLayout,

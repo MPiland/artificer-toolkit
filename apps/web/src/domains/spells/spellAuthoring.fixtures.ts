@@ -1,4 +1,4 @@
-import type { SpellAuthoredDto } from '@artificer-toolkit/schema'
+import type { SpellAuthoredDto } from '@artificer-toolkit/schema/subjects/spell'
 import type { SpellReferenceData } from '#app/data/spells/referenceData'
 
 export const spellReferenceFixture: SpellReferenceData = {

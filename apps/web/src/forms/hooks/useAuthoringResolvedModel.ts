@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema'
+import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import { createStaticResolvedFormModel } from '../node-map/staticResolvedModel'
 import { useResolvedNodeModel } from './useResolvedNodeModel'
 

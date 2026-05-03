@@ -1,5 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
-import type { FeatAuthoredDto, FeatResponseDto } from '@artificer-toolkit/schema'
+import type { FeatAuthoredDto } from '@artificer-toolkit/schema/subjects/feat'
+import { FeatResponseDto } from '@artificer-toolkit/schema/api/content'
 import {
   AuthoringFormLayout,
   AuthoringFormProvider,

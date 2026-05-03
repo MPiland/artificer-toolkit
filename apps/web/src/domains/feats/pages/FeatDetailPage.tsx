@@ -1,12 +1,15 @@
-import { useState } from 'react'
-import { Alert, Button, Stack } from '@mantine/core'
-import { useNavigate } from '@tanstack/react-router'
 import {
-  featAuthoredDtoSchema,
+  useState } from 'react'
+import { Alert,
+  Button,
+  Stack } from '@mantine/core'
+import { useNavigate } from '@tanstack/react-router'
+import { featAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/feat'
+import {
   type AuthoredDraftDto,
-  type FeatAuthoredDto,
   type FeatResponseDto
-} from '@artificer-toolkit/schema'
+} from '@artificer-toolkit/schema/api/content'
+import { type FeatAuthoredDto } from '@artificer-toolkit/schema/subjects/feat'
 import {
   AuthoredDetailEmptyBlock,
   AuthoredDetailItemList,

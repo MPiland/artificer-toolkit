@@ -7,15 +7,15 @@ import type {
   RootChainPlan,
   StepPlan,
   WhereExpr
-} from '@artificer-toolkit/shared'
+} from '@artificer-toolkit/shared/maps'
 import {
   evaluateConditionIf,
   isIdRef,
   isRuntimeRecord,
   resolveIdRef,
   type NodeRuntimeScope
-} from '@artificer-toolkit/shared'
-import type { NodeRuntimeOptionDto } from '@artificer-toolkit/schema'
+} from '@artificer-toolkit/shared/utils'
+import type { NodeRuntimeOptionDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import { NodeRuntimeInputError } from './mapRegistry.js'
 
 const trustedTables = new Set([

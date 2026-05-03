@@ -1,8 +1,8 @@
 import type { DBLike, RepositoryFindAllOptions } from '@artificer-toolkit/db'
 import { createClassRepository, upsertClass } from '@artificer-toolkit/db'
-import { classAuthoredDtoSchema } from '@artificer-toolkit/schema'
-import type { ClassAuthored, CompiledClass } from '@artificer-toolkit/shared'
-import { compileClass } from '@artificer-toolkit/shared'
+import { classAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/class'
+import type { ClassAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { compileClass, type CompiledClass } from '@artificer-toolkit/shared/subjects/compilers'
 import { createSubjectAuthoringService } from './pipeline.js'
 
 export interface ClassSubjectAuthoringDeps {

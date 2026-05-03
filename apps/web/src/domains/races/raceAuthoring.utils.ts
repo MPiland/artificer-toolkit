@@ -1,15 +1,13 @@
-import type {
-  DetailDto,
-  FeatureDto,
-  RaceAuthoredDto,
-  SpeedDto
-} from '@artificer-toolkit/schema'
+import type { DetailDto } from '@artificer-toolkit/schema/shared'
+import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
+import type { RaceAuthoredDto } from '@artificer-toolkit/schema/subjects/race'
+import type { SpeedDto } from '@artificer-toolkit/schema/shared'
 import {
   MEASUREMENT_UNIT_CODE,
   RACE_CATEGORY_CODE,
   RACE_SELECTION_MODE,
   SIZE_CODE
-} from '@artificer-toolkit/shared'
+} from '@artificer-toolkit/shared/core'
 
 type BaseRaceDto = Extract<RaceAuthoredDto, { category: 'BASE' }>
 type SubraceDto = Extract<RaceAuthoredDto, { category: 'SUBRACE' }>

@@ -1,8 +1,8 @@
 import type { DBLike, RepositoryFindAllOptions } from '@artificer-toolkit/db'
 import { createBackgroundRepository, upsertBackground } from '@artificer-toolkit/db'
-import { backgroundAuthoredDtoSchema } from '@artificer-toolkit/schema'
-import type { BackgroundAuthored, CompiledBackground } from '@artificer-toolkit/shared'
-import { compileBackground } from '@artificer-toolkit/shared'
+import { backgroundAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/background'
+import type { BackgroundAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { compileBackground, type CompiledBackground } from '@artificer-toolkit/shared/subjects/compilers'
 import { createSubjectAuthoringService } from './pipeline.js'
 
 export interface BackgroundSubjectAuthoringDeps {

@@ -1,5 +1,11 @@
-import { describe, expect, it, vi, afterEach } from 'vitest'
-import { facetDtoSchema, modifierGrantDtoSchema } from '@artificer-toolkit/schema'
+import {
+  describe,
+  expect,
+  it,
+  vi,
+  afterEach } from 'vitest'
+import { facetDtoSchema } from '@artificer-toolkit/schema/shared'
+import { modifierGrantDtoSchema } from '@artificer-toolkit/schema/grants/modifier'
 import {
   createEmptyBaseEquipment,
   createEmptyModifier,

@@ -1,4 +1,9 @@
-import type { EffectDto, PathDto, SavingThrowDto, TargetingDto } from '@artificer-toolkit/schema'
+import type {
+  EffectDto,
+  PathDto,
+  TargetingDto
+} from '@artificer-toolkit/schema/effects'
+import type { SavingThrowDto } from '@artificer-toolkit/schema/shared'
 
 export type EffectEditorReferenceData = {
   damageTypes: Array<{ value: string, label: string }>

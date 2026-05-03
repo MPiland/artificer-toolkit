@@ -1,4 +1,4 @@
-import type { AssembledCharacterSpellAccess } from '@artificer-toolkit/shared'
+import type { AssembledCharacterSpellAccess } from '@artificer-toolkit/shared/core'
 
 import type { CharacterAssemblyInput } from './contract.js'
 

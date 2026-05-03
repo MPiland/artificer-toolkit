@@ -8,8 +8,8 @@ import type {
   NodeRuntimeResolveResponseDto,
   NodeRuntimeSectionDto,
   NodeRuntimeStepDto
-} from '@artificer-toolkit/schema'
-import type { InlineFilter, NodeEntry, NodeSelectSource, SectionedNodeGroup, SteppedNodeGroup } from '@artificer-toolkit/shared'
+} from '@artificer-toolkit/schema/api/nodeRuntime'
+import type { InlineFilter, NodeEntry, NodeSelectSource } from '@artificer-toolkit/shared/maps'
 import {
   clearValuesAtPaths,
   evaluateConditionIf,
@@ -17,8 +17,10 @@ import {
   isRuntimeRecord,
   resolveNodeMapSteps,
   type NodeRuntimeScope,
-  type RuntimePath
-} from '@artificer-toolkit/shared'
+  type RuntimePath,
+  type SectionedNodeGroup,
+  type SteppedNodeGroup
+} from '@artificer-toolkit/shared/utils'
 import { executeRelationshipPlan, streamToOptions } from './relationshipExecutor.js'
 import { getRuntimeNodeMap } from './mapRegistry.js'
 

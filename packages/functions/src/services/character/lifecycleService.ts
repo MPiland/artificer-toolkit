@@ -5,19 +5,17 @@ import {
   createClassRepository,
   createFeatRepository,
   createRaceRepository,
-  ConcurrencyError,
+  ConcurrencyError
 } from '@artificer-toolkit/db'
 import type {
   CharacterBuildState,
   CharacterEvent,
-  CharacterAssemblyRegistry,
-} from '@artificer-toolkit/shared'
+  CharacterAssemblyRegistry
+} from '@artificer-toolkit/shared/core'
 import {
-  compileClass,
-  compileFeat,
-  compileRace,
   dnd5e2014RulesSystem
-} from '@artificer-toolkit/shared'
+} from '@artificer-toolkit/shared/core'
+import { compileClass, compileFeat, compileRace } from '@artificer-toolkit/shared/subjects/compilers'
 import type { CommandHandler } from './commands/index.js'
 import { CommandValidationError } from './commands/index.js'
 
@@ -68,7 +66,7 @@ async function buildRegistry(db: DBLike, state: CharacterBuildState): Promise<Ch
     feats,
     races,
     equipment: {},
-    spells: {},
+    spells: {}
   }
 }
 
@@ -104,19 +102,14 @@ export async function dispatchCharacterCommand<TCommand, TResult>(
 
   // 3. Build registry and run command handler
   const registry = await buildRegistry(db, currentState)
-  const { events, newState, result } = await handler(
-    command,
-    currentState,
-    registry,
-    dnd5e2014RulesSystem
-  )
+  const { events, newState, result } = await handler(command, currentState, registry, dnd5e2014RulesSystem)
 
   // 4. Persist events then update snapshot (events first for audit integrity)
   await eventRepo.appendBatch(events)
   await charRepo.updateBuildState({
     id: characterId,
     buildState: newState as unknown as Json,
-    expectedVersion,
+    expectedVersion
   })
 
   return { newState, events, result }

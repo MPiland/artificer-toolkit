@@ -33,6 +33,10 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
 - tRPC remains additive, adapter-backed, and incremental.
 - `packages/schema` owns frontend-facing transport DTOs.
 - `packages/shared` owns node maps and authored model metadata.
+- Active Phase 9 code should import schema/shared contracts from focused subpaths, not package root barrels:
+  - schema examples: `@artificer-toolkit/schema/api/content`, `@artificer-toolkit/schema/api/characters`, `@artificer-toolkit/schema/subjects/equipment`
+  - shared examples: `@artificer-toolkit/shared/core`, `@artificer-toolkit/shared/maps`, `@artificer-toolkit/shared/authored`, `@artificer-toolkit/shared/subjects/authored`
+  - root `@artificer-toolkit/schema` and `@artificer-toolkit/shared` imports remain temporary compatibility surfaces and retirement targets
 - The frontend should become lighter by deleting web-owned domain logic and using the backend stack correctly.
 - Phase 9 authored forms use the draft sidecar persistence model:
   - TanStack Form owns local editor state.
@@ -123,7 +127,12 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
 - The authoring-form architecture cleanup is now the active form baseline: authored forms use the canonical node-driven `steps -> sections -> nodes` renderer instead of domain-local wrapper stacks.
 - Phase 9.x authored detail pages are complete: shared reader-first detail pages now unfreeze direct authored `/:id` routes for spells, backgrounds, feats, races, equipment, creatures, vehicles, and classes while `/edit` remains the authoring surface.
 - Phase 9.12 is complete: Vehicle routes, list, shared vehicle form, node-runtime metadata, draft sidecar persistence, category-aware filters, locked-master behavior, and Storybook/app validation are on the Phase 9 stack.
-- Phase 9.13 is active: Class and Subclass are category-driven `CLASS` authored records in one node-driven authoring flow with shared detail routes.
+- Phase 9.13 is complete: Class and Subclass are category-driven `CLASS` authored records in one node-driven authoring flow with shared detail routes.
+- Phase 9.14 is active with the builder foundation implemented: Character Builder now uses route-loader create/edit pages, a `character_builder_drafts` sidecar, backend resolver view-model data, custom TanStack Form steps, save-draft/finalize flows, and a placeholder `/characters/:id` sheet route for the deferred 9.15 sheet tranche. Remaining work is focused on source-local choice editors for class/background choices and starting equipment.
+- Type graph hygiene baseline before focused package imports and split web typecheck gates: web extended diagnostics reported 3,133 files, 5,728,915 symbols, 1,713,185 types, 19,507,870 instantiations, 5,405,784K memory, 86.52s check time, and 90.68s total time while still ending on the documented legacy `src/utils` blockers.
+- Web typecheck gates are now split into app/runtime, stories, tests, config/e2e, and diagnostics commands so normal app work does not always instantiate Storybook and test surfaces.
+- Type graph hygiene follow-up: the app/runtime gate now passes independently and no longer leaks the legacy `src/utils` graph through the stale web `#utils` alias. Focused app diagnostics reported 2,383 files, 5,562,862 symbols, 1,702,970 types, 19,490,017 instantiations, 5,190,407K memory, 97.08s check time, and 102.28s total time. File count and memory improved, but check time remains heavy and should be revisited during the Character Builder type-shaping pass.
+- The new stories/config typecheck gates pass independently. The new tests typecheck gate currently exposes test-fixture drift (auth session mocks, draft-state literals, UUID-shaped mock IDs, and stricter fixture response shapes) and should be cleaned as its own test-hygiene pass instead of blocking app/runtime work.
 - Phase 9.11 validation passed `build:schema`, `build:shared`, `build:db`, `build:functions`, `build:apis`, `test:schema`, `test:shared`, focused API authored-content tests, focused Creature web tests, full web unit tests, app Playwright smoke, Storybook build, static Storybook Playwright, and focused Creature Storybook Playwright. `build:web` remains blocked only by documented legacy `src/utils` failures.
 - Phase 9.10 validation passed `build:schema`, `build:shared`, `build:functions`, `build:db`, `build:apis`, focused Equipment web tests, full web unit tests, app Playwright smoke, Storybook build, and Storybook Playwright smoke. `build:web` remains blocked only by documented legacy `src/utils` failures.
 - Phase 9.8.1 validation passed `build:schema`, `build:db`, `build:functions`, `build:apis`, `test:schema`, focused API draft tests, focused web adapter/domain tests, full web unit tests, and Storybook build. `build:web` remains blocked only by documented legacy `src/utils` failures; `test:db` remains blocked by pre-existing repository expectation drift outside the draft sidecar path.
@@ -161,8 +170,8 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
 | 9.11 | [PHASE_9_11_CODE_CREATURE_SUBPLAN.md](PHASE_9_11_CODE_CREATURE_SUBPLAN.md) | Creature list and form implementation | Implemented - Ready for PR Review |
 | 9.x | [PHASE_9_AUTHORED_DETAIL_PAGES_DEFERRED_SUBPLAN.md](PHASE_9_AUTHORED_DETAIL_PAGES_DEFERRED_SUBPLAN.md) | Shared authored detail pages and route unfreeze | Complete |
 | 9.12 | [PHASE_9_12_CODE_VEHICLE_SUBPLAN.md](PHASE_9_12_CODE_VEHICLE_SUBPLAN.md) | Vehicle list and form implementation | Complete |
-| 9.13 | [PHASE_9_13_CODE_CLASS_SUBPLAN.md](PHASE_9_13_CODE_CLASS_SUBPLAN.md) | Class and subclass authoring implementation | Active |
-| 9.14 | [PHASE_9_14_CHARACTER_BUILDER_SUBPLAN.md](PHASE_9_14_CHARACTER_BUILDER_SUBPLAN.md) | Engine-backed builder implementation | Not Started |
+| 9.13 | [PHASE_9_13_CODE_CLASS_SUBPLAN.md](PHASE_9_13_CODE_CLASS_SUBPLAN.md) | Class and subclass authoring implementation | Complete |
+| 9.14 | [PHASE_9_14_CHARACTER_BUILDER_SUBPLAN.md](PHASE_9_14_CHARACTER_BUILDER_SUBPLAN.md) | Engine-backed builder implementation | Active - Builder Foundation Implemented |
 | 9.15 | [PHASE_9_15_CHARACTER_SHEET_SUBPLAN.md](PHASE_9_15_CHARACTER_SHEET_SUBPLAN.md) | Play-state character sheet implementation | Not Started |
 | 9.16 | [PHASE_9_16_SUPPORTING_SURFACES_SUBPLAN.md](PHASE_9_16_SUPPORTING_SURFACES_SUBPLAN.md) | Features, feat grants, systems, cleanup | Not Started |
 

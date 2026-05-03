@@ -1,5 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
-import type { BackgroundAuthoredDto, BackgroundResponseDto } from '@artificer-toolkit/schema'
+import type { BackgroundAuthoredDto } from '@artificer-toolkit/schema/subjects/background'
+import { BackgroundResponseDto } from '@artificer-toolkit/schema/api/content'
 import {
   AuthoringFormLayout,
   AuthoringFormProvider,

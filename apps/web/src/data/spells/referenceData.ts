@@ -1,5 +1,9 @@
-import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
-import type { ClassListItemDto, CreatureListItemDto, SystemAuthoredDto } from '@artificer-toolkit/schema'
+import {
+  queryOptions,
+  useSuspenseQuery } from '@tanstack/react-query'
+import type { ClassListItemDto } from '@artificer-toolkit/schema/api/content'
+import { CreatureListItemDto } from '@artificer-toolkit/schema/api/content'
+import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import { api, type Api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import { buildEffectReferenceData } from '#app/data/effects'

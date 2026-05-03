@@ -1,5 +1,5 @@
 import type { z } from 'zod'
-import type { AuthoredDraftDto } from '@artificer-toolkit/schema'
+import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
 
 export interface ParsedAuthoredDraft<TValue> {
   draft: AuthoredDraftDto | null

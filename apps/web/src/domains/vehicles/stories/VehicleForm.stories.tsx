@@ -1,5 +1,7 @@
-import type { Meta, StoryObj } from '@storybook/react-vite'
-import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema'
+import type {
+  Meta,
+  StoryObj } from '@storybook/react-vite'
+import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import {
   AuthoringFormLayout,
   AuthoringFormProvider,

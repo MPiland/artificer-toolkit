@@ -1,12 +1,15 @@
-import { useState } from 'react'
-import { Alert, Button, Stack } from '@mantine/core'
-import { useNavigate } from '@tanstack/react-router'
 import {
-  spellAuthoredDtoSchema,
+  useState } from 'react'
+import { Alert,
+  Button,
+  Stack } from '@mantine/core'
+import { useNavigate } from '@tanstack/react-router'
+import { spellAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/spell'
+import {
   type AuthoredDraftDto,
-  type SpellAuthoredDto,
   type SpellResponseDto
-} from '@artificer-toolkit/schema'
+} from '@artificer-toolkit/schema/api/content'
+import { type SpellAuthoredDto } from '@artificer-toolkit/schema/subjects/spell'
 import {
   AuthoredDetailEmptyBlock,
   AuthoredDetailItemList,

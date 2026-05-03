@@ -1,5 +1,5 @@
-import { clearValuesAtPaths } from '@artificer-toolkit/shared'
-import type { NodeRuntimePathDto } from '@artificer-toolkit/schema'
+import { clearValuesAtPaths } from '@artificer-toolkit/shared/utils'
+import type { NodeRuntimePathDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 
 export type ResolvedNodeChangeKind
   = | 'SELECT_SINGLE'

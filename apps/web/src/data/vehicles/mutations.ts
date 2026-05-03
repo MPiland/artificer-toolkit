@@ -1,5 +1,7 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import type { VehicleAuthoringInputDto } from '@artificer-toolkit/schema'
+import {
+  useMutation,
+  useQueryClient } from '@tanstack/react-query'
+import type { VehicleAuthoringInputDto } from '@artificer-toolkit/schema/subjects/vehicle'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 

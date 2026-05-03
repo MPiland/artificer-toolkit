@@ -1,5 +1,5 @@
 import { QueryClient } from '@tanstack/react-query'
-import type { AuthoredDraftDto } from '@artificer-toolkit/schema'
+import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
 import { refreshAuthoredDetailAfterDraftDiscard } from './useAuthoredDetailActions'
 
 const draftKey = [

@@ -1,11 +1,14 @@
-import { Alert, Button, Stack } from '@mantine/core'
-import { notifications } from '@mantine/notifications'
-import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
-import { useNavigate } from '@tanstack/react-router'
 import {
-  raceAuthoredDtoSchema,
-  type RaceAuthoredDto
-} from '@artificer-toolkit/schema'
+  Alert,
+  Button,
+  Stack } from '@mantine/core'
+import { notifications } from '@mantine/notifications'
+import { useMutation,
+  useQueryClient,
+  useSuspenseQuery } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
+import { raceAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/race'
+import { type RaceAuthoredDto } from '@artificer-toolkit/schema/subjects/race'
 import { InvalidDraftAlert } from '#forms'
 import { parseAuthoredDraftPayload } from '#app/data/authoredDrafts'
 import { getRace, getRaceDraft } from '#app/data/races/queries'

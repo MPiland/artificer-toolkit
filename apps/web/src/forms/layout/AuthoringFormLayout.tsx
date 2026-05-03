@@ -56,27 +56,25 @@ export function AuthoringFormLayout({
             >
               Back
             </Button>
+            {!authoring.readOnly && authoring.canSaveDraft
+              ? (
+                  <Button type='button' variant='default' onClick={() => void authoring.saveDraft()}>
+                    {authoring.saveDraftLabel}
+                  </Button>
+                )
+              : null}
             {authoring.isLastStep
               ? (
                   authoring.readOnly
                     ? null
                     : (
-                        <>
-                          {authoring.canSaveDraft
-                            ? (
-                                <Button type='button' variant='default' onClick={() => void authoring.saveDraft()}>
-                                  {authoring.saveDraftLabel}
-                                </Button>
-                              )
-                            : null}
-                          <Button
-                            type='submit'
-                            disabled={!authoring.canSubmit}
-                            loading={authoring.isSubmitting}
-                          >
-                            {authoring.activateLabel}
-                          </Button>
-                        </>
+                        <Button
+                          type='submit'
+                          disabled={!authoring.canSubmit}
+                          loading={authoring.isSubmitting}
+                        >
+                          {authoring.activateLabel}
+                        </Button>
                       )
                 )
               : (

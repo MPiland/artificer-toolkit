@@ -1,10 +1,10 @@
 # Phase 9.14 - Character Builder
 
-## Status: Not Started
+## Status: Active - Builder Foundation Implemented
 
 ## Objective
 
-Rebuild the character builder as an engine-backed structural editing surface. This tranche must implement the locked `CC*` and `EC*` flows, keep structural choices in the builder, and delete the legacy character hook and step-store architecture as the new builder routes cut over.
+Rebuild the character builder as an engine-backed structural editing surface. This tranche implements the locked `CC*` and `EC*` flows, keeps structural choices in the builder, stores incomplete work in a builder draft sidecar, and avoids the legacy character hook and step-store architecture on active routes.
 
 ## Prerequisite
 
@@ -40,10 +40,30 @@ Rebuild the character builder as an engine-backed structural editing surface. Th
 - `EC9 - Edit Character Review`
 - `EC10 - Edit Save Preview`
 
+## Architecture Decision
+
+The Character Builder is intentionally not an authored-content node-driven form in 9.14. Authored domains use node maps because their field structure is mostly record authoring. Character building is a higher-order orchestration problem: race, class, subclass, background, feature grants, ability generation, HP, equipment, and readiness all interact.
+
+The accepted pattern is a hybrid:
+
+- Route loaders provide the first builder payload and sheet placeholder payload.
+- `apps/apis` remains the only product-data boundary for `apps/web`.
+- TanStack Form owns local builder values.
+- Step components use TanStack `withForm`; no legacy global form store, no `useFormContext`, and no fake form prop casts.
+- Frontend steps render focused UX for the builder, but do not own game-rule graph logic.
+- Backend resolver output supplies options, disabled reasons, summaries, outstanding choices, readiness, and the recommended next section.
+- Save Draft writes only the `character_builder_drafts` sidecar.
+- Draft payloads store a strict active `character` snapshot plus draft-only `builderIntent` cache data so reversible creation intent is not lost. For example, rolled ability groups must survive switching to point buy and saving a draft, while finalize only commits the currently active ability method.
+- Finalize validates readiness and writes normalized character rows transactionally, deleting the sidecar only after success.
+- `/characters/:id` is a sheet placeholder until the character sheet gets a dedicated 9.15 craft/design pass.
+
 ## Transport Requirements
 
 - `POST /characters/draft`
 - `GET /characters/:id`
+- `GET /characters/:id/builder-draft`
+- `POST /characters/:id/builder-draft`
+- `DELETE /characters/:id/builder-draft`
 - `POST /characters/resolve`
 - `POST /characters/preview-save`
 - `POST /characters/upsert`
@@ -59,6 +79,7 @@ The builder consumes authored character state plus backend resolution and previe
 - Invalid multiclass options stay visible but disabled.
 - Selected classes render as expandable cards with contextual `Overview`, `Features`, and conditional `Spells`.
 - Save preview remains a plain-language consequence modal.
+- Character Sheet is deferred to 9.15 and is represented by a lightweight placeholder route in this tranche.
 
 ## Implementation Tracks
 
@@ -67,7 +88,18 @@ The builder consumes authored character state plus backend resolution and previe
 3. Render the builder screens around backend-driven resolution state instead of legacy local derivation hooks.
 4. Keep structural edits localized to the relevant screen and surface source-local choices where they are granted.
 5. Implement the edit-save preview modal from backend preview data, not frontend guesswork.
-6. Remove legacy builder hook composition and step-store behavior as routes cut over.
+6. Add `character_builder_drafts` sidecar persistence so incomplete work never writes fake normalized child rows.
+7. Keep `/characters/:id` as a sheet placeholder with edit/resume actions until the sheet is designed.
+8. Remove legacy builder hook composition and step-store behavior from the active route path.
+
+## Remaining Builder Work
+
+- Complete source-local choice editors that need richer resolver payloads:
+  - class-owned feature/spell/resource choices
+  - background-owned choices
+  - class/background starting equipment decisions
+- Keep these choices on their granting steps, not a global selections screen.
+- Do not fake completion by writing placeholder IDs or bypassing backend readiness.
 
 ## Stories, Tests, and Playwright
 
@@ -81,6 +113,8 @@ The builder consumes authored character state plus backend resolution and previe
   - builder route-state transformations
   - preview payload rendering
   - local UI state around class-card expansion
+  - draft payload normalization
+  - list mapping for draft-only and active character rows
 - Playwright:
   - create character through the builder
   - edit existing character
@@ -89,12 +123,16 @@ The builder consumes authored character state plus backend resolution and previe
 
 ## Legacy Cleanup
 
-- delete `hooks/characterLogic/*` as new builder routes replace old ones
-- delete builder-specific step-store behavior from the old global store
-- remove any builder UI that still says `Species`, exposes global `Selections`, or centers on readiness dashboards
+- keep `hooks/characterLogic/*` and old global step-store behavior off active routes as new builder routes replace old ones
+- retire legacy character route/domain code after builder and sheet cutover
+- remove any active builder UI that still says `Species`, exposes global `Selections`, or centers on readiness dashboards
 
 ## Exit Criteria
 
 - The builder is engine-backed and structurally focused.
 - Removed builder concepts stay removed.
 - The legacy character-builder runtime is no longer on the active route path.
+- Incomplete builder work saves to `character_builder_drafts`, not normalized character child tables.
+- Inactive builder branches such as alternate ability-generation choices remain recoverable from the draft sidecar.
+- Finalize keeps the active version unchanged until normalized commit succeeds.
+- Character sheet mechanics remain deferred to 9.15.

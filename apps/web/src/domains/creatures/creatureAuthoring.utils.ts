@@ -1,5 +1,8 @@
 import type { CreatureAuthoredDto } from '#app/lib/api'
-import type { DetailDto, FeatureDto, ProficiencyGrantDto, SpeedDto } from '@artificer-toolkit/schema'
+import type { DetailDto } from '@artificer-toolkit/schema/shared'
+import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
+import type { ProficiencyGrantDto } from '@artificer-toolkit/schema/grants'
+import type { SpeedDto } from '@artificer-toolkit/schema/shared'
 import {
   CREATURE_CATEGORY_CODE,
   CREATURE_COMPANION_BOND_TYPE_CODE,
@@ -7,7 +10,7 @@ import {
   CREATURE_MOUNT_TYPE_CODE,
   MEASUREMENT_UNIT_CODE,
   SIZE_CODE
-} from '@artificer-toolkit/shared'
+} from '@artificer-toolkit/shared/core'
 
 export type CreatureFormStep
   = | 'basics'

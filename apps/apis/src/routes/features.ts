@@ -1,7 +1,8 @@
 import { handleRequest, handleAuthoringRequest, createFeatureAuthoringUseCaseService } from '@artificer-toolkit/functions'
 import { getFeatureListQuery } from '@artificer-toolkit/db'
 import { createFeatureRepository } from '@artificer-toolkit/db'
-import type { FeatureAuthored, NodeSubjectCode } from '@artificer-toolkit/shared'
+import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
+import type { NodeSubjectCode } from '@artificer-toolkit/shared/core'
 import { z } from 'zod'
 
 const featureAuthoringBodySchema = z.object({

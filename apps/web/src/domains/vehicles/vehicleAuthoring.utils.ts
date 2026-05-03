@@ -1,11 +1,11 @@
+import type { CostDto } from '@artificer-toolkit/schema/subjects/shared'
+import type { DetailDto } from '@artificer-toolkit/schema/shared'
+import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import type {
-  CostDto,
-  DetailDto,
-  FeatureDto,
   VehicleAuthoringInputDto,
   VehicleAuthoredDto
-} from '@artificer-toolkit/schema'
-import { VEHICLE_CATEGORY_CODE } from '@artificer-toolkit/shared'
+} from '@artificer-toolkit/schema/subjects/vehicle'
+import { VEHICLE_CATEGORY_CODE } from '@artificer-toolkit/shared/core'
 
 export type VehiclePropertyFormValue = {
   value: string

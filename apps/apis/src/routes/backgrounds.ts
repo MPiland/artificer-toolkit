@@ -6,13 +6,15 @@ import {
 } from '@artificer-toolkit/functions'
 import { getBackgroundListQuery } from '@artificer-toolkit/db'
 import { createBackgroundRepository } from '@artificer-toolkit/db'
-import type { BackgroundAuthored } from '@artificer-toolkit/shared'
+import type { BackgroundAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import {
   authoredDraftActivateRequestDtoSchema,
-  authoredDraftSaveRequestDtoSchema,
+  authoredDraftSaveRequestDtoSchema
+} from '@artificer-toolkit/schema/api/content'
+import {
   backgroundAuthoredDtoSchema,
   type BackgroundAuthoredDto
-} from '@artificer-toolkit/schema'
+} from '@artificer-toolkit/schema/subjects/background'
 import {
   discardAuthoredDraft,
   extractDraftSubjectIdFromRequest,

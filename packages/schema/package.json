@@ -9,6 +9,66 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./api": {
+      "types": "./dist/api/index.d.ts",
+      "default": "./dist/api/index.js"
+    },
+    "./api/*": {
+      "types": "./dist/api/*.d.ts",
+      "default": "./dist/api/*.js"
+    },
+    "./domains/character/commands": {
+      "types": "./dist/domains/character/commands/index.d.ts",
+      "default": "./dist/domains/character/commands/index.js"
+    },
+    "./effects": {
+      "types": "./dist/effects/index.d.ts",
+      "default": "./dist/effects/index.js"
+    },
+    "./effects/*": {
+      "types": "./dist/effects/*.d.ts",
+      "default": "./dist/effects/*.js"
+    },
+    "./features": {
+      "types": "./dist/features/index.d.ts",
+      "default": "./dist/features/index.js"
+    },
+    "./features/*": {
+      "types": "./dist/features/*.d.ts",
+      "default": "./dist/features/*.js"
+    },
+    "./grants": {
+      "types": "./dist/grants/index.d.ts",
+      "default": "./dist/grants/index.js"
+    },
+    "./grants/*": {
+      "types": "./dist/grants/*.d.ts",
+      "default": "./dist/grants/*.js"
+    },
+    "./shared": {
+      "types": "./dist/shared/index.d.ts",
+      "default": "./dist/shared/index.js"
+    },
+    "./shared/*": {
+      "types": "./dist/shared/*.d.ts",
+      "default": "./dist/shared/*.js"
+    },
+    "./subjects": {
+      "types": "./dist/subjects/index.d.ts",
+      "default": "./dist/subjects/index.js"
+    },
+    "./subjects/*": {
+      "types": "./dist/subjects/*.d.ts",
+      "default": "./dist/subjects/*.js"
+    },
+    "./vocabulary": {
+      "types": "./dist/vocabulary/index.d.ts",
+      "default": "./dist/vocabulary/index.js"
+    },
+    "./vocabulary/*": {
+      "types": "./dist/vocabulary/*.d.ts",
+      "default": "./dist/vocabulary/*.js"
     }
   },
   "scripts": {
