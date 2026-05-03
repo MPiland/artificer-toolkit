@@ -231,7 +231,12 @@ async function apiFetch(
     return undefined
   }
 
-  return response.json()
+  const text = await response.text()
+  if (!text.trim()) {
+    return undefined
+  }
+
+  return JSON.parse(text)
 }
 
 function parseResponse<TSchema extends z.ZodTypeAny>(

@@ -829,11 +829,12 @@ export const saveCharacterBuilderDraft = handleAuthoringRequest(characterBuilder
   return toCharacterBuilderDraftDto(draft)
 })
 
-export const discardCharacterBuilderDraft = handleRequest(async (db, characterId: string, userId: string): Promise<void> => {
+export const discardCharacterBuilderDraft = handleRequest(async (db, characterId: string, userId: string): Promise<{ ok: true }> => {
   await createCharacterBuilderDraftRepository(db).delete({
     characterId,
     userId
   })
+  return { ok: true }
 }, (req: Request, userId: string) => [extractCharacterIdFromBuilderDraftRoute(req), userId] as [string, string])
 
 export const createCharacter = handleAuthoringRequest(characterAuthoredDtoSchema, async (db, character, userId): Promise<CharacterBuilderPayloadDto> => {
