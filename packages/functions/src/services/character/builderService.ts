@@ -596,7 +596,8 @@ export function resolveRecommendedCharacterBuilderSection(
     || hasOutstandingCode(outstandingChoices, [
       'SPECIALIZATION_REQUIRED',
       'SPELL_SELECTION_REQUIRED',
-      'SPELL_SELECTION_INCOMPLETE'
+      'SPELL_SELECTION_INCOMPLETE',
+      'SPELL_SELECTION_OVER_LIMIT'
     ])
   ) {
     return 'CLASSES'
@@ -1263,11 +1264,21 @@ export async function resolveCharacterBuilder(
     const selectedCounts = getSpellSelectionCounts(spellSelection, registry)
     const missingCantrips = selectedCounts.cantrips < requirement.cantripLimit
     const missingSpells = selectedCounts.spells < requirement.learnedSpellLimit
-    if (!missingCantrips && !missingSpells) continue
+    const tooManyCantrips = selectedCounts.cantrips > requirement.cantripLimit
+    const tooManySpells = selectedCounts.spells > requirement.learnedSpellLimit
+    if (!missingCantrips && !missingSpells && !tooManyCantrips && !tooManySpells) continue
+
+    const overLimit = tooManyCantrips || tooManySpells
 
     outstandingChoices.push({
-      code: spellSelection ? 'SPELL_SELECTION_INCOMPLETE' : 'SPELL_SELECTION_REQUIRED',
-      message: `${requirement.label} requires spell selections.`,
+      code: overLimit
+        ? 'SPELL_SELECTION_OVER_LIMIT'
+        : spellSelection
+          ? 'SPELL_SELECTION_INCOMPLETE'
+          : 'SPELL_SELECTION_REQUIRED',
+      message: overLimit
+        ? `${requirement.label} has too many selected spells for the current class level.`
+        : `${requirement.label} requires spell selections.`,
       sourceLabel: requirement.sourceLabel,
       source: requirement.source,
       required: true

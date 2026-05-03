@@ -718,11 +718,9 @@ export const listCharacters = handleRequest(async (db, userId: string): Promise<
     return {
       id: row.id,
       label: draft?.label ?? row.label,
-      status: draft
-        ? AUTHORED_RECORD_STATUS.DRAFT
-        : row.status === AUTHORED_RECORD_STATUS.ACTIVE
-          ? AUTHORED_RECORD_STATUS.ACTIVE
-          : AUTHORED_RECORD_STATUS.DRAFT,
+      status: row.status === AUTHORED_RECORD_STATUS.ACTIVE
+        ? AUTHORED_RECORD_STATUS.ACTIVE
+        : AUTHORED_RECORD_STATUS.DRAFT,
       systemId: draft?.systemId ?? row.system_id,
       streamVersion: row.stream_version,
       draft: draft ? toCharacterBuilderDraftSummary(draft) : undefined

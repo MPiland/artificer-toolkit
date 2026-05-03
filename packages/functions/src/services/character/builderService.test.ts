@@ -233,6 +233,29 @@ describe('resolveRecommendedCharacterBuilderSection', () => {
     ] satisfies CharacterBuilderIssue[])
 
     expect(section).toBe('CLASSES')
+
+    const overLimitSection = resolveRecommendedCharacterBuilderSection(character, 'create', {
+      totalLevel: 1,
+      abilities: {
+        STRENGTH: 8,
+        DEXTERITY: 10,
+        CONSTITUTION: 12,
+        INTELLIGENCE: 15,
+        WISDOM: 14,
+        CHARISMA: 13
+      },
+      classes: [{ classId: 'wizard', classLabel: 'Wizard', classLevel: 1, featureLabels: [], resourceLabels: [], spellcastingLabels: [] }]
+    }, [], [
+      {
+        code: 'SPELL_SELECTION_OVER_LIMIT',
+        message: 'Wizard Spellcasting has too many selected spells for the current class level.',
+        sourceLabel: 'Wizard',
+        source: { kind: 'CLASS', classId: 'wizard', classLevel: 1 },
+        required: true
+      }
+    ] satisfies CharacterBuilderIssue[])
+
+    expect(overLimitSection).toBe('CLASSES')
   })
 })
 
