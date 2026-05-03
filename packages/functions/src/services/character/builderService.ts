@@ -349,8 +349,9 @@ export function isStartingEquipmentDecisionComplete(
       if (!isChosenStartingEquipmentItem(item)) return true
 
       const selections = groupSelection.selections?.filter((selection) => selection.selectionKey === item.id) ?? []
+      const selectedQuantity = selections.reduce((sum, selection) => sum + selection.quantity, 0)
 
-      return selections.length === item.count
+      return selectedQuantity === item.count
         && selections.every((selection) => (
           selection.equipmentId.trim().length > 0
           && selection.quantity > 0

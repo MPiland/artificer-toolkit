@@ -17,20 +17,18 @@ import {
   useCommitCharacterBuilderMutation,
   useDiscardCharacterDraftMutation,
   usePreviewCharacterSaveMutation,
-  useResolveCharacterBuilderMutation,
   useSaveCharacterDraftMutation
 } from '#app/data/characters/mutations'
 import {
   buildCharacterDraftSaveInput,
   getInactiveAbilityIntentMethodLabels,
   normalizeCharacterForCommit,
-  normalizeCharacterForDraft,
-  toCharacterFormValues,
-  type CharacterFormValues
+  toCharacterFormValues
 } from '../characterBuilder.utils'
 import { CharacterDraftSaveNoticeModal } from '../components/CharacterDraftSaveNoticeModal'
 import { CharacterBuilderRenderer } from '../components/CharacterBuilderRenderer'
 import { CharacterSavePreviewModal } from '../components/CharacterSavePreviewModal'
+import { useLatestCharacterResolution } from '../hooks/useLatestCharacterResolution'
 
 export function CharacterEditPage() {
   const route = getRouteApi('/_authed/characters/$characterId/edit')
@@ -81,7 +79,6 @@ function CharacterEditAuthoring({
   const [previewOpened, setPreviewOpened] = useState(false)
   const discardDraftMutation = useDiscardCharacterDraftMutation(characterId)
   const draftMutation = useSaveCharacterDraftMutation()
-  const resolveMutation = useResolveCharacterBuilderMutation()
   const previewMutation = usePreviewCharacterSaveMutation()
   const commitMutation = useCommitCharacterBuilderMutation()
   const [initialValues] = useState(() => toCharacterFormValues(initialPayload))
@@ -107,17 +104,10 @@ function CharacterEditAuthoring({
     await navigate({ to: '/characters' })
   }, [navigate])
 
-  const handleResolve = useCallback(async (character: CharacterFormValues) => {
-    try {
-      const nextPayload = await resolveMutation.mutateAsync({
-        character: normalizeCharacterForDraft(character),
-        mode: 'edit'
-      })
-      setPayload(nextPayload)
-    } catch {
-      // Resolver failures are surfaced on explicit save/finalize actions.
-    }
-  }, [resolveMutation])
+  const handleResolve = useLatestCharacterResolution({
+    mode: 'edit',
+    onResolved: setPayload
+  })
 
   const handleDiscardDraft = useCallback(async () => {
     try {

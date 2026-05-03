@@ -70,7 +70,7 @@ function createRegistry(): CharacterBuilderRegistry {
   }
 }
 
-function createChoiceStartingEquipment(): StartingEquipmentAuthored {
+function createChoiceStartingEquipment(count = 1): StartingEquipmentAuthored {
   return {
     id: 'fighter-start',
     sets: [
@@ -92,7 +92,7 @@ function createChoiceStartingEquipment(): StartingEquipmentAuthored {
                     startingEquipmentKind: 'EQUIPMENT',
                     category: 'WEAPON',
                     selectionKind: 'CHOSEN',
-                    count: 1,
+                    count,
                     authoringModeKind: 'SELECTED',
                     equipmentIds: ['longsword']
                   }
@@ -397,6 +397,37 @@ describe('character builder source-local choice validation', () => {
 
     expect(isStartingEquipmentDecisionComplete(startingEquipment, validDecision, registry)).toBe(true)
     expect(isStartingEquipmentDecisionComplete(startingEquipment, invalidDecision, registry)).toBe(false)
+  })
+
+  it('accepts chosen starting equipment represented as a single row with matching quantity', () => {
+    const registry = createRegistry()
+    registry.equipment = [
+      {
+        id: 'longsword',
+        label: 'Longsword',
+        category: 'WEAPON',
+        properties: ['MARTIAL']
+      } as CharacterBuilderRegistry['equipment'][number]
+    ]
+    const startingEquipment = createChoiceStartingEquipment(2)
+
+    expect(isStartingEquipmentDecisionComplete(startingEquipment, {
+      source: CharacterStartingEquipmentSource.CLASS,
+      tookGold: false,
+      groups: [
+        {
+          groupId: 'fighter-group',
+          optionId: 'fighter-option',
+          selections: [
+            {
+              selectionKey: 'martial-weapon-choice',
+              equipmentId: 'longsword',
+              quantity: 2
+            }
+          ]
+        }
+      ]
+    }, registry)).toBe(true)
   })
 })
 
