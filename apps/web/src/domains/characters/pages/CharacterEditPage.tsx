@@ -22,11 +22,13 @@ import {
 } from '#app/data/characters/mutations'
 import {
   buildCharacterDraftSaveInput,
+  getInactiveAbilityIntentMethodLabels,
   normalizeCharacterForCommit,
   normalizeCharacterForDraft,
   toCharacterFormValues,
   type CharacterFormValues
 } from '../characterBuilder.utils'
+import { CharacterDraftSaveNoticeModal } from '../components/CharacterDraftSaveNoticeModal'
 import { CharacterBuilderRenderer } from '../components/CharacterBuilderRenderer'
 import { CharacterSavePreviewModal } from '../components/CharacterSavePreviewModal'
 
@@ -72,6 +74,9 @@ function CharacterEditAuthoring({
   const navigate = useNavigate()
   const router = useRouter()
   const [payload, setPayload] = useState(initialPayload)
+  const [draftSaveNoticeOpened, setDraftSaveNoticeOpened] = useState(false)
+  const [draftSaveNoticeAcknowledged, setDraftSaveNoticeAcknowledged] = useState(false)
+  const [draftSaveNoticeMethodLabels, setDraftSaveNoticeMethodLabels] = useState<string[]>([])
   const [preview, setPreview] = useState<CharacterBuilderPreviewPayloadDto | null>(null)
   const [previewOpened, setPreviewOpened] = useState(false)
   const discardDraftMutation = useDiscardCharacterDraftMutation(characterId)
@@ -127,9 +132,11 @@ function CharacterEditAuthoring({
     router
   ])
 
-  const handleSaveDraft = useCallback(async () => {
+  const handleSaveDraftConfirmed = useCallback(async () => {
     try {
       await draftMutation.mutateAsync(buildCharacterDraftSaveInput(form.state.values, 'edit'))
+      setDraftSaveNoticeAcknowledged(true)
+      setDraftSaveNoticeOpened(false)
       notifications.show({ color: 'green', message: 'Character draft saved.' })
       await router.invalidate()
     } catch {
@@ -139,6 +146,21 @@ function CharacterEditAuthoring({
     draftMutation,
     form,
     router
+  ])
+
+  const handleSaveDraft = useCallback(async () => {
+    const inactiveAbilityMethodLabels = getInactiveAbilityIntentMethodLabels(form.state.values)
+    if (!draftSaveNoticeAcknowledged && inactiveAbilityMethodLabels.length > 0) {
+      setDraftSaveNoticeMethodLabels(inactiveAbilityMethodLabels)
+      setDraftSaveNoticeOpened(true)
+      return
+    }
+
+    await handleSaveDraftConfirmed()
+  }, [
+    draftSaveNoticeAcknowledged,
+    form,
+    handleSaveDraftConfirmed
   ])
 
   const handleConfirmFinalize = useCallback(async () => {
@@ -215,6 +237,13 @@ function CharacterEditAuthoring({
         preview={preview}
         onClose={() => setPreviewOpened(false)}
         onConfirm={() => void handleConfirmFinalize()}
+      />
+      <CharacterDraftSaveNoticeModal
+        inactiveAbilityMethodLabels={draftSaveNoticeMethodLabels}
+        isSaving={draftMutation.isPending}
+        opened={draftSaveNoticeOpened}
+        onClose={() => setDraftSaveNoticeOpened(false)}
+        onConfirm={() => void handleSaveDraftConfirmed()}
       />
     </form.AppForm>
   )

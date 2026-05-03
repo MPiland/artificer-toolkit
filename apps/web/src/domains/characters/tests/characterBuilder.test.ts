@@ -12,6 +12,7 @@ import {
   clearRaceDependents,
   createFallbackCharacterFormValues,
   createStartingEquipmentDecision,
+  getInactiveAbilityIntentMethodLabels,
   getReadinessMessages,
   normalizeCharacterForCommit,
   normalizeCharacterForDraft,
@@ -130,6 +131,26 @@ describe('character builder utilities', () => {
         ]
       }
     })
+  })
+
+  it('reports inactive ability intent methods for the draft-save notice', () => {
+    const values = toCharacterFormValues(characterBuilderPayloadFixture)
+    values.intent.abilities = {
+      method: CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED,
+      assignments: [],
+      state: {
+        assignments: [{ ability: 'STRENGTH', score: 16 }]
+      }
+    }
+    values.builderIntent = {
+      abilities: cacheActiveAbilityIntent(values.builderIntent?.abilities, values.intent.abilities)
+    }
+    values.intent.abilities = {
+      method: CHARACTER_ABILITY_GENERATION_METHOD.POINT_BUY,
+      assignments: [{ ability: 'STRENGTH', option: '15' }]
+    }
+
+    expect(getInactiveAbilityIntentMethodLabels(values)).toEqual(['Standard Array', 'Manual / Rolled'])
   })
 
   it('reports builder readiness from backend view data', () => {

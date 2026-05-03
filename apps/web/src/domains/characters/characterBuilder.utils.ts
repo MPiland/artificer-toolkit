@@ -81,6 +81,8 @@ export const abilityMethodOptions: SelectOption[] = [
   { value: CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED, label: 'Manual / Rolled' }
 ]
 
+const abilityMethodLabelByValue = new Map(abilityMethodOptions.map((option) => [option.value, option.label]))
+
 export const hitpointMethodOptions: SelectOption[] = [
   { value: HITPOINT_CALCULATION_METHOD_CODE.FIXED, label: 'Fixed' },
   { value: HITPOINT_CALCULATION_METHOD_CODE.MANUAL, label: 'Manual' }
@@ -179,6 +181,15 @@ export function buildCharacterDraftSaveInput(
     builderIntent: normalizeBuilderIntent(character),
     mode
   }
+}
+
+export function getInactiveAbilityIntentMethodLabels(character: CharacterFormValues): string[] {
+  const abilities = normalizeBuilderIntent(character).abilities
+  if (!abilities) return []
+
+  return Object.keys(abilities.methods)
+    .filter((method) => method !== abilities.activeMethod)
+    .map((method) => abilityMethodLabelByValue.get(method) ?? method)
 }
 
 function normalizeBuilderIntent(character: CharacterFormValues): CharacterBuilderIntentCacheDto {
