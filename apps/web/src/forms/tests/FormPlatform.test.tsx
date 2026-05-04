@@ -6,6 +6,8 @@ import {
   AuthoringFormLayout,
   AuthoringFormProvider,
   createAuthoringFormRenderer,
+  createDefaultAuthoringArrayItem,
+  createDefaultAuthoringObjectItem,
   getResolvedNodeOptions,
   getResolvedNodeRequired,
   getResolvedNodeVisible,
@@ -14,6 +16,18 @@ import {
   withForm
 } from '#forms'
 import { TestRouterProvider } from '#test/TestRouterProvider'
+
+type TestFormValues = {
+  label: string
+  category: string | undefined
+  features: Record<string, unknown>[]
+}
+
+const testFormDefaults: TestFormValues = {
+  label: '',
+  category: undefined,
+  features: []
+}
 
 const resolvedModel = {
   mapId: 'test-form',
@@ -59,6 +73,17 @@ const resolvedModel = {
               visible: false,
               required: false,
               clearPaths: []
+            },
+            {
+              id: 'features',
+              path: ['features'],
+              label: 'Features',
+              kind: 'GROUP',
+              groupKind: 'ARRAY',
+              childMapId: 'feature',
+              visible: true,
+              required: false,
+              clearPaths: []
             }
           ]
         }
@@ -68,28 +93,16 @@ const resolvedModel = {
 } satisfies NodeRuntimeResolveResponseDto
 
 const TestAuthoringRenderer = createAuthoringFormRenderer({
-  defaultValues: {
-    label: '',
-    category: undefined as string | undefined
-  },
-  groupDefaultValues: {},
-  createArrayItem: (_node, currentLength) => ({
-    id: crypto.randomUUID(),
-    order: currentLength + 1
-  }),
-  createObjectItem: () => ({})
+  defaultValues: testFormDefaults
 })
 
 function TestForm({
   onSubmit = vi.fn()
 }: {
-  onSubmit?: (value: { label: string, category?: string }) => void
+  onSubmit?: (value: TestFormValues) => void
 }) {
   const form = useAppForm({
-    defaultValues: {
-      label: '',
-      category: undefined as string | undefined
-    },
+    defaultValues: testFormDefaults,
     onSubmit: async ({ value }) => onSubmit(value)
   })
 
@@ -103,10 +116,7 @@ function TestForm({
 }
 
 const TestFormContent = withForm({
-  defaultValues: {
-    label: '',
-    category: undefined as string | undefined
-  },
+  defaultValues: testFormDefaults,
   render: function TestFormContent({ form }) {
     useAuthoringFormRegistration({
       activateLabel: 'Submit',
@@ -158,5 +168,29 @@ describe('authoring form platform', () => {
     expect(getResolvedNodeRequired(resolvedModel, 'label')).toBe(true)
     expect(getResolvedNodeVisible(resolvedModel, 'hiddenText')).toBe(false)
     expect(getResolvedNodeOptions(resolvedModel, 'category', [])).toEqual([{ value: 'spell', label: 'Spell' }])
+  })
+
+  it('creates nested defaults from child map ids', () => {
+    const featureNode = resolvedModel.steps[0].sections[0].nodes.find((node) => node.id === 'features')
+
+    expect(featureNode).toBeDefined()
+    expect(createDefaultAuthoringArrayItem(featureNode!, 0)).toEqual(expect.objectContaining({
+      label: '',
+      order: 1
+    }))
+    expect(createDefaultAuthoringObjectItem({
+      id: 'cost',
+      path: ['cost'],
+      label: 'Cost',
+      kind: 'GROUP',
+      groupKind: 'OBJECT',
+      childMapId: 'cost',
+      visible: true,
+      required: false,
+      clearPaths: []
+    })).toEqual({
+      amount: 0,
+      currencyId: ''
+    })
   })
 })

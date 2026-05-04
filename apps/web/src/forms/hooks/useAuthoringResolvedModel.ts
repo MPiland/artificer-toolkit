@@ -4,23 +4,30 @@ import { createStaticResolvedFormModel } from '../node-map/staticResolvedModel'
 import { useResolvedNodeModel } from './useResolvedNodeModel'
 
 export function useAuthoringResolvedModel({
+  ancestors,
   debounceMs = 150,
   mapId,
   model,
+  parentValues,
   resolveModel = true,
   systemId,
   values
 }: {
+  ancestors?: readonly Record<string, unknown>[]
   debounceMs?: number
   mapId: string
   model?: NodeRuntimeResolveResponseDto
+  parentValues?: Record<string, unknown>
   resolveModel?: boolean
   systemId?: string
   values: Record<string, unknown>
 }) {
+  const resolvedAncestors = useMemo(() => ancestors ? [...ancestors] : undefined, [ancestors])
   const resolvedModel = useResolvedNodeModel({
     mapId,
     values,
+    parentValues,
+    ancestors: resolvedAncestors,
     systemId,
     enabled: resolveModel && !model,
     debounceMs

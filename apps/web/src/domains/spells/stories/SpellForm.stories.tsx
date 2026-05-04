@@ -2,8 +2,7 @@ import type {
   Meta,
   StoryObj } from '@storybook/react-vite'
 import type { SpellResponseDto } from '@artificer-toolkit/schema/api/content'
-import { createDefaultEffect } from '#components/editors'
-import { authoringFormStoryCanvas } from '#forms'
+import { authoringFormStoryCanvas, createDefaultEffect } from '#forms'
 import { SpellForm } from '../components/SpellForm'
 import { spellFixture, spellReferenceFixture } from '../spellAuthoring.fixtures'
 

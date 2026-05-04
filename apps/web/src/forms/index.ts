@@ -64,8 +64,31 @@ export {
   useAuthoringResolvedModel
 } from './hooks/useAuthoringResolvedModel'
 export {
+  addStartingEquipmentItem,
   createAuthoringFormRenderer,
-  type CreateAuthoringFormRendererOptions
+  createDefaultAuthoringArrayItem,
+  createDefaultAuthoringNodeValue,
+  createDefaultAuthoringObjectItem,
+  createDefaultEffect,
+  createDefaultPath,
+  createEmptyStartingEquipment,
+  createEmptyStartingEquipmentItem,
+  createOutcome,
+  createPathForSelection,
+  createRange,
+  formatEffectSummary,
+  formatStartingEquipmentDescription,
+  formatStartingEquipmentTitle,
+  getPathOutcomes,
+  getStartingEquipmentItems,
+  removeStartingEquipmentItem,
+  replaceStartingEquipmentItem,
+  upsertStartingEquipmentItem,
+  type AuthoringGroupValues,
+  type CreateAuthoringFormRendererOptions,
+  type EffectEditorReferenceData,
+  type OutcomeDraft,
+  type StartingEquipmentItemDto
 } from './rendering'
 export {
   useResolvedNodeModel

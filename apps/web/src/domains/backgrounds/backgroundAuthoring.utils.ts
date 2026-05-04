@@ -2,7 +2,7 @@ import type { BackgroundAuthoredDto } from '@artificer-toolkit/schema/subjects/b
 import type { DetailDto } from '@artificer-toolkit/schema/shared'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import type { ProficiencyGrantDto } from '@artificer-toolkit/schema/grants'
-import { createEmptyStartingEquipment } from '#components/editors'
+import { createEmptyStartingEquipment } from '#forms'
 
 export {
   addStartingEquipmentItem,
@@ -13,7 +13,7 @@ export {
   replaceStartingEquipmentItem,
   upsertStartingEquipmentItem,
   type StartingEquipmentItemDto
-} from '#components/editors'
+} from '#forms'
 
 export type BackgroundFormStep = 'basics' | 'content' | 'details'
 
