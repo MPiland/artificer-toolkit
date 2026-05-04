@@ -168,10 +168,22 @@ function formatMulticlassRequirement(classRecord: Extract<ClassAuthored, { categ
 function getClassDisabledReason(
   classRecord: ClassAuthored,
   character: CharacterAuthored,
-  resolution: CharacterBuilderResolution
+  resolution: CharacterBuilderResolution,
+  params: {
+    replacementIndex?: number
+  } = {}
 ): string | undefined {
-  if (character.intent.classes.some((row) => row.classId === classRecord.id)) {
+  const selectedClassIndex = character.intent.classes.findIndex((row) => row.classId === classRecord.id)
+  if (selectedClassIndex >= 0 && selectedClassIndex !== params.replacementIndex) {
     return 'Already selected.'
+  }
+
+  if (selectedClassIndex === params.replacementIndex) {
+    return undefined
+  }
+
+  if (params.replacementIndex === 0) {
+    return undefined
   }
 
   if (!isBaseClass(classRecord) || character.intent.classes.length === 0) {
@@ -386,7 +398,7 @@ function toCharacterBuilderView(
         label: classRecord.label,
         disabledReason: getClassDisabledReason(classRecord, character, resolution)
       })),
-      selectedClasses: character.intent.classes.map((classRecord) => {
+      selectedClasses: character.intent.classes.map((classRecord, index) => {
         const summary = resolution.summary.classes.find((candidate) => candidate.classId === classRecord.classId)
         const selectedClass = resolution.registry.classes.find((candidate) => candidate.id === classRecord.classId)
         const selectedSubclass = classRecord.subclassId
@@ -417,6 +429,13 @@ function toCharacterBuilderView(
           classId: classRecord.classId,
           classLabel: summary?.classLabel ?? selectedClass?.label ?? classRecord.classId,
           classLevel: classRecord.classLevel,
+          classOptions: baseClasses.map((baseClass) => toChoiceOption({
+            id: baseClass.id,
+            label: baseClass.label,
+            disabledReason: getClassDisabledReason(baseClass, character, resolution, {
+              replacementIndex: index
+            })
+          })),
           subclassOptions: resolution.registry.classes
             .filter((candidate) => candidate.category === CLASS_CATEGORY.SUBCLASS && candidate.parentClassId === classRecord.classId)
             .map((subclass) => toChoiceOption({ id: subclass.id, label: subclass.label })),

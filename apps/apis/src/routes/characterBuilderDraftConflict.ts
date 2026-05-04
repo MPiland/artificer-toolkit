@@ -7,14 +7,15 @@ export class CharacterBuilderDraftConflictError extends Error {
 
 type RevisionTimestamp = Date | string | null | undefined
 
-function toEpochMs(value: RevisionTimestamp): number | null {
+function toComparableRevision(value: RevisionTimestamp): string | null {
   if (value == null) return null
 
-  const epochMs = value instanceof Date
-    ? value.getTime()
-    : new Date(value).getTime()
+  if (value instanceof Date) {
+    return value.toISOString()
+  }
 
-  return Number.isFinite(epochMs) ? epochMs : null
+  const normalized = value.trim()
+  return normalized.length > 0 ? normalized : null
 }
 
 export function assertCharacterBuilderDraftRevisionFresh(params: {
@@ -23,11 +24,11 @@ export function assertCharacterBuilderDraftRevisionFresh(params: {
   draftBaseActiveUpdatedAt: RevisionTimestamp
   hasDraft: boolean
 }): void {
-  const activeUpdatedAtMs = toEpochMs(params.activeUpdatedAt)
-  if (activeUpdatedAtMs == null) return
+  const activeUpdatedAt = toComparableRevision(params.activeUpdatedAt)
+  if (activeUpdatedAt == null) return
 
-  const draftBaseActiveUpdatedAtMs = toEpochMs(params.draftBaseActiveUpdatedAt)
-  if (!params.hasDraft || draftBaseActiveUpdatedAtMs == null || draftBaseActiveUpdatedAtMs !== activeUpdatedAtMs) {
+  const draftBaseActiveUpdatedAt = toComparableRevision(params.draftBaseActiveUpdatedAt)
+  if (!params.hasDraft || draftBaseActiveUpdatedAt == null || draftBaseActiveUpdatedAt !== activeUpdatedAt) {
     throw new CharacterBuilderDraftConflictError(params.characterId)
   }
 }

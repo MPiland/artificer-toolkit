@@ -1,15 +1,15 @@
 import { sql } from 'kysely'
 import type { DBLike, Json } from '#types'
 
-export type AuthoredSubjectDraftKind =
-  | 'BACKGROUND'
-  | 'CLASS'
-  | 'CREATURE'
-  | 'EQUIPMENT'
-  | 'FEAT'
-  | 'RACE'
-  | 'SPELL'
-  | 'VEHICLE'
+export type AuthoredSubjectDraftKind
+  = | 'BACKGROUND'
+    | 'CLASS'
+    | 'CREATURE'
+    | 'EQUIPMENT'
+    | 'FEAT'
+    | 'RACE'
+    | 'SPELL'
+    | 'VEHICLE'
 
 export type AuthoredSubjectDraftState = 'DRAFT_ONLY' | 'ACTIVE_WITH_DRAFT'
 
@@ -168,9 +168,9 @@ export function createAuthoredSubjectDraftRepository(db: DBLike) {
           label,
           status,
           payload,
-          base_active_updated_at,
-          created_at,
-          updated_at,
+          base_active_updated_at::text as base_active_updated_at,
+          created_at::text as created_at,
+          updated_at::text as updated_at,
           ${activeExistsProjection()} as active_exists
         from authored_subject_drafts
         where subject_kind = ${params.subjectKind}
@@ -199,9 +199,9 @@ export function createAuthoredSubjectDraftRepository(db: DBLike) {
             label,
             status,
             payload,
-            base_active_updated_at,
-            created_at,
-            updated_at,
+            base_active_updated_at::text as base_active_updated_at,
+            created_at::text as created_at,
+            updated_at::text as updated_at,
             ${activeExistsProjection()} as active_exists
           from authored_subject_drafts
           where user_id = ${params.userId}
@@ -217,9 +217,9 @@ export function createAuthoredSubjectDraftRepository(db: DBLike) {
             label,
             status,
             payload,
-            base_active_updated_at,
-            created_at,
-            updated_at,
+            base_active_updated_at::text as base_active_updated_at,
+            created_at::text as created_at,
+            updated_at::text as updated_at,
             ${activeExistsProjection()} as active_exists
           from authored_subject_drafts
           where user_id = ${params.userId}
@@ -267,19 +267,16 @@ export function createAuthoredSubjectDraftRepository(db: DBLike) {
           label,
           status,
           payload,
-          base_active_updated_at,
-          created_at,
-          updated_at
+          base_active_updated_at::text as base_active_updated_at,
+          created_at::text as created_at,
+          updated_at::text as updated_at
       `.execute(db)
       const row = result.rows[0]
       if (!row) {
         throw new Error(`Failed to save ${input.subjectKind} draft "${input.subjectId}".`)
       }
 
-      return mapDraft(
-        row,
-        await activeSubjectExists(db, input.subjectKind, input.subjectId)
-      )
+      return mapDraft(row, await activeSubjectExists(db, input.subjectKind, input.subjectId))
     },
 
     async delete(params: {

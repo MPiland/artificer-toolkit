@@ -26,7 +26,7 @@ export const CharacterClassesStep = withForm({
   props: {} as CharacterBuilderStepProps,
   render: function RenderCharacterClasses({ form, payload, readOnly }) {
     const [classToAdd, setClassToAdd] = useState<string | null>(null)
-    const classOptions = choiceOptions(payload.view.classes.classOptions)
+    const addClassOptions = choiceOptions(payload.view.classes.classOptions)
 
     return (
       <section className={styles.section} aria-labelledby='character-classes-title'>
@@ -44,7 +44,7 @@ export const CharacterClassesStep = withForm({
                       <Group align='flex-end'>
                         <AppSelect
                           label='Add Class'
-                          data={classOptions}
+                          data={addClassOptions}
                           value={classToAdd}
                           placeholder='Choose a class'
                           onChange={setClassToAdd}
@@ -71,6 +71,7 @@ export const CharacterClassesStep = withForm({
                   : rows.map((row, index) => {
                       const view = payload.view.classes.selectedClasses[index]
                       const rowLabel = view?.classLabel ?? row.classId ?? `Class ${index + 1}`
+                      const rowClassOptions = choiceOptions(view?.classOptions ?? payload.view.classes.classOptions)
 
                       return (
                         <div key={`${row.classId}-${index}`} className={styles.inlinePanel}>
@@ -110,7 +111,7 @@ export const CharacterClassesStep = withForm({
                             <div className={styles.fieldSpan4}>
                               <AppSelect
                                 label='Class'
-                                data={classOptions}
+                                data={rowClassOptions}
                                 value={row.classId}
                                 disabled={readOnly}
                                 onChange={(value) => {

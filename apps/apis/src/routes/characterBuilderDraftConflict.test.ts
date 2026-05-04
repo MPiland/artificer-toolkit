@@ -32,6 +32,15 @@ describe('character builder draft conflict guard', () => {
     })).toThrow(CharacterBuilderDraftConflictError)
   })
 
+  it('rejects finalization when only the sub-millisecond timestamp differs', () => {
+    expect(() => assertCharacterBuilderDraftRevisionFresh({
+      activeUpdatedAt: '2026-05-03T10:15:30.123999Z',
+      characterId: 'character-sub-millisecond-stale',
+      draftBaseActiveUpdatedAt: '2026-05-03T10:15:30.123456Z',
+      hasDraft: true
+    })).toThrow(CharacterBuilderDraftConflictError)
+  })
+
   it('rejects finalization of an active record when no draft revision is available', () => {
     expect(() => assertCharacterBuilderDraftRevisionFresh({
       activeUpdatedAt: '2026-05-03T10:16:30.000Z',

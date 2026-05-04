@@ -115,9 +115,9 @@ export function createCharacterBuilderDraftRepository(db: DBLike) {
           status,
           mode,
           payload,
-          base_active_updated_at,
-          created_at,
-          updated_at,
+          base_active_updated_at::text as base_active_updated_at,
+          created_at::text as created_at,
+          updated_at::text as updated_at,
           ${activeExistsProjection()} as active_exists
         from character_builder_drafts
         where character_id = ${params.characterId}
@@ -141,9 +141,9 @@ export function createCharacterBuilderDraftRepository(db: DBLike) {
           status,
           mode,
           payload,
-          base_active_updated_at,
-          created_at,
-          updated_at,
+          base_active_updated_at::text as base_active_updated_at,
+          created_at::text as created_at,
+          updated_at::text as updated_at,
           ${activeExistsProjection()} as active_exists
         from character_builder_drafts
         where user_id = ${userId}
@@ -191,9 +191,9 @@ export function createCharacterBuilderDraftRepository(db: DBLike) {
           status,
           mode,
           payload,
-          base_active_updated_at,
-          created_at,
-          updated_at
+          base_active_updated_at::text as base_active_updated_at,
+          created_at::text as created_at,
+          updated_at::text as updated_at
       `.execute(db)
       const row = result.rows[0]
       if (!row) {

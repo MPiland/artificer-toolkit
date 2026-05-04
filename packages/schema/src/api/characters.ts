@@ -282,6 +282,7 @@ export const characterBuilderClassViewItemDtoSchema = z.object({
   classId: z.string(),
   classLabel: z.string(),
   classLevel: z.number().int(),
+  classOptions: z.array(characterBuilderChoiceOptionDtoSchema).optional(),
   subclassOptions: z.array(characterBuilderChoiceOptionDtoSchema),
   specializationOptions: z.array(characterBuilderChoiceOptionDtoSchema),
   featureLabels: z.array(z.string()),

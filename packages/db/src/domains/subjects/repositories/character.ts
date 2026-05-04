@@ -1,4 +1,5 @@
 import type { DBLike, Json } from '#types'
+import { sql } from 'kysely'
 import {
   ADVANCEMENT_METHOD_CODE,
   CHARACTER_ABILITY_GENERATION_METHOD,
@@ -671,6 +672,7 @@ export function createCharacterRepository(db: DBLike): CharacterRepository {
       const row = await db
         .selectFrom('characters')
         .selectAll()
+        .select(sql<string>`updated_at::text`.as('updated_at'))
         .where('id', '=', id)
         .executeTakeFirst() as CharacterRow | undefined
 
