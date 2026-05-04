@@ -235,8 +235,10 @@ export const characterBuilderReferencesDtoSchema = z.object({
 })
 
 export const characterBuilderChoiceOptionDtoSchema = characterBuilderReferenceOptionDtoSchema.extend({
+  category: z.string().optional(),
   disabled: z.boolean().optional(),
-  disabledReason: z.string().optional()
+  disabledReason: z.string().optional(),
+  properties: z.array(z.string()).optional()
 })
 
 export const characterBuilderFeatureChoiceViewDtoSchema = z.object({

@@ -247,8 +247,18 @@ export const characterBuilderPayloadFixture = {
       classStartingEquipment: null,
       backgroundStartingEquipment: null,
       equipmentOptions: [
-        { id: 'equipment-staff', label: 'Quarterstaff' },
-        { id: 'equipment-pack', label: 'Scholar Pack' }
+        {
+          id: 'equipment-staff',
+          label: 'Quarterstaff',
+          category: 'WEAPON',
+          properties: ['SIMPLE']
+        },
+        {
+          id: 'equipment-pack',
+          label: 'Scholar Pack',
+          category: 'ADVENTURING_GEAR',
+          properties: []
+        }
       ],
       currencyOptions: [
         { id: 'gp', label: 'Gold' },

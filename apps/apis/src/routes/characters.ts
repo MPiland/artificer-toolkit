@@ -137,13 +137,17 @@ function toCharacterBuilderPayload(
 function toChoiceOption(params: {
   id: string
   label: string
+  category?: string
   disabledReason?: string
+  properties?: readonly string[]
 }): CharacterBuilderChoiceOptionDto {
   return {
     id: params.id,
     label: params.label,
+    category: params.category,
     disabled: params.disabledReason ? true : undefined,
-    disabledReason: params.disabledReason
+    disabledReason: params.disabledReason,
+    properties: params.properties ? [...params.properties] : undefined
   }
 }
 
@@ -458,7 +462,12 @@ function toCharacterBuilderView(
             startingEquipment: selectedBackground.startingEquipment
           }
         : null,
-      equipmentOptions: resolution.registry.equipment.map((equipment) => toChoiceOption({ id: equipment.id, label: equipment.label })),
+      equipmentOptions: resolution.registry.equipment.map((equipment) => toChoiceOption({
+        id: equipment.id,
+        label: equipment.label,
+        category: equipment.category,
+        properties: equipment.properties
+      })),
       currencyOptions: resolution.registry.system?.currencies.map((currency) => toChoiceOption({ id: currency.id, label: currency.label })) ?? []
     },
     review: {

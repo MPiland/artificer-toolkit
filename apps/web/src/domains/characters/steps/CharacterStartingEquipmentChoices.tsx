@@ -1,24 +1,25 @@
 import { Stack, Text } from '@mantine/core'
-import { AppMultiSelect, AppSelect } from '#ui/primitives/Select'
+import { AppSelect } from '#ui/primitives/Select'
 import {
   type CharacterStartingEquipmentDecision,
   createStartingEquipmentDecision
 } from '../characterBuilder.utils'
 import * as styles from '../characterBuilder.css'
+import {
+  type ChosenStartingEquipmentItem,
+  type StartingEquipmentGroup,
+  formatStartingEquipmentOption,
+  getStartingEquipmentItemOptions,
+  getStartingEquipmentSelections,
+  isChosenStartingEquipmentItem,
+  isStartingEquipmentDecision,
+  setStartingEquipmentGroupOption,
+  setStartingEquipmentSelections
+} from './CharacterStartingEquipmentChoices.utils'
 import type {
   CharacterBuilderChoiceOptionDto,
   CharacterBuilderStartingEquipmentViewDto
 } from '@artificer-toolkit/schema/api/characters'
-import type { StartingEquipmentDto } from '@artificer-toolkit/schema/shared'
-
-type StartingEquipmentGroup = StartingEquipmentDto['sets'][number]['groups'][number]
-type StartingEquipmentOption = StartingEquipmentGroup['options'][number]
-type StartingEquipmentItem = StartingEquipmentOption['items'][number]
-type ChosenStartingEquipmentItem = StartingEquipmentItem & {
-  startingEquipmentKind: 'EQUIPMENT'
-  selectionKind: 'CHOSEN'
-  count: number
-}
 
 export function CharacterStartingEquipmentChoices({
   currencyOptions,
@@ -114,150 +115,28 @@ function StartingEquipmentChosenItemField({
           disabled={readOnly}
           onChange={(equipmentId) => {
             if (!equipmentId || readOnly) return
-            onChange(setStartingEquipmentSelections(decision, group.id, item.id, [equipmentId], 1))
+            onChange(setStartingEquipmentSelections(decision, group.id, item.id, [equipmentId]))
           }}
         />
       )
     : (
-        <AppMultiSelect
-          label={label}
-          data={options}
-          value={selectedEquipmentIds}
-          required
-          disabled={readOnly}
-          maxValues={item.count}
-          onChange={(equipmentIds) => {
-            if (readOnly) return
-            onChange(setStartingEquipmentSelections(decision, group.id, item.id, equipmentIds, 1))
-          }}
-        />
+        <Stack gap='xs'>
+          {Array.from({ length: item.count }, (_, index) => (
+            <AppSelect
+              key={`${item.id}:${index}`}
+              label={`${label} ${index + 1} of ${item.count}`}
+              data={options}
+              value={selectedEquipmentIds[index]}
+              required
+              disabled={readOnly}
+              onChange={(equipmentId) => {
+                if (!equipmentId || readOnly) return
+                const nextEquipmentIds = Array.from({ length: item.count }, (__, equipmentIndex) => selectedEquipmentIds[equipmentIndex] ?? '')
+                nextEquipmentIds[index] = equipmentId
+                onChange(setStartingEquipmentSelections(decision, group.id, item.id, nextEquipmentIds))
+              }}
+            />
+          ))}
+        </Stack>
       )
-}
-
-function setStartingEquipmentGroupOption(
-  decision: CharacterStartingEquipmentDecision,
-  groupId: string,
-  optionId: string
-): CharacterStartingEquipmentDecision {
-  const groups = decision.groups ?? []
-  const hasGroup = groups.some((group) => group.groupId === groupId)
-  const nextGroup = {
-    groupId,
-    optionId,
-    selections: []
-  }
-
-  return {
-    ...decision,
-    groups: hasGroup
-      ? groups.map((group) => group.groupId === groupId ? nextGroup : group)
-      : [...groups, nextGroup]
-  }
-}
-
-function setStartingEquipmentSelections(
-  decision: CharacterStartingEquipmentDecision,
-  groupId: string,
-  selectionKey: string,
-  equipmentIds: string[],
-  quantity: number
-): CharacterStartingEquipmentDecision {
-  const groups = decision.groups ?? []
-
-  return {
-    ...decision,
-    groups: groups.map((group) => {
-      if (group.groupId !== groupId) return group
-
-      const selections = [
-        ...(group.selections ?? []).filter((selection) => selection.selectionKey !== selectionKey),
-        ...equipmentIds.map((equipmentId) => ({
-          selectionKey,
-          equipmentId,
-          quantity
-        }))
-      ]
-
-      return {
-        ...group,
-        selections
-      }
-    })
-  }
-}
-
-function getStartingEquipmentSelections(
-  decision: CharacterStartingEquipmentDecision,
-  groupId: string,
-  selectionKey: string
-): string[] {
-  return decision.groups
-    ?.find((group) => group.groupId === groupId)
-    ?.selections
-    ?.filter((selection) => selection.selectionKey === selectionKey)
-    .map((selection) => selection.equipmentId) ?? []
-}
-
-function getStartingEquipmentItemOptions(
-  item: ChosenStartingEquipmentItem,
-  equipmentOptions: CharacterBuilderChoiceOptionDto[]
-) {
-  const allowedIds = 'equipmentIds' in item ? new Set(item.equipmentIds) : null
-
-  return equipmentOptions
-    .filter((option) => !allowedIds || allowedIds.has(option.id))
-    .map((option) => ({
-      value: option.id,
-      label: option.label,
-      disabled: option.disabled
-    }))
-}
-
-function formatStartingEquipmentOption(
-  option: StartingEquipmentOption,
-  equipmentOptions: CharacterBuilderChoiceOptionDto[],
-  currencyOptions: CharacterBuilderChoiceOptionDto[]
-): string {
-  return option.items
-    .map((item) => formatStartingEquipmentItem(item, equipmentOptions, currencyOptions))
-    .join(' + ') || `Option ${option.order}`
-}
-
-function formatStartingEquipmentItem(
-  item: StartingEquipmentItem,
-  equipmentOptions: CharacterBuilderChoiceOptionDto[],
-  currencyOptions: CharacterBuilderChoiceOptionDto[]
-): string {
-  if (item.startingEquipmentKind === 'CURRENCY') {
-    return item.currencies
-      .map((currency) => `${currency.amount} ${findOptionLabel(currencyOptions, currency.currencyId)}`)
-      .join(', ')
-  }
-
-  const amount = item.selectionKind === 'CHOSEN' ? `choose ${item.count}` : `${item.quantity}`
-  const target = 'equipmentIds' in item
-    ? item.equipmentIds.map((equipmentId) => findOptionLabel(equipmentOptions, equipmentId)).join(' or ')
-    : 'matching equipment'
-
-  return `${amount} ${target}`
-}
-
-function findOptionLabel(options: CharacterBuilderChoiceOptionDto[], id: string): string {
-  return options.find((option) => option.id === id)?.label ?? id
-}
-
-function isStartingEquipmentDecision(value: unknown): value is CharacterStartingEquipmentDecision {
-  return Boolean(
-    value
-    && typeof value === 'object'
-    && 'source' in value
-    && 'tookGold' in value
-  )
-}
-
-function isChosenStartingEquipmentItem(item: StartingEquipmentItem): item is ChosenStartingEquipmentItem {
-  return item.startingEquipmentKind === 'EQUIPMENT'
-    && 'selectionKind' in item
-    && item.selectionKind === 'CHOSEN'
-    && 'count' in item
 }
