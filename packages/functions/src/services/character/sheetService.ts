@@ -10,9 +10,11 @@ import {
   type CharacterEvent
 } from '@artificer-toolkit/shared/core'
 import {
+  compileClass,
   compileCharge,
   resolveCompiledChargeMaximum
 } from '@artificer-toolkit/shared/compilers'
+import { resolveSpellSlots } from '@artificer-toolkit/shared/engine/resolution'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type {
   CharacterHistoryEntryDto,
@@ -88,32 +90,69 @@ function getSpellSlotMaximums(
   character: CharacterAuthored,
   resolution: CharacterBuilderResolution
 ) {
-  const slots = new Map<string, { level: number | null, max: number }>()
-
-  for (const classIntent of character.intent.classes) {
-    const classRecord = resolution.registry.classes.find((record) => record.id === classIntent.classId)
-    const activeLimit = classRecord?.spellcasting?.spellLimits
-      .filter((limit) => limit.classLevel <= classIntent.classLevel)
-      .sort((left, right) => right.classLevel - left.classLevel)[0]
-
-    for (const slot of activeLimit?.slots ?? []) {
-      const slotKey = getSpellSlotKey(slot.spellLevel)
-      const current = slots.get(slotKey) ?? { level: slot.spellLevel, max: 0 }
-      slots.set(slotKey, {
-        level: slot.spellLevel,
-        max: current.max + slot.slotCount
-      })
-    }
+  const classes = Object.fromEntries(
+    resolution.registry.classes.map((record) => [record.id, compileClass(record)])
+  ) satisfies Parameters<typeof resolveSpellSlots>[1]['classes']
+  const abilities: Record<string, number> = {}
+  for (const [ability, score] of Object.entries(resolution.summary.abilities)) {
+    if (typeof score === 'number') abilities[ability] = score
   }
+  const snapshot = {
+    characterId: character.id,
+    systemId: character.systemId,
+    totalLevel: resolution.summary.totalLevel,
+    classes: character.intent.classes.flatMap((classIntent) => [
+      {
+        classId: classIntent.classId,
+        level: classIntent.classLevel,
+        subclassId: classIntent.subclassId,
+        specializationId: classIntent.specializationId
+      },
+      ...(classIntent.subclassId
+        ? [
+            {
+              classId: classIntent.subclassId,
+              level: classIntent.classLevel
+            }
+          ]
+        : [])
+    ]),
+    abilities,
+    hitpoints: [],
+    features: [],
+    equippedItems: []
+  } satisfies Parameters<typeof resolveSpellSlots>[0]
+  const slotMaximums = resolveSpellSlots(snapshot, {
+    classes,
+    features: {},
+    feats: {},
+    races: {},
+    equipment: {},
+    spells: {}
+  })
+  const standardSlots = Object.entries(slotMaximums.maxByLevel).map(([level, max]) => {
+    const slotLevel = Number(level)
+    return {
+      slotKey: getSpellSlotKey(slotLevel),
+      label: formatSlotLabel(getSpellSlotKey(slotLevel), slotLevel),
+      level: slotLevel,
+      max
+    }
+  })
+  const pactSlots = slotMaximums.pactMagic && slotMaximums.pactMagic.slots > 0
+    ? [
+        {
+          slotKey: 'PACT',
+          label: formatSlotLabel('PACT', slotMaximums.pactMagic.level),
+          level: slotMaximums.pactMagic.level,
+          max: slotMaximums.pactMagic.slots
+        }
+      ]
+    : []
 
-  return [...slots.entries()]
-    .sort((left, right) => (left[1].level ?? 0) - (right[1].level ?? 0))
-    .map(([slotKey, slot]) => ({
-      slotKey,
-      label: formatSlotLabel(slotKey, slot.level),
-      level: slot.level,
-      max: slot.max
-    }))
+  return [...standardSlots, ...pactSlots]
+    .filter((slot) => slot.max > 0)
+    .sort((left, right) => (left.level ?? 0) - (right.level ?? 0))
 }
 
 function getPreparedAndKnownSpellIds(character: CharacterAuthored): {

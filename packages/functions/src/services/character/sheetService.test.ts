@@ -237,6 +237,59 @@ function createResolution(): CharacterBuilderResolution {
   }
 }
 
+function createSpellcastingClass(params: {
+  id: string
+  label: string
+  resetKind: 'LONG_REST' | 'SHORT_REST'
+  spellLimits: NonNullable<CharacterBuilderResolution['registry']['classes'][number]['spellcasting']>['spellLimits']
+  maxSpellLevel?: number
+}): CharacterBuilderResolution['registry']['classes'][number] {
+  return {
+    id: params.id,
+    label: params.label,
+    category: 'BASE',
+    spellcasting: {
+      spellLimits: params.spellLimits,
+      maxSpellLevel: params.maxSpellLevel ?? 9,
+      charges: {
+        id: `${params.id}-spellcasting-charge`,
+        resetKind: params.resetKind,
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: 'NONE',
+        amount: 1
+      }
+    },
+    startingGold: {
+      multiplier: 1,
+      currencyId: 'gp',
+      dieConfig: '1d4'
+    },
+    startingEquipment: {
+      id: `${params.id}-starting-equipment`,
+      sets: []
+    },
+    hitpoint: {
+      ability: 'CONSTITUTION',
+      dieConfig: '1d8'
+    },
+    multiclass: {
+      id: `${params.id}-multiclass`,
+      requirementGroups: {
+        groups: []
+      }
+    },
+    systemId: 'system-1',
+    userId: 'user-1'
+  }
+}
+
+function createFullCasterSpellLimits() {
+  return [
+    { classLevel: 1, slots: [{ spellLevel: 1, slotCount: 2 }] },
+    { classLevel: 17, slots: [{ spellLevel: 9, slotCount: 1 }] }
+  ]
+}
+
 describe('character sheet command application', () => {
   it('applies damage to temporary hit points before current hit points', () => {
     const next = applyCharacterSheetCommand(createCharacter(), {
@@ -479,6 +532,82 @@ describe('character sheet command application', () => {
         id: 'resource-1',
         max: 4,
         recovery: 'SHORT_REST'
+      })
+    ])
+  })
+
+  it('derives sheet spell slots from fused multiclass spellcasting rules', async () => {
+    const character = createCharacter()
+    character.intent.classes = [
+      { classId: 'wizard', classLevel: 1 },
+      { classId: 'cleric', classLevel: 1 }
+    ]
+    const resolution = createResolution()
+    resolution.summary.totalLevel = 2
+    resolution.registry.classes = [
+      createSpellcastingClass({
+        id: 'wizard',
+        label: 'Wizard',
+        resetKind: 'LONG_REST',
+        spellLimits: createFullCasterSpellLimits()
+      }),
+      createSpellcastingClass({
+        id: 'cleric',
+        label: 'Cleric',
+        resetKind: 'LONG_REST',
+        spellLimits: createFullCasterSpellLimits()
+      })
+    ]
+
+    const sheet = await buildCharacterSheetResponse({
+      character,
+      db: createConditionDb(),
+      hasBuilderDraft: false,
+      resolution,
+      streamVersion: 1
+    })
+
+    expect(sheet.spells.slots).toEqual([
+      expect.objectContaining({
+        slotKey: 'STANDARD:1',
+        max: 3,
+        used: 1,
+        remaining: 2
+      })
+    ])
+  })
+
+  it('derives pact magic as a separate short-rest spell slot pool', async () => {
+    const character = createCharacter()
+    character.intent.classes = [{ classId: 'warlock', classLevel: 1 }]
+    character.state.spellSlots = [{ slotKey: 'PACT', used: 1 }]
+    const resolution = createResolution()
+    resolution.registry.classes = [
+      createSpellcastingClass({
+        id: 'warlock',
+        label: 'Warlock',
+        resetKind: 'SHORT_REST',
+        spellLimits: [{ classLevel: 1, slots: [{ spellLevel: 1, slotCount: 1 }] }],
+        maxSpellLevel: 5
+      })
+    ]
+
+    const sheet = await buildCharacterSheetResponse({
+      character,
+      db: createConditionDb(),
+      hasBuilderDraft: false,
+      resolution,
+      streamVersion: 1
+    })
+
+    expect(sheet.spells.slots).toEqual([
+      expect.objectContaining({
+        slotKey: 'PACT',
+        label: 'Pact Magic',
+        level: 1,
+        max: 1,
+        used: 1,
+        remaining: 0
       })
     ])
   })
