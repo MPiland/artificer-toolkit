@@ -885,13 +885,13 @@ export const createCharacter = handleAuthoringRequest(characterAuthoredDtoSchema
 
 export const getCharacter = handleRequest(async (db, characterId: string): Promise<CharacterBuilderPayloadDto | null> => {
   const repository = createCharacterRepository(db)
-  const [character, activeRow] = await Promise.all([
+  const [character, activeUpdatedAt] = await Promise.all([
     repository.findAuthoredById(characterId),
-    repository.findById(characterId)
+    repository.findUpdatedAtById(characterId)
   ])
   if (!character) return null
 
-  return toCharacterBuilderPayload(character, await resolveCharacterBuilder(db, character, 'edit'), undefined, activeRow?.updated_at ?? null)
+  return toCharacterBuilderPayload(character, await resolveCharacterBuilder(db, character, 'edit'), undefined, activeUpdatedAt)
 }, (req: Request) => [extractId(req)] as [string])
 
 export const getCharacterSheet = handleRequest(async (db, characterId: string): Promise<CharacterSheetResponseDto | null> => {
@@ -942,13 +942,12 @@ export const upsertCharacterBuilder = handleAuthoringRequest(characterBuilderCom
     throw createNamedError('NodeRuntimeInputError', 'Character cannot be finalized until all required builder choices are complete.')
   }
 
-  const [activeUpdatedAt, draft] = await Promise.all([
-    repository.findUpdatedAtById(payload.character.id),
-    draftRepository.findByCharacter({
-      characterId: payload.character.id,
-      userId
-    })
-  ])
+  // Hold the active row lock through upsertAuthored so the revision check and write are atomic.
+  const activeUpdatedAt = await repository.findUpdatedAtByIdForUpdate(payload.character.id)
+  const draft = await draftRepository.findByCharacter({
+    characterId: payload.character.id,
+    userId
+  })
   const baseActiveUpdatedAt = draft?.baseActiveUpdatedAt ?? body.baseActiveUpdatedAt ?? null
   assertCharacterBuilderDraftRevisionFresh({
     activeUpdatedAt,
