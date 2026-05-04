@@ -134,6 +134,16 @@ describe('character builder utilities', () => {
     })
   })
 
+  it('includes the active base revision when saving edit drafts', () => {
+    const values = toCharacterFormValues(characterBuilderPayloadFixture)
+
+    const draftInput = buildCharacterDraftSaveInput(values, 'edit', {
+      baseActiveUpdatedAt: '2026-05-03T10:15:30.000Z'
+    })
+
+    expect(draftInput.baseActiveUpdatedAt).toBe('2026-05-03T10:15:30.000Z')
+  })
+
   it('reports inactive ability intent methods for the draft-save notice', () => {
     const values = toCharacterFormValues(characterBuilderPayloadFixture)
     values.intent.abilities = {

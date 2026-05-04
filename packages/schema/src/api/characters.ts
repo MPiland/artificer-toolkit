@@ -336,7 +336,9 @@ export const characterBuilderPayloadDtoSchema = z.object({
   resolution: characterBuilderResolutionDtoSchema,
   references: characterBuilderReferencesDtoSchema,
   view: characterBuilderViewDtoSchema,
-  builderIntent: characterBuilderIntentCacheDtoSchema.optional()
+  builderIntent: characterBuilderIntentCacheDtoSchema.optional(),
+  baseActiveUpdatedAt: z.string().nullable()
+    .optional()
 })
 
 export const characterBuilderDraftPayloadDtoSchema = z.object({

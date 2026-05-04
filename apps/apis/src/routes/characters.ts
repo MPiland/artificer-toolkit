@@ -124,14 +124,16 @@ function stripCharacterBuilderResolution(
 function toCharacterBuilderPayload(
   character: CharacterAuthored,
   resolution: CharacterBuilderResolution,
-  builderIntent?: CharacterBuilderIntentCacheDto
+  builderIntent?: CharacterBuilderIntentCacheDto,
+  baseActiveUpdatedAt?: string | null
 ): CharacterBuilderPayloadDto {
   return {
     character,
     resolution: stripCharacterBuilderResolution(resolution),
     references: toCharacterBuilderReferences(resolution),
     view: toCharacterBuilderView(character, resolution),
-    builderIntent
+    builderIntent,
+    baseActiveUpdatedAt
   }
 }
 
@@ -863,10 +865,14 @@ export const createCharacter = handleAuthoringRequest(characterAuthoredDtoSchema
 })
 
 export const getCharacter = handleRequest(async (db, characterId: string): Promise<CharacterBuilderPayloadDto | null> => {
-  const character = await createCharacterRepository(db).findAuthoredById(characterId)
+  const repository = createCharacterRepository(db)
+  const [character, activeRow] = await Promise.all([
+    repository.findAuthoredById(characterId),
+    repository.findById(characterId)
+  ])
   if (!character) return null
 
-  return toCharacterBuilderPayload(character, await resolveCharacterBuilder(db, character, 'edit'))
+  return toCharacterBuilderPayload(character, await resolveCharacterBuilder(db, character, 'edit'), undefined, activeRow?.updated_at ?? null)
 }, (req: Request) => [extractId(req)] as [string])
 
 export const getCharacterSheet = handleRequest(async (db, characterId: string): Promise<CharacterSheetResponseDto | null> => {

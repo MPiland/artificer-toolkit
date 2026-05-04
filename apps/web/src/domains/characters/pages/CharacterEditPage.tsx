@@ -44,10 +44,14 @@ export function CharacterEditPage() {
   if (!initialPayload) return <CharacterNotFoundState />
 
   const formKey = `character:${characterId}:${draft?.updatedAt ?? initialPayload.character.id}`
+  const baseActiveUpdatedAt = draftPayload
+    ? draft?.baseActiveUpdatedAt ?? response?.baseActiveUpdatedAt ?? null
+    : response?.baseActiveUpdatedAt ?? null
 
   return (
     <AuthoringFormProvider>
       <CharacterEditAuthoring
+        baseActiveUpdatedAt={baseActiveUpdatedAt}
         key={formKey}
         characterId={characterId}
         hasActiveDraft={Boolean(response && draftPayload)}
@@ -59,11 +63,13 @@ export function CharacterEditPage() {
 }
 
 function CharacterEditAuthoring({
+  baseActiveUpdatedAt,
   characterId,
   hasActiveDraft,
   hasInvalidDraft,
   initialPayload
 }: {
+  baseActiveUpdatedAt: string | null
   characterId: string
   hasActiveDraft: boolean
   hasInvalidDraft: boolean
@@ -124,7 +130,9 @@ function CharacterEditAuthoring({
 
   const handleSaveDraftConfirmed = useCallback(async () => {
     try {
-      await draftMutation.mutateAsync(buildCharacterDraftSaveInput(form.state.values, 'edit'))
+      await draftMutation.mutateAsync(buildCharacterDraftSaveInput(form.state.values, 'edit', {
+        baseActiveUpdatedAt
+      }))
       setDraftSaveNoticeAcknowledged(true)
       setDraftSaveNoticeOpened(false)
       notifications.show({ color: 'green', message: 'Character draft saved.' })
@@ -133,6 +141,7 @@ function CharacterEditAuthoring({
       notifications.show({ color: 'red', message: 'Could not save that character draft yet.' })
     }
   }, [
+    baseActiveUpdatedAt,
     draftMutation,
     form,
     router
@@ -155,6 +164,9 @@ function CharacterEditAuthoring({
 
   const handleConfirmFinalize = useCallback(async () => {
     try {
+      await draftMutation.mutateAsync(buildCharacterDraftSaveInput(form.state.values, 'edit', {
+        baseActiveUpdatedAt
+      }))
       const response = await commitMutation.mutateAsync({
         character: normalizeCharacterForCommit(form.state.values),
         mode: 'edit',
@@ -167,7 +179,9 @@ function CharacterEditAuthoring({
       notifications.show({ color: 'red', message: 'Could not finalize that character yet.' })
     }
   }, [
+    baseActiveUpdatedAt,
     commitMutation,
+    draftMutation,
     form,
     navigate,
     router

@@ -174,12 +174,18 @@ export function normalizeCharacterForCommit(character: CharacterFormValues): Cha
 
 export function buildCharacterDraftSaveInput(
   character: CharacterFormValues,
-  mode: CharacterBuilderDraftSaveRequestDto['mode']
+  mode: CharacterBuilderDraftSaveRequestDto['mode'],
+  options: {
+    baseActiveUpdatedAt?: string | null
+  } = {}
 ): CharacterBuilderDraftSaveRequestDto {
   return {
     character: normalizeCharacterForDraft(character),
     builderIntent: normalizeBuilderIntent(character),
-    mode
+    mode,
+    baseActiveUpdatedAt: mode === 'edit'
+      ? options.baseActiveUpdatedAt ?? null
+      : null
   }
 }
 
