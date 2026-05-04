@@ -4,10 +4,7 @@ import { createDb, withUserContext } from '@artificer-toolkit/db'
 import { createSupabaseClient } from '../clients/supabaseClient.js'
 
 function validationErrorResponse(issues: unknown): Response {
-  return new Response(
-    JSON.stringify({ error: 'Validation failed', issues }),
-    { status: 422, headers: { 'Content-Type': 'application/json' } }
-  )
+  return new Response(JSON.stringify({ error: 'Validation failed', issues }), { status: 422, headers: { 'Content-Type': 'application/json' } })
 }
 
 type AuthoringHandler<TBody, TResult> = (
@@ -81,7 +78,7 @@ export function handleAuthoringRequest<TBody, TResult>(
         const result = await withUserContext(db, userId, (ctx) => handler(ctx, body, userId, req))
         return new Response(JSON.stringify(result), {
           status: 200,
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json' }
         })
       } finally {
         await db.destroy()
@@ -92,17 +89,11 @@ export function handleAuthoringRequest<TBody, TResult>(
       }
 
       if (err instanceof Error && err.name === 'NodeRuntimeInputError') {
-        return new Response(
-          JSON.stringify({ error: err.message }),
-          { status: 400, headers: { 'Content-Type': 'application/json' } }
-        )
+        return new Response(JSON.stringify({ error: err.message }), { status: 400, headers: { 'Content-Type': 'application/json' } })
       }
 
       if (err instanceof Error && err.name === 'AuthoredDraftNotFoundError') {
-        return new Response(
-          JSON.stringify({ error: err.message }),
-          { status: 404, headers: { 'Content-Type': 'application/json' } }
-        )
+        return new Response(JSON.stringify({ error: err.message }), { status: 404, headers: { 'Content-Type': 'application/json' } })
       }
 
       if (err instanceof Error && err.name === 'AuthoredDraftSubjectMismatchError') {
@@ -116,10 +107,11 @@ export function handleAuthoringRequest<TBody, TResult>(
       }
 
       if (err instanceof Error && err.name === 'AuthoredContentOwnershipError') {
-        return new Response(
-          JSON.stringify({ error: err.message }),
-          { status: 403, headers: { 'Content-Type': 'application/json' } }
-        )
+        return new Response(JSON.stringify({ error: err.message }), { status: 403, headers: { 'Content-Type': 'application/json' } })
+      }
+
+      if (err instanceof Error && err.name === 'CharacterBuilderDraftConflictError') {
+        return new Response(JSON.stringify({ error: err.message }), { status: 409, headers: { 'Content-Type': 'application/json' } })
       }
 
       console.error(err)

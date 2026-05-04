@@ -72,6 +72,7 @@ import {
   characterCommandUnionSchema,
   createCharacterCommandSchema
 } from '@artificer-toolkit/schema/domains/character/commands'
+import { assertCharacterBuilderDraftRevisionFresh } from './characterBuilderDraftConflict.js'
 
 type CharacterBuilderMode = 'create' | 'edit'
 
@@ -901,6 +902,7 @@ export const previewCharacterSave = handleAuthoringRequest(characterBuilderSaveR
 
 export const upsertCharacterBuilder = handleAuthoringRequest(characterBuilderCommitRequestDtoSchema, async (db, body, userId): Promise<CharacterBuilderPayloadDto> => {
   const repository = createCharacterRepository(db)
+  const draftRepository = createCharacterBuilderDraftRepository(db)
   const existing = await repository.findAuthoredById(body.character.id)
   const payload = await buildCharacterBuilderSavePayload({
     db,
@@ -915,8 +917,22 @@ export const upsertCharacterBuilder = handleAuthoringRequest(characterBuilderCom
     throw createNamedError('NodeRuntimeInputError', 'Character cannot be finalized until all required builder choices are complete.')
   }
 
+  const [activeRow, draft] = await Promise.all([
+    repository.findById(payload.character.id),
+    draftRepository.findByCharacter({
+      characterId: payload.character.id,
+      userId
+    })
+  ])
+  assertCharacterBuilderDraftRevisionFresh({
+    activeUpdatedAt: activeRow?.updated_at,
+    characterId: payload.character.id,
+    draftBaseActiveUpdatedAt: draft?.baseActiveUpdatedAt,
+    hasDraft: draft != null
+  })
+
   await repository.upsertAuthored(payload.character)
-  await createCharacterBuilderDraftRepository(db).delete({
+  await draftRepository.delete({
     characterId: payload.character.id,
     userId
   })
