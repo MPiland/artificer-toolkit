@@ -398,4 +398,30 @@ describe('character sheet command application', () => {
       })
     ])
   })
+
+  it('resolves subclass resource definitions without requiring the subclass source id to be a class row id', async () => {
+    const character = createCharacter()
+    character.intent.classes = [{ classId: 'class-1', subclassId: 'subclass-choice-1', classLevel: 3 }]
+    const resolution = createResolution()
+    resolution.grants.resources = resolution.grants.resources.map((resource) => ({
+      ...resource,
+      source: { kind: 'SUBCLASS', subclassId: 'subclass-choice-1', classLevel: 3 }
+    }))
+
+    const sheet = await buildCharacterSheetResponse({
+      character,
+      db: createConditionDb(),
+      hasBuilderDraft: false,
+      resolution,
+      streamVersion: 1
+    })
+
+    expect(sheet.resources.items).toEqual([
+      expect.objectContaining({
+        id: 'resource-1',
+        max: 4,
+        recovery: 'SHORT_REST'
+      })
+    ])
+  })
 })

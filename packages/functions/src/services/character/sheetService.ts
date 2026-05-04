@@ -6,6 +6,7 @@ import {
 } from '@artificer-toolkit/db'
 import {
   AUTHORED_RECORD_STATUS,
+  CLASS_CATEGORY,
   type CharacterEvent
 } from '@artificer-toolkit/shared/core'
 import {
@@ -146,7 +147,12 @@ function findResourceDefinition(
     }
     case 'SUBCLASS': {
       const source = resource.source
-      const record = resolution.registry.classes.find((candidate) => candidate.id === source.subclassId)
+      const record = resolution.registry.classes.find((candidate) => candidate.category === CLASS_CATEGORY.SUBCLASS
+        && candidate.resources?.id === resource.id
+        && (
+          candidate.id === source.subclassId
+          || candidate.label === resource.sourceLabel
+        ))
       return record?.resources?.id === resource.id ? record.resources : undefined
     }
     default:
