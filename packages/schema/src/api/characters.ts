@@ -409,10 +409,356 @@ export const characterBuilderCommitRequestDtoSchema = z.object({
     .optional()
 })
 
+export const characterSheetFactDtoSchema = z.object({
+  label: z.string(),
+  value: z.string()
+})
+
+export const characterSheetOptionDtoSchema = z.object({
+  id: z.string(),
+  label: z.string()
+})
+
+export const characterSheetMetaDtoSchema = z.object({
+  characterId: z.string(),
+  systemId: z.string(),
+  status: authoredRecordStatusSchema,
+  streamVersion: z.number().int(),
+  hasBuilderDraft: z.boolean().optional()
+})
+
+export const characterSheetIdentityDtoSchema = z.object({
+  label: z.string(),
+  description: z.string().optional(),
+  concept: z.string().optional(),
+  classSummary: z.string(),
+  raceLabel: z.string().optional(),
+  backgroundLabel: z.string().optional(),
+  totalLevel: z.number().int()
+})
+
+export const characterSheetAbilityDtoSchema = z.object({
+  ability: abilityCodeSchema,
+  score: z.number().int(),
+  modifier: z.number().int()
+})
+
+export const characterSheetHitDiceDtoSchema = z.object({
+  die: z.number().int(),
+  total: z.number().int(),
+  used: z.number().int(),
+  remaining: z.number().int()
+})
+
+export const characterSheetConditionDtoSchema = z.object({
+  conditionTypeId: z.string(),
+  label: z.string(),
+  notes: z.string().optional()
+})
+
+export const characterSheetOverviewDtoSchema = z.object({
+  abilities: z.array(characterSheetAbilityDtoSchema),
+  facts: z.array(characterSheetFactDtoSchema),
+  armorClass: z.number().int(),
+  initiative: z.number().int(),
+  proficiencyBonus: z.number().int(),
+  currentHitPoints: z.number().int(),
+  maxHitPoints: z.number().int(),
+  tempHitPoints: z.number().int(),
+  maxHitPointsOverride: z.number().int()
+    .nullable(),
+  exhaustionLevel: z.number().int()
+    .min(0)
+    .max(6),
+  conditions: z.array(characterSheetConditionDtoSchema),
+  hitDice: z.array(characterSheetHitDiceDtoSchema)
+})
+
+export const characterSheetActionDtoSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  kind: z.enum([
+    'ACTION', 'BONUS_ACTION', 'REACTION', 'OTHER'
+  ]),
+  sourceLabel: z.string().optional(),
+  description: z.string().optional(),
+  rollable: z.boolean().optional()
+})
+
+export const characterSheetResourceDtoSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  sourceLabel: z.string(),
+  used: z.number().int(),
+  max: z.number().int(),
+  remaining: z.number().int(),
+  recovery: z.enum(['SHORT_REST', 'LONG_REST', 'OTHER']).optional()
+})
+
+export const characterSheetSpellSlotDtoSchema = z.object({
+  slotKey: z.string(),
+  label: z.string(),
+  level: z.number().int()
+    .nullable(),
+  used: z.number().int(),
+  max: z.number().int(),
+  remaining: z.number().int()
+})
+
+export const characterSheetSpellDtoSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  level: z.number().int(),
+  school: z.string().optional(),
+  prepared: z.boolean().optional(),
+  known: z.boolean().optional(),
+  sourceLabel: z.string().optional()
+})
+
+export const characterSheetInventoryItemDtoSchema = z.object({
+  id: z.string(),
+  equipmentId: z.string(),
+  label: z.string(),
+  quantity: z.number().int(),
+  equipped: z.boolean(),
+  attuned: z.boolean(),
+  containerId: z.string().optional(),
+  notes: z.string().optional()
+})
+
+export const characterSheetCurrencyDtoSchema = z.object({
+  currencyId: z.string(),
+  label: z.string(),
+  amount: z.number(),
+  containerId: z.string().optional()
+})
+
+export const characterSheetReferenceDtoSchema = z.object({
+  features: z.array(characterBuilderGrantSummaryItemDtoSchema),
+  proficiencies: z.array(characterSheetFactDtoSchema),
+  defenses: z.array(characterSheetFactDtoSchema),
+  senses: z.array(characterSheetFactDtoSchema),
+  conditionOptions: z.array(characterSheetOptionDtoSchema),
+  equipmentOptions: z.array(characterSheetOptionDtoSchema),
+  currencyOptions: z.array(characterSheetOptionDtoSchema)
+})
+
+export const characterSheetNotesDtoSchema = z.object({
+  alignment: z.string().optional(),
+  lifestyle: z.string().optional(),
+  faith: z.string().optional(),
+  gender: z.string().optional(),
+  age: z.string().optional(),
+  appearance: z.string().optional(),
+  personalityTraits: z.string().optional(),
+  ideals: z.string().optional(),
+  bonds: z.string().optional(),
+  flaws: z.string().optional(),
+  organizations: z.string().optional(),
+  allies: z.string().optional(),
+  enemies: z.string().optional(),
+  backstory: z.string().optional(),
+  notes: z.string().optional()
+})
+
 export const characterSheetResponseDtoSchema = z.object({
-  character: characterAuthoredDtoSchema,
-  resolution: characterBuilderResolutionDtoSchema,
-  playState: characterStateDtoSchema
+  meta: characterSheetMetaDtoSchema,
+  identity: characterSheetIdentityDtoSchema,
+  overview: characterSheetOverviewDtoSchema,
+  actions: z.object({
+    items: z.array(characterSheetActionDtoSchema)
+  }),
+  resources: z.object({
+    items: z.array(characterSheetResourceDtoSchema),
+    hitDice: z.array(characterSheetHitDiceDtoSchema)
+  }),
+  spells: z.object({
+    saveDc: z.number().int()
+      .nullable(),
+    attackBonus: z.number().int()
+      .nullable(),
+    slots: z.array(characterSheetSpellSlotDtoSchema),
+    spells: z.array(characterSheetSpellDtoSchema)
+  }),
+  inventory: z.object({
+    items: z.array(characterSheetInventoryItemDtoSchema),
+    currencies: z.array(characterSheetCurrencyDtoSchema)
+  }),
+  reference: characterSheetReferenceDtoSchema,
+  notes: characterSheetNotesDtoSchema
+})
+
+const characterSheetCommandBaseDtoSchema = z.object({
+  commandId: z.string().optional(),
+  expectedVersion: z.number().int()
+})
+
+export const characterSheetCommandInputDtoSchema = z.discriminatedUnion('type', [
+  characterSheetCommandBaseDtoSchema.extend({
+    type: z.literal('SET_HIT_POINTS'),
+    current: z.number().int()
+      .min(0)
+      .optional(),
+    temp: z.number().int()
+      .min(0)
+      .optional(),
+    maxOverride: z.number().int()
+      .min(0)
+      .nullable()
+      .optional()
+  }),
+  characterSheetCommandBaseDtoSchema.extend({
+    type: z.literal('ADJUST_HIT_POINTS'),
+    mode: z.enum(['DAMAGE', 'HEAL']),
+    amount: z.number().int()
+      .min(0)
+  }),
+  characterSheetCommandBaseDtoSchema.extend({
+    type: z.literal('USE_HIT_DIE'),
+    die: z.number().int()
+  }),
+  characterSheetCommandBaseDtoSchema.extend({
+    type: z.literal('APPLY_REST'),
+    restKind: z.enum(['SHORT', 'LONG'])
+  }),
+  characterSheetCommandBaseDtoSchema.extend({
+    type: z.literal('SET_EXHAUSTION'),
+    level: z.number().int()
+      .min(0)
+      .max(6),
+    notes: z.string().optional()
+  }),
+  characterSheetCommandBaseDtoSchema.extend({
+    type: z.literal('ADD_CONDITION'),
+    conditionTypeId: z.string(),
+    notes: z.string().optional()
+  }),
+  characterSheetCommandBaseDtoSchema.extend({
+    type: z.literal('REMOVE_CONDITION'),
+    conditionTypeId: z.string()
+  }),
+  characterSheetCommandBaseDtoSchema.extend({
+    type: z.literal('USE_RESOURCE'),
+    resourceGrantId: z.string(),
+    amount: z.number().int()
+      .min(1)
+      .optional()
+  }),
+  characterSheetCommandBaseDtoSchema.extend({
+    type: z.literal('RESTORE_RESOURCE'),
+    resourceGrantId: z.string(),
+    amount: z.number().int()
+      .min(1)
+      .optional(),
+    all: z.boolean().optional()
+  }),
+  characterSheetCommandBaseDtoSchema.extend({
+    type: z.literal('USE_SPELL_SLOT'),
+    slotKey: z.string()
+  }),
+  characterSheetCommandBaseDtoSchema.extend({
+    type: z.literal('RESTORE_SPELL_SLOT'),
+    slotKey: z.string(),
+    all: z.boolean().optional()
+  }),
+  characterSheetCommandBaseDtoSchema.extend({
+    type: z.literal('SET_PREPARED_SPELLS'),
+    classId: z.string(),
+    spellIds: z.array(z.string())
+  }),
+  characterSheetCommandBaseDtoSchema.extend({
+    type: z.literal('ADD_INVENTORY_ITEM'),
+    equipmentId: z.string(),
+    quantity: z.number().int()
+      .min(1),
+    customName: z.string().optional(),
+    notes: z.string().optional()
+  }),
+  characterSheetCommandBaseDtoSchema.extend({
+    type: z.literal('REMOVE_INVENTORY_ITEM'),
+    itemId: z.string(),
+    quantity: z.number().int()
+      .min(1)
+      .optional()
+  }),
+  characterSheetCommandBaseDtoSchema.extend({
+    type: z.literal('UPDATE_INVENTORY_ITEM'),
+    itemId: z.string(),
+    quantity: z.number().int()
+      .min(0)
+      .optional(),
+    containerId: z.string().nullable()
+      .optional(),
+    customName: z.string().nullable()
+      .optional(),
+    notes: z.string().nullable()
+      .optional()
+  }),
+  characterSheetCommandBaseDtoSchema.extend({
+    type: z.literal('EQUIP_ITEM'),
+    itemId: z.string()
+  }),
+  characterSheetCommandBaseDtoSchema.extend({
+    type: z.literal('UNEQUIP_ITEM'),
+    itemId: z.string()
+  }),
+  characterSheetCommandBaseDtoSchema.extend({
+    type: z.literal('ATTUNE_ITEM'),
+    itemId: z.string()
+  }),
+  characterSheetCommandBaseDtoSchema.extend({
+    type: z.literal('UNATTUNE_ITEM'),
+    itemId: z.string()
+  }),
+  characterSheetCommandBaseDtoSchema.extend({
+    type: z.literal('ADJUST_CURRENCY'),
+    currencyId: z.string(),
+    amount: z.number(),
+    containerId: z.string().optional()
+  }),
+  characterSheetCommandBaseDtoSchema.extend({
+    type: z.literal('UPDATE_NOTES'),
+    description: z.string().nullable()
+      .optional(),
+    personalityTraits: z.string().nullable()
+      .optional(),
+    ideals: z.string().nullable()
+      .optional(),
+    bonds: z.string().nullable()
+      .optional(),
+    flaws: z.string().nullable()
+      .optional(),
+    organizations: z.string().nullable()
+      .optional(),
+    allies: z.string().nullable()
+      .optional(),
+    enemies: z.string().nullable()
+      .optional(),
+    backstory: z.string().nullable()
+      .optional(),
+    notes: z.string().nullable()
+      .optional()
+  })
+])
+
+export const characterHistoryEntryDtoSchema = z.object({
+  eventId: z.string(),
+  occurredAt: z.string(),
+  actorId: z.string(),
+  eventType: z.string(),
+  summary: z.string()
+})
+
+export const characterHistoryResponseDtoSchema = z.object({
+  characterId: z.string(),
+  entries: z.array(characterHistoryEntryDtoSchema)
+})
+
+export const characterSheetCommandResponseDtoSchema = z.object({
+  characterId: z.string(),
+  streamVersion: z.number().int(),
+  sheet: characterSheetResponseDtoSchema,
+  historyEntry: characterHistoryEntryDtoSchema.optional()
 })
 
 type CharacterBuilderAbilityCode = z.infer<typeof abilityCodeSchema>
@@ -531,6 +877,9 @@ export type CharacterBuilderFormDto = {
     }
     classes?: Record<string, unknown>[]
     resources?: Record<string, unknown>[]
+    spellSlots?: Record<string, unknown>[]
+    conditions?: Record<string, unknown>[]
+    exhaustion?: Record<string, unknown>
     creatures?: Record<string, unknown>[]
     vehicles?: Record<string, unknown>[]
     creatureEquipment?: Record<string, Record<string, unknown>[]>
@@ -577,3 +926,7 @@ export type CharacterBuilderResolveRequestDto = z.infer<typeof characterBuilderR
 export type CharacterBuilderSaveRequestDto = z.infer<typeof characterBuilderSaveRequestDtoSchema>
 export type CharacterBuilderCommitRequestDto = z.infer<typeof characterBuilderCommitRequestDtoSchema>
 export type CharacterSheetResponseDto = z.infer<typeof characterSheetResponseDtoSchema>
+export type CharacterHistoryEntryDto = z.infer<typeof characterHistoryEntryDtoSchema>
+export type CharacterHistoryResponseDto = z.infer<typeof characterHistoryResponseDtoSchema>
+export type CharacterSheetCommandInputDto = z.infer<typeof characterSheetCommandInputDtoSchema>
+export type CharacterSheetCommandResponseDto = z.infer<typeof characterSheetCommandResponseDtoSchema>

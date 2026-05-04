@@ -226,6 +226,22 @@ function buildCharacter(): CharacterAuthored {
           used: 1
         }
       ],
+      spellSlots: [
+        {
+          slotKey: 'STANDARD:1',
+          used: 1
+        }
+      ],
+      conditions: [
+        {
+          conditionTypeId: 'condition-1',
+          notes: 'Poisoned'
+        }
+      ],
+      exhaustion: {
+        level: 2,
+        notes: 'Forced march'
+      },
       creatures: [
         {
           id: 'character-creature-1',
@@ -243,14 +259,10 @@ function buildCharacter(): CharacterAuthored {
         }
       ],
       creatureEquipment: {
-        'character-creature-1': [
-          { equipmentItemId: 'inventory-1' }
-        ]
+        'character-creature-1': [{ equipmentItemId: 'inventory-1' }]
       },
       vehicleEquipment: {
-        'character-vehicle-1': [
-          { equipmentItemId: 'inventory-2' }
-        ]
+        'character-vehicle-1': [{ equipmentItemId: 'inventory-2' }]
       }
     }
   }
@@ -361,6 +373,42 @@ describe('upsertCharacter', () => {
         equipment_id: 'inventory-2'
       }
     ])
+    expect(db.snapshot('character_hitpoint_state')).toEqual([
+      {
+        character_id: 'character-1',
+        current: 9,
+        temp: 2,
+        max_override: 12
+      }
+    ])
+    expect(db.snapshot('character_resources')).toEqual([
+      {
+        character_id: 'character-1',
+        resource_grant_id: 'resource-grant-1',
+        used: 1
+      }
+    ])
+    expect(db.snapshot('character_spell_slot_state')).toEqual([
+      {
+        character_id: 'character-1',
+        slot_key: 'STANDARD:1',
+        used: 1
+      }
+    ])
+    expect(db.snapshot('character_conditions')).toEqual([
+      {
+        character_id: 'character-1',
+        condition_type_id: 'condition-1',
+        notes: 'Poisoned'
+      }
+    ])
+    expect(db.snapshot('character_exhaustion')).toEqual([
+      {
+        character_id: 'character-1',
+        level: 2,
+        notes: 'Forced march'
+      }
+    ])
 
     await upsertCharacter(db as never, {
       ...initial,
@@ -460,7 +508,8 @@ describe('upsertCharacter', () => {
         user_id: 'user-1',
         label: 'Aria Revised',
         description: null,
-        status: 'DRAFT'
+        status: 'DRAFT',
+        stream_version: 0
       }
     ])
     expect(db.snapshot('character_profile')).toEqual([
@@ -495,6 +544,9 @@ describe('upsertCharacter', () => {
     expect(db.snapshot('character_spell_selection_spells')).toEqual([])
     expect(db.snapshot('character_resource_grants')).toEqual([])
     expect(db.snapshot('character_resources')).toEqual([])
+    expect(db.snapshot('character_spell_slot_state')).toEqual([])
+    expect(db.snapshot('character_conditions')).toEqual([])
+    expect(db.snapshot('character_exhaustion')).toEqual([])
     expect(db.snapshot('character_equipment')).toEqual([])
     expect(db.snapshot('character_creatures')).toEqual([])
     expect(db.snapshot('character_vehicles')).toEqual([])

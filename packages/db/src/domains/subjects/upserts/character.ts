@@ -20,11 +20,32 @@ import {
 
 export async function upsertCharacter(
   db: DBLike,
-  json_data: CharacterAuthored
-) {
+  json_data: CharacterAuthored,
+  options: {
+    expectedStreamVersion?: number
+    incrementStreamVersion?: boolean
+    afterPersist?: (trx: DBLike, nextStreamVersion: number) => Promise<void>
+  } = {}
+): Promise<number> {
   const trx = await db.startTransaction().execute()
 
   try {
+    const lockedVersionRow = await trx
+      .selectFrom('characters')
+      .select('stream_version')
+      .where('id', '=', json_data.id)
+      .forUpdate()
+      .executeTakeFirst()
+    const lockedStreamVersion = lockedVersionRow?.stream_version ?? 0
+
+    if (options.expectedStreamVersion != null && lockedStreamVersion !== options.expectedStreamVersion) {
+      const error = new Error(`Character "${json_data.id}" stream_version conflict: expected ${options.expectedStreamVersion}.`)
+      error.name = 'ConcurrencyError'
+      throw error
+    }
+
+    const nextStreamVersion = options.incrementStreamVersion ? lockedStreamVersion + 1 : lockedStreamVersion
+
     await trx
       .insertInto('characters')
       .values({
@@ -33,14 +54,16 @@ export async function upsertCharacter(
         user_id: json_data.userId,
         label: json_data.label,
         description: json_data.description ?? null,
-        status: normalizeSubjectStatus(json_data.status)
+        status: normalizeSubjectStatus(json_data.status),
+        stream_version: nextStreamVersion
       })
       .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
         system_id: ref('excluded.system_id'),
         user_id: ref('excluded.user_id'),
         label: ref('excluded.label'),
         description: ref('excluded.description'),
-        status: ref('excluded.status')
+        status: ref('excluded.status'),
+        stream_version: ref('excluded.stream_version')
       })))
       .execute()
 
@@ -149,6 +172,28 @@ export async function upsertCharacter(
       total: hitDie.total,
       used: hitDie.used
     })))
+
+    await insertRows(trx, 'character_spell_slot_state', (json_data.state.spellSlots ?? []).map((slot) => ({
+      character_id: json_data.id,
+      slot_key: slot.slotKey,
+      used: slot.used
+    })))
+
+    await insertRows(trx, 'character_conditions', (json_data.state.conditions ?? []).map((condition) => ({
+      character_id: json_data.id,
+      condition_type_id: condition.conditionTypeId,
+      notes: condition.notes ?? null
+    })))
+
+    if (json_data.state.exhaustion && json_data.state.exhaustion.level > 0) {
+      await insertRows(trx, 'character_exhaustion', [
+        {
+          character_id: json_data.id,
+          level: json_data.state.exhaustion.level,
+          notes: json_data.state.exhaustion.notes ?? null
+        }
+      ])
+    }
 
     await insertRows(trx, 'character_class_spells', (json_data.state.classes ?? []).flatMap((classState) => [
       ...(classState.spells?.learned ?? []).map((spellId) => ({
@@ -487,7 +532,10 @@ export async function upsertCharacter(
       }))))
     }
 
+    await options.afterPersist?.(trx, nextStreamVersion)
+
     await trx.commit().execute()
+    return nextStreamVersion
   } catch (error) {
     await trx.rollback().execute()
     throw error

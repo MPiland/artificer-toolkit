@@ -27,9 +27,16 @@ export function getCharacterDraft(id: string, client: Api = api) {
   })
 }
 
-export function getCharacterSheetPlaceholder(id: string, client: Api = api) {
+export function getCharacterSheet(id: string, client: Api = api) {
   return queryOptions({
-    queryKey: queryKeys.characters.sheetPlaceholder(id),
-    queryFn: async () => await client.characters.get(id)
+    queryKey: queryKeys.characters.sheet(id),
+    queryFn: async () => await client.characters.sheet(id)
+  })
+}
+
+export function getCharacterHistory(id: string, client: Api = api) {
+  return queryOptions({
+    queryKey: queryKeys.characters.history(id),
+    queryFn: async () => await client.characters.history(id)
   })
 }

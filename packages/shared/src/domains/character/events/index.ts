@@ -147,22 +147,29 @@ export interface ItemUnequippedEvent extends CharacterEventEnvelope {
   unequippedFromSlot: string
 }
 
+export interface CharacterSheetCommandAppliedEvent extends CharacterEventEnvelope {
+  type: 'CHARACTER_SHEET_COMMAND_APPLIED'
+  commandType: string
+  summary: string
+}
+
 /* ──────────────────────────────────────────────
  * Full event union
  * ────────────────────────────────────────────── */
 
-export type CharacterEvent =
-  | CharacterCreatedEvent
-  | RaceAssignedEvent
-  | BackgroundAssignedEvent
-  | AbilityScoresGeneratedEvent
-  | AbilityScoresReplacedEvent
-  | ClassLevelGainedEvent
-  | HitPointsAppliedEvent
-  | FeatureSelectionMadeEvent
-  | FeatChosenEvent
-  | SpellSelectionUpdatedEvent
-  | EquipmentAcquiredEvent
-  | EquipmentRemovedEvent
-  | ItemEquippedEvent
-  | ItemUnequippedEvent
+export type CharacterEvent
+  = | CharacterCreatedEvent
+    | RaceAssignedEvent
+    | BackgroundAssignedEvent
+    | AbilityScoresGeneratedEvent
+    | AbilityScoresReplacedEvent
+    | ClassLevelGainedEvent
+    | HitPointsAppliedEvent
+    | FeatureSelectionMadeEvent
+    | FeatChosenEvent
+    | SpellSelectionUpdatedEvent
+    | EquipmentAcquiredEvent
+    | EquipmentRemovedEvent
+    | ItemEquippedEvent
+    | ItemUnequippedEvent
+    | CharacterSheetCommandAppliedEvent

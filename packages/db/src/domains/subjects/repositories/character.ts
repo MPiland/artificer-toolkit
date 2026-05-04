@@ -7,7 +7,7 @@ import {
   type CharacterAuthored,
   type CharacterAbilityScoresIntent,
   type CharacterFeatureSelectionValue,
-  type CharacterProfileAuthored,
+  type CharacterProfileAuthored
 } from '@artificer-toolkit/shared'
 import { upsertCharacter } from '../upserts/character.js'
 import { hydrateSubjectStatus } from '../status.js'
@@ -37,7 +37,11 @@ export interface CharacterRepository {
   findUpdatedAtById(id: string): Promise<string | null>
   findUpdatedAtByIdForUpdate(id: string): Promise<string | null>
   findAuthoredById(id: string): Promise<CharacterAuthored | null>
-  upsertAuthored(character: CharacterAuthored): Promise<void>
+  upsertAuthored(character: CharacterAuthored, options?: {
+    expectedStreamVersion?: number
+    incrementStreamVersion?: boolean
+    afterPersist?: (trx: DBLike, nextStreamVersion: number) => Promise<void>
+  }): Promise<number>
   updateBuildState(params: {
     id: string
     buildState: Json
@@ -242,6 +246,9 @@ async function hydrateCharacterAuthoredById(
     hitpointLevelRollRows,
     hitpointStateRow,
     hitDieRows,
+    spellSlotRows,
+    conditionRows,
+    exhaustionRow,
     abilityRow,
     standardArrayRows,
     pointBuyRows,
@@ -267,69 +274,156 @@ async function hydrateCharacterAuthoredById(
     classEquipmentItemRows,
     backgroundEquipmentSessionRow,
     backgroundEquipmentGroupRows,
-    backgroundEquipmentItemRows,
+    backgroundEquipmentItemRows
   ] = await Promise.all([
-    db.selectFrom('character_profile').selectAll().where('character_id', '=', id).executeTakeFirst(),
-    db.selectFrom('character_advancement').selectAll().where('character_id', '=', id).executeTakeFirst(),
-    db.selectFrom('character_race').selectAll().where('character_id', '=', id).executeTakeFirst(),
-    db.selectFrom('character_background').selectAll().where('character_id', '=', id).executeTakeFirst(),
-    db.selectFrom('character_ancestry_acquisitions').selectAll().where('character_id', '=', id).execute(),
-    db.selectFrom('character_classes').selectAll().where('character_id', '=', id).execute(),
-    db.selectFrom('character_hitpoint_intent').selectAll().where('character_id', '=', id).executeTakeFirst(),
-    db.selectFrom('character_hitpoint_levels').selectAll().where('character_id', '=', id).execute(),
-    db.selectFrom('character_hitpoint_level_rolls').selectAll().where('character_id', '=', id).execute(),
-    db.selectFrom('character_hitpoint_state').selectAll().where('character_id', '=', id).executeTakeFirst(),
-    db.selectFrom('character_hit_dice_state').selectAll().where('character_id', '=', id).execute(),
-    db.selectFrom('character_abilities').selectAll().where('character_id', '=', id).executeTakeFirst(),
-    db.selectFrom('character_abilities_standard_array').selectAll().where('character_id', '=', id).execute(),
-    db.selectFrom('character_abilities_point_buy_distributed').selectAll().where('character_id', '=', id).execute(),
-    db.selectFrom('character_abilities_manual_rolled').selectAll().where('character_id', '=', id).executeTakeFirst(),
-    db.selectFrom('character_abilities_manual_rolled_groups').selectAll().where('character_id', '=', id).execute(),
-    db.selectFrom('character_abilities_manual_rolled_rolls').selectAll().where('character_id', '=', id).execute(),
-    db.selectFrom('character_abilities_manual_assignments').selectAll().where('character_id', '=', id).execute(),
-    db.selectFrom('character_feature_acquisitions').selectAll().where('character_id', '=', id).execute(),
-    db.selectFrom('character_spell_selections').selectAll().where('character_id', '=', id).execute(),
-    db.selectFrom('character_resource_grants').selectAll().where('character_id', '=', id).execute(),
-    db.selectFrom('character_resources').selectAll().where('character_id', '=', id).execute(),
-    db.selectFrom('character_class_spells').selectAll().where('character_id', '=', id).execute(),
-    db.selectFrom('character_equipment').selectAll().where('character_id', '=', id).execute(),
-    db.selectFrom('character_equipped').selectAll().where('character_id', '=', id).execute(),
-    db.selectFrom('character_attuned').selectAll().where('character_id', '=', id).execute(),
-    db.selectFrom('character_currency_groups').selectAll().where('character_id', '=', id).execute(),
-    db.selectFrom('character_creatures').selectAll().where('character_id', '=', id).execute(),
-    db.selectFrom('character_vehicles').selectAll().where('character_id', '=', id).execute(),
-    db.selectFrom('character_creature_equipment').selectAll().where('character_id', '=', id).execute(),
-    db.selectFrom('character_vehicle_equipment').selectAll().where('character_id', '=', id).execute(),
-    db.selectFrom('character_class_equipment_session').selectAll().where('character_id', '=', id).executeTakeFirst(),
-    db.selectFrom('character_class_equipment_groups').selectAll().where('character_id', '=', id).execute(),
-    db.selectFrom('character_class_equipment_items').selectAll().where('character_id', '=', id).execute(),
-    db.selectFrom('character_background_equipment_session').selectAll().where('character_id', '=', id).executeTakeFirst(),
-    db.selectFrom('character_background_equipment_groups').selectAll().where('character_id', '=', id).execute(),
-    db.selectFrom('character_background_equipment_items').selectAll().where('character_id', '=', id).execute(),
+    db.selectFrom('character_profile').selectAll()
+      .where('character_id', '=', id)
+      .executeTakeFirst(),
+    db.selectFrom('character_advancement').selectAll()
+      .where('character_id', '=', id)
+      .executeTakeFirst(),
+    db.selectFrom('character_race').selectAll()
+      .where('character_id', '=', id)
+      .executeTakeFirst(),
+    db.selectFrom('character_background').selectAll()
+      .where('character_id', '=', id)
+      .executeTakeFirst(),
+    db.selectFrom('character_ancestry_acquisitions').selectAll()
+      .where('character_id', '=', id)
+      .execute(),
+    db.selectFrom('character_classes').selectAll()
+      .where('character_id', '=', id)
+      .execute(),
+    db.selectFrom('character_hitpoint_intent').selectAll()
+      .where('character_id', '=', id)
+      .executeTakeFirst(),
+    db.selectFrom('character_hitpoint_levels').selectAll()
+      .where('character_id', '=', id)
+      .execute(),
+    db.selectFrom('character_hitpoint_level_rolls').selectAll()
+      .where('character_id', '=', id)
+      .execute(),
+    db.selectFrom('character_hitpoint_state').selectAll()
+      .where('character_id', '=', id)
+      .executeTakeFirst(),
+    db.selectFrom('character_hit_dice_state').selectAll()
+      .where('character_id', '=', id)
+      .execute(),
+    sql<CharacterSourceRow>`select * from character_spell_slot_state where character_id = ${id}`.execute(db).then((result) => result.rows),
+    sql<CharacterSourceRow>`select * from character_conditions where character_id = ${id}`.execute(db).then((result) => result.rows),
+    sql<CharacterSourceRow>`select * from character_exhaustion where character_id = ${id}`.execute(db).then((result) => result.rows[0]),
+    db.selectFrom('character_abilities').selectAll()
+      .where('character_id', '=', id)
+      .executeTakeFirst(),
+    db.selectFrom('character_abilities_standard_array').selectAll()
+      .where('character_id', '=', id)
+      .execute(),
+    db.selectFrom('character_abilities_point_buy_distributed').selectAll()
+      .where('character_id', '=', id)
+      .execute(),
+    db.selectFrom('character_abilities_manual_rolled').selectAll()
+      .where('character_id', '=', id)
+      .executeTakeFirst(),
+    db.selectFrom('character_abilities_manual_rolled_groups').selectAll()
+      .where('character_id', '=', id)
+      .execute(),
+    db.selectFrom('character_abilities_manual_rolled_rolls').selectAll()
+      .where('character_id', '=', id)
+      .execute(),
+    db.selectFrom('character_abilities_manual_assignments').selectAll()
+      .where('character_id', '=', id)
+      .execute(),
+    db.selectFrom('character_feature_acquisitions').selectAll()
+      .where('character_id', '=', id)
+      .execute(),
+    db.selectFrom('character_spell_selections').selectAll()
+      .where('character_id', '=', id)
+      .execute(),
+    db.selectFrom('character_resource_grants').selectAll()
+      .where('character_id', '=', id)
+      .execute(),
+    db.selectFrom('character_resources').selectAll()
+      .where('character_id', '=', id)
+      .execute(),
+    db.selectFrom('character_class_spells').selectAll()
+      .where('character_id', '=', id)
+      .execute(),
+    db.selectFrom('character_equipment').selectAll()
+      .where('character_id', '=', id)
+      .execute(),
+    db.selectFrom('character_equipped').selectAll()
+      .where('character_id', '=', id)
+      .execute(),
+    db.selectFrom('character_attuned').selectAll()
+      .where('character_id', '=', id)
+      .execute(),
+    db.selectFrom('character_currency_groups').selectAll()
+      .where('character_id', '=', id)
+      .execute(),
+    db.selectFrom('character_creatures').selectAll()
+      .where('character_id', '=', id)
+      .execute(),
+    db.selectFrom('character_vehicles').selectAll()
+      .where('character_id', '=', id)
+      .execute(),
+    db.selectFrom('character_creature_equipment').selectAll()
+      .where('character_id', '=', id)
+      .execute(),
+    db.selectFrom('character_vehicle_equipment').selectAll()
+      .where('character_id', '=', id)
+      .execute(),
+    db.selectFrom('character_class_equipment_session').selectAll()
+      .where('character_id', '=', id)
+      .executeTakeFirst(),
+    db.selectFrom('character_class_equipment_groups').selectAll()
+      .where('character_id', '=', id)
+      .execute(),
+    db.selectFrom('character_class_equipment_items').selectAll()
+      .where('character_id', '=', id)
+      .execute(),
+    db.selectFrom('character_background_equipment_session').selectAll()
+      .where('character_id', '=', id)
+      .executeTakeFirst(),
+    db.selectFrom('character_background_equipment_groups').selectAll()
+      .where('character_id', '=', id)
+      .execute(),
+    db.selectFrom('character_background_equipment_items').selectAll()
+      .where('character_id', '=', id)
+      .execute()
   ])
 
   const featureIds = featureRows.map((featureRow) => String(featureRow.id))
   const spellSelectionIds = spellSelectionRows.map((selectionRow) => String(selectionRow.id))
 
-  const [featureSelectionRowsActual, featureSelectionValueRowsActual, spellSelectionSpellRowsActual, currencyRows] = await Promise.all([
+  const [
+    featureSelectionRowsActual,
+    featureSelectionValueRowsActual,
+    spellSelectionSpellRowsActual,
+    currencyRows
+  ] = await Promise.all([
     featureIds.length > 0
-      ? db.selectFrom('character_feature_selection_records').selectAll().where('feature_acquisition_id', 'in', featureIds).execute()
+      ? db.selectFrom('character_feature_selection_records').selectAll()
+          .where('feature_acquisition_id', 'in', featureIds)
+          .execute()
       : Promise.resolve([]),
     featureIds.length > 0
-      ? db.selectFrom('character_feature_selection_values').selectAll().where('feature_acquisition_id', 'in', featureIds).execute()
+      ? db.selectFrom('character_feature_selection_values').selectAll()
+          .where('feature_acquisition_id', 'in', featureIds)
+          .execute()
       : Promise.resolve([]),
     spellSelectionIds.length > 0
-      ? db.selectFrom('character_spell_selection_spells').selectAll().where('selection_id', 'in', spellSelectionIds).execute()
+      ? db.selectFrom('character_spell_selection_spells').selectAll()
+          .where('selection_id', 'in', spellSelectionIds)
+          .execute()
       : Promise.resolve([]),
     currencyGroupRows.length > 0
-      ? db.selectFrom('character_currencies').selectAll().where('group_id', 'in', currencyGroupRows.map((groupRow) => String(groupRow.id))).execute()
-      : Promise.resolve([]),
+      ? db.selectFrom('character_currencies').selectAll()
+          .where('group_id', 'in', currencyGroupRows.map((groupRow) => String(groupRow.id)))
+          .execute()
+      : Promise.resolve([])
   ])
 
-  const advancementData = requireRow(
-    advancementRow,
-    `Character "${id}" is missing advancement intent.`
-  ) as CharacterSourceRow
+  const advancementData = requireRow(advancementRow, `Character "${id}" is missing advancement intent.`) as CharacterSourceRow
   const raceData = requireRow(raceRow, `Character "${id}" is missing race intent.`) as CharacterSourceRow
   const backgroundData = requireRow(backgroundRow, `Character "${id}" is missing background intent.`) as CharacterSourceRow
   const hitpointIntentData = requireRow(hitpointIntentRow, `Character "${id}" is missing hitpoint intent.`) as CharacterSourceRow
@@ -626,6 +720,24 @@ async function hydrateCharacterAuthoredById(
             used: Number(resourceRow.used)
           }))
         : undefined,
+      spellSlots: spellSlotRows.length > 0
+        ? spellSlotRows.map((slotRow) => ({
+            slotKey: String((slotRow as CharacterSourceRow).slot_key),
+            used: Number((slotRow as CharacterSourceRow).used)
+          }))
+        : undefined,
+      conditions: conditionRows.length > 0
+        ? conditionRows.map((conditionRow) => ({
+            conditionTypeId: String((conditionRow as CharacterSourceRow).condition_type_id),
+            notes: optionalText((conditionRow as CharacterSourceRow).notes)
+          }))
+        : undefined,
+      exhaustion: exhaustionRow && Number((exhaustionRow as CharacterSourceRow).level) > 0
+        ? {
+            level: Number((exhaustionRow as CharacterSourceRow).level),
+            notes: optionalText((exhaustionRow as CharacterSourceRow).notes)
+          }
+        : undefined,
       creatures: creatureRows.length > 0
         ? creatureRows.map((creatureRow) => ({
             id: String(creatureRow.id),
@@ -665,7 +777,7 @@ export function createCharacterRepository(db: DBLike): CharacterRepository {
           label,
           status: 'DRAFT',
           build_state: buildState as Json,
-          stream_version: 1,
+          stream_version: 1
         })
         .execute()
     },
@@ -705,8 +817,8 @@ export function createCharacterRepository(db: DBLike): CharacterRepository {
       return hydrateCharacterAuthoredById(db, id)
     },
 
-    async upsertAuthored(character) {
-      await upsertCharacter(db, character)
+    async upsertAuthored(character, options) {
+      return upsertCharacter(db, character, options)
     },
 
     async updateBuildState({ id, buildState, expectedVersion }) {
@@ -715,7 +827,7 @@ export function createCharacterRepository(db: DBLike): CharacterRepository {
         .set({
           build_state: buildState as Json,
           stream_version: expectedVersion + 1,
-          updated_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         })
         .where('id', '=', id)
         .where('stream_version', '=', expectedVersion)
@@ -733,12 +845,14 @@ export function createCharacterRepository(db: DBLike): CharacterRepository {
     async listByUser(userId) {
       const rows = await db
         .selectFrom('characters')
-        .select(['id', 'label', 'system_id', 'stream_version', 'status'])
+        .select([
+          'id', 'label', 'system_id', 'stream_version', 'status'
+        ])
         .where('user_id', '=', userId)
         .orderBy('updated_at', 'desc')
         .execute() as Pick<CharacterRow, 'id' | 'label' | 'system_id' | 'stream_version' | 'status'>[]
 
       return rows
-    },
+    }
   }
 }

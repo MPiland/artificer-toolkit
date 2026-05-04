@@ -42,6 +42,10 @@ class SelectBuilder {
     return this
   }
 
+  forUpdate() {
+    return this
+  }
+
   async execute() {
     let rows = cloneRows(this.db.readTable(this.table))
 
@@ -310,8 +314,8 @@ export class InMemoryDb {
       const nextStartingEquipmentId = next.starting_equipment_id
 
       if (
-        previousStartingEquipmentId &&
-        previousStartingEquipmentId !== nextStartingEquipmentId
+        previousStartingEquipmentId
+        && previousStartingEquipmentId !== nextStartingEquipmentId
       ) {
         this.deleteWhere('starting_equipment', 'id', previousStartingEquipmentId)
       }
@@ -563,10 +567,6 @@ export class InMemoryDb {
         this.deleteWhere('modifier_grants', 'id', row.modifier_grant_id)
         break
 
-      case 'feature_modifier_grants':
-        this.deleteWhere('modifier_grants', 'id', row.modifier_grant_id)
-        break
-
       case 'feat_effects':
         this.deleteWhere('effects', 'id', row.effect_id)
         break
@@ -663,10 +663,6 @@ export class InMemoryDb {
         this.deleteWhere('facet_predicate_creature_category_items', 'facet_condition_id', row.id)
         this.deleteWhere('facet_predicate_vehicle_category_items', 'facet_condition_id', row.id)
         this.deleteWhere('facet_predicate_creature_type_items', 'facet_condition_id', row.id)
-        break
-
-      case 'option_modifier_grants':
-        this.deleteWhere('modifier_grants', 'id', row.modifier_grant_id)
         break
 
       case 'equipment_features':
