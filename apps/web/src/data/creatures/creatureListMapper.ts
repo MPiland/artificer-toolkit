@@ -99,9 +99,7 @@ export function buildCreatureListFilters(response: CreatureListResponseDto): Aut
   ]
 }
 
-export const creatureListAttributeColumns = [
-  { key: 'Category', label: 'Category' }
-] satisfies AuthoredListAttributeColumn[]
+export const creatureListAttributeColumns = [{ key: 'Category', label: 'Category' }] satisfies AuthoredListAttributeColumn[]
 
 export const creatureListSortOptions = [
   { value: 'name', label: 'Name A-Z' },

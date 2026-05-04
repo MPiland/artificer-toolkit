@@ -94,9 +94,7 @@ export function buildRaceListFilters(response: RaceListResponseDto): AuthoredLis
   ]
 }
 
-export const raceListAttributeColumns = [
-  { key: 'Category', label: 'Category' }
-] satisfies AuthoredListAttributeColumn[]
+export const raceListAttributeColumns = [{ key: 'Category', label: 'Category' }] satisfies AuthoredListAttributeColumn[]
 
 export const raceListSortOptions = [
   { value: 'name', label: 'Name A-Z' },

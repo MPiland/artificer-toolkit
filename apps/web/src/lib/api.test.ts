@@ -137,6 +137,10 @@ describe('REST api adapter', () => {
 
     const response = await createServerApi('test-token').content.spells.activateDraft('copy-spell')
 
+    if (!response) {
+      throw new Error('Expected activate draft response.')
+    }
+
     expect(response.item.label).toBe('Magic Missile Copy')
   })
 

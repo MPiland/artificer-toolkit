@@ -9,18 +9,20 @@ import {
   upsertById
 } from '../featAuthoring.utils'
 
+const generatedId = '00000000-0000-4000-8000-000000000001'
+
 describe('feat authoring helpers', () => {
   afterEach(() => {
     vi.restoreAllMocks()
   })
 
   it('creates a draft feat with editable defaults', () => {
-    vi.spyOn(crypto, 'randomUUID').mockReturnValue('generated-id')
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue(generatedId)
 
     const feat = createEmptyFeat({ systemId: 'dnd-5e-srd', userId: 'user-1' })
 
     expect(feat).toMatchObject({
-      id: 'generated-id',
+      id: generatedId,
       label: '',
       description: '',
       detail: '',
@@ -71,16 +73,16 @@ describe('feat authoring helpers', () => {
   })
 
   it('creates valid feature and charge defaults', () => {
-    vi.spyOn(crypto, 'randomUUID').mockReturnValue('generated-id')
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue(generatedId)
 
     expect(createEmptyFeature(2)).toMatchObject({
-      id: 'generated-id',
+      id: generatedId,
       label: '',
       description: '',
       order: 2
     })
     expect(createEmptyCharge()).toMatchObject({
-      id: 'generated-id',
+      id: generatedId,
       resetKind: 'LONG_REST',
       limitKind: 'FIXED_AMOUNT',
       scalingKind: 'NONE',

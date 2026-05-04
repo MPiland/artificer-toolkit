@@ -1,9 +1,9 @@
-import { globalStyle} from '@vanilla-extract/css'
+import { globalStyle } from '@vanilla-extract/css'
 import { reset } from './layers.css'
 
 globalStyle('html, body', {
   margin: 0,
-  padding: 0,
+  padding: 0
 })
 
 /**
@@ -14,9 +14,9 @@ globalStyle('html', {
     [reset]: {
       MozTextSizeAdjust: 'none',
       WebkitTextSizeAdjust: 'none',
-      textSizeAdjust: 'none',
-    },
-  },
+      textSizeAdjust: 'none'
+    }
+  }
 })
 
 /**
@@ -25,9 +25,9 @@ globalStyle('html', {
 globalStyle('a, button', {
   '@layer': {
     [reset]: {
-      cursor: 'pointer',
-    },
-  },
+      cursor: 'pointer'
+    }
+  }
 })
 
 /**
@@ -37,9 +37,9 @@ globalStyle('img', {
   '@layer': {
     [reset]: {
       maxInlineSize: '100%',
-      maxBlockSize: '100%',
-    },
-  },
+      maxBlockSize: '100%'
+    }
+  }
 })
 
 /**
@@ -48,9 +48,9 @@ globalStyle('img', {
 globalStyle('table', {
   '@layer': {
     [reset]: {
-      borderCollapse: 'collapse',
-    },
-  },
+      borderCollapse: 'collapse'
+    }
+  }
 })
 
 /**
@@ -60,9 +60,9 @@ globalStyle('table', {
 globalStyle('input, textarea', {
   '@layer': {
     [reset]: {
-      WebkitUserSelect: 'auto',
-    },
-  },
+      WebkitUserSelect: 'auto'
+    }
+  }
 })
 
 /**
@@ -71,9 +71,9 @@ globalStyle('input, textarea', {
 globalStyle('textarea', {
   '@layer': {
     [reset]: {
-      whiteSpace: 'revert',
-    },
-  },
+      whiteSpace: 'revert'
+    }
+  }
 })
 
 /**
@@ -83,9 +83,9 @@ globalStyle('meter', {
   '@layer': {
     [reset]: {
       WebkitAppearance: 'revert',
-      appearance: 'revert',
-    },
-  },
+      appearance: 'revert'
+    }
+  }
 })
 
 /**
@@ -95,9 +95,9 @@ globalStyle(':where(pre)', {
   '@layer': {
     [reset]: {
       all: 'revert',
-      boxSizing: 'border-box',
-    },
-  },
+      boxSizing: 'border-box'
+    }
+  }
 })
 
 /**
@@ -107,9 +107,9 @@ globalStyle(':where(pre)', {
 globalStyle(':where([hidden])', {
   '@layer': {
     [reset]: {
-      display: 'none',
-    },
-  },
+      display: 'none'
+    }
+  }
 })
 
 /**
@@ -127,9 +127,9 @@ globalStyle(':where([contenteditable]:not([contenteditable="false"]))', {
       WebkitUserModify: 'read-write',
       overflowWrap: 'break-word',
       WebkitLineBreak: 'after-white-space',
-      WebkitUserSelect: 'auto',
-    },
-  },
+      WebkitUserSelect: 'auto'
+    }
+  }
 })
 
 /**
@@ -139,9 +139,9 @@ globalStyle(':where([draggable="true"])', {
   '@layer': {
     [reset]: {
       // @ts-expect-error: -webkit-user-drag is a non-standard property
-      WebkitUserDrag: 'element',
-    },
-  },
+      WebkitUserDrag: 'element'
+    }
+  }
 })
 
 /**
@@ -151,7 +151,7 @@ globalStyle(':where(dialog:modal)', {
   '@layer': {
     [reset]: {
       all: 'revert',
-      boxSizing: 'border-box',
-    },
-  },
+      boxSizing: 'border-box'
+    }
+  }
 })

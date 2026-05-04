@@ -27,7 +27,7 @@ export const size = {
   'size-content-3': '60ch',
   'size-header-1': '20ch',
   'size-header-2': '25ch',
-  'size-header-3': '35ch',
+  'size-header-3': '35ch'
 } as const
 
 export const space = {
@@ -53,7 +53,7 @@ export const space = {
   'space-16': '20rem',
   'space-17': '30rem',
   'space-auto': 'auto',
-  'space-full': 'full',
+  'space-full': 'full'
 } as const
 
 export const position = {
@@ -61,7 +61,7 @@ export const position = {
   'position-25': '25%',
   'position-50': '50%',
   'position-75': '75%',
-  'position-100': '100%',
+  'position-100': '100%'
 } as const
 
 export const mediaSize = {
@@ -71,7 +71,7 @@ export const mediaSize = {
   'mediaSize-md': '768px',
   'mediaSize-lg': '1024px',
   'mediaSize-xl': '1440px',
-  'mediaSize-xxl': '1920px',
+  'mediaSize-xxl': '1920px'
 } as const
 
 export const height = {
@@ -82,7 +82,7 @@ export const height = {
   lg: '3.125rem',
   xl: '3.75rem',
   auto: 'auto',
-  full: '100%',
+  full: '100%'
 } as const
 
 export type Height = keyof typeof height

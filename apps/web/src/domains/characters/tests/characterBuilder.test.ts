@@ -266,7 +266,7 @@ describe('character builder utilities', () => {
       {
         id: 'subclass-feature-choice',
         featureId: 'subclass-feature',
-        source: { kind: 'SUBCLASS', subclassId: 'subclass-evoker', classId: 'class-wizard', classLevel: 1 },
+        source: { kind: 'SUBCLASS', subclassId: 'subclass-evoker', classLevel: 1 },
         timing: { kind: 'IMMEDIATE' }
       }
     ]
@@ -279,7 +279,7 @@ describe('character builder utilities', () => {
       },
       {
         id: 'subclass-spell-choice',
-        source: { kind: 'SUBCLASS', subclassId: 'subclass-evoker', classId: 'class-wizard', classLevel: 1 },
+        source: { kind: 'SUBCLASS', subclassId: 'subclass-evoker', classLevel: 1 },
         timing: { kind: 'IMMEDIATE' },
         spells: ['spell-burning-hands']
       }
@@ -294,7 +294,7 @@ describe('character builder utilities', () => {
       {
         id: 'subclass-resource-choice',
         resourceId: 'resource-evocation-sculpting',
-        source: { kind: 'SUBCLASS', subclassId: 'subclass-evoker', classId: 'class-wizard', classLevel: 1 },
+        source: { kind: 'SUBCLASS', subclassId: 'subclass-evoker', classLevel: 1 },
         timing: { kind: 'IMMEDIATE' }
       }
     ]

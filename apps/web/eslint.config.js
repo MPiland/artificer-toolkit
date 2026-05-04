@@ -1,5 +1,5 @@
 // For more info, see https://github.com/storybookjs/eslint-plugin-storybook#configuration-flat-config-format
-import storybook from "eslint-plugin-storybook";
+import storybook from 'eslint-plugin-storybook'
 
 // apps/web/eslint.config.ts
 import globals from 'globals'
@@ -9,7 +9,10 @@ import { globalIgnores } from 'eslint/config'
 import base from '../../eslint.config.js'
 
 // merge arrays: [...base, ...localConfigs]
-export default [...base, globalIgnores(['dist']), {
+export default [...base, globalIgnores([
+  'dist',
+  'storybook-static',
+]), {
   files: ['**/*.{ts,tsx}'],
   languageOptions: {
     ecmaVersion: 2020,
@@ -28,4 +31,4 @@ export default [...base, globalIgnores(['dist']), {
   rules: {
     'react-refresh/only-export-components': 'off',
   },
-}, ...storybook.configs["flat/recommended"]];
+}, ...storybook.configs['flat/recommended']]

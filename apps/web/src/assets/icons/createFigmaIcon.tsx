@@ -7,7 +7,7 @@ export type FigmaIconProps = {
 
 type CreateFigmaIconOptions = {
   name: string
-  slot: { x: number; y: number; width: number; height: number; viewBox: string }
+  slot: { x: number, y: number, width: number, height: number, viewBox: string }
   content: ReactNode
 }
 

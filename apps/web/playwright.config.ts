@@ -45,7 +45,8 @@ function escapeRegex(value: string) {
 function matchesProjectSelection(projectName: string, requestedProjects: Set<string>) {
   for (const projectPattern of requestedProjects) {
     const matcher = new RegExp(
-      `^${escapeRegex(projectPattern).replace(/\\\*/g, '.*').replace(/\\\?/g, '.')}$`
+      `^${escapeRegex(projectPattern).replace(/\\\*/g, '.*')
+        .replace(/\\\?/g, '.')}$`
     )
 
     if (matcher.test(projectName)) {

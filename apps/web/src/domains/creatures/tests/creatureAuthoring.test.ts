@@ -14,16 +14,18 @@ import {
   resolveCreateCreatureSystemId
 } from '../creatureAuthoring.utils'
 
+const generatedId = '00000000-0000-4000-8000-000000000001'
+
 describe('creature authoring helpers', () => {
   afterEach(() => {
     vi.restoreAllMocks()
   })
 
   it('creates editable category-driven creature drafts', () => {
-    vi.spyOn(crypto, 'randomUUID').mockReturnValue('generated-id')
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue(generatedId)
 
     expect(createEmptyCreature({ systemId: 'dnd-5e-srd', userId: 'user-1' })).toMatchObject({
-      id: 'generated-id',
+      id: generatedId,
       label: '',
       status: 'DRAFT',
       recordKind: 'STAT_BLOCK',
@@ -59,7 +61,7 @@ describe('creature authoring helpers', () => {
   })
 
   it('creates schema-valid active creature defaults when required fields are selected', () => {
-    vi.spyOn(crypto, 'randomUUID').mockReturnValue('generated-id')
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue(generatedId)
 
     const creature = normalizeCreatureForSubmit({
       ...createEmptyCreature({ systemId: 'dnd-5e-srd', userId: 'user-1' }),
@@ -77,7 +79,7 @@ describe('creature authoring helpers', () => {
     })
 
     expect(creatureAuthoredDtoSchema.parse(creature)).toMatchObject({
-      id: 'generated-id',
+      id: generatedId,
       category: 'BEAST',
       cost: {
         amount: 75,

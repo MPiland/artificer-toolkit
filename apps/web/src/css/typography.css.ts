@@ -3,7 +3,7 @@ export const fontFamily = {
     'system-ui, -apple-system, Segoe UI, Roboto, Helvetica Neue, Ubuntu, Helvetica Neue, Noto Sans, Liberation Sans, Cantarell, Noto Sans, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji, sans-serif;',
   'serif': 'ui-serif, serif;',
   'mono':
-    'Dank Mono, Operator Mono, Inconsolata, Fira Mono, ui-monospace, SF Mono, Monaco, Droid Sans Mono, Source Code Pro, monospace;',
+    'Dank Mono, Operator Mono, Inconsolata, Fira Mono, ui-monospace, SF Mono, Monaco, Droid Sans Mono, Source Code Pro, monospace;'
 }
 
 export const fontWeight = {
@@ -15,7 +15,7 @@ export const fontWeight = {
   'font-weight-6': '600',
   'font-weight-7': '700',
   'font-weight-8': '800',
-  'font-weight-9': '900',
+  'font-weight-9': '900'
 }
 
 export const lineHeight = {
@@ -25,7 +25,7 @@ export const lineHeight = {
   'font-lineheight-2': '1.375',
   'font-lineheight-3': '1.5',
   'font-lineheight-4': '1.75',
-  'font-lineheight-5': '2',
+  'font-lineheight-5': '2'
 }
 
 export const fontSize = {
@@ -39,5 +39,5 @@ export const fontSize = {
   'font-size-5': '2rem',
   'font-size-6': '2.5rem',
   'font-size-7': '3rem',
-  'font-size-8': '3.5rem',
+  'font-size-8': '3.5rem'
 }

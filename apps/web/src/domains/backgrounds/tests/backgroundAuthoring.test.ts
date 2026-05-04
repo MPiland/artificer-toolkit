@@ -16,19 +16,28 @@ import {
   upsertStartingEquipmentItem
 } from '../backgroundAuthoring.utils'
 
+const generatedId = '00000000-0000-4000-8000-000000000001'
+
+type StartingEquipmentItemDto
+  = StartingEquipmentDto['sets'][number]['groups'][number]['options'][number]['items'][number]
+type GrantedEquipmentStartingEquipmentItemDto = Extract<
+  StartingEquipmentItemDto,
+  { selectionKind: 'GRANTED', startingEquipmentKind: 'EQUIPMENT' }
+>
+
 describe('background authoring helpers', () => {
   afterEach(() => {
     vi.restoreAllMocks()
   })
 
   it('creates a draft background with editable collection defaults', () => {
-    vi.spyOn(crypto, 'randomUUID').mockReturnValue('generated-id')
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue(generatedId)
 
     const background = createEmptyBackground({ systemId: 'dnd-5e-srd', userId: 'user-1' })
 
     expect(background).toMatchObject({
       kind: 'BACKGROUND',
-      id: 'generated-id',
+      id: generatedId,
       label: '',
       status: 'DRAFT',
       details: [],
@@ -63,7 +72,7 @@ describe('background authoring helpers', () => {
   it('adds, replaces, and removes starting equipment items without pagination-style state', () => {
     const empty = createEmptyStartingEquipment()
     const withItem = addStartingEquipmentItem(empty)
-    const item = getStartingEquipmentItems(withItem)[0]
+    const item = expectEquipmentItem(getStartingEquipmentItems(withItem)[0])
 
     expect(item).toMatchObject({
       order: 1,
@@ -76,7 +85,7 @@ describe('background authoring helpers', () => {
       ...item,
       quantity: 2
     })
-    expect(getStartingEquipmentItems(replaced)[0]?.quantity).toBe(2)
+    expect(expectEquipmentItem(getStartingEquipmentItems(replaced)[0]).quantity).toBe(2)
 
     const removed = removeStartingEquipmentItem(replaced, item.id)
     expect(getStartingEquipmentItems(removed)).toEqual([])
@@ -85,14 +94,14 @@ describe('background authoring helpers', () => {
       ...item,
       quantity: 3
     })
-    expect(getStartingEquipmentItems(upserted)[0]?.quantity).toBe(3)
+    expect(expectEquipmentItem(getStartingEquipmentItems(upserted)[0]).quantity).toBe(3)
   })
 
   it('preserves every starting-equipment branch when saving one item', () => {
     const equipment = createBranchedStartingEquipment()
 
     const updated = upsertStartingEquipmentItem(equipment, {
-      ...equipment.sets[1].groups[0].options[1].items[0],
+      ...expectEquipmentItem(equipment.sets[1]?.groups[0]?.options[1]?.items[0]),
       quantity: 9
     })
 
@@ -104,7 +113,7 @@ describe('background authoring helpers', () => {
       'item-b',
       'item-c'
     ])
-    expect(updated.sets[1]?.groups[0]?.options[1]?.items[0]?.quantity).toBe(9)
+    expect(expectEquipmentItem(updated.sets[1]?.groups[0]?.options[1]?.items[0]).quantity).toBe(9)
   })
 
   it('preserves existing branches when adding a new starting-equipment item', () => {
@@ -202,4 +211,15 @@ function createBranchedStartingEquipment(): StartingEquipmentDto {
       }
     ]
   }
+}
+
+function expectEquipmentItem(item: StartingEquipmentItemDto | undefined): GrantedEquipmentStartingEquipmentItemDto {
+  expect(item?.startingEquipmentKind).toBe('EQUIPMENT')
+  if (item?.startingEquipmentKind === 'EQUIPMENT') {
+    expect(item.selectionKind).toBe('GRANTED')
+  }
+  if (!item || item.startingEquipmentKind !== 'EQUIPMENT' || item.selectionKind !== 'GRANTED') {
+    throw new Error('Expected a granted equipment starting item.')
+  }
+  return item
 }
