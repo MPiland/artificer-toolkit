@@ -196,9 +196,9 @@ function getResourceSheetConfig(params: {
 }): {
   max: number
   recovery: 'SHORT_REST' | 'LONG_REST' | 'OTHER'
-} {
+} | null {
   const definition = findResourceDefinition(params.resolution, params.resource)
-  if (!definition) return { max: 1, recovery: 'OTHER' }
+  if (!definition) return null
 
   const charge = compileCharge(definition.charges)
   return {
@@ -320,7 +320,7 @@ export async function buildCharacterSheetResponse(params: {
       }))
     },
     resources: {
-      items: resolution.grants.resources.map((resource) => {
+      items: resolution.grants.resources.flatMap((resource) => {
         const config = getResourceSheetConfig({
           character,
           proficiencyBonus,
@@ -328,17 +328,20 @@ export async function buildCharacterSheetResponse(params: {
           resource,
           totalLevel
         })
+        if (!config) return []
         const max = config.max
         const used = Math.min(resourceUsage.get(resource.id) ?? 0, max)
-        return {
-          id: resource.id,
-          label: resource.label,
-          sourceLabel: resource.sourceLabel,
-          used,
-          max,
-          remaining: Math.max(max - used, 0),
-          recovery: config.recovery
-        }
+        return [
+          {
+            id: resource.id,
+            label: resource.label,
+            sourceLabel: resource.sourceLabel,
+            used,
+            max,
+            remaining: Math.max(max - used, 0),
+            recovery: config.recovery
+          }
+        ]
       }),
       hitDice: character.state.hitpoints.hitDice.map((die) => ({
         die: die.die,
@@ -501,6 +504,55 @@ function updateSpellSlotUsage(
   })
 }
 
+function restoreResourcesForRest(
+  character: CharacterAuthored,
+  sheet: CharacterSheetResponseDto,
+  recovery: 'SHORT_REST' | 'LONG_REST'
+): CharacterAuthored {
+  const restorableResourceIds = new Set(
+    sheet.resources.items
+      .filter((resource) => resource.recovery === recovery)
+      .map((resource) => resource.id)
+  )
+  if (restorableResourceIds.size === 0) return character
+
+  return {
+    ...character,
+    state: {
+      ...character.state,
+      resources: character.state.resources?.filter((resource) => !restorableResourceIds.has(resource.resourceGrantId))
+    }
+  }
+}
+
+function restorePactSpellSlotsForShortRest(
+  character: CharacterAuthored,
+  sheet: CharacterSheetResponseDto
+): CharacterAuthored {
+  const pactSlotKeys = new Set(
+    sheet.spells.slots
+      .filter((slot) => slot.slotKey === 'PACT')
+      .map((slot) => slot.slotKey)
+  )
+  if (pactSlotKeys.size === 0) return character
+
+  return {
+    ...character,
+    state: {
+      ...character.state,
+      spellSlots: character.state.spellSlots?.filter((slot) => !pactSlotKeys.has(slot.slotKey))
+    }
+  }
+}
+
+function applyShortRestRecovery(
+  character: CharacterAuthored,
+  sheet: CharacterSheetResponseDto
+): CharacterAuthored {
+  const withResources = restoreResourcesForRest(character, sheet, 'SHORT_REST')
+  return restorePactSpellSlotsForShortRest(withResources, sheet)
+}
+
 function setOptionalText(value: string | null | undefined): string | undefined {
   return value == null || value.trim().length === 0 ? undefined : value
 }
@@ -560,6 +612,8 @@ export function applyCharacterSheetCommand(
         next.state.exhaustion = next.state.exhaustion && next.state.exhaustion.level > 0
           ? { ...next.state.exhaustion, level: next.state.exhaustion.level - 1 }
           : undefined
+      } else {
+        return clearEmptyStateArrays(applyShortRestRecovery(next, sheet))
       }
       return clearEmptyStateArrays(next)
 

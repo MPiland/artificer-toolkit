@@ -278,6 +278,51 @@ describe('character sheet command application', () => {
     expect(slotNext.state.spellSlots).toEqual([{ slotKey: 'STANDARD:1', used: 2 }])
   })
 
+  it('applies short rest recovery without clearing long-rest resources or standard slots', () => {
+    const character = createCharacter()
+    character.state.resources = [
+      { resourceGrantId: 'resource-1', used: 1 },
+      { resourceGrantId: 'long-resource', used: 1 }
+    ]
+    character.state.spellSlots = [
+      { slotKey: 'STANDARD:1', used: 1 },
+      { slotKey: 'PACT', used: 1 }
+    ]
+    const sheet = createSheet()
+    sheet.resources.items = [
+      { ...sheet.resources.items[0], recovery: 'SHORT_REST' },
+      {
+        id: 'long-resource',
+        label: 'Daily Resolve',
+        sourceLabel: 'Fighter',
+        used: 1,
+        max: 1,
+        remaining: 0,
+        recovery: 'LONG_REST'
+      }
+    ]
+    sheet.spells.slots = [
+      ...sheet.spells.slots,
+      {
+        slotKey: 'PACT',
+        label: 'Pact Magic',
+        level: null,
+        max: 1,
+        used: 1,
+        remaining: 0
+      }
+    ]
+
+    const next = applyCharacterSheetCommand(character, {
+      type: 'APPLY_REST',
+      restKind: 'SHORT',
+      expectedVersion: 1
+    }, sheet)
+
+    expect(next.state.resources).toEqual([{ resourceGrantId: 'long-resource', used: 1 }])
+    expect(next.state.spellSlots).toEqual([{ slotKey: 'STANDARD:1', used: 1 }])
+  })
+
   it('rejects commands for unavailable resources and spell slots', () => {
     expect(() => applyCharacterSheetCommand(createCharacter(), {
       type: 'USE_RESOURCE',

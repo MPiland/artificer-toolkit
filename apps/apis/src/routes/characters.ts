@@ -877,7 +877,7 @@ export const getCharacter = handleRequest(async (db, characterId: string): Promi
     repository.findAuthoredById(characterId),
     repository.findUpdatedAtById(characterId)
   ])
-  if (!character || (character.status ?? AUTHORED_RECORD_STATUS.ACTIVE) !== AUTHORED_RECORD_STATUS.ACTIVE) {
+  if (!character) {
     return null
   }
 

@@ -255,18 +255,22 @@ export function resolveCompiledChargeMaximum(
         }
         const score = context.abilities[abilityCharge.ability] ?? 10
         const raw = abilityModifier(score) * (abilityCharge.multiplier ?? 1)
-        return clampInteger(raw, abilityCharge.min, abilityCharge.max)
+        base = clampInteger(raw, abilityCharge.min, abilityCharge.max)
+        break
       }
       case 'CHARACTER_LEVEL':
-        return clampInteger(context.totalLevel * (charge.multiplier ?? 1), charge.min, charge.max)
+        base = clampInteger(context.totalLevel * (charge.multiplier ?? 1), charge.min, charge.max)
+        break
       case 'CLASS_LEVEL':
       case 'PARENT_CLASS_LEVEL':
-        return clampInteger(context.classLevel * (charge.multiplier ?? 1), charge.min, charge.max)
+        base = clampInteger(context.classLevel * (charge.multiplier ?? 1), charge.min, charge.max)
+        break
       case 'FIXED_AMOUNT':
         base = charge.amount
         break
       case 'SPELL_CAST_LEVEL':
-        return 0
+        base = 0
+        break
     }
   }
 
