@@ -54,4 +54,28 @@ describe('character list mapper', () => {
   it('summarizes active and draft rows', () => {
     expect(summarizeCharacterList(characterListFixture)).toBe('2 characters / 1 active / 1 drafts')
   })
+
+  it('summarizes active-with-draft rows as draft work', () => {
+    expect(summarizeCharacterList({
+      ...characterListFixture,
+      items: [
+        ...characterListFixture.items,
+        {
+          ...characterListFixture.items[0],
+          id: 'character-active-with-draft',
+          draft: {
+            characterId: 'character-active-with-draft',
+            userId: 'user-1',
+            systemId: characterListFixture.items[0].systemId,
+            label: 'Active With Draft',
+            status: 'DRAFT',
+            draftState: 'ACTIVE_WITH_DRAFT',
+            baseActiveUpdatedAt: '2026-05-03 10:15:30.123456+00',
+            createdAt: '2026-05-03T00:00:00.000Z',
+            updatedAt: '2026-05-03T00:00:00.000Z'
+          }
+        }
+      ]
+    })).toBe('3 characters / 1 active / 2 drafts')
+  })
 })

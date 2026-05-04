@@ -942,15 +942,15 @@ export const upsertCharacterBuilder = handleAuthoringRequest(characterBuilderCom
     throw createNamedError('NodeRuntimeInputError', 'Character cannot be finalized until all required builder choices are complete.')
   }
 
-  const [activeRow, draft] = await Promise.all([
-    repository.findById(payload.character.id),
+  const [activeUpdatedAt, draft] = await Promise.all([
+    repository.findUpdatedAtById(payload.character.id),
     draftRepository.findByCharacter({
       characterId: payload.character.id,
       userId
     })
   ])
   assertCharacterBuilderDraftRevisionFresh({
-    activeUpdatedAt: activeRow?.updated_at,
+    activeUpdatedAt,
     characterId: payload.character.id,
     draftBaseActiveUpdatedAt: draft?.baseActiveUpdatedAt,
     hasDraft: draft != null

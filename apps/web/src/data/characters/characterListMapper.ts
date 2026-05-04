@@ -92,7 +92,7 @@ export const characterListSortOptions = [
 ]
 
 export function summarizeCharacterList(response: CharacterListResponseDto) {
-  const draftCount = response.items.filter((item) => item.status === 'DRAFT').length
+  const draftCount = response.items.filter((item) => item.status === 'DRAFT' || item.draft != null).length
   const activeCount = response.items.length - draftCount
 
   return `${response.items.length} characters / ${activeCount} active / ${draftCount} drafts`

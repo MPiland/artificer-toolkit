@@ -34,6 +34,7 @@ export interface CharacterRepository {
     buildState: Json
   }): Promise<void>
   findById(id: string): Promise<CharacterRow | null>
+  findUpdatedAtById(id: string): Promise<string | null>
   findAuthoredById(id: string): Promise<CharacterAuthored | null>
   upsertAuthored(character: CharacterAuthored): Promise<void>
   updateBuildState(params: {
@@ -672,11 +673,20 @@ export function createCharacterRepository(db: DBLike): CharacterRepository {
       const row = await db
         .selectFrom('characters')
         .selectAll()
-        .select(sql<string>`updated_at::text`.as('updated_at'))
         .where('id', '=', id)
         .executeTakeFirst() as CharacterRow | undefined
 
       return row ?? null
+    },
+
+    async findUpdatedAtById(id) {
+      const row = await db
+        .selectFrom('characters')
+        .select(sql<string>`updated_at::text`.as('updated_at'))
+        .where('id', '=', id)
+        .executeTakeFirst() as Pick<CharacterRow, 'updated_at'> | undefined
+
+      return row?.updated_at ?? null
     },
 
     async findAuthoredById(id) {
