@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { AuthoredDraftDto } from '@artificer-toolkit/schema'
+import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
 import { parseAuthoredDraftPayload } from './authoredDrafts'
 
 const draftBase = {
@@ -10,7 +10,7 @@ const draftBase = {
   systemId: 'system-1',
   label: 'Fire Lace',
   status: 'DRAFT',
-  draftState: 'ACTIVE',
+  draftState: 'ACTIVE_WITH_DRAFT',
   baseActiveUpdatedAt: null,
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-01-01T00:00:00.000Z'

@@ -1,5 +1,11 @@
-import { describe, expect, it, vi, afterEach } from 'vitest'
-import { facetDtoSchema, modifierGrantDtoSchema } from '@artificer-toolkit/schema'
+import {
+  describe,
+  expect,
+  it,
+  vi,
+  afterEach } from 'vitest'
+import { facetDtoSchema } from '@artificer-toolkit/schema/shared'
+import { modifierGrantDtoSchema } from '@artificer-toolkit/schema/grants/modifier'
 import {
   createEmptyBaseEquipment,
   createEmptyModifier,
@@ -9,19 +15,23 @@ import {
   resolveCreateEquipmentSystemId
 } from '../equipmentAuthoring.utils'
 
+const generatedId = '00000000-0000-4000-8000-000000000001'
+const variantId = '00000000-0000-4000-8000-000000000002'
+const nestedId = '00000000-0000-4000-8000-000000000003'
+
 describe('equipment authoring helpers', () => {
   afterEach(() => {
     vi.restoreAllMocks()
   })
 
   it('creates editable base equipment defaults', () => {
-    vi.spyOn(crypto, 'randomUUID').mockReturnValue('generated-id')
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue(generatedId)
 
     const equipment = createEmptyBaseEquipment({ systemId: 'dnd-5e-srd' })
 
     expect(equipment).toMatchObject({
       kind: 'EQUIPMENT',
-      id: 'generated-id',
+      id: generatedId,
       label: '',
       status: 'DRAFT',
       category: 'ADVENTURING_GEAR',
@@ -31,12 +41,12 @@ describe('equipment authoring helpers', () => {
   })
 
   it('creates editable variant equipment defaults', () => {
-    vi.spyOn(crypto, 'randomUUID').mockReturnValue('variant-id')
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue(variantId)
 
     const equipment = createEmptyVariantEquipment({ systemId: 'dnd-5e-srd' })
 
     expect(equipment).toMatchObject({
-      id: 'variant-id',
+      id: variantId,
       category: 'VARIANT',
       parentEquipmentId: '',
       properties: []
@@ -69,14 +79,14 @@ describe('equipment authoring helpers', () => {
   })
 
   it('creates schema-valid restriction and modifier editor defaults', () => {
-    vi.spyOn(crypto, 'randomUUID').mockReturnValue('generated-nested-id')
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue(nestedId)
 
     expect(facetDtoSchema.parse(createEmptyRestrictions())).toMatchObject({
-      id: 'generated-nested-id',
+      id: nestedId,
       groups: []
     })
     expect(modifierGrantDtoSchema.parse(createEmptyModifier(2))).toMatchObject({
-      id: 'generated-nested-id',
+      id: nestedId,
       order: 2,
       grantKind: 'MODIFIER_GRANT',
       valueDomainCode: 'HIT_POINTS_MAX',

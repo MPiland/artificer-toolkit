@@ -1,7 +1,7 @@
 import { handleRequest, handleAuthoringRequest, createFeatGrantAuthoringService } from '@artificer-toolkit/functions'
 import { createFeatGrantRepository } from '@artificer-toolkit/db'
-import type { FeatGrantAuthored } from '@artificer-toolkit/shared'
-import { featGrantDtoSchema } from '@artificer-toolkit/schema'
+import type { FeatGrantAuthored } from '@artificer-toolkit/shared/authored'
+import { featGrantDtoSchema } from '@artificer-toolkit/schema/grants/feat'
 
 function extractId(req: Request): string {
   const url = new URL(req.url)

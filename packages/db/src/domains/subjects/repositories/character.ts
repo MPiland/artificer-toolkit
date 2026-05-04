@@ -1,4 +1,5 @@
 import type { DBLike, Json } from '#types'
+import { sql } from 'kysely'
 import {
   ADVANCEMENT_METHOD_CODE,
   CHARACTER_ABILITY_GENERATION_METHOD,
@@ -33,6 +34,8 @@ export interface CharacterRepository {
     buildState: Json
   }): Promise<void>
   findById(id: string): Promise<CharacterRow | null>
+  findUpdatedAtById(id: string): Promise<string | null>
+  findUpdatedAtByIdForUpdate(id: string): Promise<string | null>
   findAuthoredById(id: string): Promise<CharacterAuthored | null>
   upsertAuthored(character: CharacterAuthored): Promise<void>
   updateBuildState(params: {
@@ -675,6 +678,27 @@ export function createCharacterRepository(db: DBLike): CharacterRepository {
         .executeTakeFirst() as CharacterRow | undefined
 
       return row ?? null
+    },
+
+    async findUpdatedAtById(id) {
+      const row = await db
+        .selectFrom('characters')
+        .select(sql<string>`updated_at::text`.as('updated_at'))
+        .where('id', '=', id)
+        .executeTakeFirst() as Pick<CharacterRow, 'updated_at'> | undefined
+
+      return row?.updated_at ?? null
+    },
+
+    async findUpdatedAtByIdForUpdate(id) {
+      const result = await sql<Pick<CharacterRow, 'updated_at'>>`
+        select updated_at::text as updated_at
+        from characters
+        where id = ${id}
+        for update
+      `.execute(db)
+
+      return result.rows[0]?.updated_at ?? null
     },
 
     async findAuthoredById(id) {

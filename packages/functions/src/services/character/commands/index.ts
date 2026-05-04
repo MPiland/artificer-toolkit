@@ -7,8 +7,8 @@ import type {
   OwnedEquipmentInstance,
   EquippedState,
   PrerequisiteFailure
-} from '@artificer-toolkit/shared'
-import { evaluateFeatPrerequisites } from '@artificer-toolkit/shared'
+} from '@artificer-toolkit/shared/core'
+import { evaluateFeatPrerequisites } from '@artificer-toolkit/shared/core'
 
 import type {
   CreateCharacterCommand,
@@ -21,7 +21,7 @@ import type {
   AcquireEquipmentCommand,
   EquipItemCommand,
   UnequipItemCommand,
-} from '@artificer-toolkit/schema'
+} from '@artificer-toolkit/schema/domains/character/commands'
 
 /* ──────────────────────────────────────────────
  * Command handler contract

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema'
+import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import {
   AuthoringFormLayout,
   AuthoringFormProvider,
@@ -25,7 +25,7 @@ type PlatformFormStoryProps = {
   readOnly?: boolean
 }
 
-const fieldPrimitivesModel = {
+const fieldPrimitivesModel: NodeRuntimeResolveResponseDto = {
   mapId: 'storybook-form',
   clearPaths: [],
   steps: [
@@ -66,9 +66,9 @@ const fieldPrimitivesModel = {
       ]
     }
   ]
-} satisfies NodeRuntimeResolveResponseDto
+}
 
-const sectionedModel = {
+const sectionedModel: NodeRuntimeResolveResponseDto = {
   mapId: 'storybook-form',
   clearPaths: [],
   steps: [
@@ -99,9 +99,9 @@ const sectionedModel = {
       ]
     }
   ]
-} satisfies NodeRuntimeResolveResponseDto
+}
 
-const nestedCollectionModel = {
+const nestedCollectionModel: NodeRuntimeResolveResponseDto = {
   mapId: 'storybook-form',
   clearPaths: [],
   steps: [
@@ -132,7 +132,7 @@ const nestedCollectionModel = {
       ]
     }
   ]
-} satisfies NodeRuntimeResolveResponseDto
+}
 
 function FormPlatformStory({
   canCopy = false,

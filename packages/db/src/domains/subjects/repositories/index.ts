@@ -1,6 +1,7 @@
 export * from './background.js'
 export * from './authoredSubjectDraft.js'
 export * from './character.js'
+export * from './characterBuilderDraft.js'
 export * from './characterEvent.js'
 export * from './class.js'
 export * from './creature.js'

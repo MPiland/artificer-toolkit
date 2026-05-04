@@ -49,15 +49,17 @@ export function AuthPageShell({ title, description, children, variant = 'entry' 
         <div className={authHeroCopy}>
           <div>
             <h1 className={isSupport ? `${authHeroTitle} ${authHeroTitleSupport}` : authHeroTitle}>
-              {isSupport ? (
-                <>
-                  Get back to your table.
-                </>
-              ) : (
-                <>
-                  Make something worth playing.
-                </>
-              )}
+              {isSupport
+                ? (
+                    <>
+                      Get back to your table.
+                    </>
+                  )
+                : (
+                    <>
+                      Make something worth playing.
+                    </>
+                  )}
             </h1>
             <p className={authHeroSubtitle}>
               {isSupport

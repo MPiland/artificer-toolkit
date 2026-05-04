@@ -1,4 +1,4 @@
-import type { ContentRef } from '@artificer-toolkit/shared'
+import type { ContentRef } from '@artificer-toolkit/shared/core'
 
 export type ContentAccessResult = 'GRANTED' | 'DENIED' | 'REQUIRES_PURCHASE'
 

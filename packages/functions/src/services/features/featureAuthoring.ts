@@ -1,8 +1,9 @@
 import type { DBLike } from '@artificer-toolkit/db'
 import { createFeatureRepository, upsertFeature } from '@artificer-toolkit/db'
-import { featureDtoSchema } from '@artificer-toolkit/schema'
-import type { CompiledFeature, FeatureAuthored, NodeSubjectCode } from '@artificer-toolkit/shared'
-import { compileFeature } from '@artificer-toolkit/shared'
+import { featureDtoSchema } from '@artificer-toolkit/schema/features/feature'
+import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
+import type { NodeSubjectCode } from '@artificer-toolkit/shared/core'
+import { compileFeature, type CompiledFeature } from '@artificer-toolkit/shared/compilers'
 import type { RepositoryFindAllOptions } from '@artificer-toolkit/db'
 import { createFeatureAuthoringService } from './pipeline.js'
 

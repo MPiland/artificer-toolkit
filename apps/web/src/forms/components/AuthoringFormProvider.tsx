@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import type { NodeRuntimeNodeDto, NodeRuntimePathDto, NodeRuntimeSectionDto, NodeRuntimeStepDto } from '@artificer-toolkit/schema'
+import type { NodeRuntimeNodeDto, NodeRuntimePathDto, NodeRuntimeSectionDto, NodeRuntimeStepDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import {
   AuthoringFormContext,
   type AuthoringFormActionHandlers,

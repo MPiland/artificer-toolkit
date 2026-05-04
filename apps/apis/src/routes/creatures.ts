@@ -5,13 +5,15 @@ import {
   normalizeNodeRuntimeValues
 } from '@artificer-toolkit/functions'
 import { getCreatureListQuery, createCreatureRepository } from '@artificer-toolkit/db'
-import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import {
   authoredDraftActivateRequestDtoSchema,
-  authoredDraftSaveRequestDtoSchema,
+  authoredDraftSaveRequestDtoSchema
+} from '@artificer-toolkit/schema/api/content'
+import {
   creatureAuthoredDtoSchema,
   type CreatureAuthoredDto
-} from '@artificer-toolkit/schema'
+} from '@artificer-toolkit/schema/subjects/creature'
 import {
   discardAuthoredDraft,
   extractDraftSubjectIdFromRequest,

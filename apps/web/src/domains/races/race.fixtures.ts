@@ -1,9 +1,9 @@
+import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
+import type { RaceAuthoredDto } from '@artificer-toolkit/schema/subjects/race'
 import type {
-  NodeRuntimeResolveResponseDto,
-  RaceAuthoredDto,
   RaceListResponseDto,
   RaceResponseDto
-} from '@artificer-toolkit/schema'
+} from '@artificer-toolkit/schema/api/content'
 
 export const ownedBaseRaceFixture: RaceAuthoredDto = {
   id: 'dragonborn',

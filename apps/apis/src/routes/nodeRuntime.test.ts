@@ -4,7 +4,7 @@ import type {
   NodeRuntimeNormalizeValuesResponseDto,
   NodeRuntimeResolveRequestDto,
   NodeRuntimeResolveResponseDto
-} from '@artificer-toolkit/schema'
+} from '@artificer-toolkit/schema/api/nodeRuntime'
 
 type SchemaResult<TBody> =
   | { success: true, data: TBody }

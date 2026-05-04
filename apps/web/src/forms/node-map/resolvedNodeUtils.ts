@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { NodeRuntimeNodeDto, NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema'
+import type { NodeRuntimeNodeDto, NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import type { SelectOption } from '../utils/formUtils'
 
 export function getResolvedNode(

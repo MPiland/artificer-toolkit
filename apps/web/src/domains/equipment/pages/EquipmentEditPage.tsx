@@ -1,13 +1,20 @@
-import { useCallback, useMemo, useState } from 'react'
-import { Alert, Button, Stack } from '@mantine/core'
+import {
+  useCallback,
+  useMemo,
+  useState } from 'react'
+import { Alert,
+  Button,
+  Stack } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
-import { getRouteApi, useNavigate, useRouter } from '@tanstack/react-router'
-import { equipmentAuthoredDtoSchema } from '@artificer-toolkit/schema'
+import { getRouteApi,
+  useNavigate,
+  useRouter } from '@tanstack/react-router'
+import { equipmentAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/equipment'
+import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
 import type {
-  AuthoredDraftDto,
   EquipmentAuthoringInputDto,
   EquipmentAuthoredDto
-} from '@artificer-toolkit/schema'
+} from '@artificer-toolkit/schema/subjects/equipment'
 import {
   AuthoringFormLayout,
   AuthoringFormProvider,

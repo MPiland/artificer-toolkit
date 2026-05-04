@@ -21,6 +21,38 @@
     "./utils": {
       "types": "./dist/utils/index.d.ts",
       "default": "./dist/utils/index.js"
+    },
+    "./authored": {
+      "types": "./dist/barrels/authored/index.d.ts",
+      "default": "./dist/barrels/authored/index.js"
+    },
+    "./compilers": {
+      "types": "./dist/barrels/compilers/index.d.ts",
+      "default": "./dist/barrels/compilers/index.js"
+    },
+    "./core": {
+      "types": "./dist/barrels/core/index.d.ts",
+      "default": "./dist/barrels/core/index.js"
+    },
+    "./maps": {
+      "types": "./dist/barrels/maps/index.d.ts",
+      "default": "./dist/barrels/maps/index.js"
+    },
+    "./subjects/authored": {
+      "types": "./dist/domains/subjects/authored/index.d.ts",
+      "default": "./dist/domains/subjects/authored/index.js"
+    },
+    "./subjects/compilers": {
+      "types": "./dist/domains/subjects/compilers/index.d.ts",
+      "default": "./dist/domains/subjects/compilers/index.js"
+    },
+    "./subjects/core": {
+      "types": "./dist/domains/subjects/core/index.d.ts",
+      "default": "./dist/domains/subjects/core/index.js"
+    },
+    "./subjects/maps": {
+      "types": "./dist/domains/subjects/maps/index.d.ts",
+      "default": "./dist/domains/subjects/maps/index.js"
     }
   },
   "imports": {

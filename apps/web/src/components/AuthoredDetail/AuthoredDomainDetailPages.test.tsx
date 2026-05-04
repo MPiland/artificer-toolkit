@@ -1,5 +1,6 @@
 import { screen } from '@testing-library/react'
-import type { AuthoredDraftDto, SpellResponseDto } from '@artificer-toolkit/schema'
+import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
+import { SpellResponseDto } from '@artificer-toolkit/schema/api/content'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { ownedClassResponseFixture } from '#domains/classes/class.fixtures'
 import { ClassDetailPage } from '#domains/classes/pages/ClassDetailPage'

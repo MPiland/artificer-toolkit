@@ -5,14 +5,16 @@ import {
   normalizeNodeRuntimeValues
 } from '@artificer-toolkit/functions'
 import { getClassListQuery, createClassRepository } from '@artificer-toolkit/db'
-import type { ClassAuthored } from '@artificer-toolkit/shared'
+import type { ClassAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import {
   authoredDraftActivateRequestDtoSchema,
-  authoredDraftSaveRequestDtoSchema,
+  authoredDraftSaveRequestDtoSchema
+} from '@artificer-toolkit/schema/api/content'
+import {
   classAuthoringInputDtoSchema,
   classAuthoredDtoSchema,
   type ClassAuthoringInputDto
-} from '@artificer-toolkit/schema'
+} from '@artificer-toolkit/schema/subjects/class'
 import {
   assertWritableAuthoredSubject,
   discardAuthoredDraft,

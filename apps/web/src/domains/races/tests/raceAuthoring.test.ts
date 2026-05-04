@@ -11,16 +11,18 @@ import {
   upsertById
 } from '../raceAuthoring.utils'
 
+const generatedId = '00000000-0000-4000-8000-000000000001'
+
 describe('race authoring helpers', () => {
   afterEach(() => {
     vi.restoreAllMocks()
   })
 
   it('creates editable base race and subrace drafts', () => {
-    vi.spyOn(crypto, 'randomUUID').mockReturnValue('generated-id')
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue(generatedId)
 
     expect(createEmptyBaseRace({ systemId: 'dnd-5e-srd', userId: 'user-1' })).toMatchObject({
-      id: 'generated-id',
+      id: generatedId,
       label: '',
       status: 'DRAFT',
       category: 'BASE',
@@ -30,7 +32,7 @@ describe('race authoring helpers', () => {
       systemId: 'dnd-5e-srd'
     })
     expect(createEmptySubrace({ systemId: 'dnd-5e-srd', userId: 'user-1' })).toMatchObject({
-      id: 'generated-id',
+      id: generatedId,
       label: '',
       status: 'DRAFT',
       category: 'SUBRACE',
@@ -84,12 +86,12 @@ describe('race authoring helpers', () => {
   })
 
   it('creates valid nested defaults and upserts by id', () => {
-    vi.spyOn(crypto, 'randomUUID').mockReturnValue('generated-id')
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue(generatedId)
 
-    expect(createEmptyDetail(1)).toMatchObject({ id: 'generated-id', order: 1 })
-    expect(createEmptyFeature(2)).toMatchObject({ id: 'generated-id', order: 2 })
-    expect(createEmptyAncestry()).toMatchObject({ id: 'generated-id', options: [] })
-    expect(createEmptyAncestryOption(3)).toMatchObject({ id: 'generated-id', order: 3, features: [] })
+    expect(createEmptyDetail(1)).toMatchObject({ id: generatedId, order: 1 })
+    expect(createEmptyFeature(2)).toMatchObject({ id: generatedId, order: 2 })
+    expect(createEmptyAncestry()).toMatchObject({ id: generatedId, options: [] })
+    expect(createEmptyAncestryOption(3)).toMatchObject({ id: generatedId, order: 3, features: [] })
 
     const original = createEmptyFeature(1)
     const updated = { ...original, label: 'Fleet of Foot' }

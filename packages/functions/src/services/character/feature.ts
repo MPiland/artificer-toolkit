@@ -1,4 +1,4 @@
-import type { AssembledCharacterFeature } from '@artificer-toolkit/shared'
+import type { AssembledCharacterFeature } from '@artificer-toolkit/shared/core'
 
 import type { CharacterAssemblyInput } from './contract.js'
 

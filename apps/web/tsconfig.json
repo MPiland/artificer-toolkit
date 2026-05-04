@@ -49,12 +49,6 @@
       "#domains/*": [
         "./src/domains/*"
       ],
-      "#hooks": [
-        "./src/hooks/index.ts"
-      ],
-      "#utils": [
-        "./src/utils/index.ts"
-      ],
       "#routes/*": [
         "./src/routes/*"
       ],
@@ -78,9 +72,6 @@
       ],
       "#test/renderWithAppProviders": [
         "./src/test/renderWithAppProviders.tsx"
-      ],
-      "#types": [
-        "./src/types/index.ts"
       ],
       "#test/*": [
         "./src/test/*"

@@ -1,8 +1,9 @@
 import type { DBLike, RepositoryFindAllOptions } from '@artificer-toolkit/db'
 import { createRaceRepository, upsertRace } from '@artificer-toolkit/db'
-import { raceAuthoredDtoSchema } from '@artificer-toolkit/schema'
-import type { CompiledRace, RaceAuthored } from '@artificer-toolkit/shared'
-import { compileRace, RACE_CATEGORY_CODE, resolveRaceAuthored } from '@artificer-toolkit/shared'
+import { raceAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/race'
+import { RACE_CATEGORY_CODE } from '@artificer-toolkit/shared/subjects/core'
+import type { RaceAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { compileRace, resolveRaceAuthored, type CompiledRace } from '@artificer-toolkit/shared/subjects/compilers'
 import { createSubjectAuthoringService } from './pipeline.js'
 
 export interface RaceSubjectAuthoringDeps {

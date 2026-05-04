@@ -5,4 +5,4 @@
 export type {
   CharacterAssemblyRegistry,
   CharacterAssemblyRegistryFeature,
-} from '@artificer-toolkit/shared'
+} from '@artificer-toolkit/shared/core'

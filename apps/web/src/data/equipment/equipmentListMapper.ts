@@ -96,9 +96,7 @@ export function buildEquipmentListFilters(response: EquipmentListResponseDto): A
   ]
 }
 
-export const equipmentListAttributeColumns = [
-  { key: 'Category', label: 'Category' }
-] satisfies AuthoredListAttributeColumn[]
+export const equipmentListAttributeColumns = [{ key: 'Category', label: 'Category' }] satisfies AuthoredListAttributeColumn[]
 
 export const equipmentListSortOptions = [
   { value: 'name', label: 'Name A-Z' },

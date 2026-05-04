@@ -1,9 +1,10 @@
-import type { z } from 'zod'
+import type {
+  z } from 'zod'
 import type {
   AuthoredContentPermissionsDto,
-  AuthoredContentProvenanceDto,
-  AuthoredDraftDto
-} from '@artificer-toolkit/schema'
+  AuthoredContentProvenanceDto
+} from '@artificer-toolkit/schema/api/common'
+import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
 import { parseAuthoredDraftPayload } from '#app/data/authoredDrafts'
 
 export type AuthoredDetailViewMode = 'active' | 'draft' | 'invalid-draft-only' | 'missing'

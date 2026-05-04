@@ -1,9 +1,12 @@
-import { useCallback } from 'react'
+import {
+  useCallback } from 'react'
 import { notifications } from '@mantine/notifications'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation,
+  useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
-import type { QueryClient, QueryKey } from '@tanstack/react-query'
-import type { AuthoredDraftDto } from '@artificer-toolkit/schema'
+import type { QueryClient,
+  QueryKey } from '@tanstack/react-query'
+import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
 
 export function useAuthoredDetailActions({
   discard,

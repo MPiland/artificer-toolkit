@@ -3,7 +3,7 @@ import type {
   CharacterBuildSnapshot,
   CharacterAssemblyRegistry,
   EquippedState
-} from '@artificer-toolkit/shared'
+} from '@artificer-toolkit/shared/core'
 
 /**
  * Assembles a CharacterBuildSnapshot from the current CharacterBuildState

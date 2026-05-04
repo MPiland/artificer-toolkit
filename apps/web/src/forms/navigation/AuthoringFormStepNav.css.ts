@@ -59,8 +59,10 @@ export const stepButton = style({
     [app]: {
       'display': 'inline-flex',
       'alignItems': 'center',
-      'minWidth': 0,
-      'padding': 0,
+      'justifyContent': 'center',
+      'minWidth': '44px',
+      'minHeight': '32px',
+      'padding': `0 ${foundationVars.space[1]}`,
       'border': 0,
       'borderRadius': foundationVars.radius.sm,
       'backgroundColor': 'transparent',
@@ -79,6 +81,15 @@ export const stepButton = style({
       ':focus-visible': {
         boxShadow: foundationVars.shadow.focus,
         outline: 'none'
+      }
+    }
+  },
+  '@media': {
+    [mobile]: {
+      '@layer': {
+        [app]: {
+          minHeight: '44px'
+        }
       }
     }
   }

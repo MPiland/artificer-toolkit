@@ -1,17 +1,15 @@
 import type {
-  CapacityDto,
   ChargeDto,
+  FacetDto
+} from '@artificer-toolkit/schema/shared'
+import type {
+  CapacityDto,
   ContainsDto,
-  EquipmentAuthoringInputDto,
   CostDto,
-  EquipmentAuthoredDto,
-  FacetDto,
-  FeatureDto,
-  ModifierGrantDto,
   WeightDto
-} from '@artificer-toolkit/schema'
+} from '@artificer-toolkit/schema/subjects/shared'
+import type { EquipmentAuthoringInputDto } from '@artificer-toolkit/schema/subjects/equipment'
 import {
-  AUTHORING_SELECTION_KIND,
   CHARGE_LIMIT_KIND,
   CHARGE_RESET_KIND,
   EQUIPMENT_CATEGORY_CODE,
@@ -20,7 +18,13 @@ import {
   MODIFIER_SCOPE_KIND,
   MODIFIER_VALUE_SOURCE_CODE,
   VALUE_DOMAIN_CODE
-} from '@artificer-toolkit/shared'
+} from '@artificer-toolkit/shared/core'
+import type { EquipmentAuthoredDto
+} from '@artificer-toolkit/schema/subjects/equipment'
+import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
+import type { ModifierGrantDto } from '@artificer-toolkit/schema/grants/modifier'
+import {
+  AUTHORING_SELECTION_KIND } from '@artificer-toolkit/shared/core'
 
 type BaseEquipmentDto = Exclude<EquipmentAuthoringInputDto, { category: typeof EQUIPMENT_CATEGORY_CODE.VARIANT }>
 type VariantEquipmentDto = Extract<EquipmentAuthoringInputDto, { category: typeof EQUIPMENT_CATEGORY_CODE.VARIANT }>

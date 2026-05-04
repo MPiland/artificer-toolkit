@@ -1,5 +1,5 @@
 import { RichTextEditor as MantineRichTextEditor, Link } from '@mantine/tiptap'
-import { useEffect } from 'react'
+import { useEffect, useId } from 'react'
 import { useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
@@ -24,9 +24,21 @@ export interface RichTextEditorProps {
 }
 
 const RichTextEditor = ({ value, onChange, placeholder, label, required, onBlur, name, readOnly }: RichTextEditorProps) => {
+  const labelId = useId()
+  const editorAttributes: Record<string, string> = label
+    ? { 'aria-labelledby': labelId }
+    : { 'aria-label': name }
+
+  if (required) {
+    editorAttributes['aria-required'] = 'true'
+  }
+
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        link: false,
+        underline: false
+      }),
       Underline,
       Link,
       Superscript,
@@ -38,7 +50,9 @@ const RichTextEditor = ({ value, onChange, placeholder, label, required, onBlur,
             class: editor_table
           },
           resizable: true
-        }
+        },
+        tableCell: false,
+        tableHeader: false
       }),
       CustomTableHeader.configure({
         HTMLAttributes: {
@@ -54,6 +68,9 @@ const RichTextEditor = ({ value, onChange, placeholder, label, required, onBlur,
     ],
     content: value,
     editable: !readOnly,
+    editorProps: {
+      attributes: editorAttributes
+    },
     onUpdate: ({ editor }) => {
       if (!readOnly) onChange(editor.getHTML())
     },
@@ -70,7 +87,7 @@ const RichTextEditor = ({ value, onChange, placeholder, label, required, onBlur,
 
   return (
     <>
-      {label && <span>{required ? `${label} *` : label}</span>}
+      {label && <span id={labelId}>{required ? `${label} *` : label}</span>}
       <MantineRichTextEditor editor={editor}>
         {!readOnly
           ? (

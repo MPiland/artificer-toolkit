@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { ResetPasswordForm, SignInForm, SignUpForm, UpdatePasswordForm } from './components'
-import type { AuthClient } from './authClient'
+import type { AuthClient, AuthResult } from './authClient'
 
 function createAuthClient(overrides: Partial<AuthClient> = {}): AuthClient {
   return {
@@ -62,7 +62,19 @@ describe('AuthForms', () => {
   })
 
   it('passes auto-confirm signup sessions to the success handler', async () => {
-    const session = { access_token: 'token' }
+    const session = {
+      access_token: 'token',
+      refresh_token: 'refresh-token',
+      expires_in: 3600,
+      token_type: 'bearer',
+      user: {
+        id: 'user-1',
+        app_metadata: {},
+        user_metadata: {},
+        aud: 'authenticated',
+        created_at: '2026-01-01T00:00:00.000Z'
+      }
+    } satisfies NonNullable<AuthResult['session']>
     const signUp = vi.fn(async () => ({ ok: true, session }))
     const onSuccess = vi.fn()
 

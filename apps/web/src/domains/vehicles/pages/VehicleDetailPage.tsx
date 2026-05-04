@@ -1,12 +1,15 @@
-import { useState } from 'react'
-import { Alert, Button, Stack } from '@mantine/core'
-import { useNavigate } from '@tanstack/react-router'
 import {
-  vehicleAuthoringInputDtoSchema,
+  useState } from 'react'
+import { Alert,
+  Button,
+  Stack } from '@mantine/core'
+import { useNavigate } from '@tanstack/react-router'
+import { vehicleAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subjects/vehicle'
+import {
   type AuthoredDraftDto,
-  type VehicleAuthoringInputDto,
   type VehicleResponseDto
-} from '@artificer-toolkit/schema'
+} from '@artificer-toolkit/schema/api/content'
+import { type VehicleAuthoringInputDto } from '@artificer-toolkit/schema/subjects/vehicle'
 import {
   AuthoredDetailEmptyBlock,
   AuthoredDetailItemList,

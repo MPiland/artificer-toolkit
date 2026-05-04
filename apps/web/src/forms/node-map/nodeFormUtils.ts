@@ -1,4 +1,4 @@
-import type { NodeRuntimePathDto } from '@artificer-toolkit/schema'
+import type { NodeRuntimePathDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import type { DeepKeys, DeepValue, Updater } from '@tanstack/form-core'
 import { applyResolvedNodeClearPaths } from './nodeResolution'
 import { toAuthoringFieldName } from '../utils/pathUtils'

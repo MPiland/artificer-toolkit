@@ -6,7 +6,7 @@ import type {
   NodeRuntimeResolveResponseDto,
   NodeRuntimeSectionDto,
   NodeRuntimeStepDto
-} from '@artificer-toolkit/schema'
+} from '@artificer-toolkit/schema/api/nodeRuntime'
 
 export type AuthoringFormMode = 'create' | 'view' | 'edit'
 

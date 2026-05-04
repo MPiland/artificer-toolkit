@@ -1,5 +1,0 @@
-export { default as ClassSelection } from './ClassSelection'
-export { default as CharacterClasses } from './CharacterClasses'
-export { default as CharacterProficiencies } from './CharacterProficiencies'
-export { default as ClassDetail } from './ClassDetail'
-export { default as ClassSpells } from './ClassSpells'

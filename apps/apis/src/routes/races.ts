@@ -6,12 +6,14 @@ import {
 } from '@artificer-toolkit/functions'
 import { getRaceListQuery } from '@artificer-toolkit/db'
 import { createRaceRepository } from '@artificer-toolkit/db'
-import type { RaceAuthored } from '@artificer-toolkit/shared'
+import type { RaceAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import {
   authoredDraftActivateRequestDtoSchema,
-  authoredDraftSaveRequestDtoSchema,
+  authoredDraftSaveRequestDtoSchema
+} from '@artificer-toolkit/schema/api/content'
+import {
   raceAuthoredDtoSchema
-} from '@artificer-toolkit/schema'
+} from '@artificer-toolkit/schema/subjects/race'
 import {
   discardAuthoredDraft,
   extractDraftSubjectIdFromRequest,

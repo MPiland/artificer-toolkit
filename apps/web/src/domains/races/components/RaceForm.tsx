@@ -1,5 +1,7 @@
 import { useNavigate } from '@tanstack/react-router'
-import type { NodeRuntimeResolveResponseDto, RaceAuthoredDto, RaceResponseDto } from '@artificer-toolkit/schema'
+import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
+import { RaceAuthoredDto } from '@artificer-toolkit/schema/subjects/race'
+import { RaceResponseDto } from '@artificer-toolkit/schema/api/content'
 import {
   AuthoringFormLayout,
   AuthoringFormProvider,

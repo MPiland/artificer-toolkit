@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { CharacterAssemblyRegistry, CharacterBuildState } from '@artificer-toolkit/shared'
+import type { CharacterAssemblyRegistry, CharacterBuildState } from '@artificer-toolkit/shared/core'
 
 import { buildSnapshot } from './snapshotBuilder.js'
 

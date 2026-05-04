@@ -202,7 +202,7 @@ export const lightColors = {
   orange9: '#f76b15',
   orange10: '#ef5f00',
   orange11: '#cc4e00',
-  orange12: '#582d1d',
+  orange12: '#582d1d'
 }
 
 export const darkColors = {
@@ -409,5 +409,5 @@ export const darkColors = {
   orange9: '#f76b15',
   orange10: '#ff801f',
   orange11: '#ffa057',
-  orange12: '#ffe0c2',
+  orange12: '#ffe0c2'
 }

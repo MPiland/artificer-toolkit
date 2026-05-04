@@ -1,8 +1,8 @@
 import type { DBLike, RepositoryFindAllOptions } from '@artificer-toolkit/db'
 import { createSpellRepository, upsertSpell } from '@artificer-toolkit/db'
-import { spellAuthoredDtoSchema } from '@artificer-toolkit/schema'
-import type { CompiledSpell, SpellAuthored } from '@artificer-toolkit/shared'
-import { compileSpell } from '@artificer-toolkit/shared'
+import { spellAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/spell'
+import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { compileSpell, type CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import { createSubjectAuthoringService } from './pipeline.js'
 
 export interface SpellSubjectAuthoringDeps {

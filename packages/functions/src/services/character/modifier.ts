@@ -1,7 +1,7 @@
 import type {
   AssembledCharacterFeature,
   AssembledCharacterModifierGrant
-} from '@artificer-toolkit/shared'
+} from '@artificer-toolkit/shared/core'
 import type { CharacterAssemblyRegistry } from './types.js'
 
 export function assembleCharacterModifierGrants(

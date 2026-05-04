@@ -1,8 +1,13 @@
-import { Alert, Button, Stack } from '@mantine/core'
+import {
+  Alert,
+  Button,
+  Stack } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
-import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useMutation,
+  useQueryClient,
+  useSuspenseQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import type { BackgroundAuthoredDto } from '@artificer-toolkit/schema'
+import type { BackgroundAuthoredDto } from '@artificer-toolkit/schema/subjects/background'
 import { getSystemList } from '#app/data/systems/queries'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'

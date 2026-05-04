@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { NodeRuntimePathDto, NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema'
+import type { NodeRuntimePathDto, NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import { useNodeRuntimeResolve } from '#app/data/nodeRuntime/queries'
 
 export interface UseResolvedNodeModelOptions {
@@ -40,7 +40,7 @@ export function useResolvedNodeModel({
   }, [debounceMs, request])
 
   const query = useNodeRuntimeResolve(debouncedRequest, enabled)
-  const clearPathKey = query.data?.clearPaths.map((path) => path.join('.')).join('|') ?? ''
+  const clearPathKey = query.data?.clearPaths.map((path: NodeRuntimePathDto) => path.join('.')).join('|') ?? ''
 
   useEffect(() => {
     if (!onClearPaths || !query.data?.clearPaths.length) return

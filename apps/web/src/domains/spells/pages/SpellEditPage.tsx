@@ -1,11 +1,14 @@
-import { Alert, Button, Stack } from '@mantine/core'
-import { notifications } from '@mantine/notifications'
-import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
-import { useNavigate } from '@tanstack/react-router'
 import {
-  spellAuthoredDtoSchema,
-  type SpellAuthoredDto
-} from '@artificer-toolkit/schema'
+  Alert,
+  Button,
+  Stack } from '@mantine/core'
+import { notifications } from '@mantine/notifications'
+import { useMutation,
+  useQueryClient,
+  useSuspenseQuery } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
+import { spellAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/spell'
+import { type SpellAuthoredDto } from '@artificer-toolkit/schema/subjects/spell'
 import { InvalidDraftAlert } from '#forms'
 import { parseAuthoredDraftPayload } from '#app/data/authoredDrafts'
 import { getSpell, getSpellDraft } from '#app/data/spells/queries'

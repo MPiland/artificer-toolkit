@@ -12,6 +12,7 @@ export function AppSelect({
   disabled,
   comboboxProps,
   classNames,
+  clearButtonProps,
   styles,
   ...props
 }: AppSelectProps) {
@@ -19,7 +20,7 @@ export function AppSelect({
     ? {
         backgroundColor: 'var(--at-color-input-background-disabled)',
         borderColor: 'var(--at-color-input-border-disabled)',
-        color: 'var(--at-color-text-muted)'
+        color: 'var(--at-color-text-secondary)'
       }
     : {
         backgroundColor: 'var(--at-color-input-background-default)',
@@ -34,6 +35,10 @@ export function AppSelect({
       onChange={onChange}
       disabled={disabled}
       clearable={clearable}
+      clearButtonProps={{
+        'aria-label': props.label ? `Clear ${props.label}` : 'Clear selected option',
+        ...clearButtonProps
+      }}
       searchable={searchable}
       checkIconPosition='right'
       comboboxProps={{

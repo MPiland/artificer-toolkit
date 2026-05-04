@@ -8,12 +8,14 @@ import { getEquipmentListQuery } from '@artificer-toolkit/db'
 import { createEquipmentRepository } from '@artificer-toolkit/db'
 import {
   authoredDraftActivateRequestDtoSchema,
-  authoredDraftSaveRequestDtoSchema,
+  authoredDraftSaveRequestDtoSchema
+} from '@artificer-toolkit/schema/api/content'
+import {
   equipmentAuthoringInputDtoSchema,
   equipmentAuthoredDtoSchema,
   type EquipmentAuthoringInputDto
-} from '@artificer-toolkit/schema'
-import type { EquipmentAuthored, EquipmentVariantAuthored } from '@artificer-toolkit/shared'
+} from '@artificer-toolkit/schema/subjects/equipment'
+import type { EquipmentAuthored, EquipmentVariantAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import {
   discardAuthoredDraft,
   extractDraftSubjectIdFromRequest,

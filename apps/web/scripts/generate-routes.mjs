@@ -5,7 +5,7 @@ async function main() {
   const config = await getConfig()
   const generator = new Generator({
     config,
-    root: process.cwd()
+    root: process.cwd(),
   })
 
   await generator.run()

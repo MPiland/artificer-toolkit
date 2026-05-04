@@ -1,4 +1,4 @@
-import type { StartingEquipmentDto } from '@artificer-toolkit/schema'
+import type { StartingEquipmentDto } from '@artificer-toolkit/schema/shared'
 
 export type StartingEquipmentItemDto = StartingEquipmentDto['sets'][number]['groups'][number]['options'][number]['items'][number]
 

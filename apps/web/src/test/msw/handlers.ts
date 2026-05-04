@@ -66,51 +66,55 @@ function buildSpellRuntimeResponse(body: NodeRuntimeResolveRequestDto): NodeRunt
         id: 'basics',
         label: 'Basics',
         order: 10,
-        sections: [{
-          id: 'basics',
-          label: 'Basics',
-          order: 10,
-          nodes: [
-            textNode('label', ['label'], 'Name'),
-            numberNode('level', ['level'], 'Level'),
-            selectNode('classIds', ['classIds'], 'Classes', 'SELECT_MULTI', [
-              { value: 'wizard', label: 'Wizard' },
-              { value: 'sorcerer', label: 'Sorcerer' }
-            ])
-          ]
-        }]
+        sections: [
+          {
+            id: 'basics',
+            label: 'Basics',
+            order: 10,
+            nodes: [
+              textNode('label', ['label'], 'Name'),
+              numberNode('level', ['level'], 'Level'),
+              selectNode('classIds', ['classIds'], 'Classes', 'SELECT_MULTI', [
+                { value: 'wizard', label: 'Wizard' },
+                { value: 'sorcerer', label: 'Sorcerer' }
+              ])
+            ]
+          }
+        ]
       },
       {
         id: 'casting',
         label: 'Casting',
         order: 20,
-        sections: [{
-          id: 'casting',
-          label: 'Casting',
-          order: 20,
-          nodes: [
-            selectNode('magicSchoolId', ['magicSchoolId'], 'Magic School', 'SELECT_SINGLE', [
-              { value: 'evocation', label: 'Evocation' },
-              { value: 'abjuration', label: 'Abjuration' }
-            ]),
-            selectNode('attributes', ['attributes'], 'Attributes', 'SELECT_MULTI', [
-              { value: 'CONCENTRATION', label: 'Concentration' },
-              { value: 'RITUAL', label: 'Ritual' },
-              { value: 'ADDS_TO_WEAPON_ATTACK', label: 'Adds to weapon attack' }
-            ]),
-            selectNode('components', ['components'], 'Components', 'SELECT_MULTI', [
-              { value: 'VERBAL', label: 'Verbal' },
-              { value: 'SOMATIC', label: 'Somatic' },
-              { value: 'MATERIAL', label: 'Material' }
-            ]),
-            {
-              ...textNode('materialDescription', ['materialDescription'], 'Material Description'),
-              visible: hasMaterial,
-              hiddenBehavior: 'CLEAR',
-              clearPaths: hasMaterial ? [] : [['materialDescription']]
-            }
-          ]
-        }]
+        sections: [
+          {
+            id: 'casting',
+            label: 'Casting',
+            order: 20,
+            nodes: [
+              selectNode('magicSchoolId', ['magicSchoolId'], 'Magic School', 'SELECT_SINGLE', [
+                { value: 'evocation', label: 'Evocation' },
+                { value: 'abjuration', label: 'Abjuration' }
+              ]),
+              selectNode('attributes', ['attributes'], 'Attributes', 'SELECT_MULTI', [
+                { value: 'CONCENTRATION', label: 'Concentration' },
+                { value: 'RITUAL', label: 'Ritual' },
+                { value: 'ADDS_TO_WEAPON_ATTACK', label: 'Adds to weapon attack' }
+              ]),
+              selectNode('components', ['components'], 'Components', 'SELECT_MULTI', [
+                { value: 'VERBAL', label: 'Verbal' },
+                { value: 'SOMATIC', label: 'Somatic' },
+                { value: 'MATERIAL', label: 'Material' }
+              ]),
+              {
+                ...textNode('materialDescription', ['materialDescription'], 'Material Description'),
+                visible: hasMaterial,
+                hiddenBehavior: 'CLEAR',
+                clearPaths: hasMaterial ? [] : [['materialDescription']]
+              }
+            ]
+          }
+        ]
       }
     ]
   }

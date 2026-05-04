@@ -1,5 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
-import type { SpellAuthoredDto, SpellResponseDto } from '@artificer-toolkit/schema'
+import type { SpellAuthoredDto } from '@artificer-toolkit/schema/subjects/spell'
+import { SpellResponseDto } from '@artificer-toolkit/schema/api/content'
 import {
   AuthoringFormLayout,
   AuthoringFormProvider,

@@ -10,12 +10,14 @@ import {
   resolveCreateClassSystemId
 } from '../classAuthoring.utils'
 
+const generatedId = '00000000-0000-4000-8000-000000000001'
+
 describe('class authoring utilities', () => {
   it('creates draft-safe empty classes without forcing a category', () => {
-    vi.spyOn(crypto, 'randomUUID').mockReturnValue('generated-id')
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue(generatedId)
 
     expect(createEmptyClass({ systemId: 'system-1' })).toMatchObject({
-      id: 'generated-id',
+      id: generatedId,
       label: '',
       status: 'DRAFT',
       systemId: 'system-1',
@@ -72,12 +74,12 @@ describe('class authoring utilities', () => {
   })
 
   it('creates nested row defaults for common class groups', () => {
-    vi.spyOn(crypto, 'randomUUID').mockReturnValue('generated-id')
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue(generatedId)
 
-    expect(createEmptyDetail(1)).toMatchObject({ id: 'generated-id', order: 1 })
-    expect(createEmptyFeature(2)).toMatchObject({ id: 'generated-id', order: 2 })
-    expect(createEmptySpecialization(3)).toMatchObject({ id: 'generated-id', order: 3 })
-    expect(createEmptyMulticlass()).toMatchObject({ id: 'generated-id', requirementGroups: { groups: [] } })
+    expect(createEmptyDetail(1)).toMatchObject({ id: generatedId, order: 1 })
+    expect(createEmptyFeature(2)).toMatchObject({ id: generatedId, order: 2 })
+    expect(createEmptySpecialization(3)).toMatchObject({ id: generatedId, order: 3 })
+    expect(createEmptyMulticlass()).toMatchObject({ id: generatedId, requirementGroups: { groups: [] } })
   })
 
   it('requires a real system id for create mode', () => {

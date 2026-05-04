@@ -146,6 +146,14 @@ export const sectionCopy = style({
   }
 })
 
+export const mutedText = style({
+  '@layer': {
+    [app]: {
+      color: foundationVars.color.text.secondary
+    }
+  }
+})
+
 export const footer = style({
   '@layer': {
     [app]: {
@@ -198,4 +206,64 @@ globalStyle(`${section} .mantine-MultiSelect-pill`, {
   color: foundationVars.color.text.accent,
   fontSize: '11px',
   fontWeight: foundationVars.fontWeight.medium
+})
+
+globalStyle(`${root} .mantine-Button-root:disabled, ${root} .mantine-Button-root[data-disabled="true"]`, {
+  opacity: 1,
+  borderColor: foundationVars.color.input.border.disabled,
+  backgroundColor: foundationVars.color.surface.subtle,
+  color: foundationVars.color.text.secondary
+})
+
+globalStyle(`${root} .mantine-Button-root:disabled .mantine-Button-label, ${root} .mantine-Button-root[data-disabled="true"] .mantine-Button-label`, {
+  color: foundationVars.color.text.secondary
+})
+
+globalStyle(`${root} .mantine-Alert-root`, {
+  border: `1px solid ${foundationVars.color.border.subtle}`,
+  backgroundColor: foundationVars.color.surface.subtle,
+  color: foundationVars.color.text.primary
+})
+
+globalStyle(`${root} .mantine-Alert-title, ${root} .mantine-Alert-message`, {
+  color: foundationVars.color.text.primary
+})
+
+globalStyle(`${root} .mantine-Badge-root`, {
+  border: `1px solid ${foundationVars.color.border.subtle}`,
+  backgroundColor: foundationVars.color.surface.subtle,
+  color: foundationVars.color.text.primary
+})
+
+globalStyle(`${root} .mantine-Badge-label`, {
+  color: foundationVars.color.text.primary
+})
+
+globalStyle(`${root} .mantine-InputWrapper-required`, {
+  color: foundationVars.color.input.border.error
+})
+
+globalStyle(`${root} .mantine-Button-root`, {
+  '@media': {
+    [mobile]: {
+      minHeight: '44px'
+    }
+  }
+})
+
+globalStyle(`${root} .mantine-Input-input`, {
+  '@media': {
+    [mobile]: {
+      minHeight: '44px'
+    }
+  }
+})
+
+globalStyle(`${root} .mantine-InputClearButton-root`, {
+  '@media': {
+    [mobile]: {
+      minWidth: '44px',
+      minHeight: '44px'
+    }
+  }
 })

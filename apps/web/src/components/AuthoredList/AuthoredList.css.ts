@@ -51,12 +51,12 @@ export const viewToggleGroup = style({
 export const viewToggleButton = style({
   '@layer': {
     [app]: {
-      width: '34px',
-      height: '34px',
-      border: '1px solid transparent',
-      borderRadius: foundationVars.radius.sm,
-      backgroundColor: 'transparent',
-      color: foundationVars.color.text.secondary,
+      'width': '34px',
+      'height': '34px',
+      'border': '1px solid transparent',
+      'borderRadius': foundationVars.radius.sm,
+      'backgroundColor': 'transparent',
+      'color': foundationVars.color.text.secondary,
 
       ':hover': {
         borderColor: foundationVars.color.border.subtle,
@@ -101,12 +101,12 @@ globalStyle(`${viewToggleButton} svg`, {
 export const fieldInput = style({
   '@layer': {
     [app]: {
-      minHeight: '42px',
-      borderColor: foundationVars.color.input.border.default,
-      borderRadius: foundationVars.radius.md,
-      backgroundColor: foundationVars.color.input.background.default,
-      color: foundationVars.color.text.primary,
-      fontSize: foundationVars.typography.bodySm.fontSize,
+      'minHeight': '42px',
+      'borderColor': foundationVars.color.input.border.default,
+      'borderRadius': foundationVars.radius.md,
+      'backgroundColor': foundationVars.color.input.background.default,
+      'color': foundationVars.color.text.primary,
+      'fontSize': foundationVars.typography.bodySm.fontSize,
 
       ':focus': {
         borderColor: foundationVars.color.input.border.focus,
@@ -210,9 +210,9 @@ globalStyle(`${table} td:last-child`, {
 export const listRow = style({
   '@layer': {
     [app]: {
-      cursor: 'pointer',
-      outline: 'none',
-      transition: `background-color ${foundationVars.motion.fast} ease, box-shadow ${foundationVars.motion.fast} ease`,
+      'cursor': 'pointer',
+      'outline': 'none',
+      'transition': `background-color ${foundationVars.motion.fast} ease, box-shadow ${foundationVars.motion.fast} ease`,
 
       ':hover': {
         backgroundColor: foundationVars.color.card.background.hover
@@ -274,16 +274,16 @@ export const nameCell = style({
 export const itemNameButton = style({
   '@layer': {
     [app]: {
-      display: 'inline-flex',
-      maxWidth: '100%',
-      padding: 0,
-      border: 0,
-      background: 'transparent',
-      color: foundationVars.color.text.primary,
-      cursor: 'pointer',
-      font: 'inherit',
-      fontWeight: foundationVars.fontWeight.medium,
-      textAlign: 'left',
+      'display': 'inline-flex',
+      'maxWidth': '100%',
+      'padding': 0,
+      'border': 0,
+      'background': 'transparent',
+      'color': foundationVars.color.text.primary,
+      'cursor': 'pointer',
+      'font': 'inherit',
+      'fontWeight': foundationVars.fontWeight.medium,
+      'textAlign': 'left',
 
       ':hover': {
         color: foundationVars.color.text.accent
@@ -378,12 +378,12 @@ export const actionCell = style({
 export const rowActionButton = style({
   '@layer': {
     [app]: {
-      width: '34px',
-      height: '34px',
-      borderColor: foundationVars.color.button.secondary.border,
-      borderRadius: foundationVars.radius.sm,
-      backgroundColor: foundationVars.color.button.secondary.background,
-      color: foundationVars.color.button.secondary.text,
+      'width': '34px',
+      'height': '34px',
+      'borderColor': foundationVars.color.button.secondary.border,
+      'borderRadius': foundationVars.radius.sm,
+      'backgroundColor': foundationVars.color.button.secondary.background,
+      'color': foundationVars.color.button.secondary.text,
 
       ':hover': {
         borderColor: foundationVars.color.accent.border,
@@ -546,19 +546,19 @@ export const cardTitle = style({
 export const cardTitleButton = style({
   '@layer': {
     [app]: {
-      display: 'inline-block',
-      overflow: 'hidden',
-      maxWidth: '100%',
-      padding: 0,
-      border: 0,
-      background: 'transparent',
-      color: 'inherit',
-      cursor: 'pointer',
-      font: 'inherit',
-      fontWeight: 'inherit',
-      textAlign: 'left',
-      textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap',
+      'display': 'inline-block',
+      'overflow': 'hidden',
+      'maxWidth': '100%',
+      'padding': 0,
+      'border': 0,
+      'background': 'transparent',
+      'color': 'inherit',
+      'cursor': 'pointer',
+      'font': 'inherit',
+      'fontWeight': 'inherit',
+      'textAlign': 'left',
+      'textOverflow': 'ellipsis',
+      'whiteSpace': 'nowrap',
 
       ':hover': {
         color: foundationVars.color.text.accent

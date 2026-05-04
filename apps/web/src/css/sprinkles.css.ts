@@ -9,12 +9,14 @@ const responsiveProperties = defineProperties({
   'conditions': {
     mobile: {},
     tablet: { '@media': 'screen and (max-width: 1024px)' },
-    desktop: { '@media': 'screen and (min-width: 1025px)' },
+    desktop: { '@media': 'screen and (min-width: 1025px)' }
   },
   'defaultCondition': 'mobile',
   'responsiveArray': ['desktop', 'tablet', 'mobile'],
   'properties': {
-    display: ['none', 'flex', 'block', 'inline', 'inline-flex'],
+    display: [
+      'none', 'flex', 'block', 'inline', 'inline-flex'
+    ],
     flexDirection: ['row', 'column'],
     justifyContent: [
       'stretch',
@@ -25,21 +27,29 @@ const responsiveProperties = defineProperties({
       'flex-end',
       'space-around',
       'space-between',
-      'space-evenly',
+      'space-evenly'
     ],
-    justifyItems: ['stretch', 'flex-start', 'center', 'flex-end', 'baseline'],
+    justifyItems: [
+      'stretch', 'flex-start', 'center', 'flex-end', 'baseline'
+    ],
     justifySelf: ['flex-start', 'center', 'flex-end'],
-    alignItems: ['stretch', 'flex-start', 'center', 'flex-end', 'baseline'],
+    alignItems: [
+      'stretch', 'flex-start', 'center', 'flex-end', 'baseline'
+    ],
     alignSelf: ['flex-start', 'center', 'flex-end'],
-    alignContent: ['stretch', 'flex-start', 'center', 'flex-end', 'space-around', 'space-between'],
+    alignContent: [
+      'stretch', 'flex-start', 'center', 'flex-end', 'space-around', 'space-between'
+    ],
     flex: {
-      '1': '1 1 0%',
-      'auto': '1 1 0%',
-      'initial': '1 1 0%',
-      'none': 'none',
+      1: '1 1 0%',
+      auto: '1 1 0%',
+      initial: '1 1 0%',
+      none: 'none'
     },
     flexWrap: ['wrap', 'wrap-reverse', 'nowrap'],
-    position: ['static', 'fixed', 'absolute', 'relative', 'sticky'],
+    position: [
+      'static', 'fixed', 'absolute', 'relative', 'sticky'
+    ],
     paddingTop: space,
     paddingBottom: space,
     paddingLeft: space,
@@ -56,7 +66,9 @@ const responsiveProperties = defineProperties({
     left: position,
     bottom: position,
     right: position,
-    objectFit: ['contain', 'cover', 'fill', 'none', 'scale-down'],
+    objectFit: [
+      'contain', 'cover', 'fill', 'none', 'scale-down'
+    ],
     overflow: ['auto', 'hidden'],
     overflowX: ['auto', 'hidden'],
     overflowY: ['auto', 'hidden'],
@@ -71,16 +83,24 @@ const responsiveProperties = defineProperties({
     borderRightWidth: borderSize,
     borderWidth: borderSize,
     boxShadow: shadows,
-    textAlign: ['center', 'left', 'right', 'justify'],
-    whiteSpace: ['normal', 'nowrap', 'pre', 'pre-line', 'pre-wrap'],
+    textAlign: [
+      'center', 'left', 'right', 'justify'
+    ],
+    whiteSpace: [
+      'normal', 'nowrap', 'pre', 'pre-line', 'pre-wrap'
+    ]
   },
   'shorthands': {
-    p: ['paddingTop', 'paddingBottom', 'paddingLeft', 'paddingRight'],
+    p: [
+      'paddingTop', 'paddingBottom', 'paddingLeft', 'paddingRight'
+    ],
     px: ['paddingLeft', 'paddingRight'],
     py: ['paddingTop', 'paddingBottom'],
     pb: ['paddingBottom'],
     pt: ['paddingTop'],
-    m: ['marginTop', 'marginBottom', 'marginLeft', 'marginRight'],
+    m: [
+      'marginTop', 'marginBottom', 'marginLeft', 'marginRight'
+    ],
     mx: ['marginLeft', 'marginRight'],
     my: ['marginTop', 'marginBottom'],
     mt: ['marginTop'],
@@ -90,11 +110,13 @@ const responsiveProperties = defineProperties({
     w: ['width'],
     h: ['height'],
     placeItems: ['justifyContent', 'alignItems'],
-    inset: ['top', 'left', 'right', 'bottom'],
+    inset: [
+      'top', 'left', 'right', 'bottom'
+    ],
     fs: ['fontSize'],
     ta: ['textAlign'],
-    ws: ['whiteSpace'],
-  },
+    ws: ['whiteSpace']
+  }
 })
 
 export type ResponsiveValue<Value extends string | number> = ConditionalValue<typeof responsiveProperties, Value>

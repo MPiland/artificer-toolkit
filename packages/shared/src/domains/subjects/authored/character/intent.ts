@@ -19,6 +19,40 @@ export type CharacterProvenance
     | { kind: 'OPTION', acquiredParentId: string, optionId: string }
     | { kind: 'MANUAL', reason?: string }
 
+export function isSameCharacterProvenanceIdentity(
+  left: CharacterProvenance,
+  right: CharacterProvenance
+): boolean {
+  if (left.kind !== right.kind) return false
+
+  switch (left.kind) {
+    case 'CLASS':
+      return right.kind === 'CLASS' && left.classId === right.classId
+    case 'SUBCLASS':
+      return right.kind === 'SUBCLASS' && left.subclassId === right.subclassId
+    case 'RACE':
+      return right.kind === 'RACE' && left.raceId === right.raceId
+    case 'SUBRACE':
+      return right.kind === 'SUBRACE' && left.subraceId === right.subraceId
+    case 'ANCESTRY':
+      return right.kind === 'ANCESTRY'
+        && left.ancestryId === right.ancestryId
+        && left.optionId === right.optionId
+    case 'BACKGROUND':
+      return right.kind === 'BACKGROUND' && left.backgroundId === right.backgroundId
+    case 'FEAT':
+      return right.kind === 'FEAT' && left.featId === right.featId
+    case 'FEATURE':
+      return right.kind === 'FEATURE' && left.featureId === right.featureId
+    case 'OPTION':
+      return right.kind === 'OPTION'
+        && left.acquiredParentId === right.acquiredParentId
+        && left.optionId === right.optionId
+    case 'MANUAL':
+      return right.kind === 'MANUAL' && left.reason === right.reason
+  }
+}
+
 /* ──────────────────────────────────────────────
  * Timing
  * ────────────────────────────────────────────── */

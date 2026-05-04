@@ -16,7 +16,6 @@ import type {
   AuthoredListFilter,
   AuthoredListItem,
   AuthoredListPageProps,
-  AuthoredListSortOption,
   AuthoredListViewMode
 } from './AuthoredList.types'
 import * as styles from './AuthoredList.css'
@@ -107,6 +106,7 @@ export function AuthoredListPage({
   const virtualRowCount = viewMode === 'cards'
     ? Math.ceil(filteredItems.length / cardColumnCount)
     : filteredItems.length
+  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual intentionally owns virtualization callbacks here.
   const rowVirtualizer = useVirtualizer({
     count: virtualRowCount,
     getScrollElement: () => viewportRef.current,
@@ -165,7 +165,7 @@ export function AuthoredListPage({
           value={query}
           onChange={(event) => setQuery(event.currentTarget.value)}
         />
-          {filters.map((filter) => (
+        {filters.map((filter) => (
           <Select
             key={filter.key}
             label={filter.label}
@@ -407,19 +407,21 @@ function AuthoredListRow({
         <span className={`${styles.sourceDot} ${item.sourceKind === 'master' ? styles.masterDot : ''}`} />
       </Table.Td>
       <Table.Td className={styles.nameCell}>
-        {item.permissions.canView ? (
-          <button
-            aria-label={`Open ${item.name}`}
-            className={styles.itemNameButton}
-            onClick={(event) => {
-              event.stopPropagation()
-              handleView()
-            }}
-            type='button'
-          >
-            {item.name}
-          </button>
-        ) : item.name}
+        {item.permissions.canView
+          ? (
+              <button
+                aria-label={`Open ${item.name}`}
+                className={styles.itemNameButton}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  handleView()
+                }}
+                type='button'
+              >
+                {item.name}
+              </button>
+            )
+          : item.name}
       </Table.Td>
       {attributeColumns.map((column) => (
         <Table.Td key={column.key} className={styles.monoCell}>
@@ -484,19 +486,21 @@ function AuthoredListCard({
           <span className={`${styles.sourceDot} ${item.sourceKind === 'master' ? styles.masterDot : ''}`} />
           <div className={styles.cardTitleStack}>
             <h2 className={styles.cardTitle}>
-              {item.permissions.canView ? (
-                <button
-                  aria-label={`Open ${item.name}`}
-                  className={styles.cardTitleButton}
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    handleView()
-                  }}
-                  type='button'
-                >
-                  {item.name}
-                </button>
-              ) : item.name}
+              {item.permissions.canView
+                ? (
+                    <button
+                      aria-label={`Open ${item.name}`}
+                      className={styles.cardTitleButton}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        handleView()
+                      }}
+                      type='button'
+                    >
+                      {item.name}
+                    </button>
+                  )
+                : item.name}
             </h2>
             {secondaryAttribute ? <span className={styles.cardSubline}>{secondaryLabel}</span> : null}
           </div>

@@ -1,8 +1,8 @@
+import type { FeatAuthoredDto } from '@artificer-toolkit/schema/subjects/feat'
 import type {
-  FeatAuthoredDto,
   FeatListResponseDto,
   FeatResponseDto
-} from '@artificer-toolkit/schema'
+} from '@artificer-toolkit/schema/api/content'
 
 export const ownedFeatFixture: FeatAuthoredDto = {
   id: 'battlefield-reader',

@@ -1,4 +1,4 @@
-import type { NodeRuntimePathDto } from '@artificer-toolkit/schema'
+import type { NodeRuntimePathDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import type { DeepKeys, DeepKeysOfType } from '@tanstack/form-core'
 
 export function toAuthoringFieldName(

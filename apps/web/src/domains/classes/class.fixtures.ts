@@ -1,8 +1,8 @@
 import type {
   ClassListResponseDto,
-  ClassResponseDto,
-  NodeRuntimeResolveResponseDto
-} from '@artificer-toolkit/schema'
+  ClassResponseDto
+} from '@artificer-toolkit/schema/api/content'
+import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 
 export const ownedClassResponseFixture = {
   item: {

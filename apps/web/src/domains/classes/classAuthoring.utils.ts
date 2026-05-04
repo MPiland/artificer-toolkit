@@ -1,24 +1,28 @@
 import type {
   ChargeDto,
+  StartingEquipmentDto
+} from '@artificer-toolkit/schema/shared'
+import type {
   ClassAuthoringInputDto,
-  ClassAuthoredDto,
+  ClassSpellcastingDto
+} from '@artificer-toolkit/schema/subjects/class'
+import type {
   ClassMulticlassDto,
   ClassResourceDto,
   ClassSpecializationDto,
   ClassSpellLimitDto,
-  ClassSpellcastingDto,
-  ClassStartingGoldDto,
-  DetailDto,
-  FeatureDto,
-  ProficiencyGrantDto,
-  StartingEquipmentDto
-} from '@artificer-toolkit/schema'
+  ClassStartingGoldDto
+} from '@artificer-toolkit/schema/subjects/shared'
+import type { DetailDto } from '@artificer-toolkit/schema/shared'
+import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
+import type { ProficiencyGrantDto } from '@artificer-toolkit/schema/grants'
 import {
   ABILITY_CODE,
   CHARGE_LIMIT_KIND,
   CHARGE_RESET_KIND,
   CLASS_CATEGORY
-} from '@artificer-toolkit/shared'
+} from '@artificer-toolkit/shared/core'
+import type { ClassAuthoredDto } from '@artificer-toolkit/schema/subjects/class'
 import { createEmptyStartingEquipment } from '#components/editors'
 
 export type ClassFormValues = ClassAuthoringInputDto

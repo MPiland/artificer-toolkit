@@ -88,7 +88,9 @@ describe('REST api adapter', () => {
   it('duplicates an authored detail as a sidecar draft copy', async () => {
     expect.assertions(6)
     server.use(
-      http.get(`${API_BASE}/content/spells/magic-missile`, () => HttpResponse.json(spellDetail)),
+      http.get(`${API_BASE}/content/spells/magic-missile`, () => HttpResponse.json(spellDetail))
+    )
+    server.use(
       http.post(`${API_BASE}/content/spells/draft`, async ({ request }) => {
         const body = await request.json() as {
           subjectKind: string
@@ -135,7 +137,20 @@ describe('REST api adapter', () => {
 
     const response = await createServerApi('test-token').content.spells.activateDraft('copy-spell')
 
+    if (!response) {
+      throw new Error('Expected activate draft response.')
+    }
+
     expect(response.item.label).toBe('Magic Missile Copy')
+  })
+
+  it('tolerates empty successful DELETE responses', async () => {
+    expect.assertions(1)
+    server.use(
+      http.delete(`${API_BASE}/characters/character-1/builder-draft`, () => new HttpResponse(null, { status: 200 }))
+    )
+
+    await expect(createServerApi('test-token').characters.discardDraft('character-1')).resolves.toBeUndefined()
   })
 
   it('resolves node runtime models through the REST adapter', async () => {
@@ -148,27 +163,33 @@ describe('REST api adapter', () => {
         return HttpResponse.json({
           mapId: 'spell',
           clearPaths: [],
-          steps: [{
-            id: 'basics',
-            label: 'Basics',
-            order: 10,
-            sections: [{
+          steps: [
+            {
               id: 'basics',
               label: 'Basics',
               order: 10,
-              nodes: [{
-                id: 'magicSchoolId',
-                path: ['magicSchoolId'],
-                label: 'Magic School',
-                kind: 'INPUT',
-                type: 'SELECT_SINGLE',
-                visible: true,
-                required: false,
-                clearPaths: [],
-                options: [{ value: 'evocation', label: 'Evocation' }]
-              }]
-            }]
-          }]
+              sections: [
+                {
+                  id: 'basics',
+                  label: 'Basics',
+                  order: 10,
+                  nodes: [
+                    {
+                      id: 'magicSchoolId',
+                      path: ['magicSchoolId'],
+                      label: 'Magic School',
+                      kind: 'INPUT',
+                      type: 'SELECT_SINGLE',
+                      visible: true,
+                      required: false,
+                      clearPaths: [],
+                      options: [{ value: 'evocation', label: 'Evocation' }]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
         })
       })
     )

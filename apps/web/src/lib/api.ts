@@ -4,10 +4,6 @@ import {
   backgroundListResponseDtoSchema,
   backgroundResponseDtoSchema,
   authoredDraftDtoSchema,
-  characterBuilderPreviewPayloadDtoSchema,
-  characterBuilderPayloadDtoSchema,
-  characterListResponseDtoSchema,
-  characterSheetResponseDtoSchema,
   classListResponseDtoSchema,
   classResponseDtoSchema,
   creatureListResponseDtoSchema,
@@ -18,70 +14,85 @@ import {
   featResponseDtoSchema,
   featureListResponseDtoSchema,
   featureResponseDtoSchema,
-  nodeRuntimeNormalizeValuesResponseDtoSchema,
-  nodeRuntimeResolveResponseDtoSchema,
   raceListResponseDtoSchema,
   raceResponseDtoSchema,
   spellListResponseDtoSchema,
   spellResponseDtoSchema,
-  systemListResponseDtoSchema,
-  systemResponseDtoSchema,
   vehicleListResponseDtoSchema,
   vehicleResponseDtoSchema,
-  type BackgroundAuthoredDto,
   type AuthoredDraftDto,
   type AuthoredDraftSaveRequestDto,
   type AuthoredSubjectKindDto,
   type BackgroundListItemDto,
   type BackgroundListResponseDto,
   type BackgroundResponseDto,
-  type CharacterBuilderPayloadDto,
-  type CharacterBuilderPreviewPayloadDto,
-  type CharacterBuilderResolveRequestDto,
-  type CharacterBuilderSaveRequestDto,
-  type CharacterCommandUnion,
-  type CharacterDraftRequestDto,
-  type CharacterListItemDto,
-  type CharacterListResponseDto,
-  type CharacterSheetResponseDto,
-  type ClassAuthoringInputDto,
   type ClassListItemDto,
   type ClassListResponseDto,
   type ClassResponseDto,
-  type CreatureAuthoredDto,
   type CreatureListItemDto,
   type CreatureListResponseDto,
   type CreatureResponseDto,
-  type EquipmentAuthoringInputDto,
   type EquipmentListItemDto,
   type EquipmentListResponseDto,
   type EquipmentResponseDto,
-  type FeatAuthoredDto,
   type FeatListItemDto,
   type FeatListResponseDto,
   type FeatResponseDto,
-  type FeatureDto,
   type FeatureListItemDto,
   type FeatureListResponseDto,
   type FeatureResponseDto,
-  type RaceAuthoredDto,
-  type NodeRuntimeNormalizeValuesRequestDto,
-  type NodeRuntimeNormalizeValuesResponseDto,
-  type NodeRuntimeResolveRequestDto,
-  type NodeRuntimeResolveResponseDto,
   type RaceListItemDto,
   type RaceListResponseDto,
   type RaceResponseDto,
-  type SpellAuthoredDto,
   type SpellListItemDto,
   type SpellListResponseDto,
   type SpellResponseDto,
-  type SystemListItemDto,
-  type VehicleAuthoringInputDto,
   type VehicleListItemDto,
   type VehicleListResponseDto,
   type VehicleResponseDto
-} from '@artificer-toolkit/schema'
+} from '@artificer-toolkit/schema/api/content'
+import {
+  characterBuilderDraftDtoSchema,
+  characterBuilderPreviewPayloadDtoSchema,
+  characterBuilderPayloadDtoSchema,
+  characterListResponseDtoSchema,
+  characterSheetResponseDtoSchema,
+  type CharacterBuilderPayloadDto,
+  type CharacterBuilderFormDto,
+  type CharacterBuilderDraftDto,
+  type CharacterBuilderDraftSaveRequestDto,
+  type CharacterBuilderCommitRequestDto,
+  type CharacterBuilderPreviewPayloadDto,
+  type CharacterBuilderResolveRequestDto,
+  type CharacterBuilderSaveRequestDto,
+  type CharacterDraftRequestDto,
+  type CharacterListItemDto,
+  type CharacterListResponseDto,
+  type CharacterSheetResponseDto
+} from '@artificer-toolkit/schema/api/characters'
+import {
+  nodeRuntimeNormalizeValuesResponseDtoSchema,
+  nodeRuntimeResolveResponseDtoSchema,
+  type NodeRuntimeNormalizeValuesRequestDto,
+  type NodeRuntimeNormalizeValuesResponseDto,
+  type NodeRuntimeResolveRequestDto,
+  type NodeRuntimeResolveResponseDto
+} from '@artificer-toolkit/schema/api/nodeRuntime'
+import {
+  systemListResponseDtoSchema,
+  systemResponseDtoSchema,
+  type SystemListItemDto
+} from '@artificer-toolkit/schema/api/systems'
+import type { CharacterCommandUnion } from '@artificer-toolkit/schema/domains/character/commands'
+import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
+import type { BackgroundAuthoredDto } from '@artificer-toolkit/schema/subjects/background'
+import type { ClassAuthoringInputDto } from '@artificer-toolkit/schema/subjects/class'
+import type { CreatureAuthoredDto } from '@artificer-toolkit/schema/subjects/creature'
+import type { EquipmentAuthoringInputDto } from '@artificer-toolkit/schema/subjects/equipment'
+import type { FeatAuthoredDto } from '@artificer-toolkit/schema/subjects/feat'
+import type { RaceAuthoredDto } from '@artificer-toolkit/schema/subjects/race'
+import type { SpellAuthoredDto } from '@artificer-toolkit/schema/subjects/spell'
+import type { VehicleAuthoringInputDto } from '@artificer-toolkit/schema/subjects/vehicle'
 
 export type {
   AuthoredDraftDto,
@@ -91,6 +102,10 @@ export type {
   BackgroundListResponseDto,
   BackgroundResponseDto,
   CharacterBuilderPayloadDto,
+  CharacterBuilderFormDto,
+  CharacterBuilderDraftDto,
+  CharacterBuilderDraftSaveRequestDto,
+  CharacterBuilderCommitRequestDto,
   CharacterBuilderPreviewPayloadDto,
   CharacterBuilderResolveRequestDto,
   CharacterBuilderSaveRequestDto,
@@ -216,7 +231,12 @@ async function apiFetch(
     return undefined
   }
 
-  return response.json()
+  const text = await response.text()
+  if (!text.trim()) {
+    return undefined
+  }
+
+  return JSON.parse(text)
 }
 
 function parseResponse<TSchema extends z.ZodTypeAny>(
@@ -332,10 +352,13 @@ function buildApi(getJwt: (() => Promise<string | null>) | string | null) {
       list: () => get('/characters', characterListResponseDtoSchema),
       draft: (input: CharacterDraftRequestDto) => post('/characters/draft', characterBuilderPayloadDtoSchema, input),
       get: (id: string) => get(`/characters/${id}`, characterBuilderPayloadDtoSchema.nullable()),
+      getDraft: (id: string) => get(`/characters/${id}/builder-draft`, characterBuilderDraftDtoSchema.nullable()),
+      saveDraft: (id: string, input: CharacterBuilderDraftSaveRequestDto) => post(`/characters/${id}/builder-draft`, characterBuilderDraftDtoSchema, input),
+      discardDraft: (id: string) => del(`/characters/${id}/builder-draft`),
       sheet: (id: string) => get(`/characters/${id}/sheet`, characterSheetResponseDtoSchema.nullable()),
       resolve: (input: CharacterBuilderResolveRequestDto) => post('/characters/resolve', characterBuilderPayloadDtoSchema, input),
       previewSave: (input: CharacterBuilderSaveRequestDto) => post('/characters/preview-save', characterBuilderPreviewPayloadDtoSchema, input),
-      upsert: (input: CharacterBuilderSaveRequestDto) => post('/characters/upsert', characterBuilderPayloadDtoSchema, input),
+      upsert: (input: CharacterBuilderCommitRequestDto) => post('/characters/upsert', characterBuilderPayloadDtoSchema, input),
       history: (id: string) => get(`/characters/${id}/history`, characterHistoryResponseSchema),
       command: (id: string, input: CharacterCommandUnion) => post(`/characters/${id}/commands`, z.void(), input)
     },

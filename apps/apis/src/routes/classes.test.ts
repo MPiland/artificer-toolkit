@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AuthoredSubjectDraft, DBLike } from '@artificer-toolkit/db'
 import type {
   AuthoredDraftActivateRequestDto,
-  AuthoredDraftSaveRequestDto,
-  ClassAuthoringInputDto
-} from '@artificer-toolkit/schema'
+  AuthoredDraftSaveRequestDto
+} from '@artificer-toolkit/schema/api/content'
+import type { ClassAuthoringInputDto } from '@artificer-toolkit/schema/subjects/class'
 
 type SchemaResult<TBody>
   = | { success: true, data: TBody }

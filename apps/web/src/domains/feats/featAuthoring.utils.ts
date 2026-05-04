@@ -1,4 +1,6 @@
-import type { ChargeDto, FeatAuthoredDto, FeatureDto } from '@artificer-toolkit/schema'
+import type { ChargeDto } from '@artificer-toolkit/schema/shared'
+import type { FeatAuthoredDto } from '@artificer-toolkit/schema/subjects/feat'
+import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 
 export type FeatFormStep = 'basics' | 'requirements' | 'mechanics' | 'features'
 

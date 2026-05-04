@@ -1,4 +1,4 @@
-import type { NodeMap } from '@artificer-toolkit/shared'
+import type { NodeMap } from '@artificer-toolkit/shared/maps'
 import {
   BACKGROUND_NODE_MAP,
   CLASS_NODE_MAP,
@@ -11,7 +11,7 @@ import {
   SPELL_NODE_MAP,
   STARTING_EQUIPMENT_NODE_MAP,
   VEHICLE_NODE_MAP
-} from '@artificer-toolkit/shared'
+} from '@artificer-toolkit/shared/maps'
 
 export type RuntimeNodeMap = NodeMap<Record<string, unknown>>
 

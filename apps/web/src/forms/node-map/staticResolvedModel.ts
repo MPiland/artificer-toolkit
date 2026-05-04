@@ -3,7 +3,7 @@ import type {
   NodeRuntimeOptionDto,
   NodeRuntimePathDto,
   NodeRuntimeResolveResponseDto
-} from '@artificer-toolkit/schema'
+} from '@artificer-toolkit/schema/api/nodeRuntime'
 import {
   BACKGROUND_DETAIL_NODE_MAP,
   CAPACITY_NODE_MAP,
@@ -27,12 +27,14 @@ import {
   FEAT_NODE_MAP,
   RACE_NODE_MAP,
   SPELL_NODE_MAP,
-  resolveNodeMapSteps,
   type NodeEntry,
-  type SectionedNodeGroup,
-  type SteppedNodeGroup,
   type NodeMap
-} from '@artificer-toolkit/shared'
+} from '@artificer-toolkit/shared/maps'
+import {
+  resolveNodeMapSteps,
+  type SectionedNodeGroup,
+  type SteppedNodeGroup
+} from '@artificer-toolkit/shared/utils'
 
 type StaticNodeMap = NodeMap<Record<string, unknown>>
 

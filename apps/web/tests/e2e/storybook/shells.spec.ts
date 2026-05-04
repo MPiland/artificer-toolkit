@@ -336,6 +336,27 @@ test('class locked master story is duplicate-only', async ({ page }) => {
   await storyExpect(page.getByRole('button', { name: 'Activate Class' })).toHaveCount(0)
 })
 
+test('character list story renders active and draft builder rows', async ({ page }) => {
+  await openStory(page, 'domains-characters-list--default')
+
+  await storyExpect(page.getByRole('heading', { name: 'Characters' })).toBeVisible()
+  await storyExpect(page.getByRole('row', { name: /astra vale/i })).toBeVisible()
+  await storyExpect(page.getByRole('row', { name: /untitled character/i })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: 'Create Character' })).toBeVisible()
+})
+
+test('character builder story moves through source-local builder steps', async ({ page }) => {
+  await openStory(page, 'domains-characters-builder--edit-ready-character')
+
+  await storyExpect(page.getByRole('heading', { name: 'Basics', level: 2 })).toBeVisible()
+  await storyExpect(page.getByRole('textbox', { name: 'Character Name' })).toHaveValue('Astra Vale')
+  await page.getByRole('button', { name: 'Next' }).click()
+  await storyExpect(page.getByRole('heading', { name: 'Race', level: 2 })).toBeVisible()
+  await storyExpect(page.getByRole('textbox', { name: 'Race', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Review' }).click()
+  await storyExpect(page.getByText('Ready to finalize')).toBeVisible()
+})
+
 test('theme toggle story switches between light and dark', async ({ page }) => {
   await openStory(page, 'ui-primitives-themetoggle--default')
 
