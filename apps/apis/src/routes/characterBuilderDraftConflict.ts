@@ -53,15 +53,17 @@ function toComparableRevision(value: RevisionTimestamp): string | null {
 
 export function assertCharacterBuilderDraftRevisionFresh(params: {
   activeUpdatedAt: RevisionTimestamp
+  baseActiveUpdatedAt: RevisionTimestamp
   characterId: string
-  draftBaseActiveUpdatedAt: RevisionTimestamp
-  hasDraft: boolean
+  shouldCheckRevision: boolean
 }): void {
   const activeUpdatedAt = toComparableRevision(params.activeUpdatedAt)
   if (activeUpdatedAt == null) return
 
-  const draftBaseActiveUpdatedAt = toComparableRevision(params.draftBaseActiveUpdatedAt)
-  if (!params.hasDraft || draftBaseActiveUpdatedAt == null || draftBaseActiveUpdatedAt !== activeUpdatedAt) {
+  if (!params.shouldCheckRevision) return
+
+  const baseActiveUpdatedAt = toComparableRevision(params.baseActiveUpdatedAt)
+  if (baseActiveUpdatedAt == null || baseActiveUpdatedAt !== activeUpdatedAt) {
     throw new CharacterBuilderDraftConflictError(params.characterId)
   }
 }

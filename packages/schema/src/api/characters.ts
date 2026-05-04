@@ -404,7 +404,9 @@ export const characterBuilderSaveRequestDtoSchema = z.object({
 export const characterBuilderCommitRequestDtoSchema = z.object({
   character: characterAuthoredDtoSchema,
   mode: characterBuilderModeDtoSchema,
-  targetStatus: z.literal('ACTIVE').optional()
+  targetStatus: z.literal('ACTIVE').optional(),
+  baseActiveUpdatedAt: z.string().nullable()
+    .optional()
 })
 
 export const characterSheetResponseDtoSchema = z.object({

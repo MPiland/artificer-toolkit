@@ -949,11 +949,12 @@ export const upsertCharacterBuilder = handleAuthoringRequest(characterBuilderCom
       userId
     })
   ])
+  const baseActiveUpdatedAt = draft?.baseActiveUpdatedAt ?? body.baseActiveUpdatedAt ?? null
   assertCharacterBuilderDraftRevisionFresh({
     activeUpdatedAt,
+    baseActiveUpdatedAt,
     characterId: payload.character.id,
-    draftBaseActiveUpdatedAt: draft?.baseActiveUpdatedAt,
-    hasDraft: draft != null
+    shouldCheckRevision: draft != null || body.baseActiveUpdatedAt != null
   })
 
   await repository.upsertAuthored(payload.character)

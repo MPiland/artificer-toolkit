@@ -170,7 +170,8 @@ function CharacterEditAuthoring({
       const response = await commitMutation.mutateAsync({
         character: normalizeCharacterForCommit(form.state.values),
         mode: 'edit',
-        targetStatus: AUTHORED_RECORD_STATUS.ACTIVE
+        targetStatus: AUTHORED_RECORD_STATUS.ACTIVE,
+        baseActiveUpdatedAt
       })
       notifications.show({ color: 'green', message: 'Character finalized.' })
       await router.invalidate()
