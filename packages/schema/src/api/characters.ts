@@ -713,7 +713,7 @@ export const characterSheetCommandInputDtoSchema = z.discriminatedUnion('type', 
   characterSheetCommandBaseDtoSchema.extend({
     type: z.literal('ADJUST_CURRENCY'),
     currencyId: z.string(),
-    amount: z.number(),
+    amount: z.number().int(),
     containerId: z.string().optional()
   }),
   characterSheetCommandBaseDtoSchema.extend({

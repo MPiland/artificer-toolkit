@@ -487,6 +487,72 @@ describe('character sheet command application', () => {
     }, sheet)).toThrow(CharacterSheetCommandError)
   })
 
+  it('moves prepared spells out of learned state to avoid duplicate persisted rows', () => {
+    const character = createCharacter()
+    character.state.classes = [
+      {
+        classId: 'class-1',
+        spells: {
+          learned: ['spell-1', 'spell-2']
+        }
+      }
+    ]
+    character.intent.spellSelections = [
+      {
+        id: 'spell-selection-1',
+        source: { kind: 'CLASS', classId: 'class-1' },
+        timing: { kind: 'IMMEDIATE' },
+        spells: ['spell-1', 'spell-2']
+      }
+    ]
+
+    const next = applyCharacterSheetCommand(character, {
+      type: 'SET_PREPARED_SPELLS',
+      classId: 'class-1',
+      spellIds: ['spell-1', 'spell-1'],
+      expectedVersion: 1
+    }, createSheet())
+
+    expect(next.state.classes).toEqual([
+      {
+        classId: 'class-1',
+        spells: {
+          learned: ['spell-2'],
+          prepared: ['spell-1']
+        }
+      }
+    ])
+  })
+
+  it('treats already prepared spells as known for future preparation updates', () => {
+    const character = createCharacter()
+    character.state.classes = [
+      {
+        classId: 'class-1',
+        spells: {
+          prepared: ['spell-1']
+        }
+      }
+    ]
+    character.intent.spellSelections = []
+
+    const next = applyCharacterSheetCommand(character, {
+      type: 'SET_PREPARED_SPELLS',
+      classId: 'class-1',
+      spellIds: ['spell-1'],
+      expectedVersion: 1
+    }, createSheet())
+
+    expect(next.state.classes).toEqual([
+      {
+        classId: 'class-1',
+        spells: {
+          prepared: ['spell-1']
+        }
+      }
+    ])
+  })
+
   it('derives resource maximums and recovery from class resource charges', async () => {
     const character = createCharacter()
     character.intent.classes = [{ classId: 'class-1', subclassId: 'subclass-1', classLevel: 3 }]

@@ -179,6 +179,7 @@ function getKnownSpellIdsForClass(character: CharacterAuthored, classId: string)
   const classIntent = character.intent.classes.find((row) => row.classId === classId)
   const classState = character.state.classes?.find((row) => row.classId === classId)
   for (const spellId of classState?.spells?.learned ?? []) known.add(spellId)
+  for (const spellId of classState?.spells?.prepared ?? []) known.add(spellId)
 
   for (const selection of character.intent.spellSelections ?? []) {
     if (selection.source.kind === 'CLASS' && selection.source.classId === classId) {
@@ -732,21 +733,29 @@ export function applyCharacterSheetCommand(
       if (!next.intent.classes.some((classIntent) => classIntent.classId === command.classId)) {
         throw new CharacterSheetCommandError(`Class "${command.classId}" is not on this character.`)
       }
+      const preparedSpellIds = [...new Set(command.spellIds)]
       const knownSpellIds = getKnownSpellIdsForClass(next, command.classId)
-      const unavailableSpell = command.spellIds.find((spellId) => !knownSpellIds.has(spellId))
+      const unavailableSpell = preparedSpellIds.find((spellId) => !knownSpellIds.has(spellId))
       if (unavailableSpell) throw new CharacterSheetCommandError(`Spell "${unavailableSpell}" is not available for class "${command.classId}".`)
       const existing = next.state.classes ?? []
+      const currentClassState = existing.find((classState) => classState.classId === command.classId)
       const otherClasses = existing.filter((classState) => classState.classId !== command.classId)
-      next.state.classes = [
-        ...otherClasses,
-        {
-          classId: command.classId,
-          spells: {
-            learned: existing.find((classState) => classState.classId === command.classId)?.spells?.learned,
-            prepared: command.spellIds
-          }
-        }
-      ]
+      const preparedSpellIdSet = new Set(preparedSpellIds)
+      const learned = (currentClassState?.spells?.learned ?? [])
+        .filter((spellId) => !preparedSpellIdSet.has(spellId))
+      const spells = {
+        learned: learned.length ? learned : undefined,
+        prepared: preparedSpellIds.length ? preparedSpellIds : undefined
+      }
+      next.state.classes = spells.learned || spells.prepared
+        ? [
+            ...otherClasses,
+            {
+              classId: command.classId,
+              spells
+            }
+          ]
+        : otherClasses
       return clearEmptyStateArrays(next)
     }
 
