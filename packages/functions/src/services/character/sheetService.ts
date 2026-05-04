@@ -730,13 +730,16 @@ export function applyCharacterSheetCommand(
     case 'REMOVE_INVENTORY_ITEM': {
       const existingItem = ensureInventoryItem(next, command.itemId)
       const quantityToRemove = command.quantity ?? existingItem.quantity
-      next.state.equipment.inventory = quantityToRemove >= existingItem.quantity
+      const removesEntireStack = quantityToRemove >= existingItem.quantity
+      next.state.equipment.inventory = removesEntireStack
         ? next.state.equipment.inventory.filter((item) => item.id !== command.itemId)
         : next.state.equipment.inventory.map((item) => item.id === command.itemId
             ? { ...item, quantity: item.quantity - quantityToRemove }
             : item)
-      next.state.equipment.equipped = next.state.equipment.equipped.filter((itemId) => itemId !== command.itemId)
-      next.state.equipment.attuned = next.state.equipment.attuned.filter((itemId) => itemId !== command.itemId)
+      if (removesEntireStack) {
+        next.state.equipment.equipped = next.state.equipment.equipped.filter((itemId) => itemId !== command.itemId)
+        next.state.equipment.attuned = next.state.equipment.attuned.filter((itemId) => itemId !== command.itemId)
+      }
       return clearEmptyStateArrays(next)
     }
 

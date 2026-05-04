@@ -151,4 +151,28 @@ describe('Character Sheet sections', () => {
       expectedVersion: 5
     })
   })
+
+  it('does not pin calculated max HP when saving settings without an override', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn()
+
+    renderWithAppProviders(
+      <CharacterSheetOverview
+        pending={false}
+        sheet={createSheet()}
+        submitCommand={submitCommand}
+      />
+    )
+
+    await user.clear(screen.getByLabelText(/temp hp/i))
+    await user.type(screen.getByLabelText(/temp hp/i), '5')
+    await user.click(screen.getByRole('button', { name: /save hp settings/i }))
+
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'SET_HIT_POINTS',
+      temp: 5,
+      maxOverride: null,
+      expectedVersion: 4
+    })
+  })
 })

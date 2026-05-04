@@ -354,6 +354,24 @@ describe('character sheet command application', () => {
     }, createSheet())).toThrow(CharacterSheetCommandError)
   })
 
+  it('keeps equipped and attuned flags when partially removing an inventory stack', () => {
+    const character = createCharacter()
+    character.state.equipment.inventory = [{ id: 'item-1', equipmentId: 'equipment-1', quantity: 3 }]
+    character.state.equipment.equipped = ['item-1']
+    character.state.equipment.attuned = ['item-1']
+
+    const next = applyCharacterSheetCommand(character, {
+      type: 'REMOVE_INVENTORY_ITEM',
+      itemId: 'item-1',
+      quantity: 1,
+      expectedVersion: 1
+    }, createSheet())
+
+    expect(next.state.equipment.inventory).toEqual([{ id: 'item-1', equipmentId: 'equipment-1', quantity: 2 }])
+    expect(next.state.equipment.equipped).toEqual(['item-1'])
+    expect(next.state.equipment.attuned).toEqual(['item-1'])
+  })
+
   it('validates system-backed condition, equipment, and currency options', () => {
     expect(() => applyCharacterSheetCommand(createCharacter(), {
       type: 'ADD_CONDITION',

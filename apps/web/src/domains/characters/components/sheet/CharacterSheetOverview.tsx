@@ -12,7 +12,7 @@ function CharacterSheetHpControls({
 }: CharacterSheetSectionProps & { version: number }) {
   const [hitPointDelta, setHitPointDelta] = useState(1)
   const [tempHitPoints, setTempHitPoints] = useState(sheet.overview.tempHitPoints)
-  const [maxOverride, setMaxOverride] = useState(sheet.overview.maxHitPointsOverride ?? sheet.overview.maxHitPoints)
+  const [maxOverride, setMaxOverride] = useState<string | number>(sheet.overview.maxHitPointsOverride ?? '')
 
   return (
     <div className={styles.hpControls}>
@@ -54,8 +54,9 @@ function CharacterSheetHpControls({
       <NumberInput
         label='Max HP override'
         min={0}
+        placeholder={String(sheet.overview.maxHitPoints)}
         value={maxOverride}
-        onChange={(value) => setMaxOverride(toNumber(value))}
+        onChange={setMaxOverride}
       />
       <Button
         disabled={pending}
@@ -63,7 +64,7 @@ function CharacterSheetHpControls({
         onClick={() => submitCommand({
           type: 'SET_HIT_POINTS',
           temp: tempHitPoints,
-          maxOverride,
+          maxOverride: maxOverride === '' ? null : toNumber(maxOverride),
           expectedVersion: version
         })}
       >
