@@ -35,17 +35,22 @@ export function handleRequest<TArgs extends unknown[], TResult>(
 
         return new Response(JSON.stringify(result), {
           status: 200,
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json' }
         })
       } finally {
         await db.destroy()
       }
     } catch (err) {
       if (err instanceof Error && err.name === 'AuthoredDraftNotFoundError') {
-        return new Response(
-          JSON.stringify({ error: err.message }),
-          { status: 404, headers: { 'Content-Type': 'application/json' } }
-        )
+        return new Response(JSON.stringify({ error: err.message }), { status: 404, headers: { 'Content-Type': 'application/json' } })
+      }
+
+      if (err instanceof Error && err.name === 'NotFoundError') {
+        return new Response(JSON.stringify({ error: err.message }), { status: 404, headers: { 'Content-Type': 'application/json' } })
+      }
+
+      if (err instanceof Error && err.name === 'AuthoredContentOwnershipError') {
+        return new Response(JSON.stringify({ error: err.message }), { status: 403, headers: { 'Content-Type': 'application/json' } })
       }
 
       console.error(err)

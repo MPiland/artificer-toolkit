@@ -1026,15 +1026,22 @@ export const dispatchCommand = handleAuthoringRequest(characterSheetCommandInput
   return executeCharacterSheetCommand({ db, characterId, command, userId })
 })
 
-export const getCharacterHistory = handleRequest(async (db, characterId: string): Promise<CharacterHistoryResponseDto> => {
+export const getCharacterHistory = handleRequest(async (db, characterId: string, userId: string): Promise<CharacterHistoryResponseDto> => {
+  const character = await createCharacterRepository(db).findAuthoredById(characterId)
+  if (!character) {
+    throw createNamedError('NotFoundError', `Character "${characterId}" was not found.`)
+  }
+  if (character.userId !== userId) {
+    throw createNamedError('AuthoredContentOwnershipError', `Character "${characterId}" cannot be viewed by the current user.`)
+  }
   const events = await createCharacterEventRepository(db).listByCharacter(characterId)
   return buildCharacterHistoryView(events)
-}, (req: Request) => {
+}, (req: Request, userId: string) => {
   const url = new URL(req.url)
   const segments = url.pathname.split('/').filter(Boolean)
   const historyIdx = segments.lastIndexOf('history')
   const characterId = historyIdx > 0 ? segments[historyIdx - 1] : extractId(req)
-  return [characterId] as [string]
+  return [characterId, userId] as [string, string]
 })
 
 export { ConcurrencyError }

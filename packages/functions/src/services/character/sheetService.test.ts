@@ -376,6 +376,46 @@ describe('character sheet command application', () => {
     }, createSheet())).toThrow(CharacterSheetCommandError)
   })
 
+  it('validates prepared spells against the selected class spell list', () => {
+    const character = createCharacter()
+    character.intent.classes = [
+      { classId: 'class-1', classLevel: 1 },
+      { classId: 'class-2', classLevel: 1 }
+    ]
+    character.intent.spellSelections = [
+      {
+        id: 'spell-selection-1',
+        source: { kind: 'CLASS', classId: 'class-1' },
+        timing: { kind: 'IMMEDIATE' },
+        spells: ['spell-1']
+      },
+      {
+        id: 'spell-selection-2',
+        source: { kind: 'CLASS', classId: 'class-2' },
+        timing: { kind: 'IMMEDIATE' },
+        spells: ['spell-2']
+      }
+    ]
+    const sheet = createSheet()
+    sheet.spells.spells = [
+      ...sheet.spells.spells,
+      {
+        id: 'spell-2',
+        label: 'Cure Wounds',
+        level: 1,
+        prepared: false,
+        known: true
+      }
+    ]
+
+    expect(() => applyCharacterSheetCommand(character, {
+      type: 'SET_PREPARED_SPELLS',
+      classId: 'class-1',
+      spellIds: ['spell-2'],
+      expectedVersion: 1
+    }, sheet)).toThrow(CharacterSheetCommandError)
+  })
+
   it('derives resource maximums and recovery from class resource charges', async () => {
     const character = createCharacter()
     character.intent.classes = [{ classId: 'class-1', subclassId: 'subclass-1', classLevel: 3 }]

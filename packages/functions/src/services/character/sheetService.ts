@@ -135,6 +135,28 @@ function getPreparedAndKnownSpellIds(character: CharacterAuthored): {
   return { learned, prepared }
 }
 
+function getKnownSpellIdsForClass(character: CharacterAuthored, classId: string): Set<string> {
+  const known = new Set<string>()
+  const classIntent = character.intent.classes.find((row) => row.classId === classId)
+  const classState = character.state.classes?.find((row) => row.classId === classId)
+  for (const spellId of classState?.spells?.learned ?? []) known.add(spellId)
+
+  for (const selection of character.intent.spellSelections ?? []) {
+    if (selection.source.kind === 'CLASS' && selection.source.classId === classId) {
+      for (const spellId of selection.spells) known.add(spellId)
+    }
+
+    if (
+      selection.source.kind === 'SUBCLASS'
+      && classIntent?.subclassId === selection.source.subclassId
+    ) {
+      for (const spellId of selection.spells) known.add(spellId)
+    }
+  }
+
+  return known
+}
+
 function findResourceDefinition(
   resolution: CharacterBuilderResolution,
   resource: CharacterBuilderResolution['grants']['resources'][number]
@@ -671,9 +693,9 @@ export function applyCharacterSheetCommand(
       if (!next.intent.classes.some((classIntent) => classIntent.classId === command.classId)) {
         throw new CharacterSheetCommandError(`Class "${command.classId}" is not on this character.`)
       }
-      const knownSpellIds = new Set(sheet.spells.spells.map((spell) => spell.id))
+      const knownSpellIds = getKnownSpellIdsForClass(next, command.classId)
       const unavailableSpell = command.spellIds.find((spellId) => !knownSpellIds.has(spellId))
-      if (unavailableSpell) throw new CharacterSheetCommandError(`Spell "${unavailableSpell}" is not available on this character.`)
+      if (unavailableSpell) throw new CharacterSheetCommandError(`Spell "${unavailableSpell}" is not available for class "${command.classId}".`)
       const existing = next.state.classes ?? []
       const otherClasses = existing.filter((classState) => classState.classId !== command.classId)
       next.state.classes = [
