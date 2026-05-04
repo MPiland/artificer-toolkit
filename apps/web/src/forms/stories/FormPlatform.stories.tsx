@@ -172,13 +172,7 @@ const formPlatformDefaults: PlatformFormValues = {
 }
 
 const FormPlatformRenderer = createAuthoringFormRenderer({
-  defaultValues: formPlatformDefaults,
-  groupDefaultValues: {},
-  createArrayItem: (_node, currentLength) => ({
-    id: crypto.randomUUID(),
-    order: currentLength + 1
-  }),
-  createObjectItem: () => ({})
+  defaultValues: formPlatformDefaults
 })
 
 const FormPlatformContent = withForm({

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { DBLike, NodeRuntimeQueryRow } from '@artificer-toolkit/db'
 import { normalizeNodeRuntimeValues, resolveNodeRuntime } from './nodeRuntimeService.js'
+import { listRuntimeNodeMapIds } from './mapRegistry.js'
 
 const unusedDb = {} as DBLike
 const nodeRuntimeQueryMock = vi.hoisted(() => ({
@@ -16,6 +17,35 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
 })
 
 describe('node runtime service', () => {
+  it('registers active parent and child node maps used by authored forms', () => {
+    expect(listRuntimeNodeMapIds()).toEqual(expect.arrayContaining([
+      'background',
+      'charges',
+      'class',
+      'classResource',
+      'contains',
+      'creature',
+      'effect',
+      'equipment',
+      'facet',
+      'feat',
+      'feature',
+      'featureGrants',
+      'modifierGrant',
+      'modifierGrantDomain',
+      'modifierGrantPayload',
+      'option',
+      'proficiencyGrant',
+      'race',
+      'raceAncestry',
+      'raceAncestryOption',
+      'spell',
+      'startingEquipment',
+      'startingEquipmentItem',
+      'vehicle'
+    ]))
+  })
+
   it('resolves visibility, requiredness, and inline options from a trusted map', async () => {
     const result = await resolveNodeRuntime(unusedDb, {
       mapId: 'proficiencyGrant',
@@ -140,6 +170,46 @@ describe('node runtime service', () => {
       attributes: ['SPELLCASTER']
     })
     expect(result.clearedPaths).toContainEqual(['attributes'])
+  })
+
+  it('resolves parent-scoped nested maps from parentValues', async () => {
+    const result = await resolveNodeRuntime(unusedDb, {
+      mapId: 'modifierGrantDomain',
+      values: {},
+      parentValues: {
+        valueDomainCode: 'SKILL_MODIFIER'
+      }
+    })
+
+    const flattened = result.steps.flatMap((step) => step.sections).flatMap((section) => section.nodes)
+    expect(flattened.find((node) => node.id === 'skillId')).toMatchObject({
+      visible: true
+    })
+    expect(flattened.find((node) => node.id === 'ability')).toMatchObject({
+      visible: false
+    })
+  })
+
+  it('resolves ancestor-scoped nested maps from ancestors', async () => {
+    const result = await resolveNodeRuntime(unusedDb, {
+      mapId: 'featGrantLevel',
+      values: {
+        authoringModeKind: 'ALL'
+      },
+      parentValues: {
+        scalingSource: 'CHARACTER_LEVEL'
+      },
+      ancestors: [
+        {
+          selectionKind: 'CHOSEN'
+        }
+      ]
+    })
+
+    const flattened = result.steps.flatMap((step) => step.sections).flatMap((section) => section.nodes)
+    expect(flattened.find((node) => node.id === 'count')).toMatchObject({
+      visible: true
+    })
   })
 
   it('rejects unknown map ids safely', async () => {

@@ -23,7 +23,7 @@ import {
   CLASS_CATEGORY
 } from '@artificer-toolkit/shared/core'
 import type { ClassAuthoredDto } from '@artificer-toolkit/schema/subjects/class'
-import { createEmptyStartingEquipment } from '#components/editors'
+import { createEmptyStartingEquipment } from '#forms'
 
 export type ClassFormValues = ClassAuthoringInputDto
 

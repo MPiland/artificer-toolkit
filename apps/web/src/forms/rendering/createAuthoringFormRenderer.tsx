@@ -11,6 +11,11 @@ import { getVisibleAuthoringSteps, useAuthoringResolvedModel } from '../hooks/us
 import { requiredArray, requiredNumber, requiredSelect, requiredString, validatorsFor } from '../validation/formValidation'
 import { withFieldGroup, withForm } from '../app-form/AppForm'
 import {
+  createDefaultAuthoringArrayItem,
+  createDefaultAuthoringObjectItem,
+  type AuthoringGroupValues
+} from './authoringNodeDefaults'
+import {
   getAuthoringFieldValue,
   prefixRuntimePaths,
   toTypedAuthoringArrayFieldName,
@@ -21,6 +26,7 @@ import { fieldGrid, formShell, sectionStack, wideField } from '../components/for
 import * as styles from '../layout/AuthoringFormLayout.css'
 
 const EMPTY_CLEAR_PATHS: readonly NodeRuntimePathDto[] = []
+const EMPTY_ANCESTORS: readonly Record<string, unknown>[] = []
 
 type ActiveGroupNode = {
   node: NodeRuntimeNodeDto
@@ -39,45 +45,46 @@ type SharedRendererProps = {
 }
 
 type GroupRendererProps = {
+  ancestors?: readonly Record<string, unknown>[]
   debounceMs?: number
   mapId: string
+  parentValues?: Record<string, unknown>
   readOnly?: boolean
   resolveModel?: boolean
   systemId?: string
 }
 
-type AuthoringGroupValues = Record<string, unknown>
-
 export type CreateAuthoringFormRendererOptions<
   TValues extends object
 > = {
-  createArrayItem: (node: NodeRuntimeNodeDto, currentLength: number) => AuthoringGroupValues
-  createObjectItem: (node: NodeRuntimeNodeDto) => AuthoringGroupValues
   defaultValues: TValues
-  groupDefaultValues: AuthoringGroupValues
 }
 
 export function createAuthoringFormRenderer<TValues extends object>({
-  createArrayItem,
-  createObjectItem,
-  defaultValues,
-  groupDefaultValues
+  defaultValues
 }: CreateAuthoringFormRendererOptions<TValues>) {
   const GroupRenderer = withFieldGroup({
-    defaultValues: groupDefaultValues,
+    defaultValues: {} as AuthoringGroupValues,
     props: {} as GroupRendererProps,
     render: function AuthoringGroupRenderer({
+      ancestors = EMPTY_ANCESTORS,
       debounceMs = 100,
       group,
       mapId,
+      parentValues,
       readOnly,
       resolveModel = true,
       systemId
     }) {
       const values = useStore(group.store, (state) => toResolvedNodeValues(state.values))
+      const childAncestors = useMemo(() => (
+        parentValues ? [parentValues, ...ancestors] : ancestors
+      ), [ancestors, parentValues])
       const { model: activeModel } = useAuthoringResolvedModel({
+        ancestors,
         debounceMs,
         mapId,
+        parentValues,
         resolveModel,
         systemId,
         values
@@ -143,7 +150,7 @@ export function createAuthoringFormRenderer<TValues extends object>({
                                               onClick={() => {
                                                 const nextIndex = items.length
                                                 field.pushValue(
-                                                  createArrayItem(node, nextIndex) as Parameters<typeof field.pushValue>[0]
+                                                  createDefaultAuthoringArrayItem(node, nextIndex) as Parameters<typeof field.pushValue>[0]
                                                 )
                                                 setActiveEditor({ node, path: [...node.path, nextIndex], readOnly: nodeReadOnly })
                                               }}
@@ -185,7 +192,7 @@ export function createAuthoringFormRenderer<TValues extends object>({
                                     ? () => {
                                         if (field.state.value === undefined || field.state.value === null) {
                                           field.handleChange((current: unknown) => (
-                                            current ?? createObjectItem(node)
+                                            current ?? createDefaultAuthoringObjectItem(node)
                                           ) as typeof current)
                                         }
                                         setActiveEditor({ node, path: node.path, readOnly: nodeReadOnly })
@@ -289,7 +296,9 @@ export function createAuthoringFormRenderer<TValues extends object>({
                   <GroupRenderer
                     form={group}
                     fields={toTypedAuthoringGroupFieldName<AuthoringGroupValues, AuthoringGroupValues>(undefined, activeEditor.path)}
+                    ancestors={childAncestors}
                     mapId={activeEditor.node.childMapId}
+                    parentValues={values}
                     readOnly={activeEditor.readOnly}
                     resolveModel={resolveModel}
                     systemId={systemId}
@@ -427,7 +436,7 @@ export function createAuthoringFormRenderer<TValues extends object>({
                                               onClick={() => {
                                                 const nextIndex = items.length
                                                 field.pushValue(
-                                                  createArrayItem(node, nextIndex) as Parameters<typeof field.pushValue>[0]
+                                                  createDefaultAuthoringArrayItem(node, nextIndex) as Parameters<typeof field.pushValue>[0]
                                                 )
                                                 setActiveEditor({ node, path: [...node.path, nextIndex], readOnly: nodeReadOnly })
                                               }}
@@ -468,7 +477,7 @@ export function createAuthoringFormRenderer<TValues extends object>({
                                   onOpen={node.childMapId
                                     ? () => {
                                         if (field.state.value === undefined || field.state.value === null) {
-                                          field.handleChange((current) => (current ?? createObjectItem(node)) as typeof current)
+                                          field.handleChange((current) => (current ?? createDefaultAuthoringObjectItem(node)) as typeof current)
                                         }
                                         setActiveEditor({ node, path: node.path, readOnly: nodeReadOnly })
                                       }
@@ -571,7 +580,9 @@ export function createAuthoringFormRenderer<TValues extends object>({
                   <GroupRenderer
                     form={form}
                     fields={toTypedAuthoringGroupFieldName<TValues, AuthoringGroupValues>(resolvedFieldPathPrefix, activeEditor.path)}
+                    ancestors={EMPTY_ANCESTORS}
                     mapId={activeEditor.node.childMapId}
+                    parentValues={values}
                     readOnly={activeEditor.readOnly}
                     resolveModel={resolvedResolveModel}
                     systemId={resolvedSystemId}

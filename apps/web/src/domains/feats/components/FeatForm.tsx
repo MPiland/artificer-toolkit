@@ -5,10 +5,10 @@ import {
   AuthoringFormLayout,
   AuthoringFormProvider,
   clearResolvedNodeFormPaths,
+  type EffectEditorReferenceData,
   useAppForm,
   useAuthoringFormRegistration
 } from '#forms'
-import type { EffectEditorReferenceData } from '#components/editors'
 import {
   createEmptyFeat,
   normalizeFeatForSubmit
