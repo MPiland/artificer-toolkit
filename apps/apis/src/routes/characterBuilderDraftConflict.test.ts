@@ -23,6 +23,24 @@ describe('character builder draft conflict guard', () => {
     })).not.toThrow()
   })
 
+  it('allows equivalent ISO and PostgreSQL timestamp strings', () => {
+    expect(() => assertCharacterBuilderDraftRevisionFresh({
+      activeUpdatedAt: '2026-05-03 10:15:30+00',
+      characterId: 'character-active',
+      draftBaseActiveUpdatedAt: '2026-05-03T10:15:30Z',
+      hasDraft: true
+    })).not.toThrow()
+  })
+
+  it('allows equivalent offset timestamps without dropping fractional precision', () => {
+    expect(() => assertCharacterBuilderDraftRevisionFresh({
+      activeUpdatedAt: '2026-05-03 10:15:30.123456+00',
+      characterId: 'character-active',
+      draftBaseActiveUpdatedAt: '2026-05-03T05:15:30.123456-05:00',
+      hasDraft: true
+    })).not.toThrow()
+  })
+
   it('rejects finalization when the active revision changed after the draft was saved', () => {
     expect(() => assertCharacterBuilderDraftRevisionFresh({
       activeUpdatedAt: '2026-05-03T10:16:30.000Z',
