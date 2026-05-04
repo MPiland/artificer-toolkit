@@ -4,15 +4,81 @@ import * as styles from './characterSheet.css'
 import type { CharacterSheetSectionProps } from './CharacterSheet.types'
 import { formatSigned, toNumber } from './characterSheet.utils'
 
+function CharacterSheetHpControls({
+  pending,
+  sheet,
+  submitCommand,
+  version
+}: CharacterSheetSectionProps & { version: number }) {
+  const [hitPointDelta, setHitPointDelta] = useState(1)
+  const [tempHitPoints, setTempHitPoints] = useState(sheet.overview.tempHitPoints)
+  const [maxOverride, setMaxOverride] = useState(sheet.overview.maxHitPointsOverride ?? sheet.overview.maxHitPoints)
+
+  return (
+    <div className={styles.hpControls}>
+      <NumberInput
+        label='Amount'
+        min={0}
+        value={hitPointDelta}
+        onChange={(value) => setHitPointDelta(toNumber(value))}
+      />
+      <Button
+        disabled={pending}
+        onClick={() => submitCommand({
+          type: 'ADJUST_HIT_POINTS',
+          amount: hitPointDelta,
+          mode: 'DAMAGE',
+          expectedVersion: version
+        })}
+      >
+        Apply Damage
+      </Button>
+      <Button
+        disabled={pending}
+        variant='default'
+        onClick={() => submitCommand({
+          type: 'ADJUST_HIT_POINTS',
+          amount: hitPointDelta,
+          mode: 'HEAL',
+          expectedVersion: version
+        })}
+      >
+        Heal
+      </Button>
+      <NumberInput
+        label='Temp HP'
+        min={0}
+        value={tempHitPoints}
+        onChange={(value) => setTempHitPoints(toNumber(value))}
+      />
+      <NumberInput
+        label='Max HP override'
+        min={0}
+        value={maxOverride}
+        onChange={(value) => setMaxOverride(toNumber(value))}
+      />
+      <Button
+        disabled={pending}
+        variant='default'
+        onClick={() => submitCommand({
+          type: 'SET_HIT_POINTS',
+          temp: tempHitPoints,
+          maxOverride,
+          expectedVersion: version
+        })}
+      >
+        Save HP Settings
+      </Button>
+    </div>
+  )
+}
+
 export function CharacterSheetOverview({
   pending,
   sheet,
   submitCommand
 }: CharacterSheetSectionProps) {
   const version = sheet.meta.streamVersion
-  const [hitPointDelta, setHitPointDelta] = useState(1)
-  const [tempHitPoints, setTempHitPoints] = useState(sheet.overview.tempHitPoints)
-  const [maxOverride, setMaxOverride] = useState(sheet.overview.maxHitPointsOverride ?? sheet.overview.maxHitPoints)
   const [conditionTypeId, setConditionTypeId] = useState<string | null>(null)
 
   return (
@@ -47,61 +113,13 @@ export function CharacterSheetOverview({
         </div>
       </div>
 
-      <div className={styles.hpControls}>
-        <NumberInput
-          label='Amount'
-          min={0}
-          value={hitPointDelta}
-          onChange={(value) => setHitPointDelta(toNumber(value))}
-        />
-        <Button
-          disabled={pending}
-          onClick={() => submitCommand({
-            type: 'ADJUST_HIT_POINTS',
-            amount: hitPointDelta,
-            mode: 'DAMAGE',
-            expectedVersion: version
-          })}
-        >
-          Apply Damage
-        </Button>
-        <Button
-          disabled={pending}
-          variant='default'
-          onClick={() => submitCommand({
-            type: 'ADJUST_HIT_POINTS',
-            amount: hitPointDelta,
-            mode: 'HEAL',
-            expectedVersion: version
-          })}
-        >
-          Heal
-        </Button>
-        <NumberInput
-          label='Temp HP'
-          min={0}
-          value={tempHitPoints}
-          onChange={(value) => setTempHitPoints(toNumber(value))}
-        />
-        <NumberInput
-          label='Max HP override'
-          min={0}
-          value={maxOverride}
-          onChange={(value) => setMaxOverride(toNumber(value))}
-        />
-        <Button
-          disabled={pending}
-          variant='default'
-          onClick={() => submitCommand({
-            type: 'SET_HIT_POINTS',
-            temp: tempHitPoints,
-            maxOverride,
-            expectedVersion: version
-          })}
-        >
-          Save HP Settings
-        </Button>
-      </div>
+      <CharacterSheetHpControls
+        key={version}
+        pending={pending}
+        sheet={sheet}
+        submitCommand={submitCommand}
+        version={version}
+      />
 
       <div className={styles.abilityGrid}>
         {sheet.overview.abilities.map((ability) => (

@@ -890,7 +890,9 @@ export const getCharacterSheet = handleRequest(async (db, characterId: string): 
     repository.findById(characterId),
     repository.findAuthoredById(characterId)
   ])
-  if (!character) return null
+  if (!character || (character.status ?? AUTHORED_RECORD_STATUS.ACTIVE) !== AUTHORED_RECORD_STATUS.ACTIVE) {
+    return null
+  }
 
   const draft = await createCharacterBuilderDraftRepository(db).findByCharacter({
     characterId,

@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
 import type { CharacterSheetResponseDto } from '#app/lib/api'
@@ -110,6 +110,45 @@ describe('Character Sheet sections', () => {
       currencyId: 'currency-1',
       amount: 1,
       expectedVersion: 4
+    })
+  })
+
+  it('resyncs HP setting inputs when refreshed sheet data changes', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn()
+    const refreshedSheet = createSheet()
+    refreshedSheet.meta.streamVersion = 5
+    refreshedSheet.overview.tempHitPoints = 1
+    refreshedSheet.overview.maxHitPoints = 18
+    refreshedSheet.overview.maxHitPointsOverride = 18
+
+    const { rerender } = renderWithAppProviders(
+      <CharacterSheetOverview
+        pending={false}
+        sheet={createSheet()}
+        submitCommand={submitCommand}
+      />
+    )
+
+    await user.clear(screen.getByLabelText(/temp hp/i))
+    await user.type(screen.getByLabelText(/temp hp/i), '9')
+
+    rerender(
+      <CharacterSheetOverview
+        pending={false}
+        sheet={refreshedSheet}
+        submitCommand={submitCommand}
+      />
+    )
+
+    await waitFor(() => expect(screen.getByLabelText(/temp hp/i)).toHaveValue('1'))
+    await user.click(screen.getByRole('button', { name: /save hp settings/i }))
+
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'SET_HIT_POINTS',
+      temp: 1,
+      maxOverride: 18,
+      expectedVersion: 5
     })
   })
 })

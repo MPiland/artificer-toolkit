@@ -8,6 +8,10 @@ import {
   AUTHORED_RECORD_STATUS,
   type CharacterEvent
 } from '@artificer-toolkit/shared/core'
+import {
+  compileCharge,
+  resolveCompiledChargeMaximum
+} from '@artificer-toolkit/shared/compilers'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type {
   CharacterHistoryEntryDto,
@@ -130,8 +134,82 @@ function getPreparedAndKnownSpellIds(character: CharacterAuthored): {
   return { learned, prepared }
 }
 
-function getResourceMaximum(_character: CharacterAuthored, _resourceGrantId: string): number {
-  return 1
+function findResourceDefinition(
+  resolution: CharacterBuilderResolution,
+  resource: CharacterBuilderResolution['grants']['resources'][number]
+) {
+  switch (resource.source.kind) {
+    case 'CLASS': {
+      const source = resource.source
+      const record = resolution.registry.classes.find((candidate) => candidate.id === source.classId)
+      return record?.resources?.id === resource.id ? record.resources : undefined
+    }
+    case 'SUBCLASS': {
+      const source = resource.source
+      const record = resolution.registry.classes.find((candidate) => candidate.id === source.subclassId)
+      return record?.resources?.id === resource.id ? record.resources : undefined
+    }
+    default:
+      return undefined
+  }
+}
+
+function getResourceClassLevel(
+  character: CharacterAuthored,
+  resource: CharacterBuilderResolution['grants']['resources'][number]
+): number {
+  switch (resource.source.kind) {
+    case 'CLASS': {
+      const source = resource.source
+      return source.classLevel
+        ?? character.intent.classes.find((row) => row.classId === source.classId)?.classLevel
+        ?? 1
+    }
+    case 'SUBCLASS': {
+      const source = resource.source
+      return source.classLevel
+        ?? character.intent.classes.find((row) => row.subclassId === source.subclassId)?.classLevel
+        ?? 1
+    }
+    default:
+      return 1
+  }
+}
+
+function getResourceRecovery(resetKind: string): 'SHORT_REST' | 'LONG_REST' | 'OTHER' {
+  switch (resetKind) {
+    case 'SHORT_REST':
+      return 'SHORT_REST'
+    case 'LONG_REST':
+      return 'LONG_REST'
+    default:
+      return 'OTHER'
+  }
+}
+
+function getResourceSheetConfig(params: {
+  character: CharacterAuthored
+  proficiencyBonus: number
+  resolution: CharacterBuilderResolution
+  resource: CharacterBuilderResolution['grants']['resources'][number]
+  totalLevel: number
+}): {
+  max: number
+  recovery: 'SHORT_REST' | 'LONG_REST' | 'OTHER'
+} {
+  const definition = findResourceDefinition(params.resolution, params.resource)
+  if (!definition) return { max: 1, recovery: 'OTHER' }
+
+  const charge = compileCharge(definition.charges)
+  return {
+    max: resolveCompiledChargeMaximum(charge, {
+      abilities: params.resolution.summary.abilities,
+      classLevel: getResourceClassLevel(params.character, params.resource),
+      proficiencyBonus: params.proficiencyBonus,
+      totalLevel: params.totalLevel
+    }),
+    recovery: getResourceRecovery(definition.charges.resetKind)
+  }
 }
 
 async function getConditionOptions(
@@ -243,7 +321,14 @@ export async function buildCharacterSheetResponse(params: {
     },
     resources: {
       items: resolution.grants.resources.map((resource) => {
-        const max = getResourceMaximum(character, resource.id)
+        const config = getResourceSheetConfig({
+          character,
+          proficiencyBonus,
+          resolution,
+          resource,
+          totalLevel
+        })
+        const max = config.max
         const used = Math.min(resourceUsage.get(resource.id) ?? 0, max)
         return {
           id: resource.id,
@@ -252,7 +337,7 @@ export async function buildCharacterSheetResponse(params: {
           used,
           max,
           remaining: Math.max(max - used, 0),
-          recovery: 'LONG_REST'
+          recovery: config.recovery
         }
       }),
       hitDice: character.state.hitpoints.hitDice.map((die) => ({

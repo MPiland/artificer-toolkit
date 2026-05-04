@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
+import type { DBLike } from '@artificer-toolkit/db'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characters'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type { CharacterBuilderResolution } from './builderService.js'
 import {
   CharacterSheetCommandError,
-  applyCharacterSheetCommand
+  applyCharacterSheetCommand,
+  buildCharacterSheetResponse
 } from './sheetService.js'
 
 function createCharacter(): CharacterAuthored {
@@ -159,6 +162,81 @@ function createSheet(overrides: Partial<CharacterSheetResponseDto> = {}): Charac
   }
 }
 
+function createConditionDb(): DBLike {
+  return {
+    selectFrom: () => ({
+      select: () => ({
+        where: () => ({
+          orderBy: () => ({
+            execute: async () => []
+          })
+        })
+      })
+    })
+  } as unknown as DBLike
+}
+
+function createResolution(): CharacterBuilderResolution {
+  return {
+    mode: 'edit',
+    registry: {
+      system: null,
+      races: [],
+      classes: [
+        {
+          id: 'subclass-1',
+          label: 'Battle Master',
+          category: 'SUBCLASS',
+          parentClassId: 'class-1',
+          resources: {
+            id: 'resource-1',
+            label: 'Superiority Dice',
+            availableAtLevel: 1,
+            charges: {
+              id: 'charge-1',
+              resetKind: 'SHORT_REST',
+              limitKind: 'FIXED_AMOUNT',
+              scalingKind: 'NONE',
+              amount: 4
+            }
+          },
+          systemId: 'system-1',
+          userId: 'user-1'
+        }
+      ],
+      backgrounds: [],
+      equipment: [],
+      spells: [],
+      features: []
+    },
+    summary: {
+      totalLevel: 3,
+      abilities: { DEXTERITY: 14 },
+      classes: []
+    },
+    grants: {
+      features: [],
+      resources: [
+        {
+          id: 'resource-1',
+          label: 'Superiority Dice',
+          sourceLabel: 'Battle Master',
+          source: { kind: 'SUBCLASS', subclassId: 'subclass-1', classLevel: 3 }
+        }
+      ],
+      spellcasting: []
+    },
+    outstandingChoices: [],
+    validations: [],
+    readiness: {
+      ready: true,
+      blockingIssues: [],
+      outstandingRequiredChoices: []
+    },
+    recommendedSectionId: 'REVIEW'
+  }
+}
+
 describe('character sheet command application', () => {
   it('applies damage to temporary hit points before current hit points', () => {
     const next = applyCharacterSheetCommand(createCharacter(), {
@@ -251,5 +329,28 @@ describe('character sheet command application', () => {
       amount: 1,
       expectedVersion: 1
     }, createSheet())).toThrow(CharacterSheetCommandError)
+  })
+
+  it('derives resource maximums and recovery from class resource charges', async () => {
+    const character = createCharacter()
+    character.intent.classes = [{ classId: 'class-1', subclassId: 'subclass-1', classLevel: 3 }]
+
+    const sheet = await buildCharacterSheetResponse({
+      character,
+      db: createConditionDb(),
+      hasBuilderDraft: false,
+      resolution: createResolution(),
+      streamVersion: 1
+    })
+
+    expect(sheet.resources.items).toEqual([
+      expect.objectContaining({
+        id: 'resource-1',
+        max: 4,
+        recovery: 'SHORT_REST',
+        remaining: 3,
+        used: 1
+      })
+    ])
   })
 })
