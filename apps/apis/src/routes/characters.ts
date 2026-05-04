@@ -452,6 +452,7 @@ function toCharacterBuilderView(
         ? {
             source: 'CLASS',
             sourceLabel: primaryBaseClass.label,
+            startingGold: primaryBaseClass.startingGold,
             startingEquipment: primaryBaseClass.startingEquipment
           }
         : null,

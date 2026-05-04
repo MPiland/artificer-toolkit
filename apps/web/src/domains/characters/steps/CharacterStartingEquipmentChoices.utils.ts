@@ -1,12 +1,21 @@
 import type {
-  CharacterBuilderChoiceOptionDto
+  CharacterBuilderChoiceOptionDto,
+  CharacterBuilderStartingEquipmentViewDto
 } from '@artificer-toolkit/schema/api/characters'
 import type { StartingEquipmentDto } from '@artificer-toolkit/schema/shared'
+import { CharacterStartingEquipmentSource } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterStartingEquipmentDecision } from '../characterBuilder.utils'
+
+export const STARTING_EQUIPMENT_MODE = {
+  EQUIPMENT: 'EQUIPMENT',
+  GOLD: 'GOLD'
+} as const
 
 export type StartingEquipmentGroup = StartingEquipmentDto['sets'][number]['groups'][number]
 export type StartingEquipmentOption = StartingEquipmentGroup['options'][number]
 export type StartingEquipmentItem = StartingEquipmentOption['items'][number]
+export type StartingEquipmentMode = keyof typeof STARTING_EQUIPMENT_MODE
+export type StartingGold = NonNullable<CharacterBuilderStartingEquipmentViewDto['startingGold']>
 export type ChosenStartingEquipmentItem = StartingEquipmentItem & {
   startingEquipmentKind: 'EQUIPMENT'
   selectionKind: 'CHOSEN'
@@ -16,6 +25,47 @@ export type ChosenStartingEquipmentItem = StartingEquipmentItem & {
 type StartingEquipmentSelection = NonNullable<
   NonNullable<CharacterStartingEquipmentDecision['groups']>[number]['selections']
 >[number]
+
+export function setStartingEquipmentMode(
+  decision: CharacterStartingEquipmentDecision,
+  source: CharacterBuilderStartingEquipmentViewDto['source'],
+  mode: StartingEquipmentMode,
+  startingGold: StartingGold | null | undefined
+): CharacterStartingEquipmentDecision {
+  const nextSource = getStartingEquipmentSource(source)
+
+  if (mode === STARTING_EQUIPMENT_MODE.GOLD && startingGold) {
+    return {
+      ...decision,
+      source: nextSource,
+      tookGold: true,
+      groups: decision.groups,
+      gold: decision.gold ?? createStartingGoldSelection(startingGold, 0)
+    }
+  }
+
+  return {
+    ...decision,
+    source: nextSource,
+    tookGold: false,
+    groups: decision.groups ?? [],
+    gold: undefined
+  }
+}
+
+export function setStartingEquipmentGoldTotal(
+  decision: CharacterStartingEquipmentDecision,
+  source: CharacterBuilderStartingEquipmentViewDto['source'],
+  startingGold: StartingGold,
+  totalGold: number
+): CharacterStartingEquipmentDecision {
+  const nextDecision = setStartingEquipmentMode(decision, source, STARTING_EQUIPMENT_MODE.GOLD, startingGold)
+
+  return {
+    ...nextDecision,
+    gold: createStartingGoldSelection(startingGold, totalGold)
+  }
+}
 
 export function setStartingEquipmentGroupOption(
   decision: CharacterStartingEquipmentDecision,
@@ -101,6 +151,14 @@ export function formatStartingEquipmentOption(
     .join(' + ') || `Option ${option.order}`
 }
 
+export function formatStartingGoldOption(
+  startingGold: StartingGold,
+  currencyOptions: CharacterBuilderChoiceOptionDto[]
+): string {
+  const currencyLabel = findOptionLabel(currencyOptions, startingGold.currencyId)
+  return `${startingGold.dieConfig} x ${startingGold.multiplier} ${currencyLabel}`
+}
+
 export function isStartingEquipmentDecision(value: unknown): value is CharacterStartingEquipmentDecision {
   return Boolean(
     value
@@ -115,6 +173,24 @@ export function isChosenStartingEquipmentItem(item: StartingEquipmentItem): item
     && 'selectionKind' in item
     && item.selectionKind === 'CHOSEN'
     && 'count' in item
+}
+
+function createStartingGoldSelection(
+  startingGold: StartingGold,
+  totalGold: number
+): NonNullable<CharacterStartingEquipmentDecision['gold']> {
+  return {
+    goldOption: startingGold.dieConfig,
+    totalGold: Math.max(0, Math.trunc(totalGold))
+  }
+}
+
+function getStartingEquipmentSource(
+  source: CharacterBuilderStartingEquipmentViewDto['source']
+): CharacterStartingEquipmentDecision['source'] {
+  return source === 'CLASS'
+    ? CharacterStartingEquipmentSource.CLASS
+    : CharacterStartingEquipmentSource.BACKGROUND
 }
 
 function toQuantitySelections(

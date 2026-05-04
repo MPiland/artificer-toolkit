@@ -3,7 +3,9 @@ import {
   type ChosenStartingEquipmentItem,
   getStartingEquipmentItemOptions,
   getStartingEquipmentSelections,
+  setStartingEquipmentGoldTotal,
   setStartingEquipmentGroupOption,
+  setStartingEquipmentMode,
   setStartingEquipmentSelections
 } from '../steps/CharacterStartingEquipmentChoices.utils'
 import type { CharacterBuilderChoiceOptionDto } from '@artificer-toolkit/schema/api/characters'
@@ -79,5 +81,31 @@ describe('CharacterStartingEquipmentChoices utils', () => {
         disabled: undefined
       }
     ])
+  })
+
+  it('supports switching to starting gold while preserving equipment choices off-path', () => {
+    const startingGold = {
+      dieConfig: '5d4',
+      multiplier: 10,
+      currencyId: 'gp'
+    }
+    const groupDecision = setStartingEquipmentGroupOption(createStartingEquipmentDecision('CLASS'), 'fighter-group', 'fighter-option')
+    const equipmentDecision = setStartingEquipmentSelections(groupDecision, 'fighter-group', 'martial-weapon-choice', ['longsword'])
+    const goldModeDecision = setStartingEquipmentMode(equipmentDecision, 'CLASS', 'GOLD', startingGold)
+    const goldDecision = setStartingEquipmentGoldTotal(goldModeDecision, 'CLASS', startingGold, 120)
+
+    expect(goldDecision).toMatchObject({
+      tookGold: true,
+      gold: {
+        goldOption: '5d4',
+        totalGold: 120
+      },
+      groups: equipmentDecision.groups
+    })
+    expect(setStartingEquipmentMode(goldDecision, 'CLASS', 'EQUIPMENT', startingGold)).toMatchObject({
+      tookGold: false,
+      gold: undefined,
+      groups: equipmentDecision.groups
+    })
   })
 })

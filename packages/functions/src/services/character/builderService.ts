@@ -332,7 +332,14 @@ export function isStartingEquipmentDecisionComplete(
 ): boolean {
   if (startingEquipment.sets.length === 0) return true
   if (!decision) return false
-  if (decision.tookGold) return Boolean(decision.gold)
+
+  if (decision.tookGold) {
+    return Boolean(
+      decision.gold
+      && decision.gold.goldOption.trim().length > 0
+      && decision.gold.totalGold > 0
+    )
+  }
 
   const groupSelections = new Map((decision.groups ?? []).map((group) => [group.groupId, group]))
 

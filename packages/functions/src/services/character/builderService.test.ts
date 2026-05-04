@@ -429,6 +429,29 @@ describe('character builder source-local choice validation', () => {
       ]
     }, registry)).toBe(true)
   })
+
+  it('requires a concrete total when starting gold is selected', () => {
+    const registry = createRegistry()
+    const startingEquipment = createChoiceStartingEquipment()
+    const incompleteGoldDecision = {
+      source: CharacterStartingEquipmentSource.CLASS,
+      tookGold: true,
+      gold: {
+        goldOption: '5d4',
+        totalGold: 0
+      }
+    }
+    const completeGoldDecision = {
+      ...incompleteGoldDecision,
+      gold: {
+        goldOption: '5d4',
+        totalGold: 120
+      }
+    }
+
+    expect(isStartingEquipmentDecisionComplete(startingEquipment, incompleteGoldDecision, registry)).toBe(false)
+    expect(isStartingEquipmentDecisionComplete(startingEquipment, completeGoldDecision, registry)).toBe(true)
+  })
 })
 
 describe('isCharacterBuilderProvenanceStillValid', () => {

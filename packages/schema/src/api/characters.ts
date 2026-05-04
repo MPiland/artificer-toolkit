@@ -16,6 +16,7 @@ import {
   characterStartingEquipmentDecisionDtoSchema,
   characterStateDtoSchema
 } from '../subjects/index.js'
+import { classStartingGoldDtoSchema } from '../subjects/shared.js'
 import { listResponseDtoSchema } from './common.js'
 
 export const characterBuilderModeDtoSchema = z.enum(['create', 'edit'])
@@ -303,6 +304,7 @@ export const characterBuilderBackgroundViewDtoSchema = z.object({
 export const characterBuilderStartingEquipmentViewDtoSchema = z.object({
   source: z.enum(['CLASS', 'BACKGROUND']),
   sourceLabel: z.string(),
+  startingGold: classStartingGoldDtoSchema.nullable().optional(),
   startingEquipment: startingEquipmentDtoSchema
 })
 

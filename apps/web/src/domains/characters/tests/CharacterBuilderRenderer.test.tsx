@@ -421,6 +421,27 @@ describe('CharacterBuilderRenderer', () => {
     expect(screen.getByText(/manual roll provenance is preserved/i)).toBeInTheDocument()
   })
 
+  it('updates ancestry choice UI from the live form value before resolver refresh', async () => {
+    const user = userEvent.setup()
+
+    renderCharacterBuilderHarness({
+      payload: {
+        ...characterBuilderPayloadFixture,
+        resolution: {
+          ...characterBuilderPayloadFixture.resolution,
+          recommendedSectionId: 'RACE'
+        }
+      },
+      showAncestrySelectionTestToggle: true
+    })
+
+    expect(screen.getByRole('textbox', { name: /elven lineage/i })).toHaveValue('Ocean')
+
+    await user.click(screen.getByRole('button', { name: /set forest ancestry/i }))
+
+    expect(screen.getByRole('textbox', { name: /elven lineage/i })).toHaveValue('Forest')
+  })
+
   it('renders read-only builder fields when the authoring state is read-only', () => {
     renderCharacterBuilderHarness({
       payload: characterBuilderPayloadFixture,
@@ -435,12 +456,14 @@ function renderCharacterBuilderHarness({
   payload,
   readOnly = false,
   showAbilityMethodTestToggle = false,
+  showAncestrySelectionTestToggle = false,
   resolveDebounceMs = 60_000,
   onResolve = () => undefined
 }: {
   payload: CharacterBuilderPayloadDto
   readOnly?: boolean
   showAbilityMethodTestToggle?: boolean
+  showAncestrySelectionTestToggle?: boolean
   resolveDebounceMs?: number
   onResolve?: (character: CharacterFormValues) => Promise<void> | void
 }) {
@@ -451,6 +474,7 @@ function renderCharacterBuilderHarness({
         payload={payload}
         readOnly={readOnly}
         resolveDebounceMs={resolveDebounceMs}
+        showAncestrySelectionTestToggle={showAncestrySelectionTestToggle}
         showAbilityMethodTestToggle={showAbilityMethodTestToggle}
       />
     </AuthoringFormProvider>
@@ -462,12 +486,14 @@ function CharacterBuilderTestHarness({
   payload,
   readOnly,
   resolveDebounceMs,
+  showAncestrySelectionTestToggle,
   showAbilityMethodTestToggle
 }: {
   onResolve: (character: CharacterFormValues) => Promise<void> | void
   payload: CharacterBuilderPayloadDto
   readOnly: boolean
   resolveDebounceMs: number
+  showAncestrySelectionTestToggle: boolean
   showAbilityMethodTestToggle: boolean
 }) {
   const form = useAppForm({
@@ -508,6 +534,31 @@ function CharacterBuilderTestHarness({
                 }}
               >
                 Set Manual Ability Method
+              </button>
+            )
+          : null}
+        {showAncestrySelectionTestToggle
+          ? (
+              <button
+                type='button'
+                onClick={() => {
+                  form.setFieldValue('intent.ancestrySelections', [
+                    {
+                      id: 'ancestry-choice-forest',
+                      ancestryId: 'ancestry-elf',
+                      optionId: 'ancestry-forest',
+                      source: {
+                        kind: 'SUBRACE',
+                        subraceId: 'subrace-sea-elf'
+                      },
+                      timing: {
+                        kind: 'IMMEDIATE'
+                      }
+                    }
+                  ])
+                }}
+              >
+                Set Forest Ancestry
               </button>
             )
           : null}

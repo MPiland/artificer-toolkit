@@ -5,7 +5,8 @@ import {
   clearRaceDependents,
   clearSubraceDependents,
   choiceOptions,
-  createFallbackCharacterFormValues
+  createFallbackCharacterFormValues,
+  type CharacterFormValues
 } from '../characterBuilder.utils'
 import * as styles from '../characterBuilder.css'
 import { CharacterFeatureChoices } from './CharacterFeatureChoices'
@@ -80,30 +81,36 @@ export const CharacterRaceStep = withForm({
             ? (
                 <div className={styles.fieldSpan6}>
                   <form.AppField name='intent.ancestrySelections'>
-                    {(field) => (
-                      <AppSelect
-                        label={raceView.ancestry?.label ?? 'Ancestry Choice'}
-                        data={choiceOptions(raceView.ancestry?.options ?? [])}
-                        value={raceView.ancestry?.selectedOptionId}
-                        required
-                        disabled={readOnly}
-                        onChange={(value) => {
-                          if (!raceView.ancestry || !value || readOnly) return
-                          const raceIntent = form.state.values.intent.race
-                          field.handleChange([
-                            {
-                              id: crypto.randomUUID(),
-                              ancestryId: raceView.ancestry.ancestryId,
-                              optionId: value,
-                              source: raceIntent.subraceId
-                                ? { kind: 'SUBRACE', subraceId: raceIntent.subraceId }
-                                : { kind: 'RACE', raceId: raceIntent.raceId },
-                              timing: { kind: 'IMMEDIATE' }
-                            }
-                          ])
-                        }}
-                      />
-                    )}
+                    {(field) => {
+                      const selectedAncestryOptionId = raceView.ancestry
+                        ? getSelectedAncestryOptionId(field.state.value, raceView.ancestry.ancestryId, form.state.values.intent.race)
+                        : undefined
+
+                      return (
+                        <AppSelect
+                          label={raceView.ancestry?.label ?? 'Ancestry Choice'}
+                          data={choiceOptions(raceView.ancestry?.options ?? [])}
+                          value={selectedAncestryOptionId}
+                          required
+                          disabled={readOnly}
+                          onChange={(value) => {
+                            if (!raceView.ancestry || !value || readOnly) return
+                            const raceIntent = form.state.values.intent.race
+                            field.handleChange([
+                              {
+                                id: crypto.randomUUID(),
+                                ancestryId: raceView.ancestry.ancestryId,
+                                optionId: value,
+                                source: raceIntent.subraceId
+                                  ? { kind: 'SUBRACE', subraceId: raceIntent.subraceId }
+                                  : { kind: 'RACE', raceId: raceIntent.raceId },
+                                timing: { kind: 'IMMEDIATE' }
+                              }
+                            ])
+                          }}
+                        />
+                      )
+                    }}
                   </form.AppField>
                 </div>
               )
@@ -131,3 +138,26 @@ export const CharacterRaceStep = withForm({
     )
   }
 })
+
+function getSelectedAncestryOptionId(
+  selections: CharacterFormValues['intent']['ancestrySelections'],
+  ancestryId: string,
+  raceIntent: CharacterFormValues['intent']['race']
+): string | undefined {
+  return selections
+    ?.find((selection) => (
+      selection.ancestryId === ancestryId
+      && isCurrentAncestrySource(selection.source, raceIntent)
+    ))
+    ?.optionId
+}
+
+function isCurrentAncestrySource(
+  source: NonNullable<CharacterFormValues['intent']['ancestrySelections']>[number]['source'],
+  raceIntent: CharacterFormValues['intent']['race']
+): boolean {
+  if (source.kind === 'SUBRACE') return source.subraceId === raceIntent.subraceId
+  if (source.kind === 'RACE') return source.raceId === raceIntent.raceId && !raceIntent.subraceId
+
+  return false
+}
