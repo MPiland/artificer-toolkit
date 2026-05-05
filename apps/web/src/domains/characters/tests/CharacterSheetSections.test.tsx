@@ -286,6 +286,48 @@ describe('Character Sheet sections', () => {
     })
   })
 
+  it('renders inventory item reference details from equipment records', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn()
+    const sheet = createSheet()
+    sheet.inventory.items = [
+      {
+        id: 'item-1',
+        equipmentId: 'equipment-1',
+        label: 'Moonlit Blade',
+        equipmentLabel: 'Longsword',
+        description: '<p>A balanced knightly blade.</p>',
+        category: 'WEAPON',
+        properties: ['MARTIAL', 'MELEE'],
+        cost: { amount: 15, currencyId: 'gp' },
+        costLabel: 'Gold',
+        weight: { amount: 3, unit: 'POUNDS' },
+        customName: 'Moonlit Blade',
+        quantity: 1,
+        equipped: true,
+        attuned: false
+      }
+    ]
+
+    renderWithAppProviders(
+      <CharacterSheetInventory
+        pending={false}
+        sheet={sheet}
+        submitCommand={submitCommand}
+      />
+    )
+
+    expect(screen.getByText(/moonlit blade/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/longsword/i).length).toBeGreaterThan(0)
+    expect(screen.getByText(/qty 1 - weapon - 3 pounds - 15 gold - equipped/i)).toBeInTheDocument()
+    expect(screen.getByText(/properties:/i)).toBeInTheDocument()
+    expect(screen.getByText(/martial, melee/i)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /details/i }))
+
+    expect(screen.getByText(/a balanced knightly blade/i)).toBeInTheDocument()
+  })
+
   it('restores resources and applies rests from the resources panel', async () => {
     const user = userEvent.setup()
     const submitCommand = vi.fn()

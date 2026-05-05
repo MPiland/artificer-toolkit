@@ -461,6 +461,43 @@ describe('character sheet command application', () => {
     }))
   })
 
+  it('hydrates inventory item reference details from equipment records', async () => {
+    const resolution = createResolution()
+    resolution.registry.system = {
+      currencies: [{ id: 'gp', label: 'Gold' }]
+    } as CharacterBuilderResolution['registry']['system']
+    const equipment = createEquipment({
+      category: 'WEAPON',
+      id: 'equipment-1',
+      label: 'Longsword'
+    })
+    equipment.description = '<p>A balanced knightly blade.</p>'
+    equipment.cost = { amount: 15, currencyId: 'gp' }
+    equipment.properties = ['MARTIAL', 'MELEE']
+    equipment.armorClass = 1
+    resolution.registry.equipment = [equipment]
+
+    const sheet = await buildCharacterSheetResponse({
+      character: createCharacter(),
+      db: createConditionDb(),
+      hasBuilderDraft: false,
+      resolution,
+      streamVersion: 1
+    })
+
+    expect(sheet.inventory.items).toContainEqual(expect.objectContaining({
+      id: 'item-1',
+      equipmentLabel: 'Longsword',
+      description: '<p>A balanced knightly blade.</p>',
+      category: 'WEAPON',
+      cost: { amount: 15, currencyId: 'gp' },
+      costLabel: 'Gold',
+      weight: { amount: 0, unit: 'POUNDS' },
+      properties: ['MARTIAL', 'MELEE'],
+      armorClass: 1
+    }))
+  })
+
   it('caps resource and spell slot usage at the sheet maximum', () => {
     const resourceNext = applyCharacterSheetCommand(createCharacter(), {
       type: 'USE_RESOURCE',

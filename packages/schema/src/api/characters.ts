@@ -3,6 +3,7 @@ import { z } from 'zod'
 import {
   abilityCodeSchema,
   authoredRecordStatusSchema,
+  equipmentPropertyCodeSchema,
   spellAttributeSchema,
   spellComponentSchema
 } from '../shared/enums.js'
@@ -21,7 +22,12 @@ import {
   characterStartingEquipmentDecisionDtoSchema,
   characterStateDtoSchema
 } from '../subjects/index.js'
-import { castingTimeDtoSchema, classStartingGoldDtoSchema } from '../subjects/shared.js'
+import {
+  castingTimeDtoSchema,
+  classStartingGoldDtoSchema,
+  costDtoSchema,
+  weightDtoSchema
+} from '../subjects/shared.js'
 import { listResponseDtoSchema } from './common.js'
 
 export const characterBuilderModeDtoSchema = z.enum(['create', 'edit'])
@@ -545,6 +551,18 @@ export const characterSheetInventoryItemDtoSchema = z.object({
   id: z.string(),
   equipmentId: z.string(),
   label: z.string(),
+  equipmentLabel: z.string().optional(),
+  description: z.string().nullable()
+    .optional(),
+  category: z.string().optional(),
+  properties: z.array(equipmentPropertyCodeSchema)
+    .optional(),
+  rarityId: z.string().optional(),
+  cost: costDtoSchema.optional(),
+  costLabel: z.string().optional(),
+  weight: weightDtoSchema.optional(),
+  armorClass: z.number().int()
+    .optional(),
   customName: z.string().optional(),
   quantity: z.number().int(),
   equipped: z.boolean(),

@@ -1,7 +1,9 @@
 import { Button, Collapse, NumberInput, Select, Text, Textarea, TextInput, Title } from '@mantine/core'
 import { useState } from 'react'
+import { AuthoredDetailProse } from '#app/components/AuthoredDetail'
 import * as styles from './characterSheet.css'
 import type { CharacterSheet, CharacterSheetSectionProps, SubmitSheetCommand } from './CharacterSheet.types'
+import { formatInventoryItemProperties, formatInventoryItemSummary } from './characterSheetInventory.utils'
 import { toNumber } from './characterSheet.utils'
 
 function CharacterSheetInventoryItemRow({
@@ -18,18 +20,23 @@ function CharacterSheetInventoryItemRow({
   const [expanded, setExpanded] = useState(false)
   const [customName, setCustomName] = useState(item.customName ?? '')
   const [notes, setNotes] = useState(item.notes ?? '')
+  const properties = formatInventoryItemProperties(item)
 
   return (
     <div className={styles.row}>
       <div>
         <Text fw={700}>{item.label}</Text>
-        <Text className={styles.muted}>
-          Qty
-          {' '}
-          {item.quantity}
-          {item.equipped ? ', equipped' : ''}
-          {item.attuned ? ', attuned' : ''}
-        </Text>
+        {item.customName && item.equipmentLabel ? <Text className={styles.muted}>{item.equipmentLabel}</Text> : null}
+        <Text className={styles.muted}>{formatInventoryItemSummary(item)}</Text>
+        {properties
+          ? (
+              <Text className={styles.muted}>
+                Properties:
+                {' '}
+                {properties}
+              </Text>
+            )
+          : null}
         {item.notes ? <Text className={styles.muted}>{item.notes}</Text> : null}
       </div>
       <div className={styles.compactActions}>
@@ -109,6 +116,7 @@ function CharacterSheetInventoryItemRow({
       </div>
       <Collapse className={styles.inlineEditorShell} in={expanded}>
         <div className={styles.inlineEditor}>
+          {item.description ? <AuthoredDetailProse html={item.description} fallback='' /> : null}
           <TextInput
             label='Custom name'
             placeholder={item.label}

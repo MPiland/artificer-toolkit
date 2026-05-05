@@ -570,7 +570,7 @@ export async function buildCharacterSheetResponse(params: {
   const maxHitPoints = getMaxHitPoints(character)
   const conditionOptions = await getConditionOptions(params.db, character.systemId)
   const conditionLabels = new Map(conditionOptions.map((condition) => [condition.id, condition.label]))
-  const equipmentLabels = new Map(resolution.registry.equipment.map((equipment) => [equipment.id, equipment.label]))
+  const equipmentById = new Map(resolution.registry.equipment.map((equipment) => [equipment.id, equipment]))
   const currencyOptions = resolution.registry.system?.currencies.map((currency) => ({
     id: currency.id,
     label: currency.label
@@ -715,17 +715,29 @@ export async function buildCharacterSheetResponse(params: {
       preparationSources: spellPreparationSources.length ? spellPreparationSources : undefined
     },
     inventory: {
-      items: character.state.equipment.inventory.map((item) => ({
-        id: item.id,
-        equipmentId: item.equipmentId,
-        label: item.customName ?? equipmentLabels.get(item.equipmentId) ?? 'Unknown item',
-        customName: item.customName,
-        quantity: item.quantity,
-        equipped: character.state.equipment.equipped.includes(item.id),
-        attuned: character.state.equipment.attuned.includes(item.id),
-        containerId: item.containerId,
-        notes: item.notes
-      })),
+      items: character.state.equipment.inventory.map((item) => {
+        const equipment = equipmentById.get(item.equipmentId)
+        return {
+          id: item.id,
+          equipmentId: item.equipmentId,
+          label: item.customName ?? equipment?.label ?? 'Unknown item',
+          equipmentLabel: equipment?.label,
+          description: equipment?.description,
+          category: equipment?.category,
+          properties: equipment?.properties,
+          rarityId: equipment?.rarityId,
+          cost: equipment?.cost,
+          costLabel: equipment?.cost ? currencyLabels.get(equipment.cost.currencyId) : undefined,
+          weight: equipment?.weight,
+          armorClass: equipment?.armorClass,
+          customName: item.customName,
+          quantity: item.quantity,
+          equipped: character.state.equipment.equipped.includes(item.id),
+          attuned: character.state.equipment.attuned.includes(item.id),
+          containerId: item.containerId,
+          notes: item.notes
+        }
+      }),
       currencies: character.state.currency.flatMap((group) => group.currencies.map((currency) => ({
         currencyId: currency.currencyId,
         label: currencyLabels.get(currency.currencyId) ?? 'Currency',
