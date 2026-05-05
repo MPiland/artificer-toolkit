@@ -371,6 +371,12 @@ test('character sheet overview story renders play-state controls', async ({ page
   await storyExpect(page.getByText('HP', { exact: true })).toBeVisible()
   await storyExpect(page.getByRole('button', { name: 'Apply Damage' })).toBeVisible()
   await storyExpect(page.getByText('Poisoned', { exact: true }).first()).toBeVisible()
+
+  await openCharacterSheetStory(page, 'domains-characters-sheet--conditions-and-exhaustion')
+
+  await storyExpect(page.getByText('Level 3')).toBeVisible()
+  await storyExpect(page.getByText('Prone', { exact: true }).first()).toBeVisible()
+  await storyExpect(page.getByText(/collapsing gantry/i).first()).toBeVisible()
 })
 
 test('character sheet spell and inventory stories expose sheet commands', async ({ page }) => {
@@ -388,6 +394,11 @@ test('character sheet spell and inventory stories expose sheet commands', async 
   await storyExpect(page.getByText('Quarterstaff', { exact: true }).first()).toBeVisible()
   await storyExpect(page.getByRole('button', { name: /increase quarterstaff quantity/i })).toBeVisible()
   await storyExpect(page.getByRole('button', { name: 'Apply Currency' })).toBeVisible()
+
+  await openCharacterSheetStory(page, 'domains-characters-sheet--mobile-inventory-management')
+
+  await storyExpect(page.getByRole('tab', { name: 'Inventory' })).toHaveAttribute('aria-selected', 'true')
+  await storyExpect(page.getByRole('button', { name: /increase quarterstaff quantity/i })).toBeVisible()
 })
 
 test('character sheet history and command-error stories render review states', async ({ page }) => {
@@ -401,6 +412,11 @@ test('character sheet history and command-error stories render review states', a
 
   await storyExpect(page.getByText(/changed in another tab/i)).toBeVisible()
   await storyExpect(page.getByRole('heading', { name: 'Overview' })).toBeVisible()
+
+  await openStory(page, 'domains-characters-sheet--command-pending')
+
+  await storyExpect(page.getByText(/command is being applied/i)).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: 'Apply Damage' })).toBeDisabled()
 })
 
 test('theme toggle story switches between light and dark', async ({ page }) => {
