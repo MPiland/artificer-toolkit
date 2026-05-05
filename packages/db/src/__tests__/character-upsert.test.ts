@@ -622,4 +622,25 @@ describe('upsertCharacter', () => {
       }
     ])
   })
+
+  it('increments stream version when requested for finalized authored writes', async () => {
+    const db = new InMemoryDb()
+    const initial = buildCharacter()
+
+    await upsertCharacter(db as never, initial)
+    await upsertCharacter(db as never, {
+      ...initial,
+      label: 'Aria Finalized'
+    }, {
+      incrementStreamVersion: true
+    })
+
+    expect(db.snapshot('characters')).toEqual([
+      expect.objectContaining({
+        id: 'character-1',
+        label: 'Aria Finalized',
+        stream_version: 1
+      })
+    ])
+  })
 })

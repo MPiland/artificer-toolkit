@@ -963,7 +963,9 @@ export const upsertCharacterBuilder = handleAuthoringRequest(characterBuilderCom
     shouldCheckRevision: draft != null || body.baseActiveUpdatedAt != null
   })
 
-  await repository.upsertAuthored(payload.character)
+  await repository.upsertAuthored(payload.character, {
+    incrementStreamVersion: true
+  })
   await draftRepository.delete({
     characterId: payload.character.id,
     userId
