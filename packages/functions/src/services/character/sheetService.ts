@@ -589,14 +589,17 @@ function updateSpellSlotUsage(
   })
 }
 
-function restoreResourcesForRest(
+type CharacterSheetResourceRecovery = NonNullable<CharacterSheetResponseDto['resources']['items'][number]['recovery']>
+
+function restoreResourcesForRecoveries(
   character: CharacterAuthored,
   sheet: CharacterSheetResponseDto,
-  recovery: 'SHORT_REST' | 'LONG_REST'
+  recoveries: readonly CharacterSheetResourceRecovery[]
 ): CharacterAuthored {
+  const recoverySet = new Set(recoveries)
   const restorableResourceIds = new Set(
     sheet.resources.items
-      .filter((resource) => resource.recovery === recovery)
+      .filter((resource) => resource.recovery && recoverySet.has(resource.recovery))
       .map((resource) => resource.id)
   )
   if (restorableResourceIds.size === 0) return character
@@ -608,6 +611,14 @@ function restoreResourcesForRest(
       resources: character.state.resources?.filter((resource) => !restorableResourceIds.has(resource.resourceGrantId))
     }
   }
+}
+
+function restoreResourcesForRest(
+  character: CharacterAuthored,
+  sheet: CharacterSheetResponseDto,
+  recovery: CharacterSheetResourceRecovery
+): CharacterAuthored {
+  return restoreResourcesForRecoveries(character, sheet, [recovery])
 }
 
 function restorePactSpellSlotsForShortRest(
@@ -689,7 +700,7 @@ export function applyCharacterSheetCommand(
         next.state.hitpoints.current = maxHitPoints
         next.state.hitpoints.temp = 0
         next.state.hitpoints.hitDice = restoreHitDiceForLongRest(next.state.hitpoints.hitDice)
-        next.state.resources = undefined
+        next.state.resources = restoreResourcesForRecoveries(next, sheet, ['SHORT_REST', 'LONG_REST']).state.resources
         next.state.spellSlots = undefined
         next.state.exhaustion = next.state.exhaustion && next.state.exhaustion.level > 0
           ? { ...next.state.exhaustion, level: next.state.exhaustion.level - 1 }

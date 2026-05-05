@@ -376,6 +376,53 @@ describe('character sheet command application', () => {
     expect(next.state.spellSlots).toEqual([{ slotKey: 'STANDARD:1', used: 1 }])
   })
 
+  it('preserves manual resources on long rest while restoring rest resources', () => {
+    const character = createCharacter()
+    character.state.resources = [
+      { resourceGrantId: 'short-resource', used: 1 },
+      { resourceGrantId: 'long-resource', used: 1 },
+      { resourceGrantId: 'manual-resource', used: 2 }
+    ]
+    const sheet = createSheet()
+    sheet.resources.items = [
+      {
+        id: 'short-resource',
+        label: 'Action Surge',
+        sourceLabel: 'Fighter',
+        used: 1,
+        max: 1,
+        remaining: 0,
+        recovery: 'SHORT_REST'
+      },
+      {
+        id: 'long-resource',
+        label: 'Daily Resolve',
+        sourceLabel: 'Fighter',
+        used: 1,
+        max: 1,
+        remaining: 0,
+        recovery: 'LONG_REST'
+      },
+      {
+        id: 'manual-resource',
+        label: 'Manual Charge',
+        sourceLabel: 'Item',
+        used: 2,
+        max: 3,
+        remaining: 1,
+        recovery: 'OTHER'
+      }
+    ]
+
+    const next = applyCharacterSheetCommand(character, {
+      type: 'APPLY_REST',
+      restKind: 'LONG',
+      expectedVersion: 1
+    }, sheet)
+
+    expect(next.state.resources).toEqual([{ resourceGrantId: 'manual-resource', used: 2 }])
+  })
+
   it('recovers long-rest hit dice from one shared floor-half pool', () => {
     const character = createCharacter()
     character.state.hitpoints.hitDice = [

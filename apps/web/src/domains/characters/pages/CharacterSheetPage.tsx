@@ -2,6 +2,7 @@ import { Alert, Button, Stack } from '@mantine/core'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import { getCharacterSheet } from '#app/data/characters/queries'
+import { CharacterSheetDraftOnlyState } from '../components/sheet/CharacterSheetDraftOnlyState'
 import { CharacterSheetView } from '../components/sheet/CharacterSheetView'
 
 export function CharacterSheetPage() {
@@ -10,6 +11,10 @@ export function CharacterSheetPage() {
   const { characterId } = route.useParams()
   const navigate = useNavigate()
   const { data: sheet } = useSuspenseQuery(getCharacterSheet(characterId))
+
+  if (!sheet && draft) {
+    return <CharacterSheetDraftOnlyState characterId={characterId} label={draft.label} />
+  }
 
   if (!sheet) {
     return (
