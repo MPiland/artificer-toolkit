@@ -285,6 +285,31 @@ function createSpellcastingClass(params: {
   }
 }
 
+function createEquipment(params: {
+  armorClass?: number
+  category: CharacterBuilderResolution['registry']['equipment'][number]['category']
+  id: string
+  label: string
+}): CharacterBuilderResolution['registry']['equipment'][number] {
+  return {
+    kind: 'EQUIPMENT',
+    id: params.id,
+    label: params.label,
+    description: null,
+    status: 'ACTIVE',
+    category: params.category,
+    properties: [],
+    weight: {
+      amount: 0,
+      unit: 'POUNDS'
+    },
+    armorClass: params.armorClass,
+    rarityId: 'COMMON',
+    systemId: 'system-1',
+    userId: 'user-1'
+  }
+}
+
 function createFullCasterSpellLimits() {
   return [
     { classLevel: 1, slots: [{ spellLevel: 1, slotCount: 2 }] },
@@ -314,6 +339,25 @@ describe('character sheet command application', () => {
 
     expect(next.state.hitpoints.maxOverride).toBe(6)
     expect(next.state.hitpoints.current).toBe(6)
+  })
+
+  it('preserves exhaustion notes when only the exhaustion level changes', () => {
+    const character = createCharacter()
+    character.state.exhaustion = {
+      level: 1,
+      notes: 'Forced march through the swamp.'
+    }
+
+    const next = applyCharacterSheetCommand(character, {
+      type: 'SET_EXHAUSTION',
+      level: 2,
+      expectedVersion: 1
+    }, createSheet())
+
+    expect(next.state.exhaustion).toEqual({
+      level: 2,
+      notes: 'Forced march through the swamp.'
+    })
   })
 
   it('caps resource and spell slot usage at the sheet maximum', () => {
@@ -653,6 +697,37 @@ describe('character sheet command application', () => {
         }
       }
     ])
+  })
+
+  it('derives overview combat stats from engine equipment and ability output', async () => {
+    const character = createCharacter()
+    character.state.equipment.equipped = ['item-1']
+    const resolution = createResolution()
+    resolution.summary.abilities = { DEXTERITY: 16 }
+    resolution.registry.equipment = [
+      createEquipment({
+        armorClass: 2,
+        category: 'SHIELD',
+        id: 'equipment-1',
+        label: 'Shield'
+      })
+    ]
+
+    const sheet = await buildCharacterSheetResponse({
+      character,
+      db: createConditionDb(),
+      hasBuilderDraft: false,
+      resolution,
+      streamVersion: 1
+    })
+
+    expect(sheet.overview.armorClass).toBe(15)
+    expect(sheet.overview.initiative).toBe(3)
+    expect(sheet.overview.proficiencyBonus).toBe(2)
+    expect(sheet.overview.facts).toEqual(expect.arrayContaining([
+      { label: 'Initiative', value: '+3' },
+      { label: 'Proficiency', value: '+2' }
+    ]))
   })
 
   it('derives resource maximums and recovery from class resource charges', async () => {

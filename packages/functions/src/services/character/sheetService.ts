@@ -17,9 +17,15 @@ import {
 import {
   compileClass,
   compileCharge,
+  compileFeature,
+  compileResolvedEquipment,
   resolveCompiledChargeMaximum
 } from '@artificer-toolkit/shared/compilers'
-import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type {
+  CharacterAcquisitionTiming,
+  CharacterAuthored,
+  CharacterProvenance
+} from '@artificer-toolkit/shared/subjects/authored'
 import type {
   CharacterHistoryEntryDto,
   CharacterSheetCommandInputDto,
@@ -52,8 +58,13 @@ function formatModifier(value: number): string {
   return value >= 0 ? `+${value}` : String(value)
 }
 
-function getProficiencyBonus(totalLevel: number): number {
-  return 2 + Math.floor(Math.max(totalLevel - 1, 0) / 4)
+const ENGINE_ABILITY_ALIASES: Readonly<Record<string, string>> = {
+  STRENGTH: 'STR',
+  DEXTERITY: 'DEX',
+  CONSTITUTION: 'CON',
+  INTELLIGENCE: 'INT',
+  WISDOM: 'WIS',
+  CHARISMA: 'CHA'
 }
 
 function getCalculatedMaxHitPoints(character: CharacterAuthored): number {
@@ -90,6 +101,67 @@ function parseSlotLevel(slotKey: string): number | null {
   return level ? Number(level) : null
 }
 
+type EngineFeatureSource = CharacterBuildSnapshot['features'][number]['source']
+type EngineFeatureTiming = CharacterBuildSnapshot['features'][number]['timing']
+type EngineEquippedItem = CharacterBuildSnapshot['equippedItems'][number]
+type EngineCompiledEquipment = EngineEquippedItem['compiledItem']
+type EngineEquippedState = EngineEquippedItem['equippedState']
+
+function toEngineFeatureSource(source: CharacterProvenance): EngineFeatureSource {
+  switch (source.kind) {
+    case 'CLASS':
+      return { kind: source.kind, classId: source.classId, classLevel: source.classLevel }
+    case 'SUBCLASS':
+      return { kind: source.kind, subclassId: source.subclassId, classLevel: source.classLevel }
+    case 'RACE':
+      return { kind: source.kind, raceId: source.raceId }
+    case 'SUBRACE':
+      return { kind: source.kind, subraceId: source.subraceId }
+    case 'ANCESTRY':
+      return { kind: source.kind, ancestryId: source.ancestryId, optionId: source.optionId }
+    case 'BACKGROUND':
+      return { kind: source.kind, backgroundId: source.backgroundId }
+    case 'FEAT':
+      return { kind: source.kind, featId: source.featId }
+    case 'FEATURE':
+      return { kind: source.kind, featureId: source.featureId }
+    case 'OPTION':
+      return { kind: source.kind, acquiredParentId: source.acquiredParentId, optionId: source.optionId }
+    case 'MANUAL':
+      return { kind: source.kind, reason: source.reason }
+  }
+}
+
+function toEngineFeatureTiming(timing: CharacterAcquisitionTiming): EngineFeatureTiming {
+  switch (timing.kind) {
+    case 'IMMEDIATE':
+      return { kind: timing.kind }
+    case 'CHARACTER_LEVEL':
+      return { kind: timing.kind, level: timing.level }
+    case 'CLASS_LEVEL':
+      return { kind: timing.kind, classId: timing.classId, classLevel: timing.classLevel }
+  }
+}
+
+function addEngineAbilityScore(abilities: Record<string, number>, ability: string, score: number): void {
+  abilities[ability] = score
+  const alias = ENGINE_ABILITY_ALIASES[ability]
+  if (alias) abilities[alias] = score
+}
+
+function getEngineEquippedState(compiledItem: EngineCompiledEquipment): EngineEquippedState {
+  if (compiledItem.category === 'VARIANT') return { slot: 'GENERIC' }
+
+  switch (compiledItem.category) {
+    case 'ARMOR':
+      return { slot: 'ARMOR' }
+    case 'SHIELD':
+      return { slot: 'SHIELD' }
+    default:
+      return { slot: 'GENERIC' }
+  }
+}
+
 function createCharacterEngineInput(
   character: CharacterAuthored,
   resolution: CharacterBuilderResolution
@@ -100,17 +172,42 @@ function createCharacterEngineInput(
   const classes = Object.fromEntries(
     resolution.registry.classes.map((record) => [record.id, compileClass(record)])
   ) satisfies CharacterAssemblyRegistry['classes']
+  const equipment = Object.fromEntries(
+    resolution.registry.equipment.map((record) => [record.id, compileResolvedEquipment(record)])
+  ) satisfies CharacterAssemblyRegistry['equipment']
+  const features = Object.fromEntries(
+    resolution.registry.features.map((record) => [record.id, compileFeature(record)])
+  ) satisfies CharacterAssemblyRegistry['features']
   const abilities: Record<string, number> = {}
   for (const [ability, score] of Object.entries(resolution.summary.abilities)) {
-    if (typeof score === 'number') abilities[ability] = score
+    if (typeof score === 'number') addEngineAbilityScore(abilities, ability, score)
+  }
+
+  const equippedIds = new Set(character.state.equipment.equipped)
+  const equippedItems: CharacterBuildSnapshot['equippedItems'] = []
+  for (const item of character.state.equipment.inventory) {
+    if (!equippedIds.has(item.id)) continue
+
+    const compiledItem = equipment[item.equipmentId]
+    if (!compiledItem) continue
+
+    equippedItems.push({
+      instanceId: item.id,
+      contentRef: {
+        contentId: item.equipmentId,
+        systemId: character.systemId
+      },
+      equippedState: getEngineEquippedState(compiledItem),
+      compiledItem
+    })
   }
 
   return {
     registry: {
       classes,
-      equipment: {},
+      equipment,
       feats: {},
-      features: {},
+      features,
       races: {},
       spells: {}
     },
@@ -136,8 +233,12 @@ function createCharacterEngineInput(
       ]),
       abilities,
       hitpoints: [],
-      features: [],
-      equippedItems: []
+      features: character.intent.featureAcquisitions.map((feature) => ({
+        featureId: feature.featureId,
+        source: toEngineFeatureSource(feature.source),
+        timing: toEngineFeatureTiming(feature.timing)
+      })),
+      equippedItems
     }
   }
 }
@@ -348,9 +449,9 @@ export async function buildCharacterSheetResponse(params: {
 }): Promise<CharacterSheetResponseDto> {
   const { character, resolution } = params
   const totalLevel = Math.max(resolution.summary.totalLevel, 1)
-  const proficiencyBonus = getProficiencyBonus(totalLevel)
-  const dexterityScore = resolution.summary.abilities.DEXTERITY ?? 10
-  const dexterityModifier = abilityModifier(dexterityScore)
+  const engineInput = createCharacterEngineInput(character, resolution)
+  const engineOutput = runEngine(engineInput.snapshot, engineInput.registry, dnd5e2014RulesSystem)
+  const proficiencyBonus = engineOutput.derivedStats.proficiencyBonus
   const maxHitPoints = getMaxHitPoints(character)
   const conditionOptions = await getConditionOptions(params.db, character.systemId)
   const conditionLabels = new Map(conditionOptions.map((condition) => [condition.id, condition.label]))
@@ -361,8 +462,6 @@ export async function buildCharacterSheetResponse(params: {
   })) ?? []
   const currencyLabels = new Map(currencyOptions.map((currency) => [currency.id, currency.label]))
   const spellSlotsUsed = new Map((character.state.spellSlots ?? []).map((slot) => [slot.slotKey, slot.used]))
-  const engineInput = createCharacterEngineInput(character, resolution)
-  const engineOutput = runEngine(engineInput.snapshot, engineInput.registry, dnd5e2014RulesSystem)
   const spellSlots = getSpellSlotMaximums(engineOutput.spellSlots).map((slot) => {
     const used = Math.min(spellSlotsUsed.get(slot.slotKey) ?? 0, slot.max)
     return {
@@ -399,12 +498,12 @@ export async function buildCharacterSheetResponse(params: {
         modifier: abilityModifier(score)
       })),
       facts: [
-        { label: 'Initiative', value: formatModifier(dexterityModifier) },
+        { label: 'Initiative', value: formatModifier(engineOutput.derivedStats.initiative) },
         { label: 'Proficiency', value: formatModifier(proficiencyBonus) },
         { label: 'Hit Dice', value: character.state.hitpoints.hitDice.map((die) => `${die.total - die.used}/${die.total}d${die.die}`).join(', ') || 'None' }
       ],
-      armorClass: 10 + dexterityModifier,
-      initiative: dexterityModifier,
+      armorClass: engineOutput.derivedStats.armorClass,
+      initiative: engineOutput.derivedStats.initiative,
       proficiencyBonus,
       currentHitPoints: character.state.hitpoints.current,
       maxHitPoints,
@@ -757,11 +856,13 @@ export function applyCharacterSheetCommand(
       }
       return clearEmptyStateArrays(next)
 
-    case 'SET_EXHAUSTION':
+    case 'SET_EXHAUSTION': {
+      const notes = command.notes === undefined ? next.state.exhaustion?.notes : command.notes
       next.state.exhaustion = command.level > 0
-        ? { level: command.level, notes: command.notes }
+        ? { level: command.level, notes: notes || undefined }
         : undefined
       return clearEmptyStateArrays(next)
+    }
 
     case 'ADD_CONDITION': {
       const conditionKnown = sheet.reference.conditionOptions.some((condition) => condition.id === command.conditionTypeId)
