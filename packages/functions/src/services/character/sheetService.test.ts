@@ -1469,6 +1469,63 @@ describe('character sheet command application', () => {
     }, sheet)).toThrow(CharacterSheetCommandError)
   })
 
+  it('allows known-spell classes to clear stale prepared spell state', async () => {
+    const character = createCharacter()
+    character.intent.classes = [{ classId: 'bard', classLevel: 1 }]
+    character.state.classes = [
+      {
+        classId: 'bard',
+        spells: {
+          learned: ['spell-1'],
+          prepared: ['spell-1']
+        }
+      }
+    ]
+    const resolution = createResolution()
+    resolution.registry.classes = [
+      createSpellcastingClass({
+        attributes: [SPELLCASTING_ATTRIBUTE.LIMIT_KNOWN_SPELL_AMOUNT],
+        id: 'bard',
+        label: 'Bard',
+        resetKind: 'LONG_REST',
+        spellLimits: createFullCasterSpellLimits()
+      })
+    ]
+    resolution.registry.spells = [
+      createSpell({
+        classIds: ['bard'],
+        id: 'spell-1',
+        label: 'Charm Person',
+        level: 1
+      })
+    ]
+
+    const sheet = await buildCharacterSheetResponse({
+      character,
+      db: createConditionDb(),
+      hasBuilderDraft: false,
+      resolution,
+      streamVersion: 1
+    })
+
+    expect(sheet.spells.preparationSources).toBeUndefined()
+    const next = applyCharacterSheetCommand(character, {
+      type: 'SET_PREPARED_SPELLS',
+      classId: 'bard',
+      spellIds: [],
+      expectedVersion: 1
+    }, sheet)
+
+    expect(next.state.classes).toEqual([
+      {
+        classId: 'bard',
+        spells: {
+          learned: ['spell-1']
+        }
+      }
+    ])
+  })
+
   it('matches subclass spells against canonical subclass class records', async () => {
     const character = createCharacter()
     character.intent.classes = [{ classId: 'wizard', subclassId: 'subclass-choice-1', classLevel: 3 }]

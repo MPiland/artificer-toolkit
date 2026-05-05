@@ -1297,11 +1297,11 @@ export function applyCharacterSheetCommand(
       if (!next.intent.classes.some((classIntent) => classIntent.classId === command.classId)) {
         throw new CharacterSheetCommandError(`Class "${command.classId}" is not on this character.`)
       }
+      const preparedSpellIds = [...new Set(command.spellIds)]
       const preparationSource = sheet.spells.preparationSources?.find((source) => source.classId === command.classId)
-      if (!preparationSource) {
+      if (!preparationSource && preparedSpellIds.length > 0) {
         throw new CharacterSheetCommandError(`Class "${command.classId}" does not prepare spells.`)
       }
-      const preparedSpellIds = [...new Set(command.spellIds)]
       const availableSpellIds = getSheetPreparationAvailableSpellIds(sheet, command.classId)
       const unavailableSpell = preparedSpellIds.find((spellId) => !availableSpellIds.has(spellId))
       if (unavailableSpell) throw new CharacterSheetCommandError(`Spell "${unavailableSpell}" is not available for class "${command.classId}".`)
