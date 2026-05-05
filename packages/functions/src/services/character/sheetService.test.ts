@@ -666,6 +666,30 @@ describe('character sheet command application', () => {
     }, createSheet())).toThrow(CharacterSheetCommandError)
   })
 
+  it('replaces existing condition notes when adding the same condition again', () => {
+    const character = createCharacter()
+    character.state.conditions = [
+      {
+        conditionTypeId: 'condition-1',
+        notes: 'Spider venom'
+      }
+    ]
+
+    const next = applyCharacterSheetCommand(character, {
+      type: 'ADD_CONDITION',
+      conditionTypeId: 'condition-1',
+      notes: 'Wyvern sting',
+      expectedVersion: 1
+    }, createSheet())
+
+    expect(next.state.conditions).toEqual([
+      {
+        conditionTypeId: 'condition-1',
+        notes: 'Wyvern sting'
+      }
+    ])
+  })
+
   it('validates prepared spells against the selected class spell list', () => {
     const character = createCharacter()
     character.intent.classes = [

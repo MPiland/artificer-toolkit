@@ -145,6 +145,39 @@ describe('Character Sheet sections', () => {
     })
   })
 
+  it('updates active condition notes through the overview panel', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn()
+    const sheet = createSheet()
+    sheet.overview.conditions = [
+      {
+        conditionTypeId: 'condition-1',
+        label: 'Poisoned',
+        notes: 'Spider venom'
+      }
+    ]
+
+    renderWithAppProviders(
+      <CharacterSheetOverview
+        pending={false}
+        sheet={sheet}
+        submitCommand={submitCommand}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: /^notes$/i }))
+    await user.clear(screen.getByLabelText(/poisoned notes/i))
+    await user.type(screen.getByLabelText(/poisoned notes/i), 'Wyvern sting')
+    await user.click(screen.getByRole('button', { name: /save notes/i }))
+
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'ADD_CONDITION',
+      conditionTypeId: 'condition-1',
+      notes: 'Wyvern sting',
+      expectedVersion: 4
+    })
+  })
+
   it('allows currency updates even when the character has no current currency rows', async () => {
     const user = userEvent.setup()
     const submitCommand = vi.fn()

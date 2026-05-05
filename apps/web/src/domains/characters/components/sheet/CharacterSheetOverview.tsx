@@ -1,6 +1,7 @@
-import { Button, NumberInput, Select, Text, Textarea, TextInput, Title } from '@mantine/core'
+import { Button, NumberInput, Text, Textarea, Title } from '@mantine/core'
 import { useState } from 'react'
 import * as styles from './characterSheet.css'
+import { CharacterSheetConditions } from './CharacterSheetConditions'
 import type { CharacterSheetSectionProps } from './CharacterSheet.types'
 import { formatSigned, toNumber } from './characterSheet.utils'
 
@@ -158,8 +159,6 @@ export function CharacterSheetOverview({
   submitCommand
 }: CharacterSheetSectionProps) {
   const version = sheet.meta.streamVersion
-  const [conditionTypeId, setConditionTypeId] = useState<string | null>(null)
-  const [conditionNotes, setConditionNotes] = useState('')
 
   return (
     <section className={styles.panel} aria-labelledby='character-sheet-overview'>
@@ -219,71 +218,11 @@ export function CharacterSheetOverview({
           submitCommand={submitCommand}
           version={version}
         />
-
-        <div className={styles.row}>
-          <div>
-            <Text fw={700}>Conditions</Text>
-            <Text className={styles.muted}>
-              {sheet.overview.conditions.length ? sheet.overview.conditions.map((condition) => condition.label).join(', ') : 'No active conditions'}
-            </Text>
-          </div>
-          <div className={styles.compactActions}>
-            <Select
-              data={sheet.reference.conditionOptions.map((option) => ({
-                value: option.id,
-                label: option.label
-              }))}
-              placeholder='Add condition'
-              value={conditionTypeId}
-              onChange={setConditionTypeId}
-              searchable
-            />
-            <TextInput
-              aria-label='Condition notes'
-              placeholder='Notes'
-              value={conditionNotes}
-              onChange={(event) => setConditionNotes(event.currentTarget.value)}
-            />
-            <Button
-              disabled={pending || !conditionTypeId}
-              size='xs'
-              onClick={() => {
-                if (!conditionTypeId) return
-                submitCommand({
-                  type: 'ADD_CONDITION',
-                  conditionTypeId,
-                  notes: conditionNotes.trim() || undefined,
-                  expectedVersion: version
-                })
-                setConditionTypeId(null)
-                setConditionNotes('')
-              }}
-            >
-              Add
-            </Button>
-          </div>
-        </div>
-
-        {sheet.overview.conditions.map((condition) => (
-          <div className={styles.row} key={condition.conditionTypeId}>
-            <div>
-              <Text>{condition.label}</Text>
-              {condition.notes ? <Text className={styles.muted}>{condition.notes}</Text> : null}
-            </div>
-            <Button
-              disabled={pending}
-              size='xs'
-              variant='default'
-              onClick={() => submitCommand({
-                type: 'REMOVE_CONDITION',
-                conditionTypeId: condition.conditionTypeId,
-                expectedVersion: version
-              })}
-            >
-              Remove
-            </Button>
-          </div>
-        ))}
+        <CharacterSheetConditions
+          pending={pending}
+          sheet={sheet}
+          submitCommand={submitCommand}
+        />
       </div>
     </section>
   )
