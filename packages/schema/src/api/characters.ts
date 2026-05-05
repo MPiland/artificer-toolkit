@@ -505,6 +505,12 @@ export const characterSheetSpellSlotDtoSchema = z.object({
   remaining: z.number().int()
 })
 
+export const characterSheetSpellSourceDtoSchema = z.object({
+  classId: z.string(),
+  label: z.string(),
+  prepared: z.boolean().optional()
+})
+
 export const characterSheetSpellDtoSchema = z.object({
   id: z.string(),
   label: z.string(),
@@ -512,7 +518,9 @@ export const characterSheetSpellDtoSchema = z.object({
   school: z.string().optional(),
   prepared: z.boolean().optional(),
   known: z.boolean().optional(),
-  sourceLabel: z.string().optional()
+  sourceLabel: z.string().optional(),
+  sources: z.array(characterSheetSpellSourceDtoSchema)
+    .optional()
 })
 
 export const characterSheetInventoryItemDtoSchema = z.object({

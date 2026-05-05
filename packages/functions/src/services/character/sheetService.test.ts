@@ -285,6 +285,30 @@ function createSpellcastingClass(params: {
   }
 }
 
+function createSpell(params: {
+  classIds: string[]
+  id: string
+  label: string
+  level: number
+}): CharacterBuilderResolution['registry']['spells'][number] {
+  return {
+    kind: 'SPELL',
+    id: params.id,
+    label: params.label,
+    status: 'ACTIVE',
+    description: '',
+    castingTime: {
+      unit: 'ROUND',
+      amount: 1
+    },
+    level: params.level,
+    classIds: params.classIds,
+    magicSchoolId: 'ABJURATION',
+    systemId: 'system-1',
+    userId: 'user-1'
+  }
+}
+
 function createEquipment(params: {
   armorClass?: number
   category: CharacterBuilderResolution['registry']['equipment'][number]['category']
@@ -744,6 +768,72 @@ describe('character sheet command application', () => {
       { label: 'Initiative', value: '+3' },
       { label: 'Proficiency', value: '+2' }
     ]))
+  })
+
+  it('hydrates class-scoped spell sources for preparation commands', async () => {
+    const character = createCharacter()
+    character.intent.classes = [{ classId: 'wizard', classLevel: 1 }]
+    character.intent.spellSelections = [
+      {
+        id: 'wizard-spells',
+        source: { kind: 'CLASS', classId: 'wizard' },
+        timing: { kind: 'IMMEDIATE' },
+        spells: ['spell-1', 'spell-2']
+      }
+    ]
+    character.state.classes = [
+      {
+        classId: 'wizard',
+        spells: {
+          learned: ['spell-1', 'spell-2'],
+          prepared: ['spell-2']
+        }
+      }
+    ]
+    const resolution = createResolution()
+    resolution.registry.classes = [
+      createSpellcastingClass({
+        id: 'wizard',
+        label: 'Wizard',
+        resetKind: 'LONG_REST',
+        spellLimits: createFullCasterSpellLimits()
+      })
+    ]
+    resolution.registry.spells = [
+      createSpell({
+        classIds: ['wizard'],
+        id: 'spell-1',
+        label: 'Shield',
+        level: 1
+      }),
+      createSpell({
+        classIds: ['wizard'],
+        id: 'spell-2',
+        label: 'Mage Armor',
+        level: 1
+      })
+    ]
+
+    const sheet = await buildCharacterSheetResponse({
+      character,
+      db: createConditionDb(),
+      hasBuilderDraft: false,
+      resolution,
+      streamVersion: 1
+    })
+
+    expect(sheet.spells.spells).toEqual([
+      expect.objectContaining({
+        id: 'spell-1',
+        sourceLabel: 'Wizard',
+        sources: [{ classId: 'wizard', label: 'Wizard', prepared: false }]
+      }),
+      expect.objectContaining({
+        id: 'spell-2',
+        sourceLabel: 'Wizard',
+        sources: [{ classId: 'wizard', label: 'Wizard', prepared: true }]
+      })
+    ])
   })
 
   it('derives resource maximums and recovery from class resource charges', async () => {

@@ -1,7 +1,16 @@
 import { Badge, Button, Text, Title } from '@mantine/core'
 import * as styles from './characterSheet.css'
-import type { CharacterSheetSectionProps } from './CharacterSheet.types'
+import type { CharacterSheet, CharacterSheetSectionProps } from './CharacterSheet.types'
 import { formatSigned } from './characterSheet.utils'
+
+type SheetSpell = CharacterSheet['spells']['spells'][number]
+type SheetSpellSource = NonNullable<SheetSpell['sources']>[number]
+
+function getPreparedSpellIdsForClass(sheet: CharacterSheet, classId: string) {
+  return sheet.spells.spells
+    .filter((spell) => spell.sources?.some((source) => source.classId === classId && source.prepared))
+    .map((spell) => spell.id)
+}
 
 export function CharacterSheetSpells({
   pending,
@@ -9,6 +18,20 @@ export function CharacterSheetSpells({
   submitCommand
 }: CharacterSheetSectionProps) {
   const version = sheet.meta.streamVersion
+
+  function togglePreparedSpell(spell: SheetSpell, source: SheetSpellSource) {
+    const currentPreparedSpellIds = getPreparedSpellIdsForClass(sheet, source.classId)
+    const nextPreparedSpellIds = source.prepared
+      ? currentPreparedSpellIds.filter((spellId) => spellId !== spell.id)
+      : [...new Set([...currentPreparedSpellIds, spell.id])]
+
+    submitCommand({
+      type: 'SET_PREPARED_SPELLS',
+      classId: source.classId,
+      spellIds: nextPreparedSpellIds,
+      expectedVersion: version
+    })
+  }
 
   return (
     <section className={styles.panel} aria-labelledby='character-sheet-spells'>
@@ -81,11 +104,24 @@ export function CharacterSheetSpells({
                     Level
                     {spell.level}
                     {spell.school ? `, ${spell.school}` : ''}
+                    {spell.sourceLabel ? `, ${spell.sourceLabel}` : ''}
                   </Text>
                 </div>
                 <div className={styles.compactActions}>
                   {spell.prepared ? <Badge variant='light'>Prepared</Badge> : null}
                   {spell.known ? <Badge variant='default'>Known</Badge> : null}
+                  {spell.sources?.map((source) => (
+                    <Button
+                      aria-label={`${source.prepared ? 'Unprepare' : 'Prepare'} ${spell.label} for ${source.label}`}
+                      disabled={pending}
+                      key={source.classId}
+                      size='xs'
+                      variant={source.prepared ? 'default' : 'light'}
+                      onClick={() => togglePreparedSpell(spell, source)}
+                    >
+                      {source.prepared ? 'Unprepare' : 'Prepare'}
+                    </Button>
+                  ))}
                 </div>
               </div>
             ))

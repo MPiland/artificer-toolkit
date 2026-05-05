@@ -76,6 +76,34 @@ export function CharacterSheetInventory({
                 </div>
                 <div className={styles.compactActions}>
                   <Button
+                    aria-label={`Decrease ${item.label} quantity`}
+                    disabled={pending}
+                    size='xs'
+                    variant='default'
+                    onClick={() => submitCommand({
+                      type: 'UPDATE_INVENTORY_ITEM',
+                      itemId: item.id,
+                      quantity: Math.max(item.quantity - 1, 0),
+                      expectedVersion: version
+                    })}
+                  >
+                    -1
+                  </Button>
+                  <Button
+                    aria-label={`Increase ${item.label} quantity`}
+                    disabled={pending}
+                    size='xs'
+                    variant='default'
+                    onClick={() => submitCommand({
+                      type: 'UPDATE_INVENTORY_ITEM',
+                      itemId: item.id,
+                      quantity: item.quantity + 1,
+                      expectedVersion: version
+                    })}
+                  >
+                    +1
+                  </Button>
+                  <Button
                     disabled={pending}
                     size='xs'
                     variant={item.equipped ? 'default' : 'filled'}

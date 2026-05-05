@@ -5,6 +5,7 @@ import type { CharacterSheetResponseDto } from '#app/lib/api'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { CharacterSheetInventory } from '../components/sheet/CharacterSheetInventory'
 import { CharacterSheetOverview } from '../components/sheet/CharacterSheetOverview'
+import { CharacterSheetSpells } from '../components/sheet/CharacterSheetSpells'
 
 function createSheet(): CharacterSheetResponseDto {
   return {
@@ -113,6 +114,28 @@ describe('Character Sheet sections', () => {
     })
   })
 
+  it('updates inventory quantity through sheet commands', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn()
+
+    renderWithAppProviders(
+      <CharacterSheetInventory
+        pending={false}
+        sheet={createSheet()}
+        submitCommand={submitCommand}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: /increase longsword quantity/i }))
+
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'UPDATE_INVENTORY_ITEM',
+      itemId: 'item-1',
+      quantity: 2,
+      expectedVersion: 4
+    })
+  })
+
   it('resyncs HP setting inputs when refreshed sheet data changes', async () => {
     const user = userEvent.setup()
     const submitCommand = vi.fn()
@@ -172,6 +195,49 @@ describe('Character Sheet sections', () => {
       type: 'SET_HIT_POINTS',
       temp: 5,
       maxOverride: null,
+      expectedVersion: 4
+    })
+  })
+
+  it('prepares spells through the class-scoped sheet command', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn()
+    const sheet = createSheet()
+    sheet.spells.spells = [
+      {
+        id: 'spell-1',
+        label: 'Shield',
+        level: 1,
+        prepared: false,
+        known: true,
+        sourceLabel: 'Wizard',
+        sources: [{ classId: 'wizard', label: 'Wizard', prepared: false }]
+      },
+      {
+        id: 'spell-2',
+        label: 'Mage Armor',
+        level: 1,
+        prepared: true,
+        known: true,
+        sourceLabel: 'Wizard',
+        sources: [{ classId: 'wizard', label: 'Wizard', prepared: true }]
+      }
+    ]
+
+    renderWithAppProviders(
+      <CharacterSheetSpells
+        pending={false}
+        sheet={sheet}
+        submitCommand={submitCommand}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: /prepare shield for wizard/i }))
+
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'SET_PREPARED_SPELLS',
+      classId: 'wizard',
+      spellIds: ['spell-2', 'spell-1'],
       expectedVersion: 4
     })
   })

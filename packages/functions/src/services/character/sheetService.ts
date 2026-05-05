@@ -311,6 +311,56 @@ function getKnownSpellIdsForClass(character: CharacterAuthored, classId: string)
   return known
 }
 
+function getSpellSourcesBySpellId(
+  character: CharacterAuthored,
+  classLabels: ReadonlyMap<string, string>
+): Map<string, Array<{ classId: string, label: string, prepared: boolean }>> {
+  const classStateById = new Map((character.state.classes ?? []).map((classState) => [classState.classId, classState]))
+  const classOrder = new Map(character.intent.classes.map((classIntent, index) => [classIntent.classId, index]))
+  const sourcesBySpellId = new Map<string, Map<string, { classId: string, label: string, prepared: boolean }>>()
+
+  function addSpellSource(spellId: string, classId: string) {
+    const sources = sourcesBySpellId.get(spellId) ?? new Map<string, { classId: string, label: string, prepared: boolean }>()
+    const classState = classStateById.get(classId)
+    const prepared = classState?.spells?.prepared?.includes(spellId) ?? false
+    const current = sources.get(classId)
+    sources.set(classId, {
+      classId,
+      label: classLabels.get(classId) ?? 'Class',
+      prepared: current?.prepared || prepared
+    })
+    sourcesBySpellId.set(spellId, sources)
+  }
+
+  for (const selection of character.intent.spellSelections ?? []) {
+    const source = selection.source
+    if (source.kind === 'CLASS') {
+      for (const spellId of selection.spells) addSpellSource(spellId, source.classId)
+      continue
+    }
+
+    if (source.kind === 'SUBCLASS') {
+      const owningClass = character.intent.classes.find((classIntent) => classIntent.subclassId === source.subclassId)
+      if (!owningClass) continue
+      for (const spellId of selection.spells) addSpellSource(spellId, owningClass.classId)
+    }
+  }
+
+  for (const classState of character.state.classes ?? []) {
+    for (const spellId of classState.spells?.learned ?? []) addSpellSource(spellId, classState.classId)
+    for (const spellId of classState.spells?.prepared ?? []) addSpellSource(spellId, classState.classId)
+  }
+
+  return new Map([...sourcesBySpellId.entries()].map(([spellId, sources]) => [
+    spellId,
+    [...sources.values()].sort((left, right) => {
+      const leftOrder = classOrder.get(left.classId) ?? Number.MAX_SAFE_INTEGER
+      const rightOrder = classOrder.get(right.classId) ?? Number.MAX_SAFE_INTEGER
+      return leftOrder - rightOrder || left.label.localeCompare(right.label)
+    })
+  ]))
+}
+
 function findResourceDefinition(
   resolution: CharacterBuilderResolution,
   resource: CharacterBuilderResolution['grants']['resources'][number],
@@ -473,6 +523,8 @@ export async function buildCharacterSheetResponse(params: {
   const { learned, prepared } = getPreparedAndKnownSpellIds(character)
   const knownSpellIds = new Set([...learned, ...prepared])
   const resourceUsage = new Map((character.state.resources ?? []).map((resource) => [resource.resourceGrantId, resource.used]))
+  const classLabels = new Map(resolution.registry.classes.map((classRecord) => [classRecord.id, classRecord.label]))
+  const spellSourcesBySpellId = getSpellSourcesBySpellId(character, classLabels)
 
   return {
     meta: {
@@ -573,14 +625,19 @@ export async function buildCharacterSheetResponse(params: {
       })),
       spells: resolution.registry.spells
         .filter((spell) => knownSpellIds.has(spell.id))
-        .map((spell) => ({
-          id: spell.id,
-          label: spell.label,
-          level: spell.level,
-          school: spell.magicSchoolId,
-          prepared: prepared.has(spell.id),
-          known: learned.has(spell.id)
-        }))
+        .map((spell) => {
+          const sources = spellSourcesBySpellId.get(spell.id) ?? []
+          return {
+            id: spell.id,
+            label: spell.label,
+            level: spell.level,
+            school: spell.magicSchoolId,
+            prepared: prepared.has(spell.id),
+            known: learned.has(spell.id),
+            sourceLabel: sources.length ? sources.map((source) => source.label).join(', ') : undefined,
+            sources: sources.length ? sources : undefined
+          }
+        })
     },
     inventory: {
       items: character.state.equipment.inventory.map((item) => ({
