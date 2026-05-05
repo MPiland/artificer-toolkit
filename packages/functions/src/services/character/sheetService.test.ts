@@ -920,6 +920,73 @@ describe('character sheet command application', () => {
     expect(sheet.spells.preparationSources).toBeUndefined()
   })
 
+  it('filters active-class prepared spells that are no longer known by that class', async () => {
+    const character = createCharacter()
+    character.intent.classes = [{ classId: 'wizard', classLevel: 1 }]
+    character.intent.spellSelections = [
+      {
+        id: 'wizard-spells',
+        source: { kind: 'CLASS', classId: 'wizard' },
+        timing: { kind: 'IMMEDIATE' },
+        spells: ['spell-1']
+      }
+    ]
+    character.state.classes = [
+      {
+        classId: 'wizard',
+        spells: {
+          learned: ['spell-1'],
+          prepared: ['spell-1', 'stale-spell']
+        }
+      }
+    ]
+    const resolution = createResolution()
+    resolution.registry.classes = [
+      createSpellcastingClass({
+        id: 'wizard',
+        label: 'Wizard',
+        resetKind: 'LONG_REST',
+        spellLimits: createFullCasterSpellLimits()
+      })
+    ]
+    resolution.registry.spells = [
+      createSpell({
+        classIds: ['wizard'],
+        id: 'spell-1',
+        label: 'Shield',
+        level: 1
+      }),
+      createSpell({
+        classIds: ['wizard'],
+        id: 'stale-spell',
+        label: 'Retired Spell',
+        level: 1
+      })
+    ]
+
+    const sheet = await buildCharacterSheetResponse({
+      character,
+      db: createConditionDb(),
+      hasBuilderDraft: false,
+      resolution,
+      streamVersion: 1
+    })
+
+    expect(sheet.spells.preparationSources).toEqual([
+      {
+        classId: 'wizard',
+        label: 'Wizard',
+        preparedSpellIds: ['spell-1']
+      }
+    ])
+    expect(sheet.spells.spells).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        id: 'stale-spell',
+        sources: undefined
+      })
+    ]))
+  })
+
   it('derives resource maximums and recovery from class resource charges', async () => {
     const character = createCharacter()
     character.intent.classes = [{ classId: 'class-1', subclassId: 'subclass-1', classLevel: 3 }]

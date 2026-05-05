@@ -288,12 +288,11 @@ function getPreparedAndKnownSpellIds(character: CharacterAuthored): {
   return { learned, prepared }
 }
 
-function getKnownSpellIdsForClass(character: CharacterAuthored, classId: string): Set<string> {
+function getKnownSpellIdsForClassIntent(character: CharacterAuthored, classId: string): Set<string> {
   const known = new Set<string>()
   const classIntent = character.intent.classes.find((row) => row.classId === classId)
   const classState = character.state.classes?.find((row) => row.classId === classId)
   for (const spellId of classState?.spells?.learned ?? []) known.add(spellId)
-  for (const spellId of classState?.spells?.prepared ?? []) known.add(spellId)
 
   for (const selection of character.intent.spellSelections ?? []) {
     if (selection.source.kind === 'CLASS' && selection.source.classId === classId) {
@@ -311,6 +310,13 @@ function getKnownSpellIdsForClass(character: CharacterAuthored, classId: string)
   return known
 }
 
+function getKnownSpellIdsForClass(character: CharacterAuthored, classId: string): Set<string> {
+  const known = getKnownSpellIdsForClassIntent(character, classId)
+  const classState = character.state.classes?.find((row) => row.classId === classId)
+  for (const spellId of classState?.spells?.prepared ?? []) known.add(spellId)
+  return known
+}
+
 function getSpellSourcesBySpellId(
   character: CharacterAuthored,
   classLabels: ReadonlyMap<string, string>
@@ -318,6 +324,10 @@ function getSpellSourcesBySpellId(
   const classStateById = new Map((character.state.classes ?? []).map((classState) => [classState.classId, classState]))
   const classOrder = new Map(character.intent.classes.map((classIntent, index) => [classIntent.classId, index]))
   const activeClassIds = new Set(character.intent.classes.map((classIntent) => classIntent.classId))
+  const knownSpellIdsByClassId = new Map(character.intent.classes.map((classIntent) => [
+    classIntent.classId,
+    getKnownSpellIdsForClassIntent(character, classIntent.classId)
+  ]))
   const sourcesBySpellId = new Map<string, Map<string, { classId: string, label: string, prepared: boolean }>>()
 
   function addSpellSource(spellId: string, classId: string) {
@@ -350,7 +360,9 @@ function getSpellSourcesBySpellId(
 
   for (const classState of character.state.classes ?? []) {
     for (const spellId of classState.spells?.learned ?? []) addSpellSource(spellId, classState.classId)
-    for (const spellId of classState.spells?.prepared ?? []) addSpellSource(spellId, classState.classId)
+    for (const spellId of classState.spells?.prepared ?? []) {
+      if (knownSpellIdsByClassId.get(classState.classId)?.has(spellId)) addSpellSource(spellId, classState.classId)
+    }
   }
 
   return new Map([...sourcesBySpellId.entries()].map(([spellId, sources]) => [
@@ -370,11 +382,15 @@ function getSpellPreparationSources(
   const classStateById = new Map((character.state.classes ?? []).map((classState) => [classState.classId, classState]))
 
   return character.intent.classes
-    .map((classIntent) => ({
-      classId: classIntent.classId,
-      label: classLabels.get(classIntent.classId) ?? 'Class',
-      preparedSpellIds: [...new Set(classStateById.get(classIntent.classId)?.spells?.prepared ?? [])]
-    }))
+    .map((classIntent) => {
+      const knownSpellIds = getKnownSpellIdsForClassIntent(character, classIntent.classId)
+      return {
+        classId: classIntent.classId,
+        label: classLabels.get(classIntent.classId) ?? 'Class',
+        preparedSpellIds: [...new Set(classStateById.get(classIntent.classId)?.spells?.prepared ?? [])]
+          .filter((spellId) => knownSpellIds.has(spellId))
+      }
+    })
     .filter((source) => source.preparedSpellIds.length > 0)
 }
 
