@@ -6,7 +6,8 @@ import type { CharacterBuilderResolution } from './builderService.js'
 import {
   CharacterSheetCommandError,
   applyCharacterSheetCommand,
-  buildCharacterSheetResponse
+  buildCharacterSheetResponse,
+  summarizeCharacterSheetCommand
 } from './sheetService.js'
 
 function createCharacter(): CharacterAuthored {
@@ -896,6 +897,48 @@ describe('character sheet command application', () => {
       amount: 1,
       expectedVersion: 1
     }, createSheet())).toThrow(CharacterSheetCommandError)
+  })
+
+  it('summarizes sheet commands with current sheet labels', () => {
+    const sheet = createSheet()
+    sheet.overview.conditions = [{ conditionTypeId: 'condition-1', label: 'Poisoned' }]
+    sheet.inventory.items = [
+      {
+        id: 'item-1',
+        equipmentId: 'equipment-1',
+        label: 'Moonlit Blade',
+        quantity: 1,
+        equipped: false,
+        attuned: false
+      }
+    ]
+
+    expect(summarizeCharacterSheetCommand({
+      type: 'ADD_CONDITION',
+      conditionTypeId: 'condition-1',
+      expectedVersion: 1
+    }, sheet)).toBe('Poisoned added')
+    expect(summarizeCharacterSheetCommand({
+      type: 'USE_RESOURCE',
+      resourceGrantId: 'resource-1',
+      expectedVersion: 1
+    }, sheet)).toBe('Second Wind used')
+    expect(summarizeCharacterSheetCommand({
+      type: 'USE_SPELL_SLOT',
+      slotKey: 'STANDARD:1',
+      expectedVersion: 1
+    }, sheet)).toBe('Level 1 spell slot used')
+    expect(summarizeCharacterSheetCommand({
+      type: 'EQUIP_ITEM',
+      itemId: 'item-1',
+      expectedVersion: 1
+    }, sheet)).toBe('Moonlit Blade equipped')
+    expect(summarizeCharacterSheetCommand({
+      type: 'ADJUST_CURRENCY',
+      currencyId: 'currency-1',
+      amount: 5,
+      expectedVersion: 1
+    }, sheet)).toBe('Gold updated')
   })
 
   it('replaces existing condition notes when adding the same condition again', () => {

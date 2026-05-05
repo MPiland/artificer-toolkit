@@ -1310,7 +1310,35 @@ export function applyCharacterSheetCommand(
   }
 }
 
-export function summarizeCharacterSheetCommand(command: CharacterSheetCommandInputDto): string {
+function findConditionLabel(sheet: CharacterSheetResponseDto | undefined, conditionTypeId: string): string | undefined {
+  return sheet?.overview.conditions.find((condition) => condition.conditionTypeId === conditionTypeId)?.label
+    ?? sheet?.reference.conditionOptions.find((condition) => condition.id === conditionTypeId)?.label
+}
+
+function findResourceLabel(sheet: CharacterSheetResponseDto | undefined, resourceGrantId: string): string | undefined {
+  return sheet?.resources.items.find((resource) => resource.id === resourceGrantId)?.label
+}
+
+function findSpellSlotLabel(sheet: CharacterSheetResponseDto | undefined, slotKey: string): string | undefined {
+  return sheet?.spells.slots.find((slot) => slot.slotKey === slotKey)?.label
+}
+
+function findInventoryItemLabel(sheet: CharacterSheetResponseDto | undefined, itemId: string): string | undefined {
+  return sheet?.inventory.items.find((item) => item.id === itemId)?.label
+}
+
+function findEquipmentOptionLabel(sheet: CharacterSheetResponseDto | undefined, equipmentId: string): string | undefined {
+  return sheet?.reference.equipmentOptions.find((item) => item.id === equipmentId)?.label
+}
+
+function findCurrencyLabel(sheet: CharacterSheetResponseDto | undefined, currencyId: string): string | undefined {
+  return sheet?.reference.currencyOptions.find((currency) => currency.id === currencyId)?.label
+}
+
+export function summarizeCharacterSheetCommand(
+  command: CharacterSheetCommandInputDto,
+  sheet?: CharacterSheetResponseDto
+): string {
   switch (command.type) {
     case 'SET_HIT_POINTS':
       return 'Hit points updated'
@@ -1323,35 +1351,39 @@ export function summarizeCharacterSheetCommand(command: CharacterSheetCommandInp
     case 'SET_EXHAUSTION':
       return command.level > 0 ? `Exhaustion set to level ${command.level}` : 'Exhaustion cleared'
     case 'ADD_CONDITION':
-      return 'Condition added'
+      return `${findConditionLabel(sheet, command.conditionTypeId) ?? 'Condition'} added`
     case 'REMOVE_CONDITION':
-      return 'Condition removed'
+      return `${findConditionLabel(sheet, command.conditionTypeId) ?? 'Condition'} removed`
     case 'USE_RESOURCE':
-      return 'Resource used'
+      return `${findResourceLabel(sheet, command.resourceGrantId) ?? 'Resource'} used`
     case 'RESTORE_RESOURCE':
-      return 'Resource restored'
-    case 'USE_SPELL_SLOT':
-      return 'Spell slot used'
-    case 'RESTORE_SPELL_SLOT':
-      return 'Spell slot restored'
+      return `${findResourceLabel(sheet, command.resourceGrantId) ?? 'Resource'} restored`
+    case 'USE_SPELL_SLOT': {
+      const slotLabel = findSpellSlotLabel(sheet, command.slotKey)
+      return slotLabel ? `${slotLabel} spell slot used` : 'Spell slot used'
+    }
+    case 'RESTORE_SPELL_SLOT': {
+      const slotLabel = findSpellSlotLabel(sheet, command.slotKey)
+      return slotLabel ? `${slotLabel} spell slot restored` : 'Spell slot restored'
+    }
     case 'SET_PREPARED_SPELLS':
       return 'Prepared spells updated'
     case 'ADD_INVENTORY_ITEM':
-      return 'Inventory item added'
+      return `${findEquipmentOptionLabel(sheet, command.equipmentId) ?? 'Inventory item'} added`
     case 'REMOVE_INVENTORY_ITEM':
-      return 'Inventory item removed'
+      return `${findInventoryItemLabel(sheet, command.itemId) ?? 'Inventory item'} removed`
     case 'UPDATE_INVENTORY_ITEM':
-      return 'Inventory item updated'
+      return `${findInventoryItemLabel(sheet, command.itemId) ?? 'Inventory item'} updated`
     case 'EQUIP_ITEM':
-      return 'Item equipped'
+      return `${findInventoryItemLabel(sheet, command.itemId) ?? 'Item'} equipped`
     case 'UNEQUIP_ITEM':
-      return 'Item unequipped'
+      return `${findInventoryItemLabel(sheet, command.itemId) ?? 'Item'} unequipped`
     case 'ATTUNE_ITEM':
-      return 'Item attuned'
+      return `${findInventoryItemLabel(sheet, command.itemId) ?? 'Item'} attuned`
     case 'UNATTUNE_ITEM':
-      return 'Item unattuned'
+      return `${findInventoryItemLabel(sheet, command.itemId) ?? 'Item'} unattuned`
     case 'ADJUST_CURRENCY':
-      return 'Currency updated'
+      return `${findCurrencyLabel(sheet, command.currencyId) ?? 'Currency'} updated`
     case 'UPDATE_NOTES':
       return 'Notes updated'
     default:
@@ -1394,7 +1426,7 @@ export async function executeCharacterSheetCommand(params: {
     streamVersion: row.stream_version
   })
   const nextCharacter = applyCharacterSheetCommand(character, params.command, currentSheet)
-  const summary = summarizeCharacterSheetCommand(params.command)
+  const summary = summarizeCharacterSheetCommand(params.command, currentSheet)
   const event = {
     type: 'CHARACTER_SHEET_COMMAND_APPLIED',
     eventId: crypto.randomUUID(),
