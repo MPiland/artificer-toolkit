@@ -935,10 +935,11 @@ describe('character sheet command application', () => {
     }, createSheet())).toThrow(CharacterSheetCommandError)
   })
 
-  it('removes zero currency rows after sheet currency adjustments', () => {
+  it('preserves zero currency rows after sheet currency adjustments', () => {
     const character = createCharacter()
     character.state.currency = [
       {
+        containerId: 'coin-pouch',
         currencies: [
           { currencyId: 'currency-1', amount: 1 },
           { currencyId: 'currency-2', amount: 4 }
@@ -950,12 +951,17 @@ describe('character sheet command application', () => {
       type: 'ADJUST_CURRENCY',
       currencyId: 'currency-1',
       amount: -1,
+      containerId: 'coin-pouch',
       expectedVersion: 1
     }, createSheet())
 
     expect(next.state.currency).toEqual([
       {
-        currencies: [{ currencyId: 'currency-2', amount: 4 }]
+        containerId: 'coin-pouch',
+        currencies: [
+          { currencyId: 'currency-1', amount: 0 },
+          { currencyId: 'currency-2', amount: 4 }
+        ]
       }
     ])
   })

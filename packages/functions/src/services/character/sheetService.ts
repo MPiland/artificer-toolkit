@@ -1050,12 +1050,7 @@ function clearEmptyStateArrays(character: CharacterAuthored): CharacterAuthored 
     ...character,
     state: {
       ...character.state,
-      currency: character.state.currency
-        .map((group) => ({
-          ...group,
-          currencies: group.currencies.filter((currency) => currency.amount > 0)
-        }))
-        .filter((group) => group.currencies.length > 0),
+      currency: character.state.currency.filter((group) => group.currencies.length > 0),
       conditions: character.state.conditions?.length ? character.state.conditions : undefined,
       resources: character.state.resources?.length ? character.state.resources : undefined,
       spellSlots: character.state.spellSlots?.length ? character.state.spellSlots : undefined,
@@ -1405,6 +1400,7 @@ export function applyCharacterSheetCommand(
       const currencyKnown = sheet.reference.currencyOptions.some((currency) => currency.id === command.currencyId)
       if (!currencyKnown) throw new CharacterSheetCommandError(`Currency "${command.currencyId}" is not available for this system.`)
       const groupIndex = next.state.currency.findIndex((group) => group.containerId === command.containerId)
+      if (groupIndex < 0 && command.amount <= 0) return clearEmptyStateArrays(next)
       const groups = groupIndex >= 0 ? next.state.currency : [...next.state.currency, { containerId: command.containerId, currencies: [] }]
       const targetIndex = groupIndex >= 0 ? groupIndex : groups.length - 1
       const group = groups[targetIndex]
@@ -1415,7 +1411,9 @@ export function applyCharacterSheetCommand(
         ? group.currencies.map((currency) => currency.currencyId === command.currencyId
             ? { ...currency, amount: Math.max(currency.amount + command.amount, 0) }
             : currency)
-        : [...group.currencies, { currencyId: command.currencyId, amount: Math.max(command.amount, 0) }]
+        : command.amount > 0
+          ? [...group.currencies, { currencyId: command.currencyId, amount: command.amount }]
+          : group.currencies
       groups[targetIndex] = { ...group, currencies }
       next.state.currency = groups
       return clearEmptyStateArrays(next)

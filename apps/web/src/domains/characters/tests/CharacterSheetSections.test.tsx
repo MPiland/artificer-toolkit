@@ -135,6 +135,28 @@ describe('Character Sheet sections', () => {
     expect(await screen.findByText(/changed in another tab/i)).toBeInTheDocument()
   })
 
+  it('reacts when the requested initial sheet tab changes', () => {
+    const { rerender } = renderWithAppProviders(
+      <CharacterSheetView
+        hasDraft={false}
+        initialTab='spells'
+        sheet={createSheet()}
+      />
+    )
+
+    expect(screen.getByRole('tab', { name: /spells/i })).toHaveAttribute('aria-selected', 'true')
+
+    rerender(
+      <CharacterSheetView
+        hasDraft={false}
+        initialTab='inventory'
+        sheet={createSheet()}
+      />
+    )
+
+    expect(screen.getByRole('tab', { name: /inventory/i })).toHaveAttribute('aria-selected', 'true')
+  })
+
   it('renders action descriptions as playable reference text', () => {
     const sheet = createSheet()
     sheet.actions.items = [
