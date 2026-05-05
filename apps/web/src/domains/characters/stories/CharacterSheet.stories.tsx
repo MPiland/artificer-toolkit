@@ -8,6 +8,7 @@ import {
   type CharacterSheetResponseDto
 } from '@artificer-toolkit/schema/api/characters'
 import { CharacterSheetHero } from '../components/sheet/CharacterSheetHero'
+import { CharacterSheetInventory } from '../components/sheet/CharacterSheetInventory'
 import { CharacterSheetOverview } from '../components/sheet/CharacterSheetOverview'
 import type { CharacterSheetTabId } from '../components/sheet/CharacterSheet.types'
 import { CharacterSheetView } from '../components/sheet/CharacterSheetView'
@@ -136,6 +137,16 @@ export const CommandPending: Story = {
   )
 }
 
+export const CommandPendingInventory: Story = {
+  render: (args) => (
+    <CharacterSheetInventoryPendingPreview
+      hasDraft={args.hasDraft}
+      maxWidth={args.maxWidth}
+      sheet={args.sheet}
+    />
+  )
+}
+
 export const CommandError: Story = {
   render: (args) => (
     <CharacterSheetCommandErrorPreview
@@ -178,9 +189,35 @@ function CharacterSheetCommandPendingPreview({
       <div className={styles.shell}>
         <CharacterSheetHero hasDraft={hasDraft} sheet={sheet} />
         <Alert color='blue'>
-          A sheet command is being applied. Controls stay visible, but command buttons are temporarily disabled.
+          A sheet command is being applied. Controls stay visible, but editing and command actions are temporarily disabled.
         </Alert>
         <CharacterSheetOverview
+          pending
+          sheet={sheet}
+          submitCommand={() => undefined}
+        />
+      </div>
+    </div>
+  )
+}
+
+function CharacterSheetInventoryPendingPreview({
+  hasDraft,
+  maxWidth,
+  sheet
+}: {
+  hasDraft: boolean
+  maxWidth: number
+  sheet: CharacterSheetResponseDto
+}) {
+  return (
+    <div style={{ margin: '0 auto', maxWidth, minHeight: '100vh', padding: '24px' }}>
+      <div className={styles.shell}>
+        <CharacterSheetHero hasDraft={hasDraft} sheet={sheet} />
+        <Alert color='blue'>
+          Inventory command pending. Add, edit, equip, attune, and currency controls are temporarily disabled.
+        </Alert>
+        <CharacterSheetInventory
           pending
           sheet={sheet}
           submitCommand={() => undefined}
