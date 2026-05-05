@@ -384,6 +384,25 @@ describe('character sheet command application', () => {
     })
   })
 
+  it('hydrates exhaustion notes into the sheet overview', async () => {
+    const character = createCharacter()
+    character.state.exhaustion = {
+      level: 1,
+      notes: 'Forced march through the swamp.'
+    }
+
+    const sheet = await buildCharacterSheetResponse({
+      character,
+      db: createConditionDb(),
+      hasBuilderDraft: false,
+      resolution: createResolution(),
+      streamVersion: 1
+    })
+
+    expect(sheet.overview.exhaustionLevel).toBe(1)
+    expect(sheet.overview.exhaustionNotes).toBe('Forced march through the swamp.')
+  })
+
   it('caps resource and spell slot usage at the sheet maximum', () => {
     const resourceNext = applyCharacterSheetCommand(createCharacter(), {
       type: 'USE_RESOURCE',

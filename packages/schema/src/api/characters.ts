@@ -470,6 +470,7 @@ export const characterSheetOverviewDtoSchema = z.object({
   exhaustionLevel: z.number().int()
     .min(0)
     .max(6),
+  exhaustionNotes: z.string().optional(),
   conditions: z.array(characterSheetConditionDtoSchema),
   hitDice: z.array(characterSheetHitDiceDtoSchema)
 })

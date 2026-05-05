@@ -1,4 +1,4 @@
-import { Button, NumberInput, Select, Text, TextInput, Title } from '@mantine/core'
+import { Button, NumberInput, Select, Text, Textarea, TextInput, Title } from '@mantine/core'
 import { useState } from 'react'
 import * as styles from './characterSheet.css'
 import type { CharacterSheetSectionProps } from './CharacterSheet.types'
@@ -74,6 +74,84 @@ function CharacterSheetHpControls({
   )
 }
 
+function CharacterSheetExhaustionControls({
+  pending,
+  sheet,
+  submitCommand,
+  version
+}: CharacterSheetSectionProps & { version: number }) {
+  const [exhaustionNotes, setExhaustionNotes] = useState(sheet.overview.exhaustionNotes ?? '')
+  const hasExhaustion = sheet.overview.exhaustionLevel > 0
+
+  return (
+    <div className={styles.row}>
+      <div>
+        <Text fw={700}>Exhaustion</Text>
+        <Text className={styles.muted}>
+          Level
+          {' '}
+          {sheet.overview.exhaustionLevel}
+        </Text>
+        {sheet.overview.exhaustionNotes ? <Text className={styles.muted}>{sheet.overview.exhaustionNotes}</Text> : null}
+      </div>
+      <div className={styles.compactActions}>
+        <Button
+          disabled={pending || sheet.overview.exhaustionLevel <= 0}
+          size='xs'
+          variant='default'
+          onClick={() => submitCommand({
+            type: 'SET_EXHAUSTION',
+            level: Math.max(sheet.overview.exhaustionLevel - 1, 0),
+            expectedVersion: version
+          })}
+        >
+          Reduce
+        </Button>
+        <Button
+          disabled={pending || sheet.overview.exhaustionLevel >= 6}
+          size='xs'
+          onClick={() => submitCommand({
+            type: 'SET_EXHAUSTION',
+            level: Math.min(sheet.overview.exhaustionLevel + 1, 6),
+            expectedVersion: version
+          })}
+        >
+          Increase
+        </Button>
+      </div>
+      {hasExhaustion
+        ? (
+            <div className={`${styles.inlineEditorShell} ${styles.inlineEditor}`}>
+              <Textarea
+                autosize
+                label='Exhaustion notes'
+                minRows={2}
+                placeholder='Track forced marches, curses, environmental effects, or table rulings.'
+                value={exhaustionNotes}
+                onChange={(event) => setExhaustionNotes(event.currentTarget.value)}
+              />
+              <div className={styles.compactActions}>
+                <Button
+                  disabled={pending}
+                  size='xs'
+                  variant='default'
+                  onClick={() => submitCommand({
+                    type: 'SET_EXHAUSTION',
+                    level: sheet.overview.exhaustionLevel,
+                    notes: exhaustionNotes.trim(),
+                    expectedVersion: version
+                  })}
+                >
+                  Save Exhaustion Notes
+                </Button>
+              </div>
+            </div>
+          )
+        : null}
+    </div>
+  )
+}
+
 export function CharacterSheetOverview({
   pending,
   sheet,
@@ -134,40 +212,13 @@ export function CharacterSheetOverview({
       </div>
 
       <div className={styles.rowList}>
-        <div className={styles.row}>
-          <div>
-            <Text fw={700}>Exhaustion</Text>
-            <Text className={styles.muted}>
-              Level
-              {sheet.overview.exhaustionLevel}
-            </Text>
-          </div>
-          <div className={styles.compactActions}>
-            <Button
-              disabled={pending || sheet.overview.exhaustionLevel <= 0}
-              size='xs'
-              variant='default'
-              onClick={() => submitCommand({
-                type: 'SET_EXHAUSTION',
-                level: Math.max(sheet.overview.exhaustionLevel - 1, 0),
-                expectedVersion: version
-              })}
-            >
-              Reduce
-            </Button>
-            <Button
-              disabled={pending || sheet.overview.exhaustionLevel >= 6}
-              size='xs'
-              onClick={() => submitCommand({
-                type: 'SET_EXHAUSTION',
-                level: Math.min(sheet.overview.exhaustionLevel + 1, 6),
-                expectedVersion: version
-              })}
-            >
-              Increase
-            </Button>
-          </div>
-        </div>
+        <CharacterSheetExhaustionControls
+          key={`${version}:${sheet.overview.exhaustionLevel}:${sheet.overview.exhaustionNotes ?? ''}`}
+          pending={pending}
+          sheet={sheet}
+          submitCommand={submitCommand}
+          version={version}
+        />
 
         <div className={styles.row}>
           <div>

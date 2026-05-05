@@ -629,6 +629,7 @@ export async function buildCharacterSheetResponse(params: {
       tempHitPoints: character.state.hitpoints.temp ?? 0,
       maxHitPointsOverride: character.state.hitpoints.maxOverride ?? null,
       exhaustionLevel: character.state.exhaustion?.level ?? 0,
+      exhaustionNotes: character.state.exhaustion?.notes,
       conditions: (character.state.conditions ?? []).map((condition) => ({
         conditionTypeId: condition.conditionTypeId,
         label: conditionLabels.get(condition.conditionTypeId) ?? 'Unknown condition',

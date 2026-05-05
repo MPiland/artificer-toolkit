@@ -120,6 +120,31 @@ describe('Character Sheet sections', () => {
     })
   })
 
+  it('saves exhaustion notes through the overview panel', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn()
+    const sheet = createSheet()
+    sheet.overview.exhaustionLevel = 1
+
+    renderWithAppProviders(
+      <CharacterSheetOverview
+        pending={false}
+        sheet={sheet}
+        submitCommand={submitCommand}
+      />
+    )
+
+    await user.type(screen.getByLabelText(/exhaustion notes/i), 'Forced march through the swamp')
+    await user.click(screen.getByRole('button', { name: /save exhaustion notes/i }))
+
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'SET_EXHAUSTION',
+      level: 1,
+      notes: 'Forced march through the swamp',
+      expectedVersion: 4
+    })
+  })
+
   it('allows currency updates even when the character has no current currency rows', async () => {
     const user = userEvent.setup()
     const submitCommand = vi.fn()
