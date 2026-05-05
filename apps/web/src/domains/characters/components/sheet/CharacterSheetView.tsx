@@ -10,13 +10,15 @@ import { CharacterSheetReference } from './CharacterSheetReference'
 import { CharacterSheetResources } from './CharacterSheetResources'
 import { CharacterSheetSpells } from './CharacterSheetSpells'
 import * as styles from './characterSheet.css'
-import type { CharacterSheet } from './CharacterSheet.types'
+import type { CharacterSheet, CharacterSheetTabId } from './CharacterSheet.types'
 
 export function CharacterSheetView({
   hasDraft,
+  initialTab = 'overview',
   sheet
 }: {
   hasDraft: boolean
+  initialTab?: CharacterSheetTabId
   sheet: CharacterSheet
 }) {
   const commandMutation = useCharacterSheetCommandMutation(sheet.meta.characterId)
@@ -41,7 +43,7 @@ export function CharacterSheetView({
         ? <Alert color='red'>{commandMutation.error.message}</Alert>
         : null}
 
-      <Tabs defaultValue='overview' keepMounted={false}>
+      <Tabs defaultValue={initialTab} keepMounted={false}>
         <Tabs.List>
           <Tabs.Tab value='overview'>Overview</Tabs.Tab>
           <Tabs.Tab value='actions'>Actions</Tabs.Tab>
