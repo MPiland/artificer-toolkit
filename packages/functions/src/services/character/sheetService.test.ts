@@ -376,7 +376,7 @@ describe('character sheet command application', () => {
     expect(next.state.spellSlots).toEqual([{ slotKey: 'STANDARD:1', used: 1 }])
   })
 
-  it('recovers floor half hit dice on long rest with a minimum of one die', () => {
+  it('recovers long-rest hit dice from one shared floor-half pool', () => {
     const character = createCharacter()
     character.state.hitpoints.hitDice = [
       { die: 8, total: 3, used: 3 },
@@ -390,9 +390,22 @@ describe('character sheet command application', () => {
     }, createSheet())
 
     expect(next.state.hitpoints.hitDice).toEqual([
-      { die: 8, total: 3, used: 2 },
-      { die: 10, total: 1, used: 0 }
+      { die: 8, total: 3, used: 1 },
+      { die: 10, total: 1, used: 1 }
     ])
+  })
+
+  it('recovers a minimum of one hit die on long rest', () => {
+    const character = createCharacter()
+    character.state.hitpoints.hitDice = [{ die: 8, total: 1, used: 1 }]
+
+    const next = applyCharacterSheetCommand(character, {
+      type: 'APPLY_REST',
+      restKind: 'LONG',
+      expectedVersion: 1
+    }, createSheet())
+
+    expect(next.state.hitpoints.hitDice).toEqual([{ die: 8, total: 1, used: 0 }])
   })
 
   it('rejects commands for unavailable resources and spell slots', () => {

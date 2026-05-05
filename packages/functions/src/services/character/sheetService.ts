@@ -497,8 +497,21 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max)
 }
 
-function getLongRestHitDiceRecovery(totalHitDice: number): number {
-  return Math.max(Math.floor(totalHitDice / 2), 1)
+function restoreHitDiceForLongRest(
+  hitDice: CharacterAuthored['state']['hitpoints']['hitDice']
+): CharacterAuthored['state']['hitpoints']['hitDice'] {
+  const totalHitDice = hitDice.reduce((total, die) => total + die.total, 0)
+  let remainingRecovery = Math.max(Math.floor(totalHitDice / 2), 1)
+
+  return hitDice.map((die) => {
+    const recovered = Math.min(die.used, remainingRecovery)
+    remainingRecovery -= recovered
+
+    return {
+      ...die,
+      used: die.used - recovered
+    }
+  })
 }
 
 function clearEmptyStateArrays(character: CharacterAuthored): CharacterAuthored {
@@ -675,10 +688,7 @@ export function applyCharacterSheetCommand(
         const maxHitPoints = sheet.overview.maxHitPoints
         next.state.hitpoints.current = maxHitPoints
         next.state.hitpoints.temp = 0
-        next.state.hitpoints.hitDice = next.state.hitpoints.hitDice.map((die) => ({
-          ...die,
-          used: Math.max(die.used - getLongRestHitDiceRecovery(die.total), 0)
-        }))
+        next.state.hitpoints.hitDice = restoreHitDiceForLongRest(next.state.hitpoints.hitDice)
         next.state.resources = undefined
         next.state.spellSlots = undefined
         next.state.exhaustion = next.state.exhaustion && next.state.exhaustion.level > 0
