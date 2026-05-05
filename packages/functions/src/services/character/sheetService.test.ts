@@ -987,7 +987,7 @@ describe('character sheet command application', () => {
         level: 1
       }),
       createSpell({
-        classIds: ['wizard'],
+        classIds: ['cleric'],
         id: 'stale-spell',
         label: 'Retired Spell',
         level: 1
@@ -1015,6 +1015,59 @@ describe('character sheet command application', () => {
         sources: undefined
       })
     ]))
+  })
+
+  it('preserves sheet controls for active class prepared spells stored only in state', async () => {
+    const character = createCharacter()
+    character.intent.classes = [{ classId: 'wizard', classLevel: 1 }]
+    character.intent.spellSelections = []
+    character.state.classes = [
+      {
+        classId: 'wizard',
+        spells: {
+          prepared: ['spell-1']
+        }
+      }
+    ]
+    const resolution = createResolution()
+    resolution.registry.classes = [
+      createSpellcastingClass({
+        id: 'wizard',
+        label: 'Wizard',
+        resetKind: 'LONG_REST',
+        spellLimits: createFullCasterSpellLimits()
+      })
+    ]
+    resolution.registry.spells = [
+      createSpell({
+        classIds: ['wizard'],
+        id: 'spell-1',
+        label: 'Shield',
+        level: 1
+      })
+    ]
+
+    const sheet = await buildCharacterSheetResponse({
+      character,
+      db: createConditionDb(),
+      hasBuilderDraft: false,
+      resolution,
+      streamVersion: 1
+    })
+
+    expect(sheet.spells.spells).toEqual([
+      expect.objectContaining({
+        id: 'spell-1',
+        sources: [{ classId: 'wizard', label: 'Wizard', prepared: true }]
+      })
+    ])
+    expect(sheet.spells.preparationSources).toEqual([
+      {
+        classId: 'wizard',
+        label: 'Wizard',
+        preparedSpellIds: ['spell-1']
+      }
+    ])
   })
 
   it('derives resource maximums and recovery from class resource charges', async () => {

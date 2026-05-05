@@ -317,17 +317,48 @@ function getKnownSpellIdsForClass(character: CharacterAuthored, classId: string)
   return known
 }
 
+function getSheetSpellIdsByClass(
+  character: CharacterAuthored,
+  resolution: CharacterBuilderResolution
+): Map<string, Set<string>> {
+  const activeClassIds = new Set(character.intent.classes.map((classIntent) => classIntent.classId))
+  const spellIdsByClassId = new Map<string, Set<string>>()
+
+  function addSpell(classId: string, spellId: string) {
+    if (!activeClassIds.has(classId)) return
+    const spellIds = spellIdsByClassId.get(classId) ?? new Set<string>()
+    spellIds.add(spellId)
+    spellIdsByClassId.set(classId, spellIds)
+  }
+
+  for (const classIntent of character.intent.classes) {
+    const classSpellIds = getKnownSpellIdsForClassIntent(character, classIntent.classId)
+    for (const spellId of classSpellIds) addSpell(classIntent.classId, spellId)
+  }
+
+  for (const classState of character.state.classes ?? []) {
+    for (const spellId of classState.spells?.learned ?? []) addSpell(classState.classId, spellId)
+  }
+
+  for (const spell of resolution.registry.spells) {
+    for (const classId of spell.classIds) {
+      if (!activeClassIds.has(classId)) continue
+      const classState = character.state.classes?.find((row) => row.classId === classId)
+      if (classState?.spells?.prepared?.includes(spell.id)) addSpell(classId, spell.id)
+    }
+  }
+
+  return spellIdsByClassId
+}
+
 function getSpellSourcesBySpellId(
   character: CharacterAuthored,
-  classLabels: ReadonlyMap<string, string>
+  classLabels: ReadonlyMap<string, string>,
+  sheetSpellIdsByClassId: ReadonlyMap<string, ReadonlySet<string>>
 ): Map<string, Array<{ classId: string, label: string, prepared: boolean }>> {
   const classStateById = new Map((character.state.classes ?? []).map((classState) => [classState.classId, classState]))
   const classOrder = new Map(character.intent.classes.map((classIntent, index) => [classIntent.classId, index]))
   const activeClassIds = new Set(character.intent.classes.map((classIntent) => classIntent.classId))
-  const knownSpellIdsByClassId = new Map(character.intent.classes.map((classIntent) => [
-    classIntent.classId,
-    getKnownSpellIdsForClassIntent(character, classIntent.classId)
-  ]))
   const sourcesBySpellId = new Map<string, Map<string, { classId: string, label: string, prepared: boolean }>>()
 
   function addSpellSource(spellId: string, classId: string) {
@@ -361,7 +392,7 @@ function getSpellSourcesBySpellId(
   for (const classState of character.state.classes ?? []) {
     for (const spellId of classState.spells?.learned ?? []) addSpellSource(spellId, classState.classId)
     for (const spellId of classState.spells?.prepared ?? []) {
-      if (knownSpellIdsByClassId.get(classState.classId)?.has(spellId)) addSpellSource(spellId, classState.classId)
+      if (sheetSpellIdsByClassId.get(classState.classId)?.has(spellId)) addSpellSource(spellId, classState.classId)
     }
   }
 
@@ -377,18 +408,19 @@ function getSpellSourcesBySpellId(
 
 function getSpellPreparationSources(
   character: CharacterAuthored,
-  classLabels: ReadonlyMap<string, string>
+  classLabels: ReadonlyMap<string, string>,
+  sheetSpellIdsByClassId: ReadonlyMap<string, ReadonlySet<string>>
 ) {
   const classStateById = new Map((character.state.classes ?? []).map((classState) => [classState.classId, classState]))
 
   return character.intent.classes
     .map((classIntent) => {
-      const knownSpellIds = getKnownSpellIdsForClassIntent(character, classIntent.classId)
+      const sheetSpellIds = sheetSpellIdsByClassId.get(classIntent.classId) ?? new Set<string>()
       return {
         classId: classIntent.classId,
         label: classLabels.get(classIntent.classId) ?? 'Class',
         preparedSpellIds: [...new Set(classStateById.get(classIntent.classId)?.spells?.prepared ?? [])]
-          .filter((spellId) => knownSpellIds.has(spellId))
+          .filter((spellId) => sheetSpellIds.has(spellId))
       }
     })
     .filter((source) => source.preparedSpellIds.length > 0)
@@ -557,8 +589,9 @@ export async function buildCharacterSheetResponse(params: {
   const knownSpellIds = new Set([...learned, ...prepared])
   const resourceUsage = new Map((character.state.resources ?? []).map((resource) => [resource.resourceGrantId, resource.used]))
   const classLabels = new Map(resolution.registry.classes.map((classRecord) => [classRecord.id, classRecord.label]))
-  const spellSourcesBySpellId = getSpellSourcesBySpellId(character, classLabels)
-  const spellPreparationSources = getSpellPreparationSources(character, classLabels)
+  const sheetSpellIdsByClassId = getSheetSpellIdsByClass(character, resolution)
+  const spellSourcesBySpellId = getSpellSourcesBySpellId(character, classLabels, sheetSpellIdsByClassId)
+  const spellPreparationSources = getSpellPreparationSources(character, classLabels, sheetSpellIdsByClassId)
 
   return {
     meta: {
