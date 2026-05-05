@@ -5,6 +5,7 @@ import type { CharacterSheetResponseDto } from '#app/lib/api'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { CharacterSheetInventory } from '../components/sheet/CharacterSheetInventory'
 import { CharacterSheetOverview } from '../components/sheet/CharacterSheetOverview'
+import { CharacterSheetResources } from '../components/sheet/CharacterSheetResources'
 import { CharacterSheetSpells } from '../components/sheet/CharacterSheetSpells'
 
 function createSheet(): CharacterSheetResponseDto {
@@ -92,6 +93,31 @@ describe('Character Sheet sections', () => {
     }))
   })
 
+  it('adds conditions with notes from the overview panel', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn()
+
+    renderWithAppProviders(
+      <CharacterSheetOverview
+        pending={false}
+        sheet={createSheet()}
+        submitCommand={submitCommand}
+      />
+    )
+
+    await user.click(screen.getByPlaceholderText(/add condition/i))
+    await user.click(await screen.findByText(/poisoned/i))
+    await user.type(screen.getByLabelText(/condition notes/i), 'Spider venom')
+    await user.click(screen.getByRole('button', { name: /^add$/i }))
+
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'ADD_CONDITION',
+      conditionTypeId: 'condition-1',
+      notes: 'Spider venom',
+      expectedVersion: 4
+    })
+  })
+
   it('allows currency updates even when the character has no current currency rows', async () => {
     const user = userEvent.setup()
     const submitCommand = vi.fn()
@@ -132,6 +158,45 @@ describe('Character Sheet sections', () => {
       type: 'UPDATE_INVENTORY_ITEM',
       itemId: 'item-1',
       quantity: 2,
+      expectedVersion: 4
+    })
+  })
+
+  it('restores resources and applies rests from the resources panel', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn()
+    const sheet = createSheet()
+    sheet.resources.items = [
+      {
+        id: 'resource-1',
+        label: 'Second Wind',
+        sourceLabel: 'Fighter',
+        used: 2,
+        max: 3,
+        remaining: 1,
+        recovery: 'SHORT_REST'
+      }
+    ]
+
+    renderWithAppProviders(
+      <CharacterSheetResources
+        pending={false}
+        sheet={sheet}
+        submitCommand={submitCommand}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: /restore 1/i }))
+    await user.click(screen.getByRole('button', { name: /long rest/i }))
+
+    expect(submitCommand).toHaveBeenNthCalledWith(1, {
+      type: 'RESTORE_RESOURCE',
+      resourceGrantId: 'resource-1',
+      expectedVersion: 4
+    })
+    expect(submitCommand).toHaveBeenNthCalledWith(2, {
+      type: 'APPLY_REST',
+      restKind: 'LONG',
       expectedVersion: 4
     })
   })

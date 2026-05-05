@@ -1,4 +1,4 @@
-import { Button, Group, NumberInput, Select, Text, Title } from '@mantine/core'
+import { Button, NumberInput, Select, Text, TextInput, Title } from '@mantine/core'
 import { useState } from 'react'
 import * as styles from './characterSheet.css'
 import type { CharacterSheetSectionProps } from './CharacterSheet.types'
@@ -81,6 +81,7 @@ export function CharacterSheetOverview({
 }: CharacterSheetSectionProps) {
   const version = sheet.meta.streamVersion
   const [conditionTypeId, setConditionTypeId] = useState<string | null>(null)
+  const [conditionNotes, setConditionNotes] = useState('')
 
   return (
     <section className={styles.panel} aria-labelledby='character-sheet-overview'>
@@ -186,6 +187,12 @@ export function CharacterSheetOverview({
               onChange={setConditionTypeId}
               searchable
             />
+            <TextInput
+              aria-label='Condition notes'
+              placeholder='Notes'
+              value={conditionNotes}
+              onChange={(event) => setConditionNotes(event.currentTarget.value)}
+            />
             <Button
               disabled={pending || !conditionTypeId}
               size='xs'
@@ -194,9 +201,11 @@ export function CharacterSheetOverview({
                 submitCommand({
                   type: 'ADD_CONDITION',
                   conditionTypeId,
+                  notes: conditionNotes.trim() || undefined,
                   expectedVersion: version
                 })
                 setConditionTypeId(null)
+                setConditionNotes('')
               }}
             >
               Add
@@ -206,7 +215,10 @@ export function CharacterSheetOverview({
 
         {sheet.overview.conditions.map((condition) => (
           <div className={styles.row} key={condition.conditionTypeId}>
-            <Text>{condition.label}</Text>
+            <div>
+              <Text>{condition.label}</Text>
+              {condition.notes ? <Text className={styles.muted}>{condition.notes}</Text> : null}
+            </div>
             <Button
               disabled={pending}
               size='xs'
@@ -222,22 +234,6 @@ export function CharacterSheetOverview({
           </div>
         ))}
       </div>
-
-      <Group>
-        <Button
-          disabled={pending}
-          variant='default'
-          onClick={() => submitCommand({ type: 'APPLY_REST', restKind: 'SHORT', expectedVersion: version })}
-        >
-          Short Rest
-        </Button>
-        <Button
-          disabled={pending}
-          onClick={() => submitCommand({ type: 'APPLY_REST', restKind: 'LONG', expectedVersion: version })}
-        >
-          Long Rest
-        </Button>
-      </Group>
     </section>
   )
 }

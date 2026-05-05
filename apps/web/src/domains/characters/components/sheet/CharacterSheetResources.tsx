@@ -16,6 +16,23 @@ export function CharacterSheetResources({
           <Title id='character-sheet-resources' className={styles.panelTitle}>Resources</Title>
           <Text className={styles.muted}>Limited uses, recovery, and hit dice.</Text>
         </div>
+        <div className={styles.compactActions}>
+          <Button
+            disabled={pending}
+            size='xs'
+            variant='default'
+            onClick={() => submitCommand({ type: 'APPLY_REST', restKind: 'SHORT', expectedVersion: version })}
+          >
+            Short Rest
+          </Button>
+          <Button
+            disabled={pending}
+            size='xs'
+            onClick={() => submitCommand({ type: 'APPLY_REST', restKind: 'LONG', expectedVersion: version })}
+          >
+            Long Rest
+          </Button>
+        </div>
       </div>
       <div className={styles.rowList}>
         {sheet.resources.items.length
@@ -53,11 +70,23 @@ export function CharacterSheetResources({
                     onClick={() => submitCommand({
                       type: 'RESTORE_RESOURCE',
                       resourceGrantId: resource.id,
+                      expectedVersion: version
+                    })}
+                  >
+                    Restore 1
+                  </Button>
+                  <Button
+                    disabled={pending || resource.used <= 0}
+                    size='xs'
+                    variant='default'
+                    onClick={() => submitCommand({
+                      type: 'RESTORE_RESOURCE',
+                      resourceGrantId: resource.id,
                       all: true,
                       expectedVersion: version
                     })}
                   >
-                    Restore
+                    Restore All
                   </Button>
                 </div>
               </div>
