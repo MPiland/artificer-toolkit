@@ -1,19 +1,12 @@
 import { Badge, Button, Text, Title } from '@mantine/core'
 import * as styles from './characterSheet.css'
-import type { CharacterSheet, CharacterSheetSectionProps } from './CharacterSheet.types'
+import type { CharacterSheetSectionProps } from './CharacterSheet.types'
+import {
+  getPreparedSpellIdsForClass,
+  type SheetSpell,
+  type SheetSpellSource
+} from './characterSheetSpells.utils'
 import { formatSigned } from './characterSheet.utils'
-
-type SheetSpell = CharacterSheet['spells']['spells'][number]
-type SheetSpellSource = NonNullable<SheetSpell['sources']>[number]
-
-function getPreparedSpellIdsForClass(sheet: CharacterSheet, classId: string) {
-  const preparationSource = sheet.spells.preparationSources?.find((source) => source.classId === classId)
-  if (preparationSource) return preparationSource.preparedSpellIds
-
-  return sheet.spells.spells
-    .filter((spell) => spell.sources?.some((source) => source.classId === classId && source.prepared))
-    .map((spell) => spell.id)
-}
 
 export function CharacterSheetSpells({
   pending,

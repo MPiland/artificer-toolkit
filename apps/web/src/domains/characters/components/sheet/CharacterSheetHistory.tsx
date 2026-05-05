@@ -3,20 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getCharacterHistory } from '#app/data/characters/queries'
 import type { CharacterHistoryResponseDto } from '#app/lib/api'
 import * as styles from './characterSheet.css'
-
-const historyDateFormatter = new Intl.DateTimeFormat(undefined, {
-  dateStyle: 'medium',
-  timeStyle: 'short'
-})
-
-function formatHistoryTimestamp(value: string): string {
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? value : historyDateFormatter.format(date)
-}
-
-function formatHistoryEventType(value: string): string {
-  return value.replace(/_/g, ' ').toLowerCase()
-}
+import { formatHistoryEventType, formatHistoryTimestamp } from './characterSheetHistory.utils'
 
 export function CharacterSheetHistoryList({
   entries
@@ -33,7 +20,7 @@ export function CharacterSheetHistoryList({
                 <Text className={styles.muted}>
                   <time dateTime={entry.occurredAt}>{formatHistoryTimestamp(entry.occurredAt)}</time>
                   {' '}
-                  ·
+                  -
                   {' '}
                   {formatHistoryEventType(entry.eventType)}
                 </Text>
