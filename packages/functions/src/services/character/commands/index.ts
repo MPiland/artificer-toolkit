@@ -192,8 +192,6 @@ export const handleApplyHitPoints: CommandHandler<ApplyHitPointsCommand> = async
   _registry,
   _rules
 ) => {
-  // Value calculation (CON mod expected to be pre-computed by caller or fixed average)
-  const value = command.roll ?? command.classLevel // placeholder — real value from caller
   const event: CharacterEvent = {
     type: 'HITPOINTS_APPLIED',
     eventId: crypto.randomUUID(),
@@ -206,7 +204,7 @@ export const handleApplyHitPoints: CommandHandler<ApplyHitPointsCommand> = async
     classLevel: command.classLevel,
     method: command.method,
     roll: command.roll,
-    value
+    value: command.value
   }
 
   const newState: CharacterBuildState = {
@@ -214,7 +212,7 @@ export const handleApplyHitPoints: CommandHandler<ApplyHitPointsCommand> = async
     streamVersion: currentState.streamVersion + 1,
     hitpointsByLevel: [
       ...currentState.hitpointsByLevel,
-      { classRef: command.classRef, classLevel: command.classLevel, value }
+      { classRef: command.classRef, classLevel: command.classLevel, value: command.value }
     ]
   }
 

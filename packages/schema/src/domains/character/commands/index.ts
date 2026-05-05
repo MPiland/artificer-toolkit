@@ -69,7 +69,18 @@ export const applyHitPointsCommandSchema = commandEnvelopeSchema.extend({
   method: z.enum(['ROLLED', 'AVERAGE', 'MAXIMUM']),
   /** Die result — required when method is ROLLED */
   roll: z.number().int()
-    .optional()
+    .min(1)
+    .optional(),
+  value: z.number().int()
+    .min(1)
+}).superRefine((command, ctx) => {
+  if (command.method === 'ROLLED' && command.roll == null) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['roll'],
+      message: 'Roll is required when applying rolled hit points.'
+    })
+  }
 })
 
 export const makeFeatureSelectionCommandSchema = commandEnvelopeSchema.extend({
