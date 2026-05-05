@@ -8,6 +8,7 @@ import { CharacterSheetInventory } from '../components/sheet/CharacterSheetInven
 import { CharacterSheetHistoryList } from '../components/sheet/CharacterSheetHistory'
 import { CharacterSheetNotes } from '../components/sheet/CharacterSheetNotes'
 import { CharacterSheetOverview } from '../components/sheet/CharacterSheetOverview'
+import { CharacterSheetReference } from '../components/sheet/CharacterSheetReference'
 import { CharacterSheetResources } from '../components/sheet/CharacterSheetResources'
 import { CharacterSheetSpells } from '../components/sheet/CharacterSheetSpells'
 
@@ -92,6 +93,24 @@ describe('Character Sheet sections', () => {
 
     expect(screen.getByText(/second wind/i)).toBeInTheDocument()
     expect(screen.getByText(/regain hit points as a bonus action/i)).toBeInTheDocument()
+  })
+
+  it('renders reference feature descriptions as rules text', () => {
+    const sheet = createSheet()
+    sheet.reference.features = [
+      {
+        id: 'feature-1',
+        label: 'Action Surge',
+        sourceLabel: 'Fighter',
+        source: { kind: 'CLASS', classId: 'fighter', classLevel: 2 },
+        description: '<p>Take one additional action on your turn.</p>'
+      }
+    ]
+
+    renderWithAppProviders(<CharacterSheetReference sheet={sheet} />)
+
+    expect(screen.getByText(/action surge/i)).toBeInTheDocument()
+    expect(screen.getByText(/take one additional action/i)).toBeInTheDocument()
   })
 
   it('sends sheet commands with the current stream version', async () => {

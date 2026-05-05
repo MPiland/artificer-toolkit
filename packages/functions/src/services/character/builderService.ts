@@ -89,6 +89,7 @@ export interface CharacterBuilderSummary {
 export interface CharacterBuilderGrantSummaryItem {
   id: string
   label: string
+  description?: string
   sourceLabel: string
   source: CharacterProvenance
 }
@@ -1225,6 +1226,7 @@ export async function resolveCharacterBuilder(
     features: grantedFeatures.map((record) => ({
       id: record.feature.id,
       label: record.feature.label,
+      description: record.feature.description,
       sourceLabel: record.sourceLabel,
       source: record.source
     })),

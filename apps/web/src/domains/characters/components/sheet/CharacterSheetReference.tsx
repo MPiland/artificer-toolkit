@@ -1,4 +1,5 @@
 import { Badge, Text, Title } from '@mantine/core'
+import { AuthoredDetailProse } from '#app/components/AuthoredDetail'
 import * as styles from './characterSheet.css'
 import type { CharacterSheet } from './CharacterSheet.types'
 
@@ -18,6 +19,7 @@ export function CharacterSheetReference({ sheet }: { sheet: CharacterSheet }) {
                 <div>
                   <Text fw={700}>{feature.label}</Text>
                   <Text className={styles.muted}>{feature.sourceLabel}</Text>
+                  {feature.description ? <AuthoredDetailProse html={feature.description} fallback='' /> : null}
                 </div>
                 <Badge variant='light'>Feature</Badge>
               </div>

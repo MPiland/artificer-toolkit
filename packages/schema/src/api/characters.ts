@@ -154,6 +154,7 @@ export const characterBuilderSummaryDtoSchema = z.object({
 export const characterBuilderGrantSummaryItemDtoSchema = z.object({
   id: z.string(),
   label: z.string(),
+  description: z.string().optional(),
   sourceLabel: z.string(),
   source: characterProvenanceDtoSchema
 })
