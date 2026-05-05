@@ -18,6 +18,7 @@ function CharacterSheetHpControls({
   return (
     <div className={styles.hpControls}>
       <NumberInput
+        disabled={pending}
         label='Amount'
         min={0}
         value={hitPointDelta}
@@ -47,12 +48,14 @@ function CharacterSheetHpControls({
         Heal
       </Button>
       <NumberInput
+        disabled={pending}
         label='Temp HP'
         min={0}
         value={tempHitPoints}
         onChange={(value) => setTempHitPoints(toNumber(value))}
       />
       <NumberInput
+        disabled={pending}
         label='Max HP override'
         min={0}
         placeholder={String(sheet.overview.maxHitPoints)}
@@ -125,6 +128,7 @@ function CharacterSheetExhaustionControls({
             <div className={`${styles.inlineEditorShell} ${styles.inlineEditor}`}>
               <Textarea
                 autosize
+                disabled={pending}
                 label='Exhaustion notes'
                 minRows={2}
                 placeholder='Track forced marches, curses, environmental effects, or table rulings.'

@@ -207,6 +207,26 @@ describe('Character Sheet sections', () => {
     }))
   })
 
+  it('locks overview health and exhaustion inputs while a sheet command is pending', () => {
+    const sheet = createSheet()
+    sheet.overview.exhaustionLevel = 1
+
+    renderWithAppProviders(
+      <CharacterSheetOverview
+        pending
+        sheet={sheet}
+        submitCommand={vi.fn()}
+      />
+    )
+
+    expect(screen.getByRole('textbox', { name: /^amount$/i })).toBeDisabled()
+    expect(screen.getByRole('textbox', { name: /^temp hp$/i })).toBeDisabled()
+    expect(screen.getByRole('textbox', { name: /^max hp override$/i })).toBeDisabled()
+    expect(screen.getByLabelText(/exhaustion notes/i)).toBeDisabled()
+    expect(screen.getByRole('button', { name: /apply damage/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /save exhaustion notes/i })).toBeDisabled()
+  })
+
   it('adds conditions with notes from the overview panel', async () => {
     const user = userEvent.setup()
     const submitCommand = vi.fn()
