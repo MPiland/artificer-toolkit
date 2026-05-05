@@ -1,9 +1,12 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { HttpResponse, http } from 'msw'
 import { vi } from 'vitest'
 import type { CharacterSheetResponseDto } from '#app/lib/api'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
+import { server } from '#test/msw/server'
 import { CharacterSheetActions } from '../components/sheet/CharacterSheetActions'
+import { CharacterSheetView } from '../components/sheet/CharacterSheetView'
 import { CharacterSheetInventory } from '../components/sheet/CharacterSheetInventory'
 import { CharacterSheetHistoryList } from '../components/sheet/CharacterSheetHistory'
 import { CharacterSheetNotes } from '../components/sheet/CharacterSheetNotes'
@@ -11,6 +14,8 @@ import { CharacterSheetOverview } from '../components/sheet/CharacterSheetOvervi
 import { CharacterSheetReference } from '../components/sheet/CharacterSheetReference'
 import { CharacterSheetResources } from '../components/sheet/CharacterSheetResources'
 import { CharacterSheetSpells } from '../components/sheet/CharacterSheetSpells'
+
+const API_BASE = 'http://localhost:3001'
 
 function createSheet(): CharacterSheetResponseDto {
   return {
@@ -83,6 +88,51 @@ function createSheet(): CharacterSheetResponseDto {
 }
 
 describe('Character Sheet sections', () => {
+  it('submits sheet commands through the production command mutation path', async () => {
+    const user = userEvent.setup()
+    let submittedCommand: unknown
+
+    server.use(
+      http.post(`${API_BASE}/characters/:characterId/commands`, async ({ request }) => {
+        submittedCommand = await request.json()
+        const sheet = createSheet()
+        sheet.meta.streamVersion = 5
+
+        return HttpResponse.json({
+          characterId: sheet.meta.characterId,
+          streamVersion: sheet.meta.streamVersion,
+          sheet
+        })
+      })
+    )
+
+    renderWithAppProviders(<CharacterSheetView hasDraft={false} sheet={createSheet()} />)
+
+    await user.click(screen.getByRole('button', { name: /apply damage/i }))
+
+    await waitFor(() => expect(submittedCommand).toMatchObject({
+      type: 'ADJUST_HIT_POINTS',
+      expectedVersion: 4
+    }))
+  })
+
+  it('shows sheet command errors from the production command mutation path', async () => {
+    const user = userEvent.setup()
+
+    server.use(
+      http.post(`${API_BASE}/characters/:characterId/commands`, () => HttpResponse.json({
+        error: 'This character changed in another tab. Refresh the sheet, then try again.'
+      }, { status: 409 }))
+    )
+
+    renderWithAppProviders(<CharacterSheetView hasDraft sheet={createSheet()} />)
+
+    expect(screen.getByText(/builder draft work/i)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /apply damage/i }))
+
+    expect(await screen.findByText(/changed in another tab/i)).toBeInTheDocument()
+  })
+
   it('renders action descriptions as playable reference text', () => {
     const sheet = createSheet()
     sheet.actions.items = [
