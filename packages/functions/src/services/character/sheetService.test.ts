@@ -836,6 +836,82 @@ describe('character sheet command application', () => {
     ])
   })
 
+  it('does not hydrate spell source actions from orphaned class state', async () => {
+    const character = createCharacter()
+    character.intent.classes = [{ classId: 'wizard', classLevel: 1 }]
+    character.intent.spellSelections = [
+      {
+        id: 'wizard-spells',
+        source: { kind: 'CLASS', classId: 'wizard' },
+        timing: { kind: 'IMMEDIATE' },
+        spells: ['spell-1']
+      }
+    ]
+    character.state.classes = [
+      {
+        classId: 'wizard',
+        spells: {
+          learned: ['spell-1']
+        }
+      },
+      {
+        classId: 'removed-class',
+        spells: {
+          learned: ['orphan-spell'],
+          prepared: ['orphan-spell']
+        }
+      }
+    ]
+    const resolution = createResolution()
+    resolution.registry.classes = [
+      createSpellcastingClass({
+        id: 'wizard',
+        label: 'Wizard',
+        resetKind: 'LONG_REST',
+        spellLimits: createFullCasterSpellLimits()
+      }),
+      createSpellcastingClass({
+        id: 'removed-class',
+        label: 'Removed Class',
+        resetKind: 'LONG_REST',
+        spellLimits: createFullCasterSpellLimits()
+      })
+    ]
+    resolution.registry.spells = [
+      createSpell({
+        classIds: ['wizard'],
+        id: 'spell-1',
+        label: 'Shield',
+        level: 1
+      }),
+      createSpell({
+        classIds: ['removed-class'],
+        id: 'orphan-spell',
+        label: 'Orphan Spell',
+        level: 1
+      })
+    ]
+
+    const sheet = await buildCharacterSheetResponse({
+      character,
+      db: createConditionDb(),
+      hasBuilderDraft: false,
+      resolution,
+      streamVersion: 1
+    })
+
+    expect(sheet.spells.spells).toEqual([
+      expect.objectContaining({
+        id: 'spell-1',
+        sources: [{ classId: 'wizard', label: 'Wizard', prepared: false }]
+      }),
+      expect.objectContaining({
+        id: 'orphan-spell',
+        sources: undefined
+      })
+    ])
+  })
+
   it('derives resource maximums and recovery from class resource charges', async () => {
     const character = createCharacter()
     character.intent.classes = [{ classId: 'class-1', subclassId: 'subclass-1', classLevel: 3 }]

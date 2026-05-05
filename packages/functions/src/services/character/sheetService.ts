@@ -317,9 +317,11 @@ function getSpellSourcesBySpellId(
 ): Map<string, Array<{ classId: string, label: string, prepared: boolean }>> {
   const classStateById = new Map((character.state.classes ?? []).map((classState) => [classState.classId, classState]))
   const classOrder = new Map(character.intent.classes.map((classIntent, index) => [classIntent.classId, index]))
+  const activeClassIds = new Set(character.intent.classes.map((classIntent) => classIntent.classId))
   const sourcesBySpellId = new Map<string, Map<string, { classId: string, label: string, prepared: boolean }>>()
 
   function addSpellSource(spellId: string, classId: string) {
+    if (!activeClassIds.has(classId)) return
     const sources = sourcesBySpellId.get(spellId) ?? new Map<string, { classId: string, label: string, prepared: boolean }>()
     const classState = classStateById.get(classId)
     const prepared = classState?.spells?.prepared?.includes(spellId) ?? false
