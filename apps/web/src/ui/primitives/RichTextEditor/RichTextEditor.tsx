@@ -85,6 +85,12 @@ const RichTextEditor = ({ value, onChange, placeholder, label, required, onBlur,
     editor?.setEditable(!readOnly)
   }, [editor, readOnly])
 
+  useEffect(() => {
+    if (editor && editor.getHTML() !== value) {
+      editor.commands.setContent(value, { emitUpdate: false })
+    }
+  }, [editor, value])
+
   return (
     <>
       {label && <span id={labelId}>{required ? `${label} *` : label}</span>}

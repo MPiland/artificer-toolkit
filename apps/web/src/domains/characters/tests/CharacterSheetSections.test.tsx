@@ -4,6 +4,7 @@ import { vi } from 'vitest'
 import type { CharacterSheetResponseDto } from '#app/lib/api'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { CharacterSheetInventory } from '../components/sheet/CharacterSheetInventory'
+import { CharacterSheetNotes } from '../components/sheet/CharacterSheetNotes'
 import { CharacterSheetOverview } from '../components/sheet/CharacterSheetOverview'
 import { CharacterSheetResources } from '../components/sheet/CharacterSheetResources'
 import { CharacterSheetSpells } from '../components/sheet/CharacterSheetSpells'
@@ -311,6 +312,73 @@ describe('Character Sheet sections', () => {
       classId: 'wizard',
       spellIds: ['hidden-spell', 'spell-2', 'spell-1'],
       expectedVersion: 4
+    })
+  })
+
+  it('restores a single spell slot without clearing the full slot pool', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn()
+    const sheet = createSheet()
+    sheet.spells.slots = [
+      {
+        slotKey: 'STANDARD:1',
+        label: 'Level 1',
+        level: 1,
+        used: 2,
+        max: 3,
+        remaining: 1
+      }
+    ]
+
+    renderWithAppProviders(
+      <CharacterSheetSpells
+        pending={false}
+        sheet={sheet}
+        submitCommand={submitCommand}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: /restore 1/i }))
+
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'RESTORE_SPELL_SLOT',
+      slotKey: 'STANDARD:1',
+      expectedVersion: 4
+    })
+  })
+
+  it('resyncs session notes when refreshed sheet data changes', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn()
+    const sheet = createSheet()
+    sheet.notes.notes = '<p>Old notes</p>'
+    const refreshedSheet = createSheet()
+    refreshedSheet.meta.streamVersion = 5
+    refreshedSheet.notes.notes = '<p>Updated notes</p>'
+
+    const { rerender } = renderWithAppProviders(
+      <CharacterSheetNotes
+        pending={false}
+        sheet={sheet}
+        submitCommand={submitCommand}
+      />
+    )
+
+    rerender(
+      <CharacterSheetNotes
+        pending={false}
+        sheet={refreshedSheet}
+        submitCommand={submitCommand}
+      />
+    )
+
+    await screen.findByText(/updated notes/i)
+    await user.click(screen.getByRole('button', { name: /save notes/i }))
+
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'UPDATE_NOTES',
+      notes: '<p>Updated notes</p>',
+      expectedVersion: 5
     })
   })
 })

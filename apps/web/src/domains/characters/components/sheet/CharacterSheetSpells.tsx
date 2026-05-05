@@ -85,11 +85,23 @@ export function CharacterSheetSpells({
                     onClick={() => submitCommand({
                       type: 'RESTORE_SPELL_SLOT',
                       slotKey: slot.slotKey,
+                      expectedVersion: version
+                    })}
+                  >
+                    Restore 1
+                  </Button>
+                  <Button
+                    disabled={pending || slot.used <= 0}
+                    size='xs'
+                    variant='default'
+                    onClick={() => submitCommand({
+                      type: 'RESTORE_SPELL_SLOT',
+                      slotKey: slot.slotKey,
                       all: true,
                       expectedVersion: version
                     })}
                   >
-                    Restore
+                    Restore All
                   </Button>
                 </div>
               </div>

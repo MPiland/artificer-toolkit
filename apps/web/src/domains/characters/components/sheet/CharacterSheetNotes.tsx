@@ -2,8 +2,43 @@ import { Button, Text, Title } from '@mantine/core'
 import { useState } from 'react'
 import RichTextEditor from '#ui/primitives/RichTextEditor'
 import * as styles from './characterSheet.css'
-import type { CharacterSheetSectionProps } from './CharacterSheet.types'
+import type { CharacterSheetSectionProps, SubmitSheetCommand } from './CharacterSheet.types'
 import { compactText } from './characterSheet.utils'
+
+function CharacterSheetSessionNotesEditor({
+  initialNotes,
+  pending,
+  submitCommand,
+  version
+}: {
+  initialNotes: string
+  pending: boolean
+  submitCommand: SubmitSheetCommand
+  version: number
+}) {
+  const [notes, setNotes] = useState(initialNotes)
+
+  return (
+    <>
+      <RichTextEditor
+        label='Session notes'
+        name='character-sheet-notes'
+        value={notes}
+        onChange={setNotes}
+      />
+      <Button
+        disabled={pending}
+        onClick={() => submitCommand({
+          type: 'UPDATE_NOTES',
+          notes,
+          expectedVersion: version
+        })}
+      >
+        Save Notes
+      </Button>
+    </>
+  )
+}
 
 export function CharacterSheetNotes({
   pending,
@@ -11,7 +46,6 @@ export function CharacterSheetNotes({
   submitCommand
 }: CharacterSheetSectionProps) {
   const version = sheet.meta.streamVersion
-  const [notes, setNotes] = useState(sheet.notes.notes ?? '')
 
   return (
     <section className={styles.panel} aria-labelledby='character-sheet-notes'>
@@ -44,22 +78,13 @@ export function CharacterSheetNotes({
         </div>
       </div>
 
-      <RichTextEditor
-        label='Session notes'
-        name='character-sheet-notes'
-        value={notes}
-        onChange={setNotes}
+      <CharacterSheetSessionNotesEditor
+        initialNotes={sheet.notes.notes ?? ''}
+        key={`${version}:${sheet.notes.notes ?? ''}`}
+        pending={pending}
+        submitCommand={submitCommand}
+        version={version}
       />
-      <Button
-        disabled={pending}
-        onClick={() => submitCommand({
-          type: 'UPDATE_NOTES',
-          notes,
-          expectedVersion: version
-        })}
-      >
-        Save Notes
-      </Button>
     </section>
   )
 }
