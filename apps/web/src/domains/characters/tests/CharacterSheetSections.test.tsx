@@ -736,6 +736,22 @@ describe('Character Sheet sections', () => {
     })
   })
 
+  it('locks session notes editing while a sheet command is pending', () => {
+    const sheet = createSheet()
+    sheet.notes.notes = '<p>Keep watch at midnight.</p>'
+
+    renderWithAppProviders(
+      <CharacterSheetNotes
+        pending
+        sheet={sheet}
+        submitCommand={vi.fn()}
+      />
+    )
+
+    expect(screen.getByLabelText(/session notes/i)).toHaveAttribute('contenteditable', 'false')
+    expect(screen.getByRole('button', { name: /save notes/i })).toBeDisabled()
+  })
+
   it('renders rich text background notes without exposing markup', () => {
     const sheet = createSheet()
     sheet.notes.personalityTraits = '<p>Asks one question too many.</p>'

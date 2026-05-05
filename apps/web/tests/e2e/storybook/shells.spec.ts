@@ -423,6 +423,12 @@ test('character sheet history and command-error stories render review states', a
   await storyExpect(page.getByText(/inventory command pending/i)).toBeVisible()
   await storyExpect(page.getByRole('button', { name: /add item/i })).toBeDisabled()
   await storyExpect(page.getByRole('button', { name: /apply currency/i })).toBeDisabled()
+
+  await openStory(page, 'domains-characters-sheet--command-pending-notes')
+
+  await storyExpect(page.getByText(/notes command pending/i)).toBeVisible()
+  await storyExpect(page.getByLabel('Session notes')).toHaveAttribute('contenteditable', 'false')
+  await storyExpect(page.getByRole('button', { name: /save notes/i })).toBeDisabled()
 })
 
 test('theme toggle story switches between light and dark', async ({ page }) => {

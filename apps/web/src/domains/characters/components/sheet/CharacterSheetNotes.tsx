@@ -40,6 +40,7 @@ function CharacterSheetSessionNotesEditor({
       <RichTextEditor
         label='Session notes'
         name='character-sheet-notes'
+        readOnly={pending}
         value={notes}
         onChange={setNotes}
       />

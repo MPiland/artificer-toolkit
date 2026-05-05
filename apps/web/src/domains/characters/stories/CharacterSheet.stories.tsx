@@ -9,6 +9,7 @@ import {
 } from '@artificer-toolkit/schema/api/characters'
 import { CharacterSheetHero } from '../components/sheet/CharacterSheetHero'
 import { CharacterSheetInventory } from '../components/sheet/CharacterSheetInventory'
+import { CharacterSheetNotes } from '../components/sheet/CharacterSheetNotes'
 import { CharacterSheetOverview } from '../components/sheet/CharacterSheetOverview'
 import type { CharacterSheetTabId } from '../components/sheet/CharacterSheet.types'
 import { CharacterSheetView } from '../components/sheet/CharacterSheetView'
@@ -147,6 +148,16 @@ export const CommandPendingInventory: Story = {
   )
 }
 
+export const CommandPendingNotes: Story = {
+  render: (args) => (
+    <CharacterSheetNotesPendingPreview
+      hasDraft={args.hasDraft}
+      maxWidth={args.maxWidth}
+      sheet={args.sheet}
+    />
+  )
+}
+
 export const CommandError: Story = {
   render: (args) => (
     <CharacterSheetCommandErrorPreview
@@ -218,6 +229,32 @@ function CharacterSheetInventoryPendingPreview({
           Inventory command pending. Add, edit, equip, attune, and currency controls are temporarily disabled.
         </Alert>
         <CharacterSheetInventory
+          pending
+          sheet={sheet}
+          submitCommand={() => undefined}
+        />
+      </div>
+    </div>
+  )
+}
+
+function CharacterSheetNotesPendingPreview({
+  hasDraft,
+  maxWidth,
+  sheet
+}: {
+  hasDraft: boolean
+  maxWidth: number
+  sheet: CharacterSheetResponseDto
+}) {
+  return (
+    <div style={{ margin: '0 auto', maxWidth, minHeight: '100vh', padding: '24px' }}>
+      <div className={styles.shell}>
+        <CharacterSheetHero hasDraft={hasDraft} sheet={sheet} />
+        <Alert color='blue'>
+          Notes command pending. Background notes remain readable, and session note editing is temporarily locked.
+        </Alert>
+        <CharacterSheetNotes
           pending
           sheet={sheet}
           submitCommand={() => undefined}
