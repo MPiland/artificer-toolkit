@@ -25,7 +25,7 @@ function CharacterSheetHpControls({
         onChange={(value) => setHitPointDelta(toNumber(value))}
       />
       <Button
-        disabled={pending}
+        disabled={pending || hitPointDelta <= 0}
         onClick={() => submitCommand({
           type: 'ADJUST_HIT_POINTS',
           amount: hitPointDelta,
@@ -36,7 +36,7 @@ function CharacterSheetHpControls({
         Apply Damage
       </Button>
       <Button
-        disabled={pending}
+        disabled={pending || hitPointDelta <= 0}
         variant='default'
         onClick={() => submitCommand({
           type: 'ADJUST_HIT_POINTS',

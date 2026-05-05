@@ -561,6 +561,25 @@ describe('Character Sheet sections', () => {
     })
   })
 
+  it('does not submit no-op hit point adjustments', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn()
+
+    renderWithAppProviders(
+      <CharacterSheetOverview
+        pending={false}
+        sheet={createSheet()}
+        submitCommand={submitCommand}
+      />
+    )
+
+    await user.clear(screen.getByRole('textbox', { name: /^amount$/i }))
+    await user.type(screen.getByRole('textbox', { name: /^amount$/i }), '0')
+
+    expect(screen.getByRole('button', { name: /apply damage/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /^heal$/i })).toBeDisabled()
+  })
+
   it('prepares spells through the class-scoped sheet command', async () => {
     const user = userEvent.setup()
     const submitCommand = vi.fn()
