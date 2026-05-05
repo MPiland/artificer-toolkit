@@ -137,18 +137,20 @@ export function CharacterSheetSpells({
                   <div className={styles.compactActions}>
                     {spell.prepared ? <Badge variant='light'>Prepared</Badge> : null}
                     {spell.known ? <Badge variant='default'>Known</Badge> : null}
-                    {spell.sources?.map((source) => (
-                      <Button
-                        aria-label={`${source.prepared ? 'Unprepare' : 'Prepare'} ${spell.label} for ${source.label}`}
-                        disabled={pending}
-                        key={source.classId}
-                        size='xs'
-                        variant={source.prepared ? 'default' : 'light'}
-                        onClick={() => togglePreparedSpell(spell, source)}
-                      >
-                        {source.prepared ? 'Unprepare' : 'Prepare'}
-                      </Button>
-                    ))}
+                    {spell.sources
+                      ?.filter((source) => source.canPrepare)
+                      .map((source) => (
+                        <Button
+                          aria-label={`${source.prepared ? 'Unprepare' : 'Prepare'} ${spell.label} for ${source.label}`}
+                          disabled={pending}
+                          key={source.classId}
+                          size='xs'
+                          variant={source.prepared ? 'default' : 'light'}
+                          onClick={() => togglePreparedSpell(spell, source)}
+                        >
+                          {source.prepared ? 'Unprepare' : 'Prepare'}
+                        </Button>
+                      ))}
                   </div>
                 </div>
               )

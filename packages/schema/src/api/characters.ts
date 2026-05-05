@@ -524,6 +524,7 @@ export const characterSheetSpellSlotDtoSchema = z.object({
 export const characterSheetSpellSourceDtoSchema = z.object({
   classId: z.string(),
   label: z.string(),
+  canPrepare: z.boolean(),
   prepared: z.boolean().optional()
 })
 

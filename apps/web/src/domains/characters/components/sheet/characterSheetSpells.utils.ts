@@ -38,6 +38,6 @@ export function getPreparedSpellIdsForClass(sheet: CharacterSheet, classId: stri
   if (preparationSource) return preparationSource.preparedSpellIds
 
   return sheet.spells.spells
-    .filter((spell) => spell.sources?.some((source) => source.classId === classId && source.prepared))
+    .filter((spell) => spell.sources?.some((source) => source.classId === classId && source.canPrepare && source.prepared))
     .map((spell) => spell.id)
 }

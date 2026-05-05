@@ -8,6 +8,7 @@ import {
   ABILITIES,
   AUTHORED_RECORD_STATUS,
   CLASS_CATEGORY,
+  SPELLCASTING_ATTRIBUTE,
   dnd5e2014RulesSystem,
   runEngine,
   type CharacterAssemblyRegistry,
@@ -413,22 +414,73 @@ function getKnownSpellIdsForClassIntent(character: CharacterAuthored, classId: s
   return known
 }
 
-function getKnownSpellIdsForClass(character: CharacterAuthored, classId: string): Set<string> {
-  const known = getKnownSpellIdsForClassIntent(character, classId)
-  const classState = character.state.classes?.find((row) => row.classId === classId)
-  for (const spellId of classState?.spells?.prepared ?? []) known.add(spellId)
-  return known
+type CharacterSheetSpellSource = {
+  classId: string
+  label: string
+  canPrepare: boolean
+  prepared: boolean
+}
+
+function getSpellClassIdsById(resolution: CharacterBuilderResolution): Map<string, ReadonlySet<string>> {
+  return new Map(resolution.registry.spells.map((spell) => [spell.id, new Set(spell.classIds)]))
+}
+
+function getActiveClassIntentById(character: CharacterAuthored): Map<string, CharacterAuthored['intent']['classes'][number]> {
+  return new Map(character.intent.classes.map((classIntent) => [classIntent.classId, classIntent]))
+}
+
+function isSpellAvailableForClassIntent(
+  spellClassIdsById: ReadonlyMap<string, ReadonlySet<string>>,
+  spellId: string,
+  classIntent: CharacterAuthored['intent']['classes'][number]
+): boolean {
+  const spellClassIds = spellClassIdsById.get(spellId)
+  if (!spellClassIds) return false
+  return spellClassIds.has(classIntent.classId)
+    || Boolean(classIntent.subclassId && spellClassIds.has(classIntent.subclassId))
+}
+
+function isSpellcastingPreparationCapable(
+  classRecord: CharacterBuilderResolution['registry']['classes'][number] | undefined
+): boolean {
+  const spellcasting = classRecord?.spellcasting
+  if (!spellcasting) return false
+  return Boolean(
+    spellcasting.attributes?.includes(SPELLCASTING_ATTRIBUTE.PREPARES_SPELLS)
+    || spellcasting.prepareLimit
+    || spellcasting.spellLimits.some((limit) => (limit.preparedSpellsLimit ?? 0) > 0)
+  )
+}
+
+function getPreparationCapableClassIds(
+  character: CharacterAuthored,
+  resolution: CharacterBuilderResolution
+): Set<string> {
+  const classById = new Map(resolution.registry.classes.map((classRecord) => [classRecord.id, classRecord]))
+  const classIds = new Set<string>()
+
+  for (const classIntent of character.intent.classes) {
+    const classCanPrepare = isSpellcastingPreparationCapable(classById.get(classIntent.classId))
+    const subclassCanPrepare = isSpellcastingPreparationCapable(
+      classIntent.subclassId ? classById.get(classIntent.subclassId) : undefined
+    )
+    if (classCanPrepare || subclassCanPrepare) classIds.add(classIntent.classId)
+  }
+
+  return classIds
 }
 
 function getSheetSpellIdsByClass(
   character: CharacterAuthored,
   resolution: CharacterBuilderResolution
 ): Map<string, Set<string>> {
-  const activeClassIds = new Set(character.intent.classes.map((classIntent) => classIntent.classId))
+  const activeClassIntentById = getActiveClassIntentById(character)
+  const spellClassIdsById = getSpellClassIdsById(resolution)
   const spellIdsByClassId = new Map<string, Set<string>>()
 
   function addSpell(classId: string, spellId: string) {
-    if (!activeClassIds.has(classId)) return
+    const classIntent = activeClassIntentById.get(classId)
+    if (!classIntent || !isSpellAvailableForClassIntent(spellClassIdsById, spellId, classIntent)) return
     const spellIds = spellIdsByClassId.get(classId) ?? new Set<string>()
     spellIds.add(spellId)
     spellIdsByClassId.set(classId, spellIds)
@@ -437,17 +489,9 @@ function getSheetSpellIdsByClass(
   for (const classIntent of character.intent.classes) {
     const classSpellIds = getKnownSpellIdsForClassIntent(character, classIntent.classId)
     for (const spellId of classSpellIds) addSpell(classIntent.classId, spellId)
-  }
-
-  for (const classState of character.state.classes ?? []) {
-    for (const spellId of classState.spells?.learned ?? []) addSpell(classState.classId, spellId)
-  }
-
-  for (const spell of resolution.registry.spells) {
-    for (const classId of spell.classIds) {
-      if (!activeClassIds.has(classId)) continue
-      const classState = character.state.classes?.find((row) => row.classId === classId)
-      if (classState?.spells?.prepared?.includes(spell.id)) addSpell(classId, spell.id)
+    const classState = character.state.classes?.find((row) => row.classId === classIntent.classId)
+    for (const spellId of classState?.spells?.prepared ?? []) {
+      addSpell(classIntent.classId, spellId)
     }
   }
 
@@ -457,22 +501,25 @@ function getSheetSpellIdsByClass(
 function getSpellSourcesBySpellId(
   character: CharacterAuthored,
   classLabels: ReadonlyMap<string, string>,
-  sheetSpellIdsByClassId: ReadonlyMap<string, ReadonlySet<string>>
-): Map<string, Array<{ classId: string, label: string, prepared: boolean }>> {
+  sheetSpellIdsByClassId: ReadonlyMap<string, ReadonlySet<string>>,
+  preparationCapableClassIds: ReadonlySet<string>
+): Map<string, CharacterSheetSpellSource[]> {
   const classStateById = new Map((character.state.classes ?? []).map((classState) => [classState.classId, classState]))
   const classOrder = new Map(character.intent.classes.map((classIntent, index) => [classIntent.classId, index]))
   const activeClassIds = new Set(character.intent.classes.map((classIntent) => classIntent.classId))
-  const sourcesBySpellId = new Map<string, Map<string, { classId: string, label: string, prepared: boolean }>>()
+  const sourcesBySpellId = new Map<string, Map<string, CharacterSheetSpellSource>>()
 
   function addSpellSource(spellId: string, classId: string) {
     if (!activeClassIds.has(classId)) return
-    const sources = sourcesBySpellId.get(spellId) ?? new Map<string, { classId: string, label: string, prepared: boolean }>()
+    if (!sheetSpellIdsByClassId.get(classId)?.has(spellId)) return
+    const sources = sourcesBySpellId.get(spellId) ?? new Map<string, CharacterSheetSpellSource>()
     const classState = classStateById.get(classId)
     const prepared = classState?.spells?.prepared?.includes(spellId) ?? false
     const current = sources.get(classId)
     sources.set(classId, {
       classId,
       label: classLabels.get(classId) ?? 'Class',
+      canPrepare: preparationCapableClassIds.has(classId),
       prepared: current?.prepared || prepared
     })
     sourcesBySpellId.set(spellId, sources)
@@ -512,11 +559,13 @@ function getSpellSourcesBySpellId(
 function getSpellPreparationSources(
   character: CharacterAuthored,
   classLabels: ReadonlyMap<string, string>,
-  sheetSpellIdsByClassId: ReadonlyMap<string, ReadonlySet<string>>
+  sheetSpellIdsByClassId: ReadonlyMap<string, ReadonlySet<string>>,
+  preparationCapableClassIds: ReadonlySet<string>
 ) {
   const classStateById = new Map((character.state.classes ?? []).map((classState) => [classState.classId, classState]))
 
   return character.intent.classes
+    .filter((classIntent) => preparationCapableClassIds.has(classIntent.classId))
     .map((classIntent) => {
       const sheetSpellIds = sheetSpellIdsByClassId.get(classIntent.classId) ?? new Set<string>()
       return {
@@ -526,7 +575,23 @@ function getSpellPreparationSources(
           .filter((spellId) => sheetSpellIds.has(spellId))
       }
     })
-    .filter((source) => source.preparedSpellIds.length > 0)
+}
+
+function getSheetPreparationAvailableSpellIds(
+  sheet: CharacterSheetResponseDto,
+  classId: string
+): Set<string> {
+  const availableSpellIds = new Set<string>()
+  const preparationSource = sheet.spells.preparationSources?.find((source) => source.classId === classId)
+  for (const spellId of preparationSource?.preparedSpellIds ?? []) availableSpellIds.add(spellId)
+
+  for (const spell of sheet.spells.spells) {
+    if (spell.sources?.some((source) => source.classId === classId && source.canPrepare)) {
+      availableSpellIds.add(spell.id)
+    }
+  }
+
+  return availableSpellIds
 }
 
 function findResourceDefinition(
@@ -698,8 +763,9 @@ export async function buildCharacterSheetResponse(params: {
   const resourceUsage = new Map((character.state.resources ?? []).map((resource) => [resource.resourceGrantId, resource.used]))
   const classLabels = new Map(resolution.registry.classes.map((classRecord) => [classRecord.id, classRecord.label]))
   const sheetSpellIdsByClassId = getSheetSpellIdsByClass(character, resolution)
-  const spellSourcesBySpellId = getSpellSourcesBySpellId(character, classLabels, sheetSpellIdsByClassId)
-  const spellPreparationSources = getSpellPreparationSources(character, classLabels, sheetSpellIdsByClassId)
+  const preparationCapableClassIds = getPreparationCapableClassIds(character, resolution)
+  const spellSourcesBySpellId = getSpellSourcesBySpellId(character, classLabels, sheetSpellIdsByClassId, preparationCapableClassIds)
+  const spellPreparationSources = getSpellPreparationSources(character, classLabels, sheetSpellIdsByClassId, preparationCapableClassIds)
 
   return {
     meta: {
@@ -1172,9 +1238,13 @@ export function applyCharacterSheetCommand(
       if (!next.intent.classes.some((classIntent) => classIntent.classId === command.classId)) {
         throw new CharacterSheetCommandError(`Class "${command.classId}" is not on this character.`)
       }
+      const preparationSource = sheet.spells.preparationSources?.find((source) => source.classId === command.classId)
+      if (!preparationSource) {
+        throw new CharacterSheetCommandError(`Class "${command.classId}" does not prepare spells.`)
+      }
       const preparedSpellIds = [...new Set(command.spellIds)]
-      const knownSpellIds = getKnownSpellIdsForClass(next, command.classId)
-      const unavailableSpell = preparedSpellIds.find((spellId) => !knownSpellIds.has(spellId))
+      const availableSpellIds = getSheetPreparationAvailableSpellIds(sheet, command.classId)
+      const unavailableSpell = preparedSpellIds.find((spellId) => !availableSpellIds.has(spellId))
       if (unavailableSpell) throw new CharacterSheetCommandError(`Spell "${unavailableSpell}" is not available for class "${command.classId}".`)
       const existing = next.state.classes ?? []
       const currentClassState = existing.find((classState) => classState.classId === command.classId)

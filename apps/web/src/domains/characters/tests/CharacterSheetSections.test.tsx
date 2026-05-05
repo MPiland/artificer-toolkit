@@ -466,7 +466,7 @@ describe('Character Sheet sections', () => {
         prepared: false,
         known: true,
         sourceLabel: 'Wizard',
-        sources: [{ classId: 'wizard', label: 'Wizard', prepared: false }]
+        sources: [{ classId: 'wizard', label: 'Wizard', canPrepare: true, prepared: false }]
       },
       {
         id: 'spell-2',
@@ -475,7 +475,7 @@ describe('Character Sheet sections', () => {
         prepared: true,
         known: true,
         sourceLabel: 'Wizard',
-        sources: [{ classId: 'wizard', label: 'Wizard', prepared: true }]
+        sources: [{ classId: 'wizard', label: 'Wizard', canPrepare: true, prepared: true }]
       }
     ]
 
@@ -495,6 +495,31 @@ describe('Character Sheet sections', () => {
       spellIds: ['hidden-spell', 'spell-2', 'spell-1'],
       expectedVersion: 4
     })
+  })
+
+  it('does not render spell preparation controls for known-spell sources', () => {
+    const sheet = createSheet()
+    sheet.spells.spells = [
+      {
+        id: 'spell-1',
+        label: 'Charm Person',
+        level: 1,
+        prepared: false,
+        known: true,
+        sourceLabel: 'Bard',
+        sources: [{ classId: 'bard', label: 'Bard', canPrepare: false, prepared: false }]
+      }
+    ]
+
+    renderWithAppProviders(
+      <CharacterSheetSpells
+        pending={false}
+        sheet={sheet}
+        submitCommand={vi.fn()}
+      />
+    )
+
+    expect(screen.queryByRole('button', { name: /prepare charm person for bard/i })).not.toBeInTheDocument()
   })
 
   it('restores a single spell slot without clearing the full slot pool', async () => {

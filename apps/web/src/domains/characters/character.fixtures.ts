@@ -459,7 +459,7 @@ export const characterSheetFixture = {
         prepared: true,
         known: true,
         sourceLabel: 'Wizard',
-        sources: [{ classId: 'class-wizard', label: 'Wizard', prepared: true }]
+        sources: [{ classId: 'class-wizard', label: 'Wizard', canPrepare: true, prepared: true }]
       },
       {
         id: 'spell-magic-missile',
@@ -473,7 +473,7 @@ export const characterSheetFixture = {
         prepared: false,
         known: true,
         sourceLabel: 'Wizard',
-        sources: [{ classId: 'class-wizard', label: 'Wizard', prepared: false }]
+        sources: [{ classId: 'class-wizard', label: 'Wizard', canPrepare: true, prepared: false }]
       },
       {
         id: 'spell-detect-magic',
@@ -487,7 +487,7 @@ export const characterSheetFixture = {
         prepared: false,
         known: true,
         sourceLabel: 'Wizard',
-        sources: [{ classId: 'class-wizard', label: 'Wizard', prepared: false }]
+        sources: [{ classId: 'class-wizard', label: 'Wizard', canPrepare: true, prepared: false }]
       }
     ]
   },
