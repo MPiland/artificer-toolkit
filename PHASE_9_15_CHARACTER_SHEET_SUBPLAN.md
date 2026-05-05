@@ -45,6 +45,7 @@ The sheet reads from the dedicated sheet payload and sends play-state commands t
 - The sheet read model hydrates labels and options for visible sheet surfaces so web UI should not expose raw IDs when labels exist.
 - Backend and web focused tests now cover command round trips, concurrency, history creation, stale-version rejection, non-active rejection, command validation, and initial sheet command wiring.
 - Storybook now covers the initial sheet review states: overview, draft banner, resources/rest controls, spells, inventory, reference, history, mobile-width overview, empty character, and command-error messaging.
+- Storybook Playwright coverage now verifies the sheet overview, spell/inventory command surfaces, history state, and command-error state in the shared Phase 9 Storybook smoke gate.
 
 ## Locked Decisions
 
