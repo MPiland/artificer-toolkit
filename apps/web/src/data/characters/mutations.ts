@@ -80,6 +80,7 @@ export function useCharacterSheetCommandMutation(characterId: string) {
     mutationFn: (input: CharacterSheetCommandInputDto) => api.characters.command(characterId, input),
     onSuccess: async (response) => {
       queryClient.setQueryData(queryKeys.characters.sheet(characterId), response.sheet)
+      await queryClient.invalidateQueries({ queryKey: queryKeys.characters.detail(characterId), exact: true })
       await queryClient.invalidateQueries({ queryKey: queryKeys.characters.history(characterId) })
       await queryClient.invalidateQueries({ queryKey: queryKeys.characters.list() })
     },
