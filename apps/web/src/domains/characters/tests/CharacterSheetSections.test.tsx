@@ -112,11 +112,17 @@ describe('Character Sheet sections', () => {
         description: '<p>Take one additional action on your turn.</p>'
       }
     ]
+    sheet.reference.proficiencies = [{ label: 'Athletics', value: 'Skill · Proficient' }]
+    sheet.reference.senses = [{ label: 'Darkvision', value: '60 feet' }]
 
     renderWithAppProviders(<CharacterSheetReference sheet={sheet} />)
 
     expect(screen.getByText(/action surge/i)).toBeInTheDocument()
     expect(screen.getByText(/take one additional action/i)).toBeInTheDocument()
+    expect(screen.getByText(/athletics/i)).toBeInTheDocument()
+    expect(screen.getByText(/skill · proficient/i)).toBeInTheDocument()
+    expect(screen.getByText(/darkvision/i)).toBeInTheDocument()
+    expect(screen.getByText(/60 feet/i)).toBeInTheDocument()
   })
 
   it('sends sheet commands with the current stream version', async () => {

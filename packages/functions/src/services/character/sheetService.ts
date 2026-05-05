@@ -5,12 +5,15 @@ import {
   type DBLike
 } from '@artificer-toolkit/db'
 import {
+  ABILITIES,
   AUTHORED_RECORD_STATUS,
   CLASS_CATEGORY,
   dnd5e2014RulesSystem,
   runEngine,
   type CharacterAssemblyRegistry,
   type CharacterBuildSnapshot,
+  type EngineProficiency,
+  type EngineSense,
   type EngineSpellSlots,
   type CharacterEvent
 } from '@artificer-toolkit/shared/core'
@@ -56,6 +59,106 @@ function abilityModifier(score: number): number {
 
 function formatModifier(value: number): string {
   return value >= 0 ? `+${value}` : String(value)
+}
+
+function formatCodeLabel(value: string): string {
+  return value
+    .toLowerCase()
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
+
+function createVocabularyLabelMap(
+  records: ReadonlyArray<{ id: string, code?: string, label: string }> | undefined
+): Map<string, string> {
+  const labels = new Map<string, string>()
+  for (const record of records ?? []) {
+    labels.set(record.id, record.label)
+    if (record.code) labels.set(record.code, record.label)
+  }
+  return labels
+}
+
+function isAbilityCode(value: string): value is keyof typeof ABILITIES {
+  return value in ABILITIES
+}
+
+function formatProficiencyScaling(scaling: EngineProficiency['scaling']): string {
+  switch (scaling) {
+    case 'DOUBLE':
+      return 'Expertise'
+    case 'HALF':
+      return 'Half proficiency'
+    case 'FULL':
+      return 'Proficient'
+  }
+}
+
+function formatProficiencyKind(kind: string): string {
+  switch (kind) {
+    case 'EQUIPMENT':
+      return 'Equipment'
+    case 'EQUIPMENT_PROPERTY':
+      return 'Equipment property'
+    case 'LANGUAGE':
+      return 'Language'
+    case 'SAVE_ABILITY':
+      return 'Saving throw'
+    case 'SKILL':
+      return 'Skill'
+    default:
+      return formatCodeLabel(kind)
+  }
+}
+
+function formatAllProficiencyLabel(kind: string): string {
+  switch (kind) {
+    case 'EQUIPMENT':
+      return 'All equipment'
+    case 'EQUIPMENT_PROPERTY':
+      return 'All equipment properties'
+    case 'LANGUAGE':
+      return 'All languages'
+    case 'SAVE_ABILITY':
+      return 'All saving throws'
+    case 'SKILL':
+      return 'All skills'
+    default:
+      return `All ${formatCodeLabel(kind).toLowerCase()}`
+  }
+}
+
+function formatProficiencyLabel(params: {
+  equipmentLabels: ReadonlyMap<string, string>
+  languageLabels: ReadonlyMap<string, string>
+  proficiency: EngineProficiency
+  skillLabels: ReadonlyMap<string, string>
+}): string {
+  const { proficiency } = params
+  if (proficiency.subjectId === '*') return formatAllProficiencyLabel(proficiency.kind)
+
+  switch (proficiency.kind) {
+    case 'EQUIPMENT':
+      return params.equipmentLabels.get(proficiency.subjectId) ?? 'Unknown equipment'
+    case 'EQUIPMENT_PROPERTY':
+      return formatCodeLabel(proficiency.subjectId)
+    case 'LANGUAGE':
+      return params.languageLabels.get(proficiency.subjectId) ?? 'Unknown language'
+    case 'SAVE_ABILITY':
+      return isAbilityCode(proficiency.subjectId)
+        ? `${ABILITIES[proficiency.subjectId].label} saves`
+        : 'Unknown saving throw'
+    case 'SKILL':
+      return params.skillLabels.get(proficiency.subjectId) ?? 'Unknown skill'
+    default:
+      return formatCodeLabel(proficiency.subjectId)
+  }
+}
+
+function formatSenseRange(sense: EngineSense): string {
+  if (sense.range?.rangeKind !== 'DISTANCE') return 'Available'
+  return `${sense.range.amount} ${formatCodeLabel(sense.range.unit).toLowerCase()}`
 }
 
 const ENGINE_ABILITY_ALIASES: Readonly<Record<string, string>> = {
@@ -572,6 +675,10 @@ export async function buildCharacterSheetResponse(params: {
   const conditionOptions = await getConditionOptions(params.db, character.systemId)
   const conditionsById = new Map(conditionOptions.map((condition) => [condition.id, condition]))
   const equipmentById = new Map(resolution.registry.equipment.map((equipment) => [equipment.id, equipment]))
+  const equipmentLabels = new Map(resolution.registry.equipment.map((equipment) => [equipment.id, equipment.label]))
+  const skillLabels = createVocabularyLabelMap(resolution.registry.system?.skills)
+  const languageLabels = createVocabularyLabelMap(resolution.registry.system?.languages)
+  const senseLabels = createVocabularyLabelMap(resolution.registry.system?.senses)
   const currencyOptions = resolution.registry.system?.currencies.map((currency) => ({
     id: currency.id,
     label: currency.label
@@ -750,9 +857,20 @@ export async function buildCharacterSheetResponse(params: {
     },
     reference: {
       features: resolution.grants.features,
-      proficiencies: [],
+      proficiencies: engineOutput.proficiencies.map((proficiency) => ({
+        label: formatProficiencyLabel({
+          equipmentLabels,
+          languageLabels,
+          proficiency,
+          skillLabels
+        }),
+        value: `${formatProficiencyKind(proficiency.kind)} · ${formatProficiencyScaling(proficiency.scaling)}`
+      })),
       defenses: [],
-      senses: [],
+      senses: engineOutput.senses.map((sense) => ({
+        label: senseLabels.get(sense.senseCode) ?? 'Unknown sense',
+        value: formatSenseRange(sense)
+      })),
       conditionOptions,
       equipmentOptions: resolution.registry.equipment.map((equipment) => ({
         id: equipment.id,

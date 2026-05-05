@@ -176,6 +176,33 @@ function createConditionDb(rows: Array<{ id: string, label: string, description?
   } as unknown as DBLike
 }
 
+function createSystem(
+  overrides: Partial<NonNullable<CharacterBuilderResolution['registry']['system']>> = {}
+): NonNullable<CharacterBuilderResolution['registry']['system']> {
+  return {
+    id: 'system-1',
+    label: 'D&D 5e',
+    alignments: [],
+    challengeRatings: [],
+    conditionTypes: [],
+    creatureTypes: [],
+    currencies: [],
+    damageTypes: [],
+    heritages: [],
+    languages: [],
+    lifestyles: [],
+    magicSchools: [],
+    passives: [],
+    rarities: [],
+    senses: [],
+    skills: [],
+    speeds: [],
+    terrains: [],
+    userId: 'user-1',
+    ...overrides
+  }
+}
+
 function createResolution(): CharacterBuilderResolution {
   return {
     mode: 'edit',
@@ -442,6 +469,74 @@ describe('character sheet command application', () => {
         label: 'Poisoned',
         description: 'A poisoned creature suffers from toxins affecting its body.'
       }
+    ])
+  })
+
+  it('hydrates engine proficiencies into reference facts', async () => {
+    const resolution = createResolution()
+    const fighter = createSpellcastingClass({
+      id: 'class-1',
+      label: 'Fighter',
+      resetKind: 'LONG_REST',
+      spellLimits: []
+    })
+    fighter.proficiencies = [
+      {
+        id: 'prof-skill-1',
+        order: 1,
+        grantKind: 'PROFICIENCY_GRANT',
+        proficiencyKind: 'SKILL',
+        selectionKind: 'GRANTED',
+        scalingKind: 'NONE',
+        authoringModeKind: 'SELECTED',
+        skillIds: ['skill-athletics'],
+        level: 'FULL'
+      },
+      {
+        id: 'prof-save-1',
+        order: 2,
+        grantKind: 'PROFICIENCY_GRANT',
+        proficiencyKind: 'SAVE_ABILITY',
+        selectionKind: 'GRANTED',
+        scalingKind: 'NONE',
+        authoringModeKind: 'SELECTED',
+        abilities: ['DEXTERITY'],
+        level: 'DOUBLE'
+      }
+    ]
+    resolution.registry.classes = [fighter]
+    resolution.registry.system = createSystem({
+      skills: [
+        {
+          id: 'skill-athletics',
+          code: 'ATHLETICS',
+          label: 'Athletics'
+        }
+      ]
+    })
+    resolution.summary.totalLevel = 1
+
+    const character = createCharacter()
+    character.intent.featureAcquisitions = [
+      {
+        id: 'feature-acquisition-1',
+        featureId: 'fighter-training',
+        source: { kind: 'CLASS', classId: 'class-1', classLevel: 1 },
+        timing: { kind: 'IMMEDIATE' }
+      }
+    ]
+
+    const sheet = await buildCharacterSheetResponse({
+      character,
+      db: createConditionDb(),
+      hasBuilderDraft: false,
+      resolution,
+      streamVersion: 1
+    })
+
+    expect(sheet.reference.proficiencies).toEqual([
+      { label: 'Athletics', value: 'Skill · Proficient' },
+      { label: 'Dexterity saves', value: 'Saving throw · Expertise' }
     ])
   })
 
