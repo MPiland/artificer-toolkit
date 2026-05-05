@@ -848,8 +848,15 @@ export function applyCharacterSheetCommand(
       return clearEmptyStateArrays(next)
     }
 
-    case 'UPDATE_INVENTORY_ITEM':
+    case 'UPDATE_INVENTORY_ITEM': {
       ensureInventoryItem(next, command.itemId)
+      if (command.quantity === 0) {
+        next.state.equipment.inventory = next.state.equipment.inventory.filter((item) => item.id !== command.itemId)
+        next.state.equipment.equipped = next.state.equipment.equipped.filter((itemId) => itemId !== command.itemId)
+        next.state.equipment.attuned = next.state.equipment.attuned.filter((itemId) => itemId !== command.itemId)
+        return clearEmptyStateArrays(next)
+      }
+
       next.state.equipment.inventory = next.state.equipment.inventory.map((item) => item.id === command.itemId
         ? {
             ...item,
@@ -860,6 +867,7 @@ export function applyCharacterSheetCommand(
           }
         : item)
       return clearEmptyStateArrays(next)
+    }
 
     case 'EQUIP_ITEM':
       ensureInventoryItem(next, command.itemId)

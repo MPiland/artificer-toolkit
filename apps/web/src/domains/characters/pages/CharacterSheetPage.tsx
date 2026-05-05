@@ -7,13 +7,18 @@ import { CharacterSheetView } from '../components/sheet/CharacterSheetView'
 
 export function CharacterSheetPage() {
   const route = getRouteApi('/_authed/characters/$characterId/')
-  const { draft } = route.useLoaderData()
+  const { draft, fallbackCharacter } = route.useLoaderData()
   const { characterId } = route.useParams()
   const navigate = useNavigate()
   const { data: sheet } = useSuspenseQuery(getCharacterSheet(characterId))
 
-  if (!sheet && draft) {
-    return <CharacterSheetDraftOnlyState characterId={characterId} label={draft.label} />
+  if (!sheet && (draft || fallbackCharacter)) {
+    return (
+      <CharacterSheetDraftOnlyState
+        characterId={characterId}
+        label={draft?.label ?? fallbackCharacter?.character.label}
+      />
+    )
   }
 
   if (!sheet) {

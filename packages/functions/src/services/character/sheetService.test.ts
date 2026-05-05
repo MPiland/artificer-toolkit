@@ -504,6 +504,27 @@ describe('character sheet command application', () => {
     expect(next.state.equipment.attuned).toEqual(['item-1'])
   })
 
+  it('removes inventory rows and flags when updating quantity to zero', () => {
+    const character = createCharacter()
+    character.state.equipment.inventory = [
+      { id: 'item-1', equipmentId: 'equipment-1', quantity: 2 },
+      { id: 'item-2', equipmentId: 'equipment-2', quantity: 1 }
+    ]
+    character.state.equipment.equipped = ['item-1']
+    character.state.equipment.attuned = ['item-1']
+
+    const next = applyCharacterSheetCommand(character, {
+      type: 'UPDATE_INVENTORY_ITEM',
+      itemId: 'item-1',
+      quantity: 0,
+      expectedVersion: 1
+    }, createSheet())
+
+    expect(next.state.equipment.inventory).toEqual([{ id: 'item-2', equipmentId: 'equipment-2', quantity: 1 }])
+    expect(next.state.equipment.equipped).toEqual([])
+    expect(next.state.equipment.attuned).toEqual([])
+  })
+
   it('validates system-backed condition, equipment, and currency options', () => {
     expect(() => applyCharacterSheetCommand(createCharacter(), {
       type: 'ADD_CONDITION',
