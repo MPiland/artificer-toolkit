@@ -43,7 +43,7 @@ function createCharacter(): CharacterAuthored {
       resourceGrants: [
         {
           id: 'resource-1',
-          resourceId: 'resource-def-1',
+          resourceId: 'resource-1',
           source: { kind: 'CLASS', classId: 'class-1' },
           timing: { kind: 'IMMEDIATE' }
         }
@@ -651,6 +651,37 @@ describe('character sheet command application', () => {
         recovery: 'SHORT_REST',
         remaining: 3,
         used: 1
+      })
+    ])
+  })
+
+  it('uses resource grant ids for sheet usage when grant and definition ids differ', async () => {
+    const character = createCharacter()
+    character.intent.classes = [{ classId: 'class-1', subclassId: 'subclass-1', classLevel: 3 }]
+    character.intent.resourceGrants = [
+      {
+        id: 'resource:subclass-1:resource-1',
+        resourceId: 'resource-1',
+        source: { kind: 'SUBCLASS', subclassId: 'subclass-1', classLevel: 1 },
+        timing: { kind: 'CLASS_LEVEL', classId: 'class-1', classLevel: 1 }
+      }
+    ]
+    character.state.resources = [{ resourceGrantId: 'resource:subclass-1:resource-1', used: 2 }]
+
+    const sheet = await buildCharacterSheetResponse({
+      character,
+      db: createConditionDb(),
+      hasBuilderDraft: false,
+      resolution: createResolution(),
+      streamVersion: 1
+    })
+
+    expect(sheet.resources.items).toEqual([
+      expect.objectContaining({
+        id: 'resource:subclass-1:resource-1',
+        max: 4,
+        remaining: 2,
+        used: 2
       })
     ])
   })

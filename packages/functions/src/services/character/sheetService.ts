@@ -199,27 +199,55 @@ function getKnownSpellIdsForClass(character: CharacterAuthored, classId: string)
 
 function findResourceDefinition(
   resolution: CharacterBuilderResolution,
-  resource: CharacterBuilderResolution['grants']['resources'][number]
+  resource: CharacterBuilderResolution['grants']['resources'][number],
+  resourceDefinitionId = resource.id
 ) {
   switch (resource.source.kind) {
     case 'CLASS': {
       const source = resource.source
       const record = resolution.registry.classes.find((candidate) => candidate.id === source.classId)
-      return record?.resources?.id === resource.id ? record.resources : undefined
+      return record?.resources?.id === resourceDefinitionId ? record.resources : undefined
     }
     case 'SUBCLASS': {
       const source = resource.source
       const record = resolution.registry.classes.find((candidate) => candidate.category === CLASS_CATEGORY.SUBCLASS
-        && candidate.resources?.id === resource.id
+        && candidate.resources?.id === resourceDefinitionId
         && (
           candidate.id === source.subclassId
           || candidate.label === resource.sourceLabel
         ))
-      return record?.resources?.id === resource.id ? record.resources : undefined
+      return record?.resources?.id === resourceDefinitionId ? record.resources : undefined
     }
     default:
       return undefined
   }
+}
+
+type CharacterResourceGrantRecord = NonNullable<CharacterAuthored['intent']['resourceGrants']>[number]
+
+function isSameResourceGrantSource(
+  left: CharacterResourceGrantRecord['source'],
+  right: CharacterBuilderResolution['grants']['resources'][number]['source']
+): boolean {
+  if (left.kind !== right.kind) return false
+
+  if (left.kind === 'CLASS' && right.kind === 'CLASS') {
+    return left.classId === right.classId
+  }
+
+  if (left.kind === 'SUBCLASS' && right.kind === 'SUBCLASS') {
+    return left.subclassId === right.subclassId
+  }
+
+  return false
+}
+
+function findResourceGrantRecord(
+  character: CharacterAuthored,
+  resource: CharacterBuilderResolution['grants']['resources'][number]
+): CharacterResourceGrantRecord | undefined {
+  return character.intent.resourceGrants?.find((grant) => grant.resourceId === resource.id
+    && isSameResourceGrantSource(grant.source, resource.source))
 }
 
 function getResourceClassLevel(
@@ -260,12 +288,13 @@ function getResourceSheetConfig(params: {
   proficiencyBonus: number
   resolution: CharacterBuilderResolution
   resource: CharacterBuilderResolution['grants']['resources'][number]
+  resourceDefinitionId?: string
   totalLevel: number
 }): {
   max: number
   recovery: 'SHORT_REST' | 'LONG_REST' | 'OTHER'
 } | null {
-  const definition = findResourceDefinition(params.resolution, params.resource)
+  const definition = findResourceDefinition(params.resolution, params.resource, params.resourceDefinitionId)
   if (!definition) return null
 
   const charge = compileCharge(definition.charges)
@@ -389,19 +418,22 @@ export async function buildCharacterSheetResponse(params: {
     },
     resources: {
       items: resolution.grants.resources.flatMap((resource) => {
+        const grantRecord = findResourceGrantRecord(character, resource)
+        const resourceGrantId = grantRecord?.id ?? resource.id
         const config = getResourceSheetConfig({
           character,
           proficiencyBonus,
           resolution,
           resource,
+          resourceDefinitionId: grantRecord?.resourceId,
           totalLevel
         })
         if (!config) return []
         const max = config.max
-        const used = Math.min(resourceUsage.get(resource.id) ?? 0, max)
+        const used = Math.min(resourceUsage.get(resourceGrantId) ?? 0, max)
         return [
           {
-            id: resource.id,
+            id: resourceGrantId,
             label: resource.label,
             sourceLabel: resource.sourceLabel,
             used,
