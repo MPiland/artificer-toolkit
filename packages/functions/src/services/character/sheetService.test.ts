@@ -162,13 +162,13 @@ function createSheet(overrides: Partial<CharacterSheetResponseDto> = {}): Charac
   }
 }
 
-function createConditionDb(): DBLike {
+function createConditionDb(rows: Array<{ id: string, label: string, description?: string | null }> = []): DBLike {
   return {
     selectFrom: () => ({
       select: () => ({
         where: () => ({
           orderBy: () => ({
-            execute: async () => []
+            execute: async () => rows
           })
         })
       })
@@ -403,6 +403,46 @@ describe('character sheet command application', () => {
 
     expect(sheet.overview.exhaustionLevel).toBe(1)
     expect(sheet.overview.exhaustionNotes).toBe('Forced march through the swamp.')
+  })
+
+  it('hydrates condition descriptions from system vocabulary', async () => {
+    const character = createCharacter()
+    character.state.conditions = [
+      {
+        conditionTypeId: 'condition-1',
+        notes: 'Spider venom'
+      }
+    ]
+
+    const sheet = await buildCharacterSheetResponse({
+      character,
+      db: createConditionDb([
+        {
+          id: 'condition-1',
+          label: 'Poisoned',
+          description: 'A poisoned creature suffers from toxins affecting its body.'
+        }
+      ]),
+      hasBuilderDraft: false,
+      resolution: createResolution(),
+      streamVersion: 1
+    })
+
+    expect(sheet.overview.conditions).toEqual([
+      {
+        conditionTypeId: 'condition-1',
+        label: 'Poisoned',
+        description: 'A poisoned creature suffers from toxins affecting its body.',
+        notes: 'Spider venom'
+      }
+    ])
+    expect(sheet.reference.conditionOptions).toEqual([
+      {
+        id: 'condition-1',
+        label: 'Poisoned',
+        description: 'A poisoned creature suffers from toxins affecting its body.'
+      }
+    ])
   })
 
   it('hydrates action descriptions from granted feature summaries', async () => {

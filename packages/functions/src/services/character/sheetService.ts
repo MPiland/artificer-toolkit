@@ -541,17 +541,18 @@ function getResourceSheetConfig(params: {
 async function getConditionOptions(
   db: DBLike,
   systemId: string
-): Promise<Array<{ id: string, label: string }>> {
+): Promise<Array<{ id: string, label: string, description?: string }>> {
   const rows = await db
     .selectFrom('condition_types')
-    .select(['id', 'label'])
+    .select(['id', 'label', 'description'])
     .where('system_id', '=', systemId)
     .orderBy('label', 'asc')
     .execute()
 
   return rows.map((row) => ({
     id: String(row.id),
-    label: String(row.label)
+    label: String(row.label),
+    description: row.description ? String(row.description) : undefined
   }))
 }
 
@@ -569,7 +570,7 @@ export async function buildCharacterSheetResponse(params: {
   const proficiencyBonus = engineOutput.derivedStats.proficiencyBonus
   const maxHitPoints = getMaxHitPoints(character)
   const conditionOptions = await getConditionOptions(params.db, character.systemId)
-  const conditionLabels = new Map(conditionOptions.map((condition) => [condition.id, condition.label]))
+  const conditionsById = new Map(conditionOptions.map((condition) => [condition.id, condition]))
   const equipmentById = new Map(resolution.registry.equipment.map((equipment) => [equipment.id, equipment]))
   const currencyOptions = resolution.registry.system?.currencies.map((currency) => ({
     id: currency.id,
@@ -632,7 +633,8 @@ export async function buildCharacterSheetResponse(params: {
       exhaustionNotes: character.state.exhaustion?.notes,
       conditions: (character.state.conditions ?? []).map((condition) => ({
         conditionTypeId: condition.conditionTypeId,
-        label: conditionLabels.get(condition.conditionTypeId) ?? 'Unknown condition',
+        label: conditionsById.get(condition.conditionTypeId)?.label ?? 'Unknown condition',
+        description: conditionsById.get(condition.conditionTypeId)?.description,
         notes: condition.notes
       })),
       hitDice: character.state.hitpoints.hitDice.map((die) => ({

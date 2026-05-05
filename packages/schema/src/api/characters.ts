@@ -428,7 +428,8 @@ export const characterSheetFactDtoSchema = z.object({
 
 export const characterSheetOptionDtoSchema = z.object({
   id: z.string(),
-  label: z.string()
+  label: z.string(),
+  description: z.string().optional()
 })
 
 export const characterSheetMetaDtoSchema = z.object({
@@ -465,6 +466,7 @@ export const characterSheetHitDiceDtoSchema = z.object({
 export const characterSheetConditionDtoSchema = z.object({
   conditionTypeId: z.string(),
   label: z.string(),
+  description: z.string().optional(),
   notes: z.string().optional()
 })
 

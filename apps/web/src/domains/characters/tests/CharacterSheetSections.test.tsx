@@ -68,7 +68,13 @@ function createSheet(): CharacterSheetResponseDto {
       proficiencies: [],
       defenses: [],
       senses: [],
-      conditionOptions: [{ id: 'condition-1', label: 'Poisoned' }],
+      conditionOptions: [
+        {
+          id: 'condition-1',
+          label: 'Poisoned',
+          description: 'A poisoned creature suffers from toxins affecting its body.'
+        }
+      ],
       equipmentOptions: [{ id: 'equipment-1', label: 'Longsword' }],
       currencyOptions: [{ id: 'currency-1', label: 'Gold' }]
     },
@@ -147,6 +153,7 @@ describe('Character Sheet sections', () => {
 
     await user.click(screen.getByPlaceholderText(/add condition/i))
     await user.click(await screen.findByText(/poisoned/i))
+    expect(screen.getByText(/suffers from toxins affecting its body/i)).toBeInTheDocument()
     await user.type(screen.getByLabelText(/condition notes/i), 'Spider venom')
     await user.click(screen.getByRole('button', { name: /^add$/i }))
 
@@ -191,6 +198,7 @@ describe('Character Sheet sections', () => {
       {
         conditionTypeId: 'condition-1',
         label: 'Poisoned',
+        description: 'A poisoned creature suffers from toxins affecting its body.',
         notes: 'Spider venom'
       }
     ]
@@ -203,6 +211,7 @@ describe('Character Sheet sections', () => {
       />
     )
 
+    expect(screen.getByText(/suffers from toxins affecting its body/i)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /^notes$/i }))
     await user.clear(screen.getByLabelText(/poisoned notes/i))
     await user.type(screen.getByLabelText(/poisoned notes/i), 'Wyvern sting')

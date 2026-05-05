@@ -21,6 +21,7 @@ function CharacterSheetConditionRow({
     <div className={styles.row}>
       <div>
         <Text>{condition.label}</Text>
+        {condition.description ? <Text className={styles.muted}>{condition.description}</Text> : null}
         {condition.notes ? <Text className={styles.muted}>{condition.notes}</Text> : null}
       </div>
       <div className={styles.compactActions}>
@@ -83,6 +84,7 @@ export function CharacterSheetConditions({
   const version = sheet.meta.streamVersion
   const [conditionTypeId, setConditionTypeId] = useState<string | null>(null)
   const [conditionNotes, setConditionNotes] = useState('')
+  const selectedCondition = sheet.reference.conditionOptions.find((option) => option.id === conditionTypeId)
 
   return (
     <>
@@ -92,6 +94,7 @@ export function CharacterSheetConditions({
           <Text className={styles.muted}>
             {sheet.overview.conditions.length ? sheet.overview.conditions.map((condition) => condition.label).join(', ') : 'No active conditions'}
           </Text>
+          {selectedCondition?.description ? <Text className={styles.muted}>{selectedCondition.description}</Text> : null}
         </div>
         <div className={styles.compactActions}>
           <Select
