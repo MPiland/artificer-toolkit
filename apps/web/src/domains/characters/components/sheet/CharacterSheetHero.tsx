@@ -1,5 +1,6 @@
 import { Badge, Button, Group, Text, Title } from '@mantine/core'
 import { useNavigate } from '@tanstack/react-router'
+import { AuthoredDetailProse } from '#app/components/AuthoredDetail'
 import * as styles from './characterSheet.css'
 import type { CharacterSheet } from './CharacterSheet.types'
 
@@ -23,7 +24,7 @@ export function CharacterSheetHero({
           {sheet.identity.raceLabel ? `, ${sheet.identity.raceLabel}` : ''}
           {sheet.identity.backgroundLabel ? `, ${sheet.identity.backgroundLabel}` : ''}
         </Text>
-        {sheet.identity.description ? <Text className={styles.heroMeta}>{sheet.identity.description}</Text> : null}
+        {sheet.identity.description ? <AuthoredDetailProse html={sheet.identity.description} fallback='' /> : null}
         <Group mt='md' gap='xs'>
           <Badge variant='light'>
             Level

@@ -50,6 +50,7 @@ function CharacterSheetConditionRow({
         <div className={styles.inlineEditor}>
           <Textarea
             autosize
+            disabled={pending}
             label={`${condition.label} notes`}
             minRows={2}
             placeholder='Track duration, source, save timing, or table rulings.'
@@ -102,6 +103,7 @@ export function CharacterSheetConditions({
               value: option.id,
               label: option.label
             }))}
+            disabled={pending}
             placeholder='Add condition'
             value={conditionTypeId}
             onChange={setConditionTypeId}
@@ -109,6 +111,7 @@ export function CharacterSheetConditions({
           />
           <TextInput
             aria-label='Condition notes'
+            disabled={pending}
             placeholder='Notes'
             value={conditionNotes}
             onChange={(event) => setConditionNotes(event.currentTarget.value)}

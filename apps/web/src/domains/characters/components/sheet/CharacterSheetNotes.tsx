@@ -1,9 +1,26 @@
 import { Button, Text, Title } from '@mantine/core'
 import { useState } from 'react'
+import { AuthoredDetailProse } from '#app/components/AuthoredDetail'
 import RichTextEditor from '#ui/primitives/RichTextEditor'
 import * as styles from './characterSheet.css'
 import type { CharacterSheetSectionProps, SubmitSheetCommand } from './CharacterSheet.types'
-import { compactText } from './characterSheet.utils'
+
+function CharacterSheetNoteBlock({
+  html,
+  title
+}: {
+  html?: string
+  title: string
+}) {
+  return (
+    <div className={styles.row}>
+      <div>
+        <Text fw={700}>{title}</Text>
+        <AuthoredDetailProse html={html} fallback='Not set' />
+      </div>
+    </div>
+  )
+}
 
 function CharacterSheetSessionNotesEditor({
   initialNotes,
@@ -56,26 +73,11 @@ export function CharacterSheetNotes({
         </div>
       </div>
       <div className={styles.rowList}>
-        <div className={styles.row}>
-          <div>
-            <Text fw={700}>Personality</Text>
-            <Text className={styles.muted}>{compactText(sheet.notes.personalityTraits)}</Text>
-          </div>
-        </div>
-        <div className={styles.row}>
-          <div>
-            <Text fw={700}>Ideals, Bonds, Flaws</Text>
-            <Text className={styles.muted}>
-              {[sheet.notes.ideals, sheet.notes.bonds, sheet.notes.flaws].filter(Boolean).join(' ') || 'Not set'}
-            </Text>
-          </div>
-        </div>
-        <div className={styles.row}>
-          <div>
-            <Text fw={700}>Backstory</Text>
-            <Text className={styles.muted}>{compactText(sheet.notes.backstory)}</Text>
-          </div>
-        </div>
+        <CharacterSheetNoteBlock html={sheet.notes.personalityTraits} title='Personality' />
+        <CharacterSheetNoteBlock html={sheet.notes.ideals} title='Ideals' />
+        <CharacterSheetNoteBlock html={sheet.notes.bonds} title='Bonds' />
+        <CharacterSheetNoteBlock html={sheet.notes.flaws} title='Flaws' />
+        <CharacterSheetNoteBlock html={sheet.notes.backstory} title='Backstory' />
       </div>
 
       <CharacterSheetSessionNotesEditor

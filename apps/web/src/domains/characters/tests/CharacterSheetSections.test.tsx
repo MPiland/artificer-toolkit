@@ -6,14 +6,16 @@ import type { CharacterSheetResponseDto } from '#app/lib/api'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { server } from '#test/msw/server'
 import { CharacterSheetActions } from '../components/sheet/CharacterSheetActions'
-import { CharacterSheetView } from '../components/sheet/CharacterSheetView'
-import { CharacterSheetInventory } from '../components/sheet/CharacterSheetInventory'
+import { CharacterSheetConditions } from '../components/sheet/CharacterSheetConditions'
+import { CharacterSheetHero } from '../components/sheet/CharacterSheetHero'
 import { CharacterSheetHistoryList } from '../components/sheet/CharacterSheetHistory'
+import { CharacterSheetInventory } from '../components/sheet/CharacterSheetInventory'
 import { CharacterSheetNotes } from '../components/sheet/CharacterSheetNotes'
 import { CharacterSheetOverview } from '../components/sheet/CharacterSheetOverview'
 import { CharacterSheetReference } from '../components/sheet/CharacterSheetReference'
 import { CharacterSheetResources } from '../components/sheet/CharacterSheetResources'
 import { CharacterSheetSpells } from '../components/sheet/CharacterSheetSpells'
+import { CharacterSheetView } from '../components/sheet/CharacterSheetView'
 
 const API_BASE = 'http://localhost:3001'
 
@@ -151,6 +153,16 @@ describe('Character Sheet sections', () => {
     expect(screen.getByText(/regain hit points as a bonus action/i)).toBeInTheDocument()
   })
 
+  it('renders rich text character identity without exposing markup', () => {
+    const sheet = createSheet()
+    sheet.identity.description = '<p>A careful explorer with a dangerous curiosity.</p>'
+
+    renderWithAppProviders(<CharacterSheetHero hasDraft={false} sheet={sheet} />)
+
+    expect(screen.getByText(/careful explorer/i)).toBeInTheDocument()
+    expect(screen.queryByText(/<p>a careful explorer/i)).not.toBeInTheDocument()
+  })
+
   it('renders reference feature descriptions as rules text', () => {
     const sheet = createSheet()
     sheet.reference.features = [
@@ -219,6 +231,20 @@ describe('Character Sheet sections', () => {
       notes: 'Spider venom',
       expectedVersion: 4
     })
+  })
+
+  it('locks condition inputs while a sheet command is pending', () => {
+    renderWithAppProviders(
+      <CharacterSheetConditions
+        pending
+        sheet={createSheet()}
+        submitCommand={vi.fn()}
+      />
+    )
+
+    expect(screen.getByPlaceholderText(/add condition/i)).toBeDisabled()
+    expect(screen.getByLabelText(/condition notes/i)).toBeDisabled()
+    expect(screen.getByRole('button', { name: /^add$/i })).toBeDisabled()
   })
 
   it('saves exhaustion notes through the overview panel', async () => {
@@ -301,6 +327,23 @@ describe('Character Sheet sections', () => {
       amount: 1,
       expectedVersion: 4
     })
+  })
+
+  it('locks inventory inputs while a sheet command is pending', () => {
+    renderWithAppProviders(
+      <CharacterSheetInventory
+        pending
+        sheet={createSheet()}
+        submitCommand={vi.fn()}
+      />
+    )
+
+    expect(screen.getByRole('textbox', { name: /^add equipment$/i })).toBeDisabled()
+    expect(screen.getByRole('textbox', { name: /^quantity$/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /add item/i })).toBeDisabled()
+    expect(screen.getByRole('textbox', { name: /^adjust currency$/i })).toBeDisabled()
+    expect(screen.getByRole('textbox', { name: /^amount$/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /apply currency/i })).toBeDisabled()
   })
 
   it('updates inventory quantity through sheet commands', async () => {
@@ -670,6 +713,30 @@ describe('Character Sheet sections', () => {
       notes: '<p>Updated notes</p>',
       expectedVersion: 5
     })
+  })
+
+  it('renders rich text background notes without exposing markup', () => {
+    const sheet = createSheet()
+    sheet.notes.personalityTraits = '<p>Asks one question too many.</p>'
+    sheet.notes.ideals = '<p>Knowledge should help people.</p>'
+    sheet.notes.bonds = '<p>Protects a missing mentor.</p>'
+    sheet.notes.flaws = '<p>Cannot leave a sealed door alone.</p>'
+    sheet.notes.backstory = '<p>Raised among dangerous archives.</p>'
+
+    renderWithAppProviders(
+      <CharacterSheetNotes
+        pending={false}
+        sheet={sheet}
+        submitCommand={vi.fn()}
+      />
+    )
+
+    expect(screen.getByText(/asks one question/i)).toBeInTheDocument()
+    expect(screen.getByText(/knowledge should help people/i)).toBeInTheDocument()
+    expect(screen.getByText(/protects a missing mentor/i)).toBeInTheDocument()
+    expect(screen.getByText(/cannot leave a sealed door/i)).toBeInTheDocument()
+    expect(screen.getByText(/raised among dangerous archives/i)).toBeInTheDocument()
+    expect(screen.queryByText(/<p>asks one question/i)).not.toBeInTheDocument()
   })
 
   it('renders sheet command history entries without needing the builder', () => {

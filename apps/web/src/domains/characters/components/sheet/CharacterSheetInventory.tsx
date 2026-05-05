@@ -118,6 +118,7 @@ function CharacterSheetInventoryItemRow({
         <div className={styles.inlineEditor}>
           {item.description ? <AuthoredDetailProse html={item.description} fallback='' /> : null}
           <TextInput
+            disabled={pending}
             label='Custom name'
             placeholder={item.label}
             value={customName}
@@ -125,6 +126,7 @@ function CharacterSheetInventoryItemRow({
           />
           <Textarea
             autosize
+            disabled={pending}
             label='Item notes'
             minRows={2}
             placeholder='Track charges, placement, ownership, or table notes.'
@@ -178,6 +180,7 @@ export function CharacterSheetInventory({
             value: option.id,
             label: option.label
           }))}
+          disabled={pending}
           label='Add equipment'
           placeholder='Choose an item'
           searchable
@@ -185,6 +188,7 @@ export function CharacterSheetInventory({
           onChange={setEquipmentId}
         />
         <NumberInput
+          disabled={pending}
           label='Quantity'
           min={1}
           value={quantity}
@@ -270,7 +274,7 @@ export function CharacterSheetInventory({
             value: option.id,
             label: option.label
           }))}
-          disabled={sheet.reference.currencyOptions.length === 0}
+          disabled={pending || sheet.reference.currencyOptions.length === 0}
           label='Adjust currency'
           placeholder='Choose currency'
           searchable
@@ -278,6 +282,7 @@ export function CharacterSheetInventory({
           onChange={setCurrencyId}
         />
         <NumberInput
+          disabled={pending}
           label='Amount'
           value={currencyAmount}
           onChange={(value) => setCurrencyAmount(toNumber(value))}
