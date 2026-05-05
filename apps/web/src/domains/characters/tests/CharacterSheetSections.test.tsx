@@ -470,6 +470,39 @@ describe('Character Sheet sections', () => {
     })
   })
 
+  it('renders spell casting details and rules text', () => {
+    const sheet = createSheet()
+    sheet.spells.spells = [
+      {
+        id: 'spell-1',
+        label: 'Shield',
+        description: '<p>A shimmering barrier protects you.</p>',
+        level: 1,
+        school: 'ABJURATION',
+        castingTime: { amount: 1, unit: 'ROUND' },
+        components: ['VERBAL', 'SOMATIC', 'MATERIAL'],
+        attributes: ['CONCENTRATION'],
+        materialDescription: '<p>A pinch of powdered silver.</p>',
+        prepared: true,
+        known: true
+      }
+    ]
+
+    renderWithAppProviders(
+      <CharacterSheetSpells
+        pending={false}
+        sheet={sheet}
+        submitCommand={vi.fn()}
+      />
+    )
+
+    expect(screen.getByText(/level 1 - abjuration - 1 round - verbal, somatic, material/i)).toBeInTheDocument()
+    expect(screen.getByText(/attributes:/i)).toBeInTheDocument()
+    expect(screen.getByText(/concentration/i)).toBeInTheDocument()
+    expect(screen.getByText(/a shimmering barrier protects you/i)).toBeInTheDocument()
+    expect(screen.getByText(/a pinch of powdered silver/i)).toBeInTheDocument()
+  })
+
   it('resyncs session notes when refreshed sheet data changes', async () => {
     const user = userEvent.setup()
     const submitCommand = vi.fn()

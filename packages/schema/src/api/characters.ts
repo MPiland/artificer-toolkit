@@ -1,6 +1,11 @@
 import { z } from 'zod'
 
-import { abilityCodeSchema, authoredRecordStatusSchema } from '../shared/enums.js'
+import {
+  abilityCodeSchema,
+  authoredRecordStatusSchema,
+  spellAttributeSchema,
+  spellComponentSchema
+} from '../shared/enums.js'
 import { unknownObjectSchema } from '../shared/facet.js'
 import { startingEquipmentDtoSchema } from '../shared/startingEquipment.js'
 import {
@@ -16,7 +21,7 @@ import {
   characterStartingEquipmentDecisionDtoSchema,
   characterStateDtoSchema
 } from '../subjects/index.js'
-import { classStartingGoldDtoSchema } from '../subjects/shared.js'
+import { castingTimeDtoSchema, classStartingGoldDtoSchema } from '../subjects/shared.js'
 import { listResponseDtoSchema } from './common.js'
 
 export const characterBuilderModeDtoSchema = z.enum(['create', 'edit'])
@@ -522,8 +527,13 @@ export const characterSheetSpellPreparationSourceDtoSchema = z.object({
 export const characterSheetSpellDtoSchema = z.object({
   id: z.string(),
   label: z.string(),
+  description: z.string().optional(),
   level: z.number().int(),
   school: z.string().optional(),
+  castingTime: castingTimeDtoSchema.optional(),
+  components: z.array(spellComponentSchema).optional(),
+  attributes: z.array(spellAttributeSchema).optional(),
+  materialDescription: z.string().optional(),
   prepared: z.boolean().optional(),
   known: z.boolean().optional(),
   sourceLabel: z.string().optional(),

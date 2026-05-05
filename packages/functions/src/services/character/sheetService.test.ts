@@ -429,6 +429,38 @@ describe('character sheet command application', () => {
     }))
   })
 
+  it('hydrates spell casting reference details into sheet spells', async () => {
+    const resolution = createResolution()
+    const spell = createSpell({
+      classIds: ['class-1'],
+      id: 'spell-1',
+      label: 'Shield',
+      level: 1
+    })
+    spell.description = '<p>A shimmering barrier protects you.</p>'
+    spell.components = ['VERBAL', 'SOMATIC', 'MATERIAL']
+    spell.attributes = ['CONCENTRATION']
+    spell.materialDescription = '<p>A pinch of powdered silver.</p>'
+    resolution.registry.spells = [spell]
+
+    const sheet = await buildCharacterSheetResponse({
+      character: createCharacter(),
+      db: createConditionDb(),
+      hasBuilderDraft: false,
+      resolution,
+      streamVersion: 1
+    })
+
+    expect(sheet.spells.spells).toContainEqual(expect.objectContaining({
+      id: 'spell-1',
+      description: '<p>A shimmering barrier protects you.</p>',
+      castingTime: { unit: 'ROUND', amount: 1 },
+      components: ['VERBAL', 'SOMATIC', 'MATERIAL'],
+      attributes: ['CONCENTRATION'],
+      materialDescription: '<p>A pinch of powdered silver.</p>'
+    }))
+  })
+
   it('caps resource and spell slot usage at the sheet maximum', () => {
     const resourceNext = applyCharacterSheetCommand(createCharacter(), {
       type: 'USE_RESOURCE',

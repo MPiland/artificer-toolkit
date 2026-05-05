@@ -1,7 +1,10 @@
 import { Badge, Button, Text, Title } from '@mantine/core'
+import { AuthoredDetailProse } from '#app/components/AuthoredDetail'
 import * as styles from './characterSheet.css'
 import type { CharacterSheetSectionProps } from './CharacterSheet.types'
 import {
+  formatSpellAttributes,
+  formatSpellSummary,
   getPreparedSpellIdsForClass,
   type SheetSpell,
   type SheetSpellSource
@@ -104,35 +107,52 @@ export function CharacterSheetSpells({
 
       <div className={styles.rowList}>
         {sheet.spells.spells.length
-          ? sheet.spells.spells.map((spell) => (
-              <div className={styles.row} key={spell.id}>
-                <div>
-                  <Text fw={700}>{spell.label}</Text>
-                  <Text className={styles.muted}>
-                    Level
-                    {spell.level}
-                    {spell.school ? `, ${spell.school}` : ''}
-                    {spell.sourceLabel ? `, ${spell.sourceLabel}` : ''}
-                  </Text>
+          ? sheet.spells.spells.map((spell) => {
+              const attributes = formatSpellAttributes(spell)
+
+              return (
+                <div className={styles.row} key={spell.id}>
+                  <div>
+                    <Text fw={700}>{spell.label}</Text>
+                    <Text className={styles.muted}>{formatSpellSummary(spell)}</Text>
+                    {attributes
+                      ? (
+                          <Text className={styles.muted}>
+                            Attributes:
+                            {' '}
+                            {attributes}
+                          </Text>
+                        )
+                      : null}
+                    {spell.description ? <AuthoredDetailProse html={spell.description} fallback='' /> : null}
+                    {spell.materialDescription
+                      ? (
+                          <div>
+                            <Text fw={700} size='sm'>Material</Text>
+                            <AuthoredDetailProse html={spell.materialDescription} fallback='' />
+                          </div>
+                        )
+                      : null}
+                  </div>
+                  <div className={styles.compactActions}>
+                    {spell.prepared ? <Badge variant='light'>Prepared</Badge> : null}
+                    {spell.known ? <Badge variant='default'>Known</Badge> : null}
+                    {spell.sources?.map((source) => (
+                      <Button
+                        aria-label={`${source.prepared ? 'Unprepare' : 'Prepare'} ${spell.label} for ${source.label}`}
+                        disabled={pending}
+                        key={source.classId}
+                        size='xs'
+                        variant={source.prepared ? 'default' : 'light'}
+                        onClick={() => togglePreparedSpell(spell, source)}
+                      >
+                        {source.prepared ? 'Unprepare' : 'Prepare'}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
-                <div className={styles.compactActions}>
-                  {spell.prepared ? <Badge variant='light'>Prepared</Badge> : null}
-                  {spell.known ? <Badge variant='default'>Known</Badge> : null}
-                  {spell.sources?.map((source) => (
-                    <Button
-                      aria-label={`${source.prepared ? 'Unprepare' : 'Prepare'} ${spell.label} for ${source.label}`}
-                      disabled={pending}
-                      key={source.classId}
-                      size='xs'
-                      variant={source.prepared ? 'default' : 'light'}
-                      onClick={() => togglePreparedSpell(spell, source)}
-                    >
-                      {source.prepared ? 'Unprepare' : 'Prepare'}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            ))
+              )
+            })
           : <Text className={styles.muted}>No spells are currently selected.</Text>}
       </div>
     </section>

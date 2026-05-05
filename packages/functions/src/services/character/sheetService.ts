@@ -699,8 +699,13 @@ export async function buildCharacterSheetResponse(params: {
           return {
             id: spell.id,
             label: spell.label,
+            description: spell.description,
             level: spell.level,
             school: spell.magicSchoolId,
+            castingTime: spell.castingTime,
+            components: spell.components,
+            attributes: spell.attributes,
+            materialDescription: spell.materialDescription,
             prepared: prepared.has(spell.id),
             known: learned.has(spell.id),
             sourceLabel: sources.length ? sources.map((source) => source.label).join(', ') : undefined,
