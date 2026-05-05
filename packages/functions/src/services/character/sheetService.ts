@@ -538,6 +538,40 @@ function getResourceSheetConfig(params: {
   }
 }
 
+interface FeatureDescriptionSource {
+  id: string
+  description?: string | null
+  options?: FeatureDescriptionSource[]
+  features?: FeatureDescriptionSource[]
+}
+
+function collectFeatureDescriptions(resolution: CharacterBuilderResolution): Map<string, string> {
+  const descriptions = new Map<string, string>()
+
+  function addFeature(feature: FeatureDescriptionSource) {
+    const description = feature.description?.trim()
+    if (description) descriptions.set(feature.id, description)
+    for (const option of feature.options ?? []) addFeature(option)
+  }
+
+  function addContainer(container: FeatureDescriptionSource) {
+    addFeature(container)
+    for (const feature of container.features ?? []) addFeature(feature)
+  }
+
+  for (const feature of resolution.registry.features) addFeature(feature)
+  for (const race of resolution.registry.races) {
+    addContainer(race)
+    if (race.ancestry) {
+      for (const option of race.ancestry.options) addContainer(option)
+    }
+  }
+  for (const background of resolution.registry.backgrounds) addContainer(background)
+  for (const classRecord of resolution.registry.classes) addContainer(classRecord)
+
+  return descriptions
+}
+
 async function getConditionOptions(
   db: DBLike,
   systemId: string
@@ -589,6 +623,7 @@ export async function buildCharacterSheetResponse(params: {
   const knownSpellIds = new Set([...learned, ...prepared])
   const resourceUsage = new Map((character.state.resources ?? []).map((resource) => [resource.resourceGrantId, resource.used]))
   const classLabels = new Map(resolution.registry.classes.map((classRecord) => [classRecord.id, classRecord.label]))
+  const featureDescriptions = collectFeatureDescriptions(resolution)
   const sheetSpellIdsByClassId = getSheetSpellIdsByClass(character, resolution)
   const spellSourcesBySpellId = getSpellSourcesBySpellId(character, classLabels, sheetSpellIdsByClassId)
   const spellPreparationSources = getSpellPreparationSources(character, classLabels, sheetSpellIdsByClassId)
@@ -647,7 +682,8 @@ export async function buildCharacterSheetResponse(params: {
         id: feature.id,
         label: feature.label,
         kind: 'OTHER',
-        sourceLabel: feature.sourceLabel
+        sourceLabel: feature.sourceLabel,
+        description: featureDescriptions.get(feature.id)
       }))
     },
     resources: {

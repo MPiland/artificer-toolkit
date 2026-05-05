@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
 import type { CharacterSheetResponseDto } from '#app/lib/api'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
+import { CharacterSheetActions } from '../components/sheet/CharacterSheetActions'
 import { CharacterSheetInventory } from '../components/sheet/CharacterSheetInventory'
 import { CharacterSheetHistoryList } from '../components/sheet/CharacterSheetHistory'
 import { CharacterSheetNotes } from '../components/sheet/CharacterSheetNotes'
@@ -75,6 +76,24 @@ function createSheet(): CharacterSheetResponseDto {
 }
 
 describe('Character Sheet sections', () => {
+  it('renders action descriptions as playable reference text', () => {
+    const sheet = createSheet()
+    sheet.actions.items = [
+      {
+        id: 'feature-1',
+        label: 'Second Wind',
+        kind: 'OTHER',
+        sourceLabel: 'Fighter',
+        description: '<p>Regain hit points as a bonus action.</p>'
+      }
+    ]
+
+    renderWithAppProviders(<CharacterSheetActions sheet={sheet} />)
+
+    expect(screen.getByText(/second wind/i)).toBeInTheDocument()
+    expect(screen.getByText(/regain hit points as a bonus action/i)).toBeInTheDocument()
+  })
+
   it('sends sheet commands with the current stream version', async () => {
     const user = userEvent.setup()
     const submitCommand = vi.fn()

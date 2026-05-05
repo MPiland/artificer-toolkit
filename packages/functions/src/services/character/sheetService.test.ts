@@ -403,6 +403,45 @@ describe('character sheet command application', () => {
     expect(sheet.overview.exhaustionNotes).toBe('Forced march through the swamp.')
   })
 
+  it('hydrates action descriptions from source feature records', async () => {
+    const resolution = createResolution()
+    const fighter = createSpellcastingClass({
+      id: 'class-1',
+      label: 'Fighter',
+      resetKind: 'LONG_REST',
+      spellLimits: []
+    })
+    fighter.features = [
+      {
+        id: 'feature-1',
+        label: 'Second Wind',
+        description: '<p>Regain hit points as a bonus action.</p>'
+      } as CharacterBuilderResolution['registry']['features'][number]
+    ]
+    resolution.registry.classes = [fighter]
+    resolution.grants.features = [
+      {
+        id: 'feature-1',
+        label: 'Second Wind',
+        sourceLabel: 'Fighter',
+        source: { kind: 'CLASS', classId: 'class-1', classLevel: 1 }
+      }
+    ]
+
+    const sheet = await buildCharacterSheetResponse({
+      character: createCharacter(),
+      db: createConditionDb(),
+      hasBuilderDraft: false,
+      resolution,
+      streamVersion: 1
+    })
+
+    expect(sheet.actions.items).toContainEqual(expect.objectContaining({
+      id: 'feature-1',
+      description: '<p>Regain hit points as a bonus action.</p>'
+    }))
+  })
+
   it('caps resource and spell slot usage at the sheet maximum', () => {
     const resourceNext = applyCharacterSheetCommand(createCharacter(), {
       type: 'USE_RESOURCE',
