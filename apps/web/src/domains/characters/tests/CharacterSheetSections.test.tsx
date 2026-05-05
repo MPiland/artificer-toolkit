@@ -300,7 +300,7 @@ describe('Character Sheet sections', () => {
       {
         conditionTypeId: 'condition-1',
         label: 'Poisoned',
-        description: 'A poisoned creature suffers from toxins affecting its body.',
+        description: '<p>A poisoned creature suffers from toxins affecting its body.</p>',
         notes: 'Spider venom'
       }
     ]
@@ -314,6 +314,7 @@ describe('Character Sheet sections', () => {
     )
 
     expect(screen.getByText(/suffers from toxins affecting its body/i)).toBeInTheDocument()
+    expect(screen.queryByText(/<p>a poisoned creature/i)).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /^notes$/i }))
     await user.clear(screen.getByLabelText(/poisoned notes/i))
     await user.type(screen.getByLabelText(/poisoned notes/i), 'Wyvern sting')

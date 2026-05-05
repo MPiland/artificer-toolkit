@@ -1,5 +1,6 @@
 import { Button, Collapse, Select, Text, Textarea, TextInput } from '@mantine/core'
 import { useState } from 'react'
+import { AuthoredDetailProse } from '#app/components/AuthoredDetail'
 import * as styles from './characterSheet.css'
 import type { CharacterSheet, CharacterSheetSectionProps, SubmitSheetCommand } from './CharacterSheet.types'
 
@@ -21,7 +22,7 @@ function CharacterSheetConditionRow({
     <div className={styles.row}>
       <div>
         <Text>{condition.label}</Text>
-        {condition.description ? <Text className={styles.muted}>{condition.description}</Text> : null}
+        {condition.description ? <AuthoredDetailProse html={condition.description} fallback='' /> : null}
         {condition.notes ? <Text className={styles.muted}>{condition.notes}</Text> : null}
       </div>
       <div className={styles.compactActions}>
@@ -95,7 +96,7 @@ export function CharacterSheetConditions({
           <Text className={styles.muted}>
             {sheet.overview.conditions.length ? sheet.overview.conditions.map((condition) => condition.label).join(', ') : 'No active conditions'}
           </Text>
-          {selectedCondition?.description ? <Text className={styles.muted}>{selectedCondition.description}</Text> : null}
+          {selectedCondition?.description ? <AuthoredDetailProse html={selectedCondition.description} fallback='' /> : null}
         </div>
         <div className={styles.compactActions}>
           <Select
