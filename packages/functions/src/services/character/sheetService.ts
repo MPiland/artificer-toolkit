@@ -497,6 +497,10 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max)
 }
 
+function getLongRestHitDiceRecovery(totalHitDice: number): number {
+  return Math.max(Math.floor(totalHitDice / 2), 1)
+}
+
 function clearEmptyStateArrays(character: CharacterAuthored): CharacterAuthored {
   return {
     ...character,
@@ -673,7 +677,7 @@ export function applyCharacterSheetCommand(
         next.state.hitpoints.temp = 0
         next.state.hitpoints.hitDice = next.state.hitpoints.hitDice.map((die) => ({
           ...die,
-          used: Math.max(die.used - Math.ceil(die.total / 2), 0)
+          used: Math.max(die.used - getLongRestHitDiceRecovery(die.total), 0)
         }))
         next.state.resources = undefined
         next.state.spellSlots = undefined
