@@ -1037,7 +1037,7 @@ export const getCharacterHistory = handleRequest(async (db, characterId: string,
     throw createNamedError('AuthoredContentOwnershipError', `Character "${characterId}" cannot be viewed by the current user.`)
   }
   const events = await createCharacterEventRepository(db).listByCharacter(characterId)
-  return buildCharacterHistoryView(events)
+  return buildCharacterHistoryView(events, characterId)
 }, (req: Request, userId: string) => {
   const url = new URL(req.url)
   const segments = url.pathname.split('/').filter(Boolean)

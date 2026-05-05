@@ -59,8 +59,11 @@ function summarise(event: CharacterEvent): string {
   }
 }
 
-export function buildCharacterHistoryView(events: CharacterEvent[]): CharacterHistoryView {
-  const characterId = events[0]?.characterId ?? ''
+export function buildCharacterHistoryView(
+  events: CharacterEvent[],
+  requestedCharacterId = ''
+): CharacterHistoryView {
+  const characterId = events[0]?.characterId ?? requestedCharacterId
   return {
     characterId,
     entries: events.map((event) => ({
