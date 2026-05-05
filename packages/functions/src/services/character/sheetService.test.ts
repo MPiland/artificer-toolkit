@@ -633,7 +633,7 @@ describe('character sheet command application', () => {
     }, sheet)).toThrow(CharacterSheetCommandError)
   })
 
-  it('moves prepared spells out of learned state to avoid duplicate persisted rows', () => {
+  it('preserves learned spells across prepare and unprepare cycles', () => {
     const character = createCharacter()
     character.state.classes = [
       {
@@ -652,19 +652,35 @@ describe('character sheet command application', () => {
       }
     ]
 
-    const next = applyCharacterSheetCommand(character, {
+    const prepared = applyCharacterSheetCommand(character, {
       type: 'SET_PREPARED_SPELLS',
       classId: 'class-1',
       spellIds: ['spell-1', 'spell-1'],
       expectedVersion: 1
     }, createSheet())
 
-    expect(next.state.classes).toEqual([
+    expect(prepared.state.classes).toEqual([
       {
         classId: 'class-1',
         spells: {
-          learned: ['spell-2'],
+          learned: ['spell-1', 'spell-2'],
           prepared: ['spell-1']
+        }
+      }
+    ])
+
+    const unprepared = applyCharacterSheetCommand(prepared, {
+      type: 'SET_PREPARED_SPELLS',
+      classId: 'class-1',
+      spellIds: [],
+      expectedVersion: 1
+    }, createSheet())
+
+    expect(unprepared.state.classes).toEqual([
+      {
+        classId: 'class-1',
+        spells: {
+          learned: ['spell-1', 'spell-2']
         }
       }
     ])

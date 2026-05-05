@@ -913,9 +913,7 @@ export function applyCharacterSheetCommand(
       const existing = next.state.classes ?? []
       const currentClassState = existing.find((classState) => classState.classId === command.classId)
       const otherClasses = existing.filter((classState) => classState.classId !== command.classId)
-      const preparedSpellIdSet = new Set(preparedSpellIds)
-      const learned = (currentClassState?.spells?.learned ?? [])
-        .filter((spellId) => !preparedSpellIdSet.has(spellId))
+      const learned = [...new Set(currentClassState?.spells?.learned ?? [])]
       const spells = {
         learned: learned.length ? learned : undefined,
         prepared: preparedSpellIds.length ? preparedSpellIds : undefined
