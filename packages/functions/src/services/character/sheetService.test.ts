@@ -595,6 +595,36 @@ describe('character sheet command application', () => {
     expect(next.state.equipment.attuned).toEqual([])
   })
 
+  it('hydrates inventory custom names and notes for sheet editing', async () => {
+    const character = createCharacter()
+    character.state.equipment.inventory = [
+      {
+        id: 'item-1',
+        equipmentId: 'equipment-1',
+        quantity: 1,
+        customName: 'Moonlit Blade',
+        notes: 'Loaned by the captain'
+      }
+    ]
+
+    const sheet = await buildCharacterSheetResponse({
+      character,
+      db: createConditionDb(),
+      hasBuilderDraft: false,
+      resolution: createResolution(),
+      streamVersion: 1
+    })
+
+    expect(sheet.inventory.items).toEqual([
+      expect.objectContaining({
+        id: 'item-1',
+        label: 'Moonlit Blade',
+        customName: 'Moonlit Blade',
+        notes: 'Loaned by the captain'
+      })
+    ])
+  })
+
   it('validates system-backed condition, equipment, and currency options', () => {
     expect(() => applyCharacterSheetCommand(createCharacter(), {
       type: 'ADD_CONDITION',

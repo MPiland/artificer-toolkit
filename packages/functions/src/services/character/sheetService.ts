@@ -679,6 +679,7 @@ export async function buildCharacterSheetResponse(params: {
         id: item.id,
         equipmentId: item.equipmentId,
         label: item.customName ?? equipmentLabels.get(item.equipmentId) ?? 'Unknown item',
+        customName: item.customName,
         quantity: item.quantity,
         equipped: character.state.equipment.equipped.includes(item.id),
         attuned: character.state.equipment.attuned.includes(item.id),

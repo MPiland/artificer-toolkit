@@ -164,6 +164,32 @@ describe('Character Sheet sections', () => {
     })
   })
 
+  it('updates inventory custom labels and notes through sheet commands', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn()
+
+    renderWithAppProviders(
+      <CharacterSheetInventory
+        pending={false}
+        sheet={createSheet()}
+        submitCommand={submitCommand}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: /details/i }))
+    await user.type(screen.getByLabelText(/custom name/i), 'Moonlit Blade')
+    await user.type(screen.getByLabelText(/item notes/i), 'Loaned by the captain')
+    await user.click(screen.getByRole('button', { name: /save details/i }))
+
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'UPDATE_INVENTORY_ITEM',
+      itemId: 'item-1',
+      customName: 'Moonlit Blade',
+      notes: 'Loaned by the captain',
+      expectedVersion: 4
+    })
+  })
+
   it('restores resources and applies rests from the resources panel', async () => {
     const user = userEvent.setup()
     const submitCommand = vi.fn()

@@ -176,6 +176,15 @@ export const row = style({
   }
 })
 
+export const inlineEditorShell = style({
+  gridColumn: '1 / -1'
+})
+
+export const inlineEditor = style({
+  display: 'grid',
+  gap: '12px'
+})
+
 export const compactActions = style({
   display: 'flex',
   gap: '8px',

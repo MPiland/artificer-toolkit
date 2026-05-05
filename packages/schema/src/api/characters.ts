@@ -533,6 +533,7 @@ export const characterSheetInventoryItemDtoSchema = z.object({
   id: z.string(),
   equipmentId: z.string(),
   label: z.string(),
+  customName: z.string().optional(),
   quantity: z.number().int(),
   equipped: z.boolean(),
   attuned: z.boolean(),

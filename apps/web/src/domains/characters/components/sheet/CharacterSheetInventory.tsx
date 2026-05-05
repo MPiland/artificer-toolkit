@@ -1,8 +1,148 @@
-import { Button, NumberInput, Select, Text, Title } from '@mantine/core'
+import { Button, Collapse, NumberInput, Select, Text, Textarea, TextInput, Title } from '@mantine/core'
 import { useState } from 'react'
 import * as styles from './characterSheet.css'
-import type { CharacterSheetSectionProps } from './CharacterSheet.types'
+import type { CharacterSheet, CharacterSheetSectionProps, SubmitSheetCommand } from './CharacterSheet.types'
 import { toNumber } from './characterSheet.utils'
+
+function CharacterSheetInventoryItemRow({
+  item,
+  pending,
+  submitCommand,
+  version
+}: {
+  item: CharacterSheet['inventory']['items'][number]
+  pending: boolean
+  submitCommand: SubmitSheetCommand
+  version: number
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const [customName, setCustomName] = useState(item.customName ?? '')
+  const [notes, setNotes] = useState(item.notes ?? '')
+
+  return (
+    <div className={styles.row}>
+      <div>
+        <Text fw={700}>{item.label}</Text>
+        <Text className={styles.muted}>
+          Qty
+          {' '}
+          {item.quantity}
+          {item.equipped ? ', equipped' : ''}
+          {item.attuned ? ', attuned' : ''}
+        </Text>
+        {item.notes ? <Text className={styles.muted}>{item.notes}</Text> : null}
+      </div>
+      <div className={styles.compactActions}>
+        <Button
+          aria-label={`Decrease ${item.label} quantity`}
+          disabled={pending}
+          size='xs'
+          variant='default'
+          onClick={() => submitCommand({
+            type: 'UPDATE_INVENTORY_ITEM',
+            itemId: item.id,
+            quantity: Math.max(item.quantity - 1, 0),
+            expectedVersion: version
+          })}
+        >
+          -1
+        </Button>
+        <Button
+          aria-label={`Increase ${item.label} quantity`}
+          disabled={pending}
+          size='xs'
+          variant='default'
+          onClick={() => submitCommand({
+            type: 'UPDATE_INVENTORY_ITEM',
+            itemId: item.id,
+            quantity: item.quantity + 1,
+            expectedVersion: version
+          })}
+        >
+          +1
+        </Button>
+        <Button
+          disabled={pending}
+          size='xs'
+          variant={item.equipped ? 'default' : 'filled'}
+          onClick={() => submitCommand({
+            type: item.equipped ? 'UNEQUIP_ITEM' : 'EQUIP_ITEM',
+            itemId: item.id,
+            expectedVersion: version
+          })}
+        >
+          {item.equipped ? 'Unequip' : 'Equip'}
+        </Button>
+        <Button
+          disabled={pending}
+          size='xs'
+          variant={item.attuned ? 'default' : 'light'}
+          onClick={() => submitCommand({
+            type: item.attuned ? 'UNATTUNE_ITEM' : 'ATTUNE_ITEM',
+            itemId: item.id,
+            expectedVersion: version
+          })}
+        >
+          {item.attuned ? 'Unattune' : 'Attune'}
+        </Button>
+        <Button
+          disabled={pending}
+          size='xs'
+          variant='default'
+          onClick={() => setExpanded((current) => !current)}
+        >
+          Details
+        </Button>
+        <Button
+          disabled={pending}
+          size='xs'
+          color='red'
+          variant='subtle'
+          onClick={() => submitCommand({
+            type: 'REMOVE_INVENTORY_ITEM',
+            itemId: item.id,
+            expectedVersion: version
+          })}
+        >
+          Remove
+        </Button>
+      </div>
+      <Collapse className={styles.inlineEditorShell} in={expanded}>
+        <div className={styles.inlineEditor}>
+          <TextInput
+            label='Custom name'
+            placeholder={item.label}
+            value={customName}
+            onChange={(event) => setCustomName(event.currentTarget.value)}
+          />
+          <Textarea
+            autosize
+            label='Item notes'
+            minRows={2}
+            placeholder='Track charges, placement, ownership, or table notes.'
+            value={notes}
+            onChange={(event) => setNotes(event.currentTarget.value)}
+          />
+          <div className={styles.compactActions}>
+            <Button
+              disabled={pending}
+              size='xs'
+              onClick={() => submitCommand({
+                type: 'UPDATE_INVENTORY_ITEM',
+                itemId: item.id,
+                customName: customName.trim() || null,
+                notes: notes.trim() || null,
+                expectedVersion: version
+              })}
+            >
+              Save Details
+            </Button>
+          </div>
+        </div>
+      </Collapse>
+    </div>
+  )
+}
 
 export function CharacterSheetInventory({
   pending,
@@ -63,85 +203,13 @@ export function CharacterSheetInventory({
       <div className={styles.rowList}>
         {sheet.inventory.items.length
           ? sheet.inventory.items.map((item) => (
-              <div className={styles.row} key={item.id}>
-                <div>
-                  <Text fw={700}>{item.label}</Text>
-                  <Text className={styles.muted}>
-                    Qty
-                    {' '}
-                    {item.quantity}
-                    {item.equipped ? ', equipped' : ''}
-                    {item.attuned ? ', attuned' : ''}
-                  </Text>
-                </div>
-                <div className={styles.compactActions}>
-                  <Button
-                    aria-label={`Decrease ${item.label} quantity`}
-                    disabled={pending}
-                    size='xs'
-                    variant='default'
-                    onClick={() => submitCommand({
-                      type: 'UPDATE_INVENTORY_ITEM',
-                      itemId: item.id,
-                      quantity: Math.max(item.quantity - 1, 0),
-                      expectedVersion: version
-                    })}
-                  >
-                    -1
-                  </Button>
-                  <Button
-                    aria-label={`Increase ${item.label} quantity`}
-                    disabled={pending}
-                    size='xs'
-                    variant='default'
-                    onClick={() => submitCommand({
-                      type: 'UPDATE_INVENTORY_ITEM',
-                      itemId: item.id,
-                      quantity: item.quantity + 1,
-                      expectedVersion: version
-                    })}
-                  >
-                    +1
-                  </Button>
-                  <Button
-                    disabled={pending}
-                    size='xs'
-                    variant={item.equipped ? 'default' : 'filled'}
-                    onClick={() => submitCommand({
-                      type: item.equipped ? 'UNEQUIP_ITEM' : 'EQUIP_ITEM',
-                      itemId: item.id,
-                      expectedVersion: version
-                    })}
-                  >
-                    {item.equipped ? 'Unequip' : 'Equip'}
-                  </Button>
-                  <Button
-                    disabled={pending}
-                    size='xs'
-                    variant={item.attuned ? 'default' : 'light'}
-                    onClick={() => submitCommand({
-                      type: item.attuned ? 'UNATTUNE_ITEM' : 'ATTUNE_ITEM',
-                      itemId: item.id,
-                      expectedVersion: version
-                    })}
-                  >
-                    {item.attuned ? 'Unattune' : 'Attune'}
-                  </Button>
-                  <Button
-                    disabled={pending}
-                    size='xs'
-                    color='red'
-                    variant='subtle'
-                    onClick={() => submitCommand({
-                      type: 'REMOVE_INVENTORY_ITEM',
-                      itemId: item.id,
-                      expectedVersion: version
-                    })}
-                  >
-                    Remove
-                  </Button>
-                </div>
-              </div>
+              <CharacterSheetInventoryItemRow
+                item={item}
+                key={`${version}:${item.id}:${item.customName ?? ''}:${item.notes ?? ''}`}
+                pending={pending}
+                submitCommand={submitCommand}
+                version={version}
+              />
             ))
           : <Text className={styles.muted}>No inventory has been added yet.</Text>}
       </div>
