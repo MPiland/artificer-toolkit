@@ -363,6 +363,21 @@ function getSpellSourcesBySpellId(
   ]))
 }
 
+function getSpellPreparationSources(
+  character: CharacterAuthored,
+  classLabels: ReadonlyMap<string, string>
+) {
+  const classStateById = new Map((character.state.classes ?? []).map((classState) => [classState.classId, classState]))
+
+  return character.intent.classes
+    .map((classIntent) => ({
+      classId: classIntent.classId,
+      label: classLabels.get(classIntent.classId) ?? 'Class',
+      preparedSpellIds: [...new Set(classStateById.get(classIntent.classId)?.spells?.prepared ?? [])]
+    }))
+    .filter((source) => source.preparedSpellIds.length > 0)
+}
+
 function findResourceDefinition(
   resolution: CharacterBuilderResolution,
   resource: CharacterBuilderResolution['grants']['resources'][number],
@@ -527,6 +542,7 @@ export async function buildCharacterSheetResponse(params: {
   const resourceUsage = new Map((character.state.resources ?? []).map((resource) => [resource.resourceGrantId, resource.used]))
   const classLabels = new Map(resolution.registry.classes.map((classRecord) => [classRecord.id, classRecord.label]))
   const spellSourcesBySpellId = getSpellSourcesBySpellId(character, classLabels)
+  const spellPreparationSources = getSpellPreparationSources(character, classLabels)
 
   return {
     meta: {
@@ -639,7 +655,8 @@ export async function buildCharacterSheetResponse(params: {
             sourceLabel: sources.length ? sources.map((source) => source.label).join(', ') : undefined,
             sources: sources.length ? sources : undefined
           }
-        })
+        }),
+      preparationSources: spellPreparationSources.length ? spellPreparationSources : undefined
     },
     inventory: {
       items: character.state.equipment.inventory.map((item) => ({

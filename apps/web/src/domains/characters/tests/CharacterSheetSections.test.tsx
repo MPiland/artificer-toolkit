@@ -203,6 +203,13 @@ describe('Character Sheet sections', () => {
     const user = userEvent.setup()
     const submitCommand = vi.fn()
     const sheet = createSheet()
+    sheet.spells.preparationSources = [
+      {
+        classId: 'wizard',
+        label: 'Wizard',
+        preparedSpellIds: ['hidden-spell', 'spell-2']
+      }
+    ]
     sheet.spells.spells = [
       {
         id: 'spell-1',
@@ -237,7 +244,7 @@ describe('Character Sheet sections', () => {
     expect(submitCommand).toHaveBeenCalledWith({
       type: 'SET_PREPARED_SPELLS',
       classId: 'wizard',
-      spellIds: ['spell-2', 'spell-1'],
+      spellIds: ['hidden-spell', 'spell-2', 'spell-1'],
       expectedVersion: 4
     })
   })

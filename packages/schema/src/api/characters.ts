@@ -511,6 +511,12 @@ export const characterSheetSpellSourceDtoSchema = z.object({
   prepared: z.boolean().optional()
 })
 
+export const characterSheetSpellPreparationSourceDtoSchema = z.object({
+  classId: z.string(),
+  label: z.string(),
+  preparedSpellIds: z.array(z.string())
+})
+
 export const characterSheetSpellDtoSchema = z.object({
   id: z.string(),
   label: z.string(),
@@ -586,7 +592,9 @@ export const characterSheetResponseDtoSchema = z.object({
     attackBonus: z.number().int()
       .nullable(),
     slots: z.array(characterSheetSpellSlotDtoSchema),
-    spells: z.array(characterSheetSpellDtoSchema)
+    spells: z.array(characterSheetSpellDtoSchema),
+    preparationSources: z.array(characterSheetSpellPreparationSourceDtoSchema)
+      .optional()
   }),
   inventory: z.object({
     items: z.array(characterSheetInventoryItemDtoSchema),

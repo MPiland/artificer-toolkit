@@ -834,6 +834,13 @@ describe('character sheet command application', () => {
         sources: [{ classId: 'wizard', label: 'Wizard', prepared: true }]
       })
     ])
+    expect(sheet.spells.preparationSources).toEqual([
+      {
+        classId: 'wizard',
+        label: 'Wizard',
+        preparedSpellIds: ['spell-2']
+      }
+    ])
   })
 
   it('does not hydrate spell source actions from orphaned class state', async () => {
@@ -910,6 +917,7 @@ describe('character sheet command application', () => {
         sources: undefined
       })
     ])
+    expect(sheet.spells.preparationSources).toBeUndefined()
   })
 
   it('derives resource maximums and recovery from class resource charges', async () => {
