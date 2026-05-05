@@ -4,12 +4,12 @@ import type { ContentRef, OwnedEquipmentInstance } from '../engine/snapshot.js'
  * Canonical persisted current build for a character.
  *
  * This is the source of truth for character editing. It is patched from events
- * and used by snapshotBuilder to assemble CharacterBuildSnapshot for engine input.
+ * and used by the character assembly layer to create CharacterBuildSnapshot input.
  *
  * Three distinct read models — responsibilities never overlap:
  *   CharacterBuildState    — persisted in DB, canonical editing truth (this type)
  *   CharacterHistoryView   — derived from event log, audit/UI timeline
- *   CharacterBuildSnapshot — ephemeral engine input assembled by snapshotBuilder
+ *   CharacterBuildSnapshot — ephemeral engine input assembled from the current character
  *   EngineCharacterOutput  — ephemeral full resolved character sheet
  */
 export interface CharacterBuildState {
