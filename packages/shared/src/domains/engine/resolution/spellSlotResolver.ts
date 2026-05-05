@@ -1,6 +1,7 @@
 import type { EngineSpellSlots } from '../contracts/engineState.js'
 import type { CharacterAssemblyRegistry } from '../registry.js'
 import type { CharacterBuildSnapshot } from '../snapshot.js'
+import { CHARGE_RESET_KIND } from '../../shared/core/charge.js'
 
 /**
  * Resolves spell slot maximums for the character.
@@ -19,19 +20,19 @@ export function resolveSpellSlots(
     classId: string
     level: number
     isPactMagic: boolean
-    spellLimits: Array<{ classLevel: number; slots: Array<{ spellLevel: number; slotCount: number }> }>
+    spellLimits: Array<{ classLevel: number, slots: Array<{ spellLevel: number, slotCount: number }> }>
   }> = []
 
   for (const cls of snapshot.classes) {
     const compiled = registry.classes[cls.classId]
     if (!compiled?.spellcasting?.spellLimits?.length) continue
 
-    const isPactMagic = !!(compiled.spellcasting.charges)
+    const isPactMagic = compiled.spellcasting.charges?.resetKind === CHARGE_RESET_KIND.SHORT_REST
     spellcastingClasses.push({
       classId: cls.classId,
       level: cls.level,
       isPactMagic,
-      spellLimits: compiled.spellcasting.spellLimits,
+      spellLimits: compiled.spellcasting.spellLimits
     })
   }
 
@@ -69,7 +70,7 @@ export function resolveSpellSlots(
     return {
       maxByLevel,
       pactMagic,
-      fusionStrategy: 'SINGLE_CLASS',
+      fusionStrategy: 'SINGLE_CLASS'
     }
   }
 
@@ -90,7 +91,7 @@ export function resolveSpellSlots(
   return {
     maxByLevel,
     pactMagic,
-    fusionStrategy: 'MULTICLASS_FUSED',
+    fusionStrategy: 'MULTICLASS_FUSED'
   }
 }
 
@@ -99,9 +100,9 @@ export function resolveSpellSlots(
  * ────────────────────────────────────────────── */
 
 function findSpellLimitsAtLevel(
-  spellLimits: Array<{ classLevel: number; slots: Array<{ spellLevel: number; slotCount: number }> }>,
+  spellLimits: Array<{ classLevel: number, slots: Array<{ spellLevel: number, slotCount: number }> }>,
   classLevel: number
-): Array<{ spellLevel: number; slotCount: number }> {
+): Array<{ spellLevel: number, slotCount: number }> {
   // Find the entry at or below classLevel (highest matching)
   const entry = [...spellLimits]
     .filter((e) => e.classLevel <= classLevel)
@@ -111,7 +112,7 @@ function findSpellLimitsAtLevel(
 }
 
 function slotsToRecord(
-  slots: Array<{ spellLevel: number; slotCount: number }>
+  slots: Array<{ spellLevel: number, slotCount: number }>
 ): Record<number, number> {
   const out: Record<number, number> = {}
   for (const s of slots) {
@@ -123,7 +124,7 @@ function slotsToRecord(
 }
 
 function getMaxSpellLevel(
-  spellLimits: Array<{ classLevel: number; slots: Array<{ spellLevel: number; slotCount: number }> }>
+  spellLimits: Array<{ classLevel: number, slots: Array<{ spellLevel: number, slotCount: number }> }>
 ): number {
   let max = 0
   for (const entry of spellLimits) {
@@ -153,15 +154,15 @@ function getEffectiveCasterLevel(classLevel: number, maxSpellLevel: number): num
  */
 function lookupMulticlassSlotTable(effectiveLevel: number): Record<number, number> {
   const table: Record<number, Record<number, number>> = {
-    1:  { 1: 2 },
-    2:  { 1: 3 },
-    3:  { 1: 4, 2: 2 },
-    4:  { 1: 4, 2: 3 },
-    5:  { 1: 4, 2: 3, 3: 2 },
-    6:  { 1: 4, 2: 3, 3: 3 },
-    7:  { 1: 4, 2: 3, 3: 3, 4: 1 },
-    8:  { 1: 4, 2: 3, 3: 3, 4: 2 },
-    9:  { 1: 4, 2: 3, 3: 3, 4: 3, 5: 1 },
+    1: { 1: 2 },
+    2: { 1: 3 },
+    3: { 1: 4, 2: 2 },
+    4: { 1: 4, 2: 3 },
+    5: { 1: 4, 2: 3, 3: 2 },
+    6: { 1: 4, 2: 3, 3: 3 },
+    7: { 1: 4, 2: 3, 3: 3, 4: 1 },
+    8: { 1: 4, 2: 3, 3: 3, 4: 2 },
+    9: { 1: 4, 2: 3, 3: 3, 4: 3, 5: 1 },
     10: { 1: 4, 2: 3, 3: 3, 4: 3, 5: 2 },
     11: { 1: 4, 2: 3, 3: 3, 4: 3, 5: 2, 6: 1 },
     12: { 1: 4, 2: 3, 3: 3, 4: 3, 5: 2, 6: 1 },
@@ -172,7 +173,7 @@ function lookupMulticlassSlotTable(effectiveLevel: number): Record<number, numbe
     17: { 1: 4, 2: 3, 3: 3, 4: 3, 5: 2, 6: 1, 7: 1, 8: 1, 9: 1 },
     18: { 1: 4, 2: 3, 3: 3, 4: 3, 5: 3, 6: 1, 7: 1, 8: 1, 9: 1 },
     19: { 1: 4, 2: 3, 3: 3, 4: 3, 5: 3, 6: 2, 7: 1, 8: 1, 9: 1 },
-    20: { 1: 4, 2: 3, 3: 3, 4: 3, 5: 3, 6: 2, 7: 2, 8: 1, 9: 1 },
+    20: { 1: 4, 2: 3, 3: 3, 4: 3, 5: 3, 6: 2, 7: 2, 8: 1, 9: 1 }
   }
 
   return table[effectiveLevel] ?? {}

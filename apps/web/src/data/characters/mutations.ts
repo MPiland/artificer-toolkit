@@ -4,7 +4,8 @@ import type {
   CharacterBuilderResolveRequestDto,
   CharacterBuilderCommitRequestDto,
   CharacterBuilderSaveRequestDto,
-  CharacterDraftRequestDto
+  CharacterDraftRequestDto,
+  CharacterSheetCommandInputDto
 } from '#app/lib/api'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
@@ -68,6 +69,23 @@ export function useCommitCharacterBuilderMutation() {
       await queryClient.invalidateQueries({ queryKey: queryKeys.characters.all() })
       queryClient.setQueryData(queryKeys.characters.detail(response.character.id), response)
       await queryClient.invalidateQueries({ queryKey: queryKeys.characters.draft(response.character.id) })
+    }
+  })
+}
+
+export function useCharacterSheetCommandMutation(characterId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (input: CharacterSheetCommandInputDto) => api.characters.command(characterId, input),
+    onSuccess: async (response) => {
+      queryClient.setQueryData(queryKeys.characters.sheet(characterId), response.sheet)
+      await queryClient.invalidateQueries({ queryKey: queryKeys.characters.detail(characterId), exact: true })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.characters.history(characterId) })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.characters.list() })
+    },
+    onError: async () => {
+      await queryClient.refetchQueries({ queryKey: queryKeys.characters.sheet(characterId), exact: true })
     }
   })
 }

@@ -36,7 +36,8 @@ Current default focus is Phase 9 frontend modernization.
 - 9.11 creature implementation: implemented - ready for PR review
 - 9.12 vehicle implementation: implemented - ready for PR review
 - 9.13 class implementation: complete
-- 9.14 character builder: active, builder foundation implemented
+- 9.14 character builder: builder choice flow implemented
+- 9.15 character sheet: active, command hardening implemented
 
 Before starting a new frontend task, confirm the active tranche in [PHASE_9_CODE_OVERVIEW.md](/c:/Users/pilan/Desktop/artificer-toolkit/PHASE_9_CODE_OVERVIEW.md).
 
@@ -90,7 +91,8 @@ Current frontend posture:
 - 9.11 creature implementation is implemented and ready for PR review.
 - 9.12 vehicle implementation is implemented and ready for PR review.
 - 9.13 class implementation is complete.
-- 9.14 character builder is active. The builder foundation is implemented; source-local choice editors remain before closeout.
+- 9.14 character builder has the builder choice flow implemented.
+- 9.15 character sheet is active. The command/read-model hardening checkpoint is implemented; remaining work is focused on sheet UX coverage, Storybook states, visual audit, and closeout validation.
 
 Per-tranche expectations:
 

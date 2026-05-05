@@ -50,6 +50,8 @@ function summarise(event: CharacterEvent): string {
       return `Item equipped to ${event.equippedSlot}`
     case 'ITEM_UNEQUIPPED':
       return `Item unequipped from ${event.unequippedFromSlot}`
+    case 'CHARACTER_SHEET_COMMAND_APPLIED':
+      return event.summary
     default: {
       const _exhaustive: never = event
       return `Unknown event: ${(_exhaustive as { type: string }).type}`
@@ -57,8 +59,11 @@ function summarise(event: CharacterEvent): string {
   }
 }
 
-export function buildCharacterHistoryView(events: CharacterEvent[]): CharacterHistoryView {
-  const characterId = events[0]?.characterId ?? ''
+export function buildCharacterHistoryView(
+  events: CharacterEvent[],
+  requestedCharacterId = ''
+): CharacterHistoryView {
+  const characterId = events[0]?.characterId ?? requestedCharacterId
   return {
     characterId,
     entries: events.map((event) => ({

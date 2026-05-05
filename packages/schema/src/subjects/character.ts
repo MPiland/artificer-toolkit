@@ -9,8 +9,7 @@ import {
 
 import {
   abilityCodeSchema,
-  authoredRecordStatusSchema,
-  chargeResetKindSchema
+  authoredRecordStatusSchema
 } from '../shared/enums.js'
 
 const characterProfileAuthoredDtoSchemaRaw = z.object({
@@ -40,12 +39,14 @@ const characterProvenanceDtoSchemaRaw = z.union([
   z.object({
     kind: z.literal('CLASS'),
     classId: z.string(),
-    classLevel: z.number().int().optional()
+    classLevel: z.number().int()
+      .optional()
   }),
   z.object({
     kind: z.literal('SUBCLASS'),
     subclassId: z.string(),
-    classLevel: z.number().int().optional()
+    classLevel: z.number().int()
+      .optional()
   }),
   z.object({
     kind: z.literal('RACE'),
@@ -133,7 +134,8 @@ const characterFeatureAcquisitionRecordDtoSchemaRaw = z.object({
 const characterAdvancementIntentDtoSchemaRaw = z.union([
   z.object({
     method: z.literal(ADVANCEMENT_METHOD_CODE.EXPERIENCE),
-    experience: z.number().int().optional()
+    experience: z.number().int()
+      .optional()
   }),
   z.object({
     method: z.literal(ADVANCEMENT_METHOD_CODE.MILESTONE)
@@ -217,12 +219,16 @@ const characterManualRolledAbilityRecordDtoSchemaRaw = z.object({
 
 const characterStandardArrayAssignmentDtoSchemaRaw = z.object({
   ability: abilityCodeSchema,
-  option: z.enum(['8', '10', '12', '13', '14', '15'])
+  option: z.enum([
+    '8', '10', '12', '13', '14', '15'
+  ])
 })
 
 const characterPointBuyAssignmentDtoSchemaRaw = z.object({
   ability: abilityCodeSchema,
-  option: z.enum(['8', '9', '10', '11', '12', '13', '14', '15'])
+  option: z.enum([
+    '8', '9', '10', '11', '12', '13', '14', '15'
+  ])
 })
 
 const characterAbilityScoresIntentDtoSchemaRaw = z.union([
@@ -272,12 +278,14 @@ const characterSpellSelectionSourceDtoSchemaRaw = z.union([
   z.object({
     kind: z.literal('CLASS'),
     classId: z.string(),
-    classLevel: z.number().int().optional()
+    classLevel: z.number().int()
+      .optional()
   }),
   z.object({
     kind: z.literal('SUBCLASS'),
     subclassId: z.string(),
-    classLevel: z.number().int().optional()
+    classLevel: z.number().int()
+      .optional()
   }),
   z.object({
     kind: z.literal('FEATURE'),
@@ -350,7 +358,9 @@ const characterEquipmentStateDtoSchemaRaw = z.object({
 const characterOwnedCreatureStateDtoSchemaRaw = z.object({
   id: z.string(),
   creatureId: z.string(),
-  relationshipKind: z.enum(['MOUNT', 'COMPANION', 'OWNED', 'SUMMONED']),
+  relationshipKind: z.enum([
+    'MOUNT', 'COMPANION', 'OWNED', 'SUMMONED'
+  ]),
   customName: z.string().optional(),
   notes: z.string().optional(),
   isActive: z.boolean().optional()
@@ -393,6 +403,24 @@ const characterResourceUsageStateDtoSchemaRaw = z.object({
   used: z.number().int()
 })
 
+const characterSpellSlotUsageStateDtoSchemaRaw = z.object({
+  slotKey: z.string(),
+  used: z.number().int()
+    .min(0)
+})
+
+const characterConditionStateDtoSchemaRaw = z.object({
+  conditionTypeId: z.string(),
+  notes: z.string().optional()
+})
+
+const characterExhaustionStateDtoSchemaRaw = z.object({
+  level: z.number().int()
+    .min(0)
+    .max(6),
+  notes: z.string().optional()
+})
+
 const characterHitDiceUsageStateDtoSchemaRaw = z.object({
   die: z.number().int(),
   total: z.number().int(),
@@ -401,9 +429,11 @@ const characterHitDiceUsageStateDtoSchemaRaw = z.object({
 
 const characterHitpointsStateDtoSchemaRaw = z.object({
   current: z.number().int(),
-  temp: z.number().int().optional(),
+  temp: z.number().int()
+    .optional(),
   hitDice: z.array(characterHitDiceUsageStateDtoSchemaRaw),
-  maxOverride: z.number().int().optional()
+  maxOverride: z.number().int()
+    .optional()
 })
 
 const characterStateDtoSchemaRaw = z.object({
@@ -412,6 +442,9 @@ const characterStateDtoSchemaRaw = z.object({
   hitpoints: characterHitpointsStateDtoSchemaRaw,
   classes: z.array(characterClassStateDtoSchemaRaw).optional(),
   resources: z.array(characterResourceUsageStateDtoSchemaRaw).optional(),
+  spellSlots: z.array(characterSpellSlotUsageStateDtoSchemaRaw).optional(),
+  conditions: z.array(characterConditionStateDtoSchemaRaw).optional(),
+  exhaustion: characterExhaustionStateDtoSchemaRaw.optional(),
   creatures: z.array(characterOwnedCreatureStateDtoSchemaRaw).optional(),
   vehicles: z.array(characterOwnedVehicleStateDtoSchemaRaw).optional(),
   creatureEquipment: z.record(z.string(), z.array(characterRosterEquipmentAssignmentStateDtoSchemaRaw)).optional(),

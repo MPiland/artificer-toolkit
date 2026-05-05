@@ -4,5 +4,5 @@
  */
 export type {
   CharacterAssemblyRegistry,
-  CharacterAssemblyRegistryFeature,
+  CharacterAssemblyRegistryFeature
 } from '@artificer-toolkit/shared/core'

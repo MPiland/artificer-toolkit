@@ -80,26 +80,26 @@ export type CompiledCharge<
     bonuses?: CompiledChargeBonus[]
     scalingKind: typeof SCALING.NONE
   } & CompiledChargeLimitPayloadByKind[Exclude<L, 'FIXED_AMOUNT'>])
-    | ({
+  | ({
+    id: string
+    resetKind: ChargeResetKind
+    limitKind: 'FIXED_AMOUNT'
+    bonuses?: CompiledChargeBonus[]
+    scalingKind: typeof SCALING.NONE
+    amount: number
+  })
+  | {
+    id: string
+    resetKind: ChargeResetKind
+    limitKind: 'FIXED_AMOUNT'
+    bonuses?: CompiledChargeBonus[]
+    scalingKind: typeof SCALING.PER_LEVEL
+    levels: {
       id: string
-      resetKind: ChargeResetKind
-      limitKind: 'FIXED_AMOUNT'
-      bonuses?: CompiledChargeBonus[]
-      scalingKind: typeof SCALING.NONE
+      level: number
       amount: number
-    })
-    | {
-      id: string
-      resetKind: ChargeResetKind
-      limitKind: 'FIXED_AMOUNT'
-      bonuses?: CompiledChargeBonus[]
-      scalingKind: typeof SCALING.PER_LEVEL
-      levels: {
-        id: string
-        level: number
-        amount: number
-      }[]
-    }
+    }[]
+  }
 
 function compileChargeBonus(bonus: ChargeBonusAuthored): CompiledChargeBonus {
   switch (bonus.bonusKind) {
@@ -213,4 +213,81 @@ export function compileCharge(authored: ChargeAuthored): CompiledCharge {
     default:
       return assertNever(authored)
   }
+}
+
+export interface ResolveCompiledChargeMaximumContext {
+  abilities: Partial<Record<string, number>>
+  classLevel: number
+  proficiencyBonus: number
+  totalLevel: number
+}
+
+function clampInteger(value: number, min?: number, max?: number): number {
+  let result = value
+  if (min !== undefined) result = Math.max(result, min)
+  if (max !== undefined) result = Math.min(result, max)
+  return Math.floor(result)
+}
+
+function abilityModifier(score: number): number {
+  return Math.floor((score - 10) / 2)
+}
+
+export function resolveCompiledChargeMaximum(
+  charge: CompiledCharge,
+  context: ResolveCompiledChargeMaximumContext
+): number {
+  let base = 0
+
+  if (charge.scalingKind === SCALING.PER_LEVEL) {
+    const entry = [...charge.levels]
+      .sort((left, right) => right.level - left.level)
+      .find((candidate) => candidate.level <= context.classLevel)
+    base = entry?.amount ?? 0
+  } else {
+    switch (charge.limitKind) {
+      case 'ABILITY_MODIFIER': {
+        const abilityCharge = charge as CompiledCharge & {
+          ability: string
+          max?: number
+          min?: number
+          multiplier?: number
+        }
+        const score = context.abilities[abilityCharge.ability] ?? 10
+        const raw = abilityModifier(score) * (abilityCharge.multiplier ?? 1)
+        base = clampInteger(raw, abilityCharge.min, abilityCharge.max)
+        break
+      }
+      case 'CHARACTER_LEVEL':
+        base = clampInteger(context.totalLevel * (charge.multiplier ?? 1), charge.min, charge.max)
+        break
+      case 'CLASS_LEVEL':
+      case 'PARENT_CLASS_LEVEL':
+        base = clampInteger(context.classLevel * (charge.multiplier ?? 1), charge.min, charge.max)
+        break
+      case 'FIXED_AMOUNT':
+        base = charge.amount
+        break
+      case 'SPELL_CAST_LEVEL':
+        base = 0
+        break
+    }
+  }
+
+  for (const bonus of charge.bonuses ?? []) {
+    switch (bonus.bonusKind) {
+      case CHARGE_BONUS_KIND.ABILITY_MODIFIER: {
+        const score = context.abilities[bonus.ability] ?? 10
+        base += clampInteger(abilityModifier(score) * (bonus.multiplier ?? 1), bonus.min, bonus.max)
+        break
+      }
+      case CHARGE_BONUS_KIND.PROFICIENCY_BONUS:
+        base += clampInteger(context.proficiencyBonus * (bonus.multiplier ?? 1), bonus.min, bonus.max)
+        break
+      case CHARGE_BONUS_KIND.SKILL_BONUS:
+        break
+    }
+  }
+
+  return Math.max(0, Math.floor(base))
 }

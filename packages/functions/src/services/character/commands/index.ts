@@ -20,7 +20,7 @@ import type {
   UpdateSpellSelectionCommand,
   AcquireEquipmentCommand,
   EquipItemCommand,
-  UnequipItemCommand,
+  UnequipItemCommand
 } from '@artificer-toolkit/schema/domains/character/commands'
 
 /* ──────────────────────────────────────────────
@@ -70,7 +70,7 @@ export const handleCreateCharacter: CommandHandler<CreateCharacterCommand> = asy
     commandId: command.commandId,
     schemaVersion: 1,
     name: command.name,
-    systemId: command.systemId,
+    systemId: command.systemId
   }
 
   const newState: CharacterBuildState = {
@@ -85,7 +85,7 @@ export const handleCreateCharacter: CommandHandler<CreateCharacterCommand> = asy
     featureSelections: [],
     featRefs: [],
     spellRefs: [],
-    ownedEquipment: [],
+    ownedEquipment: []
   }
 
   return { events: [event], newState, result: undefined }
@@ -111,14 +111,14 @@ export const handleAssignAbilityScores: CommandHandler<AssignAbilityScoresComman
     schemaVersion: 1,
     method: command.method,
     rolls: command.rolls,
-    assignments: command.assignments,
+    assignments: command.assignments
   }
 
   const newState: CharacterBuildState = {
     ...currentState,
     streamVersion: currentState.streamVersion + 1,
     abilityScores: command.assignments,
-    abilityGenerationMethod: command.method,
+    abilityGenerationMethod: command.method
   }
 
   return { events: [event], newState, result: undefined }
@@ -152,31 +152,31 @@ export const handleGainClassLevel: CommandHandler<GainClassLevelCommand> = async
     subclassRef: command.subclassRef,
     specializationRef: command.specializationRef,
     newLevel,
-    totalCharacterLevel: totalLevel,
+    totalCharacterLevel: totalLevel
   }
 
   const updatedClasses = existing
-    ? currentState.classes.map((c) =>
-        c.classRef.contentId === command.classRef.contentId
-          ? {
-              ...c,
-              level: newLevel,
-              subclassRef: command.subclassRef ?? c.subclassRef,
-              specializationRef: command.specializationRef ?? c.specializationRef
-            }
-          : c
-      )
-    : [...currentState.classes, {
-        classRef: command.classRef,
-        subclassRef: command.subclassRef,
-        specializationRef: command.specializationRef,
-        level: 1
-      }]
+    ? currentState.classes.map((c) => c.classRef.contentId === command.classRef.contentId
+        ? {
+            ...c,
+            level: newLevel,
+            subclassRef: command.subclassRef ?? c.subclassRef,
+            specializationRef: command.specializationRef ?? c.specializationRef
+          }
+        : c)
+    : [
+        ...currentState.classes, {
+          classRef: command.classRef,
+          subclassRef: command.subclassRef,
+          specializationRef: command.specializationRef,
+          level: 1
+        }
+      ]
 
   const newState: CharacterBuildState = {
     ...currentState,
     streamVersion: currentState.streamVersion + 1,
-    classes: updatedClasses,
+    classes: updatedClasses
   }
 
   return { events: [event], newState, result: undefined }
@@ -206,7 +206,7 @@ export const handleApplyHitPoints: CommandHandler<ApplyHitPointsCommand> = async
     classLevel: command.classLevel,
     method: command.method,
     roll: command.roll,
-    value,
+    value
   }
 
   const newState: CharacterBuildState = {
@@ -214,8 +214,8 @@ export const handleApplyHitPoints: CommandHandler<ApplyHitPointsCommand> = async
     streamVersion: currentState.streamVersion + 1,
     hitpointsByLevel: [
       ...currentState.hitpointsByLevel,
-      { classRef: command.classRef, classLevel: command.classLevel, value },
-    ],
+      { classRef: command.classRef, classLevel: command.classLevel, value }
+    ]
   }
 
   return { events: [event], newState, result: undefined }
@@ -242,7 +242,7 @@ export const handleMakeFeatureSelection: CommandHandler<MakeFeatureSelectionComm
     featureId: command.featureId,
     choiceKey: command.choiceKey,
     selectedOptionRefs: command.selectedOptionRefs,
-    atLevel: command.atLevel,
+    atLevel: command.atLevel
   }
 
   const filtered = currentState.featureSelections.filter(
@@ -257,9 +257,9 @@ export const handleMakeFeatureSelection: CommandHandler<MakeFeatureSelectionComm
         featureId: command.featureId,
         choiceKey: command.choiceKey,
         selectedOptionIds: command.selectedOptionRefs.map((r) => r.contentId),
-        atLevel: command.atLevel,
-      },
-    ],
+        atLevel: command.atLevel
+      }
+    ]
   }
 
   return { events: [event], newState, result: undefined }
@@ -283,19 +283,10 @@ export const handleChooseFeat: CommandHandler<ChooseFeatCommand> = async (
   }
 
   if (feat.prerequisites) {
-    const result = evaluateFeatPrerequisites(
-      feat.prerequisites,
-      currentState,
-      registry
-    )
+    const result = evaluateFeatPrerequisites(feat.prerequisites, currentState, registry)
 
     if (!result.passed) {
-      throw new CommandValidationError(
-        `Feat "${command.featRef.contentId}" prerequisites are not met.`,
-        result.failedRequirements.map((failure: PrerequisiteFailure) =>
-          `${failure.description}: required ${failure.required}, actual ${failure.actual}`
-        )
-      )
+      throw new CommandValidationError(`Feat "${command.featRef.contentId}" prerequisites are not met.`, result.failedRequirements.map((failure: PrerequisiteFailure) => `${failure.description}: required ${failure.required}, actual ${failure.actual}`))
     }
   }
 
@@ -308,13 +299,13 @@ export const handleChooseFeat: CommandHandler<ChooseFeatCommand> = async (
     commandId: command.commandId,
     schemaVersion: 1,
     featRef: command.featRef,
-    sourceFeatureId: command.sourceFeatureId,
+    sourceFeatureId: command.sourceFeatureId
   }
 
   const newState: CharacterBuildState = {
     ...currentState,
     streamVersion: currentState.streamVersion + 1,
-    featRefs: [...currentState.featRefs, command.featRef],
+    featRefs: [...currentState.featRefs, command.featRef]
   }
 
   return { events: [event], newState, result: undefined }
@@ -340,19 +331,19 @@ export const handleUpdateSpellSelection: CommandHandler<UpdateSpellSelectionComm
     schemaVersion: 1,
     classRef: command.classRef,
     added: command.added,
-    removed: command.removed,
+    removed: command.removed
   }
 
   const removedIds = new Set(command.removed.map((r) => r.contentId))
   const newSpellRefs: ContentRef[] = [
     ...currentState.spellRefs.filter((r) => !removedIds.has(r.contentId)),
-    ...command.added,
+    ...command.added
   ]
 
   const newState: CharacterBuildState = {
     ...currentState,
     streamVersion: currentState.streamVersion + 1,
-    spellRefs: newSpellRefs,
+    spellRefs: newSpellRefs
   }
 
   return { events: [event], newState, result: undefined }
@@ -379,19 +370,19 @@ export const handleAcquireEquipment: CommandHandler<AcquireEquipmentCommand> = a
     instanceId: command.instanceId,
     contentRef: command.contentRef,
     quantity: command.quantity,
-    source: command.source,
+    source: command.source
   }
 
   const newItem: OwnedEquipmentInstance = {
     instanceId: command.instanceId,
     contentRef: command.contentRef,
-    quantity: command.quantity,
+    quantity: command.quantity
   }
 
   const newState: CharacterBuildState = {
     ...currentState,
     streamVersion: currentState.streamVersion + 1,
-    ownedEquipment: [...currentState.ownedEquipment, newItem],
+    ownedEquipment: [...currentState.ownedEquipment, newItem]
   }
 
   return { events: [event], newState, result: undefined }
@@ -407,8 +398,8 @@ export const handleEquipItem: CommandHandler<EquipItemCommand> = async (
   _registry,
   _rules
 ) => {
-  const equippedState: EquippedState =
-    command.slot === 'RING'
+  const equippedState: EquippedState
+    = command.slot === 'RING'
       ? { slot: 'RING', position: command.ringPosition ?? 1 }
       : { slot: command.slot as Exclude<EquippedState['slot'], 'RING'> }
 
@@ -422,17 +413,15 @@ export const handleEquipItem: CommandHandler<EquipItemCommand> = async (
     schemaVersion: 1,
     instanceId: command.instanceId,
     equippedSlot: command.slot,
-    slotPosition: command.ringPosition,
+    slotPosition: command.ringPosition
   }
 
   const newState: CharacterBuildState = {
     ...currentState,
     streamVersion: currentState.streamVersion + 1,
-    ownedEquipment: currentState.ownedEquipment.map((item) =>
-      item.instanceId === command.instanceId
-        ? { ...item, equippedState }
-        : item
-    ),
+    ownedEquipment: currentState.ownedEquipment.map((item) => item.instanceId === command.instanceId
+      ? { ...item, equippedState }
+      : item)
   }
 
   return { events: [event], newState, result: undefined }
@@ -459,17 +448,15 @@ export const handleUnequipItem: CommandHandler<UnequipItemCommand> = async (
     commandId: command.commandId,
     schemaVersion: 1,
     instanceId: command.instanceId,
-    unequippedFromSlot: item?.equippedState?.slot ?? 'UNKNOWN',
+    unequippedFromSlot: item?.equippedState?.slot ?? 'UNKNOWN'
   }
 
   const newState: CharacterBuildState = {
     ...currentState,
     streamVersion: currentState.streamVersion + 1,
-    ownedEquipment: currentState.ownedEquipment.map((i) =>
-      i.instanceId === command.instanceId
-        ? { instanceId: i.instanceId, contentRef: i.contentRef, quantity: i.quantity }
-        : i
-    ),
+    ownedEquipment: currentState.ownedEquipment.map((i) => i.instanceId === command.instanceId
+      ? { instanceId: i.instanceId, contentRef: i.contentRef, quantity: i.quantity }
+      : i)
   }
 
   return { events: [event], newState, result: undefined }

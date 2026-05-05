@@ -3,6 +3,13 @@ import type { CharacterAuthored } from '@artificer-toolkit/shared'
 import { assertNever } from '../../../utils/index.js'
 
 type RowLike = Record<string, unknown>
+type DeleteByCharacterDb = {
+  deleteFrom: (table: string) => {
+    where: (column: 'character_id', op: '=', value: string) => {
+      execute: () => Promise<unknown>
+    }
+  }
+}
 
 type ExistingCharacterChildIds = {
   currencyGroupIds: string[]
@@ -432,6 +439,7 @@ async function collectExistingChildIds(
 
 export async function deleteExistingCharacterChildren(db: DBLike, characterId: string) {
   const existing = await collectExistingChildIds(db, characterId)
+  const deleteByCharacterDb = db as unknown as DeleteByCharacterDb
 
   for (const groupId of existing.currencyGroupIds) {
     await db.deleteFrom('character_currencies').where('group_id', '=', groupId)
@@ -451,6 +459,12 @@ export async function deleteExistingCharacterChildren(db: DBLike, characterId: s
   }
 
   await db.deleteFrom('character_resources').where('character_id', '=', characterId)
+    .execute()
+  await deleteByCharacterDb.deleteFrom('character_spell_slot_state').where('character_id', '=', characterId)
+    .execute()
+  await deleteByCharacterDb.deleteFrom('character_conditions').where('character_id', '=', characterId)
+    .execute()
+  await deleteByCharacterDb.deleteFrom('character_exhaustion').where('character_id', '=', characterId)
     .execute()
   await db.deleteFrom('character_attuned').where('character_id', '=', characterId)
     .execute()

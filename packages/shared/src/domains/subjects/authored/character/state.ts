@@ -73,6 +73,21 @@ export interface CharacterResourceUsageState {
   used: number
 }
 
+export interface CharacterSpellSlotUsageState {
+  slotKey: string
+  used: number
+}
+
+export interface CharacterConditionState {
+  conditionTypeId: string
+  notes?: string
+}
+
+export interface CharacterExhaustionState {
+  level: number
+  notes?: string
+}
+
 /* ──────────────────────────────────────────────
  * Character State root
  * ────────────────────────────────────────────── */
@@ -96,6 +111,9 @@ export interface CharacterState {
   hitpoints: CharacterHitpointsState
   classes?: CharacterClassState[]
   resources?: CharacterResourceUsageState[]
+  spellSlots?: CharacterSpellSlotUsageState[]
+  conditions?: CharacterConditionState[]
+  exhaustion?: CharacterExhaustionState
   creatures?: CharacterOwnedCreatureState[]
   vehicles?: CharacterOwnedVehicleState[]
   creatureEquipment?: Record<string, CharacterRosterEquipmentAssignmentState[]>

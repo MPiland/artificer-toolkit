@@ -114,6 +114,18 @@ export function handleAuthoringRequest<TBody, TResult>(
         return new Response(JSON.stringify({ error: err.message }), { status: 409, headers: { 'Content-Type': 'application/json' } })
       }
 
+      if (err instanceof Error && err.name === 'NotFoundError') {
+        return new Response(JSON.stringify({ error: err.message }), { status: 404, headers: { 'Content-Type': 'application/json' } })
+      }
+
+      if (err instanceof Error && err.name === 'ConcurrencyError') {
+        return new Response(JSON.stringify({ error: err.message }), { status: 409, headers: { 'Content-Type': 'application/json' } })
+      }
+
+      if (err instanceof Error && err.name === 'CharacterSheetCommandError') {
+        return new Response(JSON.stringify({ error: err.message }), { status: 400, headers: { 'Content-Type': 'application/json' } })
+      }
+
       console.error(err)
       return new Response('Internal Server Error', { status: 500 })
     }

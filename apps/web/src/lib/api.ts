@@ -55,7 +55,9 @@ import {
   characterBuilderDraftDtoSchema,
   characterBuilderPreviewPayloadDtoSchema,
   characterBuilderPayloadDtoSchema,
+  characterHistoryResponseDtoSchema,
   characterListResponseDtoSchema,
+  characterSheetCommandResponseDtoSchema,
   characterSheetResponseDtoSchema,
   type CharacterBuilderPayloadDto,
   type CharacterBuilderFormDto,
@@ -66,8 +68,11 @@ import {
   type CharacterBuilderResolveRequestDto,
   type CharacterBuilderSaveRequestDto,
   type CharacterDraftRequestDto,
+  type CharacterHistoryResponseDto,
   type CharacterListItemDto,
   type CharacterListResponseDto,
+  type CharacterSheetCommandInputDto,
+  type CharacterSheetCommandResponseDto,
   type CharacterSheetResponseDto
 } from '@artificer-toolkit/schema/api/characters'
 import {
@@ -83,7 +88,6 @@ import {
   systemResponseDtoSchema,
   type SystemListItemDto
 } from '@artificer-toolkit/schema/api/systems'
-import type { CharacterCommandUnion } from '@artificer-toolkit/schema/domains/character/commands'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import type { BackgroundAuthoredDto } from '@artificer-toolkit/schema/subjects/background'
 import type { ClassAuthoringInputDto } from '@artificer-toolkit/schema/subjects/class'
@@ -110,8 +114,11 @@ export type {
   CharacterBuilderResolveRequestDto,
   CharacterBuilderSaveRequestDto,
   CharacterDraftRequestDto,
+  CharacterHistoryResponseDto,
   CharacterListItemDto,
   CharacterListResponseDto,
+  CharacterSheetCommandInputDto,
+  CharacterSheetCommandResponseDto,
   CharacterSheetResponseDto,
   ClassListItemDto,
   ClassListResponseDto,
@@ -148,28 +155,7 @@ export type {
   VehicleResponseDto
 }
 
-export interface CharacterHistoryEntry {
-  id: string
-  characterId: string
-  eventType: string
-  summary: string
-  occurredAt: string
-}
-
-export interface CharacterHistoryResponse {
-  events: CharacterHistoryEntry[]
-}
-
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3001'
-const characterHistoryResponseSchema = z.object({
-  events: z.array(z.object({
-    id: z.string(),
-    characterId: z.string(),
-    eventType: z.string(),
-    summary: z.string(),
-    occurredAt: z.string()
-  }))
-})
 
 async function getClientJwt(): Promise<string | null> {
   const supabase = getSupabaseBrowserClient()
@@ -359,8 +345,8 @@ function buildApi(getJwt: (() => Promise<string | null>) | string | null) {
       resolve: (input: CharacterBuilderResolveRequestDto) => post('/characters/resolve', characterBuilderPayloadDtoSchema, input),
       previewSave: (input: CharacterBuilderSaveRequestDto) => post('/characters/preview-save', characterBuilderPreviewPayloadDtoSchema, input),
       upsert: (input: CharacterBuilderCommitRequestDto) => post('/characters/upsert', characterBuilderPayloadDtoSchema, input),
-      history: (id: string) => get(`/characters/${id}/history`, characterHistoryResponseSchema),
-      command: (id: string, input: CharacterCommandUnion) => post(`/characters/${id}/commands`, z.void(), input)
+      history: (id: string) => get(`/characters/${id}/history`, characterHistoryResponseDtoSchema),
+      command: (id: string, input: CharacterSheetCommandInputDto) => post(`/characters/${id}/commands`, characterSheetCommandResponseDtoSchema, input)
     },
 
     content: {

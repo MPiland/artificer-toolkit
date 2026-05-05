@@ -1,6 +1,6 @@
 # Phase 9.15 - Character Sheet
 
-## Status: Not Started
+## Status: Active - Command Hardening Implemented
 
 ## Objective
 
@@ -36,6 +36,14 @@ Rebuild the character sheet as the play-state surface, separate from structural 
 - `POST /characters/:id/commands`
 
 The sheet reads from the dedicated sheet payload and sends play-state commands through backend handlers. Structural editing remains a builder concern.
+
+## Current Hardening Checkpoint
+
+- The placeholder `/characters/:id` page has been replaced by the active sheet route.
+- Character sheet commands are handled through a dedicated functions service instead of route-local helpers.
+- Commands enforce active-character existence, ownership, expected stream version, transactional persistence, stream-version increments, and history event creation.
+- The sheet read model hydrates labels and options for visible sheet surfaces so web UI should not expose raw IDs when labels exist.
+- Backend and web focused tests now cover command round trips, concurrency, history creation, stale-version rejection, non-active rejection, command validation, and initial sheet command wiring.
 
 ## Locked Decisions
 

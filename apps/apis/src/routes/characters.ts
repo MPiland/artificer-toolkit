@@ -1,22 +1,12 @@
 import {
-  NotFoundError,
   buildSnapshot,
+  buildCharacterSheetResponse,
   createCharacterBuilderChangePreview,
   createEmptyCharacterAuthored,
-  dispatchCharacterCommand,
-  handleAcquireEquipment,
-  handleApplyHitPoints,
-  handleAssignAbilityScores,
+  executeCharacterSheetCommand,
   handleAuthoringRequest,
-  handleChooseFeat,
-  handleCommandRequest,
   handleCreateCharacter,
-  handleEquipItem,
-  handleGainClassLevel,
-  handleMakeFeatureSelection,
   handleRequest,
-  handleUnequipItem,
-  handleUpdateSpellSelection,
   reconcileCharacterBuilderCharacter,
   resolveCharacterBuilder,
   type CharacterBuilderResolution
@@ -66,10 +56,12 @@ import {
   type CharacterBuilderFeatureChoiceViewDto,
   type CharacterBuilderSpellChoiceViewDto,
   type CharacterListResponseDto,
-  type CharacterSheetResponseDto
+  type CharacterSheetCommandResponseDto,
+  characterSheetCommandInputDtoSchema,
+  type CharacterSheetResponseDto,
+  type CharacterHistoryResponseDto
 } from '@artificer-toolkit/schema/api/characters'
 import {
-  characterCommandUnionSchema,
   createCharacterCommandSchema
 } from '@artificer-toolkit/schema/domains/character/commands'
 import { assertCharacterBuilderDraftRevisionFresh } from './characterBuilderDraftConflict.js'
@@ -94,6 +86,13 @@ function extractCharacterIdFromSheetRoute(req: Request): string {
   const segments = url.pathname.split('/').filter(Boolean)
   const sheetIdx = segments.lastIndexOf('sheet')
   return sheetIdx > 0 ? segments[sheetIdx - 1] : extractId(req)
+}
+
+function extractCharacterIdFromCommandRoute(req: Request): string {
+  const url = new URL(req.url)
+  const segments = url.pathname.split('/').filter(Boolean)
+  const commandsIdx = segments.lastIndexOf('commands')
+  return commandsIdx > 0 ? segments[commandsIdx - 1] : extractId(req)
 }
 
 function extractCharacterIdFromBuilderDraftRoute(req: Request): string {
@@ -611,17 +610,6 @@ function toCharacterBuilderPreviewPayload(params: {
   }
 }
 
-function toCharacterSheetPayload(
-  character: CharacterAuthored,
-  resolution: CharacterBuilderResolution
-): CharacterSheetResponseDto {
-  return {
-    character,
-    resolution: stripCharacterBuilderResolution(resolution),
-    playState: character.state
-  }
-}
-
 function resolvePersistedCharacterStatus(params: {
   existingStatus?: AuthoredRecordStatus
   targetStatus?: AuthoredRecordStatus
@@ -889,16 +877,35 @@ export const getCharacter = handleRequest(async (db, characterId: string): Promi
     repository.findAuthoredById(characterId),
     repository.findUpdatedAtById(characterId)
   ])
-  if (!character) return null
+  if (!character) {
+    return null
+  }
 
   return toCharacterBuilderPayload(character, await resolveCharacterBuilder(db, character, 'edit'), undefined, activeUpdatedAt)
 }, (req: Request) => [extractId(req)] as [string])
 
 export const getCharacterSheet = handleRequest(async (db, characterId: string): Promise<CharacterSheetResponseDto | null> => {
-  const character = await createCharacterRepository(db).findAuthoredById(characterId)
-  if (!character) return null
+  const repository = createCharacterRepository(db)
+  const [row, character] = await Promise.all([
+    repository.findById(characterId),
+    repository.findAuthoredById(characterId)
+  ])
+  if (!character || (character.status ?? AUTHORED_RECORD_STATUS.ACTIVE) !== AUTHORED_RECORD_STATUS.ACTIVE) {
+    return null
+  }
 
-  return toCharacterSheetPayload(character, await resolveCharacterBuilder(db, character, 'edit'))
+  const draft = await createCharacterBuilderDraftRepository(db).findByCharacter({
+    characterId,
+    userId: character.userId
+  })
+
+  return buildCharacterSheetResponse({
+    db,
+    character,
+    resolution: await resolveCharacterBuilder(db, character, 'edit'),
+    streamVersion: row?.stream_version ?? 0,
+    hasBuilderDraft: Boolean(draft)
+  })
 }, (req: Request) => [extractCharacterIdFromSheetRoute(req)] as [string])
 
 export const resolveCharacter = handleAuthoringRequest(characterBuilderResolveRequestDtoSchema, async (db, body, userId): Promise<CharacterBuilderPayloadDto> => {
@@ -956,7 +963,9 @@ export const upsertCharacterBuilder = handleAuthoringRequest(characterBuilderCom
     shouldCheckRevision: draft != null || body.baseActiveUpdatedAt != null
   })
 
-  await repository.upsertAuthored(payload.character)
+  await repository.upsertAuthored(payload.character, {
+    incrementStreamVersion: true
+  })
   await draftRepository.delete({
     characterId: payload.character.id,
     userId
@@ -966,19 +975,6 @@ export const upsertCharacterBuilder = handleAuthoringRequest(characterBuilderCom
   const nextCharacter = persisted ?? payload.character
   return toCharacterBuilderPayload(nextCharacter, await resolveCharacterBuilder(db, nextCharacter, body.mode))
 })
-
-const commandHandlerMap = {
-  CREATE_CHARACTER: handleCreateCharacter,
-  ASSIGN_ABILITY_SCORES: handleAssignAbilityScores,
-  GAIN_CLASS_LEVEL: handleGainClassLevel,
-  APPLY_HIT_POINTS: handleApplyHitPoints,
-  MAKE_FEATURE_SELECTION: handleMakeFeatureSelection,
-  CHOOSE_FEAT: handleChooseFeat,
-  UPDATE_SPELL_SELECTION: handleUpdateSpellSelection,
-  ACQUIRE_EQUIPMENT: handleAcquireEquipment,
-  EQUIP_ITEM: handleEquipItem,
-  UNEQUIP_ITEM: handleUnequipItem
-} as const
 
 export const createLegacyCharacter = handleAuthoringRequest(createCharacterCommandSchema, async (db, command, userId) => {
   const { events, newState } = await handleCreateCharacter(command, {
@@ -1027,25 +1023,27 @@ export const getLegacyCharacter = handleRequest(async (db, characterId: string) 
   return { buildState, engineOutput: output }
 }, (req: Request) => [extractId(req)] as [string])
 
-export const dispatchCommand = handleCommandRequest(characterCommandUnionSchema, async (characterId, expectedVersion, command, db) => {
-  if (command.type === 'CREATE_CHARACTER') {
-    throw new NotFoundError(characterId)
-  }
-
-  const handler = commandHandlerMap[command.type]
-  const commandHandler = handler as Parameters<typeof dispatchCharacterCommand<unknown, unknown>>[3]
-  return dispatchCharacterCommand(characterId, expectedVersion, command, commandHandler, db)
+export const dispatchCommand = handleAuthoringRequest(characterSheetCommandInputDtoSchema, async (db, command, userId, request): Promise<CharacterSheetCommandResponseDto> => {
+  const characterId = extractCharacterIdFromCommandRoute(request)
+  return executeCharacterSheetCommand({ db, characterId, command, userId })
 })
 
-export const getCharacterHistory = handleRequest(async (db, characterId: string) => {
+export const getCharacterHistory = handleRequest(async (db, characterId: string, userId: string): Promise<CharacterHistoryResponseDto> => {
+  const character = await createCharacterRepository(db).findAuthoredById(characterId)
+  if (!character) {
+    throw createNamedError('NotFoundError', `Character "${characterId}" was not found.`)
+  }
+  if (character.userId !== userId) {
+    throw createNamedError('AuthoredContentOwnershipError', `Character "${characterId}" cannot be viewed by the current user.`)
+  }
   const events = await createCharacterEventRepository(db).listByCharacter(characterId)
-  return buildCharacterHistoryView(events)
-}, (req: Request) => {
+  return buildCharacterHistoryView(events, characterId)
+}, (req: Request, userId: string) => {
   const url = new URL(req.url)
   const segments = url.pathname.split('/').filter(Boolean)
   const historyIdx = segments.lastIndexOf('history')
   const characterId = historyIdx > 0 ? segments[historyIdx - 1] : extractId(req)
-  return [characterId] as [string]
+  return [characterId, userId] as [string, string]
 })
 
 export { ConcurrencyError }
