@@ -501,6 +501,7 @@ export const characterSheetActionDtoSchema = z.object({
 export const characterSheetResourceDtoSchema = z.object({
   id: z.string(),
   label: z.string(),
+  description: z.string().optional(),
   sourceLabel: z.string(),
   used: z.number().int(),
   max: z.number().int(),

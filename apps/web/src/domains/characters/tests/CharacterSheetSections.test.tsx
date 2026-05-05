@@ -336,6 +336,7 @@ describe('Character Sheet sections', () => {
       {
         id: 'resource-1',
         label: 'Second Wind',
+        description: '<p>Regain hit points as a bonus action.</p>',
         sourceLabel: 'Fighter',
         used: 2,
         max: 3,
@@ -355,6 +356,7 @@ describe('Character Sheet sections', () => {
     await user.click(screen.getByRole('button', { name: /restore 1/i }))
     await user.click(screen.getByRole('button', { name: /long rest/i }))
 
+    expect(screen.getByText(/regain hit points as a bonus action/i)).toBeInTheDocument()
     expect(submitCommand).toHaveBeenNthCalledWith(1, {
       type: 'RESTORE_RESOURCE',
       resourceGrantId: 'resource-1',

@@ -1,4 +1,5 @@
 import { Button, Text, Title } from '@mantine/core'
+import { AuthoredDetailProse } from '#app/components/AuthoredDetail'
 import * as styles from './characterSheet.css'
 import type { CharacterSheetSectionProps } from './CharacterSheet.types'
 
@@ -50,6 +51,7 @@ export function CharacterSheetResources({
                     {' '}
                     remaining
                   </Text>
+                  {resource.description ? <AuthoredDetailProse html={resource.description} fallback='' /> : null}
                 </div>
                 <div className={styles.compactActions}>
                   <Button

@@ -1236,6 +1236,7 @@ export async function resolveCharacterBuilder(
         items.push({
           id: selection.baseClass.resources.id,
           label: selection.baseClass.resources.label,
+          description: selection.baseClass.resources.description,
           sourceLabel: selection.baseClass.label,
           source: { kind: 'CLASS', classId: selection.baseClass.id, classLevel: selection.row.classLevel }
         })
@@ -1244,6 +1245,7 @@ export async function resolveCharacterBuilder(
         items.push({
           id: selection.subclass.resources.id,
           label: selection.subclass.resources.label,
+          description: selection.subclass.resources.description,
           sourceLabel: selection.subclass.label,
           source: { kind: 'SUBCLASS', subclassId: selection.subclass.id, classLevel: selection.row.classLevel }
         })

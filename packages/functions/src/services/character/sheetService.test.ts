@@ -191,6 +191,7 @@ function createResolution(): CharacterBuilderResolution {
           resources: {
             id: 'resource-1',
             label: 'Superiority Dice',
+            description: 'Spend a die to fuel combat maneuvers.',
             availableAtLevel: 1,
             charges: {
               id: 'charge-1',
@@ -220,6 +221,7 @@ function createResolution(): CharacterBuilderResolution {
         {
           id: 'resource-1',
           label: 'Superiority Dice',
+          description: 'Spend a die to fuel combat maneuvers.',
           sourceLabel: 'Battle Master',
           source: { kind: 'SUBCLASS', subclassId: 'subclass-1', classLevel: 3 }
         }
@@ -1223,6 +1225,7 @@ describe('character sheet command application', () => {
     expect(sheet.resources.items).toEqual([
       expect.objectContaining({
         id: 'resource-1',
+        description: 'Spend a die to fuel combat maneuvers.',
         max: 4,
         recovery: 'SHORT_REST',
         remaining: 3,

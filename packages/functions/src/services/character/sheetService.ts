@@ -670,6 +670,7 @@ export async function buildCharacterSheetResponse(params: {
           {
             id: resourceGrantId,
             label: resource.label,
+            description: resource.description,
             sourceLabel: resource.sourceLabel,
             used,
             max,
