@@ -2,6 +2,7 @@ import { Alert, Tabs } from '@mantine/core'
 import { useCharacterSheetCommandMutation } from '#app/data/characters/mutations'
 import { CharacterSheetActions } from './CharacterSheetActions'
 import { CharacterSheetHero } from './CharacterSheetHero'
+import { CharacterSheetHistory } from './CharacterSheetHistory'
 import { CharacterSheetInventory } from './CharacterSheetInventory'
 import { CharacterSheetNotes } from './CharacterSheetNotes'
 import { CharacterSheetOverview } from './CharacterSheetOverview'
@@ -49,6 +50,7 @@ export function CharacterSheetView({
           <Tabs.Tab value='inventory'>Inventory</Tabs.Tab>
           <Tabs.Tab value='reference'>Reference</Tabs.Tab>
           <Tabs.Tab value='notes'>Notes</Tabs.Tab>
+          <Tabs.Tab value='history'>History</Tabs.Tab>
         </Tabs.List>
 
         <Tabs.Panel value='overview' pt='md'>
@@ -76,6 +78,9 @@ export function CharacterSheetView({
         </Tabs.Panel>
         <Tabs.Panel value='notes' pt='md'>
           <CharacterSheetNotes {...sectionProps} />
+        </Tabs.Panel>
+        <Tabs.Panel value='history' pt='md'>
+          <CharacterSheetHistory characterId={sheet.meta.characterId} />
         </Tabs.Panel>
       </Tabs>
     </div>

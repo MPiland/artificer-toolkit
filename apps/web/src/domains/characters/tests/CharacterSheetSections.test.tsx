@@ -4,6 +4,7 @@ import { vi } from 'vitest'
 import type { CharacterSheetResponseDto } from '#app/lib/api'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { CharacterSheetInventory } from '../components/sheet/CharacterSheetInventory'
+import { CharacterSheetHistoryList } from '../components/sheet/CharacterSheetHistory'
 import { CharacterSheetNotes } from '../components/sheet/CharacterSheetNotes'
 import { CharacterSheetOverview } from '../components/sheet/CharacterSheetOverview'
 import { CharacterSheetResources } from '../components/sheet/CharacterSheetResources'
@@ -380,5 +381,24 @@ describe('Character Sheet sections', () => {
       notes: '<p>Updated notes</p>',
       expectedVersion: 5
     })
+  })
+
+  it('renders sheet command history entries without needing the builder', () => {
+    renderWithAppProviders(
+      <CharacterSheetHistoryList
+        entries={[
+          {
+            eventId: 'event-1',
+            occurredAt: '2026-05-05T14:15:00.000Z',
+            actorId: 'user-1',
+            eventType: 'CHARACTER_SHEET_COMMAND_APPLIED',
+            summary: '3 damage applied'
+          }
+        ]}
+      />
+    )
+
+    expect(screen.getByText(/3 damage applied/i)).toBeInTheDocument()
+    expect(screen.getByText(/character sheet command applied/i)).toBeInTheDocument()
   })
 })
