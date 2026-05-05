@@ -425,19 +425,71 @@ function getSpellClassIdsById(resolution: CharacterBuilderResolution): Map<strin
   return new Map(resolution.registry.spells.map((spell) => [spell.id, new Set(spell.classIds)]))
 }
 
-function getActiveClassIntentById(character: CharacterAuthored): Map<string, CharacterAuthored['intent']['classes'][number]> {
-  return new Map(character.intent.classes.map((classIntent) => [classIntent.classId, classIntent]))
+function getSubclassAliasLabels(
+  classIntent: CharacterAuthored['intent']['classes'][number],
+  resolution: CharacterBuilderResolution
+): Set<string> {
+  if (!classIntent.subclassId) return new Set<string>()
+
+  const labels = new Set<string>()
+  const classSummary = resolution.summary.classes.find((summary) => summary.classId === classIntent.classId
+    && summary.subclassId === classIntent.subclassId)
+  if (classSummary?.subclassLabel) labels.add(classSummary.subclassLabel)
+
+  const subclassGrantSources = [
+    ...resolution.grants.features,
+    ...resolution.grants.resources,
+    ...resolution.grants.spellcasting
+  ].filter((grant) => grant.source.kind === 'SUBCLASS' && grant.source.subclassId === classIntent.subclassId)
+
+  for (const grant of subclassGrantSources) {
+    labels.add(grant.sourceLabel)
+  }
+
+  return labels
 }
 
-function isSpellAvailableForClassIntent(
+function getSpellClassIdsForClassIntent(
+  classIntent: CharacterAuthored['intent']['classes'][number],
+  resolution: CharacterBuilderResolution
+): Set<string> {
+  const classIds = new Set<string>([classIntent.classId])
+  if (!classIntent.subclassId) return classIds
+
+  classIds.add(classIntent.subclassId)
+  const subclassAliasLabels = getSubclassAliasLabels(classIntent, resolution)
+  for (const classRecord of resolution.registry.classes) {
+    if (classRecord.category !== CLASS_CATEGORY.SUBCLASS || classRecord.parentClassId !== classIntent.classId) continue
+    if (
+      classRecord.id === classIntent.subclassId
+      || classRecord.specializations?.some((specialization) => specialization.id === classIntent.subclassId)
+      || subclassAliasLabels.has(classRecord.label)
+    ) {
+      classIds.add(classRecord.id)
+    }
+  }
+
+  return classIds
+}
+
+function getSpellClassIdsByActiveClassId(
+  character: CharacterAuthored,
+  resolution: CharacterBuilderResolution
+): Map<string, ReadonlySet<string>> {
+  return new Map(character.intent.classes.map((classIntent) => [
+    classIntent.classId,
+    getSpellClassIdsForClassIntent(classIntent, resolution)
+  ]))
+}
+
+function isSpellAvailableForClass(
   spellClassIdsById: ReadonlyMap<string, ReadonlySet<string>>,
   spellId: string,
-  classIntent: CharacterAuthored['intent']['classes'][number]
+  classIds: ReadonlySet<string>
 ): boolean {
   const spellClassIds = spellClassIdsById.get(spellId)
   if (!spellClassIds) return false
-  return spellClassIds.has(classIntent.classId)
-    || Boolean(classIntent.subclassId && spellClassIds.has(classIntent.subclassId))
+  return [...classIds].some((classId) => spellClassIds.has(classId))
 }
 
 function isSpellcastingPreparationCapable(
@@ -460,11 +512,10 @@ function getPreparationCapableClassIds(
   const classIds = new Set<string>()
 
   for (const classIntent of character.intent.classes) {
-    const classCanPrepare = isSpellcastingPreparationCapable(classById.get(classIntent.classId))
-    const subclassCanPrepare = isSpellcastingPreparationCapable(
-      classIntent.subclassId ? classById.get(classIntent.subclassId) : undefined
-    )
-    if (classCanPrepare || subclassCanPrepare) classIds.add(classIntent.classId)
+    const spellClassIds = getSpellClassIdsForClassIntent(classIntent, resolution)
+    if ([...spellClassIds].some((classId) => isSpellcastingPreparationCapable(classById.get(classId)))) {
+      classIds.add(classIntent.classId)
+    }
   }
 
   return classIds
@@ -474,13 +525,13 @@ function getSheetSpellIdsByClass(
   character: CharacterAuthored,
   resolution: CharacterBuilderResolution
 ): Map<string, Set<string>> {
-  const activeClassIntentById = getActiveClassIntentById(character)
+  const spellClassIdsByActiveClassId = getSpellClassIdsByActiveClassId(character, resolution)
   const spellClassIdsById = getSpellClassIdsById(resolution)
   const spellIdsByClassId = new Map<string, Set<string>>()
 
   function addSpell(classId: string, spellId: string) {
-    const classIntent = activeClassIntentById.get(classId)
-    if (!classIntent || !isSpellAvailableForClassIntent(spellClassIdsById, spellId, classIntent)) return
+    const spellClassIds = spellClassIdsByActiveClassId.get(classId)
+    if (!spellClassIds || !isSpellAvailableForClass(spellClassIdsById, spellId, spellClassIds)) return
     const spellIds = spellIdsByClassId.get(classId) ?? new Set<string>()
     spellIds.add(spellId)
     spellIdsByClassId.set(classId, spellIds)
@@ -540,7 +591,9 @@ function getSpellSourcesBySpellId(
   }
 
   for (const classState of character.state.classes ?? []) {
-    for (const spellId of classState.spells?.learned ?? []) addSpellSource(spellId, classState.classId)
+    for (const spellId of classState.spells?.learned ?? []) {
+      if (sheetSpellIdsByClassId.get(classState.classId)?.has(spellId)) addSpellSource(spellId, classState.classId)
+    }
     for (const spellId of classState.spells?.prepared ?? []) {
       if (sheetSpellIdsByClassId.get(classState.classId)?.has(spellId)) addSpellSource(spellId, classState.classId)
     }

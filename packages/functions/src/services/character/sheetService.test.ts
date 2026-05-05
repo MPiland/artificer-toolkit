@@ -320,6 +320,37 @@ function createSpellcastingClass(params: {
   }
 }
 
+function createSpellcastingSubclass(params: {
+  attributes?: NonNullable<CharacterBuilderResolution['registry']['classes'][number]['spellcasting']>['attributes']
+  id: string
+  label: string
+  parentClassId: string
+  resetKind: 'LONG_REST' | 'SHORT_REST'
+  spellLimits: NonNullable<CharacterBuilderResolution['registry']['classes'][number]['spellcasting']>['spellLimits']
+}): CharacterBuilderResolution['registry']['classes'][number] {
+  return {
+    id: params.id,
+    label: params.label,
+    category: 'SUBCLASS',
+    parentClassId: params.parentClassId,
+    specializations: [{ id: 'subclass-choice-1', label: params.label, order: 1 }],
+    spellcasting: {
+      spellLimits: params.spellLimits,
+      attributes: params.attributes ?? [SPELLCASTING_ATTRIBUTE.PREPARES_SPELLS],
+      maxSpellLevel: 9,
+      charges: {
+        id: `${params.id}-spellcasting-charge`,
+        resetKind: params.resetKind,
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: 'NONE',
+        amount: 1
+      }
+    },
+    userId: 'user-1',
+    systemId: 'system-1'
+  }
+}
+
 function createSpell(params: {
   classIds: string[]
   id: string
@@ -1400,6 +1431,80 @@ describe('character sheet command application', () => {
       spellIds: ['spell-1'],
       expectedVersion: 1
     }, sheet)).toThrow(CharacterSheetCommandError)
+  })
+
+  it('matches subclass spells against canonical subclass class records', async () => {
+    const character = createCharacter()
+    character.intent.classes = [{ classId: 'wizard', subclassId: 'subclass-choice-1', classLevel: 3 }]
+    character.intent.spellSelections = [
+      {
+        id: 'subclass-spells',
+        source: { kind: 'SUBCLASS', subclassId: 'subclass-choice-1', classLevel: 3 },
+        timing: { kind: 'IMMEDIATE' },
+        spells: ['spell-1']
+      }
+    ]
+    character.state.classes = [
+      {
+        classId: 'wizard',
+        spells: {
+          learned: ['spell-1']
+        }
+      }
+    ]
+    const resolution = createResolution()
+    resolution.registry.classes = [
+      createSpellcastingClass({
+        id: 'wizard',
+        label: 'Wizard',
+        resetKind: 'LONG_REST',
+        spellLimits: createFullCasterSpellLimits()
+      }),
+      createSpellcastingSubclass({
+        id: 'subclass-canonical',
+        label: 'Order of Scribes',
+        parentClassId: 'wizard',
+        resetKind: 'LONG_REST',
+        spellLimits: createFullCasterSpellLimits()
+      })
+    ]
+    resolution.grants.spellcasting = [
+      {
+        id: 'subclass-canonical:spellcasting',
+        label: 'Order of Scribes Spellcasting',
+        sourceLabel: 'Order of Scribes',
+        source: { kind: 'SUBCLASS', subclassId: 'subclass-choice-1', classLevel: 3 }
+      }
+    ]
+    resolution.registry.spells = [
+      createSpell({
+        classIds: ['subclass-canonical'],
+        id: 'spell-1',
+        label: 'Manifest Mind',
+        level: 1
+      })
+    ]
+
+    const sheet = await buildCharacterSheetResponse({
+      character,
+      db: createConditionDb(),
+      hasBuilderDraft: false,
+      resolution,
+      streamVersion: 1
+    })
+
+    expect(sheet.spells.spells).toEqual([
+      expect.objectContaining({
+        id: 'spell-1',
+        sources: [{ classId: 'wizard', label: 'Wizard', canPrepare: true, prepared: false }]
+      })
+    ])
+    expect(() => applyCharacterSheetCommand(character, {
+      type: 'SET_PREPARED_SPELLS',
+      classId: 'wizard',
+      spellIds: ['spell-1'],
+      expectedVersion: 1
+    }, sheet)).not.toThrow()
   })
 
   it('filters active-class prepared spells that are no longer known by that class', async () => {
