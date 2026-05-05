@@ -27,7 +27,6 @@ __metadata:
     "@artificer-toolkit/schema": "workspace:^"
     "@artificer-toolkit/shared": "workspace:^"
     "@supabase/supabase-js": "npm:^2.97.0"
-    "@trpc/server": "npm:^11.6.0"
     typescript: "npm:^5.9.3"
   languageName: unknown
   linkType: soft
@@ -3081,17 +3080,6 @@ __metadata:
     "@tiptap/extensions": "npm:^3.20.0"
     "@tiptap/pm": "npm:^3.20.0"
   checksum: 10c0/00c0f0909e9f9c82158ae6e500e6dec8c6c6129a79d3755150ddefea3c85096acc88f0aa2fc35f3d442d671ab611eb1dd7b271bbb5c34cd9e34e12164d308a56
-  languageName: node
-  linkType: hard
-
-"@trpc/server@npm:^11.6.0":
-  version: 11.15.0
-  resolution: "@trpc/server@npm:11.15.0"
-  peerDependencies:
-    typescript: ">=5.7.2"
-  bin:
-    intent: bin/intent.js
-  checksum: 10c0/85495fbf7474b4eed18599244d42443ef53153029fb1d6f95e412ec142e073423a2c03a092111ef4e8e596757efb77f02536b4ae668440dd6f4de56370b73f5a
   languageName: node
   linkType: hard
 
