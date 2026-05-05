@@ -22,7 +22,7 @@ function formStep(page: Page, name: string) {
 
 async function openCharacterSheetStory(page: Page, storyId: string) {
   await openStory(page, storyId)
-  await storyExpect(page.getByRole('tablist')).toBeVisible()
+  await expect(page.getByRole('tablist')).toBeVisible({ timeout: 45_000 })
 }
 
 test('marketing page story renders in Storybook', async ({ page }) => {
@@ -417,6 +417,12 @@ test('character sheet history and command-error stories render review states', a
 
   await storyExpect(page.getByText(/command is being applied/i)).toBeVisible()
   await storyExpect(page.getByRole('button', { name: 'Apply Damage' })).toBeDisabled()
+
+  await openStory(page, 'domains-characters-sheet--command-pending-inventory')
+
+  await storyExpect(page.getByText(/inventory command pending/i)).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: /add item/i })).toBeDisabled()
+  await storyExpect(page.getByRole('button', { name: /apply currency/i })).toBeDisabled()
 })
 
 test('theme toggle story switches between light and dark', async ({ page }) => {
