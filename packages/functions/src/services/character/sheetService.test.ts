@@ -935,6 +935,42 @@ describe('character sheet command application', () => {
     }, createSheet())).toThrow(CharacterSheetCommandError)
   })
 
+  it('removes zero currency rows after sheet currency adjustments', () => {
+    const character = createCharacter()
+    character.state.currency = [
+      {
+        currencies: [
+          { currencyId: 'currency-1', amount: 1 },
+          { currencyId: 'currency-2', amount: 4 }
+        ]
+      }
+    ]
+
+    const next = applyCharacterSheetCommand(character, {
+      type: 'ADJUST_CURRENCY',
+      currencyId: 'currency-1',
+      amount: -1,
+      expectedVersion: 1
+    }, createSheet())
+
+    expect(next.state.currency).toEqual([
+      {
+        currencies: [{ currencyId: 'currency-2', amount: 4 }]
+      }
+    ])
+  })
+
+  it('does not create zero currency rows when subtracting missing currency', () => {
+    const next = applyCharacterSheetCommand(createCharacter(), {
+      type: 'ADJUST_CURRENCY',
+      currencyId: 'currency-1',
+      amount: -1,
+      expectedVersion: 1
+    }, createSheet())
+
+    expect(next.state.currency).toEqual([])
+  })
+
   it('summarizes sheet commands with current sheet labels', () => {
     const sheet = createSheet()
     sheet.overview.conditions = [{ conditionTypeId: 'condition-1', label: 'Poisoned' }]

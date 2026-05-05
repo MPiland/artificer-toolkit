@@ -1050,6 +1050,12 @@ function clearEmptyStateArrays(character: CharacterAuthored): CharacterAuthored 
     ...character,
     state: {
       ...character.state,
+      currency: character.state.currency
+        .map((group) => ({
+          ...group,
+          currencies: group.currencies.filter((currency) => currency.amount > 0)
+        }))
+        .filter((group) => group.currencies.length > 0),
       conditions: character.state.conditions?.length ? character.state.conditions : undefined,
       resources: character.state.resources?.length ? character.state.resources : undefined,
       spellSlots: character.state.spellSlots?.length ? character.state.spellSlots : undefined,
