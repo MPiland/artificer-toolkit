@@ -1,4 +1,4 @@
-import { Alert, Loader, Text, Title } from '@mantine/core'
+import { Alert, Skeleton, Text, Title } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 import { getCharacterHistory } from '#app/data/characters/queries'
 import type { CharacterHistoryResponseDto } from '#app/lib/api'
@@ -32,6 +32,25 @@ export function CharacterSheetHistoryList({
   )
 }
 
+function CharacterSheetHistoryLoading() {
+  return (
+    <div className={styles.rowList} aria-label='Loading history'>
+      <div className={styles.row}>
+        <div>
+          <Skeleton height={18} radius='sm' width='45%' />
+          <Skeleton height={14} mt={8} radius='sm' width='32%' />
+        </div>
+      </div>
+      <div className={styles.row}>
+        <div>
+          <Skeleton height={18} radius='sm' width='52%' />
+          <Skeleton height={14} mt={8} radius='sm' width='28%' />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function CharacterSheetHistory({
   characterId
 }: {
@@ -47,7 +66,7 @@ export function CharacterSheetHistory({
           <Text className={styles.muted}>Recent play-state changes for this character.</Text>
         </div>
       </div>
-      {historyQuery.isPending ? <Loader aria-label='Loading history' size='sm' /> : null}
+      {historyQuery.isPending ? <CharacterSheetHistoryLoading /> : null}
       {historyQuery.isError ? <Alert color='red'>{historyQuery.error.message}</Alert> : null}
       {historyQuery.data ? <CharacterSheetHistoryList entries={historyQuery.data.entries} /> : null}
     </section>
