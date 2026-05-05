@@ -64,6 +64,13 @@ export function CharacterSheetNotes({
   submitCommand
 }: CharacterSheetSectionProps) {
   const version = sheet.meta.streamVersion
+  const detailFacts = [
+    sheet.notes.alignment ? `Alignment: ${sheet.notes.alignment}` : null,
+    sheet.notes.lifestyle ? `Lifestyle: ${sheet.notes.lifestyle}` : null,
+    sheet.notes.faith ? `Faith: ${sheet.notes.faith}` : null,
+    sheet.notes.gender ? `Gender: ${sheet.notes.gender}` : null,
+    sheet.notes.age ? `Age: ${sheet.notes.age}` : null
+  ].filter((fact): fact is string => Boolean(fact))
 
   return (
     <section className={styles.panel} aria-labelledby='character-sheet-notes'>
@@ -74,10 +81,24 @@ export function CharacterSheetNotes({
         </div>
       </div>
       <div className={styles.rowList}>
+        {detailFacts.length
+          ? (
+              <div className={styles.row}>
+                <div>
+                  <Text fw={700}>Character Details</Text>
+                  <Text className={styles.muted}>{detailFacts.join(' - ')}</Text>
+                </div>
+              </div>
+            )
+          : null}
+        {sheet.notes.appearance ? <CharacterSheetNoteBlock html={sheet.notes.appearance} title='Appearance' /> : null}
         <CharacterSheetNoteBlock html={sheet.notes.personalityTraits} title='Personality' />
         <CharacterSheetNoteBlock html={sheet.notes.ideals} title='Ideals' />
         <CharacterSheetNoteBlock html={sheet.notes.bonds} title='Bonds' />
         <CharacterSheetNoteBlock html={sheet.notes.flaws} title='Flaws' />
+        {sheet.notes.organizations ? <CharacterSheetNoteBlock html={sheet.notes.organizations} title='Organizations' /> : null}
+        {sheet.notes.allies ? <CharacterSheetNoteBlock html={sheet.notes.allies} title='Allies' /> : null}
+        {sheet.notes.enemies ? <CharacterSheetNoteBlock html={sheet.notes.enemies} title='Enemies' /> : null}
         <CharacterSheetNoteBlock html={sheet.notes.backstory} title='Backstory' />
       </div>
 

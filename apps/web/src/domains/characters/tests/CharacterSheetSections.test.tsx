@@ -773,10 +773,19 @@ describe('Character Sheet sections', () => {
 
   it('renders rich text background notes without exposing markup', () => {
     const sheet = createSheet()
+    sheet.notes.alignment = 'Chaotic Good'
+    sheet.notes.lifestyle = 'Modest'
+    sheet.notes.faith = 'Oghma'
+    sheet.notes.gender = 'Nonbinary'
+    sheet.notes.age = '32'
+    sheet.notes.appearance = '<p>Ink-stained sleeves and a weathered blue cloak.</p>'
     sheet.notes.personalityTraits = '<p>Asks one question too many.</p>'
     sheet.notes.ideals = '<p>Knowledge should help people.</p>'
     sheet.notes.bonds = '<p>Protects a missing mentor.</p>'
     sheet.notes.flaws = '<p>Cannot leave a sealed door alone.</p>'
+    sheet.notes.organizations = '<p>Member of the Archive Lanterns.</p>'
+    sheet.notes.allies = '<p>Trusts Captain Merrow.</p>'
+    sheet.notes.enemies = '<p>Hunted by the Sable Index.</p>'
     sheet.notes.backstory = '<p>Raised among dangerous archives.</p>'
 
     renderWithAppProviders(
@@ -787,10 +796,19 @@ describe('Character Sheet sections', () => {
       />
     )
 
+    expect(screen.getByText(/alignment: chaotic good/i)).toBeInTheDocument()
+    expect(screen.getByText(/lifestyle: modest/i)).toBeInTheDocument()
+    expect(screen.getByText(/faith: oghma/i)).toBeInTheDocument()
+    expect(screen.getByText(/gender: nonbinary/i)).toBeInTheDocument()
+    expect(screen.getByText(/age: 32/i)).toBeInTheDocument()
+    expect(screen.getByText(/weathered blue cloak/i)).toBeInTheDocument()
     expect(screen.getByText(/asks one question/i)).toBeInTheDocument()
     expect(screen.getByText(/knowledge should help people/i)).toBeInTheDocument()
     expect(screen.getByText(/protects a missing mentor/i)).toBeInTheDocument()
     expect(screen.getByText(/cannot leave a sealed door/i)).toBeInTheDocument()
+    expect(screen.getByText(/archive lanterns/i)).toBeInTheDocument()
+    expect(screen.getByText(/captain merrow/i)).toBeInTheDocument()
+    expect(screen.getByText(/sable index/i)).toBeInTheDocument()
     expect(screen.getByText(/raised among dangerous archives/i)).toBeInTheDocument()
     expect(screen.queryByText(/<p>asks one question/i)).not.toBeInTheDocument()
   })
