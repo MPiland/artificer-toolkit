@@ -238,6 +238,7 @@ function createResolution(): CharacterBuilderResolution {
 }
 
 function createSpellcastingClass(params: {
+  ability?: NonNullable<CharacterBuilderResolution['registry']['classes'][number]['spellcasting']>['ability']
   id: string
   label: string
   resetKind: 'LONG_REST' | 'SHORT_REST'
@@ -250,6 +251,7 @@ function createSpellcastingClass(params: {
     category: 'BASE',
     spellcasting: {
       spellLimits: params.spellLimits,
+      ability: params.ability,
       maxSpellLevel: params.maxSpellLevel ?? 9,
       charges: {
         id: `${params.id}-spellcasting-charge`,
@@ -731,6 +733,48 @@ describe('character sheet command application', () => {
         recovery: 'SHORT_REST'
       })
     ])
+  })
+
+  it('leaves spell DC and attack bonus empty for non-casters', async () => {
+    const sheet = await buildCharacterSheetResponse({
+      character: createCharacter(),
+      db: createConditionDb(),
+      hasBuilderDraft: false,
+      resolution: createResolution(),
+      streamVersion: 1
+    })
+
+    expect(sheet.spells.saveDc).toBeNull()
+    expect(sheet.spells.attackBonus).toBeNull()
+  })
+
+  it('derives spell DC and attack bonus from the engine spellcasting ability', async () => {
+    const character = createCharacter()
+    character.intent.classes = [{ classId: 'wizard', classLevel: 1 }]
+    const resolution = createResolution()
+    resolution.summary.abilities = {
+      INTELLIGENCE: 16
+    }
+    resolution.registry.classes = [
+      createSpellcastingClass({
+        ability: 'INTELLIGENCE',
+        id: 'wizard',
+        label: 'Wizard',
+        resetKind: 'LONG_REST',
+        spellLimits: createFullCasterSpellLimits()
+      })
+    ]
+
+    const sheet = await buildCharacterSheetResponse({
+      character,
+      db: createConditionDb(),
+      hasBuilderDraft: false,
+      resolution,
+      streamVersion: 1
+    })
+
+    expect(sheet.spells.saveDc).toBe(13)
+    expect(sheet.spells.attackBonus).toBe(5)
   })
 
   it('derives sheet spell slots from fused multiclass spellcasting rules', async () => {

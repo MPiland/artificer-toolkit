@@ -7,6 +7,11 @@ import {
 import {
   AUTHORED_RECORD_STATUS,
   CLASS_CATEGORY,
+  dnd5e2014RulesSystem,
+  runEngine,
+  type CharacterAssemblyRegistry,
+  type CharacterBuildSnapshot,
+  type EngineSpellSlots,
   type CharacterEvent
 } from '@artificer-toolkit/shared/core'
 import {
@@ -14,7 +19,6 @@ import {
   compileCharge,
   resolveCompiledChargeMaximum
 } from '@artificer-toolkit/shared/compilers'
-import { resolveSpellSlots } from '@artificer-toolkit/shared/engine/resolution'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type {
   CharacterHistoryEntryDto,
@@ -86,50 +90,59 @@ function parseSlotLevel(slotKey: string): number | null {
   return level ? Number(level) : null
 }
 
-function getSpellSlotMaximums(
+function createCharacterEngineInput(
   character: CharacterAuthored,
   resolution: CharacterBuilderResolution
-) {
+): {
+  registry: CharacterAssemblyRegistry
+  snapshot: CharacterBuildSnapshot
+} {
   const classes = Object.fromEntries(
     resolution.registry.classes.map((record) => [record.id, compileClass(record)])
-  ) satisfies Parameters<typeof resolveSpellSlots>[1]['classes']
+  ) satisfies CharacterAssemblyRegistry['classes']
   const abilities: Record<string, number> = {}
   for (const [ability, score] of Object.entries(resolution.summary.abilities)) {
     if (typeof score === 'number') abilities[ability] = score
   }
-  const snapshot = {
-    characterId: character.id,
-    systemId: character.systemId,
-    totalLevel: resolution.summary.totalLevel,
-    classes: character.intent.classes.flatMap((classIntent) => [
-      {
-        classId: classIntent.classId,
-        level: classIntent.classLevel,
-        subclassId: classIntent.subclassId,
-        specializationId: classIntent.specializationId
-      },
-      ...(classIntent.subclassId
-        ? [
-            {
-              classId: classIntent.subclassId,
-              level: classIntent.classLevel
-            }
-          ]
-        : [])
-    ]),
-    abilities,
-    hitpoints: [],
-    features: [],
-    equippedItems: []
-  } satisfies Parameters<typeof resolveSpellSlots>[0]
-  const slotMaximums = resolveSpellSlots(snapshot, {
-    classes,
-    features: {},
-    feats: {},
-    races: {},
-    equipment: {},
-    spells: {}
-  })
+
+  return {
+    registry: {
+      classes,
+      equipment: {},
+      feats: {},
+      features: {},
+      races: {},
+      spells: {}
+    },
+    snapshot: {
+      characterId: character.id,
+      systemId: character.systemId,
+      totalLevel: resolution.summary.totalLevel,
+      classes: character.intent.classes.flatMap((classIntent) => [
+        {
+          classId: classIntent.classId,
+          level: classIntent.classLevel,
+          subclassId: classIntent.subclassId,
+          specializationId: classIntent.specializationId
+        },
+        ...(classIntent.subclassId
+          ? [
+              {
+                classId: classIntent.subclassId,
+                level: classIntent.classLevel
+              }
+            ]
+          : [])
+      ]),
+      abilities,
+      hitpoints: [],
+      features: [],
+      equippedItems: []
+    }
+  }
+}
+
+function getSpellSlotMaximums(slotMaximums: EngineSpellSlots) {
   const standardSlots = Object.entries(slotMaximums.maxByLevel).map(([level, max]) => {
     const slotLevel = Number(level)
     return {
@@ -348,7 +361,9 @@ export async function buildCharacterSheetResponse(params: {
   })) ?? []
   const currencyLabels = new Map(currencyOptions.map((currency) => [currency.id, currency.label]))
   const spellSlotsUsed = new Map((character.state.spellSlots ?? []).map((slot) => [slot.slotKey, slot.used]))
-  const spellSlots = getSpellSlotMaximums(character, resolution).map((slot) => {
+  const engineInput = createCharacterEngineInput(character, resolution)
+  const engineOutput = runEngine(engineInput.snapshot, engineInput.registry, dnd5e2014RulesSystem)
+  const spellSlots = getSpellSlotMaximums(engineOutput.spellSlots).map((slot) => {
     const used = Math.min(spellSlotsUsed.get(slot.slotKey) ?? 0, slot.max)
     return {
       ...slot,
@@ -451,8 +466,8 @@ export async function buildCharacterSheetResponse(params: {
       }))
     },
     spells: {
-      saveDc: 8 + proficiencyBonus,
-      attackBonus: proficiencyBonus,
+      saveDc: engineOutput.derivedStats.spellSaveDC ?? null,
+      attackBonus: engineOutput.derivedStats.spellAttackBonus ?? null,
       slots: spellSlots.map((slot) => ({
         ...slot,
         level: slot.level ?? parseSlotLevel(slot.slotKey)
