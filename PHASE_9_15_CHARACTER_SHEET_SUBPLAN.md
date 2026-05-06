@@ -1,6 +1,6 @@
 # Phase 9.15 - Character Sheet
 
-## Status: Active - Command Hardening Implemented
+## Status: Implemented - Closeout Validation Passed
 
 ## Objective
 
@@ -37,15 +37,17 @@ Rebuild the character sheet as the play-state surface, separate from structural 
 
 The sheet reads from the dedicated sheet payload and sends play-state commands through backend handlers. Structural editing remains a builder concern.
 
-## Current Hardening Checkpoint
+## Closeout Checkpoint
 
 - The placeholder `/characters/:id` page has been replaced by the active sheet route.
 - Character sheet commands are handled through a dedicated functions service instead of route-local helpers.
 - Commands enforce active-character existence, ownership, expected stream version, transactional persistence, stream-version increments, and history event creation.
 - The sheet read model hydrates labels and options for visible sheet surfaces so web UI should not expose raw IDs when labels exist.
 - Backend and web focused tests now cover command round trips, concurrency, history creation, stale-version rejection, non-active rejection, command validation, and initial sheet command wiring.
-- Storybook now covers the initial sheet review states: overview, draft banner, resources/rest controls, spells, inventory, reference, history, mobile-width overview, empty character, and command-error messaging.
-- Storybook Playwright coverage now verifies the sheet overview, spell/inventory command surfaces, history state, and command-error state in the shared Phase 9 Storybook smoke gate.
+- Storybook covers the sheet review states: overview, draft banner, actions/reference, resources/rest controls, spells, inventory, stacked inventory management, reference, history, mobile-width overview, empty character, and command-error messaging.
+- Storybook Playwright coverage verifies the sheet overview, actions/reference, spell/inventory command surfaces, stacked inventory state, mobile tab overflow, history state, and command-error state in the shared Phase 9 Storybook smoke gate.
+- Mobile sheet tabs are horizontally scrollable and touch-friendly instead of wrapping into a crowded tab stack.
+- Inventory quantity changes preserve stacked rows and create readable history entries rather than silently removing the whole item.
 
 ## Locked Decisions
 
@@ -91,3 +93,20 @@ The sheet reads from the dedicated sheet payload and sends play-state commands t
 - The sheet is clearly the play-state surface.
 - Desktop and mobile are both shipped.
 - Structural editing no longer leaks into the sheet experience.
+
+## Closeout Validation
+
+- `yarn build:schema`
+- `yarn build:shared`
+- `yarn build:functions`
+- `yarn build:db`
+- `yarn build:apis`
+- `yarn workspace @artificer-toolkit/web typecheck:app`
+- `yarn workspace @artificer-toolkit/web typecheck:stories`
+- `yarn workspace @artificer-toolkit/web typecheck:tests`
+- `yarn workspace @artificer-toolkit/web typecheck:config`
+- `yarn workspace @artificer-toolkit/web test`
+- `yarn workspace @artificer-toolkit/web build-storybook`
+- `yarn test:e2e:storybook -g "character sheet"` from `apps/web`
+- `yarn test:e2e:app` from `apps/web`
+- `yarn build:web`

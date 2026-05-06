@@ -1,6 +1,8 @@
 import { Alert } from '@mantine/core'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { HttpResponse, http } from 'msw'
+import { useEffect } from 'react'
 import {
   characterSheetCommandInputDtoSchema,
   type CharacterHistoryEntryDto,
@@ -18,23 +20,11 @@ import {
   characterHistoryFixture,
   characterSheetFixture
 } from '../character.fixtures'
+import { queryKeys } from '#app/lib/queryKeys'
 
 const API_BASE = 'http://localhost:3001'
-const sheetCommandHandlers = [
-  http.get(`${API_BASE}/characters/:characterId/history`, () => HttpResponse.json(characterHistoryFixture)),
-  http.post(`${API_BASE}/characters/:characterId/commands`, async ({ request }) => {
-    const command = characterSheetCommandInputDtoSchema.parse(await request.json())
-    const sheet = createSheetForCommand(command)
-    const historyEntry = createHistoryEntry(command, sheet)
-
-    return HttpResponse.json({
-      characterId: sheet.meta.characterId,
-      streamVersion: sheet.meta.streamVersion,
-      sheet,
-      historyEntry
-    })
-  })
-]
+const STACKED_INVENTORY_CHARACTER_ID = 'character-story-stacked-inventory'
+const sheetCommandHandlers = createSheetCommandHandlers(characterSheetFixture)
 
 const meta = {
   title: 'Domains/Characters/Sheet',
@@ -72,6 +62,12 @@ export const ConditionsAndExhaustion: Story = {
   }
 }
 
+export const ActionsReference: Story = {
+  args: {
+    initialTab: 'actions'
+  }
+}
+
 export const ResourcesAndRests: Story = {
   args: {
     initialTab: 'resources'
@@ -87,6 +83,13 @@ export const SpellManagement: Story = {
 export const InventoryManagement: Story = {
   args: {
     initialTab: 'inventory'
+  }
+}
+
+export const InventoryStackManagement: Story = {
+  args: {
+    initialTab: 'inventory',
+    sheet: createStackedInventorySheet()
   }
 }
 
@@ -179,9 +182,22 @@ function CharacterSheetStoryHarness({
   maxWidth: number
   sheet: CharacterSheetResponseDto
 }) {
+  const queryClient = useQueryClient()
+  const characterId = sheet.meta.characterId
+  const { data: liveSheet } = useQuery({
+    queryKey: queryKeys.characters.sheet(characterId),
+    queryFn: async () => sheet,
+    initialData: sheet,
+    staleTime: Infinity
+  })
+
+  useEffect(() => {
+    queryClient.setQueryData(queryKeys.characters.sheet(characterId), sheet)
+  }, [characterId, queryClient, sheet])
+
   return (
     <div style={{ margin: '0 auto', maxWidth, minHeight: '100vh', padding: '24px' }}>
-      <CharacterSheetView hasDraft={hasDraft} initialTab={initialTab} sheet={sheet} />
+      <CharacterSheetView hasDraft={hasDraft} initialTab={initialTab} sheet={liveSheet} />
     </div>
   )
 }
@@ -353,8 +369,37 @@ function createEmptySheet(): CharacterSheetResponseDto {
   }
 }
 
-function createSheetForCommand(command: CharacterSheetCommandInputDto): CharacterSheetResponseDto {
-  const baseSheet: CharacterSheetResponseDto = characterSheetFixture
+function createSheetCommandHandlers(baseSheet: CharacterSheetResponseDto) {
+  return [
+    http.get(`${API_BASE}/characters/:characterId/history`, () => HttpResponse.json(characterHistoryFixture)),
+    http.post(`${API_BASE}/characters/:characterId/commands`, async ({ params, request }) => {
+      const command = characterSheetCommandInputDtoSchema.parse(await request.json())
+      const sheet = createSheetForCommand(command, getCommandBaseSheet(baseSheet, String(params.characterId)))
+      const historyEntry = createHistoryEntry(command, sheet)
+
+      return HttpResponse.json({
+        characterId: sheet.meta.characterId,
+        streamVersion: sheet.meta.streamVersion,
+        sheet,
+        historyEntry
+      })
+    })
+  ]
+}
+
+function getCommandBaseSheet(
+  baseSheet: CharacterSheetResponseDto,
+  characterId: string
+): CharacterSheetResponseDto {
+  return characterId === STACKED_INVENTORY_CHARACTER_ID
+    ? createStackedInventorySheet()
+    : baseSheet
+}
+
+function createSheetForCommand(
+  command: CharacterSheetCommandInputDto,
+  baseSheet: CharacterSheetResponseDto
+): CharacterSheetResponseDto {
   const sheet = structuredClone(baseSheet)
   const nextVersion = command.expectedVersion + 1
   sheet.meta.streamVersion = nextVersion
@@ -500,7 +545,13 @@ function createSheetForCommand(command: CharacterSheetCommandInputDto): Characte
         : item)
       break
     case 'REMOVE_INVENTORY_ITEM':
-      sheet.inventory.items = sheet.inventory.items.filter((item) => item.id !== command.itemId)
+      sheet.inventory.items = sheet.inventory.items.flatMap((item) => {
+        if (item.id !== command.itemId) return [item]
+        const quantityToRemove = command.quantity ?? item.quantity
+        return quantityToRemove >= item.quantity
+          ? []
+          : [{ ...item, quantity: item.quantity - quantityToRemove }]
+      })
       break
     case 'EQUIP_ITEM':
     case 'UNEQUIP_ITEM':
@@ -546,6 +597,22 @@ function createHistoryEntry(
     actorId: 'storybook-user',
     eventType: 'CHARACTER_SHEET_COMMAND_APPLIED',
     summary: `${formatCommandType(command.type)} applied`
+  }
+}
+
+function createStackedInventorySheet(): CharacterSheetResponseDto {
+  return {
+    ...characterSheetFixture,
+    meta: {
+      ...characterSheetFixture.meta,
+      characterId: STACKED_INVENTORY_CHARACTER_ID
+    },
+    inventory: {
+      ...characterSheetFixture.inventory,
+      items: characterSheetFixture.inventory.items.map((item) => item.id === 'inventory-staff'
+        ? { ...item, quantity: 5 }
+        : item)
+    }
   }
 }
 

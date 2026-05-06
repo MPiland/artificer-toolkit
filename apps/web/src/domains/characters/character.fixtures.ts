@@ -635,6 +635,13 @@ export const characterHistoryFixture = {
       actorId: 'user-1',
       eventType: 'CHARACTER_SHEET_COMMAND_APPLIED',
       summary: 'Poisoned added'
+    },
+    {
+      eventId: 'history-4',
+      occurredAt: '2026-05-05T13:30:00.000Z',
+      actorId: 'user-1',
+      eventType: 'CHARACTER_SHEET_COMMAND_APPLIED',
+      summary: 'Quarterstaff quantity reduced by 1'
     }
   ]
 } satisfies CharacterHistoryResponseDto

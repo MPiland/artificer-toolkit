@@ -57,15 +57,15 @@ export function CharacterSheetView({
           if (isCharacterSheetTabId(value)) setActiveTab(value)
         }}
       >
-        <Tabs.List>
-          <Tabs.Tab value='overview'>Overview</Tabs.Tab>
-          <Tabs.Tab value='actions'>Actions</Tabs.Tab>
-          <Tabs.Tab value='resources'>Resources</Tabs.Tab>
-          <Tabs.Tab value='spells'>Spells</Tabs.Tab>
-          <Tabs.Tab value='inventory'>Inventory</Tabs.Tab>
-          <Tabs.Tab value='reference'>Reference</Tabs.Tab>
-          <Tabs.Tab value='notes'>Notes</Tabs.Tab>
-          <Tabs.Tab value='history'>History</Tabs.Tab>
+        <Tabs.List className={styles.tabList}>
+          <Tabs.Tab className={styles.tab} value='overview'>Overview</Tabs.Tab>
+          <Tabs.Tab className={styles.tab} value='actions'>Actions</Tabs.Tab>
+          <Tabs.Tab className={styles.tab} value='resources'>Resources</Tabs.Tab>
+          <Tabs.Tab className={styles.tab} value='spells'>Spells</Tabs.Tab>
+          <Tabs.Tab className={styles.tab} value='inventory'>Inventory</Tabs.Tab>
+          <Tabs.Tab className={styles.tab} value='reference'>Reference</Tabs.Tab>
+          <Tabs.Tab className={styles.tab} value='notes'>Notes</Tabs.Tab>
+          <Tabs.Tab className={styles.tab} value='history'>History</Tabs.Tab>
         </Tabs.List>
 
         <Tabs.Panel value='overview' pt='md'>
