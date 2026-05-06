@@ -24,6 +24,7 @@ import {
 } from '../subjects/index.js'
 import {
   castingTimeDtoSchema,
+  classHitpointDtoSchema,
   classStartingGoldDtoSchema,
   costDtoSchema,
   weightDtoSchema
@@ -235,6 +236,7 @@ export const characterBuilderRaceReferenceDtoSchema = characterBuilderReferenceO
 
 export const characterBuilderClassReferenceDtoSchema = characterBuilderReferenceOptionDtoSchema.extend({
   category: z.string().optional(),
+  hitpoint: classHitpointDtoSchema.optional(),
   parentClassId: z.string().optional(),
   specializations: z.array(characterBuilderReferenceOptionDtoSchema).optional()
 })

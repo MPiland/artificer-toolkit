@@ -184,8 +184,24 @@ export const characterBuilderPayloadFixture = {
       }
     ],
     classes: [
-      { id: 'class-wizard', label: 'Wizard', category: 'BASE' },
-      { id: 'class-fighter', label: 'Fighter', category: 'BASE' },
+      {
+        id: 'class-wizard',
+        label: 'Wizard',
+        category: 'BASE',
+        hitpoint: {
+          ability: 'CONSTITUTION',
+          dieConfig: '1d6'
+        }
+      },
+      {
+        id: 'class-fighter',
+        label: 'Fighter',
+        category: 'BASE',
+        hitpoint: {
+          ability: 'CONSTITUTION',
+          dieConfig: '1d10'
+        }
+      },
       {
         id: 'subclass-scribe',
         label: 'Order of Scribes',

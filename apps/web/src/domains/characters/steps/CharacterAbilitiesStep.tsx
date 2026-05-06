@@ -6,7 +6,6 @@ import {
 import { withForm } from '#forms'
 import { AppSelect } from '#ui/primitives/Select'
 import {
-  abilityCodes,
   abilityMethodOptions,
   abilityOptions,
   cacheActiveAbilityIntent,
@@ -18,12 +17,11 @@ import {
   standardArrayOptions
 } from '../characterBuilder.utils'
 import * as styles from '../characterBuilder.css'
-import type { CharacterFormValues } from '../characterBuilder.utils'
+import {
+  createDefaultAbilityAssignments,
+  syncHitpointLevels
+} from './CharacterAbilitiesStep.utils'
 import type { CharacterBuilderStepProps } from './CharacterBuilderStep.types'
-
-type AbilityAssignment = CharacterFormValues['intent']['abilities']['assignments'][number]
-
-type HitpointLevel = CharacterFormValues['intent']['hitpoints']['levels'][number]
 
 export const CharacterAbilitiesStep = withForm({
   defaultValues: createFallbackCharacterFormValues(),
@@ -187,7 +185,13 @@ export const CharacterAbilitiesStep = withForm({
                               <Button
                                 type='button'
                                 variant='default'
-                                onClick={() => field.handleChange(syncHitpointLevels(rows, requiredLevels))}
+                                onClick={() => field.handleChange(syncHitpointLevels({
+                                  character: form.state.values,
+                                  classReferences: payload.references.classes,
+                                  requiredLevels,
+                                  resolvedAbilityScores: payload.resolution.summary.abilities,
+                                  rows
+                                }))}
                               >
                                 Add Missing Levels
                               </Button>
@@ -225,20 +229,3 @@ export const CharacterAbilitiesStep = withForm({
     )
   }
 })
-
-function createDefaultAbilityAssignments(): AbilityAssignment[] {
-  return abilityCodes.map((ability, index) => ({
-    ability,
-    option: standardArrayOptions[index]?.value ?? '8'
-  }))
-}
-
-function syncHitpointLevels(rows: HitpointLevel[], requiredLevels: number): HitpointLevel[] {
-  return Array.from({ length: requiredLevels }, (_, index) => {
-    const level = index + 1
-    return rows.find((row) => row.level === level) ?? {
-      level,
-      value: 1
-    }
-  })
-}

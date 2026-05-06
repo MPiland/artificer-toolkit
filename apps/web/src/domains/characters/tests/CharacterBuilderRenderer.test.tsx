@@ -445,7 +445,7 @@ describe('CharacterBuilderRenderer', () => {
     expect(screen.getByRole('textbox', { name: /elven lineage/i })).toHaveValue('Forest')
   })
 
-  it('renders hit point entries from fixed or manual character options without class-specific placeholder totals', async () => {
+  it('renders hit point entries from fixed character options without placeholder totals', async () => {
     const user = userEvent.setup()
 
     renderCharacterBuilderHarness({
@@ -476,7 +476,47 @@ describe('CharacterBuilderRenderer', () => {
 
     await user.click(screen.getByRole('button', { name: /add missing levels/i }))
 
-    expect(await screen.findByRole('textbox', { name: /fixed hp total/i })).toHaveValue('1')
+    expect(await screen.findByRole('textbox', { name: /fixed hp total/i })).toHaveValue('7')
+  })
+
+  it('adds later hit point levels from class hit dice and ability modifiers', async () => {
+    const user = userEvent.setup()
+
+    renderCharacterBuilderHarness({
+      payload: {
+        ...characterBuilderPayloadFixture,
+        character: {
+          ...characterBuilderPayloadFixture.character,
+          intent: {
+            ...characterBuilderPayloadFixture.character.intent,
+            classes: [
+              {
+                classId: 'class-wizard',
+                classLevel: 2,
+                subclassId: 'subclass-scribe'
+              }
+            ],
+            hitpoints: {
+              method: HITPOINT_CALCULATION_METHOD_CODE.FIXED,
+              levels: []
+            }
+          }
+        },
+        resolution: {
+          ...characterBuilderPayloadFixture.resolution,
+          recommendedSectionId: 'ABILITIES',
+          summary: {
+            ...characterBuilderPayloadFixture.resolution.summary,
+            totalLevel: 2
+          }
+        }
+      }
+    })
+
+    await user.click(screen.getByRole('button', { name: /add missing levels/i }))
+
+    const hitpointInputs = await screen.findAllByRole('textbox', { name: /fixed hp total/i })
+    expect(hitpointInputs.map((input) => (input as HTMLInputElement).value)).toEqual(['7', '5'])
   })
 
   it('labels manual hit points as rolled totals', () => {

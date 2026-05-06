@@ -516,6 +516,7 @@ function toCharacterBuilderReferences(
       id: classRecord.id,
       label: classRecord.label,
       category: classRecord.category,
+      hitpoint: 'hitpoint' in classRecord ? classRecord.hitpoint : undefined,
       parentClassId: 'parentClassId' in classRecord ? classRecord.parentClassId : undefined,
       specializations: 'specializations' in classRecord
         ? classRecord.specializations?.map((specialization) => ({
