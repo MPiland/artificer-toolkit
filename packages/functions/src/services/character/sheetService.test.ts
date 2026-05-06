@@ -1453,6 +1453,58 @@ describe('character sheet command application', () => {
     ])
   })
 
+  it('floors formula-based prepared spell limits at one for prepared casters', async () => {
+    const character = createCharacter()
+    character.intent.classes = [{ classId: 'wizard', classLevel: 1 }]
+    character.intent.spellSelections = [
+      {
+        id: 'wizard-spells',
+        source: { kind: 'CLASS', classId: 'wizard' },
+        timing: { kind: 'IMMEDIATE' },
+        spells: ['spell-1']
+      }
+    ]
+    const wizard = createSpellcastingClass({
+      ability: 'INTELLIGENCE',
+      id: 'wizard',
+      label: 'Wizard',
+      resetKind: 'LONG_REST',
+      spellLimits: [{ classLevel: 1, slots: [{ spellLevel: 1, slotCount: 2 }] }]
+    })
+    if (!wizard.spellcasting) throw new Error('Test wizard should include spellcasting.')
+    wizard.spellcasting.prepareLimit = {
+      methodKinds: ['CLASS_LEVEL', 'SPELLCASTING_ABILITY']
+    }
+    const resolution = createResolution()
+    resolution.summary.abilities = { INTELLIGENCE: 8 }
+    resolution.registry.classes = [wizard]
+    resolution.registry.spells = [
+      createSpell({
+        classIds: ['wizard'],
+        id: 'spell-1',
+        label: 'Shield',
+        level: 1
+      })
+    ]
+
+    const sheet = await buildCharacterSheetResponse({
+      character,
+      db: createConditionDb(),
+      hasBuilderDraft: false,
+      resolution,
+      streamVersion: 1
+    })
+
+    expect(sheet.spells.preparationSources).toEqual([
+      {
+        classId: 'wizard',
+        label: 'Wizard',
+        preparedSpellLimit: 1,
+        preparedSpellIds: []
+      }
+    ])
+  })
+
   it('does not hydrate spell source actions from orphaned class state', async () => {
     const character = createCharacter()
     character.intent.classes = [{ classId: 'wizard', classLevel: 1 }]

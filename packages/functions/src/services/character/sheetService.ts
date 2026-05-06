@@ -590,7 +590,7 @@ function resolveSpellcastingPreparedSpellLimit(
     }
   }
 
-  return Math.max(0, amount)
+  return Math.max(1, amount)
 }
 
 function getPreparedSpellLimitForClassIntent(
