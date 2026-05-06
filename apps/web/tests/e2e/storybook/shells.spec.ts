@@ -374,9 +374,15 @@ test('character sheet overview story renders play-state controls', async ({ page
 
   await openCharacterSheetStory(page, 'domains-characters-sheet--conditions-and-exhaustion')
 
-  await storyExpect(page.getByText('Level 3')).toBeVisible()
+  await storyExpect(page.locator('section[aria-labelledby="character-sheet-overview"]').getByText('Level 3')).toBeVisible()
   await storyExpect(page.getByText('Prone', { exact: true }).first()).toBeVisible()
   await storyExpect(page.getByText(/collapsing gantry/i).first()).toBeVisible()
+
+  await openCharacterSheetStory(page, 'domains-characters-sheet--actions-reference')
+
+  await storyExpect(page.getByRole('tab', { name: 'Actions' })).toHaveAttribute('aria-selected', 'true')
+  await storyExpect(page.getByText('Arcane Recovery')).toBeVisible()
+  await storyExpect(page.getByText(/recover expended spell slots/i)).toBeVisible()
 })
 
 test('character sheet spell and inventory stories expose sheet commands', async ({ page }) => {
@@ -398,7 +404,14 @@ test('character sheet spell and inventory stories expose sheet commands', async 
   await openCharacterSheetStory(page, 'domains-characters-sheet--mobile-inventory-management')
 
   await storyExpect(page.getByRole('tab', { name: 'Inventory' })).toHaveAttribute('aria-selected', 'true')
+  await storyExpect.poll(() => page.getByRole('tablist').evaluate((element) => getComputedStyle(element).overflowX)).toBe('auto')
   await storyExpect(page.getByRole('button', { name: /increase quarterstaff quantity/i })).toBeVisible()
+
+  await openCharacterSheetStory(page, 'domains-characters-sheet--inventory-stack-management')
+
+  await storyExpect(page.getByText(/qty 5/i)).toBeVisible()
+  await page.getByRole('button', { name: /decrease quarterstaff quantity/i }).click()
+  await storyExpect(page.getByText(/qty 4/i)).toBeVisible()
 })
 
 test('character sheet history and command-error stories render review states', async ({ page }) => {
@@ -407,6 +420,7 @@ test('character sheet history and command-error stories render review states', a
 
   await storyExpect(page.getByRole('tab', { name: 'History' })).toHaveAttribute('aria-selected', 'true')
   await storyExpect(page.getByText('Shield marked prepared for Wizard')).toBeVisible()
+  await storyExpect(page.getByText('Quarterstaff quantity reduced by 1')).toBeVisible()
 
   await openStory(page, 'domains-characters-sheet--command-error')
 

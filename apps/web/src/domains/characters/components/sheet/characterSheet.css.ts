@@ -6,6 +6,30 @@ export const shell = style({
   gap: '22px'
 })
 
+export const tabList = style({
+  'flexWrap': 'nowrap',
+  'overflowX': 'auto',
+  'overflowY': 'hidden',
+  'paddingBottom': '4px',
+  'scrollbarWidth': 'thin',
+  '@media': {
+    '(max-width: 760px)': {
+      marginInline: '-4px',
+      paddingInline: '4px'
+    }
+  }
+})
+
+export const tab = style({
+  'flex': '0 0 auto',
+  'whiteSpace': 'nowrap',
+  '@media': {
+    '(max-width: 760px), (pointer: coarse)': {
+      minHeight: '44px'
+    }
+  }
+})
+
 export const hero = style({
   'background': foundationVars.color.surface.panel,
   'border': `1px solid ${foundationVars.color.border.subtle}`,

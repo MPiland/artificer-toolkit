@@ -28,6 +28,7 @@ export function CharacterSheetHero({
         <Group mt='md' gap='xs'>
           <Badge variant='light'>
             Level
+            {' '}
             {sheet.identity.totalLevel}
           </Badge>
           {hasDraft ? <Badge color='yellow' variant='light'>Builder draft pending</Badge> : null}
