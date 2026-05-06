@@ -350,6 +350,35 @@ describe('Character Sheet sections', () => {
     })
   })
 
+  it('removes active conditions from the overview panel', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn()
+    const sheet = createSheet()
+    sheet.overview.conditions = [
+      {
+        conditionTypeId: 'condition-1',
+        label: 'Poisoned',
+        notes: 'Spider venom'
+      }
+    ]
+
+    renderWithAppProviders(
+      <CharacterSheetOverview
+        pending={false}
+        sheet={sheet}
+        submitCommand={submitCommand}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: /^remove$/i }))
+
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'REMOVE_CONDITION',
+      conditionTypeId: 'condition-1',
+      expectedVersion: 4
+    })
+  })
+
   it('allows currency updates even when the character has no current currency rows', async () => {
     const user = userEvent.setup()
     const submitCommand = vi.fn()
@@ -407,6 +436,91 @@ describe('Character Sheet sections', () => {
       type: 'UPDATE_INVENTORY_ITEM',
       itemId: 'item-1',
       quantity: 2,
+      expectedVersion: 4
+    })
+  })
+
+  it('removes one inventory quantity through the stack removal command', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn()
+
+    renderWithAppProviders(
+      <CharacterSheetInventory
+        pending={false}
+        sheet={createSheet()}
+        submitCommand={submitCommand}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: /decrease longsword quantity/i }))
+
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'REMOVE_INVENTORY_ITEM',
+      itemId: 'item-1',
+      quantity: 1,
+      expectedVersion: 4
+    })
+  })
+
+  it('toggles inventory equipment, attunement, and removal through sheet commands', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn()
+
+    renderWithAppProviders(
+      <CharacterSheetInventory
+        pending={false}
+        sheet={createSheet()}
+        submitCommand={submitCommand}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: /^equip$/i }))
+    await user.click(screen.getByRole('button', { name: /^attune$/i }))
+    await user.click(screen.getByRole('button', { name: /^remove$/i }))
+
+    expect(submitCommand).toHaveBeenNthCalledWith(1, {
+      type: 'EQUIP_ITEM',
+      itemId: 'item-1',
+      expectedVersion: 4
+    })
+    expect(submitCommand).toHaveBeenNthCalledWith(2, {
+      type: 'ATTUNE_ITEM',
+      itemId: 'item-1',
+      expectedVersion: 4
+    })
+    expect(submitCommand).toHaveBeenNthCalledWith(3, {
+      type: 'REMOVE_INVENTORY_ITEM',
+      itemId: 'item-1',
+      expectedVersion: 4
+    })
+  })
+
+  it('adds inventory items through sheet commands', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn()
+    const originalScrollIntoView = Element.prototype.scrollIntoView
+    Element.prototype.scrollIntoView = vi.fn()
+
+    try {
+      renderWithAppProviders(
+        <CharacterSheetInventory
+          pending={false}
+          sheet={createSheet()}
+          submitCommand={submitCommand}
+        />
+      )
+
+      await user.click(screen.getByRole('textbox', { name: /^add equipment$/i }))
+      await user.keyboard('{ArrowDown}{Enter}')
+      await user.click(screen.getByRole('button', { name: /add item/i }))
+    } finally {
+      Element.prototype.scrollIntoView = originalScrollIntoView
+    }
+
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'ADD_INVENTORY_ITEM',
+      equipmentId: 'equipment-1',
+      quantity: 1,
       expectedVersion: 4
     })
   })
@@ -479,7 +593,7 @@ describe('Character Sheet sections', () => {
     expect(screen.getByText(/a balanced knightly blade/i)).toBeInTheDocument()
   })
 
-  it('restores resources and applies rests from the resources panel', async () => {
+  it('uses resources, restores resources, spends hit dice, and applies rests from the resources panel', async () => {
     const user = userEvent.setup()
     const submitCommand = vi.fn()
     const sheet = createSheet()
@@ -495,6 +609,7 @@ describe('Character Sheet sections', () => {
         recovery: 'SHORT_REST'
       }
     ]
+    sheet.resources.hitDice = [{ die: 10, total: 1, used: 0, remaining: 1 }]
 
     renderWithAppProviders(
       <CharacterSheetResources
@@ -504,16 +619,28 @@ describe('Character Sheet sections', () => {
       />
     )
 
+    await user.click(screen.getByRole('button', { name: /^use$/i }))
     await user.click(screen.getByRole('button', { name: /restore 1/i }))
+    await user.click(screen.getByRole('button', { name: /^spend$/i }))
     await user.click(screen.getByRole('button', { name: /long rest/i }))
 
     expect(screen.getByText(/regain hit points as a bonus action/i)).toBeInTheDocument()
     expect(submitCommand).toHaveBeenNthCalledWith(1, {
-      type: 'RESTORE_RESOURCE',
+      type: 'USE_RESOURCE',
       resourceGrantId: 'resource-1',
       expectedVersion: 4
     })
     expect(submitCommand).toHaveBeenNthCalledWith(2, {
+      type: 'RESTORE_RESOURCE',
+      resourceGrantId: 'resource-1',
+      expectedVersion: 4
+    })
+    expect(submitCommand).toHaveBeenNthCalledWith(3, {
+      type: 'USE_HIT_DIE',
+      die: 10,
+      expectedVersion: 4
+    })
+    expect(submitCommand).toHaveBeenNthCalledWith(4, {
       type: 'APPLY_REST',
       restKind: 'LONG',
       expectedVersion: 4
@@ -704,6 +831,38 @@ describe('Character Sheet sections', () => {
 
     expect(submitCommand).toHaveBeenCalledWith({
       type: 'RESTORE_SPELL_SLOT',
+      slotKey: 'STANDARD:1',
+      expectedVersion: 4
+    })
+  })
+
+  it('uses spell slots through sheet commands', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn()
+    const sheet = createSheet()
+    sheet.spells.slots = [
+      {
+        slotKey: 'STANDARD:1',
+        label: 'Level 1',
+        level: 1,
+        used: 0,
+        max: 3,
+        remaining: 3
+      }
+    ]
+
+    renderWithAppProviders(
+      <CharacterSheetSpells
+        pending={false}
+        sheet={sheet}
+        submitCommand={submitCommand}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: /^use$/i }))
+
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'USE_SPELL_SLOT',
       slotKey: 'STANDARD:1',
       expectedVersion: 4
     })

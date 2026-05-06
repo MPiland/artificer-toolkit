@@ -42,13 +42,13 @@ function CharacterSheetInventoryItemRow({
       <div className={styles.compactActions}>
         <Button
           aria-label={`Decrease ${item.label} quantity`}
-          disabled={pending}
+          disabled={pending || item.quantity <= 0}
           size='xs'
           variant='default'
           onClick={() => submitCommand({
-            type: 'UPDATE_INVENTORY_ITEM',
+            type: 'REMOVE_INVENTORY_ITEM',
             itemId: item.id,
-            quantity: Math.max(item.quantity - 1, 0),
+            quantity: 1,
             expectedVersion: version
           })}
         >
