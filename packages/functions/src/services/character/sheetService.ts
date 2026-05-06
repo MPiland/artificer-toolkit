@@ -1565,8 +1565,12 @@ function findSpellSlotLabel(sheet: CharacterSheetResponseDto | undefined, slotKe
   return sheet?.spells.slots.find((slot) => slot.slotKey === slotKey)?.label
 }
 
+function findInventoryItem(sheet: CharacterSheetResponseDto | undefined, itemId: string): CharacterSheetResponseDto['inventory']['items'][number] | undefined {
+  return sheet?.inventory.items.find((item) => item.id === itemId)
+}
+
 function findInventoryItemLabel(sheet: CharacterSheetResponseDto | undefined, itemId: string): string | undefined {
-  return sheet?.inventory.items.find((item) => item.id === itemId)?.label
+  return findInventoryItem(sheet, itemId)?.label
 }
 
 function findEquipmentOptionLabel(sheet: CharacterSheetResponseDto | undefined, equipmentId: string): string | undefined {
@@ -1612,8 +1616,14 @@ export function summarizeCharacterSheetCommand(
       return 'Prepared spells updated'
     case 'ADD_INVENTORY_ITEM':
       return `${findEquipmentOptionLabel(sheet, command.equipmentId) ?? 'Inventory item'} added`
-    case 'REMOVE_INVENTORY_ITEM':
-      return `${findInventoryItemLabel(sheet, command.itemId) ?? 'Inventory item'} removed`
+    case 'REMOVE_INVENTORY_ITEM': {
+      const item = findInventoryItem(sheet, command.itemId)
+      const label = item?.label ?? 'Inventory item'
+      if (command.quantity !== undefined && (!item || command.quantity < item.quantity)) {
+        return `${label} quantity reduced by ${command.quantity}`
+      }
+      return `${label} removed`
+    }
     case 'UPDATE_INVENTORY_ITEM':
       return `${findInventoryItemLabel(sheet, command.itemId) ?? 'Inventory item'} updated`
     case 'EQUIP_ITEM':

@@ -1062,7 +1062,7 @@ describe('character sheet command application', () => {
         id: 'item-1',
         equipmentId: 'equipment-1',
         label: 'Moonlit Blade',
-        quantity: 1,
+        quantity: 5,
         equipped: false,
         attuned: false
       }
@@ -1088,6 +1088,17 @@ describe('character sheet command application', () => {
       itemId: 'item-1',
       expectedVersion: 1
     }, sheet)).toBe('Moonlit Blade equipped')
+    expect(summarizeCharacterSheetCommand({
+      type: 'REMOVE_INVENTORY_ITEM',
+      itemId: 'item-1',
+      quantity: 1,
+      expectedVersion: 1
+    }, sheet)).toBe('Moonlit Blade quantity reduced by 1')
+    expect(summarizeCharacterSheetCommand({
+      type: 'REMOVE_INVENTORY_ITEM',
+      itemId: 'item-1',
+      expectedVersion: 1
+    }, sheet)).toBe('Moonlit Blade removed')
     expect(summarizeCharacterSheetCommand({
       type: 'ADJUST_CURRENCY',
       currencyId: 'currency-1',
