@@ -1,129 +1,307 @@
 import {
+  useCallback,
+  useMemo,
+  useState
+} from 'react'
+import {
   Alert,
   Button,
-  Stack } from '@mantine/core'
+  Stack
+} from '@mantine/core'
 import { notifications } from '@mantine/notifications'
-import { useMutation,
-  useQueryClient,
-  useSuspenseQuery } from '@tanstack/react-query'
-import { useNavigate } from '@tanstack/react-router'
-import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
-import { type CreatureAuthoredDto } from '@artificer-toolkit/schema/subjects/creature'
-import { InvalidDraftAlert } from '#forms'
+import {
+  getRouteApi,
+  useNavigate,
+  useRouter
+} from '@tanstack/react-router'
+import {
+  creatureAuthoringInputDtoSchema,
+  type CreatureAuthoringInputDto,
+  type CreatureAuthoredDto
+} from '@artificer-toolkit/schema/subjects/creature'
+import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
+import {
+  AuthoringFormLayout,
+  AuthoringFormProvider,
+  InvalidDraftAlert,
+  clearResolvedNodeFormPaths,
+  useAppForm,
+  useAuthoringFormRegistration,
+  type AuthoringFormActionHandlers,
+  type AuthoringFormRegistration
+} from '#forms'
 import { parseAuthoredDraftPayload } from '#app/data/authoredDrafts'
-import { getCreature, getCreatureDraft } from '#app/data/creatures/queries'
-import { api } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
-import { CreatureForm } from '../components/CreatureForm'
+import {
+  useActivateCreatureMutation,
+  useDiscardCreatureDraftMutation,
+  useDuplicateCreatureMutation,
+  useSaveCreatureDraftMutation
+} from '#app/data/creatures/mutations'
+import {
+  normalizeCreatureForSubmit,
+  toCreatureFormValues,
+  type CreatureFormValues
+} from '../creatureAuthoring.utils'
+import { CreatureAuthoringRenderer } from '../components/CreatureAuthoringRenderer'
 
-export function CreatureEditPage({
-  creatureId,
-  mode,
-  userId
+type ParsedCreatureDraft = {
+  draft: AuthoredDraftDto | null
+  isInvalid: boolean
+  item: CreatureAuthoringInputDto | undefined
+}
+
+export function CreatureEditPage() {
+  const route = getRouteApi('/_authed/creatures/$creatureId')
+  const { draft, response } = route.useLoaderData()
+  const { creatureId } = route.useParams()
+  const parsedDraft: ParsedCreatureDraft = parseAuthoredDraftPayload(draft ?? null, creatureAuthoringInputDtoSchema)
+  const draftCreature = parsedDraft.item
+  const activeCreature = response?.item
+
+  if (!response) {
+    if (parsedDraft.isInvalid) {
+      return <InvalidCreatureDraftOnlyState creatureId={creatureId} />
+    }
+    if (!draftCreature) {
+      return <CreatureNotFoundState />
+    }
+  }
+
+  const creature = draftCreature ?? activeCreature ?? null
+
+  if (!creature) {
+    return <CreatureNotFoundState />
+  }
+
+  const formKey = `edit:${creatureId}:${draft?.updatedAt ?? creatureId}:${draftCreature ? 'draft' : 'active'}`
+
+  return (
+    <AuthoringFormProvider>
+      <CreatureEditAuthoring
+        key={formKey}
+        activeCreature={activeCreature}
+        draft={parsedDraft.draft}
+        hasInvalidDraft={Boolean(draft && parsedDraft.isInvalid)}
+        permissions={response?.permissions}
+        creature={toCreatureFormValues(creature)}
+        creatureId={creatureId}
+      />
+    </AuthoringFormProvider>
+  )
+}
+
+function CreatureEditAuthoring({
+  activeCreature,
+  draft,
+  hasInvalidDraft,
+  permissions,
+  creature,
+  creatureId
 }: {
+  activeCreature?: CreatureAuthoredDto
+  draft: AuthoredDraftDto | null
+  hasInvalidDraft: boolean
+  permissions?: {
+    canCopy: boolean
+    canEdit: boolean
+  }
+  creature: CreatureFormValues
   creatureId: string
-  mode: 'view' | 'edit'
-  userId: string
 }) {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const { data: response } = useSuspenseQuery(getCreature(creatureId))
-  const { data: draft } = useSuspenseQuery(getCreatureDraft(creatureId))
-  const parsedDraft = parseAuthoredDraftPayload(draft, creatureAuthoredDtoSchema)
-  const draftCreature = parsedDraft.item
-  const systemId = draftCreature?.systemId ?? response?.item.systemId ?? ''
-  const saveMutation = useMutation({
-    mutationFn: (creature: CreatureAuthoredDto) => api.content.creatures.activate(creature),
-    onSuccess: async (saved) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.content.creatures.all() })
-      if (saved?.item.id) {
-        await queryClient.invalidateQueries({ queryKey: queryKeys.content.creatures.detail(saved.item.id) })
-        await queryClient.invalidateQueries({ queryKey: queryKeys.content.creatures.draft(saved.item.id) })
-        await navigate({ to: '/creatures/$creatureId', params: { creatureId: saved.item.id } })
+  const router = useRouter()
+  const activateMutation = useActivateCreatureMutation()
+  const discardDraftMutation = useDiscardCreatureDraftMutation(creatureId)
+  const draftMutation = useSaveCreatureDraftMutation()
+  const duplicateMutation = useDuplicateCreatureMutation()
+  const [formValues] = useState(() => creature)
+  const readOnly = Boolean(activeCreature && permissions?.canEdit === false)
+  const canCopy = Boolean(permissions?.canCopy && creatureId)
+
+  const handleCancel = useCallback(async () => {
+    await navigate({ to: '/creatures' })
+  }, [navigate])
+
+  const handleActivate = useCallback(async (payload: CreatureAuthoringInputDto) => {
+    if (readOnly) return
+
+    try {
+      const response = await activateMutation.mutateAsync(payload)
+      notifications.show({ color: 'green', message: 'Creature activated.' })
+
+      if (response?.item.id && response.item.id !== creatureId) {
+        await navigate({ to: '/creatures/$creatureId', params: { creatureId: response.item.id } })
+        return
       }
-      notifications.show({ color: 'green', message: 'Creature saved.' })
-    },
-    onError: () => notifications.show({ color: 'red', message: 'Could not save that creature yet.' })
+
+      await router.invalidate()
+    } catch {
+      notifications.show({ color: 'red', message: 'Could not activate that creature yet.' })
+    }
+  }, [
+    activateMutation,
+    creatureId,
+    navigate,
+    readOnly,
+    router
+  ])
+
+  const form = useAppForm({
+    defaultValues: formValues,
+    onSubmit: async ({ value }) => {
+      await handleActivate(normalizeCreatureForSubmit(value))
+    }
   })
-  const draftMutation = useMutation({
-    mutationFn: (creature: CreatureAuthoredDto) => api.content.creatures.saveDraft(creature),
-    onSuccess: async (savedDraft) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.content.creatures.all() })
-      await queryClient.invalidateQueries({ queryKey: queryKeys.content.creatures.draft(savedDraft.subjectId) })
-      notifications.show({ color: 'green', message: 'Creature draft saved.' })
-    },
-    onError: () => notifications.show({ color: 'red', message: 'Could not save that draft yet.' })
-  })
-  const discardDraftMutation = useMutation({
-    mutationFn: () => api.content.creatures.discardDraft(creatureId),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.content.creatures.all() })
-      await queryClient.invalidateQueries({ queryKey: queryKeys.content.creatures.draft(creatureId) })
+
+  const handleDiscardDraft = useCallback(async () => {
+    try {
+      await discardDraftMutation.mutateAsync()
       notifications.show({ color: 'green', message: 'Stale creature draft discarded.' })
-      if (!response) {
+
+      if (!activeCreature) {
         await navigate({ to: '/creatures' })
+        return
       }
-    },
-    onError: () => notifications.show({ color: 'red', message: 'Could not discard that draft yet.' })
-  })
-  const copyMutation = useMutation({
-    mutationFn: () => api.content.creatures.duplicate(creatureId),
-    onSuccess: async (copied) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.content.creatures.all() })
+
+      await router.invalidate()
+    } catch {
+      notifications.show({ color: 'red', message: 'Could not discard that draft yet.' })
+    }
+  }, [
+    activeCreature,
+    discardDraftMutation,
+    navigate,
+    router
+  ])
+
+  const handleCopy = useCallback(async () => {
+    try {
+      const copied = await duplicateMutation.mutateAsync(creatureId)
       notifications.show({ color: 'green', message: 'Creature duplicated as an owned draft.' })
+
       if (copied?.subjectId) {
         await navigate({ to: '/creatures/$creatureId/edit', params: { creatureId: copied.subjectId } })
       }
-    },
-    onError: () => notifications.show({ color: 'red', message: 'Could not duplicate that creature yet.' })
-  })
+    } catch {
+      notifications.show({ color: 'red', message: 'Could not duplicate that creature yet.' })
+    }
+  }, [
+    creatureId,
+    duplicateMutation,
+    navigate
+  ])
 
-  if (!response && parsedDraft.isInvalid) {
-    return (
+  const handleSaveDraft = useCallback(async () => {
+    if (readOnly) return
+
+    try {
+      await draftMutation.mutateAsync(normalizeCreatureForSubmit(form.state.values))
+      notifications.show({ color: 'green', message: 'Creature draft saved.' })
+      await router.invalidate()
+    } catch {
+      notifications.show({ color: 'red', message: 'Could not save that draft yet.' })
+    }
+  }, [
+    draftMutation,
+    form,
+    readOnly,
+    router
+  ])
+
+  const registration = useMemo<AuthoringFormRegistration>(() => ({
+    activateLabel: 'Activate Creature',
+    canCopy,
+    canSaveDraft: !readOnly,
+    hasActiveDraft: Boolean(draft && activeCreature),
+    mapId: 'creature',
+    mode: readOnly ? 'view' : 'edit',
+    readOnly,
+    resolveModel: true,
+    saveDraftLabel: 'Save Draft',
+    subjectKindLabel: 'Creature',
+    subjectLabel: formValues.label || 'Untitled Creature',
+    systemId: formValues.systemId
+  }), [
+    activeCreature,
+    canCopy,
+    draft,
+    formValues.label,
+    formValues.systemId,
+    readOnly
+  ])
+
+  const actions = useMemo<AuthoringFormActionHandlers>(() => ({
+    onActivate: () => form.handleSubmit(),
+    onCancel: handleCancel,
+    onClearPaths: (paths) => clearResolvedNodeFormPaths(form, paths),
+    onCopy: canCopy ? handleCopy : undefined,
+    onSaveDraft: readOnly ? undefined : handleSaveDraft
+  }), [
+    canCopy,
+    form,
+    handleCancel,
+    handleCopy,
+    handleSaveDraft,
+    readOnly
+  ])
+
+  useAuthoringFormRegistration(registration, actions)
+
+  return (
+    <form.AppForm>
       <Stack>
-        <InvalidDraftAlert
-          domainLabel='creature'
-          isDiscarding={discardDraftMutation.isPending}
-          onDiscard={() => discardDraftMutation.mutate()}
-        />
-        <Button onClick={() => navigate({ to: '/creatures' })}>Back to creatures</Button>
+        {hasInvalidDraft
+          ? (
+              <InvalidDraftAlert
+                domainLabel='creature'
+                isDiscarding={discardDraftMutation.isPending}
+                onDiscard={() => void handleDiscardDraft()}
+              />
+            )
+          : null}
+        <AuthoringFormLayout>
+          <CreatureAuthoringRenderer form={form} />
+        </AuthoringFormLayout>
       </Stack>
-    )
-  }
+    </form.AppForm>
+  )
+}
 
-  if (!response && !draftCreature) {
-    return (
-      <Stack>
-        <Alert color='yellow'>That creature could not be found.</Alert>
-        <Button onClick={() => navigate({ to: '/creatures' })}>Back to creatures</Button>
-      </Stack>
-    )
-  }
-
-  const formKey = `${mode}:${creatureId}:${draft?.updatedAt ?? response?.item.id ?? 'missing'}:${draftCreature ? 'draft' : 'active'}`
+function CreatureNotFoundState() {
+  const navigate = useNavigate()
 
   return (
     <Stack>
-      {parsedDraft.isInvalid
-        ? (
-            <InvalidDraftAlert
-              domainLabel='creature'
-              isDiscarding={discardDraftMutation.isPending}
-              onDiscard={() => discardDraftMutation.mutate()}
-            />
-          )
-        : null}
-      <CreatureForm
-        key={formKey}
-        mode={mode}
-        systemId={systemId}
-        userId={userId}
-        initialCreature={draftCreature}
-        response={response}
-        onCopy={() => copyMutation.mutate()}
-        onSubmit={async (creature) => saveMutation.mutateAsync(creature).then(() => undefined)}
-        onSaveDraft={async (creature) => draftMutation.mutateAsync(creature).then(() => undefined)}
+      <Alert color='yellow'>That creature could not be found.</Alert>
+      <Button onClick={() => navigate({ to: '/creatures' })}>Back to creatures</Button>
+    </Stack>
+  )
+}
+
+function InvalidCreatureDraftOnlyState({ creatureId }: { creatureId: string }) {
+  const navigate = useNavigate()
+  const router = useRouter()
+  const discardDraftMutation = useDiscardCreatureDraftMutation(creatureId)
+
+  async function handleDiscardDraft() {
+    try {
+      await discardDraftMutation.mutateAsync()
+      notifications.show({ color: 'green', message: 'Stale creature draft discarded.' })
+      await router.invalidate()
+      await navigate({ to: '/creatures' })
+    } catch {
+      notifications.show({ color: 'red', message: 'Could not discard that draft yet.' })
+    }
+  }
+
+  return (
+    <Stack>
+      <InvalidDraftAlert
+        domainLabel='creature'
+        isDiscarding={discardDraftMutation.isPending}
+        onDiscard={() => void handleDiscardDraft()}
       />
+      <Button onClick={() => navigate({ to: '/creatures' })}>Back to creatures</Button>
     </Stack>
   )
 }

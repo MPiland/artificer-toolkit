@@ -8,6 +8,8 @@ import {
   CREATURE_NODE_MAP,
   EQUIPMENT_NODE_MAP,
   FEAT_NODE_MAP,
+  FEATURE_NODE_MAP,
+  OPTION_NODE_MAP,
   RACE_NODE_MAP,
   SPELL_NODE_MAP,
   VEHICLE_NODE_MAP
@@ -183,6 +185,44 @@ describe('node map sections', () => {
     expect(evaluateConditionIf(CLASS_NODE_MAP.nodes.startingEquipment.showIf, {
       values: { category: 'SUBCLASS' }
     })).toBe(false)
+  })
+
+  it('models feature and option child maps as stable node-driven editors', () => {
+    const featureSteps = resolveNodeMapSteps(FEATURE_NODE_MAP)
+    const optionSteps = resolveNodeMapSteps(OPTION_NODE_MAP)
+
+    expect(featureSteps.map((step) => step.id)).toEqual([
+      'basics',
+      'mechanics',
+      'grants',
+      'options'
+    ])
+    expect(optionSteps.map((step) => step.id)).toEqual([
+      'basics',
+      'mechanics',
+      'grants'
+    ])
+
+    expect(FEATURE_NODE_MAP.nodes.description.kind).toBe('INPUT')
+    if (FEATURE_NODE_MAP.nodes.description.kind === 'INPUT') {
+      expect(FEATURE_NODE_MAP.nodes.description.type).toBe('RICH_TEXT')
+    }
+    expect(FEATURE_NODE_MAP.nodes.detail.kind).toBe('INPUT')
+    if (FEATURE_NODE_MAP.nodes.detail.kind === 'INPUT') {
+      expect(FEATURE_NODE_MAP.nodes.detail.type).toBe('RICH_TEXT')
+    }
+    expect(OPTION_NODE_MAP.nodes.description.kind).toBe('INPUT')
+    if (OPTION_NODE_MAP.nodes.description.kind === 'INPUT') {
+      expect(OPTION_NODE_MAP.nodes.description.type).toBe('RICH_TEXT')
+    }
+    expect(FEATURE_NODE_MAP.nodes.grants).toMatchObject({
+      kind: 'GROUP',
+      groupKind: 'OBJECT'
+    })
+    expect(OPTION_NODE_MAP.nodes.grants).toMatchObject({
+      kind: 'GROUP',
+      groupKind: 'OBJECT'
+    })
   })
 
   it('provides sections for every authored subject map', () => {

@@ -1,4 +1,7 @@
-import type { CreatureAuthoredDto } from '#app/lib/api'
+import type {
+  CreatureAuthoringInputDto,
+  CreatureAuthoredDto
+} from '@artificer-toolkit/schema/subjects/creature'
 import type { DetailDto } from '@artificer-toolkit/schema/shared'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import type { ProficiencyGrantDto } from '@artificer-toolkit/schema/grants'
@@ -12,25 +15,14 @@ import {
   SIZE_CODE
 } from '@artificer-toolkit/shared/core'
 
-export type CreatureFormStep
-  = | 'basics'
-    | 'stats'
-    | 'defenses'
-    | 'content'
-    | 'actions'
-    | 'travel'
-    | 'profile'
-
-export type CreatureFormValues = CreatureAuthoredDto
+export type CreatureFormValues = CreatureAuthoringInputDto
 
 export interface CreateEmptyCreatureInput {
   systemId: string
-  userId: string
 }
 
 export function createEmptyCreature({
-  systemId,
-  userId
+  systemId
 }: CreateEmptyCreatureInput): CreatureFormValues {
   return {
     id: crypto.randomUUID(),
@@ -42,7 +34,6 @@ export function createEmptyCreature({
     category: CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: '',
     size: SIZE_CODE.MEDIUM,
-    userId,
     systemId,
     tags: [],
     abilityScores: createDefaultAbilityScores(),
@@ -159,7 +150,7 @@ export function createEmptyNpcProfile(): NonNullable<CreatureFormValues['npcProf
   }
 }
 
-export function normalizeCreatureForSubmit(creature: CreatureFormValues): CreatureAuthoredDto {
+export function normalizeCreatureForSubmit(creature: CreatureFormValues): CreatureAuthoringInputDto {
   return {
     ...creature,
     label: creature.label.trim() || 'Untitled Creature',
@@ -183,7 +174,7 @@ export function normalizeCreatureForSubmit(creature: CreatureFormValues): Creatu
   }
 }
 
-export function toCreatureFormValues(creature: CreatureAuthoredDto | CreatureFormValues): CreatureFormValues {
+export function toCreatureFormValues(creature: CreatureAuthoringInputDto | CreatureAuthoredDto | CreatureFormValues): CreatureFormValues {
   return {
     ...creature,
     description: creature.description ?? '',

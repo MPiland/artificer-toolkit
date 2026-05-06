@@ -12,8 +12,9 @@ import {
   authoredDraftSaveRequestDtoSchema
 } from '@artificer-toolkit/schema/api/content'
 import {
+  featAuthoringInputDtoSchema,
   featAuthoredDtoSchema,
-  type FeatAuthoredDto
+  type FeatAuthoringInputDto
 } from '@artificer-toolkit/schema/subjects/feat'
 import {
   discardAuthoredDraft,
@@ -88,10 +89,10 @@ export const activateFeatDraft = handleAuthoringRequest(
 
 // create/update
 export const createFeat = handleAuthoringRequest(
-  featAuthoredDtoSchema,
-  async (db, body: FeatAuthoredDto, userId) => {
+  featAuthoringInputDtoSchema,
+  async (db, body: FeatAuthoringInputDto, userId) => {
     const service = createFeatSubjectAuthoringService(db)
-    const input = featAuthoredDtoSchema.parse(body)
+    const input = featAuthoredDtoSchema.parse({ ...body, userId })
     const normalized = await normalizeNodeRuntimeValues(db, {
       mapId: 'feat',
       values: input

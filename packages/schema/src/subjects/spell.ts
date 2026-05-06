@@ -26,4 +26,10 @@ export const spellAuthoredDtoSchema = z.object({
 
 export type SpellAuthoredDto = z.infer<typeof spellAuthoredDtoSchema>
 
+export const spellAuthoringInputDtoSchema = spellAuthoredDtoSchema.extend({
+  userId: z.string().optional()
+})
+
+export type SpellAuthoringInputDto = z.infer<typeof spellAuthoringInputDtoSchema>
+
 

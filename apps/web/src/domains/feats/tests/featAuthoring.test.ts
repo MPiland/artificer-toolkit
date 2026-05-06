@@ -19,7 +19,7 @@ describe('feat authoring helpers', () => {
   it('creates a draft feat with editable defaults', () => {
     vi.spyOn(crypto, 'randomUUID').mockReturnValue(generatedId)
 
-    const feat = createEmptyFeat({ systemId: 'dnd-5e-srd', userId: 'user-1' })
+    const feat = createEmptyFeat({ systemId: 'dnd-5e-srd' })
 
     expect(feat).toMatchObject({
       id: generatedId,
@@ -29,7 +29,6 @@ describe('feat authoring helpers', () => {
       status: 'DRAFT',
       effects: [],
       features: [],
-      userId: 'user-1',
       systemId: 'dnd-5e-srd'
     })
   })
@@ -40,7 +39,7 @@ describe('feat authoring helpers', () => {
   })
 
   it('normalizes missing optional collections before save', () => {
-    const feat = createEmptyFeat({ systemId: 'dnd-5e-srd', userId: 'user-1' })
+    const feat = createEmptyFeat({ systemId: 'dnd-5e-srd' })
     const normalized = normalizeFeatForSubmit({
       ...feat,
       label: '  ',

@@ -1,0 +1,9 @@
+import { createFileRoute } from '@tanstack/react-router'
+import { getSystemList } from '#app/data/systems/queries'
+import { createServerApi } from '#app/lib/api'
+import { SystemListPage } from '#domains/systems'
+
+export const Route = createFileRoute('/_authed/systems/')({
+  loader: ({ context }) => context.queryClient.ensureQueryData(getSystemList(createServerApi(context.accessToken))),
+  component: SystemListPage
+})

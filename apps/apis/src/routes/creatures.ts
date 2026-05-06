@@ -11,8 +11,9 @@ import {
   authoredDraftSaveRequestDtoSchema
 } from '@artificer-toolkit/schema/api/content'
 import {
+  creatureAuthoringInputDtoSchema,
   creatureAuthoredDtoSchema,
-  type CreatureAuthoredDto
+  type CreatureAuthoringInputDto
 } from '@artificer-toolkit/schema/subjects/creature'
 import {
   discardAuthoredDraft,
@@ -86,13 +87,13 @@ export const activateCreatureDraft = handleAuthoringRequest(
 )
 
 export const createCreature = handleAuthoringRequest(
-  creatureAuthoredDtoSchema,
-  async (db, body: CreatureAuthoredDto, userId) => {
+  creatureAuthoringInputDtoSchema,
+  async (db, body: CreatureAuthoringInputDto, userId) => {
     await assertWritableAuthoredSubject(db, 'creatures', 'CREATURE', body.id, userId)
     const service = createCreatureSubjectAuthoringService(db)
     const normalized = await normalizeNodeRuntimeValues(db, {
       mapId: 'creature',
-      values: { ...body }
+      values: { ...body, userId }
     })
     const normalizedBody = creatureAuthoredDtoSchema.parse(normalized.values)
     const result = await service.execute(normalizeActivatedAuthoringInput(normalizedBody, userId))

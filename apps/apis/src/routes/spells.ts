@@ -12,8 +12,9 @@ import {
   authoredDraftSaveRequestDtoSchema
 } from '@artificer-toolkit/schema/api/content'
 import {
+  spellAuthoringInputDtoSchema,
   spellAuthoredDtoSchema,
-  type SpellAuthoredDto
+  type SpellAuthoringInputDto
 } from '@artificer-toolkit/schema/subjects/spell'
 import {
   discardAuthoredDraft,
@@ -88,12 +89,12 @@ export const activateSpellDraft = handleAuthoringRequest(
 
 // create/update
 export const createSpell = handleAuthoringRequest(
-  spellAuthoredDtoSchema,
-  async (db, body: SpellAuthoredDto, userId) => {
+  spellAuthoringInputDtoSchema,
+  async (db, body: SpellAuthoringInputDto, userId) => {
     const service = createSpellSubjectAuthoringService(db)
     const normalized = await normalizeNodeRuntimeValues(db, {
       mapId: 'spell',
-      values: { ...body }
+      values: { ...body, userId }
     })
     const normalizedBody = spellAuthoredDtoSchema.parse(normalized.values)
     const result = await service.execute(normalizeActivatedAuthoringInput(normalizedBody, userId))

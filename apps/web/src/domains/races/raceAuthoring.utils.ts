@@ -1,6 +1,9 @@
 import type { DetailDto } from '@artificer-toolkit/schema/shared'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
-import type { RaceAuthoredDto } from '@artificer-toolkit/schema/subjects/race'
+import type {
+  RaceAuthoringInputDto,
+  RaceAuthoredDto
+} from '@artificer-toolkit/schema/subjects/race'
 import type { SpeedDto } from '@artificer-toolkit/schema/shared'
 import {
   MEASUREMENT_UNIT_CODE,
@@ -9,10 +12,8 @@ import {
   SIZE_CODE
 } from '@artificer-toolkit/shared/core'
 
-type BaseRaceDto = Extract<RaceAuthoredDto, { category: 'BASE' }>
-type SubraceDto = Extract<RaceAuthoredDto, { category: 'SUBRACE' }>
-
-export type RaceFormStep = 'basics' | 'content' | 'ancestry' | 'details' | 'features'
+type BaseRaceDto = Extract<RaceAuthoringInputDto, { category: 'BASE' }>
+type SubraceDto = Extract<RaceAuthoringInputDto, { category: 'SUBRACE' }>
 
 export type RaceFormValues = {
   id: string
@@ -29,18 +30,16 @@ export type RaceFormValues = {
   size?: BaseRaceDto['size']
   speeds?: SpeedDto[]
   parentRaceId?: string
-  userId: string
+  userId?: string
   systemId: string
 }
 
 export interface CreateEmptyRaceInput {
   systemId: string
-  userId: string
 }
 
 export function createEmptyBaseRace({
-  systemId,
-  userId
+  systemId
 }: CreateEmptyRaceInput): RaceFormValues {
   return {
     id: crypto.randomUUID(),
@@ -55,14 +54,12 @@ export function createEmptyBaseRace({
     features: [],
     size: SIZE_CODE.MEDIUM,
     speeds: [createEmptySpeed()],
-    userId,
     systemId
   }
 }
 
 export function createEmptySubrace({
-  systemId,
-  userId
+  systemId
 }: CreateEmptyRaceInput): RaceFormValues {
   return {
     id: crypto.randomUUID(),
@@ -74,7 +71,6 @@ export function createEmptySubrace({
     parentRaceId: '',
     details: [],
     features: [],
-    userId,
     systemId
   }
 }
@@ -128,7 +124,7 @@ export function createEmptyAncestryOption(order: number): NonNullable<BaseRaceDt
   }
 }
 
-export function toRaceFormValues(race: RaceAuthoredDto | RaceFormValues): RaceFormValues {
+export function toRaceFormValues(race: RaceAuthoringInputDto | RaceAuthoredDto | RaceFormValues): RaceFormValues {
   if (race.category === RACE_CATEGORY_CODE.SUBRACE) {
     return {
       ...race,
@@ -151,7 +147,7 @@ export function toRaceFormValues(race: RaceAuthoredDto | RaceFormValues): RaceFo
   }
 }
 
-export function normalizeRaceForSubmit(race: RaceFormValues): RaceAuthoredDto {
+export function normalizeRaceForSubmit(race: RaceFormValues): RaceAuthoringInputDto {
   const common = {
     id: race.id,
     label: race.label.trim() || 'Untitled Race',
@@ -160,8 +156,8 @@ export function normalizeRaceForSubmit(race: RaceFormValues): RaceAuthoredDto {
     status: race.status ?? 'DRAFT',
     details: race.details ?? [],
     features: race.features ?? [],
-    userId: race.userId,
-    systemId: race.systemId
+    systemId: race.systemId,
+    ...(race.userId ? { userId: race.userId } : {})
   }
 
   if (race.category === RACE_CATEGORY_CODE.SUBRACE) {

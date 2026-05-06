@@ -1,62 +1,144 @@
 import {
+  useCallback,
+  useMemo,
+  useState
+} from 'react'
+import {
   Alert,
   Button,
-  Stack } from '@mantine/core'
+  Stack
+} from '@mantine/core'
 import { notifications } from '@mantine/notifications'
-import { useMutation,
-  useQueryClient,
-  useSuspenseQuery } from '@tanstack/react-query'
-import { useNavigate } from '@tanstack/react-router'
-import type { CreatureAuthoredDto } from '@artificer-toolkit/schema/subjects/creature'
-import { getSystemList } from '#app/data/systems/queries'
-import { api } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
-import { CreatureForm } from '../components/CreatureForm'
-import { createEmptyCreature, resolveCreateCreatureSystemId } from '../creatureAuthoring.utils'
+import { getRouteApi, useNavigate } from '@tanstack/react-router'
+import {
+  AuthoringFormLayout,
+  AuthoringFormProvider,
+  clearResolvedNodeFormPaths,
+  useAppForm,
+  useAuthoringFormRegistration,
+  type AuthoringFormActionHandlers,
+  type AuthoringFormRegistration
+} from '#forms'
+import {
+  useActivateCreatureMutation,
+  useSaveCreatureDraftMutation
+} from '#app/data/creatures/mutations'
+import {
+  createEmptyCreature,
+  normalizeCreatureForSubmit,
+  resolveCreateCreatureSystemId
+} from '../creatureAuthoring.utils'
+import { CreatureAuthoringRenderer } from '../components/CreatureAuthoringRenderer'
 
-export function CreatureCreatePage({ userId }: { userId: string }) {
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const { data: systems } = useSuspenseQuery(getSystemList())
+export function CreatureCreatePage() {
+  const route = getRouteApi('/_authed/creatures/new')
+  const { systems } = route.useLoaderData()
   const systemId = resolveCreateCreatureSystemId(systems)
-  const mutation = useMutation({
-    mutationFn: (creature: CreatureAuthoredDto) => api.content.creatures.activate(creature),
-    onSuccess: async (response) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.content.creatures.all() })
-      notifications.show({ color: 'green', message: 'Creature created.' })
-      if (response?.item.id) {
-        await navigate({ to: '/creatures/$creatureId', params: { creatureId: response.item.id } })
-      }
-    },
-    onError: () => notifications.show({ color: 'red', message: 'Could not save that creature yet.' })
-  })
-  const draftMutation = useMutation({
-    mutationFn: (creature: CreatureAuthoredDto) => api.content.creatures.saveDraft(creature),
-    onSuccess: async (draft) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.content.creatures.all() })
-      notifications.show({ color: 'green', message: 'Creature draft saved.' })
-      await navigate({ to: '/creatures/$creatureId/edit', params: { creatureId: draft.subjectId } })
-    },
-    onError: () => notifications.show({ color: 'red', message: 'Could not save that draft yet.' })
-  })
 
   if (!systemId) {
-    return (
-      <Stack>
-        <Alert color='yellow'>A system is required before creating creatures.</Alert>
-        <Button onClick={() => navigate({ to: '/creatures' })}>Back to creatures</Button>
-      </Stack>
-    )
+    return <CreatureSystemRequiredState />
   }
 
   return (
-    <CreatureForm
-      mode='create'
-      systemId={systemId}
-      userId={userId}
-      initialCreature={createEmptyCreature({ systemId, userId })}
-      onSubmit={async (creature) => mutation.mutateAsync(creature).then(() => undefined)}
-      onSaveDraft={async (creature) => draftMutation.mutateAsync(creature).then(() => undefined)}
-    />
+    <AuthoringFormProvider>
+      <CreatureCreateAuthoring systemId={systemId} />
+    </AuthoringFormProvider>
+  )
+}
+
+function CreatureCreateAuthoring({ systemId }: { systemId: string }) {
+  const navigate = useNavigate()
+  const activateMutation = useActivateCreatureMutation()
+  const draftMutation = useSaveCreatureDraftMutation()
+  const [creature] = useState(() => createEmptyCreature({ systemId }))
+
+  const handleCancel = useCallback(async () => {
+    await navigate({ to: '/creatures' })
+  }, [navigate])
+
+  const handleActivate = useCallback(async (payload: ReturnType<typeof normalizeCreatureForSubmit>) => {
+    try {
+      const response = await activateMutation.mutateAsync(payload)
+      notifications.show({ color: 'green', message: 'Creature activated.' })
+
+      if (response?.item.id) {
+        await navigate({ to: '/creatures/$creatureId', params: { creatureId: response.item.id } })
+      }
+    } catch {
+      notifications.show({ color: 'red', message: 'Could not activate that creature yet.' })
+    }
+  }, [
+    activateMutation,
+    navigate
+  ])
+
+  const form = useAppForm({
+    defaultValues: creature,
+    onSubmit: async ({ value }) => {
+      await handleActivate(normalizeCreatureForSubmit(value))
+    }
+  })
+
+  const handleSaveDraft = useCallback(async () => {
+    try {
+      const draft = await draftMutation.mutateAsync(normalizeCreatureForSubmit(form.state.values))
+      notifications.show({ color: 'green', message: 'Creature draft saved.' })
+      await navigate({ to: '/creatures/$creatureId/edit', params: { creatureId: draft.subjectId } })
+    } catch {
+      notifications.show({ color: 'red', message: 'Could not save that draft yet.' })
+    }
+  }, [
+    draftMutation,
+    form,
+    navigate
+  ])
+
+  const registration = useMemo<AuthoringFormRegistration>(() => ({
+    activateLabel: 'Activate Creature',
+    canSaveDraft: true,
+    hasActiveDraft: false,
+    mapId: 'creature',
+    mode: 'create',
+    readOnly: false,
+    resolveModel: true,
+    saveDraftLabel: 'Save Draft',
+    subjectKindLabel: 'Creature',
+    subjectLabel: creature.label || 'Untitled Creature',
+    systemId: creature.systemId
+  }), [
+    creature.label,
+    creature.systemId
+  ])
+
+  const actions = useMemo<AuthoringFormActionHandlers>(() => ({
+    onActivate: () => form.handleSubmit(),
+    onCancel: handleCancel,
+    onClearPaths: (paths) => clearResolvedNodeFormPaths(form, paths),
+    onSaveDraft: handleSaveDraft
+  }), [
+    form,
+    handleCancel,
+    handleSaveDraft
+  ])
+
+  useAuthoringFormRegistration(registration, actions)
+
+  return (
+    <form.AppForm>
+      <AuthoringFormLayout>
+        <CreatureAuthoringRenderer form={form} />
+      </AuthoringFormLayout>
+    </form.AppForm>
+  )
+}
+
+function CreatureSystemRequiredState() {
+  const navigate = useNavigate()
+
+  return (
+    <Stack>
+      <Alert color='yellow'>A system is required before creating creatures.</Alert>
+      <Button onClick={() => navigate({ to: '/creatures' })}>Back to creatures</Button>
+    </Stack>
   )
 }

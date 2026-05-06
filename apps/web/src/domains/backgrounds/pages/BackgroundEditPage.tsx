@@ -1,128 +1,305 @@
 import {
+  useCallback,
+  useMemo,
+  useState
+} from 'react'
+import {
   Alert,
   Button,
-  Stack } from '@mantine/core'
+  Stack
+} from '@mantine/core'
 import { notifications } from '@mantine/notifications'
-import { useMutation,
-  useQueryClient,
-  useSuspenseQuery } from '@tanstack/react-query'
-import { useNavigate } from '@tanstack/react-router'
-import { backgroundAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/background'
-import { type BackgroundAuthoredDto } from '@artificer-toolkit/schema/subjects/background'
-import { InvalidDraftAlert } from '#forms'
+import {
+  getRouteApi,
+  useNavigate,
+  useRouter
+} from '@tanstack/react-router'
+import {
+  backgroundAuthoringInputDtoSchema,
+  type BackgroundAuthoringInputDto,
+  type BackgroundAuthoredDto
+} from '@artificer-toolkit/schema/subjects/background'
+import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
+import {
+  AuthoringFormLayout,
+  AuthoringFormProvider,
+  InvalidDraftAlert,
+  clearResolvedNodeFormPaths,
+  useAppForm,
+  useAuthoringFormRegistration,
+  type AuthoringFormActionHandlers,
+  type AuthoringFormRegistration
+} from '#forms'
 import { parseAuthoredDraftPayload } from '#app/data/authoredDrafts'
-import { api } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
-import { getBackground, getBackgroundDraft } from '#app/data/backgrounds/queries'
-import { BackgroundForm } from '../components/BackgroundForm'
+import {
+  useActivateBackgroundMutation,
+  useDiscardBackgroundDraftMutation,
+  useDuplicateBackgroundMutation,
+  useSaveBackgroundDraftMutation
+} from '#app/data/backgrounds/mutations'
+import {
+  normalizeBackgroundForSubmit
+} from '../backgroundAuthoring.utils'
+import { BackgroundAuthoringRenderer } from '../components/BackgroundAuthoringRenderer'
 
-export function BackgroundEditPage({
-  backgroundId,
-  mode,
-  userId
+type ParsedBackgroundDraft = {
+  draft: AuthoredDraftDto | null
+  isInvalid: boolean
+  item: BackgroundAuthoringInputDto | undefined
+}
+
+export function BackgroundEditPage() {
+  const route = getRouteApi('/_authed/backgrounds/$backgroundId')
+  const { draft, response } = route.useLoaderData()
+  const { backgroundId } = route.useParams()
+  const parsedDraft: ParsedBackgroundDraft = parseAuthoredDraftPayload(draft ?? null, backgroundAuthoringInputDtoSchema)
+  const draftBackground = parsedDraft.item
+  const activeBackground = response?.item
+
+  if (!response) {
+    if (parsedDraft.isInvalid) {
+      return <InvalidBackgroundDraftOnlyState backgroundId={backgroundId} />
+    }
+    if (!draftBackground) {
+      return <BackgroundNotFoundState />
+    }
+  }
+
+  const background = draftBackground ?? activeBackground ?? null
+
+  if (!background) {
+    return <BackgroundNotFoundState />
+  }
+
+  const formKey = `edit:${backgroundId}:${draft?.updatedAt ?? backgroundId}:${draftBackground ? 'draft' : 'active'}`
+
+  return (
+    <AuthoringFormProvider>
+      <BackgroundEditAuthoring
+        key={formKey}
+        activeBackground={activeBackground}
+        draft={parsedDraft.draft}
+        hasInvalidDraft={Boolean(draft && parsedDraft.isInvalid)}
+        permissions={response?.permissions}
+        background={background}
+        backgroundId={backgroundId}
+      />
+    </AuthoringFormProvider>
+  )
+}
+
+function BackgroundEditAuthoring({
+  activeBackground,
+  draft,
+  hasInvalidDraft,
+  permissions,
+  background,
+  backgroundId
 }: {
+  activeBackground?: BackgroundAuthoredDto
+  draft: AuthoredDraftDto | null
+  hasInvalidDraft: boolean
+  permissions?: {
+    canCopy: boolean
+    canEdit: boolean
+  }
+  background: BackgroundAuthoringInputDto | BackgroundAuthoredDto
   backgroundId: string
-  mode: 'view' | 'edit'
-  userId: string
 }) {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const { data: response } = useSuspenseQuery(getBackground(backgroundId))
-  const { data: draft } = useSuspenseQuery(getBackgroundDraft(backgroundId))
-  const parsedDraft = parseAuthoredDraftPayload(draft, backgroundAuthoredDtoSchema)
-  const draftBackground = parsedDraft.item
-  const saveMutation = useMutation({
-    mutationFn: (background: BackgroundAuthoredDto) => api.content.backgrounds.activate(background),
-    onSuccess: async (saved) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.content.backgrounds.all() })
-      if (saved?.item.id) {
-        await queryClient.invalidateQueries({ queryKey: queryKeys.content.backgrounds.detail(saved.item.id) })
-        await queryClient.invalidateQueries({ queryKey: queryKeys.content.backgrounds.draft(saved.item.id) })
-        await navigate({ to: '/backgrounds/$backgroundId', params: { backgroundId: saved.item.id } })
+  const router = useRouter()
+  const activateMutation = useActivateBackgroundMutation()
+  const discardDraftMutation = useDiscardBackgroundDraftMutation(backgroundId)
+  const draftMutation = useSaveBackgroundDraftMutation()
+  const duplicateMutation = useDuplicateBackgroundMutation()
+  const [formValues] = useState<BackgroundAuthoringInputDto>(() => normalizeBackgroundForSubmit(background))
+  const readOnly = Boolean(activeBackground && permissions?.canEdit === false)
+  const canCopy = Boolean(permissions?.canCopy && backgroundId)
+
+  const handleCancel = useCallback(async () => {
+    await navigate({ to: '/backgrounds' })
+  }, [navigate])
+
+  const handleActivate = useCallback(async (payload: BackgroundAuthoringInputDto) => {
+    if (readOnly) return
+
+    try {
+      const response = await activateMutation.mutateAsync(payload)
+      notifications.show({ color: 'green', message: 'Background activated.' })
+
+      if (response?.item.id && response.item.id !== backgroundId) {
+        await navigate({ to: '/backgrounds/$backgroundId', params: { backgroundId: response.item.id } })
+        return
       }
-      notifications.show({ color: 'green', message: 'Background saved.' })
-    },
-    onError: () => notifications.show({ color: 'red', message: 'Could not save that background yet.' })
+
+      await router.invalidate()
+    } catch {
+      notifications.show({ color: 'red', message: 'Could not activate that background yet.' })
+    }
+  }, [
+    activateMutation,
+    backgroundId,
+    navigate,
+    readOnly,
+    router
+  ])
+
+  const form = useAppForm({
+    defaultValues: formValues,
+    onSubmit: async ({ value }) => {
+      await handleActivate(normalizeBackgroundForSubmit(value))
+    }
   })
-  const draftMutation = useMutation({
-    mutationFn: (background: BackgroundAuthoredDto) => api.content.backgrounds.saveDraft(background),
-    onSuccess: async (savedDraft) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.content.backgrounds.all() })
-      await queryClient.invalidateQueries({ queryKey: queryKeys.content.backgrounds.draft(savedDraft.subjectId) })
-      notifications.show({ color: 'green', message: 'Background draft saved.' })
-    },
-    onError: () => notifications.show({ color: 'red', message: 'Could not save that draft yet.' })
-  })
-  const discardDraftMutation = useMutation({
-    mutationFn: () => api.content.backgrounds.discardDraft(backgroundId),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.content.backgrounds.all() })
-      await queryClient.invalidateQueries({ queryKey: queryKeys.content.backgrounds.draft(backgroundId) })
+
+  const handleDiscardDraft = useCallback(async () => {
+    try {
+      await discardDraftMutation.mutateAsync()
       notifications.show({ color: 'green', message: 'Stale background draft discarded.' })
-      if (!response) {
+
+      if (!activeBackground) {
         await navigate({ to: '/backgrounds' })
+        return
       }
-    },
-    onError: () => notifications.show({ color: 'red', message: 'Could not discard that draft yet.' })
-  })
-  const copyMutation = useMutation({
-    mutationFn: () => api.content.backgrounds.duplicate(backgroundId),
-    onSuccess: async (copied) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.content.backgrounds.all() })
+
+      await router.invalidate()
+    } catch {
+      notifications.show({ color: 'red', message: 'Could not discard that draft yet.' })
+    }
+  }, [
+    activeBackground,
+    discardDraftMutation,
+    navigate,
+    router
+  ])
+
+  const handleCopy = useCallback(async () => {
+    try {
+      const copied = await duplicateMutation.mutateAsync(backgroundId)
       notifications.show({ color: 'green', message: 'Background duplicated as an owned draft.' })
+
       if (copied?.subjectId) {
         await navigate({ to: '/backgrounds/$backgroundId/edit', params: { backgroundId: copied.subjectId } })
       }
-    },
-    onError: () => notifications.show({ color: 'red', message: 'Could not duplicate that background yet.' })
-  })
+    } catch {
+      notifications.show({ color: 'red', message: 'Could not duplicate that background yet.' })
+    }
+  }, [
+    backgroundId,
+    duplicateMutation,
+    navigate
+  ])
 
-  if (!response && parsedDraft.isInvalid) {
-    return (
+  const handleSaveDraft = useCallback(async () => {
+    if (readOnly) return
+
+    try {
+      await draftMutation.mutateAsync(normalizeBackgroundForSubmit(form.state.values))
+      notifications.show({ color: 'green', message: 'Background draft saved.' })
+      await router.invalidate()
+    } catch {
+      notifications.show({ color: 'red', message: 'Could not save that draft yet.' })
+    }
+  }, [
+    draftMutation,
+    form,
+    readOnly,
+    router
+  ])
+
+  const registration = useMemo<AuthoringFormRegistration>(() => ({
+    activateLabel: 'Activate Background',
+    canCopy,
+    canSaveDraft: !readOnly,
+    hasActiveDraft: Boolean(draft && activeBackground),
+    mapId: 'background',
+    mode: readOnly ? 'view' : 'edit',
+    readOnly,
+    resolveModel: true,
+    saveDraftLabel: 'Save Draft',
+    subjectKindLabel: 'Background',
+    subjectLabel: formValues.label || 'Untitled Background',
+    systemId: formValues.systemId
+  }), [
+    activeBackground,
+    canCopy,
+    draft,
+    formValues.label,
+    formValues.systemId,
+    readOnly
+  ])
+
+  const actions = useMemo<AuthoringFormActionHandlers>(() => ({
+    onActivate: () => form.handleSubmit(),
+    onCancel: handleCancel,
+    onClearPaths: (paths) => clearResolvedNodeFormPaths(form, paths),
+    onCopy: canCopy ? handleCopy : undefined,
+    onSaveDraft: readOnly ? undefined : handleSaveDraft
+  }), [
+    canCopy,
+    form,
+    handleCancel,
+    handleCopy,
+    handleSaveDraft,
+    readOnly
+  ])
+
+  useAuthoringFormRegistration(registration, actions)
+
+  return (
+    <form.AppForm>
       <Stack>
-        <InvalidDraftAlert
-          domainLabel='background'
-          isDiscarding={discardDraftMutation.isPending}
-          onDiscard={() => discardDraftMutation.mutate()}
-        />
-        <Button onClick={() => navigate({ to: '/backgrounds' })}>Back to backgrounds</Button>
+        {hasInvalidDraft
+          ? (
+              <InvalidDraftAlert
+                domainLabel='background'
+                isDiscarding={discardDraftMutation.isPending}
+                onDiscard={() => void handleDiscardDraft()}
+              />
+            )
+          : null}
+        <AuthoringFormLayout>
+          <BackgroundAuthoringRenderer form={form} />
+        </AuthoringFormLayout>
       </Stack>
-    )
-  }
+    </form.AppForm>
+  )
+}
 
-  if (!response && !draftBackground) {
-    return (
-      <Stack>
-        <Alert color='yellow'>That background could not be found.</Alert>
-        <Button onClick={() => navigate({ to: '/backgrounds' })}>Back to backgrounds</Button>
-      </Stack>
-    )
-  }
-
-  const formKey = `${mode}:${backgroundId}:${draft?.updatedAt ?? response?.item.id ?? 'missing'}:${draftBackground ? 'draft' : 'active'}`
+function BackgroundNotFoundState() {
+  const navigate = useNavigate()
 
   return (
     <Stack>
-      {parsedDraft.isInvalid
-        ? (
-            <InvalidDraftAlert
-              domainLabel='background'
-              isDiscarding={discardDraftMutation.isPending}
-              onDiscard={() => discardDraftMutation.mutate()}
-            />
-          )
-        : null}
-      <BackgroundForm
-        key={formKey}
-        mode={mode}
-        systemId={draftBackground?.systemId ?? response?.item.systemId ?? ''}
-        userId={userId}
-        initialBackground={draftBackground}
-        response={response}
-        onCopy={() => copyMutation.mutate()}
-        onSubmit={async (background) => saveMutation.mutateAsync(background).then(() => undefined)}
-        onSaveDraft={async (background) => draftMutation.mutateAsync(background).then(() => undefined)}
+      <Alert color='yellow'>That background could not be found.</Alert>
+      <Button onClick={() => navigate({ to: '/backgrounds' })}>Back to backgrounds</Button>
+    </Stack>
+  )
+}
+
+function InvalidBackgroundDraftOnlyState({ backgroundId }: { backgroundId: string }) {
+  const navigate = useNavigate()
+  const router = useRouter()
+  const discardDraftMutation = useDiscardBackgroundDraftMutation(backgroundId)
+
+  async function handleDiscardDraft() {
+    try {
+      await discardDraftMutation.mutateAsync()
+      notifications.show({ color: 'green', message: 'Stale background draft discarded.' })
+      await router.invalidate()
+      await navigate({ to: '/backgrounds' })
+    } catch {
+      notifications.show({ color: 'red', message: 'Could not discard that draft yet.' })
+    }
+  }
+
+  return (
+    <Stack>
+      <InvalidDraftAlert
+        domainLabel='background'
+        isDiscarding={discardDraftMutation.isPending}
+        onDiscard={() => void handleDiscardDraft()}
       />
+      <Button onClick={() => navigate({ to: '/backgrounds' })}>Back to backgrounds</Button>
     </Stack>
   )
 }

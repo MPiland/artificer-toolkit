@@ -13,9 +13,9 @@ export const Route = createFileRoute('/_authed/spells/$spellId')({
       context.queryClient.ensureQueryData(getSpellDraft(params.spellId, client))
     ])
 
-    await context.queryClient.ensureQueryData(getSpellReferenceData(client))
+    const references = await context.queryClient.ensureQueryData(getSpellReferenceData(client))
 
-    return { draft, response }
+    return { draft, references, response }
   },
   component: SpellRoute
 })

@@ -12,6 +12,7 @@ import {
   authoredDraftSaveRequestDtoSchema
 } from '@artificer-toolkit/schema/api/content'
 import {
+  raceAuthoringInputDtoSchema,
   raceAuthoredDtoSchema
 } from '@artificer-toolkit/schema/subjects/race'
 import {
@@ -91,10 +92,10 @@ export const activateRaceDraft = handleAuthoringRequest(
 
 // create/update
 export const createRace = handleAuthoringRequest(
-  raceAuthoredDtoSchema,
+  raceAuthoringInputDtoSchema,
   async (db, body, userId) => {
     const service = createRaceSubjectAuthoringService(db)
-    const input = parseRaceAuthored(body)
+    const input = parseRaceAuthored({ ...body, userId })
     const normalized = await normalizeNodeRuntimeValues(db, {
       mapId: 'race',
       values: { ...input }

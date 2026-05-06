@@ -1,72 +1,98 @@
-# Phase 9.16 - Supporting Surfaces and Final Cleanup
+# Phase 9.16 - Supporting Surfaces And Final Architecture Cleanup
 
-## Status: Not Started
+## Status: Implemented - Validation In Progress
 
-## Objective
+## Summary
 
-Finish the remaining admin and utility surfaces on the new architecture and remove the legacy frontend code that should no longer survive Phase 9. This tranche also closes the loop on Features, feat grants, systems, and any remaining route families that were intentionally held until the main locked surfaces were complete.
+Finish the remaining Phase 9 frontend rebuild work before deeper manual testing. This tranche stays on the existing `codex/refactor` branch and does not delete old branches. The priority is to remove the last active mixed frontend patterns, then add supporting Systems/Features surfaces only where the backend ownership model is safe.
 
-## Prerequisite
+## Prerequisites
 
 - [PHASE_9_13_CODE_CLASS_SUBPLAN.md](PHASE_9_13_CODE_CLASS_SUBPLAN.md)
 - [PHASE_9_15_CHARACTER_SHEET_SUBPLAN.md](PHASE_9_15_CHARACTER_SHEET_SUBPLAN.md)
 
-## Scope
+## Current Inventory
 
-- Features
-- feat grants
-- systems
-- remaining admin or utility surfaces that still need to migrate to the new shell, transport, and form runtime
-- final cleanup of provisional or bypassed frontend code
+- Equipment, Vehicle, Class, Spell, Background, Feat, Race, and Creature use the accepted route-loader-driven authoring pattern.
+- The old Spell/Background/Feat/Race/Creature `*Form` wrappers, route user-id props, component-level authored read hooks, and pass-through form composition have been retired.
+- `components/editors` and `legacy` are gone from the active frontend, but `apps/web/src/server/auth` remains valid auth infrastructure, not product-data legacy.
+- Systems have read APIs, web query adapters, and active read-only list/detail routes.
+- Features and feat grants have backend repositories/services and hardened node maps, but they are not yet modeled as safe user-owned authored subjects with draft sidecar parity.
 
-## Surface Rules
+## Key Decisions
 
-- Do not invent new UX that conflicts with locked Figma.
-- Where standalone Figma is thinner for supporting surfaces, prefer stable admin UX on the new shell rather than resurrecting stale placeholder-era patterns.
-- Supporting surfaces still follow the same transport, Storybook, Playwright, and review-gate rules as the primary domains.
+- Continue on `codex/refactor`; branch deletion waits until the full rebuild is done and ready for deep manual testing.
+- Do not expose standalone Feature or feat-grant create/edit routes until ownership, system scoping, permissions, and draft sidecar behavior are explicitly implemented.
+- Treat feat grants as node-map-backed child records in this tranche, not a standalone user-facing authored domain.
+- Treat Features as a support/reference surface first unless we add a real authored ownership model. The existing direct feature upsert path must not become a user-facing UI shortcut.
+- Keep authored domain forms node-driven through `createAuthoringFormRenderer`; do not rebuild bespoke grant/feature editors.
 
 ## Implementation Tracks
 
-1. Rebuild Features on the shared runtime and shell.
-2. Rebuild feat grants on the shared runtime and shell.
-3. Rebuild systems browsing and selection on the shared list and data runtime.
-4. Migrate any remaining utility routes onto the new architecture.
-5. Remove the old provisional frontend code once each replacement route is live.
+### 1. Finish Active Authored Form Cleanup
 
-## Final Cleanup Targets
+- Migrate Spell, Background, Feat, Race, and Creature create/edit pages to the Equipment/Class pattern.
+- Route loaders own reads for systems, active records, drafts, and optional active fallback.
+- Remove route-passed `userId`; server auth/RLS owns identity.
+- Remove old `*Form` pass-through wrappers once each domain page owns `useAppForm`, provider registration, mutations, invalid-draft recovery, and layout rendering.
+- Move missing mutation hooks into each domain data folder for parity with Equipment/Vehicle/Class.
+- Keep domain renderers as tiny adapters around `createAuthoringFormRenderer`.
 
-- `apps/web/src/server/domains/*`
-- direct product-data imports from `@artificer-toolkit/db`
-- direct product-data imports from `@artificer-toolkit/functions`
-- legacy Supabase `upsert_*` write paths from `apps/web`
-- old `Form`, `List`, and `Detail` abstractions that encode outdated product structure
-- `useDomainForm`
-- `formStore`
-- stale web-local type unions that no longer match the backend contracts
-- dead placeholder routes and provisional shell code
+### 2. Systems Surface
 
-## Stories, Tests, and Playwright
+- Add `/systems` as a read-only supporting surface using the active shell and data runtime.
+- Add `/systems/$systemId` if a simple reader view adds value; otherwise keep one list page with expandable summaries.
+- Add Systems to active navigation only after the route is live.
+- Do not add system authoring unless a separate product decision defines multi-system editing.
 
-- Storybook:
-  - supporting shared components
-  - feature and feat-grant sections
-  - systems list states
-- Vitest:
-  - any remaining supporting-store or adapter logic
-  - cleanup-sensitive regressions
-- Playwright:
-  - systems navigation
-  - features and feat-grant create or edit flows as applicable
-  - regression sweep across surviving route families
+### 3. Feature Support Surface
 
-## Review Gate
+- Do not add Feature browsing/detail in this tranche unless it can be backed by current APIs without pretending Features are user-owned authored records.
+- If standalone Feature authoring is accepted later, first add schema/db/API parity: `FEATURE` draft kind, ownership/system scoping, provenance/permissions, list-with-drafts, detail response, route/body guards, and node-runtime normalization.
+- `FEATURE_NODE_MAP` and `OPTION_NODE_MAP` now expose stable step metadata and rich text field types before any feature authoring UI is exposed.
 
-- No remaining active route depends on the old provisional architecture.
-- Supporting surfaces are on the same shell, transport, and runtime stack as the primary domains.
-- Regression sweep passes before any broader transport cutovers continue.
+### 4. Feat Grant Support
+
+- Keep feat grants as child maps used by Features/Feats/Options.
+- Add node-map/runtime tests for feat grant visibility, options, defaults, and nested parent/ancestor behavior.
+- Do not add a public `/feat-grants` route in this tranche unless a clear admin-only use case is approved.
+
+### 5. Final Cleanup
+
+- Delete retired domain `*Form` wrappers and tests/stories that only exercise the removed wrapper path.
+- Remove unused domain-local empty nested item helpers once shared node defaults cover the active renderer path.
+- Tighten architecture tests to catch:
+  - active route user-id props
+  - component-level authored read hooks in create/edit pages
+  - old `*Form` wrappers
+  - product-data imports outside `apps/apis`
+  - direct Feature/feat-grant upsert UI usage
+- Update [PHASE_9_CODE_OVERVIEW.md](PHASE_9_CODE_OVERVIEW.md) and [AGENTS.md](AGENTS.md) after validation.
+
+## Test Plan
+
+- Route tests prove migrated Spell, Background, Feat, Race, and Creature create/edit pages still mount and tolerate draft-only IDs.
+- Form tests prove migrated pages preserve invalid-draft recovery, locked/master read-only mode, duplicate-to-draft, save draft, and activation.
+- Systems tests cover list loading, empty/error states, and navigation.
+- Node-runtime tests cover feature/option/grant child maps, rich text fields, defaults, parent/ancestor conditions, and clear paths.
+- Static checks prove no active authored create/edit route passes `userId`, imports removed `*Form` wrappers, or calls product read hooks where loader data should be used.
+- Gates:
+  - `yarn build:schema`
+  - `yarn build:shared`
+  - `yarn build:functions`
+  - `yarn build:db`
+  - `yarn build:apis`
+  - focused migrated-domain tests
+  - `yarn workspace @artificer-toolkit/web typecheck:app`
+  - targeted ESLint with `--max-warnings 0`
+  - `yarn workspace @artificer-toolkit/web test`
+  - Storybook build/e2e where touched
+  - `yarn build:web`
 
 ## Exit Criteria
 
-- The frontend rebuild is functionally complete for the Phase 9 scope.
-- Legacy provisional frontend code is off the active route path or deleted.
-- The repo is ready for subsequent tRPC cutover work without still carrying the old UI architecture as a parallel implementation.
+- Active Phase 9 authored create/edit pages all use the same route-loader + provider registration + node-renderer pattern.
+- Systems have an active rebuilt supporting surface if included in navigation.
+- Feature/feat-grant authoring is either intentionally deferred or made safe with real authored ownership/draft parity before UI exposure.
+- No old provisional frontend architecture remains on active route paths.
+- The frontend rebuild is ready for the next accepted tranche and eventual deep manual testing.

@@ -4,14 +4,12 @@ import { createServerApi } from '#app/lib/api'
 import { BackgroundCreatePage } from '#domains/backgrounds'
 
 export const Route = createFileRoute('/_authed/backgrounds/new')({
-  loader: ({ context }) => context.queryClient.ensureQueryData(
-    getSystemList(createServerApi(context.accessToken))
-  ),
-  component: NewBackgroundRoute
+  loader: async ({ context }) => {
+    const systems = await context.queryClient.ensureQueryData(
+      getSystemList(createServerApi(context.accessToken))
+    )
+
+    return { systems }
+  },
+  component: () => <BackgroundCreatePage />
 })
-
-function NewBackgroundRoute() {
-  const { user } = Route.useRouteContext()
-
-  return <BackgroundCreatePage userId={user?.id ?? 'unknown-user'} />
-}

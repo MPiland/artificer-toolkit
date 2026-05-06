@@ -43,6 +43,9 @@ describe('node map inventory', () => {
       'equipment',
       'facet',
       'feat',
+      'featGrant',
+      'featGrantLevel',
+      'featGrantProgression',
       'feature',
       'featureGrants',
       'modifierGrant',
@@ -71,6 +74,23 @@ describe('node map inventory', () => {
     ))
 
     expect(missingChildren).toEqual([])
+  })
+
+  it('keeps feature grant families reachable through feature-backed child maps', () => {
+    const registry = collectNodeMaps(activeRootMaps)
+
+    expect(registry.get('featureGrants')?.nodes).toMatchObject({
+      feats: { kind: 'GROUP', groupKind: 'ARRAY' },
+      modifiers: { kind: 'GROUP', groupKind: 'ARRAY' },
+      proficiencies: { kind: 'GROUP', groupKind: 'ARRAY' },
+      senses: { kind: 'GROUP', groupKind: 'ARRAY' },
+      spells: { kind: 'GROUP', groupKind: 'ARRAY' }
+    })
+    expect(registry.has('featGrant')).toBe(true)
+    expect(registry.has('modifierGrant')).toBe(true)
+    expect(registry.has('proficiencyGrant')).toBe(true)
+    expect(registry.has('senseGrant')).toBe(true)
+    expect(registry.has('spellGrant')).toBe(true)
   })
 })
 

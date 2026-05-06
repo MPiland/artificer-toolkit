@@ -103,3 +103,9 @@ const creatureAuthoredDtoSchemaBase = z.object({
 
 export type CreatureAuthoredDto = z.infer<typeof creatureAuthoredDtoSchemaBase>
 export const creatureAuthoredDtoSchema = creatureAuthoredDtoSchemaBase
+
+export const creatureAuthoringInputDtoSchema = creatureAuthoredDtoSchemaBase.extend({
+  userId: z.string().optional()
+})
+
+export type CreatureAuthoringInputDto = z.infer<typeof creatureAuthoringInputDtoSchema>

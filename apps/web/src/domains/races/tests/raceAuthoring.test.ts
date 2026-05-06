@@ -21,23 +21,21 @@ describe('race authoring helpers', () => {
   it('creates editable base race and subrace drafts', () => {
     vi.spyOn(crypto, 'randomUUID').mockReturnValue(generatedId)
 
-    expect(createEmptyBaseRace({ systemId: 'dnd-5e-srd', userId: 'user-1' })).toMatchObject({
+    expect(createEmptyBaseRace({ systemId: 'dnd-5e-srd' })).toMatchObject({
       id: generatedId,
       label: '',
       status: 'DRAFT',
       category: 'BASE',
       selectionMode: 'DIRECT',
       size: 'MEDIUM',
-      userId: 'user-1',
       systemId: 'dnd-5e-srd'
     })
-    expect(createEmptySubrace({ systemId: 'dnd-5e-srd', userId: 'user-1' })).toMatchObject({
+    expect(createEmptySubrace({ systemId: 'dnd-5e-srd' })).toMatchObject({
       id: generatedId,
       label: '',
       status: 'DRAFT',
       category: 'SUBRACE',
       parentRaceId: '',
-      userId: 'user-1',
       systemId: 'dnd-5e-srd'
     })
   })
@@ -48,8 +46,8 @@ describe('race authoring helpers', () => {
   })
 
   it('normalizes category-specific payloads before save', () => {
-    const base = createEmptyBaseRace({ systemId: 'dnd-5e-srd', userId: 'user-1' })
-    const subrace = createEmptySubrace({ systemId: 'dnd-5e-srd', userId: 'user-1' })
+    const base = createEmptyBaseRace({ systemId: 'dnd-5e-srd' })
+    const subrace = createEmptySubrace({ systemId: 'dnd-5e-srd' })
 
     expect(normalizeRaceForSubmit({
       ...base,
@@ -80,7 +78,6 @@ describe('race authoring helpers', () => {
       parentRaceId: 'elf',
       details: [],
       features: [],
-      userId: 'user-1',
       systemId: 'dnd-5e-srd'
     })
   })

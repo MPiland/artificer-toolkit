@@ -35,3 +35,8 @@ export const featAuthoredDtoSchema = z.object({
 
 export type FeatAuthoredDto = z.infer<typeof featAuthoredDtoSchema>
 
+export const featAuthoringInputDtoSchema = featAuthoredDtoSchema.extend({
+  userId: z.string().optional()
+})
+
+export type FeatAuthoringInputDto = z.infer<typeof featAuthoringInputDtoSchema>

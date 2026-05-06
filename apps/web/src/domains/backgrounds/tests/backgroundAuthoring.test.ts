@@ -33,7 +33,7 @@ describe('background authoring helpers', () => {
   it('creates a draft background with editable collection defaults', () => {
     vi.spyOn(crypto, 'randomUUID').mockReturnValue(generatedId)
 
-    const background = createEmptyBackground({ systemId: 'dnd-5e-srd', userId: 'user-1' })
+    const background = createEmptyBackground({ systemId: 'dnd-5e-srd' })
 
     expect(background).toMatchObject({
       kind: 'BACKGROUND',
@@ -43,14 +43,13 @@ describe('background authoring helpers', () => {
       details: [],
       proficiencies: [],
       features: [],
-      userId: 'user-1',
       systemId: 'dnd-5e-srd'
     })
     expect(background.startingEquipment?.sets[0]?.groups[0]?.options[0]?.items).toEqual([])
   })
 
   it('normalizes missing optional collections before save', () => {
-    const background = createEmptyBackground({ systemId: 'dnd-5e-srd', userId: 'user-1' })
+    const background = createEmptyBackground({ systemId: 'dnd-5e-srd' })
     const normalized = normalizeBackgroundForSubmit({
       ...background,
       label: '  ',
