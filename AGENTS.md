@@ -38,7 +38,7 @@ Current default focus is Phase 9 frontend modernization.
 - 9.13 class implementation: complete
 - 9.14 character builder: builder choice flow implemented
 - 9.15 character sheet: implemented, closeout validation passed
-- 9.16 supporting surfaces and final cleanup: implemented, validation in progress
+- 9.16 supporting surfaces and final cleanup: complete
 
 Before starting a new frontend task, confirm the active tranche in [PHASE_9_CODE_OVERVIEW.md](/c:/Users/pilan/Desktop/artificer-toolkit/PHASE_9_CODE_OVERVIEW.md).
 
@@ -104,7 +104,7 @@ Current frontend posture:
 - 9.13 class implementation is complete.
 - 9.14 character builder has the builder choice flow implemented.
 - 9.15 character sheet is implemented with closeout validation passed.
-- 9.16 supporting surfaces and final cleanup is implemented with validation in progress.
+- 9.16 supporting surfaces and final cleanup is complete.
 
 Per-tranche expectations:
 

@@ -23,7 +23,7 @@ describe('character routes', () => {
     expect(matches.at(-1)?.routeId).toBe('/_authed/characters/$characterId/edit')
   })
 
-  it('matches the placeholder sheet route for direct character URLs', () => {
+  it('matches the character sheet route for direct character URLs', () => {
     const router = getRouter(null)
     const matches = router.matchRoutes('/characters/test-character')
 

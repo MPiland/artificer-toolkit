@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw'
-import type { NodeRuntimeResolveRequestDto, NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema'
+import type { NodeRuntimeResolveRequestDto, NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 
 const API_BASE = 'http://localhost:3001'
 
