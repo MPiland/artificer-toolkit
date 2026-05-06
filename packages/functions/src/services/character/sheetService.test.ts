@@ -1275,6 +1275,49 @@ describe('character sheet command application', () => {
     ])
   })
 
+  it('preserves class state ordering when updating prepared spells', () => {
+    const character = createCharacter()
+    character.state.classes = [
+      {
+        classId: 'class-1',
+        spells: {
+          learned: ['spell-1']
+        }
+      },
+      {
+        classId: 'class-2',
+        spells: {
+          learned: ['spell-3'],
+          prepared: ['spell-3']
+        }
+      }
+    ]
+
+    const next = applyCharacterSheetCommand(character, {
+      type: 'SET_PREPARED_SPELLS',
+      classId: 'class-1',
+      spellIds: ['spell-1'],
+      expectedVersion: 1
+    }, createSheet())
+
+    expect(next.state.classes).toEqual([
+      {
+        classId: 'class-1',
+        spells: {
+          learned: ['spell-1'],
+          prepared: ['spell-1']
+        }
+      },
+      {
+        classId: 'class-2',
+        spells: {
+          learned: ['spell-3'],
+          prepared: ['spell-3']
+        }
+      }
+    ])
+  })
+
   it('treats already prepared spells as known for future preparation updates', () => {
     const character = createCharacter()
     character.state.classes = [

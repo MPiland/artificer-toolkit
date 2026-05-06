@@ -1417,21 +1417,21 @@ export function applyCharacterSheetCommand(
       if (unavailableSpell) throw new CharacterSheetCommandError(`Spell "${unavailableSpell}" is not available for class "${command.classId}".`)
       const existing = next.state.classes ?? []
       const currentClassState = existing.find((classState) => classState.classId === command.classId)
-      const otherClasses = existing.filter((classState) => classState.classId !== command.classId)
       const learned = [...new Set(currentClassState?.spells?.learned ?? [])]
       const spells = {
         learned: learned.length ? learned : undefined,
         prepared: preparedSpellIds.length ? preparedSpellIds : undefined
       }
-      next.state.classes = spells.learned || spells.prepared
-        ? [
-            ...otherClasses,
-            {
-              classId: command.classId,
-              spells
-            }
-          ]
-        : otherClasses
+      const nextClassState = spells.learned || spells.prepared
+        ? currentClassState
+          ? { ...currentClassState, spells }
+          : { classId: command.classId, spells }
+        : null
+      next.state.classes = currentClassState
+        ? existing.flatMap((classState) => classState.classId === command.classId
+            ? nextClassState ? [nextClassState] : []
+            : [classState])
+        : nextClassState ? [...existing, nextClassState] : existing
       return clearEmptyStateArrays(next)
     }
 
