@@ -1,6 +1,7 @@
-import { Button, Group, NumberInput, Select, Text, Title } from '@mantine/core'
+import { Button, NumberInput, Text, Textarea, Title } from '@mantine/core'
 import { useState } from 'react'
 import * as styles from './characterSheet.css'
+import { CharacterSheetConditions } from './CharacterSheetConditions'
 import type { CharacterSheetSectionProps } from './CharacterSheet.types'
 import { formatSigned, toNumber } from './characterSheet.utils'
 
@@ -17,13 +18,14 @@ function CharacterSheetHpControls({
   return (
     <div className={styles.hpControls}>
       <NumberInput
+        disabled={pending}
         label='Amount'
         min={0}
         value={hitPointDelta}
         onChange={(value) => setHitPointDelta(toNumber(value))}
       />
       <Button
-        disabled={pending}
+        disabled={pending || hitPointDelta <= 0}
         onClick={() => submitCommand({
           type: 'ADJUST_HIT_POINTS',
           amount: hitPointDelta,
@@ -34,7 +36,7 @@ function CharacterSheetHpControls({
         Apply Damage
       </Button>
       <Button
-        disabled={pending}
+        disabled={pending || hitPointDelta <= 0}
         variant='default'
         onClick={() => submitCommand({
           type: 'ADJUST_HIT_POINTS',
@@ -46,12 +48,14 @@ function CharacterSheetHpControls({
         Heal
       </Button>
       <NumberInput
+        disabled={pending}
         label='Temp HP'
         min={0}
         value={tempHitPoints}
         onChange={(value) => setTempHitPoints(toNumber(value))}
       />
       <NumberInput
+        disabled={pending}
         label='Max HP override'
         min={0}
         placeholder={String(sheet.overview.maxHitPoints)}
@@ -74,13 +78,91 @@ function CharacterSheetHpControls({
   )
 }
 
+function CharacterSheetExhaustionControls({
+  pending,
+  sheet,
+  submitCommand,
+  version
+}: CharacterSheetSectionProps & { version: number }) {
+  const [exhaustionNotes, setExhaustionNotes] = useState(sheet.overview.exhaustionNotes ?? '')
+  const hasExhaustion = sheet.overview.exhaustionLevel > 0
+
+  return (
+    <div className={styles.row}>
+      <div>
+        <Text fw={700}>Exhaustion</Text>
+        <Text className={styles.muted}>
+          Level
+          {' '}
+          {sheet.overview.exhaustionLevel}
+        </Text>
+        {sheet.overview.exhaustionNotes ? <Text className={styles.muted}>{sheet.overview.exhaustionNotes}</Text> : null}
+      </div>
+      <div className={styles.compactActions}>
+        <Button
+          disabled={pending || sheet.overview.exhaustionLevel <= 0}
+          size='xs'
+          variant='default'
+          onClick={() => submitCommand({
+            type: 'SET_EXHAUSTION',
+            level: Math.max(sheet.overview.exhaustionLevel - 1, 0),
+            expectedVersion: version
+          })}
+        >
+          Reduce
+        </Button>
+        <Button
+          disabled={pending || sheet.overview.exhaustionLevel >= 6}
+          size='xs'
+          onClick={() => submitCommand({
+            type: 'SET_EXHAUSTION',
+            level: Math.min(sheet.overview.exhaustionLevel + 1, 6),
+            expectedVersion: version
+          })}
+        >
+          Increase
+        </Button>
+      </div>
+      {hasExhaustion
+        ? (
+            <div className={`${styles.inlineEditorShell} ${styles.inlineEditor}`}>
+              <Textarea
+                autosize
+                disabled={pending}
+                label='Exhaustion notes'
+                minRows={2}
+                placeholder='Track forced marches, curses, environmental effects, or table rulings.'
+                value={exhaustionNotes}
+                onChange={(event) => setExhaustionNotes(event.currentTarget.value)}
+              />
+              <div className={styles.compactActions}>
+                <Button
+                  disabled={pending}
+                  size='xs'
+                  variant='default'
+                  onClick={() => submitCommand({
+                    type: 'SET_EXHAUSTION',
+                    level: sheet.overview.exhaustionLevel,
+                    notes: exhaustionNotes.trim(),
+                    expectedVersion: version
+                  })}
+                >
+                  Save Exhaustion Notes
+                </Button>
+              </div>
+            </div>
+          )
+        : null}
+    </div>
+  )
+}
+
 export function CharacterSheetOverview({
   pending,
   sheet,
   submitCommand
 }: CharacterSheetSectionProps) {
   const version = sheet.meta.streamVersion
-  const [conditionTypeId, setConditionTypeId] = useState<string | null>(null)
 
   return (
     <section className={styles.panel} aria-labelledby='character-sheet-overview'>
@@ -133,111 +215,19 @@ export function CharacterSheetOverview({
       </div>
 
       <div className={styles.rowList}>
-        <div className={styles.row}>
-          <div>
-            <Text fw={700}>Exhaustion</Text>
-            <Text className={styles.muted}>
-              Level
-              {sheet.overview.exhaustionLevel}
-            </Text>
-          </div>
-          <div className={styles.compactActions}>
-            <Button
-              disabled={pending || sheet.overview.exhaustionLevel <= 0}
-              size='xs'
-              variant='default'
-              onClick={() => submitCommand({
-                type: 'SET_EXHAUSTION',
-                level: Math.max(sheet.overview.exhaustionLevel - 1, 0),
-                expectedVersion: version
-              })}
-            >
-              Reduce
-            </Button>
-            <Button
-              disabled={pending || sheet.overview.exhaustionLevel >= 6}
-              size='xs'
-              onClick={() => submitCommand({
-                type: 'SET_EXHAUSTION',
-                level: Math.min(sheet.overview.exhaustionLevel + 1, 6),
-                expectedVersion: version
-              })}
-            >
-              Increase
-            </Button>
-          </div>
-        </div>
-
-        <div className={styles.row}>
-          <div>
-            <Text fw={700}>Conditions</Text>
-            <Text className={styles.muted}>
-              {sheet.overview.conditions.length ? sheet.overview.conditions.map((condition) => condition.label).join(', ') : 'No active conditions'}
-            </Text>
-          </div>
-          <div className={styles.compactActions}>
-            <Select
-              data={sheet.reference.conditionOptions.map((option) => ({
-                value: option.id,
-                label: option.label
-              }))}
-              placeholder='Add condition'
-              value={conditionTypeId}
-              onChange={setConditionTypeId}
-              searchable
-            />
-            <Button
-              disabled={pending || !conditionTypeId}
-              size='xs'
-              onClick={() => {
-                if (!conditionTypeId) return
-                submitCommand({
-                  type: 'ADD_CONDITION',
-                  conditionTypeId,
-                  expectedVersion: version
-                })
-                setConditionTypeId(null)
-              }}
-            >
-              Add
-            </Button>
-          </div>
-        </div>
-
-        {sheet.overview.conditions.map((condition) => (
-          <div className={styles.row} key={condition.conditionTypeId}>
-            <Text>{condition.label}</Text>
-            <Button
-              disabled={pending}
-              size='xs'
-              variant='default'
-              onClick={() => submitCommand({
-                type: 'REMOVE_CONDITION',
-                conditionTypeId: condition.conditionTypeId,
-                expectedVersion: version
-              })}
-            >
-              Remove
-            </Button>
-          </div>
-        ))}
+        <CharacterSheetExhaustionControls
+          key={`${version}:${sheet.overview.exhaustionLevel}:${sheet.overview.exhaustionNotes ?? ''}`}
+          pending={pending}
+          sheet={sheet}
+          submitCommand={submitCommand}
+          version={version}
+        />
+        <CharacterSheetConditions
+          pending={pending}
+          sheet={sheet}
+          submitCommand={submitCommand}
+        />
       </div>
-
-      <Group>
-        <Button
-          disabled={pending}
-          variant='default'
-          onClick={() => submitCommand({ type: 'APPLY_REST', restKind: 'SHORT', expectedVersion: version })}
-        >
-          Short Rest
-        </Button>
-        <Button
-          disabled={pending}
-          onClick={() => submitCommand({ type: 'APPLY_REST', restKind: 'LONG', expectedVersion: version })}
-        >
-          Long Rest
-        </Button>
-      </Group>
     </section>
   )
 }

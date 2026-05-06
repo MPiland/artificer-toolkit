@@ -1,6 +1,12 @@
 import { z } from 'zod'
 
-import { abilityCodeSchema, authoredRecordStatusSchema } from '../shared/enums.js'
+import {
+  abilityCodeSchema,
+  authoredRecordStatusSchema,
+  equipmentPropertyCodeSchema,
+  spellAttributeSchema,
+  spellComponentSchema
+} from '../shared/enums.js'
 import { unknownObjectSchema } from '../shared/facet.js'
 import { startingEquipmentDtoSchema } from '../shared/startingEquipment.js'
 import {
@@ -16,7 +22,13 @@ import {
   characterStartingEquipmentDecisionDtoSchema,
   characterStateDtoSchema
 } from '../subjects/index.js'
-import { classStartingGoldDtoSchema } from '../subjects/shared.js'
+import {
+  castingTimeDtoSchema,
+  classHitpointDtoSchema,
+  classStartingGoldDtoSchema,
+  costDtoSchema,
+  weightDtoSchema
+} from '../subjects/shared.js'
 import { listResponseDtoSchema } from './common.js'
 
 export const characterBuilderModeDtoSchema = z.enum(['create', 'edit'])
@@ -154,6 +166,7 @@ export const characterBuilderSummaryDtoSchema = z.object({
 export const characterBuilderGrantSummaryItemDtoSchema = z.object({
   id: z.string(),
   label: z.string(),
+  description: z.string().optional(),
   sourceLabel: z.string(),
   source: characterProvenanceDtoSchema
 })
@@ -223,6 +236,7 @@ export const characterBuilderRaceReferenceDtoSchema = characterBuilderReferenceO
 
 export const characterBuilderClassReferenceDtoSchema = characterBuilderReferenceOptionDtoSchema.extend({
   category: z.string().optional(),
+  hitpoint: classHitpointDtoSchema.optional(),
   parentClassId: z.string().optional(),
   specializations: z.array(characterBuilderReferenceOptionDtoSchema).optional()
 })
@@ -416,7 +430,8 @@ export const characterSheetFactDtoSchema = z.object({
 
 export const characterSheetOptionDtoSchema = z.object({
   id: z.string(),
-  label: z.string()
+  label: z.string(),
+  description: z.string().optional()
 })
 
 export const characterSheetMetaDtoSchema = z.object({
@@ -453,6 +468,7 @@ export const characterSheetHitDiceDtoSchema = z.object({
 export const characterSheetConditionDtoSchema = z.object({
   conditionTypeId: z.string(),
   label: z.string(),
+  description: z.string().optional(),
   notes: z.string().optional()
 })
 
@@ -470,6 +486,7 @@ export const characterSheetOverviewDtoSchema = z.object({
   exhaustionLevel: z.number().int()
     .min(0)
     .max(6),
+  exhaustionNotes: z.string().optional(),
   conditions: z.array(characterSheetConditionDtoSchema),
   hitDice: z.array(characterSheetHitDiceDtoSchema)
 })
@@ -488,6 +505,7 @@ export const characterSheetActionDtoSchema = z.object({
 export const characterSheetResourceDtoSchema = z.object({
   id: z.string(),
   label: z.string(),
+  description: z.string().optional(),
   sourceLabel: z.string(),
   used: z.number().int(),
   max: z.number().int(),
@@ -505,20 +523,56 @@ export const characterSheetSpellSlotDtoSchema = z.object({
   remaining: z.number().int()
 })
 
+export const characterSheetSpellSourceDtoSchema = z.object({
+  classId: z.string(),
+  label: z.string(),
+  canPrepare: z.boolean(),
+  prepared: z.boolean().optional()
+})
+
+export const characterSheetSpellPreparationSourceDtoSchema = z.object({
+  classId: z.string(),
+  label: z.string(),
+  preparedSpellLimit: z.number().int()
+    .min(0)
+    .optional(),
+  preparedSpellIds: z.array(z.string())
+})
+
 export const characterSheetSpellDtoSchema = z.object({
   id: z.string(),
   label: z.string(),
+  description: z.string().optional(),
   level: z.number().int(),
   school: z.string().optional(),
+  castingTime: castingTimeDtoSchema.optional(),
+  components: z.array(spellComponentSchema).optional(),
+  attributes: z.array(spellAttributeSchema).optional(),
+  materialDescription: z.string().optional(),
   prepared: z.boolean().optional(),
   known: z.boolean().optional(),
-  sourceLabel: z.string().optional()
+  sourceLabel: z.string().optional(),
+  sources: z.array(characterSheetSpellSourceDtoSchema)
+    .optional()
 })
 
 export const characterSheetInventoryItemDtoSchema = z.object({
   id: z.string(),
   equipmentId: z.string(),
   label: z.string(),
+  equipmentLabel: z.string().optional(),
+  description: z.string().nullable()
+    .optional(),
+  category: z.string().optional(),
+  properties: z.array(equipmentPropertyCodeSchema)
+    .optional(),
+  rarityId: z.string().optional(),
+  cost: costDtoSchema.optional(),
+  costLabel: z.string().optional(),
+  weight: weightDtoSchema.optional(),
+  armorClass: z.number().int()
+    .optional(),
+  customName: z.string().optional(),
   quantity: z.number().int(),
   equipped: z.boolean(),
   attuned: z.boolean(),
@@ -578,7 +632,9 @@ export const characterSheetResponseDtoSchema = z.object({
     attackBonus: z.number().int()
       .nullable(),
     slots: z.array(characterSheetSpellSlotDtoSchema),
-    spells: z.array(characterSheetSpellDtoSchema)
+    spells: z.array(characterSheetSpellDtoSchema),
+    preparationSources: z.array(characterSheetSpellPreparationSourceDtoSchema)
+      .optional()
   }),
   inventory: z.object({
     items: z.array(characterSheetInventoryItemDtoSchema),

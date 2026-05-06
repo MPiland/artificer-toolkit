@@ -1,11 +1,9 @@
 import {
-  buildSnapshot,
   buildCharacterSheetResponse,
   createCharacterBuilderChangePreview,
   createEmptyCharacterAuthored,
   executeCharacterSheetCommand,
   handleAuthoringRequest,
-  handleCreateCharacter,
   handleRequest,
   reconcileCharacterBuilderCharacter,
   resolveCharacterBuilder,
@@ -22,12 +20,8 @@ import {
 import {
   AUTHORED_RECORD_STATUS,
   CLASS_CATEGORY,
-  type CharacterBuildState,
   buildCharacterHistoryView,
-  dnd5e2014RulesSystem,
-  runEngine,
-  type AuthoredRecordStatus,
-  type CharacterAssemblyRegistry
+  type AuthoredRecordStatus
 } from '@artificer-toolkit/shared/core'
 import {
   isSameCharacterProvenanceIdentity,
@@ -61,9 +55,6 @@ import {
   type CharacterSheetResponseDto,
   type CharacterHistoryResponseDto
 } from '@artificer-toolkit/schema/api/characters'
-import {
-  createCharacterCommandSchema
-} from '@artificer-toolkit/schema/domains/character/commands'
 import { assertCharacterBuilderDraftRevisionFresh } from './characterBuilderDraftConflict.js'
 
 type CharacterBuilderMode = 'create' | 'edit'
@@ -100,10 +91,6 @@ function extractCharacterIdFromBuilderDraftRoute(req: Request): string {
   const segments = url.pathname.split('/').filter(Boolean)
   const draftIdx = segments.lastIndexOf('builder-draft')
   return draftIdx > 0 ? segments[draftIdx - 1] : extractId(req)
-}
-
-function stubRegistry(): CharacterAssemblyRegistry {
-  return { features: {}, classes: {}, feats: {}, races: {}, equipment: {}, spells: {} }
 }
 
 function stripCharacterBuilderResolution(
@@ -529,6 +516,7 @@ function toCharacterBuilderReferences(
       id: classRecord.id,
       label: classRecord.label,
       category: classRecord.category,
+      hitpoint: 'hitpoint' in classRecord ? classRecord.hitpoint : undefined,
       parentClassId: 'parentClassId' in classRecord ? classRecord.parentClassId : undefined,
       specializations: 'specializations' in classRecord
         ? classRecord.specializations?.map((specialization) => ({
@@ -975,53 +963,6 @@ export const upsertCharacterBuilder = handleAuthoringRequest(characterBuilderCom
   const nextCharacter = persisted ?? payload.character
   return toCharacterBuilderPayload(nextCharacter, await resolveCharacterBuilder(db, nextCharacter, body.mode))
 })
-
-export const createLegacyCharacter = handleAuthoringRequest(createCharacterCommandSchema, async (db, command, userId) => {
-  const { events, newState } = await handleCreateCharacter(command, {
-    characterId: command.characterId,
-    systemId: command.systemId,
-    streamVersion: 0,
-    name: '',
-    classes: [],
-    abilityScores: {},
-    abilityGenerationMethod: 'STANDARD_ARRAY',
-    hitpointsByLevel: [],
-    featureSelections: [],
-    featRefs: [],
-    spellRefs: [],
-    ownedEquipment: []
-  }, stubRegistry(), dnd5e2014RulesSystem)
-
-  const repository = createCharacterRepository(db)
-  const eventRepository = createCharacterEventRepository(db)
-
-  await repository.create({
-    id: command.characterId,
-    systemId: command.systemId,
-    userId,
-    label: command.name,
-    buildState: newState as unknown as Json
-  })
-
-  await eventRepository.appendBatch(events)
-
-  return {
-    characterId: command.characterId,
-    streamVersion: newState.streamVersion
-  }
-})
-
-export const getLegacyCharacter = handleRequest(async (db, characterId: string) => {
-  const row = await createCharacterRepository(db).findById(characterId)
-  if (!row?.build_state) return null
-
-  const registry = stubRegistry()
-  const buildState = row.build_state as unknown as CharacterBuildState
-  const snapshot = buildSnapshot(buildState, registry)
-  const output = runEngine(snapshot, registry, dnd5e2014RulesSystem)
-
-  return { buildState, engineOutput: output }
-}, (req: Request) => [extractId(req)] as [string])
 
 export const dispatchCommand = handleAuthoringRequest(characterSheetCommandInputDtoSchema, async (db, command, userId, request): Promise<CharacterSheetCommandResponseDto> => {
   const characterId = extractCharacterIdFromCommandRoute(request)

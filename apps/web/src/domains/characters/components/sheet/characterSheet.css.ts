@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css'
+import { globalStyle, style } from '@vanilla-extract/css'
 import { foundationVars } from '#css/foundations.css'
 
 export const shell = style({
@@ -31,10 +31,15 @@ export const eyebrow = style({
 })
 
 export const heroTitle = style({
-  color: foundationVars.color.text.primary,
-  fontSize: 'clamp(2rem, 4vw, 3.4rem)',
-  lineHeight: 1,
-  margin: 0
+  'color': foundationVars.color.text.primary,
+  'fontSize': '2.5rem',
+  'lineHeight': 1.08,
+  'margin': 0,
+  '@media': {
+    '(max-width: 760px)': {
+      fontSize: '2rem'
+    }
+  }
 })
 
 export const heroMeta = style({
@@ -115,10 +120,16 @@ export const panel = style({
 })
 
 export const panelHeader = style({
-  display: 'flex',
-  gap: '12px',
-  justifyContent: 'space-between',
-  alignItems: 'flex-start'
+  'display': 'flex',
+  'gap': '12px',
+  'justifyContent': 'space-between',
+  'alignItems': 'flex-start',
+  'flexWrap': 'wrap',
+  '@media': {
+    '(max-width: 620px)': {
+      flexDirection: 'column'
+    }
+  }
 })
 
 export const panelTitle = style({
@@ -176,11 +187,32 @@ export const row = style({
   }
 })
 
+export const inlineEditorShell = style({
+  gridColumn: '1 / -1'
+})
+
+export const inlineEditor = style({
+  display: 'grid',
+  gap: '12px'
+})
+
 export const compactActions = style({
   display: 'flex',
   gap: '8px',
   flexWrap: 'wrap',
   justifyContent: 'flex-end'
+})
+
+globalStyle(`${compactActions} :where(button)`, {
+  minHeight: '34px'
+})
+
+globalStyle(`${compactActions} :where(button)`, {
+  '@media': {
+    '(max-width: 620px), (pointer: coarse)': {
+      minHeight: '44px'
+    }
+  }
 })
 
 export const hpControls = style({
@@ -190,6 +222,14 @@ export const hpControls = style({
   '@media': {
     '(max-width: 760px)': {
       gridTemplateColumns: '1fr'
+    }
+  }
+})
+
+globalStyle(`${hpControls} :where(button, input)`, {
+  '@media': {
+    '(max-width: 760px), (pointer: coarse)': {
+      minHeight: '44px'
     }
   }
 })

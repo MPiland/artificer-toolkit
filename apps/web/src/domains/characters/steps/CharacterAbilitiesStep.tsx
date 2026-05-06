@@ -1,9 +1,11 @@
 import { Alert, Button, Group, NumberInput, Stack, Text } from '@mantine/core'
-import { CHARACTER_ABILITY_GENERATION_METHOD } from '@artificer-toolkit/shared/core'
+import {
+  CHARACTER_ABILITY_GENERATION_METHOD,
+  HITPOINT_CALCULATION_METHOD_CODE
+} from '@artificer-toolkit/shared/core'
 import { withForm } from '#forms'
 import { AppSelect } from '#ui/primitives/Select'
 import {
-  abilityCodes,
   abilityMethodOptions,
   abilityOptions,
   cacheActiveAbilityIntent,
@@ -15,12 +17,11 @@ import {
   standardArrayOptions
 } from '../characterBuilder.utils'
 import * as styles from '../characterBuilder.css'
-import type { CharacterFormValues } from '../characterBuilder.utils'
+import {
+  createDefaultAbilityAssignments,
+  syncHitpointLevels
+} from './CharacterAbilitiesStep.utils'
 import type { CharacterBuilderStepProps } from './CharacterBuilderStep.types'
-
-type AbilityAssignment = CharacterFormValues['intent']['abilities']['assignments'][number]
-
-type HitpointLevel = CharacterFormValues['intent']['hitpoints']['levels'][number]
 
 export const CharacterAbilitiesStep = withForm({
   defaultValues: createFallbackCharacterFormValues(),
@@ -62,13 +63,21 @@ export const CharacterAbilitiesStep = withForm({
                     />
                   </div>
                   <div className={styles.fieldSpan6}>
-                    <form.AppField name='intent.hitpoints.method'>
+                    <form.AppField name='intent.hitpoints'>
                       {(field) => (
-                        <field.SelectField
+                        <AppSelect
                           label='Hit Point Method'
                           data={hitpointMethodOptions}
+                          value={field.state.value.method}
                           required
-                          readOnly={readOnly}
+                          disabled={readOnly}
+                          onChange={(value) => {
+                            if (!value) return
+                            field.handleChange({
+                              ...field.state.value,
+                              method: value
+                            })
+                          }}
                         />
                       )}
                     </form.AppField>
@@ -150,47 +159,69 @@ export const CharacterAbilitiesStep = withForm({
             )
           }}
         </form.AppField>
-        <form.AppField name='intent.hitpoints.levels' mode='array'>
-          {(field) => {
-            const rows = field.state.value ?? []
+        <form.AppField name='intent.hitpoints'>
+          {(hitpointField) => {
+            const hitpointMethod = hitpointField.state.value.method
+            const isManualHitpoints = hitpointMethod === HITPOINT_CALCULATION_METHOD_CODE.MANUAL
 
             return (
-              <Stack gap='md' className={styles.inlinePanel}>
-                <Group justify='space-between'>
-                  <Text fw={700}>Hit point entries</Text>
-                  {!readOnly
-                    ? (
-                        <Button
-                          type='button'
-                          variant='default'
-                          onClick={() => field.handleChange(createDefaultHitpointLevels(rows, requiredLevels))}
-                        >
-                          Sync Levels
-                        </Button>
-                      )
-                    : null}
-                </Group>
-                {rows.length === 0
-                  ? <Text className={styles.mutedText}>No hit point levels have been added yet.</Text>
-                  : rows.map((row, index) => (
-                      <Group key={`hp-${row.level}-${index}`} align='flex-end'>
-                        <NumberInput hideControls label='Level' value={row.level} readOnly />
-                        <NumberInput
-                          hideControls
-                          label='Hit Points'
-                          min={1}
-                          value={row.value}
-                          disabled={readOnly}
-                          onChange={(value) => {
-                            field.replaceValue(index, {
-                              ...row,
-                              value: typeof value === 'number' ? value : 1
-                            })
-                          }}
-                        />
+              <form.AppField name='intent.hitpoints.levels' mode='array'>
+                {(field) => {
+                  const rows = field.state.value ?? []
+
+                  return (
+                    <Stack gap='md' className={styles.inlinePanel}>
+                      <Group justify='space-between'>
+                        <div>
+                          <Text fw={700}>Hit point entries</Text>
+                          <Text className={styles.mutedText}>
+                            {isManualHitpoints
+                              ? 'Manual HP records the rolled total you choose to keep for each level.'
+                              : 'Fixed HP records the fixed total for each level from your character options.'}
+                          </Text>
+                        </div>
+                        {!readOnly
+                          ? (
+                              <Button
+                                type='button'
+                                variant='default'
+                                onClick={() => field.handleChange(syncHitpointLevels({
+                                  character: form.state.values,
+                                  classReferences: payload.references.classes,
+                                  requiredLevels,
+                                  resolvedAbilityScores: payload.resolution.summary.abilities,
+                                  rows
+                                }))}
+                              >
+                                Add Missing Levels
+                              </Button>
+                            )
+                          : null}
                       </Group>
-                    ))}
-              </Stack>
+                      {rows.length === 0
+                        ? <Text className={styles.mutedText}>No hit point levels have been added yet.</Text>
+                        : rows.map((row, index) => (
+                            <Group key={`hp-${row.level}-${index}`} align='flex-end'>
+                              <NumberInput hideControls label='Level' value={row.level} readOnly />
+                              <NumberInput
+                                hideControls
+                                label={isManualHitpoints ? 'Rolled HP Total' : 'Fixed HP Total'}
+                                min={1}
+                                value={row.value}
+                                disabled={readOnly}
+                                onChange={(value) => {
+                                  field.replaceValue(index, {
+                                    ...row,
+                                    value: typeof value === 'number' ? value : 1
+                                  })
+                                }}
+                              />
+                            </Group>
+                          ))}
+                    </Stack>
+                  )
+                }}
+              </form.AppField>
             )
           }}
         </form.AppField>
@@ -198,20 +229,3 @@ export const CharacterAbilitiesStep = withForm({
     )
   }
 })
-
-function createDefaultAbilityAssignments(): AbilityAssignment[] {
-  return abilityCodes.map((ability, index) => ({
-    ability,
-    option: standardArrayOptions[index]?.value ?? '8'
-  }))
-}
-
-function createDefaultHitpointLevels(rows: HitpointLevel[], requiredLevels: number): HitpointLevel[] {
-  return Array.from({ length: requiredLevels }, (_, index) => {
-    const level = index + 1
-    return rows.find((row) => row.level === level) ?? {
-      level,
-      value: level === 1 ? 8 : 5
-    }
-  })
-}

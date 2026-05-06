@@ -5,12 +5,19 @@ import {
   type DBLike
 } from '@artificer-toolkit/db'
 import {
+  ABILITIES,
   AUTHORED_RECORD_STATUS,
   CLASS_CATEGORY,
+  PREPARE_LIMIT_METHOD_KIND,
+  ROUNDING_CODE,
+  SCALING_AMOUNT_KIND,
+  SPELLCASTING_ATTRIBUTE,
   dnd5e2014RulesSystem,
   runEngine,
   type CharacterAssemblyRegistry,
   type CharacterBuildSnapshot,
+  type EngineProficiency,
+  type EngineSense,
   type EngineSpellSlots,
   type CharacterEvent
 } from '@artificer-toolkit/shared/core'
@@ -56,6 +63,106 @@ function abilityModifier(score: number): number {
 
 function formatModifier(value: number): string {
   return value >= 0 ? `+${value}` : String(value)
+}
+
+function formatCodeLabel(value: string): string {
+  return value
+    .toLowerCase()
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
+
+function createVocabularyLabelMap(
+  records: ReadonlyArray<{ id: string, code?: string, label: string }> | undefined
+): Map<string, string> {
+  const labels = new Map<string, string>()
+  for (const record of records ?? []) {
+    labels.set(record.id, record.label)
+    if (record.code) labels.set(record.code, record.label)
+  }
+  return labels
+}
+
+function isAbilityCode(value: string): value is keyof typeof ABILITIES {
+  return value in ABILITIES
+}
+
+function formatProficiencyScaling(scaling: EngineProficiency['scaling']): string {
+  switch (scaling) {
+    case 'DOUBLE':
+      return 'Expertise'
+    case 'HALF':
+      return 'Half proficiency'
+    case 'FULL':
+      return 'Proficient'
+  }
+}
+
+function formatProficiencyKind(kind: string): string {
+  switch (kind) {
+    case 'EQUIPMENT':
+      return 'Equipment'
+    case 'EQUIPMENT_PROPERTY':
+      return 'Equipment property'
+    case 'LANGUAGE':
+      return 'Language'
+    case 'SAVE_ABILITY':
+      return 'Saving throw'
+    case 'SKILL':
+      return 'Skill'
+    default:
+      return formatCodeLabel(kind)
+  }
+}
+
+function formatAllProficiencyLabel(kind: string): string {
+  switch (kind) {
+    case 'EQUIPMENT':
+      return 'All equipment'
+    case 'EQUIPMENT_PROPERTY':
+      return 'All equipment properties'
+    case 'LANGUAGE':
+      return 'All languages'
+    case 'SAVE_ABILITY':
+      return 'All saving throws'
+    case 'SKILL':
+      return 'All skills'
+    default:
+      return `All ${formatCodeLabel(kind).toLowerCase()}`
+  }
+}
+
+function formatProficiencyLabel(params: {
+  equipmentLabels: ReadonlyMap<string, string>
+  languageLabels: ReadonlyMap<string, string>
+  proficiency: EngineProficiency
+  skillLabels: ReadonlyMap<string, string>
+}): string {
+  const { proficiency } = params
+  if (proficiency.subjectId === '*') return formatAllProficiencyLabel(proficiency.kind)
+
+  switch (proficiency.kind) {
+    case 'EQUIPMENT':
+      return params.equipmentLabels.get(proficiency.subjectId) ?? 'Unknown equipment'
+    case 'EQUIPMENT_PROPERTY':
+      return formatCodeLabel(proficiency.subjectId)
+    case 'LANGUAGE':
+      return params.languageLabels.get(proficiency.subjectId) ?? 'Unknown language'
+    case 'SAVE_ABILITY':
+      return isAbilityCode(proficiency.subjectId)
+        ? `${ABILITIES[proficiency.subjectId].label} saves`
+        : 'Unknown saving throw'
+    case 'SKILL':
+      return params.skillLabels.get(proficiency.subjectId) ?? 'Unknown skill'
+    default:
+      return formatCodeLabel(proficiency.subjectId)
+  }
+}
+
+function formatSenseRange(sense: EngineSense): string {
+  if (sense.range?.rangeKind !== 'DISTANCE') return 'Available'
+  return `${sense.range.amount} ${formatCodeLabel(sense.range.unit).toLowerCase()}`
 }
 
 const ENGINE_ABILITY_ALIASES: Readonly<Record<string, string>> = {
@@ -288,12 +395,11 @@ function getPreparedAndKnownSpellIds(character: CharacterAuthored): {
   return { learned, prepared }
 }
 
-function getKnownSpellIdsForClass(character: CharacterAuthored, classId: string): Set<string> {
+function getKnownSpellIdsForClassIntent(character: CharacterAuthored, classId: string): Set<string> {
   const known = new Set<string>()
   const classIntent = character.intent.classes.find((row) => row.classId === classId)
   const classState = character.state.classes?.find((row) => row.classId === classId)
   for (const spellId of classState?.spells?.learned ?? []) known.add(spellId)
-  for (const spellId of classState?.spells?.prepared ?? []) known.add(spellId)
 
   for (const selection of character.intent.spellSelections ?? []) {
     if (selection.source.kind === 'CLASS' && selection.source.classId === classId) {
@@ -309,6 +415,345 @@ function getKnownSpellIdsForClass(character: CharacterAuthored, classId: string)
   }
 
   return known
+}
+
+type CharacterSheetSpellSource = {
+  classId: string
+  label: string
+  canPrepare: boolean
+  prepared: boolean
+}
+
+function getSpellClassIdsById(resolution: CharacterBuilderResolution): Map<string, ReadonlySet<string>> {
+  return new Map(resolution.registry.spells.map((spell) => [spell.id, new Set(spell.classIds)]))
+}
+
+function getSubclassAliasLabels(
+  classIntent: CharacterAuthored['intent']['classes'][number],
+  resolution: CharacterBuilderResolution
+): Set<string> {
+  if (!classIntent.subclassId) return new Set<string>()
+
+  const labels = new Set<string>()
+  const classSummary = resolution.summary.classes.find((summary) => summary.classId === classIntent.classId
+    && summary.subclassId === classIntent.subclassId)
+  if (classSummary?.subclassLabel) labels.add(classSummary.subclassLabel)
+
+  const subclassGrantSources = [
+    ...resolution.grants.features,
+    ...resolution.grants.resources,
+    ...resolution.grants.spellcasting
+  ].filter((grant) => grant.source.kind === 'SUBCLASS' && grant.source.subclassId === classIntent.subclassId)
+
+  for (const grant of subclassGrantSources) {
+    labels.add(grant.sourceLabel)
+  }
+
+  return labels
+}
+
+function getSpellClassIdsForClassIntent(
+  classIntent: CharacterAuthored['intent']['classes'][number],
+  resolution: CharacterBuilderResolution
+): Set<string> {
+  const classIds = new Set<string>([classIntent.classId])
+  if (!classIntent.subclassId) return classIds
+
+  classIds.add(classIntent.subclassId)
+  const subclassAliasLabels = getSubclassAliasLabels(classIntent, resolution)
+  for (const classRecord of resolution.registry.classes) {
+    if (classRecord.category !== CLASS_CATEGORY.SUBCLASS || classRecord.parentClassId !== classIntent.classId) continue
+    if (
+      classRecord.id === classIntent.subclassId
+      || classRecord.specializations?.some((specialization) => specialization.id === classIntent.subclassId)
+      || subclassAliasLabels.has(classRecord.label)
+    ) {
+      classIds.add(classRecord.id)
+    }
+  }
+
+  return classIds
+}
+
+function getSpellClassIdsByActiveClassId(
+  character: CharacterAuthored,
+  resolution: CharacterBuilderResolution
+): Map<string, ReadonlySet<string>> {
+  return new Map(character.intent.classes.map((classIntent) => [
+    classIntent.classId,
+    getSpellClassIdsForClassIntent(classIntent, resolution)
+  ]))
+}
+
+function isSpellAvailableForClass(
+  spellClassIdsById: ReadonlyMap<string, ReadonlySet<string>>,
+  spellId: string,
+  classIds: ReadonlySet<string>
+): boolean {
+  const spellClassIds = spellClassIdsById.get(spellId)
+  if (!spellClassIds) return false
+  return [...classIds].some((classId) => spellClassIds.has(classId))
+}
+
+function isSpellcastingPreparationCapable(
+  classRecord: CharacterBuilderResolution['registry']['classes'][number] | undefined
+): boolean {
+  const spellcasting = classRecord?.spellcasting
+  if (!spellcasting) return false
+  return Boolean(
+    spellcasting.attributes?.includes(SPELLCASTING_ATTRIBUTE.PREPARES_SPELLS)
+    || spellcasting.prepareLimit
+    || spellcasting.spellLimits.some((limit) => (limit.preparedSpellsLimit ?? 0) > 0)
+  )
+}
+
+type SheetClassRecord = CharacterBuilderResolution['registry']['classes'][number]
+type SheetSpellcasting = NonNullable<SheetClassRecord['spellcasting']>
+type SheetPrepareLimit = NonNullable<SheetSpellcasting['prepareLimit']>
+
+function getActiveSpellLimit(
+  spellcasting: SheetSpellcasting,
+  classLevel: number
+): SheetSpellcasting['spellLimits'][number] | undefined {
+  return spellcasting.spellLimits
+    .filter((limit) => limit.classLevel <= classLevel)
+    .sort((left, right) => right.classLevel - left.classLevel)[0]
+}
+
+function roundPrepareLimitValue(
+  value: number,
+  rounding: SheetPrepareLimit['rounding'] = ROUNDING_CODE.DOWN
+): number {
+  switch (rounding) {
+    case ROUNDING_CODE.UP:
+      return Math.ceil(value)
+    case ROUNDING_CODE.NEAREST:
+      return Math.round(value)
+    case ROUNDING_CODE.DOWN:
+    default:
+      return Math.floor(value)
+  }
+}
+
+function scalePrepareLimitValue(
+  value: number,
+  scaling: SheetPrepareLimit['scaling'],
+  rounding: SheetPrepareLimit['rounding']
+): number {
+  switch (scaling) {
+    case SCALING_AMOUNT_KIND.HALF:
+      return roundPrepareLimitValue(value / 2, rounding)
+    case SCALING_AMOUNT_KIND.DOUBLE:
+      return value * 2
+    case SCALING_AMOUNT_KIND.FULL:
+    case undefined:
+    default:
+      return value
+  }
+}
+
+function getActivePrepareLimitTableAmount(
+  prepareLimit: SheetPrepareLimit,
+  classLevel: number
+): number {
+  return prepareLimit.perLevel
+    ?.filter((limit) => limit.classLevel <= classLevel)
+    .sort((left, right) => right.classLevel - left.classLevel)[0]
+    ?.amount ?? 0
+}
+
+function resolveSpellcastingPreparedSpellLimit(
+  spellcasting: SheetSpellcasting,
+  classLevel: number,
+  resolution: CharacterBuilderResolution
+): number | undefined {
+  const activeLimit = getActiveSpellLimit(spellcasting, classLevel)
+  if (activeLimit?.preparedSpellsLimit !== undefined) return activeLimit.preparedSpellsLimit
+
+  const prepareLimit = spellcasting.prepareLimit
+  if (!prepareLimit) return undefined
+
+  let amount = 0
+  for (const methodKind of prepareLimit.methodKinds) {
+    switch (methodKind) {
+      case PREPARE_LIMIT_METHOD_KIND.SPELLCASTING_ABILITY: {
+        const abilityScore = spellcasting.ability ? resolution.summary.abilities[spellcasting.ability] : undefined
+        amount += abilityScore === undefined ? 0 : abilityModifier(abilityScore)
+        break
+      }
+      case PREPARE_LIMIT_METHOD_KIND.CLASS_LEVEL:
+        amount += scalePrepareLimitValue(classLevel, prepareLimit.scaling, prepareLimit.rounding)
+        break
+      case PREPARE_LIMIT_METHOD_KIND.PER_LEVEL:
+        amount += getActivePrepareLimitTableAmount(prepareLimit, classLevel)
+        break
+    }
+  }
+
+  return Math.max(1, amount)
+}
+
+function getPreparedSpellLimitForClassIntent(
+  classIntent: CharacterAuthored['intent']['classes'][number],
+  resolution: CharacterBuilderResolution
+): number | undefined {
+  const classById = new Map(resolution.registry.classes.map((classRecord) => [classRecord.id, classRecord]))
+  const limits = [...getSpellClassIdsForClassIntent(classIntent, resolution)]
+    .map((classId) => {
+      const spellcasting = classById.get(classId)?.spellcasting
+      return spellcasting
+        ? resolveSpellcastingPreparedSpellLimit(spellcasting, classIntent.classLevel, resolution)
+        : undefined
+    })
+    .filter((limit): limit is number => limit !== undefined)
+
+  return limits.length ? Math.max(...limits) : undefined
+}
+
+function getPreparationCapableClassIds(
+  character: CharacterAuthored,
+  resolution: CharacterBuilderResolution
+): Set<string> {
+  const classById = new Map(resolution.registry.classes.map((classRecord) => [classRecord.id, classRecord]))
+  const classIds = new Set<string>()
+
+  for (const classIntent of character.intent.classes) {
+    const spellClassIds = getSpellClassIdsForClassIntent(classIntent, resolution)
+    if ([...spellClassIds].some((classId) => isSpellcastingPreparationCapable(classById.get(classId)))) {
+      classIds.add(classIntent.classId)
+    }
+  }
+
+  return classIds
+}
+
+function getSheetSpellIdsByClass(
+  character: CharacterAuthored,
+  resolution: CharacterBuilderResolution
+): Map<string, Set<string>> {
+  const spellClassIdsByActiveClassId = getSpellClassIdsByActiveClassId(character, resolution)
+  const spellClassIdsById = getSpellClassIdsById(resolution)
+  const spellIdsByClassId = new Map<string, Set<string>>()
+
+  function addSpell(classId: string, spellId: string) {
+    const spellClassIds = spellClassIdsByActiveClassId.get(classId)
+    if (!spellClassIds || !isSpellAvailableForClass(spellClassIdsById, spellId, spellClassIds)) return
+    const spellIds = spellIdsByClassId.get(classId) ?? new Set<string>()
+    spellIds.add(spellId)
+    spellIdsByClassId.set(classId, spellIds)
+  }
+
+  for (const classIntent of character.intent.classes) {
+    const classSpellIds = getKnownSpellIdsForClassIntent(character, classIntent.classId)
+    for (const spellId of classSpellIds) addSpell(classIntent.classId, spellId)
+    const classState = character.state.classes?.find((row) => row.classId === classIntent.classId)
+    for (const spellId of classState?.spells?.prepared ?? []) {
+      addSpell(classIntent.classId, spellId)
+    }
+  }
+
+  return spellIdsByClassId
+}
+
+function getSpellSourcesBySpellId(
+  character: CharacterAuthored,
+  classLabels: ReadonlyMap<string, string>,
+  sheetSpellIdsByClassId: ReadonlyMap<string, ReadonlySet<string>>,
+  preparationCapableClassIds: ReadonlySet<string>
+): Map<string, CharacterSheetSpellSource[]> {
+  const classStateById = new Map((character.state.classes ?? []).map((classState) => [classState.classId, classState]))
+  const classOrder = new Map(character.intent.classes.map((classIntent, index) => [classIntent.classId, index]))
+  const activeClassIds = new Set(character.intent.classes.map((classIntent) => classIntent.classId))
+  const sourcesBySpellId = new Map<string, Map<string, CharacterSheetSpellSource>>()
+
+  function addSpellSource(spellId: string, classId: string) {
+    if (!activeClassIds.has(classId)) return
+    if (!sheetSpellIdsByClassId.get(classId)?.has(spellId)) return
+    const sources = sourcesBySpellId.get(spellId) ?? new Map<string, CharacterSheetSpellSource>()
+    const classState = classStateById.get(classId)
+    const prepared = classState?.spells?.prepared?.includes(spellId) ?? false
+    const current = sources.get(classId)
+    sources.set(classId, {
+      classId,
+      label: classLabels.get(classId) ?? 'Class',
+      canPrepare: preparationCapableClassIds.has(classId),
+      prepared: current?.prepared || prepared
+    })
+    sourcesBySpellId.set(spellId, sources)
+  }
+
+  for (const selection of character.intent.spellSelections ?? []) {
+    const source = selection.source
+    if (source.kind === 'CLASS') {
+      for (const spellId of selection.spells) addSpellSource(spellId, source.classId)
+      continue
+    }
+
+    if (source.kind === 'SUBCLASS') {
+      const owningClass = character.intent.classes.find((classIntent) => classIntent.subclassId === source.subclassId)
+      if (!owningClass) continue
+      for (const spellId of selection.spells) addSpellSource(spellId, owningClass.classId)
+    }
+  }
+
+  for (const classState of character.state.classes ?? []) {
+    for (const spellId of classState.spells?.learned ?? []) {
+      if (sheetSpellIdsByClassId.get(classState.classId)?.has(spellId)) addSpellSource(spellId, classState.classId)
+    }
+    for (const spellId of classState.spells?.prepared ?? []) {
+      if (sheetSpellIdsByClassId.get(classState.classId)?.has(spellId)) addSpellSource(spellId, classState.classId)
+    }
+  }
+
+  return new Map([...sourcesBySpellId.entries()].map(([spellId, sources]) => [
+    spellId,
+    [...sources.values()].sort((left, right) => {
+      const leftOrder = classOrder.get(left.classId) ?? Number.MAX_SAFE_INTEGER
+      const rightOrder = classOrder.get(right.classId) ?? Number.MAX_SAFE_INTEGER
+      return leftOrder - rightOrder || left.label.localeCompare(right.label)
+    })
+  ]))
+}
+
+function getSpellPreparationSources(
+  character: CharacterAuthored,
+  classLabels: ReadonlyMap<string, string>,
+  sheetSpellIdsByClassId: ReadonlyMap<string, ReadonlySet<string>>,
+  preparationCapableClassIds: ReadonlySet<string>,
+  resolution: CharacterBuilderResolution
+) {
+  const classStateById = new Map((character.state.classes ?? []).map((classState) => [classState.classId, classState]))
+
+  return character.intent.classes
+    .filter((classIntent) => preparationCapableClassIds.has(classIntent.classId))
+    .map((classIntent) => {
+      const sheetSpellIds = sheetSpellIdsByClassId.get(classIntent.classId) ?? new Set<string>()
+      const preparedSpellLimit = getPreparedSpellLimitForClassIntent(classIntent, resolution)
+      return {
+        classId: classIntent.classId,
+        label: classLabels.get(classIntent.classId) ?? 'Class',
+        ...(preparedSpellLimit === undefined ? {} : { preparedSpellLimit }),
+        preparedSpellIds: [...new Set(classStateById.get(classIntent.classId)?.spells?.prepared ?? [])]
+          .filter((spellId) => sheetSpellIds.has(spellId))
+      }
+    })
+}
+
+function getSheetPreparationAvailableSpellIds(
+  sheet: CharacterSheetResponseDto,
+  classId: string
+): Set<string> {
+  const availableSpellIds = new Set<string>()
+  const preparationSource = sheet.spells.preparationSources?.find((source) => source.classId === classId)
+  for (const spellId of preparationSource?.preparedSpellIds ?? []) availableSpellIds.add(spellId)
+
+  for (const spell of sheet.spells.spells) {
+    if (spell.sources?.some((source) => source.classId === classId && source.canPrepare)) {
+      availableSpellIds.add(spell.id)
+    }
+  }
+
+  return availableSpellIds
 }
 
 function findResourceDefinition(
@@ -426,17 +871,18 @@ function getResourceSheetConfig(params: {
 async function getConditionOptions(
   db: DBLike,
   systemId: string
-): Promise<Array<{ id: string, label: string }>> {
+): Promise<Array<{ id: string, label: string, description?: string }>> {
   const rows = await db
     .selectFrom('condition_types')
-    .select(['id', 'label'])
+    .select(['id', 'label', 'description'])
     .where('system_id', '=', systemId)
     .orderBy('label', 'asc')
     .execute()
 
   return rows.map((row) => ({
     id: String(row.id),
-    label: String(row.label)
+    label: String(row.label),
+    description: row.description ? String(row.description) : undefined
   }))
 }
 
@@ -454,8 +900,12 @@ export async function buildCharacterSheetResponse(params: {
   const proficiencyBonus = engineOutput.derivedStats.proficiencyBonus
   const maxHitPoints = getMaxHitPoints(character)
   const conditionOptions = await getConditionOptions(params.db, character.systemId)
-  const conditionLabels = new Map(conditionOptions.map((condition) => [condition.id, condition.label]))
+  const conditionsById = new Map(conditionOptions.map((condition) => [condition.id, condition]))
+  const equipmentById = new Map(resolution.registry.equipment.map((equipment) => [equipment.id, equipment]))
   const equipmentLabels = new Map(resolution.registry.equipment.map((equipment) => [equipment.id, equipment.label]))
+  const skillLabels = createVocabularyLabelMap(resolution.registry.system?.skills)
+  const languageLabels = createVocabularyLabelMap(resolution.registry.system?.languages)
+  const senseLabels = createVocabularyLabelMap(resolution.registry.system?.senses)
   const currencyOptions = resolution.registry.system?.currencies.map((currency) => ({
     id: currency.id,
     label: currency.label
@@ -473,6 +923,11 @@ export async function buildCharacterSheetResponse(params: {
   const { learned, prepared } = getPreparedAndKnownSpellIds(character)
   const knownSpellIds = new Set([...learned, ...prepared])
   const resourceUsage = new Map((character.state.resources ?? []).map((resource) => [resource.resourceGrantId, resource.used]))
+  const classLabels = new Map(resolution.registry.classes.map((classRecord) => [classRecord.id, classRecord.label]))
+  const sheetSpellIdsByClassId = getSheetSpellIdsByClass(character, resolution)
+  const preparationCapableClassIds = getPreparationCapableClassIds(character, resolution)
+  const spellSourcesBySpellId = getSpellSourcesBySpellId(character, classLabels, sheetSpellIdsByClassId, preparationCapableClassIds)
+  const spellPreparationSources = getSpellPreparationSources(character, classLabels, sheetSpellIdsByClassId, preparationCapableClassIds, resolution)
 
   return {
     meta: {
@@ -510,9 +965,11 @@ export async function buildCharacterSheetResponse(params: {
       tempHitPoints: character.state.hitpoints.temp ?? 0,
       maxHitPointsOverride: character.state.hitpoints.maxOverride ?? null,
       exhaustionLevel: character.state.exhaustion?.level ?? 0,
+      exhaustionNotes: character.state.exhaustion?.notes,
       conditions: (character.state.conditions ?? []).map((condition) => ({
         conditionTypeId: condition.conditionTypeId,
-        label: conditionLabels.get(condition.conditionTypeId) ?? 'Unknown condition',
+        label: conditionsById.get(condition.conditionTypeId)?.label ?? 'Unknown condition',
+        description: conditionsById.get(condition.conditionTypeId)?.description,
         notes: condition.notes
       })),
       hitDice: character.state.hitpoints.hitDice.map((die) => ({
@@ -527,7 +984,8 @@ export async function buildCharacterSheetResponse(params: {
         id: feature.id,
         label: feature.label,
         kind: 'OTHER',
-        sourceLabel: feature.sourceLabel
+        sourceLabel: feature.sourceLabel,
+        description: feature.description
       }))
     },
     resources: {
@@ -549,6 +1007,7 @@ export async function buildCharacterSheetResponse(params: {
           {
             id: resourceGrantId,
             label: resource.label,
+            description: resource.description,
             sourceLabel: resource.sourceLabel,
             used,
             max,
@@ -573,26 +1032,50 @@ export async function buildCharacterSheetResponse(params: {
       })),
       spells: resolution.registry.spells
         .filter((spell) => knownSpellIds.has(spell.id))
-        .map((spell) => ({
-          id: spell.id,
-          label: spell.label,
-          level: spell.level,
-          school: spell.magicSchoolId,
-          prepared: prepared.has(spell.id),
-          known: learned.has(spell.id)
-        }))
+        .map((spell) => {
+          const sources = spellSourcesBySpellId.get(spell.id) ?? []
+          return {
+            id: spell.id,
+            label: spell.label,
+            description: spell.description,
+            level: spell.level,
+            school: spell.magicSchoolId,
+            castingTime: spell.castingTime,
+            components: spell.components,
+            attributes: spell.attributes,
+            materialDescription: spell.materialDescription,
+            prepared: prepared.has(spell.id),
+            known: learned.has(spell.id),
+            sourceLabel: sources.length ? sources.map((source) => source.label).join(', ') : undefined,
+            sources: sources.length ? sources : undefined
+          }
+        }),
+      preparationSources: spellPreparationSources.length ? spellPreparationSources : undefined
     },
     inventory: {
-      items: character.state.equipment.inventory.map((item) => ({
-        id: item.id,
-        equipmentId: item.equipmentId,
-        label: item.customName ?? equipmentLabels.get(item.equipmentId) ?? 'Unknown item',
-        quantity: item.quantity,
-        equipped: character.state.equipment.equipped.includes(item.id),
-        attuned: character.state.equipment.attuned.includes(item.id),
-        containerId: item.containerId,
-        notes: item.notes
-      })),
+      items: character.state.equipment.inventory.map((item) => {
+        const equipment = equipmentById.get(item.equipmentId)
+        return {
+          id: item.id,
+          equipmentId: item.equipmentId,
+          label: item.customName ?? equipment?.label ?? 'Unknown item',
+          equipmentLabel: equipment?.label,
+          description: equipment?.description,
+          category: equipment?.category,
+          properties: equipment?.properties,
+          rarityId: equipment?.rarityId,
+          cost: equipment?.cost,
+          costLabel: equipment?.cost ? currencyLabels.get(equipment.cost.currencyId) : undefined,
+          weight: equipment?.weight,
+          armorClass: equipment?.armorClass,
+          customName: item.customName,
+          quantity: item.quantity,
+          equipped: character.state.equipment.equipped.includes(item.id),
+          attuned: character.state.equipment.attuned.includes(item.id),
+          containerId: item.containerId,
+          notes: item.notes
+        }
+      }),
       currencies: character.state.currency.flatMap((group) => group.currencies.map((currency) => ({
         currencyId: currency.currencyId,
         label: currencyLabels.get(currency.currencyId) ?? 'Currency',
@@ -602,9 +1085,20 @@ export async function buildCharacterSheetResponse(params: {
     },
     reference: {
       features: resolution.grants.features,
-      proficiencies: [],
+      proficiencies: engineOutput.proficiencies.map((proficiency) => ({
+        label: formatProficiencyLabel({
+          equipmentLabels,
+          languageLabels,
+          proficiency,
+          skillLabels
+        }),
+        value: `${formatProficiencyKind(proficiency.kind)} · ${formatProficiencyScaling(proficiency.scaling)}`
+      })),
       defenses: [],
-      senses: [],
+      senses: engineOutput.senses.map((sense) => ({
+        label: senseLabels.get(sense.senseCode) ?? 'Unknown sense',
+        value: formatSenseRange(sense)
+      })),
       conditionOptions,
       equipmentOptions: resolution.registry.equipment.map((equipment) => ({
         id: equipment.id,
@@ -665,6 +1159,7 @@ function clearEmptyStateArrays(character: CharacterAuthored): CharacterAuthored 
     ...character,
     state: {
       ...character.state,
+      currency: character.state.currency.filter((group) => group.currencies.length > 0),
       conditions: character.state.conditions?.length ? character.state.conditions : undefined,
       resources: character.state.resources?.length ? character.state.resources : undefined,
       spellSlots: character.state.spellSlots?.length ? character.state.spellSlots : undefined,
@@ -907,26 +1402,36 @@ export function applyCharacterSheetCommand(
         throw new CharacterSheetCommandError(`Class "${command.classId}" is not on this character.`)
       }
       const preparedSpellIds = [...new Set(command.spellIds)]
-      const knownSpellIds = getKnownSpellIdsForClass(next, command.classId)
-      const unavailableSpell = preparedSpellIds.find((spellId) => !knownSpellIds.has(spellId))
+      const preparationSource = sheet.spells.preparationSources?.find((source) => source.classId === command.classId)
+      if (!preparationSource && preparedSpellIds.length > 0) {
+        throw new CharacterSheetCommandError(`Class "${command.classId}" does not prepare spells.`)
+      }
+      if (
+        preparationSource?.preparedSpellLimit !== undefined
+        && preparedSpellIds.length > preparationSource.preparedSpellLimit
+      ) {
+        throw new CharacterSheetCommandError(`Class "${command.classId}" can prepare up to ${preparationSource.preparedSpellLimit} spells.`)
+      }
+      const availableSpellIds = getSheetPreparationAvailableSpellIds(sheet, command.classId)
+      const unavailableSpell = preparedSpellIds.find((spellId) => !availableSpellIds.has(spellId))
       if (unavailableSpell) throw new CharacterSheetCommandError(`Spell "${unavailableSpell}" is not available for class "${command.classId}".`)
       const existing = next.state.classes ?? []
       const currentClassState = existing.find((classState) => classState.classId === command.classId)
-      const otherClasses = existing.filter((classState) => classState.classId !== command.classId)
       const learned = [...new Set(currentClassState?.spells?.learned ?? [])]
       const spells = {
         learned: learned.length ? learned : undefined,
         prepared: preparedSpellIds.length ? preparedSpellIds : undefined
       }
-      next.state.classes = spells.learned || spells.prepared
-        ? [
-            ...otherClasses,
-            {
-              classId: command.classId,
-              spells
-            }
-          ]
-        : otherClasses
+      const nextClassState = spells.learned || spells.prepared
+        ? currentClassState
+          ? { ...currentClassState, spells }
+          : { classId: command.classId, spells }
+        : null
+      next.state.classes = currentClassState
+        ? existing.flatMap((classState) => classState.classId === command.classId
+            ? nextClassState ? [nextClassState] : []
+            : [classState])
+        : nextClassState ? [...existing, nextClassState] : existing
       return clearEmptyStateArrays(next)
     }
 
@@ -1010,6 +1515,7 @@ export function applyCharacterSheetCommand(
       const currencyKnown = sheet.reference.currencyOptions.some((currency) => currency.id === command.currencyId)
       if (!currencyKnown) throw new CharacterSheetCommandError(`Currency "${command.currencyId}" is not available for this system.`)
       const groupIndex = next.state.currency.findIndex((group) => group.containerId === command.containerId)
+      if (groupIndex < 0 && command.amount <= 0) return clearEmptyStateArrays(next)
       const groups = groupIndex >= 0 ? next.state.currency : [...next.state.currency, { containerId: command.containerId, currencies: [] }]
       const targetIndex = groupIndex >= 0 ? groupIndex : groups.length - 1
       const group = groups[targetIndex]
@@ -1020,7 +1526,9 @@ export function applyCharacterSheetCommand(
         ? group.currencies.map((currency) => currency.currencyId === command.currencyId
             ? { ...currency, amount: Math.max(currency.amount + command.amount, 0) }
             : currency)
-        : [...group.currencies, { currencyId: command.currencyId, amount: Math.max(command.amount, 0) }]
+        : command.amount > 0
+          ? [...group.currencies, { currencyId: command.currencyId, amount: command.amount }]
+          : group.currencies
       groups[targetIndex] = { ...group, currencies }
       next.state.currency = groups
       return clearEmptyStateArrays(next)
@@ -1044,7 +1552,39 @@ export function applyCharacterSheetCommand(
   }
 }
 
-export function summarizeCharacterSheetCommand(command: CharacterSheetCommandInputDto): string {
+function findConditionLabel(sheet: CharacterSheetResponseDto | undefined, conditionTypeId: string): string | undefined {
+  return sheet?.overview.conditions.find((condition) => condition.conditionTypeId === conditionTypeId)?.label
+    ?? sheet?.reference.conditionOptions.find((condition) => condition.id === conditionTypeId)?.label
+}
+
+function findResourceLabel(sheet: CharacterSheetResponseDto | undefined, resourceGrantId: string): string | undefined {
+  return sheet?.resources.items.find((resource) => resource.id === resourceGrantId)?.label
+}
+
+function findSpellSlotLabel(sheet: CharacterSheetResponseDto | undefined, slotKey: string): string | undefined {
+  return sheet?.spells.slots.find((slot) => slot.slotKey === slotKey)?.label
+}
+
+function findInventoryItem(sheet: CharacterSheetResponseDto | undefined, itemId: string): CharacterSheetResponseDto['inventory']['items'][number] | undefined {
+  return sheet?.inventory.items.find((item) => item.id === itemId)
+}
+
+function findInventoryItemLabel(sheet: CharacterSheetResponseDto | undefined, itemId: string): string | undefined {
+  return findInventoryItem(sheet, itemId)?.label
+}
+
+function findEquipmentOptionLabel(sheet: CharacterSheetResponseDto | undefined, equipmentId: string): string | undefined {
+  return sheet?.reference.equipmentOptions.find((item) => item.id === equipmentId)?.label
+}
+
+function findCurrencyLabel(sheet: CharacterSheetResponseDto | undefined, currencyId: string): string | undefined {
+  return sheet?.reference.currencyOptions.find((currency) => currency.id === currencyId)?.label
+}
+
+export function summarizeCharacterSheetCommand(
+  command: CharacterSheetCommandInputDto,
+  sheet?: CharacterSheetResponseDto
+): string {
   switch (command.type) {
     case 'SET_HIT_POINTS':
       return 'Hit points updated'
@@ -1057,35 +1597,45 @@ export function summarizeCharacterSheetCommand(command: CharacterSheetCommandInp
     case 'SET_EXHAUSTION':
       return command.level > 0 ? `Exhaustion set to level ${command.level}` : 'Exhaustion cleared'
     case 'ADD_CONDITION':
-      return 'Condition added'
+      return `${findConditionLabel(sheet, command.conditionTypeId) ?? 'Condition'} added`
     case 'REMOVE_CONDITION':
-      return 'Condition removed'
+      return `${findConditionLabel(sheet, command.conditionTypeId) ?? 'Condition'} removed`
     case 'USE_RESOURCE':
-      return 'Resource used'
+      return `${findResourceLabel(sheet, command.resourceGrantId) ?? 'Resource'} used`
     case 'RESTORE_RESOURCE':
-      return 'Resource restored'
-    case 'USE_SPELL_SLOT':
-      return 'Spell slot used'
-    case 'RESTORE_SPELL_SLOT':
-      return 'Spell slot restored'
+      return `${findResourceLabel(sheet, command.resourceGrantId) ?? 'Resource'} restored`
+    case 'USE_SPELL_SLOT': {
+      const slotLabel = findSpellSlotLabel(sheet, command.slotKey)
+      return slotLabel ? `${slotLabel} spell slot used` : 'Spell slot used'
+    }
+    case 'RESTORE_SPELL_SLOT': {
+      const slotLabel = findSpellSlotLabel(sheet, command.slotKey)
+      return slotLabel ? `${slotLabel} spell slot restored` : 'Spell slot restored'
+    }
     case 'SET_PREPARED_SPELLS':
       return 'Prepared spells updated'
     case 'ADD_INVENTORY_ITEM':
-      return 'Inventory item added'
-    case 'REMOVE_INVENTORY_ITEM':
-      return 'Inventory item removed'
+      return `${findEquipmentOptionLabel(sheet, command.equipmentId) ?? 'Inventory item'} added`
+    case 'REMOVE_INVENTORY_ITEM': {
+      const item = findInventoryItem(sheet, command.itemId)
+      const label = item?.label ?? 'Inventory item'
+      if (command.quantity !== undefined && (!item || command.quantity < item.quantity)) {
+        return `${label} quantity reduced by ${command.quantity}`
+      }
+      return `${label} removed`
+    }
     case 'UPDATE_INVENTORY_ITEM':
-      return 'Inventory item updated'
+      return `${findInventoryItemLabel(sheet, command.itemId) ?? 'Inventory item'} updated`
     case 'EQUIP_ITEM':
-      return 'Item equipped'
+      return `${findInventoryItemLabel(sheet, command.itemId) ?? 'Item'} equipped`
     case 'UNEQUIP_ITEM':
-      return 'Item unequipped'
+      return `${findInventoryItemLabel(sheet, command.itemId) ?? 'Item'} unequipped`
     case 'ATTUNE_ITEM':
-      return 'Item attuned'
+      return `${findInventoryItemLabel(sheet, command.itemId) ?? 'Item'} attuned`
     case 'UNATTUNE_ITEM':
-      return 'Item unattuned'
+      return `${findInventoryItemLabel(sheet, command.itemId) ?? 'Item'} unattuned`
     case 'ADJUST_CURRENCY':
-      return 'Currency updated'
+      return `${findCurrencyLabel(sheet, command.currencyId) ?? 'Currency'} updated`
     case 'UPDATE_NOTES':
       return 'Notes updated'
     default:
@@ -1128,7 +1678,7 @@ export async function executeCharacterSheetCommand(params: {
     streamVersion: row.stream_version
   })
   const nextCharacter = applyCharacterSheetCommand(character, params.command, currentSheet)
-  const summary = summarizeCharacterSheetCommand(params.command)
+  const summary = summarizeCharacterSheetCommand(params.command, currentSheet)
   const event = {
     type: 'CHARACTER_SHEET_COMMAND_APPLIED',
     eventId: crypto.randomUUID(),

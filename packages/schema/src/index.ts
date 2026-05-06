@@ -5,5 +5,3 @@ export * from './features/index.js'
 export * from './subjects/index.js'
 export * from './vocabulary/index.js'
 export * from './api/index.js'
-export * from './domains/character/commands/index.js'
-

@@ -1,7 +1,10 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { CharacterBuilderPayloadDto } from '@artificer-toolkit/schema/api/characters'
-import { CHARACTER_ABILITY_GENERATION_METHOD } from '@artificer-toolkit/shared/core'
+import {
+  CHARACTER_ABILITY_GENERATION_METHOD,
+  HITPOINT_CALCULATION_METHOD_CODE
+} from '@artificer-toolkit/shared/core'
 import {
   AuthoringFormLayout,
   AuthoringFormProvider,
@@ -440,6 +443,105 @@ describe('CharacterBuilderRenderer', () => {
     await user.click(screen.getByRole('button', { name: /set forest ancestry/i }))
 
     expect(screen.getByRole('textbox', { name: /elven lineage/i })).toHaveValue('Forest')
+  })
+
+  it('renders hit point entries from fixed character options without placeholder totals', async () => {
+    const user = userEvent.setup()
+
+    renderCharacterBuilderHarness({
+      payload: {
+        ...characterBuilderPayloadFixture,
+        character: {
+          ...characterBuilderPayloadFixture.character,
+          intent: {
+            ...characterBuilderPayloadFixture.character.intent,
+            hitpoints: {
+              method: HITPOINT_CALCULATION_METHOD_CODE.FIXED,
+              levels: []
+            }
+          }
+        },
+        resolution: {
+          ...characterBuilderPayloadFixture.resolution,
+          recommendedSectionId: 'ABILITIES',
+          summary: {
+            ...characterBuilderPayloadFixture.resolution.summary,
+            totalLevel: 1
+          }
+        }
+      }
+    })
+
+    expect(screen.getByText(/fixed hp records the fixed total/i)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /add missing levels/i }))
+
+    expect(await screen.findByRole('textbox', { name: /fixed hp total/i })).toHaveValue('7')
+  })
+
+  it('adds later hit point levels from class hit dice and ability modifiers', async () => {
+    const user = userEvent.setup()
+
+    renderCharacterBuilderHarness({
+      payload: {
+        ...characterBuilderPayloadFixture,
+        character: {
+          ...characterBuilderPayloadFixture.character,
+          intent: {
+            ...characterBuilderPayloadFixture.character.intent,
+            classes: [
+              {
+                classId: 'class-wizard',
+                classLevel: 2,
+                subclassId: 'subclass-scribe'
+              }
+            ],
+            hitpoints: {
+              method: HITPOINT_CALCULATION_METHOD_CODE.FIXED,
+              levels: []
+            }
+          }
+        },
+        resolution: {
+          ...characterBuilderPayloadFixture.resolution,
+          recommendedSectionId: 'ABILITIES',
+          summary: {
+            ...characterBuilderPayloadFixture.resolution.summary,
+            totalLevel: 2
+          }
+        }
+      }
+    })
+
+    await user.click(screen.getByRole('button', { name: /add missing levels/i }))
+
+    const hitpointInputs = await screen.findAllByRole('textbox', { name: /fixed hp total/i })
+    expect(hitpointInputs.map((input) => (input as HTMLInputElement).value)).toEqual(['7', '5'])
+  })
+
+  it('labels manual hit points as rolled totals', () => {
+    renderCharacterBuilderHarness({
+      payload: {
+        ...characterBuilderPayloadFixture,
+        character: {
+          ...characterBuilderPayloadFixture.character,
+          intent: {
+            ...characterBuilderPayloadFixture.character.intent,
+            hitpoints: {
+              method: HITPOINT_CALCULATION_METHOD_CODE.MANUAL,
+              levels: [{ level: 1, value: 7 }]
+            }
+          }
+        },
+        resolution: {
+          ...characterBuilderPayloadFixture.resolution,
+          recommendedSectionId: 'ABILITIES'
+        }
+      }
+    })
+
+    expect(screen.getByText(/manual hp records the rolled total/i)).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /rolled hp total/i })).toHaveValue('7')
   })
 
   it('renders read-only builder fields when the authoring state is read-only', () => {

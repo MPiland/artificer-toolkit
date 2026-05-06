@@ -15,13 +15,13 @@ export interface ContentRef {
  * A character may have at most one item in ARMOR, one in SHIELD, one in MAIN_HAND,
  * one in OFF_HAND, two in RING (position 1 and 2), and any number in GENERIC.
  */
-export type EquippedState =
-  | { slot: 'ARMOR' }
-  | { slot: 'SHIELD' }
-  | { slot: 'MAIN_HAND' }
-  | { slot: 'OFF_HAND' }
-  | { slot: 'RING'; position: 1 | 2 }
-  | { slot: 'GENERIC' }
+export type EquippedState
+  = | { slot: 'ARMOR' }
+    | { slot: 'SHIELD' }
+    | { slot: 'MAIN_HAND' }
+    | { slot: 'OFF_HAND' }
+    | { slot: 'RING', position: 1 | 2 }
+    | { slot: 'GENERIC' }
 
 /**
  * An owned copy of a piece of equipment in the character's inventory.
@@ -41,7 +41,7 @@ export interface OwnedEquipmentInstance {
  * Ephemeral engine input assembled from CharacterBuildState + CharacterAssemblyRegistry.
  *
  * This type replaces the old AssembledCharacterSnapshot as the engine input.
- * It is never persisted — built fresh by snapshotBuilder on every engine run.
+ * It is never persisted — build it fresh from the current character before each engine run.
  */
 export interface CharacterBuildSnapshot {
   characterId: string

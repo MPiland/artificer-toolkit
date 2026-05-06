@@ -1,4 +1,5 @@
 import { Button, Text, Title } from '@mantine/core'
+import { AuthoredDetailProse } from '#app/components/AuthoredDetail'
 import * as styles from './characterSheet.css'
 import type { CharacterSheetSectionProps } from './CharacterSheet.types'
 
@@ -15,6 +16,23 @@ export function CharacterSheetResources({
         <div>
           <Title id='character-sheet-resources' className={styles.panelTitle}>Resources</Title>
           <Text className={styles.muted}>Limited uses, recovery, and hit dice.</Text>
+        </div>
+        <div className={styles.compactActions}>
+          <Button
+            disabled={pending}
+            size='xs'
+            variant='default'
+            onClick={() => submitCommand({ type: 'APPLY_REST', restKind: 'SHORT', expectedVersion: version })}
+          >
+            Short Rest
+          </Button>
+          <Button
+            disabled={pending}
+            size='xs'
+            onClick={() => submitCommand({ type: 'APPLY_REST', restKind: 'LONG', expectedVersion: version })}
+          >
+            Long Rest
+          </Button>
         </div>
       </div>
       <div className={styles.rowList}>
@@ -33,9 +51,11 @@ export function CharacterSheetResources({
                     {' '}
                     remaining
                   </Text>
+                  {resource.description ? <AuthoredDetailProse html={resource.description} fallback='' /> : null}
                 </div>
                 <div className={styles.compactActions}>
                   <Button
+                    aria-label={`Use ${resource.label}`}
                     disabled={pending || resource.remaining <= 0}
                     size='xs'
                     onClick={() => submitCommand({
@@ -47,6 +67,20 @@ export function CharacterSheetResources({
                     Use
                   </Button>
                   <Button
+                    aria-label={`Restore 1 ${resource.label}`}
+                    disabled={pending || resource.used <= 0}
+                    size='xs'
+                    variant='default'
+                    onClick={() => submitCommand({
+                      type: 'RESTORE_RESOURCE',
+                      resourceGrantId: resource.id,
+                      expectedVersion: version
+                    })}
+                  >
+                    Restore 1
+                  </Button>
+                  <Button
+                    aria-label={`Restore all ${resource.label}`}
                     disabled={pending || resource.used <= 0}
                     size='xs'
                     variant='default'
@@ -57,7 +91,7 @@ export function CharacterSheetResources({
                       expectedVersion: version
                     })}
                   >
-                    Restore
+                    Restore All
                   </Button>
                 </div>
               </div>
@@ -82,6 +116,7 @@ export function CharacterSheetResources({
               </Text>
             </div>
             <Button
+              aria-label={`Spend d${hitDie.die} hit die`}
               disabled={pending || hitDie.remaining <= 0}
               size='xs'
               variant='default'

@@ -1,6 +1,5 @@
 import type { AssembledCharacterSnapshot } from '../../core/assemblerContract.js'
 import type { CompiledClass } from '../../subjects/compilers/class.js'
-import type { CompiledFeat } from '../../subjects/compilers/feat.js'
 import type { CompiledModifierGrant } from '../../grants/compilers/modifier.js'
 import type { CompiledProficiencyGrant } from '../../grants/compilers/proficiency.js'
 import type { CompiledSenseGrant } from '../../grants/compilers/sense.js'
@@ -294,16 +293,11 @@ export function applyGrants(
     // tracking resolves which items are active.
   }
 
-  // Also collect modifier grants already assembled on the snapshot (from feature registry path)
-  // These come from resolveCharacterState() — avoid double-counting by only adding them if
-  // they are not already captured from the registry.features path above.
+  // Also collect modifier grants already assembled on the snapshot.
+  // Avoid double-counting by only adding grants not already captured from the registry.features path above.
   // Route through collectModifiers so restrictions are evaluated consistently.
   if (snapshot.modifierGrants.length) {
-    collectModifiers(
-      snapshot.modifierGrants.map((mg) => mg.grant),
-      snapshot,
-      acc.modifierEntries
-    )
+    collectModifiers(snapshot.modifierGrants.map((mg) => mg.grant), snapshot, acc.modifierEntries)
   }
 
   return acc

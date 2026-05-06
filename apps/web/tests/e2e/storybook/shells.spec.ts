@@ -20,6 +20,11 @@ function formStep(page: Page, name: string) {
   return page.getByRole('navigation', { name: 'Form sections' }).getByRole('button', { name, exact: true })
 }
 
+async function openCharacterSheetStory(page: Page, storyId: string) {
+  await openStory(page, storyId)
+  await expect(page.getByRole('tablist')).toBeVisible({ timeout: 45_000 })
+}
+
 test('marketing page story renders in Storybook', async ({ page }) => {
   await openStory(page, 'guest-marketing--page')
 
@@ -355,6 +360,75 @@ test('character builder story moves through source-local builder steps', async (
   await storyExpect(page.getByRole('textbox', { name: 'Race', exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Review' }).click()
   await storyExpect(page.getByText('Ready to finalize')).toBeVisible()
+})
+
+test('character sheet overview story renders play-state controls', async ({ page }) => {
+  test.setTimeout(60_000)
+  await openCharacterSheetStory(page, 'domains-characters-sheet--overview')
+
+  await storyExpect(page.getByRole('heading', { name: 'Astra Vale' })).toBeVisible()
+  await storyExpect(page.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true')
+  await storyExpect(page.getByText('HP', { exact: true })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: 'Apply Damage' })).toBeVisible()
+  await storyExpect(page.getByText('Poisoned', { exact: true }).first()).toBeVisible()
+
+  await openCharacterSheetStory(page, 'domains-characters-sheet--conditions-and-exhaustion')
+
+  await storyExpect(page.getByText('Level 3')).toBeVisible()
+  await storyExpect(page.getByText('Prone', { exact: true }).first()).toBeVisible()
+  await storyExpect(page.getByText(/collapsing gantry/i).first()).toBeVisible()
+})
+
+test('character sheet spell and inventory stories expose sheet commands', async ({ page }) => {
+  test.setTimeout(60_000)
+  await openCharacterSheetStory(page, 'domains-characters-sheet--spell-management')
+
+  await storyExpect(page.getByRole('tab', { name: 'Spells' })).toHaveAttribute('aria-selected', 'true')
+  await storyExpect(page.getByText('Magic Missile')).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: /prepare magic missile for wizard/i })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: /use level 1 spell slot/i })).toBeVisible()
+
+  await openCharacterSheetStory(page, 'domains-characters-sheet--inventory-management')
+
+  await storyExpect(page.getByRole('tab', { name: 'Inventory' })).toHaveAttribute('aria-selected', 'true')
+  await storyExpect(page.getByText('Quarterstaff', { exact: true }).first()).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: /increase quarterstaff quantity/i })).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: 'Apply Currency' })).toBeVisible()
+
+  await openCharacterSheetStory(page, 'domains-characters-sheet--mobile-inventory-management')
+
+  await storyExpect(page.getByRole('tab', { name: 'Inventory' })).toHaveAttribute('aria-selected', 'true')
+  await storyExpect(page.getByRole('button', { name: /increase quarterstaff quantity/i })).toBeVisible()
+})
+
+test('character sheet history and command-error stories render review states', async ({ page }) => {
+  test.setTimeout(60_000)
+  await openCharacterSheetStory(page, 'domains-characters-sheet--history')
+
+  await storyExpect(page.getByRole('tab', { name: 'History' })).toHaveAttribute('aria-selected', 'true')
+  await storyExpect(page.getByText('Shield marked prepared for Wizard')).toBeVisible()
+
+  await openStory(page, 'domains-characters-sheet--command-error')
+
+  await storyExpect(page.getByText(/changed in another tab/i)).toBeVisible()
+  await storyExpect(page.getByRole('heading', { name: 'Overview' })).toBeVisible()
+
+  await openStory(page, 'domains-characters-sheet--command-pending')
+
+  await storyExpect(page.getByText(/command is being applied/i)).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: 'Apply Damage' })).toBeDisabled()
+
+  await openStory(page, 'domains-characters-sheet--command-pending-inventory')
+
+  await storyExpect(page.getByText(/inventory command pending/i)).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: /add item/i })).toBeDisabled()
+  await storyExpect(page.getByRole('button', { name: /apply currency/i })).toBeDisabled()
+
+  await openStory(page, 'domains-characters-sheet--command-pending-notes')
+
+  await storyExpect(page.getByText(/notes command pending/i)).toBeVisible()
+  await storyExpect(page.getByLabel('Session notes')).toHaveAttribute('contenteditable', 'false')
+  await storyExpect(page.getByRole('button', { name: /save notes/i })).toBeDisabled()
 })
 
 test('theme toggle story switches between light and dark', async ({ page }) => {
