@@ -27,6 +27,7 @@ function CharacterSheetConditionRow({
       </div>
       <div className={styles.compactActions}>
         <Button
+          aria-label={`Edit ${condition.label} notes`}
           disabled={pending}
           size='xs'
           variant='default'
@@ -35,6 +36,7 @@ function CharacterSheetConditionRow({
           Notes
         </Button>
         <Button
+          aria-label={`Remove ${condition.label} condition`}
           disabled={pending}
           size='xs'
           variant='default'
@@ -100,6 +102,7 @@ export function CharacterSheetConditions({
         </div>
         <div className={styles.compactActions}>
           <Select
+            aria-label='Add condition'
             data={sheet.reference.conditionOptions.map((option) => ({
               value: option.id,
               label: option.label

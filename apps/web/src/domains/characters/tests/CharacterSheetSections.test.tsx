@@ -337,9 +337,10 @@ describe('Character Sheet sections', () => {
 
     expect(screen.getByText(/suffers from toxins affecting its body/i)).toBeInTheDocument()
     expect(screen.queryByText(/<p>a poisoned creature/i)).not.toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: /^notes$/i }))
-    await user.clear(screen.getByLabelText(/poisoned notes/i))
-    await user.type(screen.getByLabelText(/poisoned notes/i), 'Wyvern sting')
+    await user.click(screen.getByRole('button', { name: /edit poisoned notes/i }))
+    const notesField = await screen.findByDisplayValue('Spider venom')
+    await user.clear(notesField)
+    await user.type(notesField, 'Wyvern sting')
     await user.click(screen.getByRole('button', { name: /save notes/i }))
 
     expect(submitCommand).toHaveBeenCalledWith({
@@ -370,7 +371,7 @@ describe('Character Sheet sections', () => {
       />
     )
 
-    await user.click(screen.getByRole('button', { name: /^remove$/i }))
+    await user.click(screen.getByRole('button', { name: /remove poisoned condition/i }))
 
     expect(submitCommand).toHaveBeenCalledWith({
       type: 'REMOVE_CONDITION',
@@ -474,9 +475,9 @@ describe('Character Sheet sections', () => {
       />
     )
 
-    await user.click(screen.getByRole('button', { name: /^equip$/i }))
-    await user.click(screen.getByRole('button', { name: /^attune$/i }))
-    await user.click(screen.getByRole('button', { name: /^remove$/i }))
+    await user.click(screen.getByRole('button', { name: /equip longsword/i }))
+    await user.click(screen.getByRole('button', { name: /attune longsword/i }))
+    await user.click(screen.getByRole('button', { name: /remove longsword/i }))
 
     expect(submitCommand).toHaveBeenNthCalledWith(1, {
       type: 'EQUIP_ITEM',
@@ -619,9 +620,9 @@ describe('Character Sheet sections', () => {
       />
     )
 
-    await user.click(screen.getByRole('button', { name: /^use$/i }))
-    await user.click(screen.getByRole('button', { name: /restore 1/i }))
-    await user.click(screen.getByRole('button', { name: /^spend$/i }))
+    await user.click(screen.getByRole('button', { name: /use second wind/i }))
+    await user.click(screen.getByRole('button', { name: /restore 1 second wind/i }))
+    await user.click(screen.getByRole('button', { name: /spend d10 hit die/i }))
     await user.click(screen.getByRole('button', { name: /long rest/i }))
 
     expect(screen.getByText(/regain hit points as a bonus action/i)).toBeInTheDocument()
@@ -827,7 +828,7 @@ describe('Character Sheet sections', () => {
       />
     )
 
-    await user.click(screen.getByRole('button', { name: /restore 1/i }))
+    await user.click(screen.getByRole('button', { name: /restore 1 level 1 spell slot/i }))
 
     expect(submitCommand).toHaveBeenCalledWith({
       type: 'RESTORE_SPELL_SLOT',
@@ -859,7 +860,7 @@ describe('Character Sheet sections', () => {
       />
     )
 
-    await user.click(screen.getByRole('button', { name: /^use$/i }))
+    await user.click(screen.getByRole('button', { name: /use level 1 spell slot/i }))
 
     expect(submitCommand).toHaveBeenCalledWith({
       type: 'USE_SPELL_SLOT',

@@ -69,6 +69,7 @@ function CharacterSheetInventoryItemRow({
           +1
         </Button>
         <Button
+          aria-label={`${item.equipped ? 'Unequip' : 'Equip'} ${item.label}`}
           disabled={pending}
           size='xs'
           variant={item.equipped ? 'default' : 'filled'}
@@ -81,6 +82,7 @@ function CharacterSheetInventoryItemRow({
           {item.equipped ? 'Unequip' : 'Equip'}
         </Button>
         <Button
+          aria-label={`${item.attuned ? 'Unattune' : 'Attune'} ${item.label}`}
           disabled={pending}
           size='xs'
           variant={item.attuned ? 'default' : 'light'}
@@ -93,6 +95,7 @@ function CharacterSheetInventoryItemRow({
           {item.attuned ? 'Unattune' : 'Attune'}
         </Button>
         <Button
+          aria-label={`Edit ${item.label} details`}
           disabled={pending}
           size='xs'
           variant='default'
@@ -101,6 +104,7 @@ function CharacterSheetInventoryItemRow({
           Details
         </Button>
         <Button
+          aria-label={`Remove ${item.label}`}
           disabled={pending}
           size='xs'
           color='red'

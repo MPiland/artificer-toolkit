@@ -386,7 +386,7 @@ test('character sheet spell and inventory stories expose sheet commands', async 
   await storyExpect(page.getByRole('tab', { name: 'Spells' })).toHaveAttribute('aria-selected', 'true')
   await storyExpect(page.getByText('Magic Missile')).toBeVisible()
   await storyExpect(page.getByRole('button', { name: /prepare magic missile for wizard/i })).toBeVisible()
-  await storyExpect(page.getByRole('button', { name: 'Use' }).first()).toBeVisible()
+  await storyExpect(page.getByRole('button', { name: /use level 1 spell slot/i })).toBeVisible()
 
   await openCharacterSheetStory(page, 'domains-characters-sheet--inventory-management')
 

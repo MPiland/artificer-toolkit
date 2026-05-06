@@ -55,6 +55,7 @@ export function CharacterSheetResources({
                 </div>
                 <div className={styles.compactActions}>
                   <Button
+                    aria-label={`Use ${resource.label}`}
                     disabled={pending || resource.remaining <= 0}
                     size='xs'
                     onClick={() => submitCommand({
@@ -66,6 +67,7 @@ export function CharacterSheetResources({
                     Use
                   </Button>
                   <Button
+                    aria-label={`Restore 1 ${resource.label}`}
                     disabled={pending || resource.used <= 0}
                     size='xs'
                     variant='default'
@@ -78,6 +80,7 @@ export function CharacterSheetResources({
                     Restore 1
                   </Button>
                   <Button
+                    aria-label={`Restore all ${resource.label}`}
                     disabled={pending || resource.used <= 0}
                     size='xs'
                     variant='default'
@@ -113,6 +116,7 @@ export function CharacterSheetResources({
               </Text>
             </div>
             <Button
+              aria-label={`Spend d${hitDie.die} hit die`}
               disabled={pending || hitDie.remaining <= 0}
               size='xs'
               variant='default'

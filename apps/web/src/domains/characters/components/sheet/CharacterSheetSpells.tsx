@@ -64,6 +64,7 @@ export function CharacterSheetSpells({
                 </div>
                 <div className={styles.compactActions}>
                   <Button
+                    aria-label={`Use ${slot.label} spell slot`}
                     disabled={pending || slot.remaining <= 0}
                     size='xs'
                     onClick={() => submitCommand({
@@ -75,6 +76,7 @@ export function CharacterSheetSpells({
                     Use
                   </Button>
                   <Button
+                    aria-label={`Restore 1 ${slot.label} spell slot`}
                     disabled={pending || slot.used <= 0}
                     size='xs'
                     variant='default'
@@ -87,6 +89,7 @@ export function CharacterSheetSpells({
                     Restore 1
                   </Button>
                   <Button
+                    aria-label={`Restore all ${slot.label} spell slots`}
                     disabled={pending || slot.used <= 0}
                     size='xs'
                     variant='default'
