@@ -533,6 +533,9 @@ export const characterSheetSpellSourceDtoSchema = z.object({
 export const characterSheetSpellPreparationSourceDtoSchema = z.object({
   classId: z.string(),
   label: z.string(),
+  preparedSpellLimit: z.number().int()
+    .min(0)
+    .optional(),
   preparedSpellIds: z.array(z.string())
 })
 

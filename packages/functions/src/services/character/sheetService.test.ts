@@ -1181,6 +1181,36 @@ describe('character sheet command application', () => {
     }, sheet)).toThrow(CharacterSheetCommandError)
   })
 
+  it('rejects prepared spell commands over the class preparation limit', () => {
+    const sheet = createSheet()
+    sheet.spells.spells = [
+      ...sheet.spells.spells,
+      {
+        id: 'spell-2',
+        label: 'Mage Armor',
+        level: 1,
+        prepared: false,
+        known: true,
+        sources: [{ classId: 'class-1', label: 'Fighter', canPrepare: true, prepared: false }]
+      }
+    ]
+    sheet.spells.preparationSources = [
+      {
+        classId: 'class-1',
+        label: 'Fighter',
+        preparedSpellLimit: 1,
+        preparedSpellIds: []
+      }
+    ]
+
+    expect(() => applyCharacterSheetCommand(createCharacter(), {
+      type: 'SET_PREPARED_SPELLS',
+      classId: 'class-1',
+      spellIds: ['spell-1', 'spell-2'],
+      expectedVersion: 1
+    }, sheet)).toThrow(/can prepare up to 1 spells/)
+  })
+
   it('preserves learned spells across prepare and unprepare cycles', () => {
     const character = createCharacter()
     character.state.classes = [
@@ -1320,7 +1350,10 @@ describe('character sheet command application', () => {
         id: 'wizard',
         label: 'Wizard',
         resetKind: 'LONG_REST',
-        spellLimits: createFullCasterSpellLimits()
+        spellLimits: [
+          { classLevel: 1, slots: [{ spellLevel: 1, slotCount: 2 }], preparedSpellsLimit: 1 },
+          { classLevel: 17, slots: [{ spellLevel: 9, slotCount: 1 }], preparedSpellsLimit: 9 }
+        ]
       })
     ]
     resolution.registry.spells = [
@@ -1362,7 +1395,60 @@ describe('character sheet command application', () => {
       {
         classId: 'wizard',
         label: 'Wizard',
+        preparedSpellLimit: 1,
         preparedSpellIds: ['spell-2']
+      }
+    ])
+  })
+
+  it('derives prepared spell limits from prepare-limit method rules', async () => {
+    const character = createCharacter()
+    character.intent.classes = [{ classId: 'wizard', classLevel: 3 }]
+    character.intent.spellSelections = [
+      {
+        id: 'wizard-spells',
+        source: { kind: 'CLASS', classId: 'wizard' },
+        timing: { kind: 'IMMEDIATE' },
+        spells: ['spell-1']
+      }
+    ]
+    const wizard = createSpellcastingClass({
+      ability: 'INTELLIGENCE',
+      id: 'wizard',
+      label: 'Wizard',
+      resetKind: 'LONG_REST',
+      spellLimits: [{ classLevel: 1, slots: [{ spellLevel: 1, slotCount: 2 }] }]
+    })
+    if (!wizard.spellcasting) throw new Error('Test wizard should include spellcasting.')
+    wizard.spellcasting.prepareLimit = {
+      methodKinds: ['CLASS_LEVEL', 'SPELLCASTING_ABILITY']
+    }
+    const resolution = createResolution()
+    resolution.summary.abilities = { INTELLIGENCE: 16 }
+    resolution.registry.classes = [wizard]
+    resolution.registry.spells = [
+      createSpell({
+        classIds: ['wizard'],
+        id: 'spell-1',
+        label: 'Shield',
+        level: 1
+      })
+    ]
+
+    const sheet = await buildCharacterSheetResponse({
+      character,
+      db: createConditionDb(),
+      hasBuilderDraft: false,
+      resolution,
+      streamVersion: 1
+    })
+
+    expect(sheet.spells.preparationSources).toEqual([
+      {
+        classId: 'wizard',
+        label: 'Wizard',
+        preparedSpellLimit: 6,
+        preparedSpellIds: []
       }
     ])
   })

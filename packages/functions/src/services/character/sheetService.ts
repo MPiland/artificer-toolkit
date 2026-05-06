@@ -8,6 +8,9 @@ import {
   ABILITIES,
   AUTHORED_RECORD_STATUS,
   CLASS_CATEGORY,
+  PREPARE_LIMIT_METHOD_KIND,
+  ROUNDING_CODE,
+  SCALING_AMOUNT_KIND,
   SPELLCASTING_ATTRIBUTE,
   dnd5e2014RulesSystem,
   runEngine,
@@ -504,6 +507,109 @@ function isSpellcastingPreparationCapable(
   )
 }
 
+type SheetClassRecord = CharacterBuilderResolution['registry']['classes'][number]
+type SheetSpellcasting = NonNullable<SheetClassRecord['spellcasting']>
+type SheetPrepareLimit = NonNullable<SheetSpellcasting['prepareLimit']>
+
+function getActiveSpellLimit(
+  spellcasting: SheetSpellcasting,
+  classLevel: number
+): SheetSpellcasting['spellLimits'][number] | undefined {
+  return spellcasting.spellLimits
+    .filter((limit) => limit.classLevel <= classLevel)
+    .sort((left, right) => right.classLevel - left.classLevel)[0]
+}
+
+function roundPrepareLimitValue(
+  value: number,
+  rounding: SheetPrepareLimit['rounding'] = ROUNDING_CODE.DOWN
+): number {
+  switch (rounding) {
+    case ROUNDING_CODE.UP:
+      return Math.ceil(value)
+    case ROUNDING_CODE.NEAREST:
+      return Math.round(value)
+    case ROUNDING_CODE.DOWN:
+    default:
+      return Math.floor(value)
+  }
+}
+
+function scalePrepareLimitValue(
+  value: number,
+  scaling: SheetPrepareLimit['scaling'],
+  rounding: SheetPrepareLimit['rounding']
+): number {
+  switch (scaling) {
+    case SCALING_AMOUNT_KIND.HALF:
+      return roundPrepareLimitValue(value / 2, rounding)
+    case SCALING_AMOUNT_KIND.DOUBLE:
+      return value * 2
+    case SCALING_AMOUNT_KIND.FULL:
+    case undefined:
+    default:
+      return value
+  }
+}
+
+function getActivePrepareLimitTableAmount(
+  prepareLimit: SheetPrepareLimit,
+  classLevel: number
+): number {
+  return prepareLimit.perLevel
+    ?.filter((limit) => limit.classLevel <= classLevel)
+    .sort((left, right) => right.classLevel - left.classLevel)[0]
+    ?.amount ?? 0
+}
+
+function resolveSpellcastingPreparedSpellLimit(
+  spellcasting: SheetSpellcasting,
+  classLevel: number,
+  resolution: CharacterBuilderResolution
+): number | undefined {
+  const activeLimit = getActiveSpellLimit(spellcasting, classLevel)
+  if (activeLimit?.preparedSpellsLimit !== undefined) return activeLimit.preparedSpellsLimit
+
+  const prepareLimit = spellcasting.prepareLimit
+  if (!prepareLimit) return undefined
+
+  let amount = 0
+  for (const methodKind of prepareLimit.methodKinds) {
+    switch (methodKind) {
+      case PREPARE_LIMIT_METHOD_KIND.SPELLCASTING_ABILITY: {
+        const abilityScore = spellcasting.ability ? resolution.summary.abilities[spellcasting.ability] : undefined
+        amount += abilityScore === undefined ? 0 : abilityModifier(abilityScore)
+        break
+      }
+      case PREPARE_LIMIT_METHOD_KIND.CLASS_LEVEL:
+        amount += scalePrepareLimitValue(classLevel, prepareLimit.scaling, prepareLimit.rounding)
+        break
+      case PREPARE_LIMIT_METHOD_KIND.PER_LEVEL:
+        amount += getActivePrepareLimitTableAmount(prepareLimit, classLevel)
+        break
+    }
+  }
+
+  return Math.max(0, amount)
+}
+
+function getPreparedSpellLimitForClassIntent(
+  classIntent: CharacterAuthored['intent']['classes'][number],
+  resolution: CharacterBuilderResolution
+): number | undefined {
+  const classById = new Map(resolution.registry.classes.map((classRecord) => [classRecord.id, classRecord]))
+  const limits = [...getSpellClassIdsForClassIntent(classIntent, resolution)]
+    .map((classId) => {
+      const spellcasting = classById.get(classId)?.spellcasting
+      return spellcasting
+        ? resolveSpellcastingPreparedSpellLimit(spellcasting, classIntent.classLevel, resolution)
+        : undefined
+    })
+    .filter((limit): limit is number => limit !== undefined)
+
+  return limits.length ? Math.max(...limits) : undefined
+}
+
 function getPreparationCapableClassIds(
   character: CharacterAuthored,
   resolution: CharacterBuilderResolution
@@ -613,7 +719,8 @@ function getSpellPreparationSources(
   character: CharacterAuthored,
   classLabels: ReadonlyMap<string, string>,
   sheetSpellIdsByClassId: ReadonlyMap<string, ReadonlySet<string>>,
-  preparationCapableClassIds: ReadonlySet<string>
+  preparationCapableClassIds: ReadonlySet<string>,
+  resolution: CharacterBuilderResolution
 ) {
   const classStateById = new Map((character.state.classes ?? []).map((classState) => [classState.classId, classState]))
 
@@ -621,9 +728,11 @@ function getSpellPreparationSources(
     .filter((classIntent) => preparationCapableClassIds.has(classIntent.classId))
     .map((classIntent) => {
       const sheetSpellIds = sheetSpellIdsByClassId.get(classIntent.classId) ?? new Set<string>()
+      const preparedSpellLimit = getPreparedSpellLimitForClassIntent(classIntent, resolution)
       return {
         classId: classIntent.classId,
         label: classLabels.get(classIntent.classId) ?? 'Class',
+        ...(preparedSpellLimit === undefined ? {} : { preparedSpellLimit }),
         preparedSpellIds: [...new Set(classStateById.get(classIntent.classId)?.spells?.prepared ?? [])]
           .filter((spellId) => sheetSpellIds.has(spellId))
       }
@@ -818,7 +927,7 @@ export async function buildCharacterSheetResponse(params: {
   const sheetSpellIdsByClassId = getSheetSpellIdsByClass(character, resolution)
   const preparationCapableClassIds = getPreparationCapableClassIds(character, resolution)
   const spellSourcesBySpellId = getSpellSourcesBySpellId(character, classLabels, sheetSpellIdsByClassId, preparationCapableClassIds)
-  const spellPreparationSources = getSpellPreparationSources(character, classLabels, sheetSpellIdsByClassId, preparationCapableClassIds)
+  const spellPreparationSources = getSpellPreparationSources(character, classLabels, sheetSpellIdsByClassId, preparationCapableClassIds, resolution)
 
   return {
     meta: {
@@ -1296,6 +1405,12 @@ export function applyCharacterSheetCommand(
       const preparationSource = sheet.spells.preparationSources?.find((source) => source.classId === command.classId)
       if (!preparationSource && preparedSpellIds.length > 0) {
         throw new CharacterSheetCommandError(`Class "${command.classId}" does not prepare spells.`)
+      }
+      if (
+        preparationSource?.preparedSpellLimit !== undefined
+        && preparedSpellIds.length > preparationSource.preparedSpellLimit
+      ) {
+        throw new CharacterSheetCommandError(`Class "${command.classId}" can prepare up to ${preparationSource.preparedSpellLimit} spells.`)
       }
       const availableSpellIds = getSheetPreparationAvailableSpellIds(sheet, command.classId)
       const unavailableSpell = preparedSpellIds.find((spellId) => !availableSpellIds.has(spellId))
