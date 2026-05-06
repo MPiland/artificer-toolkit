@@ -4,7 +4,7 @@ import {
   toCreatureFormValues
 } from '../creatureAuthoring.utils'
 
-const creatureRendererDefaults = toCreatureFormValues(createEmptyCreature({ systemId: '', userId: '' }))
+const creatureRendererDefaults = toCreatureFormValues(createEmptyCreature({ systemId: '' }))
 
 export const CreatureAuthoringRenderer = createAuthoringFormRenderer({
   defaultValues: creatureRendererDefaults

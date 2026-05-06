@@ -1,65 +1,144 @@
 import {
+  useCallback,
+  useMemo,
+  useState
+} from 'react'
+import {
   Alert,
   Button,
-  Stack } from '@mantine/core'
+  Stack
+} from '@mantine/core'
 import { notifications } from '@mantine/notifications'
-import { useMutation,
-  useQueryClient,
-  useSuspenseQuery } from '@tanstack/react-query'
-import { useNavigate } from '@tanstack/react-router'
-import type { FeatAuthoredDto } from '@artificer-toolkit/schema/subjects/feat'
-import { getEffectReferenceData } from '#app/data/effects'
-import { getSystemList } from '#app/data/systems/queries'
-import { api } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
-import { FeatForm } from '../components/FeatForm'
-import { createEmptyFeat, resolveCreateFeatSystemId } from '../featAuthoring.utils'
+import { getRouteApi, useNavigate } from '@tanstack/react-router'
+import {
+  AuthoringFormLayout,
+  AuthoringFormProvider,
+  clearResolvedNodeFormPaths,
+  useAppForm,
+  useAuthoringFormRegistration,
+  type AuthoringFormActionHandlers,
+  type AuthoringFormRegistration
+} from '#forms'
+import {
+  useActivateFeatMutation,
+  useSaveFeatDraftMutation
+} from '#app/data/feats/mutations'
+import {
+  createEmptyFeat,
+  normalizeFeatForSubmit,
+  resolveCreateFeatSystemId
+} from '../featAuthoring.utils'
+import { FeatAuthoringRenderer } from '../components/FeatAuthoringRenderer'
 
-export function FeatCreatePage({ userId }: { userId: string }) {
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const { data: systems } = useSuspenseQuery(getSystemList())
+export function FeatCreatePage() {
+  const route = getRouteApi('/_authed/feats/new')
+  const { systems } = route.useLoaderData()
   const systemId = resolveCreateFeatSystemId(systems)
-  const { data: references } = useSuspenseQuery(getEffectReferenceData(systemId ?? undefined))
-  const mutation = useMutation({
-    mutationFn: (feat: FeatAuthoredDto) => api.content.feats.activate(feat),
-    onSuccess: async (response) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.content.feats.all() })
-      notifications.show({ color: 'green', message: 'Feat created.' })
-      if (response?.item.id) {
-        await navigate({ to: '/feats/$featId', params: { featId: response.item.id } })
-      }
-    },
-    onError: () => notifications.show({ color: 'red', message: 'Could not save that feat yet.' })
-  })
-  const draftMutation = useMutation({
-    mutationFn: (feat: FeatAuthoredDto) => api.content.feats.saveDraft(feat),
-    onSuccess: async (draft) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.content.feats.all() })
-      notifications.show({ color: 'green', message: 'Feat draft saved.' })
-      await navigate({ to: '/feats/$featId/edit', params: { featId: draft.subjectId } })
-    },
-    onError: () => notifications.show({ color: 'red', message: 'Could not save that draft yet.' })
-  })
 
   if (!systemId) {
-    return (
-      <Stack>
-        <Alert color='yellow'>A system is required before creating feats.</Alert>
-        <Button onClick={() => navigate({ to: '/feats' })}>Back to feats</Button>
-      </Stack>
-    )
+    return <FeatSystemRequiredState />
   }
 
   return (
-    <FeatForm
-      mode='create'
-      systemId={systemId}
-      userId={userId}
-      references={references}
-      initialFeat={createEmptyFeat({ systemId, userId })}
-      onSubmit={async (feat) => mutation.mutateAsync(feat).then(() => undefined)}
-      onSaveDraft={async (feat) => draftMutation.mutateAsync(feat).then(() => undefined)}
-    />
+    <AuthoringFormProvider>
+      <FeatCreateAuthoring systemId={systemId} />
+    </AuthoringFormProvider>
+  )
+}
+
+function FeatCreateAuthoring({ systemId }: { systemId: string }) {
+  const navigate = useNavigate()
+  const activateMutation = useActivateFeatMutation()
+  const draftMutation = useSaveFeatDraftMutation()
+  const [feat] = useState(() => createEmptyFeat({ systemId }))
+
+  const handleCancel = useCallback(async () => {
+    await navigate({ to: '/feats' })
+  }, [navigate])
+
+  const handleActivate = useCallback(async (payload: ReturnType<typeof normalizeFeatForSubmit>) => {
+    try {
+      const response = await activateMutation.mutateAsync(payload)
+      notifications.show({ color: 'green', message: 'Feat activated.' })
+
+      if (response?.item.id) {
+        await navigate({ to: '/feats/$featId', params: { featId: response.item.id } })
+      }
+    } catch {
+      notifications.show({ color: 'red', message: 'Could not activate that feat yet.' })
+    }
+  }, [
+    activateMutation,
+    navigate
+  ])
+
+  const form = useAppForm({
+    defaultValues: feat,
+    onSubmit: async ({ value }) => {
+      await handleActivate(normalizeFeatForSubmit(value))
+    }
+  })
+
+  const handleSaveDraft = useCallback(async () => {
+    try {
+      const draft = await draftMutation.mutateAsync(normalizeFeatForSubmit(form.state.values))
+      notifications.show({ color: 'green', message: 'Feat draft saved.' })
+      await navigate({ to: '/feats/$featId/edit', params: { featId: draft.subjectId } })
+    } catch {
+      notifications.show({ color: 'red', message: 'Could not save that draft yet.' })
+    }
+  }, [
+    draftMutation,
+    form,
+    navigate
+  ])
+
+  const registration = useMemo<AuthoringFormRegistration>(() => ({
+    activateLabel: 'Activate Feat',
+    canSaveDraft: true,
+    hasActiveDraft: false,
+    mapId: 'feat',
+    mode: 'create',
+    readOnly: false,
+    resolveModel: true,
+    saveDraftLabel: 'Save Draft',
+    subjectKindLabel: 'Feat',
+    subjectLabel: feat.label || 'Untitled Feat',
+    systemId: feat.systemId
+  }), [
+    feat.label,
+    feat.systemId
+  ])
+
+  const actions = useMemo<AuthoringFormActionHandlers>(() => ({
+    onActivate: () => form.handleSubmit(),
+    onCancel: handleCancel,
+    onClearPaths: (paths) => clearResolvedNodeFormPaths(form, paths),
+    onSaveDraft: handleSaveDraft
+  }), [
+    form,
+    handleCancel,
+    handleSaveDraft
+  ])
+
+  useAuthoringFormRegistration(registration, actions)
+
+  return (
+    <form.AppForm>
+      <AuthoringFormLayout>
+        <FeatAuthoringRenderer form={form} />
+      </AuthoringFormLayout>
+    </form.AppForm>
+  )
+}
+
+function FeatSystemRequiredState() {
+  const navigate = useNavigate()
+
+  return (
+    <Stack>
+      <Alert color='yellow'>A system is required before creating feats.</Alert>
+      <Button onClick={() => navigate({ to: '/feats' })}>Back to feats</Button>
+    </Stack>
   )
 }

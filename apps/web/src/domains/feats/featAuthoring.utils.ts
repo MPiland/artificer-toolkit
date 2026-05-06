@@ -1,18 +1,17 @@
 import type { ChargeDto } from '@artificer-toolkit/schema/shared'
-import type { FeatAuthoredDto } from '@artificer-toolkit/schema/subjects/feat'
+import type {
+  FeatAuthoringInputDto,
+  FeatAuthoredDto
+} from '@artificer-toolkit/schema/subjects/feat'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
-
-export type FeatFormStep = 'basics' | 'requirements' | 'mechanics' | 'features'
 
 export interface CreateEmptyFeatInput {
   systemId: string
-  userId: string
 }
 
 export function createEmptyFeat({
-  systemId,
-  userId
-}: CreateEmptyFeatInput): FeatAuthoredDto {
+  systemId
+}: CreateEmptyFeatInput): FeatAuthoringInputDto {
   return {
     id: crypto.randomUUID(),
     label: '',
@@ -21,7 +20,6 @@ export function createEmptyFeat({
     detail: '',
     effects: [],
     features: [],
-    userId,
     systemId
   }
 }
@@ -30,7 +28,7 @@ export function resolveCreateFeatSystemId(systems: readonly { id: string }[]): s
   return systems[0]?.id ?? null
 }
 
-export function normalizeFeatForSubmit(feat: FeatAuthoredDto): FeatAuthoredDto {
+export function normalizeFeatForSubmit(feat: FeatAuthoringInputDto | FeatAuthoredDto): FeatAuthoringInputDto {
   return {
     ...feat,
     label: feat.label.trim() || 'Untitled Feat',

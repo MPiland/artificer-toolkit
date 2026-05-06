@@ -7,11 +7,5 @@ export const Route = createFileRoute('/_authed/spells/new')({
   loader: ({ context }) => context.queryClient.ensureQueryData(
     getSpellReferenceData(createServerApi(context.accessToken))
   ),
-  component: NewSpellRoute
+  component: () => <SpellCreatePage />
 })
-
-function NewSpellRoute() {
-  const { user } = Route.useRouteContext()
-
-  return <SpellCreatePage userId={user?.id ?? 'unknown-user'} />
-}

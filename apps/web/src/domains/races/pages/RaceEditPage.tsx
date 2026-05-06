@@ -1,129 +1,307 @@
 import {
+  useCallback,
+  useMemo,
+  useState
+} from 'react'
+import {
   Alert,
   Button,
-  Stack } from '@mantine/core'
+  Stack
+} from '@mantine/core'
 import { notifications } from '@mantine/notifications'
-import { useMutation,
-  useQueryClient,
-  useSuspenseQuery } from '@tanstack/react-query'
-import { useNavigate } from '@tanstack/react-router'
-import { raceAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/race'
-import { type RaceAuthoredDto } from '@artificer-toolkit/schema/subjects/race'
-import { InvalidDraftAlert } from '#forms'
+import {
+  getRouteApi,
+  useNavigate,
+  useRouter
+} from '@tanstack/react-router'
+import {
+  raceAuthoringInputDtoSchema,
+  type RaceAuthoringInputDto,
+  type RaceAuthoredDto
+} from '@artificer-toolkit/schema/subjects/race'
+import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
+import {
+  AuthoringFormLayout,
+  AuthoringFormProvider,
+  InvalidDraftAlert,
+  clearResolvedNodeFormPaths,
+  useAppForm,
+  useAuthoringFormRegistration,
+  type AuthoringFormActionHandlers,
+  type AuthoringFormRegistration
+} from '#forms'
 import { parseAuthoredDraftPayload } from '#app/data/authoredDrafts'
-import { getRace, getRaceDraft } from '#app/data/races/queries'
-import { api } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
-import { RaceForm } from '../components/RaceForm'
+import {
+  useActivateRaceMutation,
+  useDiscardRaceDraftMutation,
+  useDuplicateRaceMutation,
+  useSaveRaceDraftMutation
+} from '#app/data/races/mutations'
+import {
+  normalizeRaceForSubmit,
+  toRaceFormValues,
+  type RaceFormValues
+} from '../raceAuthoring.utils'
+import { RaceAuthoringRenderer } from '../components/RaceAuthoringRenderer'
 
-export function RaceEditPage({
-  raceId,
-  mode,
-  userId
+type ParsedRaceDraft = {
+  draft: AuthoredDraftDto | null
+  isInvalid: boolean
+  item: RaceAuthoringInputDto | undefined
+}
+
+export function RaceEditPage() {
+  const route = getRouteApi('/_authed/races/$raceId')
+  const { draft, response } = route.useLoaderData()
+  const { raceId } = route.useParams()
+  const parsedDraft: ParsedRaceDraft = parseAuthoredDraftPayload(draft ?? null, raceAuthoringInputDtoSchema)
+  const draftRace = parsedDraft.item
+  const activeRace = response?.item
+
+  if (!response) {
+    if (parsedDraft.isInvalid) {
+      return <InvalidRaceDraftOnlyState raceId={raceId} />
+    }
+    if (!draftRace) {
+      return <RaceNotFoundState />
+    }
+  }
+
+  const race = draftRace ?? activeRace ?? null
+
+  if (!race) {
+    return <RaceNotFoundState />
+  }
+
+  const formKey = `edit:${raceId}:${draft?.updatedAt ?? raceId}:${draftRace ? 'draft' : 'active'}`
+
+  return (
+    <AuthoringFormProvider>
+      <RaceEditAuthoring
+        key={formKey}
+        activeRace={activeRace}
+        draft={parsedDraft.draft}
+        hasInvalidDraft={Boolean(draft && parsedDraft.isInvalid)}
+        permissions={response?.permissions}
+        race={toRaceFormValues(race)}
+        raceId={raceId}
+      />
+    </AuthoringFormProvider>
+  )
+}
+
+function RaceEditAuthoring({
+  activeRace,
+  draft,
+  hasInvalidDraft,
+  permissions,
+  race,
+  raceId
 }: {
+  activeRace?: RaceAuthoredDto
+  draft: AuthoredDraftDto | null
+  hasInvalidDraft: boolean
+  permissions?: {
+    canCopy: boolean
+    canEdit: boolean
+  }
+  race: RaceFormValues
   raceId: string
-  mode: 'view' | 'edit'
-  userId: string
 }) {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const { data: response } = useSuspenseQuery(getRace(raceId))
-  const { data: draft } = useSuspenseQuery(getRaceDraft(raceId))
-  const parsedDraft = parseAuthoredDraftPayload(draft, raceAuthoredDtoSchema)
-  const draftRace = parsedDraft.item
-  const systemId = draftRace?.systemId ?? response?.item.systemId ?? ''
-  const saveMutation = useMutation({
-    mutationFn: (race: RaceAuthoredDto) => api.content.races.activate(race),
-    onSuccess: async (saved) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.content.races.all() })
-      if (saved?.item.id) {
-        await queryClient.invalidateQueries({ queryKey: queryKeys.content.races.detail(saved.item.id) })
-        await queryClient.invalidateQueries({ queryKey: queryKeys.content.races.draft(saved.item.id) })
-        await navigate({ to: '/races/$raceId', params: { raceId: saved.item.id } })
+  const router = useRouter()
+  const activateMutation = useActivateRaceMutation()
+  const discardDraftMutation = useDiscardRaceDraftMutation(raceId)
+  const draftMutation = useSaveRaceDraftMutation()
+  const duplicateMutation = useDuplicateRaceMutation()
+  const [formValues] = useState(() => race)
+  const readOnly = Boolean(activeRace && permissions?.canEdit === false)
+  const canCopy = Boolean(permissions?.canCopy && raceId)
+
+  const handleCancel = useCallback(async () => {
+    await navigate({ to: '/races' })
+  }, [navigate])
+
+  const handleActivate = useCallback(async (payload: RaceAuthoringInputDto) => {
+    if (readOnly) return
+
+    try {
+      const response = await activateMutation.mutateAsync(payload)
+      notifications.show({ color: 'green', message: 'Race activated.' })
+
+      if (response?.item.id && response.item.id !== raceId) {
+        await navigate({ to: '/races/$raceId', params: { raceId: response.item.id } })
+        return
       }
-      notifications.show({ color: 'green', message: 'Race saved.' })
-    },
-    onError: () => notifications.show({ color: 'red', message: 'Could not save that race yet.' })
+
+      await router.invalidate()
+    } catch {
+      notifications.show({ color: 'red', message: 'Could not activate that race yet.' })
+    }
+  }, [
+    activateMutation,
+    navigate,
+    raceId,
+    readOnly,
+    router
+  ])
+
+  const form = useAppForm({
+    defaultValues: formValues,
+    onSubmit: async ({ value }) => {
+      await handleActivate(normalizeRaceForSubmit(value))
+    }
   })
-  const draftMutation = useMutation({
-    mutationFn: (race: RaceAuthoredDto) => api.content.races.saveDraft(race),
-    onSuccess: async (savedDraft) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.content.races.all() })
-      await queryClient.invalidateQueries({ queryKey: queryKeys.content.races.draft(savedDraft.subjectId) })
-      notifications.show({ color: 'green', message: 'Race draft saved.' })
-    },
-    onError: () => notifications.show({ color: 'red', message: 'Could not save that draft yet.' })
-  })
-  const discardDraftMutation = useMutation({
-    mutationFn: () => api.content.races.discardDraft(raceId),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.content.races.all() })
-      await queryClient.invalidateQueries({ queryKey: queryKeys.content.races.draft(raceId) })
+
+  const handleDiscardDraft = useCallback(async () => {
+    try {
+      await discardDraftMutation.mutateAsync()
       notifications.show({ color: 'green', message: 'Stale race draft discarded.' })
-      if (!response) {
+
+      if (!activeRace) {
         await navigate({ to: '/races' })
+        return
       }
-    },
-    onError: () => notifications.show({ color: 'red', message: 'Could not discard that draft yet.' })
-  })
-  const copyMutation = useMutation({
-    mutationFn: () => api.content.races.duplicate(raceId),
-    onSuccess: async (copied) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.content.races.all() })
+
+      await router.invalidate()
+    } catch {
+      notifications.show({ color: 'red', message: 'Could not discard that draft yet.' })
+    }
+  }, [
+    activeRace,
+    discardDraftMutation,
+    navigate,
+    router
+  ])
+
+  const handleCopy = useCallback(async () => {
+    try {
+      const copied = await duplicateMutation.mutateAsync(raceId)
       notifications.show({ color: 'green', message: 'Race duplicated as an owned draft.' })
+
       if (copied?.subjectId) {
         await navigate({ to: '/races/$raceId/edit', params: { raceId: copied.subjectId } })
       }
-    },
-    onError: () => notifications.show({ color: 'red', message: 'Could not duplicate that race yet.' })
-  })
+    } catch {
+      notifications.show({ color: 'red', message: 'Could not duplicate that race yet.' })
+    }
+  }, [
+    duplicateMutation,
+    navigate,
+    raceId
+  ])
 
-  if (!response && parsedDraft.isInvalid) {
-    return (
+  const handleSaveDraft = useCallback(async () => {
+    if (readOnly) return
+
+    try {
+      await draftMutation.mutateAsync(normalizeRaceForSubmit(form.state.values))
+      notifications.show({ color: 'green', message: 'Race draft saved.' })
+      await router.invalidate()
+    } catch {
+      notifications.show({ color: 'red', message: 'Could not save that draft yet.' })
+    }
+  }, [
+    draftMutation,
+    form,
+    readOnly,
+    router
+  ])
+
+  const registration = useMemo<AuthoringFormRegistration>(() => ({
+    activateLabel: 'Activate Race',
+    canCopy,
+    canSaveDraft: !readOnly,
+    hasActiveDraft: Boolean(draft && activeRace),
+    mapId: 'race',
+    mode: readOnly ? 'view' : 'edit',
+    readOnly,
+    resolveModel: true,
+    saveDraftLabel: 'Save Draft',
+    subjectKindLabel: 'Race',
+    subjectLabel: formValues.label || 'Untitled Race',
+    systemId: formValues.systemId
+  }), [
+    activeRace,
+    canCopy,
+    draft,
+    formValues.label,
+    formValues.systemId,
+    readOnly
+  ])
+
+  const actions = useMemo<AuthoringFormActionHandlers>(() => ({
+    onActivate: () => form.handleSubmit(),
+    onCancel: handleCancel,
+    onClearPaths: (paths) => clearResolvedNodeFormPaths(form, paths),
+    onCopy: canCopy ? handleCopy : undefined,
+    onSaveDraft: readOnly ? undefined : handleSaveDraft
+  }), [
+    canCopy,
+    form,
+    handleCancel,
+    handleCopy,
+    handleSaveDraft,
+    readOnly
+  ])
+
+  useAuthoringFormRegistration(registration, actions)
+
+  return (
+    <form.AppForm>
       <Stack>
-        <InvalidDraftAlert
-          domainLabel='race'
-          isDiscarding={discardDraftMutation.isPending}
-          onDiscard={() => discardDraftMutation.mutate()}
-        />
-        <Button onClick={() => navigate({ to: '/races' })}>Back to races</Button>
+        {hasInvalidDraft
+          ? (
+              <InvalidDraftAlert
+                domainLabel='race'
+                isDiscarding={discardDraftMutation.isPending}
+                onDiscard={() => void handleDiscardDraft()}
+              />
+            )
+          : null}
+        <AuthoringFormLayout>
+          <RaceAuthoringRenderer form={form} />
+        </AuthoringFormLayout>
       </Stack>
-    )
-  }
+    </form.AppForm>
+  )
+}
 
-  if (!response && !draftRace) {
-    return (
-      <Stack>
-        <Alert color='yellow'>That race could not be found.</Alert>
-        <Button onClick={() => navigate({ to: '/races' })}>Back to races</Button>
-      </Stack>
-    )
-  }
-
-  const formKey = `${mode}:${raceId}:${draft?.updatedAt ?? response?.item.id ?? 'missing'}:${draftRace ? 'draft' : 'active'}`
+function RaceNotFoundState() {
+  const navigate = useNavigate()
 
   return (
     <Stack>
-      {parsedDraft.isInvalid
-        ? (
-            <InvalidDraftAlert
-              domainLabel='race'
-              isDiscarding={discardDraftMutation.isPending}
-              onDiscard={() => discardDraftMutation.mutate()}
-            />
-          )
-        : null}
-      <RaceForm
-        key={formKey}
-        mode={mode}
-        systemId={systemId}
-        userId={userId}
-        initialRace={draftRace}
-        response={response}
-        onCopy={() => copyMutation.mutate()}
-        onSubmit={async (race) => saveMutation.mutateAsync(race).then(() => undefined)}
-        onSaveDraft={async (race) => draftMutation.mutateAsync(race).then(() => undefined)}
+      <Alert color='yellow'>That race could not be found.</Alert>
+      <Button onClick={() => navigate({ to: '/races' })}>Back to races</Button>
+    </Stack>
+  )
+}
+
+function InvalidRaceDraftOnlyState({ raceId }: { raceId: string }) {
+  const navigate = useNavigate()
+  const router = useRouter()
+  const discardDraftMutation = useDiscardRaceDraftMutation(raceId)
+
+  async function handleDiscardDraft() {
+    try {
+      await discardDraftMutation.mutateAsync()
+      notifications.show({ color: 'green', message: 'Stale race draft discarded.' })
+      await router.invalidate()
+      await navigate({ to: '/races' })
+    } catch {
+      notifications.show({ color: 'red', message: 'Could not discard that draft yet.' })
+    }
+  }
+
+  return (
+    <Stack>
+      <InvalidDraftAlert
+        domainLabel='race'
+        isDiscarding={discardDraftMutation.isPending}
+        onDiscard={() => void handleDiscardDraft()}
       />
+      <Button onClick={() => navigate({ to: '/races' })}>Back to races</Button>
     </Stack>
   )
 }

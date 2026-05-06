@@ -1,4 +1,7 @@
-import type { SpellAuthoredDto } from '@artificer-toolkit/schema/subjects/spell'
+import type {
+  SpellAuthoringInputDto,
+  SpellAuthoredDto
+} from '@artificer-toolkit/schema/subjects/spell'
 import type { SpellReferenceData, SpellReferenceOption } from '#app/data/spells/referenceData'
 
 export const spellLevelOptions = [
@@ -35,12 +38,10 @@ export const spellComponentOptions = [
 export const emptyOption = { value: '', label: 'None yet' }
 
 export function createEmptySpell({
-  systemId,
-  userId
+  systemId
 }: {
   systemId: string
-  userId: string
-}): SpellAuthoredDto {
+}): SpellAuthoringInputDto {
   return {
     kind: 'SPELL',
     id: crypto.randomUUID(),
@@ -57,12 +58,14 @@ export function createEmptySpell({
     attributes: [],
     components: [],
     effects: [],
-    userId,
     systemId
   }
 }
 
-export function normalizeSpellForSubmit(spell: SpellAuthoredDto, references: SpellReferenceData): SpellAuthoredDto {
+export function normalizeSpellForSubmit(
+  spell: SpellAuthoringInputDto | SpellAuthoredDto,
+  references: SpellReferenceData
+): SpellAuthoringInputDto {
   return {
     ...spell,
     label: spell.label.trim() || 'Untitled Spell',

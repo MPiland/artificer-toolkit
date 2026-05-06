@@ -1,4 +1,7 @@
-import type { BackgroundAuthoredDto } from '@artificer-toolkit/schema/subjects/background'
+import type {
+  BackgroundAuthoringInputDto,
+  BackgroundAuthoredDto
+} from '@artificer-toolkit/schema/subjects/background'
 import type { DetailDto } from '@artificer-toolkit/schema/shared'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import type { ProficiencyGrantDto } from '@artificer-toolkit/schema/grants'
@@ -15,17 +18,13 @@ export {
   type StartingEquipmentItemDto
 } from '#forms'
 
-export type BackgroundFormStep = 'basics' | 'content' | 'details'
-
 export interface CreateEmptyBackgroundInput {
   systemId: string
-  userId: string
 }
 
 export function createEmptyBackground({
-  systemId,
-  userId
-}: CreateEmptyBackgroundInput): BackgroundAuthoredDto {
+  systemId
+}: CreateEmptyBackgroundInput): BackgroundAuthoringInputDto {
   return {
     kind: 'BACKGROUND',
     id: crypto.randomUUID(),
@@ -36,12 +35,13 @@ export function createEmptyBackground({
     proficiencies: [],
     features: [],
     startingEquipment: createEmptyStartingEquipment(),
-    userId,
     systemId
   }
 }
 
-export function normalizeBackgroundForSubmit(background: BackgroundAuthoredDto): BackgroundAuthoredDto {
+export function normalizeBackgroundForSubmit(
+  background: BackgroundAuthoringInputDto | BackgroundAuthoredDto
+): BackgroundAuthoringInputDto {
   return {
     ...background,
     label: background.label.trim() || 'Untitled Background',
@@ -52,6 +52,10 @@ export function normalizeBackgroundForSubmit(background: BackgroundAuthoredDto):
     features: background.features ?? [],
     startingEquipment: background.startingEquipment ?? createEmptyStartingEquipment()
   }
+}
+
+export function resolveCreateBackgroundSystemId(systems: readonly { id: string }[]): string | null {
+  return systems[0]?.id ?? null
 }
 
 export function createEmptyDetail(order: number): DetailDto {

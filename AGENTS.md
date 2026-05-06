@@ -33,11 +33,12 @@ Current default focus is Phase 9 frontend modernization.
 - 9.8.1 draft/form persistence correction: complete
 - 9.9 race implementation: complete
 - 9.10 equipment implementation: complete
-- 9.11 creature implementation: implemented - ready for PR review
-- 9.12 vehicle implementation: implemented - ready for PR review
+- 9.11 creature implementation: complete
+- 9.12 vehicle implementation: complete
 - 9.13 class implementation: complete
 - 9.14 character builder: builder choice flow implemented
 - 9.15 character sheet: implemented, closeout validation passed
+- 9.16 supporting surfaces and final cleanup: implemented, validation in progress
 
 Before starting a new frontend task, confirm the active tranche in [PHASE_9_CODE_OVERVIEW.md](/c:/Users/pilan/Desktop/artificer-toolkit/PHASE_9_CODE_OVERVIEW.md).
 
@@ -98,11 +99,12 @@ Current frontend posture:
 - 9.8.1 draft/form persistence correction is complete.
 - 9.9 race implementation is complete.
 - 9.10 equipment implementation is complete.
-- 9.11 creature implementation is implemented and ready for PR review.
-- 9.12 vehicle implementation is implemented and ready for PR review.
+- 9.11 creature implementation is complete.
+- 9.12 vehicle implementation is complete.
 - 9.13 class implementation is complete.
 - 9.14 character builder has the builder choice flow implemented.
-- 9.15 character sheet is implemented with closeout validation passed. Remaining work should move to the next accepted tranche after PR review/merge.
+- 9.15 character sheet is implemented with closeout validation passed.
+- 9.16 supporting surfaces and final cleanup is implemented with validation in progress.
 
 Per-tranche expectations:
 
@@ -122,11 +124,11 @@ Phase 9 frontend code should use stable ownership folders instead of flat catch-
 - `apps/web/src/domains`: active rebuilt authored domains only.
 - `apps/web/src/auth`, `marketing`, `home`, and `shell`: top-level app features or app system areas.
 - `apps/web/src/data`: frontend API/query adapters by domain.
-- `apps/web/src/legacy`: quarantined provisional code and old route/domain/form implementations.
+- Do not reintroduce `apps/web/src/legacy`; deleted legacy should stay deleted unless a future tranche intentionally rebuilds a replacement.
 
 Prefer colocated `components`, `hooks`, `utils`, `validation`, `stories`, and `tests` folders inside the owning feature or component package. For the form platform, use `apps/web/src/forms` as the canonical home and keep internal folders lowercase. Do not add new Phase 9 form hooks to the global `src/hooks` folder unless they are genuinely app-wide and not owned by a feature.
 
-Legacy compatibility pockets that remain outside `src/legacy` must be treated as retirement targets, not homes for new work. This currently includes the old global `src/hooks`, `src/store`, and legacy exports inside `components/Form`; active rebuilt Phase 9 code should prefer colocated form hooks, TanStack Form composition, and the new `src/forms` home instead.
+Deleted legacy pockets such as old global `src/hooks`, `src/store`, `components/Form`, and `src/legacy` must not be recreated as compatibility shims. Future stateful or form-heavy surfaces should be rebuilt intentionally in their owning phase.
 
 Active Phase 9 authored forms are node-driven:
 

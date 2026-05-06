@@ -1,62 +1,144 @@
 import {
+  useCallback,
+  useMemo,
+  useState
+} from 'react'
+import {
   Alert,
   Button,
-  Stack } from '@mantine/core'
+  Stack
+} from '@mantine/core'
 import { notifications } from '@mantine/notifications'
-import { useMutation,
-  useQueryClient,
-  useSuspenseQuery } from '@tanstack/react-query'
-import { useNavigate } from '@tanstack/react-router'
-import type { RaceAuthoredDto } from '@artificer-toolkit/schema/subjects/race'
-import { getSystemList } from '#app/data/systems/queries'
-import { api } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
-import { RaceForm } from '../components/RaceForm'
-import { createEmptyRace, resolveCreateRaceSystemId } from '../raceAuthoring.utils'
+import { getRouteApi, useNavigate } from '@tanstack/react-router'
+import {
+  AuthoringFormLayout,
+  AuthoringFormProvider,
+  clearResolvedNodeFormPaths,
+  useAppForm,
+  useAuthoringFormRegistration,
+  type AuthoringFormActionHandlers,
+  type AuthoringFormRegistration
+} from '#forms'
+import {
+  useActivateRaceMutation,
+  useSaveRaceDraftMutation
+} from '#app/data/races/mutations'
+import {
+  createEmptyRace,
+  normalizeRaceForSubmit,
+  resolveCreateRaceSystemId
+} from '../raceAuthoring.utils'
+import { RaceAuthoringRenderer } from '../components/RaceAuthoringRenderer'
 
-export function RaceCreatePage({ userId }: { userId: string }) {
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const { data: systems } = useSuspenseQuery(getSystemList())
+export function RaceCreatePage() {
+  const route = getRouteApi('/_authed/races/new')
+  const { systems } = route.useLoaderData()
   const systemId = resolveCreateRaceSystemId(systems)
-  const mutation = useMutation({
-    mutationFn: (race: RaceAuthoredDto) => api.content.races.activate(race),
-    onSuccess: async (response) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.content.races.all() })
-      notifications.show({ color: 'green', message: 'Race created.' })
-      if (response?.item.id) {
-        await navigate({ to: '/races/$raceId', params: { raceId: response.item.id } })
-      }
-    },
-    onError: () => notifications.show({ color: 'red', message: 'Could not save that race yet.' })
-  })
-  const draftMutation = useMutation({
-    mutationFn: (race: RaceAuthoredDto) => api.content.races.saveDraft(race),
-    onSuccess: async (draft) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.content.races.all() })
-      notifications.show({ color: 'green', message: 'Race draft saved.' })
-      await navigate({ to: '/races/$raceId/edit', params: { raceId: draft.subjectId } })
-    },
-    onError: () => notifications.show({ color: 'red', message: 'Could not save that draft yet.' })
-  })
 
   if (!systemId) {
-    return (
-      <Stack>
-        <Alert color='yellow'>A system is required before creating races.</Alert>
-        <Button onClick={() => navigate({ to: '/races' })}>Back to races</Button>
-      </Stack>
-    )
+    return <RaceSystemRequiredState />
   }
 
   return (
-    <RaceForm
-      mode='create'
-      systemId={systemId}
-      userId={userId}
-      initialRace={createEmptyRace({ systemId, userId })}
-      onSubmit={async (race) => mutation.mutateAsync(race).then(() => undefined)}
-      onSaveDraft={async (race) => draftMutation.mutateAsync(race).then(() => undefined)}
-    />
+    <AuthoringFormProvider>
+      <RaceCreateAuthoring systemId={systemId} />
+    </AuthoringFormProvider>
+  )
+}
+
+function RaceCreateAuthoring({ systemId }: { systemId: string }) {
+  const navigate = useNavigate()
+  const activateMutation = useActivateRaceMutation()
+  const draftMutation = useSaveRaceDraftMutation()
+  const [race] = useState(() => createEmptyRace({ systemId }))
+
+  const handleCancel = useCallback(async () => {
+    await navigate({ to: '/races' })
+  }, [navigate])
+
+  const handleActivate = useCallback(async (payload: ReturnType<typeof normalizeRaceForSubmit>) => {
+    try {
+      const response = await activateMutation.mutateAsync(payload)
+      notifications.show({ color: 'green', message: 'Race activated.' })
+
+      if (response?.item.id) {
+        await navigate({ to: '/races/$raceId', params: { raceId: response.item.id } })
+      }
+    } catch {
+      notifications.show({ color: 'red', message: 'Could not activate that race yet.' })
+    }
+  }, [
+    activateMutation,
+    navigate
+  ])
+
+  const form = useAppForm({
+    defaultValues: race,
+    onSubmit: async ({ value }) => {
+      await handleActivate(normalizeRaceForSubmit(value))
+    }
+  })
+
+  const handleSaveDraft = useCallback(async () => {
+    try {
+      const draft = await draftMutation.mutateAsync(normalizeRaceForSubmit(form.state.values))
+      notifications.show({ color: 'green', message: 'Race draft saved.' })
+      await navigate({ to: '/races/$raceId/edit', params: { raceId: draft.subjectId } })
+    } catch {
+      notifications.show({ color: 'red', message: 'Could not save that draft yet.' })
+    }
+  }, [
+    draftMutation,
+    form,
+    navigate
+  ])
+
+  const registration = useMemo<AuthoringFormRegistration>(() => ({
+    activateLabel: 'Activate Race',
+    canSaveDraft: true,
+    hasActiveDraft: false,
+    mapId: 'race',
+    mode: 'create',
+    readOnly: false,
+    resolveModel: true,
+    saveDraftLabel: 'Save Draft',
+    subjectKindLabel: 'Race',
+    subjectLabel: race.label || 'Untitled Race',
+    systemId: race.systemId
+  }), [
+    race.label,
+    race.systemId
+  ])
+
+  const actions = useMemo<AuthoringFormActionHandlers>(() => ({
+    onActivate: () => form.handleSubmit(),
+    onCancel: handleCancel,
+    onClearPaths: (paths) => clearResolvedNodeFormPaths(form, paths),
+    onSaveDraft: handleSaveDraft
+  }), [
+    form,
+    handleCancel,
+    handleSaveDraft
+  ])
+
+  useAuthoringFormRegistration(registration, actions)
+
+  return (
+    <form.AppForm>
+      <AuthoringFormLayout>
+        <RaceAuthoringRenderer form={form} />
+      </AuthoringFormLayout>
+    </form.AppForm>
+  )
+}
+
+function RaceSystemRequiredState() {
+  const navigate = useNavigate()
+
+  return (
+    <Stack>
+      <Alert color='yellow'>A system is required before creating races.</Alert>
+      <Button onClick={() => navigate({ to: '/races' })}>Back to races</Button>
+    </Stack>
   )
 }

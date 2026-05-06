@@ -47,3 +47,19 @@ export const raceAuthoredDtoSchema: z.ZodType<RaceAuthoredDto> = z.discriminated
   baseRaceAuthoredDtoSchema,
   subraceAuthoredDtoSchema
 ])
+
+export const baseRaceAuthoringInputDtoSchema = baseRaceAuthoredDtoSchema.extend({
+  userId: z.string().optional()
+})
+export const subraceAuthoringInputDtoSchema = subraceAuthoredDtoSchema.extend({
+  userId: z.string().optional()
+})
+
+export type BaseRaceAuthoringInputDto = z.infer<typeof baseRaceAuthoringInputDtoSchema>
+export type SubraceAuthoringInputDto = z.infer<typeof subraceAuthoringInputDtoSchema>
+export type RaceAuthoringInputDto = BaseRaceAuthoringInputDto | SubraceAuthoringInputDto
+
+export const raceAuthoringInputDtoSchema: z.ZodType<RaceAuthoringInputDto> = z.discriminatedUnion('category', [
+  baseRaceAuthoringInputDtoSchema,
+  subraceAuthoringInputDtoSchema
+])

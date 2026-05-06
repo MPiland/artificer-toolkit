@@ -6,13 +6,9 @@ import { CreatureCreatePage } from '#domains/creatures'
 export const Route = createFileRoute('/_authed/creatures/new')({
   loader: async ({ context }) => {
     const client = createServerApi(context.accessToken)
-    await context.queryClient.ensureQueryData(getSystemList(client))
+    const systems = await context.queryClient.ensureQueryData(getSystemList(client))
+
+    return { systems }
   },
-  component: NewCreatureRoute
+  component: CreatureCreatePage
 })
-
-function NewCreatureRoute() {
-  const { user } = Route.useRouteContext()
-
-  return <CreatureCreatePage userId={user?.id ?? 'unknown-user'} />
-}

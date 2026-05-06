@@ -5,25 +5,38 @@ import { buildNodeMap } from '#utils'
 
 const option = buildNodeMap<OptionAuthored>()
 
+const OPTION_STEPS = {
+  basics: { id: 'basics', label: 'Basics', order: 10 },
+  mechanics: { id: 'mechanics', label: 'Mechanics', order: 20 },
+  grants: { id: 'grants', label: 'Grants', order: 30 }
+} as const
+
+const OPTION_SECTIONS = {
+  basics: { id: 'basics', label: 'Option Basics', order: 10, step: OPTION_STEPS.basics },
+  mechanics: { id: 'mechanics', label: 'Mechanics', order: 10, step: OPTION_STEPS.mechanics },
+  grants: { id: 'grants', label: 'Grants', order: 10, step: OPTION_STEPS.grants }
+} as const
+
 export const OPTION_NODE_MAP = option.define('option', ({ map, nodes, cond }) => {
-  const { text, selectMulti, groupArray, groupObject, number } = nodes
+  const { text, richText, selectMulti, groupArray, groupObject, number } = nodes
   const local = cond.local()
 
   map
     .set('id', text(['id'], 'ID'))
-    .set('label', text(['label'], 'Label'))
-    .set('description', text(['description'], 'Description'))
+    .set('label', text(['label'], 'Label', { section: OPTION_SECTIONS.basics, order: 10 }))
+    .set('description', richText(['description'], 'Description', { section: OPTION_SECTIONS.basics, order: 20 }))
     .set('attributes', selectMulti(['attributes'], 'Attributes', {
       kind: 'INLINE',
       options: FEATURE_ATTRIBUTE_OPTIONS
-    }))
-    .set('detail', text(['detail'], 'Detail'))
-    .set('effects', groupArray(['effects'], 'Effects', () => EFFECT_NODE_MAP))
+    }, { section: OPTION_SECTIONS.basics, order: 30 }))
+    .set('detail', richText(['detail'], 'Detail', { section: OPTION_SECTIONS.basics, order: 40 }))
+    .set('order', number(['order'], 'Order', { section: OPTION_SECTIONS.basics, order: 50 }))
+    .set('effects', groupArray(['effects'], 'Effects', () => EFFECT_NODE_MAP, { section: OPTION_SECTIONS.mechanics, order: 10 }))
     .set('charges', groupObject(['charges'], 'Charges', () => CHARGE_NODE_MAP, {
+      section: OPTION_SECTIONS.mechanics,
+      order: 20,
       showIf: local.field(['attributes']).contains(['LIMITED_USE'])
     }))
-    .set('grants', groupObject(['grants'], 'Grants', () => FEATURE_GRANTS_NODE_MAP))
-    .set('restrictions', groupObject(['restrictions'], 'Restrictions', () => FACET_NODE_MAP))
-    .set('order', number(['order'], 'Order'))
+    .set('restrictions', groupObject(['restrictions'], 'Restrictions', () => FACET_NODE_MAP, { section: OPTION_SECTIONS.mechanics, order: 30 }))
+    .set('grants', groupObject(['grants'], 'Grants', () => FEATURE_GRANTS_NODE_MAP, { section: OPTION_SECTIONS.grants, order: 10 }))
 })
-

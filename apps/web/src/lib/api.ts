@@ -89,13 +89,13 @@ import {
   type SystemListItemDto
 } from '@artificer-toolkit/schema/api/systems'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
-import type { BackgroundAuthoredDto } from '@artificer-toolkit/schema/subjects/background'
+import type { BackgroundAuthoringInputDto } from '@artificer-toolkit/schema/subjects/background'
 import type { ClassAuthoringInputDto } from '@artificer-toolkit/schema/subjects/class'
-import type { CreatureAuthoredDto } from '@artificer-toolkit/schema/subjects/creature'
+import type { CreatureAuthoringInputDto } from '@artificer-toolkit/schema/subjects/creature'
 import type { EquipmentAuthoringInputDto } from '@artificer-toolkit/schema/subjects/equipment'
-import type { FeatAuthoredDto } from '@artificer-toolkit/schema/subjects/feat'
-import type { RaceAuthoredDto } from '@artificer-toolkit/schema/subjects/race'
-import type { SpellAuthoredDto } from '@artificer-toolkit/schema/subjects/spell'
+import type { FeatAuthoringInputDto } from '@artificer-toolkit/schema/subjects/feat'
+import type { RaceAuthoringInputDto } from '@artificer-toolkit/schema/subjects/race'
+import type { SpellAuthoringInputDto } from '@artificer-toolkit/schema/subjects/spell'
 import type { VehicleAuthoringInputDto } from '@artificer-toolkit/schema/subjects/vehicle'
 
 export type {
@@ -123,8 +123,9 @@ export type {
   ClassListItemDto,
   ClassListResponseDto,
   ClassResponseDto,
+  BackgroundAuthoringInputDto,
   ClassAuthoringInputDto,
-  CreatureAuthoredDto,
+  CreatureAuthoringInputDto,
   CreatureListItemDto,
   CreatureListResponseDto,
   CreatureResponseDto,
@@ -133,11 +134,12 @@ export type {
   EquipmentResponseDto,
   FeatListItemDto,
   FeatListResponseDto,
+  FeatAuthoringInputDto,
   FeatResponseDto,
   FeatureListItemDto,
   FeatureListResponseDto,
   FeatureResponseDto,
-  RaceAuthoredDto,
+  RaceAuthoringInputDto,
   NodeRuntimeNormalizeValuesRequestDto,
   NodeRuntimeNormalizeValuesResponseDto,
   NodeRuntimeResolveRequestDto,
@@ -147,6 +149,7 @@ export type {
   RaceResponseDto,
   SpellListItemDto,
   SpellListResponseDto,
+  SpellAuthoringInputDto,
   SpellResponseDto,
   SystemListItemDto,
   VehicleAuthoringInputDto,
@@ -350,13 +353,13 @@ function buildApi(getJwt: (() => Promise<string | null>) | string | null) {
     },
 
     content: {
-      backgrounds: contentDomain<BackgroundListResponseDto, BackgroundResponseDto, BackgroundAuthoredDto>('BACKGROUND', '/content/backgrounds', backgroundListResponseDtoSchema, backgroundResponseDtoSchema),
+      backgrounds: contentDomain<BackgroundListResponseDto, BackgroundResponseDto, BackgroundAuthoringInputDto>('BACKGROUND', '/content/backgrounds', backgroundListResponseDtoSchema, backgroundResponseDtoSchema),
       classes: contentDomain<ClassListResponseDto, ClassResponseDto, ClassAuthoringInputDto>('CLASS', '/content/classes', classListResponseDtoSchema, classResponseDtoSchema),
       equipment: contentDomain<EquipmentListResponseDto, EquipmentResponseDto, EquipmentAuthoringInputDto>('EQUIPMENT', '/content/equipment', equipmentListResponseDtoSchema, equipmentResponseDtoSchema),
-      feats: contentDomain<FeatListResponseDto, FeatResponseDto, FeatAuthoredDto>('FEAT', '/content/feats', featListResponseDtoSchema, featResponseDtoSchema),
-      races: contentDomain<RaceListResponseDto, RaceResponseDto, RaceAuthoredDto>('RACE', '/content/races', raceListResponseDtoSchema, raceResponseDtoSchema),
-      spells: contentDomain<SpellListResponseDto, SpellResponseDto, SpellAuthoredDto>('SPELL', '/content/spells', spellListResponseDtoSchema, spellResponseDtoSchema),
-      creatures: contentDomain<CreatureListResponseDto, CreatureResponseDto, CreatureAuthoredDto>('CREATURE', '/content/creatures', creatureListResponseDtoSchema, creatureResponseDtoSchema),
+      feats: contentDomain<FeatListResponseDto, FeatResponseDto, FeatAuthoringInputDto>('FEAT', '/content/feats', featListResponseDtoSchema, featResponseDtoSchema),
+      races: contentDomain<RaceListResponseDto, RaceResponseDto, RaceAuthoringInputDto>('RACE', '/content/races', raceListResponseDtoSchema, raceResponseDtoSchema),
+      spells: contentDomain<SpellListResponseDto, SpellResponseDto, SpellAuthoringInputDto>('SPELL', '/content/spells', spellListResponseDtoSchema, spellResponseDtoSchema),
+      creatures: contentDomain<CreatureListResponseDto, CreatureResponseDto, CreatureAuthoringInputDto>('CREATURE', '/content/creatures', creatureListResponseDtoSchema, creatureResponseDtoSchema),
       vehicles: contentDomain<VehicleListResponseDto, VehicleResponseDto, VehicleAuthoringInputDto>('VEHICLE', '/content/vehicles', vehicleListResponseDtoSchema, vehicleResponseDtoSchema),
       features: {
         list: () => get('/content/features', featureListResponseDtoSchema),

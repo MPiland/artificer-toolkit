@@ -24,14 +24,13 @@ describe('creature authoring helpers', () => {
   it('creates editable category-driven creature drafts', () => {
     vi.spyOn(crypto, 'randomUUID').mockReturnValue(generatedId)
 
-    expect(createEmptyCreature({ systemId: 'dnd-5e-srd', userId: 'user-1' })).toMatchObject({
+    expect(createEmptyCreature({ systemId: 'dnd-5e-srd' })).toMatchObject({
       id: generatedId,
       label: '',
       status: 'DRAFT',
       recordKind: 'STAT_BLOCK',
       category: 'MONSTER',
       size: 'MEDIUM',
-      userId: 'user-1',
       systemId: 'dnd-5e-srd',
       abilityScores: createDefaultAbilityScores()
     })
@@ -43,7 +42,7 @@ describe('creature authoring helpers', () => {
   })
 
   it('normalizes creature payloads before submit', () => {
-    const creature = createEmptyCreature({ systemId: 'dnd-5e-srd', userId: 'user-1' })
+    const creature = createEmptyCreature({ systemId: 'dnd-5e-srd' })
     const normalized = normalizeCreatureForSubmit({
       ...creature,
       label: '  ',
@@ -64,7 +63,8 @@ describe('creature authoring helpers', () => {
     vi.spyOn(crypto, 'randomUUID').mockReturnValue(generatedId)
 
     const creature = normalizeCreatureForSubmit({
-      ...createEmptyCreature({ systemId: 'dnd-5e-srd', userId: 'user-1' }),
+      ...createEmptyCreature({ systemId: 'dnd-5e-srd' }),
+      userId: 'user-1',
       label: 'River Hart',
       description: 'A sturdy beast.',
       creatureTypeId: 'beast',

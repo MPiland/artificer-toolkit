@@ -12,8 +12,9 @@ import {
   authoredDraftSaveRequestDtoSchema
 } from '@artificer-toolkit/schema/api/content'
 import {
+  backgroundAuthoringInputDtoSchema,
   backgroundAuthoredDtoSchema,
-  type BackgroundAuthoredDto
+  type BackgroundAuthoringInputDto
 } from '@artificer-toolkit/schema/subjects/background'
 import {
   discardAuthoredDraft,
@@ -88,12 +89,12 @@ export const activateBackgroundDraft = handleAuthoringRequest(
 
 // create/update
 export const createBackground = handleAuthoringRequest(
-  backgroundAuthoredDtoSchema,
-  async (db, body: BackgroundAuthoredDto, userId) => {
+  backgroundAuthoringInputDtoSchema,
+  async (db, body: BackgroundAuthoringInputDto, userId) => {
     const service = createBackgroundSubjectAuthoringService(db)
     const normalized = await normalizeNodeRuntimeValues(db, {
       mapId: 'background',
-      values: { ...body }
+      values: { ...body, userId }
     })
     const normalizedBody = backgroundAuthoredDtoSchema.parse(normalized.values)
     const result = await service.execute(normalizeActivatedAuthoringInput(normalizedBody, userId))

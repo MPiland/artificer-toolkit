@@ -23,3 +23,9 @@ export const backgroundAuthoredDtoSchema = z.object({
 })
 
 export type BackgroundAuthoredDto = z.infer<typeof backgroundAuthoredDtoSchema>
+
+export const backgroundAuthoringInputDtoSchema = backgroundAuthoredDtoSchema.extend({
+  userId: z.string().optional()
+})
+
+export type BackgroundAuthoringInputDto = z.infer<typeof backgroundAuthoringInputDtoSchema>

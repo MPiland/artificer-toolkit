@@ -36,6 +36,11 @@ export const platformNavigation: AppShellNavGroup[] = [
         icon: IChar
       },
       {
+        label: 'Systems',
+        href: '/systems',
+        icon: ICategory
+      },
+      {
         label: 'Spells',
         href: '/spells',
         icon: IScroll
@@ -79,18 +84,7 @@ export const platformNavigation: AppShellNavGroup[] = [
   }
 ]
 
-export const storybookNavigation: AppShellNavGroup[] = [
-  ...platformNavigation,
-  {
-    label: 'Coming later',
-    items: [
-      {
-        label: 'Systems',
-        icon: ICategory
-      }
-    ]
-  }
-]
+export const storybookNavigation: AppShellNavGroup[] = [...platformNavigation]
 
 export function isNavItemActive(item: AppShellNavItem, currentPath: string) {
   if (!item.href) {
