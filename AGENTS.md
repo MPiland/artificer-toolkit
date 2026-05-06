@@ -66,6 +66,16 @@ Before starting a new frontend task, confirm the active tranche in [PHASE_9_CODE
 - Pass work to sub agents as needed for efficiency and parallel work. Don't abuse sub agents. Use only as necessary when it would increase efficiency.
 - Do not blindly agree with my suggestions if they break best practices or don't make sense. Build for efficiency and correctness. Push back critically.
 
+## Storybook MCP Rules
+
+When working on UI components, stories, or design-system-backed props, use the Storybook MCP tools when they are available in the active tool list.
+
+- Query the Storybook component/documentation surface before adding or changing props on shared UI, Mantine-backed wrappers, or story patterns.
+- Do not assume component props from memory or naming conventions. Verify them through Storybook MCP documentation, existing stories, or source before using them.
+- Use the Storybook MCP story instructions tool when creating or updating stories, if that tool is available.
+- If Storybook MCP tools are not available in the current session, fall back to source inspection plus the normal local gates instead of guessing.
+- Validate meaningful UI/story changes with the focused Storybook, Playwright, or test commands that cover the touched surface.
+
 ## Design Context
 
 The default product register is `product`.
