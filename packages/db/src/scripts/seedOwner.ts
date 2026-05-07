@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { pathToFileURL } from 'node:url'
 
 export const DEFAULT_SEED_OWNER_EMAIL = 'artificertoolkit@gmail.com'
+const USERS_PER_PAGE = 1000
 
 function requireSupabaseAdminEnv() {
   const url = process.env.SUPABASE_URL
@@ -27,6 +28,7 @@ function createSeedOwnerPassword() {
 
 export async function ensureSeedOwnerUser() {
   const email = process.env.SEED_OWNER_EMAIL ?? DEFAULT_SEED_OWNER_EMAIL
+  const normalizedEmail = email.toLowerCase()
   const { serviceRoleKey, url } = requireSupabaseAdminEnv()
   const supabase = createClient(url, serviceRoleKey, {
     auth: {
@@ -35,12 +37,24 @@ export async function ensureSeedOwnerUser() {
     }
   })
 
-  const { data: existingUsers, error: listError } = await supabase.auth.admin.listUsers()
-  if (listError) throw listError
+  let page = 1
+  while (true) {
+    const { data: existingUsers, error: listError } = await supabase.auth.admin.listUsers({
+      page,
+      perPage: USERS_PER_PAGE
+    })
+    if (listError) throw listError
 
-  const existingUser = existingUsers.users.find((user) => user.email === email)
-  if (existingUser) {
-    return existingUser
+    const existingUser = existingUsers.users.find((user) => user.email?.toLowerCase() === normalizedEmail)
+    if (existingUser) {
+      return existingUser
+    }
+
+    if (!existingUsers.nextPage) {
+      break
+    }
+
+    page = existingUsers.nextPage
   }
 
   const { data, error } = await supabase.auth.admin.createUser({
