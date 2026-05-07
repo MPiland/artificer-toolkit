@@ -1,5 +1,6 @@
 import {
   SRD_CONDITION_TYPES,
+  SRD_CREATURE_TYPES,
   SRD_DAMAGE_TYPES,
   SRD_MAGIC_SCHOOLS,
   SRD_SYSTEM_ID,
@@ -33,8 +34,18 @@ export function conditionTypeId(code: string): string {
   return entry.id
 }
 
+export function creatureTypeId(code: string): string {
+  const entry = SRD_CREATURE_TYPES.find((creatureType) => creatureType.code === code)
+  if (!entry) {
+    throw new Error(`SRD creature type vocabulary entry for ${code} required for spell source data.`)
+  }
+
+  return entry.id
+}
+
 export function spellChildId(spellId: string, bucket: number, index: number): string {
-  const [, , , , spellSuffix] = spellId.split('-')
+  const parts = spellId.split('-')
+  const spellSuffix = parts[4]
   const bucketHex = bucket.toString(16).padStart(4, '0')
   const indexHex = index.toString(16).padStart(12, '0')
 
@@ -42,4 +53,3 @@ export function spellChildId(spellId: string, bucket: number, index: number): st
 }
 
 export { SRD_SYSTEM_ID, SRD_USER_ID }
-

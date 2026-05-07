@@ -12,7 +12,7 @@ import {
   MODIFIER_SCOPE_KIND,
   type ClassAuthored
 } from '@artificer-toolkit/shared'
-import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
+import { CLASS_IDS } from '../ids.js'
 import {
   SRD_CURRENCIES,
   SRD_SKILLS,
@@ -101,13 +101,12 @@ export const barbarian: ClassAuthored = {
       {
         id: classRowId(B, 99, 4),
         grantKind: GRANT_KIND.PROFICIENCY_GRANT,
-        proficiencyKind: PROFICIENCY_KIND.EQUIPMENT_PROPERTY,
+        proficiencyKind: PROFICIENCY_KIND.EQUIPMENT,
         level: SCALING_AMOUNT_KIND.FULL,
         selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
         scalingKind: SCALING.NONE,
-        authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-        properties: ['SHIELD'],
-        category: 'ARMOR',
+        authoringModeKind: AUTHORING_MODE_KIND.ALL,
+        category: 'SHIELD',
         order: 0
       }
     ]
@@ -149,13 +148,12 @@ export const barbarian: ClassAuthored = {
     {
       id: classRowId(B, 2, 3),
       grantKind: GRANT_KIND.PROFICIENCY_GRANT,
-      proficiencyKind: PROFICIENCY_KIND.EQUIPMENT_PROPERTY,
+      proficiencyKind: PROFICIENCY_KIND.EQUIPMENT,
       level: SCALING_AMOUNT_KIND.FULL,
       selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
       scalingKind: SCALING.NONE,
-      authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-      properties: ['SHIELD'],
-      category: 'ARMOR',
+      authoringModeKind: AUTHORING_MODE_KIND.ALL,
+      category: 'SHIELD',
       order: 2
     },
     // Simple weapons

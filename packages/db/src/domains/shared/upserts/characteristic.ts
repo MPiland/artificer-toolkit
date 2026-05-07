@@ -81,11 +81,14 @@ export function mapDurationToRow(
   SupabaseDatabase['public']['Tables']['characteristic_durations']['Row'],
   'created_at' | 'updated_at'
 > {
-  switch (json_data.durationKind) {
+  const { durationKind, id } = json_data
+
+  switch (durationKind) {
     case 'INSTANTANEOUS':
+    case 'UNTIL_DISPELLED':
       return {
         characteristic_id,
-        kind: 'INSTANTANEOUS',
+        kind: durationKind,
         amount: null,
         scaling: null
       }
@@ -100,13 +103,13 @@ export function mapDurationToRow(
     case 'YEAR':
       return {
         characteristic_id,
-        kind: json_data.durationKind,
+        kind: durationKind,
         amount: json_data.amount ?? null,
         scaling: json_data.scaling ?? null
       }
 
     default:
-      throw new Error('Invalid duration kind')
+      throw new Error(`Invalid duration kind "${String(durationKind)}" for duration "${id}".`)
   }
 }
 

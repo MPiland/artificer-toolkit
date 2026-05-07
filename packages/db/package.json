@@ -29,10 +29,14 @@
     "clean": "rimraf dist",
     "build": "tsc -p tsconfig.build.json",
     "build:create-db-bundle": "node ./scripts/build-create-database-bundle.mjs",
+    "db:reset:remote": "tsx src/scripts/resetRemotePublicSchema.ts",
+    "seed:owner": "tsx src/scripts/seedOwner.ts",
+    "seed:srd": "tsx src/scripts/seedSrd.ts",
     "gen:types": "supabase gen types typescript --project-id cvxfhtkksdeiycxpryhy --schema public,storage > src/types/supabase.database.ts"
   },
   "dependencies": {
     "@artificer-toolkit/shared": "workspace:^",
+    "@supabase/supabase-js": "^2.97.0",
     "kysely": "^0.28.11",
     "kysely-supabase": "^0.2.1",
     "pg": "^8.18.0",
@@ -40,6 +44,7 @@
   },
   "devDependencies": {
     "@types/pg": "^8.16.0",
+    "tsx": "^4.21.0",
     "uuid": "^13.0.0"
   }
 }

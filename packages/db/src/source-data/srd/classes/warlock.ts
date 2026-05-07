@@ -15,7 +15,7 @@ import {
   VALUE_DOMAIN_CODE,
   type ClassAuthored
 } from '@artificer-toolkit/shared'
-import { CLASS_IDS, SUBCLASS_IDS, SPELL_IDS } from '../ids.js'
+import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { srdSpells } from '../spells/index.js'
 import {
   SRD_CURRENCIES,
@@ -142,13 +142,26 @@ export const warlock: ClassAuthored = {
       {
         id: classRowId(W, 99, 4),
         grantKind: GRANT_KIND.PROFICIENCY_GRANT,
-        proficiencyKind: PROFICIENCY_KIND.EQUIPMENT,
+        proficiencyKind: PROFICIENCY_KIND.EQUIPMENT_PROPERTY,
         level: SCALING_AMOUNT_KIND.FULL,
         selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
         scalingKind: SCALING.NONE,
         authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-        equipmentIds: [],
+        properties: ['LIGHT'],
+        category: 'ARMOR',
         order: 0
+      },
+      {
+        id: classRowId(W, 99, 5),
+        grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+        proficiencyKind: PROFICIENCY_KIND.EQUIPMENT_PROPERTY,
+        level: SCALING_AMOUNT_KIND.FULL,
+        selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+        scalingKind: SCALING.NONE,
+        authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+        properties: ['SIMPLE'],
+        category: 'WEAPON',
+        order: 1
       }
     ]
   },

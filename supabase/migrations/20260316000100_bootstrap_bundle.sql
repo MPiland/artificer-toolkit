@@ -6063,7 +6063,7 @@ CREATE TABLE IF NOT EXISTS public.equipment (
   CONSTRAINT chk_equipment_status CHECK (status IN ('DRAFT', 'ACTIVE')),
   category text NOT NULL, -- EquipmentCategoryCode
   rarity_id uuid NOT NULL REFERENCES public.rarities (id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
-  cost_amount integer,
+  cost_amount numeric,
   cost_currency_id uuid REFERENCES public.currencies (id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
   weight_amount numeric,
   weight_unit text,

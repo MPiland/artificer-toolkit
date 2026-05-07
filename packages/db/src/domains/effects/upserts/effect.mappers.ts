@@ -115,6 +115,7 @@ export type EffectGenericOutcomeRow = {
 
 type AnyEffectPath = EffectPathAuthored<Trigger, OutcomeAuthored>
 type AnyResultBlock = ResultBlockAuthored<OutcomeAuthored>
+const RESULT_BLOCK_ID_SUFFIX = '__result'
 
 export type DamageRow = {
   id: string
@@ -305,6 +306,12 @@ function requireAbilityCode(ownerId: string, value: string): string {
   return value
 }
 
+function mapResultBlockId(id: string): string {
+  return id.endsWith(RESULT_BLOCK_ID_SUFFIX)
+    ? id.slice(0, -RESULT_BLOCK_ID_SUFFIX.length)
+    : id
+}
+
 function mapTargetingColumns(
   ownerId: string,
   targeting?: TargetingAuthored
@@ -372,8 +379,8 @@ export function mapInvocationRow(json_data: EffectAuthored): EffectInvocationRow
     activation_value: isPassive
       ? -1
       : 'amount' in activation
-      ? activation.amount
-      : null,
+        ? activation.amount
+        : null,
     range_characteristic_id: json_data.invocation.range.id,
     shape_characteristic_id: json_data.invocation.shape?.id ?? null,
     saving_throw_id: 'savingThrow' in json_data.invocation
@@ -401,7 +408,7 @@ export function mapEffectPathRow(
     range_override_characteristic_id: json_data.rangeOverride?.id ?? null,
     ...mapTargetingColumns(json_data.id, json_data.targetingOverride),
     result_block_id: json_data.selectionKind === 'FIXED'
-      ? json_data.resultBlock.id
+      ? mapResultBlockId(json_data.resultBlock.id)
       : null,
     roll_table_kind: json_data.selectionKind === 'ROLL_TABLE'
       ? requirePathRollTableKind(effectId, json_data.rollTableKind)
@@ -417,7 +424,7 @@ export function mapEffectResultBlockRow(
   resultBlock: AnyResultBlock
 ): EffectResultBlockRow {
   return {
-    id: resultBlock.id,
+    id: mapResultBlockId(resultBlock.id),
     result_kind: resultBlock.resultKind,
     duration_id: resultBlock.duration?.id ?? null,
     ...mapResultLifecycleColumns(effectId, resultBlock.lifecycle)
@@ -434,7 +441,7 @@ export function mapEffectPathChoiceOptionRow(
     label: json_data.label ?? null,
     description: json_data.description ?? null,
     sort_order: json_data.order,
-    result_block_id: json_data.resultBlock.id
+    result_block_id: mapResultBlockId(json_data.resultBlock.id)
   }
 }
 
@@ -449,7 +456,7 @@ export function mapEffectPathRollTableRow(
     roll_value: json_data.rollValue ?? null,
     roll_min: json_data.rollRange?.[0] ?? null,
     roll_max: json_data.rollRange?.[1] ?? null,
-    result_block_id: json_data.resultBlock.id
+    result_block_id: mapResultBlockId(json_data.resultBlock.id)
   }
 }
 
@@ -459,7 +466,7 @@ export function mapEffectResultBlockOutcomeRow(
   order: number
 ): EffectResultBlockOutcomeRow {
   return {
-    result_block_id: resultBlockId,
+    result_block_id: mapResultBlockId(resultBlockId),
     outcome_id: json_data.id,
     effect_kind: json_data.effectKind,
     sort_order: order
@@ -630,7 +637,3 @@ export function mapConditionRow(json_data: ConditionAuthored): ConditionRow {
 export {
   EFFECT_KIND
 }
-
-
-
-
