@@ -2,6 +2,8 @@ import {
   upsertBackground,
   upsertCharge,
   upsertClass,
+  upsertClassRoot,
+  upsertCreature,
   upsertDetail,
   upsertEffect,
   upsertEquipment,
@@ -17,7 +19,8 @@ import {
   upsertSpell,
   upsertSpellGrant,
   upsertStartingEquipment,
-  upsertSystem
+  upsertSystem,
+  upsertVehicle
 } from '../domains/index.js'
 import type {
   SeedBaselineContent,
@@ -51,6 +54,10 @@ export const seedBaselineContent: SeedBaselineContent = async (
 
   for (const savingThrow of bundle.shared.savingThrows) {
     await upsertSavingThrow(context.db, savingThrow)
+  }
+
+  for (const equipment of bundle.subjects.equipment) {
+    await upsertEquipment(context.db, equipment, context.systemId)
   }
 
   for (const startingEquipment of bundle.shared.startingEquipment) {
@@ -94,11 +101,19 @@ export const seedBaselineContent: SeedBaselineContent = async (
   }
 
   for (const characterClass of bundle.subjects.classes) {
+    await upsertClassRoot(context.db, characterClass, context.systemId)
+  }
+
+  for (const spell of bundle.subjects.spells) {
+    await upsertSpell(context.db, spell, context.systemId)
+  }
+
+  for (const characterClass of bundle.subjects.classes) {
     await upsertClass(context.db, characterClass, context.systemId)
   }
 
-  for (const equipment of bundle.subjects.equipment) {
-    await upsertEquipment(context.db, equipment, context.systemId)
+  for (const creature of bundle.subjects.creatures) {
+    await upsertCreature(context.db, creature, context.systemId)
   }
 
   for (const feat of bundle.subjects.feats) {
@@ -109,37 +124,41 @@ export const seedBaselineContent: SeedBaselineContent = async (
     await upsertRace(context.db, race, context.systemId)
   }
 
-  for (const spell of bundle.subjects.spells) {
-    await upsertSpell(context.db, spell, context.systemId)
+  for (const vehicle of bundle.subjects.vehicles) {
+    await upsertVehicle(context.db, vehicle, context.systemId)
   }
 
   const result: SeedResult = {
     systems: bundle.vocabulary.systems.length,
-    sharedRecords:
-      bundle.shared.details.length +
-      bundle.shared.charges.length +
-      bundle.shared.savingThrows.length +
-      bundle.shared.startingEquipment.length,
+    sharedRecords: [
+      bundle.shared.details,
+      bundle.shared.charges,
+      bundle.shared.savingThrows,
+      bundle.shared.startingEquipment
+    ].reduce((total, records) => total + records.length, 0),
     effects: bundle.effects.effects.length,
-    features:
-      bundle.features.features.length +
-      bundle.features.options.length,
-    grants:
-      bundle.grants.feats.length +
-      bundle.grants.modifiers.length +
-      bundle.grants.proficiencies.length +
-      bundle.grants.senses.length +
-      bundle.grants.spells.length,
-    subjects:
-      bundle.subjects.backgrounds.length +
-      bundle.subjects.classes.length +
-      bundle.subjects.equipment.length +
-      bundle.subjects.feats.length +
-      bundle.subjects.races.length +
-      bundle.subjects.spells.length
+    features: [
+      bundle.features.features,
+      bundle.features.options
+    ].reduce((total, records) => total + records.length, 0),
+    grants: [
+      bundle.grants.feats,
+      bundle.grants.modifiers,
+      bundle.grants.proficiencies,
+      bundle.grants.senses,
+      bundle.grants.spells
+    ].reduce((total, records) => total + records.length, 0),
+    subjects: [
+      bundle.subjects.backgrounds,
+      bundle.subjects.classes,
+      bundle.subjects.creatures,
+      bundle.subjects.equipment,
+      bundle.subjects.feats,
+      bundle.subjects.races,
+      bundle.subjects.spells,
+      bundle.subjects.vehicles
+    ].reduce((total, records) => total + records.length, 0)
   }
 
   return result
 }
-
-

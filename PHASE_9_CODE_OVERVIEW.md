@@ -75,6 +75,7 @@ Implement the complete frontend rebuild against the locked Phase 8 Figma work an
   - keep email confirmation and password recovery copy resilient when provider delivery is rate-limited or restricted
   - validate auth flows without depending on live email delivery in Playwright or Storybook
 - Supabase SSR session cookies are allowed for browser-to-`apps/web` session continuity, but product-data calls from `apps/web` to `apps/apis` must use the shared API adapter and `Authorization` headers.
+- Baseline/master data is seeded as an explicit database operation, not as part of web dev startup. `yarn seed:owner` creates or reuses the Supabase Auth seed-owner user from `SEED_OWNER_EMAIL` or `artificertoolkit@gmail.com`; `yarn seed:srd` imports the repo-owned SRD bundle into the database identified by `DATABASE_URL` using `SEED_OWNER_USER_ID` when provided, otherwise ensuring the default seed owner exists first.
 - Before production launch, run an auth/session security hardening pass that verifies:
   - deployed session cookies use HTTPS-only `Secure` behavior
   - refresh/session token material is `HttpOnly` where supported by the Supabase SSR flow

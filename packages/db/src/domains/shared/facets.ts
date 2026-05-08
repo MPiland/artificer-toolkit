@@ -1,4 +1,5 @@
 import type { DBLike } from '#types'
+import { createHash } from 'node:crypto'
 import {
   ABILITY_CODE,
   AUTHORING_CONSTRAINT,
@@ -291,16 +292,68 @@ function isSelectableSubjectCode(subject: NodeSubjectCode): subject is Selectabl
   return subject in SUBJECT_SELECTION_COLUMNS
 }
 
-function getContextBodyId(contextId: string): string {
-  return `${contextId}::facet-body`
+function createDerivedUuid(baseId: string, purpose: string): string {
+  const hex = createHash('sha256').update(`${baseId}:${purpose}`)
+    .digest('hex')
+  const variant = ((parseInt(hex.slice(16, 18), 16) & 0x3f) | 0x80).toString(16).padStart(2, '0')
+
+  return [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    `4${hex.slice(13, 16)}`,
+    `${variant}${hex.slice(18, 20)}`,
+    hex.slice(20, 32)
+  ].join('-')
 }
 
-function getContextBodyGroupId(contextId: string): string {
-  return `${contextId}::facet-body-group`
+function getContextBodyId(facetId: string, contextId: string): string {
+  return createDerivedUuid(`${facetId}:${contextId}`, 'facet-body')
 }
 
-function getWhereBodyId(conditionId: string): string {
-  return `${conditionId}::where-body`
+function getContextBodyGroupId(facetId: string, contextId: string): string {
+  return createDerivedUuid(`${facetId}:${contextId}`, 'facet-body-group')
+}
+
+function getWhereBodyId(bodyGroupId: string, conditionId: string): string {
+  return createDerivedUuid(`${bodyGroupId}:${conditionId}`, 'where-body')
+}
+
+function collectAuthoredWhereBodyIds(
+  bodyIds: Set<string>,
+  bodyGroupId: string,
+  condition: FacetConditionAuthored
+) {
+  if (condition.kind !== 'EXISTS' || !condition.where) {
+    return
+  }
+
+  bodyIds.add(getWhereBodyId(bodyGroupId, condition.id))
+
+  for (const group of condition.where.groups) {
+    for (const childCondition of (group.conditions ?? [])) {
+      collectAuthoredWhereBodyIds(bodyIds, group.id, childCondition)
+    }
+  }
+}
+
+function collectAuthoredFacetBodyIds<N extends NodeSubjectCode>(
+  facet: FacetAuthored<N>
+): string[] {
+  const bodyIds = new Set<string>()
+
+  for (const group of facet.groups) {
+    for (const context of group.contexts) {
+      const bodyGroupId = getContextBodyGroupId(facet.id, context.id)
+
+      bodyIds.add(getContextBodyId(facet.id, context.id))
+
+      for (const condition of (context.conditions ?? [])) {
+        collectAuthoredWhereBodyIds(bodyIds, bodyGroupId, condition)
+      }
+    }
+  }
+
+  return [...bodyIds]
 }
 
 function requireSingleAbility(
@@ -312,22 +365,6 @@ function requireSingleAbility(
   }
 
   return requireAbilityCode(`facet condition "${conditionId}"`, abilityCodes[0] as string)
-}
-
-function requireSingleSelectableValue(
-  conditionId: string,
-  field: string,
-  values: unknown
-): string {
-  if (!Array.isArray(values) || values.some((value) => typeof value !== 'string')) {
-    throw new Error(`facet condition "${conditionId}" requires "${field}" to be a string array.`)
-  }
-
-  if (values.length !== 1) {
-    throw new Error(`facet condition "${conditionId}" expected exactly one ${field}, found ${values.length}.`)
-  }
-
-  return values[0]
 }
 
 async function replaceSelectionItems(
@@ -1129,26 +1166,14 @@ async function writePredicatePayload(
     case 'CREATURE_RECORD_KIND':
       await insertPredicateSelectableHeader(db, condition)
       if (condition.authoringModeKind === AUTHORING_MODE_KIND.SELECTED) {
-        await writeTextItems(
-          db,
-          'facet_predicate_creature_record_kind_items',
-          'record_kind',
-          conditionId,
-          condition.recordKinds.map((value) => requireCreatureRecordKind(`facet condition "${conditionId}"`, value))
-        )
+        await writeTextItems(db, 'facet_predicate_creature_record_kind_items', 'record_kind', conditionId, condition.recordKinds.map((value) => requireCreatureRecordKind(`facet condition "${conditionId}"`, value)))
       }
       return
 
     case 'CREATURE_CATEGORY':
       await insertPredicateSelectableHeader(db, condition)
       if (condition.authoringModeKind === AUTHORING_MODE_KIND.SELECTED) {
-        await writeTextItems(
-          db,
-          'facet_predicate_creature_category_items',
-          'category_code',
-          conditionId,
-          condition.categories.map((value) => requireCreatureCategory(`facet condition "${conditionId}"`, value))
-        )
+        await writeTextItems(db, 'facet_predicate_creature_category_items', 'category_code', conditionId, condition.categories.map((value) => requireCreatureCategory(`facet condition "${conditionId}"`, value)))
       }
       return
 
@@ -1177,13 +1202,7 @@ async function writePredicatePayload(
     case 'VEHICLE_CATEGORY':
       await insertPredicateSelectableHeader(db, condition)
       if (condition.authoringModeKind === AUTHORING_MODE_KIND.SELECTED) {
-        await writeTextItems(
-          db,
-          'facet_predicate_vehicle_category_items',
-          'category_code',
-          conditionId,
-          condition.categories.map((value) => requireVehicleCategory(`facet condition "${conditionId}"`, value))
-        )
+        await writeTextItems(db, 'facet_predicate_vehicle_category_items', 'category_code', conditionId, condition.categories.map((value) => requireVehicleCategory(`facet condition "${conditionId}"`, value)))
       }
       return
 
@@ -1237,7 +1256,7 @@ async function writeCondition(
   condition: FacetConditionAuthored
 ): Promise<void> {
   if (condition.kind === 'EXISTS') {
-    const whereBodyId = condition.where ? getWhereBodyId(condition.id) : null
+    const whereBodyId = condition.where ? getWhereBodyId(bodyGroupId, condition.id) : null
 
     await db.insertInto('facet_conditions').values({
       id: condition.id,
@@ -1283,12 +1302,72 @@ async function writeCondition(
   await writePredicatePayload(db, condition)
 }
 
+async function collectFacetBodyIds(
+  db: DBLike,
+  facetId: string
+): Promise<string[]> {
+  const bodyIds = new Set<string>()
+  const contextBodyRows = await db
+    .selectFrom('facet_groups')
+    .innerJoin('facet_contexts', 'facet_contexts.facet_group_id', 'facet_groups.id')
+    .innerJoin('facet_context_bodies', 'facet_context_bodies.facet_context_id', 'facet_contexts.id')
+    .select('facet_context_bodies.facet_body_id as id')
+    .where('facet_groups.facet_id', '=', facetId)
+    .execute()
+
+  for (const row of contextBodyRows) {
+    bodyIds.add(row.id)
+  }
+
+  let pendingBodyIds = [...bodyIds]
+  while (pendingBodyIds.length > 0) {
+    const whereBodyRows = await db
+      .selectFrom('facet_body_groups')
+      .innerJoin('facet_conditions', 'facet_conditions.facet_body_group_id', 'facet_body_groups.id')
+      .select('facet_conditions.where_facet_body_id as id')
+      .where('facet_body_groups.facet_body_id', 'in', pendingBodyIds)
+      .where('facet_conditions.where_facet_body_id', 'is not', null)
+      .execute()
+
+    pendingBodyIds = []
+    for (const row of whereBodyRows) {
+      if (row.id && !bodyIds.has(row.id)) {
+        bodyIds.add(row.id)
+        pendingBodyIds.push(row.id)
+      }
+    }
+  }
+
+  return [...bodyIds]
+}
+
+async function deleteExistingFacetGraph(
+  db: DBLike,
+  facetId: string
+): Promise<void> {
+  const bodyIds = await collectFacetBodyIds(db, facetId)
+
+  await db.deleteFrom('facets').where('id', '=', facetId)
+    .execute()
+
+  if (bodyIds.length > 0) {
+    await db.deleteFrom('facet_bodies').where('id', 'in', bodyIds)
+      .execute()
+  }
+}
+
 export async function upsertFacet<N extends NodeSubjectCode = NodeSubjectCode>(
   db: DBLike,
   facet: FacetAuthored<N>
 ): Promise<void> {
-  await db.deleteFrom('facets').where('id', '=', facet.id)
-    .execute()
+  await deleteExistingFacetGraph(db, facet.id)
+
+  const authoredBodyIds = collectAuthoredFacetBodyIds(facet)
+
+  if (authoredBodyIds.length > 0) {
+    await db.deleteFrom('facet_bodies').where('id', 'in', authoredBodyIds)
+      .execute()
+  }
 
   await db.insertInto('facets').values({
     id: facet.id
@@ -1305,8 +1384,8 @@ export async function upsertFacet<N extends NodeSubjectCode = NodeSubjectCode>(
 
     for (const context of group.contexts) {
       const subject = requireNodeSubject(`facet context "${context.id}"`, context.subject)
-      const bodyId = getContextBodyId(context.id)
-      const bodyGroupId = getContextBodyGroupId(context.id)
+      const bodyId = getContextBodyId(facet.id, context.id)
+      const bodyGroupId = getContextBodyGroupId(facet.id, context.id)
 
       await db.insertInto('facet_contexts').values({
         id: context.id,

@@ -1,0 +1,74 @@
+import { createDb } from '../client.js'
+import { seedBaselineContent } from '../seed/baseline.js'
+import type { BaselineContentBundle } from '../source-data/content.js'
+import {
+  SRD_SYSTEM_ID,
+  srdBaselineContent
+} from '../source-data/srd/index.js'
+import { ensureSeedOwnerUser } from './seedOwner.js'
+
+function requireDatabaseUrl() {
+  if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL is required to seed SRD content.')
+  }
+}
+
+async function getSeedOwnerUserId() {
+  if (process.env.SEED_OWNER_USER_ID) {
+    return process.env.SEED_OWNER_USER_ID
+  }
+
+  const seedOwner = await ensureSeedOwnerUser()
+  return seedOwner.id
+}
+
+function withSeedOwner(
+  bundle: BaselineContentBundle,
+  userId: string
+): BaselineContentBundle {
+  return {
+    ...bundle,
+    vocabulary: {
+      systems: bundle.vocabulary.systems.map((system) => ({
+        ...system,
+        userId
+      }))
+    },
+    subjects: {
+      backgrounds: bundle.subjects.backgrounds.map((record) => ({ ...record, userId })),
+      classes: bundle.subjects.classes.map((record) => ({ ...record, userId })),
+      creatures: bundle.subjects.creatures.map((record) => ({ ...record, userId })),
+      equipment: bundle.subjects.equipment.map((record) => ({ ...record, userId })),
+      feats: bundle.subjects.feats.map((record) => ({ ...record, userId })),
+      races: bundle.subjects.races.map((record) => ({ ...record, userId })),
+      spells: bundle.subjects.spells.map((record) => ({ ...record, userId })),
+      vehicles: bundle.subjects.vehicles.map((record) => ({ ...record, userId }))
+    }
+  }
+}
+
+async function main() {
+  requireDatabaseUrl()
+
+  const seedOwnerUserId = await getSeedOwnerUserId()
+  const bundle = withSeedOwner(srdBaselineContent, seedOwnerUserId)
+  const db = createDb()
+
+  try {
+    const result = await seedBaselineContent({
+      db,
+      systemId: SRD_SYSTEM_ID
+    }, bundle)
+
+    console.info('Seeded SRD baseline content.')
+    console.info(`Seed owner user id: ${seedOwnerUserId}`)
+    console.info(JSON.stringify(result, null, 2))
+  } finally {
+    await db.destroy()
+  }
+}
+
+main().catch((error: unknown) => {
+  console.error(error)
+  process.exitCode = 1
+})

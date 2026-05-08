@@ -9,6 +9,9 @@
   ],
   "scripts": {
     "dev": "yarn workspace @artificer-toolkit/web dev",
+    "db:reset:remote": "yarn workspace @artificer-toolkit/db db:reset:remote",
+    "seed:owner": "yarn workspace @artificer-toolkit/db seed:owner",
+    "seed:srd": "yarn build:shared && yarn workspace @artificer-toolkit/db seed:srd",
     "build:schema": "yarn tsc -p packages/schema/tsconfig.build.json",
     "generate:schema": "yarn workspace @artificer-toolkit/schema generate:zod",
     "build:web": "yarn workspace @artificer-toolkit/web typecheck",

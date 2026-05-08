@@ -216,22 +216,6 @@ export async function upsertEquipment(
       await upsertFacet(trx, json_data.restrictions)
     }
 
-    for (const effect of authoredEffects) {
-      await upsertEffect(trx, effect)
-    }
-
-    if (json_data.modifiers) {
-      for (const modifierGrant of json_data.modifiers) {
-        await upsertModifierGrant(trx, modifierGrant, json_data.systemId)
-      }
-    }
-
-    if (json_data.features) {
-      for (const feature of json_data.features) {
-        await upsertFeature<'EQUIPMENT'>(trx, feature, json_data.systemId)
-      }
-    }
-
     await trx
       .insertInto('equipment')
       .values(mapEquipmentRow(json_data))
@@ -281,6 +265,10 @@ export async function upsertEquipment(
       }
     }
 
+    for (const effect of authoredEffects) {
+      await upsertEffect(trx, effect)
+    }
+
     if (effectRows.length > 0) {
       await trx
         .insertInto('equipment_effects')
@@ -312,6 +300,12 @@ export async function upsertEquipment(
       sort_order: grant.order
     }))
 
+    if (json_data.modifiers) {
+      for (const modifierGrant of json_data.modifiers) {
+        await upsertModifierGrant(trx, modifierGrant, json_data.systemId)
+      }
+    }
+
     if (modifierRows.length > 0) {
       await trx.insertInto('equipment_modifier_grants').values(modifierRows)
         .execute()
@@ -322,6 +316,12 @@ export async function upsertEquipment(
       feature_id: feature.id,
       sort_order: feature.order
     }))
+
+    if (json_data.features) {
+      for (const feature of json_data.features) {
+        await upsertFeature<'EQUIPMENT'>(trx, feature, json_data.systemId)
+      }
+    }
 
     if (featureRows.length > 0) {
       await trx.insertInto('equipment_features').values(featureRows)
@@ -334,5 +334,3 @@ export async function upsertEquipment(
     throw error
   }
 }
-
-

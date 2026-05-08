@@ -14,13 +14,13 @@ import { SRD_LANGUAGES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabu
 
 // Equipment IDs (equipId formula: 00000000-0000-0000-0060-{hex}00000000)
 const HOLY_SYMBOL_AMULET_ID = '00000000-0000-0000-0060-006000000000'
-const PRAYER_BOOK_ID        = '00000000-0000-0000-0060-00a500000000'
-const PRAYER_WHEEL_ID       = '00000000-0000-0000-0060-016b00000000'
-const INCENSE_ID            = '00000000-0000-0000-0060-016900000000'
-const VESTMENTS_ID          = '00000000-0000-0000-0060-016a00000000'
-const COMMON_CLOTHES_ID     = '00000000-0000-0000-0060-008300000000'
-const POUCH_ID              = '00000000-0000-0000-0060-009700000000'
-const CURRENCY_GP           = '00000000-0000-0000-0003-000400000000'
+const PRAYER_BOOK_ID = '00000000-0000-0000-0060-00a500000000'
+const PRAYER_WHEEL_ID = '00000000-0000-0000-0060-016b00000000'
+const INCENSE_ID = '00000000-0000-0000-0060-016900000000'
+const VESTMENTS_ID = '00000000-0000-0000-0060-016a00000000'
+const COMMON_CLOTHES_ID = '00000000-0000-0000-0060-008300000000'
+const POUCH_ID = '00000000-0000-0000-0060-009700000000'
+const CURRENCY_GP = '00000000-0000-0000-0003-000400000000'
 
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
@@ -36,7 +36,7 @@ function bgId(bgIndex: number, group: number, entry: number): string {
   const bb = bgIndex.toString(16).padStart(2, '0')
   const gg = group.toString(16).padStart(2, '0')
   const nn = entry.toString(16).padStart(2, '0')
-  return `00000000-0000-0000-8040-${bb}${gg}${nn}0000000`
+  return `00000000-0000-0000-8040-${bb}${gg}${nn}000000`
 }
 
 export const acolyte: BackgroundAuthored = {

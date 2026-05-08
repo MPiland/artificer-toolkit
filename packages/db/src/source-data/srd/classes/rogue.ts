@@ -9,7 +9,7 @@ import {
   SCALING_AMOUNT_KIND,
   type ClassAuthored
 } from '@artificer-toolkit/shared'
-import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
+import { CLASS_IDS } from '../ids.js'
 import {
   SRD_CURRENCIES,
   SRD_LANGUAGES,
@@ -28,6 +28,11 @@ function languageId(code: string): string {
   const entry = SRD_LANGUAGES.find((l) => l.code === code)
   if (!entry) throw new Error(`SRD language vocabulary entry for ${code} required.`)
   return entry.id
+}
+
+function equipmentId(index: number): string {
+  const hex = index.toString(16).padStart(4, '0')
+  return `00000000-0000-0000-0060-${hex}00000000`
 }
 
 const goldCurrencyId = SRD_CURRENCIES.find((c) => c.code === 'GP')?.id
@@ -75,13 +80,49 @@ export const rogue: ClassAuthored = {
       {
         id: classRowId(R, 99, 4),
         grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+        proficiencyKind: PROFICIENCY_KIND.EQUIPMENT_PROPERTY,
+        level: SCALING_AMOUNT_KIND.FULL,
+        selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+        scalingKind: SCALING.NONE,
+        authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+        properties: ['LIGHT'],
+        category: 'ARMOR',
+        order: 0
+      },
+      {
+        id: classRowId(R, 99, 5),
+        grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+        proficiencyKind: PROFICIENCY_KIND.SKILL,
+        level: SCALING_AMOUNT_KIND.FULL,
+        selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+        scalingKind: SCALING.NONE,
+        count: 1,
+        authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+        skillIds: [
+          skillId('ACROBATICS'),
+          skillId('ATHLETICS'),
+          skillId('DECEPTION'),
+          skillId('INSIGHT'),
+          skillId('INTIMIDATION'),
+          skillId('INVESTIGATION'),
+          skillId('PERCEPTION'),
+          skillId('PERFORMANCE'),
+          skillId('PERSUASION'),
+          skillId('SLEIGHT_OF_HAND'),
+          skillId('STEALTH')
+        ],
+        order: 1
+      },
+      {
+        id: classRowId(R, 99, 6),
+        grantKind: GRANT_KIND.PROFICIENCY_GRANT,
         proficiencyKind: PROFICIENCY_KIND.EQUIPMENT,
         level: SCALING_AMOUNT_KIND.FULL,
         selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
         scalingKind: SCALING.NONE,
         authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-        equipmentIds: [],
-        order: 0
+        equipmentIds: [equipmentId(85)],
+        order: 2
       }
     ]
   },

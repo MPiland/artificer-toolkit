@@ -1,4 +1,5 @@
 import type { DBLike } from '#types'
+import { createHash } from 'node:crypto'
 import {
   ABILITY_CODE,
   CLASS_ATTRIBUTE,
@@ -15,7 +16,7 @@ import {
   upsertStartingEquipment
 } from '../../shared/upserts/index.js'
 import { upsertProficiencyGrant } from '../../grants/upserts/index.js'
-import { upsertFeature } from '../../features/upserts/index.js'
+import { upsertFeature, upsertFeatureRoot } from '../../features/upserts/index.js'
 import { upsertCharge } from '../../shared/upserts/charge.js'
 import { normalizeSubjectStatus } from '../status.js'
 
@@ -151,6 +152,23 @@ type ClassSpellSlotRow = {
   slot_count: number
 }
 
+function createDerivedUuid(
+  seed: string,
+  purpose: string
+): string {
+  const hex = createHash('sha256').update(`${seed}:${purpose}`)
+    .digest('hex')
+  const variant = ((parseInt(hex.slice(16, 18), 16) & 0x3f) | 0x80).toString(16).padStart(2, '0')
+
+  return [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    `4${hex.slice(13, 16)}`,
+    `${variant}${hex.slice(18, 20)}`,
+    hex.slice(20, 32)
+  ].join('-')
+}
+
 function requireClassCategory(
   classId: string,
   value: string
@@ -268,6 +286,46 @@ function mapClassRow(json_data: ClassAuthored): ClassRow {
   }
 }
 
+async function upsertClassRow(
+  db: DBLike,
+  json_data: ClassAuthored
+) {
+  await db
+    .insertInto('classes')
+    .values(mapClassRow(json_data))
+    .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
+      system_id: ref('excluded.system_id'),
+      user_id: ref('excluded.user_id'),
+      category: ref('excluded.category'),
+      parent_class_id: ref('excluded.parent_class_id'),
+      label: ref('excluded.label'),
+      description: ref('excluded.description'),
+      status: ref('excluded.status'),
+      starting_equipment_id: ref('excluded.starting_equipment_id')
+    })))
+    .execute()
+}
+
+export async function upsertClassRoot(
+  db: DBLike,
+  json_data: ClassAuthored,
+  _systemId: string
+) {
+  const trx = await db.startTransaction().execute()
+
+  try {
+    if (json_data.category === CLASS_CATEGORY.BASE) {
+      await upsertStartingEquipment(trx, json_data.startingEquipment)
+    }
+
+    await upsertClassRow(trx, json_data)
+    await trx.commit().execute()
+  } catch (error) {
+    await trx.rollback().execute()
+    throw error
+  }
+}
+
 export async function upsertClass(
   db: DBLike,
   json_data: ClassAuthored,
@@ -296,7 +354,7 @@ export async function upsertClass(
       }
     : null
 
-  const spellcastingId = `${json_data.id}::spellcasting`
+  const spellcastingId = createDerivedUuid(json_data.id, 'class-spellcasting')
   const spellcastingRow: ClassSpellcastingRow | null = json_data.spellcasting
     ? {
         id: spellcastingId,
@@ -348,7 +406,7 @@ export async function upsertClass(
 
   const spellLimitRows: ClassSpellLimitRow[] = json_data.spellcasting
     ? json_data.spellcasting.spellLimits.map((limit) => ({
-        id: `${spellcastingId}::limit::${limit.classLevel}`,
+        id: createDerivedUuid(spellcastingId, `spell-limit-${limit.classLevel}`),
         spellcasting_id: spellcastingId,
         class_level: limit.classLevel,
         learned_spells_limit: limit.learnedSpellsLimit ?? null,
@@ -359,7 +417,7 @@ export async function upsertClass(
 
   const spellSlotRows: ClassSpellSlotRow[] = json_data.spellcasting
     ? json_data.spellcasting.spellLimits.flatMap((limit) => limit.slots.map((slot) => ({
-        spell_limit_id: `${spellcastingId}::limit::${limit.classLevel}`,
+        spell_limit_id: createDerivedUuid(spellcastingId, `spell-limit-${limit.classLevel}`),
         spell_level: slot.spellLevel,
         slot_count: slot.slotCount
       })))
@@ -368,6 +426,39 @@ export async function upsertClass(
   const trx = await db.startTransaction().execute()
 
   try {
+    if (json_data.category === CLASS_CATEGORY.BASE) {
+      await upsertStartingEquipment(trx, json_data.startingEquipment)
+    }
+
+    await upsertClassRow(trx, json_data)
+
+    await trx.deleteFrom('class_features').where('class_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('class_details').where('class_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('class_proficiency_grants').where('class_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('class_attributes').where('class_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('class_specializations').where('class_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('class_resources').where('class_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('class_spellcasting').where('class_id', '=', json_data.id)
+      .execute()
+
+    if (json_data.category === CLASS_CATEGORY.BASE) {
+      await trx.deleteFrom('class_multiclass').where('class_id', '=', json_data.id)
+        .execute()
+    } else {
+      await trx.deleteFrom('class_hitpoints').where('class_id', '=', json_data.id)
+        .execute()
+      await trx.deleteFrom('class_starting_gold').where('class_id', '=', json_data.id)
+        .execute()
+      await trx.deleteFrom('class_multiclass').where('class_id', '=', json_data.id)
+        .execute()
+    }
+
     if (json_data.details) {
       for (const detail of json_data.details) {
         await upsertDetail(trx, detail)
@@ -377,6 +468,12 @@ export async function upsertClass(
     if (json_data.proficiencies) {
       for (const grant of json_data.proficiencies) {
         await upsertProficiencyGrant(trx, grant)
+      }
+    }
+
+    if (json_data.features) {
+      for (const feature of json_data.features) {
+        await upsertFeatureRoot(trx, feature, json_data.systemId)
       }
     }
 
@@ -393,46 +490,6 @@ export async function upsertClass(
     if (json_data.spellcasting) {
       await upsertCharge(trx, json_data.spellcasting.charges)
     }
-
-    if (json_data.category === CLASS_CATEGORY.BASE) {
-      await upsertStartingEquipment(trx, json_data.startingEquipment)
-
-      if (json_data.multiclass.proficiencies) {
-        for (const grant of json_data.multiclass.proficiencies) {
-          await upsertProficiencyGrant(trx, grant)
-        }
-      }
-    }
-
-    await trx
-      .insertInto('classes')
-      .values(mapClassRow(json_data))
-      .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
-        system_id: ref('excluded.system_id'),
-        user_id: ref('excluded.user_id'),
-        category: ref('excluded.category'),
-        parent_class_id: ref('excluded.parent_class_id'),
-        label: ref('excluded.label'),
-        description: ref('excluded.description'),
-        status: ref('excluded.status'),
-        starting_equipment_id: ref('excluded.starting_equipment_id')
-      })))
-      .execute()
-
-    await trx.deleteFrom('class_features').where('class_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('class_details').where('class_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('class_proficiency_grants').where('class_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('class_attributes').where('class_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('class_specializations').where('class_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('class_resources').where('class_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('class_spellcasting').where('class_id', '=', json_data.id)
-      .execute()
 
     if (detailRows.length > 0) {
       await trx.insertInto('class_details').values(detailRows)
@@ -535,8 +592,11 @@ export async function upsertClass(
         })))
         .execute()
 
-      await trx.deleteFrom('class_multiclass').where('class_id', '=', json_data.id)
-        .execute()
+      if (json_data.multiclass.proficiencies) {
+        for (const grant of json_data.multiclass.proficiencies) {
+          await upsertProficiencyGrant(trx, grant)
+        }
+      }
 
       await trx
         .insertInto('class_multiclass')
@@ -591,13 +651,6 @@ export async function upsertClass(
         await trx.insertInto('class_attributes').values(attributeRows)
           .execute()
       }
-
-      await trx.deleteFrom('class_hitpoints').where('class_id', '=', json_data.id)
-        .execute()
-      await trx.deleteFrom('class_starting_gold').where('class_id', '=', json_data.id)
-        .execute()
-      await trx.deleteFrom('class_multiclass').where('class_id', '=', json_data.id)
-        .execute()
 
       const specializationRows: ClassSpecializationRow[] = (json_data.specializations ?? []).map((specialization) => ({
         id: specialization.id,

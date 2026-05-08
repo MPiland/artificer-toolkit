@@ -84,6 +84,42 @@ function mapOptionRow<N extends NodeSubjectCode>(json_data: OptionAuthored<N>): 
   }
 }
 
+function mapOptionRootRow<N extends NodeSubjectCode>(json_data: OptionAuthored<N>): OptionRow {
+  return {
+    ...mapOptionRow(json_data),
+    restriction_id: null
+  }
+}
+
+async function upsertOptionRow(
+  db: DBLike,
+  row: OptionRow
+) {
+  await db
+    .insertInto('options')
+    .values(row)
+    .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
+      label: ref('excluded.label'),
+      description: ref('excluded.description'),
+      detail: ref('excluded.detail'),
+      sort_order: ref('excluded.sort_order'),
+      charge_id: ref('excluded.charge_id'),
+      restriction_id: ref('excluded.restriction_id')
+    })))
+    .execute()
+}
+
+export async function upsertOptionRoot<N extends NodeSubjectCode>(
+  db: DBLike,
+  json_data: OptionAuthored<N>
+) {
+  if (json_data.charges) {
+    await upsertCharge(db, json_data.charges)
+  }
+
+  await upsertOptionRow(db, mapOptionRootRow(json_data))
+}
+
 export async function upsertOption<N extends NodeSubjectCode>(
   db: DBLike,
   json_data: OptionAuthored<N>,
@@ -146,8 +182,30 @@ export async function upsertOption<N extends NodeSubjectCode>(
         .execute()
     }
 
-    if (json_data.charges) {
-      await upsertCharge(trx, json_data.charges)
+    await upsertOptionRoot(trx, json_data)
+
+    await trx.deleteFrom('option_attributes').where('option_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('option_feat_grants').where('option_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('option_modifier_grants').where('option_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('option_proficiency_grants').where('option_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('option_sense_grants').where('option_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('option_spell_grants').where('option_id', '=', json_data.id)
+      .execute()
+
+    for (const previousEffect of previousEffectRows) {
+      if (!nextEffectIds.has(previousEffect.effect_id)) {
+        await trx
+          .deleteFrom('option_effects')
+          .where('option_id', '=', json_data.id)
+          .where('effect_id', '=', previousEffect.effect_id)
+          .execute()
+        await deleteEffectById(trx, previousEffect.effect_id)
+      }
     }
 
     if (json_data.restrictions) {
@@ -178,42 +236,7 @@ export async function upsertOption<N extends NodeSubjectCode>(
       await upsertSpellGrant(trx, grant as Parameters<typeof upsertSpellGrant>[1])
     }
 
-    await trx
-      .insertInto('options')
-      .values(mapOptionRow(json_data))
-      .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
-        label: ref('excluded.label'),
-        description: ref('excluded.description'),
-        detail: ref('excluded.detail'),
-        sort_order: ref('excluded.sort_order'),
-        charge_id: ref('excluded.charge_id'),
-        restriction_id: ref('excluded.restriction_id')
-      })))
-      .execute()
-
-    await trx.deleteFrom('option_attributes').where('option_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('option_feat_grants').where('option_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('option_modifier_grants').where('option_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('option_proficiency_grants').where('option_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('option_sense_grants').where('option_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('option_spell_grants').where('option_id', '=', json_data.id)
-      .execute()
-
-    for (const previousEffect of previousEffectRows) {
-      if (!nextEffectIds.has(previousEffect.effect_id)) {
-        await trx
-          .deleteFrom('option_effects')
-          .where('option_id', '=', json_data.id)
-          .where('effect_id', '=', previousEffect.effect_id)
-          .execute()
-        await deleteEffectById(trx, previousEffect.effect_id)
-      }
-    }
+    await upsertOptionRow(trx, mapOptionRow(json_data))
 
     if (effectRows.length > 0) {
       await trx
@@ -261,5 +284,3 @@ export async function upsertOption<N extends NodeSubjectCode>(
     throw error
   }
 }
-
-

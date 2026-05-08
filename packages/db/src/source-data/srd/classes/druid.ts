@@ -202,13 +202,12 @@ export const druid: ClassAuthored = {
     {
       id: classRowId(D, 2, 3),
       grantKind: GRANT_KIND.PROFICIENCY_GRANT,
-      proficiencyKind: PROFICIENCY_KIND.EQUIPMENT_PROPERTY,
+      proficiencyKind: PROFICIENCY_KIND.EQUIPMENT,
       level: SCALING_AMOUNT_KIND.FULL,
       selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
       scalingKind: SCALING.NONE,
-      authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-      properties: ['SHIELD'],
-      category: 'ARMOR',
+      authoringModeKind: AUTHORING_MODE_KIND.ALL,
+      category: 'SHIELD',
       order: 2
     },
     // Saving throws: INT, WIS

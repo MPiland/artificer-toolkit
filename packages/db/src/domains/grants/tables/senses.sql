@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS public.sense_grants (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT sense_grants_root_sort_order_chk CHECK (
-    sort_order > 0
+    sort_order >= 0
   ),
   CONSTRAINT sense_grants_root_selection_kind_chk CHECK (
     selection_kind IN ('GRANTED', 'CHOSEN')
@@ -142,7 +142,7 @@ CREATE TABLE IF NOT EXISTS public.sense_grant_scaling_levels (
     level > 0
   ),
   CONSTRAINT sense_grant_scaling_levels_sort_order_chk CHECK (
-    sort_order > 0
+    sort_order >= 0
   ),
   CONSTRAINT sense_grant_scaling_levels_mode_chk CHECK (
     authoring_mode_kind IN ('ALL', 'SELECTED')

@@ -84,7 +84,7 @@ ALTER TABLE public.characteristic_shape_dimensions ENABLE ROW LEVEL SECURITY;
   characteristic_id uuid PRIMARY KEY
     REFERENCES characteristics(id) ON DELETE CASCADE,
 
-  kind text NOT NULL,   -- INSTANTANEOUS | DAY | HOUR | MINUTE | MONTH | ROUND | TURN | WEEK | YEAR
+  kind text NOT NULL,   -- INSTANTANEOUS | UNTIL_DISPELLED | DAY | HOUR | MINUTE | MONTH | ROUND | TURN | WEEK | YEAR
   amount integer,
   scaling jsonb
 );

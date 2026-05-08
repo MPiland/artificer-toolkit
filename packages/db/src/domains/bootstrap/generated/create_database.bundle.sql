@@ -1629,7 +1629,7 @@ ALTER TABLE public.characteristic_shape_dimensions ENABLE ROW LEVEL SECURITY;
   characteristic_id uuid PRIMARY KEY
     REFERENCES characteristics(id) ON DELETE CASCADE,
 
-  kind text NOT NULL,   -- INSTANTANEOUS | DAY | HOUR | MINUTE | MONTH | ROUND | TURN | WEEK | YEAR
+  kind text NOT NULL,   -- INSTANTANEOUS | UNTIL_DISPELLED | DAY | HOUR | MINUTE | MONTH | ROUND | TURN | WEEK | YEAR
   amount integer,
   scaling jsonb
 );
@@ -4048,7 +4048,7 @@ CREATE TABLE IF NOT EXISTS public.feat_grants (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT feat_grants_root_sort_order_chk CHECK (
-    sort_order > 0
+    sort_order >= 0
   ),
   CONSTRAINT feat_grants_root_selection_kind_chk CHECK (
     selection_kind IN ('GRANTED', 'CHOSEN')
@@ -4167,7 +4167,7 @@ CREATE TABLE IF NOT EXISTS public.feat_grant_scaling_levels (
     level > 0
   ),
   CONSTRAINT feat_grant_scaling_levels_sort_order_chk CHECK (
-    sort_order > 0
+    sort_order >= 0
   ),
   CONSTRAINT feat_grant_scaling_levels_mode_chk CHECK (
     authoring_mode_kind IN ('ALL', 'SELECTED')
@@ -4568,7 +4568,7 @@ CREATE TABLE IF NOT EXISTS public.sense_grants (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT sense_grants_root_sort_order_chk CHECK (
-    sort_order > 0
+    sort_order >= 0
   ),
   CONSTRAINT sense_grants_root_selection_kind_chk CHECK (
     selection_kind IN ('GRANTED', 'CHOSEN')
@@ -4677,7 +4677,7 @@ CREATE TABLE IF NOT EXISTS public.sense_grant_scaling_levels (
     level > 0
   ),
   CONSTRAINT sense_grant_scaling_levels_sort_order_chk CHECK (
-    sort_order > 0
+    sort_order >= 0
   ),
   CONSTRAINT sense_grant_scaling_levels_mode_chk CHECK (
     authoring_mode_kind IN ('ALL', 'SELECTED')
@@ -4742,7 +4742,7 @@ CREATE TABLE IF NOT EXISTS public.spell_grants (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT spell_grants_root_sort_order_chk CHECK (
-    sort_order > 0
+    sort_order >= 0
   ),
   CONSTRAINT spell_grants_root_selection_kind_chk CHECK (
     selection_kind IN ('GRANTED', 'CHOSEN')
@@ -4834,7 +4834,7 @@ CREATE TABLE IF NOT EXISTS public.spell_grant_attributes (
     )
   ),
   CONSTRAINT spell_grant_attributes_sort_order_chk CHECK (
-    sort_order > 0
+    sort_order >= 0
   )
 );
 
@@ -4871,7 +4871,7 @@ CREATE TABLE IF NOT EXISTS public.spell_grant_scaling_levels (
     level > 0
   ),
   CONSTRAINT spell_grant_scaling_levels_sort_order_chk CHECK (
-    sort_order > 0
+    sort_order >= 0
   ),
   CONSTRAINT spell_grant_scaling_levels_mode_chk CHECK (
     authoring_mode_kind IN ('ALL', 'SELECTED')
@@ -6216,7 +6216,7 @@ CREATE TABLE IF NOT EXISTS public.equipment (
   status text NOT NULL DEFAULT 'DRAFT',
   category text NOT NULL, -- EquipmentCategoryCode
   rarity_id uuid NOT NULL REFERENCES public.rarities (id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
-  cost_amount integer,
+  cost_amount numeric,
   cost_currency_id uuid REFERENCES public.currencies (id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
   weight_amount numeric,
   weight_unit text,

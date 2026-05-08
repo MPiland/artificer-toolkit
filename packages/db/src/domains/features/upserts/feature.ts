@@ -14,7 +14,7 @@ import {
   upsertSpellGrant
 } from '../../grants/upserts/index.js'
 import { deleteEffectById, upsertEffect } from '../../effects/upserts/index.js'
-import { upsertOption } from './option.js'
+import { upsertOption, upsertOptionRoot } from './option.js'
 
 type FeatureRow = {
   id: string
@@ -101,6 +101,48 @@ function mapFeatureRow<N extends NodeSubjectCode>(json_data: FeatureAuthored<N>)
   }
 }
 
+function mapFeatureRootRow<N extends NodeSubjectCode>(json_data: FeatureAuthored<N>): FeatureRow {
+  return {
+    ...mapFeatureRow(json_data),
+    restriction_id: null
+  }
+}
+
+async function upsertFeatureRow(
+  db: DBLike,
+  row: FeatureRow
+) {
+  await db
+    .insertInto('features')
+    .values(row)
+    .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
+      label: ref('excluded.label'),
+      description: ref('excluded.description'),
+      detail: ref('excluded.detail'),
+      charge_id: ref('excluded.charge_id'),
+      restriction_id: ref('excluded.restriction_id'),
+      sort_order: ref('excluded.sort_order'),
+      available_at_level: ref('excluded.available_at_level')
+    })))
+    .execute()
+}
+
+export async function upsertFeatureRoot<N extends NodeSubjectCode>(
+  db: DBLike,
+  json_data: FeatureAuthored<N>,
+  _systemId?: string
+) {
+  if (json_data.charges) {
+    await upsertCharge(db, json_data.charges)
+  }
+
+  await upsertFeatureRow(db, mapFeatureRootRow(json_data))
+
+  for (const option of json_data.options ?? []) {
+    await upsertOptionRoot(db, option as unknown as Parameters<typeof upsertOptionRoot>[1])
+  }
+}
+
 export async function upsertFeature<N extends NodeSubjectCode>(
   db: DBLike,
   json_data: FeatureAuthored<N>,
@@ -175,8 +217,34 @@ export async function upsertFeature<N extends NodeSubjectCode>(
         .execute()
     }
 
-    if (json_data.charges) {
-      await upsertCharge(trx, json_data.charges)
+    await upsertFeatureRoot(trx, json_data, systemId)
+
+    await trx.deleteFrom('feature_attributes').where('feature_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('feature_feat_grants').where('feature_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('feature_modifier_grants').where('feature_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('feature_proficiency_grants').where('feature_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('feature_sense_grants').where('feature_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('feature_spell_grants').where('feature_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('feature_options').where('feature_id', '=', json_data.id)
+      .execute()
+    await trx.deleteFrom('feature_option_levels').where('feature_id', '=', json_data.id)
+      .execute()
+
+    for (const previousEffect of previousEffectRows) {
+      if (!nextEffectIds.has(previousEffect.effect_id)) {
+        await trx
+          .deleteFrom('feature_effects')
+          .where('feature_id', '=', json_data.id)
+          .where('effect_id', '=', previousEffect.effect_id)
+          .execute()
+        await deleteEffectById(trx, previousEffect.effect_id)
+      }
     }
 
     if (json_data.restrictions) {
@@ -211,47 +279,7 @@ export async function upsertFeature<N extends NodeSubjectCode>(
       await upsertOption(trx, option as unknown as Parameters<typeof upsertOption>[1], systemId)
     }
 
-    await trx
-      .insertInto('features')
-      .values(mapFeatureRow(json_data))
-      .onConflict((oc) => oc.column('id').doUpdateSet(({ ref }) => ({
-        label: ref('excluded.label'),
-        description: ref('excluded.description'),
-        detail: ref('excluded.detail'),
-        charge_id: ref('excluded.charge_id'),
-        restriction_id: ref('excluded.restriction_id'),
-        sort_order: ref('excluded.sort_order'),
-        available_at_level: ref('excluded.available_at_level')
-      })))
-      .execute()
-
-    await trx.deleteFrom('feature_attributes').where('feature_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('feature_feat_grants').where('feature_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('feature_modifier_grants').where('feature_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('feature_proficiency_grants').where('feature_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('feature_sense_grants').where('feature_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('feature_spell_grants').where('feature_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('feature_options').where('feature_id', '=', json_data.id)
-      .execute()
-    await trx.deleteFrom('feature_option_levels').where('feature_id', '=', json_data.id)
-      .execute()
-
-    for (const previousEffect of previousEffectRows) {
-      if (!nextEffectIds.has(previousEffect.effect_id)) {
-        await trx
-          .deleteFrom('feature_effects')
-          .where('feature_id', '=', json_data.id)
-          .where('effect_id', '=', previousEffect.effect_id)
-          .execute()
-        await deleteEffectById(trx, previousEffect.effect_id)
-      }
-    }
+    await upsertFeatureRow(trx, mapFeatureRow(json_data))
 
     if (effectRows.length > 0) {
       await trx
@@ -309,5 +337,3 @@ export async function upsertFeature<N extends NodeSubjectCode>(
     throw error
   }
 }
-
-

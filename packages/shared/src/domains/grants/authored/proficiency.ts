@@ -3,7 +3,7 @@ import {
   type ProficiencyKind,
   type RoundingCode
 } from '#core'
-import type { StaticGrant } from '#authored'
+import type { GrantBaseAuthored, GrantScalingNone } from '#authored'
 import type { AbilityCode, GRANT_KIND, NodeSubjectCode, SCALING_AMOUNT_KIND } from '#core'
 import type { Selectable } from '#utils'
 
@@ -34,7 +34,8 @@ export type ProficiencyGrantAuthored<N extends NodeSubjectCode = NodeSubjectCode
   [K in ProficiencyKind]: {
     grantKind: typeof GRANT_KIND.PROFICIENCY_GRANT
     proficiencyKind: K
-  } & StaticGrant<ProficiencyKindPayload[K], N>
+  } & GrantScalingNone<ProficiencyKindPayload[K]>
+  & GrantBaseAuthored<N>
   & ({
     level: typeof SCALING_AMOUNT_KIND.HALF
     rounding: RoundingCode
