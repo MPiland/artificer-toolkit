@@ -1,8 +1,9 @@
 import { globalStyle, style } from '@vanilla-extract/css'
-import { theme } from '#css/theme'
 import { app } from '#css/layers.css'
 import { size } from '#css/size.css'
 import { foundationVars } from '#css/foundations.css'
+
+const editorBorder = `1px solid ${foundationVars.color.border.strong}`
 
 export const editor_container = style({
   '@layer': {
@@ -75,17 +76,17 @@ export const editor_button = style({
       width: '1.875rem',
       display: 'flex',
       alignItems: 'center',
-      border: `${theme.other?.border.width.thin} ${theme.other?.border.style} ${theme.other?.border.color}`,
+      border: editorBorder,
       cursor: 'pointer',
 
       selectors: {
         [`${editor_button_group} > &:first-of-type`]: {
-          borderTopLeftRadius: theme.defaultRadius,
-          borderBottomLeftRadius: theme.defaultRadius
+          borderTopLeftRadius: foundationVars.radius.lg,
+          borderBottomLeftRadius: foundationVars.radius.lg
         },
         [`${editor_button_group} > &:last-of-type`]: {
-          borderTopRightRadius: theme.defaultRadius,
-          borderBottomRightRadius: theme.defaultRadius
+          borderTopRightRadius: foundationVars.radius.lg,
+          borderBottomRightRadius: foundationVars.radius.lg
         },
         '&.active': {
           filter: 'invert(1)'
@@ -98,8 +99,8 @@ export const editor_button = style({
 export const editor_blockquote = style({
   '@layer': {
     [app]: {
-      borderRadius: theme.defaultRadius,
-      border: `${theme.other?.border.width.thin} ${theme.other?.border.style} ${theme.other?.border.color}`,
+      borderRadius: foundationVars.radius.lg,
+      border: editorBorder,
       marginLeft: size['size-3'],
       marginTop: size['size-3'],
       padding: size['size-1']
@@ -122,7 +123,7 @@ export const editor_table = style({
 export const editor_table_th = style({
   '@layer': {
     [app]: {
-      border: `${theme.other?.border.width.thin} ${theme.other?.border.style} ${theme.other?.border.color}`,
+      border: editorBorder,
       backgroundColor: 'lightgrey',
       borderBottomWidth: '2px',
       fontWeight: 'bold',
@@ -137,7 +138,7 @@ export const editor_table_th = style({
 export const editor_table_td = style({
   '@layer': {
     [app]: {
-      border: `${theme.other?.border.width.thin} ${theme.other?.border.style} ${theme.other?.border.color}`,
+      border: editorBorder,
       padding: '3px 5px',
       verticalAlign: 'top',
       backgroundColor: 'inherit',

@@ -15,6 +15,9 @@ test('public auth routes render the rebuilt auth shell', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible()
   await expect(page.getByLabel('Email address')).toBeVisible()
   await expect(page.getByLabel('Password')).toBeVisible()
+  await expect(page.locator('form').filter({ has: page.getByRole('button', { name: 'Sign in' }) })).toHaveAttribute('method', 'post')
+  await expect(page.getByLabel('Email address')).toHaveAttribute('autocomplete', 'username')
+  await expect(page.getByLabel('Password')).toHaveAttribute('autocomplete', 'current-password')
 
   await page.getByRole('link', { name: 'Sign up' }).click()
   await expect(page).toHaveURL(/\/sign-up$/)
@@ -33,6 +36,18 @@ test('public auth routes render the rebuilt auth shell', async ({ page }) => {
   await page.goto('/auth/confirmed')
   await expect(page.getByRole('heading', { name: 'Your account is confirmed.' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Continue to sign in' })).toBeVisible()
+})
+
+test('sign-in submit does not serialize credentials into the address bar', async ({ page }) => {
+  const email = 'player@example.com'
+  const password = 'password123'
+
+  await page.goto('/sign-in')
+  await page.getByLabel('Email address').fill(email)
+  await page.getByLabel('Password').fill(password)
+  await page.getByRole('button', { name: 'Sign in' }).click()
+
+  await expect(page).not.toHaveURL(new RegExp(`email|password|${email}|${password}`))
 })
 
 test('logged-out routes share the same theme provider state', async ({ page }) => {

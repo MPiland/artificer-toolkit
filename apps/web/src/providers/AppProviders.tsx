@@ -1,4 +1,4 @@
-import { MantineProvider } from '@mantine/core'
+import { MantineProvider, type MantineColorScheme } from '@mantine/core'
 import { Notifications } from '@mantine/notifications'
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query'
 import { type ReactNode, useState } from 'react'
@@ -8,15 +8,13 @@ import { createAppQueryClient } from '#app/query/createAppQueryClient'
 interface AppProvidersProps {
   children: ReactNode
   queryClient?: QueryClient
-  forceColorScheme?: 'light' | 'dark'
-  defaultColorScheme?: 'light' | 'dark'
+  defaultColorScheme?: MantineColorScheme
 }
 
 export function AppProviders({
   children,
   queryClient,
-  forceColorScheme,
-  defaultColorScheme = 'dark'
+  defaultColorScheme = 'auto'
 }: AppProvidersProps) {
   const [fallbackQueryClient] = useState(createAppQueryClient)
   const activeQueryClient = queryClient ?? fallbackQueryClient
@@ -27,7 +25,6 @@ export function AppProviders({
         theme={theme}
         cssVariablesResolver={resolver}
         defaultColorScheme={defaultColorScheme}
-        forceColorScheme={forceColorScheme}
       >
         <Notifications position='top-right' zIndex={9999} />
         {children}

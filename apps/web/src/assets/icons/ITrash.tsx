@@ -1,7 +1,7 @@
 import { Trash2 } from 'lucide-react'
-import type { FigmaIconProps } from './createFigmaIcon'
+import type { SvgIconProps } from './createSvgIcon'
 
-const ITrash = ({ className, size = 24 }: FigmaIconProps) => (
+const ITrash = ({ className, size = 24 }: SvgIconProps) => (
   <Trash2
     aria-hidden='true'
     className={className}

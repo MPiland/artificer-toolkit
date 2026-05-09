@@ -6,7 +6,7 @@ import { createServerApi } from '#app/lib/api'
 
 export const Route = createFileRoute('/_authed/spells/$spellId')({
   loader: async ({ context, params }) => {
-    const client = createServerApi(context.accessToken)
+    const client = createServerApi()
     const activeSpellQuery = getSpell(params.spellId, client)
     const [response, draft] = await Promise.all([
       ensureOptionalActiveContent(context.queryClient, activeSpellQuery),

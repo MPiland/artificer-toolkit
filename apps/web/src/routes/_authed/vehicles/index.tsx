@@ -14,7 +14,7 @@ import { getVehicleList } from '#app/data/vehicles/queries'
 import { createServerApi } from '#app/lib/api'
 
 export const Route = createFileRoute('/_authed/vehicles/')({
-  loader: ({ context }) => context.queryClient.ensureQueryData(getVehicleList(createServerApi(context.accessToken))),
+  loader: ({ context }) => context.queryClient.ensureQueryData(getVehicleList(createServerApi())),
   component: VehiclesRoute
 })
 

@@ -16,7 +16,6 @@ import {
   textInput
 } from '../auth.css'
 import { AuthDivider } from './AuthDivider'
-import { showError, showSuccess } from './authForm.utils'
 import { AuthFormProps } from './authForm.types'
 
 export function ResetPasswordForm({ authClient = browserAuthClient, onSuccess }: AuthFormProps) {
@@ -35,13 +34,11 @@ export function ResetPasswordForm({ authClient = browserAuthClient, onSuccess }:
       if (!result.ok) {
         const message = result.message ?? 'Check the email address and try again.'
         setFeedback({ tone: 'error', message })
-        showError('Unable to send reset link', message)
         return
       }
 
       const message = 'If email delivery is enabled, a secure reset link is on its way.'
       setFeedback({ tone: 'success', message })
-      showSuccess('Reset link sent', message)
       await onSuccess?.(result)
     } finally {
       setIsSubmitting(false)
@@ -49,12 +46,13 @@ export function ResetPasswordForm({ authClient = browserAuthClient, onSuccess }:
   }
 
   return (
-    <form className={authForm} onSubmit={handleSubmit}>
+    <form className={authForm} method='post' onSubmit={handleSubmit}>
       <TextInput
         label='Email address'
         classNames={{
           input: textInput
         }}
+        autoComplete='email'
         name='email'
         type='email'
         placeholder='you@example.com'

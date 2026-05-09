@@ -715,7 +715,7 @@ async function saveCharacterBuilderDraftRecord(params: {
   })
 }
 
-export const listCharacters = handleRequest(async (db, userId: string): Promise<CharacterListResponseDto> => {
+export async function listCharactersForUser(db: Parameters<typeof createCharacterRepository>[0], userId: string): Promise<CharacterListResponseDto> {
   const items = await createCharacterRepository(db).listByUser(userId)
   const drafts = await createCharacterBuilderDraftRepository(db).listByUser(userId)
   const draftByCharacterId = new Map(drafts.map((draft) => [draft.characterId, draft]))
@@ -752,9 +752,15 @@ export const listCharacters = handleRequest(async (db, userId: string): Promise<
     ],
     meta: {}
   }
-}, (_req: Request, userId: string) => [userId] as [string])
+}
 
-export const createCharacterDraft = handleAuthoringRequest(characterDraftRequestDtoSchema, async (db, body, userId): Promise<CharacterBuilderPayloadDto> => {
+export const listCharacters = handleRequest(listCharactersForUser, (_req: Request, userId: string) => [userId] as [string])
+
+export async function createCharacterDraftForUser(
+  db: Parameters<typeof createCharacterRepository>[0],
+  body: ReturnType<typeof characterDraftRequestDtoSchema.parse>,
+  userId: string
+): Promise<CharacterBuilderPayloadDto> {
   const repository = createCharacterRepository(db)
   const draftRepository = createCharacterBuilderDraftRepository(db)
   const draft = await draftRepository.findByCharacter({
@@ -802,19 +808,31 @@ export const createCharacterDraft = handleAuthoringRequest(characterDraftRequest
   })
 
   return toCharacterBuilderPayload(character, await resolveCharacterBuilder(db, character, 'create'))
-})
+}
 
-export const getCharacterBuilderDraft = handleRequest(async (db, characterId: string, userId: string): Promise<CharacterBuilderDraftDto | null> => {
+export const createCharacterDraft = handleAuthoringRequest(characterDraftRequestDtoSchema, createCharacterDraftForUser)
+
+export async function getCharacterBuilderDraftForUser(
+  db: Parameters<typeof createCharacterRepository>[0],
+  characterId: string,
+  userId: string
+): Promise<CharacterBuilderDraftDto | null> {
   const draft = await createCharacterBuilderDraftRepository(db).findByCharacter({
     characterId,
     userId
   })
 
   return draft ? toCharacterBuilderDraftDto(draft) : null
-}, (req: Request, userId: string) => [extractCharacterIdFromBuilderDraftRoute(req), userId] as [string, string])
+}
 
-export const saveCharacterBuilderDraft = handleAuthoringRequest(characterBuilderDraftSaveRequestDtoSchema, async (db, body, userId, request): Promise<CharacterBuilderDraftDto> => {
-  const characterId = extractCharacterIdFromBuilderDraftRoute(request)
+export const getCharacterBuilderDraft = handleRequest(getCharacterBuilderDraftForUser, (req: Request, userId: string) => [extractCharacterIdFromBuilderDraftRoute(req), userId] as [string, string])
+
+export async function saveCharacterBuilderDraftForUser(
+  db: Parameters<typeof createCharacterRepository>[0],
+  characterId: string,
+  body: ReturnType<typeof characterBuilderDraftSaveRequestDtoSchema.parse>,
+  userId: string
+): Promise<CharacterBuilderDraftDto> {
   if (characterId !== body.character.id) {
     throw createNamedError('AuthoredDraftSubjectMismatchError', `Character builder draft route id "${characterId}" does not match payload id "${body.character.id}".`)
   }
@@ -835,17 +853,31 @@ export const saveCharacterBuilderDraft = handleAuthoringRequest(characterBuilder
   })
 
   return toCharacterBuilderDraftDto(draft)
-})
+}
 
-export const discardCharacterBuilderDraft = handleRequest(async (db, characterId: string, userId: string): Promise<{ ok: true }> => {
+export const saveCharacterBuilderDraft = handleAuthoringRequest(characterBuilderDraftSaveRequestDtoSchema, async (db, body, userId, request) => (
+  saveCharacterBuilderDraftForUser(db, extractCharacterIdFromBuilderDraftRoute(request), body, userId)
+))
+
+export async function discardCharacterBuilderDraftForUser(
+  db: Parameters<typeof createCharacterRepository>[0],
+  characterId: string,
+  userId: string
+): Promise<{ ok: true }> {
   await createCharacterBuilderDraftRepository(db).delete({
     characterId,
     userId
   })
   return { ok: true }
-}, (req: Request, userId: string) => [extractCharacterIdFromBuilderDraftRoute(req), userId] as [string, string])
+}
 
-export const createCharacter = handleAuthoringRequest(characterAuthoredDtoSchema, async (db, character, userId): Promise<CharacterBuilderPayloadDto> => {
+export const discardCharacterBuilderDraft = handleRequest(discardCharacterBuilderDraftForUser, (req: Request, userId: string) => [extractCharacterIdFromBuilderDraftRoute(req), userId] as [string, string])
+
+export async function createCharacterForUser(
+  db: Parameters<typeof createCharacterRepository>[0],
+  character: ReturnType<typeof characterAuthoredDtoSchema.parse>,
+  userId: string
+): Promise<CharacterBuilderPayloadDto> {
   const authored = {
     ...character,
     userId
@@ -857,9 +889,14 @@ export const createCharacter = handleAuthoringRequest(characterAuthoredDtoSchema
   const persisted = await repository.findAuthoredById(authored.id)
   const nextCharacter = persisted ?? authored
   return toCharacterBuilderPayload(nextCharacter, await resolveCharacterBuilder(db, nextCharacter, 'create'))
-})
+}
 
-export const getCharacter = handleRequest(async (db, characterId: string): Promise<CharacterBuilderPayloadDto | null> => {
+export const createCharacter = handleAuthoringRequest(characterAuthoredDtoSchema, createCharacterForUser)
+
+export async function getCharacterForUser(
+  db: Parameters<typeof createCharacterRepository>[0],
+  characterId: string
+): Promise<CharacterBuilderPayloadDto | null> {
   const repository = createCharacterRepository(db)
   const [character, activeUpdatedAt] = await Promise.all([
     repository.findAuthoredById(characterId),
@@ -870,9 +907,14 @@ export const getCharacter = handleRequest(async (db, characterId: string): Promi
   }
 
   return toCharacterBuilderPayload(character, await resolveCharacterBuilder(db, character, 'edit'), undefined, activeUpdatedAt)
-}, (req: Request) => [extractId(req)] as [string])
+}
 
-export const getCharacterSheet = handleRequest(async (db, characterId: string): Promise<CharacterSheetResponseDto | null> => {
+export const getCharacter = handleRequest(getCharacterForUser, (req: Request) => [extractId(req)] as [string])
+
+export async function getCharacterSheetForUser(
+  db: Parameters<typeof createCharacterRepository>[0],
+  characterId: string
+): Promise<CharacterSheetResponseDto | null> {
   const repository = createCharacterRepository(db)
   const [row, character] = await Promise.all([
     repository.findById(characterId),
@@ -894,18 +936,30 @@ export const getCharacterSheet = handleRequest(async (db, characterId: string): 
     streamVersion: row?.stream_version ?? 0,
     hasBuilderDraft: Boolean(draft)
   })
-}, (req: Request) => [extractCharacterIdFromSheetRoute(req)] as [string])
+}
 
-export const resolveCharacter = handleAuthoringRequest(characterBuilderResolveRequestDtoSchema, async (db, body, userId): Promise<CharacterBuilderPayloadDto> => {
+export const getCharacterSheet = handleRequest(getCharacterSheetForUser, (req: Request) => [extractCharacterIdFromSheetRoute(req)] as [string])
+
+export async function resolveCharacterForUser(
+  db: Parameters<typeof createCharacterRepository>[0],
+  body: ReturnType<typeof characterBuilderResolveRequestDtoSchema.parse>,
+  userId: string
+): Promise<CharacterBuilderPayloadDto> {
   const authored = {
     ...body.character,
     userId
   }
 
   return toCharacterBuilderPayload(authored, await resolveCharacterBuilder(db, authored, body.mode))
-})
+}
 
-export const previewCharacterSave = handleAuthoringRequest(characterBuilderSaveRequestDtoSchema, async (db, body, userId): Promise<CharacterBuilderPreviewPayloadDto> => {
+export const resolveCharacter = handleAuthoringRequest(characterBuilderResolveRequestDtoSchema, resolveCharacterForUser)
+
+export async function previewCharacterSaveForUser(
+  db: Parameters<typeof createCharacterRepository>[0],
+  body: ReturnType<typeof characterBuilderSaveRequestDtoSchema.parse>,
+  userId: string
+): Promise<CharacterBuilderPreviewPayloadDto> {
   const repository = createCharacterRepository(db)
   const existing = await repository.findAuthoredById(body.character.id)
   const payload = await buildCharacterBuilderSavePayload({
@@ -918,9 +972,15 @@ export const previewCharacterSave = handleAuthoringRequest(characterBuilderSaveR
   })
 
   return toCharacterBuilderPreviewPayload(payload)
-})
+}
 
-export const upsertCharacterBuilder = handleAuthoringRequest(characterBuilderCommitRequestDtoSchema, async (db, body, userId): Promise<CharacterBuilderPayloadDto> => {
+export const previewCharacterSave = handleAuthoringRequest(characterBuilderSaveRequestDtoSchema, previewCharacterSaveForUser)
+
+export async function upsertCharacterBuilderForUser(
+  db: Parameters<typeof createCharacterRepository>[0],
+  body: ReturnType<typeof characterBuilderCommitRequestDtoSchema.parse>,
+  userId: string
+): Promise<CharacterBuilderPayloadDto> {
   const repository = createCharacterRepository(db)
   const draftRepository = createCharacterBuilderDraftRepository(db)
   const existing = await repository.findAuthoredById(body.character.id)
@@ -962,14 +1022,28 @@ export const upsertCharacterBuilder = handleAuthoringRequest(characterBuilderCom
   const persisted = await repository.findAuthoredById(payload.character.id)
   const nextCharacter = persisted ?? payload.character
   return toCharacterBuilderPayload(nextCharacter, await resolveCharacterBuilder(db, nextCharacter, body.mode))
-})
+}
 
-export const dispatchCommand = handleAuthoringRequest(characterSheetCommandInputDtoSchema, async (db, command, userId, request): Promise<CharacterSheetCommandResponseDto> => {
-  const characterId = extractCharacterIdFromCommandRoute(request)
+export const upsertCharacterBuilder = handleAuthoringRequest(characterBuilderCommitRequestDtoSchema, upsertCharacterBuilderForUser)
+
+export async function dispatchCommandForUser(
+  db: Parameters<typeof createCharacterRepository>[0],
+  characterId: string,
+  command: ReturnType<typeof characterSheetCommandInputDtoSchema.parse>,
+  userId: string
+): Promise<CharacterSheetCommandResponseDto> {
   return executeCharacterSheetCommand({ db, characterId, command, userId })
-})
+}
 
-export const getCharacterHistory = handleRequest(async (db, characterId: string, userId: string): Promise<CharacterHistoryResponseDto> => {
+export const dispatchCommand = handleAuthoringRequest(characterSheetCommandInputDtoSchema, async (db, command, userId, request) => (
+  dispatchCommandForUser(db, extractCharacterIdFromCommandRoute(request), command, userId)
+))
+
+export async function getCharacterHistoryForUser(
+  db: Parameters<typeof createCharacterRepository>[0],
+  characterId: string,
+  userId: string
+): Promise<CharacterHistoryResponseDto> {
   const character = await createCharacterRepository(db).findAuthoredById(characterId)
   if (!character) {
     throw createNamedError('NotFoundError', `Character "${characterId}" was not found.`)
@@ -979,7 +1053,9 @@ export const getCharacterHistory = handleRequest(async (db, characterId: string,
   }
   const events = await createCharacterEventRepository(db).listByCharacter(characterId)
   return buildCharacterHistoryView(events, characterId)
-}, (req: Request, userId: string) => {
+}
+
+export const getCharacterHistory = handleRequest(getCharacterHistoryForUser, (req: Request, userId: string) => {
   const url = new URL(req.url)
   const segments = url.pathname.split('/').filter(Boolean)
   const historyIdx = segments.lastIndexOf('history')

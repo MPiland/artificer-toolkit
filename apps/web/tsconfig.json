@@ -22,9 +22,6 @@
       "#css/theme": [
         "./src/css/theme.ts"
       ],
-      "#css/theme.css": [
-        "./src/css/theme.css.ts"
-      ],
       "#css/*": [
         "./src/css/*"
       ],

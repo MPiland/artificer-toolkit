@@ -17,31 +17,6 @@ Read these before making substantial changes:
 
 If working on a specific phase or domain, read the corresponding phase subplan before editing.
 
-## Current Focus
-
-Current default focus is Phase 9 frontend modernization.
-
-- 9.1 platform/testing: complete
-- 9.2 public/auth/marketing: complete
-- 9.3 authenticated shell, navigation, and authored list patterns: complete
-- 9.4 frontend data runtime: complete
-- 9.5 shared form runtime: complete
-- 9.6 spell implementation: complete
-- 9.6.1 node-map runtime resolver: complete
-- 9.7 background implementation: complete
-- 9.8 feat implementation: complete
-- 9.8.1 draft/form persistence correction: complete
-- 9.9 race implementation: complete
-- 9.10 equipment implementation: complete
-- 9.11 creature implementation: complete
-- 9.12 vehicle implementation: complete
-- 9.13 class implementation: complete
-- 9.14 character builder: builder choice flow implemented
-- 9.15 character sheet: implemented, closeout validation passed
-- 9.16 supporting surfaces and final cleanup: complete
-
-Before starting a new frontend task, confirm the active tranche in [PHASE_9_CODE_OVERVIEW.md](/c:/Users/pilan/Desktop/artificer-toolkit/PHASE_9_CODE_OVERVIEW.md).
-
 ## Workspace Shape
 
 - `apps/web`: TanStack Start frontend
@@ -67,6 +42,138 @@ Before starting a new frontend task, confirm the active tranche in [PHASE_9_CODE
 - Pass work to sub agents as needed for efficiency and parallel work. Don't abuse sub agents. Use only as necessary when it would increase efficiency.
 - Do not blindly agree with my suggestions if they break best practices or don't make sense. Build for efficiency and correctness. Push back critically.
 
+## Operating Principles
+
+Keep it simple. Simple is better than complex.
+Assume the user is a principal engineer.
+Make the smallest maintainable change that solves the actual request.
+Prefer existing patterns over new abstractions.
+Avoid broad refactors, speculative helpers, and clever architecture unless clearly justified.
+Use judgment. Read enough surrounding code to understand the existing pattern, then avoid unnecessary exploration.
+Optimize for correctness, speed, judgment, and token efficiency.
+Correct the user when appropriate.
+Prefer FAANG-level code quality: clear naming, strong types, simple control flow, minimal mutation, focused functions, pure functions/components where practical, and no unnecessary abstraction.
+
+## Context Discipline
+
+Protect context aggressively.
+
+Answer the narrow question first. Inspect the smallest relevant file, symbol, route, component, diff, log, or test output.
+
+Prefer targeted searches, focused file sections, nearby call sites, capped logs, and scoped validation. Avoid running validation commands like `npm run build`, `npm run test`, or `npm run lint` unless absolutely necessary. Use normal scoped commands like `rg`, with a byte cap when needed.
+
+Avoid dumping full files, full logs, unrelated directories, broad repo searches, large diffs, or generated output after the relevant code is found.
+
+Do not byte-cap instruction files, skill files, tool docs, or agent policy files. Read the whole relevant file unless it is unexpectedly huge.
+
+## Command Output
+
+Protect context usage. **Any command with unknown or potentially large output must be scoped and byte-capped.**
+
+Byte-cap unknown or potentially large output. Line caps alone are unsafe because a single line can be huge.
+
+```bash
+COMMAND 2>&1 | head -c 4000
+COMMAND 2>&1 | tail -c 4000
+```
+
+### Good Byte Capping Examples
+
+```bash
+rg -n -m 20 'functionName|ComponentName|routeName' src 2>&1 | head -c 200
+bash -o pipefail -c 'npm run type-check 2>&1 | tail -c 500'
+bash -o pipefail -c 'npm run test 2>&1 | tail -c 2000'
+bash -o pipefail -c 'npm run build 2>&1 | tail -c 500'
+rg -l "SEARCH_TERM" src 2>&1 | head -c 4000
+```
+
+Do not rely on `head -n`, `tail -n`, or `sed -n` as the only cap.
+
+Scope before printing content: list files first, search specific paths, count matches when useful, and avoid reading generated, binary, minified, database, or huge JSON/JSONL files unless required.
+
+Preserve exit codes when needed:
+
+```bash
+tmp="$(mktemp)"
+COMMAND >"$tmp" 2>&1
+status=$?
+tail -c 5000 "$tmp"
+rm -f "$tmp"
+exit "$status"
+```
+
+Avoid unbounded `cat`, broad `rg`, `find`, `ls -R`, `git diff`, tests, builds, and `select *`.
+
+If capped output is insufficient, narrow the command before increasing the cap.
+
+## Code Changes
+
+Prefer direct edits with the available patch tool.
+Patch the narrow failing path first.
+Avoid unrelated cleanup.
+Do not add helpers, wrappers, maps, files, abstractions, or validation layers unless they clearly reduce complexity.
+
+## Patterns to Avoid
+
+Avoid single-use abstractions.
+
+Prefer inline types and direct logic when a helper, wrapper, map, or named type is used only once.
+
+Avoid wrapper functions that simply call another function.
+
+## Validation
+
+Match validation to risk.
+
+Skip validation for low-risk changes and say so plainly.
+Use the cheapest useful check for risky changes.
+Do not run full test suites or full builds unless risk justifies it or the user asks.
+
+## Subagents
+
+Use subagents only when they save context, save time, or materially improve output quality.
+
+For research, review, and exploration tasks, avoid confirmation bias. Do not pass a preferred conclusion. Ask the subagent to investigate, compare, or verify, and require evidence, tradeoffs, uncertainty, and better alternatives.
+
+Prefer subagents for:
+
+- documentation/API checks
+- web research
+- non-trivial copywriting/content generation
+
+Avoid subagents for trivial work the main agent can finish faster.
+
+When using a subagent, assign a narrow task and require:
+
+- findings
+- files inspected
+- files changed, if any
+- validation run, if any
+- risks or uncertainty
+
+You own final judgment and integration.
+
+## Communication
+
+Before editing, state the approach only for non-trivial tasks.
+
+During complex work, keep updates short:
+
+- what was found
+- what changed
+- what risk remains
+
+After work, summarize:
+
+- what changed
+- files touched
+- validation run, or why skipped
+- remaining risk
+
+Keep summaries short. Do not explain obvious edits.
+
+Oververbosity:low
+
 ## Storybook MCP Rules
 
 When working on UI components, stories, or design-system-backed props, use the Storybook MCP tools when they are available in the active tool list.
@@ -86,36 +193,7 @@ Visual system guidance lives in [DESIGN.md](/c:/Users/pilan/Desktop/artificer-to
 
 - Reference both of these whenever doing UI/UX work.
 
-## Frontend Delivery Rules
-
-For current frontend work, follow [PHASE_9_CODE_OVERVIEW.md](/c:/Users/pilan/Desktop/artificer-toolkit/PHASE_9_CODE_OVERVIEW.md) and the active subplan.
-
-Current frontend posture:
-
-- Phase 9 is incremental and gated.
-- 9.1 platform/testing is complete.
-- 9.2 public/auth/marketing is complete.
-- 9.3 authenticated shell, navigation, and authored list patterns is complete.
-- 9.8.1 draft/form persistence correction is complete.
-- 9.9 race implementation is complete.
-- 9.10 equipment implementation is complete.
-- 9.11 creature implementation is complete.
-- 9.12 vehicle implementation is complete.
-- 9.13 class implementation is complete.
-- 9.14 character builder has the builder choice flow implemented.
-- 9.15 character sheet is implemented with closeout validation passed.
-- 9.16 supporting surfaces and final cleanup is complete.
-
-Per-tranche expectations:
-
-- add Storybook for reusable UI
-- add Vitest/Testing Library for touched runtime logic
-- add Playwright for route and component verification
-- pause for review before moving to the next tranche
-
 ## Web Folder Organization
-
-Phase 9 frontend code should use stable ownership folders instead of flat catch-all folders.
 
 - `apps/web/src/ui/primitives`: low-level reusable controls such as select, link, spinner, collapse, rich text, and theme toggle.
 - `apps/web/src/ui/overlays`: reusable modal, drawer, and overlay infrastructure.
@@ -129,8 +207,6 @@ Phase 9 frontend code should use stable ownership folders instead of flat catch-
 Prefer colocated `components`, `hooks`, `utils`, `validation`, `stories`, and `tests` folders inside the owning feature or component package. For the form platform, use `apps/web/src/forms` as the canonical home and keep internal folders lowercase. Do not add new Phase 9 form hooks to the global `src/hooks` folder unless they are genuinely app-wide and not owned by a feature.
 
 Deleted legacy pockets such as old global `src/hooks`, `src/store`, `components/Form`, and `src/legacy` must not be recreated as compatibility shims. Future stateful or form-heavy surfaces should be rebuilt intentionally in their owning phase.
-
-Active Phase 9 authored forms are node-driven:
 
 - Shared node maps plus backend node-runtime resolution define authored form `steps -> sections -> nodes`, including visibility, required state, options, hidden clearing, object groups, and array groups.
 - Only top-level domain form containers and isolated Storybook/test harnesses should call `useAppForm`.
@@ -174,13 +250,6 @@ Web workspace commands:
 - `yarn workspace @artificer-toolkit/web test`
 - `yarn workspace @artificer-toolkit/web test:e2e:app`
 - `yarn workspace @artificer-toolkit/web test:e2e:storybook`
-
-## Editing Guidance
-
-- Prefer focused edits over broad refactors.
-- Do not keep legacy compatibility shims in active code when the replacement route or form path is live.
-- If you land architectural or phase-significant changes, update the relevant phase doc in the same change.
-- Preserve existing user changes in a dirty worktree unless explicitly asked to revert them.
 
 ## TypeScript Quality Rules
 

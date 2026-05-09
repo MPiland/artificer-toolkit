@@ -5,7 +5,7 @@ import { SpellCreatePage } from '#domains/spells'
 
 export const Route = createFileRoute('/_authed/spells/new')({
   loader: ({ context }) => context.queryClient.ensureQueryData(
-    getSpellReferenceData(createServerApi(context.accessToken))
+    getSpellReferenceData(createServerApi())
   ),
   component: () => <SpellCreatePage />
 })

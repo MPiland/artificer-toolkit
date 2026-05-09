@@ -1,6 +1,10 @@
 import { screen } from '@testing-library/react'
-import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
-import { SpellResponseDto } from '@artificer-toolkit/schema/api/content'
+import type {
+  AuthoredDraftDto,
+  SpellResponseDto
+} from '@artificer-toolkit/schema/api/content'
+import type { AuthoredContentReferenceData } from '#app/data/contentReferences'
+import type { SpellReferenceData } from '#app/data/spells/referenceData'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { ownedClassResponseFixture } from '#domains/classes/class.fixtures'
 import { ClassDetailPage } from '#domains/classes/pages/ClassDetailPage'
@@ -21,8 +25,8 @@ const spellResponse: NonNullable<SpellResponseDto> = {
     },
     effects: [],
     level: 2,
-    classIds: ['wizard'],
-    magicSchoolId: 'school-conjuration',
+    classIds: ['00000000-0000-0000-0010-000c00000000'],
+    magicSchoolId: '00000000-0000-0000-0007-000200000000',
     userId: 'user-1',
     systemId: 'system-5e'
   },
@@ -52,15 +56,48 @@ function draft(payload: Record<string, unknown>): AuthoredDraftDto {
   }
 }
 
+const spellReferences = {
+  systemId: 'system-5e',
+  magicSchools: [{ value: '00000000-0000-0000-0007-000200000000', label: 'Conjuration' }],
+  classes: [{ value: '00000000-0000-0000-0010-000c00000000', label: 'Wizard' }],
+  damageTypes: [],
+  conditionTypes: [],
+  skills: [],
+  speeds: [],
+  creatures: []
+} satisfies SpellReferenceData
+
+const detailReferences = {
+  systemId: 'system-5e',
+  challengeRatings: [],
+  conditionTypes: [],
+  creatureTypes: [],
+  damageTypes: [],
+  heritages: [],
+  magicSchools: spellReferences.magicSchools,
+  rarities: [{ value: 'common', label: 'Common' }],
+  speeds: [],
+  classes: [{ value: ownedClassResponseFixture.item.id, label: ownedClassResponseFixture.item.label }],
+  creatures: [],
+  equipment: [
+    { value: masterEquipmentResponseFixture.item.id, label: masterEquipmentResponseFixture.item.label },
+    { value: 'torch', label: 'Torch' }
+  ],
+  races: []
+} satisfies AuthoredContentReferenceData
+
 describe('authored domain detail pages', () => {
   it('renders an active spell detail page', () => {
     renderWithAppProviders(
-      <SpellDetailPage draft={null} response={spellResponse} spellId='spell-sea-step' />
+      <SpellDetailPage draft={null} references={spellReferences} response={spellResponse} spellId='spell-sea-step' />
     )
 
     expect(screen.getByRole('heading', { name: /sea step/i })).toBeInTheDocument()
     expect(screen.getByText('Spell')).toBeInTheDocument()
     expect(screen.getAllByText('Move like water.')).toHaveLength(2)
+    expect(screen.getByText('Conjuration')).toBeInTheDocument()
+    expect(screen.getByText('Wizard')).toBeInTheDocument()
+    expect(screen.queryByText('00000000-0000-0000-0007-000200000000')).not.toBeInTheDocument()
   })
 
   it('renders locked master equipment as readable with duplicate available', () => {
@@ -68,6 +105,7 @@ describe('authored domain detail pages', () => {
       <EquipmentDetailPage
         draft={null}
         equipmentId={masterEquipmentResponseFixture.item.id}
+        references={detailReferences}
         response={masterEquipmentResponseFixture}
       />
     )
@@ -85,6 +123,7 @@ describe('authored domain detail pages', () => {
           ...ownedClassResponseFixture.item,
           label: 'Fighter Draft'
         })}
+        references={detailReferences}
         response={ownedClassResponseFixture}
       />
     )
@@ -99,6 +138,7 @@ describe('authored domain detail pages', () => {
       <ClassDetailPage
         classId='class-draft-only'
         draft={draft({ id: 'class-draft-only' })}
+        references={detailReferences}
         response={null}
       />
     )

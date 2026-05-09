@@ -17,7 +17,6 @@ import {
   textInput
 } from '../auth.css'
 import { AuthFormProps } from './authForm.types'
-import { showError, showSuccess } from './authForm.utils'
 import { AuthDivider } from './AuthDivider'
 
 export function SignUpForm({ authClient = browserAuthClient, onSuccess }: AuthFormProps) {
@@ -33,7 +32,6 @@ export function SignUpForm({ authClient = browserAuthClient, onSuccess }: AuthFo
     if (password.length < 8) {
       const message = 'Use at least 8 characters for your password.'
       setFeedback({ tone: 'error', message })
-      showError('Password is too short', message)
       return
     }
 
@@ -46,18 +44,15 @@ export function SignUpForm({ authClient = browserAuthClient, onSuccess }: AuthFo
       if (!result.ok) {
         const message = result.message ?? 'Check the form and try again.'
         setFeedback({ tone: 'error', message })
-        showError('Unable to create account', message)
         return
       }
 
       if (result.session) {
         const message = 'Your toolkit is ready.'
         setFeedback({ tone: 'success', message })
-        showSuccess('Account created', message)
       } else {
         const message = 'Confirmation instructions were sent if email is enabled for this project.'
         setFeedback({ tone: 'success', message })
-        showSuccess('Check your email', message)
       }
       await onSuccess?.(result)
     } finally {
@@ -66,12 +61,13 @@ export function SignUpForm({ authClient = browserAuthClient, onSuccess }: AuthFo
   }
 
   return (
-    <form className={authForm} onSubmit={handleSubmit}>
+    <form className={authForm} method='post' onSubmit={handleSubmit}>
       <TextInput
         label='Name'
         classNames={{
           input: textInput
         }}
+        autoComplete='name'
         name='name'
         type='text'
         placeholder='Morgan Emberfall'
@@ -84,6 +80,7 @@ export function SignUpForm({ authClient = browserAuthClient, onSuccess }: AuthFo
         classNames={{
           input: textInput
         }}
+        autoComplete='email'
         name='email'
         type='email'
         placeholder='you@example.com'
@@ -96,6 +93,7 @@ export function SignUpForm({ authClient = browserAuthClient, onSuccess }: AuthFo
         classNames={{
           input: textInput
         }}
+        autoComplete='new-password'
         name='password'
         type='password'
         placeholder='********'

@@ -21,7 +21,8 @@ import {
   formatCount,
   formatEnumLabel,
   formatReference,
-  formatReferenceList,
+  formatReferenceLabel,
+  formatReferenceLabelList,
   resolveAuthoredDetailState,
   summarizeHtml,
   toDetailItems,
@@ -29,16 +30,19 @@ import {
   type AuthoredDetailFact,
   type AuthoredDetailSectionModel
 } from '#components/AuthoredDetail'
+import type { AuthoredContentReferenceData } from '#app/data/contentReferences'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 
 export function RaceDetailPage({
   draft,
   raceId,
+  references,
   response
 }: {
   draft: AuthoredDraftDto | null
   raceId: string
+  references: Pick<AuthoredContentReferenceData, 'heritages' | 'races' | 'speeds'>
   response: RaceResponseDto
 }) {
   const navigate = useNavigate()
@@ -100,7 +104,7 @@ export function RaceDetailPage({
       actions={pageActions}
       description={summarizeHtml(item.description, 'A race reference entry ready for table use.')}
       eyebrow={item.category === 'SUBRACE' ? 'Subrace' : 'Race'}
-      facts={getRaceFacts(item)}
+      facts={getRaceFacts(item, references)}
       notice={buildAuthoredDetailNotice({
         canViewActive: Boolean(detailState.activeItem && detailState.draftItem),
         domainLabel: 'Race',
@@ -111,7 +115,7 @@ export function RaceDetailPage({
         onViewActive: () => setViewActive(true),
         onViewDraft: () => setViewActive(false)
       })}
-      sections={getRaceSections(item)}
+      sections={getRaceSections(item, references)}
       status={buildDetailStatusLabels({
         draft: detailState.draft,
         mode: detailState.mode,
@@ -123,11 +127,14 @@ export function RaceDetailPage({
   )
 }
 
-function getRaceFacts(race: RaceAuthoredDto): AuthoredDetailFact[] {
+function getRaceFacts(
+  race: RaceAuthoredDto,
+  references: Pick<AuthoredContentReferenceData, 'heritages' | 'races'>
+): AuthoredDetailFact[] {
   if (race.category === 'SUBRACE') {
     return [
       { label: 'Category', value: 'Subrace' },
-      { label: 'Parent', value: formatReference(race.parentRaceId, 'Parent race selected') },
+      { label: 'Parent', value: formatReferenceLabel(race.parentRaceId, 'Parent race selected', references.races) },
       { label: 'Details', value: formatCount(race.details?.length, 'detail') },
       { label: 'Features', value: formatCount(race.features?.length, 'feature') }
     ]
@@ -138,12 +145,15 @@ function getRaceFacts(race: RaceAuthoredDto): AuthoredDetailFact[] {
     { label: 'Selection', value: formatEnumLabel(race.selectionMode) },
     { label: 'Size', value: formatReference(race.size, 'Size selected') },
     { label: 'Speeds', value: formatCount(race.speeds.length, 'speed') },
-    { label: 'Heritages', value: formatReferenceList(race.heritageIds, 'heritage') },
+    { label: 'Heritages', value: formatReferenceLabelList(race.heritageIds, 'heritage', references.heritages) },
     { label: 'Features', value: formatCount(race.features?.length, 'feature') }
   ]
 }
 
-function getRaceSections(race: RaceAuthoredDto): AuthoredDetailSectionModel[] {
+function getRaceSections(
+  race: RaceAuthoredDto,
+  references: Pick<AuthoredContentReferenceData, 'speeds'>
+): AuthoredDetailSectionModel[] {
   const sharedSections: AuthoredDetailSectionModel[] = [
     {
       id: 'description',
@@ -207,7 +217,7 @@ function getRaceSections(race: RaceAuthoredDto): AuthoredDetailSectionModel[] {
           empty='No speeds have been added.'
           items={race.speeds.map((speed, index) => ({
             id: `${speed.speedId}-${index}`,
-            title: formatReference(speed.speedId, 'Speed'),
+            title: formatReferenceLabel(speed.speedId, 'Speed', references.speeds),
             meta: `${speed.amount} ${formatEnumLabel(speed.unit)}`
           }))}
         />

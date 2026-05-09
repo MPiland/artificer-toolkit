@@ -1,4 +1,5 @@
 import type { DBLike } from '#types'
+import { sql } from 'kysely'
 import { details } from './fragments/index.js'
 
 interface BackgroundListItem { id: string; label: string; description: string | null; status: string; systemId: string; details: unknown; userId: string; ownerUserId: string | null; isMaster: boolean | null }
@@ -25,13 +26,7 @@ export const getBackgroundListQuery = async (db: DBLike): Promise<{ items: Backg
         ])
         .orderBy('bridge.sort_order'))
         .as('details'),
-      eb
-        .case()
-        .when(eb.ref('is_master'), 'is', true)
-        .then('master')
-        .else(eb.ref('user_id'))
-        .end()
-        .$notNull()
+      sql<string>`case when ${sql.ref('is_master')} then 'master' else ${sql.ref('user_id')}::text end`
         .as('userId')
     ])
     .execute()

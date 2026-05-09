@@ -1,0 +1,76 @@
+import { TRPCError } from '@trpc/server'
+import { ZodError } from 'zod'
+import { createDb, withUserContext, type DBLike } from '@artificer-toolkit/db'
+
+export interface TrpcContext {
+  databaseConnectionString?: string
+  userId: string | null
+}
+
+export function requireUserId(ctx: TrpcContext): string {
+  if (!ctx.userId) {
+    throw new TRPCError({
+      code: 'UNAUTHORIZED',
+      message: 'Authentication is required.'
+    })
+  }
+
+  return ctx.userId
+}
+
+function mapErrorToCode(error: Error): TRPCError['code'] {
+  if (error instanceof ZodError) return 'UNPROCESSABLE_CONTENT'
+  if (error.name === 'NodeRuntimeInputError') return 'BAD_REQUEST'
+  if (error.name === 'AuthoredDraftSubjectMismatchError') return 'UNPROCESSABLE_CONTENT'
+  if (error.name === 'AuthoredDraftNotFoundError') return 'NOT_FOUND'
+  if (error.name === 'NotFoundError') return 'NOT_FOUND'
+  if (error.name === 'AuthoredContentOwnershipError') return 'FORBIDDEN'
+  if (error.name === 'CharacterBuilderDraftConflictError') return 'CONFLICT'
+  if (error.name === 'ConcurrencyError') return 'CONFLICT'
+  if (error.name === 'CharacterSheetCommandError') return 'BAD_REQUEST'
+
+  return 'INTERNAL_SERVER_ERROR'
+}
+
+function getErrorMessage(error: Error): string {
+  if (error instanceof ZodError) {
+    return 'Validation failed'
+  }
+
+  return error.message || 'Internal Server Error'
+}
+
+export function toTrpcError(error: unknown): TRPCError {
+  if (error instanceof TRPCError) {
+    return error
+  }
+
+  if (error instanceof Error) {
+    return new TRPCError({
+      cause: error,
+      code: mapErrorToCode(error),
+      message: getErrorMessage(error)
+    })
+  }
+
+  return new TRPCError({
+    code: 'INTERNAL_SERVER_ERROR',
+    message: 'Internal Server Error'
+  })
+}
+
+export async function withAuthenticatedDb<TResult>(
+  ctx: TrpcContext,
+  callback: (db: DBLike, userId: string) => Promise<TResult>
+): Promise<TResult> {
+  const userId = requireUserId(ctx)
+  const db = createDb({ connectionString: ctx.databaseConnectionString })
+
+  try {
+    return await withUserContext(db, userId, (scopedDb) => callback(scopedDb, userId))
+  } catch (error) {
+    throw toTrpcError(error)
+  } finally {
+    await db.destroy()
+  }
+}

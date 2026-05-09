@@ -5,7 +5,7 @@ import { createServerApi } from '#app/lib/api'
 
 export const Route = createFileRoute('/_authed/backgrounds/$backgroundId')({
   loader: async ({ context, params }) => {
-    const client = createServerApi(context.accessToken)
+    const client = createServerApi()
     const activeBackgroundQuery = getBackground(params.backgroundId, client)
     const [response, draft] = await Promise.all([
       ensureOptionalActiveContent(context.queryClient, activeBackgroundQuery),

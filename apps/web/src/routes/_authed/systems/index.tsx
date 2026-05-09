@@ -4,6 +4,6 @@ import { createServerApi } from '#app/lib/api'
 import { SystemListPage } from '#domains/systems'
 
 export const Route = createFileRoute('/_authed/systems/')({
-  loader: ({ context }) => context.queryClient.ensureQueryData(getSystemList(createServerApi(context.accessToken))),
+  loader: ({ context }) => context.queryClient.ensureQueryData(getSystemList(createServerApi())),
   component: SystemListPage
 })

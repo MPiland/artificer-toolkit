@@ -6,7 +6,7 @@ import { BackgroundCreatePage } from '#domains/backgrounds'
 export const Route = createFileRoute('/_authed/backgrounds/new')({
   loader: async ({ context }) => {
     const systems = await context.queryClient.ensureQueryData(
-      getSystemList(createServerApi(context.accessToken))
+      getSystemList(createServerApi())
     )
 
     return { systems }

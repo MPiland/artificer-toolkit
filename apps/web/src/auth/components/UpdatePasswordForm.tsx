@@ -16,7 +16,6 @@ import {
   textInput
 } from '../auth.css'
 import { AuthDivider } from './AuthDivider'
-import { showError, showSuccess } from './authForm.utils'
 import { AuthFormProps } from './authForm.types'
 import IArrowLeft from '#assets/icons/IArrowLeft'
 
@@ -33,14 +32,12 @@ export function UpdatePasswordForm({ authClient = browserAuthClient, onSuccess }
     if (password.length < 8) {
       const message = 'Use at least 8 characters for your new password.'
       setFeedback({ tone: 'error', message })
-      showError('Password is too short', message)
       return
     }
 
     if (password !== confirmPassword) {
       const message = 'Enter the same password in both fields.'
       setFeedback({ tone: 'error', message })
-      showError('Passwords do not match', message)
       return
     }
 
@@ -52,13 +49,11 @@ export function UpdatePasswordForm({ authClient = browserAuthClient, onSuccess }
       if (!result.ok) {
         const message = result.message ?? 'Try the recovery link again or request a new reset email.'
         setFeedback({ tone: 'error', message })
-        showError('Unable to update password', message)
         return
       }
 
       const message = 'Use your new password the next time you sign in.'
       setFeedback({ tone: 'success', message })
-      showSuccess('Password updated', message)
       await onSuccess?.(result)
     } finally {
       setIsSubmitting(false)
@@ -66,12 +61,13 @@ export function UpdatePasswordForm({ authClient = browserAuthClient, onSuccess }
   }
 
   return (
-    <form className={authForm} onSubmit={handleSubmit}>
+    <form className={authForm} method='post' onSubmit={handleSubmit}>
       <PasswordInput
         label='New password'
         classNames={{
           input: textInput
         }}
+        autoComplete='new-password'
         name='password'
         type='password'
         placeholder='********'
@@ -85,6 +81,7 @@ export function UpdatePasswordForm({ authClient = browserAuthClient, onSuccess }
         classNames={{
           input: textInput
         }}
+        autoComplete='new-password'
         name='confirmPassword'
         type='password'
         placeholder='********'

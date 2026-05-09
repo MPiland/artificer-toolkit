@@ -1,9 +1,9 @@
 import type {
-  CreatureAuthoredDto,
   CreatureListResponseDto,
   CreatureResponseDto,
   NodeRuntimeResolveResponseDto
 } from '#app/lib/api'
+import type { CreatureAuthoredDto } from '@artificer-toolkit/schema/subjects/creature'
 
 export const ownedMonsterFixture: CreatureAuthoredDto = {
   id: 'owned-owlbear',

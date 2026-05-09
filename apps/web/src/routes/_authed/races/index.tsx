@@ -15,7 +15,7 @@ import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 
 export const Route = createFileRoute('/_authed/races/')({
-  loader: ({ context }) => context.queryClient.ensureQueryData(getRaceList(createServerApi(context.accessToken))),
+  loader: ({ context }) => context.queryClient.ensureQueryData(getRaceList(createServerApi())),
   component: RacesRoute
 })
 

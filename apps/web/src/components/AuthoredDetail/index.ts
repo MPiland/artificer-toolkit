@@ -12,6 +12,8 @@ export {
   formatEnumLabel,
   formatNumber,
   formatReference,
+  formatReferenceLabel,
+  formatReferenceLabelList,
   formatReferenceList,
   stripHtml,
   summarizeHtml
@@ -34,6 +36,9 @@ export {
 export type {
   LabelDescriptionRecord
 } from './detailModels'
+export type {
+  ReferenceLabelOption
+} from './detailFormatters'
 export type {
   AuthoredDetailAction,
   AuthoredDetailActionTone,

@@ -5,7 +5,7 @@ import { SystemDetailPage } from '#domains/systems'
 
 export const Route = createFileRoute('/_authed/systems/$systemId')({
   loader: ({ context, params }) => context.queryClient.ensureQueryData(
-    getSystem(params.systemId, createServerApi(context.accessToken))
+    getSystem(params.systemId, createServerApi())
   ),
   component: SystemDetailPage
 })

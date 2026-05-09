@@ -3,8 +3,6 @@ import { describe, expect, it } from 'vitest'
 import { createServerApi } from './api'
 import { server } from '#test/msw/server'
 
-const API_BASE = 'http://localhost:3001'
-
 const spellItem = {
   id: 'magic-missile',
   label: 'Magic Missile',
@@ -31,8 +29,8 @@ const spellItem = {
 const spellDetail = {
   item: {
     kind: 'SPELL',
-    id: 'magic-missile',
-    label: 'Magic Missile',
+    id: 'copy-spell',
+    label: 'Magic Missile Copy',
     status: 'ACTIVE',
     description: 'Force darts that strike unerringly.',
     castingTime: {
@@ -42,11 +40,19 @@ const spellDetail = {
     level: 1,
     classIds: ['wizard'],
     magicSchoolId: 'evocation',
-    userId: 'master',
+    userId: 'test-user',
     systemId: 'dnd5e-2014'
   },
-  provenance: spellItem.provenance,
-  permissions: spellItem.permissions
+  provenance: {
+    kind: 'OWNED',
+    ownerUserId: 'test-user'
+  },
+  permissions: {
+    canView: true,
+    canEdit: true,
+    canCopy: true,
+    canDelete: true
+  }
 }
 
 const spellDraft = {
@@ -60,82 +66,86 @@ const spellDraft = {
   draftState: 'DRAFT_ONLY',
   payload: {
     ...spellDetail.item,
-    id: 'copy-spell',
-    label: 'Magic Missile Copy',
-    status: 'DRAFT',
-    userId: 'test-user'
+    status: 'DRAFT'
   },
   baseActiveUpdatedAt: null,
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-01-01T00:00:00.000Z'
 }
 
-describe('REST api adapter', () => {
-  it('attaches bearer auth and parses authored list responses', async () => {
-    expect.assertions(2)
+function trpcJson(data: unknown) {
+  return HttpResponse.json([{ result: { data } }])
+}
+
+function readBatchedInput<TInput>(body: unknown): TInput {
+  if (typeof body !== 'object' || body === null || !('0' in body)) {
+    throw new Error('Expected batched tRPC input.')
+  }
+
+  return (body as { 0: TInput })[0]
+}
+
+function readSearchInput<TInput>(request: Request): TInput {
+  const rawInput = new URL(request.url).searchParams.get('input')
+  if (!rawInput) {
+    throw new Error('Expected tRPC input search parameter.')
+  }
+
+  return readBatchedInput<TInput>(JSON.parse(rawInput) as unknown)
+}
+
+function expectNoSerializedAuth(request: Request) {
+  expect(request.headers.get('authorization')).toBeNull()
+  expect(request.headers.get('x-artificer-trpc')).toBe('1')
+  expect(request.url).not.toContain('test-token')
+  expect(request.url).not.toContain('Bearer')
+  expect(request.url).not.toContain('Authorization')
+}
+
+describe('tRPC api adapter', () => {
+  it('uses the same-origin tRPC endpoint without serializing bearer auth', async () => {
+    expect.assertions(7)
     server.use(
-      http.get(`${API_BASE}/content/spells`, ({ request }) => {
-        expect(request.headers.get('authorization')).toBe('Bearer test-token')
-        return HttpResponse.json({ items: [spellItem], meta: {} })
+      http.get('*/api/trpc/content.spells.list', ({ request }) => {
+        expect(new URL(request.url).pathname).toBe('/api/trpc/content.spells.list')
+        expectNoSerializedAuth(request)
+        return trpcJson({ items: [spellItem], meta: {} })
       })
     )
 
-    const response = await createServerApi('test-token').content.spells.list()
+    const response = await createServerApi().content.spells.list()
 
     expect(response.items[0]?.permissions.canCopy).toBe(true)
   })
 
-  it('duplicates an authored detail as a sidecar draft copy', async () => {
-    expect.assertions(6)
+  it('routes authored duplication through the tRPC procedure', async () => {
+    expect.assertions(7)
     server.use(
-      http.get(`${API_BASE}/content/spells/magic-missile`, () => HttpResponse.json(spellDetail))
-    )
-    server.use(
-      http.post(`${API_BASE}/content/spells/draft`, async ({ request }) => {
-        const body = await request.json() as {
-          subjectKind: string
-          subjectId: string
-          label: string
-          payload: { id: string, label: string, status: string }
-        }
-        expect(body.subjectKind).toBe('SPELL')
-        expect(body.subjectId).not.toBe('magic-missile')
-        expect(body.label).toBe('Magic Missile Copy')
-        expect(body.payload.id).toBe(body.subjectId)
-        expect(body.payload.status).toBe('DRAFT')
-        return HttpResponse.json({
-          ...spellDraft,
-          subjectId: body.subjectId,
-          payload: body.payload
-        })
+      http.post('*/api/trpc/content.spells.duplicate', async ({ request }) => {
+        expectNoSerializedAuth(request)
+        const body = await request.json()
+        expect(readBatchedInput<{ id: string }>(body).id).toBe('magic-missile')
+        return trpcJson(spellDraft)
       })
     )
 
-    const response = await createServerApi('test-token').content.spells.duplicate('magic-missile')
+    const response = await createServerApi().content.spells.duplicate('magic-missile')
 
     expect(response?.payload.label).toBe('Magic Missile Copy')
   })
 
-  it('activates a stored authored draft through the draft endpoint', async () => {
-    expect.assertions(2)
+  it('activates a stored authored draft through the tRPC draft procedure', async () => {
+    expect.assertions(7)
     server.use(
-      http.post(`${API_BASE}/content/spells/copy-spell/draft/activate`, async ({ request }) => {
-        const body = await request.json() as { subjectKind: string, subjectId: string }
-        expect(body).toEqual({ subjectKind: 'SPELL', subjectId: 'copy-spell' })
-        return HttpResponse.json({
-          ...spellDetail,
-          item: {
-            ...spellDetail.item,
-            id: 'copy-spell',
-            label: 'Magic Missile Copy',
-            status: 'ACTIVE',
-            userId: 'test-user'
-          }
-        })
+      http.post('*/api/trpc/content.spells.activateDraft', async ({ request }) => {
+        expectNoSerializedAuth(request)
+        const body = await request.json()
+        expect(readBatchedInput<{ id: string }>(body).id).toBe('copy-spell')
+        return trpcJson(spellDetail)
       })
     )
 
-    const response = await createServerApi('test-token').content.spells.activateDraft('copy-spell')
+    const response = await createServerApi().content.spells.activateDraft('copy-spell')
 
     if (!response) {
       throw new Error('Expected activate draft response.')
@@ -144,23 +154,27 @@ describe('REST api adapter', () => {
     expect(response.item.label).toBe('Magic Missile Copy')
   })
 
-  it('tolerates empty successful DELETE responses', async () => {
-    expect.assertions(1)
+  it('normalizes successful discard responses to undefined', async () => {
+    expect.assertions(7)
     server.use(
-      http.delete(`${API_BASE}/characters/character-1/builder-draft`, () => new HttpResponse(null, { status: 200 }))
+      http.post('*/api/trpc/characters.discardDraft', async ({ request }) => {
+        expectNoSerializedAuth(request)
+        const body = await request.json()
+        expect(readBatchedInput<{ id: string }>(body).id).toBe('character-1')
+        return trpcJson({ ok: true })
+      })
     )
 
-    await expect(createServerApi('test-token').characters.discardDraft('character-1')).resolves.toBeUndefined()
+    await expect(createServerApi().characters.discardDraft('character-1')).resolves.toBeUndefined()
   })
 
-  it('resolves node runtime models through the REST adapter', async () => {
-    expect.assertions(3)
+  it('resolves node runtime models through the tRPC adapter', async () => {
+    expect.assertions(7)
     server.use(
-      http.post(`${API_BASE}/node-runtime/resolve`, async ({ request }) => {
-        expect(request.headers.get('authorization')).toBe('Bearer test-token')
-        const body = await request.json() as { mapId: string }
-        expect(body.mapId).toBe('spell')
-        return HttpResponse.json({
+      http.get('*/api/trpc/nodeRuntime.resolve', ({ request }) => {
+        expectNoSerializedAuth(request)
+        expect(readSearchInput<{ mapId: string }>(request).mapId).toBe('spell')
+        return trpcJson({
           mapId: 'spell',
           clearPaths: [],
           steps: [
@@ -194,7 +208,7 @@ describe('REST api adapter', () => {
       })
     )
 
-    const response = await createServerApi('test-token').nodeRuntime.resolve({
+    const response = await createServerApi().nodeRuntime.resolve({
       mapId: 'spell',
       values: {}
     })

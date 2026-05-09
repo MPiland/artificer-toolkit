@@ -1,4 +1,5 @@
 import type { DBLike } from '#types'
+import { sql } from 'kysely'
 
 interface EquipmentListItem {
   id: string
@@ -36,13 +37,7 @@ export async function getEquipmentListQuery(db: DBLike): Promise<{ items: Equipm
       'system_id as systemId',
       'user_id as ownerUserId',
       'is_master as isMaster',
-      eb
-        .case()
-        .when(eb.ref('is_master'), 'is', true)
-        .then('master')
-        .else(eb.ref('user_id'))
-        .end()
-        .$notNull()
+      sql<string>`case when ${sql.ref('is_master')} then 'master' else ${sql.ref('user_id')}::text end`
         .as('userId')
     ])
     .execute()

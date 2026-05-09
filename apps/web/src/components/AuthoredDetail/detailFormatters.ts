@@ -1,4 +1,9 @@
-const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+export interface ReferenceLabelOption {
+  value: string
+  label: string
+}
 
 export function formatEnumLabel(value: string | null | undefined): string {
   if (!value) return 'Not set'
@@ -19,6 +24,15 @@ export function formatReference(value: string | null | undefined, fallback = 'Co
   return uuidPattern.test(value) ? fallback : formatEnumLabel(value)
 }
 
+export function formatReferenceLabel(
+  value: string | null | undefined,
+  fallback = 'Configured',
+  options: readonly ReferenceLabelOption[] = []
+): string {
+  if (!value) return 'Not set'
+  return options.find((option) => option.value === value)?.label ?? formatReference(value, fallback)
+}
+
 export function formatReferenceList(values: readonly string[] | null | undefined, fallback: string): string {
   if (!values?.length) return 'None'
 
@@ -27,6 +41,22 @@ export function formatReferenceList(values: readonly string[] | null | undefined
     .map(formatEnumLabel)
 
   if (visibleValues.length) return visibleValues.join(', ')
+
+  return formatCount(values.length, fallback)
+}
+
+export function formatReferenceLabelList(
+  values: readonly string[] | null | undefined,
+  fallback: string,
+  options: readonly ReferenceLabelOption[] = []
+): string {
+  if (!values?.length) return 'None'
+
+  const labels = values
+    .map((value) => options.find((option) => option.value === value)?.label ?? (uuidPattern.test(value) ? null : formatEnumLabel(value)))
+    .filter((label): label is string => Boolean(label))
+
+  if (labels.length) return labels.join(', ')
 
   return formatCount(values.length, fallback)
 }

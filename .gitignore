@@ -14,6 +14,11 @@ storybook-static
 storybook-static/
 *.tsbuildinfo
 
+# Local tool state and generated test artifacts
+.codex/
+test-results/
+playwright-report/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

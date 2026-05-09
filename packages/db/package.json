@@ -36,15 +36,15 @@
   },
   "dependencies": {
     "@artificer-toolkit/shared": "workspace:^",
-    "@supabase/supabase-js": "^2.97.0",
-    "kysely": "^0.28.11",
+    "@supabase/supabase-js": "^2.105.3",
+    "kysely": "^0.28.17",
     "kysely-supabase": "^0.2.1",
-    "pg": "^8.18.0",
-    "supabase": "^2.76.13"
+    "pg": "^8.20.0",
+    "supabase": "^2.98.2"
   },
   "devDependencies": {
-    "@types/pg": "^8.16.0",
+    "@types/pg": "^8.20.0",
     "tsx": "^4.21.0",
-    "uuid": "^13.0.0"
+    "uuid": "^14.0.0"
   }
 }

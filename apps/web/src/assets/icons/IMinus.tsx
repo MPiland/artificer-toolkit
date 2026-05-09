@@ -1,7 +1,7 @@
 import { Minus } from 'lucide-react'
-import type { FigmaIconProps } from './createFigmaIcon'
+import type { SvgIconProps } from './createSvgIcon'
 
-export function IMinus({ className, size = 24 }: FigmaIconProps) {
+export function IMinus({ className, size = 24 }: SvgIconProps) {
   return (
     <Minus
       aria-hidden='true'

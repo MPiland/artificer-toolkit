@@ -16,7 +16,7 @@ const response: SpellListResponseDto = {
       userId: 'master',
       systemId: 'dnd5e-2014',
       level: 1,
-      magicSchoolId: 'Evocation',
+      magicSchoolId: 'school-evocation',
       castingTimeUnit: 'ACTION',
       castingTimeAmount: 1,
       provenance: { kind: 'MASTER', ownerUserId: null },
@@ -30,7 +30,7 @@ const response: SpellListResponseDto = {
       userId: 'user-1',
       systemId: 'dnd5e-2014',
       level: 3,
-      magicSchoolId: 'Evocation',
+      magicSchoolId: 'school-evocation',
       castingTimeUnit: 'ACTION',
       castingTimeAmount: 1,
       provenance: { kind: 'OWNED', ownerUserId: 'user-1' },
@@ -38,8 +38,8 @@ const response: SpellListResponseDto = {
     }
   ],
   meta: {
-    classes: [{ id: 'Wizard', spellIds: ['magic-missile', 'ember-lace'] }],
-    schools: [{ id: 'Evocation', spellIds: ['magic-missile', 'ember-lace'] }],
+    classes: [{ id: 'class-wizard', label: 'Wizard', spellIds: ['magic-missile', 'ember-lace'] }],
+    schools: [{ id: 'school-evocation', label: 'Evocation', spellIds: ['magic-missile', 'ember-lace'] }],
     levels: [{ id: 1, spellIds: ['magic-missile'] }, { id: 3, spellIds: ['ember-lace'] }]
   }
 }
@@ -51,6 +51,11 @@ describe('spell list mapper', () => {
     expect(items[0]).toMatchObject({
       name: 'Magic Missile',
       sourceKind: 'master',
+      attributes: {
+        level: '1',
+        school: 'Evocation'
+      },
+      badges: ['Wizard'],
       permissions: {
         canEdit: false,
         canCopy: true
@@ -67,7 +72,11 @@ describe('spell list mapper', () => {
   })
 
   it('builds filters and summary from the DTO response', () => {
-    expect(buildSpellListFilters(response).map((filter) => filter.key)).toEqual(['school', 'level', 'class'])
+    const filters = buildSpellListFilters(response)
+
+    expect(filters.map((filter) => filter.key)).toEqual(['school', 'level', 'class'])
+    expect(filters[0]?.options[0]).toEqual({ value: 'school-evocation', label: 'Evocation' })
+    expect(filters[2]?.options[0]).toEqual({ value: 'class-wizard', label: 'Wizard' })
     expect(summarizeSpellList(response)).toBe('2 spells / 1 SRD / 1 homebrew')
   })
 })

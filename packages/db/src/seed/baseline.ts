@@ -24,8 +24,33 @@ import {
 } from '../domains/index.js'
 import type {
   SeedBaselineContent,
+  SeedContext,
   SeedResult
 } from './contracts.js'
+
+type BaselineSubjectTable =
+  | 'backgrounds'
+  | 'classes'
+  | 'creatures'
+  | 'equipment'
+  | 'feats'
+  | 'races'
+  | 'spells'
+  | 'vehicles'
+
+async function markBaselineSubjectsMaster(
+  context: SeedContext,
+  table: BaselineSubjectTable,
+  ids: string[]
+) {
+  if (ids.length === 0) return
+
+  await context.db
+    .updateTable(table)
+    .set({ is_master: true })
+    .where('id', 'in', ids)
+    .execute()
+}
 
 /**
  * Seeds one system-scoped baseline content bundle into normalized persistence.
@@ -127,6 +152,15 @@ export const seedBaselineContent: SeedBaselineContent = async (
   for (const vehicle of bundle.subjects.vehicles) {
     await upsertVehicle(context.db, vehicle, context.systemId)
   }
+
+  await markBaselineSubjectsMaster(context, 'backgrounds', bundle.subjects.backgrounds.map((record) => record.id))
+  await markBaselineSubjectsMaster(context, 'classes', bundle.subjects.classes.map((record) => record.id))
+  await markBaselineSubjectsMaster(context, 'creatures', bundle.subjects.creatures.map((record) => record.id))
+  await markBaselineSubjectsMaster(context, 'equipment', bundle.subjects.equipment.map((record) => record.id))
+  await markBaselineSubjectsMaster(context, 'feats', bundle.subjects.feats.map((record) => record.id))
+  await markBaselineSubjectsMaster(context, 'races', bundle.subjects.races.map((record) => record.id))
+  await markBaselineSubjectsMaster(context, 'spells', bundle.subjects.spells.map((record) => record.id))
+  await markBaselineSubjectsMaster(context, 'vehicles', bundle.subjects.vehicles.map((record) => record.id))
 
   const result: SeedResult = {
     systems: bundle.vocabulary.systems.length,

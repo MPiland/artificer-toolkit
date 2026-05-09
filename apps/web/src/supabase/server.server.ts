@@ -13,7 +13,7 @@ export function getSupabaseServerClient(): SupabaseClient<SupabaseDatabase> {
         }))
       },
       setAll(cookies) {
-        cookies.forEach((cookie) => setCookie(cookie.name, cookie.value))
+        cookies.forEach((cookie) => setCookie(cookie.name, cookie.value, cookie.options))
       }
     }
   })

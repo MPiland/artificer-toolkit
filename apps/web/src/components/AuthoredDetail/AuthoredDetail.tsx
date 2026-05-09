@@ -1,4 +1,3 @@
-import parse from 'html-react-parser'
 import { Badge, Button, Group, Text, Title } from '@mantine/core'
 import * as styles from './AuthoredDetail.css'
 import type {
@@ -7,6 +6,7 @@ import type {
   AuthoredDetailNotice,
   AuthoredDetailSectionModel
 } from './AuthoredDetail.types'
+import { renderSanitizedRichHtml } from '#app/ui/primitives/renderSanitizedRichHtml'
 
 interface AuthoredDetailLayoutProps {
   actions?: AuthoredDetailAction[]
@@ -175,7 +175,7 @@ export function AuthoredDetailProse({ html, fallback = 'No description has been 
     return <AuthoredDetailEmptyBlock>{fallback}</AuthoredDetailEmptyBlock>
   }
 
-  return <div className={styles.prose}>{parse(content)}</div>
+  return <div className={styles.prose}>{renderSanitizedRichHtml(content)}</div>
 }
 
 export function AuthoredDetailEmptyBlock({ children }: AuthoredDetailEmptyBlockProps) {

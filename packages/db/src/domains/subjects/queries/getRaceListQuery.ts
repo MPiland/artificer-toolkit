@@ -1,4 +1,5 @@
 import type { DBLike } from '#types'
+import { sql } from 'kysely'
 import { details } from './fragments/index.js'
 
 interface RaceListItem {
@@ -49,13 +50,7 @@ export async function getRaceListQuery(db: DBLike): Promise<{ items: RaceListIte
         ])
         .orderBy('bridge.sort_order'))
         .as('details'),
-      eb
-        .case()
-        .when(eb.ref('is_master'), 'is', true)
-        .then('master')
-        .else(eb.ref('user_id'))
-        .end()
-        .$notNull()
+      sql<string>`case when ${sql.ref('is_master')} then 'master' else ${sql.ref('user_id')}::text end`
         .as('userId')
     ])
     .execute()

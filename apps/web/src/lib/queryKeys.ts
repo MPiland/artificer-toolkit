@@ -22,6 +22,9 @@ export const queryKeys = {
   },
 
   content: {
+    referenceData: (systemId: string) => [
+      'content', 'reference-data', systemId
+    ] as const,
     backgrounds: {
       all: () => ['content', 'backgrounds'] as const,
       list: () => ['content', 'backgrounds', 'list'] as const,

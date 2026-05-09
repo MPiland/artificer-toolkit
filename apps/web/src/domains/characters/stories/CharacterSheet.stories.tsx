@@ -22,7 +22,7 @@ import {
 } from '../character.fixtures'
 import { queryKeys } from '#app/lib/queryKeys'
 
-const API_BASE = 'http://localhost:3001'
+const API_BASE = 'http://localhost:3000'
 const STACKED_INVENTORY_CHARACTER_ID = 'character-story-stacked-inventory'
 const sheetCommandHandlers = createSheetCommandHandlers(characterSheetFixture)
 

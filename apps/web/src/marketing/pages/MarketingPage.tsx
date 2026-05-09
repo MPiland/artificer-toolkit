@@ -14,7 +14,7 @@ export function MarketingPage() {
   const showPricing = isMarketingSectionEnabled('#pricing')
 
   return (
-    <div id='top' className={marketingRoot} data-testid='marketing-page'>
+    <div id='top' className={marketingRoot} data-marketing-scroll-root='true' data-testid='marketing-page'>
       <MarketingHeader />
       <main>
         <MarketingHero showPricingLink={showPricing} />

@@ -1,5 +1,4 @@
 import { type SubmitEvent, useState } from 'react'
-import { showError, showSuccess } from './authForm.utils'
 import { browserAuthClient } from '../authClient'
 import { AuthFormProps } from './authForm.types'
 import {
@@ -37,13 +36,11 @@ export function SignInForm({ authClient = browserAuthClient, onSuccess }: AuthFo
       if (!result.ok) {
         const message = result.message ?? 'Check your email and password, then try again.'
         setFeedback({ tone: 'error', message })
-        showError('Unable to sign in', message)
         return
       }
 
       const message = 'Your toolkit is ready.'
       setFeedback({ tone: 'success', message })
-      showSuccess('Signed in', message)
       await onSuccess?.(result)
     } finally {
       setIsSubmitting(false)
@@ -51,12 +48,13 @@ export function SignInForm({ authClient = browserAuthClient, onSuccess }: AuthFo
   }
 
   return (
-    <form className={authForm} onSubmit={handleSubmit}>
+    <form className={authForm} method='post' onSubmit={handleSubmit}>
       <TextInput
         label='Email address'
         classNames={{
           input: textInput
         }}
+        autoComplete='username'
         name='email'
         type='email'
         placeholder='you@example.com'
@@ -69,6 +67,7 @@ export function SignInForm({ authClient = browserAuthClient, onSuccess }: AuthFo
         classNames={{
           input: textInput
         }}
+        autoComplete='current-password'
         name='password'
         type='password'
         placeholder='********'

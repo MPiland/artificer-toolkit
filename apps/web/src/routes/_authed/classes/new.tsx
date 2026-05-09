@@ -5,7 +5,7 @@ import { ClassCreatePage } from '#domains/classes'
 
 export const Route = createFileRoute('/_authed/classes/new')({
   loader: async ({ context }) => {
-    const client = createServerApi(context.accessToken)
+    const client = createServerApi()
     const systems = await context.queryClient.ensureQueryData(getSystemList(client))
 
     return { systems }

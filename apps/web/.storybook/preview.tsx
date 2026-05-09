@@ -6,7 +6,6 @@ import '#css/main.css'
 import '@mantine/notifications/styles.layer.css'
 import '@mantine/core/styles.layer.css'
 import '@mantine/tiptap/styles.layer.css'
-import '#css/theme.css'
 
 initialize({
   onUnhandledRequest: 'bypass'
