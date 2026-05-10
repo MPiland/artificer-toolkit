@@ -7,8 +7,8 @@ export const Route = createFileRoute('/_authed/races/$raceId/')({
 
 function RaceDetailRoute() {
   const parentRoute = getRouteApi('/_authed/races/$raceId')
-  const { draft, response } = parentRoute.useLoaderData()
+  const { draft, references, response } = parentRoute.useLoaderData()
   const { raceId } = parentRoute.useParams()
 
-  return <RaceDetailPage draft={draft} raceId={raceId} response={response} />
+  return <RaceDetailPage draft={draft} raceId={raceId} references={references} response={response} />
 }

@@ -1,4 +1,4 @@
-import { type QueryClient } from '@tanstack/react-query'
+import type { MantineColorScheme } from '@mantine/core'
 import {
   RouterContextProvider,
   createMemoryHistory,
@@ -11,12 +11,13 @@ import { type ReactNode, useState } from 'react'
 import { AppProviders } from '#app/providers/AppProviders'
 import { createAppQueryClient } from '#app/query/createAppQueryClient'
 import { RouteErrorState, RouteNotFound } from '#app/routeStates'
+import type { AppRouterContext } from '#app/router'
 
 interface TestRouterProviderProps {
   children: ReactNode
   initialPath?: string
-  forceColorScheme?: 'light' | 'dark'
-  defaultColorScheme?: 'light' | 'dark'
+  user?: User | null
+  defaultColorScheme?: MantineColorScheme
 }
 
 function createStaticRoute(path: string, getParentRoute: () => ReturnType<typeof createTestRootRoute>) {
@@ -28,10 +29,10 @@ function createStaticRoute(path: string, getParentRoute: () => ReturnType<typeof
 }
 
 function createTestRootRoute() {
-  return createRootRouteWithContext<{ queryClient: QueryClient, user: User | null, accessToken: string | null }>()()
+  return createRootRouteWithContext<AppRouterContext>()()
 }
 
-function createTestRouter(initialPath: string) {
+function createTestRouter(initialPath: string, user: User | null) {
   const queryClient = createAppQueryClient()
   const rootRoute = createTestRootRoute()
   const getParentRoute = () => rootRoute
@@ -51,7 +52,7 @@ function createTestRouter(initialPath: string) {
 
   const router = createRouter({
     routeTree,
-    context: { queryClient, user: null, accessToken: null },
+    context: { queryClient, user },
     history: createMemoryHistory({
       initialEntries: [initialPath]
     }),
@@ -65,16 +66,15 @@ function createTestRouter(initialPath: string) {
 export function TestRouterProvider({
   children,
   initialPath = '/',
-  forceColorScheme,
+  user = null,
   defaultColorScheme
 }: TestRouterProviderProps) {
-  const [{ queryClient, router }] = useState(() => createTestRouter(initialPath))
+  const [{ queryClient, router }] = useState(() => createTestRouter(initialPath, user))
 
   return (
     <RouterContextProvider router={router}>
       <AppProviders
         queryClient={queryClient}
-        forceColorScheme={forceColorScheme}
         defaultColorScheme={defaultColorScheme}
       >
         {children}

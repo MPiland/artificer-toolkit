@@ -20,7 +20,7 @@ import {
   compactAuthoredDetailActions,
   formatCount,
   formatEnumLabel,
-  formatReference,
+  formatReferenceLabel,
   formatReferenceList,
   resolveAuthoredDetailState,
   summarizeHtml,
@@ -29,16 +29,19 @@ import {
   type AuthoredDetailFact,
   type AuthoredDetailSectionModel
 } from '#components/AuthoredDetail'
+import type { AuthoredContentReferenceData } from '#app/data/contentReferences'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 
 export function ClassDetailPage({
   classId,
   draft,
+  references,
   response
 }: {
   classId: string
   draft: AuthoredDraftDto | null
+  references: Pick<AuthoredContentReferenceData, 'classes'>
   response: ClassResponseDto
 }) {
   const navigate = useNavigate()
@@ -100,7 +103,7 @@ export function ClassDetailPage({
       actions={pageActions}
       description={summarizeHtml(item.description, 'A class reference entry ready for table use.')}
       eyebrow={item.category === 'SUBCLASS' ? 'Subclass' : 'Class'}
-      facts={getClassFacts(item)}
+      facts={getClassFacts(item, references)}
       notice={buildAuthoredDetailNotice({
         canViewActive: Boolean(detailState.activeItem && detailState.draftItem),
         domainLabel: 'Class',
@@ -123,10 +126,18 @@ export function ClassDetailPage({
   )
 }
 
-function getClassFacts(classRecord: ClassAuthoringInputDto): AuthoredDetailFact[] {
+function getClassFacts(
+  classRecord: ClassAuthoringInputDto,
+  references: Pick<AuthoredContentReferenceData, 'classes'>
+): AuthoredDetailFact[] {
   return [
     { label: 'Category', value: classRecord.category ? formatEnumLabel(classRecord.category) : 'Uncategorized Draft' },
-    { label: 'Parent', value: classRecord.category === 'SUBCLASS' ? formatReference(classRecord.parentClassId, 'Parent class selected') : 'None' },
+    {
+      label: 'Parent',
+      value: classRecord.category === 'SUBCLASS'
+        ? formatReferenceLabel(classRecord.parentClassId, 'Parent class selected', references.classes)
+        : 'None'
+    },
     { label: 'Proficiencies', value: formatCount(classRecord.proficiencies?.length, 'grant') },
     { label: 'Features', value: formatCount(classRecord.features?.length, 'feature') },
     { label: 'Spellcasting', value: classRecord.spellcasting ? 'Configured' : 'None' },

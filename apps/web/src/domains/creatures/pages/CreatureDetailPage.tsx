@@ -20,7 +20,8 @@ import {
   formatEnumLabel,
   formatNumber,
   formatReference,
-  formatReferenceList,
+  formatReferenceLabel,
+  formatReferenceLabelList,
   resolveAuthoredDetailState,
   summarizeHtml,
   toDetailItems,
@@ -28,16 +29,19 @@ import {
   type AuthoredDetailFact,
   type AuthoredDetailSectionModel
 } from '#components/AuthoredDetail'
+import type { AuthoredContentReferenceData } from '#app/data/contentReferences'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 
 export function CreatureDetailPage({
   creatureId,
   draft,
+  references,
   response
 }: {
   creatureId: string
   draft: AuthoredDraftDto | null
+  references: Pick<AuthoredContentReferenceData, 'challengeRatings' | 'conditionTypes' | 'creatureTypes' | 'damageTypes' | 'speeds'>
   response: CreatureResponseDto
 }) {
   const navigate = useNavigate()
@@ -99,7 +103,7 @@ export function CreatureDetailPage({
       actions={pageActions}
       description={summarizeHtml(item.description, 'A creature reference entry ready for table use.')}
       eyebrow='Creature'
-      facts={getCreatureFacts(item)}
+      facts={getCreatureFacts(item, references)}
       notice={buildAuthoredDetailNotice({
         canViewActive: Boolean(detailState.activeItem && detailState.draftItem),
         domainLabel: 'Creature',
@@ -110,7 +114,7 @@ export function CreatureDetailPage({
         onViewActive: () => setViewActive(true),
         onViewDraft: () => setViewActive(false)
       })}
-      sections={getCreatureSections(item)}
+      sections={getCreatureSections(item, references)}
       status={buildDetailStatusLabels({
         draft: detailState.draft,
         mode: detailState.mode,
@@ -122,18 +126,24 @@ export function CreatureDetailPage({
   )
 }
 
-function getCreatureFacts(creature: CreatureAuthoredDto): AuthoredDetailFact[] {
+function getCreatureFacts(
+  creature: CreatureAuthoredDto,
+  references: Pick<AuthoredContentReferenceData, 'challengeRatings' | 'creatureTypes'>
+): AuthoredDetailFact[] {
   return [
     { label: 'Category', value: formatEnumLabel(creature.category) },
-    { label: 'Type', value: formatReference(creature.creatureTypeId, 'Creature type selected') },
+    { label: 'Type', value: formatReferenceLabel(creature.creatureTypeId, 'Creature type selected', references.creatureTypes) },
     { label: 'Size', value: formatReference(creature.size, 'Size selected') },
     { label: 'Armor Class', value: formatNumber(creature.armorClass) },
     { label: 'Hit Points', value: formatNumber(creature.hitPoints) },
-    { label: 'Challenge', value: formatReference(creature.challengeRatingId, 'Challenge selected') }
+    { label: 'Challenge', value: formatReferenceLabel(creature.challengeRatingId, 'Challenge selected', references.challengeRatings) }
   ]
 }
 
-function getCreatureSections(creature: CreatureAuthoredDto): AuthoredDetailSectionModel[] {
+function getCreatureSections(
+  creature: CreatureAuthoredDto,
+  references: Pick<AuthoredContentReferenceData, 'conditionTypes' | 'damageTypes' | 'speeds'>
+): AuthoredDetailSectionModel[] {
   return [
     {
       id: 'description',
@@ -154,7 +164,7 @@ function getCreatureSections(creature: CreatureAuthoredDto): AuthoredDetailSecti
             })),
             ...creature.speeds.map((speed, index) => ({
               id: `${speed.speedId}-${index}`,
-              title: formatReference(speed.speedId, 'Speed'),
+              title: formatReferenceLabel(speed.speedId, 'Speed', references.speeds),
               meta: `${speed.amount} ${formatEnumLabel(speed.unit)}`
             }))
           ]}
@@ -171,22 +181,22 @@ function getCreatureSections(creature: CreatureAuthoredDto): AuthoredDetailSecti
             {
               id: 'damage-vulnerabilities',
               title: 'Damage Vulnerabilities',
-              description: formatReferenceList(creature.damageVulnerabilities, 'damage type')
+              description: formatReferenceLabelList(creature.damageVulnerabilities, 'damage type', references.damageTypes)
             },
             {
               id: 'damage-resistances',
               title: 'Damage Resistances',
-              description: formatReferenceList(creature.damageResistances, 'damage type')
+              description: formatReferenceLabelList(creature.damageResistances, 'damage type', references.damageTypes)
             },
             {
               id: 'damage-immunities',
               title: 'Damage Immunities',
-              description: formatReferenceList(creature.damageImmunities, 'damage type')
+              description: formatReferenceLabelList(creature.damageImmunities, 'damage type', references.damageTypes)
             },
             {
               id: 'condition-immunities',
               title: 'Condition Immunities',
-              description: formatReferenceList(creature.conditionImmunities, 'condition')
+              description: formatReferenceLabelList(creature.conditionImmunities, 'condition', references.conditionTypes)
             }
           ].filter((item) => item.description !== 'None')}
         />

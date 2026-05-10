@@ -9,7 +9,7 @@ import { CharacterEditPage } from '#domains/characters'
 
 export const Route = createFileRoute('/_authed/characters/$characterId/edit')({
   loader: async ({ context, params }) => {
-    const client = createServerApi(context.accessToken)
+    const client = createServerApi()
     const [response, draft] = await Promise.all([
       context.queryClient.ensureQueryData(getCharacter(params.characterId, client)),
       context.queryClient.ensureQueryData(getCharacterDraft(params.characterId, client))

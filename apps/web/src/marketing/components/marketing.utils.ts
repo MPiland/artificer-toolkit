@@ -1,4 +1,5 @@
 const MARKETING_SCROLL_GAP = 16
+const MARKETING_SCROLL_ROOT_SELECTOR = '[data-marketing-scroll-root="true"]'
 
 function getMarketingScrollBehavior(): ScrollBehavior {
   if (typeof window === 'undefined') {
@@ -25,13 +26,48 @@ export function scrollToMarketingHash(hash: `#${string}`) {
   ) ?? target
   const header = document.querySelector<HTMLElement>('[data-testid="marketing-header"]')
   const topOffset = (header?.offsetHeight ?? 0) + MARKETING_SCROLL_GAP
+  const scrollRoot = document.querySelector<HTMLElement>(MARKETING_SCROLL_ROOT_SELECTOR)
   const top = targetId === 'top'
     ? 0
-    : Math.max(0, scrollTarget.getBoundingClientRect().top + window.scrollY - topOffset)
+    : getScrollTop({
+        scrollRoot,
+        scrollTarget,
+        topOffset
+      })
 
   window.history.replaceState(null, '', hash)
-  window.scrollTo({
+  scrollToMarketingTarget(scrollRoot, top)
+}
+
+function getScrollTop({
+  scrollRoot,
+  scrollTarget,
+  topOffset
+}: {
+  scrollRoot: HTMLElement | null
+  scrollTarget: HTMLElement
+  topOffset: number
+}) {
+  if (!scrollRoot) {
+    return Math.max(0, scrollTarget.getBoundingClientRect().top + window.scrollY - topOffset)
+  }
+
+  return Math.max(0, scrollRoot.scrollTop
+    + scrollTarget.getBoundingClientRect().top
+    - scrollRoot.getBoundingClientRect().top
+    - topOffset)
+}
+
+function scrollToMarketingTarget(scrollRoot: HTMLElement | null, top: number) {
+  const scrollOptions: ScrollToOptions = {
     top,
     behavior: getMarketingScrollBehavior()
-  })
+  }
+
+  if (scrollRoot) {
+    scrollRoot.scrollTo(scrollOptions)
+    return
+  }
+
+  window.scrollTo(scrollOptions)
 }

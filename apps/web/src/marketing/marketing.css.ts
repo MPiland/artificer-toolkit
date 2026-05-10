@@ -5,7 +5,9 @@ import { app } from '../css/layers.css.ts'
 export const marketingRoot = style({
   '@layer': {
     [app]: {
-      minHeight: '100dvh',
+      height: '100dvh',
+      overflowX: 'hidden',
+      overflowY: 'auto',
       backgroundColor: foundationVars.color.surface.canvas,
       color: foundationVars.color.text.primary
     }

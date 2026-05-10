@@ -14,7 +14,7 @@ import { getClassList } from '#app/data/classes/queries'
 import { createServerApi } from '#app/lib/api'
 
 export const Route = createFileRoute('/_authed/classes/')({
-  loader: ({ context }) => context.queryClient.ensureQueryData(getClassList(createServerApi(context.accessToken))),
+  loader: ({ context }) => context.queryClient.ensureQueryData(getClassList(createServerApi())),
   component: ClassesRoute
 })
 

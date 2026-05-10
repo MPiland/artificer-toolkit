@@ -7,7 +7,7 @@ import { EquipmentEditPage } from '#domains/equipment'
 
 export const Route = createFileRoute('/_authed/equipment/$equipmentId/edit')({
   loader: async ({ context, params }) => {
-    const client = createServerApi(context.accessToken)
+    const client = createServerApi()
     const activeEquipmentQuery = getEquipment(params.equipmentId, client)
     const [response, draft, systems] = await Promise.all([
       ensureOptionalActiveContent(context.queryClient, activeEquipmentQuery),

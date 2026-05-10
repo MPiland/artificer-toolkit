@@ -1,11 +1,13 @@
 import { Alert, Button, Group, Stack, Text, Title } from '@mantine/core'
-import { Link } from '@tanstack/react-router'
+import { Link, useRouter, useRouterState } from '@tanstack/react-router'
 import type { ErrorComponentProps } from '@tanstack/react-router'
 import IAlertCircle from '#assets/icons/IAlertCircle'
 import IArrowLeft from '#assets/icons/IArrowLeft'
 import IMapOff from '#assets/icons/IMapOff'
 
 export function RouteNotFound() {
+  const homeRoute = useHomeRoute()
+
   return (
     <Stack align='center' justify='center' mih='100dvh' p='xl'>
       <IMapOff size={48} />
@@ -14,7 +16,7 @@ export function RouteNotFound() {
         The Phase 9 app shell is active, so some provisional legacy routes are intentionally offline while
         we rebuild the frontend foundation.
       </Text>
-      <Button component={Link} to='/' leftSection={<IArrowLeft size={16} />}>
+      <Button component={Link} to={homeRoute} leftSection={<IArrowLeft size={16} />}>
         Return home
       </Button>
     </Stack>
@@ -22,6 +24,8 @@ export function RouteNotFound() {
 }
 
 export function RouteErrorState({ error, reset }: ErrorComponentProps) {
+  const homeRoute = useHomeRoute()
+
   return (
     <Stack align='center' justify='center' mih='100dvh' p='xl'>
       <Alert
@@ -36,10 +40,20 @@ export function RouteErrorState({ error, reset }: ErrorComponentProps) {
         <Button variant='default' onClick={reset}>
           Try again
         </Button>
-        <Button component={Link} to='/' leftSection={<IArrowLeft size={16} />}>
+        <Button component={Link} to={homeRoute} leftSection={<IArrowLeft size={16} />}>
           Go to homepage
         </Button>
       </Group>
     </Stack>
   )
+}
+
+function useHomeRoute() {
+  const router = useRouter()
+  const hasAuthenticatedMatch = useRouterState({
+    select: (state) => state.matches.some((match) => Boolean(match.context.user))
+  })
+  const isAuthenticated = hasAuthenticatedMatch || Boolean(router.options.context.user)
+
+  return isAuthenticated ? '/home' : '/'
 }

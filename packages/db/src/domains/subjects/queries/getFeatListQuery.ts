@@ -1,4 +1,5 @@
 import type { DBLike } from '#types'
+import { sql } from 'kysely'
 
 interface FeatListItem { id: string; label: string; description: string; detail: string | null; status: string; systemId: string; userId: string; ownerUserId: string | null; isMaster: boolean | null }
 interface FeatMetaObject { id: string; featIds: string[] }
@@ -16,13 +17,7 @@ export async function getFeatListQuery(db: DBLike): Promise<{ items: FeatListIte
       'system_id as systemId',
       'user_id as ownerUserId',
       'is_master as isMaster',
-      eb
-        .case()
-        .when(eb.ref('is_master'), 'is', true)
-        .then('master')
-        .else(eb.ref('user_id'))
-        .end()
-        .$notNull()
+      sql<string>`case when ${sql.ref('is_master')} then 'master' else ${sql.ref('user_id')}::text end`
         .as('userId')
     ])
     .execute()

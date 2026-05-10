@@ -5,7 +5,7 @@ import { createServerApi } from '#app/lib/api'
 
 export const Route = createFileRoute('/_authed/feats/$featId')({
   loader: async ({ context, params }) => {
-    const client = createServerApi(context.accessToken)
+    const client = createServerApi()
     const activeFeatQuery = getFeat(params.featId, client)
     const [response, draft] = await Promise.all([
       ensureOptionalActiveContent(context.queryClient, activeFeatQuery),

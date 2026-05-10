@@ -12,15 +12,20 @@
     "@artificer-toolkit/functions": "workspace:^",
     "@artificer-toolkit/schema": "workspace:^",
     "@artificer-toolkit/shared": "workspace:^",
-    "@supabase/supabase-js": "^2.97.0"
+    "@supabase/supabase-js": "^2.105.3",
+    "@trpc/server": "^11.17.0"
   },
   "devDependencies": {
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.3"
   },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./trpc-handler": {
+      "types": "./dist/trpc/handler.d.ts",
+      "default": "./dist/trpc/handler.js"
     }
   }
 }

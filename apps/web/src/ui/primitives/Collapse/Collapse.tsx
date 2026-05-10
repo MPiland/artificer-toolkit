@@ -2,10 +2,10 @@ import { type ComponentProps, type ReactNode, type RefObject, useId } from 'reac
 import { base, borderless } from './Collapse.css'
 import * as footer from './Footer.css'
 import clsx from 'clsx'
-import parseHtml from 'html-react-parser'
 import { Collapse as MantineCollapse } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { Trigger, type TriggerProps } from './Trigger'
+import { renderSanitizedRichHtml } from '../renderSanitizedRichHtml'
 
 type CollapseProps = {
   children: ReactNode
@@ -21,7 +21,7 @@ type CollapseProps = {
       children: ReactNode
     }
   }
-} & Omit<ComponentProps<typeof MantineCollapse>, 'in'>
+} & Omit<ComponentProps<typeof MantineCollapse>, 'expanded'>
 
 export function Collapse({
   children,
@@ -38,7 +38,7 @@ export function Collapse({
   const generatedId = useId()
   const contentId = collapseProps.id ?? `${generatedId}-content`
   const titleId = props.trigger.titleId ?? `${generatedId}-title`
-  const parsedContent = typeof children === 'string' ? parseHtml(children) : children
+  const parsedContent = typeof children === 'string' ? renderSanitizedRichHtml(children) : children
 
   return (
     <div ref={ref} className={clsx(variant === 'borderless' ? borderless : base, className)}>
@@ -52,7 +52,7 @@ export function Collapse({
       />
       <MantineCollapse
         id={contentId}
-        in={opened}
+        expanded={opened}
         role='region'
         aria-labelledby={titleId}
         className={clsx(contentClassName ?? className)}

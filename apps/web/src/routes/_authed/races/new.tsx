@@ -5,7 +5,7 @@ import { RaceCreatePage } from '#domains/races'
 
 export const Route = createFileRoute('/_authed/races/new')({
   loader: async ({ context }) => {
-    const systems = await context.queryClient.ensureQueryData(getSystemList(createServerApi(context.accessToken)))
+    const systems = await context.queryClient.ensureQueryData(getSystemList(createServerApi()))
 
     return { systems }
   },

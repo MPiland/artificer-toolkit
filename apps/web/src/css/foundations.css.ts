@@ -1,4 +1,4 @@
-import { createGlobalThemeContract } from '@vanilla-extract/css'
+import { createGlobalTheme, createGlobalThemeContract } from '@vanilla-extract/css'
 
 export const foundationVars = createGlobalThemeContract({
   color: {
@@ -589,3 +589,13 @@ export const brandColorScale = [
   '#155e75',
   '#164e63'
 ] as const
+
+createGlobalTheme(':root', foundationVars, {
+  ...sharedFoundationTokens,
+  ...lightFoundationTokens
+})
+
+createGlobalTheme('[data-mantine-color-scheme="dark"]', foundationVars, {
+  ...sharedFoundationTokens,
+  ...darkFoundationTokens
+})

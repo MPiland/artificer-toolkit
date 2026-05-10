@@ -6,7 +6,7 @@ import { VehicleDetailPage } from '#domains/vehicles/pages/VehicleDetailPage'
 
 export const Route = createFileRoute('/_authed/vehicles/$vehicleId/')({
   loader: async ({ context, params }) => {
-    const client = createServerApi(context.accessToken)
+    const client = createServerApi()
     const activeVehicleQuery = getVehicle(params.vehicleId, client)
     const [response, draft] = await Promise.all([
       ensureOptionalActiveContent(context.queryClient, activeVehicleQuery),

@@ -1,106 +1,41 @@
-# Phase 10 - tRPC Transport Modernization (Hybrid Incremental)
+# Phase 10 - tRPC Transport Cutover
 
-## Status: Partially Landed / Deferred Behind Phase 9 REST Baseline
+## Status: Full Cutover In Progress
 
 ## Summary
 
-Phase 10 modernizes transport by adding tRPC to `apps/apis` without breaking the active REST contract. The scaffold is already present, but frontend adoption stays intentionally behind the Phase 9 execution sequence so the new frontend can first normalize around one stable REST adapter.
+Phase 10 replaces the active frontend REST transport with one tRPC surface mounted at same-origin `/api/trpc`. `apps/apis` remains the product-data boundary for `apps/web`; the frontend adapter keeps the existing `api.content.spells.list()` style call surface while routing product-data calls through tRPC procedures.
 
-This phase remains transport-only:
-
-- no domain-model rewrites
-- no DB contract rewrites just to satisfy tRPC
-- no bypass of `apps/apis`
-- no replacement of the Phase 9 review gates
-
-## Relationship to Phase 9
-
-- Phase 9 establishes:
-  - the public and authenticated shells
-  - the shared frontend data adapter
-  - explicit provenance and permissions contracts
-  - the authored-form runtime
-  - the rebuilt route families
-- Phase 10 only swaps selected reads from REST to tRPC after the shared adapter exists and parity is proven.
-
-## Landed So Far
-
-The initial scaffold pass is complete in `apps/apis`:
-
-- `apps/apis/src/trpc.router.ts`
-- `apps/apis/src/trpc.context.ts`
-- `apps/apis/src/trpc.handler.ts`
-- `apps/apis/src/trpc.index.ts`
-- package exports for the tRPC surface
+The security goal is explicit: Supabase auth material may live in Supabase cookies/session internals, but the app must not echo access tokens, refresh tokens, bearer headers, or credentials into TanStack route context, rendered HTML, URLs, logs, or query-cache payloads.
 
 ## Locked Decisions
 
-- REST remains the Phase 9 baseline.
-- tRPC and REST run in parallel during the transition.
-- `apps/web` consumes tRPC only through the same frontend adapter boundary used by REST.
-- Builder write flows stay on REST until parity is proven.
-- Character sheet reads can migrate earlier than builder writes.
+- `apps/apis` owns the transport/domain boundary.
+- `apps/web` does not import DB/functions directly for product data.
+- The browser adapter does not read `supabase.auth.getSession()` or attach `Authorization` headers.
+- The same-origin `/api/trpc` handler derives auth server-side from Supabase SSR cookies.
+- TanStack router context contains `queryClient` and `user`, not access tokens.
+- REST is no longer the active frontend product-data transport after this cutover.
 
 ## Procedure Surface
 
-The canonical procedure namespaces remain:
+Canonical procedure namespaces:
 
-- `characters.*`
-  - `list`
-  - `get`
-  - `sheet`
-  - `history`
-  - `command`
-- `content.*`
-  - `backgrounds.{list,get,upsert}`
-  - `classes.{list,get,upsert}`
-  - `equipment.{list,get,upsert}`
-  - `feats.{list,get,upsert}`
-  - `races.{list,get,upsert}`
-  - `spells.{list,get,upsert}`
-  - `creatures.{list,get,upsert}`
-  - `vehicles.{list,get,upsert}`
-  - `features.{list,get,upsert}`
-  - `featGrants.{get,upsert}`
-  - `systems.{list,get}`
+- `systems.list`, `systems.get`
+- `content.{spells,backgrounds,feats,races,equipment,creatures,vehicles,classes}.{list,get,getDraft,saveDraft,discardDraft,activateDraft,activate,duplicate,upsert}`
+- `content.features.{list,get,upsert}`
+- `characters.{list,draft,get,getDraft,saveDraft,discardDraft,sheet,resolve,previewSave,upsert,history,command}`
+- `nodeRuntime.{resolve,normalizeValues}`
 
-## Adoption Order
+## Implementation Notes
 
-1. Systems reads
-2. Content list reads
-3. Content detail reads
-4. Character list and history
-5. Character sheet reads
-6. Remaining low-risk read surfaces
-7. Write surfaces only after explicit parity review
-
-## Entry Conditions for Any tRPC Cutover
-
-Do not switch a surface from REST to tRPC until all of the following are true:
-
-- the REST and tRPC responses match the same schema-backed DTO shape
-- authored content responses include the Phase 9.4 `{ item, provenance, permissions }` detail envelope and list-item provenance/permissions fields
-- the shared frontend adapter can swap implementations without route-level changes
-- Storybook and Playwright coverage already exist for the affected surface
-- route behavior has been compared side-by-side against REST
-
-## Adapter Parity Rule
-
-The frontend must continue importing one adapter boundary. A tRPC procedure can replace a REST call only inside that adapter, and only after the procedure returns the same schema-parseable DTO shape as REST. Route loaders, query factories, and page components should not know whether the backing transport is REST or tRPC.
-
-## Explicit Hold Line
-
-Keep these on REST until later:
-
-- character builder draft
-- character builder resolve
-- character builder preview-save
-- character builder upsert
-
-These flows depend on the engine-backed builder semantics and should not be migrated until the tRPC surface is genuinely equivalent.
+- The initial tRPC router delegates into the existing `apps/apis/src/routes/*` handlers to preserve schema validation, error mapping, repository usage, and `withUserContext` behavior while removing token serialization from the web app.
+- The web adapter uses tRPC client calls to `/api/trpc`; server-side loader fetches forward the incoming cookie header instead of passing bearer tokens through route context.
+- DTO schemas in `packages/schema` remain the input/output validation boundary.
 
 ## Exit Criteria
 
-- tRPC is additive, verified, and never the cause of a frontend domain rewrite.
-- The frontend transport layer can mix REST and tRPC behind one adapter.
-- REST deprecation is considered only after endpoint-by-endpoint parity has been demonstrated.
+- No active frontend product-data calls use REST.
+- Route context and server-session payloads do not include access-token fields.
+- Focused unit coverage proves the adapter does not serialize `Authorization` or bearer token material.
+- App smoke coverage verifies `/home`, authored list/detail/create-edit routes, and character sheet commands through the tRPC transport.

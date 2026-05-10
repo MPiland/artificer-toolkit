@@ -3,13 +3,28 @@ import type { AuthoredListFilter, AuthoredListItem } from '#components/AuthoredL
 
 interface SpellMetaGroup {
   id: string | number
+  label?: string
   spellIds: string[]
 }
 
-function findMetaIds(meta: SpellMetaGroup[] | undefined, spellId: string) {
+function findMetaEntries(meta: SpellMetaGroup[] | undefined, spellId: string) {
   return (meta ?? [])
     .filter((entry) => entry.spellIds.includes(spellId))
+}
+
+function findMetaIds(meta: SpellMetaGroup[] | undefined, spellId: string) {
+  return findMetaEntries(meta, spellId)
     .map((entry) => String(entry.id))
+}
+
+function findMetaLabel(meta: SpellMetaGroup[] | undefined, id: string | null | undefined) {
+  if (!id) return undefined
+  const entry = (meta ?? []).find((candidate) => String(candidate.id) === id)
+  return entry?.label ?? id
+}
+
+function getMetaOptionLabel(entry: SpellMetaGroup) {
+  return entry.label ?? String(entry.id)
 }
 
 function formatCastingTime(amount?: number, unit?: string) {
@@ -34,8 +49,11 @@ export function mapSpellListToAuthoredItems(response: SpellListResponseDto): Aut
   }
 
   return response.items.map((item) => {
-    const school = item.magicSchoolId ?? findMetaIds(spellMeta.schools, item.id)[0]
-    const classes = findMetaIds(spellMeta.classes, item.id)
+    const schoolId = item.magicSchoolId ?? findMetaIds(spellMeta.schools, item.id)[0]
+    const school = findMetaLabel(spellMeta.schools, schoolId)
+    const classEntries = findMetaEntries(spellMeta.classes, item.id)
+    const classIds = classEntries.map((entry) => String(entry.id))
+    const classLabels = classEntries.map(getMetaOptionLabel)
 
     return {
       id: item.id,
@@ -46,11 +64,11 @@ export function mapSpellListToAuthoredItems(response: SpellListResponseDto): Aut
         school,
         castingTime: formatCastingTime(item.castingTimeAmount, item.castingTimeUnit)
       },
-      badges: classes,
+      badges: classLabels,
       filterValues: {
         level: item.level == null ? undefined : String(item.level),
-        school,
-        class: classes
+        school: schoolId,
+        class: classIds
       },
       sortValues: {
         level: item.level ?? 0,
@@ -88,7 +106,7 @@ export function buildSpellListFilters(response: SpellListResponseDto): AuthoredL
       placeholder: 'Any school',
       options: (spellMeta.schools ?? []).map((entry) => ({
         value: String(entry.id),
-        label: String(entry.id)
+        label: getMetaOptionLabel(entry)
       }))
     },
     {
@@ -106,7 +124,7 @@ export function buildSpellListFilters(response: SpellListResponseDto): AuthoredL
       placeholder: 'Any class',
       options: (spellMeta.classes ?? []).map((entry) => ({
         value: String(entry.id),
-        label: String(entry.id)
+        label: getMetaOptionLabel(entry)
       }))
     }
   ]

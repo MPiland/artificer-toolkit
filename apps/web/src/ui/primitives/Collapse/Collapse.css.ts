@@ -1,12 +1,13 @@
 import { style } from '@vanilla-extract/css'
 import { foundationVars } from '#css/foundations.css'
 import { app } from '#css/layers.css'
+import { vars } from '#app/css/theme'
 
 export const base = style({
   '@layer': {
     [app]: {
       border: `1px solid ${foundationVars.color.border.subtle}`,
-      borderRadius: foundationVars.radius.md,
+      borderRadius: vars.radius.md,
       marginBottom: foundationVars.space[4],
       outline: 'none',
       padding: `0 ${foundationVars.space[4]}`,

@@ -7,8 +7,8 @@ export const Route = createFileRoute('/_authed/spells/$spellId/')({
 
 function SpellDetailRoute() {
   const parentRoute = getRouteApi('/_authed/spells/$spellId')
-  const { draft, response } = parentRoute.useLoaderData()
+  const { draft, references, response } = parentRoute.useLoaderData()
   const { spellId } = parentRoute.useParams()
 
-  return <SpellDetailPage draft={draft} response={response} spellId={spellId} />
+  return <SpellDetailPage draft={draft} references={references} response={response} spellId={spellId} />
 }

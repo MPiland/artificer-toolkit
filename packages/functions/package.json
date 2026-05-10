@@ -11,7 +11,7 @@
     "@artificer-toolkit/db": "workspace:^",
     "@artificer-toolkit/schema": "workspace:^",
     "@artificer-toolkit/shared": "workspace:^",
-    "@supabase/supabase-js": "^2.97.0"
+    "@supabase/supabase-js": "^2.105.3"
   },
   "exports": {
     ".": {

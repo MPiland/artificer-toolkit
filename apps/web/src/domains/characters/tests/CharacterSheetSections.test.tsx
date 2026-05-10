@@ -17,8 +17,6 @@ import { CharacterSheetResources } from '../components/sheet/CharacterSheetResou
 import { CharacterSheetSpells } from '../components/sheet/CharacterSheetSpells'
 import { CharacterSheetView } from '../components/sheet/CharacterSheetView'
 
-const API_BASE = 'http://localhost:3001'
-
 function createSheet(): CharacterSheetResponseDto {
   return {
     meta: {
@@ -89,18 +87,45 @@ function createSheet(): CharacterSheetResponseDto {
   }
 }
 
+function trpcJson(data: unknown) {
+  return HttpResponse.json([{ result: { data } }])
+}
+
+function trpcErrorJson(message: string, status: number) {
+  return HttpResponse.json([{
+    error: {
+      code: -32009,
+      data: {
+        code: 'CONFLICT',
+        httpStatus: status,
+        path: 'characters.command'
+      },
+      message
+    }
+  }], { status })
+}
+
+function readBatchedInput<TInput>(body: unknown): TInput {
+  if (typeof body !== 'object' || body === null || !('0' in body)) {
+    throw new Error('Expected batched tRPC input.')
+  }
+
+  return (body as { 0: TInput })[0]
+}
+
 describe('Character Sheet sections', () => {
   it('submits sheet commands through the production command mutation path', async () => {
     const user = userEvent.setup()
     let submittedCommand: unknown
 
     server.use(
-      http.post(`${API_BASE}/characters/:characterId/commands`, async ({ request }) => {
-        submittedCommand = await request.json()
+      http.post('*/api/trpc/characters.command', async ({ request }) => {
+        const body = await request.json()
+        submittedCommand = readBatchedInput<{ id: string, input: unknown }>(body).input
         const sheet = createSheet()
         sheet.meta.streamVersion = 5
 
-        return HttpResponse.json({
+        return trpcJson({
           characterId: sheet.meta.characterId,
           streamVersion: sheet.meta.streamVersion,
           sheet
@@ -122,9 +147,10 @@ describe('Character Sheet sections', () => {
     const user = userEvent.setup()
 
     server.use(
-      http.post(`${API_BASE}/characters/:characterId/commands`, () => HttpResponse.json({
-        error: 'This character changed in another tab. Refresh the sheet, then try again.'
-      }, { status: 409 }))
+      http.post('*/api/trpc/characters.command', () => trpcErrorJson(
+        'This character changed in another tab. Refresh the sheet, then try again.',
+        409
+      ))
     )
 
     renderWithAppProviders(<CharacterSheetView hasDraft sheet={createSheet()} />)

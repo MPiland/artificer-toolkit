@@ -39,7 +39,6 @@ describe('MarketingPage', () => {
   })
 
   it('smoothly scrolls enabled in-page marketing anchors with header offset', () => {
-    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
     const replaceState = vi.spyOn(window.history, 'replaceState')
     const matchMedia = vi.fn().mockReturnValue({
       matches: false,
@@ -53,12 +52,24 @@ describe('MarketingPage', () => {
     })
 
     vi.stubGlobal('matchMedia', matchMedia)
-    Object.defineProperty(window, 'scrollY', {
-      configurable: true,
-      value: 120
-    })
 
     renderWithAppProviders(<MarketingPage />)
+
+    const marketingPage = screen.getByTestId('marketing-page')
+    const scrollTo = vi.fn()
+    marketingPage.scrollTop = 120
+    marketingPage.scrollTo = scrollTo
+    marketingPage.getBoundingClientRect = vi.fn(() => ({
+      x: 0,
+      y: 0,
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+      width: 0,
+      height: 0,
+      toJSON: () => ({})
+    }))
 
     const header = screen.getByTestId('marketing-header')
     Object.defineProperty(header, 'offsetHeight', {

@@ -118,7 +118,7 @@ function CharacterSheetInventoryItemRow({
           Remove
         </Button>
       </div>
-      <Collapse className={styles.inlineEditorShell} in={expanded}>
+      <Collapse className={styles.inlineEditorShell} expanded={expanded}>
         <div className={styles.inlineEditor}>
           {item.description ? <AuthoredDetailProse html={item.description} fallback='' /> : null}
           <TextInput

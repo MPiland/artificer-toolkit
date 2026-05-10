@@ -26,13 +26,13 @@ interface AuthoredOwnership {
   ownerUserId: string | null
 }
 
-interface AuthoredListRow {
+export interface AuthoredListRow {
   userId: string
   isMaster?: boolean | null
   ownerUserId?: string | null
 }
 
-interface AuthoredRecord {
+export interface AuthoredRecord {
   id: string
   userId: string
   systemId: string
@@ -40,7 +40,7 @@ interface AuthoredRecord {
   status?: 'ACTIVE' | 'DRAFT'
 }
 
-interface AuthoringPipelineResult<TRecord extends AuthoredRecord> {
+export interface AuthoringPipelineResult<TRecord extends AuthoredRecord> {
   authored: TRecord
 }
 

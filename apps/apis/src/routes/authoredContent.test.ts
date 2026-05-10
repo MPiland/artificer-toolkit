@@ -112,6 +112,25 @@ describe('authored content draft helpers', () => {
     })
   })
 
+  it('loads list draft overlays only for the authenticated user', async () => {
+    draftRepositoryMock.listByUser.mockResolvedValue([])
+
+    await normalizeAuthoredListResponseWithDrafts(
+      db,
+      {
+        items: [],
+        meta: {}
+      },
+      'user-1',
+      'SPELL'
+    )
+
+    expect(draftRepositoryMock.listByUser).toHaveBeenCalledWith({
+      userId: 'user-1',
+      subjectKind: 'SPELL'
+    })
+  })
+
   it('saves draft identity and ownership from the server-owned subject', async () => {
     const draft = createDraft({ userId: 'server-user' })
     draftRepositoryMock.save.mockResolvedValue(draft)

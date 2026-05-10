@@ -15,7 +15,7 @@ import { queryKeys } from '#app/lib/queryKeys'
 import { api } from '#app/lib/api'
 
 export const Route = createFileRoute('/_authed/spells/')({
-  loader: ({ context }) => context.queryClient.ensureQueryData(getSpellList(createServerApi(context.accessToken))),
+  loader: ({ context }) => context.queryClient.ensureQueryData(getSpellList(createServerApi())),
   component: SpellsRoute
 })
 

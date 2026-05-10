@@ -1,6 +1,6 @@
 import type { DBLike } from '@artificer-toolkit/db'
 import { createDb, withUserContext } from '@artificer-toolkit/db'
-import { createSupabaseClient } from '../clients/supabaseClient.js'
+import { resolveRequestUserId } from './requestUser.js'
 
 /**
  * Generic wrapper for authenticated RLS-safe requests.
@@ -15,14 +15,8 @@ export function handleRequest<TArgs extends unknown[], TResult>(
   return async (req: Request): Promise<Response> => {
     try {
       // 1. Auth
-      const jwt = req.headers.get('authorization')?.replace('Bearer ', '')
-      if (!jwt) return new Response('Missing token', { status: 401 })
-
-      const supabase = createSupabaseClient()
-      const { data, error } = await supabase.auth.getUser(jwt)
-      if (error || !data.user) return new Response('Unauthorized', { status: 401 })
-
-      const userId = data.user.id
+      const userId = await resolveRequestUserId(req)
+      if (!userId) return new Response('Unauthorized', { status: 401 })
 
       // 2. Extract typed args for this route
       const args = getArgs(req, userId)

@@ -21,22 +21,26 @@ import {
   formatCount,
   formatEnumLabel,
   formatNumber,
-  formatReference,
+  formatReferenceLabel,
+  formatReferenceLabelList,
   resolveAuthoredDetailState,
   summarizeHtml,
   useAuthoredDetailActions,
   type AuthoredDetailFact,
   type AuthoredDetailSectionModel
 } from '#components/AuthoredDetail'
+import type { SpellReferenceData } from '#app/data/spells/referenceData'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 
 export function SpellDetailPage({
   draft,
+  references,
   response,
   spellId
 }: {
   draft: AuthoredDraftDto | null
+  references: SpellReferenceData
   response: SpellResponseDto
   spellId: string
 }) {
@@ -99,7 +103,7 @@ export function SpellDetailPage({
       actions={pageActions}
       description={summarizeHtml(item.description, 'A spell reference entry ready for table use.')}
       eyebrow='Spell'
-      facts={getSpellFacts(item)}
+      facts={getSpellFacts(item, references)}
       notice={buildAuthoredDetailNotice({
         canViewActive: Boolean(detailState.activeItem && detailState.draftItem),
         domainLabel: 'Spell',
@@ -122,13 +126,13 @@ export function SpellDetailPage({
   )
 }
 
-function getSpellFacts(spell: SpellAuthoredDto): AuthoredDetailFact[] {
+function getSpellFacts(spell: SpellAuthoredDto, references: SpellReferenceData): AuthoredDetailFact[] {
   return [
     { label: 'Level', value: spell.level === 0 ? 'Cantrip' : formatNumber(spell.level) },
-    { label: 'School', value: formatReference(spell.magicSchoolId, 'Magic school selected') },
+    { label: 'School', value: formatReferenceLabel(spell.magicSchoolId, 'Magic school selected', references.magicSchools) },
     { label: 'Casting', value: `${spell.castingTime.amount} ${formatEnumLabel(spell.castingTime.unit)}` },
     { label: 'Components', value: spell.components?.map(formatEnumLabel).join(', ') || 'None' },
-    { label: 'Classes', value: formatCount(spell.classIds.length, 'class') },
+    { label: 'Classes', value: formatReferenceLabelList(spell.classIds, 'class', references.classes) },
     { label: 'Effects', value: formatCount(spell.effects?.length, 'effect') }
   ]
 }

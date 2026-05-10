@@ -1,16 +1,14 @@
 import { http, HttpResponse } from 'msw'
 import type { NodeRuntimeResolveRequestDto, NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 
-const API_BASE = 'http://localhost:3001'
-
 export const handlers = [
-  http.get(`${API_BASE}/systems`, () => HttpResponse.json([
+  http.get('*/api/trpc/systems.list', () => trpcJson([
     {
       id: 'dnd5e-2014',
       label: 'D&D 5e (2014)'
     }
   ])),
-  http.get(`${API_BASE}/content/spells`, () => HttpResponse.json({
+  http.get('*/api/trpc/content.spells.list', () => trpcJson({
     items: [
       {
         id: 'magic-missile',
@@ -37,20 +35,38 @@ export const handlers = [
     ],
     meta: {}
   })),
-  http.post(`${API_BASE}/node-runtime/resolve`, async ({ request }) => {
-    const body = await request.json() as NodeRuntimeResolveRequestDto
+  http.get('*/api/trpc/nodeRuntime.resolve', ({ request }) => {
+    const body = readSearchInput<NodeRuntimeResolveRequestDto>(request)
 
     if (body.mapId === 'spell') {
-      return HttpResponse.json(buildSpellRuntimeResponse(body))
+      return trpcJson(buildSpellRuntimeResponse(body))
     }
 
-    return HttpResponse.json({
+    return trpcJson({
       mapId: body.mapId,
       steps: [],
       clearPaths: []
     } satisfies NodeRuntimeResolveResponseDto)
   })
 ]
+
+function trpcJson(data: unknown) {
+  return HttpResponse.json([{ result: { data } }])
+}
+
+function readSearchInput<TInput>(request: Request): TInput {
+  const rawInput = new URL(request.url).searchParams.get('input')
+  if (!rawInput) {
+    throw new Error('Expected tRPC input search parameter.')
+  }
+
+  const parsed = JSON.parse(rawInput) as unknown
+  if (typeof parsed !== 'object' || parsed === null || !('0' in parsed)) {
+    throw new Error('Expected batched tRPC input.')
+  }
+
+  return (parsed as { 0: TInput })[0]
+}
 
 function buildSpellRuntimeResponse(body: NodeRuntimeResolveRequestDto): NodeRuntimeResolveResponseDto {
   const components = Array.isArray(body.values.components)

@@ -6,7 +6,7 @@ import { ClassEditPage } from '#domains/classes'
 
 export const Route = createFileRoute('/_authed/classes/$classId/edit')({
   loader: async ({ context, params }) => {
-    const client = createServerApi(context.accessToken)
+    const client = createServerApi()
     const activeClassQuery = getClass(params.classId, client)
     const [response, draft] = await Promise.all([
       ensureOptionalActiveContent(context.queryClient, activeClassQuery),

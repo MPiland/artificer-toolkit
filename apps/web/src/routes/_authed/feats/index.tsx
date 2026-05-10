@@ -15,7 +15,7 @@ import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 
 export const Route = createFileRoute('/_authed/feats/')({
-  loader: ({ context }) => context.queryClient.ensureQueryData(getFeatList(createServerApi(context.accessToken))),
+  loader: ({ context }) => context.queryClient.ensureQueryData(getFeatList(createServerApi())),
   component: FeatsRoute
 })
 

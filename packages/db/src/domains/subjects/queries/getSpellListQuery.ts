@@ -1,4 +1,5 @@
 import type { DBLike } from '#types'
+import { sql } from 'kysely'
 
 interface SpellListItem {
   id: string
@@ -16,6 +17,7 @@ interface SpellListItem {
 
 interface SpellMetaObject {
   id: string
+  label?: string
   spellIds: string[]
 }
 
@@ -41,18 +43,13 @@ export async function getSpellListQuery(db: DBLike): Promise<{ items: SpellListI
       'description',
       'status',
       'system_id as systemId',
+      'level',
       'magic_school_id as magicSchoolId',
       'casting_time_unit as castingTimeUnit',
       'casting_time_amount as castingTimeAmount',
       'user_id as ownerUserId',
       'is_master as isMaster',
-      eb
-        .case()
-        .when(eb.ref('is_master'), 'is', true)
-        .then('master')
-        .else(eb.ref('user_id'))
-        .end()
-        .$notNull()
+      sql<string>`case when ${sql.ref('is_master')} then 'master' else ${sql.ref('user_id')}::text end`
         .as('userId')
     ])
     .execute()
@@ -69,21 +66,25 @@ export async function getSpellListQuery(db: DBLike): Promise<{ items: SpellListI
 
   const classes: SpellMetaObject[] = await db
     .selectFrom('spell_classes')
+    .innerJoin('classes', 'classes.id', 'spell_classes.class_id')
     .select((eb) => [
-      'class_id as id',
-      eb.fn.agg<string[]>('array_agg', [eb.ref('spell_id')]).distinct().as('spellIds')
+      'spell_classes.class_id as id',
+      'classes.label as label',
+      eb.fn.agg<string[]>('array_agg', [eb.ref('spell_classes.spell_id')]).distinct().as('spellIds')
     ])
-    .groupBy('class_id')
+    .groupBy(['spell_classes.class_id', 'classes.label'])
     .execute()
 
   const schools: SpellMetaObject[] = await db
     .selectFrom('spells')
+    .innerJoin('magic_schools', 'magic_schools.id', 'spells.magic_school_id')
     .select((eb) => [
-      'magic_school_id as id',
-      eb.fn.agg<string[]>('array_agg', [eb.ref('id')]).distinct().as('spellIds')
+      'spells.magic_school_id as id',
+      'magic_schools.label as label',
+      eb.fn.agg<string[]>('array_agg', [eb.ref('spells.id')]).distinct().as('spellIds')
     ])
-    .where('magic_school_id', 'is not', null)
-    .groupBy('magic_school_id')
+    .where('spells.magic_school_id', 'is not', null)
+    .groupBy(['spells.magic_school_id', 'magic_schools.label'])
     .execute() as SpellMetaObject[]
 
   const levels: SpellLevelMetaObject[] = await db

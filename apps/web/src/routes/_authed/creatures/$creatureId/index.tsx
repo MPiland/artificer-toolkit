@@ -7,8 +7,8 @@ export const Route = createFileRoute('/_authed/creatures/$creatureId/')({
 
 function CreatureDetailRoute() {
   const parentRoute = getRouteApi('/_authed/creatures/$creatureId')
-  const { draft, response } = parentRoute.useLoaderData()
+  const { draft, references, response } = parentRoute.useLoaderData()
   const { creatureId } = parentRoute.useParams()
 
-  return <CreatureDetailPage creatureId={creatureId} draft={draft} response={response} />
+  return <CreatureDetailPage creatureId={creatureId} draft={draft} references={references} response={response} />
 }

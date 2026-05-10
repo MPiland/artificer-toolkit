@@ -9,6 +9,9 @@
         "sourceMap": true,
         "outDir": "dist",
         "rootDir": "src",
+        "types": [
+            "node"
+        ],
         "noEmit": false,
         "stripInternal": true
     },

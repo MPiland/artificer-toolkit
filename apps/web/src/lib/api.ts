@@ -1,5 +1,11 @@
 import { z } from 'zod'
-import { getSupabaseBrowserClient } from '#supabase/client'
+import {
+  createTRPCUntypedClient,
+  httpBatchLink,
+  isTRPCClientError
+} from '@trpc/client'
+import type { AnyRouter } from '@trpc/server'
+import { createIsomorphicFn } from '@tanstack/react-start'
 import {
   backgroundListResponseDtoSchema,
   backgroundResponseDtoSchema,
@@ -86,8 +92,11 @@ import {
 import {
   systemListResponseDtoSchema,
   systemResponseDtoSchema,
-  type SystemListItemDto
+  type SystemListItemDto,
+  type SystemListResponseDto,
+  type SystemResponseDto
 } from '@artificer-toolkit/schema/api/systems'
+import { applySameOriginRequestHeader } from './trpcRequestSecurity'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import type { BackgroundAuthoringInputDto } from '@artificer-toolkit/schema/subjects/background'
 import type { ClassAuthoringInputDto } from '@artificer-toolkit/schema/subjects/class'
@@ -158,19 +167,33 @@ export type {
   VehicleResponseDto
 }
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3001'
+type FetchInput = Parameters<typeof fetch>[0]
+type FetchInit = Parameters<typeof fetch>[1]
 
-async function getClientJwt(): Promise<string | null> {
-  const supabase = getSupabaseBrowserClient()
-  const { data } = await supabase.auth.getSession()
-  return data.session?.access_token ?? null
+interface IdProcedureInput {
+  id: string
 }
 
-function makeHeaders(jwt: string | null): HeadersInit {
-  const headers: HeadersInit = { 'Content-Type': 'application/json' }
-  if (jwt) headers.Authorization = `Bearer ${jwt}`
-  return headers
+interface QueryProcedure<TInput, TOutput> {
+  query: (input: TInput) => Promise<TOutput>
 }
+
+interface EmptyQueryProcedure<TOutput> {
+  query: () => Promise<TOutput>
+}
+
+interface MutationProcedure<TInput, TOutput> {
+  mutate: (input: TInput) => Promise<TOutput>
+}
+
+interface FeatureUpsertInput {
+  feature: FeatureDto
+  systemId: string
+}
+
+const okResponseSchema = z.object({
+  ok: z.literal(true)
+})
 
 export class ApiError extends Error {
   constructor(
@@ -192,42 +215,6 @@ export class ApiParseError extends Error {
   }
 }
 
-async function apiFetch(
-  path: string,
-  options: RequestInit,
-  jwt: string | null
-): Promise<unknown> {
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: {
-      ...makeHeaders(jwt),
-      ...(options.headers ?? {})
-    }
-  })
-
-  if (!response.ok) {
-    let message = `API error ${response.status}`
-    try {
-      const body = await response.json()
-      message = body?.error ?? body?.message ?? message
-    } catch {
-      // Non-JSON error bodies keep the status-derived message.
-    }
-    throw new ApiError(response.status, message)
-  }
-
-  if (response.status === 204) {
-    return undefined
-  }
-
-  const text = await response.text()
-  if (!text.trim()) {
-    return undefined
-  }
-
-  return JSON.parse(text)
-}
-
 function parseResponse<TSchema extends z.ZodTypeAny>(
   path: string,
   schema: TSchema,
@@ -241,17 +228,6 @@ function parseResponse<TSchema extends z.ZodTypeAny>(
   return result.data
 }
 
-function cloneAuthoredItem<TInput extends { id: string, label: string, status?: unknown }>(
-  input: TInput
-): TInput {
-  return {
-    ...input,
-    id: crypto.randomUUID(),
-    label: `${input.label} Copy`,
-    ...('status' in input ? { status: 'DRAFT' } : {})
-  }
-}
-
 interface AuthoredContentInput {
   id: string
   label: string
@@ -260,132 +236,315 @@ interface AuthoredContentInput {
   systemId: string
 }
 
-function buildApi(getJwt: (() => Promise<string | null>) | string | null) {
-  async function resolveJwt() {
-    return typeof getJwt === 'function' ? await getJwt() : getJwt
-  }
+interface AuthoredDomainTransport<TList, TResponse, TInput extends AuthoredContentInput> {
+  activate: (input: TInput) => Promise<TResponse>
+  activateDraft: (id: string) => Promise<TResponse>
+  discardDraft: (id: string) => Promise<unknown>
+  duplicate: (id: string) => Promise<AuthoredDraftDto | null>
+  get: (id: string) => Promise<TResponse>
+  getDraft: (id: string) => Promise<AuthoredDraftDto | null>
+  list: () => Promise<TList>
+  saveDraft: (input: TInput) => Promise<AuthoredDraftDto>
+  upsert: (input: TInput) => Promise<TResponse>
+}
 
-  async function request<TSchema extends z.ZodTypeAny>(
-    path: string,
-    schema: TSchema,
-    options: RequestInit = { method: 'GET' }
-  ): Promise<z.infer<TSchema>> {
-    const jwt = await resolveJwt()
-    const value = await apiFetch(path, options, jwt)
-    return parseResponse(path, schema, value)
-  }
+interface AuthoredDomainProcedures<TList, TResponse, TInput extends AuthoredContentInput> {
+  activate: MutationProcedure<TInput, TResponse>
+  activateDraft: MutationProcedure<IdProcedureInput, TResponse>
+  discardDraft: MutationProcedure<IdProcedureInput, { ok: true }>
+  duplicate: MutationProcedure<IdProcedureInput, AuthoredDraftDto | null>
+  get: QueryProcedure<IdProcedureInput, TResponse>
+  getDraft: QueryProcedure<IdProcedureInput, AuthoredDraftDto | null>
+  list: EmptyQueryProcedure<TList>
+  saveDraft: MutationProcedure<TInput, AuthoredDraftDto>
+  upsert: MutationProcedure<TInput, TResponse>
+}
 
-  async function get<TSchema extends z.ZodTypeAny>(path: string, schema: TSchema): Promise<z.infer<TSchema>> {
-    return request(path, schema, { method: 'GET' })
+interface TrpcClient {
+  characters: {
+    command: MutationProcedure<{ id: string, input: CharacterSheetCommandInputDto }, CharacterSheetCommandResponseDto>
+    discardDraft: MutationProcedure<IdProcedureInput, { ok: true }>
+    draft: MutationProcedure<CharacterDraftRequestDto, CharacterBuilderPayloadDto>
+    get: QueryProcedure<IdProcedureInput, CharacterBuilderPayloadDto | null>
+    getDraft: QueryProcedure<IdProcedureInput, CharacterBuilderDraftDto | null>
+    history: QueryProcedure<IdProcedureInput, CharacterHistoryResponseDto>
+    list: EmptyQueryProcedure<CharacterListResponseDto>
+    previewSave: MutationProcedure<CharacterBuilderSaveRequestDto, CharacterBuilderPreviewPayloadDto>
+    resolve: MutationProcedure<CharacterBuilderResolveRequestDto, CharacterBuilderPayloadDto>
+    saveDraft: MutationProcedure<{ id: string, input: CharacterBuilderDraftSaveRequestDto }, CharacterBuilderDraftDto>
+    sheet: QueryProcedure<IdProcedureInput, CharacterSheetResponseDto | null>
+    upsert: MutationProcedure<CharacterBuilderCommitRequestDto, CharacterBuilderPayloadDto>
   }
+  content: {
+    backgrounds: AuthoredDomainProcedures<BackgroundListResponseDto, BackgroundResponseDto, BackgroundAuthoringInputDto>
+    classes: AuthoredDomainProcedures<ClassListResponseDto, ClassResponseDto, ClassAuthoringInputDto>
+    creatures: AuthoredDomainProcedures<CreatureListResponseDto, CreatureResponseDto, CreatureAuthoringInputDto>
+    equipment: AuthoredDomainProcedures<EquipmentListResponseDto, EquipmentResponseDto, EquipmentAuthoringInputDto>
+    feats: AuthoredDomainProcedures<FeatListResponseDto, FeatResponseDto, FeatAuthoringInputDto>
+    features: {
+      get: QueryProcedure<IdProcedureInput, FeatureResponseDto>
+      list: EmptyQueryProcedure<FeatureListResponseDto>
+      upsert: MutationProcedure<FeatureUpsertInput, FeatureResponseDto>
+    }
+    races: AuthoredDomainProcedures<RaceListResponseDto, RaceResponseDto, RaceAuthoringInputDto>
+    spells: AuthoredDomainProcedures<SpellListResponseDto, SpellResponseDto, SpellAuthoringInputDto>
+    vehicles: AuthoredDomainProcedures<VehicleListResponseDto, VehicleResponseDto, VehicleAuthoringInputDto>
+  }
+  nodeRuntime: {
+    normalizeValues: MutationProcedure<NodeRuntimeNormalizeValuesRequestDto, NodeRuntimeNormalizeValuesResponseDto>
+    resolve: QueryProcedure<NodeRuntimeResolveRequestDto, NodeRuntimeResolveResponseDto>
+  }
+  systems: {
+    get: QueryProcedure<IdProcedureInput, SystemResponseDto>
+    list: EmptyQueryProcedure<SystemListResponseDto>
+  }
+}
 
-  async function post<TSchema extends z.ZodTypeAny>(
-    path: string,
-    schema: TSchema,
-    body?: unknown
-  ): Promise<z.infer<TSchema>> {
-    return request(path, schema, {
-      method: 'POST',
-      body: body == null ? undefined : JSON.stringify(body)
+function createTrpcClient(): TrpcClient {
+  const rawClient = createTRPCUntypedClient<AnyRouter>({
+    links: [
+      httpBatchLink<AnyRouter>({
+        fetch: trpcFetch,
+        url: '/api/trpc'
+      })
+    ]
+  })
+
+  return createProcedureProxy(rawClient) as TrpcClient
+}
+
+function createProcedureProxy(rawClient: ReturnType<typeof createTRPCUntypedClient<AnyRouter>>, path: string[] = []): unknown {
+  return new Proxy<Record<PropertyKey, unknown>>({}, {
+    get(_target, property) {
+      if (property === 'query') {
+        return (input?: unknown) => rawClient.query(path.join('.'), input)
+      }
+      if (property === 'mutate') {
+        return (input?: unknown) => rawClient.mutation(path.join('.'), input)
+      }
+
+      return createProcedureProxy(rawClient, [...path, String(property)])
+    }
+  })
+}
+
+const getServerRequestInfo = createIsomorphicFn()
+  .server(async () => {
+    const { getRequest } = await import('@tanstack/react-start/server')
+    const request = getRequest()
+
+    return {
+      cookie: request.headers.get('cookie'),
+      url: request.url
+    }
+  })
+  .client(async () => null)
+
+async function trpcFetch(input: FetchInput, init?: FetchInit): Promise<Response> {
+  const headers = applySameOriginRequestHeader(new Headers(init?.headers))
+  const serverRequestInfo = await getServerRequestInfo()
+
+  if (serverRequestInfo) {
+    if (serverRequestInfo.cookie && !headers.has('cookie')) {
+      headers.set('cookie', serverRequestInfo.cookie)
+    }
+
+    const resolvedInput = input instanceof Request
+      ? input
+      : new URL(input.toString(), serverRequestInfo.url).toString()
+    return fetch(resolvedInput, {
+      ...init,
+      headers
     })
   }
 
-  async function del(path: string): Promise<void> {
-    const jwt = await resolveJwt()
-    await apiFetch(path, { method: 'DELETE' }, jwt)
+  return fetch(input, {
+    ...init,
+    credentials: 'same-origin',
+    headers
+  })
+}
+
+function mapTrpcError(error: unknown): never {
+  if (isTRPCClientError<AnyRouter>(error)) {
+    const status = typeof error.data?.httpStatus === 'number'
+      ? error.data.httpStatus
+      : 500
+    throw new ApiError(status, error.message)
   }
 
-  function buildDraftRequest<TInput extends AuthoredContentInput>(
-    subjectKind: AuthoredSubjectKindDto,
-    input: TInput
-  ): AuthoredDraftSaveRequestDto {
-    return {
-      subjectKind,
-      subjectId: input.id,
-      systemId: input.systemId,
-      label: input.label,
-      payload: input as unknown as Record<string, unknown>
-    }
-  }
+  throw error
+}
 
+async function request<TSchema extends z.ZodTypeAny>(
+  path: string,
+  schema: TSchema,
+  procedure: () => Promise<unknown>
+): Promise<z.infer<TSchema>> {
+  try {
+    return parseResponse(path, schema, await procedure())
+  } catch (error) {
+    mapTrpcError(error)
+  }
+}
+
+function buildApi(client: TrpcClient) {
   function contentDomain<TList, TResponse, TInput extends AuthoredContentInput>(
-    subjectKind: AuthoredSubjectKindDto,
-    basePath: string,
+    path: string,
     listSchema: z.ZodType<TList>,
-    responseSchema: z.ZodType<TResponse>
+    responseSchema: z.ZodType<TResponse>,
+    transport: AuthoredDomainTransport<TList, TResponse, TInput>
   ) {
-    return {
-      list: () => get(basePath, listSchema),
-      get: (id: string) => get(`${basePath}/${id}`, responseSchema),
-      getDraft: (id: string) => get(`${basePath}/${id}/draft`, authoredDraftDtoSchema.nullable()),
-      saveDraft: (input: TInput) => post(`${basePath}/draft`, authoredDraftDtoSchema, buildDraftRequest(subjectKind, input)),
-      discardDraft: (id: string) => del(`${basePath}/${id}/draft`),
-      activateDraft: (id: string) => post(`${basePath}/${id}/draft/activate`, responseSchema, {
-        subjectKind,
-        subjectId: id
-      }),
-      activate: (input: TInput) => post(basePath, responseSchema, input),
-      upsert: (input: TInput) => post(basePath, responseSchema, input),
-      duplicate: async (id: string) => {
-        const detail = await get(`${basePath}/${id}`, responseSchema)
-        if (!detail) return null
+    const draftSchema = authoredDraftDtoSchema
+    const nullableDraftSchema = authoredDraftDtoSchema.nullable()
 
-        const cloned = cloneAuthoredItem((detail as unknown as { item: TInput }).item)
-        return post(`${basePath}/draft`, authoredDraftDtoSchema, buildDraftRequest(subjectKind, cloned))
-      }
+    return {
+      activate: (input: TInput) => request(`${path}.activate`, responseSchema, () => transport.activate(input)),
+      activateDraft: (id: string) => request(`${path}.activateDraft`, responseSchema, () => transport.activateDraft(id)),
+      discardDraft: async (id: string) => {
+        await request(`${path}.discardDraft`, okResponseSchema, () => transport.discardDraft(id))
+      },
+      duplicate: (id: string) => request(`${path}.duplicate`, nullableDraftSchema, () => transport.duplicate(id)),
+      get: (id: string) => request(`${path}.get`, responseSchema, () => transport.get(id)),
+      getDraft: (id: string) => request(`${path}.getDraft`, nullableDraftSchema, () => transport.getDraft(id)),
+      list: () => request(`${path}.list`, listSchema, () => transport.list()),
+      saveDraft: (input: TInput) => request(`${path}.saveDraft`, draftSchema, () => transport.saveDraft(input)),
+      upsert: (input: TInput) => request(`${path}.upsert`, responseSchema, () => transport.upsert(input))
     }
   }
 
   return {
     characters: {
-      list: () => get('/characters', characterListResponseDtoSchema),
-      draft: (input: CharacterDraftRequestDto) => post('/characters/draft', characterBuilderPayloadDtoSchema, input),
-      get: (id: string) => get(`/characters/${id}`, characterBuilderPayloadDtoSchema.nullable()),
-      getDraft: (id: string) => get(`/characters/${id}/builder-draft`, characterBuilderDraftDtoSchema.nullable()),
-      saveDraft: (id: string, input: CharacterBuilderDraftSaveRequestDto) => post(`/characters/${id}/builder-draft`, characterBuilderDraftDtoSchema, input),
-      discardDraft: (id: string) => del(`/characters/${id}/builder-draft`),
-      sheet: (id: string) => get(`/characters/${id}/sheet`, characterSheetResponseDtoSchema.nullable()),
-      resolve: (input: CharacterBuilderResolveRequestDto) => post('/characters/resolve', characterBuilderPayloadDtoSchema, input),
-      previewSave: (input: CharacterBuilderSaveRequestDto) => post('/characters/preview-save', characterBuilderPreviewPayloadDtoSchema, input),
-      upsert: (input: CharacterBuilderCommitRequestDto) => post('/characters/upsert', characterBuilderPayloadDtoSchema, input),
-      history: (id: string) => get(`/characters/${id}/history`, characterHistoryResponseDtoSchema),
-      command: (id: string, input: CharacterSheetCommandInputDto) => post(`/characters/${id}/commands`, characterSheetCommandResponseDtoSchema, input)
+      command: (id: string, input: CharacterSheetCommandInputDto) => request('characters.command', characterSheetCommandResponseDtoSchema, () => client.characters.command.mutate({ id, input })),
+      discardDraft: async (id: string) => {
+        await request('characters.discardDraft', okResponseSchema, () => client.characters.discardDraft.mutate({ id }))
+      },
+      draft: (input: CharacterDraftRequestDto) => request('characters.draft', characterBuilderPayloadDtoSchema, () => client.characters.draft.mutate(input)),
+      get: (id: string) => request('characters.get', characterBuilderPayloadDtoSchema.nullable(), () => client.characters.get.query({ id })),
+      getDraft: (id: string) => request('characters.getDraft', characterBuilderDraftDtoSchema.nullable(), () => client.characters.getDraft.query({ id })),
+      history: (id: string) => request('characters.history', characterHistoryResponseDtoSchema, () => client.characters.history.query({ id })),
+      list: () => request('characters.list', characterListResponseDtoSchema, () => client.characters.list.query()),
+      previewSave: (input: CharacterBuilderSaveRequestDto) => request('characters.previewSave', characterBuilderPreviewPayloadDtoSchema, () => client.characters.previewSave.mutate(input)),
+      resolve: (input: CharacterBuilderResolveRequestDto) => request('characters.resolve', characterBuilderPayloadDtoSchema, () => client.characters.resolve.mutate(input)),
+      saveDraft: (id: string, input: CharacterBuilderDraftSaveRequestDto) => request('characters.saveDraft', characterBuilderDraftDtoSchema, () => client.characters.saveDraft.mutate({ id, input })),
+      sheet: (id: string) => request('characters.sheet', characterSheetResponseDtoSchema.nullable(), () => client.characters.sheet.query({ id })),
+      upsert: (input: CharacterBuilderCommitRequestDto) => request('characters.upsert', characterBuilderPayloadDtoSchema, () => client.characters.upsert.mutate(input))
     },
 
     content: {
-      backgrounds: contentDomain<BackgroundListResponseDto, BackgroundResponseDto, BackgroundAuthoringInputDto>('BACKGROUND', '/content/backgrounds', backgroundListResponseDtoSchema, backgroundResponseDtoSchema),
-      classes: contentDomain<ClassListResponseDto, ClassResponseDto, ClassAuthoringInputDto>('CLASS', '/content/classes', classListResponseDtoSchema, classResponseDtoSchema),
-      equipment: contentDomain<EquipmentListResponseDto, EquipmentResponseDto, EquipmentAuthoringInputDto>('EQUIPMENT', '/content/equipment', equipmentListResponseDtoSchema, equipmentResponseDtoSchema),
-      feats: contentDomain<FeatListResponseDto, FeatResponseDto, FeatAuthoringInputDto>('FEAT', '/content/feats', featListResponseDtoSchema, featResponseDtoSchema),
-      races: contentDomain<RaceListResponseDto, RaceResponseDto, RaceAuthoringInputDto>('RACE', '/content/races', raceListResponseDtoSchema, raceResponseDtoSchema),
-      spells: contentDomain<SpellListResponseDto, SpellResponseDto, SpellAuthoringInputDto>('SPELL', '/content/spells', spellListResponseDtoSchema, spellResponseDtoSchema),
-      creatures: contentDomain<CreatureListResponseDto, CreatureResponseDto, CreatureAuthoringInputDto>('CREATURE', '/content/creatures', creatureListResponseDtoSchema, creatureResponseDtoSchema),
-      vehicles: contentDomain<VehicleListResponseDto, VehicleResponseDto, VehicleAuthoringInputDto>('VEHICLE', '/content/vehicles', vehicleListResponseDtoSchema, vehicleResponseDtoSchema),
+      backgrounds: contentDomain<BackgroundListResponseDto, BackgroundResponseDto, BackgroundAuthoringInputDto>('content.backgrounds', backgroundListResponseDtoSchema, backgroundResponseDtoSchema, {
+        activate: (input) => client.content.backgrounds.activate.mutate(input),
+        activateDraft: (id) => client.content.backgrounds.activateDraft.mutate({ id }),
+        discardDraft: (id) => client.content.backgrounds.discardDraft.mutate({ id }),
+        duplicate: (id) => client.content.backgrounds.duplicate.mutate({ id }),
+        get: (id) => client.content.backgrounds.get.query({ id }),
+        getDraft: (id) => client.content.backgrounds.getDraft.query({ id }),
+        list: () => client.content.backgrounds.list.query(),
+        saveDraft: (input) => client.content.backgrounds.saveDraft.mutate(input),
+        upsert: (input) => client.content.backgrounds.upsert.mutate(input)
+      }),
+      classes: contentDomain<ClassListResponseDto, ClassResponseDto, ClassAuthoringInputDto>('content.classes', classListResponseDtoSchema, classResponseDtoSchema, {
+        activate: (input) => client.content.classes.activate.mutate(input),
+        activateDraft: (id) => client.content.classes.activateDraft.mutate({ id }),
+        discardDraft: (id) => client.content.classes.discardDraft.mutate({ id }),
+        duplicate: (id) => client.content.classes.duplicate.mutate({ id }),
+        get: (id) => client.content.classes.get.query({ id }),
+        getDraft: (id) => client.content.classes.getDraft.query({ id }),
+        list: () => client.content.classes.list.query(),
+        saveDraft: (input) => client.content.classes.saveDraft.mutate(input),
+        upsert: (input) => client.content.classes.upsert.mutate(input)
+      }),
+      equipment: contentDomain<EquipmentListResponseDto, EquipmentResponseDto, EquipmentAuthoringInputDto>('content.equipment', equipmentListResponseDtoSchema, equipmentResponseDtoSchema, {
+        activate: (input) => client.content.equipment.activate.mutate(input),
+        activateDraft: (id) => client.content.equipment.activateDraft.mutate({ id }),
+        discardDraft: (id) => client.content.equipment.discardDraft.mutate({ id }),
+        duplicate: (id) => client.content.equipment.duplicate.mutate({ id }),
+        get: (id) => client.content.equipment.get.query({ id }),
+        getDraft: (id) => client.content.equipment.getDraft.query({ id }),
+        list: () => client.content.equipment.list.query(),
+        saveDraft: (input) => client.content.equipment.saveDraft.mutate(input),
+        upsert: (input) => client.content.equipment.upsert.mutate(input)
+      }),
+      feats: contentDomain<FeatListResponseDto, FeatResponseDto, FeatAuthoringInputDto>('content.feats', featListResponseDtoSchema, featResponseDtoSchema, {
+        activate: (input) => client.content.feats.activate.mutate(input),
+        activateDraft: (id) => client.content.feats.activateDraft.mutate({ id }),
+        discardDraft: (id) => client.content.feats.discardDraft.mutate({ id }),
+        duplicate: (id) => client.content.feats.duplicate.mutate({ id }),
+        get: (id) => client.content.feats.get.query({ id }),
+        getDraft: (id) => client.content.feats.getDraft.query({ id }),
+        list: () => client.content.feats.list.query(),
+        saveDraft: (input) => client.content.feats.saveDraft.mutate(input),
+        upsert: (input) => client.content.feats.upsert.mutate(input)
+      }),
+      races: contentDomain<RaceListResponseDto, RaceResponseDto, RaceAuthoringInputDto>('content.races', raceListResponseDtoSchema, raceResponseDtoSchema, {
+        activate: (input) => client.content.races.activate.mutate(input),
+        activateDraft: (id) => client.content.races.activateDraft.mutate({ id }),
+        discardDraft: (id) => client.content.races.discardDraft.mutate({ id }),
+        duplicate: (id) => client.content.races.duplicate.mutate({ id }),
+        get: (id) => client.content.races.get.query({ id }),
+        getDraft: (id) => client.content.races.getDraft.query({ id }),
+        list: () => client.content.races.list.query(),
+        saveDraft: (input) => client.content.races.saveDraft.mutate(input),
+        upsert: (input) => client.content.races.upsert.mutate(input)
+      }),
+      spells: contentDomain<SpellListResponseDto, SpellResponseDto, SpellAuthoringInputDto>('content.spells', spellListResponseDtoSchema, spellResponseDtoSchema, {
+        activate: (input) => client.content.spells.activate.mutate(input),
+        activateDraft: (id) => client.content.spells.activateDraft.mutate({ id }),
+        discardDraft: (id) => client.content.spells.discardDraft.mutate({ id }),
+        duplicate: (id) => client.content.spells.duplicate.mutate({ id }),
+        get: (id) => client.content.spells.get.query({ id }),
+        getDraft: (id) => client.content.spells.getDraft.query({ id }),
+        list: () => client.content.spells.list.query(),
+        saveDraft: (input) => client.content.spells.saveDraft.mutate(input),
+        upsert: (input) => client.content.spells.upsert.mutate(input)
+      }),
+      creatures: contentDomain<CreatureListResponseDto, CreatureResponseDto, CreatureAuthoringInputDto>('content.creatures', creatureListResponseDtoSchema, creatureResponseDtoSchema, {
+        activate: (input) => client.content.creatures.activate.mutate(input),
+        activateDraft: (id) => client.content.creatures.activateDraft.mutate({ id }),
+        discardDraft: (id) => client.content.creatures.discardDraft.mutate({ id }),
+        duplicate: (id) => client.content.creatures.duplicate.mutate({ id }),
+        get: (id) => client.content.creatures.get.query({ id }),
+        getDraft: (id) => client.content.creatures.getDraft.query({ id }),
+        list: () => client.content.creatures.list.query(),
+        saveDraft: (input) => client.content.creatures.saveDraft.mutate(input),
+        upsert: (input) => client.content.creatures.upsert.mutate(input)
+      }),
+      vehicles: contentDomain<VehicleListResponseDto, VehicleResponseDto, VehicleAuthoringInputDto>('content.vehicles', vehicleListResponseDtoSchema, vehicleResponseDtoSchema, {
+        activate: (input) => client.content.vehicles.activate.mutate(input),
+        activateDraft: (id) => client.content.vehicles.activateDraft.mutate({ id }),
+        discardDraft: (id) => client.content.vehicles.discardDraft.mutate({ id }),
+        duplicate: (id) => client.content.vehicles.duplicate.mutate({ id }),
+        get: (id) => client.content.vehicles.get.query({ id }),
+        getDraft: (id) => client.content.vehicles.getDraft.query({ id }),
+        list: () => client.content.vehicles.list.query(),
+        saveDraft: (input) => client.content.vehicles.saveDraft.mutate(input),
+        upsert: (input) => client.content.vehicles.upsert.mutate(input)
+      }),
       features: {
-        list: () => get('/content/features', featureListResponseDtoSchema),
-        get: (id: string) => get(`/content/features/${id}`, featureResponseDtoSchema),
-        upsert: (input: FeatureDto) => post('/content/features', featureResponseDtoSchema, input)
+        get: (id: string) => request('content.features.get', featureResponseDtoSchema, () => client.content.features.get.query({ id })),
+        list: () => request('content.features.list', featureListResponseDtoSchema, () => client.content.features.list.query()),
+        upsert: (input: FeatureUpsertInput) => request('content.features.upsert', featureResponseDtoSchema, () => client.content.features.upsert.mutate(input))
       }
     },
 
     systems: {
-      list: () => get('/systems', systemListResponseDtoSchema),
-      get: (id: string) => get(`/systems/${id}`, systemResponseDtoSchema)
+      get: (id: string) => request('systems.get', systemResponseDtoSchema, () => client.systems.get.query({ id })),
+      list: () => request('systems.list', systemListResponseDtoSchema, () => client.systems.list.query())
     },
 
     nodeRuntime: {
-      resolve: (input: NodeRuntimeResolveRequestDto) => post('/node-runtime/resolve', nodeRuntimeResolveResponseDtoSchema, input),
-      normalizeValues: (input: NodeRuntimeNormalizeValuesRequestDto) => post('/node-runtime/normalize-values', nodeRuntimeNormalizeValuesResponseDtoSchema, input)
-    },
-
-    _raw: { get, post, del }
+      normalizeValues: (input: NodeRuntimeNormalizeValuesRequestDto) => request('nodeRuntime.normalizeValues', nodeRuntimeNormalizeValuesResponseDtoSchema, () => client.nodeRuntime.normalizeValues.mutate(input)),
+      resolve: (input: NodeRuntimeResolveRequestDto) => request('nodeRuntime.resolve', nodeRuntimeResolveResponseDtoSchema, () => client.nodeRuntime.resolve.query(input))
+    }
   }
 }
 
-export const api = buildApi(getClientJwt)
+const trpcClient = createTrpcClient()
 
-export function createServerApi(jwt: string | null) {
-  return buildApi(() => Promise.resolve(jwt))
+export const api = buildApi(trpcClient)
+
+export function createServerApi() {
+  return api
 }
 
 export type Api = ReturnType<typeof buildApi>

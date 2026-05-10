@@ -21,7 +21,7 @@ import {
   formatCount,
   formatEnumLabel,
   formatNumber,
-  formatReference,
+  formatReferenceLabel,
   formatReferenceList,
   resolveAuthoredDetailState,
   summarizeHtml,
@@ -30,16 +30,19 @@ import {
   type AuthoredDetailFact,
   type AuthoredDetailSectionModel
 } from '#components/AuthoredDetail'
+import type { AuthoredContentReferenceData } from '#app/data/contentReferences'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 
 export function EquipmentDetailPage({
   draft,
   equipmentId,
+  references,
   response
 }: {
   draft: AuthoredDraftDto | null
   equipmentId: string
+  references: Pick<AuthoredContentReferenceData, 'equipment' | 'rarities'>
   response: EquipmentResponseDto
 }) {
   const navigate = useNavigate()
@@ -101,7 +104,7 @@ export function EquipmentDetailPage({
       actions={pageActions}
       description={summarizeHtml(item.description, 'An equipment reference entry ready for table use.')}
       eyebrow='Equipment'
-      facts={getEquipmentFacts(item)}
+      facts={getEquipmentFacts(item, references)}
       notice={buildAuthoredDetailNotice({
         canViewActive: Boolean(detailState.activeItem && detailState.draftItem),
         domainLabel: 'Equipment',
@@ -112,7 +115,7 @@ export function EquipmentDetailPage({
         onViewActive: () => setViewActive(true),
         onViewDraft: () => setViewActive(false)
       })}
-      sections={getEquipmentSections(item)}
+      sections={getEquipmentSections(item, references)}
       status={buildDetailStatusLabels({
         draft: detailState.draft,
         mode: detailState.mode,
@@ -124,10 +127,13 @@ export function EquipmentDetailPage({
   )
 }
 
-function getEquipmentFacts(equipment: EquipmentAuthoringInputDto): AuthoredDetailFact[] {
+function getEquipmentFacts(
+  equipment: EquipmentAuthoringInputDto,
+  references: Pick<AuthoredContentReferenceData, 'equipment' | 'rarities'>
+): AuthoredDetailFact[] {
   const baseFacts: AuthoredDetailFact[] = [
     { label: 'Category', value: formatEnumLabel(equipment.category) },
-    { label: 'Rarity', value: formatReference(equipment.rarityId, 'Rarity selected') },
+    { label: 'Rarity', value: formatReferenceLabel(equipment.rarityId, 'Rarity selected', references.rarities) },
     { label: 'Properties', value: formatReferenceList(equipment.properties, 'property') },
     { label: 'Features', value: formatCount(equipment.features?.length, 'feature') }
   ]
@@ -135,7 +141,7 @@ function getEquipmentFacts(equipment: EquipmentAuthoringInputDto): AuthoredDetai
   if (equipment.category === 'VARIANT') {
     return [
       ...baseFacts,
-      { label: 'Parent', value: formatReference(equipment.parentEquipmentId, 'Parent equipment selected') }
+      { label: 'Parent', value: formatReferenceLabel(equipment.parentEquipmentId, 'Parent equipment selected', references.equipment) }
     ]
   }
 
@@ -146,7 +152,10 @@ function getEquipmentFacts(equipment: EquipmentAuthoringInputDto): AuthoredDetai
   ]
 }
 
-function getEquipmentSections(equipment: EquipmentAuthoringInputDto): AuthoredDetailSectionModel[] {
+function getEquipmentSections(
+  equipment: EquipmentAuthoringInputDto,
+  references: Pick<AuthoredContentReferenceData, 'equipment' | 'rarities'>
+): AuthoredDetailSectionModel[] {
   return [
     {
       id: 'description',
@@ -169,7 +178,7 @@ function getEquipmentSections(equipment: EquipmentAuthoringInputDto): AuthoredDe
               empty='No contained equipment has been added.'
               items={(equipment.contains ?? []).map((contained, index) => ({
                 id: `${contained.equipmentId}-${index}`,
-                title: formatReference(contained.equipmentId, 'Equipment'),
+                title: formatReferenceLabel(contained.equipmentId, 'Equipment', references.equipment),
                 meta: `Quantity ${contained.quantity}`
               }))}
             />

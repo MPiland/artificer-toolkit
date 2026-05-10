@@ -1,4 +1,5 @@
 import type { DBLike } from '#types'
+import { sql } from 'kysely'
 import { details } from './fragments/index.js'
 
 interface CreatureListItem {
@@ -47,13 +48,7 @@ export async function getCreatureListQuery(db: DBLike): Promise<{ items: Creatur
         ])
         .orderBy('bridge.sort_order'))
         .as('details'),
-      eb
-        .case()
-        .when(eb.ref('is_master'), 'is', true)
-        .then('master')
-        .else(eb.ref('user_id'))
-        .end()
-        .$notNull()
+      sql<string>`case when ${sql.ref('is_master')} then 'master' else ${sql.ref('user_id')}::text end`
         .as('userId')
     ])
     .execute()

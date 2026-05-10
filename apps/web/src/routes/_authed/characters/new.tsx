@@ -9,7 +9,7 @@ import {
 
 export const Route = createFileRoute('/_authed/characters/new')({
   loader: async ({ context }) => {
-    const client = createServerApi(context.accessToken)
+    const client = createServerApi()
     const systems = await context.queryClient.ensureQueryData(getSystemList(client))
     const systemId = systems[0]?.id
     const payload = systemId
