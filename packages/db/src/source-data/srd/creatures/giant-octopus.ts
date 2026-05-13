@@ -30,25 +30,25 @@ export const giantOctopus: CreatureAuthored = {
   xp: 200,
   features: [
     {
-      id: S.featureId(3505, 1),
+      id: S.featureId(128, 1),
       label: 'Hold Breath',
       description: 'Hold Breath. While out of water, the octopus can hold its breath for 1 hour.',
       order: 1
     },
     {
-      id: S.featureId(3505, 2),
+      id: S.featureId(128, 2),
       label: 'Underwater Camouflage',
       description: 'Underwater Camouflage. The octopus has advantage on Dexterity (Stealth) checks made while underwater.',
       order: 2
     },
     {
-      id: S.featureId(3505, 3),
+      id: S.featureId(128, 3),
       label: 'Tentacles',
       description: 'Tentacles. Melee Weapon Attack: +5 to hit, reach 15 ft., one target. Hit: 10 (2d6 + 3) bludgeoning damage. The target is grappled (escape DC 16). Until this grapple ends, the target is restrained and the octopus cannot use tentacles on another target.',
       order: 3
     },
     {
-      id: S.featureId(3505, 4),
+      id: S.featureId(128, 4),
       label: 'Ink Cloud (Recharges after a Short or Long Rest)',
       description: 'Ink Cloud (Recharges after a Short or Long Rest). A 20-foot-radius cloud of ink extends all around the octopus if it is underwater. The area is heavily obscured for 1 minute, though a significant current can disperse the ink. After releasing the ink, the octopus can take the Dash action as a bonus action.',
       order: 4

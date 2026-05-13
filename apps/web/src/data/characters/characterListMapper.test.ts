@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   buildCharacterListFilters,
   mapCharacterListToAuthoredItems,
+  mapCharacterListToActiveAuthoredItems,
+  mapCharacterListToDraftAuthoredItems,
   summarizeCharacterList
 } from './characterListMapper'
 import { characterListFixture } from '#app/domains/characters/character.fixtures'
@@ -27,6 +29,15 @@ describe('character list mapper', () => {
         draftState: 'DRAFT_ONLY'
       }
     })
+  })
+
+  it('splits draft-only character rows out of the active panel', () => {
+    expect(mapCharacterListToActiveAuthoredItems(characterListFixture).map((item) => item.id)).toEqual([
+      'character-owned'
+    ])
+    expect(mapCharacterListToDraftAuthoredItems(characterListFixture).map((item) => item.id)).toEqual([
+      'character-draft'
+    ])
   })
 
   it('builds status and draft-state filters from list data', () => {

@@ -34,25 +34,25 @@ export const darkmantle: CreatureAuthored = {
     xp: 100,
     features: [
         {
-            id: S.featureId(6527, 1),
+            id: S.featureId(76, 1),
             label: 'Echolocation',
             description: "Echolocation. The darkmantle can't use its blindsight while deafened.",
             order: 1
         },
         {
-            id: S.featureId(6527, 2),
+            id: S.featureId(76, 2),
             label: 'False Appearance',
             description: 'False Appearance. While the darkmantle remains motionless, it is indistinguishable from a cave formation such as a stalactite or stalagmite.',
             order: 2
         },
         {
-            id: S.featureId(6527, 3),
+            id: S.featureId(76, 3),
             label: 'Light Sensitivity',
             description: 'Light Sensitivity. While in bright light, the darkmantle has disadvantage on attack rolls and on Wisdom (Perception) checks that rely on sight.',
             order: 3
         },
         {
-            id: S.featureId(6527, 4),
+            id: S.featureId(76, 4),
             label: 'Crush',
             description: 'Crush. Melee Weapon Attack: +5 to hit, reach 5 ft., one creature. Hit: 6 (1d6 + 3) bludgeoning damage, and the darkmantle attaches to the target. While attached, the darkmantle occupies the target\'s space, and the target is blinded and unable to breathe.',
             effects: [
@@ -146,7 +146,7 @@ export const darkmantle: CreatureAuthored = {
             order: 4
         },
         {
-            id: S.featureId(6527, 5),
+            id: S.featureId(76, 5),
             label: 'Darkness Aura (1/Day)',
             description: 'Darkness Aura (1/Day). As a bonus action, the darkmantle magically emits magical darkness in a 15-foot radius around itself, which moves with it and lasts for 10 minutes, requiring no concentration. The darkness is dispelled early if the darkmantle dies. A creature with darkvision can\'t see through this darkness, and nonmagical light can\'t illuminate it.',
             effects: [

@@ -11,19 +11,20 @@ import { CharacterSheetPage } from '#domains/characters'
 export const Route = createFileRoute('/_authed/characters/$characterPublicId/$characterSlug/')({
   loader: async ({ context, params }) => {
     const client = createServerApi()
-    const characterId = parseAuthoredRouteId(params.characterPublicId)
+    const routeCharacterId = parseAuthoredRouteId(params.characterPublicId)
     const [response, draft] = await Promise.all([
-      context.queryClient.ensureQueryData(getCharacterSheet(characterId, client)),
-      context.queryClient.ensureQueryData(getCharacterDraft(characterId, client))
+      context.queryClient.ensureQueryData(getCharacterSheet(routeCharacterId, client)),
+      context.queryClient.ensureQueryData(getCharacterDraft(routeCharacterId, client))
     ])
     const fallbackCharacter = !response && !draft
-      ? await context.queryClient.ensureQueryData(getCharacter(characterId, client))
+      ? await context.queryClient.ensureQueryData(getCharacter(routeCharacterId, client))
       : null
     const breadcrumbLabel = draft?.label ?? response?.identity.label ?? fallbackCharacter?.character.label ?? null
     const characterPublicId = draft?.publicId ?? response?.publicId ?? fallbackCharacter?.publicId ?? params.characterPublicId
+    const characterId = draft?.characterId ?? response?.meta.characterId ?? fallbackCharacter?.character.id ?? routeCharacterId
     const routeSubject = breadcrumbLabel
       ? {
-          id: draft?.characterId ?? response?.meta.characterId ?? fallbackCharacter?.character.id ?? characterId,
+          id: characterId,
           publicId: characterPublicId,
           label: breadcrumbLabel
         }
@@ -34,6 +35,14 @@ export const Route = createFileRoute('/_authed/characters/$characterPublicId/$ch
         replace: true,
         to: '/characters/$characterPublicId/$characterSlug'
       })
+    }
+
+    if (characterId !== routeCharacterId) {
+      context.queryClient.setQueryData(getCharacterSheet(characterId, client).queryKey, response)
+      context.queryClient.setQueryData(getCharacterDraft(characterId, client).queryKey, draft)
+      if (fallbackCharacter) {
+        context.queryClient.setQueryData(getCharacter(characterId, client).queryKey, fallbackCharacter)
+      }
     }
 
     return {

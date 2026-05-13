@@ -33,31 +33,31 @@ export const werebear: CreatureAuthored = {
     xp: 1800,
     features: [
         {
-            id: S.featureId(7539, 1),
+            id: S.featureId(287, 1),
             label: 'Shapechanger',
             description: 'Shapechanger. The werebear can use its action to polymorph into a bear-humanoid hybrid or into a bear, or back into its true form, which is humanoid.',
             order: 1
         },
         {
-            id: S.featureId(7539, 2),
+            id: S.featureId(287, 2),
             label: 'Keen Smell',
             description: 'Keen Smell. The werebear has advantage on Wisdom (Perception) checks that rely on smell.',
             order: 2
         },
         {
-            id: S.featureId(7539, 3),
+            id: S.featureId(287, 3),
             label: 'Multiattack',
             description: 'Multiattack. The werebear makes two attacks: one with its bite and one with its claws, or one with its bite and one with a weapon.',
             order: 3
         },
         {
-            id: S.featureId(7539, 4),
+            id: S.featureId(287, 4),
             label: 'Bite',
             description: 'Bite. Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 15 (2d10 + 4) piercing damage.',
             order: 4
         },
         {
-            id: S.featureId(7539, 5),
+            id: S.featureId(287, 5),
             label: 'Claws',
             description: 'Claws. Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 13 (2d8 + 4) slashing damage.',
             effects: [
@@ -108,7 +108,7 @@ export const werebear: CreatureAuthored = {
             order: 5
         },
         {
-            id: S.featureId(7539, 6),
+            id: S.featureId(287, 6),
             label: 'Curse of Lycanthropy',
             description: 'Curse of Lycanthropy. A humanoid hit by the werebear’s bite must succeed on a Constitution saving throw or be cursed with werebear lycanthropy.',
             order: 6

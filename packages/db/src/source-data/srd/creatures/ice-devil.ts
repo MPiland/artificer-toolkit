@@ -38,31 +38,31 @@ export const iceDevil: CreatureAuthored = {
     xp: 11500,
     features: [
         {
-            id: S.featureId(8846, 1),
+            id: S.featureId(171, 1),
             label: 'Devil\'s Sight',
             description: 'Devil\'s Sight. Magical darkness doesn\'t impede the devil\'s darkvision.',
             order: 1
         },
         {
-            id: S.featureId(8846, 2),
+            id: S.featureId(171, 2),
             label: 'Ice Walk',
             description: 'Ice Walk. The devil can move across and climb icy surfaces without needing to make an ability check. Additionally, difficult terrain composed of ice or snow doesn\'t cost it extra movement.',
             order: 2
         },
         {
-            id: S.featureId(8846, 3),
+            id: S.featureId(171, 3),
             label: 'Magic Resistance',
             description: 'Magic Resistance. The devil has advantage on saving throws against spells and other magical effects.',
             order: 3
         },
         {
-            id: S.featureId(8846, 4),
+            id: S.featureId(171, 4),
             label: 'Multiattack',
             description: 'The devil makes two attacks: one with its spear and one with its tail.',
             order: 4
         },
         {
-            id: S.featureId(8846, 5),
+            id: S.featureId(171, 5),
             label: 'Spear',
             description: 'Spear. Melee Weapon Attack: +9 to hit, reach 10 ft., one target. Hit: 12 (2d6 + 5) piercing damage plus 10 (3d6) cold damage.',
             effects: [
@@ -139,7 +139,7 @@ export const iceDevil: CreatureAuthored = {
             order: 5
         },
         {
-            id: S.featureId(8846, 6),
+            id: S.featureId(171, 6),
             label: 'Tail',
             description: 'Tail. Melee Weapon Attack: +9 to hit, reach 10 ft., one target. Hit: 16 (2d8 + 5) bludgeoning damage plus 10 (3d6) cold damage.',
             effects: [

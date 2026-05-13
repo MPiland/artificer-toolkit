@@ -30,25 +30,25 @@ export const wereboar: CreatureAuthored = {
     xp: 1100,
     features: [
         {
-            id: S.featureId(6929, 1),
+            id: S.featureId(288, 1),
             label: 'Shapechanger',
             description: 'Shapechanger. The wereboar can use its action to polymorph into a boar-humanoid hybrid or into a boar, or back into its true form, which is humanoid.',
             order: 1
         },
         {
-            id: S.featureId(6929, 2),
+            id: S.featureId(288, 2),
             label: 'Charge',
             description: 'Charge. If the wereboar moves at least 15 feet straight toward a target and then hits it with a melee attack on the same turn, the target takes extra damage.',
             order: 2
         },
         {
-            id: S.featureId(6929, 3),
+            id: S.featureId(288, 3),
             label: 'Relentless',
             description: 'Relentless. If the wereboar takes damage that would reduce it to 0 hit points, it makes a Constitution saving throw to drop to 1 hit point instead.',
             order: 3
         },
         {
-            id: S.featureId(6929, 4),
+            id: S.featureId(288, 4),
             label: 'Bite',
             description: 'Bite. Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 12 (2d6 + 5) piercing damage.',
             effects: [
@@ -99,7 +99,7 @@ export const wereboar: CreatureAuthored = {
             order: 4
         },
         {
-            id: S.featureId(6929, 5),
+            id: S.featureId(288, 5),
             label: 'Maul',
             description: 'Maul. Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 11 (2d6 + 4) bludgeoning damage.',
             order: 5

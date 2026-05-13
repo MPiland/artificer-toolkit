@@ -39,7 +39,7 @@ export const lich: CreatureAuthored = {
     xp: 33000,
     features: [
         {
-            id: S.featureId(2794, 1),
+            id: S.featureId(183, 1),
             label: 'Legendary Resistance (3/Day)',
             description: 'Legendary Resistance (3/Day). If the lich fails a saving throw, it can choose to succeed instead.',
             attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
@@ -53,25 +53,25 @@ export const lich: CreatureAuthored = {
             order: 1
         },
         {
-            id: S.featureId(2794, 2),
+            id: S.featureId(183, 2),
             label: 'Rejuvenation',
             description: 'Rejuvenation. If it has a phylactery, a destroyed lich gains a new body in 1d10 days, regaining all its hit points and becoming active again.',
             order: 2
         },
         {
-            id: S.featureId(2794, 3),
+            id: S.featureId(183, 3),
             label: 'Spellcasting',
             description: 'Spellcasting. The lich is an 18th-level spellcaster. Its spellcasting ability is Intelligence (spell save DC 20, +12 to hit with spell attacks). It requires no material components and has the following wizard spells prepared: Cantrips (at will): mage hand, prestidigitation, ray of frost, shocking grasp. 1st level (4 slots): detect magic, magic missile, shield, thunderwave. 2nd level (3 slots): blindness/deafness, invisibility, mirror image. 3rd level (3 slots): animate dead, counterspell, dispel magic, fireball. 4th level (3 slots): blight, dimension door, phantasmal killer. 5th level (3 slots): cloudkill, geas. 6th level (1 slot): disintegrate, globe of invulnerability. 7th level (1 slot): finger of death, plane shift. 8th level (1 slot): dominate monster, power word stun. 9th level (1 slot): power word kill.',
             order: 3
         },
         {
-            id: S.featureId(2794, 4),
+            id: S.featureId(183, 4),
             label: 'Turn Resistance',
             description: 'Turn Resistance. The lich has advantage on saving throws against any effect that turns undead.',
             order: 4
         },
         {
-            id: S.featureId(2794, 5),
+            id: S.featureId(183, 5),
             label: 'Paralyzing Touch',
             description: 'Paralyzing Touch. Melee Spell Attack: +12 to hit, reach 5 ft., one creature. Hit: 10 (3d6) cold damage, and the target must succeed on a DC 18 Constitution saving throw or be paralyzed for 1 minute. The target can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.',
             effects: [
@@ -142,7 +142,7 @@ export const lich: CreatureAuthored = {
             order: 5
         },
         {
-            id: S.featureId(2794, 6),
+            id: S.featureId(183, 6),
             label: 'Legendary Actions',
             description: 'The lich can take 3 legendary actions, choosing from the options below. Only one legendary action option can be used at a time and only at the end of another creature\'s turn. The lich regains spent legendary actions at the start of its turn.',
             attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],

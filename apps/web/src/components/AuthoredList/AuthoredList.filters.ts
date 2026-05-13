@@ -5,10 +5,16 @@ export type AuthoredListFilterValues = Record<string, string | null>
 export function itemMatchesQuery(item: AuthoredListItem, normalizedQuery: string) {
   if (normalizedQuery.length === 0) return true
 
+  const attributeText = Object.values(item.attributes ?? {}).flatMap((value) => {
+    if (!value) return []
+    return Array.isArray(value) ? value : [value]
+  })
   const searchable = [
     item.name,
     item.description,
-    item.searchText
+    item.searchText,
+    ...attributeText,
+    ...(item.badges ?? [])
   ]
     .filter((value): value is string => Boolean(value))
     .join(' ')

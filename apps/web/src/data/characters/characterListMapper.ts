@@ -21,8 +21,18 @@ function characterDescription(item: CharacterListResponseDto['items'][number]): 
   return 'Character build ready to inspect.'
 }
 
-export function mapCharacterListToAuthoredItems(response: CharacterListResponseDto): AuthoredListItem[] {
-  return response.items.map((item) => ({
+type CharacterListItem = CharacterListResponseDto['items'][number]
+
+function isDraftOnlyCharacterListItem(item: CharacterListItem) {
+  return item.draft?.draftState === 'DRAFT_ONLY'
+}
+
+function hasCharacterDraftWork(item: CharacterListItem) {
+  return item.status === 'DRAFT' || item.draft != null
+}
+
+function mapCharacterListItemToAuthoredItem(item: CharacterListItem): AuthoredListItem {
+  return {
     id: item.id,
     publicId: item.publicId,
     name: item.label || 'Untitled Character',
@@ -49,7 +59,23 @@ export function mapCharacterListToAuthoredItems(response: CharacterListResponseD
       canCopy: false,
       canDelete: false
     }
-  }))
+  }
+}
+
+export function mapCharacterListToAuthoredItems(response: CharacterListResponseDto): AuthoredListItem[] {
+  return response.items.map(mapCharacterListItemToAuthoredItem)
+}
+
+export function mapCharacterListToActiveAuthoredItems(response: CharacterListResponseDto): AuthoredListItem[] {
+  return response.items
+    .filter((item) => !isDraftOnlyCharacterListItem(item))
+    .map(mapCharacterListItemToAuthoredItem)
+}
+
+export function mapCharacterListToDraftAuthoredItems(response: CharacterListResponseDto): AuthoredListItem[] {
+  return response.items
+    .filter(hasCharacterDraftWork)
+    .map(mapCharacterListItemToAuthoredItem)
 }
 
 export function buildCharacterListFilters(response: CharacterListResponseDto): AuthoredListFilter[] {

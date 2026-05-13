@@ -15,10 +15,10 @@ import { CharacterEditPage } from '#domains/characters'
 export const Route = createFileRoute('/_authed/characters/$characterPublicId/$characterSlug/edit')({
   loader: async ({ context, params }) => {
     const client = createServerApi()
-    const characterId = parseAuthoredRouteId(params.characterPublicId)
+    const routeCharacterId = parseAuthoredRouteId(params.characterPublicId)
     const [response, draft] = await Promise.all([
-      context.queryClient.ensureQueryData(getCharacter(characterId, client)),
-      context.queryClient.ensureQueryData(getCharacterDraft(characterId, client))
+      context.queryClient.ensureQueryData(getCharacter(routeCharacterId, client)),
+      context.queryClient.ensureQueryData(getCharacterDraft(routeCharacterId, client))
     ])
     const parsedDraftPayload = draft ? parseCharacterBuilderDraftPayload(draft.payload) : null
     const resolvedDraftPayload = draft && parsedDraftPayload
@@ -35,9 +35,10 @@ export const Route = createFileRoute('/_authed/characters/$characterPublicId/$ch
       : null
     const breadcrumbLabel = draft?.label ?? response?.character.label ?? null
     const characterPublicId = draft?.publicId ?? response?.publicId ?? params.characterPublicId
+    const characterId = draft?.characterId ?? response?.character.id ?? routeCharacterId
     const routeSubject = breadcrumbLabel
       ? {
-          id: draft?.characterId ?? response?.character.id ?? characterId,
+          id: characterId,
           publicId: characterPublicId,
           label: breadcrumbLabel
         }
@@ -48,6 +49,11 @@ export const Route = createFileRoute('/_authed/characters/$characterPublicId/$ch
         replace: true,
         to: '/characters/$characterPublicId/$characterSlug/edit'
       })
+    }
+
+    if (characterId !== routeCharacterId) {
+      context.queryClient.setQueryData(getCharacter(characterId, client).queryKey, response)
+      context.queryClient.setQueryData(getCharacterDraft(characterId, client).queryKey, draft)
     }
 
     return {

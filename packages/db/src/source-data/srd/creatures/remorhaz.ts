@@ -32,13 +32,13 @@ export const remorhaz: CreatureAuthored = {
     xp: 7200,
     features: [
         {
-            id: S.featureId(2620, 1),
+            id: S.featureId(235, 1),
             label: 'Heated Body',
             description: 'Heated Body. A creature that touches the remorhaz or hits it with a melee attack while within 5 feet of it takes 10 (3d6) fire damage.',
             order: 1
         },
         {
-            id: S.featureId(2620, 2),
+            id: S.featureId(235, 2),
             label: 'Bite',
             description: 'Bite. Melee Weapon Attack: +11 to hit, reach 10 ft., one target. Hit: 40 (6d10 + 7) piercing damage plus 10 (3d6) fire damage. If the target is a Large or smaller creature, it is grappled (escape DC 17). Until this grapple ends, the target is restrained, and the remorhaz can bite only the grappled creature.',
             effects: [
@@ -146,7 +146,7 @@ export const remorhaz: CreatureAuthored = {
             order: 2
         },
         {
-            id: S.featureId(2620, 3),
+            id: S.featureId(235, 3),
             label: 'Swallow',
             description: 'Swallow. The remorhaz makes one bite attack against a Medium or smaller target it is grappling. If the attack hits, the target is swallowed, the grapple ends, and the target is no longer restrained. A swallowed creature is blinded and restrained, it has total cover against attacks and other effects outside the remorhaz, and it takes 21 (6d6) acid damage at the start of each of the remorhaz\'s turns. The remorhaz can have only one creature swallowed at a time. If the remorhaz dies, a swallowed creature is no longer restrained by it and can escape from the corpse using 10 feet of movement, exiting prone.',
             order: 3

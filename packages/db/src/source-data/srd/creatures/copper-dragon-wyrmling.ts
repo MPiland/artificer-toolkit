@@ -36,7 +36,7 @@ export const copperDragonWyrmling: CreatureAuthored = {
     xp: 200,
     features: [
         {
-            id: S.featureId(7951, 1),
+            id: S.featureId(70, 1),
             label: 'Bite',
             description: 'Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 7 (1d10 + 2) piercing damage.',
             effects: [
@@ -95,13 +95,13 @@ export const copperDragonWyrmling: CreatureAuthored = {
             order: 1
         },
         {
-            id: S.featureId(7951, 2),
+            id: S.featureId(70, 2),
             label: 'Spider Climb',
             description: 'Spider Climb. The dragon can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check.',
             order: 2
         },
         {
-            id: S.featureId(7951, 3),
+            id: S.featureId(70, 3),
             label: 'Breath Weapons (Recharge 5-6)',
             description: 'The dragon uses one of the following breath weapons.',
             effects: [

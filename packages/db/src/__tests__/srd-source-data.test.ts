@@ -160,6 +160,44 @@ function collectDuplicateValues(values: string[]): string[] {
   return [...duplicates].sort()
 }
 
+interface NestedFeatureReference {
+  id: string
+  path: string
+}
+
+function collectNestedFeatureReferences(
+  value: unknown,
+  path: string,
+  references: NestedFeatureReference[]
+) {
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => {
+      collectNestedFeatureReferences(item, `${path}[${index}]`, references)
+    })
+
+    return
+  }
+
+  if (!isRecord(value)) {
+    return
+  }
+
+  if (Array.isArray(value.features)) {
+    value.features.forEach((feature, index) => {
+      if (isRecord(feature) && typeof feature.id === 'string') {
+        references.push({
+          id: feature.id,
+          path: `${path}.features[${index}]`
+        })
+      }
+    })
+  }
+
+  for (const [key, entry] of Object.entries(value)) {
+    collectNestedFeatureReferences(entry, path ? `${path}.${key}` : key, references)
+  }
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 }
@@ -406,6 +444,29 @@ describe('SRD source data', () => {
       .map((subject) => `${subjectKind}: ${subject.label} (${subject.status})`))
 
     expect(inactiveSubjects).toEqual([])
+  })
+
+  it('does not define duplicate nested feature IDs', () => {
+    const featureReferences: NestedFeatureReference[] = []
+
+    collectNestedFeatureReferences(srdBaselineContent.subjects, 'subjects', featureReferences)
+
+    const duplicateFeatureIds = new Set(collectDuplicateValues(featureReferences.map((reference) => reference.id)))
+    expect(featureReferences
+      .filter((reference) => duplicateFeatureIds.has(reference.id))
+      .map((reference) => `${reference.path}: ${reference.id}`)).toEqual([])
+  })
+
+  it('keeps creature feature IDs scoped to their owning creature', () => {
+    const mismatchedFeatureIds = srdBaselineContent.subjects.creatures.flatMap((creature) => {
+      const creatureOwnerSegment = creature.id.slice(24, 28)
+
+      return (creature.features ?? [])
+        .filter((feature) => feature.id.slice(24, 28) !== creatureOwnerSegment)
+        .map((feature) => `${creature.label}: ${feature.label} (${feature.id})`)
+    })
+
+    expect(mismatchedFeatureIds).toEqual([])
   })
 
   it('does not include spells absent from the SRD PDF', () => {

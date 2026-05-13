@@ -35,25 +35,25 @@ export const succubusIncubus: CreatureAuthored = {
     xp: 1100,
     features: [
         {
-            id: S.featureId(7009, 1),
+            id: S.featureId(267, 1),
             label: 'Shapechanger',
             description: 'Shapechanger. The fiend can magically polymorph into a humanoid it has seen, or back into its true form.',
             order: 1
         },
         {
-            id: S.featureId(7009, 2),
+            id: S.featureId(267, 2),
             label: 'Telepathic Bond',
             description: 'Telepathic Bond. The fiend can communicate telepathically with a creature it can see within 60 feet of it.',
             order: 2
         },
         {
-            id: S.featureId(7009, 3),
+            id: S.featureId(267, 3),
             label: 'Draining Kiss',
             description: 'Draining Kiss. A charmed or willing creature kissed by the fiend takes psychic damage and its hit point maximum is reduced by the same amount until it finishes a long rest.',
             order: 3
         },
         {
-            id: S.featureId(7009, 4),
+            id: S.featureId(267, 4),
             label: 'Claws',
             description: 'Claws. Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 6 (1d6 + 3) slashing damage.',
             effects: [

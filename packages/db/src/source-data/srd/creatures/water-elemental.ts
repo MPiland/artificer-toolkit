@@ -32,25 +32,25 @@ export const waterElemental: CreatureAuthored = {
     xp: 1800,
     features: [
         {
-            id: S.featureId(6023, 1),
+            id: S.featureId(285, 1),
             label: 'Water Form',
             description: 'Water Form. The elemental can enter a hostile creature’s space and stop there. It can move through a space as narrow as 1 inch wide without squeezing.',
             order: 1
         },
         {
-            id: S.featureId(6023, 2),
+            id: S.featureId(285, 2),
             label: 'Freeze',
             description: 'Freeze. If the elemental takes cold damage, it partially solidifies; if it takes a lot of cold damage in a turn, it is slowed until the end of its next turn.',
             order: 2
         },
         {
-            id: S.featureId(6023, 3),
+            id: S.featureId(285, 3),
             label: 'Whelm',
             description: 'Whelm. Each creature in the elemental’s space must make a Strength saving throw or be grappled. While grappling a creature, the elemental can’t use slam attacks on other creatures, and the grappled creature is restrained and unable to breathe unless it can breathe water.',
             order: 3
         },
         {
-            id: S.featureId(6023, 4),
+            id: S.featureId(285, 4),
             label: 'Slam',
             description: 'Slam. Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 13 (2d8 + 4) bludgeoning damage.',
             effects: [

@@ -33,13 +33,13 @@ export const stoneGiant: CreatureAuthored = {
     xp: 2900,
     features: [
         {
-            id: S.featureId(3307, 1),
+            id: S.featureId(264, 1),
             label: 'Stone Camouflage',
             description: 'Stone Camouflage. The giant has advantage on Dexterity (Stealth) checks made to hide in rocky terrain.',
             order: 1
         },
         {
-            id: S.featureId(3307, 2),
+            id: S.featureId(264, 2),
             label: 'Greatclub',
             description: 'Greatclub. Melee Weapon Attack: +9 to hit, reach 15 ft., one target. Hit: 19 (3d8 + 6) bludgeoning damage.',
             effects: [
@@ -90,7 +90,7 @@ export const stoneGiant: CreatureAuthored = {
             order: 2
         },
         {
-            id: S.featureId(3307, 3),
+            id: S.featureId(264, 3),
             label: 'Rock',
             description: 'Rock. Ranged Weapon Attack: +9 to hit, range 60/240 ft., one target. Hit: 28 (4d10 + 6) bludgeoning damage.',
             order: 3

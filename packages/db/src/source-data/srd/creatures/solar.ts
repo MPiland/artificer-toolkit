@@ -33,25 +33,25 @@ export const solar: CreatureAuthored = {
     xp: 33000,
     features: [
         {
-            id: S.featureId(8625, 1),
+            id: S.featureId(256, 1),
             label: 'Angelic Weapons',
             description: 'Angelic Weapons. The solar’s weapon attacks are magical and deal radiant damage in addition to their normal damage.',
             order: 1
         },
         {
-            id: S.featureId(8625, 2),
+            id: S.featureId(256, 2),
             label: 'Divine Awareness',
             description: 'Divine Awareness. The solar knows if it hears a lie and can perceive invisible creatures and objects within 30 feet of it.',
             order: 2
         },
         {
-            id: S.featureId(8625, 3),
+            id: S.featureId(256, 3),
             label: 'Healing Touch',
             description: 'Healing Touch. The solar touches another creature and magically restores a large amount of hit points.',
             order: 3
         },
         {
-            id: S.featureId(8625, 4),
+            id: S.featureId(256, 4),
             label: 'Greatsword',
             description: 'Greatsword. Melee Weapon Attack: +15 to hit, reach 5 ft., one target. Hit: 22 (4d6 + 8) slashing damage plus 27 (6d8) radiant damage.',
             effects: [
@@ -102,7 +102,7 @@ export const solar: CreatureAuthored = {
             order: 4
         },
         {
-            id: S.featureId(8625, 5),
+            id: S.featureId(256, 5),
             label: 'Longbow',
             description: 'Longbow. Ranged Weapon Attack: +13 to hit, range 150/600 ft., one target. Hit: 15 (2d8 + 6) piercing damage plus radiant damage.',
             order: 5

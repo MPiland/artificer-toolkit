@@ -35,25 +35,25 @@ export const grayOoze: CreatureAuthored = {
   xp: 100,
   features: [
     {
-      id: S.featureId(9475, 1),
+      id: S.featureId(149, 1),
       label: 'Amorphous',
       description: 'Amorphous. The ooze can move through a space as narrow as 1 inch wide without squeezing.',
       order: 1
     },
     {
-      id: S.featureId(9475, 2),
+      id: S.featureId(149, 2),
       label: 'Corrode Metal',
       description: 'Corrode Metal. Any nonmagical weapon made of metal that hits the ooze corrodes. After dealing damage, the weapon takes a permanent and cumulative -1 penalty to damage rolls. If its penalty drops to -5, the weapon is destroyed. Nonmagical ammunition made of metal that hits the ooze is destroyed after dealing damage. The ooze can eat through 2-inch-thick, nonmagical metal in 1 round.',
       order: 2
     },
     {
-      id: S.featureId(9475, 3),
+      id: S.featureId(149, 3),
       label: 'False Appearance',
       description: 'False Appearance. While the ooze remains motionless, it is indistinguishable from an oily pool or wet rock.',
       order: 3
     },
     {
-      id: S.featureId(9475, 4),
+      id: S.featureId(149, 4),
       label: 'Pseudopod',
       description: 'Pseudopod. Melee Weapon Attack: +3 to hit, reach 5 ft., one target. Hit: 4 (1d6 + 1) bludgeoning damage plus 7 (2d6) acid damage, and if the target is wearing nonmagical metal armor, its armor is partly corroded and takes a permanent and cumulative -1 penalty to the AC it offers. The armor is destroyed if the penalty reduces its AC to 10.',
       order: 4

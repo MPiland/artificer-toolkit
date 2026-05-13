@@ -5,7 +5,8 @@ import {
   buildCharacterListFilters,
   characterListAttributeColumns,
   characterListSortOptions,
-  mapCharacterListToAuthoredItems,
+  mapCharacterListToActiveAuthoredItems,
+  mapCharacterListToDraftAuthoredItems,
   summarizeCharacterList
 } from '#app/data/characters/characterListMapper'
 import { getCharacterDraft, getCharacterList, getCharacterSheet } from '#app/data/characters/queries'
@@ -21,7 +22,8 @@ export function CharacterListPage() {
       title='Characters'
       summary={summarizeCharacterList(data)}
       createLabel='Create Character'
-      items={mapCharacterListToAuthoredItems(data)}
+      items={mapCharacterListToActiveAuthoredItems(data)}
+      draftItems={mapCharacterListToDraftAuthoredItems(data)}
       filters={buildCharacterListFilters(data)}
       attributeColumns={characterListAttributeColumns}
       sortOptions={characterListSortOptions}
@@ -31,8 +33,8 @@ export function CharacterListPage() {
         to: '/characters/$characterPublicId/$characterSlug'
       })}
       onViewIntent={(item) => {
-        void queryClient.prefetchQuery(getCharacterSheet(item.id))
-        void queryClient.prefetchQuery(getCharacterDraft(item.id))
+        void queryClient.prefetchQuery(getCharacterSheet(item.publicId))
+        void queryClient.prefetchQuery(getCharacterDraft(item.publicId))
       }}
       onEdit={(item) => navigate({
         params: buildCharacterRouteParams(item.publicId, item.name),

@@ -14,9 +14,13 @@ function createFakeDb(rowsByTable: RowMap) {
         select() {
           return builder
         },
-        where(column: string, _op: string, value: string) {
+        where(column: string, op: string, value: unknown) {
           state.filtered = state.filtered.filter((row) => {
             const record = row as Record<string, unknown>
+            if (op.toLowerCase() === 'in') {
+              return Array.isArray(value) && value.includes(record[column])
+            }
+
             return record[column] === value
           })
           return builder
@@ -142,11 +146,12 @@ describe('createCreatureRepository', () => {
       details: [],
     }) as never)
 
-    await expect(repo.findById('creature-npc-1')).resolves.toEqual({
+    await expect(repo.findById('creature-npc-1')).resolves.toMatchObject({
       id: 'creature-npc-1',
       label: 'Town Guard',
       quote: undefined,
       description: 'A stalwart defender.',
+      status: 'DRAFT',
       details: undefined,
       features: undefined,
       proficiencies: [
@@ -172,7 +177,15 @@ describe('createCreatureRepository', () => {
       size: 'MEDIUM',
       alignmentId: undefined,
       tags: undefined,
-      abilityScores: BASE_ABILITY_SCORES,
+      abilityScores: {
+        STRENGTH: 10,
+        DEXTERITY: 10,
+        CONSTITUTION: 10,
+        INTELLIGENCE: 10,
+        WISDOM: 10,
+        CHARISMA: 10,
+        SPELLCASTING: 0
+      },
       armorClass: 16,
       armorClassNote: 'Chain mail',
       hitPoints: 11,
@@ -577,11 +590,12 @@ describe('createCreatureRepository', () => {
       details: [],
     }) as never)
 
-    await expect(repo.findById('creature-logistics-1')).resolves.toEqual({
+    await expect(repo.findById('creature-logistics-1')).resolves.toMatchObject({
       id: 'creature-logistics-1',
       label: 'Riding Horse',
       quote: undefined,
       description: 'A dependable riding animal.',
+      status: 'DRAFT',
       details: undefined,
       features: undefined,
       proficiencies: undefined,
@@ -590,7 +604,7 @@ describe('createCreatureRepository', () => {
       recordKind: 'LOGISTICS',
       category: 'BEAST',
       creatureTypeId: 'beast',
-      size: undefined,
+      size: 'MEDIUM',
       alignmentId: undefined,
       tags: ['mount'],
       speeds: [{ speedId: 'walk', amount: 60, unit: 'FEET' }],

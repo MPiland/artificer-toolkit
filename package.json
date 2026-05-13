@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "yarn workspace @artificer-toolkit/web dev",
     "db:reset:remote": "yarn workspace @artificer-toolkit/db db:reset:remote",
+    "audit:srd": "yarn workspace @artificer-toolkit/db audit:srd",
     "seed:owner": "yarn workspace @artificer-toolkit/db seed:owner",
     "seed:srd": "yarn build:shared && yarn workspace @artificer-toolkit/db seed:srd",
     "build:schema": "yarn tsc -p packages/schema/tsconfig.build.json",

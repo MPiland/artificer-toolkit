@@ -35,19 +35,19 @@ export const shadow: CreatureAuthored = {
     xp: 100,
     features: [
         {
-            id: S.featureId(7360, 1),
+            id: S.featureId(250, 1),
             label: 'Amorphous',
             description: 'Amorphous. The shadow can move through a space as narrow as 1 inch wide without squeezing.',
             order: 1
         },
         {
-            id: S.featureId(7360, 2),
+            id: S.featureId(250, 2),
             label: 'Shadow Stealth',
             description: 'Shadow Stealth. While in dim light or darkness, the shadow can take the Hide action as a bonus action.',
             order: 2
         },
         {
-            id: S.featureId(7360, 3),
+            id: S.featureId(250, 3),
             label: 'Strength Drain',
             description: 'Strength Drain. Melee Weapon Attack: +4 to hit, reach 5 ft., one creature. Hit: 9 (2d6 + 2) necrotic damage, and the target’s Strength score is reduced. If this reduces the target to 0, the target dies and a new shadow rises from the corpse.',
             effects: [

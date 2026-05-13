@@ -36,25 +36,25 @@ export const couatl: CreatureAuthored = {
     xp: 1100,
     features: [
         {
-            id: S.featureId(8048, 1),
+            id: S.featureId(71, 1),
             label: 'Innate Spellcasting',
             description: "Innate Spellcasting. The couatl's spellcasting ability is Charisma (spell save DC 14). It can innately cast the following spells, requiring only verbal components: At will: detect evil and good, detect magic, detect thoughts. 3/day each: bless, create food and water, cure wounds, lesser restoration, protection from poison, sanctuary, shield. 1/day each: dream, greater restoration, scrying.",
             order: 1
         },
         {
-            id: S.featureId(8048, 2),
+            id: S.featureId(71, 2),
             label: 'Magic Weapons',
             description: "Magic Weapons. The couatl's weapon attacks are magical.",
             order: 2
         },
         {
-            id: S.featureId(8048, 3),
+            id: S.featureId(71, 3),
             label: 'Shielded Mind',
             description: 'Shielded Mind. The couatl is immune to scrying and to any effect that would sense its emotions, read its thoughts, or detect its location.',
             order: 3
         },
         {
-            id: S.featureId(8048, 4),
+            id: S.featureId(71, 4),
             label: 'Bite',
             description: 'Melee Weapon Attack: +8 to hit, reach 5 ft., one creature. Hit: 8 (1d6 + 5) piercing damage, and the target must succeed on a DC 13 Constitution saving throw or be poisoned for 24 hours. Until this poison ends, the target is unconscious. Another creature can use an action to shake the target awake.',
             effects: [
@@ -136,7 +136,7 @@ export const couatl: CreatureAuthored = {
             order: 4
         },
         {
-            id: S.featureId(8048, 5),
+            id: S.featureId(71, 5),
             label: 'Constrict',
             description: "Melee Weapon Attack: +6 to hit, reach 10 ft., one Medium or smaller creature. Hit: 10 (2d6 + 3) bludgeoning damage, and the target is grappled (escape DC 15). Until this grapple ends, the target is restrained, and the couatl can't constrict another target.",
             effects: [
@@ -213,13 +213,13 @@ export const couatl: CreatureAuthored = {
             order: 5
         },
         {
-            id: S.featureId(8048, 6),
+            id: S.featureId(71, 6),
             label: 'Change Shape',
             description: 'Change Shape. The couatl magically polymorphs into a humanoid or beast that has a challenge rating equal to or less than its own, or back into its true form. It reverts to its true form if it dies. Any equipment it is wearing or carrying is absorbed or borne by the new form (the couatl\'s choice). In a new form, the couatl retains its game statistics and ability to speak, but its AC, movement modes, Strength, Dexterity, and other actions are replaced by those of the new form, and it gains any statistics and capabilities (except class features, legendary actions, and lair actions) that the new form has but that it lacks.',
             order: 6
         },
         {
-            id: S.featureId(8048, 7),
+            id: S.featureId(71, 7),
             label: 'Divine Aid (2/Day)',
             description: 'Divine Aid (2/Day). The couatl casts bless, lesser restoration, or sanctuary, requiring no spell components and using the same spellcasting ability as Innate Spellcasting.',
             attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],

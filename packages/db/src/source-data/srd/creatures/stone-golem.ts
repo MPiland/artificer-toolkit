@@ -31,31 +31,31 @@ export const stoneGolem: CreatureAuthored = {
     xp: 5900,
     features: [
         {
-            id: S.featureId(3276, 1),
+            id: S.featureId(265, 1),
             label: 'Immutable Form',
             description: 'Immutable Form. The golem is immune to any spell or effect that would alter its form.',
             order: 1
         },
         {
-            id: S.featureId(3276, 2),
+            id: S.featureId(265, 2),
             label: 'Magic Resistance',
             description: 'Magic Resistance. The golem has advantage on saving throws against spells and other magical effects.',
             order: 2
         },
         {
-            id: S.featureId(3276, 3),
+            id: S.featureId(265, 3),
             label: 'Magic Weapons',
             description: 'Magic Weapons. The golem’s weapon attacks are magical.',
             order: 3
         },
         {
-            id: S.featureId(3276, 4),
+            id: S.featureId(265, 4),
             label: 'Slow',
             description: 'Slow. A creature hit by the golem’s slam attack must succeed on a Wisdom saving throw or be slowed until the end of its next turn.',
             order: 4
         },
         {
-            id: S.featureId(3276, 5),
+            id: S.featureId(265, 5),
             label: 'Slam',
             description: 'Slam. Melee Weapon Attack: +10 to hit, reach 5 ft., one target. Hit: 19 (3d8 + 6) bludgeoning damage.',
             effects: [

@@ -32,25 +32,25 @@ export const sprite: CreatureAuthored = {
     xp: 50,
     features: [
         {
-            id: S.featureId(9803, 1),
+            id: S.featureId(260, 1),
             label: 'Heart Sight',
             description: 'Heart Sight. The sprite can touch a creature and determine whether it is good, evil, or neither.',
             order: 1
         },
         {
-            id: S.featureId(9803, 2),
+            id: S.featureId(260, 2),
             label: 'Invisible',
             description: 'Invisible. The sprite is invisible. It becomes visible if it attacks or if it chooses to end the invisibility.',
             order: 2
         },
         {
-            id: S.featureId(9803, 3),
+            id: S.featureId(260, 3),
             label: 'Shortbow',
             description: 'Shortbow. Ranged Weapon Attack: +6 to hit, range 40/160 ft., one target. Hit: 1 piercing damage, and the target must make a Constitution saving throw or be poisoned for 1 minute.',
             order: 3
         },
         {
-            id: S.featureId(9803, 4),
+            id: S.featureId(260, 4),
             label: 'Shortsword',
             description: 'Shortsword. Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 1 piercing damage.',
             effects: [

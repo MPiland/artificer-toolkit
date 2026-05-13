@@ -39,31 +39,31 @@ export const barbedDevil: CreatureAuthored = {
     xp: 1800,
     features: [
         {
-            id: S.featureId(7311, 1),
+            id: S.featureId(39, 1),
             label: 'Barbed Hide',
             description: 'Barbed Hide. At the start of each of its turns, the devil deals 5 (1d10) piercing damage to any creature it is grappling or any creature grappling it.',
             order: 1
         },
         {
-            id: S.featureId(7311, 2),
+            id: S.featureId(39, 2),
             label: "Devil's Sight",
             description: "Devil's Sight. Magical darkness doesn't impede the devil's darkvision.",
             order: 2
         },
         {
-            id: S.featureId(7311, 3),
+            id: S.featureId(39, 3),
             label: 'Magic Resistance',
             description: 'Magic Resistance. The devil has advantage on saving throws against spells and other magical effects.',
             order: 3
         },
         {
-            id: S.featureId(7311, 4),
+            id: S.featureId(39, 4),
             label: 'Multiattack',
             description: 'Multiattack. The devil makes two attacks: one with its tail and one with its claws.',
             order: 4
         },
         {
-            id: S.featureId(7311, 5),
+            id: S.featureId(39, 5),
             label: 'Claw',
             description: 'Claw. Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 6 (1d6 + 3) piercing damage.',
             effects: [
@@ -122,7 +122,7 @@ export const barbedDevil: CreatureAuthored = {
             order: 5
         },
         {
-            id: S.featureId(7311, 6),
+            id: S.featureId(39, 6),
             label: 'Tail',
             description: 'Tail. Melee Weapon Attack: +6 to hit, reach 10 ft., one target. Hit: 10 (2d6 + 3) bludgeoning damage.',
             effects: [
@@ -181,7 +181,7 @@ export const barbedDevil: CreatureAuthored = {
             order: 6
         },
         {
-            id: S.featureId(7311, 7),
+            id: S.featureId(39, 7),
             label: 'Hurl Flame',
             description: 'Hurl Flame. Ranged Spell Attack: +5 to hit, range 150 ft., one target. Hit: 10 (3d6) fire damage.',
             effects: [

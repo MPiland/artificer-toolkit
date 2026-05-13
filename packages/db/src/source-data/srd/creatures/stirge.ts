@@ -29,13 +29,13 @@ export const stirge: CreatureAuthored = {
     xp: 25,
     features: [
         {
-            id: S.featureId(4592, 1),
+            id: S.featureId(263, 1),
             label: 'Keen Smell',
             description: 'Keen Smell. The stirge has advantage on Wisdom (Perception) checks that rely on smell.',
             order: 1
         },
         {
-            id: S.featureId(4592, 2),
+            id: S.featureId(263, 2),
             label: 'Blood Drain',
             description: 'Blood Drain. The stirge attaches to a creature it hits. While attached, the stirge can’t attack and instead drains blood from the target. The target or a creature adjacent to it can use an action to detach the stirge.',
             effects: [

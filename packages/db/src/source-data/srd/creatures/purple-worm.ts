@@ -31,19 +31,19 @@ export const purpleWorm: CreatureAuthored = {
     xp: 13000,
     features: [
         {
-            id: S.featureId(7604, 1),
+            id: S.featureId(227, 1),
             label: 'Tunneler',
             description: 'Tunneler. The worm can burrow through solid rock at half its Burrow Speed and leaves a 10-foot-diameter tunnel in its wake.',
             order: 1
         },
         {
-            id: S.featureId(7604, 2),
+            id: S.featureId(227, 2),
             label: 'Multiattack',
             description: 'Multiattack. The worm makes one Bite attack and one Tail Stinger attack.',
             order: 2
         },
         {
-            id: S.featureId(7604, 3),
+            id: S.featureId(227, 3),
             label: 'Bite',
             description: 'Bite. Melee Attack Roll: +14, reach 10 ft. Hit: 22 (3d8 + 9) piercing damage. If the target is a Large or smaller creature, it has the grappled condition (escape DC 19), and it has the restrained condition until the grapple ends.',
             effects: [
@@ -138,7 +138,7 @@ export const purpleWorm: CreatureAuthored = {
             order: 3
         },
         {
-            id: S.featureId(7604, 4),
+            id: S.featureId(227, 4),
             label: 'Tail Stinger',
             description: 'Tail Stinger. Melee Weapon Attack: +14 to hit, reach 10 ft., one creature. Hit: 19 (3d6 + 9) piercing damage, and the target must succeed on a DC 19 Constitution saving throw or become poisoned for 1 minute. While poisoned in this way, the target is unconscious. The target can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.',
             effects: [
@@ -233,7 +233,7 @@ export const purpleWorm: CreatureAuthored = {
             order: 4
         },
         {
-            id: S.featureId(7604, 5),
+            id: S.featureId(227, 5),
             label: 'Swallow',
             description: 'Swallow. The worm makes one Bite attack against a Large or smaller creature it is grappling. If the attack hits, the target is swallowed, and the grapple ends. A swallowed creature is blinded and restrained, has total cover against attacks and other effects outside the worm, and takes 21 (6d6) acid damage at the start of each of the worm\'s turns. The worm can have only one creature swallowed at a time.',
             effects: [

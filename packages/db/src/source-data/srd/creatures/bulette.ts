@@ -34,13 +34,13 @@ export const bulette: CreatureAuthored = {
     xp: 1800,
     features: [
         {
-            id: S.featureId(9521, 1),
+            id: S.featureId(57, 1),
             label: 'Standing Leap',
             description: "Standing Leap. The bulette's long jump is up to 30 feet and its high jump is up to 15 feet, with or without a running start.",
             order: 1
         },
         {
-            id: S.featureId(9521, 2),
+            id: S.featureId(57, 2),
             label: 'Deadly Leap',
             description: 'Deadly Leap. If the bulette jumps at least 15 feet as part of its movement, it can then use this action to land on its feet in a space that contains one or more other creatures. Each of those creatures must succeed on a DC 16 Dexterity saving throw or take 14 (3d6 + 4) bludgeoning damage and be knocked prone. On a successful save, the creature takes half the damage and isn\'t knocked prone.',
             effects: [
@@ -82,7 +82,7 @@ export const bulette: CreatureAuthored = {
             order: 2
         },
         {
-            id: S.featureId(9521, 3),
+            id: S.featureId(57, 3),
             label: 'Bite',
             description: 'Bite. Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 30 (4d12 + 4) piercing damage.',
             effects: [
@@ -141,7 +141,7 @@ export const bulette: CreatureAuthored = {
             order: 3
         },
         {
-            id: S.featureId(9521, 4),
+            id: S.featureId(57, 4),
             label: 'Knock Prone',
             description: 'If the target of the bulette\'s bite is a Large or smaller creature, it must succeed on a DC 16 Strength saving throw or be knocked prone.',
             effects: [

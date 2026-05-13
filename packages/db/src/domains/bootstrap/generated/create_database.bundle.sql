@@ -5048,7 +5048,10 @@ CREATE TABLE IF NOT EXISTS public.background_features (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  feature_id uuid NOT NULL,
+  feature_id uuid NOT NULL
+    REFERENCES public.features(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
 
   sort_order integer NOT NULL,
 
@@ -5314,7 +5317,10 @@ CREATE TABLE IF NOT EXISTS public.class_features (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  feature_id uuid NOT NULL,
+  feature_id uuid NOT NULL
+    REFERENCES public.features(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
 
   sort_order integer NOT NULL,
 
@@ -5996,7 +6002,10 @@ CREATE TABLE IF NOT EXISTS public.creature_features (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  feature_id uuid NOT NULL,
+  feature_id uuid NOT NULL
+    REFERENCES public.features(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
 
   sort_order integer NOT NULL,
 
@@ -6403,7 +6412,7 @@ $$;
 * ────────────────────────────────────────────── */
 CREATE TABLE IF NOT EXISTS public.equipment_features (
   equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  feature_id uuid NOT NULL,
+  feature_id uuid NOT NULL REFERENCES public.features (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   sort_order integer NOT NULL,
   PRIMARY KEY (equipment_id, feature_id)
 );
@@ -6711,7 +6720,7 @@ $$;
 * ────────────────────────────────────────────── */
 CREATE TABLE IF NOT EXISTS public.feat_features (
   feat_id uuid NOT NULL REFERENCES public.feats (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  feature_id uuid NOT NULL,
+  feature_id uuid NOT NULL REFERENCES public.features (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   sort_order integer NOT NULL,
   PRIMARY KEY (feat_id, feature_id)
 );
@@ -6862,7 +6871,10 @@ CREATE TABLE IF NOT EXISTS public.race_features (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  feature_id uuid NOT NULL,
+  feature_id uuid NOT NULL
+    REFERENCES public.features(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
 
   sort_order integer NOT NULL,
 
@@ -6990,7 +7002,10 @@ CREATE TABLE IF NOT EXISTS public.race_ancestry_option_features (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  feature_id uuid NOT NULL,
+  feature_id uuid NOT NULL
+    REFERENCES public.features(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
 
   sort_order integer NOT NULL,
 
@@ -7304,7 +7319,10 @@ CREATE TABLE IF NOT EXISTS public.vehicle_features (
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
 
-  feature_id uuid NOT NULL,
+  feature_id uuid NOT NULL
+    REFERENCES public.features(id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
 
   sort_order integer NOT NULL,
 

@@ -131,7 +131,7 @@ describe('createEffectRepository', () => {
           pathCode: 'ON_SAVE_FAIL',
           selectionKind: 'FIXED',
           resultBlock: {
-            id: 'save-fail-1__result',
+            id: 'save-fail-1',
             resultKind: 'SINGLE',
             duration: {
               id: 'duration-1',
@@ -163,7 +163,7 @@ describe('createEffectRepository', () => {
           pathCode: 'ON_SAVE_SUCCESS',
           selectionKind: 'FIXED',
           resultBlock: {
-            id: 'save-success-1__result',
+            id: 'save-success-1',
             resultKind: 'SINGLE',
             outcomes: [
               {
@@ -176,6 +176,156 @@ describe('createEffectRepository', () => {
         }
       ]
     })
+  })
+
+  it('hydrates numeric database strings as authored numbers', async () => {
+    const db = new InMemoryDb()
+    const repository = createEffectRepository(db as never)
+
+    await repository.upsert({
+      id: 'effect-numeric-strings',
+      order: 1,
+      invocation: {
+        kind: 'ACTION',
+        triggerCode: 'SAVING_THROW',
+        savingThrow: {
+          id: 'numeric-saving-throw',
+          savingThrowKind: 'FIXED_VALUE',
+          ability: 'DEXTERITY',
+          dc: 13
+        },
+        activation: {
+          code: 'ACTION',
+          amount: 1
+        },
+        range: {
+          id: 'numeric-range',
+          rangeKind: 'DISTANCE',
+          amount: 25,
+          unit: 'FEET'
+        },
+        shape: {
+          id: 'numeric-shape',
+          shapeKind: 'SPHERE',
+          radius: {
+            amount: 10,
+            unit: 'FEET'
+          }
+        }
+      },
+      paths: [
+        {
+          id: 'numeric-path',
+          order: 1,
+          pathCode: 'ON_SAVE_FAIL',
+          groupType: 'SINGLE',
+          selectionKind: 'FIXED',
+          resultBlock: {
+            id: 'numeric-path__result',
+            resultKind: 'SINGLE',
+            duration: {
+              id: 'numeric-duration',
+              durationKind: 'ROUND',
+              amount: 1
+            },
+            outcomes: [
+              {
+                id: 'numeric-damage',
+                effectKind: 'DAMAGE',
+                damageTypeId: 'piercing',
+                valueKind: 'FIXED',
+                scalingKind: 'NONE',
+                amount: 1,
+                bonuses: [
+                  {
+                    id: 'numeric-damage-bonus',
+                    bonusKind: 'ABILITY_BONUS',
+                    ability: 'DEXTERITY',
+                    multiplier: 2,
+                    min: 1,
+                    max: 3,
+                    order: 1
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    })
+    db.insertRow('characteristic_ranges', {
+      characteristic_id: 'numeric-range',
+      kind: 'DISTANCE',
+      min: '25',
+      unit_code: 'FEET',
+      scaling: null
+    }, ['characteristic_id'], 'doUpdateSet')
+    db.insertRow('characteristic_shape_dimensions', {
+      characteristic_id: 'numeric-shape',
+      dimension: 'RADIUS',
+      amount: '10',
+      unit_code: 'FEET',
+      scaling: null
+    }, ['characteristic_id', 'dimension'], 'doUpdateSet')
+    db.insertRow('characteristic_durations', {
+      characteristic_id: 'numeric-duration',
+      kind: 'ROUND',
+      amount: '1',
+      scaling: null
+    }, ['characteristic_id'], 'doUpdateSet')
+    db.insertRow('damage_values', {
+      damage_id: 'numeric-damage',
+      amount: '1',
+      dice: null,
+      multiplier: null,
+      min: null,
+      max: null
+    }, ['damage_id'], 'doUpdateSet')
+    db.insertRow('damage_bonuses', {
+      id: 'numeric-damage-bonus',
+      damage_id: 'numeric-damage',
+      bonus_kind: 'ABILITY_BONUS',
+      ability_code: 'DEXTERITY',
+      skill_id: null,
+      multiplier: '2',
+      min: '1',
+      max: '3',
+      sort_order: 1
+    }, ['id'], 'doUpdateSet')
+
+    const effect = await repository.findById('effect-numeric-strings') as unknown as {
+      invocation?: {
+        range?: { amount?: unknown }
+        shape?: { radius?: { amount?: unknown } }
+      }
+      paths?: Array<{
+        resultBlock?: {
+          duration?: { amount?: unknown }
+          outcomes?: Array<{
+            amount?: unknown
+            bonuses?: Array<{
+              multiplier?: unknown
+              min?: unknown
+              max?: unknown
+            }>
+          }>
+        }
+      }>
+    }
+    const outcome = effect.paths?.[0]?.resultBlock?.outcomes?.[0]
+    const bonus = outcome?.bonuses?.[0]
+
+    expect(effect.invocation?.range?.amount).toBe(25)
+    expect(typeof effect.invocation?.range?.amount).toBe('number')
+    expect(effect.invocation?.shape?.radius?.amount).toBe(10)
+    expect(typeof effect.invocation?.shape?.radius?.amount).toBe('number')
+    expect(effect.paths?.[0]?.resultBlock?.duration?.amount).toBe(1)
+    expect(typeof effect.paths?.[0]?.resultBlock?.duration?.amount).toBe('number')
+    expect(outcome?.amount).toBe(1)
+    expect(typeof outcome?.amount).toBe('number')
+    expect(bonus?.multiplier).toBe(2)
+    expect(bonus?.min).toBe(1)
+    expect(bonus?.max).toBe(3)
   })
 
   it('round-trips a passive saving-throw effect with passive save-fail/save-success paths', async () => {
@@ -436,7 +586,7 @@ describe('createEffectRepository', () => {
               id: 'entry-1',
               rollRange: [1, 3],
               resultBlock: {
-                id: 'entry-1__result',
+                id: 'entry-1',
                 resultKind: 'SINGLE',
                 duration: {
                   id: 'entry-duration-1',
@@ -459,7 +609,7 @@ describe('createEffectRepository', () => {
               id: 'entry-2',
               rollRange: [4, 6],
               resultBlock: {
-                id: 'entry-2__result',
+                id: 'entry-2',
                 resultKind: 'SINGLE',
                 outcomes: [
                   {

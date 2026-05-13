@@ -36,19 +36,19 @@ export const nightHag: CreatureAuthored = {
     xp: 1800,
     features: [
         {
-            id: S.featureId(4849, 1),
+            id: S.featureId(204, 1),
             label: 'Innate Spellcasting',
             description: "Innate Spellcasting. The hag's innate spellcasting ability is Charisma (spell save DC 14). She can innately cast the following spells, requiring no material components: At will: detect magic, magic missile. 2/day each: plane shift (self only), ray of enfeeblement, sleep.",
             order: 1
         },
         {
-            id: S.featureId(4849, 2),
+            id: S.featureId(204, 2),
             label: 'Magic Resistance',
             description: 'Magic Resistance. The hag has advantage on saving throws against spells and other magical effects.',
             order: 2
         },
         {
-            id: S.featureId(4849, 3),
+            id: S.featureId(204, 3),
             label: 'Claws',
             description: 'Claws. Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 13 (2d8 + 4) slashing damage.',
             effects: [
@@ -107,7 +107,7 @@ export const nightHag: CreatureAuthored = {
             order: 3
         },
         {
-            id: S.featureId(4849, 4),
+            id: S.featureId(204, 4),
             label: 'Change Shape',
             description: "Change Shape. The hag magically polymorphs into a Small or Medium humanoid, or back into her true form. Her statistics are the same in each form. Any equipment she is wearing or carrying isn't transformed. She reverts to her true form if she dies.",
             effects: [
@@ -149,7 +149,7 @@ export const nightHag: CreatureAuthored = {
             order: 4
         },
         {
-            id: S.featureId(4849, 5),
+            id: S.featureId(204, 5),
             label: 'Etherealness',
             description: 'Etherealness. The hag magically enters the Ethereal Plane from the Material Plane, or vice versa. To do so, the hag must have a heartstone in her possession. The hag can affect and be affected only by other creatures on the Ethereal Plane, and creatures on the Material Plane cannot perceive her or interact with her, unless a special ability or magic allows them to.',
             effects: [
@@ -191,7 +191,7 @@ export const nightHag: CreatureAuthored = {
             order: 5
         },
         {
-            id: S.featureId(4849, 6),
+            id: S.featureId(204, 6),
             label: 'Nightmare Haunting (1/Day)',
             description: 'Nightmare Haunting (1/Day). While on the Ethereal Plane, the hag magically touches a sleeping humanoid on the Material Plane. A protection from evil and good spell cast on the target prevents this contact, as does magic circle. As long as the contact persists, the target has dreadful visions. If these visions last for at least 1 hour, the target gains no benefit from its rest, and its hit point maximum is reduced by 5 (1d10). If this effect reduces the target\'s hit point maximum to 0, the target dies, and if the target is awakened by any means other than the end of its rest, the target gains no benefit from that rest. The reduction to the target\'s hit point maximum lasts until removed by a greater restoration spell or similar magic.',
             effects: [

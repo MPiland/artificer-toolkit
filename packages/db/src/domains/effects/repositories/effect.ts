@@ -47,6 +47,7 @@ import { hydrateByIds, orderedHydratedRecords } from '../../../repositories/batc
 type DamageBonus = NonNullable<DamageAuthored['bonuses']>[number]
 type EffectPath = NonNullable<EffectAuthored['paths']>[number]
 type ResultBlock = Extract<EffectPath, { selectionKind: 'FIXED' }>['resultBlock']
+type DbNumeric = number | string
 
 function readScalableValue<TValue extends Record<string, unknown>>(value: Json | null | undefined): ScalableValueAuthored<TValue> | undefined {
   return value == null
@@ -60,6 +61,35 @@ function requireLinkedRecord<T>(value: T | null | undefined, message: string): T
   }
 
   return value
+}
+
+function readNumericValue(ownerId: string, value: DbNumeric, field: string): number {
+  const numericValue = typeof value === 'number' ? value : Number(value)
+
+  if (!Number.isFinite(numericValue)) {
+    throw new Error(`Owned row "${ownerId}" has invalid ${field} "${String(value)}".`)
+  }
+
+  return numericValue
+}
+
+function readOptionalNumericValue(
+  ownerId: string,
+  value: DbNumeric | null | undefined,
+  field: string
+): number | undefined {
+  return value == null
+    ? undefined
+    : readNumericValue(ownerId, value, field)
+}
+
+function requireNumericValue(
+  ownerId: string,
+  value: DbNumeric | null | undefined,
+  field: string,
+  message: string
+): number {
+  return readNumericValue(ownerId, requireLinkedRecord(value, message), field)
 }
 
 function buildActivation(
@@ -341,7 +371,7 @@ async function hydrateRangeById(db: DBLike, id: string) {
     return {
       id,
       rangeKind: kind,
-      amount: requireLinkedRecord(range.min, `Range characteristic "${id}" is missing amount.`),
+      amount: requireNumericValue(id, range.min, 'range.min', `Range characteristic "${id}" is missing amount.`),
       unit: requireMeasurementUnit(id, requireLinkedRecord(range.unit_code, `Range characteristic "${id}" is missing unit_code.`)),
       scaling: readScalableValue<{
         amount: number
@@ -373,7 +403,7 @@ async function hydrateDurationById(db: DBLike, id: string): Promise<DurationAuth
   return {
     id,
     durationKind: kind,
-    amount: requireLinkedRecord(duration.amount, `Duration characteristic "${id}" is missing amount.`),
+    amount: requireNumericValue(id, duration.amount, 'duration.amount', `Duration characteristic "${id}" is missing amount.`),
     scaling: readScalableValue<{ amount: number }>(duration.scaling)
   } as DurationAuthored
 }
@@ -400,7 +430,7 @@ async function hydrateShapeById(db: DBLike, id: string): Promise<ShapeAuthored> 
     const row = requireLinkedRecord(dimensions.get(dimension), `Shape characteristic "${id}" is missing dimension "${dimension}".`)
 
     return {
-      amount: row.amount,
+      amount: requireNumericValue(id, row.amount, `shape.${dimension}.amount`, `Shape characteristic "${id}" is missing ${dimension} amount.`),
       unit: requireMeasurementUnit(id, row.unit_code),
       scaling: readScalableValue<{
         amount: number
@@ -580,9 +610,9 @@ async function hydrateDamageById(db: DBLike, id: string): Promise<DamageAuthored
               id: bonus.id,
               bonusKind: kind,
               ability: requireAbilityCode(bonus.id, requireLinkedRecord(bonus.ability_code, `Damage bonus "${bonus.id}" is missing ability_code.`)),
-              multiplier: bonus.multiplier ?? undefined,
-              min: bonus.min ?? undefined,
-              max: bonus.max ?? undefined,
+              multiplier: readOptionalNumericValue(bonus.id, bonus.multiplier, 'damage_bonus.multiplier'),
+              min: readOptionalNumericValue(bonus.id, bonus.min, 'damage_bonus.min'),
+              max: readOptionalNumericValue(bonus.id, bonus.max, 'damage_bonus.max'),
               order: bonus.sort_order
             } satisfies DamageBonus
 
@@ -591,9 +621,9 @@ async function hydrateDamageById(db: DBLike, id: string): Promise<DamageAuthored
               id: bonus.id,
               bonusKind: kind,
               skillId: requireLinkedRecord(bonus.skill_id, `Damage bonus "${bonus.id}" is missing skill_id.`),
-              multiplier: bonus.multiplier ?? undefined,
-              min: bonus.min ?? undefined,
-              max: bonus.max ?? undefined,
+              multiplier: readOptionalNumericValue(bonus.id, bonus.multiplier, 'damage_bonus.multiplier'),
+              min: readOptionalNumericValue(bonus.id, bonus.min, 'damage_bonus.min'),
+              max: readOptionalNumericValue(bonus.id, bonus.max, 'damage_bonus.max'),
               order: bonus.sort_order
             } satisfies DamageBonus
 
@@ -601,9 +631,9 @@ async function hydrateDamageById(db: DBLike, id: string): Promise<DamageAuthored
             return {
               id: bonus.id,
               bonusKind: kind,
-              multiplier: bonus.multiplier ?? undefined,
-              min: bonus.min ?? undefined,
-              max: bonus.max ?? undefined,
+              multiplier: readOptionalNumericValue(bonus.id, bonus.multiplier, 'damage_bonus.multiplier'),
+              min: readOptionalNumericValue(bonus.id, bonus.min, 'damage_bonus.min'),
+              max: readOptionalNumericValue(bonus.id, bonus.max, 'damage_bonus.max'),
               order: bonus.sort_order
             } satisfies DamageBonus
 
@@ -628,7 +658,7 @@ async function hydrateDamageById(db: DBLike, id: string): Promise<DamageAuthored
           bonuses,
           valueKind,
           scalingKind: SCALING.NONE,
-          amount: requireLinkedRecord(value.amount, `Damage "${id}" FIXED payload is missing amount.`)
+          amount: requireNumericValue(id, value.amount, 'damage_values.amount', `Damage "${id}" FIXED payload is missing amount.`)
         }
 
       case DAMAGE_VALUE_KIND.DICE:
@@ -650,7 +680,7 @@ async function hydrateDamageById(db: DBLike, id: string): Promise<DamageAuthored
           bonuses,
           valueKind,
           scalingKind: SCALING.NONE,
-          amount: requireLinkedRecord(value.amount, `Damage "${id}" POOL payload is missing amount.`)
+          amount: requireNumericValue(id, value.amount, 'damage_values.amount', `Damage "${id}" POOL payload is missing amount.`)
         }
 
       default:
@@ -677,10 +707,10 @@ async function hydrateDamageById(db: DBLike, id: string): Promise<DamageAuthored
         scalingKind: SCALING.PER_LEVEL,
         scalingSource,
         classId: requireLinkedRecord(row.class_id, `Damage "${id}" CLASS_LEVEL scaling is missing class_id.`),
-        amount: value.amount ?? undefined,
-        multiplier: value.multiplier ?? undefined,
-        min: value.min ?? undefined,
-        max: value.max ?? undefined
+        amount: readOptionalNumericValue(id, value.amount, 'damage_values.amount'),
+        multiplier: readOptionalNumericValue(id, value.multiplier, 'damage_values.multiplier'),
+        min: readOptionalNumericValue(id, value.min, 'damage_values.min'),
+        max: readOptionalNumericValue(id, value.max, 'damage_values.max')
       }
     }
 
@@ -692,10 +722,10 @@ async function hydrateDamageById(db: DBLike, id: string): Promise<DamageAuthored
       valueKind,
       scalingKind: SCALING.PER_LEVEL,
       scalingSource,
-      amount: value.amount ?? undefined,
-      multiplier: value.multiplier ?? undefined,
-      min: value.min ?? undefined,
-      max: value.max ?? undefined
+      amount: readOptionalNumericValue(id, value.amount, 'damage_values.amount'),
+      multiplier: readOptionalNumericValue(id, value.multiplier, 'damage_values.multiplier'),
+      min: readOptionalNumericValue(id, value.min, 'damage_values.min'),
+      max: readOptionalNumericValue(id, value.max, 'damage_values.max')
     }
   }
 
@@ -720,7 +750,7 @@ async function hydrateDamageById(db: DBLike, id: string): Promise<DamageAuthored
             level: level.level,
             order: level.sort_order,
             value: {
-              amount: requireLinkedRecord(level.amount, `Damage level "${level.id}" is missing amount.`)
+              amount: requireNumericValue(level.id, level.amount, 'damage_scaling_levels.amount', `Damage level "${level.id}" is missing amount.`)
             }
           }))
         }
@@ -739,7 +769,7 @@ async function hydrateDamageById(db: DBLike, id: string): Promise<DamageAuthored
           level: level.level,
           order: level.sort_order,
           value: {
-            amount: requireLinkedRecord(level.amount, `Damage level "${level.id}" is missing amount.`)
+            amount: requireNumericValue(level.id, level.amount, 'damage_scaling_levels.amount', `Damage level "${level.id}" is missing amount.`)
           }
         }))
       }
@@ -759,7 +789,7 @@ async function hydrateDamageById(db: DBLike, id: string): Promise<DamageAuthored
           id: level.id,
           level: level.level,
           order: level.sort_order,
-          amount: requireLinkedRecord(level.amount, `Damage level "${level.id}" is missing amount.`)
+          amount: requireNumericValue(level.id, level.amount, 'damage_scaling_levels.amount', `Damage level "${level.id}" is missing amount.`)
         }))
       }
     }
@@ -776,7 +806,7 @@ async function hydrateDamageById(db: DBLike, id: string): Promise<DamageAuthored
         id: level.id,
         level: level.level,
         order: level.sort_order,
-        amount: requireLinkedRecord(level.amount, `Damage level "${level.id}" is missing amount.`)
+        amount: requireNumericValue(level.id, level.amount, 'damage_scaling_levels.amount', `Damage level "${level.id}" is missing amount.`)
       }))
     }
   }

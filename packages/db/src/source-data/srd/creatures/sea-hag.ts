@@ -28,25 +28,25 @@ export const seaHag: CreatureAuthored = {
     xp: 450,
     features: [
         {
-            id: S.featureId(3648, 1),
+            id: S.featureId(248, 1),
             label: 'Amphibious',
             description: 'Amphibious. The sea hag can breathe air and water.',
             order: 1
         },
         {
-            id: S.featureId(3648, 2),
+            id: S.featureId(248, 2),
             label: 'Horrific Appearance',
             description: 'Horrific Appearance. Any humanoid that starts its turn within 30 feet of the sea hag and can see the hag must succeed on a Wisdom saving throw or be frightened until the start of its next turn.',
             order: 2
         },
         {
-            id: S.featureId(3648, 3),
+            id: S.featureId(248, 3),
             label: 'Illusory Appearance',
             description: 'Illusory Appearance. The hag covers herself and anything she is wearing or carrying with a magical illusion that makes her look like an ugly creature of her general size and humanoid shape. The effect ends if the hag takes a bonus action to end it or if she dies.',
             order: 3
         },
         {
-            id: S.featureId(3648, 4),
+            id: S.featureId(248, 4),
             label: 'Claws',
             description: 'Claws. Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 10 (2d6 + 3) slashing damage.',
             effects: [
@@ -97,7 +97,7 @@ export const seaHag: CreatureAuthored = {
             order: 4
         },
         {
-            id: S.featureId(3648, 5),
+            id: S.featureId(248, 5),
             label: 'Death Glare',
             description: 'Death Glare. The sea hag targets one creature it can see within 30 feet of it. The target must succeed on a Wisdom saving throw or be frightened until the end of its next turn; if the target has 25 hit points or fewer, it instead drops to 0 hit points.',
             order: 5

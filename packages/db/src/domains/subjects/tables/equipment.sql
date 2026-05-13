@@ -216,7 +216,7 @@ $$;
 * ────────────────────────────────────────────── */
 CREATE TABLE IF NOT EXISTS public.equipment_features (
   equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-  feature_id uuid NOT NULL,
+  feature_id uuid NOT NULL REFERENCES public.features (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   sort_order integer NOT NULL,
   PRIMARY KEY (equipment_id, feature_id)
 );

@@ -33,31 +33,31 @@ export const treant: CreatureAuthored = {
     xp: 5000,
     features: [
         {
-            id: S.featureId(6752, 1),
+            id: S.featureId(271, 1),
             label: 'False Appearance',
             description: 'False Appearance. While the treant remains motionless, it is indistinguishable from a normal tree.',
             order: 1
         },
         {
-            id: S.featureId(6752, 2),
+            id: S.featureId(271, 2),
             label: 'Siege Monster',
             description: 'Siege Monster. The treant deals double damage to objects and structures.',
             order: 2
         },
         {
-            id: S.featureId(6752, 3),
+            id: S.featureId(271, 3),
             label: 'Animate Trees',
             description: 'Animate Trees. The treant magically animates one or two trees it can see within 60 feet of it. The trees act as allies for a day or until the treant ends the effect.',
             order: 3
         },
         {
-            id: S.featureId(6752, 4),
+            id: S.featureId(271, 4),
             label: 'Multiattack',
             description: 'Multiattack. The treant makes two slam attacks.',
             order: 4
         },
         {
-            id: S.featureId(6752, 5),
+            id: S.featureId(271, 5),
             label: 'Slam',
             description: 'Slam. Melee Weapon Attack: +10 to hit, reach 5 ft., one target. Hit: 16 (3d6 + 6) bludgeoning damage.',
             effects: [
@@ -108,7 +108,7 @@ export const treant: CreatureAuthored = {
             order: 5
         },
         {
-            id: S.featureId(6752, 6),
+            id: S.featureId(271, 6),
             label: 'Rock',
             description: 'Rock. Ranged Weapon Attack: +10 to hit, range 60/180 ft., one target. Hit: 28 (4d10 + 6) bludgeoning damage.',
             order: 6

@@ -22,7 +22,7 @@ function optionValues(options: AuthoredListFilter['options']) {
 }
 
 describe('AuthoredList faceted filters', () => {
-  it('matches query text against names, descriptions, and curated search text only', () => {
+  it('matches query text against names, descriptions, curated search text, attributes, and badges', () => {
     const item = {
       ...spellListItems[0],
       name: 'Arcane Lock',
@@ -35,8 +35,8 @@ describe('AuthoredList faceted filters', () => {
     expect(itemMatchesQuery(item, 'arcane')).toBe(true)
     expect(itemMatchesQuery(item, 'container')).toBe(true)
     expect(itemMatchesQuery(item, 'threshold')).toBe(true)
-    expect(itemMatchesQuery(item, 'abjuration')).toBe(false)
-    expect(itemMatchesQuery(item, 'wizard')).toBe(false)
+    expect(itemMatchesQuery(item, 'abjuration')).toBe(true)
+    expect(itemMatchesQuery(item, 'wizard')).toBe(true)
   })
 
   it('narrows filter options from other active filters', () => {

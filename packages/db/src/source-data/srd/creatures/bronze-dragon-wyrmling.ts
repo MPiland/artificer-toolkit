@@ -36,13 +36,13 @@ export const bronzeDragonWyrmling: CreatureAuthored = {
     xp: 450,
     features: [
         {
-            id: S.featureId(6062, 1),
+            id: S.featureId(54, 1),
             label: 'Amphibious',
             description: 'Amphibious. The dragon can breathe air and water.',
             order: 1
         },
         {
-            id: S.featureId(6062, 2),
+            id: S.featureId(54, 2),
             label: 'Bite',
             description: 'Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 8 (1d10 + 3) piercing damage.',
             effects: [
@@ -101,7 +101,7 @@ export const bronzeDragonWyrmling: CreatureAuthored = {
             order: 2
         },
         {
-            id: S.featureId(6062, 3),
+            id: S.featureId(54, 3),
             label: 'Breath Weapons (Recharge 5-6)',
             description: 'The dragon uses one of the following breath weapons.',
             effects: [
