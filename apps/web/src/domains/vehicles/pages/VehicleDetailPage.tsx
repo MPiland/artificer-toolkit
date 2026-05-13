@@ -57,7 +57,7 @@ export function VehicleDetailPage({
     domainQueryKey: queryKeys.content.vehicles.all(),
     draftQueryKey: queryKeys.content.vehicles.draft(vehicleId),
     duplicate: api.content.vehicles.duplicate,
-    hasActiveContent: Boolean(detailState.activeItem),
+    hasActiveContent: detailState.hasActiveContent,
     id: vehicleId,
     navigateEdit: async (subject) => navigate({
       params: buildVehicleRouteParams(subject.publicId, subject.label),
@@ -109,7 +109,7 @@ export function VehicleDetailPage({
       eyebrow='Vehicle'
       facts={getVehicleFacts(item)}
       notice={buildAuthoredDetailNotice({
-        canViewActive: Boolean(detailState.activeItem && detailState.draftItem),
+        canViewActive: detailState.canViewActive,
         domainLabel: 'Vehicle',
         hasInvalidDraft: detailState.hasInvalidDraft,
         isViewingActive: viewActive,

@@ -98,7 +98,7 @@ function extractCharacterIdFromBuilderDraftRoute(req: Request): string {
 async function resolveCharacterRouteSubjectId(
   db: Parameters<typeof createCharacterRepository>[0],
   routeId: string
-): Promise<string> {
+): Promise<string | null> {
   if (uuidPattern.test(routeId)) return routeId.toLowerCase()
 
   const routeIdentity = await createAuthoredRouteIdRepository(db).resolveByPublicIdForUser({
@@ -106,7 +106,7 @@ async function resolveCharacterRouteSubjectId(
     publicId: routeId
   })
 
-  return routeIdentity?.subjectId ?? routeId
+  return routeIdentity?.subjectId ?? null
 }
 
 function stripCharacterBuilderResolution(
@@ -853,6 +853,8 @@ export async function getCharacterBuilderDraftForUser(
   userId: string
 ): Promise<CharacterBuilderDraftDto | null> {
   const resolvedCharacterId = await resolveCharacterRouteSubjectId(db, characterId)
+  if (!resolvedCharacterId) return null
+
   const draft = await createCharacterBuilderDraftRepository(db).findByCharacter({
     characterId: resolvedCharacterId,
     userId
@@ -950,6 +952,8 @@ export async function getCharacterForUser(
   characterId: string
 ): Promise<CharacterBuilderPayloadDto | null> {
   const resolvedCharacterId = await resolveCharacterRouteSubjectId(db, characterId)
+  if (!resolvedCharacterId) return null
+
   const repository = createCharacterRepository(db)
   const [character, activeUpdatedAt] = await Promise.all([
     repository.findAuthoredById(resolvedCharacterId),
@@ -973,6 +977,8 @@ export async function getCharacterSheetForUser(
   characterId: string
 ): Promise<CharacterSheetResponseDto | null> {
   const resolvedCharacterId = await resolveCharacterRouteSubjectId(db, characterId)
+  if (!resolvedCharacterId) return null
+
   const repository = createCharacterRepository(db)
   const [row, character] = await Promise.all([
     repository.findById(resolvedCharacterId),
@@ -1114,6 +1120,10 @@ export async function getCharacterHistoryForUser(
   userId: string
 ): Promise<CharacterHistoryResponseDto> {
   const resolvedCharacterId = await resolveCharacterRouteSubjectId(db, characterId)
+  if (!resolvedCharacterId) {
+    throw createNamedError('NotFoundError', `Character "${characterId}" was not found.`)
+  }
+
   const character = await createCharacterRepository(db).findAuthoredById(resolvedCharacterId)
   if (!character) {
     throw createNamedError('NotFoundError', `Character "${resolvedCharacterId}" was not found.`)

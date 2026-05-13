@@ -63,7 +63,7 @@ export function ClassDetailPage({
     domainQueryKey: queryKeys.content.classes.all(),
     draftQueryKey: queryKeys.content.classes.draft(classId),
     duplicate: api.content.classes.duplicate,
-    hasActiveContent: Boolean(detailState.activeItem),
+    hasActiveContent: detailState.hasActiveContent,
     id: classId,
     navigateEdit: async (subject) => navigate({
       params: buildClassRouteParams(subject.publicId, subject.label),
@@ -115,7 +115,7 @@ export function ClassDetailPage({
       eyebrow={item.category === 'SUBCLASS' ? 'Subclass' : 'Class'}
       facts={[]}
       notice={buildAuthoredDetailNotice({
-        canViewActive: Boolean(detailState.activeItem && detailState.draftItem),
+        canViewActive: detailState.canViewActive,
         domainLabel: 'Class',
         hasInvalidDraft: detailState.hasInvalidDraft,
         isViewingActive: viewActive,

@@ -180,7 +180,8 @@ export async function getAuthoredDomain(
   if (!subjectId) return null
 
   if (input.view === 'draft') {
-    return getAuthoredDomainDraftDetail(db, config, subjectId, userId, input.meta)
+    const draftDetail = await getAuthoredDomainDraftDetail(db, config, subjectId, userId, input.meta)
+    if (draftDetail) return draftDetail
   }
 
   const response = await normalizeAuthoredDetailResponse(db, config.table, await config.findById(db, subjectId), userId)
@@ -218,12 +219,15 @@ async function getAuthoredDomainDraftDetail(
   const draft = await getAuthoredDraft(db, config.subjectKind, subjectId, userId)
   if (!draft) return null
 
-  const item = config.schema.parse(normalizeAuthoredDraftPayload(draft.payload, {
+  const parsedItem = config.schema.safeParse(normalizeAuthoredDraftPayload(draft.payload, {
     subjectId: draft.subjectId,
     label: draft.label,
     systemId: draft.systemId,
     userId: draft.userId
   }))
+  if (!parsedItem.success) return null
+
+  const item = parsedItem.data
   const meta = await resolveDetailMeta(db, config, item, metaKeys)
 
   return {
@@ -261,12 +265,20 @@ async function resolveAuthoredRouteSubjectId(
 ): Promise<string | null> {
   const repository = createAuthoredRouteIdRepository(db)
   if (uuidPattern.test(routeId)) {
+    const subjectId = routeId.toLowerCase()
     const routeIdentity = await repository.resolveBySubjectForUser({
       subjectKind,
-      subjectId: routeId.toLowerCase()
+      subjectId
     })
 
-    return routeIdentity?.subjectId ?? null
+    if (routeIdentity) return routeIdentity.subjectId
+
+    return await repository.canAccessSubjectForUser({
+      subjectKind,
+      subjectId
+    })
+      ? subjectId
+      : null
   }
 
   const routeIdentity = await repository.resolveByPublicIdForUser({

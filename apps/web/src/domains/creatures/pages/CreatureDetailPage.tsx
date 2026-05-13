@@ -61,7 +61,7 @@ export function CreatureDetailPage({
     domainQueryKey: queryKeys.content.creatures.all(),
     draftQueryKey: queryKeys.content.creatures.draft(creatureId),
     duplicate: api.content.creatures.duplicate,
-    hasActiveContent: Boolean(detailState.activeItem),
+    hasActiveContent: detailState.hasActiveContent,
     id: creatureId,
     navigateEdit: async (subject) => navigate({
       params: buildCreatureRouteParams(subject.publicId, subject.label),
@@ -113,7 +113,7 @@ export function CreatureDetailPage({
       eyebrow='Creature'
       facts={getCreatureFacts(item, references)}
       notice={buildAuthoredDetailNotice({
-        canViewActive: Boolean(detailState.activeItem && detailState.draftItem),
+        canViewActive: detailState.canViewActive,
         domainLabel: 'Creature',
         hasInvalidDraft: detailState.hasInvalidDraft,
         isViewingActive: viewActive,

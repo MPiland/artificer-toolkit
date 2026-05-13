@@ -242,6 +242,20 @@ export function createAuthoredRouteIdRepository(db: DBLike) {
       return result.rows[0] ? mapRouteIdentity(result.rows[0]) : null
     },
 
+    async canAccessSubjectForUser(params: {
+      subjectKind: AuthoredRouteSubjectKind
+      subjectId: string
+    }): Promise<boolean> {
+      const result = await sql<{ can_access: boolean }>`
+        select public.can_access_authored_route_id(
+          ${params.subjectKind},
+          ${params.subjectId}::uuid
+        ) as can_access
+      `.execute(db)
+
+      return result.rows[0]?.can_access ?? false
+    },
+
     async seedSrdSubjects(
       subjects: readonly {
         subjectKind: Exclude<AuthoredRouteSubjectKind, 'CHARACTER'>

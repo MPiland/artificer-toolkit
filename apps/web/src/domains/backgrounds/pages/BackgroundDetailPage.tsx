@@ -58,7 +58,7 @@ export function BackgroundDetailPage({
     domainQueryKey: queryKeys.content.backgrounds.all(),
     draftQueryKey: queryKeys.content.backgrounds.draft(backgroundId),
     duplicate: api.content.backgrounds.duplicate,
-    hasActiveContent: Boolean(detailState.activeItem),
+    hasActiveContent: detailState.hasActiveContent,
     id: backgroundId,
     navigateEdit: async (subject) => navigate({
       params: buildBackgroundRouteParams(subject.publicId, subject.label),
@@ -110,7 +110,7 @@ export function BackgroundDetailPage({
       eyebrow='Background'
       facts={[]}
       notice={buildAuthoredDetailNotice({
-        canViewActive: Boolean(detailState.activeItem && detailState.draftItem),
+        canViewActive: detailState.canViewActive,
         domainLabel: 'Background',
         hasInvalidDraft: detailState.hasInvalidDraft,
         isViewingActive: viewActive,

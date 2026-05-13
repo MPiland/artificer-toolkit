@@ -59,7 +59,7 @@ export function RaceDetailPage({
     domainQueryKey: queryKeys.content.races.all(),
     draftQueryKey: queryKeys.content.races.draft(raceId),
     duplicate: api.content.races.duplicate,
-    hasActiveContent: Boolean(detailState.activeItem),
+    hasActiveContent: detailState.hasActiveContent,
     id: raceId,
     navigateEdit: async (subject) => navigate({
       params: buildRaceRouteParams(subject.publicId, subject.label),
@@ -111,7 +111,7 @@ export function RaceDetailPage({
       eyebrow={item.category === 'SUBRACE' ? 'Subrace' : 'Race'}
       facts={[]}
       notice={buildAuthoredDetailNotice({
-        canViewActive: Boolean(detailState.activeItem && detailState.draftItem),
+        canViewActive: detailState.canViewActive,
         domainLabel: 'Race',
         hasInvalidDraft: detailState.hasInvalidDraft,
         isViewingActive: viewActive,

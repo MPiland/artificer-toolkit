@@ -17,9 +17,11 @@ export interface AuthoredDetailResponse<TItem> {
 
 export interface ResolvedAuthoredDetailState<TItem> {
   activeItem: TItem | null
+  canViewActive: boolean
   draft: AuthoredDraftDto | null
   draftItem: TItem | null
   hasInvalidDraft: boolean
+  hasActiveContent: boolean
   item: TItem | null
   mode: AuthoredDetailViewMode
   permissions: AuthoredContentPermissionsDto
@@ -52,13 +54,23 @@ export function resolveAuthoredDetailState<TItem>({
   const activeItem = response?.item ?? null
   const parsedDraft = parseAuthoredDraftPayload(draft ?? null, schema)
   const draftItem = parsedDraft.item ?? null
+  const draftHasActiveContent = parsedDraft.draft?.draftState === 'ACTIVE_WITH_DRAFT'
+  const canViewActive = Boolean(parsedDraft.draft && draftHasActiveContent)
+  const hasActiveContent = Boolean(activeItem) && (
+    viewActive === true ||
+    !parsedDraft.draft ||
+    !draftItem ||
+    draftHasActiveContent
+  )
 
   if (parsedDraft.isInvalid && !activeItem) {
     return {
       activeItem,
+      canViewActive: false,
       draft: parsedDraft.draft,
       draftItem,
       hasInvalidDraft: true,
+      hasActiveContent: false,
       item: null,
       mode: 'invalid-draft-only',
       permissions: defaultDraftPermissions,
@@ -69,9 +81,11 @@ export function resolveAuthoredDetailState<TItem>({
   if (draftItem && !viewActive) {
     return {
       activeItem,
+      canViewActive,
       draft: parsedDraft.draft,
       draftItem,
       hasInvalidDraft: false,
+      hasActiveContent,
       item: draftItem,
       mode: 'draft',
       permissions: response?.permissions ?? defaultDraftPermissions,
@@ -82,9 +96,11 @@ export function resolveAuthoredDetailState<TItem>({
   if (activeItem) {
     return {
       activeItem,
+      canViewActive,
       draft: parsedDraft.draft,
       draftItem,
       hasInvalidDraft: parsedDraft.isInvalid,
+      hasActiveContent: true,
       item: activeItem,
       mode: 'active',
       permissions: response?.permissions ?? defaultDraftPermissions,
@@ -94,9 +110,11 @@ export function resolveAuthoredDetailState<TItem>({
 
   return {
     activeItem,
+    canViewActive: false,
     draft: parsedDraft.draft,
     draftItem,
     hasInvalidDraft: parsedDraft.isInvalid,
+    hasActiveContent: false,
     item: null,
     mode: 'missing',
     permissions: defaultDraftPermissions,

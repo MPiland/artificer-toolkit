@@ -60,7 +60,7 @@ export function EquipmentDetailPage({
     domainQueryKey: queryKeys.content.equipment.all(),
     draftQueryKey: queryKeys.content.equipment.draft(equipmentId),
     duplicate: api.content.equipment.duplicate,
-    hasActiveContent: Boolean(detailState.activeItem),
+    hasActiveContent: detailState.hasActiveContent,
     id: equipmentId,
     navigateEdit: async (subject) => navigate({
       params: buildEquipmentRouteParams(subject.publicId, subject.label),
@@ -112,7 +112,7 @@ export function EquipmentDetailPage({
       eyebrow='Equipment'
       facts={getEquipmentFacts(item, references)}
       notice={buildAuthoredDetailNotice({
-        canViewActive: Boolean(detailState.activeItem && detailState.draftItem),
+        canViewActive: detailState.canViewActive,
         domainLabel: 'Equipment',
         hasInvalidDraft: detailState.hasInvalidDraft,
         isViewingActive: viewActive,

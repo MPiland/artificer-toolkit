@@ -55,7 +55,7 @@ export function FeatDetailPage({
     domainQueryKey: queryKeys.content.feats.all(),
     draftQueryKey: queryKeys.content.feats.draft(featId),
     duplicate: api.content.feats.duplicate,
-    hasActiveContent: Boolean(detailState.activeItem),
+    hasActiveContent: detailState.hasActiveContent,
     id: featId,
     navigateEdit: async (subject) => navigate({
       params: buildFeatRouteParams(subject.publicId, subject.label),
@@ -107,7 +107,7 @@ export function FeatDetailPage({
       eyebrow='Feat'
       facts={[]}
       notice={buildAuthoredDetailNotice({
-        canViewActive: Boolean(detailState.activeItem && detailState.draftItem),
+        canViewActive: detailState.canViewActive,
         domainLabel: 'Feat',
         hasInvalidDraft: detailState.hasInvalidDraft,
         isViewingActive: viewActive,

@@ -89,7 +89,7 @@ export function SpellDetailPage({
     domainQueryKey: queryKeys.content.spells.all(),
     draftQueryKey: queryKeys.content.spells.draft(spellId),
     duplicate: api.content.spells.duplicate,
-    hasActiveContent: Boolean(detailState.activeItem),
+    hasActiveContent: detailState.hasActiveContent,
     id: spellId,
     navigateEdit: async (subject) => navigate({
       params: buildSpellRouteParams(subject.publicId, subject.label),
@@ -141,7 +141,7 @@ export function SpellDetailPage({
       afterFacts={<AuthoredDetailPillList label='Available For' items={getSpellClassLabels(item, references)} />}
       facts={getSpellFacts(item, references)}
       notice={buildAuthoredDetailNotice({
-        canViewActive: Boolean(detailState.activeItem && detailState.draftItem),
+        canViewActive: detailState.canViewActive,
         domainLabel: 'Spell',
         hasInvalidDraft: detailState.hasInvalidDraft,
         isViewingActive: viewActive,

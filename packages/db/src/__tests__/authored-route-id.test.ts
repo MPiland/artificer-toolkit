@@ -22,6 +22,7 @@ describe('authored route ids', () => {
 
     expect(publicIdResolver).toContain('public.can_access_authored_route_id(subject_kind, subject_id)')
     expect(subjectResolver).toContain('public.can_access_authored_route_id(subject_kind, subject_id)')
+    expect(subjectResolver).toContain('async canAccessSubjectForUser')
   })
 
   it('keeps authored detail UUID fallbacks behind the user-scoped route-id resolver', () => {
@@ -33,6 +34,7 @@ describe('authored route ids', () => {
 
     expect(resolver).toContain('uuidPattern.test(routeId)')
     expect(resolver).toContain('resolveBySubjectForUser')
+    expect(resolver).toContain('canAccessSubjectForUser')
     expect(resolver).toContain('resolveByPublicIdForUser')
     expect(resolver).toContain('return routeIdentity?.subjectId ?? null')
     expect(resolver).not.toContain('return routeId.toLowerCase()')
