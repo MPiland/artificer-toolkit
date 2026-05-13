@@ -26,10 +26,10 @@ describe('creature list mapper', () => {
     expect(master?.permissions.canCopy).toBe(true)
   })
 
-  it('builds category, status, and source filters', () => {
+  it('builds category and source filters', () => {
     const filters = buildCreatureListFilters(creatureListResponseFixture)
 
-    expect(filters.map((filter) => filter.key)).toEqual(['category', 'status', 'source'])
+    expect(filters.map((filter) => filter.key)).toEqual(['category', 'source'])
     expect(filters[0].options.map((option) => option.label)).toContain('Beast')
     expect(filters[0].options.map((option) => option.label)).toEqual([
       'Beast',

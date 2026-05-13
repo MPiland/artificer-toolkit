@@ -10,13 +10,14 @@ import { createProficiencyGrantRepository } from '../../grants/repositories/prof
 import { createSenseGrantRepository } from '../../grants/repositories/sense.js'
 import { createSpellGrantRepository } from '../../grants/repositories/spell.js'
 import type { FeatRepository, RepositoryFindAllOptions } from '../../../repositories/contracts.js'
+import { hydrateByIds, orderedHydratedRecords } from '../../../repositories/batch.js'
 import { hydrateSubjectStatus } from '../status.js'
 
 function requireLinkedRecord<T>(
-  value: T | null,
+  value: T | null | undefined,
   message: string
 ): T {
-  if (value === null) {
+  if (value == null) {
     throw new Error(message)
   }
 
@@ -66,7 +67,7 @@ async function hydrateFeatById(
   const [
     charge,
     prerequisite,
-    effects,
+    effectsById,
     featureLinksOrdered,
     proficiencyLinks,
     senseLinks,
@@ -75,7 +76,7 @@ async function hydrateFeatById(
   ] = await Promise.all([
     row.charge_id ? hydrateChargeById(db, row.charge_id) : Promise.resolve(null),
     row.prerequisite_id ? hydrateFacetById<'CHARACTER'>(db, row.prerequisite_id) : Promise.resolve(null),
-    Promise.all(effectLinks.map((link) => effectRepository.findById(link.effect_id))),
+    effectRepository.findByIds(effectLinks.map((link) => link.effect_id)),
     db.selectFrom('feat_features')
       .select(['feature_id', 'sort_order'])
       .where('feat_id', '=', id)
@@ -104,25 +105,25 @@ async function hydrateFeatById(
   ])
 
   const [
-    features,
-    proficiencies,
-    senses,
-    spells,
-    modifiers
+    featuresById,
+    proficienciesById,
+    sensesById,
+    spellsById,
+    modifiersById
   ] = await Promise.all([
-    Promise.all(featureLinksOrdered.map((link) => featureRepository.findById(link.feature_id))),
-    Promise.all(proficiencyLinks.map((link) => proficiencyRepository.findById(link.proficiency_grant_id))),
-    Promise.all(senseLinks.map((link) => senseRepository.findById(link.sense_grant_id))),
-    Promise.all(spellLinks.map((link) => spellRepository.findById(link.spell_grant_id))),
-    Promise.all(modifierLinks.map((link) => modifierRepository.findById(link.modifier_grant_id)))
+    featureRepository.findByIds(featureLinksOrdered.map((link) => link.feature_id)),
+    proficiencyRepository.findByIds(proficiencyLinks.map((link) => link.proficiency_grant_id)),
+    senseRepository.findByIds(senseLinks.map((link) => link.sense_grant_id)),
+    spellRepository.findByIds(spellLinks.map((link) => link.spell_grant_id)),
+    modifierRepository.findByIds(modifierLinks.map((link) => link.modifier_grant_id))
   ])
 
-  const authoredFeatures = features.map((feature, index) => requireLinkedRecord(feature, `Feat "${id}" is linked to missing feature "${featureLinksOrdered[index]?.feature_id}".`))
-  const authoredEffects = effects.map((effect, index) => requireLinkedRecord(effect, `Feat "${id}" is linked to missing effect "${effectLinks[index]?.effect_id}".`))
-  const authoredProficiencies = proficiencies.map((grant, index) => requireLinkedRecord(grant, `Feat "${id}" is linked to missing proficiency grant "${proficiencyLinks[index]?.proficiency_grant_id}".`))
-  const authoredSenses = senses.map((grant, index) => requireLinkedRecord(grant, `Feat "${id}" is linked to missing sense grant "${senseLinks[index]?.sense_grant_id}".`))
-  const authoredSpells = spells.map((grant, index) => requireLinkedRecord(grant, `Feat "${id}" is linked to missing spell grant "${spellLinks[index]?.spell_grant_id}".`))
-  const authoredModifiers = modifiers.map((grant, index) => requireLinkedRecord(grant, `Feat "${id}" is linked to missing modifier grant "${modifierLinks[index]?.modifier_grant_id}".`))
+  const authoredFeatures = featureLinksOrdered.map((link) => requireLinkedRecord(featuresById.get(link.feature_id), `Feat "${id}" is linked to missing feature "${link.feature_id}".`))
+  const authoredEffects = effectLinks.map((link) => requireLinkedRecord(effectsById.get(link.effect_id), `Feat "${id}" is linked to missing effect "${link.effect_id}".`))
+  const authoredProficiencies = proficiencyLinks.map((link) => requireLinkedRecord(proficienciesById.get(link.proficiency_grant_id), `Feat "${id}" is linked to missing proficiency grant "${link.proficiency_grant_id}".`))
+  const authoredSenses = senseLinks.map((link) => requireLinkedRecord(sensesById.get(link.sense_grant_id), `Feat "${id}" is linked to missing sense grant "${link.sense_grant_id}".`))
+  const authoredSpells = spellLinks.map((link) => requireLinkedRecord(spellsById.get(link.spell_grant_id), `Feat "${id}" is linked to missing spell grant "${link.spell_grant_id}".`))
+  const authoredModifiers = modifierLinks.map((link) => requireLinkedRecord(modifiersById.get(link.modifier_grant_id), `Feat "${id}" is linked to missing modifier grant "${link.modifier_grant_id}".`))
   const authoredCharge = row.charge_id
     ? requireLinkedRecord(charge, `Feat "${id}" is linked to missing charge "${row.charge_id}".`)
     : null
@@ -164,6 +165,10 @@ export function createFeatRepository(db: DBLike): FeatRepository {
       return hydrateFeatById(db, id)
     },
 
+    async findByIds(ids) {
+      return hydrateByIds(ids, (id) => hydrateFeatById(db, id))
+    },
+
     async findAll(filter?: RepositoryFindAllOptions) {
       let query = db
         .selectFrom('feats')
@@ -179,8 +184,10 @@ export function createFeatRepository(db: DBLike): FeatRepository {
       }
 
       const rows = await query.execute()
-      const records = await Promise.all(rows.map((row) => hydrateFeatById(db, row.id)))
-      return records.filter((record): record is FeatAuthored => record !== null)
+      return orderedHydratedRecords(
+        rows.map((row) => row.id),
+        await hydrateByIds(rows.map((row) => row.id), (id) => hydrateFeatById(db, id))
+      )
     }
   }
 }

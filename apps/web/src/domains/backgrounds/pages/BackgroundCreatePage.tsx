@@ -23,6 +23,7 @@ import {
   useActivateBackgroundMutation,
   useSaveBackgroundDraftMutation
 } from '#app/data/backgrounds/mutations'
+import { buildBackgroundRouteParams } from '#app/routing/authoredRouteParams'
 import {
   createEmptyBackground,
   normalizeBackgroundForSubmit,
@@ -62,7 +63,10 @@ function BackgroundCreateAuthoring({ systemId }: { systemId: string }) {
       notifications.show({ color: 'green', message: 'Background activated.' })
 
       if (response?.item.id) {
-        await navigate({ to: '/backgrounds/$backgroundId', params: { backgroundId: response.item.id } })
+        await navigate({
+          params: buildBackgroundRouteParams(response.publicId, response.item.label),
+          to: '/backgrounds/$backgroundPublicId/$backgroundSlug'
+        })
       }
     } catch {
       notifications.show({ color: 'red', message: 'Could not activate that background yet.' })
@@ -83,7 +87,10 @@ function BackgroundCreateAuthoring({ systemId }: { systemId: string }) {
     try {
       const draft = await draftMutation.mutateAsync(normalizeBackgroundForSubmit(form.state.values))
       notifications.show({ color: 'green', message: 'Background draft saved.' })
-      await navigate({ to: '/backgrounds/$backgroundId/edit', params: { backgroundId: draft.subjectId } })
+      await navigate({
+        params: buildBackgroundRouteParams(draft.publicId, draft.label),
+        to: '/backgrounds/$backgroundPublicId/$backgroundSlug/edit'
+      })
     } catch {
       notifications.show({ color: 'red', message: 'Could not save that draft yet.' })
     }

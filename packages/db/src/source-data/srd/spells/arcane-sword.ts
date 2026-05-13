@@ -1,4 +1,4 @@
-import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, DURATION_KIND, EFFECT_KIND, MANIFEST_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SCALING, SPELL_ATTRIBUTE, SUBJECT, TARGET_SELECTION_KIND, TRIGGER, type SpellAuthored } from '@artificer-toolkit/shared';
+import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, DURATION_KIND, EFFECT_KIND, MANIFEST_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SCALING, SPELL_ATTRIBUTE, SUBJECT, TARGET_SELECTION_KIND, TRIGGER, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared';
 import { CLASS_IDS, SPELL_IDS } from '../ids.js';
 import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js';
 export const arcaneSword: SpellAuthored = {
@@ -9,6 +9,8 @@ export const arcaneSword: SpellAuthored = {
     castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
     level: 7,
     classIds: [CLASS_IDS.BARD, CLASS_IDS.WIZARD],
+    components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC, SPELL_COMPONENT.MATERIAL],
+    materialDescription: "a miniature platinum sword with a grip and pommel of copper and zinc, worth 250 gp",
     magicSchoolId: schoolId('EVOCATION'),
     attributes: [SPELL_ATTRIBUTE.CONCENTRATION],
     effects: [
@@ -126,6 +128,5 @@ export const arcaneSword: SpellAuthored = {
     ],
     userId: SRD_USER_ID,
     systemId: SRD_SYSTEM_ID,
-    materialDescription: 'a miniature platinum sword with a grip and pommel of copper and zinc worth 250 gp, consumed by the spell'
 };
 

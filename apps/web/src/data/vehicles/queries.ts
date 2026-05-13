@@ -1,32 +1,30 @@
-import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
-import { api, type Api } from '#app/lib/api'
+import type { Api, AuthoredDetailRequestDto } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
+import { createAuthoredContentQueries } from '#app/data/authoredContentQueries'
 
-export function getVehicleList(client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.content.vehicles.list(),
-    queryFn: async () => await client.content.vehicles.list()
-  })
+type DetailInput = string | AuthoredDetailRequestDto
+
+const vehicleQueries = createAuthoredContentQueries(
+  (client) => client.content.vehicles,
+  queryKeys.content.vehicles
+)
+
+export function getVehicleList(client?: Api) {
+  return vehicleQueries.getList(client)
 }
 
 export function useGetVehicleList() {
-  return useSuspenseQuery(getVehicleList())
+  return vehicleQueries.useList()
 }
 
-export function getVehicle(id: string, client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.content.vehicles.detail(id),
-    queryFn: async () => await client.content.vehicles.get(id)
-  })
+export function getVehicle(input: DetailInput, client?: Api) {
+  return vehicleQueries.getDetail(input, client)
 }
 
-export function useGetVehicle(id: string) {
-  return useSuspenseQuery(getVehicle(id))
+export function useGetVehicle(input: DetailInput) {
+  return vehicleQueries.useDetail(input)
 }
 
-export function getVehicleDraft(id: string, client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.content.vehicles.draft(id),
-    queryFn: async () => await client.content.vehicles.getDraft(id)
-  })
+export function getVehicleDraft(id: string, client?: Api) {
+  return vehicleQueries.getDraft(id, client)
 }

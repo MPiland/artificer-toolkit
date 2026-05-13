@@ -19,6 +19,7 @@ import {
   usePreviewCharacterSaveMutation,
   useSaveCharacterDraftMutation
 } from '#app/data/characters/mutations'
+import { buildCharacterRouteParams } from '#app/routing/authoredRouteParams'
 import {
   buildCharacterDraftSaveInput,
   getInactiveAbilityIntentMethodLabels,
@@ -31,9 +32,8 @@ import { CharacterSavePreviewModal } from '../components/CharacterSavePreviewMod
 import { useLatestCharacterResolution } from '../hooks/useLatestCharacterResolution'
 
 export function CharacterEditPage() {
-  const route = getRouteApi('/_authed/characters/$characterId/edit')
-  const { draft, draftPayload, response } = route.useLoaderData()
-  const { characterId } = route.useParams()
+  const route = getRouteApi('/_authed/characters/$characterPublicId/$characterSlug/edit')
+  const { characterId, draft, draftPayload, response } = route.useLoaderData()
 
   if (!response && !draftPayload) {
     if (draft) return <InvalidCharacterDraftOnlyState characterId={characterId} />
@@ -175,7 +175,10 @@ function CharacterEditAuthoring({
       })
       notifications.show({ color: 'green', message: 'Character finalized.' })
       await router.invalidate()
-      await navigate({ to: '/characters/$characterId', params: { characterId: response.character.id } })
+      await navigate({
+        params: buildCharacterRouteParams(response.publicId ?? response.character.id, response.character.label),
+        to: '/characters/$characterPublicId/$characterSlug'
+      })
     } catch {
       notifications.show({ color: 'red', message: 'Could not finalize that character yet.' })
     }

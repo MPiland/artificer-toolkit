@@ -1,4 +1,4 @@
-import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, RANGE_KIND, SPELL_ATTRIBUTE, SUBJECT, TRIGGER, type SpellAuthored } from '@artificer-toolkit/shared';
+import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, RANGE_KIND, SPELL_ATTRIBUTE, SUBJECT, TRIGGER, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared';
 import { CLASS_IDS, SPELL_IDS } from '../ids.js';
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js';
 export const identify: SpellAuthored = {
@@ -9,9 +9,10 @@ export const identify: SpellAuthored = {
     castingTime: { unit: CASTING_TIME_UNIT_CODE.MINUTE, amount: 1 },
     level: 1,
     classIds: [CLASS_IDS.BARD, CLASS_IDS.WIZARD],
+    components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC, SPELL_COMPONENT.MATERIAL],
+    materialDescription: "a pearl worth at least 100 gp and an owl feather",
     magicSchoolId: schoolId('DIVINATION'),
     attributes: [SPELL_ATTRIBUTE.RITUAL],
-    materialDescription: 'A pearl worth at least 100 gp and an owl feather.',
     effects: [
         {
             id: spellChildId(SPELL_IDS.IDENTIFY, 0x210, 1),

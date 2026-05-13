@@ -12,9 +12,12 @@ function createFakeDb(rowsByTable: RowMap) {
                 select() {
                     return builder;
                 },
-                where(column: string, _op: string, value: string) {
+                where(column: string, _op: string, value: string | string[]) {
                     state.filtered = state.filtered.filter((row) => {
                         const record = row as Record<string, unknown>;
+                        if (_op === 'in') {
+                            return Array.isArray(value) && value.includes(record[column] as string);
+                        }
                         return record[column] === value;
                     });
                     return builder;

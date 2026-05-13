@@ -37,15 +37,6 @@ export const homePanel = style({
   }
 })
 
-export const homePanelQuiet = style({
-  '@layer': {
-    [app]: {
-      backgroundColor: foundationVars.color.surface.raised,
-      boxShadow: 'none'
-    }
-  }
-})
-
 export const homePanelCopy = style({
   '@layer': {
     [app]: {

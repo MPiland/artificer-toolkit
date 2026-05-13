@@ -9,6 +9,7 @@ const itemSchema = z.object({
 })
 
 const response = {
+  publicId: '1',
   item: {
     id: 'active-id',
     label: 'Active Record',
@@ -31,6 +32,7 @@ function draft(payload: Record<string, unknown>): AuthoredDraftDto {
     id: 'draft-row-id',
     subjectKind: 'SPELL',
     subjectId: 'active-id',
+    publicId: '1',
     userId: 'user-id',
     systemId: 'system-id',
     label: 'Draft Record',

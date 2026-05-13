@@ -8,6 +8,7 @@ import { upsertVehicle } from '../upserts/vehicle.js'
 import { createDetailRepository } from '../../shared/repositories/detail.js'
 import { createFeatureRepository } from '../../features/repositories/feature.js'
 import type { RepositoryFindAllOptions, VehicleRepository } from '../../../repositories/contracts.js'
+import { hydrateByIds, orderedHydratedRecords } from '../../../repositories/batch.js'
 import { hydrateSubjectStatus } from '../status.js'
 
 function requireCategory(
@@ -96,10 +97,12 @@ async function hydrateVehicleById(
 
   const detailRepository = createDetailRepository(db)
   const featureRepository = createFeatureRepository(db, row.system_id)
-  const details = await Promise.all(detailLinks.map((link) => detailRepository.findById(link.detail_id)))
-  const features = await Promise.all(featureLinks.map((link) => featureRepository.findById(link.feature_id)))
-  const authoredDetails = details.map((detail, index) => requireLinkedRecord(detail, `Vehicle "${id}" is linked to missing detail "${detailLinks[index]?.detail_id}".`))
-  const authoredFeatures = features.map((feature, index) => requireLinkedRecord(feature, `Vehicle "${id}" is linked to missing feature "${featureLinks[index]?.feature_id}".`))
+  const [detailsById, featuresById] = await Promise.all([
+    detailRepository.findByIds(detailLinks.map((link) => link.detail_id)),
+    featureRepository.findByIds(featureLinks.map((link) => link.feature_id))
+  ])
+  const authoredDetails = detailLinks.map((link) => requireLinkedRecord(detailsById.get(link.detail_id) ?? null, `Vehicle "${id}" is linked to missing detail "${link.detail_id}".`))
+  const authoredFeatures = featureLinks.map((link) => requireLinkedRecord(featuresById.get(link.feature_id) ?? null, `Vehicle "${id}" is linked to missing feature "${link.feature_id}".`))
 
   return {
     id: row.id,
@@ -135,6 +138,10 @@ export function createVehicleRepository(db: DBLike): VehicleRepository {
       return hydrateVehicleById(db, id)
     },
 
+    async findByIds(ids) {
+      return hydrateByIds(ids, (id) => hydrateVehicleById(db, id))
+    },
+
     async findAll(filter?: RepositoryFindAllOptions) {
       let query = db
         .selectFrom('vehicles')
@@ -150,8 +157,10 @@ export function createVehicleRepository(db: DBLike): VehicleRepository {
       }
 
       const rows = await query.execute()
-      const records = await Promise.all(rows.map((row) => hydrateVehicleById(db, row.id)))
-      return records.filter((record): record is VehicleAuthored => record !== null)
+      return orderedHydratedRecords(
+        rows.map((row) => row.id),
+        await hydrateByIds(rows.map((row) => row.id), (id) => hydrateVehicleById(db, id))
+      )
     }
   }
 }

@@ -10,14 +10,6 @@ function mapPermissions(item: EquipmentListResponseDto['items'][number]): Author
   }
 }
 
-function formatStatus(status: string | undefined): string {
-  if (!status) return 'Draft'
-  return status
-    .toLowerCase()
-    .replaceAll('_', ' ')
-    .replace(/^\w/, (letter) => letter.toUpperCase())
-}
-
 export function formatEquipmentCategory(category: string | undefined): string {
   if (!category) return 'Equipment'
   return category
@@ -37,21 +29,19 @@ export function mapEquipmentListToAuthoredItems(response: EquipmentListResponseD
 
     return {
       id: item.id,
+      publicId: item.publicId,
       name: item.label,
       description: summarizeDescription(item.description),
       attributes: {
         Category: formatEquipmentCategory(category)
       },
-      badges: [formatStatus(item.status)],
       filterValues: {
         category,
-        status: item.status,
         source: item.provenance.kind
       },
       sortValues: {
         category: formatEquipmentCategory(category),
-        name: item.label,
-        status: formatStatus(item.status)
+        name: item.label
       },
       searchText: `${summarizeDescription(item.description)} ${formatEquipmentCategory(category)}`,
       sourceLabel: item.provenance.kind === 'MASTER' ? 'SRD' : 'Homebrew',
@@ -62,7 +52,6 @@ export function mapEquipmentListToAuthoredItems(response: EquipmentListResponseD
 }
 
 export function buildEquipmentListFilters(response: EquipmentListResponseDto): AuthoredListFilter[] {
-  const statuses = Array.from(new Set(response.items.map((item) => item.status))).sort()
   const categories = Array.from(new Set(response.items.map((item) => item.category ?? 'EQUIPMENT'))).sort()
 
   return [
@@ -73,15 +62,6 @@ export function buildEquipmentListFilters(response: EquipmentListResponseDto): A
       options: categories.map((category) => ({
         value: category,
         label: formatEquipmentCategory(category)
-      }))
-    },
-    {
-      key: 'status',
-      label: 'Status',
-      placeholder: 'Any status',
-      options: statuses.map((status) => ({
-        value: status,
-        label: formatStatus(status)
       }))
     },
     {
@@ -96,12 +76,11 @@ export function buildEquipmentListFilters(response: EquipmentListResponseDto): A
   ]
 }
 
-export const equipmentListAttributeColumns = [{ key: 'Category', label: 'Category' }] satisfies AuthoredListAttributeColumn[]
+export const equipmentListAttributeColumns = [{ key: 'Category', label: 'Category', width: 180 }] satisfies AuthoredListAttributeColumn[]
 
 export const equipmentListSortOptions = [
   { value: 'name', label: 'Name A-Z' },
-  { value: 'category', label: 'Category' },
-  { value: 'status', label: 'Status' }
+  { value: 'category', label: 'Category' }
 ]
 
 export function summarizeEquipmentList(response: EquipmentListResponseDto) {

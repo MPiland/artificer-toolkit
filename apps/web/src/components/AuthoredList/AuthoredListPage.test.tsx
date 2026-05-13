@@ -3,9 +3,90 @@ import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { AuthoredListPage } from './AuthoredListPage'
+import type { AuthoredListItem } from './AuthoredList.types'
 import { spellListFilters, spellListItems } from './spellList.fixtures'
 
+function renderSpellList() {
+  return renderWithAppProviders(
+    <AuthoredListPage
+      title='Spells'
+      summary='312 spells / 312 SRD / 0 homebrew'
+      createLabel='Create Spell'
+      items={spellListItems}
+      filters={spellListFilters}
+    />
+  )
+}
+
 describe('AuthoredListPage', () => {
+  it('always exposes active and draft panels with a clear empty draft state', async () => {
+    const user = userEvent.setup()
+
+    renderSpellList()
+
+    expect(screen.getByText(`Active (${spellListItems.length})`)).toBeInTheDocument()
+    expect(screen.getByText('Drafts (0)')).toBeInTheDocument()
+
+    await user.click(screen.getByText('Drafts (0)'))
+
+    expect(screen.getByText('There are currently no draft spells.')).toBeInTheDocument()
+  })
+
+  it('only reserves accent column space for lists with semantic accents', () => {
+    const itemsWithoutAccents: AuthoredListItem[] = spellListItems.map((item) => {
+      const itemWithoutAccent = { ...item }
+      delete itemWithoutAccent.accentColor
+      delete itemWithoutAccent.accentLabel
+
+      return itemWithoutAccent
+    })
+
+    const { rerender } = renderWithAppProviders(
+      <AuthoredListPage
+        title='Spells'
+        summary='312 spells / 312 SRD / 0 homebrew'
+        createLabel='Create Spell'
+        items={spellListItems}
+        filters={spellListFilters}
+      />
+    )
+
+    expect(screen.getByRole('columnheader', { name: /accent/i })).toBeInTheDocument()
+
+    rerender(
+      <AuthoredListPage
+        title='Feats'
+        summary='5 feats / 3 SRD / 2 homebrew'
+        createLabel='Create Feat'
+        items={itemsWithoutAccents}
+        filters={spellListFilters}
+      />
+    )
+
+    expect(screen.queryByRole('columnheader', { name: /accent/i })).not.toBeInTheDocument()
+  })
+
+  it('renders lifecycle status separately from domain attributes', () => {
+    renderWithAppProviders(
+      <AuthoredListPage
+        title='Spells'
+        summary='312 spells / 312 SRD / 0 homebrew'
+        createLabel='Create Spell'
+        items={spellListItems}
+        filters={spellListFilters}
+        attributeColumns={[{ key: 'classes', label: 'Classes', width: 240 }]}
+      />
+    )
+
+    expect(screen.getByRole('columnheader', { name: /classes/i })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: /status/i })).toBeInTheDocument()
+    expect(screen.queryByRole('columnheader', { name: /tags/i })).not.toBeInTheDocument()
+
+    const row = screen.getByRole('row', { name: /magic missile/i })
+    expect(within(row).getByText('Wizard')).toBeInTheDocument()
+    expect(within(row).getByText('Active')).toBeInTheDocument()
+  })
+
   it('renders owned and locked master records with permission-aware actions', () => {
     renderWithAppProviders(
       <AuthoredListPage
@@ -47,6 +128,26 @@ describe('AuthoredListPage', () => {
     await user.click(screen.getByRole('row', { name: /magic missile/i }))
 
     expect(onView).toHaveBeenCalledWith(expect.objectContaining({ id: 'magic-missile' }))
+  })
+
+  it('preloads view data when a viewable row receives pointer intent', async () => {
+    const user = userEvent.setup()
+    const onViewIntent = vi.fn()
+
+    renderWithAppProviders(
+      <AuthoredListPage
+        title='Spells'
+        summary='312 spells / 312 SRD / 0 homebrew'
+        createLabel='Create Spell'
+        items={spellListItems}
+        filters={spellListFilters}
+        onViewIntent={onViewIntent}
+      />
+    )
+
+    await user.hover(screen.getByRole('row', { name: /magic missile/i }))
+
+    expect(onViewIntent).toHaveBeenCalledWith(expect.objectContaining({ id: 'magic-missile' }))
   })
 
   it('does not open table rows or cards when view permission is false', async () => {
@@ -97,15 +198,7 @@ describe('AuthoredListPage', () => {
   it('filters records by search text', async () => {
     const user = userEvent.setup()
 
-    renderWithAppProviders(
-      <AuthoredListPage
-        title='Spells'
-        summary='312 spells / 312 SRD / 0 homebrew'
-        createLabel='Create Spell'
-        items={spellListItems}
-        filters={spellListFilters}
-      />
-    )
+    renderSpellList()
 
     await user.type(screen.getByRole('textbox', { name: /search spells/i }), 'ember')
 
@@ -154,6 +247,29 @@ describe('AuthoredListPage', () => {
     expect(within(ownedCard).getByRole('button', { name: /edit/i })).toBeEnabled()
     expect(within(ownedCard).getByRole('button', { name: /duplicate/i })).toBeEnabled()
     expect(within(ownedCard).getByRole('button', { name: /delete/i })).toBeEnabled()
+  })
+
+  it('places spell card level in the header and source/actions in the footer', () => {
+    renderWithAppProviders(
+      <AuthoredListPage
+        title='Spells'
+        summary='312 spells / 312 SRD / 0 homebrew'
+        createLabel='Create Spell'
+        items={spellListItems}
+        filters={spellListFilters}
+        attributeColumns={[{ key: 'level', label: 'Lvl', width: 76 }, { key: 'school', label: 'School' }]}
+        initialViewMode='cards'
+      />
+    )
+
+    const card = screen.getByLabelText(/view magic missile/i)
+    const [header, featureRow, footer] = Array.from(card.children)
+
+    expect(header).toHaveTextContent('1')
+    expect(header).not.toHaveTextContent('SRD')
+    expect(featureRow).not.toHaveTextContent('1')
+    expect(footer).toHaveTextContent('SRD')
+    expect(within(footer as HTMLElement).getByRole('button', { name: /duplicate magic missile/i })).toBeEnabled()
   })
 
   it('filters card view records by search text', async () => {

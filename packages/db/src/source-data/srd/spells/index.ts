@@ -43,18 +43,15 @@ import { colorSpray } from './color-spray.js'
 import { command } from './command.js'
 import { commune } from './commune.js'
 import { communeWithNature } from './commune-with-nature.js'
-import { compelledDuel } from './compelled-duel.js'
 import { comprehendLanguages } from './comprehend-languages.js'
 import { compulsion } from './compulsion.js'
 import { coneOfCold } from './cone-of-cold.js'
 import { confusion } from './confusion.js'
 import { conjureAnimals } from './conjure-animals.js'
-import { conjureBarrage } from './conjure-barrage.js'
 import { conjureCelestial } from './conjure-celestial.js'
 import { conjureElemental } from './conjure-elemental.js'
 import { conjureFey } from './conjure-fey.js'
 import { conjureMinorElementals } from './conjure-minor-elementals.js'
-import { conjureVolley } from './conjure-volley.js'
 import { conjureWoodlandBeings } from './conjure-woodland-beings.js'
 import { contactOtherPlane } from './contact-other-plane.js'
 import { contagion } from './contagion.js'
@@ -67,8 +64,6 @@ import { createFoodAndWater } from './create-food-and-water.js'
 import { createOrDestroyWater } from './create-or-destroy-water.js'
 import { createUndead } from './create-undead.js'
 import { creation } from './creation.js'
-import { crownOfMadness } from './crown-of-madness.js'
-import { crusadersMantle } from './crusaders-mantle.js'
 import { cureWounds } from './cure-wounds.js'
 import { dancingLights } from './dancing-lights.js'
 import { darkness } from './darkness.js'
@@ -86,7 +81,6 @@ import { disintegrate } from './disintegrate.js'
 import { dispelEvilAndGood } from './dispel-evil-and-good.js'
 import { dispelMagic } from './dispel-magic.js'
 import { disguiseSelf } from './disguise-self.js'
-import { dissonantWhispers } from './dissonant-whispers.js'
 import { divination } from './divination.js'
 import { divineFavor } from './divine-favor.js'
 import { divineWord } from './divine-word.js'
@@ -111,7 +105,6 @@ import { falseLife } from './false-life.js'
 import { fear } from './fear.js'
 import { featherFall } from './feather-fall.js'
 import { feeblemind } from './feeblemind.js'
-import { feignDeath } from './feign-death.js'
 import { forcecage } from './forcecage.js'
 import { findFamiliar } from './find-familiar.js'
 import { findSteed } from './find-steed.js'
@@ -139,7 +132,6 @@ import { glibness } from './glibness.js'
 import { globeOfInvulnerability } from './globe-of-invulnerability.js'
 import { glyphOfWarding } from './glyph-of-warding.js'
 import { goodberry } from './goodberry.js'
-import { graspingVine } from './grasping-vine.js'
 import { grease } from './grease.js'
 import { greaterInvisibility } from './greater-invisibility.js'
 import { greaterRestoration } from './greater-restoration.js'
@@ -158,12 +150,10 @@ import { heatMetal } from './heat-metal.js'
 import { hellishRebuke } from './hellish-rebuke.js'
 import { heroesFeast } from './heroes-feast.js'
 import { heroism } from './heroism.js'
-import { hex } from './hex.js'
 import { hideousLaughter } from './hideous-laughter.js'
 import { holdMonster } from './hold-monster.js'
 import { holdPerson } from './hold-person.js'
 import { holyAura } from './holy-aura.js'
-import { hungerOfHadar } from './hunger-of-hadar.js'
 import { huntersMark } from './hunters-mark.js'
 import { hypnoticPattern } from './hypnotic-pattern.js'
 import { iceStorm } from './ice-storm.js'
@@ -278,7 +268,6 @@ import { wardingBond } from './warding-bond.js'
 import { web } from './web.js'
 import { windWall } from './wind-wall.js'
 import { wordOfRecall } from './word-of-recall.js'
-import { wrathfulSmite } from './wrathful-smite.js'
 import { zoneOfTruth } from './zone-of-truth.js'
 import { circleOfDeath } from './circle-of-death.js'
 import { foresight } from './foresight.js'
@@ -369,18 +358,15 @@ const itemSpells = [
 	command,
 	commune,
 	communeWithNature,
-	compelledDuel,
 	comprehendLanguages,
 	compulsion,
 	coneOfCold,
 	confusion,
 	conjureAnimals,
-	conjureBarrage,
 	conjureCelestial,
 	conjureElemental,
 	conjureFey,
 	conjureMinorElementals,
-	conjureVolley,
 	conjureWoodlandBeings,
 	contactOtherPlane,
 	contagion,
@@ -393,8 +379,6 @@ const itemSpells = [
 	createOrDestroyWater,
 	createUndead,
 	creation,
-	crownOfMadness,
-	crusadersMantle,
 	cureWounds,
 	dancingLights,
 	darkness,
@@ -412,7 +396,6 @@ const itemSpells = [
 	dispelEvilAndGood,
 	dispelMagic,
 	disguiseSelf,
-	dissonantWhispers,
 	divination,
 	divineFavor,
 	divineWord,
@@ -437,7 +420,6 @@ const itemSpells = [
 	fear,
 	featherFall,
 	feeblemind,
-	feignDeath,
 	forcecage,
 	findFamiliar,
 	findSteed,
@@ -465,7 +447,6 @@ const itemSpells = [
 	globeOfInvulnerability,
 	glyphOfWarding,
 	goodberry,
-	graspingVine,
 	grease,
 	greaterInvisibility,
 	greaterRestoration,
@@ -484,12 +465,10 @@ const itemSpells = [
 	hellishRebuke,
 	heroesFeast,
 	heroism,
-	hex,
 	hideousLaughter,
 	holdMonster,
 	holdPerson,
 	holyAura,
-	hungerOfHadar,
 	huntersMark,
 	hypnoticPattern,
 	iceStorm,
@@ -604,7 +583,6 @@ const itemSpells = [
 	web,
 	windWall,
 	wordOfRecall,
-	wrathfulSmite,
 	zoneOfTruth,
 	circleOfDeath,
 	foresight,

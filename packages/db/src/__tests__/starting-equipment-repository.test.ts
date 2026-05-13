@@ -19,9 +19,13 @@ function createFakeDb(rowsByTable: RowMap) {
         select() {
           return builder
         },
-        where(column: string, _op: string, value: string) {
+        where(column: string, op: string, value: string | string[]) {
           state.filtered = state.filtered.filter((row) => {
             const record = row as Record<string, unknown>
+            if (op === 'in' && Array.isArray(value)) {
+              return value.includes(String(record[column]))
+            }
+
             return record[column] === value
           })
           return builder
@@ -189,6 +193,57 @@ describe('createStartingEquipmentRepository', () => {
     await expect(repository.findById('se-bad-selected-ids')).rejects.toThrow(
       'missing equipmentIds'
     )
+  })
+
+  it('hydrates selected chosen equipment with count', async () => {
+    const repository = createStartingEquipmentRepository(createFakeDb({
+      starting_equipment: [{ id: 'se-selected-chosen' }],
+      starting_equipment_sets: [{ id: 'set-selected-chosen', starting_equipment_id: 'se-selected-chosen', sort_order: 1 }],
+      starting_equipment_groups: [{ id: 'group-selected-chosen', equipment_set_id: 'set-selected-chosen', sort_order: 1 }],
+      starting_equipment_options: [{ id: 'option-selected-chosen', equipment_group_id: 'group-selected-chosen', sort_order: 1 }],
+      starting_equipment_option_items: [
+        {
+          id: 'item-selected-chosen',
+          equipment_option_id: 'option-selected-chosen',
+          starting_equipment_kind: 'EQUIPMENT',
+          authoring_mode_kind: 'SELECTED',
+          selection_kind: 'CHOSEN',
+          category_code: 'WEAPON',
+          count: 1,
+          quantity: null,
+          sort_order: 1
+        }
+      ],
+      starting_equipment_option_item_equipment: [
+        { option_item_id: 'item-selected-chosen', equipment_id: 'equipment-1' }
+      ],
+      starting_equipment_option_item_properties: [],
+      starting_equipment_currencies: []
+    }) as never)
+
+    await expect(repository.findById('se-selected-chosen')).resolves.toMatchObject({
+      sets: [
+        {
+          groups: [
+            {
+              options: [
+                {
+                  items: [
+                    {
+                      id: 'item-selected-chosen',
+                      authoringModeKind: 'SELECTED',
+                      selectionKind: 'CHOSEN',
+                      count: 1,
+                      equipmentIds: ['equipment-1']
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    })
   })
 
   it('fails loudly when a currency item is missing persisted currencies', async () => {

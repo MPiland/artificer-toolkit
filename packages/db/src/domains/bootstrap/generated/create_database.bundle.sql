@@ -2596,7 +2596,7 @@ CREATE TABLE IF NOT EXISTS public.saving_throws (
   id uuid PRIMARY KEY,
 
   saving_throw_kind text NOT NULL,          -- SAVING_THROW_KIND (string)
-  ability_code text,                -- ABILITY_CODE (FIXED_VALUE only)
+  ability_code text,                -- ABILITY_CODE rolled by the target
 
   dc integer,                        -- only for FIXED_VALUE
 
@@ -2607,7 +2607,7 @@ CREATE TABLE IF NOT EXISTS public.saving_throws (
     saving_throw_kind IN ('SOURCE_SAVE_DC', 'FIXED_VALUE')
   ),
   CONSTRAINT saving_throws_payload_chk CHECK (
-    (saving_throw_kind = 'SOURCE_SAVE_DC' AND ability_code IS NULL AND dc IS NULL)
+    (saving_throw_kind = 'SOURCE_SAVE_DC' AND ability_code IS NOT NULL AND dc IS NULL)
     OR (saving_throw_kind = 'FIXED_VALUE' AND ability_code IS NOT NULL AND dc IS NOT NULL)
   )
 );
@@ -6216,7 +6216,7 @@ CREATE TABLE IF NOT EXISTS public.equipment (
   status text NOT NULL DEFAULT 'DRAFT',
   category text NOT NULL, -- EquipmentCategoryCode
   rarity_id uuid NOT NULL REFERENCES public.rarities (id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
-  cost_amount numeric,
+  cost_amount integer,
   cost_currency_id uuid REFERENCES public.currencies (id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
   weight_amount numeric,
   weight_unit text,
@@ -7819,6 +7819,46 @@ END;
 $$;
 
 ALTER TABLE IF EXISTS public.character_hit_dice_state ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.character_spell_slot_state (
+  character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
+  slot_key text NOT NULL,
+  used integer NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT NOW(),
+  updated_at timestamptz NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (character_id, slot_key),
+  CONSTRAINT character_spell_slot_state_used_chk CHECK (used >= 0)
+);
+
+CREATE INDEX IF NOT EXISTS idx_character_spell_slot_state_character_id
+  ON public.character_spell_slot_state (character_id);
+
+ALTER TABLE IF EXISTS public.character_spell_slot_state ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.character_conditions (
+  character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
+  condition_type_id uuid NOT NULL REFERENCES public.condition_types (id) ON DELETE CASCADE DEFERRABLE,
+  notes text,
+  created_at timestamptz NOT NULL DEFAULT NOW(),
+  updated_at timestamptz NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (character_id, condition_type_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_character_conditions_condition_type_id
+  ON public.character_conditions (condition_type_id);
+
+ALTER TABLE IF EXISTS public.character_conditions ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.character_exhaustion (
+  character_id uuid PRIMARY KEY REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
+  level integer NOT NULL DEFAULT 0,
+  notes text,
+  created_at timestamptz NOT NULL DEFAULT NOW(),
+  updated_at timestamptz NOT NULL DEFAULT NOW(),
+  CONSTRAINT character_exhaustion_level_chk CHECK (level >= 0 AND level <= 6)
+);
+
+ALTER TABLE IF EXISTS public.character_exhaustion ENABLE ROW LEVEL SECURITY;
 
 
 DO $$

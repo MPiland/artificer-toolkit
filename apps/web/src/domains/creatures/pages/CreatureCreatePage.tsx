@@ -23,6 +23,7 @@ import {
   useActivateCreatureMutation,
   useSaveCreatureDraftMutation
 } from '#app/data/creatures/mutations'
+import { buildCreatureRouteParams } from '#app/routing/authoredRouteParams'
 import {
   createEmptyCreature,
   normalizeCreatureForSubmit,
@@ -62,7 +63,10 @@ function CreatureCreateAuthoring({ systemId }: { systemId: string }) {
       notifications.show({ color: 'green', message: 'Creature activated.' })
 
       if (response?.item.id) {
-        await navigate({ to: '/creatures/$creatureId', params: { creatureId: response.item.id } })
+        await navigate({
+          params: buildCreatureRouteParams(response.publicId, response.item.label),
+          to: '/creatures/$creaturePublicId/$creatureSlug'
+        })
       }
     } catch {
       notifications.show({ color: 'red', message: 'Could not activate that creature yet.' })
@@ -83,7 +87,10 @@ function CreatureCreateAuthoring({ systemId }: { systemId: string }) {
     try {
       const draft = await draftMutation.mutateAsync(normalizeCreatureForSubmit(form.state.values))
       notifications.show({ color: 'green', message: 'Creature draft saved.' })
-      await navigate({ to: '/creatures/$creatureId/edit', params: { creatureId: draft.subjectId } })
+      await navigate({
+        params: buildCreatureRouteParams(draft.publicId, draft.label),
+        to: '/creatures/$creaturePublicId/$creatureSlug/edit'
+      })
     } catch {
       notifications.show({ color: 'red', message: 'Could not save that draft yet.' })
     }

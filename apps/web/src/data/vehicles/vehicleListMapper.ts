@@ -10,14 +10,6 @@ function mapPermissions(item: VehicleListResponseDto['items'][number]): Authored
   }
 }
 
-function formatStatus(status: string | undefined): string {
-  if (!status) return 'Draft'
-  return status
-    .toLowerCase()
-    .replaceAll('_', ' ')
-    .replace(/^\w/, (letter) => letter.toUpperCase())
-}
-
 export function formatVehicleCategory(category: string | undefined): string {
   if (!category) return 'Vehicle'
   return category
@@ -37,21 +29,19 @@ export function mapVehicleListToAuthoredItems(response: VehicleListResponseDto):
 
     return {
       id: item.id,
+      publicId: item.publicId,
       name: item.label,
       description: summarizeDescription(item.description),
       attributes: {
         Category: formatVehicleCategory(category)
       },
-      badges: [formatStatus(item.status)],
       filterValues: {
         category,
-        status: item.status,
         source: item.provenance.kind
       },
       sortValues: {
         category: formatVehicleCategory(category),
-        name: item.label,
-        status: formatStatus(item.status)
+        name: item.label
       },
       searchText: `${summarizeDescription(item.description)} ${formatVehicleCategory(category)}`,
       sourceLabel: item.provenance.kind === 'MASTER' ? 'SRD' : 'Homebrew',
@@ -62,7 +52,6 @@ export function mapVehicleListToAuthoredItems(response: VehicleListResponseDto):
 }
 
 export function buildVehicleListFilters(response: VehicleListResponseDto): AuthoredListFilter[] {
-  const statuses = Array.from(new Set(response.items.map((item) => item.status))).sort()
   const categories = Array.from(new Set(response.items.map((item) => item.category ?? 'VEHICLE'))).sort()
 
   return [
@@ -73,15 +62,6 @@ export function buildVehicleListFilters(response: VehicleListResponseDto): Autho
       options: categories.map((category) => ({
         value: category,
         label: formatVehicleCategory(category)
-      }))
-    },
-    {
-      key: 'status',
-      label: 'Status',
-      placeholder: 'Any status',
-      options: statuses.map((status) => ({
-        value: status,
-        label: formatStatus(status)
       }))
     },
     {
@@ -96,12 +76,11 @@ export function buildVehicleListFilters(response: VehicleListResponseDto): Autho
   ]
 }
 
-export const vehicleListAttributeColumns = [{ key: 'Category', label: 'Category' }] satisfies AuthoredListAttributeColumn[]
+export const vehicleListAttributeColumns = [{ key: 'Category', label: 'Category', width: 180 }] satisfies AuthoredListAttributeColumn[]
 
 export const vehicleListSortOptions = [
   { value: 'name', label: 'Name A-Z' },
-  { value: 'category', label: 'Category' },
-  { value: 'status', label: 'Status' }
+  { value: 'category', label: 'Category' }
 ]
 
 export function summarizeVehicleList(response: VehicleListResponseDto) {

@@ -1,4 +1,4 @@
-import { ACTIVATION_CODE, AUTHORING_SELECTION_KIND, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, GRANT_KIND, MODIFIER_KIND, MODIFIER_SCOPE_KIND, RANGE_KIND, SUBJECT, TRIGGER, VALUE_DOMAIN_CODE, type SpellAuthored } from '@artificer-toolkit/shared';
+import { ACTIVATION_CODE, AUTHORING_SELECTION_KIND, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, GRANT_KIND, MODIFIER_KIND, MODIFIER_SCOPE_KIND, RANGE_KIND, SUBJECT, TRIGGER, VALUE_DOMAIN_CODE, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared';
 import { CLASS_IDS, SPELL_IDS } from '../ids.js';
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js';
 export const shield: SpellAuthored = {
@@ -9,6 +9,7 @@ export const shield: SpellAuthored = {
     castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
     level: 1,
     classIds: [CLASS_IDS.SORCERER, CLASS_IDS.WIZARD],
+    components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC],
     magicSchoolId: schoolId('ABJURATION'),
     effects: [
         {

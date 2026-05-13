@@ -1,14 +1,15 @@
-import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, CASTING_TIME_UNIT_CODE, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SCALING, SCALING_SOURCE, SUBJECT, TRIGGER, type SpellAuthored } from '@artificer-toolkit/shared'
+import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, CASTING_TIME_UNIT_CODE, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SCALING, SCALING_SOURCE, SUBJECT, TRIGGER, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { creatureTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const massHealingWord: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.MASS_HEALING_WORD,
   label: 'Mass Healing Word',
-  description: 'As you call out words of restoration, up to six creatures of your choice that you can see within range regain hit points. This spell has no effect on undead or constructs.',
+  description: '<p>As you call out words of restoration, up to six creatures of your choice that you can see within range regain hit points. This spell has no effect on undead or constructs.</p><p><strong>At Higher Levels.</strong> When you cast this spell using a spell slot of 4th level or higher, the healing increases by 1d4 for each slot level above 3rd.</p>',
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 3,
   classIds: [CLASS_IDS.CLERIC],
+  components: [SPELL_COMPONENT.VERBAL],
   magicSchoolId: schoolId('EVOCATION'),
   effects: [
     {

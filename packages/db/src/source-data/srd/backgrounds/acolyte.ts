@@ -43,7 +43,10 @@ export const acolyte: BackgroundAuthored = {
   kind: SUBJECT.BACKGROUND,
   id: BACKGROUND_IDS.ACOLYTE,
   label: 'Acolyte',
-  description: 'You have spent your life in the service of a temple to a specific god or pantheon of gods.',
+  description: [
+    '<p>You have spent your life in the service of a temple to a specific god or pantheon of gods. You act as an intermediary between the realm of the holy and the mortal world, performing sacred rites and offering sacrifices to conduct worshipers into the presence of the divine. You are not necessarily a cleric; performing sacred rites is not the same thing as channeling divine power.</p>',
+    '<p>Choose a god, a pantheon of gods, or some other quasi-divine being, then work with your GM to detail the nature of your religious service. You might have been a lesser temple functionary, a priest called to serve differently, the leader of a small cult outside an established temple, or an occult servant who now denies a fiendish master.</p>'
+  ].join(''),
   proficiencies: [
     {
       id: bgId(1, 1, 1),
@@ -73,8 +76,11 @@ export const acolyte: BackgroundAuthored = {
     {
       id: bgId(1, 2, 1),
       label: 'Shelter of the Faithful',
-      description: 'As an acolyte, you command the respect of those who share your faith and can perform the religious ceremonies of your deity.',
-      detail: 'You and your companions can expect free healing and care at a temple, shrine, or other established presence of your faith.',
+      description: '<p>As an acolyte, you command the respect of those who share your faith and can perform the religious ceremonies of your deity.</p>',
+      detail: [
+        '<p>You and your adventuring companions can expect free healing and care at a temple, shrine, or other established presence of your faith, though you must provide any material components needed for spells. Those who share your religion will support you, but only you, at a modest lifestyle.</p>',
+        '<p>You might also have ties to a specific temple dedicated to your chosen deity or pantheon, and you have a residence there. While near your temple, you can call upon the priests for assistance, provided the request is not hazardous and you remain in good standing.</p>'
+      ].join(''),
       order: 0
     }
   ],

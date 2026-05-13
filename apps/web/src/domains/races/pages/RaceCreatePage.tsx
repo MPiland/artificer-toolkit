@@ -23,6 +23,7 @@ import {
   useActivateRaceMutation,
   useSaveRaceDraftMutation
 } from '#app/data/races/mutations'
+import { buildRaceRouteParams } from '#app/routing/authoredRouteParams'
 import {
   createEmptyRace,
   normalizeRaceForSubmit,
@@ -62,7 +63,10 @@ function RaceCreateAuthoring({ systemId }: { systemId: string }) {
       notifications.show({ color: 'green', message: 'Race activated.' })
 
       if (response?.item.id) {
-        await navigate({ to: '/races/$raceId', params: { raceId: response.item.id } })
+        await navigate({
+          params: buildRaceRouteParams(response.publicId, response.item.label),
+          to: '/races/$racePublicId/$raceSlug'
+        })
       }
     } catch {
       notifications.show({ color: 'red', message: 'Could not activate that race yet.' })
@@ -83,7 +87,10 @@ function RaceCreateAuthoring({ systemId }: { systemId: string }) {
     try {
       const draft = await draftMutation.mutateAsync(normalizeRaceForSubmit(form.state.values))
       notifications.show({ color: 'green', message: 'Race draft saved.' })
-      await navigate({ to: '/races/$raceId/edit', params: { raceId: draft.subjectId } })
+      await navigate({
+        params: buildRaceRouteParams(draft.publicId, draft.label),
+        to: '/races/$racePublicId/$raceSlug/edit'
+      })
     } catch {
       notifications.show({ color: 'red', message: 'Could not save that draft yet.' })
     }

@@ -1,4 +1,4 @@
-import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, RANGE_KIND, SUBJECT, TARGET_SELECTION_KIND, TRIGGER, type SpellAuthored } from '@artificer-toolkit/shared';
+import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, RANGE_KIND, SUBJECT, TARGET_SELECTION_KIND, TRIGGER, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared';
 import { CLASS_IDS, SPELL_IDS } from '../ids.js';
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js';
 export const reincarnate: SpellAuthored = {
@@ -9,6 +9,8 @@ export const reincarnate: SpellAuthored = {
     castingTime: { unit: CASTING_TIME_UNIT_CODE.HOUR, amount: 1 },
     level: 5,
     classIds: [CLASS_IDS.DRUID],
+    components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC, SPELL_COMPONENT.MATERIAL],
+    materialDescription: "rare oils and unguents worth at least 1,000 gp, which the spell consumes",
     magicSchoolId: schoolId('TRANSMUTATION'),
     effects: [
         {
@@ -49,7 +51,6 @@ export const reincarnate: SpellAuthored = {
             ]
         }
     ],
-    materialDescription: 'rare oils and unguents worth at least 1,000 gp, which the spell consumes',
     userId: SRD_USER_ID,
     systemId: SRD_SYSTEM_ID
 };

@@ -1,4 +1,4 @@
-import { ACTIVATION_CODE, CASTING_TIME_UNIT_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, DURATION_KIND, EFFECT_KIND, RANGE_KIND, SPELL_ATTRIBUTE, SUBJECT, TARGET_SELECTION_KIND, TRIGGER, type SpellAuthored } from '@artificer-toolkit/shared';
+import { ACTIVATION_CODE, CASTING_TIME_UNIT_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, DURATION_KIND, EFFECT_KIND, RANGE_KIND, SPELL_ATTRIBUTE, SUBJECT, TARGET_SELECTION_KIND, TRIGGER, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared';
 import { CLASS_IDS, SPELL_IDS } from '../ids.js';
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js';
 export const raiseDead: SpellAuthored = {
@@ -8,7 +8,9 @@ export const raiseDead: SpellAuthored = {
     description: 'You return a dead creature you touch to life, provided it has been dead no longer than 10 days. The creature returns with 1 hit point, and the spell also neutralizes poisons and cures nonmagical diseases that affected it at the time of death.',
     castingTime: { unit: CASTING_TIME_UNIT_CODE.HOUR, amount: 1 },
     level: 5,
-    classIds: [CLASS_IDS.CLERIC, CLASS_IDS.PALADIN],
+    classIds: [CLASS_IDS.BARD, CLASS_IDS.CLERIC, CLASS_IDS.PALADIN],
+    components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC, SPELL_COMPONENT.MATERIAL],
+    materialDescription: "a diamond worth at least 500 gp, which the spell consumes",
     magicSchoolId: schoolId('NECROMANCY'),
     attributes: [SPELL_ATTRIBUTE.RITUAL],
     effects: [

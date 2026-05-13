@@ -24,13 +24,14 @@ function characterDescription(item: CharacterListResponseDto['items'][number]): 
 export function mapCharacterListToAuthoredItems(response: CharacterListResponseDto): AuthoredListItem[] {
   return response.items.map((item) => ({
     id: item.id,
+    publicId: item.publicId,
     name: item.label || 'Untitled Character',
     description: characterDescription(item),
     attributes: {
-      Status: formatStatus(item.status),
       Version: item.streamVersion > 0 ? String(item.streamVersion) : 'Draft'
     },
-    badges: item.draft ? ['Draft'] : [formatStatus(item.status)],
+    statusLabel: item.draft ? 'Draft' : formatStatus(item.status),
+    statusTone: item.draft || item.status === 'DRAFT' ? 'draft' : 'default',
     filterValues: {
       status: item.status,
       draftState: item.draft?.draftState ?? 'ACTIVE'
@@ -82,8 +83,7 @@ export function buildCharacterListFilters(response: CharacterListResponseDto): A
 }
 
 export const characterListAttributeColumns = [
-  { key: 'Status', label: 'Status' },
-  { key: 'Version', label: 'Version' }
+  { key: 'Version', label: 'Version', width: 112 }
 ] satisfies AuthoredListAttributeColumn[]
 
 export const characterListSortOptions = [

@@ -34,9 +34,8 @@ describe('featListMapper', () => {
     })
   })
 
-  it('builds status/source filters and a concrete summary', () => {
+  it('builds source filters and a concrete summary', () => {
     expect(buildFeatListFilters(featListResponseFixture)).toEqual([
-      expect.objectContaining({ key: 'status' }),
       expect.objectContaining({ key: 'source' })
     ])
     expect(summarizeFeatList(featListResponseFixture)).toBe('2 feats / 1 SRD / 1 homebrew')

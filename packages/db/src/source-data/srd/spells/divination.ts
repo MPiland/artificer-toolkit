@@ -1,4 +1,4 @@
-import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, RANGE_KIND, SPELL_ATTRIBUTE, SUBJECT, TRIGGER, type SpellAuthored } from '@artificer-toolkit/shared';
+import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, RANGE_KIND, SPELL_ATTRIBUTE, SUBJECT, TRIGGER, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared';
 import { CLASS_IDS, SPELL_IDS } from '../ids.js';
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js';
 export const divination: SpellAuthored = {
@@ -9,6 +9,7 @@ export const divination: SpellAuthored = {
     castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
     level: 4,
     classIds: [CLASS_IDS.CLERIC],
+    components: [SPELL_COMPONENT.SOMATIC],
     magicSchoolId: schoolId('DIVINATION'),
     attributes: [SPELL_ATTRIBUTE.RITUAL],
     effects: [
@@ -50,7 +51,6 @@ export const divination: SpellAuthored = {
             ]
         }
     ],
-    materialDescription: "incense and a sacrificial offering appropriate to your religion worth at least 25 gp, consumed by the spell",
     userId: SRD_USER_ID,
     systemId: SRD_SYSTEM_ID,
 };

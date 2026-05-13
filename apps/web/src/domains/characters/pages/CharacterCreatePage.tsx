@@ -17,6 +17,7 @@ import {
   usePreviewCharacterSaveMutation,
   useSaveCharacterDraftMutation
 } from '#app/data/characters/mutations'
+import { buildCharacterRouteParams } from '#app/routing/authoredRouteParams'
 import {
   buildCharacterDraftSaveInput,
   getInactiveAbilityIntentMethodLabels,
@@ -94,7 +95,10 @@ function CharacterCreateAuthoring({
       setDraftSaveNoticeOpened(false)
       notifications.show({ color: 'green', message: 'Character draft saved.' })
       await router.invalidate()
-      await navigate({ to: '/characters/$characterId/edit', params: { characterId: draft.characterId } })
+      await navigate({
+        params: buildCharacterRouteParams(draft.publicId, draft.label),
+        to: '/characters/$characterPublicId/$characterSlug/edit'
+      })
     } catch {
       notifications.show({ color: 'red', message: 'Could not save that character draft yet.' })
     }
@@ -129,7 +133,10 @@ function CharacterCreateAuthoring({
       })
       notifications.show({ color: 'green', message: 'Character finalized.' })
       await router.invalidate()
-      await navigate({ to: '/characters/$characterId', params: { characterId: response.character.id } })
+      await navigate({
+        params: buildCharacterRouteParams(response.publicId ?? response.character.id, response.character.label),
+        to: '/characters/$characterPublicId/$characterSlug'
+      })
     } catch {
       notifications.show({ color: 'red', message: 'Could not finalize that character yet.' })
     }

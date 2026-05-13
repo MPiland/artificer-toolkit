@@ -1,5 +1,3 @@
-import {
-  useState } from 'react'
 import { Alert,
   Button,
   Stack } from '@mantine/core'
@@ -17,13 +15,14 @@ import {
   buildAuthoredDetailNotice,
   buildDetailStatusLabels,
   compactAuthoredDetailActions,
+  compactAuthoredDetailSections,
   formatEnumLabel,
   formatNumber,
   formatReference,
   formatReferenceLabel,
   formatReferenceLabelList,
+  hasDetailText,
   resolveAuthoredDetailState,
-  summarizeHtml,
   toDetailItems,
   useAuthoredDetailActions,
   type AuthoredDetailFact,
@@ -32,20 +31,23 @@ import {
 import type { AuthoredContentReferenceData } from '#app/data/contentReferences'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
+import { buildCreatureRouteParams } from '#app/routing/authoredRouteParams'
 
 export function CreatureDetailPage({
   creatureId,
   draft,
   references,
-  response
+  response,
+  view
 }: {
   creatureId: string
   draft: AuthoredDraftDto | null
   references: Pick<AuthoredContentReferenceData, 'challengeRatings' | 'conditionTypes' | 'creatureTypes' | 'damageTypes' | 'speeds'>
   response: CreatureResponseDto
+  view: 'active' | 'draft'
 }) {
   const navigate = useNavigate()
-  const [viewActive, setViewActive] = useState(false)
+  const viewActive = view === 'active'
   const detailState = resolveAuthoredDetailState({
     draft,
     response,
@@ -61,7 +63,10 @@ export function CreatureDetailPage({
     duplicate: api.content.creatures.duplicate,
     hasActiveContent: Boolean(detailState.activeItem),
     id: creatureId,
-    navigateEdit: async (id) => navigate({ to: '/creatures/$creatureId/edit', params: { creatureId: id } }),
+    navigateEdit: async (subject) => navigate({
+      params: buildCreatureRouteParams(subject.publicId, subject.label),
+      to: '/creatures/$creaturePublicId/$creatureSlug/edit'
+    }),
     navigateList: async () => navigate({ to: '/creatures' })
   })
 
@@ -86,22 +91,25 @@ export function CreatureDetailPage({
   }
 
   const item = detailState.item
+  const creatureParams = buildCreatureRouteParams(draft?.publicId ?? response?.publicId ?? creatureId, item.label)
   const pageActions = compactAuthoredDetailActions([
-    { label: 'Create New', tone: 'secondary', onClick: () => navigate({ to: '/creatures/new' }) },
     detailState.mode === 'draft'
-      ? { label: 'Resume Draft', tone: 'primary', onClick: () => navigate({ to: '/creatures/$creatureId/edit', params: { creatureId } }) }
+      ? { label: 'Resume Draft', tone: 'primary', onClick: () => navigate({ to: '/creatures/$creaturePublicId/$creatureSlug/edit', params: creatureParams }) }
       : detailState.permissions.canEdit
-        ? { label: 'Edit', tone: 'primary', onClick: () => navigate({ to: '/creatures/$creatureId/edit', params: { creatureId } }) }
+        ? { label: 'Edit', tone: 'primary', onClick: () => navigate({ to: '/creatures/$creaturePublicId/$creatureSlug/edit', params: creatureParams }) }
         : null,
-    detailState.permissions.canCopy
+    detailState.mode === 'active' && detailState.draft
+      ? { label: 'View Draft', tone: 'secondary', onClick: () => navigate({ to: '/creatures/$creaturePublicId/$creatureSlug', params: creatureParams, search: { view: 'draft' } }) }
+      : null,
+    detailState.mode === 'active' && !detailState.draft && detailState.permissions.canCopy
       ? { label: 'Duplicate', tone: 'secondary', disabled: actions.isDuplicating, onClick: () => void actions.duplicateToDraft() }
-      : null
+      : null,
+    { label: 'Create New', tone: 'secondary', onClick: () => navigate({ to: '/creatures/new' }) }
   ])
 
   return (
     <AuthoredDetailLayout
       actions={pageActions}
-      description={summarizeHtml(item.description, 'A creature reference entry ready for table use.')}
       eyebrow='Creature'
       facts={getCreatureFacts(item, references)}
       notice={buildAuthoredDetailNotice({
@@ -111,8 +119,8 @@ export function CreatureDetailPage({
         isViewingActive: viewActive,
         mode: detailState.mode,
         onDiscard: () => void actions.discardDraft(),
-        onViewActive: () => setViewActive(true),
-        onViewDraft: () => setViewActive(false)
+        onViewActive: () => navigate({ to: '/creatures/$creaturePublicId/$creatureSlug', params: creatureParams }),
+        onViewDraft: () => navigate({ to: '/creatures/$creaturePublicId/$creatureSlug', params: creatureParams, search: { view: 'draft' } })
       })}
       sections={getCreatureSections(item, references)}
       status={buildDetailStatusLabels({
@@ -144,98 +152,88 @@ function getCreatureSections(
   creature: CreatureAuthoredDto,
   references: Pick<AuthoredContentReferenceData, 'conditionTypes' | 'damageTypes' | 'speeds'>
 ): AuthoredDetailSectionModel[] {
-  return [
+  const statItems = [
+    ...Object.entries(creature.abilityScores).map(([ability, value]) => ({
+      id: ability,
+      title: formatEnumLabel(ability),
+      meta: String(value)
+    })),
+    ...creature.speeds.map((speed, index) => ({
+      id: `${speed.speedId}-${index}`,
+      title: formatReferenceLabel(speed.speedId, 'Speed', references.speeds),
+      meta: `${speed.amount} ${formatEnumLabel(speed.unit)}`
+    }))
+  ]
+  const defenseItems = [
     {
+      id: 'damage-vulnerabilities',
+      title: 'Damage Vulnerabilities',
+      description: formatReferenceLabelList(creature.damageVulnerabilities, 'damage type', references.damageTypes)
+    },
+    {
+      id: 'damage-resistances',
+      title: 'Damage Resistances',
+      description: formatReferenceLabelList(creature.damageResistances, 'damage type', references.damageTypes)
+    },
+    {
+      id: 'damage-immunities',
+      title: 'Damage Immunities',
+      description: formatReferenceLabelList(creature.damageImmunities, 'damage type', references.damageTypes)
+    },
+    {
+      id: 'condition-immunities',
+      title: 'Condition Immunities',
+      description: formatReferenceLabelList(creature.conditionImmunities, 'condition', references.conditionTypes)
+    }
+  ].filter((item) => item.description !== 'None')
+  const actionItems = [
+    ...toCreatureActionItems('Action', creature.actions),
+    ...toCreatureActionItems('Bonus Action', creature.bonusActions),
+    ...toCreatureActionItems('Reaction', creature.reactions),
+    ...toCreatureActionItems('Lair Action', creature.lairProfile?.lairActions)
+  ]
+  const profileItems = getCreatureProfileItems(creature)
+  const detailItems = [
+    ...toDetailItems(creature.details),
+    ...toDetailItems(creature.features).map((item) => ({
+      id: item.id,
+      title: item.title,
+      description: item.description
+    }))
+  ]
+
+  return compactAuthoredDetailSections([
+    hasDetailText(creature.description) ? {
       id: 'description',
       title: 'Description',
       content: <AuthoredDetailProse html={creature.description} />
-    },
-    {
+    } : null,
+    statItems.length ? {
       id: 'stats',
       title: 'Stats',
-      content: (
-        <AuthoredDetailItemList
-          empty='No stats have been added.'
-          items={[
-            ...Object.entries(creature.abilityScores).map(([ability, value]) => ({
-              id: ability,
-              title: formatEnumLabel(ability),
-              meta: String(value)
-            })),
-            ...creature.speeds.map((speed, index) => ({
-              id: `${speed.speedId}-${index}`,
-              title: formatReferenceLabel(speed.speedId, 'Speed', references.speeds),
-              meta: `${speed.amount} ${formatEnumLabel(speed.unit)}`
-            }))
-          ]}
-        />
-      )
-    },
-    {
+      content: <AuthoredDetailItemList empty='No stats have been added.' items={statItems} />
+    } : null,
+    defenseItems.length ? {
       id: 'defenses',
       title: 'Defenses',
-      content: (
-        <AuthoredDetailItemList
-          empty='No defenses have been added.'
-          items={[
-            {
-              id: 'damage-vulnerabilities',
-              title: 'Damage Vulnerabilities',
-              description: formatReferenceLabelList(creature.damageVulnerabilities, 'damage type', references.damageTypes)
-            },
-            {
-              id: 'damage-resistances',
-              title: 'Damage Resistances',
-              description: formatReferenceLabelList(creature.damageResistances, 'damage type', references.damageTypes)
-            },
-            {
-              id: 'damage-immunities',
-              title: 'Damage Immunities',
-              description: formatReferenceLabelList(creature.damageImmunities, 'damage type', references.damageTypes)
-            },
-            {
-              id: 'condition-immunities',
-              title: 'Condition Immunities',
-              description: formatReferenceLabelList(creature.conditionImmunities, 'condition', references.conditionTypes)
-            }
-          ].filter((item) => item.description !== 'None')}
-        />
-      )
-    },
-    {
+      content: <AuthoredDetailItemList empty='No defenses have been added.' items={defenseItems} />
+    } : null,
+    actionItems.length ? {
       id: 'actions',
       title: 'Actions',
-      content: (
-        <AuthoredDetailItemList
-          empty='No actions have been added.'
-          items={[
-            ...toCreatureActionItems('Action', creature.actions),
-            ...toCreatureActionItems('Bonus Action', creature.bonusActions),
-            ...toCreatureActionItems('Reaction', creature.reactions),
-            ...toCreatureActionItems('Lair Action', creature.lairProfile?.lairActions)
-          ]}
-        />
-      )
-    },
-    {
+      content: <AuthoredDetailItemList empty='No actions have been added.' items={actionItems} />
+    } : null,
+    profileItems.length ? {
       id: 'profile',
       title: 'Profile',
-      content: <AuthoredDetailItemList empty='No profile details have been added.' items={getCreatureProfileItems(creature)} />
-    },
-    {
+      content: <AuthoredDetailItemList empty='No profile details have been added.' items={profileItems} />
+    } : null,
+    detailItems.length ? {
       id: 'details',
       title: 'Details & Features',
-      content: (
-        <AuthoredDetailItemList
-          empty='No creature details or features have been added.'
-          items={[
-            ...toDetailItems(creature.details),
-            ...toDetailItems(creature.features)
-          ]}
-        />
-      )
-    }
-  ]
+      content: <AuthoredDetailItemList empty='No creature details or features have been added.' items={detailItems} />
+    } : null
+  ])
 }
 
 function toCreatureActionItems(

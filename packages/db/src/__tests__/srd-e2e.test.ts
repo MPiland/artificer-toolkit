@@ -267,9 +267,6 @@ describe('SRD source data consistency', () => {
     expect(SPELL_IDS.ELDRITCH_BLAST).toBeDefined()
   })
 
-  it('HEX is defined in SPELL_IDS', () => {
-    expect(SPELL_IDS.HEX).toBeDefined()
-  })
 
   it('THAUMATURGY is defined in SPELL_IDS', () => {
     expect(SPELL_IDS.THAUMATURGY).toBeDefined()

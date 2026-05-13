@@ -1,9 +1,14 @@
 import { Alert, Button, Group, Stack, Text, Title } from '@mantine/core'
 import { Link, useRouter, useRouterState } from '@tanstack/react-router'
 import type { ErrorComponentProps } from '@tanstack/react-router'
+import { useEffect, useState } from 'react'
 import IAlertCircle from '#assets/icons/IAlertCircle'
 import IArrowLeft from '#assets/icons/IArrowLeft'
 import IMapOff from '#assets/icons/IMapOff'
+import { routeLoadingMessages } from './routeLoadingMessages'
+import { loadingCopy, loadingOverlay, loadingPanel, loadingSpinner } from './routeStates.css'
+
+const routeLoadingIntervalMs = 1800
 
 export function RouteNotFound() {
   const homeRoute = useHomeRoute()
@@ -45,6 +50,28 @@ export function RouteErrorState({ error, reset }: ErrorComponentProps) {
         </Button>
       </Group>
     </Stack>
+  )
+}
+
+export function RouteLoadingState() {
+  const [messageIndex, setMessageIndex] = useState(0)
+  const message = routeLoadingMessages[messageIndex] ?? routeLoadingMessages[0]
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setMessageIndex((current) => (current + 1) % routeLoadingMessages.length)
+    }, routeLoadingIntervalMs)
+
+    return () => window.clearInterval(intervalId)
+  }, [])
+
+  return (
+    <div className={loadingOverlay}>
+      <div className={loadingPanel} role='status' aria-live='polite'>
+        <span className={loadingSpinner} aria-hidden='true' />
+        <p className={loadingCopy}>{message}</p>
+      </div>
+    </div>
   )
 }
 

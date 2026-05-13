@@ -11,6 +11,22 @@
  *   queryClient.invalidateQueries({ queryKey: queryKeys.characters.all() })
  */
 
+type AuthoredDetailQueryOptions = {
+  view?: 'active' | 'draft'
+  meta?: readonly string[]
+  includeDraft?: boolean
+}
+
+function authoredDetailKey(id: string, options: AuthoredDetailQueryOptions = {}) {
+  return [
+    'detail',
+    id,
+    options.view ?? 'active',
+    options.includeDraft === true ? 'with-draft' : 'item-only',
+    [...(options.meta ?? [])].sort().join(',')
+  ] as const
+}
+
 export const queryKeys = {
   characters: {
     all: () => ['characters'] as const,
@@ -28,8 +44,8 @@ export const queryKeys = {
     backgrounds: {
       all: () => ['content', 'backgrounds'] as const,
       list: () => ['content', 'backgrounds', 'list'] as const,
-      detail: (id: string) => [
-        'content', 'backgrounds', 'detail', id
+      detail: (id: string, options?: AuthoredDetailQueryOptions) => [
+        'content', 'backgrounds', ...authoredDetailKey(id, options)
       ] as const,
       draft: (id: string) => [
         'content', 'backgrounds', 'draft', id
@@ -38,8 +54,8 @@ export const queryKeys = {
     classes: {
       all: () => ['content', 'classes'] as const,
       list: () => ['content', 'classes', 'list'] as const,
-      detail: (id: string) => [
-        'content', 'classes', 'detail', id
+      detail: (id: string, options?: AuthoredDetailQueryOptions) => [
+        'content', 'classes', ...authoredDetailKey(id, options)
       ] as const,
       draft: (id: string) => [
         'content', 'classes', 'draft', id
@@ -48,8 +64,8 @@ export const queryKeys = {
     equipment: {
       all: () => ['content', 'equipment'] as const,
       list: () => ['content', 'equipment', 'list'] as const,
-      detail: (id: string) => [
-        'content', 'equipment', 'detail', id
+      detail: (id: string, options?: AuthoredDetailQueryOptions) => [
+        'content', 'equipment', ...authoredDetailKey(id, options)
       ] as const,
       draft: (id: string) => [
         'content', 'equipment', 'draft', id
@@ -58,8 +74,8 @@ export const queryKeys = {
     feats: {
       all: () => ['content', 'feats'] as const,
       list: () => ['content', 'feats', 'list'] as const,
-      detail: (id: string) => [
-        'content', 'feats', 'detail', id
+      detail: (id: string, options?: AuthoredDetailQueryOptions) => [
+        'content', 'feats', ...authoredDetailKey(id, options)
       ] as const,
       draft: (id: string) => [
         'content', 'feats', 'draft', id
@@ -68,8 +84,8 @@ export const queryKeys = {
     races: {
       all: () => ['content', 'races'] as const,
       list: () => ['content', 'races', 'list'] as const,
-      detail: (id: string) => [
-        'content', 'races', 'detail', id
+      detail: (id: string, options?: AuthoredDetailQueryOptions) => [
+        'content', 'races', ...authoredDetailKey(id, options)
       ] as const,
       draft: (id: string) => [
         'content', 'races', 'draft', id
@@ -78,12 +94,13 @@ export const queryKeys = {
     spells: {
       all: () => ['content', 'spells'] as const,
       list: () => ['content', 'spells', 'list'] as const,
-      detail: (id: string) => [
-        'content', 'spells', 'detail', id
+      detail: (id: string, options?: AuthoredDetailQueryOptions) => [
+        'content', 'spells', ...authoredDetailKey(id, options)
       ] as const,
       draft: (id: string) => [
         'content', 'spells', 'draft', id
       ] as const,
+      detailReferenceData: () => ['content', 'spells', 'detail-reference-data'] as const,
       referenceData: () => ['content', 'spells', 'reference-data'] as const
     },
     effects: {
@@ -101,8 +118,8 @@ export const queryKeys = {
     creatures: {
       all: () => ['content', 'creatures'] as const,
       list: () => ['content', 'creatures', 'list'] as const,
-      detail: (id: string) => [
-        'content', 'creatures', 'detail', id
+      detail: (id: string, options?: AuthoredDetailQueryOptions) => [
+        'content', 'creatures', ...authoredDetailKey(id, options)
       ] as const,
       draft: (id: string) => [
         'content', 'creatures', 'draft', id
@@ -111,8 +128,8 @@ export const queryKeys = {
     vehicles: {
       all: () => ['content', 'vehicles'] as const,
       list: () => ['content', 'vehicles', 'list'] as const,
-      detail: (id: string) => [
-        'content', 'vehicles', 'detail', id
+      detail: (id: string, options?: AuthoredDetailQueryOptions) => [
+        'content', 'vehicles', ...authoredDetailKey(id, options)
       ] as const,
       draft: (id: string) => [
         'content', 'vehicles', 'draft', id

@@ -53,18 +53,45 @@ const gnomeWalk25 = [{ speedId: walkSpeedId, amount: 25, unit: MEASUREMENT_UNIT_
 export const gnome: RaceAuthored = {
   id: RACE_IDS.GNOME,
   label: 'Gnome',
+  description: '<p>Your gnome character has certain characteristics in common with all other gnomes.</p>',
   category: RACE_CATEGORY_CODE.BASE,
   selectionMode: RACE_SELECTION_MODE.REQUIRES_SUBRACE,
   size: SIZE_CODE.SMALL,
   speeds: gnomeWalk25,
   heritageIds: [SRD_GNOMISH_HERITAGE_ID],
+  details: [
+    {
+      id: raceFeatureId(6, 0, 1),
+      label: 'Age',
+      description: 'Gnomes mature at the same rate humans do, and most are expected to settle down into an adult life by around age 40. They can live 350 to almost 500 years.',
+      order: 0
+    },
+    {
+      id: raceFeatureId(6, 0, 2),
+      label: 'Alignment',
+      description: 'Gnomes are most often good. Those who tend toward law are sages, engineers, researchers, scholars, investigators, or inventors. Those who tend toward chaos are minstrels, tricksters, wanderers, or fanciful jewelers.',
+      order: 1
+    },
+    {
+      id: raceFeatureId(6, 0, 3),
+      label: 'Size',
+      description: 'Gnomes are between 3 and 4 feet tall and average about 40 pounds. Your size is Small.',
+      order: 2
+    },
+    {
+      id: raceFeatureId(6, 0, 4),
+      label: 'Speed',
+      description: 'Your base walking speed is 25 feet.',
+      order: 3
+    }
+  ],
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
   features: [
     {
       id: raceFeatureId(6, 1, 1),
       label: 'Darkvision',
-      description: 'Accustomed to life underground, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light.',
+      description: 'Accustomed to life underground, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You cannot discern color in darkness, only shades of gray.',
       availableAtLevel: 1,
       order: 0,
       grants: {
@@ -156,7 +183,7 @@ export const gnome: RaceAuthored = {
     {
       id: raceFeatureId(6, 4, 1),
       label: 'Languages',
-      description: 'You can speak, read, and write Common and Gnomish.',
+      description: 'You can speak, read, and write Common and Gnomish. The Gnomish language uses the Dwarvish script and is renowned for technical treatises and catalogs of knowledge.',
       availableAtLevel: 1,
       order: 3,
       grants: {
@@ -183,6 +210,7 @@ export const gnome: RaceAuthored = {
 export const rockGnome: RaceAuthored = {
   id: SUBRACE_IDS.ROCK_GNOME,
   label: 'Rock Gnome',
+  description: '<p>As a rock gnome, you have a natural inventiveness and hardiness beyond that of other gnomes.</p>',
   category: RACE_CATEGORY_CODE.SUBRACE,
   parentRaceId: RACE_IDS.GNOME,
   userId: SRD_USER_ID,

@@ -32,9 +32,13 @@ function createFakeDb(rowsByTable: RowMap) {
         selectAll() {
           return builder
         },
-        where(column: string, _op: string, value: string) {
+        where(column: string, op: string, value: string | string[]) {
           state.filtered = state.filtered.filter((row) => {
             const record = row as Record<string, unknown>
+            if (op === 'in' && Array.isArray(value)) {
+              return value.includes(String(record[column]))
+            }
+
             return record[column] === value
           })
           return builder

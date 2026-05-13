@@ -1,4 +1,4 @@
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { AuthoredListPage } from '#components/AuthoredList'
 import {
@@ -8,10 +8,12 @@ import {
   mapCharacterListToAuthoredItems,
   summarizeCharacterList
 } from '#app/data/characters/characterListMapper'
-import { getCharacterList } from '#app/data/characters/queries'
+import { getCharacterDraft, getCharacterList, getCharacterSheet } from '#app/data/characters/queries'
+import { buildCharacterRouteParams } from '#app/routing/authoredRouteParams'
 
 export function CharacterListPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { data } = useSuspenseQuery(getCharacterList())
 
   return (
@@ -24,8 +26,18 @@ export function CharacterListPage() {
       attributeColumns={characterListAttributeColumns}
       sortOptions={characterListSortOptions}
       onCreate={() => navigate({ to: '/characters/new' })}
-      onView={(item) => navigate({ to: '/characters/$characterId', params: { characterId: item.id } })}
-      onEdit={(item) => navigate({ to: '/characters/$characterId/edit', params: { characterId: item.id } })}
+      onView={(item) => navigate({
+        params: buildCharacterRouteParams(item.publicId, item.name),
+        to: '/characters/$characterPublicId/$characterSlug'
+      })}
+      onViewIntent={(item) => {
+        void queryClient.prefetchQuery(getCharacterSheet(item.id))
+        void queryClient.prefetchQuery(getCharacterDraft(item.id))
+      }}
+      onEdit={(item) => navigate({
+        params: buildCharacterRouteParams(item.publicId, item.name),
+        to: '/characters/$characterPublicId/$characterSlug/edit'
+      })}
     />
   )
 }

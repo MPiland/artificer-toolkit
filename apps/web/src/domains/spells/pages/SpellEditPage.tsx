@@ -41,6 +41,7 @@ import {
   normalizeSpellForSubmit
 } from '../spellAuthoring.utils'
 import { SpellAuthoringRenderer } from '../components/SpellAuthoringRenderer'
+import { buildSpellRouteParams } from '#app/routing/authoredRouteParams'
 
 type ParsedSpellDraft = {
   draft: AuthoredDraftDto | null
@@ -49,9 +50,8 @@ type ParsedSpellDraft = {
 }
 
 export function SpellEditPage() {
-  const route = getRouteApi('/_authed/spells/$spellId')
-  const { draft, response } = route.useLoaderData()
-  const { spellId } = route.useParams()
+  const route = getRouteApi('/_authed/spells/$spellPublicId/$spellSlug')
+  const { draft, response, spellId } = route.useLoaderData()
   const parsedDraft: ParsedSpellDraft = parseAuthoredDraftPayload(draft ?? null, spellAuthoringInputDtoSchema)
   const draftSpell = parsedDraft.item
   const activeSpell = response?.item
@@ -106,8 +106,8 @@ function SpellEditAuthoring({
   spell: SpellAuthoringInputDto | SpellAuthoredDto
   spellId: string
 }) {
-  const route = getRouteApi('/_authed/spells/$spellId')
-  const { references: spellReferences } = route.useLoaderData()
+  const route = getRouteApi('/_authed/spells/$spellPublicId/$spellSlug/edit')
+  const spellReferences = route.useLoaderData()
   const navigate = useNavigate()
   const router = useRouter()
   const activateMutation = useActivateSpellMutation()
@@ -130,7 +130,10 @@ function SpellEditAuthoring({
       notifications.show({ color: 'green', message: 'Spell activated.' })
 
       if (response?.item.id && response.item.id !== spellId) {
-        await navigate({ to: '/spells/$spellId', params: { spellId: response.item.id } })
+        await navigate({
+          params: buildSpellRouteParams(response.publicId, response.item.label),
+          to: '/spells/$spellPublicId/$spellSlug'
+        })
         return
       }
 
@@ -180,7 +183,10 @@ function SpellEditAuthoring({
       notifications.show({ color: 'green', message: 'Spell duplicated as an owned draft.' })
 
       if (copied?.subjectId) {
-        await navigate({ to: '/spells/$spellId/edit', params: { spellId: copied.subjectId } })
+        await navigate({
+          params: buildSpellRouteParams(copied.publicId, copied.label),
+          to: '/spells/$spellPublicId/$spellSlug/edit'
+        })
       }
     } catch {
       notifications.show({ color: 'red', message: 'Could not duplicate that spell yet.' })

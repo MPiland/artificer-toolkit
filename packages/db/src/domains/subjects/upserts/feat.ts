@@ -92,40 +92,6 @@ export async function upsertFeat(
       await upsertFacet(trx, json_data.prerequisites)
     }
 
-    for (const effect of authoredEffects) {
-      await upsertEffect(trx, effect)
-    }
-
-    if (json_data.features) {
-      for (const feature of json_data.features) {
-        await upsertFeature(trx, feature, json_data.systemId)
-      }
-    }
-
-    if (json_data.grants?.modifiers) {
-      for (const modifierGrant of json_data.grants.modifiers) {
-        await upsertModifierGrant(trx, modifierGrant, json_data.systemId)
-      }
-    }
-
-    if (json_data.grants?.proficiencies) {
-      for (const proficiencyGrant of json_data.grants.proficiencies) {
-        await upsertProficiencyGrant(trx, proficiencyGrant)
-      }
-    }
-
-    if (json_data.grants?.senses) {
-      for (const senseGrant of json_data.grants.senses) {
-        await upsertSenseGrant(trx, senseGrant)
-      }
-    }
-
-    if (json_data.grants?.spells) {
-      for (const spellGrant of json_data.grants.spells) {
-        await upsertSpellGrant(trx, spellGrant)
-      }
-    }
-
     await trx
       .insertInto('feats')
       .values(mapFeatRow(json_data))
@@ -174,6 +140,40 @@ export async function upsertFeat(
           .where('effect_id', '=', previousEffect.effect_id)
           .execute()
         await deleteEffectById(trx, previousEffect.effect_id)
+      }
+    }
+
+    for (const effect of authoredEffects) {
+      await upsertEffect(trx, effect)
+    }
+
+    if (json_data.features) {
+      for (const feature of json_data.features) {
+        await upsertFeature(trx, feature, json_data.systemId)
+      }
+    }
+
+    if (json_data.grants?.modifiers) {
+      for (const modifierGrant of json_data.grants.modifiers) {
+        await upsertModifierGrant(trx, modifierGrant, json_data.systemId)
+      }
+    }
+
+    if (json_data.grants?.proficiencies) {
+      for (const proficiencyGrant of json_data.grants.proficiencies) {
+        await upsertProficiencyGrant(trx, proficiencyGrant)
+      }
+    }
+
+    if (json_data.grants?.senses) {
+      for (const senseGrant of json_data.grants.senses) {
+        await upsertSenseGrant(trx, senseGrant)
+      }
+    }
+
+    if (json_data.grants?.spells) {
+      for (const spellGrant of json_data.grants.spells) {
+        await upsertSpellGrant(trx, spellGrant)
       }
     }
 

@@ -7,6 +7,7 @@ import type { DBLike } from '#types'
 import { upsertSpell } from '../upserts/spell.js'
 import { createEffectRepository } from '../../effects/repositories/effect.js'
 import type { RepositoryFindAllOptions, SpellRepository } from '../../../repositories/contracts.js'
+import { hydrateByIds, orderedHydratedRecords } from '../../../repositories/batch.js'
 import { hydrateSubjectStatus } from '../status.js'
 
 const SPELL_COMPONENT_CODES: Record<NonNullable<SpellAuthored['components']>[number], true> = {
@@ -94,10 +95,11 @@ async function hydrateSpellById(
   ])
 
   const effectRepository = createEffectRepository(db)
-  const effects = await Promise.all(effectLinks.map((link) => effectRepository.findById(link.effect_id)))
-  const authoredEffects = effects.map((effect, index) => {
-    if (effect === null) {
-      throw new Error(`Spell "${id}" is linked to missing effect "${effectLinks[index]?.effect_id}".`)
+  const effectsById = await effectRepository.findByIds(effectLinks.map((link) => link.effect_id))
+  const authoredEffects = effectLinks.map((link) => {
+    const effect = effectsById.get(link.effect_id)
+    if (!effect) {
+      throw new Error(`Spell "${id}" is linked to missing effect "${link.effect_id}".`)
     }
 
     return effect
@@ -153,6 +155,10 @@ export function createSpellRepository(db: DBLike): SpellRepository {
       return hydrateSpellById(db, id)
     },
 
+    async findByIds(ids) {
+      return hydrateByIds(ids, (id) => hydrateSpellById(db, id))
+    },
+
     async findAll(filter?: RepositoryFindAllOptions) {
       let query = db
         .selectFrom('spells')
@@ -168,8 +174,10 @@ export function createSpellRepository(db: DBLike): SpellRepository {
       }
 
       const rows = await query.execute()
-      const records = await Promise.all(rows.map((row) => hydrateSpellById(db, row.id)))
-      return records.filter((record): record is SpellAuthored => record !== null)
+      return orderedHydratedRecords(
+        rows.map((row) => row.id),
+        await hydrateByIds(rows.map((row) => row.id), (id) => hydrateSpellById(db, id))
+      )
     }
   }
 }

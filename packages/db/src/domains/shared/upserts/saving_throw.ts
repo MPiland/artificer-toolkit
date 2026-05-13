@@ -4,9 +4,6 @@ import type { SavingThrowAuthored } from '@artificer-toolkit/shared'
 export async function upsertSavingThrow(db: DBLike, json_data: SavingThrowAuthored) {
   const trx = await db.startTransaction().execute()
 
-  // Generated DB types are still pre-recreate. Keep this wrapper aligned to the
-  // authored contract now, then let the Phase 4 type-regeneration checkpoint
-  // remove the fallback casts once `saving_throws` is regenerated.
   const savingThrow = json_data.savingThrowKind === 'FIXED_VALUE'
     ? {
         id: json_data.id,
@@ -16,7 +13,7 @@ export async function upsertSavingThrow(db: DBLike, json_data: SavingThrowAuthor
       }
     : {
         id: json_data.id,
-        ability_code: null,
+        ability_code: json_data.ability,
         saving_throw_kind: json_data.savingThrowKind,
         dc: null
       }

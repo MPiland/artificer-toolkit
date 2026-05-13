@@ -32,6 +32,7 @@ import {
   useDuplicateVehicleMutation,
   useSaveVehicleDraftMutation
 } from '#app/data/vehicles/mutations'
+import { buildVehicleRouteParams } from '#app/routing/authoredRouteParams'
 import {
   normalizeVehicleForSubmit,
   toVehicleFormValues
@@ -45,9 +46,8 @@ type ParsedVehicleDraft = {
 }
 
 export function VehicleEditPage() {
-  const route = getRouteApi('/_authed/vehicles/$vehicleId/edit')
-  const { response, draft } = route.useLoaderData()
-  const vehicleId = route.useParams().vehicleId
+  const route = getRouteApi('/_authed/vehicles/$vehiclePublicId/$vehicleSlug/edit')
+  const { response, draft, vehicleId } = route.useLoaderData()
   const parsedDraft: ParsedVehicleDraft = parseAuthoredDraftPayload(draft ?? null, vehicleAuthoredDtoSchema)
   const draftVehicle = parsedDraft.item
   const activeVehicle = response?.item
@@ -128,7 +128,10 @@ function VehicleEditAuthoring({
       notifications.show({ color: 'green', message: 'Vehicle activated.' })
 
       if (response?.item.id && response.item.id !== vehicleId) {
-        await navigate({ to: '/vehicles/$vehicleId/edit', params: { vehicleId: response.item.id } })
+        await navigate({
+          params: buildVehicleRouteParams(response.publicId, response.item.label),
+          to: '/vehicles/$vehiclePublicId/$vehicleSlug/edit'
+        })
         return
       }
 
@@ -178,7 +181,10 @@ function VehicleEditAuthoring({
       notifications.show({ color: 'green', message: 'Vehicle duplicated as an owned draft.' })
 
       if (copied?.subjectId) {
-        await navigate({ to: '/vehicles/$vehicleId/edit', params: { vehicleId: copied.subjectId } })
+        await navigate({
+          params: buildVehicleRouteParams(copied.publicId, copied.label),
+          to: '/vehicles/$vehiclePublicId/$vehicleSlug/edit'
+        })
       }
     } catch {
       notifications.show({ color: 'red', message: 'Could not duplicate that vehicle yet.' })

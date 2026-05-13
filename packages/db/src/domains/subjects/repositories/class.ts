@@ -17,6 +17,7 @@ import { hydrateChargeById } from '../../grants/repositories/helpers.js'
 import { createProficiencyGrantRepository } from '../../grants/repositories/proficiency.js'
 import { createStartingEquipmentRepository } from '../../shared/repositories/starting_equipment.js'
 import type { ClassRepository, RepositoryFindAllOptions } from '../../../repositories/contracts.js'
+import { hydrateByIds, orderedHydratedRecords } from '../../../repositories/batch.js'
 import { hydrateSubjectStatus } from '../status.js'
 
 function requireLinkedRecord<T>(
@@ -164,7 +165,7 @@ async function hydrateClassSpellcastingByClassId(
     return undefined
   }
 
-  const [charge, attributeRows, prepareLimitRow, prepareLimitMethodRows, prepareLimitLevelRows, spellLimitRows, spellSlotRows] = await Promise.all([
+  const [charge, attributeRows, prepareLimitRow, prepareLimitMethodRows, prepareLimitLevelRows, spellLimitRows] = await Promise.all([
     hydrateChargeById(db, requireLinkedRecord(row.charge_id, `Class "${classId}" spellcasting "${row.id}" is missing charge_id.`)),
     db.selectFrom('class_spellcasting_attributes')
       .select(['attribute_code', 'sort_order'])
@@ -189,11 +190,15 @@ async function hydrateClassSpellcastingByClassId(
       .select(['id', 'class_level', 'learned_spells_limit', 'prepared_spells_limit', 'cantrips_limit'])
       .where('spellcasting_id', '=', row.id)
       .orderBy('class_level')
-      .execute(),
-    db.selectFrom('class_spell_slots')
-      .select(['spell_limit_id', 'spell_level', 'slot_count'])
       .execute()
   ])
+  const spellLimitIds = spellLimitRows.map((limit) => limit.id)
+  const spellSlotRows = spellLimitIds.length
+    ? await db.selectFrom('class_spell_slots')
+        .select(['spell_limit_id', 'spell_level', 'slot_count'])
+        .where('spell_limit_id', 'in', spellLimitIds)
+        .execute()
+    : []
 
   const slotsByLimit = new Map<string, { spell_limit_id: string, spell_level: number, slot_count: number }[]>()
   for (const slot of spellSlotRows) {
@@ -300,39 +305,36 @@ async function hydrateClassById(
   const proficiencyRepository = createProficiencyGrantRepository(db)
   const startingEquipmentRepository = createStartingEquipmentRepository(db)
 
-  const [details, features, proficiencies, startingEquipment] = await Promise.all([
-    Promise.all(detailLinks.map((link) => detailRepository.findById(link.detail_id))),
-    Promise.all(featureLinks.map((link) => featureRepository.findById(link.feature_id))),
-    Promise.all(proficiencyLinks.map((link) => proficiencyRepository.findById(link.proficiency_grant_id))),
+  const [detailsById, featuresById, proficienciesById, startingEquipment] = await Promise.all([
+    detailRepository.findByIds(detailLinks.map((link) => link.detail_id)),
+    featureRepository.findByIds(featureLinks.map((link) => link.feature_id)),
+    proficiencyRepository.findByIds(proficiencyLinks.map((link) => link.proficiency_grant_id)),
     row.starting_equipment_id
       ? startingEquipmentRepository.findById(row.starting_equipment_id)
       : Promise.resolve(null)
   ])
 
-  const authoredDetails = details.map((detail, index) => requireLinkedRecord(
-    detail,
-    `Class "${id}" is linked to missing detail "${detailLinks[index]?.detail_id}".`
+  const authoredDetails = detailLinks.map((link) => requireLinkedRecord(
+    detailsById.get(link.detail_id) ?? null,
+    `Class "${id}" is linked to missing detail "${link.detail_id}".`
   ))
-  const authoredFeatures = features.map((feature, index) => requireLinkedRecord(
-    feature,
-    `Class "${id}" is linked to missing feature "${featureLinks[index]?.feature_id}".`
+  const authoredFeatures = featureLinks.map((link) => requireLinkedRecord(
+    featuresById.get(link.feature_id) ?? null,
+    `Class "${id}" is linked to missing feature "${link.feature_id}".`
   ))
-  const authoredProficiencies = proficiencies.map((grant, index) => requireLinkedRecord(
-    grant,
-    `Class "${id}" is linked to missing proficiency grant "${proficiencyLinks[index]?.proficiency_grant_id}".`
+  const authoredProficiencies = proficiencyLinks.map((link) => requireLinkedRecord(
+    proficienciesById.get(link.proficiency_grant_id) ?? null,
+    `Class "${id}" is linked to missing proficiency grant "${link.proficiency_grant_id}".`
   ))
   const category = requireClassCategory(id, row.category)
 
   if (category === CLASS_CATEGORY.BASE) {
-    const [multiclassGroupRows, multiclassRequirementRows, multiclassProficiencyLinks] = multiclassRow
+    const [multiclassGroupRows, multiclassProficiencyLinks] = multiclassRow
       ? await Promise.all([
           db.selectFrom('class_multiclass_requirement_groups')
             .select(['id', 'multiclass_id', 'sort_order'])
             .where('multiclass_id', '=', multiclassRow.id)
             .orderBy('sort_order')
-            .execute(),
-          db.selectFrom('class_multiclass_requirements')
-            .select(['id', 'requirement_group_id', 'ability_code', 'min', 'sort_order'])
             .execute(),
           db.selectFrom('class_multiclass_proficiency_grants')
             .select(['proficiency_grant_id', 'sort_order'])
@@ -340,13 +342,19 @@ async function hydrateClassById(
             .orderBy('sort_order')
             .execute()
         ])
-      : [[], [], []]
+      : [[], []]
+    const multiclassGroupIds = multiclassGroupRows.map((group) => group.id)
+    const multiclassRequirementRows = multiclassGroupIds.length
+      ? await db.selectFrom('class_multiclass_requirements')
+          .select(['id', 'requirement_group_id', 'ability_code', 'min', 'sort_order'])
+          .where('requirement_group_id', 'in', multiclassGroupIds)
+          .orderBy('sort_order')
+          .execute()
+      : []
 
-    const multiclassProficiencies = await Promise.all(
-      multiclassRow
-        ? multiclassProficiencyLinks.map((link) => proficiencyRepository.findById(link.proficiency_grant_id))
-        : []
-    )
+    const multiclassProficienciesById = multiclassRow
+      ? await proficiencyRepository.findByIds(multiclassProficiencyLinks.map((link) => link.proficiency_grant_id))
+      : new Map()
 
     const requirementsByGroup = new Map<string, { id: string, ability: string, min: number }[]>()
     for (const requirement of multiclassRequirementRows) {
@@ -405,10 +413,10 @@ async function hydrateClassById(
             }))
           }))
         },
-        proficiencies: multiclassProficiencies.length > 0
-          ? multiclassProficiencies.map((grant, index) => requireLinkedRecord(
-              grant,
-              `Class "${id}" multiclass is linked to missing proficiency grant "${multiclassProficiencyLinks[index]?.proficiency_grant_id}".`
+        proficiencies: multiclassProficiencyLinks.length > 0
+          ? multiclassProficiencyLinks.map((link) => requireLinkedRecord(
+              multiclassProficienciesById.get(link.proficiency_grant_id) ?? null,
+              `Class "${id}" multiclass is linked to missing proficiency grant "${link.proficiency_grant_id}".`
             ))
           : undefined
       }
@@ -455,6 +463,10 @@ export function createClassRepository(db: DBLike): ClassRepository {
       return hydrateClassById(db, id)
     },
 
+    async findByIds(ids) {
+      return hydrateByIds(ids, (id) => hydrateClassById(db, id))
+    },
+
     async findAll(filter?: RepositoryFindAllOptions) {
       let query = db
         .selectFrom('classes')
@@ -470,8 +482,10 @@ export function createClassRepository(db: DBLike): ClassRepository {
       }
 
       const rows = await query.execute()
-      const records = await Promise.all(rows.map((row) => hydrateClassById(db, row.id)))
-      return records.filter((record): record is ClassAuthored => record !== null)
+      return orderedHydratedRecords(
+        rows.map((row) => row.id),
+        await hydrateByIds(rows.map((row) => row.id), (id) => hydrateClassById(db, id))
+      )
     }
   }
 }

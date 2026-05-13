@@ -12,6 +12,7 @@ import { upsertRace } from '../upserts/race.js'
 import { createDetailRepository } from '../../shared/repositories/detail.js'
 import { createFeatureRepository } from '../../features/repositories/feature.js'
 import type { RaceRepository, RepositoryFindAllOptions } from '../../../repositories/contracts.js'
+import { hydrateByIds, orderedHydratedRecords } from '../../../repositories/batch.js'
 import { hydrateSubjectStatus } from '../status.js'
 
 function requireLinkedRecord<T>(
@@ -141,29 +142,34 @@ async function hydrateRaceById(
 
   const detailRepository = createDetailRepository(db)
   const featureRepository = createFeatureRepository(db, row.system_id)
-  const details = await Promise.all(detailLinks.map((link) => detailRepository.findById(link.detail_id)))
-  const features = await Promise.all(featureLinks.map((link) => featureRepository.findById(link.feature_id)))
-  const authoredDetails = details.map((detail, index) => requireLinkedRecord(
-    detail,
-    `Race "${id}" is linked to missing detail "${detailLinks[index]?.detail_id}".`
+  const [detailsById, featuresById] = await Promise.all([
+    detailRepository.findByIds(detailLinks.map((link) => link.detail_id)),
+    featureRepository.findByIds(featureLinks.map((link) => link.feature_id))
+  ])
+  const authoredDetails = detailLinks.map((link) => requireLinkedRecord(
+    detailsById.get(link.detail_id) ?? null,
+    `Race "${id}" is linked to missing detail "${link.detail_id}".`
   ))
-  const authoredFeatures = features.map((feature, index) => requireLinkedRecord(
-    feature,
-    `Race "${id}" is linked to missing feature "${featureLinks[index]?.feature_id}".`
+  const authoredFeatures = featureLinks.map((link) => requireLinkedRecord(
+    featuresById.get(link.feature_id) ?? null,
+    `Race "${id}" is linked to missing feature "${link.feature_id}".`
   ))
   const ancestry = ancestryRows[0]
     ? await (async () => {
         const ancestryId = ancestryRows[0].id as string
-        const [optionRows, optionFeatureLinks] = await Promise.all([
-          db.selectFrom('race_ancestry_options')
-            .select(['id', 'label', 'description', 'sort_order'])
-            .where('ancestry_id', '=', ancestryId)
-            .orderBy('sort_order')
-            .execute(),
-          db.selectFrom('race_ancestry_option_features')
-            .select(['ancestry_option_id', 'feature_id', 'sort_order'])
-            .execute()
-        ])
+        const optionRows = await db.selectFrom('race_ancestry_options')
+          .select(['id', 'label', 'description', 'sort_order'])
+          .where('ancestry_id', '=', ancestryId)
+          .orderBy('sort_order')
+          .execute()
+        const optionIds = optionRows.map((option) => option.id)
+        const optionFeatureLinks = optionIds.length
+          ? await db.selectFrom('race_ancestry_option_features')
+              .select(['ancestry_option_id', 'feature_id', 'sort_order'])
+              .where('ancestry_option_id', 'in', optionIds)
+              .orderBy('sort_order')
+              .execute()
+          : []
 
         const featuresByOption = new Map<string, { feature_id: string, sort_order: number }[]>()
         for (const link of optionFeatureLinks) {
@@ -173,27 +179,25 @@ async function hydrateRaceById(
           ])
         }
 
-        const authoredOptions = await Promise.all(optionRows.map(async (option) => {
+        const ancestryFeaturesById = await featureRepository.findByIds(optionFeatureLinks.map((link) => link.feature_id))
+        const authoredOptions = optionRows.map((option) => {
           const links = (featuresByOption.get(option.id) ?? [])
             .slice()
             .sort((left, right) => left.sort_order - right.sort_order)
-          const optionFeatures = await Promise.all(
-            links.map((link) => featureRepository.findById(link.feature_id))
-          )
 
           return {
             id: option.id,
             label: option.label,
             description: requireAncestryOptionDescription(id, option.id, option.description),
             order: option.sort_order,
-            features: optionFeatures.length > 0
-              ? optionFeatures.map((feature, index) => requireLinkedRecord(
-                  feature,
-                  `Race "${id}" ancestry option "${option.id}" is linked to missing feature "${links[index]?.feature_id}".`
+            features: links.length > 0
+              ? links.map((link) => requireLinkedRecord(
+                  ancestryFeaturesById.get(link.feature_id) ?? null,
+                  `Race "${id}" ancestry option "${option.id}" is linked to missing feature "${link.feature_id}".`
                 ))
               : undefined
           }
-        }))
+        })
 
         return {
           id: ancestryId,
@@ -301,6 +305,10 @@ export function createRaceRepository(db: DBLike): RaceRepository {
       return hydrateRaceById(db, id)
     },
 
+    async findByIds(ids) {
+      return hydrateByIds(ids, (id) => hydrateRaceById(db, id))
+    },
+
     async findResolvedById(id, _filter) {
       return hydrateResolvedRaceById(id)
     },
@@ -320,8 +328,10 @@ export function createRaceRepository(db: DBLike): RaceRepository {
       }
 
       const rows = await query.execute()
-      const records = await Promise.all(rows.map((row) => hydrateRaceById(db, row.id)))
-      return records.filter((record): record is RaceAuthored => record !== null)
+      return orderedHydratedRecords(
+        rows.map((row) => row.id),
+        await hydrateByIds(rows.map((row) => row.id), (id) => hydrateRaceById(db, id))
+      )
     },
 
     async findResolvedAll(filter?: RepositoryFindAllOptions) {

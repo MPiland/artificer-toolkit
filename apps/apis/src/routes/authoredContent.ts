@@ -1,4 +1,5 @@
 import {
+  createAuthoredRouteIdRepository,
   createAuthoredSubjectDraftRepository,
   type AuthoredSubjectDraft,
   type AuthoredSubjectDraftKind,
@@ -55,15 +56,6 @@ function getPermissions(ownership: AuthoredOwnership, userId: string) {
   }
 }
 
-function getOwnedPermissions() {
-  return {
-    canView: true,
-    canEdit: true,
-    canCopy: true,
-    canDelete: true
-  }
-}
-
 function getProvenance(ownership: AuthoredOwnership) {
   return {
     kind: ownership.isMaster ? 'MASTER' as const : 'OWNED' as const,
@@ -101,10 +93,11 @@ export function normalizeAuthoredListResponse<
   }
 }
 
-function toDraftSummary(draft: AuthoredSubjectDraft): AuthoredDraftSummaryDto {
+function toDraftSummary(draft: AuthoredSubjectDraft & { publicId?: string }): AuthoredDraftSummaryDto {
   return {
     subjectKind: draft.subjectKind,
     subjectId: draft.subjectId,
+    publicId: draft.publicId ?? draft.subjectId,
     userId: draft.userId,
     systemId: draft.systemId,
     label: draft.label,
@@ -126,11 +119,26 @@ function getDraftListMetadata(draft: AuthoredSubjectDraft) {
   const payload = getDraftPayloadRecord(draft)
   const description = typeof payload.description === 'string' ? payload.description : null
   const category = typeof payload.category === 'string' ? payload.category : undefined
+  const level = typeof payload.level === 'number' ? payload.level : undefined
+  const magicSchoolId = typeof payload.magicSchoolId === 'string' ? payload.magicSchoolId : null
+  const castingTime = typeof payload.castingTime === 'object' && payload.castingTime !== null && !Array.isArray(payload.castingTime)
+    ? payload.castingTime as Record<string, unknown>
+    : {}
+  const castingTimeUnit = typeof castingTime.unit === 'string' ? castingTime.unit : undefined
+  const castingTimeAmount = typeof castingTime.amount === 'number' ? castingTime.amount : undefined
 
   return {
     description,
-    ...(category ? { category } : {})
+    ...(category ? { category } : {}),
+    ...(level !== undefined ? { level } : {}),
+    ...(magicSchoolId !== null ? { magicSchoolId } : {}),
+    ...(castingTimeUnit ? { castingTimeUnit } : {}),
+    ...(castingTimeAmount !== undefined ? { castingTimeAmount } : {})
   }
+}
+
+function getPublicId(publicIdBySubjectId: Map<string, { publicId?: string }>, subjectId: string) {
+  return publicIdBySubjectId.get(subjectId)?.publicId ?? subjectId
 }
 
 export async function normalizeAuthoredListResponseWithDrafts<
@@ -154,45 +162,46 @@ export async function normalizeAuthoredListResponseWithDrafts<
     subjectKind
   })
   const draftBySubjectId = new Map(drafts.map((draft) => [draft.subjectId, draft]))
-  const activeIds = new Set(normalized.items.map((item) => item.id))
-  const activeItems = normalized.items.map((item) => {
-    const draft = draftBySubjectId.get(item.id)
-    if (!draft) return item
-
-    return {
-      ...item,
-      label: draft.label,
-      status: 'DRAFT',
-      draft: toDraftSummary(draft)
-    }
-  })
-  const draftOnlyItems = drafts
-    .filter((draft) => !activeIds.has(draft.subjectId))
-    .map((draft) => {
-      const metadata = getDraftListMetadata(draft)
-
-      return {
-        id: draft.subjectId,
-        label: draft.label,
-        status: 'DRAFT',
-        ...metadata,
-        userId: draft.userId,
-        systemId: draft.systemId,
-        provenance: {
-          kind: 'OWNED' as const,
-          ownerUserId: draft.userId
-        },
-        permissions: getOwnedPermissions(),
-        draft: toDraftSummary(draft)
-      }
-    })
+  const routeSubjectIds = new Set([
+    ...normalized.items.map((item) => item.id),
+    ...drafts.map((draft) => draft.subjectId)
+  ])
+  const publicIdBySubjectId = await createAuthoredRouteIdRepository(db).ensureMany(
+    subjectKind,
+    [...routeSubjectIds]
+  )
 
   return {
     ...normalized,
-    items: [
-      ...activeItems,
-      ...draftOnlyItems
-    ]
+    drafts: drafts.map((draft) => {
+      const publicId = getPublicId(publicIdBySubjectId, draft.subjectId)
+
+      return {
+        ...toDraftSummary({
+          ...draft,
+          publicId
+        }),
+        ...getDraftListMetadata(draft)
+      }
+    }),
+    items: normalized.items.map((item) => {
+      const publicId = getPublicId(publicIdBySubjectId, item.id)
+      const draft = draftBySubjectId.get(item.id)
+
+      return {
+        ...item,
+        publicId,
+        draft: draft
+          ? {
+              ...toDraftSummary({
+                ...draft,
+                publicId
+              }),
+              ...getDraftListMetadata(draft)
+            }
+          : undefined
+      }
+    })
   }
 }
 
@@ -229,10 +238,37 @@ export async function normalizeAuthoredDetailResponse<TRecord extends AuthoredRe
   const ownership = await getAuthoredOwnership(db, table, item.id)
     ?? { isMaster: item.userId === 'master', ownerUserId: item.userId === 'master' ? null : item.userId }
 
+  const routeIdentity = await createAuthoredRouteIdRepository(db).ensure({
+    subjectKind: getSubjectKindForTable(table),
+    subjectId: item.id
+  })
+
   return {
     item,
+    publicId: routeIdentity.publicId,
     provenance: getProvenance(ownership),
     permissions: getPermissions(ownership, userId)
+  }
+}
+
+function getSubjectKindForTable(table: AuthoredContentTable): AuthoredSubjectDraftKind {
+  switch (table) {
+    case 'backgrounds':
+      return 'BACKGROUND'
+    case 'classes':
+      return 'CLASS'
+    case 'creatures':
+      return 'CREATURE'
+    case 'equipment':
+      return 'EQUIPMENT'
+    case 'feats':
+      return 'FEAT'
+    case 'races':
+      return 'RACE'
+    case 'spells':
+      return 'SPELL'
+    case 'vehicles':
+      return 'VEHICLE'
   }
 }
 
@@ -263,11 +299,22 @@ export async function getAuthoredDraft(
   subjectId: string,
   userId: string
 ) {
-  return createAuthoredSubjectDraftRepository(db).findBySubject({
+  const draft = await createAuthoredSubjectDraftRepository(db).findBySubject({
     subjectKind,
     subjectId,
     userId
   })
+  if (!draft) return null
+
+  const routeIdentity = await createAuthoredRouteIdRepository(db).ensure({
+    subjectKind,
+    subjectId
+  })
+
+  return {
+    ...draft,
+    publicId: routeIdentity.publicId
+  }
 }
 
 export class AuthoredDraftNotFoundError extends Error {
@@ -355,7 +402,7 @@ export async function saveAuthoredDraft(
   body: AuthoredDraftSaveRequestDto,
   userId: string
 ) {
-  return createAuthoredSubjectDraftRepository(db).save({
+  const draft = await createAuthoredSubjectDraftRepository(db).save({
     subjectKind: body.subjectKind,
     subjectId: body.subjectId,
     userId,
@@ -369,6 +416,15 @@ export async function saveAuthoredDraft(
     }),
     baseActiveUpdatedAt: body.baseActiveUpdatedAt ?? null
   })
+  const routeIdentity = await createAuthoredRouteIdRepository(db).ensure({
+    subjectKind: draft.subjectKind,
+    subjectId: draft.subjectId
+  })
+
+  return {
+    ...draft,
+    publicId: routeIdentity.publicId
+  }
 }
 
 export function normalizeAuthoredDraftPayload(

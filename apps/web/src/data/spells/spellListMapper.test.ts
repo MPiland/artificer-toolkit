@@ -2,14 +2,17 @@ import { describe, expect, it } from 'vitest'
 import {
   buildSpellListFilters,
   mapSpellListToAuthoredItems,
+  spellListSortOptions,
   summarizeSpellList
 } from './spellListMapper'
+import { foundationVars } from '#css/foundations.css'
 import type { SpellListResponseDto } from '#lib/api'
 
 const response: SpellListResponseDto = {
   items: [
     {
       id: 'magic-missile',
+      publicId: 'magic-missile',
       label: 'Magic Missile',
       description: 'Force darts.',
       status: 'ACTIVE',
@@ -24,6 +27,7 @@ const response: SpellListResponseDto = {
     },
     {
       id: 'ember-lace',
+      publicId: 'ember-lace',
       label: 'Ember Lace',
       description: 'Homebrew fire spell.',
       status: 'DRAFT',
@@ -37,6 +41,7 @@ const response: SpellListResponseDto = {
       permissions: { canView: true, canEdit: true, canCopy: true, canDelete: true }
     }
   ],
+  drafts: [],
   meta: {
     classes: [{ id: 'class-wizard', label: 'Wizard', spellIds: ['magic-missile', 'ember-lace'] }],
     schools: [{ id: 'school-evocation', label: 'Evocation', spellIds: ['magic-missile', 'ember-lace'] }],
@@ -53,9 +58,14 @@ describe('spell list mapper', () => {
       sourceKind: 'master',
       attributes: {
         level: '1',
+        school: 'Evocation',
+        classes: ['Wizard']
+      },
+      sortValues: {
         school: 'Evocation'
       },
-      badges: ['Wizard'],
+      accentColor: foundationVars.color.school.evocation,
+      accentLabel: 'Evocation school',
       permissions: {
         canEdit: false,
         canCopy: true
@@ -77,6 +87,8 @@ describe('spell list mapper', () => {
     expect(filters.map((filter) => filter.key)).toEqual(['school', 'level', 'class'])
     expect(filters[0]?.options[0]).toEqual({ value: 'school-evocation', label: 'Evocation' })
     expect(filters[2]?.options[0]).toEqual({ value: 'class-wizard', label: 'Wizard' })
+    expect(spellListSortOptions).toContainEqual({ value: 'school', label: 'School' })
+    expect(spellListSortOptions).not.toContainEqual({ value: 'status', label: 'Status' })
     expect(summarizeSpellList(response)).toBe('2 spells / 1 SRD / 1 homebrew')
   })
 })

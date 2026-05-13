@@ -1,32 +1,30 @@
-import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
-import { api, type Api } from '#app/lib/api'
+import type { Api, AuthoredDetailRequestDto } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
+import { createAuthoredContentQueries } from '#app/data/authoredContentQueries'
 
-export function getCreatureList(client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.content.creatures.list(),
-    queryFn: async () => await client.content.creatures.list()
-  })
+type DetailInput = string | AuthoredDetailRequestDto
+
+const creatureQueries = createAuthoredContentQueries(
+  (client) => client.content.creatures,
+  queryKeys.content.creatures
+)
+
+export function getCreatureList(client?: Api) {
+  return creatureQueries.getList(client)
 }
 
 export function useGetCreatureList() {
-  return useSuspenseQuery(getCreatureList())
+  return creatureQueries.useList()
 }
 
-export function getCreature(id: string, client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.content.creatures.detail(id),
-    queryFn: async () => await client.content.creatures.get(id)
-  })
+export function getCreature(input: DetailInput, client?: Api) {
+  return creatureQueries.getDetail(input, client)
 }
 
-export function useGetCreature(id: string) {
-  return useSuspenseQuery(getCreature(id))
+export function useGetCreature(input: DetailInput) {
+  return creatureQueries.useDetail(input)
 }
 
-export function getCreatureDraft(id: string, client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.content.creatures.draft(id),
-    queryFn: async () => await client.content.creatures.getDraft(id)
-  })
+export function getCreatureDraft(id: string, client?: Api) {
+  return creatureQueries.getDraft(id, client)
 }

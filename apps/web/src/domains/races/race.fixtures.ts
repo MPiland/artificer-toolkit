@@ -97,6 +97,7 @@ export const raceListResponseFixture: RaceListResponseDto = {
   items: [
     {
       id: masterRaceFixture.id,
+      publicId: masterRaceFixture.id,
       label: masterRaceFixture.label,
       description: masterRaceFixture.description,
       status: 'ACTIVE',
@@ -116,6 +117,7 @@ export const raceListResponseFixture: RaceListResponseDto = {
     },
     {
       id: ownedSubraceFixture.id,
+      publicId: ownedSubraceFixture.id,
       label: ownedSubraceFixture.label,
       description: ownedSubraceFixture.description,
       status: 'DRAFT',
@@ -134,10 +136,12 @@ export const raceListResponseFixture: RaceListResponseDto = {
       }
     }
   ],
+  drafts: [],
   meta: {}
 }
 
 export const ownedBaseRaceResponseFixture: NonNullable<RaceResponseDto> = {
+  publicId: ownedBaseRaceFixture.id,
   item: ownedBaseRaceFixture,
   provenance: {
     kind: 'OWNED',
@@ -152,6 +156,7 @@ export const ownedBaseRaceResponseFixture: NonNullable<RaceResponseDto> = {
 }
 
 export const ownedSubraceResponseFixture: NonNullable<RaceResponseDto> = {
+  publicId: ownedSubraceFixture.id,
   item: ownedSubraceFixture,
   provenance: {
     kind: 'OWNED',
@@ -166,6 +171,7 @@ export const ownedSubraceResponseFixture: NonNullable<RaceResponseDto> = {
 }
 
 export const masterRaceResponseFixture: NonNullable<RaceResponseDto> = {
+  publicId: masterRaceFixture.id,
   item: masterRaceFixture,
   provenance: {
     kind: 'MASTER',

@@ -43,24 +43,28 @@ function createReferenceApi(): NonNullable<Parameters<typeof loadAuthoredContent
       classes: {
         list: async () => ({
           items: [listItem('class-wizard', 'Wizard', 'system-1')],
+          drafts: [],
           meta: {}
         })
       },
       creatures: {
         list: async () => ({
           items: [listItem('creature-dragon', 'Dragon', 'system-1')],
+          drafts: [],
           meta: {}
         })
       },
       equipment: {
         list: async () => ({
           items: [listItem('equipment-backpack', 'Backpack', 'system-1')],
+          drafts: [],
           meta: {}
         })
       },
       races: {
         list: async () => ({
           items: [listItem('race-elf', 'Elf', 'system-1')],
+          drafts: [],
           meta: {}
         })
       }
@@ -71,6 +75,7 @@ function createReferenceApi(): NonNullable<Parameters<typeof loadAuthoredContent
 function listItem(id: string, label: string, systemId: string) {
   return {
     id,
+    publicId: id,
     label,
     description: null,
     status: 'ACTIVE' as const,

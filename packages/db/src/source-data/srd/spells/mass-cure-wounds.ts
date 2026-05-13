@@ -1,14 +1,15 @@
-import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, CASTING_TIME_UNIT_CODE, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SCALING, SCALING_SOURCE, SHAPE_KIND, SUBJECT, TRIGGER, type SpellAuthored } from '@artificer-toolkit/shared'
+import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, CASTING_TIME_UNIT_CODE, EFFECT_KIND, MEASUREMENT_UNIT_CODE, RANGE_KIND, SCALING, SCALING_SOURCE, SHAPE_KIND, SUBJECT, TRIGGER, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { creatureTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const massCureWounds: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.MASS_CURE_WOUNDS,
   label: 'Mass Cure Wounds',
-  description: 'A wave of restorative energy heals up to six creatures of your choice in a 30-foot-radius sphere centered on a point within range, with no effect on undead or constructs.',
+  description: '<p>A wave of restorative energy heals up to six creatures of your choice in a 30-foot-radius sphere centered on a point within range, with no effect on undead or constructs.</p><p><strong>At Higher Levels.</strong> When you cast this spell using a spell slot of 6th level or higher, the healing increases by 1d8 for each slot level above 5th.</p>',
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 5,
   classIds: [CLASS_IDS.BARD, CLASS_IDS.CLERIC, CLASS_IDS.DRUID],
+  components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC],
   magicSchoolId: schoolId('EVOCATION'),
   effects: [
     {

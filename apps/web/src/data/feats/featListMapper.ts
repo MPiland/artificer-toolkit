@@ -10,14 +10,6 @@ function mapPermissions(item: FeatListResponseDto['items'][number]): AuthoredLis
   }
 }
 
-function formatStatus(status: string | undefined): string {
-  if (!status) return 'Draft'
-  return status
-    .toLowerCase()
-    .replaceAll('_', ' ')
-    .replace(/^\w/, (letter) => letter.toUpperCase())
-}
-
 function summarizeDescription(description: string | null | undefined): string {
   if (!description) return 'No description yet.'
   return description.replace(/<[^>]*>/g, '').trim() || 'No description yet.'
@@ -26,17 +18,15 @@ function summarizeDescription(description: string | null | undefined): string {
 export function mapFeatListToAuthoredItems(response: FeatListResponseDto): AuthoredListItem[] {
   return response.items.map((item) => ({
     id: item.id,
+    publicId: item.publicId,
     name: item.label,
     description: summarizeDescription(item.description),
     attributes: {},
-    badges: [formatStatus(item.status)],
     filterValues: {
-      status: item.status,
       source: item.provenance.kind
     },
     sortValues: {
-      name: item.label,
-      status: formatStatus(item.status)
+      name: item.label
     },
     searchText: summarizeDescription(item.description),
     sourceLabel: item.provenance.kind === 'MASTER' ? 'SRD' : 'Homebrew',
@@ -45,19 +35,8 @@ export function mapFeatListToAuthoredItems(response: FeatListResponseDto): Autho
   }))
 }
 
-export function buildFeatListFilters(response: FeatListResponseDto): AuthoredListFilter[] {
-  const statuses = Array.from(new Set(response.items.map((item) => item.status))).sort()
-
+export function buildFeatListFilters(_response: FeatListResponseDto): AuthoredListFilter[] {
   return [
-    {
-      key: 'status',
-      label: 'Status',
-      placeholder: 'Any status',
-      options: statuses.map((status) => ({
-        value: status,
-        label: formatStatus(status)
-      }))
-    },
     {
       key: 'source',
       label: 'Source',
@@ -73,8 +52,7 @@ export function buildFeatListFilters(response: FeatListResponseDto): AuthoredLis
 export const featListAttributeColumns = [] satisfies AuthoredListAttributeColumn[]
 
 export const featListSortOptions = [
-  { value: 'name', label: 'Name A-Z' },
-  { value: 'status', label: 'Status' }
+  { value: 'name', label: 'Name A-Z' }
 ]
 
 export function summarizeFeatList(response: FeatListResponseDto) {

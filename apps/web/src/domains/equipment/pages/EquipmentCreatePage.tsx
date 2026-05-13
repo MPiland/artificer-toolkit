@@ -15,6 +15,7 @@ import {
   useActivateEquipmentMutation,
   useSaveEquipmentDraftMutation
 } from '#app/data/equipment/mutations'
+import { buildEquipmentRouteParams } from '#app/routing/authoredRouteParams'
 import {
   createEmptyEquipment,
   normalizeEquipmentForSubmit,
@@ -58,7 +59,10 @@ function EquipmentCreateAuthoring({
       notifications.show({ color: 'green', message: 'Equipment activated.' })
 
       if (response?.item.id) {
-        await navigate({ to: '/equipment/$equipmentId/edit', params: { equipmentId: response.item.id } })
+        await navigate({
+          params: buildEquipmentRouteParams(response.publicId, response.item.label),
+          to: '/equipment/$equipmentPublicId/$equipmentSlug/edit'
+        })
       }
     } catch {
       notifications.show({ color: 'red', message: 'Could not activate that equipment yet.' })
@@ -79,7 +83,10 @@ function EquipmentCreateAuthoring({
     try {
       const draft = await draftMutation.mutateAsync(normalizeEquipmentForSubmit(form.state.values))
       notifications.show({ color: 'green', message: 'Equipment draft saved.' })
-      await navigate({ to: '/equipment/$equipmentId/edit', params: { equipmentId: draft.subjectId } })
+      await navigate({
+        params: buildEquipmentRouteParams(draft.publicId, draft.label),
+        to: '/equipment/$equipmentPublicId/$equipmentSlug/edit'
+      })
     } catch {
       notifications.show({ color: 'red', message: 'Could not save that draft yet.' })
     }

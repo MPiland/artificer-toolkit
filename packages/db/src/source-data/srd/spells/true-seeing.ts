@@ -1,4 +1,4 @@
-import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, RANGE_KIND, SUBJECT, TRIGGER, type SpellAuthored } from '@artificer-toolkit/shared';
+import { ACTIVATION_CODE, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, CASTING_TIME_UNIT_CODE, EFFECT_KIND, RANGE_KIND, SUBJECT, TRIGGER, SPELL_COMPONENT, type SpellAuthored } from '@artificer-toolkit/shared';
 import { CLASS_IDS, SPELL_IDS } from '../ids.js';
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js';
 export const trueSeeing: SpellAuthored = {
@@ -8,13 +8,9 @@ export const trueSeeing: SpellAuthored = {
     description: 'This spell gives the willing creature you touch the ability to see things as they actually are. For the duration, the creature has truesight, notices secret doors hidden by magic, and can see into the Ethereal Plane.',
     castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
     level: 6,
-    classIds: [
-        CLASS_IDS.BARD,
-        CLASS_IDS.CLERIC,
-        CLASS_IDS.SORCERER,
-        CLASS_IDS.WARLOCK,
-        CLASS_IDS.WIZARD
-    ],
+    classIds: [CLASS_IDS.BARD, CLASS_IDS.CLERIC, CLASS_IDS.SORCERER, CLASS_IDS.WARLOCK, CLASS_IDS.WIZARD],
+    components: [SPELL_COMPONENT.VERBAL, SPELL_COMPONENT.SOMATIC, SPELL_COMPONENT.MATERIAL],
+    materialDescription: "an ointment for the eyes that costs 25 gp; is made from mushroom powder, saffron, and fat; and is consumed by the spell",
     magicSchoolId: schoolId('DIVINATION'),
     effects: [
         {
@@ -60,7 +56,6 @@ export const trueSeeing: SpellAuthored = {
             ]
         }
     ],
-    materialDescription: 'an ointment for the eyes that costs 25 gp and is consumed by the spell',
     userId: SRD_USER_ID,
     systemId: SRD_SYSTEM_ID
 };

@@ -259,12 +259,39 @@ const dragonbornAncestry: RaceAncestryAuthored = {
 export const dragonborn: RaceAuthored = {
     id: RACE_IDS.DRAGONBORN,
     label: 'Dragonborn',
+    description: '<p>Your draconic heritage manifests in a variety of traits you share with other dragonborn.</p>',
     category: RACE_CATEGORY_CODE.BASE,
     selectionMode: RACE_SELECTION_MODE.DIRECT,
     size: SIZE_CODE.MEDIUM,
     speeds: dragonbornWalk30,
     heritageIds: [SRD_DRACONIC_HERITAGE_ID],
     ancestry: dragonbornAncestry,
+    details: [
+        {
+            id: raceFeatureId(5, 0, 1),
+            label: 'Age',
+            description: 'Young dragonborn grow quickly. They walk hours after hatching, attain the size and development of a 10-year-old human child by age 3, and reach adulthood by 15. They live to be around 80.',
+            order: 0
+        },
+        {
+            id: raceFeatureId(5, 0, 2),
+            label: 'Alignment',
+            description: 'Dragonborn tend to extremes, making a conscious choice for one side or the other in the cosmic war between good and evil. Most dragonborn are good, but those who side with evil can be terrible villains.',
+            order: 1
+        },
+        {
+            id: raceFeatureId(5, 0, 3),
+            label: 'Size',
+            description: 'Dragonborn are taller and heavier than humans, standing well over 6 feet tall and averaging almost 250 pounds. Your size is Medium.',
+            order: 2
+        },
+        {
+            id: raceFeatureId(5, 0, 4),
+            label: 'Speed',
+            description: 'Your base walking speed is 30 feet.',
+            order: 3
+        }
+    ],
     userId: SRD_USER_ID,
     systemId: SRD_SYSTEM_ID,
     features: [

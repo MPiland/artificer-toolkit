@@ -41,6 +41,7 @@ import {
   normalizeBackgroundForSubmit
 } from '../backgroundAuthoring.utils'
 import { BackgroundAuthoringRenderer } from '../components/BackgroundAuthoringRenderer'
+import { buildBackgroundRouteParams } from '#app/routing/authoredRouteParams'
 
 type ParsedBackgroundDraft = {
   draft: AuthoredDraftDto | null
@@ -49,9 +50,8 @@ type ParsedBackgroundDraft = {
 }
 
 export function BackgroundEditPage() {
-  const route = getRouteApi('/_authed/backgrounds/$backgroundId')
-  const { draft, response } = route.useLoaderData()
-  const { backgroundId } = route.useParams()
+  const route = getRouteApi('/_authed/backgrounds/$backgroundPublicId/$backgroundSlug')
+  const { backgroundId, draft, response } = route.useLoaderData()
   const parsedDraft: ParsedBackgroundDraft = parseAuthoredDraftPayload(draft ?? null, backgroundAuthoringInputDtoSchema)
   const draftBackground = parsedDraft.item
   const activeBackground = response?.item
@@ -128,7 +128,10 @@ function BackgroundEditAuthoring({
       notifications.show({ color: 'green', message: 'Background activated.' })
 
       if (response?.item.id && response.item.id !== backgroundId) {
-        await navigate({ to: '/backgrounds/$backgroundId', params: { backgroundId: response.item.id } })
+        await navigate({
+          params: buildBackgroundRouteParams(response.publicId, response.item.label),
+          to: '/backgrounds/$backgroundPublicId/$backgroundSlug'
+        })
         return
       }
 
@@ -178,7 +181,10 @@ function BackgroundEditAuthoring({
       notifications.show({ color: 'green', message: 'Background duplicated as an owned draft.' })
 
       if (copied?.subjectId) {
-        await navigate({ to: '/backgrounds/$backgroundId/edit', params: { backgroundId: copied.subjectId } })
+        await navigate({
+          params: buildBackgroundRouteParams(copied.publicId, copied.label),
+          to: '/backgrounds/$backgroundPublicId/$backgroundSlug/edit'
+        })
       }
     } catch {
       notifications.show({ color: 'red', message: 'Could not duplicate that background yet.' })

@@ -34,9 +34,8 @@ describe('backgroundListMapper', () => {
     })
   })
 
-  it('builds status/source filters and a concrete summary', () => {
+  it('builds source filters and a concrete summary', () => {
     expect(buildBackgroundListFilters(backgroundListResponseFixture)).toEqual([
-      expect.objectContaining({ key: 'status' }),
       expect.objectContaining({ key: 'source' })
     ])
     expect(summarizeBackgroundList(backgroundListResponseFixture)).toBe('2 backgrounds / 1 SRD / 1 homebrew')

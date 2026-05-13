@@ -22,10 +22,13 @@ export type AuthoredContentReferenceData = {
   challengeRatings: ReferenceOption[]
   conditionTypes: ReferenceOption[]
   creatureTypes: ReferenceOption[]
+  currencies: ReferenceOption[]
   damageTypes: ReferenceOption[]
   heritages: ReferenceOption[]
+  languages: ReferenceOption[]
   magicSchools: ReferenceOption[]
   rarities: ReferenceOption[]
+  skills: ReferenceOption[]
   speeds: ReferenceOption[]
   classes: ReferenceOption[]
   creatures: ReferenceOption[]
@@ -89,10 +92,13 @@ function buildReferenceData(
     challengeRatings: toVocabularyOptions(system.challengeRatings),
     conditionTypes: toVocabularyOptions(system.conditionTypes),
     creatureTypes: toVocabularyOptions(system.creatureTypes),
+    currencies: toVocabularyOptions(system.currencies),
     damageTypes: toVocabularyOptions(system.damageTypes),
     heritages: toVocabularyOptions(system.heritages),
+    languages: toVocabularyOptions(system.languages),
     magicSchools: toVocabularyOptions(system.magicSchools),
     rarities: toVocabularyOptions(system.rarities),
+    skills: toVocabularyOptions(system.skills),
     speeds: toVocabularyOptions(system.speeds),
     classes: toContentOptions(content.classes),
     creatures: toContentOptions(content.creatures),
@@ -139,7 +145,8 @@ export function getAuthoredContentReferenceData(systemId: string | undefined, cl
 
   return queryOptions({
     queryKey: queryKeys.content.referenceData(querySystemId),
-    queryFn: async () => loadAuthoredContentReferenceData(systemId, client)
+    queryFn: async () => loadAuthoredContentReferenceData(systemId, client),
+    staleTime: 5 * 60_000
   })
 }
 

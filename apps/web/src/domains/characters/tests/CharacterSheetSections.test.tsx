@@ -19,6 +19,7 @@ import { CharacterSheetView } from '../components/sheet/CharacterSheetView'
 
 function createSheet(): CharacterSheetResponseDto {
   return {
+    publicId: 'character-1',
     meta: {
       characterId: 'character-1',
       systemId: 'system-1',
@@ -133,7 +134,7 @@ describe('Character Sheet sections', () => {
       })
     )
 
-    renderWithAppProviders(<CharacterSheetView hasDraft={false} sheet={createSheet()} />)
+    renderWithAppProviders(<CharacterSheetView characterPublicId='character-1' hasDraft={false} sheet={createSheet()} />)
 
     await user.click(screen.getByRole('button', { name: /apply damage/i }))
 
@@ -153,7 +154,7 @@ describe('Character Sheet sections', () => {
       ))
     )
 
-    renderWithAppProviders(<CharacterSheetView hasDraft sheet={createSheet()} />)
+    renderWithAppProviders(<CharacterSheetView characterPublicId='character-1' hasDraft sheet={createSheet()} />)
 
     expect(screen.getByText(/builder draft work/i)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /apply damage/i }))
@@ -164,6 +165,7 @@ describe('Character Sheet sections', () => {
   it('reacts when the requested initial sheet tab changes', () => {
     const { rerender } = renderWithAppProviders(
       <CharacterSheetView
+        characterPublicId='character-1'
         hasDraft={false}
         initialTab='spells'
         sheet={createSheet()}
@@ -174,6 +176,7 @@ describe('Character Sheet sections', () => {
 
     rerender(
       <CharacterSheetView
+        characterPublicId='character-1'
         hasDraft={false}
         initialTab='inventory'
         sheet={createSheet()}
@@ -205,7 +208,7 @@ describe('Character Sheet sections', () => {
     const sheet = createSheet()
     sheet.identity.description = '<p>A careful explorer with a dangerous curiosity.</p>'
 
-    renderWithAppProviders(<CharacterSheetHero hasDraft={false} sheet={sheet} />)
+    renderWithAppProviders(<CharacterSheetHero characterPublicId='character-1' hasDraft={false} sheet={sheet} />)
 
     expect(screen.getByText(/careful explorer/i)).toBeInTheDocument()
     expect(screen.queryByText(/<p>a careful explorer/i)).not.toBeInTheDocument()
@@ -437,10 +440,10 @@ describe('Character Sheet sections', () => {
       />
     )
 
-    expect(screen.getByRole('textbox', { name: /^add equipment$/i })).toBeDisabled()
+    expect(screen.getByRole('combobox', { name: /^add equipment$/i })).toBeDisabled()
     expect(screen.getByRole('textbox', { name: /^quantity$/i })).toBeDisabled()
     expect(screen.getByRole('button', { name: /add item/i })).toBeDisabled()
-    expect(screen.getByRole('textbox', { name: /^adjust currency$/i })).toBeDisabled()
+    expect(screen.getByRole('combobox', { name: /^adjust currency$/i })).toBeDisabled()
     expect(screen.getByRole('textbox', { name: /^amount$/i })).toBeDisabled()
     expect(screen.getByRole('button', { name: /apply currency/i })).toBeDisabled()
   })
@@ -537,7 +540,7 @@ describe('Character Sheet sections', () => {
         />
       )
 
-      await user.click(screen.getByRole('textbox', { name: /^add equipment$/i }))
+      await user.click(screen.getByRole('combobox', { name: /^add equipment$/i }))
       await user.keyboard('{ArrowDown}{Enter}')
       await user.click(screen.getByRole('button', { name: /add item/i }))
     } finally {

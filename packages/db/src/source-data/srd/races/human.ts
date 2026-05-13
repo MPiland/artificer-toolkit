@@ -48,11 +48,38 @@ const humanWalk30 = [{ speedId: walkSpeedId, amount: 30, unit: MEASUREMENT_UNIT_
 export const human: RaceAuthored = {
   id: RACE_IDS.HUMAN,
   label: 'Human',
+  description: '<p>Humans are the most adaptable and ambitious people among the common races. Whatever drives them, humans are the innovators, the achievers, and the pioneers of the worlds.</p>',
   category: RACE_CATEGORY_CODE.BASE,
   selectionMode: RACE_SELECTION_MODE.DIRECT,
   size: SIZE_CODE.MEDIUM,
   speeds: humanWalk30,
   heritageIds: [SRD_HUMAN_HERITAGE_ID],
+  details: [
+    {
+      id: raceFeatureId(4, 0, 1),
+      label: 'Age',
+      description: 'Humans reach adulthood in their late teens and live less than a century.',
+      order: 0
+    },
+    {
+      id: raceFeatureId(4, 0, 2),
+      label: 'Alignment',
+      description: 'Humans tend toward no particular alignment. The best and the worst are found among them.',
+      order: 1
+    },
+    {
+      id: raceFeatureId(4, 0, 3),
+      label: 'Size',
+      description: 'Humans vary widely in height and build, from barely 5 feet to well over 6 feet tall. Your size is Medium.',
+      order: 2
+    },
+    {
+      id: raceFeatureId(4, 0, 4),
+      label: 'Speed',
+      description: 'Your base walking speed is 30 feet.',
+      order: 3
+    }
+  ],
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
   features: [

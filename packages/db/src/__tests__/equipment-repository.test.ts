@@ -15,10 +15,12 @@ function createFakeDb(rowsByTable: RowMap) {
                 selectAll() {
                     return builder;
                 },
-                where(column: string, _op: string, value: string) {
+                where(column: string, op: string, value: string | readonly string[]) {
                     state.filtered = state.filtered.filter((row) => {
                         const record = row as Record<string, unknown>;
-                        return record[column] === value;
+                        return op === 'in' && Array.isArray(value)
+                            ? value.includes(record[column] as string)
+                            : record[column] === value;
                     });
                     return builder;
                 },
@@ -178,7 +180,8 @@ describe('createEquipmentRepository', () => {
                 resetKind: 'LONG_REST',
                 limitKind: 'FIXED_AMOUNT',
                 scalingKind: 'NONE',
-                amount: 1
+                amount: 1,
+                bonuses: undefined
             },
             capacity: undefined,
             modifiers: [
@@ -192,7 +195,8 @@ describe('createEquipmentRepository', () => {
                     domain: {},
                     modifierKind: 'SET_VALUE',
                     scope: 'SOURCE',
-                    payload: { amount: 17 }
+                    payload: { amount: 17 },
+                    restrictions: undefined
                 }
             ],
             maxStack: undefined,
@@ -220,6 +224,7 @@ describe('createEquipmentRepository', () => {
                 }
             ],
             restrictions: undefined,
+            status: 'DRAFT',
             userId: 'user-1',
             systemId: 'system-1',
             properties: ['MARTIAL', 'VERSATILE'],
@@ -254,6 +259,39 @@ describe('createEquipmentRepository', () => {
             ]
         }) as never);
         await expect(repository.findById('equipment-bad')).rejects.toThrow('missing restriction facet');
+    });
+    it('normalizes Postgres numeric strings before returning authored equipment', async () => {
+        const repository = createEquipmentRepository(createFakeDb({
+            equipment: [
+                {
+                    id: 'equipment-numeric-strings',
+                    system_id: 'system-1',
+                    user_id: 'user-1',
+                    label: 'Waterskin',
+                    description: null,
+                    quote: null,
+                    category: 'ADVENTURING_GEAR',
+                    rarity_id: 'common',
+                    cost_amount: '2',
+                    cost_currency_id: 'sp',
+                    weight_amount: '5.5',
+                    weight_unit: 'POUNDS',
+                    capacity_amount: '4',
+                    capacity_unit: 'GALLONS',
+                    max_stack: null,
+                    max_bonus: null,
+                    armor_class: null,
+                    charge_id: null,
+                    restriction_id: null,
+                    parent_equipment_id: null
+                }
+            ]
+        }) as never);
+        await expect(repository.findById('equipment-numeric-strings')).resolves.toMatchObject({
+            cost: { amount: 2, currencyId: 'sp' },
+            weight: { amount: 5.5, unit: 'POUNDS' },
+            capacity: { amount: 4, unit: 'GALLONS' }
+        });
     });
     it('hydrates supported equipment variants', async () => {
         const repository = createEquipmentRepository(createFakeDb({
@@ -298,20 +336,15 @@ describe('createEquipmentRepository', () => {
             id: 'equipment-variant-1',
             label: 'Flame Tongue Longsword',
             description: 'A variant weapon.',
-            attributes: undefined,
             quote: undefined,
-            cost: undefined,
             effects: undefined,
             charges: undefined,
-            capacity: undefined,
             modifiers: undefined,
-            maxStack: undefined,
             rarityId: 'rare',
             maxBonus: 2,
-            armorClass: undefined,
-            contains: undefined,
             features: undefined,
             restrictions: undefined,
+            status: 'DRAFT',
             userId: 'user-1',
             systemId: 'system-1',
             category: 'VARIANT',
@@ -466,7 +499,7 @@ describe('createEquipmentRepository', () => {
                             groupType: 'SINGLE',
                             selectionKind: 'FIXED',
                             resultBlock: {
-                                id: 'equipment-PATH_CODE-1__result',
+                                id: 'equipment-PATH_CODE-1',
                                 resultKind: 'SINGLE',
                                 outcomes: [
                                     {
@@ -518,7 +551,7 @@ describe('createEquipmentRepository', () => {
                             pathCode: 'ON_HIT',
                             selectionKind: 'FIXED',
                             resultBlock: {
-                                id: 'equipment-PATH_CODE-1__result',
+                                id: 'equipment-PATH_CODE-1',
                                 resultKind: 'SINGLE',
                                 outcomes: [
                                     {

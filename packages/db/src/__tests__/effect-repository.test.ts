@@ -282,6 +282,67 @@ describe('createEffectRepository', () => {
     })
   })
 
+  it('round-trips a source-DC saving throw with the target save ability', async () => {
+    const db = new InMemoryDb()
+    const repository = createEffectRepository(db as never)
+
+    await repository.upsert({
+      id: 'effect-source-save-1',
+      order: 1,
+      invocation: {
+        kind: 'ACTION',
+        triggerCode: 'SAVING_THROW',
+        savingThrow: {
+          id: 'effect-source-save-1-saving-throw',
+          savingThrowKind: 'SOURCE_SAVE_DC',
+          ability: 'DEXTERITY'
+        },
+        activation: {
+          code: 'ACTION',
+          amount: 1
+        },
+        range: {
+          id: 'effect-source-save-1-range',
+          rangeKind: 'SELF'
+        }
+      },
+      paths: [
+        {
+          id: 'effect-source-save-1-fail',
+          order: 1,
+          pathCode: 'ON_SAVE_FAIL',
+          groupType: 'SINGLE',
+          selectionKind: 'FIXED',
+          resultBlock: {
+            id: 'effect-source-save-1-fail__result',
+            resultKind: 'SINGLE',
+            outcomes: [
+              {
+                id: 'effect-source-save-1-fail-entry',
+                effectKind: 'DAMAGE',
+                damageTypeId: 'fire',
+                valueKind: 'DICE',
+                scalingKind: 'NONE',
+                diceConfig: '2d6'
+              }
+            ]
+          }
+        }
+      ]
+    })
+
+    await expect(repository.findById('effect-source-save-1')).resolves.toMatchObject({
+      invocation: {
+        triggerCode: 'SAVING_THROW',
+        savingThrow: {
+          id: 'effect-source-save-1-saving-throw',
+          savingThrowKind: 'SOURCE_SAVE_DC',
+          ability: 'DEXTERITY'
+        }
+      }
+    })
+  })
+
   it('round-trips a roll-table effect with mixed damage and condition entries', async () => {
     const db = new InMemoryDb()
     const repository = createEffectRepository(db as never)

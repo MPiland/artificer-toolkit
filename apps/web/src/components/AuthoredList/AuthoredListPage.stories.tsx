@@ -8,6 +8,12 @@ const spellAttributeColumns = [
   { key: 'castingTime', label: 'Casting Time' }
 ]
 
+const spellSortOptions = [
+  { value: 'name', label: 'Name A-Z' },
+  { value: 'level', label: 'Level' },
+  { value: 'school', label: 'School' }
+]
+
 const meta = {
   title: 'Platform/Authored List/AuthoredListPage',
   component: AuthoredListPage,
@@ -26,7 +32,8 @@ const meta = {
     createLabel: 'Create Spell',
     items: spellListItems,
     filters: spellListFilters,
-    attributeColumns: spellAttributeColumns
+    attributeColumns: spellAttributeColumns,
+    sortOptions: spellSortOptions
   }
 } satisfies Meta<typeof AuthoredListPage>
 

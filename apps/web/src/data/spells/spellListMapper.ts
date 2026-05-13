@@ -1,5 +1,6 @@
 import type { SpellListResponseDto } from '#app/lib/api'
 import type { AuthoredListFilter, AuthoredListItem } from '#components/AuthoredList'
+import { getSpellSchoolAccent } from './spellSchoolAccents'
 
 interface SpellMetaGroup {
   id: string | number
@@ -51,20 +52,22 @@ export function mapSpellListToAuthoredItems(response: SpellListResponseDto): Aut
   return response.items.map((item) => {
     const schoolId = item.magicSchoolId ?? findMetaIds(spellMeta.schools, item.id)[0]
     const school = findMetaLabel(spellMeta.schools, schoolId)
+    const schoolAccent = getSpellSchoolAccent(school)
     const classEntries = findMetaEntries(spellMeta.classes, item.id)
     const classIds = classEntries.map((entry) => String(entry.id))
     const classLabels = classEntries.map(getMetaOptionLabel)
 
     return {
       id: item.id,
+      publicId: item.publicId,
       name: item.label,
       description: item.description ?? undefined,
       attributes: {
         level: item.level == null ? undefined : Number(item.level) === 0 ? 'Cantrip' : String(item.level),
         school,
+        classes: classLabels,
         castingTime: formatCastingTime(item.castingTimeAmount, item.castingTimeUnit)
       },
-      badges: classLabels,
       filterValues: {
         level: item.level == null ? undefined : String(item.level),
         school: schoolId,
@@ -72,8 +75,12 @@ export function mapSpellListToAuthoredItems(response: SpellListResponseDto): Aut
       },
       sortValues: {
         level: item.level ?? 0,
-        name: item.label
+        name: item.label,
+        school
       },
+      searchText: classLabels.join(' '),
+      accentColor: schoolAccent?.color,
+      accentLabel: schoolAccent?.label,
       sourceLabel: item.provenance.kind === 'MASTER' ? 'SRD' : 'Homebrew',
       sourceKind: item.provenance.kind === 'MASTER' ? 'master' : 'owned',
       permissions: mapPermissions(item)
@@ -82,14 +89,16 @@ export function mapSpellListToAuthoredItems(response: SpellListResponseDto): Aut
 }
 
 export const spellListAttributeColumns = [
-  { key: 'level', label: 'Lvl' },
-  { key: 'school', label: 'School' },
-  { key: 'castingTime', label: 'Casting Time' }
+  { key: 'level', label: 'Lvl', width: 76 },
+  { key: 'school', label: 'School', width: 164 },
+  { key: 'classes', label: 'Classes', width: 260 },
+  { key: 'castingTime', label: 'Casting Time', width: 172 }
 ]
 
 export const spellListSortOptions = [
   { value: 'name', label: 'Name A-Z' },
-  { value: 'level', label: 'Level' }
+  { value: 'level', label: 'Level' },
+  { value: 'school', label: 'School' }
 ]
 
 export function buildSpellListFilters(response: SpellListResponseDto): AuthoredListFilter[] {

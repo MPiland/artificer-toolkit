@@ -137,6 +137,7 @@ describe('schema package parsing', () => {
     })
     const draft = authoredDraftDtoSchema.parse({
       id: 'draft-1',
+      publicId: 'draft-1',
       ...saveRequest,
       userId: 'user-1',
       status: 'DRAFT',
@@ -1098,6 +1099,24 @@ describe('schema package parsing', () => {
     expect((parsed as { domain: { attackDomain: string } }).domain.attackDomain).toBe('SPELL')
   })
 
+  it('parses attack roll advantage modifiers without payloads', () => {
+    const parsed = modifierGrantDtoSchema.parse({
+      grantKind: 'MODIFIER_GRANT',
+      id: 'heavy-weapon-disadvantage',
+      order: 1,
+      selectionKind: 'GRANTED',
+      valueDomainCode: 'ATTACK_ROLL',
+      domain: {
+        attackDomain: 'MELEE'
+      },
+      modifierKind: 'DISADVANTAGE',
+      scope: 'SOURCE'
+    })
+
+    expect(parsed.valueDomainCode).toBe('ATTACK_ROLL')
+    expect(parsed.modifierKind).toBe('DISADVANTAGE')
+  })
+
   it('parses explicit ALL grant authoring mode', () => {
     const parsed = featGrantDtoSchema.parse({
       grantKind: 'FEAT_GRANT',
@@ -1697,6 +1716,7 @@ describe('schema package parsing', () => {
       items: [
         {
           id: 'acolyte',
+          publicId: 'acolyte',
           label: 'Acolyte',
           description: 'Temple-trained background.',
           status: 'ACTIVE',
@@ -1714,6 +1734,7 @@ describe('schema package parsing', () => {
           }
         }
       ],
+      drafts: [],
       meta: {
         total: 1
       }
@@ -1727,6 +1748,7 @@ describe('schema package parsing', () => {
     }) as { label?: string }
 
     const spell = spellResponseDtoSchema.parse({
+      publicId: 'magic-missile',
       item: {
         kind: 'SPELL',
         id: 'magic-missile',

@@ -188,6 +188,8 @@ const modifierGrantVariants = [
   buildModifierGrantVariant('ATTACK_ROLL', 'OPTIONAL_ABILITY_MODIFIER_BONUS', attackDomainParamDtoSchema, z.object({
     abilities: z.array(abilityCodeSchema)
   })),
+  buildModifierGrantVariant('ATTACK_ROLL', 'ADVANTAGE', attackDomainParamDtoSchema),
+  buildModifierGrantVariant('ATTACK_ROLL', 'DISADVANTAGE', attackDomainParamDtoSchema),
   buildModifierGrantVariant('SKILL_MODIFIER', 'BONUS', skillParamDtoSchema, modifierScalarValueDtoSchema),
   buildModifierGrantVariant('SKILL_MODIFIER', 'PENALTY', skillParamDtoSchema, modifierScalarValueDtoSchema),
   buildModifierGrantVariant('ABILITY_SCORE', 'BONUS', abilityParamDtoSchema, modifierScalarValueDtoSchema),

@@ -4,11 +4,13 @@ export {
   AuthoredDetailItemList,
   AuthoredDetailLayout,
   AuthoredDetailNav,
+  AuthoredDetailPillList,
   AuthoredDetailProse,
   AuthoredDetailSection
 } from './AuthoredDetail'
 export {
   formatCount,
+  escapeHtml,
   formatEnumLabel,
   formatNumber,
   formatReference,
@@ -24,9 +26,16 @@ export {
 export {
   buildDetailStatusLabels,
   compactAuthoredDetailActions,
+  compactAuthoredDetailSections,
+  hasDetailText,
   sortLabelDescriptionRecords,
   toDetailItems
 } from './detailModels'
+export {
+  formatGrantDetailLinesHtml,
+  formatProficiencyGrantLines,
+  formatStartingEquipmentLine
+} from './grantDetailPresenters'
 export {
   resolveAuthoredDetailState
 } from './authoredDetailState'
@@ -39,6 +48,9 @@ export type {
 export type {
   ReferenceLabelOption
 } from './detailFormatters'
+export type {
+  GrantDetailLine
+} from './grantDetailPresenters'
 export type {
   AuthoredDetailAction,
   AuthoredDetailActionTone,

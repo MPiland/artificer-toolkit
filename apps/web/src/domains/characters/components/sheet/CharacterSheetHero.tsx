@@ -1,18 +1,21 @@
 import { Badge, Button, Group, Text, Title } from '@mantine/core'
 import { useNavigate } from '@tanstack/react-router'
 import { AuthoredDetailProse } from '#app/components/AuthoredDetail'
+import { buildCharacterRouteParams } from '#app/routing/authoredRouteParams'
 import * as styles from './characterSheet.css'
 import type { CharacterSheet } from './CharacterSheet.types'
 
 export function CharacterSheetHero({
+  characterPublicId,
   hasDraft,
   sheet
 }: {
+  characterPublicId: string
   hasDraft: boolean
   sheet: CharacterSheet
 }) {
   const navigate = useNavigate()
-  const characterId = sheet.meta.characterId
+  const characterParams = buildCharacterRouteParams(characterPublicId, sheet.identity.label)
 
   return (
     <header className={styles.hero}>
@@ -35,7 +38,7 @@ export function CharacterSheetHero({
         </Group>
       </div>
       <div className={styles.heroActions}>
-        <Button onClick={() => navigate({ to: '/characters/$characterId/edit', params: { characterId } })}>
+        <Button onClick={() => navigate({ to: '/characters/$characterPublicId/$characterSlug/edit', params: characterParams })}>
           {hasDraft ? 'Resume Builder' : 'Edit Builder'}
         </Button>
         <Button variant='default' onClick={() => navigate({ to: '/characters' })}>Back to Characters</Button>

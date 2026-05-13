@@ -8,7 +8,24 @@ export const listStack = style({
   '@layer': {
     [app]: {
       display: 'grid',
+      gridTemplateRows: 'auto auto auto minmax(0, 1fr)',
+      height: `calc(100dvh - 48px - ${foundationVars.space[8]} - ${foundationVars.space[8]})`,
+      minWidth: 0,
+      minHeight: 0,
       gap: foundationVars.space[5]
+    }
+  },
+  '@media': {
+    [mobileBreakpoint]: {
+      height: 'auto'
+    }
+  }
+})
+
+export const contentTabs = style({
+  '@layer': {
+    [app]: {
+      justifySelf: 'start'
     }
   }
 })
@@ -17,9 +34,27 @@ export const toolbar = style({
   '@layer': {
     [app]: {
       display: 'grid',
-      gridTemplateColumns: 'minmax(16rem, 320px) repeat(4, minmax(10rem, 160px)) auto minmax(0, 1fr)',
+      gridTemplateColumns: 'minmax(0, 1fr) auto',
       alignItems: 'end',
-      gap: foundationVars.space[3]
+      gap: foundationVars.space[3],
+      minWidth: 0
+    }
+  },
+  '@media': {
+    [mobileBreakpoint]: {
+      gridTemplateColumns: '1fr'
+    }
+  }
+})
+
+export const filterControls = style({
+  '@layer': {
+    [app]: {
+      display: 'grid',
+      gridTemplateColumns: 'minmax(16rem, 320px) repeat(auto-fit, minmax(10rem, 160px))',
+      alignItems: 'end',
+      gap: foundationVars.space[3],
+      minWidth: 0
     }
   },
   '@media': {
@@ -33,6 +68,7 @@ export const viewToggleGroup = style({
   '@layer': {
     [app]: {
       alignSelf: 'end',
+      justifySelf: 'end',
       display: 'inline-flex',
       minHeight: '42px',
       padding: '3px',
@@ -43,6 +79,7 @@ export const viewToggleGroup = style({
   },
   '@media': {
     [mobileBreakpoint]: {
+      justifySelf: 'start',
       minHeight: '52px'
     }
   }
@@ -131,8 +168,11 @@ export const fieldLabel = style({
 export const tableShell = style({
   '@layer': {
     [app]: {
+      display: 'grid',
+      gridTemplateRows: 'minmax(0, 1fr)',
+      minWidth: 0,
+      minHeight: 0,
       overflow: 'hidden',
-      borderRadius: foundationVars.radius.lg,
       backgroundColor: 'transparent'
     }
   }
@@ -141,10 +181,11 @@ export const tableShell = style({
 export const tableScroll = style({
   '@layer': {
     [app]: {
-      maxHeight: 'min(70dvh, 760px)',
-      overflow: 'auto',
-      borderRadius: foundationVars.radius.lg,
-      scrollbarGutter: 'stable both-edges'
+      height: '100%',
+      width: '100%',
+      minWidth: 0,
+      maxWidth: '100%',
+      overflow: 'auto'
     }
   }
 })
@@ -152,9 +193,11 @@ export const tableScroll = style({
 export const table = style({
   '@layer': {
     [app]: {
+      width: '100%',
       minWidth: '1188px',
       borderCollapse: 'separate',
-      borderSpacing: '0 10px'
+      borderSpacing: 0,
+      tableLayout: 'fixed'
     }
   }
 })
@@ -249,15 +292,7 @@ export const sourceDot = style({
       width: '8px',
       height: '8px',
       borderRadius: foundationVars.radius.pill,
-      backgroundColor: foundationVars.color.accent.solid
-    }
-  }
-})
-
-export const masterDot = style({
-  '@layer': {
-    [app]: {
-      backgroundColor: foundationVars.color.text.muted
+      backgroundColor: `var(--authored-list-accent, ${foundationVars.color.accent.solid})`
     }
   }
 })
@@ -267,6 +302,14 @@ export const nameCell = style({
     [app]: {
       color: foundationVars.color.text.primary,
       fontWeight: foundationVars.fontWeight.medium
+    }
+  }
+})
+
+export const nameColumnNoAccent = style({
+  '@layer': {
+    [app]: {
+      paddingLeft: foundationVars.space[4]
     }
   }
 })
@@ -301,7 +344,17 @@ export const itemNameButton = style({
 export const monoCell = style({
   '@layer': {
     [app]: {
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
       fontFamily: foundationVars.font.mono
+    }
+  }
+})
+
+export const chipCell = style({
+  '@layer': {
+    [app]: {
+      overflow: 'hidden'
     }
   }
 })
@@ -311,7 +364,8 @@ export const chipGroup = style({
     [app]: {
       display: 'flex',
       flexWrap: 'wrap',
-      gap: foundationVars.space[2]
+      gap: foundationVars.space[2],
+      minWidth: 0
     }
   }
 })
@@ -367,9 +421,45 @@ export const masterSourceChip = style({
   }
 })
 
+export const statusCell = style({
+  '@layer': {
+    [app]: {
+      overflow: 'hidden'
+    }
+  }
+})
+
+export const statusChip = style({
+  '@layer': {
+    [app]: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      minHeight: '24px',
+      padding: `3px ${foundationVars.space[2]}`,
+      border: `1px solid ${foundationVars.color.border.strong}`,
+      borderRadius: foundationVars.radius.sm,
+      backgroundColor: foundationVars.color.input.background.default,
+      color: foundationVars.color.text.secondary,
+      fontSize: foundationVars.typography.caption.fontSize,
+      lineHeight: '18px'
+    }
+  }
+})
+
+export const statusChipDraft = style({
+  '@layer': {
+    [app]: {
+      borderColor: foundationVars.color.status.warning,
+      backgroundColor: foundationVars.color.status.warningSoft,
+      color: foundationVars.color.status.warning
+    }
+  }
+})
+
 export const actionCell = style({
   '@layer': {
     [app]: {
+      textAlign: 'left',
       width: '132px'
     }
   }
@@ -442,8 +532,7 @@ export const cardViewport = style({
     [app]: {
       maxHeight: 'min(72dvh, 820px)',
       overflow: 'auto',
-      borderRadius: foundationVars.radius.lg,
-      scrollbarGutter: 'stable both-edges'
+      borderRadius: foundationVars.radius.lg
     }
   }
 })
@@ -503,6 +592,18 @@ export const cardHeader = style({
       alignItems: 'flex-start',
       justifyContent: 'space-between',
       gap: foundationVars.space[3]
+    }
+  }
+})
+
+export const cardMetaGroup = style({
+  '@layer': {
+    [app]: {
+      display: 'inline-flex',
+      flexShrink: 0,
+      flexWrap: 'wrap',
+      justifyContent: 'flex-end',
+      gap: foundationVars.space[2]
     }
   }
 })
@@ -637,6 +738,18 @@ export const cardFooter = style({
       alignItems: 'center',
       justifyContent: 'space-between',
       gap: foundationVars.space[3]
+    }
+  }
+})
+
+export const cardFooterMeta = style({
+  '@layer': {
+    [app]: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      minWidth: 0,
+      gap: foundationVars.space[2]
     }
   }
 })

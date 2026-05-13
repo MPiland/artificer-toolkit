@@ -1,5 +1,3 @@
-import {
-  useState } from 'react'
 import { Alert,
   Button,
   Stack } from '@mantine/core'
@@ -11,41 +9,47 @@ import {
 } from '@artificer-toolkit/schema/api/content'
 import { type ClassAuthoringInputDto } from '@artificer-toolkit/schema/subjects/class'
 import {
-  AuthoredDetailEmptyBlock,
   AuthoredDetailItemList,
   AuthoredDetailLayout,
   AuthoredDetailProse,
   buildAuthoredDetailNotice,
   buildDetailStatusLabels,
   compactAuthoredDetailActions,
+  compactAuthoredDetailSections,
   formatCount,
   formatEnumLabel,
+  formatGrantDetailLinesHtml,
+  formatProficiencyGrantLines,
   formatReferenceLabel,
   formatReferenceList,
+  formatStartingEquipmentLine,
+  hasDetailText,
   resolveAuthoredDetailState,
-  summarizeHtml,
   toDetailItems,
   useAuthoredDetailActions,
-  type AuthoredDetailFact,
+  type GrantDetailLine,
   type AuthoredDetailSectionModel
 } from '#components/AuthoredDetail'
 import type { AuthoredContentReferenceData } from '#app/data/contentReferences'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
+import { buildClassRouteParams } from '#app/routing/authoredRouteParams'
 
 export function ClassDetailPage({
   classId,
   draft,
   references,
-  response
+  response,
+  view
 }: {
   classId: string
   draft: AuthoredDraftDto | null
-  references: Pick<AuthoredContentReferenceData, 'classes'>
+  references: Pick<AuthoredContentReferenceData, 'currencies' | 'equipment' | 'languages' | 'skills'>
   response: ClassResponseDto
+  view: 'active' | 'draft'
 }) {
   const navigate = useNavigate()
-  const [viewActive, setViewActive] = useState(false)
+  const viewActive = view === 'active'
   const detailState = resolveAuthoredDetailState<ClassAuthoringInputDto>({
     draft,
     response,
@@ -61,7 +65,10 @@ export function ClassDetailPage({
     duplicate: api.content.classes.duplicate,
     hasActiveContent: Boolean(detailState.activeItem),
     id: classId,
-    navigateEdit: async (id) => navigate({ to: '/classes/$classId/edit', params: { classId: id } }),
+    navigateEdit: async (subject) => navigate({
+      params: buildClassRouteParams(subject.publicId, subject.label),
+      to: '/classes/$classPublicId/$classSlug/edit'
+    }),
     navigateList: async () => navigate({ to: '/classes' })
   })
 
@@ -86,24 +93,27 @@ export function ClassDetailPage({
   }
 
   const item = detailState.item
+  const classParams = buildClassRouteParams(draft?.publicId ?? response?.publicId ?? classId, item.label)
   const pageActions = compactAuthoredDetailActions([
-    { label: 'Create New', tone: 'secondary', onClick: () => navigate({ to: '/classes/new' }) },
     detailState.mode === 'draft'
-      ? { label: 'Resume Draft', tone: 'primary', onClick: () => navigate({ to: '/classes/$classId/edit', params: { classId } }) }
+      ? { label: 'Resume Draft', tone: 'primary', onClick: () => navigate({ to: '/classes/$classPublicId/$classSlug/edit', params: classParams }) }
       : detailState.permissions.canEdit
-        ? { label: 'Edit', tone: 'primary', onClick: () => navigate({ to: '/classes/$classId/edit', params: { classId } }) }
+        ? { label: 'Edit', tone: 'primary', onClick: () => navigate({ to: '/classes/$classPublicId/$classSlug/edit', params: classParams }) }
         : null,
-    detailState.permissions.canCopy
+    detailState.mode === 'active' && detailState.draft
+      ? { label: 'View Draft', tone: 'secondary', onClick: () => navigate({ to: '/classes/$classPublicId/$classSlug', params: classParams, search: { view: 'draft' } }) }
+      : null,
+    detailState.mode === 'active' && !detailState.draft && detailState.permissions.canCopy
       ? { label: 'Duplicate', tone: 'secondary', disabled: actions.isDuplicating, onClick: () => void actions.duplicateToDraft() }
-      : null
+      : null,
+    { label: 'Create New', tone: 'secondary', onClick: () => navigate({ to: '/classes/new' }) }
   ])
 
   return (
     <AuthoredDetailLayout
       actions={pageActions}
-      description={summarizeHtml(item.description, 'A class reference entry ready for table use.')}
       eyebrow={item.category === 'SUBCLASS' ? 'Subclass' : 'Class'}
-      facts={getClassFacts(item, references)}
+      facts={[]}
       notice={buildAuthoredDetailNotice({
         canViewActive: Boolean(detailState.activeItem && detailState.draftItem),
         domainLabel: 'Class',
@@ -111,10 +121,10 @@ export function ClassDetailPage({
         isViewingActive: viewActive,
         mode: detailState.mode,
         onDiscard: () => void actions.discardDraft(),
-        onViewActive: () => setViewActive(true),
-        onViewDraft: () => setViewActive(false)
+        onViewActive: () => navigate({ to: '/classes/$classPublicId/$classSlug', params: classParams }),
+        onViewDraft: () => navigate({ to: '/classes/$classPublicId/$classSlug', params: classParams, search: { view: 'draft' } })
       })}
-      sections={getClassSections(item)}
+      sections={getClassSections(item, references)}
       status={buildDetailStatusLabels({
         draft: detailState.draft,
         mode: detailState.mode,
@@ -126,152 +136,126 @@ export function ClassDetailPage({
   )
 }
 
-function getClassFacts(
+function getClassSections(
   classRecord: ClassAuthoringInputDto,
-  references: Pick<AuthoredContentReferenceData, 'classes'>
-): AuthoredDetailFact[] {
-  return [
-    { label: 'Category', value: classRecord.category ? formatEnumLabel(classRecord.category) : 'Uncategorized Draft' },
-    {
-      label: 'Parent',
-      value: classRecord.category === 'SUBCLASS'
-        ? formatReferenceLabel(classRecord.parentClassId, 'Parent class selected', references.classes)
-        : 'None'
-    },
-    { label: 'Proficiencies', value: formatCount(classRecord.proficiencies?.length, 'grant') },
-    { label: 'Features', value: formatCount(classRecord.features?.length, 'feature') },
-    { label: 'Spellcasting', value: classRecord.spellcasting ? 'Configured' : 'None' },
-    { label: 'Resources', value: classRecord.resources ? 'Configured' : 'None' }
+  references: Pick<AuthoredContentReferenceData, 'currencies' | 'equipment' | 'languages' | 'skills'>
+): AuthoredDetailSectionModel[] {
+  const startingEquipmentLine = formatStartingEquipmentLine(classRecord.startingEquipment, references)
+  const startingGoldLine = formatStartingGoldLine(classRecord, references)
+  const proficiencyEquipmentHtml = formatGrantDetailLinesHtml([
+    ...formatProficiencyGrantLines(classRecord.proficiencies, references),
+    ...(startingEquipmentLine ? [startingEquipmentLine] : []),
+    ...(startingGoldLine ? [startingGoldLine] : [])
+  ])
+  const detailItems = toDetailItems(classRecord.details)
+  const spellcastingItems = classRecord.spellcasting
+    ? [
+        {
+          id: 'spellcasting-ability',
+          title: 'Ability',
+          description: classRecord.spellcasting.ability ? formatEnumLabel(classRecord.spellcasting.ability) : 'Not set'
+        },
+        {
+          id: 'spellcasting-limits',
+          title: 'Spell Limits',
+          meta: formatCount(classRecord.spellcasting.spellLimits.length, 'level')
+        },
+        {
+          id: classRecord.spellcasting.charges.id,
+          title: 'Charges',
+          meta: formatEnumLabel(classRecord.spellcasting.charges.resetKind)
+        }
+      ]
+    : []
+  const advancementItems = [
+    ...(classRecord.features ?? []).map((feature) => ({
+      id: feature.id,
+      title: feature.label,
+      meta: feature.availableAtLevel ? `Level ${feature.availableAtLevel}` : undefined,
+      description: feature.description
+    })),
+    ...(classRecord.specializations ?? []).map((specialization) => ({
+      id: specialization.id,
+      title: specialization.label,
+      meta: `Specialization ${specialization.order}`
+    })),
+    ...(classRecord.attributes ?? []).map((attribute) => ({
+      id: attribute,
+      title: formatReferenceList([attribute], 'attribute')
+    }))
   ]
-}
+  const requirementItems = [
+    ...(classRecord.hitpoint
+      ? [
+          {
+            id: 'hitpoint',
+            title: 'Hit Points',
+            meta: classRecord.hitpoint.dieConfig,
+            description: `${formatEnumLabel(classRecord.hitpoint.ability)} modifier applies.`
+          }
+        ]
+      : []),
+    ...(classRecord.multiclass
+      ? [
+          {
+            id: classRecord.multiclass.id,
+            title: 'Multiclass Requirements',
+            meta: formatCount(classRecord.multiclass.requirementGroups.groups.length, 'group')
+          }
+        ]
+      : [])
+  ]
 
-function getClassSections(classRecord: ClassAuthoringInputDto): AuthoredDetailSectionModel[] {
-  return [
-    {
+  return compactAuthoredDetailSections([
+    hasDetailText(classRecord.description) ? {
       id: 'description',
       title: 'Description',
       content: <AuthoredDetailProse html={classRecord.description} />
-    },
-    {
+    } : null,
+    detailItems.length ? {
       id: 'details',
       title: 'Class Details',
-      content: <AuthoredDetailItemList empty='No class details have been added.' items={toDetailItems(classRecord.details)} />
-    },
-    {
+      content: <AuthoredDetailItemList empty='No class details have been added.' items={detailItems} />
+    } : null,
+    hasDetailText(proficiencyEquipmentHtml) ? {
       id: 'proficiencies-equipment',
       title: 'Proficiencies & Equipment',
-      content: (
-        <AuthoredDetailItemList
-          empty='No proficiencies or equipment have been added.'
-          items={[
-            ...(classRecord.proficiencies ?? []).map((grant, index) => ({
-              id: grant.id,
-              title: formatEnumLabel(grant.proficiencyKind),
-              meta: grant.selectionKind ? formatEnumLabel(grant.selectionKind) : `Grant ${index + 1}`,
-              description: grant.count ? `${grant.count} choice${grant.count === 1 ? '' : 's'} configured.` : undefined
-            })),
-            ...(classRecord.startingEquipment?.sets ?? []).map((set, index) => ({
-              id: set.id,
-              title: `Equipment set ${index + 1}`,
-              meta: formatCount(set.groups.length, 'choice group')
-            })),
-            ...(classRecord.startingGold
-              ? [
-                  {
-                    id: 'starting-gold',
-                    title: 'Starting Gold',
-                    meta: classRecord.startingGold.dieConfig,
-                    description: `${classRecord.startingGold.multiplier}x currency roll configured.`
-                  }
-                ]
-              : [])
-          ]}
-        />
-      )
-    },
-    {
+      content: <AuthoredDetailProse html={proficiencyEquipmentHtml} fallback='No proficiencies or equipment have been added.' />
+    } : null,
+    spellcastingItems.length ? {
       id: 'spellcasting',
       title: 'Spellcasting',
-      content: classRecord.spellcasting
-        ? (
-            <AuthoredDetailItemList
-              empty='No spellcasting rules have been added.'
-              items={[
-                {
-                  id: 'spellcasting-ability',
-                  title: 'Ability',
-                  description: classRecord.spellcasting.ability ? formatEnumLabel(classRecord.spellcasting.ability) : 'Not set'
-                },
-                {
-                  id: 'spellcasting-limits',
-                  title: 'Spell Limits',
-                  meta: formatCount(classRecord.spellcasting.spellLimits.length, 'level')
-                },
-                {
-                  id: classRecord.spellcasting.charges.id,
-                  title: 'Charges',
-                  meta: formatEnumLabel(classRecord.spellcasting.charges.resetKind)
-                }
-              ]}
-            />
-          )
-        : <AuthoredDetailEmptyBlock>No spellcasting rules have been added.</AuthoredDetailEmptyBlock>
-    },
-    {
+      content: <AuthoredDetailItemList empty='No spellcasting rules have been added.' items={spellcastingItems} />
+    } : null,
+    advancementItems.length ? {
       id: 'advancement',
       title: 'Advancement',
-      content: (
-        <AuthoredDetailItemList
-          empty='No advancement details have been added.'
-          items={[
-            ...(classRecord.features ?? []).map((feature) => ({
-              id: feature.id,
-              title: feature.label,
-              meta: feature.availableAtLevel ? `Level ${feature.availableAtLevel}` : undefined,
-              description: feature.description
-            })),
-            ...(classRecord.specializations ?? []).map((specialization) => ({
-              id: specialization.id,
-              title: specialization.label,
-              meta: `Specialization ${specialization.order}`
-            })),
-            ...(classRecord.attributes ?? []).map((attribute) => ({
-              id: attribute,
-              title: formatReferenceList([attribute], 'attribute')
-            }))
-          ]}
-        />
-      )
-    },
-    {
+      content: <AuthoredDetailItemList empty='No advancement details have been added.' items={advancementItems} />
+    } : null,
+    requirementItems.length ? {
       id: 'requirements',
       title: 'Multiclass & Hit Points',
-      content: (
-        <AuthoredDetailItemList
-          empty='No multiclass or hit point rules have been added.'
-          items={[
-            ...(classRecord.hitpoint
-              ? [
-                  {
-                    id: 'hitpoint',
-                    title: 'Hit Points',
-                    meta: classRecord.hitpoint.dieConfig,
-                    description: `${formatEnumLabel(classRecord.hitpoint.ability)} modifier applies.`
-                  }
-                ]
-              : []),
-            ...(classRecord.multiclass
-              ? [
-                  {
-                    id: classRecord.multiclass.id,
-                    title: 'Multiclass Requirements',
-                    meta: formatCount(classRecord.multiclass.requirementGroups.groups.length, 'group')
-                  }
-                ]
-              : [])
-          ]}
-        />
-      )
-    }
-  ]
+      content: <AuthoredDetailItemList empty='No multiclass or hit point rules have been added.' items={requirementItems} />
+    } : null
+  ])
+}
+
+function formatStartingGoldLine(
+  classRecord: ClassAuthoringInputDto,
+  references: Pick<AuthoredContentReferenceData, 'currencies'>
+): GrantDetailLine | null {
+  if (!classRecord.startingGold) return null
+
+  const currencyLabel = formatReferenceLabel(classRecord.startingGold.currencyId, 'currency', references.currencies)
+    .replace('Gold Piece', 'gp')
+    .replace('Silver Piece', 'sp')
+    .replace('Copper Piece', 'cp')
+    .replace('Electrum Piece', 'ep')
+    .replace('Platinum Piece', 'pp')
+
+  return {
+    id: 'starting-gold',
+    label: 'Starting Gold',
+    description: `${classRecord.startingGold.dieConfig} x ${classRecord.startingGold.multiplier} ${currencyLabel}.`
+  }
 }

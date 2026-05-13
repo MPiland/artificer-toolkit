@@ -2,6 +2,7 @@ import { notifications } from '@mantine/notifications'
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { AuthoredListPage } from '#components/AuthoredList'
+import { mapDraftSummariesToAuthoredItems } from '#app/data/authoredListDrafts'
 import {
   featListAttributeColumns,
   featListSortOptions,
@@ -9,10 +10,12 @@ import {
   mapFeatListToAuthoredItems,
   summarizeFeatList
 } from '#app/data/feats/featListMapper'
-import { getFeatList } from '#app/data/feats/queries'
+import { getFeat, getFeatList } from '#app/data/feats/queries'
 import { createServerApi } from '#app/lib/api'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
+import { authoredDetailSearchFor } from '#app/routing/authoredDetailSearch'
+import { buildFeatRouteParams } from '#app/routing/authoredRouteParams'
 
 export const Route = createFileRoute('/_authed/feats/')({
   loader: ({ context }) => context.queryClient.ensureQueryData(getFeatList(createServerApi())),
@@ -32,7 +35,10 @@ function FeatsRoute() {
         message: 'Feat duplicated as owned content.'
       })
       if (response?.subjectId) {
-        await navigate({ to: '/feats/$featId/edit', params: { featId: response.subjectId } })
+        await navigate({
+          params: buildFeatRouteParams(response.publicId, response.label),
+          to: '/feats/$featPublicId/$featSlug/edit'
+        })
       }
     },
     onError: () => {
@@ -49,12 +55,27 @@ function FeatsRoute() {
       summary={summarizeFeatList(data)}
       createLabel='Create Feat'
       items={mapFeatListToAuthoredItems(data)}
+      draftItems={mapDraftSummariesToAuthoredItems(data.drafts)}
       filters={buildFeatListFilters(data)}
       attributeColumns={featListAttributeColumns}
       sortOptions={featListSortOptions}
       onCreate={() => navigate({ to: '/feats/new' })}
-      onView={(item) => navigate({ to: '/feats/$featId', params: { featId: item.id } })}
-      onEdit={(item) => navigate({ to: '/feats/$featId/edit', params: { featId: item.id } })}
+      onView={(item) => navigate({
+        params: buildFeatRouteParams(item.publicId, item.name),
+        search: authoredDetailSearchFor(item.contentState === 'draft' ? 'draft' : 'active'),
+        to: '/feats/$featPublicId/$featSlug'
+      })}
+      onViewIntent={(item) => {
+        void queryClient.prefetchQuery(getFeat({
+          id: item.id,
+          includeDraft: true,
+          view: item.contentState === 'draft' ? 'draft' : 'active'
+        }))
+      }}
+      onEdit={(item) => navigate({
+        params: buildFeatRouteParams(item.publicId, item.name),
+        to: '/feats/$featPublicId/$featSlug/edit'
+      })}
       onCopy={(item) => duplicateMutation.mutate(item.id)}
     />
   )

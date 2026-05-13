@@ -5,6 +5,7 @@ import type {
 import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 
 export const ownedClassResponseFixture = {
+  publicId: 'class-owned',
   item: {
     id: 'class-owned',
     label: 'Fighter',
@@ -50,6 +51,7 @@ export const ownedClassResponseFixture = {
 } satisfies ClassResponseDto
 
 export const masterSubclassResponseFixture = {
+  publicId: 'class-master-subclass',
   item: {
     id: 'class-master-subclass',
     label: 'Champion',
@@ -81,6 +83,7 @@ export const classListFixture = {
   items: [
     {
       id: ownedClassResponseFixture.item.id,
+      publicId: ownedClassResponseFixture.publicId,
       label: ownedClassResponseFixture.item.label,
       description: ownedClassResponseFixture.item.description,
       status: 'ACTIVE',
@@ -92,6 +95,7 @@ export const classListFixture = {
     },
     {
       id: masterSubclassResponseFixture.item.id,
+      publicId: masterSubclassResponseFixture.publicId,
       label: masterSubclassResponseFixture.item.label,
       description: masterSubclassResponseFixture.item.description,
       status: 'ACTIVE',
@@ -102,6 +106,7 @@ export const classListFixture = {
       permissions: masterSubclassResponseFixture.permissions
     }
   ],
+  drafts: [],
   meta: {}
 } satisfies ClassListResponseDto
 

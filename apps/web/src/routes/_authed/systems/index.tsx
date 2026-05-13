@@ -1,9 +1,10 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { getSystemList } from '#app/data/systems/queries'
-import { createServerApi } from '#app/lib/api'
-import { SystemListPage } from '#domains/systems'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/_authed/systems/')({
-  loader: ({ context }) => context.queryClient.ensureQueryData(getSystemList(createServerApi())),
-  component: SystemListPage
+  loader: () => {
+    throw redirect({
+      replace: true,
+      to: '/home'
+    })
+  }
 })

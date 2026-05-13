@@ -15,6 +15,7 @@ import {
   useActivateClassMutation,
   useSaveClassDraftMutation
 } from '#app/data/classes/mutations'
+import { buildClassRouteParams } from '#app/routing/authoredRouteParams'
 import {
   createEmptyClass,
   normalizeClassForSubmit,
@@ -58,7 +59,10 @@ function ClassCreateAuthoring({
       notifications.show({ color: 'green', message: 'Class activated.' })
 
       if (response?.item.id) {
-        await navigate({ to: '/classes/$classId/edit', params: { classId: response.item.id } })
+        await navigate({
+          params: buildClassRouteParams(response.publicId, response.item.label),
+          to: '/classes/$classPublicId/$classSlug/edit'
+        })
       }
     } catch {
       notifications.show({ color: 'red', message: 'Could not activate that class yet.' })
@@ -79,7 +83,10 @@ function ClassCreateAuthoring({
     try {
       const draft = await draftMutation.mutateAsync(normalizeClassForSubmit(form.state.values))
       notifications.show({ color: 'green', message: 'Class draft saved.' })
-      await navigate({ to: '/classes/$classId/edit', params: { classId: draft.subjectId } })
+      await navigate({
+        params: buildClassRouteParams(draft.publicId, draft.label),
+        to: '/classes/$classPublicId/$classSlug/edit'
+      })
     } catch {
       notifications.show({ color: 'red', message: 'Could not save that draft yet.' })
     }

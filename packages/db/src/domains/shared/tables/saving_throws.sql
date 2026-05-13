@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS public.saving_throws (
   id uuid PRIMARY KEY,
 
   saving_throw_kind text NOT NULL,          -- SAVING_THROW_KIND (string)
-  ability_code text,                -- ABILITY_CODE (FIXED_VALUE only)
+  ability_code text,                -- ABILITY_CODE rolled by the target
 
   dc integer,                        -- only for FIXED_VALUE
 
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS public.saving_throws (
     saving_throw_kind IN ('SOURCE_SAVE_DC', 'FIXED_VALUE')
   ),
   CONSTRAINT saving_throws_payload_chk CHECK (
-    (saving_throw_kind = 'SOURCE_SAVE_DC' AND ability_code IS NULL AND dc IS NULL)
+    (saving_throw_kind = 'SOURCE_SAVE_DC' AND ability_code IS NOT NULL AND dc IS NULL)
     OR (saving_throw_kind = 'FIXED_VALUE' AND ability_code IS NOT NULL AND dc IS NOT NULL)
   )
 );

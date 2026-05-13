@@ -72,18 +72,45 @@ const wizardCantripIds = srdSpells
 export const elf: RaceAuthored = {
   id: RACE_IDS.ELF,
   label: 'Elf',
+  description: '<p>Your elf character has a variety of natural abilities, the result of thousands of years of elven refinement.</p>',
   category: RACE_CATEGORY_CODE.BASE,
   selectionMode: RACE_SELECTION_MODE.REQUIRES_SUBRACE,
   size: SIZE_CODE.MEDIUM,
   speeds: elfWalk30,
   heritageIds: [SRD_ELVEN_HERITAGE_ID],
+  details: [
+    {
+      id: raceFeatureId(2, 0, 1),
+      label: 'Age',
+      description: 'Although elves reach physical maturity at about the same age as humans, the elven understanding of adulthood goes beyond physical growth to encompass worldly experience. An elf typically claims adulthood and an adult name around the age of 100 and can live to be 750 years old.',
+      order: 0
+    },
+    {
+      id: raceFeatureId(2, 0, 2),
+      label: 'Alignment',
+      description: 'Elves love freedom, variety, and self-expression, so they lean strongly toward the gentler aspects of chaos. They value and protect others\' freedom as well as their own, and they are more often good than not.',
+      order: 1
+    },
+    {
+      id: raceFeatureId(2, 0, 3),
+      label: 'Size',
+      description: 'Elves range from under 5 to over 6 feet tall and have slender builds. Your size is Medium.',
+      order: 2
+    },
+    {
+      id: raceFeatureId(2, 0, 4),
+      label: 'Speed',
+      description: 'Your base walking speed is 30 feet.',
+      order: 3
+    }
+  ],
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
   features: [
     {
       id: raceFeatureId(2, 1, 1),
       label: 'Darkvision',
-      description: 'Accustomed to twilit forests and the night sky, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light.',
+      description: 'Accustomed to twilit forests and the night sky, you have superior vision in dark and dim conditions. You can see in dim light within 60 feet of you as if it were bright light, and in darkness as if it were dim light. You cannot discern color in darkness, only shades of gray.',
       availableAtLevel: 1,
       order: 0,
       grants: {
@@ -163,7 +190,7 @@ export const elf: RaceAuthored = {
     {
       id: raceFeatureId(2, 5, 1),
       label: 'Languages',
-      description: 'You can speak, read, and write Common and Elvish.',
+      description: 'You can speak, read, and write Common and Elvish. Elvish is fluid, with subtle intonations and intricate grammar.',
       availableAtLevel: 1,
       order: 4,
       grants: {
@@ -190,6 +217,7 @@ export const elf: RaceAuthored = {
 export const highElf: RaceAuthored = {
   id: SUBRACE_IDS.HIGH_ELF,
   label: 'High Elf',
+  description: '<p>As a high elf, you have a keen mind and a mastery of at least the basics of magic.</p>',
   category: RACE_CATEGORY_CODE.SUBRACE,
   parentRaceId: RACE_IDS.ELF,
   userId: SRD_USER_ID,

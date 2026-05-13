@@ -44,18 +44,18 @@ export const CLASS_IDS = {
 
 // SRD 5.1 includes one subclass per class only
 export const SUBCLASS_IDS = {
-  BERSERKER: subjectId('0011', 1),        // Barbarian — Path of the Berserker
-  LORE: subjectId('0011', 3),             // Bard — College of Lore
-  LIFE: subjectId('0011', 6),             // Cleric — Life Domain
-  LAND: subjectId('0011', 13),            // Druid — Circle of the Land
-  CHAMPION: subjectId('0011', 14),        // Fighter — Champion
-  OPEN_HAND: subjectId('0011', 17),       // Monk — Way of the Open Hand
-  DEVOTION: subjectId('0011', 20),        // Paladin — Oath of Devotion
-  HUNTER: subjectId('0011', 23),          // Ranger — Hunter
-  THIEF: subjectId('0011', 25),           // Rogue — Thief
+  BERSERKER: subjectId('0011', 1), // Barbarian — Path of the Berserker
+  LORE: subjectId('0011', 3), // Bard — College of Lore
+  LIFE: subjectId('0011', 6), // Cleric — Life Domain
+  LAND: subjectId('0011', 13), // Druid — Circle of the Land
+  CHAMPION: subjectId('0011', 14), // Fighter — Champion
+  OPEN_HAND: subjectId('0011', 17), // Monk — Way of the Open Hand
+  DEVOTION: subjectId('0011', 20), // Paladin — Oath of Devotion
+  HUNTER: subjectId('0011', 23), // Ranger — Hunter
+  THIEF: subjectId('0011', 25), // Rogue — Thief
   DRACONIC_BLOODLINE: subjectId('0011', 28), // Sorcerer — Draconic Bloodline
-  FIEND: subjectId('0011', 31),           // Warlock — The Fiend
-  EVOCATION_SCHOOL: subjectId('0011', 37)    // Wizard — School of Evocation
+  FIEND: subjectId('0011', 31), // Warlock — The Fiend
+  EVOCATION_SCHOOL: subjectId('0011', 37) // Wizard — School of Evocation
 } as const
 
 // ─── Races (domain 0030) ──────────────────────────────────────────────────────
@@ -140,18 +140,15 @@ export const SPELL_IDS = {
   COMMAND: subjectId('0020', 44),
   COMMUNE: subjectId('0020', 45),
   COMMUNE_WITH_NATURE: subjectId('0020', 46),
-  COMPELLED_DUEL: subjectId('0020', 47),
   COMPREHEND_LANGUAGES: subjectId('0020', 48),
   COMPULSION: subjectId('0020', 49),
   CONE_OF_COLD: subjectId('0020', 50),
   CONFUSION: subjectId('0020', 51),
   CONJURE_ANIMALS: subjectId('0020', 52),
-  CONJURE_BARRAGE: subjectId('0020', 53),
   CONJURE_CELESTIAL: subjectId('0020', 54),
   CONJURE_ELEMENTAL: subjectId('0020', 55),
   CONJURE_FEY: subjectId('0020', 56),
   CONJURE_MINOR_ELEMENTALS: subjectId('0020', 57),
-  CONJURE_VOLLEY: subjectId('0020', 58),
   CONJURE_WOODLAND_BEINGS: subjectId('0020', 59),
   CONTACT_OTHER_PLANE: subjectId('0020', 60),
   CONTAGION: subjectId('0020', 61),
@@ -164,8 +161,6 @@ export const SPELL_IDS = {
   CREATE_OR_DESTROY_WATER: subjectId('0020', 68),
   CREATE_UNDEAD: subjectId('0020', 69),
   CREATION: subjectId('0020', 70),
-  CROWN_OF_MADNESS: subjectId('0020', 71),
-  CRUSADERS_MANTLE: subjectId('0020', 72),
   CURE_WOUNDS: subjectId('0020', 73),
   DANCING_LIGHTS: subjectId('0020', 74),
   DARKNESS: subjectId('0020', 75),
@@ -183,7 +178,6 @@ export const SPELL_IDS = {
   DISINTEGRATE: subjectId('0020', 87),
   DISPEL_EVIL_AND_GOOD: subjectId('0020', 88),
   DISPEL_MAGIC: subjectId('0020', 89),
-  DISSONANT_WHISPERS: subjectId('0020', 90),
   DIVINATION: subjectId('0020', 91),
   DIVINE_FAVOR: subjectId('0020', 92),
   DIVINE_WORD: subjectId('0020', 93),
@@ -208,7 +202,6 @@ export const SPELL_IDS = {
   FEAR: subjectId('0020', 112),
   FEATHER_FALL: subjectId('0020', 113),
   FEEBLEMIND: subjectId('0020', 114),
-  FEIGN_DEATH: subjectId('0020', 115),
   FIND_FAMILIAR: subjectId('0020', 116),
   FIND_STEED: subjectId('0020', 117),
   FIND_THE_PATH: subjectId('0020', 118),
@@ -239,7 +232,6 @@ export const SPELL_IDS = {
   GLOBE_OF_INVULNERABILITY: subjectId('0020', 143),
   GLYPH_OF_WARDING: subjectId('0020', 144),
   GOODBERRY: subjectId('0020', 146),
-  GRASPING_VINE: subjectId('0020', 147),
   GREASE: subjectId('0020', 148),
   GREATER_INVISIBILITY: subjectId('0020', 149),
   GREATER_RESTORATION: subjectId('0020', 150),
@@ -262,7 +254,6 @@ export const SPELL_IDS = {
   HOLD_MONSTER: subjectId('0020', 167),
   HOLD_PERSON: subjectId('0020', 168),
   HOLY_AURA: subjectId('0020', 169),
-  HUNGER_OF_HADAR: subjectId('0020', 170),
   HUNTERS_MARK: subjectId('0020', 171),
   HYPNOTIC_PATTERN: subjectId('0020', 172),
   ICE_STORM: subjectId('0020', 173),
@@ -414,9 +405,7 @@ export const SPELL_IDS = {
   WIND_WALL: subjectId('0020', 328),
   WISH: subjectId('0020', 329),
   WORD_OF_RECALL: subjectId('0020', 331),
-  WRATHFUL_SMITE: subjectId('0020', 332),
   ZONE_OF_TRUTH: subjectId('0020', 333),
-  HEX: subjectId('0020', 334),
   THAUMATURGY: subjectId('0020', 335)
 } as const
 
@@ -734,7 +723,7 @@ export const CREATURE_IDS = {
   YOUNG_RED_DRAGON: subjectId('0070', 308),
   YOUNG_SILVER_DRAGON: subjectId('0070', 309),
   YOUNG_WHITE_DRAGON: subjectId('0070', 310),
-  ZOMBIE: subjectId('0070', 311),
+  ZOMBIE: subjectId('0070', 311)
 } as const
 
 // ─── Vehicles (domain 0080) ──────────────────────────────────────────────────

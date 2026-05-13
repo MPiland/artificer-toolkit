@@ -5,10 +5,14 @@ vi.mock('../domains/shared/upserts/detail.js', () => ({
 }))
 
 import { createDetailRepository } from '../repositories/index.js'
+import type { DBLike } from '#types'
 
 function createFakeDb(rows: unknown[]) {
+  const queryCounts = new Map<string, number>()
   return {
+    queryCounts,
     selectFrom() {
+      queryCounts.set('details', (queryCounts.get('details') ?? 0) + 1)
       const state = {
         filtered: [...rows]
       }
@@ -17,9 +21,12 @@ function createFakeDb(rows: unknown[]) {
         select() {
           return builder
         },
-        where(column: string, _op: string, value: string) {
+        where(column: string, _op: string, value: string | string[]) {
           state.filtered = state.filtered.filter((row) => {
             const record = row as Record<string, unknown>
+            if (_op === 'in') {
+              return Array.isArray(value) && value.includes(record[column] as string)
+            }
             return record[column] === value
           })
           return builder
@@ -46,6 +53,37 @@ function createFakeDb(rows: unknown[]) {
 }
 
 describe('createDetailRepository', () => {
+  it('batches findByIds while preserving requested order and omitting inaccessible rows', async () => {
+    const db = createFakeDb([
+      {
+        id: 'detail-1',
+        label: 'First',
+        description: 'First description',
+        sort_order: 1
+      },
+      {
+        id: 'detail-2',
+        label: 'Second',
+        description: 'Second description',
+        sort_order: 2
+      },
+      {
+        id: 'detail-unrequested',
+        label: 'Unrequested',
+        description: 'Should not hydrate',
+        sort_order: 3
+      }
+    ])
+    const repository = createDetailRepository(db as unknown as DBLike)
+
+    const results = await repository.findByIds(['detail-2', 'detail-missing', 'detail-1', 'detail-2'])
+
+    expect(Array.from(results.keys())).toEqual(['detail-2', 'detail-1'])
+    expect(results.has('detail-missing')).toBe(false)
+    expect(results.has('detail-unrequested')).toBe(false)
+    expect(db.queryCounts.get('details')).toBe(1)
+  })
+
   it('hydrates one detail record', async () => {
     const repository = createDetailRepository(createFakeDb([
       {

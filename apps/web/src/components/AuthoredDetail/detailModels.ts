@@ -1,8 +1,8 @@
 import type { AuthoredContentProvenanceDto } from '@artificer-toolkit/schema/api/common'
 import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
-import type { AuthoredDetailAction } from './AuthoredDetail.types'
+import type { AuthoredDetailAction, AuthoredDetailSectionModel } from './AuthoredDetail.types'
 import type { AuthoredDetailViewMode } from './authoredDetailState'
-import { formatEnumLabel } from './detailFormatters'
+import { formatEnumLabel, stripHtml } from './detailFormatters'
 
 export interface LabelDescriptionRecord {
   id?: string
@@ -44,7 +44,7 @@ export function buildDetailStatusLabels({
   status?: string
 }) {
   const labels = [
-    provenance.kind === 'MASTER' ? 'Master' : 'Owned',
+    provenance.kind === 'MASTER' ? 'SRD' : 'Homebrew',
     status ? formatEnumLabel(status) : null
   ]
 
@@ -63,4 +63,14 @@ export function compactAuthoredDetailActions(
   actions: (AuthoredDetailAction | null | undefined)[]
 ): AuthoredDetailAction[] {
   return actions.filter((action): action is AuthoredDetailAction => Boolean(action))
+}
+
+export function compactAuthoredDetailSections(
+  sections: (AuthoredDetailSectionModel | null | undefined)[]
+): AuthoredDetailSectionModel[] {
+  return sections.filter((section): section is AuthoredDetailSectionModel => Boolean(section))
+}
+
+export function hasDetailText(value: string | null | undefined): boolean {
+  return stripHtml(value).length > 0
 }

@@ -12,7 +12,7 @@ describe('character list mapper', () => {
 
     expect(items.find((item) => item.id === 'character-owned')).toMatchObject({
       name: 'Astra Vale',
-      badges: ['Active'],
+      statusLabel: 'Active',
       filterValues: {
         status: 'ACTIVE',
         draftState: 'ACTIVE'
@@ -20,7 +20,8 @@ describe('character list mapper', () => {
     })
     expect(items.find((item) => item.id === 'character-draft')).toMatchObject({
       name: 'Untitled Character',
-      badges: ['Draft'],
+      statusLabel: 'Draft',
+      statusTone: 'draft',
       filterValues: {
         status: 'DRAFT',
         draftState: 'DRAFT_ONLY'
@@ -65,6 +66,7 @@ describe('character list mapper', () => {
           id: 'character-active-with-draft',
           draft: {
             characterId: 'character-active-with-draft',
+            publicId: 'character-active-with-draft',
             userId: 'user-1',
             systemId: characterListFixture.items[0].systemId,
             label: 'Active With Draft',

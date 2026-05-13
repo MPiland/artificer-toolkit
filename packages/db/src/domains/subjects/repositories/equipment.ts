@@ -16,9 +16,11 @@ import { createFeatureRepository } from '../../features/repositories/feature.js'
 import { hydrateChargeById } from '../../grants/repositories/helpers.js'
 import { createModifierGrantRepository } from '../../grants/repositories/modifier.js'
 import type { EquipmentRepository, RepositoryFindAllOptions } from '../../../repositories/contracts.js'
+import { hydrateByIds, orderedHydratedRecords } from '../../../repositories/batch.js'
 import { hydrateSubjectStatus } from '../status.js'
 
 type AnyEquipmentAuthored = EquipmentAuthored
+type DbNumeric = number | string
 type EquipmentCategory = EquipmentAuthored['category']
 type EquipmentProperty = BaseEquipmentAuthored['properties'][number]
 type EquipmentAttributeCode = NonNullable<BaseEquipmentAuthored['attributes']>[number]
@@ -83,6 +85,16 @@ function requireLinkedRecord<T>(
   }
 
   return value
+}
+
+function readNumericValue(equipmentId: string, value: DbNumeric, field: string): number {
+  const numericValue = typeof value === 'number' ? value : Number(value)
+
+  if (!Number.isFinite(numericValue)) {
+    throw new Error(`Equipment "${equipmentId}" has invalid ${field} "${String(value)}".`)
+  }
+
+  return numericValue
 }
 
 async function hydrateEquipmentById(
@@ -164,18 +176,14 @@ async function hydrateEquipmentById(
   const featureRepository = createFeatureRepository<'EQUIPMENT'>(db, row.system_id)
   const modifierRepository = createModifierGrantRepository(db)
 
-  const effects = await Promise.all(
-    effectLinks.map((link) => effectRepository.findById(link.effect_id))
-  )
-  const features = await Promise.all(
-    featureLinks.map((link) => featureRepository.findById(link.feature_id))
-  )
-  const modifiers = await Promise.all(
-    modifierLinks.map((link) => modifierRepository.findById(link.modifier_grant_id))
-  )
-  const authoredEffects = effects.map((effect, index) => requireLinkedRecord(effect, `Equipment "${id}" is linked to missing effect "${effectLinks[index]?.effect_id}".`))
-  const authoredFeatures = features.map((feature, index) => requireLinkedRecord(feature, `Equipment "${id}" is linked to missing feature "${featureLinks[index]?.feature_id}".`))
-  const authoredModifiers = modifiers.map((modifier, index) => requireLinkedRecord(modifier, `Equipment "${id}" is linked to missing modifier grant "${modifierLinks[index]?.modifier_grant_id}".`))
+  const [effectsById, featuresById, modifiersById] = await Promise.all([
+    effectRepository.findByIds(effectLinks.map((link) => link.effect_id)),
+    featureRepository.findByIds(featureLinks.map((link) => link.feature_id)),
+    modifierRepository.findByIds(modifierLinks.map((link) => link.modifier_grant_id))
+  ])
+  const authoredEffects = effectLinks.map((link) => requireLinkedRecord(effectsById.get(link.effect_id), `Equipment "${id}" is linked to missing effect "${link.effect_id}".`))
+  const authoredFeatures = featureLinks.map((link) => requireLinkedRecord(featuresById.get(link.feature_id), `Equipment "${id}" is linked to missing feature "${link.feature_id}".`))
+  const authoredModifiers = modifierLinks.map((link) => requireLinkedRecord(modifiersById.get(link.modifier_grant_id), `Equipment "${id}" is linked to missing modifier grant "${link.modifier_grant_id}".`))
 
   const common = {
     kind: 'EQUIPMENT' as const,
@@ -222,17 +230,17 @@ async function hydrateEquipmentById(
       : undefined,
     cost: row.cost_amount != null && row.cost_currency_id
       ? {
-          amount: row.cost_amount,
+          amount: readNumericValue(id, row.cost_amount, 'cost_amount'),
           currencyId: row.cost_currency_id
         }
       : undefined,
     weight: {
-      amount: row.weight_amount,
+      amount: readNumericValue(id, row.weight_amount, 'weight_amount'),
       unit: requireMeasurementUnit(id, row.weight_unit)
     },
     capacity: row.capacity_amount != null && row.capacity_unit
       ? {
-          amount: row.capacity_amount,
+          amount: readNumericValue(id, row.capacity_amount, 'capacity_amount'),
           unit: requireMeasurementUnit(id, row.capacity_unit)
         }
       : undefined,
@@ -296,6 +304,10 @@ export function createEquipmentRepository(db: DBLike): EquipmentRepository {
       return hydrateEquipmentById(db, id)
     },
 
+    async findByIds(ids) {
+      return hydrateByIds(ids, (id) => hydrateEquipmentById(db, id))
+    },
+
     async findResolvedById(id, filter) {
       return hydrateResolvedEquipmentById(id, filter)
     },
@@ -313,8 +325,10 @@ export function createEquipmentRepository(db: DBLike): EquipmentRepository {
       }
 
       const rows = await query.execute()
-      const records = await Promise.all(rows.map((row) => hydrateEquipmentById(db, row.id)))
-      return records.filter((record): record is AnyEquipmentAuthored => record !== null)
+      return orderedHydratedRecords(
+        rows.map((row) => row.id),
+        await hydrateByIds(rows.map((row) => row.id), (id) => hydrateEquipmentById(db, id))
+      )
     },
 
     async findResolvedAll(filter?: RepositoryFindAllOptions) {

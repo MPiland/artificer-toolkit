@@ -61,39 +61,31 @@ type ExistingEffectIds = {
 }
 
 async function collectExistingEffectIds(db: DBLike, effectId: string): Promise<ExistingEffectIds> {
-  const [
-    invocationRow,
-    pathRows
-  ] = await Promise.all([
-    db.selectFrom('effect_invocations')
-      .select(['range_characteristic_id', 'shape_characteristic_id', 'saving_throw_id'] as const)
-      .where('effect_id', '=', effectId)
-      .executeTakeFirst(),
-    db.selectFrom('effect_paths')
-      .select(['id', 'result_block_id', 'range_override_characteristic_id'] as const)
-      .where('effect_id', '=', effectId)
-      .execute()
-  ])
+  const invocationRow = await db.selectFrom('effect_invocations')
+    .select(['range_characteristic_id', 'shape_characteristic_id', 'saving_throw_id'] as const)
+    .where('effect_id', '=', effectId)
+    .executeTakeFirst()
+
+  const pathRows = await db.selectFrom('effect_paths')
+    .select(['id', 'result_block_id', 'range_override_characteristic_id'] as const)
+    .where('effect_id', '=', effectId)
+    .execute()
 
   const pathIds = pathRows.map((row) => row.id)
 
-  const [
-    choiceOptions,
-    rollRows
-  ] = await Promise.all([
-    pathIds.length > 0
-      ? db.selectFrom('effect_path_choice_options')
-          .select(['id', 'path_id', 'result_block_id'] as const)
-          .where('path_id', 'in', pathIds)
-          .execute()
-      : Promise.resolve([]),
-    pathIds.length > 0
-      ? db.selectFrom('effect_path_roll_table_rows')
-          .select(['id', 'path_id', 'result_block_id'] as const)
-          .where('path_id', 'in', pathIds)
-          .execute()
-      : Promise.resolve([])
-  ])
+  const choiceOptions = pathIds.length > 0
+    ? await db.selectFrom('effect_path_choice_options')
+        .select(['id', 'path_id', 'result_block_id'] as const)
+        .where('path_id', 'in', pathIds)
+        .execute()
+    : []
+
+  const rollRows = pathIds.length > 0
+    ? await db.selectFrom('effect_path_roll_table_rows')
+        .select(['id', 'path_id', 'result_block_id'] as const)
+        .where('path_id', 'in', pathIds)
+        .execute()
+    : []
 
   const resultBlockIds = Array.from(new Set([
     ...pathRows.flatMap((row) => row.result_block_id ? [row.result_block_id] : []),
@@ -101,20 +93,19 @@ async function collectExistingEffectIds(db: DBLike, effectId: string): Promise<E
     ...rollRows.map((row) => row.result_block_id)
   ]))
 
-  const [resultBlocks, nativeOutcomeRows] = await Promise.all([
-    resultBlockIds.length > 0
-      ? db.selectFrom('effect_result_blocks')
-          .select(['id', 'duration_id'] as const)
-          .where('id', 'in', resultBlockIds)
-          .execute()
-      : Promise.resolve([]),
-    resultBlockIds.length > 0
-      ? db.selectFrom('effect_result_block_outcomes')
-          .select(['outcome_id', 'effect_kind'] as const)
-          .where('result_block_id', 'in', resultBlockIds)
-          .execute()
-      : Promise.resolve([])
-  ])
+  const resultBlocks = resultBlockIds.length > 0
+    ? await db.selectFrom('effect_result_blocks')
+        .select(['id', 'duration_id'] as const)
+        .where('id', 'in', resultBlockIds)
+        .execute()
+    : []
+
+  const nativeOutcomeRows = resultBlockIds.length > 0
+    ? await db.selectFrom('effect_result_block_outcomes')
+        .select(['outcome_id', 'effect_kind'] as const)
+        .where('result_block_id', 'in', resultBlockIds)
+        .execute()
+    : []
 
   return {
     rangeCharacteristicId: invocationRow?.range_characteristic_id ?? null,

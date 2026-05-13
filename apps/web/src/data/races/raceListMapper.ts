@@ -10,14 +10,6 @@ function mapPermissions(item: RaceListResponseDto['items'][number]): AuthoredLis
   }
 }
 
-function formatStatus(status: string | undefined): string {
-  if (!status) return 'Draft'
-  return status
-    .toLowerCase()
-    .replaceAll('_', ' ')
-    .replace(/^\w/, (letter) => letter.toUpperCase())
-}
-
 export function formatRaceCategory(category: string | undefined): string {
   if (category === 'SUBRACE') return 'Subrace'
   if (category === 'BASE') return 'Base Race'
@@ -35,21 +27,19 @@ export function mapRaceListToAuthoredItems(response: RaceListResponseDto): Autho
 
     return {
       id: item.id,
+      publicId: item.publicId,
       name: item.label,
       description: summarizeDescription(item.description),
       attributes: {
         Category: formatRaceCategory(category)
       },
-      badges: [formatStatus(item.status)],
       filterValues: {
         category,
-        status: item.status,
         source: item.provenance.kind
       },
       sortValues: {
         category: formatRaceCategory(category),
-        name: item.label,
-        status: formatStatus(item.status)
+        name: item.label
       },
       searchText: `${summarizeDescription(item.description)} ${formatRaceCategory(category)}`,
       sourceLabel: item.provenance.kind === 'MASTER' ? 'SRD' : 'Homebrew',
@@ -60,7 +50,6 @@ export function mapRaceListToAuthoredItems(response: RaceListResponseDto): Autho
 }
 
 export function buildRaceListFilters(response: RaceListResponseDto): AuthoredListFilter[] {
-  const statuses = Array.from(new Set(response.items.map((item) => item.status))).sort()
   const categories = Array.from(new Set(response.items.map((item) => item.category ?? 'BASE'))).sort()
 
   return [
@@ -71,15 +60,6 @@ export function buildRaceListFilters(response: RaceListResponseDto): AuthoredLis
       options: categories.map((category) => ({
         value: category,
         label: formatRaceCategory(category)
-      }))
-    },
-    {
-      key: 'status',
-      label: 'Status',
-      placeholder: 'Any status',
-      options: statuses.map((status) => ({
-        value: status,
-        label: formatStatus(status)
       }))
     },
     {
@@ -94,12 +74,11 @@ export function buildRaceListFilters(response: RaceListResponseDto): AuthoredLis
   ]
 }
 
-export const raceListAttributeColumns = [{ key: 'Category', label: 'Category' }] satisfies AuthoredListAttributeColumn[]
+export const raceListAttributeColumns = [{ key: 'Category', label: 'Category', width: 180 }] satisfies AuthoredListAttributeColumn[]
 
 export const raceListSortOptions = [
   { value: 'name', label: 'Name A-Z' },
-  { value: 'category', label: 'Category' },
-  { value: 'status', label: 'Status' }
+  { value: 'category', label: 'Category' }
 ]
 
 export function summarizeRaceList(response: RaceListResponseDto) {

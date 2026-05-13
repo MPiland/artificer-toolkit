@@ -43,6 +43,7 @@ import {
 import type { DBLike, Json } from '#types'
 import { upsertEffect } from '../upserts/effect.js'
 import type { EffectRepository } from '../../../repositories/contracts.js'
+import { hydrateByIds, orderedHydratedRecords } from '../../../repositories/batch.js'
 type DamageBonus = NonNullable<DamageAuthored['bonuses']>[number]
 type EffectPath = NonNullable<EffectAuthored['paths']>[number]
 type ResultBlock = Extract<EffectPath, { selectionKind: 'FIXED' }>['resultBlock']
@@ -468,7 +469,8 @@ async function hydrateSavingThrowById(db: DBLike, id: string) {
   if (kind === SAVING_THROW_KIND.SOURCE_SAVE_DC) {
     return {
       id,
-      savingThrowKind: kind
+      savingThrowKind: kind,
+      ability: requireAbilityCode(id, requireLinkedRecord(savingThrow.ability_code, `Saving throw "${id}" is missing ability_code.`))
     }
   }
 
@@ -1188,6 +1190,10 @@ export function createEffectRepository(db: DBLike): EffectRepository {
       return hydrateEffectById(db, id)
     },
 
+    async findByIds(ids) {
+      return hydrateByIds(ids, (id) => hydrateEffectById(db, id))
+    },
+
     async findAll() {
       const rows = await db
         .selectFrom('effects')
@@ -1195,8 +1201,10 @@ export function createEffectRepository(db: DBLike): EffectRepository {
         .orderBy('sort_order')
         .execute()
 
-      const records = await Promise.all(rows.map((row) => hydrateEffectById(db, row.id)))
-      return records.filter((record): record is EffectAuthored => record !== null)
+      return orderedHydratedRecords(
+        rows.map((row) => row.id),
+        await hydrateByIds(rows.map((row) => row.id), (id) => hydrateEffectById(db, id))
+      )
     }
   }
 }

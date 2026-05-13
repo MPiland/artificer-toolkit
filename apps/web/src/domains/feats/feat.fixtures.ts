@@ -37,6 +37,7 @@ export const featListResponseFixture: FeatListResponseDto = {
   items: [
     {
       id: masterFeatFixture.id,
+      publicId: masterFeatFixture.id,
       label: masterFeatFixture.label,
       description: masterFeatFixture.description,
       status: 'ACTIVE',
@@ -55,6 +56,7 @@ export const featListResponseFixture: FeatListResponseDto = {
     },
     {
       id: ownedFeatFixture.id,
+      publicId: ownedFeatFixture.id,
       label: ownedFeatFixture.label,
       description: ownedFeatFixture.description,
       status: 'DRAFT',
@@ -72,10 +74,12 @@ export const featListResponseFixture: FeatListResponseDto = {
       }
     }
   ],
+  drafts: [],
   meta: {}
 }
 
 export const ownedFeatResponseFixture: NonNullable<FeatResponseDto> = {
+  publicId: ownedFeatFixture.id,
   item: ownedFeatFixture,
   provenance: {
     kind: 'OWNED',
@@ -90,6 +94,7 @@ export const ownedFeatResponseFixture: NonNullable<FeatResponseDto> = {
 }
 
 export const masterFeatResponseFixture: NonNullable<FeatResponseDto> = {
+  publicId: masterFeatFixture.id,
   item: masterFeatFixture,
   provenance: {
     kind: 'MASTER',

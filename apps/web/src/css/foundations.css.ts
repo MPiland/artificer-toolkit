@@ -83,6 +83,16 @@ export const foundationVars = createGlobalThemeContract({
       danger: null,
       dangerSoft: null
     },
+    school: {
+      abjuration: null,
+      conjuration: null,
+      divination: null,
+      enchantment: null,
+      evocation: null,
+      illusion: null,
+      necromancy: null,
+      transmutation: null
+    },
     icon: {
       default: null,
       accent: null,
@@ -404,6 +414,16 @@ export const lightFoundationTokens = {
       danger: '#ea6846',
       dangerSoft: '#fee7e2'
     },
+    school: {
+      abjuration: '#3f6fda',
+      conjuration: '#b7822e',
+      divination: '#b59a2e',
+      enchantment: '#bf4f8d',
+      evocation: '#c15336',
+      illusion: '#2d8fba',
+      necromancy: '#7856bf',
+      transmutation: '#2f9b63'
+    },
     icon: {
       default: '#20262d',
       accent: '#4f46e5',
@@ -531,6 +551,16 @@ export const darkFoundationTokens = {
       warningSoft: '#3a2c10',
       danger: '#e88b6e',
       dangerSoft: '#3a1612'
+    },
+    school: {
+      abjuration: '#7da2f0',
+      conjuration: '#e2b663',
+      divination: '#ddc66e',
+      enchantment: '#e187b7',
+      evocation: '#ec8768',
+      illusion: '#73c3e2',
+      necromancy: '#a68ae0',
+      transmutation: '#69c488'
     },
     icon: {
       default: '#d7e0e4',

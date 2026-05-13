@@ -1,32 +1,30 @@
-import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
-import { api, type Api } from '#app/lib/api'
+import type { Api, AuthoredDetailRequestDto } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
+import { createAuthoredContentQueries } from '#app/data/authoredContentQueries'
 
-export function getClassList(client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.content.classes.list(),
-    queryFn: async () => await client.content.classes.list()
-  })
+type DetailInput = string | AuthoredDetailRequestDto
+
+const classQueries = createAuthoredContentQueries(
+  (client) => client.content.classes,
+  queryKeys.content.classes
+)
+
+export function getClassList(client?: Api) {
+  return classQueries.getList(client)
 }
 
 export function useGetClassList() {
-  return useSuspenseQuery(getClassList())
+  return classQueries.useList()
 }
 
-export function getClass(id: string, client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.content.classes.detail(id),
-    queryFn: async () => await client.content.classes.get(id)
-  })
+export function getClass(input: DetailInput, client?: Api) {
+  return classQueries.getDetail(input, client)
 }
 
-export function useGetClass(id: string) {
-  return useSuspenseQuery(getClass(id))
+export function useGetClass(input: DetailInput) {
+  return classQueries.useDetail(input)
 }
 
-export function getClassDraft(id: string, client: Api = api) {
-  return queryOptions({
-    queryKey: queryKeys.content.classes.draft(id),
-    queryFn: async () => await client.content.classes.getDraft(id)
-  })
+export function getClassDraft(id: string, client?: Api) {
+  return classQueries.getDraft(id, client)
 }

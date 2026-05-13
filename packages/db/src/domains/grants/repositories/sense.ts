@@ -4,6 +4,7 @@ import { upsertSenseGrant } from '../upserts/sense.js'
 import { hydrateFacetById } from '../../shared/facets.js'
 import { hydrateChargeById } from './helpers.js'
 import type { SenseGrantRepository } from '../../../repositories/contracts.js'
+import { hydrateByIds, orderedHydratedRecords } from '../../../repositories/batch.js'
 
 function requireLinkedRecord<T>(value: T | null | undefined, message: string): T {
   if (value == null) {
@@ -122,7 +123,7 @@ async function hydrateSenseGrantById(
 
   if (!root) return null
 
-  const [rootSenses, scalingLevels, scalingLevelSenses, charge, restrictions] = await Promise.all([
+  const [rootSenses, scalingLevels, charge, restrictions] = await Promise.all([
     db.selectFrom('sense_grant_senses')
       .select(['sense_grant_id', 'sense_id'])
       .where('sense_grant_id', '=', id)
@@ -132,12 +133,16 @@ async function hydrateSenseGrantById(
       .where('sense_grant_id', '=', id)
       .orderBy('sort_order')
       .execute(),
-    db.selectFrom('sense_grant_scaling_level_senses')
-      .select(['scaling_level_id', 'sense_id'])
-      .execute(),
     root.charge_id ? hydrateChargeById(db, root.charge_id) : Promise.resolve(null),
     root.restriction_id ? hydrateFacetById(db, root.restriction_id) : Promise.resolve(null)
   ])
+  const scalingLevelIds = scalingLevels.map((level) => level.id)
+  const scalingLevelSenses = scalingLevelIds.length
+    ? await db.selectFrom('sense_grant_scaling_level_senses')
+        .select(['scaling_level_id', 'sense_id'])
+        .where('scaling_level_id', 'in', scalingLevelIds)
+        .execute()
+    : []
 
   const sensesByLevel = new Map<string, string[]>()
   for (const row of scalingLevelSenses) {
@@ -245,6 +250,10 @@ export function createSenseGrantRepository(db: DBLike): SenseGrantRepository {
       return hydrateSenseGrantById(db, id)
     },
 
+    async findByIds(ids) {
+      return hydrateByIds(ids, (id) => hydrateSenseGrantById(db, id))
+    },
+
     async findAll() {
       const rows = await db
         .selectFrom('sense_grants')
@@ -252,8 +261,10 @@ export function createSenseGrantRepository(db: DBLike): SenseGrantRepository {
         .orderBy('sort_order')
         .execute()
 
-      const records = await Promise.all(rows.map((row) => hydrateSenseGrantById(db, row.id)))
-      return records.filter((record): record is SenseGrantAuthored => record !== null)
+      return orderedHydratedRecords(
+        rows.map((row) => row.id),
+        await hydrateByIds(rows.map((row) => row.id), (id) => hydrateSenseGrantById(db, id))
+      )
     }
   }
 }

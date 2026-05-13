@@ -26,6 +26,7 @@ import {
   spellResponseDtoSchema,
   vehicleListResponseDtoSchema,
   vehicleResponseDtoSchema,
+  type AuthoredDetailRequestDto,
   type AuthoredDraftDto,
   type AuthoredDraftSaveRequestDto,
   type AuthoredSubjectKindDto,
@@ -90,6 +91,12 @@ import {
   type NodeRuntimeResolveResponseDto
 } from '@artificer-toolkit/schema/api/nodeRuntime'
 import {
+  routeIdentityDtoSchema,
+  type RouteIdentityBySubjectRequestDto,
+  type RouteIdentityDto,
+  type RouteIdentityResolveRequestDto
+} from '@artificer-toolkit/schema/api/routeIds'
+import {
   systemListResponseDtoSchema,
   systemResponseDtoSchema,
   type SystemListItemDto,
@@ -108,6 +115,7 @@ import type { SpellAuthoringInputDto } from '@artificer-toolkit/schema/subjects/
 import type { VehicleAuthoringInputDto } from '@artificer-toolkit/schema/subjects/vehicle'
 
 export type {
+  AuthoredDetailRequestDto,
   AuthoredDraftDto,
   AuthoredDraftSaveRequestDto,
   AuthoredSubjectKindDto,
@@ -153,6 +161,9 @@ export type {
   NodeRuntimeNormalizeValuesResponseDto,
   NodeRuntimeResolveRequestDto,
   NodeRuntimeResolveResponseDto,
+  RouteIdentityBySubjectRequestDto,
+  RouteIdentityDto,
+  RouteIdentityResolveRequestDto,
   RaceListItemDto,
   RaceListResponseDto,
   RaceResponseDto,
@@ -236,12 +247,18 @@ interface AuthoredContentInput {
   systemId: string
 }
 
+type AuthoredDetailInput = string | AuthoredDetailRequestDto
+
+function normalizeAuthoredDetailInput(input: AuthoredDetailInput): AuthoredDetailRequestDto {
+  return typeof input === 'string' ? { id: input } : input
+}
+
 interface AuthoredDomainTransport<TList, TResponse, TInput extends AuthoredContentInput> {
   activate: (input: TInput) => Promise<TResponse>
   activateDraft: (id: string) => Promise<TResponse>
   discardDraft: (id: string) => Promise<unknown>
   duplicate: (id: string) => Promise<AuthoredDraftDto | null>
-  get: (id: string) => Promise<TResponse>
+  get: (input: AuthoredDetailRequestDto) => Promise<TResponse>
   getDraft: (id: string) => Promise<AuthoredDraftDto | null>
   list: () => Promise<TList>
   saveDraft: (input: TInput) => Promise<AuthoredDraftDto>
@@ -253,7 +270,7 @@ interface AuthoredDomainProcedures<TList, TResponse, TInput extends AuthoredCont
   activateDraft: MutationProcedure<IdProcedureInput, TResponse>
   discardDraft: MutationProcedure<IdProcedureInput, { ok: true }>
   duplicate: MutationProcedure<IdProcedureInput, AuthoredDraftDto | null>
-  get: QueryProcedure<IdProcedureInput, TResponse>
+  get: QueryProcedure<AuthoredDetailRequestDto, TResponse>
   getDraft: QueryProcedure<IdProcedureInput, AuthoredDraftDto | null>
   list: EmptyQueryProcedure<TList>
   saveDraft: MutationProcedure<TInput, AuthoredDraftDto>
@@ -292,7 +309,11 @@ interface TrpcClient {
   }
   nodeRuntime: {
     normalizeValues: MutationProcedure<NodeRuntimeNormalizeValuesRequestDto, NodeRuntimeNormalizeValuesResponseDto>
-    resolve: QueryProcedure<NodeRuntimeResolveRequestDto, NodeRuntimeResolveResponseDto>
+    resolve: MutationProcedure<NodeRuntimeResolveRequestDto, NodeRuntimeResolveResponseDto>
+  }
+  routeIds: {
+    bySubject: QueryProcedure<RouteIdentityBySubjectRequestDto, RouteIdentityDto | null>
+    resolve: QueryProcedure<RouteIdentityResolveRequestDto, RouteIdentityDto | null>
   }
   systems: {
     get: QueryProcedure<IdProcedureInput, SystemResponseDto>
@@ -405,7 +426,7 @@ function buildApi(client: TrpcClient) {
         await request(`${path}.discardDraft`, okResponseSchema, () => transport.discardDraft(id))
       },
       duplicate: (id: string) => request(`${path}.duplicate`, nullableDraftSchema, () => transport.duplicate(id)),
-      get: (id: string) => request(`${path}.get`, responseSchema, () => transport.get(id)),
+      get: (input: AuthoredDetailInput) => request(`${path}.get`, responseSchema, () => transport.get(normalizeAuthoredDetailInput(input))),
       getDraft: (id: string) => request(`${path}.getDraft`, nullableDraftSchema, () => transport.getDraft(id)),
       list: () => request(`${path}.list`, listSchema, () => transport.list()),
       saveDraft: (input: TInput) => request(`${path}.saveDraft`, draftSchema, () => transport.saveDraft(input)),
@@ -437,7 +458,7 @@ function buildApi(client: TrpcClient) {
         activateDraft: (id) => client.content.backgrounds.activateDraft.mutate({ id }),
         discardDraft: (id) => client.content.backgrounds.discardDraft.mutate({ id }),
         duplicate: (id) => client.content.backgrounds.duplicate.mutate({ id }),
-        get: (id) => client.content.backgrounds.get.query({ id }),
+        get: (input) => client.content.backgrounds.get.query(input),
         getDraft: (id) => client.content.backgrounds.getDraft.query({ id }),
         list: () => client.content.backgrounds.list.query(),
         saveDraft: (input) => client.content.backgrounds.saveDraft.mutate(input),
@@ -448,7 +469,7 @@ function buildApi(client: TrpcClient) {
         activateDraft: (id) => client.content.classes.activateDraft.mutate({ id }),
         discardDraft: (id) => client.content.classes.discardDraft.mutate({ id }),
         duplicate: (id) => client.content.classes.duplicate.mutate({ id }),
-        get: (id) => client.content.classes.get.query({ id }),
+        get: (input) => client.content.classes.get.query(input),
         getDraft: (id) => client.content.classes.getDraft.query({ id }),
         list: () => client.content.classes.list.query(),
         saveDraft: (input) => client.content.classes.saveDraft.mutate(input),
@@ -459,7 +480,7 @@ function buildApi(client: TrpcClient) {
         activateDraft: (id) => client.content.equipment.activateDraft.mutate({ id }),
         discardDraft: (id) => client.content.equipment.discardDraft.mutate({ id }),
         duplicate: (id) => client.content.equipment.duplicate.mutate({ id }),
-        get: (id) => client.content.equipment.get.query({ id }),
+        get: (input) => client.content.equipment.get.query(input),
         getDraft: (id) => client.content.equipment.getDraft.query({ id }),
         list: () => client.content.equipment.list.query(),
         saveDraft: (input) => client.content.equipment.saveDraft.mutate(input),
@@ -470,7 +491,7 @@ function buildApi(client: TrpcClient) {
         activateDraft: (id) => client.content.feats.activateDraft.mutate({ id }),
         discardDraft: (id) => client.content.feats.discardDraft.mutate({ id }),
         duplicate: (id) => client.content.feats.duplicate.mutate({ id }),
-        get: (id) => client.content.feats.get.query({ id }),
+        get: (input) => client.content.feats.get.query(input),
         getDraft: (id) => client.content.feats.getDraft.query({ id }),
         list: () => client.content.feats.list.query(),
         saveDraft: (input) => client.content.feats.saveDraft.mutate(input),
@@ -481,7 +502,7 @@ function buildApi(client: TrpcClient) {
         activateDraft: (id) => client.content.races.activateDraft.mutate({ id }),
         discardDraft: (id) => client.content.races.discardDraft.mutate({ id }),
         duplicate: (id) => client.content.races.duplicate.mutate({ id }),
-        get: (id) => client.content.races.get.query({ id }),
+        get: (input) => client.content.races.get.query(input),
         getDraft: (id) => client.content.races.getDraft.query({ id }),
         list: () => client.content.races.list.query(),
         saveDraft: (input) => client.content.races.saveDraft.mutate(input),
@@ -492,7 +513,7 @@ function buildApi(client: TrpcClient) {
         activateDraft: (id) => client.content.spells.activateDraft.mutate({ id }),
         discardDraft: (id) => client.content.spells.discardDraft.mutate({ id }),
         duplicate: (id) => client.content.spells.duplicate.mutate({ id }),
-        get: (id) => client.content.spells.get.query({ id }),
+        get: (input) => client.content.spells.get.query(input),
         getDraft: (id) => client.content.spells.getDraft.query({ id }),
         list: () => client.content.spells.list.query(),
         saveDraft: (input) => client.content.spells.saveDraft.mutate(input),
@@ -503,7 +524,7 @@ function buildApi(client: TrpcClient) {
         activateDraft: (id) => client.content.creatures.activateDraft.mutate({ id }),
         discardDraft: (id) => client.content.creatures.discardDraft.mutate({ id }),
         duplicate: (id) => client.content.creatures.duplicate.mutate({ id }),
-        get: (id) => client.content.creatures.get.query({ id }),
+        get: (input) => client.content.creatures.get.query(input),
         getDraft: (id) => client.content.creatures.getDraft.query({ id }),
         list: () => client.content.creatures.list.query(),
         saveDraft: (input) => client.content.creatures.saveDraft.mutate(input),
@@ -514,7 +535,7 @@ function buildApi(client: TrpcClient) {
         activateDraft: (id) => client.content.vehicles.activateDraft.mutate({ id }),
         discardDraft: (id) => client.content.vehicles.discardDraft.mutate({ id }),
         duplicate: (id) => client.content.vehicles.duplicate.mutate({ id }),
-        get: (id) => client.content.vehicles.get.query({ id }),
+        get: (input) => client.content.vehicles.get.query(input),
         getDraft: (id) => client.content.vehicles.getDraft.query({ id }),
         list: () => client.content.vehicles.list.query(),
         saveDraft: (input) => client.content.vehicles.saveDraft.mutate(input),
@@ -534,7 +555,12 @@ function buildApi(client: TrpcClient) {
 
     nodeRuntime: {
       normalizeValues: (input: NodeRuntimeNormalizeValuesRequestDto) => request('nodeRuntime.normalizeValues', nodeRuntimeNormalizeValuesResponseDtoSchema, () => client.nodeRuntime.normalizeValues.mutate(input)),
-      resolve: (input: NodeRuntimeResolveRequestDto) => request('nodeRuntime.resolve', nodeRuntimeResolveResponseDtoSchema, () => client.nodeRuntime.resolve.query(input))
+      resolve: (input: NodeRuntimeResolveRequestDto) => request('nodeRuntime.resolve', nodeRuntimeResolveResponseDtoSchema, () => client.nodeRuntime.resolve.mutate(input))
+    },
+
+    routeIds: {
+      bySubject: (input: RouteIdentityBySubjectRequestDto) => request('routeIds.bySubject', routeIdentityDtoSchema.nullable(), () => client.routeIds.bySubject.query(input)),
+      resolve: (input: RouteIdentityResolveRequestDto) => request('routeIds.resolve', routeIdentityDtoSchema.nullable(), () => client.routeIds.resolve.query(input))
     }
   }
 }
@@ -543,7 +569,7 @@ const trpcClient = createTrpcClient()
 
 export const api = buildApi(trpcClient)
 
-export function createServerApi() {
+export function createServerApi(_userId?: string | null) {
   return api
 }
 

@@ -28,7 +28,7 @@ export function useAuthoredDetailActions({
   duplicate: (id: string) => Promise<AuthoredDraftDto | null>
   hasActiveContent: boolean
   id: string
-  navigateEdit: (id: string) => Promise<void>
+  navigateEdit: (subject: { id: string; publicId: string; label: string }) => Promise<void>
   navigateList: () => Promise<void>
 }) {
   const queryClient = useQueryClient()
@@ -42,8 +42,8 @@ export function useAuthoredDetailActions({
       await queryClient.invalidateQueries({ queryKey: domainQueryKey })
       notifications.show({ color: 'green', message: `${domainLabel} duplicated as an owned draft.` })
 
-      if (copied?.subjectId) {
-        await navigateEdit(copied.subjectId)
+      if (copied) {
+        await navigateEdit({ id: copied.subjectId, publicId: copied.publicId, label: copied.label })
       }
     } catch {
       notifications.show({ color: 'red', message: `Could not duplicate that ${domainLabel.toLowerCase()} yet.` })

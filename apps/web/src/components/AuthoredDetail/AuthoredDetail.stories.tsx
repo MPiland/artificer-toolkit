@@ -29,7 +29,7 @@ const meta = {
     eyebrow: 'Race',
     title: 'Sea Elf',
     description: 'A clean read surface for table reference, draft preview, and locked master content.',
-    status: ['Draft Preview', 'Owned'],
+    status: ['Draft Preview', 'Homebrew'],
     facts: [
       { label: 'Category', value: 'Subrace' },
       { label: 'Parent', value: 'Parent race selected' },
@@ -85,7 +85,7 @@ export const LockedMaster: Story = {
       { label: 'Duplicate', tone: 'secondary', onClick: () => undefined }
     ],
     notice: undefined,
-    status: ['Master', 'Active']
+    status: ['SRD', 'Active']
   }
 }
 
@@ -96,7 +96,7 @@ export const InvalidDraftFallback: Story = {
       title: 'Invalid draft found',
       body: 'The active race is shown because the saved draft no longer matches the current schema.'
     },
-    status: ['Master', 'Active']
+    status: ['SRD', 'Active']
   }
 }
 

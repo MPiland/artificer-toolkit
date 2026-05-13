@@ -1,5 +1,3 @@
-import {
-  useState } from 'react'
 import { Alert,
   Button,
   Stack } from '@mantine/core'
@@ -17,29 +15,36 @@ import {
   buildAuthoredDetailNotice,
   buildDetailStatusLabels,
   compactAuthoredDetailActions,
-  formatCount,
-  formatEnumLabel,
+  compactAuthoredDetailSections,
+  formatGrantDetailLinesHtml,
+  formatProficiencyGrantLines,
+  formatStartingEquipmentLine,
+  hasDetailText,
   resolveAuthoredDetailState,
-  summarizeHtml,
   toDetailItems,
   useAuthoredDetailActions,
-  type AuthoredDetailFact,
   type AuthoredDetailSectionModel
 } from '#components/AuthoredDetail'
+import type { AuthoredContentReferenceData } from '#app/data/contentReferences'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
+import { buildBackgroundRouteParams } from '#app/routing/authoredRouteParams'
 
 export function BackgroundDetailPage({
   backgroundId,
   draft,
-  response
+  references,
+  response,
+  view
 }: {
   backgroundId: string
   draft: AuthoredDraftDto | null
+  references: Pick<AuthoredContentReferenceData, 'currencies' | 'equipment' | 'languages' | 'skills'>
   response: BackgroundResponseDto
+  view: 'active' | 'draft'
 }) {
   const navigate = useNavigate()
-  const [viewActive, setViewActive] = useState(false)
+  const viewActive = view === 'active'
   const detailState = resolveAuthoredDetailState({
     draft,
     response,
@@ -55,7 +60,10 @@ export function BackgroundDetailPage({
     duplicate: api.content.backgrounds.duplicate,
     hasActiveContent: Boolean(detailState.activeItem),
     id: backgroundId,
-    navigateEdit: async (id) => navigate({ to: '/backgrounds/$backgroundId/edit', params: { backgroundId: id } }),
+    navigateEdit: async (subject) => navigate({
+      params: buildBackgroundRouteParams(subject.publicId, subject.label),
+      to: '/backgrounds/$backgroundPublicId/$backgroundSlug/edit'
+    }),
     navigateList: async () => navigate({ to: '/backgrounds' })
   })
 
@@ -80,24 +88,27 @@ export function BackgroundDetailPage({
   }
 
   const item = detailState.item
+  const backgroundParams = buildBackgroundRouteParams(draft?.publicId ?? response?.publicId ?? backgroundId, item.label)
   const pageActions = compactAuthoredDetailActions([
-    { label: 'Create New', tone: 'secondary', onClick: () => navigate({ to: '/backgrounds/new' }) },
     detailState.mode === 'draft'
-      ? { label: 'Resume Draft', tone: 'primary', onClick: () => navigate({ to: '/backgrounds/$backgroundId/edit', params: { backgroundId } }) }
+      ? { label: 'Resume Draft', tone: 'primary', onClick: () => navigate({ to: '/backgrounds/$backgroundPublicId/$backgroundSlug/edit', params: backgroundParams }) }
       : detailState.permissions.canEdit
-        ? { label: 'Edit', tone: 'primary', onClick: () => navigate({ to: '/backgrounds/$backgroundId/edit', params: { backgroundId } }) }
+        ? { label: 'Edit', tone: 'primary', onClick: () => navigate({ to: '/backgrounds/$backgroundPublicId/$backgroundSlug/edit', params: backgroundParams }) }
         : null,
-    detailState.permissions.canCopy
+    detailState.mode === 'active' && detailState.draft
+      ? { label: 'View Draft', tone: 'secondary', onClick: () => navigate({ to: '/backgrounds/$backgroundPublicId/$backgroundSlug', params: backgroundParams, search: { view: 'draft' } }) }
+      : null,
+    detailState.mode === 'active' && !detailState.draft && detailState.permissions.canCopy
       ? { label: 'Duplicate', tone: 'secondary', disabled: actions.isDuplicating, onClick: () => void actions.duplicateToDraft() }
-      : null
+      : null,
+    { label: 'Create New', tone: 'secondary', onClick: () => navigate({ to: '/backgrounds/new' }) }
   ])
 
   return (
     <AuthoredDetailLayout
       actions={pageActions}
-      description={summarizeHtml(item.description, 'A background reference entry ready for table use.')}
       eyebrow='Background'
-      facts={getBackgroundFacts(item)}
+      facts={[]}
       notice={buildAuthoredDetailNotice({
         canViewActive: Boolean(detailState.activeItem && detailState.draftItem),
         domainLabel: 'Background',
@@ -105,10 +116,10 @@ export function BackgroundDetailPage({
         isViewingActive: viewActive,
         mode: detailState.mode,
         onDiscard: () => void actions.discardDraft(),
-        onViewActive: () => setViewActive(true),
-        onViewDraft: () => setViewActive(false)
+        onViewActive: () => navigate({ to: '/backgrounds/$backgroundPublicId/$backgroundSlug', params: backgroundParams }),
+        onViewDraft: () => navigate({ to: '/backgrounds/$backgroundPublicId/$backgroundSlug', params: backgroundParams, search: { view: 'draft' } })
       })}
-      sections={getBackgroundSections(item)}
+      sections={getBackgroundSections(item, references)}
       status={buildDetailStatusLabels({
         draft: detailState.draft,
         mode: detailState.mode,
@@ -120,65 +131,157 @@ export function BackgroundDetailPage({
   )
 }
 
-function getBackgroundFacts(background: BackgroundAuthoredDto): AuthoredDetailFact[] {
-  return [
-    { label: 'Details', value: formatCount(background.details?.length, 'detail') },
-    { label: 'Proficiencies', value: formatCount(background.proficiencies?.length, 'grant') },
-    { label: 'Features', value: formatCount(background.features?.length, 'feature') },
-    { label: 'Equipment', value: formatStartingEquipment(background) }
-  ]
-}
+function getBackgroundSections(
+  background: BackgroundAuthoredDto,
+  references: Pick<AuthoredContentReferenceData, 'currencies' | 'equipment' | 'languages' | 'skills'>
+): AuthoredDetailSectionModel[] {
+  const detailGroups = getCharacteristicDetailGroups(background.details ?? [])
+  const otherDetails = getOtherDetails(background.details ?? [])
+  const characteristicTablesHtml = buildCharacteristicTablesHtml(detailGroups)
+  const startingEquipmentLine = formatStartingEquipmentLine(background.startingEquipment, references)
+  const proficiencyEquipmentHtml = formatGrantDetailLinesHtml([
+    ...formatProficiencyGrantLines(background.proficiencies, references, { skillLabel: 'Skill Proficiencies' }),
+    ...(startingEquipmentLine ? [startingEquipmentLine] : [])
+  ])
+  const featureItems = (background.features ?? []).map((feature) => ({
+    id: feature.id,
+    title: feature.label,
+    description: formatFeatureHtml(
+      feature.description,
+      typeof feature.detail === 'string' ? feature.detail : feature.detail?.description
+    )
+  }))
 
-function getBackgroundSections(background: BackgroundAuthoredDto): AuthoredDetailSectionModel[] {
-  return [
-    {
+  return compactAuthoredDetailSections([
+    hasDetailText(background.description) ? {
       id: 'description',
       title: 'Description',
       content: <AuthoredDetailProse html={background.description} />
-    },
-    {
-      id: 'details',
-      title: 'Details',
-      content: <AuthoredDetailItemList empty='No background details have been added.' items={toDetailItems(background.details)} />
-    },
-    {
-      id: 'proficiencies',
-      title: 'Proficiencies',
+    } : null,
+    characteristicTablesHtml || otherDetails.length ? {
+      id: 'characteristics',
+      title: 'Suggested Characteristics',
       content: (
-        <AuthoredDetailItemList
-          empty='No proficiencies have been added.'
-          items={(background.proficiencies ?? []).map((grant, index) => ({
-            id: grant.id,
-            title: formatEnumLabel(grant.proficiencyKind),
-            meta: grant.selectionKind ? formatEnumLabel(grant.selectionKind) : `Grant ${index + 1}`,
-            description: grant.count ? `${grant.count} choice${grant.count === 1 ? '' : 's'} configured.` : undefined
-          }))}
-        />
+        <Stack gap='md'>
+          {characteristicTablesHtml ? (
+            <AuthoredDetailProse html={characteristicTablesHtml} fallback='No background details have been added.' />
+          ) : null}
+          {otherDetails.length || !characteristicTablesHtml ? (
+            <AuthoredDetailItemList empty='No background details have been added.' items={toDetailItems(otherDetails)} />
+          ) : null}
+        </Stack>
       )
-    },
-    {
+    } : null,
+    hasDetailText(proficiencyEquipmentHtml) ? {
+      id: 'proficiencies-equipment',
+      title: 'Proficiencies & Equipment',
+      content: <AuthoredDetailProse html={proficiencyEquipmentHtml} fallback='No proficiencies or equipment have been added.' />
+    } : null,
+    featureItems.length ? {
       id: 'features',
       title: 'Features',
-      content: <AuthoredDetailItemList empty='No background features have been added.' items={toDetailItems(background.features)} />
-    },
-    {
-      id: 'starting-equipment',
-      title: 'Starting Equipment',
       content: (
         <AuthoredDetailItemList
-          empty='No starting equipment has been added.'
-          items={(background.startingEquipment?.sets ?? []).map((set, index) => ({
-            id: set.id,
-            title: `Equipment set ${index + 1}`,
-            meta: formatCount(set.groups.length, 'choice group')
-          }))}
+          empty='No background features have been added.'
+          items={featureItems}
         />
       )
-    }
-  ]
+    } : null
+  ])
 }
 
-function formatStartingEquipment(background: BackgroundAuthoredDto): string {
-  const setCount = background.startingEquipment?.sets.length ?? 0
-  return setCount ? formatCount(setCount, 'set') : 'None'
+type BackgroundDetail = NonNullable<BackgroundAuthoredDto['details']>[number]
+type CharacteristicKind = 'personalityTrait' | 'ideal' | 'bond' | 'flaw'
+
+type CharacteristicGroup = {
+  die: 'd6' | 'd8'
+  kind: CharacteristicKind
+  title: string
+  details: BackgroundDetail[]
+}
+
+const CHARACTERISTIC_GROUPS: CharacteristicGroup[] = [
+  { kind: 'personalityTrait', title: 'Personality Traits', die: 'd8', details: [] },
+  { kind: 'ideal', title: 'Ideals', die: 'd6', details: [] },
+  { kind: 'bond', title: 'Bonds', die: 'd6', details: [] },
+  { kind: 'flaw', title: 'Flaws', die: 'd6', details: [] }
+]
+
+function getCharacteristicKind(label: string): CharacteristicKind | null {
+  if (/^personality trait\s+\d+$/i.test(label)) return 'personalityTrait'
+  if (/^ideal:/i.test(label)) return 'ideal'
+  if (/^bond\s+\d+$/i.test(label)) return 'bond'
+  if (/^flaw\s+\d+$/i.test(label)) return 'flaw'
+  return null
+}
+
+function getCharacteristicDetailGroups(details: BackgroundDetail[]): CharacteristicGroup[] {
+  return CHARACTERISTIC_GROUPS
+    .map((group) => ({
+      ...group,
+      details: details
+        .filter((detail) => getCharacteristicKind(detail.label) === group.kind)
+        .sort((a, b) => a.order - b.order)
+    }))
+    .filter((group) => group.details.length)
+}
+
+function getOtherDetails(details: BackgroundDetail[]): BackgroundDetail[] {
+  return details
+    .filter((detail) => !getCharacteristicKind(detail.label))
+    .sort((a, b) => a.order - b.order)
+}
+
+function buildCharacteristicTablesHtml(groups: CharacteristicGroup[]): string {
+  if (!groups.length) return ''
+
+  return groups.map((group) => `
+    <h3>${escapeHtml(group.title)}</h3>
+    <table style="width: 100%">
+      <colgroup>
+        <col style="width: 4.5rem" />
+        <col />
+      </colgroup>
+      <thead>
+        <tr>
+          <th scope="col">${group.die}</th>
+          <th scope="col">${group.kind === 'ideal' ? 'Ideal' : 'Description'}</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${group.details.map((detail, index) => `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${formatCharacteristicDescription(detail)}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `).join('')
+}
+
+function formatCharacteristicDescription(detail: BackgroundDetail): string {
+  if (!detail.label.toLowerCase().startsWith('ideal:')) {
+    return escapeHtml(detail.description)
+  }
+
+  const idealLabel = detail.label.slice(detail.label.indexOf(':') + 1).trim()
+  return `<strong>${escapeHtml(idealLabel)}.</strong> ${escapeHtml(detail.description)}`
+}
+
+function formatFeatureHtml(description: string | undefined, detail: string | undefined): string | undefined {
+  const parts = [description, detail]
+    .filter((part): part is string => Boolean(part?.trim()))
+    .map((part) => part.trim().startsWith('<') ? part.trim() : `<p>${escapeHtml(part.trim())}</p>`)
+
+  return parts.length ? parts.join('') : undefined
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
 }

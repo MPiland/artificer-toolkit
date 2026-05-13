@@ -27,6 +27,21 @@ if (!globalThis.ResizeObserver) {
   }
 }
 
+if (!document.fonts) {
+  const fonts = {
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+    ready: Promise.resolve(undefined),
+    status: 'loaded'
+  } as unknown as FontFaceSet
+
+  Object.defineProperty(document, 'fonts', {
+    configurable: true,
+    value: fonts
+  })
+}
+
 beforeAll(() => {
   server.listen({
     onUnhandledRequest: 'bypass'

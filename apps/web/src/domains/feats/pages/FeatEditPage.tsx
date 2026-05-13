@@ -37,6 +37,7 @@ import {
   useDuplicateFeatMutation,
   useSaveFeatDraftMutation
 } from '#app/data/feats/mutations'
+import { buildFeatRouteParams } from '#app/routing/authoredRouteParams'
 import { normalizeFeatForSubmit } from '../featAuthoring.utils'
 import { FeatAuthoringRenderer } from '../components/FeatAuthoringRenderer'
 
@@ -47,9 +48,8 @@ type ParsedFeatDraft = {
 }
 
 export function FeatEditPage() {
-  const route = getRouteApi('/_authed/feats/$featId')
-  const { draft, response } = route.useLoaderData()
-  const { featId } = route.useParams()
+  const route = getRouteApi('/_authed/feats/$featPublicId/$featSlug')
+  const { draft, featId, response } = route.useLoaderData()
   const parsedDraft: ParsedFeatDraft = parseAuthoredDraftPayload(draft ?? null, featAuthoringInputDtoSchema)
   const draftFeat = parsedDraft.item
   const activeFeat = response?.item
@@ -126,7 +126,10 @@ function FeatEditAuthoring({
       notifications.show({ color: 'green', message: 'Feat activated.' })
 
       if (response?.item.id && response.item.id !== featId) {
-        await navigate({ to: '/feats/$featId', params: { featId: response.item.id } })
+        await navigate({
+          params: buildFeatRouteParams(response.publicId, response.item.label),
+          to: '/feats/$featPublicId/$featSlug'
+        })
         return
       }
 
@@ -176,7 +179,10 @@ function FeatEditAuthoring({
       notifications.show({ color: 'green', message: 'Feat duplicated as an owned draft.' })
 
       if (copied?.subjectId) {
-        await navigate({ to: '/feats/$featId/edit', params: { featId: copied.subjectId } })
+        await navigate({
+          params: buildFeatRouteParams(copied.publicId, copied.label),
+          to: '/feats/$featPublicId/$featSlug/edit'
+        })
       }
     } catch {
       notifications.show({ color: 'red', message: 'Could not duplicate that feat yet.' })

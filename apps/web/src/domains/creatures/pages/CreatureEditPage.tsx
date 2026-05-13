@@ -37,6 +37,7 @@ import {
   useDuplicateCreatureMutation,
   useSaveCreatureDraftMutation
 } from '#app/data/creatures/mutations'
+import { buildCreatureRouteParams } from '#app/routing/authoredRouteParams'
 import {
   normalizeCreatureForSubmit,
   toCreatureFormValues,
@@ -51,9 +52,8 @@ type ParsedCreatureDraft = {
 }
 
 export function CreatureEditPage() {
-  const route = getRouteApi('/_authed/creatures/$creatureId')
-  const { draft, response } = route.useLoaderData()
-  const { creatureId } = route.useParams()
+  const route = getRouteApi('/_authed/creatures/$creaturePublicId/$creatureSlug')
+  const { creatureId, draft, response } = route.useLoaderData()
   const parsedDraft: ParsedCreatureDraft = parseAuthoredDraftPayload(draft ?? null, creatureAuthoringInputDtoSchema)
   const draftCreature = parsedDraft.item
   const activeCreature = response?.item
@@ -130,7 +130,10 @@ function CreatureEditAuthoring({
       notifications.show({ color: 'green', message: 'Creature activated.' })
 
       if (response?.item.id && response.item.id !== creatureId) {
-        await navigate({ to: '/creatures/$creatureId', params: { creatureId: response.item.id } })
+        await navigate({
+          params: buildCreatureRouteParams(response.publicId, response.item.label),
+          to: '/creatures/$creaturePublicId/$creatureSlug'
+        })
         return
       }
 
@@ -180,7 +183,10 @@ function CreatureEditAuthoring({
       notifications.show({ color: 'green', message: 'Creature duplicated as an owned draft.' })
 
       if (copied?.subjectId) {
-        await navigate({ to: '/creatures/$creatureId/edit', params: { creatureId: copied.subjectId } })
+        await navigate({
+          params: buildCreatureRouteParams(copied.publicId, copied.label),
+          to: '/creatures/$creaturePublicId/$creatureSlug/edit'
+        })
       }
     } catch {
       notifications.show({ color: 'red', message: 'Could not duplicate that creature yet.' })

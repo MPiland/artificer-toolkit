@@ -1,8 +1,12 @@
 import {
   queryOptions,
-  useSuspenseQuery } from '@tanstack/react-query'
-import type { ClassListItemDto } from '@artificer-toolkit/schema/api/content'
-import { CreatureListItemDto } from '@artificer-toolkit/schema/api/content'
+  useSuspenseQuery
+} from '@tanstack/react-query'
+import type {
+  ClassListItemDto,
+  CreatureListItemDto,
+  SpellListResponseDto
+} from '@artificer-toolkit/schema/api/content'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import { api, type Api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
@@ -24,12 +28,45 @@ export type SpellReferenceData = {
   creatures: SpellReferenceOption[]
 }
 
+export type SpellDetailReferenceData = Pick<
+  SpellReferenceData,
+  'magicSchools' | 'classes' | 'damageTypes' | 'conditionTypes'
+>
+
+type SpellListMetaGroup = {
+  id: string | number
+  label?: string
+}
+
+type SpellListMeta = {
+  classes?: SpellListMetaGroup[]
+  schools?: SpellListMetaGroup[]
+}
+
 function toVocabularyOptions(items: Array<{ id: string, label: string }>): SpellReferenceOption[] {
   return items.map((item) => ({ value: item.id, label: item.label }))
 }
 
 function toContentOptions(items: Array<ClassListItemDto | CreatureListItemDto>): SpellReferenceOption[] {
   return items.map((item) => ({ value: item.id, label: item.label }))
+}
+
+function toMetaOptions(items: SpellListMetaGroup[] | undefined): SpellReferenceOption[] {
+  return (items ?? []).map((item) => ({
+    value: String(item.id),
+    label: item.label ?? String(item.id)
+  }))
+}
+
+export function getSpellDetailReferenceDataFromList(response: SpellListResponseDto): SpellDetailReferenceData {
+  const meta = response.meta as SpellListMeta
+
+  return {
+    magicSchools: toMetaOptions(meta.schools),
+    classes: toMetaOptions(meta.classes),
+    damageTypes: [],
+    conditionTypes: []
+  }
 }
 
 function emptySystem(): SystemAuthoredDto {
@@ -80,6 +117,29 @@ export function getSpellReferenceData(client: Api = api) {
         skills: toVocabularyOptions(resolvedSystem.skills),
         speeds: toVocabularyOptions(resolvedSystem.speeds),
         creatures: effectReferences.creatures
+      }
+    }
+  })
+}
+
+export function getSpellDetailReferenceData(client: Api = api) {
+  return queryOptions({
+    queryKey: queryKeys.content.spells.detailReferenceData(),
+    queryFn: async (): Promise<SpellDetailReferenceData> => {
+      const systems = await client.systems.list()
+      const systemId = systems[0]?.id ?? 'default-system'
+      const [system, classes] = await Promise.all([
+        systems[0] ? client.systems.get(systemId) : Promise.resolve(emptySystem()),
+        client.content.classes.list()
+      ])
+
+      const resolvedSystem = system ?? emptySystem()
+
+      return {
+        magicSchools: toVocabularyOptions(resolvedSystem.magicSchools),
+        classes: toContentOptions(classes.items),
+        damageTypes: toVocabularyOptions(resolvedSystem.damageTypes),
+        conditionTypes: toVocabularyOptions(resolvedSystem.conditionTypes)
       }
     }
   })

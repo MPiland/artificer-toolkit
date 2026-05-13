@@ -4,6 +4,7 @@ import { upsertFeatGrant } from '../upserts/feat.js'
 import { hydrateFacetById } from '../../shared/facets.js'
 import { hydrateChargeById } from './helpers.js'
 import type { FeatGrantRepository } from '../../../repositories/contracts.js'
+import { hydrateByIds, orderedHydratedRecords } from '../../../repositories/batch.js'
 
 function requireLinkedRecord<T>(value: T | null | undefined, message: string): T {
   if (value == null) {
@@ -122,7 +123,7 @@ async function hydrateFeatGrantById(
 
   if (!root) return null
 
-  const [rootFeats, scalingLevels, scalingLevelFeats, charge, restrictions] = await Promise.all([
+  const [rootFeats, scalingLevels, charge, restrictions] = await Promise.all([
     db.selectFrom('feat_grant_feats')
       .select(['feat_grant_id', 'feat_id'])
       .where('feat_grant_id', '=', id)
@@ -132,12 +133,16 @@ async function hydrateFeatGrantById(
       .where('feat_grant_id', '=', id)
       .orderBy('sort_order')
       .execute(),
-    db.selectFrom('feat_grant_scaling_level_feats')
-      .select(['scaling_level_id', 'feat_id'])
-      .execute(),
     root.charge_id ? hydrateChargeById(db, root.charge_id) : Promise.resolve(null),
     root.restriction_id ? hydrateFacetById(db, root.restriction_id) : Promise.resolve(null)
   ])
+  const scalingLevelIds = scalingLevels.map((level) => level.id)
+  const scalingLevelFeats = scalingLevelIds.length
+    ? await db.selectFrom('feat_grant_scaling_level_feats')
+        .select(['scaling_level_id', 'feat_id'])
+        .where('scaling_level_id', 'in', scalingLevelIds)
+        .execute()
+    : []
 
   const featsByLevel = new Map<string, string[]>()
   for (const row of scalingLevelFeats) {
@@ -245,6 +250,10 @@ export function createFeatGrantRepository(db: DBLike): FeatGrantRepository {
       return hydrateFeatGrantById(db, id)
     },
 
+    async findByIds(ids) {
+      return hydrateByIds(ids, (id) => hydrateFeatGrantById(db, id))
+    },
+
     async findAll() {
       const rows = await db
         .selectFrom('feat_grants')
@@ -252,8 +261,10 @@ export function createFeatGrantRepository(db: DBLike): FeatGrantRepository {
         .orderBy('sort_order')
         .execute()
 
-      const records = await Promise.all(rows.map((row) => hydrateFeatGrantById(db, row.id)))
-      return records.filter((record): record is FeatGrantAuthored => record !== null)
+      return orderedHydratedRecords(
+        rows.map((row) => row.id),
+        await hydrateByIds(rows.map((row) => row.id), (id) => hydrateFeatGrantById(db, id))
+      )
     }
   }
 }

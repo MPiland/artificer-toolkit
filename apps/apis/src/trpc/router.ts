@@ -1,6 +1,7 @@
 import { initTRPC } from '@trpc/server'
 import { z } from 'zod'
 import {
+  createAuthoredRouteIdRepository,
   createFeatureRepository,
   createSystemRepository,
   getFeatureListQuery,
@@ -46,6 +47,7 @@ import {
 } from '@artificer-toolkit/schema/subjects/vehicle'
 import {
   authoredDraftDtoSchema,
+  authoredDetailRequestDtoSchema,
   backgroundListResponseDtoSchema,
   backgroundResponseDtoSchema,
   classListResponseDtoSchema,
@@ -86,6 +88,11 @@ import {
   nodeRuntimeResolveRequestDtoSchema,
   nodeRuntimeResolveResponseDtoSchema
 } from '@artificer-toolkit/schema/api/nodeRuntime'
+import {
+  routeIdentityBySubjectRequestDtoSchema,
+  routeIdentityDtoSchema,
+  routeIdentityResolveRequestDtoSchema
+} from '@artificer-toolkit/schema/api/routeIds'
 import {
   systemListResponseDtoSchema,
   systemResponseDtoSchema
@@ -132,10 +139,41 @@ const t = initTRPC.context<TrpcContext>().create()
 
 export const createTRPCRouter = t.router
 
-const authenticatedProcedure = t.procedure.use(({ ctx, next }) => {
+const API_PROCEDURE_TRACE_ENV = 'ARTIFICER_API_PROCEDURE_TRACE'
+const procedureCounts = new Map<string, number>()
+const runtimeGlobals = globalThis as typeof globalThis & {
+  process?: {
+    env?: Record<string, string | undefined>
+  }
+}
+
+function shouldTraceApiProcedure(): boolean {
+  return runtimeGlobals.process?.env?.[API_PROCEDURE_TRACE_ENV] === '1'
+}
+
+function nextProcedureCount(path: string): number {
+  const count = (procedureCounts.get(path) ?? 0) + 1
+  procedureCounts.set(path, count)
+  return count
+}
+
+const authenticatedProcedure = t.procedure.use(async ({ ctx, next, path, type }) => {
   requireUserId(ctx)
 
-  return next({ ctx })
+  const startedAt = Date.now()
+  const result = await next({ ctx })
+
+  if (shouldTraceApiProcedure()) {
+    console.info('[artificer-api-procedure]', JSON.stringify({
+      count: nextProcedureCount(path),
+      durationMs: Date.now() - startedAt,
+      ok: result.ok,
+      path,
+      type
+    }))
+  }
+
+  return result
 })
 
 const idInputSchema = z.object({
@@ -170,10 +208,10 @@ function authoredDomainRouter<TInput extends AuthoredContentInput>(config: Autho
       ))),
 
     get: authenticatedProcedure
-      .input(idInputSchema)
+      .input(authoredDetailRequestDtoSchema)
       .output(config.responseSchema)
       .query(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId) => config.responseSchema.parse(
-        await getAuthoredDomain(db, config.runtime, input.id, userId)
+        await getAuthoredDomain(db, config.runtime, input, userId)
       ))),
 
     getDraft: authenticatedProcedure
@@ -223,7 +261,7 @@ function authoredDomainRouter<TInput extends AuthoredContentInput>(config: Autho
       .output(authoredDraftDtoSchema.nullable())
       .mutation(async ({ ctx, input }) => {
         return withAuthenticatedDb(ctx, async (db, userId) => {
-          const detail = config.responseSchema.parse(await getAuthoredDomain(db, config.runtime, input.id, userId))
+          const detail = config.responseSchema.parse(await getAuthoredDomain(db, config.runtime, { id: input.id }, userId))
           const item = getDetailItem<TInput>(detail)
           if (!item) return null
 
@@ -239,6 +277,38 @@ function authoredDomainRouter<TInput extends AuthoredContentInput>(config: Autho
 }
 
 export const appRouter = createTRPCRouter({
+  routeIds: createTRPCRouter({
+    resolve: authenticatedProcedure
+      .input(routeIdentityResolveRequestDtoSchema)
+      .output(routeIdentityDtoSchema.nullable())
+      .query(({ ctx, input }) => withAuthenticatedDb(ctx, async (db) => {
+        const identity = await createAuthoredRouteIdRepository(db).resolveByPublicIdForUser(input)
+
+        return routeIdentityDtoSchema.nullable().parse(identity
+          ? {
+              subjectKind: identity.subjectKind,
+              subjectId: identity.subjectId,
+              publicId: identity.publicId
+            }
+          : null)
+      })),
+
+    bySubject: authenticatedProcedure
+      .input(routeIdentityBySubjectRequestDtoSchema)
+      .output(routeIdentityDtoSchema.nullable())
+      .query(({ ctx, input }) => withAuthenticatedDb(ctx, async (db) => {
+        const identity = await createAuthoredRouteIdRepository(db).resolveBySubjectForUser(input)
+
+        return routeIdentityDtoSchema.nullable().parse(identity
+          ? {
+              subjectKind: identity.subjectKind,
+              subjectId: identity.subjectId,
+              publicId: identity.publicId
+            }
+          : null)
+      }))
+  }),
+
   systems: createTRPCRouter({
     list: authenticatedProcedure
       .output(systemListResponseDtoSchema)
@@ -424,7 +494,7 @@ export const appRouter = createTRPCRouter({
     resolve: authenticatedProcedure
       .input(nodeRuntimeResolveRequestDtoSchema)
       .output(nodeRuntimeResolveResponseDtoSchema)
-      .query(({ ctx, input }) => withAuthenticatedDb(ctx, async (db) => nodeRuntimeResolveResponseDtoSchema.parse(
+      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db) => nodeRuntimeResolveResponseDtoSchema.parse(
         await resolveNodeRuntime(db, input)
       ))),
 

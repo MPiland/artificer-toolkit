@@ -43,6 +43,7 @@ describe('class list mapper', () => {
 function createClassListResponse(items: ClassListResponseDto['items']): ClassListResponseDto {
   return {
     items,
+    drafts: [],
     meta: {}
   }
 }
@@ -52,6 +53,7 @@ function createClassListItem(
 ): ClassListResponseDto['items'][number] {
   return {
     id: 'class-id',
+    publicId: overrides.id ?? 'class-id',
     label: 'Class',
     status: 'DRAFT',
     description: null,

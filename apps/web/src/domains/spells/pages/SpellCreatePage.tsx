@@ -18,6 +18,7 @@ import {
   useActivateSpellMutation,
   useSaveSpellDraftMutation
 } from '#app/data/spells/mutations'
+import { buildSpellRouteParams } from '#app/routing/authoredRouteParams'
 import type { SpellReferenceData } from '#app/data/spells/referenceData'
 import {
   createEmptySpell,
@@ -61,7 +62,10 @@ function SpellCreateAuthoring({
       notifications.show({ color: 'green', message: 'Spell activated.' })
 
       if (response?.item.id) {
-        await navigate({ to: '/spells/$spellId', params: { spellId: response.item.id } })
+        await navigate({
+          params: buildSpellRouteParams(response.publicId, response.item.label),
+          to: '/spells/$spellPublicId/$spellSlug'
+        })
       }
     } catch {
       notifications.show({ color: 'red', message: 'Could not activate that spell yet.' })
@@ -82,7 +86,10 @@ function SpellCreateAuthoring({
     try {
       const draft = await draftMutation.mutateAsync(normalizeSpellForSubmit(form.state.values, references))
       notifications.show({ color: 'green', message: 'Spell draft saved.' })
-      await navigate({ to: '/spells/$spellId/edit', params: { spellId: draft.subjectId } })
+      await navigate({
+        params: buildSpellRouteParams(draft.publicId, draft.label),
+        to: '/spells/$spellPublicId/$spellSlug/edit'
+      })
     } catch {
       notifications.show({ color: 'red', message: 'Could not save that draft yet.' })
     }

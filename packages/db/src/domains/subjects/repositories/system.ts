@@ -5,6 +5,7 @@ import type {
 } from '../../../source-data/index.js'
 import { upsertSystem } from '../upserts/system.js'
 import type { SystemRepository } from '../../../repositories/contracts.js'
+import { hydrateByIds, orderedHydratedRecords } from '../../../repositories/batch.js'
 
 type VocabularyTableName
   = | 'alignments'
@@ -135,6 +136,10 @@ export function createSystemRepository(db: DBLike): SystemRepository {
       return hydrateSystemById(db, id)
     },
 
+    async findByIds(ids) {
+      return hydrateByIds(ids, (id) => hydrateSystemById(db, id))
+    },
+
     async findAll(filter) {
       let query = db
         .selectFrom('systems')
@@ -146,9 +151,10 @@ export function createSystemRepository(db: DBLike): SystemRepository {
       }
 
       const rows = await query.execute()
-      const systems = await Promise.all(rows.map((row) => hydrateSystemById(db, row.id)))
-
-      return systems.filter((system): system is SystemSeedRecord => system !== null)
+      return orderedHydratedRecords(
+        rows.map((row) => row.id),
+        await hydrateByIds(rows.map((row) => row.id), (id) => hydrateSystemById(db, id))
+      )
     }
   }
 }

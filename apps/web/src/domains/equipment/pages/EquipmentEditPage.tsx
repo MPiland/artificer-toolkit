@@ -32,6 +32,7 @@ import {
   useDuplicateEquipmentMutation,
   useSaveEquipmentDraftMutation
 } from '#app/data/equipment/mutations'
+import { buildEquipmentRouteParams } from '#app/routing/authoredRouteParams'
 import {
   normalizeEquipmentForSubmit,
   toEquipmentFormValues
@@ -45,9 +46,8 @@ type ParsedEquipmentDraft = {
 }
 
 export function EquipmentEditPage() {
-  const route = getRouteApi('/_authed/equipment/$equipmentId/edit')
-  const { response, draft } = route.useLoaderData()
-  const equipmentId = route.useParams().equipmentId
+  const route = getRouteApi('/_authed/equipment/$equipmentPublicId/$equipmentSlug/edit')
+  const { equipmentId, response, draft } = route.useLoaderData()
   const parsedDraft: ParsedEquipmentDraft = parseAuthoredDraftPayload(draft ?? null, equipmentAuthoredDtoSchema)
   const draftEquipment = parsedDraft.item
   const activeEquipment = response?.item
@@ -128,7 +128,10 @@ function EquipmentEditAuthoring({
       notifications.show({ color: 'green', message: 'Equipment activated.' })
 
       if (response?.item.id && response.item.id !== equipmentId) {
-        await navigate({ to: '/equipment/$equipmentId/edit', params: { equipmentId: response.item.id } })
+        await navigate({
+          params: buildEquipmentRouteParams(response.publicId, response.item.label),
+          to: '/equipment/$equipmentPublicId/$equipmentSlug/edit'
+        })
         return
       }
 
@@ -178,7 +181,10 @@ function EquipmentEditAuthoring({
       notifications.show({ color: 'green', message: 'Equipment duplicated as an owned draft.' })
 
       if (copied?.subjectId) {
-        await navigate({ to: '/equipment/$equipmentId/edit', params: { equipmentId: copied.subjectId } })
+        await navigate({
+          params: buildEquipmentRouteParams(copied.publicId, copied.label),
+          to: '/equipment/$equipmentPublicId/$equipmentSlug/edit'
+        })
       }
     } catch {
       notifications.show({ color: 'red', message: 'Could not duplicate that equipment yet.' })

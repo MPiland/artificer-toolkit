@@ -5,13 +5,13 @@ import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { AuthoredDetailItemList, AuthoredDetailLayout, AuthoredDetailProse } from './AuthoredDetail'
 
 describe('AuthoredDetail', () => {
-  it('renders a reader-first hero, fact grid, navigation, and sections', () => {
+  it('renders a readable header, fact grid, navigation, and sections', () => {
     renderWithAppProviders(
       <AuthoredDetailLayout
         eyebrow='Spell'
         title='Sea Step'
         description='A short detail summary.'
-        status={['Draft Preview', 'Owned']}
+        status={['Draft Preview', 'Homebrew']}
         facts={[
           { label: 'Level', value: '2' },
           { label: 'Casting', value: '1 Action' }
@@ -34,6 +34,27 @@ describe('AuthoredDetail', () => {
     expect(screen.getByText('Move like water.')).toBeInTheDocument()
   })
 
+  it('can omit section navigation for compact detail pages', () => {
+    renderWithAppProviders(
+      <AuthoredDetailLayout
+        title='Sea Step'
+        status={['SRD']}
+        facts={[{ label: 'Level', value: '2' }]}
+        showSectionNav={false}
+        sections={[
+          {
+            id: 'description',
+            title: 'Description',
+            content: <AuthoredDetailProse html='<p>Move like water.</p>' />
+          }
+        ]}
+      />
+    )
+
+    expect(screen.queryByRole('navigation', { name: /detail sections/i })).not.toBeInTheDocument()
+    expect(screen.getByText('Move like water.')).toBeInTheDocument()
+  })
+
   it('renders compact header actions', async () => {
     const user = userEvent.setup()
     const onEdit = vi.fn()
@@ -42,7 +63,7 @@ describe('AuthoredDetail', () => {
       <AuthoredDetailLayout
         eyebrow='Feat'
         title='Tide Reader'
-        status={['Master']}
+        status={['SRD']}
         facts={[]}
         actions={[{ label: 'Duplicate', onClick: onEdit }]}
         sections={[

@@ -25,6 +25,7 @@ function createDraft(): AuthoredDraftDto {
     id: 'draft-id',
     subjectKind: 'SPELL',
     subjectId: 'spell-id',
+    publicId: '1',
     userId: 'user-id',
     systemId: 'system-id',
     label: 'Spell Draft',

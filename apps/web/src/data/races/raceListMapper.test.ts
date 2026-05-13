@@ -6,6 +6,7 @@ const response = {
   items: [
     {
       id: 'race-1',
+      publicId: 'race-1',
       label: 'Elf',
       description: 'A graceful lineage.',
       status: 'ACTIVE',
@@ -17,6 +18,7 @@ const response = {
     },
     {
       id: 'race-2',
+      publicId: 'race-2',
       label: 'Wood Elf Draft',
       description: null,
       status: 'DRAFT',
@@ -27,6 +29,7 @@ const response = {
       permissions: { canView: true, canEdit: true, canCopy: true, canDelete: true }
     }
   ],
+  drafts: [],
   meta: {}
 } satisfies RaceListResponseDto
 

@@ -37,6 +37,7 @@ import {
   useDuplicateRaceMutation,
   useSaveRaceDraftMutation
 } from '#app/data/races/mutations'
+import { buildRaceRouteParams } from '#app/routing/authoredRouteParams'
 import {
   normalizeRaceForSubmit,
   toRaceFormValues,
@@ -51,9 +52,8 @@ type ParsedRaceDraft = {
 }
 
 export function RaceEditPage() {
-  const route = getRouteApi('/_authed/races/$raceId')
-  const { draft, response } = route.useLoaderData()
-  const { raceId } = route.useParams()
+  const route = getRouteApi('/_authed/races/$racePublicId/$raceSlug')
+  const { draft, raceId, response } = route.useLoaderData()
   const parsedDraft: ParsedRaceDraft = parseAuthoredDraftPayload(draft ?? null, raceAuthoringInputDtoSchema)
   const draftRace = parsedDraft.item
   const activeRace = response?.item
@@ -130,7 +130,10 @@ function RaceEditAuthoring({
       notifications.show({ color: 'green', message: 'Race activated.' })
 
       if (response?.item.id && response.item.id !== raceId) {
-        await navigate({ to: '/races/$raceId', params: { raceId: response.item.id } })
+        await navigate({
+          params: buildRaceRouteParams(response.publicId, response.item.label),
+          to: '/races/$racePublicId/$raceSlug'
+        })
         return
       }
 
@@ -180,7 +183,10 @@ function RaceEditAuthoring({
       notifications.show({ color: 'green', message: 'Race duplicated as an owned draft.' })
 
       if (copied?.subjectId) {
-        await navigate({ to: '/races/$raceId/edit', params: { raceId: copied.subjectId } })
+        await navigate({
+          params: buildRaceRouteParams(copied.publicId, copied.label),
+          to: '/races/$racePublicId/$raceSlug/edit'
+        })
       }
     } catch {
       notifications.show({ color: 'red', message: 'Could not duplicate that race yet.' })

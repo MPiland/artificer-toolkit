@@ -13,6 +13,7 @@ import * as styles from './shell.css'
 export interface AppShellFrameProps {
   navigation: AppShellNavGroup[]
   currentPath: string
+  breadcrumbs?: string[]
   userEmail?: string | null
   children: ReactNode
 }
@@ -30,6 +31,7 @@ export interface FooterActionBarProps {
 }
 
 export function AppShellFrame({
+  breadcrumbs,
   navigation,
   currentPath,
   userEmail,
@@ -39,8 +41,9 @@ export function AppShellFrame({
   const burgerRef = useRef<HTMLButtonElement>(null)
   const wasOpenedRef = useRef(false)
   const activeItem = getActiveNavItem(navigation, currentPath)
-  const sectionLabel = activeItem?.groupLabel ?? 'Workspace'
-  const pageLabel = activeItem?.label ?? 'Home'
+  const breadcrumbLabels = breadcrumbs && breadcrumbs.length > 0
+    ? breadcrumbs
+    : [activeItem?.label ?? 'Home']
 
   useHotkeys([
     [
@@ -90,10 +93,15 @@ export function AppShellFrame({
               size='sm'
             />
           </Group>
-          <div className={styles.breadcrumb} aria-label='Current workspace section'>
-            <span className={styles.breadcrumbRoot}>{sectionLabel}</span>
-            <span className={styles.breadcrumbSlash}>/</span>
-            <span className={styles.breadcrumbLeaf}>{pageLabel}</span>
+          <div className={styles.breadcrumb} aria-label='Current section'>
+            {breadcrumbLabels.map((label, index) => (
+              <span className={styles.breadcrumbSegment} key={`${label}-${index}`}>
+                {index > 0 ? <span className={styles.breadcrumbSlash}>/</span> : null}
+                <span className={index === breadcrumbLabels.length - 1 ? styles.breadcrumbLeaf : styles.breadcrumbRoot}>
+                  {label}
+                </span>
+              </span>
+            ))}
           </div>
           <Group gap='xs' className={styles.headerActions}>
             <ThemeToggle />
@@ -109,8 +117,10 @@ export function AppShellFrame({
         <UserRailAction userEmail={userEmail} />
       </AppShell.Navbar>
 
-      <AppShell.Main id='main-content' className={`${styles.main} ${styles.contentArea}`} tabIndex={-1}>
-        {children}
+      <AppShell.Main id='main-content' className={styles.main} tabIndex={-1}>
+        <div className={styles.contentArea}>
+          {children}
+        </div>
       </AppShell.Main>
     </AppShell>
   )
@@ -175,10 +185,7 @@ function getActiveNavItem(navigation: AppShellNavGroup[], currentPath: string) {
     const item = group.items.find((navItem) => isNavItemActive(navItem, currentPath))
 
     if (item) {
-      return {
-        ...item,
-        groupLabel: group.label
-      }
+      return item
     }
   }
 

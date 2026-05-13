@@ -32,6 +32,7 @@ import {
   useDuplicateClassMutation,
   useSaveClassDraftMutation
 } from '#app/data/classes/mutations'
+import { buildClassRouteParams } from '#app/routing/authoredRouteParams'
 import {
   normalizeClassForSubmit,
   resolveClassEditReadOnly,
@@ -46,9 +47,8 @@ type ParsedClassDraft = {
 }
 
 export function ClassEditPage() {
-  const route = getRouteApi('/_authed/classes/$classId/edit')
-  const { response, draft } = route.useLoaderData()
-  const classId = route.useParams().classId
+  const route = getRouteApi('/_authed/classes/$classPublicId/$classSlug/edit')
+  const { classId, response, draft } = route.useLoaderData()
   const parsedDraft: ParsedClassDraft = parseAuthoredDraftPayload(draft ?? null, classAuthoringInputDtoSchema)
   const draftClass = parsedDraft.item
   const activeClass = response?.item
@@ -132,7 +132,10 @@ function ClassEditAuthoring({
       notifications.show({ color: 'green', message: 'Class activated.' })
 
       if (response?.item.id && response.item.id !== classId) {
-        await navigate({ to: '/classes/$classId/edit', params: { classId: response.item.id } })
+        await navigate({
+          params: buildClassRouteParams(response.publicId, response.item.label),
+          to: '/classes/$classPublicId/$classSlug/edit'
+        })
         return
       }
 
@@ -182,7 +185,10 @@ function ClassEditAuthoring({
       notifications.show({ color: 'green', message: 'Class duplicated as an owned draft.' })
 
       if (copied?.subjectId) {
-        await navigate({ to: '/classes/$classId/edit', params: { classId: copied.subjectId } })
+        await navigate({
+          params: buildClassRouteParams(copied.publicId, copied.label),
+          to: '/classes/$classPublicId/$classSlug/edit'
+        })
       }
     } catch {
       notifications.show({ color: 'red', message: 'Could not duplicate that class yet.' })

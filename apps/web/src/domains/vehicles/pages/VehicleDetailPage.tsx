@@ -1,5 +1,3 @@
-import {
-  useState } from 'react'
 import { Alert,
   Button,
   Stack } from '@mantine/core'
@@ -11,19 +9,19 @@ import {
 } from '@artificer-toolkit/schema/api/content'
 import { type VehicleAuthoringInputDto } from '@artificer-toolkit/schema/subjects/vehicle'
 import {
-  AuthoredDetailEmptyBlock,
   AuthoredDetailItemList,
   AuthoredDetailLayout,
   AuthoredDetailProse,
   buildAuthoredDetailNotice,
   buildDetailStatusLabels,
   compactAuthoredDetailActions,
+  compactAuthoredDetailSections,
   formatEnumLabel,
   formatNumber,
   formatReference,
   formatReferenceList,
+  hasDetailText,
   resolveAuthoredDetailState,
-  summarizeHtml,
   toDetailItems,
   useAuthoredDetailActions,
   type AuthoredDetailFact,
@@ -31,18 +29,21 @@ import {
 } from '#components/AuthoredDetail'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
+import { buildVehicleRouteParams } from '#app/routing/authoredRouteParams'
 
 export function VehicleDetailPage({
   draft,
   response,
-  vehicleId
+  vehicleId,
+  view
 }: {
   draft: AuthoredDraftDto | null
   response: VehicleResponseDto
   vehicleId: string
+  view: 'active' | 'draft'
 }) {
   const navigate = useNavigate()
-  const [viewActive, setViewActive] = useState(false)
+  const viewActive = view === 'active'
   const detailState = resolveAuthoredDetailState<VehicleAuthoringInputDto>({
     draft,
     response,
@@ -58,7 +59,10 @@ export function VehicleDetailPage({
     duplicate: api.content.vehicles.duplicate,
     hasActiveContent: Boolean(detailState.activeItem),
     id: vehicleId,
-    navigateEdit: async (id) => navigate({ to: '/vehicles/$vehicleId/edit', params: { vehicleId: id } }),
+    navigateEdit: async (subject) => navigate({
+      params: buildVehicleRouteParams(subject.publicId, subject.label),
+      to: '/vehicles/$vehiclePublicId/$vehicleSlug/edit'
+    }),
     navigateList: async () => navigate({ to: '/vehicles' })
   })
 
@@ -83,22 +87,25 @@ export function VehicleDetailPage({
   }
 
   const item = detailState.item
+  const vehicleParams = buildVehicleRouteParams(draft?.publicId ?? response?.publicId ?? vehicleId, item.label)
   const pageActions = compactAuthoredDetailActions([
-    { label: 'Create New', tone: 'secondary', onClick: () => navigate({ to: '/vehicles/new' }) },
     detailState.mode === 'draft'
-      ? { label: 'Resume Draft', tone: 'primary', onClick: () => navigate({ to: '/vehicles/$vehicleId/edit', params: { vehicleId } }) }
+      ? { label: 'Resume Draft', tone: 'primary', onClick: () => navigate({ to: '/vehicles/$vehiclePublicId/$vehicleSlug/edit', params: vehicleParams }) }
       : detailState.permissions.canEdit
-        ? { label: 'Edit', tone: 'primary', onClick: () => navigate({ to: '/vehicles/$vehicleId/edit', params: { vehicleId } }) }
+        ? { label: 'Edit', tone: 'primary', onClick: () => navigate({ to: '/vehicles/$vehiclePublicId/$vehicleSlug/edit', params: vehicleParams }) }
         : null,
-    detailState.permissions.canCopy
+    detailState.mode === 'active' && detailState.draft
+      ? { label: 'View Draft', tone: 'secondary', onClick: () => navigate({ to: '/vehicles/$vehiclePublicId/$vehicleSlug', params: vehicleParams, search: { view: 'draft' } }) }
+      : null,
+    detailState.mode === 'active' && !detailState.draft && detailState.permissions.canCopy
       ? { label: 'Duplicate', tone: 'secondary', disabled: actions.isDuplicating, onClick: () => void actions.duplicateToDraft() }
-      : null
+      : null,
+    { label: 'Create New', tone: 'secondary', onClick: () => navigate({ to: '/vehicles/new' }) }
   ])
 
   return (
     <AuthoredDetailLayout
       actions={pageActions}
-      description={summarizeHtml(item.description, 'A vehicle reference entry ready for table use.')}
       eyebrow='Vehicle'
       facts={getVehicleFacts(item)}
       notice={buildAuthoredDetailNotice({
@@ -108,8 +115,8 @@ export function VehicleDetailPage({
         isViewingActive: viewActive,
         mode: detailState.mode,
         onDiscard: () => void actions.discardDraft(),
-        onViewActive: () => setViewActive(true),
-        onViewDraft: () => setViewActive(false)
+        onViewActive: () => navigate({ to: '/vehicles/$vehiclePublicId/$vehicleSlug', params: vehicleParams }),
+        onViewDraft: () => navigate({ to: '/vehicles/$vehiclePublicId/$vehicleSlug', params: vehicleParams, search: { view: 'draft' } })
       })}
       sections={getVehicleSections(item)}
       status={buildDetailStatusLabels({
@@ -135,69 +142,66 @@ function getVehicleFacts(vehicle: VehicleAuthoringInputDto): AuthoredDetailFact[
 }
 
 function getVehicleSections(vehicle: VehicleAuthoringInputDto): AuthoredDetailSectionModel[] {
-  return [
+  const capacityItems = [
     {
+      id: 'crew',
+      title: 'Crew',
+      description: vehicle.crewMin || vehicle.crewMax
+        ? `${formatNumber(vehicle.crewMin)} minimum, ${formatNumber(vehicle.crewMax)} maximum`
+        : undefined
+    },
+    {
+      id: 'passengers',
+      title: 'Passenger Capacity',
+      description: formatNumber(vehicle.passengerCapacity)
+    },
+    {
+      id: 'cargo',
+      title: 'Cargo Capacity',
+      description: vehicle.cargoCapacity
+    },
+    {
+      id: 'cost',
+      title: 'Cost',
+      description: vehicle.cost ? `${vehicle.cost.amount} currency` : undefined
+    }
+  ].filter((item) => item.description && item.description !== 'Not set')
+  const detailItems = toDetailItems(vehicle.details)
+  const featureItems = toDetailItems(vehicle.features).map((item) => ({
+    id: item.id,
+    title: item.title,
+    description: item.description
+  }))
+  const propertyItems = (vehicle.properties ?? []).map((property) => ({
+    id: property,
+    title: formatReference(property, 'Property')
+  }))
+
+  return compactAuthoredDetailSections([
+    hasDetailText(vehicle.description) ? {
       id: 'description',
       title: 'Description',
       content: <AuthoredDetailProse html={vehicle.description} />
-    },
-    {
+    } : null,
+    capacityItems.length ? {
       id: 'capacity',
       title: 'Capacity & Economy',
-      content: (
-        <AuthoredDetailItemList
-          empty='No capacity or economy details have been added.'
-          items={[
-            {
-              id: 'crew',
-              title: 'Crew',
-              description: vehicle.crewMin || vehicle.crewMax
-                ? `${formatNumber(vehicle.crewMin)} minimum, ${formatNumber(vehicle.crewMax)} maximum`
-                : undefined
-            },
-            {
-              id: 'passengers',
-              title: 'Passenger Capacity',
-              description: formatNumber(vehicle.passengerCapacity)
-            },
-            {
-              id: 'cargo',
-              title: 'Cargo Capacity',
-              description: vehicle.cargoCapacity
-            },
-            {
-              id: 'cost',
-              title: 'Cost',
-              description: vehicle.cost ? `${vehicle.cost.amount} currency` : undefined
-            }
-          ].filter((item) => item.description && item.description !== 'Not set')}
-        />
-      )
-    },
-    {
+      content: <AuthoredDetailItemList empty='No capacity or economy details have been added.' items={capacityItems} />
+    } : null,
+    detailItems.length ? {
       id: 'details',
       title: 'Details',
-      content: <AuthoredDetailItemList empty='No vehicle details have been added.' items={toDetailItems(vehicle.details)} />
-    },
-    {
+      content: <AuthoredDetailItemList empty='No vehicle details have been added.' items={detailItems} />
+    } : null,
+    featureItems.length ? {
       id: 'features',
       title: 'Features',
-      content: <AuthoredDetailItemList empty='No vehicle features have been added.' items={toDetailItems(vehicle.features)} />
-    },
-    {
+      content: <AuthoredDetailItemList empty='No vehicle features have been added.' items={featureItems} />
+    } : null,
+    propertyItems.length ? {
       id: 'properties',
       title: 'Properties',
-      content: vehicle.properties?.length
-        ? (
-            <AuthoredDetailItemList
-              empty='No vehicle properties have been added.'
-              items={vehicle.properties.map((property) => ({
-                id: property,
-                title: formatReference(property, 'Property')
-              }))}
-            />
-          )
-        : <AuthoredDetailEmptyBlock>No vehicle properties have been added.</AuthoredDetailEmptyBlock>
-    }
-  ]
+      content: <AuthoredDetailItemList empty='No vehicle properties have been added.' items={propertyItems} />
+    } : null
+  ])
 }

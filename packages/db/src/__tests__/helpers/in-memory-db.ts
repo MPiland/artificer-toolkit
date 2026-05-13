@@ -432,6 +432,30 @@ export class InMemoryDb {
         this.deleteWhere('proficiency_grants', 'id', row.proficiency_grant_id)
         break
 
+      case 'creature_details':
+        this.deleteWhere('details', 'id', row.detail_id)
+        break
+
+      case 'creature_features':
+        this.deleteWhere('features', 'id', row.feature_id)
+        break
+
+      case 'creature_proficiency_grants':
+        this.deleteWhere('proficiency_grants', 'id', row.proficiency_grant_id)
+        break
+
+      case 'creatures':
+        this.deleteWhere('creature_details', 'creature_id', row.id)
+        this.deleteWhere('creature_features', 'creature_id', row.id)
+        this.deleteWhere('creature_proficiency_grants', 'creature_id', row.id)
+        this.deleteWhere('creature_speeds', 'creature_id', row.id)
+        this.deleteWhere('creature_actions', 'creature_id', row.id)
+        this.deleteWhere('creature_damage_resistances', 'creature_id', row.id)
+        this.deleteWhere('creature_damage_immunities', 'creature_id', row.id)
+        this.deleteWhere('creature_damage_vulnerabilities', 'creature_id', row.id)
+        this.deleteWhere('creature_condition_immunities', 'creature_id', row.id)
+        break
+
       case 'features':
         if (row.charge_id) {
           this.deleteWhere('charges', 'id', row.charge_id)
@@ -682,6 +706,19 @@ export class InMemoryDb {
         this.deleteWhere('equipment_modifier_grants', 'equipment_id', row.id)
         this.deleteWhere('equipment_features', 'equipment_id', row.id)
         this.deleteWhere('equipment_contains', 'equipment_id', row.id)
+        break
+
+      case 'vehicle_details':
+        this.deleteWhere('details', 'id', row.detail_id)
+        break
+
+      case 'vehicle_features':
+        this.deleteWhere('features', 'id', row.feature_id)
+        break
+
+      case 'vehicles':
+        this.deleteWhere('vehicle_details', 'vehicle_id', row.id)
+        this.deleteWhere('vehicle_features', 'vehicle_id', row.id)
         break
 
       case 'options':

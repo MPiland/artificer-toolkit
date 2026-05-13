@@ -45,7 +45,11 @@ export const shellRoot = style({
 export const header = style({
   '@layer': {
     [app]: {
-      'position': 'relative',
+      'position': 'fixed',
+      'top': 0,
+      'right': 0,
+      'left': 0,
+      'zIndex': 200,
       'display': 'grid',
       'gridTemplateColumns': '48px minmax(0, 1fr)',
       'height': '48px',
@@ -138,6 +142,17 @@ export const breadcrumb = style({
   }
 })
 
+export const breadcrumbSegment = style({
+  '@layer': {
+    [app]: {
+      minWidth: 0,
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: foundationVars.space[2]
+    }
+  }
+})
+
 export const breadcrumbRoot = style({
   '@layer': {
     [app]: {
@@ -221,7 +236,13 @@ export const navStack = style({
   '@layer': {
     [app]: {
       display: 'grid',
+      justifyItems: 'center',
       gap: foundationVars.space[2]
+    }
+  },
+  '@media': {
+    [mobileBreakpoint]: {
+      justifyItems: 'stretch'
     }
   }
 })
@@ -274,11 +295,12 @@ export const navItem = style({
   '@layer': {
     [app]: {
       'display': 'grid',
-      'gridTemplateColumns': '48px',
+      'gridTemplateColumns': '40px',
       'appearance': 'none',
       'alignItems': 'center',
       'justifyItems': 'center',
-      'minHeight': '48px',
+      'width': '40px',
+      'minHeight': '40px',
       'padding': 0,
       'border': '1px solid transparent',
       'borderRadius': foundationVars.radius.md,
@@ -302,6 +324,7 @@ export const navItem = style({
       gridTemplateColumns: '48px minmax(0, 1fr)',
       justifyItems: 'start',
       width: '100%',
+      minHeight: '48px',
       borderRadius: foundationVars.radius.lg
     }
   }
@@ -341,9 +364,14 @@ export const navIcon = style({
   '@layer': {
     [app]: {
       display: 'grid',
-      width: '48px',
+      width: '40px',
       height: '40px',
       placeItems: 'center'
+    }
+  },
+  '@media': {
+    [mobileBreakpoint]: {
+      width: '48px'
     }
   }
 })
@@ -403,6 +431,7 @@ globalStyle(`${userIconButton} svg`, {
 export const main = style({
   '@layer': {
     [app]: {
+      minWidth: 0,
       minHeight: 'calc(100dvh - 48px)',
       backgroundColor: foundationVars.color.surface.canvas
     }
@@ -412,6 +441,7 @@ export const main = style({
 export const contentArea = style({
   '@layer': {
     [app]: {
+      'boxSizing': 'border-box',
       'width': '100%',
       'maxWidth': '1272px',
       'minWidth': 0,
@@ -495,6 +525,26 @@ export const pageDescription = style({
       lineHeight: foundationVars.typography.caption.lineHeight
     }
   }
+})
+
+globalStyle('a[href="/systems"], a[href^="/systems/"]', {
+  display: 'none'
+})
+
+globalStyle('nav[aria-label="Primary navigation"] a[href="/characters"]', {
+  marginBottom: foundationVars.space[2],
+  position: 'relative'
+})
+
+globalStyle('nav[aria-label="Primary navigation"] a[href="/characters"]::after', {
+  position: 'absolute',
+  right: 0,
+  bottom: `calc(-1 * ${foundationVars.space[2]})`,
+  left: 0,
+  height: '1px',
+  backgroundColor: foundationVars.color.border.subtle,
+  borderRadius: 0,
+  content: ''
 })
 
 export const footerActionBar = style({
