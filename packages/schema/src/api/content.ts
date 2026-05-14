@@ -164,7 +164,7 @@ type AuthoredDetailResponseDtoSchema<
   TItemSchema extends z.ZodTypeAny,
   TMetaSchema extends z.ZodTypeAny
 > = z.ZodNullable<z.ZodObject<{
-  item: TItemSchema
+  item: z.ZodNullable<TItemSchema>
   publicId: z.ZodString
   provenance: typeof authoredContentProvenanceDtoSchema
   permissions: typeof authoredContentPermissionsDtoSchema

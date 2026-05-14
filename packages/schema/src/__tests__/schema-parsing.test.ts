@@ -1776,9 +1776,39 @@ describe('schema package parsing', () => {
       }
     }) as { item?: { id?: string }, permissions?: { canEdit?: boolean } }
 
+    const draftOnlySpell = spellResponseDtoSchema.parse({
+      publicId: 'draft-spell',
+      item: null,
+      draft: {
+        id: 'draft-1',
+        subjectKind: 'SPELL',
+        subjectId: 'draft-spell-id',
+        publicId: 'draft-spell',
+        userId: 'user-1',
+        systemId: 'dnd-5e-srd',
+        label: 'Broken Draft Spell',
+        status: 'DRAFT',
+        draftState: 'DRAFT_ONLY',
+        baseActiveUpdatedAt: null,
+        payload: {}
+      },
+      provenance: {
+        kind: 'OWNED',
+        ownerUserId: 'user-1'
+      },
+      permissions: {
+        canView: true,
+        canEdit: true,
+        canCopy: false,
+        canDelete: true
+      }
+    }) as { item?: unknown, draft?: { label?: string } }
+
     expect(list.items[0]?.id).toBe('acolyte')
     expect(feature?.label).toBe('Fighting Style')
     expect(spell?.permissions?.canEdit).toBe(false)
+    expect(draftOnlySpell?.item).toBeNull()
+    expect(draftOnlySpell?.draft?.label).toBe('Broken Draft Spell')
   })
 
   it('parses node runtime resolve and normalize contracts', () => {

@@ -179,16 +179,22 @@ export async function getAuthoredDomain(
   const subjectId = await resolveAuthoredRouteSubjectId(db, config.subjectKind, input.id)
   if (!subjectId) return null
 
+  let draftDetail: Awaited<ReturnType<typeof getAuthoredDomainDraftDetail>> = null
   if (input.view === 'draft') {
-    const draftDetail = await getAuthoredDomainDraftDetail(db, config, subjectId, userId, input.meta)
-    if (draftDetail) return draftDetail
+    draftDetail = await getAuthoredDomainDraftDetail(db, config, subjectId, userId, input.meta)
+    if (draftDetail?.item) return draftDetail
   }
 
   const response = await normalizeAuthoredDetailResponse(db, config.table, await config.findById(db, subjectId), userId)
-  if (!response) return null
+  if (!response) return draftDetail
 
+  const draftPromise = draftDetail
+    ? Promise.resolve(draftDetail.draft)
+    : input.includeDraft
+      ? getAuthoredDraft(db, config.subjectKind, subjectId, userId)
+      : Promise.resolve(undefined)
   const [draft, meta] = await Promise.all([
-    input.includeDraft ? getAuthoredDraft(db, config.subjectKind, subjectId, userId) : Promise.resolve(undefined),
+    draftPromise,
     resolveDetailMeta(db, config, response.item, input.meta)
   ])
 
@@ -225,7 +231,23 @@ async function getAuthoredDomainDraftDetail(
     systemId: draft.systemId,
     userId: draft.userId
   }))
-  if (!parsedItem.success) return null
+  if (!parsedItem.success) {
+    return {
+      draft,
+      item: null,
+      publicId: draft.publicId,
+      provenance: {
+        kind: 'OWNED' as const,
+        ownerUserId: draft.userId
+      },
+      permissions: {
+        canView: true,
+        canEdit: true,
+        canCopy: false,
+        canDelete: true
+      }
+    }
+  }
 
   const item = parsedItem.data
   const meta = await resolveDetailMeta(db, config, item, metaKeys)

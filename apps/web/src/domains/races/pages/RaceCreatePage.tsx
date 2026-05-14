@@ -62,7 +62,7 @@ function RaceCreateAuthoring({ systemId }: { systemId: string }) {
       const response = await activateMutation.mutateAsync(payload)
       notifications.show({ color: 'green', message: 'Race activated.' })
 
-      if (response?.item.id) {
+      if (response?.item?.id) {
         await navigate({
           params: buildRaceRouteParams(response.publicId, response.item.label),
           to: '/races/$racePublicId/$raceSlug'

@@ -37,7 +37,7 @@ export const Route = createFileRoute('/_authed/classes/$classPublicId/$classSlug
     }, client))
     const draft = response?.draft ?? null
     const references: Pick<AuthoredContentReferenceData, 'classes' | 'currencies' | 'equipment' | 'languages' | 'skills'> =
-      response
+      response?.item
         ? await context.queryClient.ensureQueryData(getAuthoredContentReferenceData(response.item.systemId, client))
         : { classes: [], currencies: [], equipment: [], languages: [], skills: [] }
     const routeSubject = getAuthoredRouteSubject(classId, response, draft)

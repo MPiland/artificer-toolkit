@@ -31,7 +31,7 @@ export const Route = createFileRoute('/_authed/backgrounds/$backgroundPublicId/$
       view
     }, client))
     const draft = response?.draft ?? null
-    const references = await context.queryClient.ensureQueryData(getAuthoredContentReferenceData(response?.item.systemId ?? draft?.systemId, client))
+    const references = await context.queryClient.ensureQueryData(getAuthoredContentReferenceData(response?.item?.systemId ?? draft?.systemId, client))
     const routeSubject = getAuthoredRouteSubject(backgroundId, response, draft)
 
     if (routeSubject && !isCanonicalAuthoredRouteHandle(params.backgroundPublicId, params.backgroundSlug, routeSubject)) {

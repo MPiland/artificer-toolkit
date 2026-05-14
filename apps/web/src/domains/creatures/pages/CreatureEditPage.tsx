@@ -56,7 +56,7 @@ export function CreatureEditPage() {
   const { creatureId, draft, response } = route.useLoaderData()
   const parsedDraft: ParsedCreatureDraft = parseAuthoredDraftPayload(draft ?? null, creatureAuthoringInputDtoSchema)
   const draftCreature = parsedDraft.item
-  const activeCreature = response?.item
+  const activeCreature = response?.item ?? undefined
 
   if (!response) {
     if (parsedDraft.isInvalid) {
@@ -129,7 +129,7 @@ function CreatureEditAuthoring({
       const response = await activateMutation.mutateAsync(payload)
       notifications.show({ color: 'green', message: 'Creature activated.' })
 
-      if (response?.item.id && response.item.id !== creatureId) {
+      if (response?.item?.id && response.item.id !== creatureId) {
         await navigate({
           params: buildCreatureRouteParams(response.publicId, response.item.label),
           to: '/creatures/$creaturePublicId/$creatureSlug'

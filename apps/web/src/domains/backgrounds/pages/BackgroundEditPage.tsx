@@ -54,7 +54,7 @@ export function BackgroundEditPage() {
   const { backgroundId, draft, response } = route.useLoaderData()
   const parsedDraft: ParsedBackgroundDraft = parseAuthoredDraftPayload(draft ?? null, backgroundAuthoringInputDtoSchema)
   const draftBackground = parsedDraft.item
-  const activeBackground = response?.item
+  const activeBackground = response?.item ?? undefined
 
   if (!response) {
     if (parsedDraft.isInvalid) {
@@ -127,7 +127,7 @@ function BackgroundEditAuthoring({
       const response = await activateMutation.mutateAsync(payload)
       notifications.show({ color: 'green', message: 'Background activated.' })
 
-      if (response?.item.id && response.item.id !== backgroundId) {
+      if (response?.item?.id && response.item.id !== backgroundId) {
         await navigate({
           params: buildBackgroundRouteParams(response.publicId, response.item.label),
           to: '/backgrounds/$backgroundPublicId/$backgroundSlug'

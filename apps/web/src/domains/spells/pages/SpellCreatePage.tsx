@@ -61,7 +61,7 @@ function SpellCreateAuthoring({
       const response = await activateMutation.mutateAsync(payload)
       notifications.show({ color: 'green', message: 'Spell activated.' })
 
-      if (response?.item.id) {
+      if (response?.item?.id) {
         await navigate({
           params: buildSpellRouteParams(response.publicId, response.item.label),
           to: '/spells/$spellPublicId/$spellSlug'

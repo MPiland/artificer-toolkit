@@ -62,7 +62,7 @@ function BackgroundCreateAuthoring({ systemId }: { systemId: string }) {
       const response = await activateMutation.mutateAsync(payload)
       notifications.show({ color: 'green', message: 'Background activated.' })
 
-      if (response?.item.id) {
+      if (response?.item?.id) {
         await navigate({
           params: buildBackgroundRouteParams(response.publicId, response.item.label),
           to: '/backgrounds/$backgroundPublicId/$backgroundSlug'

@@ -62,7 +62,7 @@ export function isCanonicalAuthoredRouteHandle(
 }
 
 export function getAuthoredRouteSubjectLabel(
-  active: { item?: { label?: string } } | null | undefined,
+  active: { item?: { label?: string } | null } | null | undefined,
   draft: { label?: string } | null | undefined
 ) {
   return draft?.label ?? active?.item?.label ?? null
@@ -70,7 +70,7 @@ export function getAuthoredRouteSubjectLabel(
 
 export function getAuthoredRouteSubject(
   fallbackId: string,
-  active: { publicId?: string, item?: { id?: string, label?: string } } | null | undefined,
+  active: { publicId?: string, item?: { id?: string, label?: string } | null } | null | undefined,
   draft: { publicId?: string, subjectId?: string, label?: string } | null | undefined
 ): AuthoredRouteSubject | null {
   const label = getAuthoredRouteSubjectLabel(active, draft)

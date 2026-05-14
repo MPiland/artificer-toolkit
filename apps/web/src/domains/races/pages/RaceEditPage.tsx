@@ -56,7 +56,7 @@ export function RaceEditPage() {
   const { draft, raceId, response } = route.useLoaderData()
   const parsedDraft: ParsedRaceDraft = parseAuthoredDraftPayload(draft ?? null, raceAuthoringInputDtoSchema)
   const draftRace = parsedDraft.item
-  const activeRace = response?.item
+  const activeRace = response?.item ?? undefined
 
   if (!response) {
     if (parsedDraft.isInvalid) {
@@ -129,7 +129,7 @@ function RaceEditAuthoring({
       const response = await activateMutation.mutateAsync(payload)
       notifications.show({ color: 'green', message: 'Race activated.' })
 
-      if (response?.item.id && response.item.id !== raceId) {
+      if (response?.item?.id && response.item.id !== raceId) {
         await navigate({
           params: buildRaceRouteParams(response.publicId, response.item.label),
           to: '/races/$racePublicId/$raceSlug'

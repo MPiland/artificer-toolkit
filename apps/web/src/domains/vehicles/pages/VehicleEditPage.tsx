@@ -50,7 +50,7 @@ export function VehicleEditPage() {
   const { response, draft, vehicleId } = route.useLoaderData()
   const parsedDraft: ParsedVehicleDraft = parseAuthoredDraftPayload(draft ?? null, vehicleAuthoredDtoSchema)
   const draftVehicle = parsedDraft.item
-  const activeVehicle = response?.item
+  const activeVehicle = response?.item ?? undefined
 
   if (!response) {
     if (!draftVehicle) {
@@ -127,7 +127,7 @@ function VehicleEditAuthoring({
       const response = await activateMutation.mutateAsync(payload)
       notifications.show({ color: 'green', message: 'Vehicle activated.' })
 
-      if (response?.item.id && response.item.id !== vehicleId) {
+      if (response?.item?.id && response.item.id !== vehicleId) {
         await navigate({
           params: buildVehicleRouteParams(response.publicId, response.item.label),
           to: '/vehicles/$vehiclePublicId/$vehicleSlug/edit'

@@ -62,7 +62,7 @@ function CreatureCreateAuthoring({ systemId }: { systemId: string }) {
       const response = await activateMutation.mutateAsync(payload)
       notifications.show({ color: 'green', message: 'Creature activated.' })
 
-      if (response?.item.id) {
+      if (response?.item?.id) {
         await navigate({
           params: buildCreatureRouteParams(response.publicId, response.item.label),
           to: '/creatures/$creaturePublicId/$creatureSlug'

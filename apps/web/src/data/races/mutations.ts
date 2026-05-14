@@ -14,7 +14,7 @@ export function useActivateRaceMutation() {
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.content.races.all() })
 
-      if (response?.item.id) {
+      if (response?.item?.id) {
         queryClient.setQueryData(queryKeys.content.races.detail(response.item.id), response)
         await queryClient.invalidateQueries({ queryKey: queryKeys.content.races.draft(response.item.id) })
       }

@@ -52,7 +52,7 @@ export function FeatEditPage() {
   const { draft, featId, response } = route.useLoaderData()
   const parsedDraft: ParsedFeatDraft = parseAuthoredDraftPayload(draft ?? null, featAuthoringInputDtoSchema)
   const draftFeat = parsedDraft.item
-  const activeFeat = response?.item
+  const activeFeat = response?.item ?? undefined
 
   if (!response) {
     if (parsedDraft.isInvalid) {
@@ -125,7 +125,7 @@ function FeatEditAuthoring({
       const response = await activateMutation.mutateAsync(payload)
       notifications.show({ color: 'green', message: 'Feat activated.' })
 
-      if (response?.item.id && response.item.id !== featId) {
+      if (response?.item?.id && response.item.id !== featId) {
         await navigate({
           params: buildFeatRouteParams(response.publicId, response.item.label),
           to: '/feats/$featPublicId/$featSlug'

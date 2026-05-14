@@ -14,7 +14,7 @@ export function useActivateBackgroundMutation() {
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.content.backgrounds.all() })
 
-      if (response?.item.id) {
+      if (response?.item?.id) {
         queryClient.setQueryData(queryKeys.content.backgrounds.detail(response.item.id), response)
         await queryClient.invalidateQueries({ queryKey: queryKeys.content.backgrounds.draft(response.item.id) })
       }

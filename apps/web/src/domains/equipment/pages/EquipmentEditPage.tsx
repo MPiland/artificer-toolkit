@@ -50,7 +50,7 @@ export function EquipmentEditPage() {
   const { equipmentId, response, draft } = route.useLoaderData()
   const parsedDraft: ParsedEquipmentDraft = parseAuthoredDraftPayload(draft ?? null, equipmentAuthoredDtoSchema)
   const draftEquipment = parsedDraft.item
-  const activeEquipment = response?.item
+  const activeEquipment = response?.item ?? undefined
 
   if (!response) {
     if (!draftEquipment) {
@@ -127,7 +127,7 @@ function EquipmentEditAuthoring({
       const response = await activateMutation.mutateAsync(payload)
       notifications.show({ color: 'green', message: 'Equipment activated.' })
 
-      if (response?.item.id && response.item.id !== equipmentId) {
+      if (response?.item?.id && response.item.id !== equipmentId) {
         await navigate({
           params: buildEquipmentRouteParams(response.publicId, response.item.label),
           to: '/equipment/$equipmentPublicId/$equipmentSlug/edit'

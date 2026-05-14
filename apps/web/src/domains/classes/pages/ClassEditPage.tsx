@@ -51,7 +51,7 @@ export function ClassEditPage() {
   const { classId, response, draft } = route.useLoaderData()
   const parsedDraft: ParsedClassDraft = parseAuthoredDraftPayload(draft ?? null, classAuthoringInputDtoSchema)
   const draftClass = parsedDraft.item
-  const activeClass = response?.item
+  const activeClass = response?.item ?? undefined
 
   if (!response) {
     if (!draftClass) {
@@ -131,7 +131,7 @@ function ClassEditAuthoring({
       const response = await activateMutation.mutateAsync(payload)
       notifications.show({ color: 'green', message: 'Class activated.' })
 
-      if (response?.item.id && response.item.id !== classId) {
+      if (response?.item?.id && response.item.id !== classId) {
         await navigate({
           params: buildClassRouteParams(response.publicId, response.item.label),
           to: '/classes/$classPublicId/$classSlug/edit'

@@ -58,7 +58,7 @@ function EquipmentCreateAuthoring({
       const response = await activateMutation.mutateAsync(payload)
       notifications.show({ color: 'green', message: 'Equipment activated.' })
 
-      if (response?.item.id) {
+      if (response?.item?.id) {
         await navigate({
           params: buildEquipmentRouteParams(response.publicId, response.item.label),
           to: '/equipment/$equipmentPublicId/$equipmentSlug/edit'

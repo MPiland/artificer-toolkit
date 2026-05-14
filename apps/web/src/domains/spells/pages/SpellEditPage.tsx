@@ -54,7 +54,7 @@ export function SpellEditPage() {
   const { draft, response, spellId } = route.useLoaderData()
   const parsedDraft: ParsedSpellDraft = parseAuthoredDraftPayload(draft ?? null, spellAuthoringInputDtoSchema)
   const draftSpell = parsedDraft.item
-  const activeSpell = response?.item
+  const activeSpell = response?.item ?? undefined
 
   if (!response) {
     if (parsedDraft.isInvalid) {
@@ -129,7 +129,7 @@ function SpellEditAuthoring({
       const response = await activateMutation.mutateAsync(payload)
       notifications.show({ color: 'green', message: 'Spell activated.' })
 
-      if (response?.item.id && response.item.id !== spellId) {
+      if (response?.item?.id && response.item.id !== spellId) {
         await navigate({
           params: buildSpellRouteParams(response.publicId, response.item.label),
           to: '/spells/$spellPublicId/$spellSlug'

@@ -58,7 +58,7 @@ function ClassCreateAuthoring({
       const response = await activateMutation.mutateAsync(payload)
       notifications.show({ color: 'green', message: 'Class activated.' })
 
-      if (response?.item.id) {
+      if (response?.item?.id) {
         await navigate({
           params: buildClassRouteParams(response.publicId, response.item.label),
           to: '/classes/$classPublicId/$classSlug/edit'

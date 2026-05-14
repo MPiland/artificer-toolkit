@@ -29,7 +29,7 @@ export function authoredResourceResponseDtoSchema<
   extrasSchema: z.ZodObject<TExtrasShape>
 ) {
   const base = z.object({
-    item: itemSchema,
+    item: itemSchema.nullable(),
     publicId: z.string(),
     provenance: authoredContentProvenanceDtoSchema,
     permissions: authoredContentPermissionsDtoSchema

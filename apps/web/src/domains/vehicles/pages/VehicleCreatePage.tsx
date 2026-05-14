@@ -58,7 +58,7 @@ function VehicleCreateAuthoring({
       const response = await activateMutation.mutateAsync(payload)
       notifications.show({ color: 'green', message: 'Vehicle activated.' })
 
-      if (response?.item.id) {
+      if (response?.item?.id) {
         await navigate({
           params: buildVehicleRouteParams(response.publicId, response.item.label),
           to: '/vehicles/$vehiclePublicId/$vehicleSlug/edit'

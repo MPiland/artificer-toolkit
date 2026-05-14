@@ -10,7 +10,7 @@ import { parseAuthoredDraftPayload } from '#app/data/authoredDrafts'
 export type AuthoredDetailViewMode = 'active' | 'draft' | 'invalid-draft-only' | 'missing'
 
 export interface AuthoredDetailResponse<TItem> {
-  item: TItem
+  item: TItem | null
   permissions: AuthoredContentPermissionsDto
   provenance: AuthoredContentProvenanceDto
 }
@@ -73,8 +73,8 @@ export function resolveAuthoredDetailState<TItem>({
       hasActiveContent: false,
       item: null,
       mode: 'invalid-draft-only',
-      permissions: defaultDraftPermissions,
-      provenance: ownedDraftProvenance
+      permissions: response?.permissions ?? defaultDraftPermissions,
+      provenance: response?.provenance ?? ownedDraftProvenance
     }
   }
 

@@ -62,7 +62,7 @@ function FeatCreateAuthoring({ systemId }: { systemId: string }) {
       const response = await activateMutation.mutateAsync(payload)
       notifications.show({ color: 'green', message: 'Feat activated.' })
 
-      if (response?.item.id) {
+      if (response?.item?.id) {
         await navigate({
           params: buildFeatRouteParams(response.publicId, response.item.label),
           to: '/feats/$featPublicId/$featSlug'
