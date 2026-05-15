@@ -58,7 +58,7 @@ export function ClassDetailPage({
   })
   const actions = useAuthoredDetailActions({
     discard: api.content.classes.discardDraft,
-    detailQueryKey: queryKeys.content.classes.detail(classId),
+    detailSubjectQueryKey: queryKeys.content.classes.detailRoot(classId),
     domainLabel: 'Class',
     domainQueryKey: queryKeys.content.classes.all(),
     draftQueryKey: queryKeys.content.classes.draft(classId),

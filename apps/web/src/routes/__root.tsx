@@ -35,7 +35,7 @@ export const Route = createRootRouteWithContext<AppRouterContext>()({
       { title: 'Artificer Toolkit' },
       {
         name: 'description',
-        content: 'Phase 9 frontend platform foundation for the Artificer Toolkit rebuild.'
+        content: 'Artificer Toolkit MVP for tabletop RPG authoring and play support.'
       }
     ],
     links: [

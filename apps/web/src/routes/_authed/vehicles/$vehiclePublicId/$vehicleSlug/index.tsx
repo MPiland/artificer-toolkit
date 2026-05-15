@@ -12,6 +12,8 @@ import { buildVehicleRouteParams } from '#app/routing/authoredRouteParams'
 import { validateAuthoredDetailSearch } from '#app/routing/authoredDetailSearch'
 import { VehicleDetailPage } from '#domains/vehicles/pages/VehicleDetailPage'
 
+const vehicleDetailMeta = ['currencies']
+
 export const Route = createFileRoute('/_authed/vehicles/$vehiclePublicId/$vehicleSlug/')({
   validateSearch: validateAuthoredDetailSearch,
   loaderDeps: ({ search }) => search,
@@ -28,6 +30,7 @@ export const Route = createFileRoute('/_authed/vehicles/$vehiclePublicId/$vehicl
     const response = await ensureOptionalActiveContent(context.queryClient, getVehicle({
       id: vehicleId,
       includeDraft: true,
+      meta: vehicleDetailMeta,
       view
     }, client))
     const draft = response?.draft ?? null

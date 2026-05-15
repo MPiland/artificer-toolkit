@@ -30,6 +30,14 @@ import {
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import { buildVehicleRouteParams } from '#app/routing/authoredRouteParams'
+import * as styles from './VehicleDetailPage.css'
+
+type VehicleMetric = {
+  id: string
+  label: string
+  value: string
+  note?: string
+}
 
 export function VehicleDetailPage({
   draft,
@@ -52,7 +60,7 @@ export function VehicleDetailPage({
   })
   const actions = useAuthoredDetailActions({
     discard: api.content.vehicles.discardDraft,
-    detailQueryKey: queryKeys.content.vehicles.detail(vehicleId),
+    detailSubjectQueryKey: queryKeys.content.vehicles.detailRoot(vehicleId),
     domainLabel: 'Vehicle',
     domainQueryKey: queryKeys.content.vehicles.all(),
     draftQueryKey: queryKeys.content.vehicles.draft(vehicleId),
@@ -118,7 +126,7 @@ export function VehicleDetailPage({
         onViewActive: () => navigate({ to: '/vehicles/$vehiclePublicId/$vehicleSlug', params: vehicleParams }),
         onViewDraft: () => navigate({ to: '/vehicles/$vehiclePublicId/$vehicleSlug', params: vehicleParams, search: { view: 'draft' } })
       })}
-      sections={getVehicleSections(item)}
+      sections={getVehicleSections(item, response?.meta?.currencies ?? [])}
       status={buildDetailStatusLabels({
         draft: detailState.draft,
         mode: detailState.mode,
@@ -141,31 +149,37 @@ function getVehicleFacts(vehicle: VehicleAuthoringInputDto): AuthoredDetailFact[
   ]
 }
 
-function getVehicleSections(vehicle: VehicleAuthoringInputDto): AuthoredDetailSectionModel[] {
-  const capacityItems = [
+function getVehicleSections(
+  vehicle: VehicleAuthoringInputDto,
+  currencies: NonNullable<NonNullable<VehicleResponseDto>['meta']>['currencies'] = []
+): AuthoredDetailSectionModel[] {
+  const capacityItems: VehicleMetric[] = [
     {
       id: 'crew',
-      title: 'Crew',
-      description: vehicle.crewMin || vehicle.crewMax
-        ? `${formatNumber(vehicle.crewMin)} minimum, ${formatNumber(vehicle.crewMax)} maximum`
+      label: 'Crew',
+      value: vehicle.crewMin !== undefined || vehicle.crewMax !== undefined
+        ? `${formatNumber(vehicle.crewMin ?? 0)} - ${formatNumber(vehicle.crewMax ?? vehicle.crewMin ?? 0)}`
+        : '',
+      note: vehicle.crewMin !== undefined || vehicle.crewMax !== undefined
+        ? 'Minimum to maximum operators'
         : undefined
     },
     {
       id: 'passengers',
-      title: 'Passenger Capacity',
-      description: formatNumber(vehicle.passengerCapacity)
+      label: 'Passengers',
+      value: vehicle.passengerCapacity !== undefined ? formatNumber(vehicle.passengerCapacity) : ''
     },
     {
       id: 'cargo',
-      title: 'Cargo Capacity',
-      description: vehicle.cargoCapacity
+      label: 'Cargo',
+      value: vehicle.cargoCapacity ?? ''
     },
     {
       id: 'cost',
-      title: 'Cost',
-      description: vehicle.cost ? `${vehicle.cost.amount} currency` : undefined
+      label: 'Cost',
+      value: vehicle.cost ? formatVehicleCost(vehicle.cost, currencies) : ''
     }
-  ].filter((item) => item.description && item.description !== 'Not set')
+  ].filter((item) => item.value && item.value !== 'Not set')
   const detailItems = toDetailItems(vehicle.details)
   const featureItems = toDetailItems(vehicle.features).map((item) => ({
     id: item.id,
@@ -186,7 +200,7 @@ function getVehicleSections(vehicle: VehicleAuthoringInputDto): AuthoredDetailSe
     capacityItems.length ? {
       id: 'capacity',
       title: 'Capacity & Economy',
-      content: <AuthoredDetailItemList empty='No capacity or economy details have been added.' items={capacityItems} />
+      content: <VehicleCapacityEconomy metrics={capacityItems} />
     } : null,
     detailItems.length ? {
       id: 'details',
@@ -204,4 +218,26 @@ function getVehicleSections(vehicle: VehicleAuthoringInputDto): AuthoredDetailSe
       content: <AuthoredDetailItemList empty='No vehicle properties have been added.' items={propertyItems} />
     } : null
   ])
+}
+
+function VehicleCapacityEconomy({ metrics }: { metrics: VehicleMetric[] }) {
+  return (
+    <div className={styles.metricGrid}>
+      {metrics.map((metric) => (
+        <div className={styles.metricCell} key={metric.id}>
+          <span className={styles.metricLabel}>{metric.label}</span>
+          <strong className={styles.metricValue}>{metric.value}</strong>
+          {metric.note ? <span className={styles.metricNote}>{metric.note}</span> : null}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function formatVehicleCost(
+  cost: NonNullable<VehicleAuthoringInputDto['cost']>,
+  currencies: NonNullable<NonNullable<VehicleResponseDto>['meta']>['currencies']
+) {
+  const currency = currencies?.find((option) => option.value === cost.currencyId)?.label ?? cost.currencyId
+  return `${new Intl.NumberFormat('en-US').format(cost.amount)} ${currency}`
 }

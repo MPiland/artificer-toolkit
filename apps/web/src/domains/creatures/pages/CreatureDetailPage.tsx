@@ -32,6 +32,16 @@ import type { AuthoredContentReferenceData } from '#app/data/contentReferences'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import { buildCreatureRouteParams } from '#app/routing/authoredRouteParams'
+import * as styles from './CreatureDetailPage.css'
+
+const abilityOrder = [
+  'STRENGTH',
+  'DEXTERITY',
+  'CONSTITUTION',
+  'INTELLIGENCE',
+  'WISDOM',
+  'CHARISMA'
+] as const
 
 export function CreatureDetailPage({
   creatureId,
@@ -56,7 +66,7 @@ export function CreatureDetailPage({
   })
   const actions = useAuthoredDetailActions({
     discard: api.content.creatures.discardDraft,
-    detailQueryKey: queryKeys.content.creatures.detail(creatureId),
+    detailSubjectQueryKey: queryKeys.content.creatures.detailRoot(creatureId),
     domainLabel: 'Creature',
     domainQueryKey: queryKeys.content.creatures.all(),
     draftQueryKey: queryKeys.content.creatures.draft(creatureId),
@@ -152,18 +162,6 @@ function getCreatureSections(
   creature: CreatureAuthoredDto,
   references: Pick<AuthoredContentReferenceData, 'conditionTypes' | 'damageTypes' | 'speeds'>
 ): AuthoredDetailSectionModel[] {
-  const statItems = [
-    ...Object.entries(creature.abilityScores).map(([ability, value]) => ({
-      id: ability,
-      title: formatEnumLabel(ability),
-      meta: String(value)
-    })),
-    ...creature.speeds.map((speed, index) => ({
-      id: `${speed.speedId}-${index}`,
-      title: formatReferenceLabel(speed.speedId, 'Speed', references.speeds),
-      meta: `${speed.amount} ${formatEnumLabel(speed.unit)}`
-    }))
-  ]
   const defenseItems = [
     {
       id: 'damage-vulnerabilities',
@@ -192,14 +190,17 @@ function getCreatureSections(
     ...toCreatureActionItems('Reaction', creature.reactions),
     ...toCreatureActionItems('Lair Action', creature.lairProfile?.lairActions)
   ]
+  const legendaryActionFeature = creature.features?.find(isLegendaryActionFeature)
   const profileItems = getCreatureProfileItems(creature)
   const detailItems = [
     ...toDetailItems(creature.details),
-    ...toDetailItems(creature.features).map((item) => ({
-      id: item.id,
-      title: item.title,
-      description: item.description
-    }))
+    ...toDetailItems(creature.features)
+      .filter((item) => item.title !== legendaryActionFeature?.label)
+      .map((item) => ({
+        id: item.id,
+        title: item.title,
+        description: item.description
+      }))
   ]
 
   return compactAuthoredDetailSections([
@@ -208,11 +209,11 @@ function getCreatureSections(
       title: 'Description',
       content: <AuthoredDetailProse html={creature.description} />
     } : null,
-    statItems.length ? {
+    {
       id: 'stats',
       title: 'Stats',
-      content: <AuthoredDetailItemList empty='No stats have been added.' items={statItems} />
-    } : null,
+      content: <CreatureStats creature={creature} references={references} />
+    },
     defenseItems.length ? {
       id: 'defenses',
       title: 'Defenses',
@@ -222,6 +223,11 @@ function getCreatureSections(
       id: 'actions',
       title: 'Actions',
       content: <AuthoredDetailItemList empty='No actions have been added.' items={actionItems} />
+    } : null,
+    legendaryActionFeature ? {
+      id: 'legendary-actions',
+      title: 'Legendary Actions',
+      content: <AuthoredDetailProse html={legendaryActionFeature.description} />
     } : null,
     profileItems.length ? {
       id: 'profile',
@@ -234,6 +240,68 @@ function getCreatureSections(
       content: <AuthoredDetailItemList empty='No creature details or features have been added.' items={detailItems} />
     } : null
   ])
+}
+
+function CreatureStats({
+  creature,
+  references
+}: {
+  creature: CreatureAuthoredDto
+  references: Pick<AuthoredContentReferenceData, 'speeds'>
+}) {
+  return (
+    <div className={styles.statBlock}>
+      <div className={styles.abilityGrid}>
+        {abilityOrder.map((ability) => {
+          const value = creature.abilityScores[ability]
+
+          return (
+            <div className={styles.abilityCell} key={ability}>
+              <span className={styles.abilityLabel}>{formatAbilityAbbreviation(ability)}</span>
+              <strong className={styles.abilityScore}>{formatNumber(value)}</strong>
+              <span className={styles.abilityModifier}>{formatAbilityModifier(value)}</span>
+            </div>
+          )
+        })}
+      </div>
+      {creature.speeds.length ? (
+        <div className={styles.speedGrid} aria-label='Speeds'>
+          {creature.speeds.map((speed, index) => (
+            <span className={styles.speedPill} key={`${speed.speedId}-${index}`}>
+              <span>{formatReferenceLabel(speed.speedId, 'Speed', references.speeds)}</span>
+              <strong>{speed.amount} {formatEnumLabel(speed.unit)}</strong>
+            </span>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function formatAbilityAbbreviation(ability: typeof abilityOrder[number]): string {
+  switch (ability) {
+    case 'STRENGTH':
+      return 'STR'
+    case 'DEXTERITY':
+      return 'DEX'
+    case 'CONSTITUTION':
+      return 'CON'
+    case 'INTELLIGENCE':
+      return 'INT'
+    case 'WISDOM':
+      return 'WIS'
+    case 'CHARISMA':
+      return 'CHA'
+  }
+}
+
+function formatAbilityModifier(score: number): string {
+  const modifier = Math.floor((score - 10) / 2)
+  return modifier >= 0 ? `+${modifier}` : String(modifier)
+}
+
+function isLegendaryActionFeature(feature: NonNullable<CreatureAuthoredDto['features']>[number]) {
+  return feature.label.toLowerCase() === 'legendary actions'
 }
 
 function toCreatureActionItems(

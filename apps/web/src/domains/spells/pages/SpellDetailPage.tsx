@@ -84,7 +84,7 @@ export function SpellDetailPage({
   })
   const actions = useAuthoredDetailActions({
     discard: api.content.spells.discardDraft,
-    detailQueryKey: queryKeys.content.spells.detail(spellId),
+    detailSubjectQueryKey: queryKeys.content.spells.detailRoot(spellId),
     domainLabel: 'Spell',
     domainQueryKey: queryKeys.content.spells.all(),
     draftQueryKey: queryKeys.content.spells.draft(spellId),

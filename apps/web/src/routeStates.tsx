@@ -18,8 +18,7 @@ export function RouteNotFound() {
       <IMapOff size={48} />
       <Title order={1}>Route not found</Title>
       <Text c='dimmed' ta='center' maw={420}>
-        The Phase 9 app shell is active, so some provisional legacy routes are intentionally offline while
-        we rebuild the frontend foundation.
+        This route is not available in the MVP UAT build.
       </Text>
       <Button component={Link} to={homeRoute} leftSection={<IArrowLeft size={16} />}>
         Return home

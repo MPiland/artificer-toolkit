@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-test('marketing route renders the Phase 9.2 public page', async ({ page }) => {
+test('marketing route renders the public page', async ({ page }) => {
   await page.goto('/')
 
   await expect(page.getByRole('heading', { name: 'Create the content you want to run, then bring it straight into play.' })).toBeVisible()

@@ -38,6 +38,32 @@ describe('class list mapper', () => {
       { value: 'UNCATEGORIZED', label: 'Uncategorized' }
     ])
   })
+
+  it('marks subclasses as child rows under their parent class', () => {
+    const response = createClassListResponse([
+      createClassListItem({
+        id: 'fighter',
+        category: 'BASE',
+        label: 'Fighter'
+      }),
+      createClassListItem({
+        id: 'champion',
+        category: 'SUBCLASS',
+        label: 'Champion',
+        parentClassId: 'fighter'
+      })
+    ])
+
+    const items = mapClassListToAuthoredItems(response)
+
+    expect(items.find((item) => item.id === 'champion')).toMatchObject({
+      hierarchy: {
+        level: 1,
+        parentId: 'fighter',
+        parentLabel: 'Fighter'
+      }
+    })
+  })
 })
 
 function createClassListResponse(items: ClassListResponseDto['items']): ClassListResponseDto {

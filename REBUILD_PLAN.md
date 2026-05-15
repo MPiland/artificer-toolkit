@@ -2,7 +2,7 @@
 
 ## Summary
 
-This project should be treated as a salvage-and-stabilize refactor, not a greenfield rewrite. The codebase already contains substantial domain, persistence, service, API, and frontend logic. The rebuild establishes clean backend package responsibilities and stable interfaces, then repairs the domain kernel, persistence layer, application layer, and API. The frontend is frozen until those backend layers are complete.
+This project should be treated as a salvage-and-stabilize refactor, not a greenfield rewrite. The codebase already contains substantial domain, persistence, service, API, and frontend logic. The rebuild has reached unlaunched MVP UAT: prioritize correctness, performance, scanability, and coherent product UX over phase-plan bookkeeping.
 
 ## Phase 0 Decision
 
@@ -33,7 +33,7 @@ Phase 0 is complete and closed. The package-boundary guardrails remain active th
 | Rule engine | Missing | Still a future phase |
 | API routes | Minimal | Need validation and stabilization later |
 | SRD data | Partial | Canonical source-data contracts, an initial SRD bundle file, and seed orchestration exist; real SRD content population is still pending |
-| `apps/web` | Frozen | Reference-only until backend is complete |
+| `apps/web` | MVP UAT | Active authenticated product surface; polish and bug fixes should follow PRODUCT.md and DESIGN.md |
 
 ## Target Workspace Architecture
 
@@ -46,7 +46,7 @@ Package responsibilities stay as-is during the backend rebuild. Physical renames
 | `packages/db` | `packages/db` | Kysely client, repositories, upserts, SQL assets |
 | `packages/functions` | `packages/server` | Use-case services, character assembly, orchestration |
 | `apps/apis` | `apps/api` | Thin transport layer only |
-| `apps/web` | `apps/web` | Frozen during backend rebuild |
+| `apps/web` | `apps/web` | Authenticated product UI for UAT |
 
 ## Package Dependency Rules
 
@@ -56,7 +56,7 @@ Package responsibilities stay as-is during the backend rebuild. Physical renames
 - `db` may depend on `shared` and `schema`
 - `functions` may depend on `shared`, `schema`, and `db`
 - `apis` may depend on `functions` and `schema`
-- `web` depends on `schema` and client-facing contracts only, but remains frozen during backend work
+- `web` depends on `schema` and client-facing contracts only; `apps/apis` remains its product-data boundary
 
 ## Phase Sequence
 
@@ -72,9 +72,8 @@ Package responsibilities stay as-is during the backend rebuild. Physical renames
 10. Phase 7.5 - New subject types (creature + vehicle)
 11. Phase 7.6 - SRD master data population + E2E test
 12. Phase 7.7 - Complete SRD source data
-13. Phase 8 - Frontend Figma (all domains — Figma screens only)
-14. Phase 9 - Frontend Code (all domains — React implementation against approved Figma)
-15. Phase 10 - tRPC transport modernization (hybrid incremental)
+13. Phase 8 - Frontend Figma (all domains - Figma screens only)
+14. MVP UAT - Frontend implementation, detail/list polish, and transport hardening
 
 ## Phase Status Tracker
 
@@ -92,9 +91,8 @@ Package responsibilities stay as-is during the backend rebuild. Physical renames
 | Phase 7.5 - New subject types (creature + vehicle) | Complete | Creature + vehicle now ship as first-class authored subjects across shared/schema/db/functions/apis, the additive Supabase migration has been applied, DB types regenerated, `yarn build:all` is clean, and `yarn test:db` passes at 22 files / 168 tests. See `PHASE_7_5_SUBJECTS_SUBPLAN.md`. |
 | Phase 7.6 - SRD master data population + E2E test | Complete | `conditions` optional on `FacetContextAuthored`; `restrictions` explicit on `CompiledModifierGrant`; CHARACTER restriction eval + SPELL scope tagging in engine; Agonizing Blast modifier grant scoped to Eldritch Blast; Warlock L3 E2E test (Tiefling, Sage, Fiend) — 192/192 DB tests pass, 48/48 shared tests pass. Two API bugs fixed (getCharacterHistory URL extraction, handleCommandRequest characterId mismatch). See `PHASE_7_6_SRD_SEED_SUBPLAN.md`. |
 | Phase 7.7 - Complete SRD source data | Complete | Complete for Phase 8 builder/sheet baseline readiness: SRD master-data inventory is seeded and usable across classes, subclasses, races, backgrounds, feats, spells, equipment, creatures, and vehicles, with canonical specialization naming, class/subclass spell-grant resolution, and creature/vehicle roster ownership wired. Remaining constrained `RULE` and deep combat-runtime semantics are explicitly deferred to post-7.7 follow-up (interactive-map/runtime tranche), with blocker tracking maintained in the 7.7 audit and rule-gap docs. See `PHASE_7_7_SRD_COMPLETE_SUBPLAN.md` and `PHASE_7_7_RULE_GAP_LEDGER.md`. |
-| Phase 8 - Frontend Figma | In Progress | Figma-only. All authoring forms, character wizard, and character sheet designed in Figma before any code is written. Subphases: 8.1 Foundation, 8.2 Simple Authoring (Spell, Background, Feat, Features), 8.3 Complex P1 (Race, Equipment, Creature, Vehicle), 8.4 Complex P2 (Class), 8.5 Character Wizard, 8.6 Character Sheet. See `PHASE_8_FIGMA_OVERVIEW.md` and `PHASE_8_*_FIGMA_*.md` files. |
-| Phase 9 - Frontend Code | Not Started | React implementation against approved Phase 8 Figma screens. Blocked per-domain on Figma approval. Can begin domain-by-domain as screens are approved. See `PHASE_9_CODE_OVERVIEW.md` and `PHASE_9_*_CODE_*.md` files. |
-| Phase 10 - tRPC transport modernization (hybrid incremental) | Paused | Scaffold is landed in `apps/apis` (router/context/handler + typed `characters.*` and `content.*` namespaces), but active migration work is deferred while Phase 9 frontend delivery is prioritized. REST remains primary transport; tRPC stays as follow-on cutover work. See `PHASE_10_TRPC_SUBPLAN.md`. |
+| Phase 8 - Frontend Figma | In Progress | Figma remains an input for approved screens and design direction. See `PHASE_8_FIGMA_OVERVIEW.md` and `PHASE_8_*_FIGMA_*.md` files. |
+| MVP UAT - Frontend implementation and transport hardening | Active | Treat the app as unlaunched MVP software. Fix correctness issues, polish detail/list UX, and keep `apps/apis` as the frontend product-data boundary. |
 
 ## Guiding Principles
 
@@ -141,7 +139,7 @@ Review rule for each phase:
 - [ ] Phase 8.9 — Figma: Class.
 - [ ] Phase 8.10 — Figma: Character Wizard.
 - [ ] Phase 8.11 — Figma: Character Sheet.
-- [ ] Phase 9.x — Code: implement each domain after its Figma screens are approved. See `PHASE_9_CODE_OVERVIEW.md`.
+- [ ] MVP UAT - Polish authored detail/list UX, fix active PR feedback, and validate performance-sensitive flows.
 - [ ] Phase 8.6 — Character sheet: live view from `EngineCharacterOutput`.
 
 ### Completed

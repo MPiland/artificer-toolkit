@@ -398,7 +398,7 @@ export const adultBrassDragon: CreatureAuthored = {
         {
             id: S.featureId(5, 10),
             label: 'Legendary Actions',
-            description: 'The dragon can take 3 legendary actions, choosing from the options below. Only one legendary action option can be used at a time and only at the end of another creature\'s turn. The dragon regains spent legendary actions at the start of its turn.',
+            description: '<p>The dragon can take 3 legendary actions, choosing from the options below. Only one legendary action option can be used at a time and only at the end of another creature\'s turn. The dragon regains spent legendary actions at the start of its turn.</p><p><strong>Detect.</strong> The dragon makes a Wisdom (Perception) check.</p><p><strong>Tail Attack.</strong> The dragon makes a tail attack.</p><p><strong>Wing Attack (Costs 2 Actions).</strong> The dragon beats its wings. Each creature within 10 feet of the dragon must succeed on a DC 19 Dexterity saving throw or take 13 (2d6 + 6) bludgeoning damage and be knocked prone. The dragon can then fly up to half its flying speed.</p>',
             attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
             charges: {
                 id: S.legendaryActionId(5, 21),

@@ -9,7 +9,6 @@ import {
 } from '@artificer-toolkit/schema/api/content'
 import { type RaceAuthoredDto } from '@artificer-toolkit/schema/subjects/race'
 import {
-  AuthoredDetailEmptyBlock,
   AuthoredDetailItemList,
   AuthoredDetailLayout,
   AuthoredDetailProse,
@@ -24,6 +23,7 @@ import {
   resolveAuthoredDetailState,
   toDetailItems,
   useAuthoredDetailActions,
+  type AuthoredDetailFact,
   type AuthoredDetailSectionModel
 } from '#components/AuthoredDetail'
 import type { AuthoredContentReferenceData } from '#app/data/contentReferences'
@@ -33,12 +33,14 @@ import { buildRaceRouteParams } from '#app/routing/authoredRouteParams'
 
 export function RaceDetailPage({
   draft,
+  parentResponse,
   raceId,
   references,
   response,
   view
 }: {
   draft: AuthoredDraftDto | null
+  parentResponse?: RaceResponseDto | null
   raceId: string
   references: Pick<AuthoredContentReferenceData, 'speeds'>
   response: RaceResponseDto
@@ -54,7 +56,7 @@ export function RaceDetailPage({
   })
   const actions = useAuthoredDetailActions({
     discard: api.content.races.discardDraft,
-    detailQueryKey: queryKeys.content.races.detail(raceId),
+    detailSubjectQueryKey: queryKeys.content.races.detailRoot(raceId),
     domainLabel: 'Race',
     domainQueryKey: queryKeys.content.races.all(),
     draftQueryKey: queryKeys.content.races.draft(raceId),
@@ -89,6 +91,7 @@ export function RaceDetailPage({
   }
 
   const item = detailState.item
+  const parentRace = parentResponse?.item?.category === 'BASE' ? parentResponse.item : null
   const raceParams = buildRaceRouteParams(draft?.publicId ?? response?.publicId ?? raceId, item.label)
   const pageActions = compactAuthoredDetailActions([
     detailState.mode === 'draft'
@@ -109,7 +112,7 @@ export function RaceDetailPage({
     <AuthoredDetailLayout
       actions={pageActions}
       eyebrow={item.category === 'SUBRACE' ? 'Subrace' : 'Race'}
-      facts={[]}
+      facts={getRaceFacts(item, parentRace)}
       notice={buildAuthoredDetailNotice({
         canViewActive: detailState.canViewActive,
         domainLabel: 'Race',
@@ -120,7 +123,7 @@ export function RaceDetailPage({
         onViewActive: () => navigate({ to: '/races/$racePublicId/$raceSlug', params: raceParams }),
         onViewDraft: () => navigate({ to: '/races/$racePublicId/$raceSlug', params: raceParams, search: { view: 'draft' } })
       })}
-      sections={getRaceSections(item, references)}
+      sections={getRaceSections(item, references, parentRace)}
       status={buildDetailStatusLabels({
         draft: detailState.draft,
         mode: detailState.mode,
@@ -134,7 +137,8 @@ export function RaceDetailPage({
 
 function getRaceSections(
   race: RaceAuthoredDto,
-  references: Pick<AuthoredContentReferenceData, 'speeds'>
+  references: Pick<AuthoredContentReferenceData, 'speeds'>,
+  parentRace?: Extract<RaceAuthoredDto, { category: 'BASE' }> | null
 ): AuthoredDetailSectionModel[] {
   const detailItems = toDetailItems(race.details)
   const featureItems = toDetailItems(race.features).map((item) => ({
@@ -161,26 +165,71 @@ function getRaceSections(
   ])
 
   if (race.category === 'SUBRACE') {
+    const parentSections = parentRace
+      ? getBaseRaceSections(parentRace, references, {
+          idPrefix: 'base-race',
+          titlePrefix: 'Base Race '
+        })
+      : []
+
     return compactAuthoredDetailSections([
-      race.parentRaceId ? {
+      parentRace ? {
         id: 'lineage',
         title: 'Lineage',
-        content: <AuthoredDetailEmptyBlock>Parent race content is inherited from the selected base race.</AuthoredDetailEmptyBlock>
+        content: (
+          <AuthoredDetailItemList
+            empty='No lineage selected.'
+            items={[
+              {
+                id: 'base-race',
+                title: 'Base Race',
+                meta: parentRace.label
+              },
+              {
+                id: 'builder-use',
+                title: 'Builder',
+                meta: 'Playable subrace'
+              }
+            ]}
+          />
+        )
       } : null,
+      ...parentSections,
       ...sharedSections
     ])
   }
 
+  return getBaseRaceSections(race, references)
+}
+
+function getBaseRaceSections(
+  race: Extract<RaceAuthoredDto, { category: 'BASE' }>,
+  references: Pick<AuthoredContentReferenceData, 'speeds'>,
+  options: { idPrefix?: string, titlePrefix?: string } = {}
+): AuthoredDetailSectionModel[] {
+  const idPrefix = options.idPrefix ? `${options.idPrefix}-` : ''
+  const titlePrefix = options.titlePrefix ?? ''
+  const detailItems = toDetailItems(race.details)
+  const featureItems = toDetailItems(race.features).map((item) => ({
+    id: item.id,
+    title: item.title,
+    description: item.description
+  }))
+
   return compactAuthoredDetailSections([
-    sharedSections.find((section) => section.id === 'description'),
+    hasDetailText(race.description) ? {
+      id: `${idPrefix}description`,
+      title: `${titlePrefix}Description`,
+      content: <AuthoredDetailProse html={race.description} />
+    } : null,
     race.ancestry && hasAncestryContent(race.ancestry) ? {
-      id: 'ancestry',
-      title: 'Ancestry',
+      id: `${idPrefix}ancestry`,
+      title: `${titlePrefix}Ancestry`,
       content: <RaceAncestryContent ancestry={race.ancestry} />
     } : null,
     race.speeds.length ? {
-      id: 'speeds',
-      title: 'Speeds',
+      id: `${idPrefix}speeds`,
+      title: `${titlePrefix}Speeds`,
       content: (
         <AuthoredDetailItemList
           empty='No speeds have been added.'
@@ -192,8 +241,41 @@ function getRaceSections(
         />
       )
     } : null,
-    ...sharedSections.filter((section) => section.id !== 'description')
+    detailItems.length ? {
+      id: `${idPrefix}details`,
+      title: `${titlePrefix}Details`,
+      content: <AuthoredDetailItemList empty='No race details have been added.' items={detailItems} />
+    } : null,
+    featureItems.length ? {
+      id: `${idPrefix}features`,
+      title: `${titlePrefix}Features`,
+      content: <AuthoredDetailItemList empty='No race features have been added.' items={featureItems} />
+    } : null
   ])
+}
+
+function getRaceFacts(
+  race: RaceAuthoredDto,
+  parentRace?: Extract<RaceAuthoredDto, { category: 'BASE' }> | null
+): AuthoredDetailFact[] {
+  return [
+    {
+      label: 'Category',
+      value: race.category === 'SUBRACE' ? 'Subrace' : 'Base Race'
+    },
+    {
+      label: 'Builder',
+      value: race.category === 'SUBRACE'
+        ? 'Playable subrace'
+        : race.selectionMode === 'REQUIRES_SUBRACE'
+          ? 'Choose subrace'
+          : 'Playable'
+    },
+    race.category === 'SUBRACE' && parentRace ? {
+      label: 'Base Race',
+      value: parentRace.label
+    } : null
+  ].filter((fact): fact is AuthoredDetailFact => Boolean(fact))
 }
 
 type RaceAncestry = NonNullable<Extract<RaceAuthoredDto, { category: 'BASE' }>['ancestry']>

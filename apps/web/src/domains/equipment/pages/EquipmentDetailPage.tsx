@@ -55,7 +55,7 @@ export function EquipmentDetailPage({
   })
   const actions = useAuthoredDetailActions({
     discard: api.content.equipment.discardDraft,
-    detailQueryKey: queryKeys.content.equipment.detail(equipmentId),
+    detailSubjectQueryKey: queryKeys.content.equipment.detailRoot(equipmentId),
     domainLabel: 'Equipment',
     domainQueryKey: queryKeys.content.equipment.all(),
     draftQueryKey: queryKeys.content.equipment.draft(equipmentId),

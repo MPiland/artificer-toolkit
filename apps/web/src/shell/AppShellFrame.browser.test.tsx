@@ -16,12 +16,12 @@ describe('AppShellFrame browser', () => {
         currentPath='/home'
         userEmail='creator@example.com'
       >
-        <div>Phase 9 workspace home</div>
+        <div>MVP workspace home</div>
       </AppShellFrame>
     )
 
     await expect.element(screen.getByRole('link', { name: 'Spells' })).toBeInTheDocument()
-    await expect.element(screen.getByText('Phase 9 workspace home')).toBeInTheDocument()
+    await expect.element(screen.getByText('MVP workspace home')).toBeInTheDocument()
     await expect.element(screen.getByLabelText('creator@example.com')).toBeInTheDocument()
 
     const navbar = document.querySelector<HTMLElement>('#workspace-navigation')

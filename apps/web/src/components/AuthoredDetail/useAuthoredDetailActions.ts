@@ -10,7 +10,7 @@ import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
 
 export function useAuthoredDetailActions({
   discard,
-  detailQueryKey,
+  detailSubjectQueryKey,
   domainLabel,
   domainQueryKey,
   draftQueryKey,
@@ -21,7 +21,7 @@ export function useAuthoredDetailActions({
   navigateList
 }: {
   discard: (id: string) => Promise<void>
-  detailQueryKey: QueryKey
+  detailSubjectQueryKey: QueryKey
   domainLabel: string
   domainQueryKey: QueryKey
   draftQueryKey: QueryKey
@@ -60,7 +60,7 @@ export function useAuthoredDetailActions({
     try {
       await discardMutation.mutateAsync()
       await refreshAuthoredDetailAfterDraftDiscard({
-        detailQueryKey,
+        detailSubjectQueryKey,
         domainQueryKey,
         draftQueryKey,
         hasActiveContent,
@@ -78,7 +78,7 @@ export function useAuthoredDetailActions({
       notifications.show({ color: 'red', message: `Could not discard that ${domainLabel.toLowerCase()} draft yet.` })
     }
   }, [
-    detailQueryKey,
+    detailSubjectQueryKey,
     discardMutation,
     domainLabel,
     domainQueryKey,
@@ -98,13 +98,13 @@ export function useAuthoredDetailActions({
 }
 
 export async function refreshAuthoredDetailAfterDraftDiscard({
-  detailQueryKey,
+  detailSubjectQueryKey,
   domainQueryKey,
   draftQueryKey,
   hasActiveContent,
   queryClient
 }: {
-  detailQueryKey: QueryKey
+  detailSubjectQueryKey: QueryKey
   domainQueryKey: QueryKey
   draftQueryKey: QueryKey
   hasActiveContent: boolean
@@ -114,9 +114,9 @@ export async function refreshAuthoredDetailAfterDraftDiscard({
   await queryClient.refetchQueries({ queryKey: draftQueryKey, exact: true, type: 'all' })
 
   if (hasActiveContent) {
-    await queryClient.refetchQueries({ queryKey: detailQueryKey, exact: true, type: 'all' })
+    await queryClient.refetchQueries({ queryKey: detailSubjectQueryKey, type: 'all' })
   } else {
-    queryClient.removeQueries({ queryKey: detailQueryKey, exact: true })
+    queryClient.removeQueries({ queryKey: detailSubjectQueryKey })
   }
 
   await queryClient.invalidateQueries({ queryKey: domainQueryKey })

@@ -53,7 +53,7 @@ export function BackgroundDetailPage({
   })
   const actions = useAuthoredDetailActions({
     discard: api.content.backgrounds.discardDraft,
-    detailQueryKey: queryKeys.content.backgrounds.detail(backgroundId),
+    detailSubjectQueryKey: queryKeys.content.backgrounds.detailRoot(backgroundId),
     domainLabel: 'Background',
     domainQueryKey: queryKeys.content.backgrounds.all(),
     draftQueryKey: queryKeys.content.backgrounds.draft(backgroundId),

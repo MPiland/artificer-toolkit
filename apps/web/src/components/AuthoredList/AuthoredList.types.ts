@@ -27,6 +27,11 @@ export interface AuthoredListItem {
   sortValues?: Record<string, string | number | undefined>
   accentColor?: string
   accentLabel?: string
+  hierarchy?: {
+    level: number
+    parentId?: string
+    parentLabel?: string
+  }
   sourceLabel: string
   sourceKind: AuthoredListProvenance
   permissions: AuthoredListPermissions

@@ -1,6 +1,7 @@
 import { screen } from '@testing-library/react'
 import type {
   AuthoredDraftDto,
+  CreatureResponseDto,
   FeatResponseDto,
   RaceResponseDto,
   SpellResponseDto
@@ -13,11 +14,14 @@ import type {
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { ownedClassResponseFixture } from '#domains/classes/class.fixtures'
 import { ClassDetailPage } from '#domains/classes/pages/ClassDetailPage'
+import { CreatureDetailPage } from '#domains/creatures/pages/CreatureDetailPage'
 import { masterEquipmentResponseFixture } from '#domains/equipment/equipment.fixtures'
 import { EquipmentDetailPage } from '#domains/equipment/pages/EquipmentDetailPage'
 import { FeatDetailPage } from '#domains/feats/pages/FeatDetailPage'
 import { RaceDetailPage } from '#domains/races/pages/RaceDetailPage'
 import { SpellDetailPage } from '#domains/spells/pages/SpellDetailPage'
+import { ownedVehicleResponseFixture } from '#domains/vehicles/vehicle.fixtures'
+import { VehicleDetailPage } from '#domains/vehicles/pages/VehicleDetailPage'
 
 const spellResponse: NonNullable<SpellResponseDto> = {
   publicId: '1',
@@ -196,6 +200,51 @@ const dragonbornResponse: NonNullable<RaceResponseDto> = {
   }
 }
 
+const brassDragonResponse: NonNullable<CreatureResponseDto> = {
+  publicId: 'adult-brass-dragon',
+  item: {
+    id: 'adult-brass-dragon',
+    label: 'Adult Brass Dragon',
+    description: '<p>A brass dragon.</p>',
+    status: 'ACTIVE',
+    category: 'MONSTER',
+    creatureTypeId: 'dragon',
+    size: 'HUGE',
+    abilityScores: {
+      STRENGTH: 23,
+      DEXTERITY: 10,
+      CONSTITUTION: 21,
+      INTELLIGENCE: 14,
+      WISDOM: 13,
+      CHARISMA: 17,
+      SPELLCASTING: 0
+    },
+    armorClass: 18,
+    hitPoints: 172,
+    speeds: [
+      { speedId: 'walk', amount: 40, unit: 'FEET' },
+      { speedId: 'fly', amount: 80, unit: 'FEET' }
+    ],
+    features: [
+      {
+        id: 'legendary-actions',
+        label: 'Legendary Actions',
+        description: '<p>The dragon can take 3 legendary actions, choosing from the options below.</p><p><strong>Detect.</strong> The dragon makes a Wisdom (Perception) check.</p><p><strong>Tail Attack.</strong> The dragon makes a tail attack.</p><p><strong>Wing Attack (Costs 2 Actions).</strong> The dragon beats its wings.</p>',
+        order: 10
+      }
+    ],
+    userId: 'master',
+    systemId: 'system-5e'
+  },
+  provenance: { kind: 'MASTER', ownerUserId: null },
+  permissions: {
+    canView: true,
+    canEdit: false,
+    canCopy: true,
+    canDelete: false
+  }
+}
+
 const grapplerResponse: NonNullable<FeatResponseDto> = {
   publicId: 'grappler',
   item: {
@@ -313,6 +362,59 @@ describe('authored domain detail pages', () => {
     expect(screen.getByRole('button', { name: /duplicate/i })).toBeInTheDocument()
   })
 
+  it('renders vehicle capacity and economy with resolved currency labels', () => {
+    renderWithAppProviders(
+      <VehicleDetailPage
+        draft={null}
+        response={{
+          ...ownedVehicleResponseFixture,
+          meta: {
+            currencies: [{ value: 'gp', label: 'Gold Piece' }]
+          }
+        }}
+        vehicleId={ownedVehicleResponseFixture.item.id}
+        view='active'
+      />
+    )
+
+    expect(screen.getByRole('heading', { name: /sky skiff/i })).toBeInTheDocument()
+    expect(screen.getByText('Crew')).toBeInTheDocument()
+    expect(screen.getByText('1 - 4')).toBeInTheDocument()
+    expect(screen.getByText('Passengers')).toBeInTheDocument()
+    expect(screen.getByText('6')).toBeInTheDocument()
+    expect(screen.getByText('5,000 Gold Piece')).toBeInTheDocument()
+    expect(screen.queryByText(/currency/i)).not.toBeInTheDocument()
+  })
+
+  it('renders creature stats as compact scores and shows legendary action options', () => {
+    renderWithAppProviders(
+      <CreatureDetailPage
+        creatureId='adult-brass-dragon'
+        draft={null}
+        references={{
+          challengeRatings: [],
+          conditionTypes: [],
+          creatureTypes: [{ value: 'dragon', label: 'Dragon' }],
+          damageTypes: [],
+          speeds: [
+            { value: 'walk', label: 'Walking Speed' },
+            { value: 'fly', label: 'Flying Speed' }
+          ]
+        }}
+        response={brassDragonResponse}
+        view='active'
+      />
+    )
+
+    expect(screen.getByRole('heading', { name: /adult brass dragon/i })).toBeInTheDocument()
+    expect(screen.getByText('STR')).toBeInTheDocument()
+    expect(screen.getByText('+6')).toBeInTheDocument()
+    expect(screen.getByText('Flying Speed')).toBeInTheDocument()
+    expect(screen.getByText('Detect.')).toBeInTheDocument()
+    expect(screen.getByText('Tail Attack.')).toBeInTheDocument()
+    expect(screen.getByText('Wing Attack (Costs 2 Actions).')).toBeInTheDocument()
+  })
+
   it('renders dragonborn ancestry options as a compact table without order labels', () => {
     renderWithAppProviders(
       <RaceDetailPage
@@ -332,6 +434,70 @@ describe('authored domain detail pages', () => {
     expect(screen.getAllByText('5 by 30 ft. line (DEX save)').length).toBeGreaterThan(0)
     expect(screen.queryByText(/option 0/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/level 1/i)).not.toBeInTheDocument()
+  })
+
+  it('renders subrace detail with inherited parent race content', () => {
+    const parentResponse: NonNullable<RaceResponseDto> = {
+      ...dragonbornResponse,
+      publicId: 'elf',
+      item: {
+        ...dragonbornResponse.item,
+        id: 'elf',
+        label: 'Elf',
+        description: 'Elves carry ancient senses.',
+        selectionMode: 'REQUIRES_SUBRACE',
+        ancestry: undefined,
+        features: [
+          {
+            id: 'darkvision',
+            label: 'Darkvision',
+            description: 'You can see in dim light.',
+            order: 0
+          }
+        ]
+      }
+    }
+    const subraceResponse: NonNullable<RaceResponseDto> = {
+      ...dragonbornResponse,
+      publicId: 'wood-elf',
+      item: {
+        id: 'wood-elf',
+        label: 'Wood Elf',
+        description: 'Wood elves move quietly through the wild.',
+        status: 'ACTIVE',
+        category: 'SUBRACE',
+        parentRaceId: 'elf',
+        features: [
+          {
+            id: 'fleet-of-foot',
+            label: 'Fleet of Foot',
+            description: 'Your base walking speed increases.',
+            order: 0
+          }
+        ],
+        userId: 'master',
+        systemId: 'system-5e'
+      }
+    }
+
+    renderWithAppProviders(
+      <RaceDetailPage
+        draft={null}
+        parentResponse={parentResponse}
+        raceId='wood-elf'
+        references={{ speeds: [{ value: 'walk', label: 'Walking Speed' }] }}
+        response={subraceResponse}
+        view='active'
+      />
+    )
+
+    expect(screen.getByRole('heading', { name: /wood elf/i })).toBeInTheDocument()
+    expect(screen.getAllByText('Elf').length).toBeGreaterThan(0)
+    expect(screen.getByText('Elves carry ancient senses.')).toBeInTheDocument()
+    expect(screen.getByText('Darkvision')).toBeInTheDocument()
+    expect(screen.getByText('Wood elves move quietly through the wild.')).toBeInTheDocument()
+    expect(screen.getByText('Fleet of Foot')).toBeInTheDocument()
+    expect(screen.queryByText(/parent race content is inherited/i)).not.toBeInTheDocument()
   })
 
   it('renders feat prerequisites from structured data and hides empty mechanics', () => {

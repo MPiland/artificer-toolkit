@@ -341,6 +341,29 @@ export const itemNameButton = style({
   }
 })
 
+export const nameHierarchy = style({
+  '@layer': {
+    [app]: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      maxWidth: '100%',
+      gap: foundationVars.space[2],
+      paddingLeft: `calc(var(--authored-list-hierarchy-level, 0) * ${foundationVars.space[5]})`
+    }
+  }
+})
+
+export const hierarchyMarker = style({
+  '@layer': {
+    [app]: {
+      flexShrink: 0,
+      width: '14px',
+      height: '1px',
+      backgroundColor: foundationVars.color.border.strong
+    }
+  }
+})
+
 export const monoCell = style({
   '@layer': {
     [app]: {

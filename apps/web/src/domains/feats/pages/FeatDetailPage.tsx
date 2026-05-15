@@ -50,7 +50,7 @@ export function FeatDetailPage({
   })
   const actions = useAuthoredDetailActions({
     discard: api.content.feats.discardDraft,
-    detailQueryKey: queryKeys.content.feats.detail(featId),
+    detailSubjectQueryKey: queryKeys.content.feats.detailRoot(featId),
     domainLabel: 'Feat',
     domainQueryKey: queryKeys.content.feats.all(),
     draftQueryKey: queryKeys.content.feats.draft(featId),

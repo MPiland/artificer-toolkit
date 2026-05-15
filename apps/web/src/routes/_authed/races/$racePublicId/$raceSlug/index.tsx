@@ -8,8 +8,8 @@ export const Route = createFileRoute('/_authed/races/$racePublicId/$raceSlug/')(
 function RaceDetailRoute() {
   const parentRoute = getRouteApi('/_authed/races/$racePublicId/$raceSlug')
   const {
-    draft, raceId, references, response, view
+    draft, parentResponse, raceId, references, response, view
   } = parentRoute.useLoaderData()
 
-  return <RaceDetailPage draft={draft} raceId={raceId} references={references} response={response} view={view} />
+  return <RaceDetailPage draft={draft} parentResponse={parentResponse} raceId={raceId} references={references} response={response} view={view} />
 }

@@ -28,9 +28,13 @@ function summarizeDescription(description: string | null | undefined): string {
 }
 
 export function mapClassListToAuthoredItems(response: ClassListResponseDto): AuthoredListItem[] {
+  const parentLabels = new Map(response.items.map((item) => [item.id, item.label]))
+
   return response.items.map((item) => {
     const category = item.category ?? UNCATEGORIZED_CLASS_CATEGORY
     const categoryLabel = formatClassCategory(category)
+    const parentClassId = item.parentClassId ?? undefined
+    const parentLabel = parentClassId ? parentLabels.get(parentClassId) : undefined
 
     return {
       id: item.id,
@@ -40,6 +44,13 @@ export function mapClassListToAuthoredItems(response: ClassListResponseDto): Aut
       attributes: {
         Category: categoryLabel
       },
+      hierarchy: parentClassId
+        ? {
+            level: 1,
+            parentId: parentClassId,
+            parentLabel
+          }
+        : undefined,
       filterValues: {
         category,
         source: item.provenance.kind

@@ -33,6 +33,13 @@ export const Route = createFileRoute('/_authed/races/$racePublicId/$raceSlug')({
       meta: raceDetailMeta,
       view
     }, client))
+    const parentResponse = response?.item?.category === 'SUBRACE'
+      ? await ensureOptionalActiveContent(context.queryClient, getRace({
+          id: response.item.parentRaceId,
+          meta: raceDetailMeta,
+          view: 'active'
+        }, client))
+      : null
     const draft = response?.draft ?? null
     const references: Pick<AuthoredContentReferenceData, 'heritages' | 'races' | 'speeds'> = {
       heritages: response?.meta?.heritages ?? [],
@@ -51,7 +58,15 @@ export const Route = createFileRoute('/_authed/races/$racePublicId/$raceSlug')({
       })
     }
 
-    return { breadcrumbLabel: routeSubject?.label, draft, raceId, references, response, view }
+    return {
+      breadcrumbLabel: routeSubject?.label,
+      draft,
+      parentResponse,
+      raceId,
+      references,
+      response,
+      view
+    }
   },
   component: RaceRoute
 })

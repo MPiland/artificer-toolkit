@@ -13,6 +13,7 @@ const response = {
       userId: 'master',
       systemId: 'system-1',
       category: 'BASE',
+      selectionMode: 'REQUIRES_SUBRACE',
       provenance: { kind: 'MASTER', ownerUserId: null },
       permissions: { canView: true, canEdit: false, canCopy: true, canDelete: false }
     },
@@ -25,6 +26,7 @@ const response = {
       userId: 'user-1',
       systemId: 'system-1',
       category: 'SUBRACE',
+      parentRaceId: 'race-1',
       provenance: { kind: 'OWNED', ownerUserId: 'user-1' },
       permissions: { canView: true, canEdit: true, canCopy: true, canDelete: true }
     }
@@ -39,13 +41,18 @@ describe('race list mapper', () => {
 
     expect(items[0]).toMatchObject({
       name: 'Elf',
-      attributes: { Category: 'Base Race' },
+      attributes: { Category: 'Base Race', Builder: 'Choose subrace' },
       sourceKind: 'master',
       permissions: { canEdit: false, canCopy: true }
     })
     expect(items[1]).toMatchObject({
       name: 'Wood Elf Draft',
-      attributes: { Category: 'Subrace' },
+      attributes: { Category: 'Subrace', Builder: 'Playable subrace' },
+      hierarchy: {
+        level: 1,
+        parentId: 'race-1',
+        parentLabel: 'Elf'
+      },
       sourceKind: 'owned',
       permissions: { canEdit: true, canDelete: true }
     })

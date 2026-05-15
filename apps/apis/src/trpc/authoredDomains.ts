@@ -429,7 +429,7 @@ async function selectRaceOptions(db: DBLike, ids: string[]) {
 
 async function selectVocabularyOptions(
   db: DBLike,
-  table: 'challenge_ratings' | 'condition_types' | 'creature_types' | 'damage_types' | 'heritages' | 'magic_schools' | 'rarities' | 'speeds',
+  table: 'challenge_ratings' | 'condition_types' | 'creature_types' | 'currencies' | 'damage_types' | 'heritages' | 'magic_schools' | 'rarities' | 'speeds',
   systemId: string,
   ids?: string[]
 ) {
@@ -443,6 +443,20 @@ async function selectVocabularyOptions(
   }
 
   return query.orderBy('label').execute()
+}
+
+async function vehicleDetailMeta(db: DBLike, item: AuthoredRecord, keys: Set<string>) {
+  const record = item as AuthoredRecord & Record<string, unknown>
+  const meta: DetailMeta = {}
+
+  if (!hasMetaKey(keys, 'currencies')) return meta
+
+  const cost = typeof record.cost === 'object' && record.cost !== null && !Array.isArray(record.cost)
+    ? record.cost as Record<string, unknown>
+    : {}
+  const currencyId = readString(cost.currencyId)
+  meta.currencies = await selectVocabularyOptions(db, 'currencies', item.systemId, currencyId ? [currencyId] : [])
+  return meta
 }
 
 async function spellDetailMeta(db: DBLike, item: AuthoredRecord, keys: Set<string>) {
@@ -670,6 +684,7 @@ export const authoredDomainConfigs: Record<AuthoredDomainConfigKey, DirectAuthor
     findById: (db, id) => createVehicleRepository(db).findById(id),
     listQuery: getVehicleListQuery,
     mapId: 'vehicle',
+    meta: vehicleDetailMeta,
     schema: vehicleAuthoredDtoSchema,
     subjectKind: 'VEHICLE',
     table: 'vehicles'

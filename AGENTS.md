@@ -11,11 +11,10 @@ Agents working here should treat the repo as a long-running salvage-and-moderniz
 Read these before making substantial changes:
 
 1. [REBUILD_PLAN.md](/c:/Users/pilan/Desktop/artificer-toolkit/REBUILD_PLAN.md)
-2. [PHASE_9_CODE_OVERVIEW.md](/c:/Users/pilan/Desktop/artificer-toolkit/PHASE_9_CODE_OVERVIEW.md) for active frontend work
-3. [PRODUCT.md](/c:/Users/pilan/Desktop/artificer-toolkit/PRODUCT.md)
-4. [DESIGN.md](/c:/Users/pilan/Desktop/artificer-toolkit/DESIGN.md)
+2. [PRODUCT.md](/c:/Users/pilan/Desktop/artificer-toolkit/PRODUCT.md)
+3. [DESIGN.md](/c:/Users/pilan/Desktop/artificer-toolkit/DESIGN.md)
 
-If working on a specific phase or domain, read the corresponding phase subplan before editing.
+If working on a specific domain, read the closest owning source, tests, and current product/design docs before editing.
 
 ## Workspace Shape
 
@@ -28,7 +27,7 @@ If working on a specific phase or domain, read the corresponding phase subplan b
 
 ## Core Rules
 
-- Do not treat current frontend code as canonical when a newer Phase 8 Figma screen or Phase 9 plan exists.
+- Do not treat current frontend code as canonical when newer product, design, or approved Figma guidance exists.
 - `apps/apis` is the only product-data boundary for `apps/web`.
 - Do not do full-file rewrites; instead, do surgical updates.
 - Use only shared contracts from `packages/schema` and no ad-hoc local shapes.
@@ -204,7 +203,7 @@ Visual system guidance lives in [DESIGN.md](/c:/Users/pilan/Desktop/artificer-to
 - `apps/web/src/data`: frontend API/query adapters by domain.
 - Do not reintroduce `apps/web/src/legacy`; deleted legacy should stay deleted unless a future tranche intentionally rebuilds a replacement.
 
-Prefer colocated `components`, `hooks`, `utils`, `validation`, `stories`, and `tests` folders inside the owning feature or component package. For the form platform, use `apps/web/src/forms` as the canonical home and keep internal folders lowercase. Do not add new Phase 9 form hooks to the global `src/hooks` folder unless they are genuinely app-wide and not owned by a feature.
+Prefer colocated `components`, `hooks`, `utils`, `validation`, `stories`, and `tests` folders inside the owning feature or component package. For the form platform, use `apps/web/src/forms` as the canonical home and keep internal folders lowercase. Do not add new form hooks to the global `src/hooks` folder unless they are genuinely app-wide and not owned by a feature.
 
 Deleted legacy pockets such as old global `src/hooks`, `src/store`, `components/Form`, and `src/legacy` must not be recreated as compatibility shims. Future stateful or form-heavy surfaces should be rebuilt intentionally in their owning phase.
 
@@ -256,7 +255,7 @@ Web workspace commands:
 - Do not introduce `any` in new or modified active code.
 - Prefer `unknown`, generics, discriminated unions, or schema-derived types instead of `any`.
 - If an existing legacy file already contains `any`, do not expand it. Quarantine it as legacy or replace it when touching that surface.
-- Active Phase 9 code should use focused package imports instead of package root barrels: prefer `@artificer-toolkit/schema/api/...`, `@artificer-toolkit/schema/subjects/...`, `@artificer-toolkit/schema/grants/...`, `@artificer-toolkit/shared/core`, `@artificer-toolkit/shared/maps`, `@artificer-toolkit/shared/authored`, or other narrow subpaths over `@artificer-toolkit/schema` and `@artificer-toolkit/shared`.
+- Active frontend and API code should use focused package imports instead of package root barrels: prefer `@artificer-toolkit/schema/api/...`, `@artificer-toolkit/schema/subjects/...`, `@artificer-toolkit/schema/grants/...`, `@artificer-toolkit/shared/core`, `@artificer-toolkit/shared/maps`, `@artificer-toolkit/shared/authored`, or other narrow subpaths over `@artificer-toolkit/schema` and `@artificer-toolkit/shared`.
 - Root `@artificer-toolkit/schema` and `@artificer-toolkit/shared` imports remain compatibility surfaces only. Treat new root-barrel imports in active web/API/functions code as type-graph regressions unless there is a documented reason.
 - Keep very large inferred DTOs localized at package boundaries. Prefer explicit exported DTO/input types for app-facing payloads when repeated `z.infer` expansion would spread through web, API, and function layers.
 - Do not leave unused variables, unused imports, dead code, commented-out code, or temporary debug logging.

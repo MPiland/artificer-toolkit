@@ -275,11 +275,11 @@ export const sharedFoundationTokens = {
     xxl: '24px',
     pill: '9999px'
   },
-  shadow: {
-    card: '0 18px 50px rgba(7, 16, 20, 0.16)',
-    cardHover: '0 24px 64px rgba(7, 16, 20, 0.22)',
-    focus: '0 0 0 4px rgba(14, 165, 197, 0.24)'
-  },
+    shadow: {
+      card: 'none',
+      cardHover: 'none',
+      focus: '0 0 0 4px rgba(14, 165, 197, 0.24)'
+    },
   motion: {
     fast: '120ms',
     base: '180ms',

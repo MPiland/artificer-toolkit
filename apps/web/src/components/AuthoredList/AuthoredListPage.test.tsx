@@ -206,6 +206,29 @@ describe('AuthoredListPage', () => {
     expect(screen.queryByText('Magic Missile')).not.toBeInTheDocument()
   })
 
+  it('keeps child records directly under their visible parent', () => {
+    const hierarchyItems: AuthoredListItem[] = [
+      { ...spellListItems[0], id: 'wood-elf', publicId: 'wood-elf', name: 'Wood Elf', hierarchy: { level: 1, parentId: 'elf', parentLabel: 'Elf' } },
+      { ...spellListItems[0], id: 'dwarf', publicId: 'dwarf', name: 'Dwarf' },
+      { ...spellListItems[0], id: 'elf', publicId: 'elf', name: 'Elf' }
+    ]
+
+    renderWithAppProviders(
+      <AuthoredListPage
+        title='Races'
+        summary='3 races'
+        createLabel='Create Race'
+        items={hierarchyItems}
+        filters={[]}
+      />
+    )
+
+    const rowText = screen.getAllByRole('row').map((row) => row.textContent ?? '').join('\n')
+
+    expect(rowText.indexOf('Dwarf')).toBeLessThan(rowText.indexOf('Elf'))
+    expect(rowText.indexOf('Elf')).toBeLessThan(rowText.indexOf('Wood Elf'))
+  })
+
   it('calls create when the primary action is selected', async () => {
     const user = userEvent.setup()
     const onCreate = vi.fn()

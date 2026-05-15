@@ -88,16 +88,7 @@ export function AuthoredListPage({
       return itemMatchesQuery(item, normalizedQuery) && itemMatchesSelectedFilters(item, filters, filterValues)
     })
 
-    return [...matchingItems].sort((left, right) => {
-      const leftValue = left.sortValues?.[sort]
-      const rightValue = right.sortValues?.[sort]
-
-      if (typeof leftValue === 'number' || typeof rightValue === 'number') {
-        return Number(leftValue ?? 0) - Number(rightValue ?? 0) || left.name.localeCompare(right.name)
-      }
-
-      return String(leftValue ?? left.name).localeCompare(String(rightValue ?? right.name))
-    })
+    return sortAuthoredListItems(matchingItems, sort)
   }, [
     filterValues, filters, normalizedQuery, sort, visibleItems
   ])
@@ -510,22 +501,7 @@ function AuthoredListRow({
           )
         : null}
       <Table.Td className={`${styles.nameCell} ${!hasAccentColumn ? styles.nameColumnNoAccent : ''}`}>
-        {item.permissions.canView
-          ? (
-              <button
-                aria-label={`Open ${item.name}`}
-                className={styles.itemNameButton}
-                onFocus={() => onViewIntent?.(item)}
-                onClick={(event) => {
-                  event.stopPropagation()
-                  handleView()
-                }}
-                type='button'
-              >
-                {item.name}
-              </button>
-            )
-          : item.name}
+        <NameContent item={item} onViewIntent={onViewIntent} handleView={handleView} />
       </Table.Td>
       {attributeColumns.map((column) => (
         <Table.Td
@@ -561,6 +537,42 @@ function AuthoredListRow({
   )
 }
 
+function NameContent({
+  item,
+  onViewIntent,
+  handleView
+}: {
+  item: AuthoredListItem
+  onViewIntent?: (item: AuthoredListItem) => void
+  handleView: () => void
+}) {
+  const hierarchyLevel = item.hierarchy?.level ?? 0
+  const hierarchyStyle = { '--authored-list-hierarchy-level': hierarchyLevel } as CSSProperties
+  const name = item.permissions.canView
+    ? (
+        <button
+          aria-label={`Open ${item.name}`}
+          className={styles.itemNameButton}
+          onFocus={() => onViewIntent?.(item)}
+          onClick={(event) => {
+            event.stopPropagation()
+            handleView()
+          }}
+          type='button'
+        >
+          {item.name}
+        </button>
+      )
+    : item.name
+
+  return (
+    <span className={styles.nameHierarchy} style={hierarchyStyle}>
+      {hierarchyLevel > 0 ? <span aria-hidden='true' className={styles.hierarchyMarker} /> : null}
+      {name}
+    </span>
+  )
+}
+
 function AuthoredListCard({
   item,
   attributeColumns,
@@ -577,6 +589,7 @@ function AuthoredListCard({
   useMenuActions: boolean
 }) {
   const sourceLabel = item.sourceKind === 'master' ? 'SRD' : item.sourceLabel
+  const hierarchySubline = item.hierarchy?.parentLabel ? `Under ${item.hierarchy.parentLabel}` : undefined
   const primaryAttribute = attributeColumns[0]
   const secondaryAttribute = attributeColumns[1]
   const primaryLabel = primaryAttribute
@@ -626,7 +639,7 @@ function AuthoredListCard({
                   )
                 : item.name}
             </h2>
-            {secondaryAttribute ? <span className={styles.cardSubline}>{secondaryLabel}</span> : null}
+            {hierarchySubline || secondaryAttribute ? <span className={styles.cardSubline}>{hierarchySubline ?? secondaryLabel}</span> : null}
           </div>
         </div>
         <span className={styles.cardMetaGroup}>
@@ -649,6 +662,44 @@ function AuthoredListCard({
       </div>
     </article>
   )
+}
+
+function compareAuthoredListItems(sort: string) {
+  return (left: AuthoredListItem, right: AuthoredListItem) => {
+    const leftValue = left.sortValues?.[sort]
+    const rightValue = right.sortValues?.[sort]
+
+    if (typeof leftValue === 'number' || typeof rightValue === 'number') {
+      return Number(leftValue ?? 0) - Number(rightValue ?? 0) || left.name.localeCompare(right.name)
+    }
+
+    return String(leftValue ?? left.name).localeCompare(String(rightValue ?? right.name))
+  }
+}
+
+function sortAuthoredListItems(items: AuthoredListItem[], sort: string) {
+  const compare = compareAuthoredListItems(sort)
+  const itemIds = new Set(items.map((item) => item.id))
+  const childItems = new Map<string, AuthoredListItem[]>()
+  const topLevelItems: AuthoredListItem[] = []
+
+  for (const item of [...items].sort(compare)) {
+    const parentId = item.hierarchy?.parentId
+
+    if (parentId && itemIds.has(parentId)) {
+      const siblings = childItems.get(parentId) ?? []
+      siblings.push(item)
+      childItems.set(parentId, siblings)
+      continue
+    }
+
+    topLevelItems.push(item)
+  }
+
+  return topLevelItems.flatMap((item) => [
+    item,
+    ...(childItems.get(item.id) ?? []).sort(compare)
+  ])
 }
 
 interface AuthoredListActionHandlers {
