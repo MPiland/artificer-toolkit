@@ -881,10 +881,12 @@ function sortAuthoredListItems(items: AuthoredListItem[], sort: string) {
     topLevelItems.push(item)
   }
 
-  return topLevelItems.flatMap((item) => [
+  const appendWithDescendants = (item: AuthoredListItem): AuthoredListItem[] => [
     item,
-    ...(childItems.get(item.id) ?? []).sort(compare)
-  ])
+    ...(childItems.get(item.id) ?? []).sort(compare).flatMap(appendWithDescendants)
+  ]
+
+  return topLevelItems.flatMap(appendWithDescendants)
 }
 
 interface AuthoredListActionHandlers {

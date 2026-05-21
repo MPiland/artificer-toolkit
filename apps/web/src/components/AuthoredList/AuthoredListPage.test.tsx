@@ -215,6 +215,7 @@ describe('AuthoredListPage', () => {
 
   it('keeps child records directly under their visible parent', () => {
     const hierarchyItems: AuthoredListItem[] = [
+      { ...spellListItems[0], id: 'high-elf', publicId: 'high-elf', name: 'High Elf', hierarchy: { level: 2, parentId: 'wood-elf', parentLabel: 'Wood Elf' } },
       { ...spellListItems[0], id: 'wood-elf', publicId: 'wood-elf', name: 'Wood Elf', hierarchy: { level: 1, parentId: 'elf', parentLabel: 'Elf' } },
       { ...spellListItems[0], id: 'dwarf', publicId: 'dwarf', name: 'Dwarf' },
       { ...spellListItems[0], id: 'elf', publicId: 'elf', name: 'Elf' }
@@ -234,6 +235,7 @@ describe('AuthoredListPage', () => {
 
     expect(rowText.indexOf('Dwarf')).toBeLessThan(rowText.indexOf('Elf'))
     expect(rowText.indexOf('Elf')).toBeLessThan(rowText.indexOf('Wood Elf'))
+    expect(rowText.indexOf('Wood Elf')).toBeLessThan(rowText.indexOf('High Elf'))
   })
 
   it('calls create when the primary action is selected', async () => {

@@ -335,17 +335,13 @@ CREATE POLICY "Route identities can be inserted for visible subjects"
   WITH CHECK (public.can_access_authored_route_id(subject_kind, subject_id));
 
 DROP POLICY IF EXISTS "Route identities can be updated for visible subjects" ON public.authored_route_ids;
-CREATE POLICY "Route identities can be updated for visible subjects"
-  ON public.authored_route_ids FOR UPDATE TO authenticated
-  USING (public.can_access_authored_route_id(subject_kind, subject_id))
-  WITH CHECK (public.can_access_authored_route_id(subject_kind, subject_id));
 
 DROP POLICY IF EXISTS "Route identities can be deleted for visible subjects" ON public.authored_route_ids;
 CREATE POLICY "Route identities can be deleted for visible subjects"
   ON public.authored_route_ids FOR DELETE TO authenticated
   USING (public.can_access_authored_route_id(subject_kind, subject_id));
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.authored_route_ids TO authenticated;
+GRANT SELECT, INSERT, DELETE ON public.authored_route_ids TO authenticated;
 GRANT USAGE, SELECT ON SEQUENCE public.authored_route_ids_route_number_seq TO authenticated;
 
 WITH active_subjects AS (

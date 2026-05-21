@@ -25,6 +25,26 @@ describe('authored route ids', () => {
     expect(subjectResolver).toContain('async canAccessSubjectForUser')
   })
 
+  it('does not update existing route identity rows during ensure reads', () => {
+    const source = readFileSync(join(process.cwd(), 'packages/db/src/domains/subjects/repositories/authoredRouteId.ts'), 'utf8')
+    const ensure = source.slice(
+      source.indexOf('async ensure(params:'),
+      source.indexOf('async ensureMany')
+    )
+
+    expect(ensure).toContain('do nothing')
+    expect(ensure).not.toContain('do update')
+  })
+
+  it('does not grant client update access to authored route identities', () => {
+    const migration = readFileSync(join(process.cwd(), 'supabase/migrations/20260510123258_authored_route_ids.sql'), 'utf8')
+
+    expect(migration).toContain('DROP POLICY IF EXISTS "Route identities can be updated for visible subjects"')
+    expect(migration).not.toContain('CREATE POLICY "Route identities can be updated for visible subjects"')
+    expect(migration).toContain('GRANT SELECT, INSERT, DELETE ON public.authored_route_ids TO authenticated')
+    expect(migration).not.toContain('GRANT SELECT, INSERT, UPDATE, DELETE ON public.authored_route_ids TO authenticated')
+  })
+
   it('keeps authored detail UUID fallbacks behind the user-scoped route-id resolver', () => {
     const source = readFileSync(join(process.cwd(), 'apps/apis/src/trpc/authoredDomains.ts'), 'utf8')
     const resolver = source.slice(

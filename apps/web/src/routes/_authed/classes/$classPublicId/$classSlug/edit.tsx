@@ -2,18 +2,25 @@ import { createFileRoute, redirect } from '@tanstack/react-router'
 import { getClass, getClassDraft } from '#app/data/classes/queries'
 import { ensureOptionalActiveContent } from '#app/data/optionalActiveContent'
 import { createServerApi } from '#app/lib/api'
+import { queryKeys } from '#app/lib/queryKeys'
 import {
   getAuthoredRouteSubject,
   isCanonicalAuthoredRouteHandle,
-  parseAuthoredRouteId
 } from '#app/routing/authoredRouteHandles'
+import { resolveAuthoredRouteSubjectId } from '#app/routing/authoredRouteSubjectId'
 import { buildClassRouteParams } from '#app/routing/authoredRouteParams'
 import { ClassEditPage } from '#domains/classes'
 
 export const Route = createFileRoute('/_authed/classes/$classPublicId/$classSlug/edit')({
   loader: async ({ context, params }) => {
     const client = createServerApi()
-    const classId = parseAuthoredRouteId(params.classPublicId)
+    const classId = await resolveAuthoredRouteSubjectId({
+      client,
+      listQueryKey: queryKeys.content.classes.list(),
+      publicId: params.classPublicId,
+      queryClient: context.queryClient,
+      subjectKind: 'CLASS'
+    })
     const activeClassQuery = getClass(classId, client)
     const [response, draft] = await Promise.all([
       ensureOptionalActiveContent(context.queryClient, activeClassQuery),

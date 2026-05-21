@@ -89,6 +89,7 @@ export function createAuthoredRouteIdRepository(db: DBLike) {
     }): Promise<AuthoredRouteIdentity> {
       const result = params.routeNumber == null
         ? await sql<AuthoredRouteIdentityRow>`
+          with inserted as (
           insert into authored_route_ids (
             subject_kind,
             subject_id
@@ -98,7 +99,7 @@ export function createAuthoredRouteIdRepository(db: DBLike) {
             ${params.subjectId}
           )
           on conflict (subject_kind, subject_id)
-          do update set subject_kind = excluded.subject_kind
+          do nothing
           returning
             subject_kind,
             subject_id,
@@ -106,8 +107,23 @@ export function createAuthoredRouteIdRepository(db: DBLike) {
             public_id,
             created_at::text as created_at,
             updated_at::text as updated_at
+          )
+          select * from inserted
+          union all
+          select
+            subject_kind,
+            subject_id,
+            route_number,
+            public_id,
+            created_at::text as created_at,
+            updated_at::text as updated_at
+          from authored_route_ids
+          where subject_kind = ${params.subjectKind}
+            and subject_id = ${params.subjectId}
+            and not exists (select 1 from inserted)
         `.execute(db)
         : await sql<AuthoredRouteIdentityRow>`
+          with inserted as (
           insert into authored_route_ids (
             subject_kind,
             subject_id,
@@ -119,7 +135,7 @@ export function createAuthoredRouteIdRepository(db: DBLike) {
             ${params.routeNumber}
           )
           on conflict (subject_kind, subject_id)
-          do update set subject_kind = excluded.subject_kind
+          do nothing
           returning
             subject_kind,
             subject_id,
@@ -127,6 +143,20 @@ export function createAuthoredRouteIdRepository(db: DBLike) {
             public_id,
             created_at::text as created_at,
             updated_at::text as updated_at
+          )
+          select * from inserted
+          union all
+          select
+            subject_kind,
+            subject_id,
+            route_number,
+            public_id,
+            created_at::text as created_at,
+            updated_at::text as updated_at
+          from authored_route_ids
+          where subject_kind = ${params.subjectKind}
+            and subject_id = ${params.subjectId}
+            and not exists (select 1 from inserted)
         `.execute(db)
 
       const row = result.rows[0]

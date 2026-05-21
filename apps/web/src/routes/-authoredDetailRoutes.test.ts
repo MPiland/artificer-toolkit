@@ -87,6 +87,12 @@ const authoredListRoutes = [
   }
 ] as const
 
+const authoredEditRoutes = [
+  'src/routes/_authed/classes/$classPublicId/$classSlug/edit.tsx',
+  'src/routes/_authed/equipment/$equipmentPublicId/$equipmentSlug/edit.tsx',
+  'src/routes/_authed/vehicles/$vehiclePublicId/$vehicleSlug/edit.tsx'
+] as const
+
 describe('authored detail routes', () => {
   it.each(authoredDetailRoutes)('renders the $name detail index route instead of redirecting to edit', ({
     expectedPage,
@@ -107,5 +113,12 @@ describe('authored detail routes', () => {
 
     expect(source).toContain('onView={(item) => navigate({')
     expect(source).toContain(expectedViewTarget)
+  })
+
+  it.each(authoredEditRoutes)('resolves public route handles before edit-page draft mutations in %s', (sourcePath) => {
+    const source = readFileSync(join(process.cwd(), sourcePath), 'utf8')
+
+    expect(source).toContain('resolveAuthoredRouteSubjectId')
+    expect(source).not.toContain('parseAuthoredRouteId(params.')
   })
 })
