@@ -378,14 +378,17 @@ export async function discardAuthoredDomainDraft(
   }
 
   const draft = await getAuthoredDraft(db, config.subjectKind, subjectId, userId)
-  if (draft && !await activeAuthoredSubjectExists(db, config.table, subjectId)) {
+  const hasActive = await activeAuthoredSubjectExists(db, config.table, subjectId)
+
+  await discardAuthoredDraft(db, config.subjectKind, subjectId, userId)
+
+  if (draft && !hasActive) {
     await createAuthoredRouteIdRepository(db).delete({
       subjectKind: config.subjectKind,
       subjectId
     })
   }
 
-  await discardAuthoredDraft(db, config.subjectKind, subjectId, userId)
   return { ok: true as const }
 }
 
@@ -396,10 +399,14 @@ export async function deleteAuthoredDomainActive(
   userId: string
 ) {
   const subjectId = await resolveAuthoredRouteSubjectId(db, config.subjectKind, id)
-  if (!subjectId) return { ok: true as const }
+  if (!subjectId) {
+    throw new AuthoredContentNotFoundError(config.subjectKind, id)
+  }
 
   const draft = await getAuthoredDraft(db, config.subjectKind, subjectId, userId)
   await assertDeletableActiveAuthoredSubject(db, config.table, config.subjectKind, subjectId, userId)
+
+  await deleteActiveAuthoredSubject(db, config.table, config.subjectKind, subjectId, userId)
 
   if (!draft) {
     await createAuthoredRouteIdRepository(db).delete({
@@ -407,8 +414,6 @@ export async function deleteAuthoredDomainActive(
       subjectId
     })
   }
-
-  await deleteActiveAuthoredSubject(db, config.table, config.subjectKind, subjectId, userId)
 
   return { ok: true as const }
 }

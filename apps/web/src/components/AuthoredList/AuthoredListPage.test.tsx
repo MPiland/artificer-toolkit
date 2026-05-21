@@ -238,6 +238,26 @@ describe('AuthoredListPage', () => {
     expect(rowText.indexOf('Wood Elf')).toBeLessThan(rowText.indexOf('High Elf'))
   })
 
+  it('keeps cyclic hierarchy records reachable', () => {
+    const hierarchyItems: AuthoredListItem[] = [
+      { ...spellListItems[0], id: 'cycle-a', publicId: 'cycle-a', name: 'Cycle A', hierarchy: { level: 1, parentId: 'cycle-b', parentLabel: 'Cycle B' } },
+      { ...spellListItems[0], id: 'cycle-b', publicId: 'cycle-b', name: 'Cycle B', hierarchy: { level: 1, parentId: 'cycle-a', parentLabel: 'Cycle A' } }
+    ]
+
+    renderWithAppProviders(
+      <AuthoredListPage
+        title='Races'
+        summary='2 races'
+        createLabel='Create Race'
+        items={hierarchyItems}
+        filters={[]}
+      />
+    )
+
+    expect(screen.getByText('Cycle A')).toBeInTheDocument()
+    expect(screen.getByText('Cycle B')).toBeInTheDocument()
+  })
+
   it('calls create when the primary action is selected', async () => {
     const user = userEvent.setup()
     const onCreate = vi.fn()

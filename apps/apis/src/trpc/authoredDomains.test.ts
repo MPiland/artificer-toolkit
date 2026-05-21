@@ -236,6 +236,9 @@ describe('authored domain deletes', () => {
       spells: [{ id: 'spell-1', isMaster: false, ownerUserId: 'user-1' }]
     })
     domainMocks.draftRepository.findBySubject.mockResolvedValue(null)
+    domainMocks.routeIdRepository.delete.mockImplementation(async () => {
+      expect(rows.get('spells')).toEqual([])
+    })
 
     await deleteAuthoredDomainActive(fakeDb, createConfig(), 'spell-public', 'user-1')
 
@@ -244,6 +247,19 @@ describe('authored domain deletes', () => {
       subjectKind: 'SPELL',
       subjectId: 'spell-1'
     })
+  })
+
+  it('rejects active deletes when the route id cannot resolve', async () => {
+    const { db: fakeDb, rows } = createFakeDb({
+      spells: [{ id: 'spell-1', isMaster: false, ownerUserId: 'user-1' }]
+    })
+    domainMocks.routeIdRepository.resolveByPublicIdForUser.mockResolvedValue(null)
+
+    await expect(deleteAuthoredDomainActive(fakeDb, createConfig(), 'missing-public-id', 'user-1'))
+      .rejects.toHaveProperty('name', 'NotFoundError')
+
+    expect(rows.get('spells')).toHaveLength(1)
+    expect(domainMocks.routeIdRepository.delete).not.toHaveBeenCalled()
   })
 
   it('rejects master and foreign active deletes', async () => {
@@ -304,9 +320,19 @@ describe('authored domain deletes', () => {
   it('removes orphan route identity when deleting a draft-only record', async () => {
     const { db: fakeDb } = createFakeDb({ spells: [] })
     domainMocks.draftRepository.findBySubject.mockResolvedValue(createDraft())
+    domainMocks.routeIdRepository.delete.mockImplementation(async () => {
+      expect(domainMocks.draftRepository.delete).toHaveBeenCalledWith({
+        subjectKind: 'SPELL',
+        subjectId: 'spell-1',
+        userId: 'user-1'
+      })
+    })
 
     await discardAuthoredDomainDraft(fakeDb, createConfig(), 'spell-public', 'user-1')
 
+    expect(domainMocks.draftRepository.delete.mock.invocationCallOrder[0]).toBeLessThan(
+      domainMocks.routeIdRepository.delete.mock.invocationCallOrder[0] ?? 0
+    )
     expect(domainMocks.routeIdRepository.delete).toHaveBeenCalledWith({
       subjectKind: 'SPELL',
       subjectId: 'spell-1'

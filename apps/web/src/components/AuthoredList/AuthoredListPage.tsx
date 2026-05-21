@@ -864,11 +864,12 @@ function compareAuthoredListItems(sort: string) {
 
 function sortAuthoredListItems(items: AuthoredListItem[], sort: string) {
   const compare = compareAuthoredListItems(sort)
+  const sortedItems = [...items].sort(compare)
   const itemIds = new Set(items.map((item) => item.id))
   const childItems = new Map<string, AuthoredListItem[]>()
   const topLevelItems: AuthoredListItem[] = []
 
-  for (const item of [...items].sort(compare)) {
+  for (const item of sortedItems) {
     const parentId = item.hierarchy?.parentId
 
     if (parentId && itemIds.has(parentId)) {
@@ -881,12 +882,21 @@ function sortAuthoredListItems(items: AuthoredListItem[], sort: string) {
     topLevelItems.push(item)
   }
 
-  const appendWithDescendants = (item: AuthoredListItem): AuthoredListItem[] => [
-    item,
-    ...(childItems.get(item.id) ?? []).sort(compare).flatMap(appendWithDescendants)
-  ]
+  const emitted = new Set<string>()
+  const appendWithDescendants = (item: AuthoredListItem): AuthoredListItem[] => {
+    if (emitted.has(item.id)) return []
+    emitted.add(item.id)
 
-  return topLevelItems.flatMap(appendWithDescendants)
+    return [
+      item,
+      ...(childItems.get(item.id) ?? []).sort(compare).flatMap(appendWithDescendants)
+    ]
+  }
+
+  return [
+    ...topLevelItems.flatMap(appendWithDescendants),
+    ...sortedItems.filter((item) => !emitted.has(item.id)).flatMap(appendWithDescendants)
+  ]
 }
 
 interface AuthoredListActionHandlers {
