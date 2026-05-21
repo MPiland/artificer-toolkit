@@ -19,6 +19,7 @@ export function CharacterSheetResources({
         </div>
         <div className={styles.compactActions}>
           <Button
+            className={styles.compactActionControl}
             disabled={pending}
             size='xs'
             variant='default'
@@ -27,6 +28,7 @@ export function CharacterSheetResources({
             Short Rest
           </Button>
           <Button
+            className={styles.compactActionControl}
             disabled={pending}
             size='xs'
             onClick={() => submitCommand({ type: 'APPLY_REST', restKind: 'LONG', expectedVersion: version })}
@@ -55,6 +57,7 @@ export function CharacterSheetResources({
                 </div>
                 <div className={styles.compactActions}>
                   <Button
+                    className={styles.compactActionControl}
                     aria-label={`Use ${resource.label}`}
                     disabled={pending || resource.remaining <= 0}
                     size='xs'
@@ -67,6 +70,7 @@ export function CharacterSheetResources({
                     Use
                   </Button>
                   <Button
+                    className={styles.compactActionControl}
                     aria-label={`Restore 1 ${resource.label}`}
                     disabled={pending || resource.used <= 0}
                     size='xs'
@@ -80,6 +84,7 @@ export function CharacterSheetResources({
                     Restore 1
                   </Button>
                   <Button
+                    className={styles.compactActionControl}
                     aria-label={`Restore all ${resource.label}`}
                     disabled={pending || resource.used <= 0}
                     size='xs'
@@ -116,6 +121,7 @@ export function CharacterSheetResources({
               </Text>
             </div>
             <Button
+              className={styles.compactActionControl}
               aria-label={`Spend d${hitDie.die} hit die`}
               disabled={pending || hitDie.remaining <= 0}
               size='xs'

@@ -2,12 +2,16 @@ import { ActionIcon, AppShell, Burger, Button, Group, Menu, ScrollArea, Tooltip 
 import { useDisclosure, useHotkeys } from '@mantine/hooks'
 import { Link } from '@tanstack/react-router'
 import clsx from 'clsx'
-import { type ReactNode, useEffect, useRef } from 'react'
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import ILogo from '#assets/icons/ILogo'
 import IUser from '#assets/icons/IUser'
 import { ThemeToggle } from '#ui/primitives'
 import type { AppShellNavGroup, AppShellNavItem } from './navigation'
 import { isNavItemActive } from './navigation'
+import {
+  ShellHeaderSupplementContext,
+  type ShellHeaderSupplement
+} from './headerSupplement'
 import * as styles from './shell.css'
 
 export interface AppShellFrameProps {
@@ -40,10 +44,15 @@ export function AppShellFrame({
   const [opened, { toggle, close }] = useDisclosure(false)
   const burgerRef = useRef<HTMLButtonElement>(null)
   const wasOpenedRef = useRef(false)
+  const [headerSupplement, setHeaderSupplement] = useState<ShellHeaderSupplement | null>(null)
+  const headerSupplementContext = useMemo(() => ({ setHeaderSupplement }), [])
   const activeItem = getActiveNavItem(navigation, currentPath)
   const breadcrumbLabels = breadcrumbs && breadcrumbs.length > 0
     ? breadcrumbs
     : [activeItem?.label ?? 'Home']
+  const shellBreadcrumbLabels = headerSupplement?.hideBreadcrumbLeaf
+    ? breadcrumbLabels.slice(0, -1)
+    : breadcrumbLabels
 
   useHotkeys([
     [
@@ -64,65 +73,76 @@ export function AppShellFrame({
   }, [opened])
 
   return (
-    <AppShell
-      className={styles.shellRoot}
-      data-testid='app-shell'
-      header={{ height: 48 }}
-      navbar={{
-        width: { base: 288, md: 48 },
-        breakpoint: 'md',
-        collapsed: { mobile: !opened }
-      }}
-      padding={0}
-    >
-      <a className={styles.skipLink} href='#main-content'>
-        Skip to workspace
-      </a>
-      <AppShell.Header className={styles.header}>
-        <Link className={styles.logoCell} to='/home' aria-label='Go to workspace home'>
-          <ILogo size={36} />
-        </Link>
-        <div className={styles.headerBar}>
-          <Group gap='sm' className={styles.mobileHeaderGroup}>
-            <Burger
-              ref={burgerRef}
-              opened={opened}
-              onClick={toggle}
-              aria-controls='workspace-navigation'
-              aria-label={opened ? 'Close navigation' : 'Open navigation'}
-              size='sm'
-            />
-          </Group>
-          <div className={styles.breadcrumb} aria-label='Current section'>
-            {breadcrumbLabels.map((label, index) => (
-              <span className={styles.breadcrumbSegment} key={`${label}-${index}`}>
-                {index > 0 ? <span className={styles.breadcrumbSlash}>/</span> : null}
-                <span className={index === breadcrumbLabels.length - 1 ? styles.breadcrumbLeaf : styles.breadcrumbRoot}>
-                  {label}
+    <ShellHeaderSupplementContext value={headerSupplementContext}>
+      <AppShell
+        className={styles.shellRoot}
+        data-testid='app-shell'
+        header={{ height: 48 }}
+        navbar={{
+          width: { base: 288, md: 48 },
+          breakpoint: 'md',
+          collapsed: { mobile: !opened }
+        }}
+        padding={0}
+      >
+        <a className={styles.skipLink} href='#main-content'>
+          Skip to workspace
+        </a>
+        <AppShell.Header className={styles.header}>
+          <Link className={styles.logoCell} to='/home' aria-label='Go to workspace home'>
+            <ILogo size={36} />
+          </Link>
+          <div className={styles.headerBar}>
+            <Group gap='sm' className={styles.mobileHeaderGroup}>
+              <Burger
+                ref={burgerRef}
+                opened={opened}
+                onClick={toggle}
+                aria-controls='workspace-navigation'
+                aria-label={opened ? 'Close navigation' : 'Open navigation'}
+                size='sm'
+              />
+            </Group>
+            <div className={styles.breadcrumb} aria-label='Current section'>
+              {shellBreadcrumbLabels.map((label, index) => (
+                <span className={styles.breadcrumbSegment} key={`${label}-${index}`}>
+                  {index > 0 ? <span className={styles.breadcrumbSlash}>/</span> : null}
+                  <span className={index === shellBreadcrumbLabels.length - 1 && !headerSupplement ? styles.breadcrumbLeaf : styles.breadcrumbRoot}>
+                    {label}
+                  </span>
                 </span>
+              ))}
+              {headerSupplement
+                ? (
+                    <span className={styles.breadcrumbSegment}>
+                      {shellBreadcrumbLabels.length > 0 ? <span className={styles.breadcrumbSlash}>/</span> : null}
+                      <span className={styles.breadcrumbSupplement}>{headerSupplement.content}</span>
+                    </span>
+                  )
+                : null}
+            </div>
+            <Group gap='xs' className={styles.headerActions}>
+              {headerSupplement?.actions}
+              <ThemeToggle />
+              <span className={styles.headerUserMenu}>
+                <UserMenu userEmail={userEmail} />
               </span>
-            ))}
+            </Group>
           </div>
-          <Group gap='xs' className={styles.headerActions}>
-            <ThemeToggle />
-            <span className={styles.headerUserMenu}>
-              <UserMenu userEmail={userEmail} />
-            </span>
-          </Group>
-        </div>
-      </AppShell.Header>
+        </AppShell.Header>
 
-      <AppShell.Navbar id='workspace-navigation' className={styles.navbar} aria-label='Workspace navigation'>
-        <NavigationList navigation={navigation} currentPath={currentPath} onNavigate={close} />
-        <UserRailAction userEmail={userEmail} />
-      </AppShell.Navbar>
+        <AppShell.Navbar id='workspace-navigation' className={styles.navbar} aria-label='Workspace navigation'>
+          <NavigationList navigation={navigation} currentPath={currentPath} onNavigate={close} />
+          <UserRailAction userEmail={userEmail} />
+        </AppShell.Navbar>
 
-      <AppShell.Main id='main-content' className={styles.main} tabIndex={-1}>
-        <div className={styles.contentArea}>
-          {children}
-        </div>
-      </AppShell.Main>
-    </AppShell>
+        <AppShell.Main id='main-content' className={styles.main} tabIndex={-1}>
+          <div className={styles.contentArea}>
+            {children}
+          </div>
+        </AppShell.Main>
+      </AppShell>
+    </ShellHeaderSupplementContext>
   )
 }
 
@@ -206,7 +226,7 @@ function NavigationItem({
   const content = (
     <>
       <span className={styles.navIcon}>
-        <Icon />
+        <Icon size={24} />
       </span>
       <span className={styles.navItemLabel}>{item.label}</span>
     </>
@@ -264,11 +284,11 @@ function UserMenu({
         {compact
           ? (
               <ActionIcon className={styles.userIconButton} variant='default' aria-label={label}>
-                <IUser />
+                <IUser size={20} />
               </ActionIcon>
             )
           : (
-              <Button variant='default' leftSection={<IUser />} title={label}>
+              <Button variant='default' leftSection={<IUser size={20} />} title={label}>
                 {label}
               </Button>
             )}

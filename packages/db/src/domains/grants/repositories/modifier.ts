@@ -16,7 +16,7 @@ import type { DBLike } from '#types'
 import { upsertModifierGrant } from '../upserts/modifier.js'
 import { hydrateFacetById } from '../../shared/facets.js'
 import type { ModifierGrantRepository } from '../../../repositories/contracts.js'
-import { hydrateByIds, orderedHydratedRecords } from '../../../repositories/batch.js'
+import { hydrateByIds, orderedHydratedRecords, uniqueIds } from '../../../repositories/batch.js'
 
 type ModifierGrantRow = {
   id: string
@@ -83,6 +83,22 @@ type ModifierGrantChargeLevelRow = {
 type ModifierGrantOptionalAbilityRow = {
   modifier_grant_id: string
   ability_code: string
+}
+
+function groupByModifierGrantId<T extends { modifier_grant_id: string }>(rows: readonly T[]): Map<string, T[]> {
+  const grouped = new Map<string, T[]>()
+
+  for (const row of rows) {
+    const existing = grouped.get(row.modifier_grant_id)
+
+    if (existing) {
+      existing.push(row)
+    } else {
+      grouped.set(row.modifier_grant_id, [row])
+    }
+  }
+
+  return grouped
 }
 
 function requireSelectionKind(
@@ -776,6 +792,132 @@ export async function hydrateModifierGrantById(
   return authored
 }
 
+async function hydrateModifierGrantsByIds(
+  db: DBLike,
+  ids: readonly string[]
+): Promise<Map<string, ModifierGrantAuthored>> {
+  const distinctIds = uniqueIds(ids)
+
+  if (distinctIds.length === 0) {
+    return new Map()
+  }
+
+  const [roots, domainRows, payloadRows, chargeLevels, optionalAbilities] = await Promise.all([
+    db.selectFrom('modifier_grants')
+      .select([
+        'id',
+        'sort_order',
+        'selection_kind',
+        'count',
+        'value_domain_code',
+        'modifier_kind',
+        'scope',
+        'restriction_id'
+      ])
+      .where('id', 'in', distinctIds)
+      .execute() as Promise<ModifierGrantRow[]>,
+    db.selectFrom('modifier_grant_domain_params')
+      .select([
+        'modifier_grant_id',
+        'value_domain_code',
+        'attack_domain_code',
+        'ability_code',
+        'skill_id',
+        'speed_id',
+        'sense_code',
+        'spell_level'
+      ] as const)
+      .where('modifier_grant_id', 'in', distinctIds)
+      .execute() as Promise<ModifierGrantDomainRow[]>,
+    db.selectFrom('modifier_grant_payloads')
+      .select([
+        'modifier_grant_id',
+        'modifier_kind',
+        'value_domain_code',
+        'numeric_value_kind',
+        'numeric_amount',
+        'numeric_multiplier',
+        'numeric_ability_code',
+        'numeric_min',
+        'numeric_max',
+        'numeric_skill_id',
+        'numeric_class_id',
+        'set_amount',
+        'charge_limit_kind',
+        'charge_scaling_kind',
+        'charge_amount',
+        'charge_multiplier',
+        'charge_min',
+        'charge_max',
+        'dice',
+        'damage_type_id',
+        'condition_type_id',
+        'movement_mode_id',
+        'attribute_id',
+        'range_kind',
+        'duration_kind',
+        'shape_kind',
+        'reset_kind'
+      ])
+      .where('modifier_grant_id', 'in', distinctIds)
+      .execute() as Promise<ModifierGrantPayloadRow[]>,
+    db.selectFrom('modifier_grant_charge_levels')
+      .select(['id', 'modifier_grant_id', 'level', 'amount', 'sort_order'])
+      .where('modifier_grant_id', 'in', distinctIds)
+      .orderBy('sort_order')
+      .execute() as Promise<ModifierGrantChargeLevelRow[]>,
+    db.selectFrom('modifier_grant_optional_abilities')
+      .select(['modifier_grant_id', 'ability_code'])
+      .where('modifier_grant_id', 'in', distinctIds)
+      .orderBy('ability_code')
+      .execute() as Promise<ModifierGrantOptionalAbilityRow[]>
+  ])
+  const rootsById = new Map(roots.map((row) => [row.id, row]))
+  const domainRowsByGrantId = new Map(domainRows.map((row) => [row.modifier_grant_id, row]))
+  const payloadRowsByGrantId = new Map(payloadRows.map((row) => [row.modifier_grant_id, row]))
+  const chargeLevelsByGrantId = groupByModifierGrantId(chargeLevels)
+  const optionalAbilitiesByGrantId = groupByModifierGrantId(optionalAbilities)
+  const restrictionsById = await hydrateByIds(
+    roots.flatMap((root) => root.restriction_id ? [root.restriction_id] : []),
+    (restrictionId) => hydrateFacetById(db, restrictionId)
+  )
+  const hydrated = new Map<string, ModifierGrantAuthored>()
+
+  for (const id of distinctIds) {
+    const root = rootsById.get(id)
+
+    if (!root) continue
+
+    const selectionKind = requireSelectionKind(root.id, root.selection_kind)
+
+    if (selectionKind === 'GRANTED') {
+      requireNoGrantedCount(root.id, root.count)
+    }
+
+    const modifierKind = requireModifierKind(root.id, root.modifier_kind)
+    const valueDomainCode = requireValueDomainCode(root.id, root.value_domain_code)
+    hydrated.set(id, {
+      id: root.id,
+      grantKind: 'MODIFIER_GRANT',
+      order: root.sort_order,
+      selectionKind,
+      count: selectionKind === 'CHOSEN'
+        ? requireChosenCount(root.id, root.count)
+        : undefined,
+      valueDomainCode,
+      domain: hydrateDomain(root, domainRowsByGrantId.get(id)),
+      modifierKind,
+      scope: requireScope(root.id, root.scope),
+      payload: hydratePayload(root, payloadRowsByGrantId.get(id), chargeLevelsByGrantId.get(id) ?? [], optionalAbilitiesByGrantId.get(id) ?? []),
+      restrictions: root.restriction_id
+        ? requireLinkedRecord(restrictionsById.get(root.restriction_id), `Modifier grant "${id}" is linked to missing restriction facet "${root.restriction_id}".`)
+        : undefined
+    } as ModifierGrantAuthored)
+  }
+
+  return hydrated
+}
+
 export function createModifierGrantRepository(
   db: DBLike,
   defaultSystemId?: string
@@ -790,7 +932,7 @@ export function createModifierGrantRepository(
     },
 
     async findByIds(ids) {
-      return hydrateByIds(ids, (id) => hydrateModifierGrantById(db, id))
+      return hydrateModifierGrantsByIds(db, ids)
     },
 
     async findAll() {

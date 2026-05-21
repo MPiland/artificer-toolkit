@@ -1,7 +1,33 @@
-import { MultiSelect } from '@mantine/core'
+import { MultiSelect, Pill } from '@mantine/core'
 import type { AppMultiSelectProps } from './Select.types'
-import { addAllOption, DEFAULT_ALL_OPTION_LABEL, DEFAULT_ALL_OPTION_VALUE, resolveMultiSelectValue, toComboboxData } from './selectOptions'
+import {
+  addAllOption,
+  DEFAULT_ALL_OPTION_LABEL,
+  DEFAULT_ALL_OPTION_VALUE,
+  resolveMultiSelectValue,
+  toComboboxData
+} from './selectOptions'
 import * as selectStyles from './Select.css.ts'
+
+const renderAppMultiSelectPill: NonNullable<AppMultiSelectProps['renderPill']> = ({
+  option,
+  onRemove,
+  disabled
+}) => (
+  <Pill
+    classNames={{
+      root: selectStyles.pill,
+      label: selectStyles.pillLabel,
+      remove: selectStyles.pillRemove
+    }}
+    disabled={disabled}
+    onRemove={onRemove}
+    removeButtonProps={{ 'aria-label': `Remove ${option.label}` }}
+    withRemoveButton={Boolean(onRemove) && !disabled}
+  >
+    {option.label}
+  </Pill>
+)
 
 export function AppMultiSelect({
   data,
@@ -16,38 +42,35 @@ export function AppMultiSelect({
   comboboxProps,
   classNames,
   clearButtonProps,
-  styles,
+  renderPill,
   ...props
 }: AppMultiSelectProps) {
   const resolvedValue = value ?? []
   const resolvedData = includeAllOption
     ? addAllOption(data, { value: allOptionValue, label: allOptionLabel })
     : toComboboxData(data)
-  const inputVisualStyles = disabled
-    ? {
-        backgroundColor: 'var(--at-color-input-background-disabled)',
-        borderColor: 'var(--at-color-input-border-disabled)',
-        color: 'var(--at-color-text-secondary)'
-      }
-    : {
-        backgroundColor: 'var(--at-color-input-background-default)',
-        borderColor: 'var(--at-color-input-border-default)',
-        color: 'var(--at-color-text-primary)'
-      }
 
   return (
     <MultiSelect
       data={resolvedData}
       value={resolvedValue}
       onChange={(nextValue) => {
-        onChange(includeAllOption
-          ? resolveMultiSelectValue({ currentValue: resolvedValue, nextValue, allOptionValue })
-          : nextValue)
+        onChange(
+          includeAllOption
+            ? resolveMultiSelectValue({
+                currentValue: resolvedValue,
+                nextValue,
+                allOptionValue
+              })
+            : nextValue
+        )
       }}
       disabled={disabled}
       clearable={clearable}
       clearButtonProps={{
-        'aria-label': props.label ? `Clear ${props.label}` : 'Clear selected options',
+        'aria-label': props.label
+          ? `Clear ${props.label}`
+          : 'Clear selected options',
         ...clearButtonProps
       }}
       searchable={searchable}
@@ -61,18 +84,15 @@ export function AppMultiSelect({
         root: selectStyles.root,
         label: selectStyles.label,
         description: selectStyles.description,
-        input: selectStyles.input,
+        required: selectStyles.required,
+        input: `${selectStyles.input} ${selectStyles.multiSelectInput}`,
         dropdown: selectStyles.dropdown,
         option: selectStyles.option,
-        pill: selectStyles.pill,
         pillsList: selectStyles.pillsList,
         inputField: selectStyles.inputField,
         ...classNames
       }}
-      styles={{
-        input: inputVisualStyles,
-        ...styles
-      }}
+      renderPill={renderPill ?? renderAppMultiSelectPill}
       {...props}
     />
   )

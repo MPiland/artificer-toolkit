@@ -17,6 +17,7 @@ import {
   type CharacterAssemblyRegistry,
   type CharacterBuildSnapshot,
   type EngineProficiency,
+  type EngineResource,
   type EngineSense,
   type EngineSpellSlots,
   type CharacterEvent
@@ -848,6 +849,7 @@ function getResourceSheetConfig(params: {
   resolution: CharacterBuilderResolution
   resource: CharacterBuilderResolution['grants']['resources'][number]
   resourceDefinitionId?: string
+  resolvedRecovery?: EngineResource['rechargeOn']
   totalLevel: number
 }): {
   max: number
@@ -864,7 +866,7 @@ function getResourceSheetConfig(params: {
       proficiencyBonus: params.proficiencyBonus,
       totalLevel: params.totalLevel
     }),
-    recovery: getResourceRecovery(definition.charges.resetKind)
+    recovery: getResourceRecovery(params.resolvedRecovery ?? definition.charges.resetKind)
   }
 }
 
@@ -923,6 +925,7 @@ export async function buildCharacterSheetResponse(params: {
   const { learned, prepared } = getPreparedAndKnownSpellIds(character)
   const knownSpellIds = new Set([...learned, ...prepared])
   const resourceUsage = new Map((character.state.resources ?? []).map((resource) => [resource.resourceGrantId, resource.used]))
+  const resourceRecoveryByDefinitionId = new Map(engineOutput.resources.map((resource) => [resource.resourceId, resource.rechargeOn]))
   const classLabels = new Map(resolution.registry.classes.map((classRecord) => [classRecord.id, classRecord.label]))
   const sheetSpellIdsByClassId = getSheetSpellIdsByClass(character, resolution)
   const preparationCapableClassIds = getPreparationCapableClassIds(character, resolution)
@@ -998,6 +1001,7 @@ export async function buildCharacterSheetResponse(params: {
           resolution,
           resource,
           resourceDefinitionId: grantRecord?.resourceId,
+          resolvedRecovery: resourceRecoveryByDefinitionId.get(grantRecord?.resourceId ?? resource.id),
           totalLevel
         })
         if (!config) return []

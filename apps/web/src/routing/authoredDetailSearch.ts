@@ -9,3 +9,7 @@ export function validateAuthoredDetailSearch(search: Record<string, unknown>): A
 export function authoredDetailSearchFor(view: AuthoredDetailSearch['view']) {
   return view === 'draft' ? { view } : {}
 }
+
+export function resolveAuthoredDetailView(search: AuthoredDetailSearch, pathname: string): 'active' | 'draft' {
+  return pathname.replace(/\/$/, '').endsWith('/edit') ? 'draft' : search.view ?? 'active'
+}

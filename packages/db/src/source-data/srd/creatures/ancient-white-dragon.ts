@@ -82,7 +82,8 @@ export const ancientWhiteDragon: CreatureAuthored = {
               unit: S.MEASUREMENT_UNIT_CODE.FEET
             },
             targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
             }
           },
           paths: [
@@ -159,7 +160,8 @@ export const ancientWhiteDragon: CreatureAuthored = {
               unit: S.MEASUREMENT_UNIT_CODE.FEET
             },
             targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
             }
           },
           paths: [
@@ -215,7 +217,8 @@ export const ancientWhiteDragon: CreatureAuthored = {
               unit: S.MEASUREMENT_UNIT_CODE.FEET
             },
             targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
             }
           },
           paths: [
@@ -265,9 +268,9 @@ export const ancientWhiteDragon: CreatureAuthored = {
             triggerCode: S.TRIGGER.SAVING_THROW,
             savingThrow: {
               id: S.actionId(23, 41),
-              savingThrowKind: 'FIXED_VALUE',
+              dcMethod: 'FIXED_DC',
               ability: S.ABILITY_CODE.WISDOM,
-              dc: 16
+              baseDc: 16
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
             range: {
@@ -318,8 +321,9 @@ export const ancientWhiteDragon: CreatureAuthored = {
             triggerCode: S.TRIGGER.SAVING_THROW,
             savingThrow: {
               id: S.actionId(23, 30),
-              savingThrowKind: 'SOURCE_SAVE_DC',
-              ability: S.ABILITY_CODE.CONSTITUTION
+              dcMethod: 'FIXED_DC',
+              ability: S.ABILITY_CODE.CONSTITUTION,
+              baseDc: 22
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
             range: { id: S.actionId(23, 31), rangeKind: S.RANGE_KIND.SPECIAL }
@@ -433,8 +437,9 @@ export const ancientWhiteDragon: CreatureAuthored = {
             triggerCode: S.TRIGGER.SAVING_THROW,
             savingThrow: {
               id: S.legendaryActionId(23, 31),
-              savingThrowKind: 'SOURCE_SAVE_DC',
-              ability: S.ABILITY_CODE.DEXTERITY
+              dcMethod: 'FIXED_DC',
+              ability: S.ABILITY_CODE.DEXTERITY,
+              baseDc: 22
             },
             activation: { code: S.ACTIVATION_CODE.FREE },
             range: { id: S.legendaryActionId(23, 29), rangeKind: S.RANGE_KIND.SPECIAL }

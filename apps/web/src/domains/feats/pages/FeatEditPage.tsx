@@ -30,6 +30,7 @@ import {
   type AuthoringFormActionHandlers,
   type AuthoringFormRegistration
 } from '#forms'
+import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
 import { parseAuthoredDraftPayload } from '#app/data/authoredDrafts'
 import {
   useActivateFeatMutation,
@@ -37,6 +38,8 @@ import {
   useDuplicateFeatMutation,
   useSaveFeatDraftMutation
 } from '#app/data/feats/mutations'
+import { api } from '#app/lib/api'
+import { queryKeys } from '#app/lib/queryKeys'
 import { buildFeatRouteParams } from '#app/routing/authoredRouteParams'
 import { normalizeFeatForSubmit } from '../featAuthoring.utils'
 import { FeatAuthoringRenderer } from '../components/FeatAuthoringRenderer'
@@ -99,6 +102,7 @@ function FeatEditAuthoring({
   hasInvalidDraft: boolean
   permissions?: {
     canCopy: boolean
+    canDelete: boolean
     canEdit: boolean
   }
   feat: FeatAuthoringInputDto | FeatAuthoredDto
@@ -113,6 +117,20 @@ function FeatEditAuthoring({
   const [formValues] = useState<FeatAuthoringInputDto>(() => normalizeFeatForSubmit(feat))
   const readOnly = Boolean(activeFeat && permissions?.canEdit === false)
   const canCopy = Boolean(permissions?.canCopy && featId)
+  const canDelete = !readOnly && Boolean(draft || permissions?.canDelete)
+  const {
+    confirmation: deleteConfirmation,
+    isDeleting,
+    requestDelete
+  } = useAuthoredDeleteAction({
+    deleteActive: api.content.feats.deleteActive,
+    deleteDraft: api.content.feats.discardDraft,
+    detailSubjectQueryKey: queryKeys.content.feats.detailRoot(featId),
+    domainLabel: 'Feat',
+    domainQueryKey: queryKeys.content.feats.all(),
+    draftQueryKey: queryKeys.content.feats.draft(featId),
+    onDeleted: async () => navigate({ to: '/feats' })
+  })
 
   const handleCancel = useCallback(async () => {
     await navigate({ to: '/feats' })
@@ -210,11 +228,26 @@ function FeatEditAuthoring({
     router
   ])
 
+  const handleDelete = useCallback(() => {
+    requestDelete({
+      id: featId,
+      kind: draft ? 'draft' : 'active',
+      label: formValues.label || 'Untitled Feat'
+    })
+  }, [
+    draft,
+    featId,
+    formValues.label,
+    requestDelete
+  ])
+
   const registration = useMemo<AuthoringFormRegistration>(() => ({
     activateLabel: 'Activate Feat',
+    canDelete,
     canCopy,
     canSaveDraft: !readOnly,
     hasActiveDraft: Boolean(draft && activeFeat),
+    isDraft: Boolean(draft),
     mapId: 'feat',
     mode: readOnly ? 'view' : 'edit',
     readOnly,
@@ -222,13 +255,16 @@ function FeatEditAuthoring({
     saveDraftLabel: 'Save Draft',
     subjectKindLabel: 'Feat',
     subjectLabel: formValues.label || 'Untitled Feat',
-    systemId: formValues.systemId
+    systemId: formValues.systemId,
+    isDeleting
   }), [
     activeFeat,
+    canDelete,
     canCopy,
     draft,
     formValues.label,
     formValues.systemId,
+    isDeleting,
     readOnly
   ])
 
@@ -237,12 +273,15 @@ function FeatEditAuthoring({
     onCancel: handleCancel,
     onClearPaths: (paths) => clearResolvedNodeFormPaths(form, paths),
     onCopy: canCopy ? handleCopy : undefined,
+    onDelete: canDelete ? handleDelete : undefined,
     onSaveDraft: readOnly ? undefined : handleSaveDraft
   }), [
+    canDelete,
     canCopy,
     form,
     handleCancel,
     handleCopy,
+    handleDelete,
     handleSaveDraft,
     readOnly
   ])
@@ -264,6 +303,7 @@ function FeatEditAuthoring({
         <AuthoringFormLayout>
           <FeatAuthoringRenderer form={form} />
         </AuthoringFormLayout>
+        {deleteConfirmation}
       </Stack>
     </form.AppForm>
   )

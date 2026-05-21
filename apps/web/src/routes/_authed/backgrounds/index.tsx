@@ -2,6 +2,7 @@ import { notifications } from '@mantine/notifications'
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { AuthoredListPage } from '#components/AuthoredList'
+import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
 import { mapDraftSummariesToAuthoredItems } from '#app/data/authoredListDrafts'
 import { createServerApi } from '#app/lib/api'
 import { api } from '#app/lib/api'
@@ -48,35 +49,51 @@ function BackgroundsRoute() {
       })
     }
   })
+  const deleteAction = useAuthoredDeleteAction({
+    deleteActive: api.content.backgrounds.deleteActive,
+    deleteDraft: api.content.backgrounds.discardDraft,
+    detailSubjectQueryKey: queryKeys.content.backgrounds.detailRoot,
+    domainLabel: 'Background',
+    domainQueryKey: queryKeys.content.backgrounds.all(),
+    draftQueryKey: queryKeys.content.backgrounds.draft
+  })
 
   return (
-    <AuthoredListPage
-      title='Backgrounds'
-      summary={summarizeBackgroundList(data)}
-      createLabel='Create Background'
-      items={mapBackgroundListToAuthoredItems(data)}
-      draftItems={mapDraftSummariesToAuthoredItems(data.drafts)}
-      filters={buildBackgroundListFilters(data)}
-      attributeColumns={backgroundListAttributeColumns}
-      sortOptions={backgroundListSortOptions}
-      onCreate={() => navigate({ to: '/backgrounds/new' })}
-      onView={(item) => navigate({
-        params: buildBackgroundRouteParams(item.publicId, item.name),
-        search: authoredDetailSearchFor(item.contentState === 'draft' ? 'draft' : 'active'),
-        to: '/backgrounds/$backgroundPublicId/$backgroundSlug'
-      })}
-      onViewIntent={(item) => {
-        void queryClient.prefetchQuery(getBackground({
+    <>
+      <AuthoredListPage
+        title='Backgrounds'
+        summary={summarizeBackgroundList(data)}
+        createLabel='Create Background'
+        items={mapBackgroundListToAuthoredItems(data)}
+        draftItems={mapDraftSummariesToAuthoredItems(data.drafts)}
+        filters={buildBackgroundListFilters(data)}
+        attributeColumns={backgroundListAttributeColumns}
+        sortOptions={backgroundListSortOptions}
+        onCreate={() => navigate({ to: '/backgrounds/new' })}
+        onView={(item) => navigate({
+          params: buildBackgroundRouteParams(item.publicId, item.name),
+          search: authoredDetailSearchFor(item.contentState === 'draft' ? 'draft' : 'active'),
+          to: '/backgrounds/$backgroundPublicId/$backgroundSlug'
+        })}
+        onViewIntent={(item) => {
+          void queryClient.prefetchQuery(getBackground({
+            id: item.id,
+            includeDraft: true,
+            view: item.contentState === 'draft' ? 'draft' : 'active'
+          }))
+        }}
+        onEdit={(item) => navigate({
+          params: buildBackgroundRouteParams(item.publicId, item.name),
+          to: '/backgrounds/$backgroundPublicId/$backgroundSlug/edit'
+        })}
+        onCopy={(item) => duplicateMutation.mutate(item.id)}
+        onDelete={(item) => deleteAction.requestDelete({
           id: item.id,
-          includeDraft: true,
-          view: item.contentState === 'draft' ? 'draft' : 'active'
-        }))
-      }}
-      onEdit={(item) => navigate({
-        params: buildBackgroundRouteParams(item.publicId, item.name),
-        to: '/backgrounds/$backgroundPublicId/$backgroundSlug/edit'
-      })}
-      onCopy={(item) => duplicateMutation.mutate(item.id)}
-    />
+          kind: item.contentState === 'draft' ? 'draft' : 'active',
+          label: item.name
+        })}
+      />
+      {deleteAction.confirmation}
+    </>
   )
 }

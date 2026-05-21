@@ -42,7 +42,7 @@ export function runEngine(
   const derivedStats = calculateDerivedStats(snapshot, resolvedModifiers, accumulated.proficiencies, registry, rules)
 
   const spellSlots = resolveSpellSlots(snapshot, registry)
-  const resources = resolveResources(snapshot, registry, rules)
+  const resources = resolveResources(snapshot, registry, rules, accumulated.modifierEntries)
   const activeItemContributions = buildItemContributions(snapshot, resolvedModifiers)
 
   return {

@@ -69,7 +69,6 @@ describe('createClassRepository', () => {
           id: 'feature-1',
           label: 'Arcane Recovery',
           description: 'Recover some power.',
-          detail: null,
           charge_id: null,
           restriction_id: null,
           sort_order: 1,
@@ -109,6 +108,9 @@ describe('createClassRepository', () => {
         { spellcasting_id: 'spellcasting-1', attribute_code: 'PREPARES_SPELLS', sort_order: 1 },
         { spellcasting_id: 'spellcasting-1', attribute_code: 'RITUAL_CASTER', sort_order: 2 }
       ],
+      class_spellcasting_details: [
+        { spellcasting_id: 'spellcasting-1', detail_id: 'detail-spellcasting-1', sort_order: 1 }
+      ],
       class_spellcasting_prepare_limit: [
         { spellcasting_id: 'spellcasting-1', scaling: 'FULL', rounding: null }
       ],
@@ -147,7 +149,8 @@ describe('createClassRepository', () => {
         { class_id: 'class-1', detail_id: 'detail-1', sort_order: 1 }
       ],
       details: [
-        { id: 'detail-1', label: 'Spellbook', description: 'Starts with one.', sort_order: 1 }
+        { id: 'detail-1', label: 'Spellbook', description: 'Starts with one.', sort_order: 1 },
+        { id: 'detail-spellcasting-1', label: 'Preparing Spells', description: 'Prepare spells from your spellbook.', sort_order: 1 }
       ],
       class_proficiency_grants: [
         { class_id: 'class-1', proficiency_grant_id: 'grant-1', sort_order: 1 }
@@ -287,6 +290,14 @@ describe('createClassRepository', () => {
           }
         ],
         magicName: 'Arcana',
+        details: [
+          {
+            id: 'detail-spellcasting-1',
+            label: 'Preparing Spells',
+            description: 'Prepare spells from your spellbook.',
+            order: 1
+          }
+        ],
         ability: 'INTELLIGENCE',
         maxSpellLevel: 9,
         attributes: ['PREPARES_SPELLS', 'RITUAL_CASTER'],
@@ -295,7 +306,8 @@ describe('createClassRepository', () => {
           resetKind: 'LONG_REST',
           limitKind: 'FIXED_AMOUNT',
           scalingKind: 'NONE',
-          amount: 1
+          amount: 1,
+          bonuses: undefined
         },
         prepareLimit: {
           methodKinds: ['CLASS_LEVEL', 'PER_LEVEL'],
@@ -317,7 +329,8 @@ describe('createClassRepository', () => {
           resetKind: 'SHORT_REST',
           limitKind: 'FIXED_AMOUNT',
           scalingKind: 'NONE',
-          amount: 4
+          amount: 4,
+          bonuses: undefined
         }
       },
       features: [
@@ -326,7 +339,7 @@ describe('createClassRepository', () => {
           label: 'Arcane Recovery',
           description: 'Recover some power.',
           attributes: undefined,
-          detail: undefined,
+          details: undefined,
           effects: undefined,
           charges: undefined,
           grants: undefined,
@@ -339,6 +352,7 @@ describe('createClassRepository', () => {
       ],
       userId: 'user-1',
       systemId: 'system-1',
+      status: 'DRAFT',
       category: 'BASE',
       attributes: ['SPELLCASTER'],
       startingGold: {
@@ -454,6 +468,7 @@ describe('createClassRepository', () => {
       features: undefined,
       userId: 'user-1',
       systemId: 'system-1',
+      status: 'DRAFT',
       category: 'SUBCLASS',
       attributes: ['SPECIALIZATION'],
       parentClassId: 'class-1',

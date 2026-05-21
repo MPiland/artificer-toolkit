@@ -16,16 +16,16 @@ const authPanelEnter = keyframes({
 export const authRoot = style({
   '@layer': {
     [app]: {
-      minHeight: '100dvh',
-      display: 'grid',
-      gridTemplateColumns: 'minmax(420px, 1fr) minmax(420px, 1fr)',
-      backgroundColor: foundationVars.color.surface.canvas,
-      color: foundationVars.color.text.primary
-    }
-  },
-  '@media': {
-    'screen and (max-width: 900px)': {
-      gridTemplateColumns: '1fr'
+      'minHeight': '100dvh',
+      'display': 'grid',
+      'gridTemplateColumns': 'minmax(420px, 1fr) minmax(420px, 1fr)',
+      'backgroundColor': foundationVars.color.surface.canvas,
+      'color': foundationVars.color.text.primary,
+      '@media': {
+        'screen and (max-width: 900px)': {
+          gridTemplateColumns: '1fr'
+        }
+      }
     }
   }
 })
@@ -33,12 +33,12 @@ export const authRoot = style({
 export const authRootSupport = style({
   '@layer': {
     [app]: {
-      gridTemplateColumns: 'minmax(420px, 1fr) minmax(420px, 1fr)'
-    }
-  },
-  '@media': {
-    'screen and (max-width: 900px)': {
-      gridTemplateColumns: '1fr'
+      'gridTemplateColumns': 'minmax(420px, 1fr) minmax(420px, 1fr)',
+      '@media': {
+        'screen and (max-width: 900px)': {
+          gridTemplateColumns: '1fr'
+        }
+      }
     }
   }
 })
@@ -46,26 +46,26 @@ export const authRootSupport = style({
 export const authHeroPanel = style({
   '@layer': {
     [app]: {
-      position: 'relative',
-      display: 'grid',
-      gridTemplateRows: 'auto 1fr',
-      minHeight: '100dvh',
-      overflow: 'hidden',
-      padding: `clamp(${foundationVars.space[8]}, 5vw, ${foundationVars.space[13]})`,
-      backgroundColor: foundationVars.color.surface.header,
-      borderRight: `1px solid ${foundationVars.color.border.subtle}`
-    }
-  },
-  '@media': {
-    'screen and (max-width: 900px)': {
-      minHeight: 'auto',
-      gap: foundationVars.space[6],
-      padding: `${foundationVars.space[8]} ${foundationVars.space[6]}`,
-      borderRight: 0,
-      borderBottom: `1px solid ${foundationVars.color.border.subtle}`
-    },
-    'screen and (max-width: 600px)': {
-      padding: `${foundationVars.space[6]} ${foundationVars.space[5]}`
+      'position': 'relative',
+      'display': 'grid',
+      'gridTemplateRows': 'auto 1fr',
+      'minHeight': '100dvh',
+      'overflow': 'hidden',
+      'padding': `clamp(${foundationVars.space[8]}, 5vw, ${foundationVars.space[13]})`,
+      'backgroundColor': foundationVars.color.surface.header,
+      'borderRight': `1px solid ${foundationVars.color.border.subtle}`,
+      '@media': {
+        'screen and (max-width: 900px)': {
+          minHeight: 'auto',
+          gap: foundationVars.space[6],
+          padding: `${foundationVars.space[8]} ${foundationVars.space[6]}`,
+          borderRight: 0,
+          borderBottom: `1px solid ${foundationVars.color.border.subtle}`
+        },
+        'screen and (max-width: 600px)': {
+          padding: `${foundationVars.space[6]} ${foundationVars.space[5]}`
+        }
+      }
     }
   }
 })
@@ -73,12 +73,12 @@ export const authHeroPanel = style({
 export const authHeroPanelSupport = style({
   '@layer': {
     [app]: {
-      alignContent: 'stretch'
-    }
-  },
-  '@media': {
-    'screen and (max-width: 900px)': {
-      paddingBottom: foundationVars.space[5]
+      'alignContent': 'stretch',
+      '@media': {
+        'screen and (max-width: 900px)': {
+          paddingBottom: foundationVars.space[5]
+        }
+      }
     }
   }
 })
@@ -86,18 +86,18 @@ export const authHeroPanelSupport = style({
 export const authHeroHeader = style({
   '@layer': {
     [app]: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: foundationVars.space[4],
-      width: '100%',
-      paddingBottom: foundationVars.space[4],
-      borderBottom: `1px solid ${foundationVars.color.border.strong}`
-    }
-  },
-  '@media': {
-    'screen and (max-width: 600px)': {
-      gap: foundationVars.space[3]
+      'display': 'flex',
+      'alignItems': 'center',
+      'justifyContent': 'space-between',
+      'gap': foundationVars.space[4],
+      'width': '100%',
+      'paddingBottom': foundationVars.space[4],
+      'borderBottom': `1px solid ${foundationVars.color.border.strong}`,
+      '@media': {
+        'screen and (max-width: 600px)': {
+          gap: foundationVars.space[3]
+        }
+      }
     }
   }
 })
@@ -130,23 +130,23 @@ export const authLogo = style({
 export const authHeroCopy = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      alignContent: 'center',
-      justifyItems: 'start',
-      gap: foundationVars.space[4],
-      justifySelf: 'center',
-      width: '100%',
-      maxWidth: '560px',
-      textAlign: 'left',
-      transform: 'translateY(2vh)'
-    }
-  },
-  '@media': {
-    'screen and (max-width: 900px)': {
-      justifyItems: 'center',
-      maxWidth: '520px',
-      textAlign: 'center',
-      transform: 'none'
+      'display': 'grid',
+      'alignContent': 'center',
+      'justifyItems': 'start',
+      'gap': foundationVars.space[4],
+      'justifySelf': 'center',
+      'width': '100%',
+      'maxWidth': '560px',
+      'textAlign': 'left',
+      'transform': 'translateY(2vh)',
+      '@media': {
+        'screen and (max-width: 900px)': {
+          justifyItems: 'center',
+          maxWidth: '520px',
+          textAlign: 'center',
+          transform: 'none'
+        }
+      }
     }
   }
 })
@@ -154,28 +154,28 @@ export const authHeroCopy = style({
 export const authHeroTitle = style({
   '@layer': {
     [app]: {
-      maxWidth: '560px',
-      margin: `0 0 ${foundationVars.space[6]}`,
-      color: foundationVars.color.text.primary,
-      fontSize: '3.25rem',
-      fontWeight: foundationVars.fontWeight.heavy,
-      letterSpacing: '-0.032em',
-      lineHeight: 1.06
-    }
-  },
-  '@media': {
-    'screen and (max-width: 1100px)': {
-      fontSize: '2.75rem'
-    },
-    'screen and (max-width: 900px)': {
-      maxWidth: '680px',
-      fontSize: '2.25rem',
-      letterSpacing: '-0.025em'
-    },
-    'screen and (max-width: 600px)': {
-      fontSize: foundationVars.typography.title.fontSize,
-      lineHeight: foundationVars.typography.title.lineHeight,
-      marginBottom: foundationVars.space[4]
+      'maxWidth': '560px',
+      'margin': `0 0 ${foundationVars.space[6]}`,
+      'color': foundationVars.color.text.primary,
+      'fontSize': '3.25rem',
+      'fontWeight': foundationVars.fontWeight.heavy,
+      'letterSpacing': '-0.032em',
+      'lineHeight': 1.06,
+      '@media': {
+        'screen and (max-width: 1100px)': {
+          fontSize: '2.75rem'
+        },
+        'screen and (max-width: 900px)': {
+          maxWidth: '680px',
+          fontSize: '2.25rem',
+          letterSpacing: '-0.025em'
+        },
+        'screen and (max-width: 600px)': {
+          fontSize: foundationVars.typography.title.fontSize,
+          lineHeight: foundationVars.typography.title.lineHeight,
+          marginBottom: foundationVars.space[4]
+        }
+      }
     }
   }
 })
@@ -183,15 +183,15 @@ export const authHeroTitle = style({
 export const authHeroTitleSupport = style({
   '@layer': {
     [app]: {
-      maxWidth: '520px'
-    }
-  },
-  '@media': {
-    'screen and (max-width: 900px)': {
-      fontSize: foundationVars.typography.heading.fontSize
-    },
-    'screen and (max-width: 600px)': {
-      fontSize: foundationVars.typography.heading.fontSize
+      'maxWidth': '520px',
+      '@media': {
+        'screen and (max-width: 900px)': {
+          fontSize: foundationVars.typography.heading.fontSize
+        },
+        'screen and (max-width: 600px)': {
+          fontSize: foundationVars.typography.heading.fontSize
+        }
+      }
     }
   }
 })
@@ -199,16 +199,16 @@ export const authHeroTitleSupport = style({
 export const authHeroSubtitle = style({
   '@layer': {
     [app]: {
-      maxWidth: '42ch',
-      margin: 0,
-      color: foundationVars.color.text.secondary,
-      fontSize: '1.125rem',
-      lineHeight: 1.62
-    }
-  },
-  '@media': {
-    'screen and (max-width: 900px)': {
-      fontSize: foundationVars.typography.body.fontSize
+      'maxWidth': '42ch',
+      'margin': 0,
+      'color': foundationVars.color.text.secondary,
+      'fontSize': '1.125rem',
+      'lineHeight': 1.62,
+      '@media': {
+        'screen and (max-width: 900px)': {
+          fontSize: foundationVars.typography.body.fontSize
+        }
+      }
     }
   }
 })
@@ -216,19 +216,19 @@ export const authHeroSubtitle = style({
 export const authPanel = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      placeItems: 'center',
-      minHeight: '100dvh',
-      padding: `clamp(${foundationVars.space[8]}, 5vw, ${foundationVars.space[13]}) ${foundationVars.space[8]}`
-    }
-  },
-  '@media': {
-    'screen and (max-width: 900px)': {
-      minHeight: 'auto',
-      padding: `${foundationVars.space[6]} ${foundationVars.space[5]} ${foundationVars.space[10]}`
-    },
-    'screen and (max-width: 600px)': {
-      padding: `${foundationVars.space[5]} ${foundationVars.space[5]} ${foundationVars.space[8]}`
+      'display': 'grid',
+      'placeItems': 'center',
+      'minHeight': '100dvh',
+      'padding': `clamp(${foundationVars.space[8]}, 5vw, ${foundationVars.space[13]}) ${foundationVars.space[8]}`,
+      '@media': {
+        'screen and (max-width: 900px)': {
+          minHeight: 'auto',
+          padding: `${foundationVars.space[6]} ${foundationVars.space[5]} ${foundationVars.space[10]}`
+        },
+        'screen and (max-width: 600px)': {
+          padding: `${foundationVars.space[5]} ${foundationVars.space[5]} ${foundationVars.space[8]}`
+        }
+      }
     }
   }
 })
@@ -236,12 +236,12 @@ export const authPanel = style({
 export const authPanelSupport = style({
   '@layer': {
     [app]: {
-      placeItems: 'center'
-    }
-  },
-  '@media': {
-    'screen and (max-width: 900px)': {
-      placeItems: 'center'
+      'placeItems': 'center',
+      '@media': {
+        'screen and (max-width: 900px)': {
+          placeItems: 'center'
+        }
+      }
     }
   }
 })
@@ -249,23 +249,23 @@ export const authPanelSupport = style({
 export const authCard = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      gap: foundationVars.space[5],
-      width: 'min(460px, 100%)',
-      padding: foundationVars.space[8],
-      border: `1px solid ${foundationVars.color.card.border.default}`,
-      borderRadius: foundationVars.radius.xl,
-      backgroundColor: foundationVars.color.card.background.default,
-      boxShadow: foundationVars.shadow.card,
-      animation: `${authPanelEnter} 260ms cubic-bezier(0.16, 1, 0.3, 1)`
-    }
-  },
-  '@media': {
-    'screen and (max-width: 600px)': {
-      padding: foundationVars.space[6]
-    },
-    '(prefers-reduced-motion: reduce)': {
-      animation: 'none'
+      'display': 'grid',
+      'gap': foundationVars.space[5],
+      'width': 'min(460px, 100%)',
+      'padding': foundationVars.space[8],
+      'border': `1px solid ${foundationVars.color.card.border.default}`,
+      'borderRadius': foundationVars.radius.xl,
+      'backgroundColor': foundationVars.color.card.background.default,
+      'boxShadow': foundationVars.shadow.card,
+      'animation': `${authPanelEnter} 260ms cubic-bezier(0.16, 1, 0.3, 1)`,
+      '@media': {
+        'screen and (max-width: 600px)': {
+          padding: foundationVars.space[6]
+        },
+        '(prefers-reduced-motion: reduce)': {
+          animation: 'none'
+        }
+      }
     }
   }
 })

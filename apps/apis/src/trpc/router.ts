@@ -103,6 +103,7 @@ import {
   authoredDomainConfigs,
   buildDraftRequest,
   cloneAuthoredItem,
+  deleteAuthoredDomainActive,
   discardAuthoredDomainDraft,
   getAuthoredDomain,
   getAuthoredDomainDraft,
@@ -233,6 +234,13 @@ function authoredDomainRouter<TInput extends AuthoredContentInput>(config: Autho
       .output(okResponseSchema)
       .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId) => okResponseSchema.parse(
         await discardAuthoredDomainDraft(db, config.runtime, input.id, userId)
+      ))),
+
+    deleteActive: authenticatedProcedure
+      .input(idInputSchema)
+      .output(okResponseSchema)
+      .mutation(({ ctx, input }) => withAuthenticatedDb(ctx, async (db, userId) => okResponseSchema.parse(
+        await deleteAuthoredDomainActive(db, config.runtime, input.id, userId)
       ))),
 
     activateDraft: authenticatedProcedure

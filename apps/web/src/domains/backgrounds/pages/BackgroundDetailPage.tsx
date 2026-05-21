@@ -52,6 +52,7 @@ export function BackgroundDetailPage({
     viewActive
   })
   const actions = useAuthoredDetailActions({
+    deleteActive: api.content.backgrounds.deleteActive,
     discard: api.content.backgrounds.discardDraft,
     detailSubjectQueryKey: queryKeys.content.backgrounds.detailRoot(backgroundId),
     domainLabel: 'Background',
@@ -69,12 +70,23 @@ export function BackgroundDetailPage({
 
   if (detailState.mode === 'invalid-draft-only') {
     return (
-      <Stack>
-        <Alert color='yellow'>This background draft cannot be previewed. Discard it to return to the background list.</Alert>
-        <Button loading={actions.isDiscardingDraft} onClick={() => void actions.discardDraft({ backToList: true })}>
-          Discard draft
-        </Button>
-      </Stack>
+      <>
+        <Stack>
+          <Alert color='yellow'>This background draft cannot be previewed. Delete it to return to the background list.</Alert>
+          <Button
+            color='red'
+            loading={actions.isDeleting}
+            onClick={() => actions.deleteContent({
+              id: backgroundId,
+              kind: 'draft',
+              label: detailState.draft?.label ?? 'background draft'
+            })}
+          >
+            Delete
+          </Button>
+        </Stack>
+        {actions.deleteConfirmation}
+      </>
     )
   }
 
@@ -99,35 +111,53 @@ export function BackgroundDetailPage({
       ? { label: 'View Draft', tone: 'secondary', onClick: () => navigate({ to: '/backgrounds/$backgroundPublicId/$backgroundSlug', params: backgroundParams, search: { view: 'draft' } }) }
       : null,
     detailState.mode === 'active' && !detailState.draft && detailState.permissions.canCopy
-      ? { label: 'Duplicate', tone: 'secondary', disabled: actions.isDuplicating, onClick: () => void actions.duplicateToDraft() }
+      ? { label: 'Duplicate', tone: 'secondary', disabled: actions.isDuplicating, loading: actions.isDuplicating, onClick: () => void actions.duplicateToDraft() }
+      : null,
+    detailState.permissions.canDelete
+      ? {
+          label: 'Delete',
+          tone: 'danger',
+          disabled: actions.isDeleting,
+          loading: actions.isDeleting,
+          onClick: () => actions.deleteContent({
+            id: backgroundId,
+            kind: detailState.mode === 'draft' ? 'draft' : 'active',
+            label: item.label
+          })
+        }
       : null,
     { label: 'Create New', tone: 'secondary', onClick: () => navigate({ to: '/backgrounds/new' }) }
   ])
 
   return (
-    <AuthoredDetailLayout
-      actions={pageActions}
-      eyebrow='Background'
-      facts={[]}
-      notice={buildAuthoredDetailNotice({
-        canViewActive: detailState.canViewActive,
-        domainLabel: 'Background',
-        hasInvalidDraft: detailState.hasInvalidDraft,
-        isViewingActive: viewActive,
-        mode: detailState.mode,
-        onDiscard: () => void actions.discardDraft(),
-        onViewActive: () => navigate({ to: '/backgrounds/$backgroundPublicId/$backgroundSlug', params: backgroundParams }),
-        onViewDraft: () => navigate({ to: '/backgrounds/$backgroundPublicId/$backgroundSlug', params: backgroundParams, search: { view: 'draft' } })
-      })}
-      sections={getBackgroundSections(item, references)}
-      status={buildDetailStatusLabels({
-        draft: detailState.draft,
-        mode: detailState.mode,
-        provenance: detailState.provenance,
-        status: item.status
-      })}
-      title={item.label}
-    />
+    <>
+      <AuthoredDetailLayout
+        actions={pageActions}
+        actionsDisabled={actions.isDetailOperationPending}
+        eyebrow='Background'
+        facts={[]}
+        notice={buildAuthoredDetailNotice({
+          canViewActive: detailState.canViewActive,
+          domainLabel: 'Background',
+          hasInvalidDraft: detailState.hasInvalidDraft,
+          isViewingActive: viewActive,
+          mode: detailState.mode,
+          onDiscard: () => void actions.discardDraft(),
+          onViewActive: () => navigate({ to: '/backgrounds/$backgroundPublicId/$backgroundSlug', params: backgroundParams }),
+          onViewDraft: () => navigate({ to: '/backgrounds/$backgroundPublicId/$backgroundSlug', params: backgroundParams, search: { view: 'draft' } })
+        })}
+        pendingOperation={actions.pendingOperation}
+        sections={getBackgroundSections(item, references)}
+        status={buildDetailStatusLabels({
+          draft: detailState.draft,
+          mode: detailState.mode,
+          provenance: detailState.provenance,
+          status: item.status
+        })}
+        title={item.label}
+      />
+      {actions.deleteConfirmation}
+    </>
   )
 }
 
@@ -146,10 +176,7 @@ function getBackgroundSections(
   const featureItems = (background.features ?? []).map((feature) => ({
     id: feature.id,
     title: feature.label,
-    description: formatFeatureHtml(
-      feature.description,
-      typeof feature.detail === 'string' ? feature.detail : feature.detail?.description
-    )
+    description: formatFeatureHtml(feature.description, feature.details)
   }))
 
   return compactAuthoredDetailSections([
@@ -269,8 +296,14 @@ function formatCharacteristicDescription(detail: BackgroundDetail): string {
   return `<strong>${escapeHtml(idealLabel)}.</strong> ${escapeHtml(detail.description)}`
 }
 
-function formatFeatureHtml(description: string | undefined, detail: string | undefined): string | undefined {
-  const parts = [description, detail]
+function formatFeatureHtml(
+  description: string | undefined,
+  details: NonNullable<BackgroundAuthoredDto['features']>[number]['details']
+): string | undefined {
+  const parts = [
+    description,
+    ...[...(details ?? [])].sort((left, right) => left.order - right.order).map((detail) => detail.description)
+  ]
     .filter((part): part is string => Boolean(part?.trim()))
     .map((part) => part.trim().startsWith('<') ? part.trim() : `<p>${escapeHtml(part.trim())}</p>`)
 

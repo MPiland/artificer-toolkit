@@ -30,6 +30,7 @@ import {
   type AuthoringFormActionHandlers,
   type AuthoringFormRegistration
 } from '#forms'
+import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
 import { parseAuthoredDraftPayload } from '#app/data/authoredDrafts'
 import {
   useActivateRaceMutation,
@@ -37,6 +38,8 @@ import {
   useDuplicateRaceMutation,
   useSaveRaceDraftMutation
 } from '#app/data/races/mutations'
+import { api } from '#app/lib/api'
+import { queryKeys } from '#app/lib/queryKeys'
 import { buildRaceRouteParams } from '#app/routing/authoredRouteParams'
 import {
   normalizeRaceForSubmit,
@@ -103,6 +106,7 @@ function RaceEditAuthoring({
   hasInvalidDraft: boolean
   permissions?: {
     canCopy: boolean
+    canDelete: boolean
     canEdit: boolean
   }
   race: RaceFormValues
@@ -117,6 +121,20 @@ function RaceEditAuthoring({
   const [formValues] = useState(() => race)
   const readOnly = Boolean(activeRace && permissions?.canEdit === false)
   const canCopy = Boolean(permissions?.canCopy && raceId)
+  const canDelete = !readOnly && Boolean(draft || permissions?.canDelete)
+  const {
+    confirmation: deleteConfirmation,
+    isDeleting,
+    requestDelete
+  } = useAuthoredDeleteAction({
+    deleteActive: api.content.races.deleteActive,
+    deleteDraft: api.content.races.discardDraft,
+    detailSubjectQueryKey: queryKeys.content.races.detailRoot(raceId),
+    domainLabel: 'Race',
+    domainQueryKey: queryKeys.content.races.all(),
+    draftQueryKey: queryKeys.content.races.draft(raceId),
+    onDeleted: async () => navigate({ to: '/races' })
+  })
 
   const handleCancel = useCallback(async () => {
     await navigate({ to: '/races' })
@@ -214,11 +232,26 @@ function RaceEditAuthoring({
     router
   ])
 
+  const handleDelete = useCallback(() => {
+    requestDelete({
+      id: raceId,
+      kind: draft ? 'draft' : 'active',
+      label: formValues.label || 'Untitled Race'
+    })
+  }, [
+    draft,
+    formValues.label,
+    raceId,
+    requestDelete
+  ])
+
   const registration = useMemo<AuthoringFormRegistration>(() => ({
     activateLabel: 'Activate Race',
+    canDelete,
     canCopy,
     canSaveDraft: !readOnly,
     hasActiveDraft: Boolean(draft && activeRace),
+    isDraft: Boolean(draft),
     mapId: 'race',
     mode: readOnly ? 'view' : 'edit',
     readOnly,
@@ -226,13 +259,16 @@ function RaceEditAuthoring({
     saveDraftLabel: 'Save Draft',
     subjectKindLabel: 'Race',
     subjectLabel: formValues.label || 'Untitled Race',
-    systemId: formValues.systemId
+    systemId: formValues.systemId,
+    isDeleting
   }), [
     activeRace,
+    canDelete,
     canCopy,
     draft,
     formValues.label,
     formValues.systemId,
+    isDeleting,
     readOnly
   ])
 
@@ -241,12 +277,15 @@ function RaceEditAuthoring({
     onCancel: handleCancel,
     onClearPaths: (paths) => clearResolvedNodeFormPaths(form, paths),
     onCopy: canCopy ? handleCopy : undefined,
+    onDelete: canDelete ? handleDelete : undefined,
     onSaveDraft: readOnly ? undefined : handleSaveDraft
   }), [
+    canDelete,
     canCopy,
     form,
     handleCancel,
     handleCopy,
+    handleDelete,
     handleSaveDraft,
     readOnly
   ])
@@ -268,6 +307,7 @@ function RaceEditAuthoring({
         <AuthoringFormLayout>
           <RaceAuthoringRenderer form={form} />
         </AuthoringFormLayout>
+        {deleteConfirmation}
       </Stack>
     </form.AppForm>
   )

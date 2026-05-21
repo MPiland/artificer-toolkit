@@ -5,7 +5,13 @@ import {
   SRD_SYSTEM_ID,
   srdBaselineContent
 } from '../source-data/srd/index.js'
-import { ensureSeedOwnerUser } from './seedOwner.js'
+import { loadDbScriptEnv } from './loadScriptEnv.js'
+import {
+  ensureSeedOwnerUser,
+  findSeedOwnerUserById
+} from './seedOwner.js'
+
+loadDbScriptEnv()
 
 function requireDatabaseUrl() {
   if (!process.env.DATABASE_URL) {
@@ -15,7 +21,15 @@ function requireDatabaseUrl() {
 
 async function getSeedOwnerUserId() {
   if (process.env.SEED_OWNER_USER_ID) {
-    return process.env.SEED_OWNER_USER_ID
+    const configuredUser = await findSeedOwnerUserById(process.env.SEED_OWNER_USER_ID)
+
+    if (configuredUser) {
+      return configuredUser.id
+    }
+
+    if (!process.env.SUPABASE_URL?.includes('127.0.0.1') && !process.env.SUPABASE_URL?.includes('localhost')) {
+      console.info(`SEED_OWNER_USER_ID "${process.env.SEED_OWNER_USER_ID}" was not found in the active Supabase project; using seed owner email instead.`)
+    }
   }
 
   const seedOwner = await ensureSeedOwnerUser()

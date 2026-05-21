@@ -16,14 +16,14 @@ export const statBlock = style({
 export const abilityGrid = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
-      gap: foundationVars.space[2]
-    }
-  },
-  '@media': {
-    [compact]: {
-      gridTemplateColumns: 'repeat(3, minmax(0, 1fr))'
+      'display': 'grid',
+      'gridTemplateColumns': 'repeat(6, minmax(0, 1fr))',
+      'gap': foundationVars.space[2],
+      '@media': {
+        [compact]: {
+          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))'
+        }
+      }
     }
   }
 })

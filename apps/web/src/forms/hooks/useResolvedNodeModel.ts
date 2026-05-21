@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { NodeRuntimePathDto, NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
-import { useNodeRuntimeResolve } from '#app/data/nodeRuntime/queries'
+import { fingerprintNodeRuntimeRequest, useNodeRuntimeResolve } from '#app/data/nodeRuntime/queries'
 
 export interface UseResolvedNodeModelOptions {
   mapId: string
@@ -33,11 +33,14 @@ export function useResolvedNodeModel({
     ancestors, mapId, parentValues, systemId, values
   ])
   const [debouncedRequest, setDebouncedRequest] = useState(request)
+  const requestFingerprint = useMemo(() => fingerprintNodeRuntimeRequest(request), [request])
+  const debouncedRequestFingerprint = useMemo(() => fingerprintNodeRuntimeRequest(debouncedRequest), [debouncedRequest])
 
   useEffect(() => {
+    if (requestFingerprint === debouncedRequestFingerprint) return undefined
     const timeout = window.setTimeout(() => setDebouncedRequest(request), debounceMs)
     return () => window.clearTimeout(timeout)
-  }, [debounceMs, request])
+  }, [debounceMs, debouncedRequestFingerprint, request, requestFingerprint])
 
   const query = useNodeRuntimeResolve(debouncedRequest, enabled)
   const clearPathKey = query.data?.clearPaths.map((path: NodeRuntimePathDto) => path.join('.')).join('|') ?? ''

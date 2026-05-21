@@ -14,53 +14,68 @@ import type {
 
 const RACE_SECTIONS = {
   basics: { id: 'basics', label: 'Basics', order: 10 },
-  classification: { id: 'classification', label: 'Classification', order: 20 },
-  ancestry: { id: 'ancestry', label: 'Ancestry', order: 30 },
-  traits: { id: 'traits', label: 'Traits', order: 40 },
-  features: { id: 'features', label: 'Features', order: 50 }
+  ancestry: { id: 'ancestry', label: 'Ancestry', order: 20 },
+  traits: { id: 'traits', label: 'Traits', order: 30 },
+  features: { id: 'features', label: 'Features', order: 40 }
+} as const
+
+const RACE_ANCESTRY_SECTIONS = {
+  details: { id: 'ancestryDetails', label: 'Details', order: 10 },
+  options: { id: 'ancestryOptions', label: 'Options', order: 20 }
+} as const
+
+const RACE_ANCESTRY_OPTION_SECTIONS = {
+  basics: { id: 'ancestryOptionBasics', label: 'Basics', order: 10 },
+  features: { id: 'ancestryOptionFeatures', label: 'Features', order: 20 }
 } as const
 
 const detailNode = buildNodeMap<DetailAuthored>()
 
 export const RACE_DETAIL_NODE_MAP = detailNode.define('raceDetail', ({ map, nodes }) => {
-  const { text, number } = nodes
+  const { text, richText, number } = nodes
 
   map
     .set('id', text(['id'], 'ID'))
     .set('label', text(['label'], 'Label'))
-    .set('description', text(['description'], 'Description'))
+    .set('description', richText(['description'], 'Description'))
     .set('order', number(['order'], 'Order'))
 })
 
 const ancestryOptionNode = buildNodeMap<RaceAncestryOptionAuthored>()
 
 const RACE_ANCESTRY_OPTION_NODE_MAP = ancestryOptionNode.define('raceAncestryOption', ({ map, nodes }) => {
-  const { text, number, groupArray } = nodes
+  const { text, richText, number, groupArray } = nodes
 
   map
     .set('id', text(['id'], 'ID'))
-    .set('label', text(['label'], 'Label'))
-    .set('description', text(['description'], 'Description'))
-    .set('order', number(['order'], 'Order'))
-    .set('features', groupArray(['features'], 'Features', () => FEATURE_NODE_MAP))
+    .set('label', text(['label'], 'Name', { section: RACE_ANCESTRY_OPTION_SECTIONS.basics, order: 10 }))
+    .set('description', richText(['description'], 'Description', { section: RACE_ANCESTRY_OPTION_SECTIONS.basics, order: 20 }))
+    .set('order', number(['order'], 'Order', { section: RACE_ANCESTRY_OPTION_SECTIONS.basics, order: 30 }))
+    .set('features', groupArray(['features'], 'Features', () => FEATURE_NODE_MAP, {
+      section: RACE_ANCESTRY_OPTION_SECTIONS.features,
+      order: 10
+    }))
 })
 
 const ancestryNode = buildNodeMap<RaceAncestryAuthored>()
 
 const RACE_ANCESTRY_NODE_MAP = ancestryNode.define('raceAncestry', ({ map, nodes }) => {
-  const { text, groupArray } = nodes
+  const { text, richText, groupArray } = nodes
 
   map
     .set('id', text(['id'], 'ID'))
-    .set('label', text(['label'], 'Label'))
-    .set('description', text(['description'], 'Description'))
-    .set('options', groupArray(['options'], 'Options', () => RACE_ANCESTRY_OPTION_NODE_MAP))
+    .set('label', text(['label'], 'Name', { section: RACE_ANCESTRY_SECTIONS.details, order: 10 }))
+    .set('description', richText(['description'], 'Description', { section: RACE_ANCESTRY_SECTIONS.details, order: 20 }))
+    .set('options', groupArray(['options'], 'Options', () => RACE_ANCESTRY_OPTION_NODE_MAP, {
+      section: RACE_ANCESTRY_SECTIONS.options,
+      order: 10
+    }))
 })
 
 const raceNode = buildNodeMap<RaceAuthored>()
 
 export const RACE_NODE_MAP = raceNode.define('race', ({ map, nodes, cond, data, logic }) => {
-  const { text, number, selectSingle, selectMulti, groupArray, groupObject } = nodes
+  const { text, richText, number, selectSingle, selectMulti, groupArray, groupObject } = nodes
   const local = cond.local()
   const { table } = data
 
@@ -74,16 +89,16 @@ export const RACE_NODE_MAP = raceNode.define('race', ({ map, nodes, cond, data, 
       order: 10,
       requiredIf: true
     }))
-    .set('quote', text(['quote'], 'Quote', { section: RACE_SECTIONS.basics, order: 20 }))
-    .set('description', text(['description'], 'Description', { section: RACE_SECTIONS.basics, order: 30 }))
+    .set('quote', richText(['quote'], 'Quote', { section: RACE_SECTIONS.basics, order: 20 }))
+    .set('description', richText(['description'], 'Description', { section: RACE_SECTIONS.basics, order: 30 }))
     .set('heritageIds', selectMulti(['heritageIds'], 'Heritages', {
       kind: 'DATA',
       relationship: table('heritages', {
         selectColumns: ['id', 'label']
       })
     }, {
-      section: RACE_SECTIONS.classification,
-      order: 30,
+      section: RACE_SECTIONS.basics,
+      order: 60,
       showIf: isBaseRace,
       hiddenBehavior: 'CLEAR'
     }))
@@ -98,16 +113,16 @@ export const RACE_NODE_MAP = raceNode.define('race', ({ map, nodes, cond, data, 
         { code: RACE_CATEGORY_CODE.SUBRACE, label: 'Subrace' }
       ]
     }, {
-      section: RACE_SECTIONS.classification,
-      order: 10,
+      section: RACE_SECTIONS.basics,
+      order: 40,
       requiredIf: true
     }))
     .set('selectionMode', selectSingle(['selectionMode'], 'Selection Mode', {
       kind: 'INLINE',
       options: RACE_SELECTION_MODE_OPTIONS
     }, {
-      section: RACE_SECTIONS.classification,
-      order: 20,
+      section: RACE_SECTIONS.basics,
+      order: 50,
       showIf: isBaseRace,
       requiredIf: true,
       hiddenBehavior: 'CLEAR'
@@ -141,8 +156,8 @@ export const RACE_NODE_MAP = raceNode.define('race', ({ map, nodes, cond, data, 
         where: (col) => col('category').eq('BASE')
       })
     }, {
-      section: RACE_SECTIONS.classification,
-      order: 40,
+      section: RACE_SECTIONS.basics,
+      order: 70,
       showIf: isSubrace,
       requiredIf: true,
       hiddenBehavior: 'CLEAR'

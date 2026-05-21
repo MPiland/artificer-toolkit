@@ -101,7 +101,7 @@ const EQUIPMENT_SECTIONS = {
 const equipment = buildNodeMap<EquipmentMapAuthored>()
 
 export const EQUIPMENT_NODE_MAP = equipment.define('equipment', ({ map, nodes, cond, data, logic }) => {
-  const { text, number, selectSingle, selectMulti, groupObject, groupArray } = nodes
+  const { text, richText, number, selectSingle, selectMulti, groupObject, groupArray } = nodes
   const local = cond.local()
   const { table } = data
   const { not } = logic
@@ -114,7 +114,7 @@ export const EQUIPMENT_NODE_MAP = equipment.define('equipment', ({ map, nodes, c
     .set('kind', text(['kind'], 'Kind'))
     .set('id', text(['id'], 'ID'))
     .set('label', text(['label'], 'Name', { section: EQUIPMENT_SECTIONS.basics, order: 10 }))
-    .set('description', text(['description'], 'Description', { section: EQUIPMENT_SECTIONS.basics, order: 20 }))
+    .set('description', richText(['description'], 'Description', { section: EQUIPMENT_SECTIONS.basics, order: 20 }))
     .set('attributes', selectMulti(['attributes'], 'Attributes', {
       kind: 'INLINE',
       options: EQUIPMENT_ATTRIBUTE_OPTIONS
@@ -124,7 +124,7 @@ export const EQUIPMENT_NODE_MAP = equipment.define('equipment', ({ map, nodes, c
       showIf: isBaseEquipment,
       hiddenBehavior: 'CLEAR'
     }))
-    .set('quote', text(['quote'], 'Quote', { section: EQUIPMENT_SECTIONS.basics, order: 30 }))
+    .set('quote', richText(['quote'], 'Quote', { section: EQUIPMENT_SECTIONS.basics, order: 30 }))
     .set('cost', groupObject(['cost'], 'Cost', () => COST_NODE_MAP, {
       section: EQUIPMENT_SECTIONS.economy,
       order: 10,

@@ -338,6 +338,20 @@ export class AuthoredContentOwnershipError extends Error {
   }
 }
 
+export class AuthoredContentDependencyError extends Error {
+  constructor(subjectKind: AuthoredSubjectDraftKind, subjectId: string) {
+    super(`${subjectKind} "${subjectId}" has dependent content and cannot be deleted.`)
+    this.name = 'AuthoredContentDependencyError'
+  }
+}
+
+export class AuthoredContentNotFoundError extends Error {
+  constructor(subjectKind: AuthoredSubjectDraftKind, subjectId: string) {
+    super(`${subjectKind} "${subjectId}" was not found.`)
+    this.name = 'NotFoundError'
+  }
+}
+
 export async function assertWritableAuthoredSubject(
   db: DBLike,
   table: AuthoredContentTable,
@@ -350,6 +364,91 @@ export async function assertWritableAuthoredSubject(
 
   if (ownership.isMaster || ownership.ownerUserId !== userId) {
     throw new AuthoredContentOwnershipError(subjectKind, subjectId)
+  }
+}
+
+export async function activeAuthoredSubjectExists(
+  db: DBLike,
+  table: AuthoredContentTable,
+  subjectId: string
+): Promise<boolean> {
+  const row = await db
+    .selectFrom(table as TableName)
+    .select('id')
+    .where('id', '=', subjectId)
+    .executeTakeFirst()
+
+  return Boolean(row)
+}
+
+export async function assertNoActiveDeleteDependents(
+  db: DBLike,
+  table: AuthoredContentTable,
+  subjectKind: AuthoredSubjectDraftKind,
+  subjectId: string
+): Promise<void> {
+  const dependency = await findActiveDeleteDependency(db, table, subjectId)
+
+  if (dependency) {
+    throw new AuthoredContentDependencyError(subjectKind, subjectId)
+  }
+}
+
+export async function assertDeletableActiveAuthoredSubject(
+  db: DBLike,
+  table: AuthoredContentTable,
+  subjectKind: AuthoredSubjectDraftKind,
+  subjectId: string,
+  userId: string
+): Promise<void> {
+  if (!await activeAuthoredSubjectExists(db, table, subjectId)) {
+    throw new AuthoredContentNotFoundError(subjectKind, subjectId)
+  }
+
+  await assertWritableAuthoredSubject(db, table, subjectKind, subjectId, userId)
+  await assertNoActiveDeleteDependents(db, table, subjectKind, subjectId)
+}
+
+export async function deleteActiveAuthoredSubject(
+  db: DBLike,
+  table: AuthoredContentTable,
+  subjectKind: AuthoredSubjectDraftKind,
+  subjectId: string,
+  userId: string
+): Promise<void> {
+  await assertDeletableActiveAuthoredSubject(db, table, subjectKind, subjectId, userId)
+  await db
+    .deleteFrom(table as TableName)
+    .where('id', '=', subjectId)
+    .execute()
+}
+
+async function findActiveDeleteDependency(
+  db: DBLike,
+  table: AuthoredContentTable,
+  subjectId: string
+): Promise<unknown | null> {
+  switch (table) {
+    case 'classes':
+      return await db
+        .selectFrom('classes')
+        .select('id')
+        .where('parent_class_id', '=', subjectId)
+        .executeTakeFirst() ?? null
+    case 'equipment':
+      return await db
+        .selectFrom('equipment')
+        .select('id')
+        .where('parent_equipment_id', '=', subjectId)
+        .executeTakeFirst() ?? null
+    case 'races':
+      return await db
+        .selectFrom('races')
+        .select('id')
+        .where('parent_race_id', '=', subjectId)
+        .executeTakeFirst() ?? null
+    default:
+      return null
   }
 }
 
@@ -440,6 +539,7 @@ export function normalizeAuthoredDraftPayload(
     ...(payload as Record<string, unknown>),
     id: identity.subjectId,
     label: identity.label,
+    status: 'DRAFT',
     userId: identity.userId,
     systemId: identity.systemId
   } as Json

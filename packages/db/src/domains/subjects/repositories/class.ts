@@ -165,10 +165,15 @@ async function hydrateClassSpellcastingByClassId(
     return undefined
   }
 
-  const [charge, attributeRows, prepareLimitRow, prepareLimitMethodRows, prepareLimitLevelRows, spellLimitRows] = await Promise.all([
+  const [charge, attributeRows, detailRows, prepareLimitRow, prepareLimitMethodRows, prepareLimitLevelRows, spellLimitRows] = await Promise.all([
     hydrateChargeById(db, requireLinkedRecord(row.charge_id, `Class "${classId}" spellcasting "${row.id}" is missing charge_id.`)),
     db.selectFrom('class_spellcasting_attributes')
       .select(['attribute_code', 'sort_order'])
+      .where('spellcasting_id', '=', row.id)
+      .orderBy('sort_order')
+      .execute(),
+    db.selectFrom('class_spellcasting_details')
+      .select(['detail_id', 'sort_order'])
       .where('spellcasting_id', '=', row.id)
       .orderBy('sort_order')
       .execute(),
@@ -193,12 +198,20 @@ async function hydrateClassSpellcastingByClassId(
       .execute()
   ])
   const spellLimitIds = spellLimitRows.map((limit) => limit.id)
-  const spellSlotRows = spellLimitIds.length
-    ? await db.selectFrom('class_spell_slots')
-        .select(['spell_limit_id', 'spell_level', 'slot_count'])
-        .where('spell_limit_id', 'in', spellLimitIds)
-        .execute()
-    : []
+  const detailRepository = createDetailRepository(db)
+  const [spellSlotRows, detailsById] = await Promise.all([
+    spellLimitIds.length
+      ? db.selectFrom('class_spell_slots')
+          .select(['spell_limit_id', 'spell_level', 'slot_count'])
+          .where('spell_limit_id', 'in', spellLimitIds)
+          .execute()
+      : Promise.resolve([]),
+    detailRepository.findByIds(detailRows.map((detail) => detail.detail_id))
+  ])
+  const authoredDetails = detailRows.map((detail) => requireLinkedRecord(
+    detailsById.get(detail.detail_id) ?? null,
+    `Class "${classId}" spellcasting "${row.id}" is linked to missing detail "${detail.detail_id}".`
+  ))
 
   const slotsByLimit = new Map<string, { spell_limit_id: string, spell_level: number, slot_count: number }[]>()
   for (const slot of spellSlotRows) {
@@ -220,6 +233,7 @@ async function hydrateClassSpellcastingByClassId(
       cantripsLimit: limit.cantrips_limit ?? undefined
     })),
     magicName: row.magic_name ?? undefined,
+    details: authoredDetails.length > 0 ? authoredDetails : undefined,
     ability: row.ability_code
       ? requireAbilityCode(classId, row.ability_code, 'Class spellcasting') as NonNullable<ClassAuthored['spellcasting']>['ability']
       : undefined,

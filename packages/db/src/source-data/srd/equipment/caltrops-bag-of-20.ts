@@ -4,7 +4,7 @@ export const caltropsBagOf20: EquipmentAuthored = {
     kind: S.SUBJECT.EQUIPMENT,
     id: S.equipId(128),
     label: 'Caltrops (bag of 20)',
-    description: "A bag of 20 metal spikes arranged so one point always faces upward, hindering movement.",
+    description: "As an action, you can spread a bag of caltrops to cover a square area that is 5 feet on a side. Any creature that enters the area must succeed on a DC 15 Dexterity saving throw or stop moving this turn and take 1 piercing damage. Taking this damage reduces the creature's walking speed by 10 feet until the creature regains at least 1 hit point. A creature moving through the area at half speed doesn't need to make the save.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     properties: [],
     effects: [
@@ -22,7 +22,8 @@ export const caltropsBagOf20: EquipmentAuthored = {
                     rangeKind: S.RANGE_KIND.TOUCH
                 },
                 targeting: {
-                    selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS
+                    selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
+                    dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                 }
             },
             paths: [

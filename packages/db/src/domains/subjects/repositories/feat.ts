@@ -1,10 +1,11 @@
-import type { FeatAuthored } from '@artificer-toolkit/shared'
+import type { DetailAuthored, FeatAuthored } from '@artificer-toolkit/shared'
 import type { DBLike } from '#types'
 import { upsertFeat } from '../upserts/feat.js'
 import { createEffectRepository } from '../../effects/repositories/effect.js'
 import { createFeatureRepository } from '../../features/repositories/feature.js'
 import { hydrateChargeById } from '../../grants/repositories/helpers.js'
 import { hydrateFacetById } from '../../shared/facets.js'
+import { createDetailRepository } from '../../shared/repositories/detail.js'
 import { createModifierGrantRepository } from '../../grants/repositories/modifier.js'
 import { createProficiencyGrantRepository } from '../../grants/repositories/proficiency.js'
 import { createSenseGrantRepository } from '../../grants/repositories/sense.js'
@@ -36,7 +37,6 @@ async function hydrateFeatById(
       'user_id',
       'label',
       'description',
-      'detail',
       'status',
       'prerequisite_id',
       'charge_id'
@@ -49,15 +49,21 @@ async function hydrateFeatById(
     throw new Error(`Feat "${id}" is missing user ownership and cannot be hydrated.`)
   }
 
-  const [effectLinks] = await Promise.all([
+  const [effectLinks, detailLinks] = await Promise.all([
     db.selectFrom('feat_effects')
       .select(['effect_id', 'sort_order'])
+      .where('feat_id', '=', id)
+      .orderBy('sort_order')
+      .execute(),
+    db.selectFrom('feat_details')
+      .select(['detail_id', 'sort_order'])
       .where('feat_id', '=', id)
       .orderBy('sort_order')
       .execute()
   ])
 
   const effectRepository = createEffectRepository(db)
+  const detailRepository = createDetailRepository(db)
   const featureRepository = createFeatureRepository(db, row.system_id)
   const modifierRepository = createModifierGrantRepository(db)
   const proficiencyRepository = createProficiencyGrantRepository(db)
@@ -68,6 +74,7 @@ async function hydrateFeatById(
     charge,
     prerequisite,
     effectsById,
+    detailsById,
     featureLinksOrdered,
     proficiencyLinks,
     senseLinks,
@@ -77,6 +84,7 @@ async function hydrateFeatById(
     row.charge_id ? hydrateChargeById(db, row.charge_id) : Promise.resolve(null),
     row.prerequisite_id ? hydrateFacetById<'CHARACTER'>(db, row.prerequisite_id) : Promise.resolve(null),
     effectRepository.findByIds(effectLinks.map((link) => link.effect_id)),
+    detailRepository.findByIds(detailLinks.map((link) => link.detail_id)),
     db.selectFrom('feat_features')
       .select(['feature_id', 'sort_order'])
       .where('feat_id', '=', id)
@@ -120,6 +128,7 @@ async function hydrateFeatById(
 
   const authoredFeatures = featureLinksOrdered.map((link) => requireLinkedRecord(featuresById.get(link.feature_id), `Feat "${id}" is linked to missing feature "${link.feature_id}".`))
   const authoredEffects = effectLinks.map((link) => requireLinkedRecord(effectsById.get(link.effect_id), `Feat "${id}" is linked to missing effect "${link.effect_id}".`))
+  const authoredDetails: DetailAuthored[] = detailLinks.map((link) => requireLinkedRecord(detailsById.get(link.detail_id), `Feat "${id}" is linked to missing detail "${link.detail_id}".`))
   const authoredProficiencies = proficiencyLinks.map((link) => requireLinkedRecord(proficienciesById.get(link.proficiency_grant_id), `Feat "${id}" is linked to missing proficiency grant "${link.proficiency_grant_id}".`))
   const authoredSenses = senseLinks.map((link) => requireLinkedRecord(sensesById.get(link.sense_grant_id), `Feat "${id}" is linked to missing sense grant "${link.sense_grant_id}".`))
   const authoredSpells = spellLinks.map((link) => requireLinkedRecord(spellsById.get(link.spell_grant_id), `Feat "${id}" is linked to missing spell grant "${link.spell_grant_id}".`))
@@ -132,7 +141,7 @@ async function hydrateFeatById(
     id: row.id,
     label: row.label,
     description: row.description,
-    detail: row.detail ?? undefined,
+    details: authoredDetails.length > 0 ? authoredDetails : undefined,
     status: hydrateSubjectStatus(row.status),
     prerequisites: prerequisite ?? undefined,
     effects: authoredEffects.length > 0 ? authoredEffects : undefined,

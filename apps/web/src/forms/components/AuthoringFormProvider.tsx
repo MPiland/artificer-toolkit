@@ -13,18 +13,25 @@ const EMPTY_CLEAR_PATHS: readonly NodeRuntimePathDto[] = []
 const DEFAULT_SESSION: AuthoringFormSessionState = {
   activateLabel: 'Activate',
   canCopy: false,
+  canDelete: false,
   canGoBack: false,
   canGoNext: false,
+  canResetStep: false,
   canSaveDraft: false,
   canSubmit: false,
   copyLabel: 'Duplicate to edit',
   cancelLabel: 'Cancel',
+  deleteLabel: 'Delete',
+  hasChanges: false,
   hasActiveDraft: false,
+  isDraft: false,
   isLastStep: true,
+  isDeleting: false,
   isSubmitting: false,
   mode: 'create',
   readOnly: false,
   resolveModel: true,
+  resetStepLabel: 'Reset Step',
   saveDraftLabel: 'Save Draft',
   subjectKindLabel: 'Item'
 }
@@ -99,11 +106,20 @@ export function AuthoringFormProvider({
   const copy = useCallback(() => {
     void actionsRef.current.onCopy?.()
   }, [])
+  const deleteRecord = useCallback(() => {
+    void actionsRef.current.onDelete?.()
+  }, [])
   const goToNextStep = useCallback(() => {
     void actionsRef.current.onNextStep?.()
   }, [])
   const goToPreviousStep = useCallback(() => {
     void actionsRef.current.onPreviousStep?.()
+  }, [])
+  const resetStep = useCallback(() => {
+    void actionsRef.current.onResetStep?.()
+  }, [])
+  const goToStep = useCallback((stepId: string) => {
+    actionsRef.current.onStepChange?.(stepId)
   }, [])
   const saveDraft = useCallback(() => {
     void actionsRef.current.onSaveDraft?.()
@@ -115,22 +131,28 @@ export function AuthoringFormProvider({
     cancel,
     clearPaths: clearRegisteredPaths,
     copy,
+    deleteRecord,
     getField: (fieldId) => fieldById.get(fieldId),
     getSection: (sectionId) => sectionById.get(sectionId),
     getStep: (stepId) => stepById.get(stepId),
+    goToStep,
     goToNextStep,
     goToPreviousStep,
     registerAuthoringForm,
+    resetStep,
     saveDraft
   }), [
     activate,
     cancel,
     clearRegisteredPaths,
     copy,
+    deleteRecord,
     fieldById,
+    goToStep,
     goToNextStep,
     goToPreviousStep,
     registerAuthoringForm,
+    resetStep,
     saveDraft,
     sectionById,
     session,
@@ -150,15 +172,21 @@ function isSameSession(left: AuthoringFormSessionState, right: AuthoringFormSess
     && left.activeStepLabel === right.activeStepLabel
     && left.activateLabel === right.activateLabel
     && left.canCopy === right.canCopy
+    && left.canDelete === right.canDelete
     && left.canGoBack === right.canGoBack
     && left.canGoNext === right.canGoNext
+    && left.canResetStep === right.canResetStep
     && left.canSaveDraft === right.canSaveDraft
     && left.canSubmit === right.canSubmit
     && left.copyLabel === right.copyLabel
     && left.cancelLabel === right.cancelLabel
+    && left.deleteLabel === right.deleteLabel
     && left.fieldPathPrefix === right.fieldPathPrefix
+    && left.hasChanges === right.hasChanges
     && left.hasActiveDraft === right.hasActiveDraft
+    && left.isDraft === right.isDraft
     && left.isLastStep === right.isLastStep
+    && left.isDeleting === right.isDeleting
     && left.isSubmitting === right.isSubmitting
     && left.mapId === right.mapId
     && left.mode === right.mode
@@ -166,6 +194,7 @@ function isSameSession(left: AuthoringFormSessionState, right: AuthoringFormSess
     && left.readOnly === right.readOnly
     && left.resolveModel === right.resolveModel
     && left.resolvedModel === right.resolvedModel
+    && left.resetStepLabel === right.resetStepLabel
     && left.saveDraftLabel === right.saveDraftLabel
     && left.subjectKindLabel === right.subjectKindLabel
     && left.subjectLabel === right.subjectLabel

@@ -64,6 +64,7 @@ export function CharacterSheetSpells({
                 </div>
                 <div className={styles.compactActions}>
                   <Button
+                    className={styles.compactActionControl}
                     aria-label={`Use ${slot.label} spell slot`}
                     disabled={pending || slot.remaining <= 0}
                     size='xs'
@@ -76,6 +77,7 @@ export function CharacterSheetSpells({
                     Use
                   </Button>
                   <Button
+                    className={styles.compactActionControl}
                     aria-label={`Restore 1 ${slot.label} spell slot`}
                     disabled={pending || slot.used <= 0}
                     size='xs'
@@ -89,6 +91,7 @@ export function CharacterSheetSpells({
                     Restore 1
                   </Button>
                   <Button
+                    className={styles.compactActionControl}
                     aria-label={`Restore all ${slot.label} spell slots`}
                     disabled={pending || slot.used <= 0}
                     size='xs'
@@ -144,6 +147,7 @@ export function CharacterSheetSpells({
                       ?.filter((source) => source.canPrepare)
                       .map((source) => (
                         <Button
+                          className={styles.compactActionControl}
                           aria-label={`${source.prepared ? 'Unprepare' : 'Prepare'} ${spell.label} for ${source.label}`}
                           disabled={pending}
                           key={source.classId}

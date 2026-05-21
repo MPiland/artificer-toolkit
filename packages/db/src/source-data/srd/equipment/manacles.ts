@@ -22,7 +22,8 @@ export const manacles: EquipmentAuthored = {
                     rangeKind: S.RANGE_KIND.TOUCH
                 },
                 targeting: {
-                    selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                    selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                    dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                 }
             },
             paths: [

@@ -53,7 +53,6 @@ describe('createOptionRepository', () => {
                     id: 'option-1',
                     label: 'First',
                     description: 'Visible option.',
-                    detail: null,
                     sort_order: 1,
                     charge_id: null,
                     restriction_id: null
@@ -62,7 +61,6 @@ describe('createOptionRepository', () => {
                     id: 'option-2',
                     label: 'Second',
                     description: 'Visible option.',
-                    detail: null,
                     sort_order: 2,
                     charge_id: null,
                     restriction_id: null
@@ -71,13 +69,14 @@ describe('createOptionRepository', () => {
                     id: 'option-unrequested',
                     label: 'Unrequested',
                     description: 'Should not hydrate.',
-                    detail: null,
                     sort_order: 3,
                     charge_id: null,
                     restriction_id: null
                 }
             ],
             option_effects: [],
+            option_details: [],
+            details: [],
             option_attributes: [
                 { option_id: 'option-1', attribute_code: 'LIMITED_USE', sort_order: 1 },
                 { option_id: 'option-2', attribute_code: 'HIDDEN_ON_SHEET', sort_order: 1 },
@@ -109,13 +108,18 @@ describe('createOptionRepository', () => {
                     id: 'option-1',
                     label: 'Quickened',
                     description: 'Cast faster.',
-                    detail: 'Costs a charge.',
                     sort_order: 2,
                     charge_id: 'charge-1',
                     restriction_id: null
                 }
             ],
             option_effects: [],
+            option_details: [
+                { option_id: 'option-1', detail_id: 'option-detail-1', sort_order: 1 }
+            ],
+            details: [
+                { id: 'option-detail-1', label: 'Detail', description: 'Costs a charge.', sort_order: 1 }
+            ],
             option_attributes: [
                 { option_id: 'option-1', attribute_code: 'LIMITED_USE', sort_order: 1 }
             ],
@@ -172,7 +176,14 @@ describe('createOptionRepository', () => {
             label: 'Quickened',
             description: 'Cast faster.',
             attributes: ['LIMITED_USE'],
-            detail: 'Costs a charge.',
+            details: [
+                {
+                    id: 'option-detail-1',
+                    label: 'Detail',
+                    description: 'Costs a charge.',
+                    order: 1
+                }
+            ],
             effects: undefined,
             charges: {
                 id: 'charge-1',
@@ -243,7 +254,7 @@ describe('createOptionRepository', () => {
                             groupType: 'SINGLE',
                             selectionKind: 'FIXED',
                             resultBlock: {
-                                id: 'option-effect-direct-1__result',
+                                id: 'option-effect-direct-1',
                                 resultKind: 'SINGLE',
                                 outcomes: [
                                     {
@@ -266,7 +277,7 @@ describe('createOptionRepository', () => {
             label: 'Explosive Choice',
             description: 'Carries an authored effect.',
             attributes: undefined,
-            detail: undefined,
+            details: undefined,
             effects: [
                 {
                     id: 'option-effect-standalone-1',
@@ -291,7 +302,7 @@ describe('createOptionRepository', () => {
                             pathCode: 'ON_HIT',
                             selectionKind: 'FIXED',
                             resultBlock: {
-                                id: 'option-effect-direct-1__result',
+                                id: 'option-effect-direct-1',
                                 resultKind: 'SINGLE',
                                 outcomes: [
                                     {

@@ -25,7 +25,7 @@ describe('feat authoring helpers', () => {
       id: generatedId,
       label: '',
       description: '',
-      detail: '',
+      details: [],
       status: 'DRAFT',
       effects: [],
       features: [],
@@ -44,7 +44,7 @@ describe('feat authoring helpers', () => {
       ...feat,
       label: '  ',
       description: '',
-      detail: undefined,
+      details: undefined,
       effects: undefined,
       features: undefined,
       grants: {
@@ -65,7 +65,7 @@ describe('feat authoring helpers', () => {
 
     expect(normalized.label).toBe('Untitled Feat')
     expect(normalized.description).toBe('')
-    expect(normalized.detail).toBe('')
+    expect(normalized.details).toEqual([])
     expect(normalized.effects).toEqual([])
     expect(normalized.features).toEqual([])
     expect(normalized.grants?.feats).toHaveLength(1)

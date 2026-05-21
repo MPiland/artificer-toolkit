@@ -1,4 +1,4 @@
-import { ACTIVATION_CODE, ABILITY_CODE, AUTHORING_MODE_KIND, AUTHORING_SELECTION_KIND, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, EFFECT_KIND, GRANT_KIND, MEASUREMENT_UNIT_CODE, MODIFIER_KIND, MODIFIER_SCOPE_KIND, PROFICIENCY_KIND, RANGE_KIND, RACE_CATEGORY_CODE, RACE_SELECTION_MODE, SCALING, SCALING_AMOUNT_KIND, SCALING_SOURCE, SHAPE_KIND, SIZE_CODE, TRIGGER, VALUE_DOMAIN_CODE, type FeatureAuthored, type RaceAncestryAuthored, type RaceAuthored } from '@artificer-toolkit/shared';
+import { ACTIVATION_CODE, ABILITY_CODE, AUTHORING_MODE_KIND, AUTHORING_SELECTION_KIND, PATH_CODE, PATH_GROUP_TYPE, PATH_RESOLUTION_KIND, EFFECT_KIND, GRANT_KIND, MEASUREMENT_UNIT_CODE, MODIFIER_KIND, MODIFIER_SCOPE_KIND, PROFICIENCY_KIND, RANGE_KIND, RACE_CATEGORY_CODE, RACE_SELECTION_MODE, SAVING_THROW_DC_BONUS_KIND, SAVING_THROW_DC_METHOD, SCALING, SCALING_AMOUNT_KIND, SCALING_SOURCE, SHAPE_KIND, SIZE_CODE, TARGET_DISPOSITION_KIND, TRIGGER, VALUE_DOMAIN_CODE, type FeatureAuthored, type RaceAncestryAuthored, type RaceAuthored } from '@artificer-toolkit/shared';
 import { RACE_IDS } from '../ids.js';
 import { SRD_DAMAGE_TYPES, SRD_DRACONIC_HERITAGE_ID, SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js';
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
@@ -55,9 +55,20 @@ function dragonbornAncestryFeatures(optionIndex: number, config: DragonbornAnces
                         triggerCode: TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: ancestryFeatureId(optionIndex, 4),
-                            savingThrowKind: 'SOURCE_SAVE_DC',
+                            dcMethod: SAVING_THROW_DC_METHOD.DERIVED_DC,
                             ability: config.saveAbility,
-                            sourceAbility: ABILITY_CODE.CONSTITUTION
+                            baseDc: 8,
+                            bonuses: [
+                                {
+                                    id: ancestryFeatureId(optionIndex, 19),
+                                    bonusKind: SAVING_THROW_DC_BONUS_KIND.ABILITY_MODIFIER,
+                                    ability: ABILITY_CODE.CONSTITUTION
+                                },
+                                {
+                                    id: ancestryFeatureId(optionIndex, 20),
+                                    bonusKind: SAVING_THROW_DC_BONUS_KIND.PROFICIENCY_BONUS
+                                }
+                            ]
                         },
                         activation: {
                             code: ACTIVATION_CODE.ACTION,
@@ -68,7 +79,8 @@ function dragonbornAncestryFeatures(optionIndex: number, config: DragonbornAnces
                             rangeKind: RANGE_KIND.SELF
                         },
                         targeting: {
-                            selectionKind: 'AREA_CONTENTS'
+                            selectionKind: 'AREA_CONTENTS',
+                            dispositionKind: TARGET_DISPOSITION_KIND.ANY
                         },
                         shape: config.shapeKind === SHAPE_KIND.LINE
                             ? {

@@ -83,6 +83,7 @@ export function SpellDetailPage({
     viewActive
   })
   const actions = useAuthoredDetailActions({
+    deleteActive: api.content.spells.deleteActive,
     discard: api.content.spells.discardDraft,
     detailSubjectQueryKey: queryKeys.content.spells.detailRoot(spellId),
     domainLabel: 'Spell',
@@ -100,12 +101,23 @@ export function SpellDetailPage({
 
   if (detailState.mode === 'invalid-draft-only') {
     return (
-      <Stack>
-        <Alert color='yellow'>This spell draft cannot be previewed. Discard it to return to the spell list.</Alert>
-        <Button loading={actions.isDiscardingDraft} onClick={() => void actions.discardDraft({ backToList: true })}>
-          Discard draft
-        </Button>
-      </Stack>
+      <>
+        <Stack>
+          <Alert color='yellow'>This spell draft cannot be previewed. Delete it to return to the spell list.</Alert>
+          <Button
+            color='red'
+            loading={actions.isDeleting}
+            onClick={() => actions.deleteContent({
+              id: spellId,
+              kind: 'draft',
+              label: detailState.draft?.label ?? 'spell draft'
+            })}
+          >
+            Delete
+          </Button>
+        </Stack>
+        {actions.deleteConfirmation}
+      </>
     )
   }
 
@@ -130,36 +142,54 @@ export function SpellDetailPage({
       ? { label: 'View Draft', tone: 'secondary', onClick: () => navigate({ to: '/spells/$spellPublicId/$spellSlug', params: spellParams, search: { view: 'draft' } }) }
       : null,
     detailState.mode === 'active' && !detailState.draft && detailState.permissions.canCopy
-      ? { label: 'Duplicate', tone: 'secondary', disabled: actions.isDuplicating, onClick: () => void actions.duplicateToDraft() }
+      ? { label: 'Duplicate', tone: 'secondary', disabled: actions.isDuplicating, loading: actions.isDuplicating, onClick: () => void actions.duplicateToDraft() }
+      : null,
+    detailState.permissions.canDelete
+      ? {
+          label: 'Delete',
+          tone: 'danger',
+          disabled: actions.isDeleting,
+          loading: actions.isDeleting,
+          onClick: () => actions.deleteContent({
+            id: spellId,
+            kind: detailState.mode === 'draft' ? 'draft' : 'active',
+            label: item.label
+          })
+        }
       : null,
     { label: 'Create New', tone: 'quiet', onClick: () => navigate({ to: '/spells/new' }) }
   ])
 
   return (
-    <AuthoredDetailLayout
-      actions={pageActions}
-      afterFacts={<AuthoredDetailPillList label='Available For' items={getSpellClassLabels(item, references)} />}
-      facts={getSpellFacts(item, references)}
-      notice={buildAuthoredDetailNotice({
-        canViewActive: detailState.canViewActive,
-        domainLabel: 'Spell',
-        hasInvalidDraft: detailState.hasInvalidDraft,
-        isViewingActive: viewActive,
-        mode: detailState.mode,
-        onDiscard: () => void actions.discardDraft(),
-        onViewActive: () => navigate({ to: '/spells/$spellPublicId/$spellSlug', params: spellParams }),
-        onViewDraft: () => navigate({ to: '/spells/$spellPublicId/$spellSlug', params: spellParams, search: { view: 'draft' } })
-      })}
-      sections={getSpellSections(item)}
-      showSectionNav={false}
-      status={buildDetailStatusLabels({
-        draft: detailState.draft,
-        mode: detailState.mode,
-        provenance: detailState.provenance,
-        status: item.status
-      })}
-      title={item.label}
-    />
+    <>
+      <AuthoredDetailLayout
+        actions={pageActions}
+        actionsDisabled={actions.isDetailOperationPending}
+        afterFacts={<AuthoredDetailPillList label='Available For' items={getSpellClassLabels(item, references)} />}
+        facts={getSpellFacts(item, references)}
+        notice={buildAuthoredDetailNotice({
+          canViewActive: detailState.canViewActive,
+          domainLabel: 'Spell',
+          hasInvalidDraft: detailState.hasInvalidDraft,
+          isViewingActive: viewActive,
+          mode: detailState.mode,
+          onDiscard: () => void actions.discardDraft(),
+          onViewActive: () => navigate({ to: '/spells/$spellPublicId/$spellSlug', params: spellParams }),
+          onViewDraft: () => navigate({ to: '/spells/$spellPublicId/$spellSlug', params: spellParams, search: { view: 'draft' } })
+        })}
+        pendingOperation={actions.pendingOperation}
+        sections={getSpellSections(item)}
+        showSectionNav={false}
+        status={buildDetailStatusLabels({
+          draft: detailState.draft,
+          mode: detailState.mode,
+          provenance: detailState.provenance,
+          status: item.status
+        })}
+        title={item.label}
+      />
+      {actions.deleteConfirmation}
+    </>
   )
 }
 

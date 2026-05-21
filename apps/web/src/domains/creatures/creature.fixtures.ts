@@ -255,14 +255,14 @@ export const creatureListResponseFixture: CreatureListResponseDto = {
       permissions: ownedCreatureResponseFixture.permissions
     },
     {
-      id: masterCreatureResponseFixture.item.id,
+      id: masterCreatureResponseFixture.item!.id,
       publicId: masterCreatureResponseFixture.publicId,
-      label: masterCreatureResponseFixture.item.label,
-      description: masterCreatureResponseFixture.item.description,
+      label: masterCreatureResponseFixture.item!.label,
+      description: masterCreatureResponseFixture.item!.description,
       status: 'ACTIVE',
-      systemId: masterCreatureResponseFixture.item.systemId,
+      systemId: masterCreatureResponseFixture.item!.systemId,
       userId: 'master',
-      category: masterCreatureResponseFixture.item.category,
+      category: masterCreatureResponseFixture.item!.category,
       provenance: masterCreatureResponseFixture.provenance,
       permissions: masterCreatureResponseFixture.permissions
     }

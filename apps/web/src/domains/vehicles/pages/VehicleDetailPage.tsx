@@ -59,6 +59,7 @@ export function VehicleDetailPage({
     viewActive
   })
   const actions = useAuthoredDetailActions({
+    deleteActive: api.content.vehicles.deleteActive,
     discard: api.content.vehicles.discardDraft,
     detailSubjectQueryKey: queryKeys.content.vehicles.detailRoot(vehicleId),
     domainLabel: 'Vehicle',
@@ -76,12 +77,23 @@ export function VehicleDetailPage({
 
   if (detailState.mode === 'invalid-draft-only') {
     return (
-      <Stack>
-        <Alert color='yellow'>This vehicle draft cannot be previewed. Discard it to return to the vehicle list.</Alert>
-        <Button loading={actions.isDiscardingDraft} onClick={() => void actions.discardDraft({ backToList: true })}>
-          Discard draft
-        </Button>
-      </Stack>
+      <>
+        <Stack>
+          <Alert color='yellow'>This vehicle draft cannot be previewed. Delete it to return to the vehicle list.</Alert>
+          <Button
+            color='red'
+            loading={actions.isDeleting}
+            onClick={() => actions.deleteContent({
+              id: vehicleId,
+              kind: 'draft',
+              label: detailState.draft?.label ?? 'vehicle draft'
+            })}
+          >
+            Delete
+          </Button>
+        </Stack>
+        {actions.deleteConfirmation}
+      </>
     )
   }
 
@@ -106,35 +118,54 @@ export function VehicleDetailPage({
       ? { label: 'View Draft', tone: 'secondary', onClick: () => navigate({ to: '/vehicles/$vehiclePublicId/$vehicleSlug', params: vehicleParams, search: { view: 'draft' } }) }
       : null,
     detailState.mode === 'active' && !detailState.draft && detailState.permissions.canCopy
-      ? { label: 'Duplicate', tone: 'secondary', disabled: actions.isDuplicating, onClick: () => void actions.duplicateToDraft() }
+      ? { label: 'Duplicate', tone: 'secondary', disabled: actions.isDuplicating, loading: actions.isDuplicating, onClick: () => void actions.duplicateToDraft() }
+      : null,
+    detailState.permissions.canDelete
+      ? {
+          label: 'Delete',
+          tone: 'danger',
+          disabled: actions.isDeleting,
+          loading: actions.isDeleting,
+          onClick: () => actions.deleteContent({
+            id: vehicleId,
+            kind: detailState.mode === 'draft' ? 'draft' : 'active',
+            label: item.label
+          })
+        }
       : null,
     { label: 'Create New', tone: 'secondary', onClick: () => navigate({ to: '/vehicles/new' }) }
   ])
 
   return (
-    <AuthoredDetailLayout
-      actions={pageActions}
-      eyebrow='Vehicle'
-      facts={getVehicleFacts(item)}
-      notice={buildAuthoredDetailNotice({
-        canViewActive: detailState.canViewActive,
-        domainLabel: 'Vehicle',
-        hasInvalidDraft: detailState.hasInvalidDraft,
-        isViewingActive: viewActive,
-        mode: detailState.mode,
-        onDiscard: () => void actions.discardDraft(),
-        onViewActive: () => navigate({ to: '/vehicles/$vehiclePublicId/$vehicleSlug', params: vehicleParams }),
-        onViewDraft: () => navigate({ to: '/vehicles/$vehiclePublicId/$vehicleSlug', params: vehicleParams, search: { view: 'draft' } })
-      })}
-      sections={getVehicleSections(item, response?.meta?.currencies ?? [])}
-      status={buildDetailStatusLabels({
-        draft: detailState.draft,
-        mode: detailState.mode,
-        provenance: detailState.provenance,
-        status: item.status
-      })}
-      title={item.label}
-    />
+    <>
+      <AuthoredDetailLayout
+        actions={pageActions}
+        actionsDisabled={actions.isDetailOperationPending}
+        eyebrow='Vehicle'
+        facts={getVehicleFacts(item)}
+        notice={buildAuthoredDetailNotice({
+          canViewActive: detailState.canViewActive,
+          domainLabel: 'Vehicle',
+          hasInvalidDraft: detailState.hasInvalidDraft,
+          isViewingActive: viewActive,
+          mode: detailState.mode,
+          onDiscard: () => void actions.discardDraft(),
+          onViewActive: () => navigate({ to: '/vehicles/$vehiclePublicId/$vehicleSlug', params: vehicleParams }),
+          onViewDraft: () => navigate({ to: '/vehicles/$vehiclePublicId/$vehicleSlug', params: vehicleParams, search: { view: 'draft' } })
+        })}
+        pendingOperation={actions.pendingOperation}
+        sections={getVehicleSections(item, response?.meta?.currencies ?? [])}
+        showSectionNav={false}
+        status={buildDetailStatusLabels({
+          draft: detailState.draft,
+          mode: detailState.mode,
+          provenance: detailState.provenance,
+          status: item.status
+        })}
+        title={item.label}
+      />
+      {actions.deleteConfirmation}
+    </>
   )
 }
 

@@ -119,6 +119,7 @@ export const adultBronzeDragon: CreatureAuthored = {
                         },
                         targeting: {
                             selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -178,6 +179,7 @@ export const adultBronzeDragon: CreatureAuthored = {
                         },
                         targeting: {
                             selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -237,6 +239,7 @@ export const adultBronzeDragon: CreatureAuthored = {
                         },
                         targeting: {
                             selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                         }
                     },
                     paths: [
@@ -330,8 +333,9 @@ export const adultBronzeDragon: CreatureAuthored = {
                         triggerCode: S.TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: S.actionId(6, 29),
-                            savingThrowKind: 'SOURCE_SAVE_DC',
-                            ability: S.ABILITY_CODE.DEXTERITY
+                            dcMethod: 'FIXED_DC',
+                            ability: S.ABILITY_CODE.DEXTERITY,
+                            baseDc: 19
                         },
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,
@@ -403,8 +407,9 @@ export const adultBronzeDragon: CreatureAuthored = {
                         triggerCode: S.TRIGGER.SAVING_THROW,
                         savingThrow: {
                             id: S.actionId(6, 34),
-                            savingThrowKind: 'SOURCE_SAVE_DC',
-                            ability: S.ABILITY_CODE.STRENGTH
+                            dcMethod: 'FIXED_DC',
+                            ability: S.ABILITY_CODE.STRENGTH,
+                            baseDc: 19
                         },
                         activation: {
                             code: S.ACTIVATION_CODE.ACTION,

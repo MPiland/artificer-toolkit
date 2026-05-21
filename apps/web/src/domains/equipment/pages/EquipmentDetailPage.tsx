@@ -54,6 +54,7 @@ export function EquipmentDetailPage({
     viewActive
   })
   const actions = useAuthoredDetailActions({
+    deleteActive: api.content.equipment.deleteActive,
     discard: api.content.equipment.discardDraft,
     detailSubjectQueryKey: queryKeys.content.equipment.detailRoot(equipmentId),
     domainLabel: 'Equipment',
@@ -71,12 +72,23 @@ export function EquipmentDetailPage({
 
   if (detailState.mode === 'invalid-draft-only') {
     return (
-      <Stack>
-        <Alert color='yellow'>This equipment draft cannot be previewed. Discard it to return to the equipment list.</Alert>
-        <Button loading={actions.isDiscardingDraft} onClick={() => void actions.discardDraft({ backToList: true })}>
-          Discard draft
-        </Button>
-      </Stack>
+      <>
+        <Stack>
+          <Alert color='yellow'>This equipment draft cannot be previewed. Delete it to return to the equipment list.</Alert>
+          <Button
+            color='red'
+            loading={actions.isDeleting}
+            onClick={() => actions.deleteContent({
+              id: equipmentId,
+              kind: 'draft',
+              label: detailState.draft?.label ?? 'equipment draft'
+            })}
+          >
+            Delete
+          </Button>
+        </Stack>
+        {actions.deleteConfirmation}
+      </>
     )
   }
 
@@ -101,35 +113,54 @@ export function EquipmentDetailPage({
       ? { label: 'View Draft', tone: 'secondary', onClick: () => navigate({ to: '/equipment/$equipmentPublicId/$equipmentSlug', params: equipmentParams, search: { view: 'draft' } }) }
       : null,
     detailState.mode === 'active' && !detailState.draft && detailState.permissions.canCopy
-      ? { label: 'Duplicate', tone: 'secondary', disabled: actions.isDuplicating, onClick: () => void actions.duplicateToDraft() }
+      ? { label: 'Duplicate', tone: 'secondary', disabled: actions.isDuplicating, loading: actions.isDuplicating, onClick: () => void actions.duplicateToDraft() }
+      : null,
+    detailState.permissions.canDelete
+      ? {
+          label: 'Delete',
+          tone: 'danger',
+          disabled: actions.isDeleting,
+          loading: actions.isDeleting,
+          onClick: () => actions.deleteContent({
+            id: equipmentId,
+            kind: detailState.mode === 'draft' ? 'draft' : 'active',
+            label: item.label
+          })
+        }
       : null,
     { label: 'Create New', tone: 'secondary', onClick: () => navigate({ to: '/equipment/new' }) }
   ])
 
   return (
-    <AuthoredDetailLayout
-      actions={pageActions}
-      eyebrow='Equipment'
-      facts={getEquipmentFacts(item, references)}
-      notice={buildAuthoredDetailNotice({
-        canViewActive: detailState.canViewActive,
-        domainLabel: 'Equipment',
-        hasInvalidDraft: detailState.hasInvalidDraft,
-        isViewingActive: viewActive,
-        mode: detailState.mode,
-        onDiscard: () => void actions.discardDraft(),
-        onViewActive: () => navigate({ to: '/equipment/$equipmentPublicId/$equipmentSlug', params: equipmentParams }),
-        onViewDraft: () => navigate({ to: '/equipment/$equipmentPublicId/$equipmentSlug', params: equipmentParams, search: { view: 'draft' } })
-      })}
-      sections={getEquipmentSections(item, references)}
-      status={buildDetailStatusLabels({
-        draft: detailState.draft,
-        mode: detailState.mode,
-        provenance: detailState.provenance,
-        status: item.status
-      })}
-      title={item.label}
-    />
+    <>
+      <AuthoredDetailLayout
+        actions={pageActions}
+        actionsDisabled={actions.isDetailOperationPending}
+        eyebrow='Equipment'
+        facts={getEquipmentFacts(item, references)}
+        notice={buildAuthoredDetailNotice({
+          canViewActive: detailState.canViewActive,
+          domainLabel: 'Equipment',
+          hasInvalidDraft: detailState.hasInvalidDraft,
+          isViewingActive: viewActive,
+          mode: detailState.mode,
+          onDiscard: () => void actions.discardDraft(),
+          onViewActive: () => navigate({ to: '/equipment/$equipmentPublicId/$equipmentSlug', params: equipmentParams }),
+          onViewDraft: () => navigate({ to: '/equipment/$equipmentPublicId/$equipmentSlug', params: equipmentParams, search: { view: 'draft' } })
+        })}
+        pendingOperation={actions.pendingOperation}
+        sections={getEquipmentSections(item, references)}
+        showSectionNav={false}
+        status={buildDetailStatusLabels({
+          draft: detailState.draft,
+          mode: detailState.mode,
+          provenance: detailState.provenance,
+          status: item.status
+        })}
+        title={item.label}
+      />
+      {actions.deleteConfirmation}
+    </>
   )
 }
 

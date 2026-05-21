@@ -23,13 +23,17 @@ export const emptyCopy = style({
 export const row = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      gridTemplateColumns: 'minmax(0, 1fr) auto',
-      alignItems: 'center',
-      gap: foundationVars.space[3],
-      minHeight: '44px',
-      padding: `${foundationVars.space[2]} 0`,
-      borderBottom: `1px solid ${foundationVars.color.border.subtle}`
+      'display': 'grid',
+      'gridTemplateColumns': 'minmax(0, 1fr) auto',
+      'alignItems': 'center',
+      'gap': foundationVars.space[3],
+      'minHeight': '44px',
+      'padding': `${foundationVars.space[2]} 0`,
+      'borderBottom': `1px solid ${foundationVars.color.border.subtle}`,
+
+      ':last-child': {
+        borderBottom: 0
+      }
     }
   }
 })

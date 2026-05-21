@@ -6,6 +6,7 @@ import type {
   SenseGrantAuthored,
   SpellGrantAuthored,
   ChargeAuthored,
+  DetailAuthored,
   FacetAuthored
 } from '#authored'
 import type { FeatureAttribute, NodeSubjectCode } from '#core'
@@ -15,7 +16,7 @@ export interface FeatureBaseAuthored<N extends NodeSubjectCode = NodeSubjectCode
   label: string
   description: string
   attributes?: FeatureAttribute[]
-  detail?: string
+  details?: DetailAuthored[]
   effects?: EffectAuthored[]
   charges?: ChargeAuthored
   grants?: {
@@ -28,4 +29,3 @@ export interface FeatureBaseAuthored<N extends NodeSubjectCode = NodeSubjectCode
   restrictions?: FacetAuthored
   order: number // int
 }
-

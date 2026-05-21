@@ -14,7 +14,9 @@ export const EFFECT_NODE_MAP: EffectNodeMap = effect.define('effect', ({ map, no
   map
     .set('id', text(['id'], 'ID'))
     .set('order', number(['order'], 'Order'))
-    .set('invocation', groupObject(['invocation'], 'How It Starts', () => INVOCATION_NODE_MAP))
+    .set('invocation', groupObject(['invocation'], 'How It Starts', () => INVOCATION_NODE_MAP, {
+      requiredIf: true
+    }))
     .set('paths', groupArray(['paths'], 'Outcome Paths', () => PATH_NODE_MAP))
 })
 

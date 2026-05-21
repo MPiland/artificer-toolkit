@@ -575,7 +575,7 @@ const NON_MANIFEST_RESULT_BLOCK_NODE_MAP: NodeMap<ResultBlockAuthored<NonManifes
 })
 
 const CHOICE_OPTION_NODE_MAP: NodeMap<PathChoiceOptionAuthored> = choiceOption.define('choiceOption', ({ map, nodes }) => {
-  const { text, number, groupObject } = nodes
+  const { text, richText, number, groupObject } = nodes
 
   map
     .set('id', text(['id'], 'ID'))
@@ -585,7 +585,7 @@ const CHOICE_OPTION_NODE_MAP: NodeMap<PathChoiceOptionAuthored> = choiceOption.d
     .set('label', text(['label'], 'Label', {
       requiredIf: true
     }))
-    .set('description', text(['description'], 'Description', {
+    .set('description', richText(['description'], 'Description', {
       requiredIf: true
     }))
     .set('resultBlock', groupObject(['resultBlock'], 'Result', () => RESULT_BLOCK_NODE_MAP, {
@@ -594,7 +594,7 @@ const CHOICE_OPTION_NODE_MAP: NodeMap<PathChoiceOptionAuthored> = choiceOption.d
 })
 
 const NON_MANIFEST_CHOICE_OPTION_NODE_MAP: NodeMap<PathChoiceOptionAuthored<NonManifestOutcomeAuthored>> = nonManifestChoiceOption.define('nonManifestChoiceOption', ({ map, nodes }) => {
-  const { text, number, groupObject } = nodes
+  const { text, richText, number, groupObject } = nodes
 
   map
     .set('id', text(['id'], 'ID'))
@@ -604,7 +604,7 @@ const NON_MANIFEST_CHOICE_OPTION_NODE_MAP: NodeMap<PathChoiceOptionAuthored<NonM
     .set('label', text(['label'], 'Label', {
       requiredIf: true
     }))
-    .set('description', text(['description'], 'Description', {
+    .set('description', richText(['description'], 'Description', {
       requiredIf: true
     }))
     .set('resultBlock', groupObject(['resultBlock'], 'Result', () => NON_MANIFEST_RESULT_BLOCK_NODE_MAP, {

@@ -92,6 +92,19 @@ describe('node map inventory', () => {
     expect(registry.has('senseGrant')).toBe(true)
     expect(registry.has('spellGrant')).toBe(true)
   })
+
+  it('uses rich text controls for prose fields', () => {
+    const registry = collectNodeMaps(activeRootMaps)
+    const failures = [...registry.entries()].flatMap(([mapId, nodeMap]) => (
+      Object.entries(nodeMap.nodes)
+        .flatMap(([nodeId, node]) => {
+          if (node.kind !== 'INPUT' || !isProseField(node) || node.type === 'RICH_TEXT') return []
+          return [`${mapId}.${nodeId}:${node.type}`]
+        })
+    ))
+
+    expect(failures).toEqual([])
+  })
 })
 
 function collectNodeMaps(nodeMaps: readonly unknown[]): ReadonlyMap<string, RuntimeMap> {
@@ -117,4 +130,22 @@ function collectNodeMap(
     const childMap = typeof node.nodes === 'function' ? node.nodes() : node.nodes
     collectNodeMap(childMap, registry)
   }
+}
+
+const proseFieldKeys = new Set(['description', 'detail', 'quote'])
+
+function isProseField(node: RuntimeMap['nodes'][string]): boolean {
+  if (node.kind !== 'INPUT') return false
+
+  const lastPathSegment = node.path[node.path.length - 1]
+  if (typeof lastPathSegment !== 'string') return false
+
+  const pathKey = lastPathSegment.toLowerCase()
+  const labelKey = node.label.toLowerCase()
+
+  return proseFieldKeys.has(pathKey)
+    || pathKey.endsWith('description')
+    || pathKey.endsWith('detail')
+    || pathKey.endsWith('quote')
+    || proseFieldKeys.has(labelKey)
 }

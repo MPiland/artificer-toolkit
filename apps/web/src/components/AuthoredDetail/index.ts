@@ -57,6 +57,7 @@ export type {
   AuthoredDetailFact,
   AuthoredDetailNotice,
   AuthoredDetailNoticeTone,
+  AuthoredDetailPendingOperation,
   AuthoredDetailSectionModel
 } from './AuthoredDetail.types'
 export type {

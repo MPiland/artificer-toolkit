@@ -1,6 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
 import { pathToFileURL } from 'node:url'
 
+import { loadDbScriptEnv } from './loadScriptEnv.js'
+
+loadDbScriptEnv()
+
 export const DEFAULT_SEED_OWNER_EMAIL = 'artificertoolkit@gmail.com'
 const USERS_PER_PAGE = 1000
 
@@ -22,22 +26,27 @@ function requireSupabaseAdminEnv() {
   }
 }
 
-function createSeedOwnerPassword() {
-  return crypto.randomUUID() + crypto.randomUUID()
-}
-
-export async function ensureSeedOwnerUser() {
-  const email = process.env.SEED_OWNER_EMAIL ?? DEFAULT_SEED_OWNER_EMAIL
-  const normalizedEmail = email.toLowerCase()
+function createSupabaseAdminClient() {
   const { serviceRoleKey, url } = requireSupabaseAdminEnv()
-  const supabase = createClient(url, serviceRoleKey, {
+
+  return createClient(url, serviceRoleKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false
     }
   })
+}
 
+function createSeedOwnerPassword() {
+  return crypto.randomUUID() + crypto.randomUUID()
+}
+
+async function findUser(
+  predicate: (user: { id: string, email?: string }) => boolean
+) {
+  const supabase = createSupabaseAdminClient()
   let page = 1
+
   while (true) {
     const { data: existingUsers, error: listError } = await supabase.auth.admin.listUsers({
       page,
@@ -45,7 +54,7 @@ export async function ensureSeedOwnerUser() {
     })
     if (listError) throw listError
 
-    const existingUser = existingUsers.users.find((user) => user.email?.toLowerCase() === normalizedEmail)
+    const existingUser = existingUsers.users.find(predicate)
     if (existingUser) {
       return existingUser
     }
@@ -57,6 +66,23 @@ export async function ensureSeedOwnerUser() {
     page = existingUsers.nextPage
   }
 
+  return null
+}
+
+export async function findSeedOwnerUserById(userId: string) {
+  return findUser((user) => user.id === userId)
+}
+
+export async function ensureSeedOwnerUser() {
+  const email = process.env.SEED_OWNER_EMAIL ?? DEFAULT_SEED_OWNER_EMAIL
+  const normalizedEmail = email.toLowerCase()
+  const existingUser = await findUser((user) => user.email?.toLowerCase() === normalizedEmail)
+
+  if (existingUser) {
+    return existingUser
+  }
+
+  const supabase = createSupabaseAdminClient()
   const { data, error } = await supabase.auth.admin.createUser({
     email,
     email_confirm: true,

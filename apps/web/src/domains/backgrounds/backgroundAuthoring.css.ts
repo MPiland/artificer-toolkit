@@ -14,12 +14,12 @@ export const contentWide = style({
 export const singleField = style({
   '@layer': {
     [app]: {
-      width: 'min(100%, 240px)'
-    }
-  },
-  '@media': {
-    [mobile]: {
-      width: '100%'
+      'width': 'min(100%, 240px)',
+      '@media': {
+        [mobile]: {
+          width: '100%'
+        }
+      }
     }
   }
 })

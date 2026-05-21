@@ -61,6 +61,7 @@ export interface ClassSpellLimitsAuthored {
 
 export interface ClassSpellcastingAuthored {
   spellLimits: ClassSpellLimitsAuthored[]
+  details?: DetailAuthored[]
   magicName?: string
   ability?: AbilityCode
   maxSpellLevel: number // int

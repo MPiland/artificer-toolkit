@@ -10,7 +10,10 @@ import {
 } from '#app/routing/authoredRouteHandles'
 import { resolveAuthoredRouteSubjectId } from '#app/routing/authoredRouteSubjectId'
 import { buildRaceRouteParams } from '#app/routing/authoredRouteParams'
-import { validateAuthoredDetailSearch } from '#app/routing/authoredDetailSearch'
+import {
+  resolveAuthoredDetailView,
+  validateAuthoredDetailSearch
+} from '#app/routing/authoredDetailSearch'
 
 const raceDetailMeta = ['heritages', 'races', 'speeds']
 
@@ -26,7 +29,7 @@ export const Route = createFileRoute('/_authed/races/$racePublicId/$raceSlug')({
       queryClient: context.queryClient,
       subjectKind: 'RACE'
     })
-    const view = search.view ?? 'active'
+    const view = resolveAuthoredDetailView(search, location.pathname)
     const response = await ensureOptionalActiveContent(context.queryClient, getRace({
       id: raceId,
       includeDraft: true,

@@ -5,18 +5,16 @@ import { foundationVars } from '#css/foundations.css'
 
 const editorBorder = `1px solid ${foundationVars.color.border.strong}`
 
-export const editor_container = style({
+export const editorRoot = style({
   '@layer': {
     [app]: {
-      'overflow': 'hidden',
-      'resize': 'vertical',
-      'backgroundColor': 'transparent',
       'display': 'flex',
       'flexDirection': 'column',
-      'width': '100%',
-
+      'minHeight': '10rem',
+      'overflow': 'auto',
+      'resize': 'vertical',
       '@media': {
-        'screen and (max-width: 1024px)': {
+        'screen and (max-width: 760px)': {
           resize: 'none'
         }
       }
@@ -24,86 +22,134 @@ export const editor_container = style({
   }
 })
 
-export const editor_menu_bar = style({
+export const editorLabel = style({
   '@layer': {
     [app]: {
-      display: 'flex',
-      width: '100%',
-      minHeight: '3rem',
-      flexWrap: 'wrap',
-      height: 'fit-content'
+      color: foundationVars.color.text.primary,
+      fontSize: foundationVars.typography.label.fontSize,
+      fontWeight: foundationVars.fontWeight.medium,
+      lineHeight: foundationVars.typography.label.lineHeight
     }
   }
 })
 
-export const editor_content_container = style({
+export const editorRequired = style({
   '@layer': {
     [app]: {
-      position: 'relative',
-      padding: `0 ${size['size-4']}`,
-      maxHeight: '12rem',
+      color: foundationVars.color.input.border.error
+    }
+  }
+})
+
+export const editorToolbar = style({
+  '@layer': {
+    [app]: {
+      gap: foundationVars.space[1]
+    }
+  }
+})
+
+export const editorContent = style({
+  '@layer': {
+    [app]: {
       display: 'flex',
-      flexDirection: 'column',
+      flex: 1,
       minHeight: '6rem'
     }
   }
 })
 
-export const editor_content = style({
+globalStyle(`${editorContent} .ProseMirror`, {
   '@layer': {
     [app]: {
-      outline: 'none',
-      height: '100%',
       flex: 1,
-      padding: '1rem 0'
+      minHeight: '4.5rem'
     }
   }
 })
 
-export const editor_button_group = style({
+globalStyle(`${editorContent} .ProseMirror table`, {
   '@layer': {
     [app]: {
-      margin: '.5rem .5rem',
-      display: 'inline-flex'
+      borderCollapse: 'collapse',
+      margin: `${size['size-3']} 0`,
+      overflow: 'hidden',
+      tableLayout: 'fixed'
     }
   }
 })
 
-export const editor_button = style({
+globalStyle(`${editorContent} .tableWrapper > table`, {
   '@layer': {
     [app]: {
-      padding: '0 .25rem',
-      width: '1.875rem',
-      display: 'flex',
-      alignItems: 'center',
-      border: editorBorder,
-      cursor: 'pointer',
+      width: '100%'
+    }
+  }
+})
 
-      selectors: {
-        [`${editor_button_group} > &:first-of-type`]: {
-          borderTopLeftRadius: foundationVars.radius.lg,
-          borderBottomLeftRadius: foundationVars.radius.lg
-        },
-        [`${editor_button_group} > &:last-of-type`]: {
-          borderTopRightRadius: foundationVars.radius.lg,
-          borderBottomRightRadius: foundationVars.radius.lg
-        },
-        '&.active': {
-          filter: 'invert(1)'
+globalStyle(`${editorContent} table .selectedCell:after`, {
+  '@layer': {
+    [app]: {
+      background: 'rgba(200, 200, 255, 0.4)',
+      content: '',
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
+      pointerEvents: 'none',
+      position: 'absolute',
+      zIndex: 2
+    }
+  }
+})
+
+globalStyle(`${editorContent} .resize-cursor`, {
+  '@layer': {
+    [app]: {
+      cursor: ['ew-resize', 'col-resize'],
+      zIndex: '10'
+    }
+  }
+})
+
+export const editorControl = style({
+  '@layer': {
+    [app]: {
+      'minWidth': '32px',
+      'minHeight': '32px',
+      '@media': {
+        'screen and (max-width: 760px)': {
+          minWidth: '44px',
+          minHeight: '44px'
         }
       }
     }
   }
 })
 
-export const editor_blockquote = style({
+export const editorControlIcon = style({
   '@layer': {
     [app]: {
-      borderRadius: foundationVars.radius.lg,
-      border: editorBorder,
-      marginLeft: size['size-3'],
-      marginTop: size['size-3'],
-      padding: size['size-1']
+      width: '1rem',
+      height: '1rem'
+    }
+  }
+})
+
+export const editorControlsGroup = style({
+  '@layer': {
+    [app]: {
+      gap: 0
+    }
+  }
+})
+
+export const editorTypography = style({
+  '@layer': {
+    [app]: {
+      display: 'flex',
+      flex: 1,
+      minHeight: 0
     }
   }
 })
@@ -135,6 +181,14 @@ export const editor_table_th = style({
   }
 })
 
+globalStyle(`${editor_table_th} > p`, {
+  '@layer': {
+    [app]: {
+      width: 'fit-content'
+    }
+  }
+})
+
 export const editor_table_td = style({
   '@layer': {
     [app]: {
@@ -146,93 +200,3 @@ export const editor_table_td = style({
     }
   }
 })
-
-globalStyle(`${editor_table_th} > p`, {
-  '@layer': {
-    [app]: {
-      width: 'fit-content'
-    }
-  }
-})
-
-globalStyle('.tableWrapper > table', {
-  '@layer': {
-    [app]: {
-      width: '100%'
-    }
-  }
-})
-
-globalStyle(`${editor_button} > svg`, {
-  '@layer': {
-    [app]: {
-      width: '100%',
-      height: 'auto'
-    }
-  }
-})
-
-globalStyle('.ProseMirror table', {
-  '@layer': {
-    [app]: {
-      borderCollapse: 'collapse',
-      margin: `${size['size-3']} 0`,
-      overflow: 'hidden',
-      tableLayout: 'fixed'
-    }
-  }
-})
-
-globalStyle('table .selectedCell:after', {
-  '@layer': {
-    [app]: {
-      background: 'rgba(200, 200, 255, 0.4)',
-      content: '',
-      left: 0,
-      right: 0,
-      top: 0,
-      bottom: 0,
-      pointerEvents: 'none',
-      position: 'absolute',
-      zIndex: 2
-    }
-  }
-})
-
-globalStyle('.resize-cursor', {
-  '@layer': {
-    [app]: {
-      cursor: ['ew-resize', 'col-resize'],
-      zIndex: '10'
-    }
-  }
-})
-
-globalStyle('.mantine-RichTextEditor-control', {
-  '@layer': {
-    [app]: {
-      minWidth: '32px',
-      minHeight: '32px'
-    }
-  },
-  '@media': {
-    'screen and (max-width: 760px)': {
-      '@layer': {
-        [app]: {
-          minWidth: '44px',
-          minHeight: '44px'
-        }
-      }
-    }
-  }
-})
-
-globalStyle('.mantine-RichTextEditor-toolbar', {
-  '@layer': {
-    [app]: {
-      gap: foundationVars.space[1]
-    }
-  }
-})
-
-globalStyle(`${editor_content} blockquote`, {})

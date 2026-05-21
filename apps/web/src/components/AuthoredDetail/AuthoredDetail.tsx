@@ -1,4 +1,4 @@
-import { Button, Group, Text, Title } from '@mantine/core'
+import { Button, Group, Loader, Modal, Stack, Text, Title } from '@mantine/core'
 import clsx from 'clsx'
 import type { CSSProperties, ReactNode } from 'react'
 import * as styles from './AuthoredDetail.css'
@@ -6,17 +6,20 @@ import type {
   AuthoredDetailAction,
   AuthoredDetailFact,
   AuthoredDetailNotice,
+  AuthoredDetailPendingOperation,
   AuthoredDetailSectionModel
 } from './AuthoredDetail.types'
 import { renderSanitizedRichHtml } from '#app/ui/primitives/renderSanitizedRichHtml'
 
 interface AuthoredDetailLayoutProps {
   actions?: AuthoredDetailAction[]
+  actionsDisabled?: boolean
   afterFacts?: ReactNode
   description?: string
   eyebrow?: string
   facts: AuthoredDetailFact[]
   notice?: AuthoredDetailNotice
+  pendingOperation?: AuthoredDetailPendingOperation | null
   sections: AuthoredDetailSectionModel[]
   showSectionNav?: boolean
   status: string[]
@@ -61,11 +64,13 @@ interface AuthoredDetailPillListProps {
 
 export function AuthoredDetailLayout({
   actions = [],
+  actionsDisabled = false,
   afterFacts,
   description,
   eyebrow,
   facts,
   notice,
+  pendingOperation,
   sections,
   showSectionNav = true,
   status,
@@ -76,7 +81,25 @@ export function AuthoredDetailLayout({
   const shouldShowSectionNav = showSectionNav && sections.length > 0
 
   return (
-    <article className={styles.layout}>
+    <article className={styles.layout} aria-busy={pendingOperation ? true : undefined}>
+      <Modal
+        centered
+        closeOnClickOutside={false}
+        closeOnEscape={false}
+        opened={Boolean(pendingOperation)}
+        title={pendingOperation?.title ?? 'Working'}
+        withCloseButton={false}
+        onClose={() => undefined}
+      >
+        {pendingOperation
+          ? (
+              <Stack align='center' gap='md'>
+                <Loader size='sm' />
+                <Text ta='center' size='sm'>{pendingOperation.body}</Text>
+              </Stack>
+            )
+          : null}
+      </Modal>
       <header className={styles.hero}>
         {hasStatus || hasActions
           ? (
@@ -97,10 +120,12 @@ export function AuthoredDetailLayout({
                       <div className={styles.actionBar}>
                         {actions.map((action) => (
                           <Button
+                            className={action.tone === 'danger' ? styles.dangerActionButton : undefined}
                             key={action.label}
-                            disabled={action.disabled}
+                            disabled={actionsDisabled || action.disabled}
+                            loading={action.loading}
                             size='sm'
-                            variant={action.tone === 'primary' ? 'filled' : action.tone === 'quiet' ? 'subtle' : 'light'}
+                            variant={action.tone === 'primary' ? 'filled' : action.tone === 'quiet' ? 'subtle' : action.tone === 'danger' ? 'default' : 'light'}
                             onClick={action.onClick}
                           >
                             {action.label}
@@ -131,8 +156,11 @@ export function AuthoredDetailLayout({
               {notice.action
                 ? (
                     <Button
+                      className={notice.action.tone === 'danger' ? styles.dangerActionButton : undefined}
+                      disabled={actionsDisabled || notice.action.disabled}
+                      loading={notice.action.loading}
                       size='sm'
-                      variant={notice.action.tone === 'primary' ? 'filled' : notice.action.tone === 'quiet' ? 'subtle' : 'light'}
+                      variant={notice.action.tone === 'primary' ? 'filled' : notice.action.tone === 'quiet' ? 'subtle' : notice.action.tone === 'danger' ? 'default' : 'light'}
                       onClick={notice.action.onClick}
                     >
                       {notice.action.label}

@@ -25,6 +25,7 @@ import {
   type AuthoringFormActionHandlers,
   type AuthoringFormRegistration
 } from '#forms'
+import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
 import { parseAuthoredDraftPayload } from '#app/data/authoredDrafts'
 import {
   useActivateClassMutation,
@@ -32,6 +33,8 @@ import {
   useDuplicateClassMutation,
   useSaveClassDraftMutation
 } from '#app/data/classes/mutations'
+import { api } from '#app/lib/api'
+import { queryKeys } from '#app/lib/queryKeys'
 import { buildClassRouteParams } from '#app/routing/authoredRouteParams'
 import {
   normalizeClassForSubmit,
@@ -102,6 +105,7 @@ function ClassEditAuthoring({
   hasInvalidDraft: boolean
   permissions?: {
     canCopy: boolean
+    canDelete: boolean
     canEdit: boolean
   }
   classRecord: ClassAuthoringInputDto | ClassAuthoredDto
@@ -119,6 +123,20 @@ function ClassEditAuthoring({
     hasActiveClass: Boolean(activeClass)
   })
   const canCopy = Boolean(permissions?.canCopy && classId)
+  const canDelete = !readOnly && Boolean(draft || permissions?.canDelete)
+  const {
+    confirmation: deleteConfirmation,
+    isDeleting,
+    requestDelete
+  } = useAuthoredDeleteAction({
+    deleteActive: api.content.classes.deleteActive,
+    deleteDraft: api.content.classes.discardDraft,
+    detailSubjectQueryKey: queryKeys.content.classes.detailRoot(classId),
+    domainLabel: 'Class',
+    domainQueryKey: queryKeys.content.classes.all(),
+    draftQueryKey: queryKeys.content.classes.draft(classId),
+    onDeleted: async () => navigate({ to: '/classes' })
+  })
 
   const handleCancel = useCallback(async () => {
     await navigate({ to: '/classes' })
@@ -216,11 +234,26 @@ function ClassEditAuthoring({
     router
   ])
 
+  const handleDelete = useCallback(() => {
+    requestDelete({
+      id: classId,
+      kind: draft ? 'draft' : 'active',
+      label: formValues.label || 'Untitled Class'
+    })
+  }, [
+    classId,
+    draft,
+    formValues.label,
+    requestDelete
+  ])
+
   const registration = useMemo<AuthoringFormRegistration>(() => ({
     activateLabel: 'Activate Class',
+    canDelete,
     canCopy,
     canSaveDraft: !readOnly,
     hasActiveDraft: Boolean(draft && activeClass),
+    isDraft: Boolean(draft),
     mapId: 'class',
     mode: readOnly ? 'view' : 'edit',
     readOnly,
@@ -228,13 +261,16 @@ function ClassEditAuthoring({
     saveDraftLabel: 'Save Draft',
     subjectKindLabel: 'Class',
     subjectLabel: formValues.label || 'Untitled Class',
-    systemId: formValues.systemId
+    systemId: formValues.systemId,
+    isDeleting
   }), [
     activeClass,
+    canDelete,
     canCopy,
     draft,
     formValues.label,
     formValues.systemId,
+    isDeleting,
     readOnly
   ])
 
@@ -243,12 +279,15 @@ function ClassEditAuthoring({
     onCancel: handleCancel,
     onClearPaths: (paths) => clearResolvedNodeFormPaths(form, paths),
     onCopy: canCopy ? handleCopy : undefined,
+    onDelete: canDelete ? handleDelete : undefined,
     onSaveDraft: readOnly ? undefined : handleSaveDraft
   }), [
+    canDelete,
     canCopy,
     form,
     handleCancel,
     handleCopy,
+    handleDelete,
     handleSaveDraft,
     readOnly
   ])
@@ -270,6 +309,7 @@ function ClassEditAuthoring({
         <AuthoringFormLayout>
           <ClassAuthoringRenderer form={form} />
         </AuthoringFormLayout>
+        {deleteConfirmation}
       </Stack>
     </form.AppForm>
   )

@@ -9,7 +9,10 @@ import {
 } from '#app/routing/authoredRouteHandles'
 import { resolveAuthoredRouteSubjectId } from '#app/routing/authoredRouteSubjectId'
 import { buildSpellRouteParams } from '#app/routing/authoredRouteParams'
-import { validateAuthoredDetailSearch } from '#app/routing/authoredDetailSearch'
+import {
+  resolveAuthoredDetailView,
+  validateAuthoredDetailSearch
+} from '#app/routing/authoredDetailSearch'
 import { queryKeys } from '#app/lib/queryKeys'
 
 const spellDetailMeta = ['classes', 'conditionTypes', 'damageTypes', 'magicSchools']
@@ -26,7 +29,7 @@ export const Route = createFileRoute('/_authed/spells/$spellPublicId/$spellSlug'
       queryClient: context.queryClient,
       subjectKind: 'SPELL'
     })
-    const view = search.view ?? 'active'
+    const view = resolveAuthoredDetailView(search, location.pathname)
     const response = await ensureOptionalActiveContent(context.queryClient, getSpell({
       id: spellId,
       includeDraft: true,

@@ -77,10 +77,15 @@ export const acolyte: BackgroundAuthored = {
       id: bgId(1, 2, 1),
       label: 'Shelter of the Faithful',
       description: '<p>As an acolyte, you command the respect of those who share your faith and can perform the religious ceremonies of your deity.</p>',
-      detail: [
-        '<p>You and your adventuring companions can expect free healing and care at a temple, shrine, or other established presence of your faith, though you must provide any material components needed for spells. Those who share your religion will support you, but only you, at a modest lifestyle.</p>',
-        '<p>You might also have ties to a specific temple dedicated to your chosen deity or pantheon, and you have a residence there. While near your temple, you can call upon the priests for assistance, provided the request is not hazardous and you remain in good standing.</p>'
-      ].join(''),
+      details: [{
+        id: bgId(1, 2, 2),
+        label: 'Detail',
+        description: [
+          '<p>You and your adventuring companions can expect free healing and care at a temple, shrine, or other established presence of your faith, though you must provide any material components needed for spells. Those who share your religion will support you, but only you, at a modest lifestyle.</p>',
+          '<p>You might also have ties to a specific temple dedicated to your chosen deity or pantheon, and you have a residence there. While near your temple, you can call upon the priests for assistance, provided the request is not hazardous and you remain in good standing.</p>'
+        ].join(''),
+        order: 1
+      }],
       order: 0
     }
   ],

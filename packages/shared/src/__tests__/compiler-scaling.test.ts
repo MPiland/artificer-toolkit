@@ -972,9 +972,9 @@ describe('shared compiler scaling', () => {
                 triggerCode: TRIGGER.SAVING_THROW,
                 savingThrow: {
                     id: 'dw-save',
-                    savingThrowKind: 'FIXED_VALUE',
+                    dcMethod: 'FIXED_DC',
                     ability: 'WISDOM',
-                    dc: 14
+                    baseDc: 14
                 },
                 activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
                 range: {

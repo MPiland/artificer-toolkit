@@ -41,6 +41,7 @@ function CharacterSheetInventoryItemRow({
       </div>
       <div className={styles.compactActions}>
         <Button
+          className={styles.compactActionControl}
           aria-label={`Decrease ${item.label} quantity`}
           disabled={pending || item.quantity <= 0}
           size='xs'
@@ -55,6 +56,7 @@ function CharacterSheetInventoryItemRow({
           -1
         </Button>
         <Button
+          className={styles.compactActionControl}
           aria-label={`Increase ${item.label} quantity`}
           disabled={pending}
           size='xs'
@@ -69,6 +71,7 @@ function CharacterSheetInventoryItemRow({
           +1
         </Button>
         <Button
+          className={styles.compactActionControl}
           aria-label={`${item.equipped ? 'Unequip' : 'Equip'} ${item.label}`}
           disabled={pending}
           size='xs'
@@ -82,6 +85,7 @@ function CharacterSheetInventoryItemRow({
           {item.equipped ? 'Unequip' : 'Equip'}
         </Button>
         <Button
+          className={styles.compactActionControl}
           aria-label={`${item.attuned ? 'Unattune' : 'Attune'} ${item.label}`}
           disabled={pending}
           size='xs'
@@ -95,6 +99,7 @@ function CharacterSheetInventoryItemRow({
           {item.attuned ? 'Unattune' : 'Attune'}
         </Button>
         <Button
+          className={styles.compactActionControl}
           aria-label={`Edit ${item.label} details`}
           disabled={pending}
           size='xs'
@@ -104,6 +109,7 @@ function CharacterSheetInventoryItemRow({
           Details
         </Button>
         <Button
+          className={styles.compactActionControl}
           aria-label={`Remove ${item.label}`}
           disabled={pending}
           size='xs'
@@ -139,6 +145,7 @@ function CharacterSheetInventoryItemRow({
           />
           <div className={styles.compactActions}>
             <Button
+              className={styles.compactActionControl}
               disabled={pending}
               size='xs'
               onClick={() => submitCommand({
@@ -180,6 +187,7 @@ export function CharacterSheetInventory({
 
       <div className={styles.hpControls}>
         <Select
+          classNames={{ input: styles.hpControlTarget }}
           data={sheet.reference.equipmentOptions.map((option) => ({
             value: option.id,
             label: option.label
@@ -192,6 +200,7 @@ export function CharacterSheetInventory({
           onChange={setEquipmentId}
         />
         <NumberInput
+          classNames={{ input: styles.hpControlTarget }}
           disabled={pending}
           label='Quantity'
           min={1}
@@ -199,6 +208,7 @@ export function CharacterSheetInventory({
           onChange={(value) => setQuantity(Math.max(toNumber(value), 1))}
         />
         <Button
+          className={styles.hpControlTarget}
           disabled={pending || !equipmentId}
           onClick={() => {
             if (!equipmentId) return
@@ -240,6 +250,7 @@ export function CharacterSheetInventory({
                 </div>
                 <div className={styles.compactActions}>
                   <Button
+                    className={styles.compactActionControl}
                     disabled={pending}
                     size='xs'
                     variant='default'
@@ -254,6 +265,7 @@ export function CharacterSheetInventory({
                     -1
                   </Button>
                   <Button
+                    className={styles.compactActionControl}
                     disabled={pending}
                     size='xs'
                     onClick={() => submitCommand({
@@ -274,6 +286,7 @@ export function CharacterSheetInventory({
 
       <div className={styles.hpControls}>
         <Select
+          classNames={{ input: styles.hpControlTarget }}
           data={sheet.reference.currencyOptions.map((option) => ({
             value: option.id,
             label: option.label
@@ -286,12 +299,14 @@ export function CharacterSheetInventory({
           onChange={setCurrencyId}
         />
         <NumberInput
+          classNames={{ input: styles.hpControlTarget }}
           disabled={pending}
           label='Amount'
           value={currencyAmount}
           onChange={(value) => setCurrencyAmount(toNumber(value))}
         />
         <Button
+          className={styles.hpControlTarget}
           disabled={pending || !currencyId || currencyAmount === 0}
           variant='default'
           onClick={() => {

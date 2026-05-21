@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import '#css/foundations.css'
-import mantineStyles from '#css/main.css?url'
+import layers from '#css/main.css?url'
 import mantineNotificationStyles from '@mantine/notifications/styles.layer.css?url'
 import mantineLayers from '@mantine/core/styles.layer.css?url'
 import mantineTiptapStyles from '@mantine/tiptap/styles.layer.css?url'
@@ -39,9 +39,9 @@ export const Route = createRootRouteWithContext<AppRouterContext>()({
       }
     ],
     links: [
-      { rel: 'stylesheet', href: mantineStyles },
-      { rel: 'stylesheet', href: mantineNotificationStyles },
+      { rel: 'stylesheet', href: layers },
       { rel: 'stylesheet', href: mantineLayers },
+      { rel: 'stylesheet', href: mantineNotificationStyles },
       { rel: 'stylesheet', href: mantineTiptapStyles }
     ]
   }),

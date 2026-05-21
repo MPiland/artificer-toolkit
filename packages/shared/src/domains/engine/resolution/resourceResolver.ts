@@ -2,6 +2,7 @@ import type { EngineResource } from '../contracts/engineState.js'
 import type { RulesSystem } from '../contracts/rulesSystem.js'
 import type { CharacterAssemblyRegistry } from '../registry.js'
 import type { CharacterBuildSnapshot } from '../snapshot.js'
+import type { EngineAccumulatedState } from './grantApplicator.js'
 import { resolveCompiledChargeMaximum } from '../../shared/compilers/charge.js'
 
 /**
@@ -11,7 +12,8 @@ import { resolveCompiledChargeMaximum } from '../../shared/compilers/charge.js'
 export function resolveResources(
   snapshot: CharacterBuildSnapshot,
   registry: CharacterAssemblyRegistry,
-  rules: RulesSystem
+  rules: RulesSystem,
+  modifierEntries: EngineAccumulatedState['modifierEntries'] = []
 ): EngineResource[] {
   const out: EngineResource[] = []
   const proficiencyBonus = rules.proficiencyBonus(Math.max(snapshot.totalLevel, 1))
@@ -31,14 +33,75 @@ export function resolveResources(
 
     out.push({
       resourceId: resource.id,
-      label: resource.id,
+      label: resource.label,
       maxCount,
-      rechargeOn: mapResetKind(resource.charges.resetKind),
+      rechargeOn: mapResetKind(resolveResourceResetKind(resource.charges.resetKind, resource.id, modifierEntries)),
       sourceFeatureId: cls.classId
     })
   }
 
   return out
+}
+
+type ChargeResetModifierGrant = {
+  valueDomainCode?: string
+  modifierKind?: string
+  payload?: {
+    resetKind?: string
+  }
+  restrictions?: {
+    groups?: Array<{
+      contexts?: Array<{
+        subject?: string
+        resourceIds?: string[]
+        conditions?: Array<{
+          resourceIds?: string[]
+        }>
+      }>
+    }>
+  }
+}
+
+export function resolveResourceResetKind(
+  baseResetKind: string,
+  resourceId: string,
+  modifierEntries: EngineAccumulatedState['modifierEntries']
+): string {
+  let resetKind = baseResetKind
+
+  for (const entry of modifierEntries) {
+    const grant = entry.grant as ChargeResetModifierGrant
+    if (grant.valueDomainCode !== 'CHARGE_RESET') continue
+    if (grant.modifierKind !== 'REPLACE_CHARGE_RESET_KIND') continue
+    if (!grant.payload?.resetKind) continue
+    if (!targetsResource(grant, resourceId)) continue
+
+    resetKind = grant.payload.resetKind
+  }
+
+  return resetKind
+}
+
+function targetsResource(
+  grant: ChargeResetModifierGrant,
+  resourceId: string
+): boolean {
+  let hasResourceScope = false
+
+  for (const group of grant.restrictions?.groups ?? []) {
+    for (const context of group.contexts ?? []) {
+      if (context.subject !== 'RESOURCE') continue
+
+      hasResourceScope = true
+      if (context.resourceIds?.includes(resourceId)) return true
+
+      for (const condition of context.conditions ?? []) {
+        if (condition.resourceIds?.includes(resourceId)) return true
+      }
+    }
+  }
+
+  return !hasResourceScope
 }
 
 function mapResetKind(resetKind: string): EngineResource['rechargeOn'] {

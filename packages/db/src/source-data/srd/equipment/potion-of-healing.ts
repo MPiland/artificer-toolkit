@@ -4,9 +4,9 @@ export const potionOfHealing: EquipmentAuthored = {
     kind: S.SUBJECT.EQUIPMENT,
     id: S.equipId(164),
     label: 'Potion of Healing',
-    description: "A vial of red liquid that restores 2d4+2 hit points when consumed.",
+    description: "A character who drinks the magical red fluid in this vial regains 2d4 + 2 hit points. Drinking or administering a potion takes an action.",
     category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
-    properties: [],
+    properties: [S.EQUIPMENT_PROPERTY_CODE.POTION, S.EQUIPMENT_PROPERTY_CODE.VIAL],
     effects: [
         {
             id: S.equipmentChildId(S.equipId(164), 0x210, 1),
@@ -22,7 +22,8 @@ export const potionOfHealing: EquipmentAuthored = {
                     rangeKind: S.RANGE_KIND.TOUCH
                 },
                 targeting: {
-                    selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                    selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                    dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                 }
             },
             paths: [

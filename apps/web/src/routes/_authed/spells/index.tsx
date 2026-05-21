@@ -2,6 +2,7 @@ import { notifications } from '@mantine/notifications'
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { AuthoredListPage } from '#components/AuthoredList'
+import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
 import { mapDraftSummariesToAuthoredItems } from '#app/data/authoredListDrafts'
 import { createServerApi } from '#lib/api'
 import { getSpell, getSpellList } from '#app/data/spells/queries'
@@ -50,43 +51,59 @@ function SpellsRoute() {
       })
     }
   })
+  const deleteAction = useAuthoredDeleteAction({
+    deleteActive: api.content.spells.deleteActive,
+    deleteDraft: api.content.spells.discardDraft,
+    detailSubjectQueryKey: queryKeys.content.spells.detailRoot,
+    domainLabel: 'Spell',
+    domainQueryKey: queryKeys.content.spells.all(),
+    draftQueryKey: queryKeys.content.spells.draft
+  })
   const spellMeta = data.meta as { schools?: Array<{ id: string | number, label?: string }> }
 
   return (
-    <AuthoredListPage
-      title='Spells'
-      summary={summarizeSpellList(data)}
-      createLabel='Create Spell'
-      items={mapSpellListToAuthoredItems(data)}
-      draftItems={mapDraftSummariesToAuthoredItems(data.drafts, {
-        formatSchool: (schoolId) => {
-          if (!schoolId) return undefined
-          const school = (spellMeta.schools ?? []).find((entry) => String(entry.id) === schoolId)
-          return school?.label ?? schoolId
-        }
-      })}
-      filters={buildSpellListFilters(data)}
-      attributeColumns={spellListAttributeColumns}
-      sortOptions={spellListSortOptions}
-      onCreate={() => navigate({ to: '/spells/new' })}
-      onView={(item) => navigate({
-        params: buildSpellRouteParams(item.publicId, item.name),
-        search: authoredDetailSearchFor(item.contentState === 'draft' ? 'draft' : 'active'),
-        to: '/spells/$spellPublicId/$spellSlug'
-      })}
-      onViewIntent={(item) => {
-        void queryClient.prefetchQuery(getSpell({
+    <>
+      <AuthoredListPage
+        title='Spells'
+        summary={summarizeSpellList(data)}
+        createLabel='Create Spell'
+        items={mapSpellListToAuthoredItems(data)}
+        draftItems={mapDraftSummariesToAuthoredItems(data.drafts, {
+          formatSchool: (schoolId) => {
+            if (!schoolId) return undefined
+            const school = (spellMeta.schools ?? []).find((entry) => String(entry.id) === schoolId)
+            return school?.label ?? schoolId
+          }
+        })}
+        filters={buildSpellListFilters(data)}
+        attributeColumns={spellListAttributeColumns}
+        sortOptions={spellListSortOptions}
+        onCreate={() => navigate({ to: '/spells/new' })}
+        onView={(item) => navigate({
+          params: buildSpellRouteParams(item.publicId, item.name),
+          search: authoredDetailSearchFor(item.contentState === 'draft' ? 'draft' : 'active'),
+          to: '/spells/$spellPublicId/$spellSlug'
+        })}
+        onViewIntent={(item) => {
+          void queryClient.prefetchQuery(getSpell({
+            id: item.id,
+            includeDraft: true,
+            meta: spellDetailMeta,
+            view: item.contentState === 'draft' ? 'draft' : 'active'
+          }))
+        }}
+        onEdit={(item) => navigate({
+          params: buildSpellRouteParams(item.publicId, item.name),
+          to: '/spells/$spellPublicId/$spellSlug/edit'
+        })}
+        onCopy={(item) => duplicateMutation.mutate(item.id)}
+        onDelete={(item) => deleteAction.requestDelete({
           id: item.id,
-          includeDraft: true,
-          meta: spellDetailMeta,
-          view: item.contentState === 'draft' ? 'draft' : 'active'
-        }))
-      }}
-      onEdit={(item) => navigate({
-        params: buildSpellRouteParams(item.publicId, item.name),
-        to: '/spells/$spellPublicId/$spellSlug/edit'
-      })}
-      onCopy={(item) => duplicateMutation.mutate(item.id)}
-    />
+          kind: item.contentState === 'draft' ? 'draft' : 'active',
+          label: item.name
+        })}
+      />
+      {deleteAction.confirmation}
+    </>
   )
 }

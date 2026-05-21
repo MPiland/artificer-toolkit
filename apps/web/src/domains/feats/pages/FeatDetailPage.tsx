@@ -49,6 +49,7 @@ export function FeatDetailPage({
     viewActive
   })
   const actions = useAuthoredDetailActions({
+    deleteActive: api.content.feats.deleteActive,
     discard: api.content.feats.discardDraft,
     detailSubjectQueryKey: queryKeys.content.feats.detailRoot(featId),
     domainLabel: 'Feat',
@@ -66,12 +67,23 @@ export function FeatDetailPage({
 
   if (detailState.mode === 'invalid-draft-only') {
     return (
-      <Stack>
-        <Alert color='yellow'>This feat draft cannot be previewed. Discard it to return to the feat list.</Alert>
-        <Button loading={actions.isDiscardingDraft} onClick={() => void actions.discardDraft({ backToList: true })}>
-          Discard draft
-        </Button>
-      </Stack>
+      <>
+        <Stack>
+          <Alert color='yellow'>This feat draft cannot be previewed. Delete it to return to the feat list.</Alert>
+          <Button
+            color='red'
+            loading={actions.isDeleting}
+            onClick={() => actions.deleteContent({
+              id: featId,
+              kind: 'draft',
+              label: detailState.draft?.label ?? 'feat draft'
+            })}
+          >
+            Delete
+          </Button>
+        </Stack>
+        {actions.deleteConfirmation}
+      </>
     )
   }
 
@@ -96,41 +108,60 @@ export function FeatDetailPage({
       ? { label: 'View Draft', tone: 'secondary', onClick: () => navigate({ to: '/feats/$featPublicId/$featSlug', params: featParams, search: { view: 'draft' } }) }
       : null,
     detailState.mode === 'active' && !detailState.draft && detailState.permissions.canCopy
-      ? { label: 'Duplicate', tone: 'secondary', disabled: actions.isDuplicating, onClick: () => void actions.duplicateToDraft() }
+      ? { label: 'Duplicate', tone: 'secondary', disabled: actions.isDuplicating, loading: actions.isDuplicating, onClick: () => void actions.duplicateToDraft() }
+      : null,
+    detailState.permissions.canDelete
+      ? {
+          label: 'Delete',
+          tone: 'danger',
+          disabled: actions.isDeleting,
+          loading: actions.isDeleting,
+          onClick: () => actions.deleteContent({
+            id: featId,
+            kind: detailState.mode === 'draft' ? 'draft' : 'active',
+            label: item.label
+          })
+        }
       : null,
     { label: 'Create New', tone: 'secondary', onClick: () => navigate({ to: '/feats/new' }) }
   ])
 
   return (
-    <AuthoredDetailLayout
-      actions={pageActions}
-      eyebrow='Feat'
-      facts={[]}
-      notice={buildAuthoredDetailNotice({
-        canViewActive: detailState.canViewActive,
-        domainLabel: 'Feat',
-        hasInvalidDraft: detailState.hasInvalidDraft,
-        isViewingActive: viewActive,
-        mode: detailState.mode,
-        onDiscard: () => void actions.discardDraft(),
-        onViewActive: () => navigate({ to: '/feats/$featPublicId/$featSlug', params: featParams }),
-        onViewDraft: () => navigate({ to: '/feats/$featPublicId/$featSlug', params: featParams, search: { view: 'draft' } })
-      })}
-      sections={getFeatSections(item)}
-      status={buildDetailStatusLabels({
-        draft: detailState.draft,
-        mode: detailState.mode,
-        provenance: detailState.provenance,
-        status: item.status
-      })}
-      title={item.label}
-    />
+    <>
+      <AuthoredDetailLayout
+        actions={pageActions}
+        actionsDisabled={actions.isDetailOperationPending}
+        eyebrow='Feat'
+        facts={[]}
+        notice={buildAuthoredDetailNotice({
+          canViewActive: detailState.canViewActive,
+          domainLabel: 'Feat',
+          hasInvalidDraft: detailState.hasInvalidDraft,
+          isViewingActive: viewActive,
+          mode: detailState.mode,
+          onDiscard: () => void actions.discardDraft(),
+          onViewActive: () => navigate({ to: '/feats/$featPublicId/$featSlug', params: featParams }),
+          onViewDraft: () => navigate({ to: '/feats/$featPublicId/$featSlug', params: featParams, search: { view: 'draft' } })
+        })}
+        pendingOperation={actions.pendingOperation}
+        sections={getFeatSections(item)}
+        showSectionNav={false}
+        status={buildDetailStatusLabels({
+          draft: detailState.draft,
+          mode: detailState.mode,
+          provenance: detailState.provenance,
+          status: item.status
+        })}
+        title={item.label}
+      />
+      {actions.deleteConfirmation}
+    </>
   )
 }
 
 function getFeatSections(feat: FeatAuthoredDto): AuthoredDetailSectionModel[] {
   const prerequisiteHtml = formatPrerequisiteHtml(feat.prerequisites)
-  const detailHtml = toParagraphHtml(feat.detail)
+  const detailItems = toDetailItems(feat.details)
   const featureItems = toDetailItems(feat.features).map((item) => ({
     id: item.id,
     title: item.title,
@@ -148,10 +179,10 @@ function getFeatSections(feat: FeatAuthoredDto): AuthoredDetailSectionModel[] {
       title: 'Prerequisites',
       content: <AuthoredDetailProse html={prerequisiteHtml} />
     } : null,
-    detailHtml ? {
+    detailItems.length ? {
       id: 'details',
       title: 'Details',
-      content: <AuthoredDetailProse html={detailHtml} />
+      content: <AuthoredDetailItemList empty='No feat details have been added.' items={detailItems} />
     } : null,
     featureItems.length ? {
       id: 'features',
@@ -225,10 +256,4 @@ function formatOrList(values: string[]): string {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
-}
-
-function toParagraphHtml(value: string | null | undefined): string {
-  const trimmed = value?.trim()
-  if (!trimmed) return ''
-  return trimmed.startsWith('<') ? trimmed : `<p>${escapeHtml(trimmed)}</p>`
 }

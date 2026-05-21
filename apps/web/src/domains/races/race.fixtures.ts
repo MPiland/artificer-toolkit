@@ -190,14 +190,14 @@ export const raceRuntimeFixture: NodeRuntimeResolveResponseDto = {
   clearPaths: [],
   steps: [
     {
-      id: 'classification',
-      label: 'Classification',
-      order: 20,
+      id: 'basics',
+      label: 'Basics',
+      order: 10,
       sections: [
         {
-          id: 'classification',
-          label: 'Classification',
-          order: 20,
+          id: 'basics',
+          label: 'Basics',
+          order: 10,
           nodes: [
             selectNode('category', ['category'], 'Category', [
               { value: 'BASE', label: 'Base Race' },

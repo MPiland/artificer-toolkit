@@ -1,4 +1,4 @@
-import { globalStyle, style } from '@vanilla-extract/css'
+import { style } from '@vanilla-extract/css'
 import { foundationVars } from '#css/foundations.css'
 import { app } from '#css/layers.css'
 
@@ -60,32 +60,6 @@ export const icon = style({
       opacity: 0.6,
       height: foundationVars.space[4],
       width: foundationVars.space[4]
-    }
-  }
-})
-
-export const icon_collapse = style({
-  '@layer': {
-    [app]: {
-      transitionProperty: 'transform, translate, scale, rotate',
-      transitionTimingFunction: 'cubic-bezier(0.7,0,0.3,1)',
-      transitionDuration: '.3s',
-      transformOrigin: '50%',
-
-      selectors: {
-        [`${base}[data-state="open"] &`]: {
-          rotate: '180deg'
-        }
-      }
-    }
-  }
-})
-
-globalStyle(`${base}[data-state="open"] ${icon_collapse} > path:last-child`, {
-  '@layer': {
-    [app]: {
-      opacity: '0',
-      rotate: '90deg'
     }
   }
 })

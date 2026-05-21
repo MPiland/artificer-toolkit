@@ -30,6 +30,7 @@ import {
   type AuthoringFormActionHandlers,
   type AuthoringFormRegistration
 } from '#forms'
+import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
 import { parseAuthoredDraftPayload } from '#app/data/authoredDrafts'
 import {
   useActivateCreatureMutation,
@@ -37,6 +38,8 @@ import {
   useDuplicateCreatureMutation,
   useSaveCreatureDraftMutation
 } from '#app/data/creatures/mutations'
+import { api } from '#app/lib/api'
+import { queryKeys } from '#app/lib/queryKeys'
 import { buildCreatureRouteParams } from '#app/routing/authoredRouteParams'
 import {
   normalizeCreatureForSubmit,
@@ -103,6 +106,7 @@ function CreatureEditAuthoring({
   hasInvalidDraft: boolean
   permissions?: {
     canCopy: boolean
+    canDelete: boolean
     canEdit: boolean
   }
   creature: CreatureFormValues
@@ -117,6 +121,20 @@ function CreatureEditAuthoring({
   const [formValues] = useState(() => creature)
   const readOnly = Boolean(activeCreature && permissions?.canEdit === false)
   const canCopy = Boolean(permissions?.canCopy && creatureId)
+  const canDelete = !readOnly && Boolean(draft || permissions?.canDelete)
+  const {
+    confirmation: deleteConfirmation,
+    isDeleting,
+    requestDelete
+  } = useAuthoredDeleteAction({
+    deleteActive: api.content.creatures.deleteActive,
+    deleteDraft: api.content.creatures.discardDraft,
+    detailSubjectQueryKey: queryKeys.content.creatures.detailRoot(creatureId),
+    domainLabel: 'Creature',
+    domainQueryKey: queryKeys.content.creatures.all(),
+    draftQueryKey: queryKeys.content.creatures.draft(creatureId),
+    onDeleted: async () => navigate({ to: '/creatures' })
+  })
 
   const handleCancel = useCallback(async () => {
     await navigate({ to: '/creatures' })
@@ -214,11 +232,26 @@ function CreatureEditAuthoring({
     router
   ])
 
+  const handleDelete = useCallback(() => {
+    requestDelete({
+      id: creatureId,
+      kind: draft ? 'draft' : 'active',
+      label: formValues.label || 'Untitled Creature'
+    })
+  }, [
+    creatureId,
+    draft,
+    formValues.label,
+    requestDelete
+  ])
+
   const registration = useMemo<AuthoringFormRegistration>(() => ({
     activateLabel: 'Activate Creature',
+    canDelete,
     canCopy,
     canSaveDraft: !readOnly,
     hasActiveDraft: Boolean(draft && activeCreature),
+    isDraft: Boolean(draft),
     mapId: 'creature',
     mode: readOnly ? 'view' : 'edit',
     readOnly,
@@ -226,13 +259,16 @@ function CreatureEditAuthoring({
     saveDraftLabel: 'Save Draft',
     subjectKindLabel: 'Creature',
     subjectLabel: formValues.label || 'Untitled Creature',
-    systemId: formValues.systemId
+    systemId: formValues.systemId,
+    isDeleting
   }), [
     activeCreature,
+    canDelete,
     canCopy,
     draft,
     formValues.label,
     formValues.systemId,
+    isDeleting,
     readOnly
   ])
 
@@ -241,12 +277,15 @@ function CreatureEditAuthoring({
     onCancel: handleCancel,
     onClearPaths: (paths) => clearResolvedNodeFormPaths(form, paths),
     onCopy: canCopy ? handleCopy : undefined,
+    onDelete: canDelete ? handleDelete : undefined,
     onSaveDraft: readOnly ? undefined : handleSaveDraft
   }), [
+    canDelete,
     canCopy,
     form,
     handleCancel,
     handleCopy,
+    handleDelete,
     handleSaveDraft,
     readOnly
   ])
@@ -268,6 +307,7 @@ function CreatureEditAuthoring({
         <AuthoringFormLayout>
           <CreatureAuthoringRenderer form={form} />
         </AuthoringFormLayout>
+        {deleteConfirmation}
       </Stack>
     </form.AppForm>
   )

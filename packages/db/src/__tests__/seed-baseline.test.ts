@@ -69,7 +69,7 @@ describe('seedBaselineContent', () => {
       shared: {
         charges: [{ id: 'charge-1', scalingKind: 'NONE', resetKind: 'LONG_REST', limitKind: 'FIXED_AMOUNT', amount: 1 }],
         details: [{ id: 'detail-1', label: 'Detail', description: 'Description', order: 1 }],
-        savingThrows: [{ id: 'save-1', ability: 'DEXTERITY', savingThrowKind: 'FIXED_VALUE', dc: 14 }],
+        savingThrows: [{ id: 'save-1', ability: 'DEXTERITY', dcMethod: 'FIXED_DC', baseDc: 14 }],
         startingEquipment: [{ id: 'se-1', sets: [] }]
       },
       effects: {

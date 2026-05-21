@@ -57,6 +57,7 @@ export function CharacterEditPage() {
         hasActiveDraft={Boolean(response && draftPayload)}
         hasInvalidDraft={Boolean(draft && !draftPayload)}
         initialPayload={initialPayload}
+        isDraft={Boolean(draftPayload)}
       />
     </AuthoringFormProvider>
   )
@@ -67,13 +68,15 @@ function CharacterEditAuthoring({
   characterId,
   hasActiveDraft,
   hasInvalidDraft,
-  initialPayload
+  initialPayload,
+  isDraft
 }: {
   baseActiveUpdatedAt: string | null
   characterId: string
   hasActiveDraft: boolean
   hasInvalidDraft: boolean
   initialPayload: CharacterBuilderPayloadDto
+  isDraft: boolean
 }) {
   const navigate = useNavigate()
   const router = useRouter()
@@ -195,6 +198,7 @@ function CharacterEditAuthoring({
     activateLabel: 'Finalize Character',
     canSaveDraft: true,
     hasActiveDraft,
+    isDraft,
     mode: 'edit',
     readOnly: false,
     saveDraftLabel: 'Save Draft',
@@ -203,6 +207,7 @@ function CharacterEditAuthoring({
     systemId: payload.character.systemId
   }), [
     hasActiveDraft,
+    isDraft,
     payload.character.label,
     payload.character.systemId
   ])

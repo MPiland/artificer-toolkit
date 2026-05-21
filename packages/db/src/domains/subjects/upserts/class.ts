@@ -119,6 +119,12 @@ type ClassSpellcastingAttributeRow = {
   sort_order: number
 }
 
+type ClassSpellcastingDetailRow = {
+  spellcasting_id: string
+  detail_id: string
+  sort_order: number
+}
+
 type ClassSpellcastingPrepareLimitRow = {
   spellcasting_id: string
   scaling: string | null
@@ -376,6 +382,14 @@ export async function upsertClass(
       }))
     : []
 
+  const spellcastingDetailRows: ClassSpellcastingDetailRow[] = json_data.spellcasting
+    ? (json_data.spellcasting.details ?? []).map((detail) => ({
+        spellcasting_id: spellcastingId,
+        detail_id: detail.id,
+        sort_order: detail.order
+      }))
+    : []
+
   const prepareLimitRow: ClassSpellcastingPrepareLimitRow | null = json_data.spellcasting?.prepareLimit
     ? {
         spellcasting_id: spellcastingId,
@@ -471,6 +485,15 @@ export async function upsertClass(
       }
     }
 
+    if (json_data.resources) {
+      await upsertCharge(trx, json_data.resources.charges)
+    }
+
+    if (resourceRow) {
+      await trx.insertInto('class_resources').values(resourceRow)
+        .execute()
+    }
+
     if (json_data.features) {
       for (const feature of json_data.features) {
         await upsertFeatureRoot(trx, feature, json_data.systemId)
@@ -483,12 +506,12 @@ export async function upsertClass(
       }
     }
 
-    if (json_data.resources) {
-      await upsertCharge(trx, json_data.resources.charges)
-    }
-
     if (json_data.spellcasting) {
       await upsertCharge(trx, json_data.spellcasting.charges)
+
+      for (const detail of json_data.spellcasting.details ?? []) {
+        await upsertDetail(trx, detail)
+      }
     }
 
     if (detailRows.length > 0) {
@@ -512,17 +535,17 @@ export async function upsertClass(
         .execute()
     }
 
-    if (resourceRow) {
-      await trx.insertInto('class_resources').values(resourceRow)
-        .execute()
-    }
-
     if (spellcastingRow) {
       await trx.insertInto('class_spellcasting').values(spellcastingRow)
         .execute()
 
       if (spellcastingAttributeRows.length > 0) {
         await trx.insertInto('class_spellcasting_attributes').values(spellcastingAttributeRows)
+          .execute()
+      }
+
+      if (spellcastingDetailRows.length > 0) {
+        await trx.insertInto('class_spellcasting_details').values(spellcastingDetailRows)
           .execute()
       }
 

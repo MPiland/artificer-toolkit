@@ -7,7 +7,10 @@ const mobile = 'screen and (max-width: 760px)'
 export const nav = style({
   '@layer': {
     [app]: {
-      display: 'block'
+      display: 'block',
+      minWidth: 0,
+      overflowX: 'auto',
+      scrollbarWidth: 'thin'
     }
   }
 })
@@ -15,19 +18,19 @@ export const nav = style({
 export const list = style({
   '@layer': {
     [app]: {
-      display: 'flex',
-      flexWrap: 'wrap',
-      alignItems: 'center',
-      columnGap: foundationVars.space[2],
-      rowGap: foundationVars.space[1],
-      margin: 0,
-      padding: 0,
-      listStyle: 'none'
-    }
-  },
-  '@media': {
-    [mobile]: {
-      alignItems: 'flex-start'
+      'display': 'flex',
+      'flexWrap': 'nowrap',
+      'alignItems': 'center',
+      'columnGap': foundationVars.space[2],
+      'rowGap': foundationVars.space[1],
+      'margin': 0,
+      'padding': 0,
+      'listStyle': 'none',
+      '@media': {
+        [mobile]: {
+          alignItems: 'flex-start'
+        }
+      }
     }
   }
 })
@@ -45,8 +48,8 @@ export const item = style({
           content: '/',
           marginLeft: foundationVars.space[2],
           color: foundationVars.color.text.muted,
-          fontSize: foundationVars.typography.caption.fontSize,
-          lineHeight: foundationVars.typography.caption.lineHeight,
+          fontSize: foundationVars.typography.bodySm.fontSize,
+          lineHeight: foundationVars.typography.bodySm.lineHeight,
           userSelect: 'none'
         }
       }
@@ -62,14 +65,14 @@ export const stepButton = style({
       'justifyContent': 'center',
       'minWidth': '44px',
       'minHeight': '32px',
-      'padding': `0 ${foundationVars.space[1]}`,
+      'padding': 0,
       'border': 0,
       'borderRadius': foundationVars.radius.sm,
       'backgroundColor': 'transparent',
-      'color': foundationVars.color.text.accent,
-      'fontSize': foundationVars.typography.caption.fontSize,
+      'color': foundationVars.color.text.secondary,
+      'fontSize': foundationVars.typography.bodySm.fontSize,
       'fontWeight': foundationVars.fontWeight.medium,
-      'lineHeight': foundationVars.typography.caption.lineHeight,
+      'lineHeight': foundationVars.typography.bodySm.lineHeight,
       'textAlign': 'left',
       'transition': `color ${foundationVars.motion.fast} ease`,
 
@@ -81,14 +84,14 @@ export const stepButton = style({
       ':focus-visible': {
         boxShadow: foundationVars.shadow.focus,
         outline: 'none'
-      }
-    }
-  },
-  '@media': {
-    [mobile]: {
-      '@layer': {
-        [app]: {
-          minHeight: '44px'
+      },
+      '@media': {
+        [mobile]: {
+          '@layer': {
+            [app]: {
+              minHeight: '44px'
+            }
+          }
         }
       }
     }
@@ -98,8 +101,8 @@ export const stepButton = style({
 export const stepButtonActive = style({
   '@layer': {
     [app]: {
-      color: foundationVars.color.text.primary,
-      fontWeight: foundationVars.fontWeight.semibold,
+      color: foundationVars.color.accent.tertiarySolid,
+      fontWeight: foundationVars.fontWeight.bold,
       textDecoration: 'none'
     }
   }

@@ -16,16 +16,13 @@ export function formatRaceCategory(category: string | undefined): string {
   return 'Race'
 }
 
-function formatRaceBuilderState(item: RaceListResponseDto['items'][number]): string {
-  if (item.category === 'SUBRACE') return 'Playable subrace'
-  if (item.selectionMode === 'REQUIRES_SUBRACE') return 'Choose subrace'
-  if (item.selectionMode === 'DIRECT') return 'Playable'
-  return 'Builder status unknown'
-}
-
 function summarizeDescription(description: string | null | undefined): string {
   if (!description) return 'No description yet.'
   return description.replace(/<[^>]*>/g, '').trim() || 'No description yet.'
+}
+
+function isPlayableRaceListItem(item: RaceListResponseDto['items'][number]): boolean {
+  return item.category === 'SUBRACE' || item.selectionMode === 'DIRECT'
 }
 
 export function mapRaceListToAuthoredItems(response: RaceListResponseDto): AuthoredListItem[] {
@@ -35,17 +32,14 @@ export function mapRaceListToAuthoredItems(response: RaceListResponseDto): Autho
     const category = item.category ?? 'BASE'
     const parentRaceId = item.parentRaceId ?? undefined
     const parentLabel = parentRaceId ? parentLabels.get(parentRaceId) : undefined
-    const builderState = formatRaceBuilderState(item)
+    const playableLabel = isPlayableRaceListItem(item) ? 'Playable' : ''
 
     return {
       id: item.id,
       publicId: item.publicId,
       name: item.label,
       description: summarizeDescription(item.description),
-      attributes: {
-        Category: formatRaceCategory(category),
-        Builder: builderState
-      },
+      badges: playableLabel ? [playableLabel] : undefined,
       hierarchy: parentRaceId
         ? {
             level: 1,
@@ -61,7 +55,7 @@ export function mapRaceListToAuthoredItems(response: RaceListResponseDto): Autho
         category: formatRaceCategory(category),
         name: item.label
       },
-      searchText: `${summarizeDescription(item.description)} ${formatRaceCategory(category)} ${builderState}`,
+      searchText: `${summarizeDescription(item.description)} ${formatRaceCategory(category)} ${playableLabel}`,
       sourceLabel: item.provenance.kind === 'MASTER' ? 'SRD' : 'Homebrew',
       sourceKind: item.provenance.kind === 'MASTER' ? 'master' : 'owned',
       permissions: mapPermissions(item)
@@ -95,8 +89,6 @@ export function buildRaceListFilters(response: RaceListResponseDto): AuthoredLis
 }
 
 export const raceListAttributeColumns = [
-  { key: 'Category', label: 'Category', width: 160 },
-  { key: 'Builder', label: 'Builder', width: 180 }
 ] satisfies AuthoredListAttributeColumn[]
 
 export const raceListSortOptions = [

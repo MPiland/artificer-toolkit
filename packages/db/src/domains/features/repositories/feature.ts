@@ -1,5 +1,6 @@
 import type {
   ChargeAuthored,
+  DetailAuthored,
   EffectAuthored,
   FeatGrantAuthored,
   FacetAuthored,
@@ -15,7 +16,7 @@ import { FEATURE_ATTRIBUTE } from '@artificer-toolkit/shared'
 import type { DBLike } from '#types'
 import { upsertFeature } from '../upserts/feature.js'
 import { hydrateFacetById } from '../../shared/facets.js'
-import { hydrateChargeById } from '../../grants/repositories/helpers.js'
+import { hydrateChargesByIds } from '../../grants/repositories/helpers.js'
 import { createEffectRepository } from '../../effects/repositories/effect.js'
 import { createFeatGrantRepository } from '../../grants/repositories/feat.js'
 import { createModifierGrantRepository } from '../../grants/repositories/modifier.js'
@@ -23,6 +24,7 @@ import { createOptionRepository } from './option.js'
 import { createProficiencyGrantRepository } from '../../grants/repositories/proficiency.js'
 import { createSenseGrantRepository } from '../../grants/repositories/sense.js'
 import { createSpellGrantRepository } from '../../grants/repositories/spell.js'
+import { createDetailRepository } from '../../shared/repositories/detail.js'
 import type { FeatureRepository } from '../../../repositories/contracts.js'
 import { hydrateByIds, orderedHydratedRecords, uniqueIds } from '../../../repositories/batch.js'
 
@@ -30,7 +32,6 @@ type FeatureRow = {
   id: string
   label: string
   description: string
-  detail: string | null
   charge_id: string | null
   restriction_id: string | null
   sort_order: number
@@ -40,6 +41,12 @@ type FeatureRow = {
 type FeatureEffectLinkRow = {
   feature_id: string
   effect_id: string
+}
+
+type FeatureDetailLinkRow = {
+  feature_id: string
+  detail_id: string
+  sort_order: number
 }
 
 type FeatureGrantLinkRow = {
@@ -152,7 +159,6 @@ async function hydrateFeaturesByIds<N extends NodeSubjectCode>(
       'id',
       'label',
       'description',
-      'detail',
       'charge_id',
       'restriction_id',
       'sort_order',
@@ -168,6 +174,7 @@ async function hydrateFeaturesByIds<N extends NodeSubjectCode>(
 
   const [
     effectLinks,
+    detailLinks,
     attributeRows,
     featGrantLinks,
     modifierGrantLinks,
@@ -181,6 +188,11 @@ async function hydrateFeaturesByIds<N extends NodeSubjectCode>(
       .select(['feature_id', 'effect_id'])
       .where('feature_id', 'in', featureIds)
       .execute() as Promise<FeatureEffectLinkRow[]>,
+    db.selectFrom('feature_details')
+      .select(['feature_id', 'detail_id', 'sort_order'])
+      .where('feature_id', 'in', featureIds)
+      .orderBy('sort_order')
+      .execute() as Promise<FeatureDetailLinkRow[]>,
     db.selectFrom('feature_attributes')
       .select(['feature_id', 'attribute_code', 'sort_order'])
       .where('feature_id', 'in', featureIds)
@@ -224,6 +236,7 @@ async function hydrateFeaturesByIds<N extends NodeSubjectCode>(
   ])
 
   const effectRepository = createEffectRepository(db)
+  const detailRepository = createDetailRepository(db)
   const featGrantRepository = createFeatGrantRepository(db)
   const modifierGrantRepository = createModifierGrantRepository(db)
   const proficiencyGrantRepository = createProficiencyGrantRepository(db)
@@ -235,6 +248,7 @@ async function hydrateFeaturesByIds<N extends NodeSubjectCode>(
     chargesById,
     restrictionsById,
     effectsById,
+    detailsById,
     featGrantsById,
     modifierGrantsById,
     proficiencyGrantsById,
@@ -242,15 +256,13 @@ async function hydrateFeaturesByIds<N extends NodeSubjectCode>(
     spellGrantsById,
     optionsById
   ] = await Promise.all([
-    hydrateByIds(
-      rows.flatMap((row) => row.charge_id ? [row.charge_id] : []),
-      (chargeId) => hydrateChargeById(db, chargeId)
-    ),
+    hydrateChargesByIds(db, rows.flatMap((row) => row.charge_id ? [row.charge_id] : [])),
     hydrateByIds(
       rows.flatMap((row) => row.restriction_id ? [row.restriction_id] : []),
       (restrictionId) => hydrateFacetById(db, restrictionId)
     ),
     effectRepository.findByIds(effectLinks.map((link) => link.effect_id)),
+    detailRepository.findByIds(detailLinks.map((link) => link.detail_id)),
     featGrantRepository.findByIds(featGrantLinks.map((link) => link.feat_grant_id)),
     modifierGrantRepository.findByIds(modifierGrantLinks.map((link) => link.modifier_grant_id)),
     proficiencyGrantRepository.findByIds(proficiencyGrantLinks.map((link) => link.proficiency_grant_id)),
@@ -260,6 +272,7 @@ async function hydrateFeaturesByIds<N extends NodeSubjectCode>(
   ])
 
   const effectLinksByFeatureId = groupByFeatureId(effectLinks)
+  const detailLinksByFeatureId = groupByFeatureId(detailLinks)
   const attributeRowsByFeatureId = groupByFeatureId(attributeRows)
   const featGrantLinksByFeatureId = groupByFeatureId(featGrantLinks)
   const modifierGrantLinksByFeatureId = groupByFeatureId(modifierGrantLinks)
@@ -273,6 +286,7 @@ async function hydrateFeaturesByIds<N extends NodeSubjectCode>(
   for (const row of orderedFeatureRows(rows, distinctIds)) {
     const id = row.id
     const featureEffectLinks = effectLinksByFeatureId.get(id) ?? []
+    const featureDetailLinks = detailLinksByFeatureId.get(id) ?? []
     const featureFeatGrantLinks = featGrantLinksByFeatureId.get(id) ?? []
     const featureModifierGrantLinks = modifierGrantLinksByFeatureId.get(id) ?? []
     const featureProficiencyGrantLinks = proficiencyGrantLinksByFeatureId.get(id) ?? []
@@ -284,6 +298,12 @@ async function hydrateFeaturesByIds<N extends NodeSubjectCode>(
       effectsById,
       (link) => link.effect_id,
       (linkedId) => `Feature "${id}" is linked to missing effect "${linkedId}".`
+    )
+    const authoredDetails: DetailAuthored[] = hydrateLinkedRecords(
+      featureDetailLinks,
+      detailsById,
+      (link) => link.detail_id,
+      (linkedId) => `Feature "${id}" is linked to missing detail "${linkedId}".`
     )
     const authoredFeatGrants: FeatGrantAuthored[] = hydrateLinkedRecords(
       featureFeatGrantLinks,
@@ -331,7 +351,7 @@ async function hydrateFeaturesByIds<N extends NodeSubjectCode>(
       attributes: (attributeRowsByFeatureId.get(id) ?? []).length > 0
         ? (attributeRowsByFeatureId.get(id) ?? []).map((attribute) => requireFeatureAttribute(id, attribute.attribute_code))
         : undefined,
-      detail: row.detail ?? undefined,
+      details: authoredDetails.length > 0 ? authoredDetails : undefined,
       effects: authoredEffects.length > 0 ? authoredEffects : undefined,
       charges: row.charge_id
         ? requireLinkedRecord(charge as ChargeAuthored | null, `Feature "${id}" is linked to missing charge "${row.charge_id}".`)

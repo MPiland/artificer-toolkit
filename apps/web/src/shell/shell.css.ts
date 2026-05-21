@@ -1,4 +1,4 @@
-import { globalStyle, style } from '@vanilla-extract/css'
+import { style } from '@vanilla-extract/css'
 import { foundationVars } from '../css/foundations.css.ts'
 import { app } from '../css/layers.css.ts'
 
@@ -90,27 +90,21 @@ export const logoCell = style({
   }
 })
 
-globalStyle(`${logoCell} svg`, {
-  width: '36px',
-  height: '36px',
-  display: 'block'
-})
-
 export const headerBar = style({
   '@layer': {
     [app]: {
-      minWidth: 0,
-      display: 'grid',
-      gridTemplateColumns: 'minmax(0, 1fr) auto',
-      alignItems: 'center',
-      gap: foundationVars.space[4],
-      padding: `0 ${foundationVars.space[6]}`
-    }
-  },
-  '@media': {
-    [mobileBreakpoint]: {
-      gridTemplateColumns: 'auto minmax(0, 1fr) auto',
-      padding: `0 ${foundationVars.space[3]}`
+      'minWidth': 0,
+      'display': 'grid',
+      'gridTemplateColumns': 'minmax(0, 1fr) auto',
+      'alignItems': 'center',
+      'gap': foundationVars.space[4],
+      'padding': `0 ${foundationVars.space[6]}`,
+      '@media': {
+        [mobileBreakpoint]: {
+          gridTemplateColumns: 'auto minmax(0, 1fr) auto',
+          padding: `0 ${foundationVars.space[3]}`
+        }
+      }
     }
   }
 })
@@ -118,12 +112,12 @@ export const headerBar = style({
 export const mobileHeaderGroup = style({
   '@layer': {
     [app]: {
-      display: 'none'
-    }
-  },
-  '@media': {
-    [mobileBreakpoint]: {
-      display: 'flex'
+      'display': 'none',
+      '@media': {
+        [mobileBreakpoint]: {
+          display: 'flex'
+        }
+      }
     }
   }
 })
@@ -138,6 +132,17 @@ export const breadcrumb = style({
       color: foundationVars.color.text.secondary,
       fontSize: foundationVars.typography.bodySm.fontSize,
       lineHeight: foundationVars.typography.bodySm.lineHeight
+    }
+  }
+})
+
+export const breadcrumbSupplement = style({
+  '@layer': {
+    [app]: {
+      minWidth: 0,
+      display: 'inline-flex',
+      alignItems: 'center',
+      overflow: 'hidden'
     }
   }
 })
@@ -193,12 +198,12 @@ export const headerActions = style({
 export const headerUserMenu = style({
   '@layer': {
     [app]: {
-      display: 'none'
-    }
-  },
-  '@media': {
-    [mobileBreakpoint]: {
-      display: 'inline-flex'
+      'display': 'none',
+      '@media': {
+        [mobileBreakpoint]: {
+          display: 'inline-flex'
+        }
+      }
     }
   }
 })
@@ -206,20 +211,20 @@ export const headerUserMenu = style({
 export const navbar = style({
   '@layer': {
     [app]: {
-      top: '48px',
-      height: 'calc(100dvh - 48px)',
-      display: 'grid',
-      gridTemplateRows: 'minmax(0, 1fr) auto',
-      alignItems: 'stretch',
-      padding: `${foundationVars.space[3]} 0`,
-      borderRight: `1px solid ${foundationVars.color.border.subtle}`,
-      backgroundColor: foundationVars.color.surface.sidebar
-    }
-  },
-  '@media': {
-    [mobileBreakpoint]: {
-      padding: foundationVars.space[4],
-      width: '18rem'
+      'top': '48px',
+      'height': 'calc(100dvh - 48px)',
+      'display': 'grid',
+      'gridTemplateRows': 'minmax(0, 1fr) auto',
+      'alignItems': 'stretch',
+      'padding': `${foundationVars.space[3]} 0`,
+      'borderRight': `1px solid ${foundationVars.color.border.subtle}`,
+      'backgroundColor': foundationVars.color.surface.sidebar,
+      '@media': {
+        [mobileBreakpoint]: {
+          padding: foundationVars.space[4],
+          width: '18rem'
+        }
+      }
     }
   }
 })
@@ -235,14 +240,14 @@ export const navScroll = style({
 export const navStack = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      justifyItems: 'center',
-      gap: foundationVars.space[2]
-    }
-  },
-  '@media': {
-    [mobileBreakpoint]: {
-      justifyItems: 'stretch'
+      'display': 'grid',
+      'justifyItems': 'center',
+      'gap': foundationVars.space[2],
+      '@media': {
+        [mobileBreakpoint]: {
+          justifyItems: 'stretch'
+        }
+      }
     }
   }
 })
@@ -267,26 +272,26 @@ export const navGroup = style({
 export const navGroupLabel = style({
   '@layer': {
     [app]: {
-      width: '1px',
-      height: '1px',
-      position: 'absolute',
-      overflow: 'hidden',
-      clip: 'rect(0 0 0 0)',
-      whiteSpace: 'nowrap'
-    }
-  },
-  '@media': {
-    [mobileBreakpoint]: {
-      width: 'auto',
-      height: 'auto',
-      position: 'static',
-      clip: 'auto',
-      padding: `${foundationVars.space[2]} ${foundationVars.space[3]}`,
-      color: foundationVars.color.text.secondary,
-      fontSize: foundationVars.typography.caption.fontSize,
-      fontWeight: foundationVars.fontWeight.medium,
-      letterSpacing: '0.06em',
-      textTransform: 'uppercase'
+      'width': '1px',
+      'height': '1px',
+      'position': 'absolute',
+      'overflow': 'hidden',
+      'clip': 'rect(0 0 0 0)',
+      'whiteSpace': 'nowrap',
+      '@media': {
+        [mobileBreakpoint]: {
+          width: 'auto',
+          height: 'auto',
+          position: 'static',
+          clip: 'auto',
+          padding: `${foundationVars.space[2]} ${foundationVars.space[3]}`,
+          color: foundationVars.color.text.secondary,
+          fontSize: foundationVars.typography.caption.fontSize,
+          fontWeight: foundationVars.fontWeight.medium,
+          letterSpacing: '0.06em',
+          textTransform: 'uppercase'
+        }
+      }
     }
   }
 })
@@ -316,16 +321,16 @@ export const navItem = style({
 
       ':disabled': {
         cursor: 'not-allowed'
+      },
+      '@media': {
+        [mobileBreakpoint]: {
+          gridTemplateColumns: '48px minmax(0, 1fr)',
+          justifyItems: 'start',
+          width: '100%',
+          minHeight: '48px',
+          borderRadius: foundationVars.radius.lg
+        }
       }
-    }
-  },
-  '@media': {
-    [mobileBreakpoint]: {
-      gridTemplateColumns: '48px minmax(0, 1fr)',
-      justifyItems: 'start',
-      width: '100%',
-      minHeight: '48px',
-      borderRadius: foundationVars.radius.lg
     }
   }
 })
@@ -363,37 +368,31 @@ export const navItemDisabled = style({
 export const navIcon = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      width: '40px',
-      height: '40px',
-      placeItems: 'center'
-    }
-  },
-  '@media': {
-    [mobileBreakpoint]: {
-      width: '48px'
+      'display': 'grid',
+      'width': '40px',
+      'height': '40px',
+      'placeItems': 'center',
+      '@media': {
+        [mobileBreakpoint]: {
+          width: '48px'
+        }
+      }
     }
   }
-})
-
-globalStyle(`${navIcon} svg`, {
-  width: '24px',
-  height: '24px',
-  display: 'block'
 })
 
 export const navItemLabel = style({
   '@layer': {
     [app]: {
-      display: 'none'
-    }
-  },
-  '@media': {
-    [mobileBreakpoint]: {
-      display: 'block',
-      color: foundationVars.color.text.primary,
-      fontSize: foundationVars.typography.bodySm.fontSize,
-      fontWeight: foundationVars.fontWeight.medium
+      'display': 'none',
+      '@media': {
+        [mobileBreakpoint]: {
+          display: 'block',
+          color: foundationVars.color.text.primary,
+          fontSize: foundationVars.typography.bodySm.fontSize,
+          fontWeight: foundationVars.fontWeight.medium
+        }
+      }
     }
   }
 })
@@ -401,15 +400,15 @@ export const navItemLabel = style({
 export const sidebarFooter = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      placeItems: 'center',
-      paddingTop: foundationVars.space[3],
-      borderTop: `1px solid ${foundationVars.color.border.subtle}`
-    }
-  },
-  '@media': {
-    [mobileBreakpoint]: {
-      display: 'none'
+      'display': 'grid',
+      'placeItems': 'center',
+      'paddingTop': foundationVars.space[3],
+      'borderTop': `1px solid ${foundationVars.color.border.subtle}`,
+      '@media': {
+        [mobileBreakpoint]: {
+          display: 'none'
+        }
+      }
     }
   }
 })
@@ -421,11 +420,6 @@ export const userIconButton = style({
       height: '40px'
     }
   }
-})
-
-globalStyle(`${userIconButton} svg`, {
-  width: '20px',
-  height: '20px'
 })
 
 export const main = style({
@@ -441,6 +435,10 @@ export const main = style({
 export const contentArea = style({
   '@layer': {
     [app]: {
+      'vars': {
+        '--at-workspace-content-padding-block': foundationVars.space[8],
+        '--at-workspace-available-height': 'calc(100dvh - 48px - var(--at-workspace-content-padding-block) - var(--at-workspace-content-padding-block))'
+      },
       'boxSizing': 'border-box',
       'width': '100%',
       'maxWidth': '1272px',
@@ -449,17 +447,20 @@ export const contentArea = style({
       'alignContent': 'start',
       'gap': foundationVars.space[8],
       'marginInline': 'auto',
-      'padding': `${foundationVars.space[8]} ${foundationVars.space[6]}`,
+      'padding': `var(--at-workspace-content-padding-block) ${foundationVars.space[6]}`,
 
       ':focus': {
         outline: 'none'
+      },
+      '@media': {
+        [mobileBreakpoint]: {
+          vars: {
+            '--at-workspace-content-padding-block': foundationVars.space[4]
+          },
+          padding: foundationVars.space[4],
+          gap: foundationVars.space[6]
+        }
       }
-    }
-  },
-  '@media': {
-    [mobileBreakpoint]: {
-      padding: foundationVars.space[4],
-      gap: foundationVars.space[6]
     }
   }
 })
@@ -467,16 +468,16 @@ export const contentArea = style({
 export const pageHeader = style({
   '@layer': {
     [app]: {
-      display: 'flex',
-      alignItems: 'flex-end',
-      justifyContent: 'space-between',
-      gap: foundationVars.space[6]
-    }
-  },
-  '@media': {
-    [mobileBreakpoint]: {
-      alignItems: 'stretch',
-      flexDirection: 'column'
+      'display': 'flex',
+      'alignItems': 'flex-end',
+      'justifyContent': 'space-between',
+      'gap': foundationVars.space[6],
+      '@media': {
+        [mobileBreakpoint]: {
+          alignItems: 'stretch',
+          flexDirection: 'column'
+        }
+      }
     }
   }
 })
@@ -527,47 +528,27 @@ export const pageDescription = style({
   }
 })
 
-globalStyle('a[href="/systems"], a[href^="/systems/"]', {
-  display: 'none'
-})
-
-globalStyle('nav[aria-label="Primary navigation"] a[href="/characters"]', {
-  marginBottom: foundationVars.space[2],
-  position: 'relative'
-})
-
-globalStyle('nav[aria-label="Primary navigation"] a[href="/characters"]::after', {
-  position: 'absolute',
-  right: 0,
-  bottom: `calc(-1 * ${foundationVars.space[2]})`,
-  left: 0,
-  height: '1px',
-  backgroundColor: foundationVars.color.border.subtle,
-  borderRadius: 0,
-  content: ''
-})
-
 export const footerActionBar = style({
   '@layer': {
     [app]: {
-      position: 'sticky',
-      bottom: foundationVars.space[4],
-      zIndex: 5,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: foundationVars.space[4],
-      padding: foundationVars.space[4],
-      border: `1px solid ${foundationVars.color.border.subtle}`,
-      borderRadius: foundationVars.radius.md,
-      backgroundColor: foundationVars.color.surface.panel,
-      boxShadow: foundationVars.shadow.card
-    }
-  },
-  '@media': {
-    [mobileBreakpoint]: {
-      alignItems: 'stretch',
-      flexDirection: 'column'
+      'position': 'sticky',
+      'bottom': foundationVars.space[4],
+      'zIndex': 5,
+      'display': 'flex',
+      'alignItems': 'center',
+      'justifyContent': 'space-between',
+      'gap': foundationVars.space[4],
+      'padding': foundationVars.space[4],
+      'border': `1px solid ${foundationVars.color.border.subtle}`,
+      'borderRadius': foundationVars.radius.md,
+      'backgroundColor': foundationVars.color.surface.panel,
+      'boxShadow': foundationVars.shadow.card,
+      '@media': {
+        [mobileBreakpoint]: {
+          alignItems: 'stretch',
+          flexDirection: 'column'
+        }
+      }
     }
   }
 })

@@ -567,6 +567,7 @@ describe('round-trip upsert correctness', () => {
             id: 'background-1',
             label: 'Scholar',
             description: 'Updated background',
+            status: 'DRAFT',
             details: [
                 {
                     id: 'detail-2',
@@ -575,6 +576,7 @@ describe('round-trip upsert correctness', () => {
                     order: 1
                 }
             ],
+            features: undefined,
             startingEquipment: {
                 id: 'background-se-2',
                 sets: [
@@ -628,6 +630,7 @@ describe('round-trip upsert correctness', () => {
             id: 'background-1',
             label: 'Scholar',
             description: 'Updated background',
+            status: 'DRAFT',
             details: [
                 {
                     id: 'detail-2',
@@ -636,6 +639,7 @@ describe('round-trip upsert correctness', () => {
                     order: 1
                 }
             ],
+            features: undefined,
             startingEquipment: {
                 id: 'background-se-2',
                 sets: [
@@ -680,6 +684,7 @@ describe('round-trip upsert correctness', () => {
                     level: 'FULL',
                     rounding: undefined,
                     count: undefined,
+                    restrictions: undefined,
                     languageIds: ['elvish']
                 }
             ],
@@ -720,7 +725,12 @@ describe('round-trip upsert correctness', () => {
             id: 'feat-1',
             label: 'Arcane Initiate',
             description: 'Original feat',
-            detail: 'Original detail',
+            details: [{
+                id: 'feat-detail-1',
+                label: 'Detail',
+                description: 'Original detail',
+                order: 1
+            }],
             charges: {
                 id: 'feat-charge-1',
                 resetKind: 'LONG_REST',
@@ -761,7 +771,13 @@ describe('round-trip upsert correctness', () => {
             id: 'feat-1',
             label: 'Arcane Initiate',
             description: 'Updated feat',
-            detail: 'Updated detail',
+            status: 'DRAFT',
+            details: [{
+                id: 'feat-detail-2',
+                label: 'Detail',
+                description: 'Updated detail',
+                order: 1
+            }],
             charges: {
                 id: 'feat-charge-2',
                 resetKind: 'SHORT_REST',
@@ -791,14 +807,23 @@ describe('round-trip upsert correctness', () => {
             id: 'feat-1',
             label: 'Arcane Initiate',
             description: 'Updated feat',
-            detail: 'Updated detail',
+            status: 'DRAFT',
+            details: [{
+                id: 'feat-detail-2',
+                label: 'Detail',
+                description: 'Updated detail',
+                order: 1
+            }],
             prerequisites: undefined,
+            effects: undefined,
+            features: undefined,
             charges: {
                 id: 'feat-charge-2',
                 resetKind: 'SHORT_REST',
                 limitKind: 'FIXED_AMOUNT',
                 scalingKind: 'NONE',
-                amount: 2
+                amount: 2,
+                bonuses: undefined
             },
             grants: {
                 modifiers: undefined,
@@ -816,7 +841,9 @@ describe('round-trip upsert correctness', () => {
                         count: undefined,
                         spellIds: ['magic-missile'],
                         castAtLevel: 1,
-                        charges: undefined
+                        charges: undefined,
+                        filters: undefined,
+                        restrictions: undefined
                     }
                 ]
             },
@@ -864,6 +891,139 @@ describe('round-trip upsert correctness', () => {
                 sort_order: 1
             }
         ]);
+    });
+    it('round-trips feat, feature, and option details and clears empty detail arrays', async () => {
+        const db = new InMemoryDb();
+        const repository = createFeatRepository(db as never);
+        await repository.upsert({
+            id: 'feat-detail-roundtrip-1',
+            label: 'Layered Feat',
+            description: 'Has nested prose.',
+            details: [
+                {
+                    id: 'feat-detail-a',
+                    label: 'Feat Detail A',
+                    description: 'First feat detail.',
+                    order: 1
+                },
+                {
+                    id: 'feat-detail-b',
+                    label: 'Feat Detail B',
+                    description: 'Second feat detail.',
+                    order: 2
+                }
+            ],
+            features: [
+                {
+                    id: 'feature-detail-a',
+                    label: 'Layered Feature',
+                    description: 'Feature prose.',
+                    order: 1,
+                    details: [
+                        {
+                            id: 'feature-detail-a-1',
+                            label: 'Feature Detail A',
+                            description: 'First feature detail.',
+                            order: 1
+                        },
+                        {
+                            id: 'feature-detail-a-2',
+                            label: 'Feature Detail B',
+                            description: 'Second feature detail.',
+                            order: 2
+                        }
+                    ],
+                    options: [
+                        {
+                            id: 'option-detail-a',
+                            label: 'Layered Option',
+                            description: 'Option prose.',
+                            order: 1,
+                            details: [
+                                {
+                                    id: 'option-detail-a-1',
+                                    label: 'Option Detail A',
+                                    description: 'First option detail.',
+                                    order: 1
+                                },
+                                {
+                                    id: 'option-detail-a-2',
+                                    label: 'Option Detail B',
+                                    description: 'Second option detail.',
+                                    order: 2
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            userId: 'user-1',
+            systemId: 'system-1'
+        });
+        await expect(repository.findById('feat-detail-roundtrip-1')).resolves.toMatchObject({
+            details: [
+                { id: 'feat-detail-a', label: 'Feat Detail A' },
+                { id: 'feat-detail-b', label: 'Feat Detail B' }
+            ],
+            features: [
+                {
+                    details: [
+                        { id: 'feature-detail-a-1', label: 'Feature Detail A' },
+                        { id: 'feature-detail-a-2', label: 'Feature Detail B' }
+                    ],
+                    options: [
+                        {
+                            details: [
+                                { id: 'option-detail-a-1', label: 'Option Detail A' },
+                                { id: 'option-detail-a-2', label: 'Option Detail B' }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        });
+        await repository.upsert({
+            id: 'feat-detail-roundtrip-1',
+            label: 'Layered Feat',
+            description: 'Has nested prose.',
+            details: [],
+            features: [
+                {
+                    id: 'feature-detail-a',
+                    label: 'Layered Feature',
+                    description: 'Feature prose.',
+                    order: 1,
+                    details: [],
+                    options: [
+                        {
+                            id: 'option-detail-a',
+                            label: 'Layered Option',
+                            description: 'Option prose.',
+                            order: 1,
+                            details: []
+                        }
+                    ]
+                }
+            ],
+            userId: 'user-1',
+            systemId: 'system-1'
+        });
+        await expect(repository.findById('feat-detail-roundtrip-1')).resolves.toMatchObject({
+            details: undefined,
+            features: [
+                {
+                    details: undefined,
+                    options: [
+                        {
+                            details: undefined
+                        }
+                    ]
+                }
+            ]
+        });
+        expect(db.snapshot('feat_details')).toEqual([]);
+        expect(db.snapshot('feature_details')).toEqual([]);
+        expect(db.snapshot('option_details')).toEqual([]);
     });
     it('rewrites spell grant attributes explicitly and clears stale attribute rows', async () => {
         const db = new InMemoryDb();
@@ -969,13 +1129,13 @@ describe('round-trip upsert correctness', () => {
             id: 'spell-1',
             label: 'Magic Missile',
             description: 'Updated spell',
+            status: 'DRAFT',
             attributes: ['CONCENTRATION', 'ADDS_TO_WEAPON_ATTACK'],
             castingTime: {
                 unit: 'MINUTE',
                 amount: 10
             },
-            range: undefined,
-            duration: undefined,
+            components: undefined,
             level: 2,
             classIds: ['wizard'],
             magicSchoolId: 'evocation',
@@ -1043,7 +1203,7 @@ describe('round-trip upsert correctness', () => {
                             groupType: 'SINGLE',
                             selectionKind: "FIXED" as const,
                             resultBlock: {
-                                id: "spell-effect-PATH_CODE-1__result",
+                                id: "spell-effect-PATH_CODE-1",
                                 resultKind: "SINGLE" as const,
                                 outcomes: [
                                     {
@@ -1100,7 +1260,7 @@ describe('round-trip upsert correctness', () => {
                             groupType: 'SINGLE',
                             selectionKind: "FIXED" as const,
                             resultBlock: {
-                                id: "spell-effect-PATH_CODE-2__result",
+                                id: "spell-effect-PATH_CODE-2",
                                 resultKind: "SINGLE" as const,
                                 outcomes: [
                                     {
@@ -1156,7 +1316,7 @@ describe('round-trip upsert correctness', () => {
                             groupType: 'SINGLE',
                             selectionKind: 'FIXED',
                             resultBlock: {
-                                id: 'spell-effect-PATH_CODE-2__result',
+                                id: 'spell-effect-PATH_CODE-2',
                                 resultKind: 'SINGLE',
                                 outcomes: [
                                     {
@@ -1245,6 +1405,7 @@ describe('round-trip upsert correctness', () => {
             label: 'Elf',
             quote: 'Graceful.',
             description: 'Updated race',
+            status: 'DRAFT',
             heritageIds: ['heritage-elven', 'heritage-fey'],
             details: [
                 {
@@ -1298,6 +1459,7 @@ describe('round-trip upsert correctness', () => {
             label: 'Elf',
             quote: 'Graceful.',
             description: 'Updated race',
+            status: 'DRAFT',
             heritageIds: ['heritage-elven', 'heritage-fey'],
             details: [
                 {
@@ -1328,7 +1490,7 @@ describe('round-trip upsert correctness', () => {
                                 label: 'Lightning Breath',
                                 description: 'Breathe lightning.',
                                 attributes: undefined,
-                                detail: undefined,
+                                details: undefined,
                                 effects: undefined,
                                 charges: undefined,
                                 grants: undefined,
@@ -1459,6 +1621,7 @@ describe('round-trip upsert correctness', () => {
             id: 'equipment-1',
             label: 'Longsword',
             description: 'Updated',
+            status: 'DRAFT',
             attributes: undefined,
             quote: undefined,
             cost: { amount: 20, currencyId: 'gp' },
@@ -1469,7 +1632,8 @@ describe('round-trip upsert correctness', () => {
                 resetKind: 'SHORT_REST',
                 limitKind: 'FIXED_AMOUNT',
                 scalingKind: 'NONE',
-                amount: 2
+                amount: 2,
+                bonuses: undefined
             },
             capacity: undefined,
             modifiers: undefined,
@@ -1540,20 +1704,15 @@ describe('round-trip upsert correctness', () => {
             id: 'equipment-variant-1',
             label: 'Flame Tongue Longsword',
             description: 'Variant item',
-            attributes: undefined,
             quote: undefined,
-            cost: undefined,
             effects: undefined,
             charges: undefined,
-            capacity: undefined,
             modifiers: undefined,
-            maxStack: undefined,
             rarityId: 'rare',
             maxBonus: undefined,
-            armorClass: undefined,
-            contains: undefined,
             features: undefined,
             restrictions: undefined,
+            status: 'DRAFT',
             userId: 'user-1',
             systemId: 'system-1',
             category: 'VARIANT',
@@ -1581,6 +1740,7 @@ describe('round-trip upsert correctness', () => {
                 armor_class: null,
                 charge_id: null,
                 restriction_id: null,
+                status: 'DRAFT',
                 parent_equipment_id: 'equipment-parent-1'
             }
         ]);
@@ -1643,7 +1803,7 @@ describe('round-trip upsert correctness', () => {
             label: 'Fighting Style',
             description: 'Updated feature',
             attributes: ['HIDDEN_ON_SHEET'],
-            detail: undefined,
+            details: undefined,
             effects: undefined,
             charges: undefined,
             grants: undefined,
@@ -1663,7 +1823,7 @@ describe('round-trip upsert correctness', () => {
                     label: 'Dueling',
                     description: 'Updated option',
                     attributes: ['LIMITED_USE'],
-                    detail: undefined,
+                    details: undefined,
                     effects: undefined,
                     charges: undefined,
                     grants: undefined,
@@ -1700,7 +1860,6 @@ describe('round-trip upsert correctness', () => {
                 id: 'option-2',
                 label: 'Dueling',
                 description: 'Updated option',
-                detail: null,
                 sort_order: 1,
                 charge_id: null,
                 restriction_id: null
@@ -1740,7 +1899,7 @@ describe('round-trip upsert correctness', () => {
                             groupType: 'SINGLE',
                             selectionKind: "FIXED" as const,
                             resultBlock: {
-                                id: "shared-PATH_CODE-1__result",
+                                id: "shared-PATH_CODE-1",
                                 resultKind: "SINGLE" as const,
                                 outcomes: [
                                     {
@@ -1788,7 +1947,7 @@ describe('round-trip upsert correctness', () => {
                             groupType: 'SINGLE',
                             selectionKind: "FIXED" as const,
                             resultBlock: {
-                                id: "shared-PATH_CODE-2__result",
+                                id: "shared-PATH_CODE-2",
                                 resultKind: "SINGLE" as const,
                                 outcomes: [
                                     {
@@ -1808,7 +1967,7 @@ describe('round-trip upsert correctness', () => {
             label: 'Arcane Shield',
             description: 'Updated feature',
             attributes: undefined,
-            detail: undefined,
+            details: undefined,
             effects: [
                 {
                     id: 'shared-effect-1',
@@ -1835,7 +1994,7 @@ describe('round-trip upsert correctness', () => {
                             groupType: 'SINGLE',
                             selectionKind: 'FIXED',
                             resultBlock: {
-                                id: 'shared-PATH_CODE-2__result',
+                                id: 'shared-PATH_CODE-2',
                                 resultKind: 'SINGLE',
                                 outcomes: [
                                     {
@@ -1878,14 +2037,14 @@ describe('round-trip upsert correctness', () => {
                 max_targets: null,
                 max_targets_scaling: null,
                 excluded_creature_type_ids: null,
-                result_block_id: 'shared-PATH_CODE-2__result',
+                result_block_id: 'shared-PATH_CODE-2',
                 roll_table_kind: null,
                 die: null
             }
         ]);
         expect(db.snapshot('effect_result_blocks')).toEqual([
             {
-                id: 'shared-PATH_CODE-2__result',
+                id: 'shared-PATH_CODE-2',
                 result_kind: 'SINGLE',
                 duration_id: null,
                 lifecycle_recurring_kind: null,
@@ -1895,7 +2054,7 @@ describe('round-trip upsert correctness', () => {
         ]);
         expect(db.snapshot('effect_result_block_outcomes')).toEqual([
             {
-                result_block_id: 'shared-PATH_CODE-2__result',
+                result_block_id: 'shared-PATH_CODE-2',
                 outcome_id: 'shared-PATH_CODE-2',
                 effect_kind: 'CONDITION',
                 sort_order: 1
@@ -1954,8 +2113,10 @@ describe('round-trip upsert correctness', () => {
             id: 'feat-feature-1',
             label: 'Martial Adept',
             description: 'Updated feat',
-            detail: undefined,
+            status: 'DRAFT',
+            details: undefined,
             prerequisites: undefined,
+            effects: undefined,
             charges: undefined,
             features: [
                 {
@@ -1963,7 +2124,7 @@ describe('round-trip upsert correctness', () => {
                     label: 'Closing Strike',
                     description: 'Updated feature',
                     attributes: ['LIMITED_USE'],
-                    detail: undefined,
+                    details: undefined,
                     effects: undefined,
                     charges: undefined,
                     grants: undefined,
@@ -1990,7 +2151,6 @@ describe('round-trip upsert correctness', () => {
                 id: 'feature-b',
                 label: 'Closing Strike',
                 description: 'Updated feature',
-                detail: null,
                 charge_id: null,
                 restriction_id: null,
                 sort_order: 1,
@@ -2047,6 +2207,14 @@ describe('round-trip upsert correctness', () => {
                 ability: 'INTELLIGENCE',
                 maxSpellLevel: 9,
                 attributes: ['PREPARES_SPELLS'],
+                details: [
+                    {
+                        id: 'class-spell-detail-1',
+                        label: 'Preparing Spells',
+                        description: 'Old spellcasting detail',
+                        order: 1
+                    }
+                ],
                 charges: {
                     id: 'class-spellcharge-1',
                     resetKind: 'LONG_REST',
@@ -2182,6 +2350,14 @@ describe('round-trip upsert correctness', () => {
                 ability: 'WISDOM',
                 maxSpellLevel: 9,
                 attributes: ['PREPARES_SPELLS', 'RITUAL_CASTER'],
+                details: [
+                    {
+                        id: 'class-spell-detail-2',
+                        label: 'Ritual Casting',
+                        description: 'New spellcasting detail',
+                        order: 1
+                    }
+                ],
                 charges: {
                     id: 'class-spellcharge-2',
                     resetKind: 'LONG_REST',
@@ -2310,6 +2486,7 @@ describe('round-trip upsert correctness', () => {
                     level: 'FULL',
                     rounding: undefined,
                     count: undefined,
+                    restrictions: undefined,
                     languageIds: ['draconic']
                 }
             ],
@@ -2337,12 +2514,21 @@ describe('round-trip upsert correctness', () => {
                 ability: 'WISDOM',
                 maxSpellLevel: 9,
                 attributes: ['PREPARES_SPELLS', 'RITUAL_CASTER'],
+                details: [
+                    {
+                        id: 'class-spell-detail-2',
+                        label: 'Ritual Casting',
+                        description: 'New spellcasting detail',
+                        order: 1
+                    }
+                ],
                 charges: {
                     id: 'class-spellcharge-2',
                     resetKind: 'LONG_REST',
                     limitKind: 'FIXED_AMOUNT',
                     scalingKind: 'NONE',
-                    amount: 2
+                    amount: 2,
+                    bonuses: undefined
                 },
                 prepareLimit: {
                     methodKinds: ['CLASS_LEVEL', 'PER_LEVEL'],
@@ -2364,12 +2550,14 @@ describe('round-trip upsert correctness', () => {
                     resetKind: 'LONG_REST',
                     limitKind: 'FIXED_AMOUNT',
                     scalingKind: 'NONE',
-                    amount: 3
+                    amount: 3,
+                    bonuses: undefined
                 }
             },
             features: undefined,
             userId: 'user-1',
             systemId: 'system-1',
+            status: 'DRAFT',
             category: 'BASE',
             attributes: ['RESOURCE'],
             startingGold: {
@@ -2441,6 +2629,7 @@ describe('round-trip upsert correctness', () => {
                         level: 'FULL',
                         rounding: undefined,
                         count: undefined,
+                        restrictions: undefined,
                         skillIds: ['history']
                     }
                 ]
@@ -2451,6 +2640,12 @@ describe('round-trip upsert correctness', () => {
                 id: 'class-detail-2',
                 label: 'Arcane Recovery',
                 description: 'New detail',
+                sort_order: 1
+            },
+            {
+                id: 'class-spell-detail-2',
+                label: 'Ritual Casting',
+                description: 'New spellcasting detail',
                 sort_order: 1
             }
         ]);
@@ -2493,14 +2688,21 @@ describe('round-trip upsert correctness', () => {
                 charge_id: 'class-resource-charge-2'
             }
         ]);
-        expect(db.snapshot('class_spellcasting')).toEqual([
-            {
-                id: 'class-1::spellcasting',
+        const classSpellcastingRows = db.snapshot('class_spellcasting');
+        expect(classSpellcastingRows).toEqual([
+            expect.objectContaining({
                 class_id: 'class-1',
                 magic_name: 'Arcana',
                 ability_code: 'WISDOM',
                 max_spell_level: 9,
                 charge_id: 'class-spellcharge-2'
+            })
+        ]);
+        expect(db.snapshot('class_spellcasting_details')).toEqual([
+            {
+                spellcasting_id: classSpellcastingRows[0].id,
+                detail_id: 'class-spell-detail-2',
+                sort_order: 1
             }
         ]);
         expect(db.snapshot('class_multiclass')).toEqual([

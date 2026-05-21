@@ -1,16 +1,18 @@
 import { ActionIcon, Text, Tooltip } from '@mantine/core'
 import IEdit from '#assets/icons/IEdit'
 import { IExternalLink } from '#assets/icons/IExternalLink'
-import { IMinus } from '#assets/icons/IMinus'
+import ITrash from '#assets/icons/ITrash'
 import * as styles from '../layout/AuthoringFormSectionRow.css'
 
 export function AuthoringFormSectionRow({
+  description,
   index,
   readOnly,
   title,
   onOpen,
   onRemove
 }: {
+  description?: string
   index?: number
   readOnly: boolean
   title: string
@@ -22,7 +24,12 @@ export function AuthoringFormSectionRow({
 
   return (
     <div className={styles.row}>
-      <Text className={styles.rowTitle}>{itemLabel}</Text>
+      <div>
+        <Text className={styles.rowTitle}>{itemLabel}</Text>
+        {description
+          ? <Text className={styles.rowDescription}>{description}</Text>
+          : null}
+      </div>
       <div className={styles.rowActions}>
         {onOpen
           ? (
@@ -37,7 +44,7 @@ export function AuthoringFormSectionRow({
           ? (
               <Tooltip label='Remove' withArrow>
                 <ActionIcon aria-label={`Remove ${itemLabel}`} color='red' variant='subtle' onClick={onRemove}>
-                  <IMinus />
+                  <ITrash size={16} />
                 </ActionIcon>
               </Tooltip>
             )

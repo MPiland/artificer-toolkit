@@ -23,7 +23,8 @@ export const net: EquipmentAuthored = {
                     rangeKind: S.RANGE_KIND.SPECIAL
                 },
                 targeting: {
-                    selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET
+                    selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                    dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
                 }
             },
             paths: [

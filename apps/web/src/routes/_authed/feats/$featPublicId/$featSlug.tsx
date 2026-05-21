@@ -9,7 +9,10 @@ import {
 } from '#app/routing/authoredRouteHandles'
 import { resolveAuthoredRouteSubjectId } from '#app/routing/authoredRouteSubjectId'
 import { buildFeatRouteParams } from '#app/routing/authoredRouteParams'
-import { validateAuthoredDetailSearch } from '#app/routing/authoredDetailSearch'
+import {
+  resolveAuthoredDetailView,
+  validateAuthoredDetailSearch
+} from '#app/routing/authoredDetailSearch'
 
 export const Route = createFileRoute('/_authed/feats/$featPublicId/$featSlug')({
   validateSearch: validateAuthoredDetailSearch,
@@ -23,7 +26,7 @@ export const Route = createFileRoute('/_authed/feats/$featPublicId/$featSlug')({
       queryClient: context.queryClient,
       subjectKind: 'FEAT'
     })
-    const view = search.view ?? 'active'
+    const view = resolveAuthoredDetailView(search, location.pathname)
     const response = await ensureOptionalActiveContent(context.queryClient, getFeat({
       id: featId,
       includeDraft: true,

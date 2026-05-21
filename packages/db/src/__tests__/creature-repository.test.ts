@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { createCreatureRepository } from '../domains/subjects/repositories/creature.js'
+import { CREATURE_IDS } from '../source-data/srd/ids.js'
+import { srdCreatures } from '../source-data/srd/creatures/index.js'
+import { InMemoryDb } from './helpers/in-memory-db.js'
 
 type RowMap = Record<string, unknown[]>
 
@@ -63,6 +66,36 @@ function emptyGrantTables() {
 }
 
 describe('createCreatureRepository', () => {
+  it('persists and hydrates SRD dragon legendary action options from source data', async () => {
+    const repository = createCreatureRepository(new InMemoryDb() as never)
+    const sourceDragons = [
+      CREATURE_IDS.ADULT_BLACK_DRAGON,
+      CREATURE_IDS.ADULT_BRASS_DRAGON
+    ].map((id) => {
+      const creature = srdCreatures.find((candidate) => candidate.id === id)
+      if (!creature) throw new Error(`Missing SRD creature ${id}`)
+      return creature
+    })
+
+    for (const creature of sourceDragons) {
+      await repository.upsert(creature)
+    }
+
+    for (const creature of sourceDragons) {
+      const hydrated = await repository.findById(creature.id)
+      const legendaryActions = hydrated?.features?.find((feature) => feature.label === 'Legendary Actions')
+      const legendaryResistance = hydrated?.features?.find((feature) => feature.label.startsWith('Legendary Resistance'))
+
+      expect(legendaryActions?.options?.map((option) => option.label), `${creature.label} legendary options`).toEqual([
+        'Detect',
+        'Tail Attack',
+        'Wing Attack (Costs 2 Actions)'
+      ])
+      expect(legendaryActions?.options?.find((option) => option.label === 'Tail Attack')?.effects?.length).toBeGreaterThan(0)
+      expect(legendaryResistance, `${creature.label} legendary resistance`).toBeDefined()
+    }
+  })
+
   it('hydrates a minimal NPC creature with root language proficiency grants', async () => {
     const repo = createCreatureRepository(createFakeDb({
       creatures: [
@@ -408,7 +441,6 @@ describe('createCreatureRepository', () => {
           id: 'feature-legendary',
           label: 'Legendary Resistance',
           description: 'If the dragon fails a saving throw, it can choose to succeed instead.',
-          detail: null,
           charge_id: null,
           restriction_id: null,
           sort_order: 0,

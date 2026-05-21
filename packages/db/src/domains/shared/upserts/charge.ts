@@ -84,6 +84,7 @@ function requireChargeLimitKind(
     && value !== 'CLASS_LEVEL'
     && value !== 'PARENT_CLASS_LEVEL'
     && value !== 'SPELL_CAST_LEVEL'
+    && value !== 'ABILITY_MODIFIER'
   ) {
     throw new Error(`Charge "${chargeId}" has invalid limitKind "${value}".`)
   }

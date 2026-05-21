@@ -5,6 +5,9 @@ import {
   createCreatureRepository,
   createEquipmentRepository
 } from '../repositories/index.js'
+import { loadDbScriptEnv } from './loadScriptEnv.js'
+
+loadDbScriptEnv()
 
 type Db = ReturnType<typeof createDb>
 

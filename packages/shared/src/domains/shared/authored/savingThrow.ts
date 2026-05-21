@@ -1,17 +1,40 @@
 import type {
   AbilityCode,
-  SAVING_THROW_KIND
+  SAVING_THROW_DC_BONUS_KIND,
+  SAVING_THROW_DC_METHOD
 } from '#core'
+
+export type SavingThrowDcBonusAuthored
+  = | {
+    id: string
+    bonusKind: typeof SAVING_THROW_DC_BONUS_KIND.ABILITY_MODIFIER
+    ability: AbilityCode
+  }
+  | {
+    id: string
+    bonusKind: typeof SAVING_THROW_DC_BONUS_KIND.PROFICIENCY_BONUS
+  }
+  | {
+    id: string
+    bonusKind: typeof SAVING_THROW_DC_BONUS_KIND.STATIC_BONUS
+    amount: number
+  }
 
 export type SavingThrowAuthored
   = | {
     id: string
-    ability: AbilityCode // what the target rolls against the source DC
-    sourceAbility?: AbilityCode // what the source uses to calculate the DC
-    savingThrowKind: typeof SAVING_THROW_KIND.SOURCE_SAVE_DC
+    ability: AbilityCode
+    dcMethod: typeof SAVING_THROW_DC_METHOD.SOURCE_SAVE_DC
   } | {
     id: string
-    ability: AbilityCode // what the SCOPE rolls
-    savingThrowKind: typeof SAVING_THROW_KIND.FIXED_VALUE
-    dc: number
+    ability: AbilityCode
+    dcMethod: typeof SAVING_THROW_DC_METHOD.FIXED_DC
+    baseDc: number
+    bonuses?: SavingThrowDcBonusAuthored[]
+  } | {
+    id: string
+    ability: AbilityCode
+    dcMethod: typeof SAVING_THROW_DC_METHOD.DERIVED_DC
+    baseDc: number
+    bonuses: SavingThrowDcBonusAuthored[]
   }

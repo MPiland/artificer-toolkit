@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react'
-import { base, button, title as trigger_title, icon, icon_collapse } from './Trigger.css'
+import { base, button, title as trigger_title, icon } from './Trigger.css'
 import clsx from 'clsx'
-import { PlusIcon, Trash2 } from 'lucide-react'
+import { MinusIcon, PlusIcon, Trash2 } from 'lucide-react'
 import { ActionIcon, Group, Tooltip, UnstyledButton } from '@mantine/core'
 
 export type TriggerProps = {
@@ -46,7 +46,7 @@ export function Trigger({
           {titleLeft}
           <span id={titleId} className={clsx(trigger_title, titleClassName)}>{title}</span>
         </Group>
-        {collapseIcon ?? <PlusIcon className={clsx(icon_collapse, icon)} />}
+        {collapseIcon ?? (opened ? <MinusIcon className={icon} /> : <PlusIcon className={icon} />)}
       </UnstyledButton>
       {titleRight}
       {removeFn && (

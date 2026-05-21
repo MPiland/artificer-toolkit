@@ -1,4 +1,4 @@
-import { globalStyle, style } from '@vanilla-extract/css'
+import { style } from '@vanilla-extract/css'
 import { foundationVars } from '../../css/foundations.css.ts'
 import { app } from '../../css/layers.css.ts'
 
@@ -7,12 +7,16 @@ const mobile = 'screen and (max-width: 760px)'
 export const root = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      alignContent: 'start',
+      display: 'flex',
+      flexDirection: 'column',
       gap: foundationVars.space[4],
       width: '100%',
       maxWidth: '900px',
+      height: 'var(--at-workspace-available-height, calc(100dvh - 112px))',
+      minHeight: 0,
+      margin: '0 auto',
       minWidth: 0,
+      overflow: 'hidden',
       color: foundationVars.color.text.primary
     }
   }
@@ -21,14 +25,14 @@ export const root = style({
 export const storyCanvas = style({
   '@layer': {
     [app]: {
-      minHeight: '100dvh',
-      padding: `${foundationVars.space[8]} ${foundationVars.space[6]}`,
-      backgroundColor: foundationVars.color.surface.canvas
-    }
-  },
-  '@media': {
-    [mobile]: {
-      padding: foundationVars.space[4]
+      'minHeight': '100dvh',
+      'padding': `${foundationVars.space[8]} ${foundationVars.space[6]}`,
+      'backgroundColor': foundationVars.color.surface.canvas,
+      '@media': {
+        [mobile]: {
+          padding: foundationVars.space[4]
+        }
+      }
     }
   }
 })
@@ -36,15 +40,25 @@ export const storyCanvas = style({
 export const header = style({
   '@layer': {
     [app]: {
-      display: 'flex',
-      alignItems: 'flex-start',
-      justifyContent: 'space-between',
-      gap: foundationVars.space[4]
+      'display': 'flex',
+      'alignItems': 'flex-start',
+      'justifyContent': 'space-between',
+      'gap': foundationVars.space[4],
+      '@media': {
+        [mobile]: {
+          display: 'grid'
+        }
+      }
     }
-  },
-  '@media': {
-    [mobile]: {
-      display: 'grid'
+  }
+})
+
+export const headerContent = style({
+  '@layer': {
+    [app]: {
+      display: 'grid',
+      gap: foundationVars.space[2],
+      minWidth: 0
     }
   }
 })
@@ -61,13 +75,40 @@ export const title = style({
   }
 })
 
-export const eyebrow = style({
+export const statusChip = style({
   '@layer': {
     [app]: {
-      color: foundationVars.color.text.muted,
-      fontSize: '13px',
-      fontWeight: foundationVars.fontWeight.medium,
-      letterSpacing: '0'
+      display: 'inline-flex',
+      alignItems: 'center',
+      minHeight: '24px',
+      padding: `0 ${foundationVars.space[2]}`,
+      border: `1px solid ${foundationVars.color.border.subtle}`,
+      borderRadius: foundationVars.radius.pill,
+      backgroundColor: foundationVars.color.surface.subtle,
+      color: foundationVars.color.text.secondary,
+      fontSize: '12px',
+      fontWeight: foundationVars.fontWeight.semibold,
+      lineHeight: 1
+    }
+  }
+})
+
+export const statusChipDraft = style({
+  '@layer': {
+    [app]: {
+      borderColor: foundationVars.color.status.warning,
+      backgroundColor: foundationVars.color.status.warningSoft,
+      color: foundationVars.color.status.warning
+    }
+  }
+})
+
+export const statusChipActive = style({
+  '@layer': {
+    [app]: {
+      borderColor: foundationVars.color.accent.border,
+      backgroundColor: foundationVars.color.accent.soft,
+      color: foundationVars.color.text.accent
     }
   }
 })
@@ -75,14 +116,26 @@ export const eyebrow = style({
 export const shell = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      gridTemplateRows: 'minmax(0, 1fr) auto',
-      minHeight: 'calc(100dvh - 104px)'
+      'display': 'grid',
+      'gridTemplateRows': 'minmax(0, 1fr) auto',
+      'flex': '1 1 auto',
+      'height': 'auto',
+      'minHeight': 0,
+      'overflow': 'hidden'
     }
-  },
-  '@media': {
-    [mobile]: {
-      minHeight: 'auto'
+  }
+})
+
+export const contentScroller = style({
+  '@layer': {
+    [app]: {
+      'display': 'grid',
+      'alignContent': 'start',
+      'minHeight': 0,
+      'overflowX': 'hidden',
+      'overflowY': 'auto',
+      'paddingBottom': foundationVars.space[4],
+      'scrollbarGutter': 'stable'
     }
   }
 })
@@ -104,7 +157,12 @@ export const section = style({
       gap: foundationVars.space[3],
       padding: '0 0 14px',
       borderBottom: `1px solid ${foundationVars.color.border.subtle}`,
-      backgroundColor: 'transparent'
+      backgroundColor: 'transparent',
+
+      ':last-child': {
+        paddingBottom: 0,
+        borderBottom: 0
+      }
     }
   }
 })
@@ -154,116 +212,27 @@ export const mutedText = style({
   }
 })
 
-export const footer = style({
+export const dangerIconButton = style({
   '@layer': {
     [app]: {
-      position: 'sticky',
-      bottom: 0,
-      display: 'flex',
-      justifyContent: 'space-between',
-      gap: foundationVars.space[3],
-      marginTop: foundationVars.space[4],
-      minHeight: '56px',
-      padding: `${foundationVars.space[2]} 0`,
-      borderTop: `1px solid ${foundationVars.color.border.strong}`,
-      backgroundColor: foundationVars.color.surface.canvas
-    }
-  },
-  '@media': {
-    [mobile]: {
-      position: 'static',
-      display: 'grid'
-    }
-  }
-})
+      'vars': {
+        '--ai-bg': foundationVars.color.input.background.default,
+        '--ai-bd': `1px solid ${foundationVars.color.status.danger}`,
+        '--ai-color': foundationVars.color.status.danger,
+        '--ai-hover': foundationVars.color.status.dangerSoft,
+        '--ai-hover-color': foundationVars.color.status.danger
+      },
+      'borderColor': foundationVars.color.status.danger,
+      'borderRadius': foundationVars.radius.sm,
+      'backgroundColor': foundationVars.color.input.background.default,
+      'color': foundationVars.color.status.danger,
+      'transition': `background-color ${foundationVars.motion.fast} ease, border-color ${foundationVars.motion.fast} ease, color ${foundationVars.motion.fast} ease`,
 
-globalStyle(`${section} .mantine-Input-input`, {
-  minHeight: '40px',
-  borderColor: foundationVars.color.input.border.default,
-  borderRadius: foundationVars.radius.md,
-  backgroundColor: foundationVars.color.input.background.default,
-  color: foundationVars.color.text.primary,
-  fontSize: '14px'
-})
-
-globalStyle(`${section} .mantine-Input-input:disabled, ${section} .mantine-Input-input[readonly], ${section} .mantine-Input-input[data-disabled="true"]`, {
-  borderColor: foundationVars.color.input.border.disabled,
-  backgroundColor: foundationVars.color.input.background.disabled,
-  color: foundationVars.color.text.muted
-})
-
-globalStyle(`${section} .mantine-InputWrapper-label`, {
-  color: foundationVars.color.text.secondary,
-  fontSize: foundationVars.typography.label.fontSize,
-  fontWeight: foundationVars.fontWeight.medium,
-  lineHeight: foundationVars.typography.label.lineHeight
-})
-
-globalStyle(`${section} .mantine-MultiSelect-pill`, {
-  border: `1px solid ${foundationVars.color.accent.border}`,
-  borderRadius: foundationVars.radius.pill,
-  backgroundColor: foundationVars.color.accent.soft,
-  color: foundationVars.color.text.accent,
-  fontSize: '11px',
-  fontWeight: foundationVars.fontWeight.medium
-})
-
-globalStyle(`${root} .mantine-Button-root:disabled, ${root} .mantine-Button-root[data-disabled="true"]`, {
-  opacity: 1,
-  borderColor: foundationVars.color.input.border.disabled,
-  backgroundColor: foundationVars.color.surface.subtle,
-  color: foundationVars.color.text.secondary
-})
-
-globalStyle(`${root} .mantine-Button-root:disabled .mantine-Button-label, ${root} .mantine-Button-root[data-disabled="true"] .mantine-Button-label`, {
-  color: foundationVars.color.text.secondary
-})
-
-globalStyle(`${root} .mantine-Alert-root`, {
-  border: `1px solid ${foundationVars.color.border.subtle}`,
-  backgroundColor: foundationVars.color.surface.subtle,
-  color: foundationVars.color.text.primary
-})
-
-globalStyle(`${root} .mantine-Alert-title, ${root} .mantine-Alert-message`, {
-  color: foundationVars.color.text.primary
-})
-
-globalStyle(`${root} .mantine-Badge-root`, {
-  border: `1px solid ${foundationVars.color.border.subtle}`,
-  backgroundColor: foundationVars.color.surface.subtle,
-  color: foundationVars.color.text.primary
-})
-
-globalStyle(`${root} .mantine-Badge-label`, {
-  color: foundationVars.color.text.primary
-})
-
-globalStyle(`${root} .mantine-InputWrapper-required`, {
-  color: foundationVars.color.input.border.error
-})
-
-globalStyle(`${root} .mantine-Button-root`, {
-  '@media': {
-    [mobile]: {
-      minHeight: '44px'
-    }
-  }
-})
-
-globalStyle(`${root} .mantine-Input-input`, {
-  '@media': {
-    [mobile]: {
-      minHeight: '44px'
-    }
-  }
-})
-
-globalStyle(`${root} .mantine-InputClearButton-root`, {
-  '@media': {
-    [mobile]: {
-      minWidth: '44px',
-      minHeight: '44px'
+      ':hover': {
+        borderColor: foundationVars.color.status.danger,
+        backgroundColor: foundationVars.color.status.dangerSoft,
+        color: foundationVars.color.status.danger
+      }
     }
   }
 })

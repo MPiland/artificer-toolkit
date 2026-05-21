@@ -17,8 +17,11 @@ export type AuthoringFormActionHandlers = {
   onCancel?: AuthoringFormAction
   onClearPaths?: (paths: readonly NodeRuntimePathDto[]) => void
   onCopy?: AuthoringFormAction
+  onDelete?: AuthoringFormAction
   onNextStep?: AuthoringFormAction
   onPreviousStep?: AuthoringFormAction
+  onResetStep?: AuthoringFormAction
+  onStepChange?: (stepId: string) => void
   onSaveDraft?: AuthoringFormAction
 }
 
@@ -30,12 +33,17 @@ export type AuthoringFormRegistration = {
   canCopy?: boolean
   canGoBack?: boolean
   canGoNext?: boolean
+  canDelete?: boolean
+  canResetStep?: boolean
   canSaveDraft?: boolean
   canSubmit?: boolean
   copyLabel?: string
   cancelLabel?: string
+  deleteLabel?: string
   fieldPathPrefix?: string
+  hasChanges?: boolean
   hasActiveDraft?: boolean
+  isDraft?: boolean
   isLastStep?: boolean
   mapId?: string
   mode?: AuthoringFormMode
@@ -43,11 +51,13 @@ export type AuthoringFormRegistration = {
   readOnly?: boolean
   resolveModel?: boolean
   resolvedModel?: NodeRuntimeResolveResponseDto
+  resetStepLabel?: string
   saveDraftLabel?: string
   subjectKindLabel?: string
   subjectLabel?: ReactNode
   systemId?: string
   isSubmitting?: boolean
+  isDeleting?: boolean
 }
 
 export type AuthoringFormSessionState = {
@@ -58,20 +68,27 @@ export type AuthoringFormSessionState = {
   canCopy: boolean
   canGoBack: boolean
   canGoNext: boolean
+  canDelete: boolean
+  canResetStep: boolean
   canSaveDraft: boolean
   canSubmit: boolean
   copyLabel: string
   cancelLabel: string
+  deleteLabel: string
   fieldPathPrefix?: string
+  hasChanges: boolean
   hasActiveDraft: boolean
+  isDraft: boolean
   isLastStep: boolean
   isSubmitting: boolean
+  isDeleting: boolean
   mapId?: string
   mode: AuthoringFormMode
   providedModel?: NodeRuntimeResolveResponseDto
   readOnly: boolean
   resolveModel: boolean
   resolvedModel?: NodeRuntimeResolveResponseDto
+  resetStepLabel: string
   saveDraftLabel: string
   subjectKindLabel: string
   subjectLabel?: ReactNode
@@ -83,15 +100,18 @@ export type AuthoringFormContextValue = AuthoringFormSessionState & {
   cancel: AuthoringFormAction
   clearPaths: (paths: readonly NodeRuntimePathDto[]) => void
   copy: AuthoringFormAction
+  deleteRecord: AuthoringFormAction
   getField: (fieldId: string) => NodeRuntimeNodeDto | undefined
   getSection: (sectionId: string) => NodeRuntimeSectionDto | undefined
   getStep: (stepId: string) => NodeRuntimeStepDto | undefined
+  goToStep: (stepId: string) => void
   goToNextStep: AuthoringFormAction
   goToPreviousStep: AuthoringFormAction
   registerAuthoringForm: (
     registration: AuthoringFormRegistration,
     actions?: AuthoringFormActionHandlers
   ) => void
+  resetStep: AuthoringFormAction
   saveDraft: AuthoringFormAction
 }
 

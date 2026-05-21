@@ -1,14 +1,22 @@
 import {
-  useCallback } from 'react'
+  useCallback,
+  useEffect,
+  useRef,
+  useState
+} from 'react'
 import { notifications } from '@mantine/notifications'
 import { useMutation,
   useQueryClient } from '@tanstack/react-query'
-import { useRouter } from '@tanstack/react-router'
+import { useLocation,
+  useRouter } from '@tanstack/react-router'
 import type { QueryClient,
   QueryKey } from '@tanstack/react-query'
 import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
+import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
+import type { AuthoredDetailPendingOperation } from './AuthoredDetail.types'
 
 export function useAuthoredDetailActions({
+  deleteActive,
   discard,
   detailSubjectQueryKey,
   domainLabel,
@@ -20,6 +28,7 @@ export function useAuthoredDetailActions({
   navigateEdit,
   navigateList
 }: {
+  deleteActive: (id: string) => Promise<void>
   discard: (id: string) => Promise<void>
   detailSubjectQueryKey: QueryKey
   domainLabel: string
@@ -33,20 +42,71 @@ export function useAuthoredDetailActions({
 }) {
   const queryClient = useQueryClient()
   const router = useRouter()
+  const currentHref = useLocation({ select: (location) => location.href })
+  const currentHrefRef = useRef(currentHref)
+  const duplicateInFlightRef = useRef(false)
+  const duplicateOperationRef = useRef(0)
+  const mountedRef = useRef(true)
+  const [pendingOperation, setPendingOperation] = useState<AuthoredDetailPendingOperation | null>(null)
   const duplicateMutation = useMutation({ mutationFn: () => duplicate(id) })
   const discardMutation = useMutation({ mutationFn: () => discard(id) })
+  const deleteAction = useAuthoredDeleteAction({
+    deleteActive,
+    deleteDraft: discard,
+    detailSubjectQueryKey,
+    domainLabel,
+    domainQueryKey,
+    draftQueryKey,
+    onDeleted: navigateList
+  })
+
+  useEffect(() => {
+    currentHrefRef.current = currentHref
+  }, [currentHref])
+
+  useEffect(() => {
+    mountedRef.current = true
+
+    return () => {
+      mountedRef.current = false
+      duplicateOperationRef.current += 1
+    }
+  }, [])
 
   const duplicateToDraft = useCallback(async () => {
+    if (duplicateInFlightRef.current) return
+
+    duplicateInFlightRef.current = true
+    const operationId = duplicateOperationRef.current + 1
+    duplicateOperationRef.current = operationId
+    const sourceHref = currentHrefRef.current
+    setPendingOperation({
+      title: 'Creating draft...',
+      body: `Creating an editable copy of this ${domainLabel.toLowerCase()}.`
+    })
+
     try {
       const copied = await duplicateMutation.mutateAsync()
       await queryClient.invalidateQueries({ queryKey: domainQueryKey })
       notifications.show({ color: 'green', message: `${domainLabel} duplicated as an owned draft.` })
 
-      if (copied) {
+      if (
+        copied
+        && mountedRef.current
+        && duplicateOperationRef.current === operationId
+        && currentHrefRef.current === sourceHref
+      ) {
+        setPendingOperation(null)
         await navigateEdit({ id: copied.subjectId, publicId: copied.publicId, label: copied.label })
       }
     } catch {
       notifications.show({ color: 'red', message: `Could not duplicate that ${domainLabel.toLowerCase()} yet.` })
+    } finally {
+      duplicateInFlightRef.current = false
+
+      if (mountedRef.current && duplicateOperationRef.current === operationId) {
+        setPendingOperation(null)
+      }
     }
   }, [
     domainLabel,
@@ -90,10 +150,15 @@ export function useAuthoredDetailActions({
   ])
 
   return {
+    deleteConfirmation: deleteAction.confirmation,
+    deleteContent: deleteAction.requestDelete,
     discardDraft,
     duplicateToDraft,
+    isDeleting: deleteAction.isDeleting,
+    isDetailOperationPending: pendingOperation !== null,
     isDiscardingDraft: discardMutation.isPending,
-    isDuplicating: duplicateMutation.isPending
+    isDuplicating: duplicateMutation.isPending,
+    pendingOperation
   }
 }
 

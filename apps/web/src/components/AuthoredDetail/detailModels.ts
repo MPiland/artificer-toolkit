@@ -33,7 +33,6 @@ export function toDetailItems(records: readonly LabelDescriptionRecord[] | null 
 }
 
 export function buildDetailStatusLabels({
-  draft,
   mode,
   provenance,
   status
@@ -43,13 +42,14 @@ export function buildDetailStatusLabels({
   provenance: AuthoredContentProvenanceDto
   status?: string
 }) {
+  const statusLabel = status ? formatEnumLabel(status) : null
   const labels = [
     provenance.kind === 'MASTER' ? 'SRD' : 'Homebrew',
-    status ? formatEnumLabel(status) : null
+    mode === 'draft' && statusLabel === 'Draft' ? null : statusLabel
   ]
 
   if (mode === 'draft') {
-    labels.unshift(draft?.draftState === 'ACTIVE_WITH_DRAFT' ? 'Draft Preview' : 'Draft Only')
+    labels.unshift('Draft')
   }
 
   if (mode === 'invalid-draft-only') {

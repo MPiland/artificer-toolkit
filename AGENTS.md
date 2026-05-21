@@ -10,9 +10,8 @@ Agents working here should treat the repo as a long-running salvage-and-moderniz
 
 Read these before making substantial changes:
 
-1. [REBUILD_PLAN.md](/c:/Users/pilan/Desktop/artificer-toolkit/REBUILD_PLAN.md)
-2. [PRODUCT.md](/c:/Users/pilan/Desktop/artificer-toolkit/PRODUCT.md)
-3. [DESIGN.md](/c:/Users/pilan/Desktop/artificer-toolkit/DESIGN.md)
+1. [PRODUCT.md](/c:/Users/pilan/Desktop/artificer-toolkit/PRODUCT.md)
+2. [DESIGN.md](/c:/Users/pilan/Desktop/artificer-toolkit/DESIGN.md)
 
 If working on a specific domain, read the closest owning source, tests, and current product/design docs before editing.
 

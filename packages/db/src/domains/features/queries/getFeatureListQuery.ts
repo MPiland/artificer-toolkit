@@ -1,6 +1,6 @@
 import type { DBLike } from '#types'
 
-interface FeatureListItem { id: string; label: string; description: string | null; detail: string | null }
+interface FeatureListItem { id: string; label: string; description: string | null }
 
 export async function getFeatureListQuery(db: DBLike): Promise<FeatureListItem[]> {
   return db
@@ -8,8 +8,7 @@ export async function getFeatureListQuery(db: DBLike): Promise<FeatureListItem[]
     .select([
       'id as id',
       'label as label',
-      'description as description',
-      'detail as detail'
+      'description as description'
     ])
     .execute()
     .then((rows) => rows?.length ? rows : [])

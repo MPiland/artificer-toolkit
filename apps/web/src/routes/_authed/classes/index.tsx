@@ -2,6 +2,7 @@ import { notifications } from '@mantine/notifications'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { AuthoredListPage } from '#components/AuthoredList'
+import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
 import { mapDraftSummariesToAuthoredItems } from '#app/data/authoredListDrafts'
 import {
   buildClassListFilters,
@@ -14,6 +15,8 @@ import {
 import { useDuplicateClassMutation } from '#app/data/classes/mutations'
 import { getClass, getClassList } from '#app/data/classes/queries'
 import { createServerApi } from '#app/lib/api'
+import { api } from '#app/lib/api'
+import { queryKeys } from '#app/lib/queryKeys'
 import { authoredDetailSearchFor } from '#app/routing/authoredDetailSearch'
 import { buildClassRouteParams } from '#app/routing/authoredRouteParams'
 
@@ -29,6 +32,14 @@ function ClassesRoute() {
   const queryClient = useQueryClient()
   const { data } = useSuspenseQuery(getClassList())
   const duplicateMutation = useDuplicateClassMutation()
+  const deleteAction = useAuthoredDeleteAction({
+    deleteActive: api.content.classes.deleteActive,
+    deleteDraft: api.content.classes.discardDraft,
+    detailSubjectQueryKey: queryKeys.content.classes.detailRoot,
+    domainLabel: 'Class',
+    domainQueryKey: queryKeys.content.classes.all(),
+    draftQueryKey: queryKeys.content.classes.draft
+  })
 
   async function handleDuplicate(classId: string) {
     try {
@@ -52,37 +63,45 @@ function ClassesRoute() {
   }
 
   return (
-    <AuthoredListPage
-      title='Classes'
-      summary={summarizeClassList(data)}
-      createLabel='Create Class'
-      items={mapClassListToAuthoredItems(data)}
-      draftItems={mapDraftSummariesToAuthoredItems(data.drafts, {
-        categoryAttributeKey: 'Category',
-        formatCategory: formatClassCategory
-      })}
-      filters={buildClassListFilters(data)}
-      attributeColumns={classListAttributeColumns}
-      sortOptions={classListSortOptions}
-      onCreate={() => navigate({ to: '/classes/new' })}
-      onView={(item) => navigate({
-        params: buildClassRouteParams(item.publicId, item.name),
-        search: authoredDetailSearchFor(item.contentState === 'draft' ? 'draft' : 'active'),
-        to: '/classes/$classPublicId/$classSlug'
-      })}
-      onViewIntent={(item) => {
-        void queryClient.prefetchQuery(getClass({
+    <>
+      <AuthoredListPage
+        title='Classes'
+        summary={summarizeClassList(data)}
+        createLabel='Create Class'
+        items={mapClassListToAuthoredItems(data)}
+        draftItems={mapDraftSummariesToAuthoredItems(data.drafts, {
+          categoryAttributeKey: 'Category',
+          formatCategory: formatClassCategory
+        })}
+        filters={buildClassListFilters(data)}
+        attributeColumns={classListAttributeColumns}
+        sortOptions={classListSortOptions}
+        onCreate={() => navigate({ to: '/classes/new' })}
+        onView={(item) => navigate({
+          params: buildClassRouteParams(item.publicId, item.name),
+          search: authoredDetailSearchFor(item.contentState === 'draft' ? 'draft' : 'active'),
+          to: '/classes/$classPublicId/$classSlug'
+        })}
+        onViewIntent={(item) => {
+          void queryClient.prefetchQuery(getClass({
+            id: item.id,
+            includeDraft: true,
+            meta: classDetailMeta,
+            view: item.contentState === 'draft' ? 'draft' : 'active'
+          }))
+        }}
+        onEdit={(item) => navigate({
+          params: buildClassRouteParams(item.publicId, item.name),
+          to: '/classes/$classPublicId/$classSlug/edit'
+        })}
+        onCopy={(item) => void handleDuplicate(item.id)}
+        onDelete={(item) => deleteAction.requestDelete({
           id: item.id,
-          includeDraft: true,
-          meta: classDetailMeta,
-          view: item.contentState === 'draft' ? 'draft' : 'active'
-        }))
-      }}
-      onEdit={(item) => navigate({
-        params: buildClassRouteParams(item.publicId, item.name),
-        to: '/classes/$classPublicId/$classSlug/edit'
-      })}
-      onCopy={(item) => void handleDuplicate(item.id)}
-    />
+          kind: item.contentState === 'draft' ? 'draft' : 'active',
+          label: item.name
+        })}
+      />
+      {deleteAction.confirmation}
+    </>
   )
 }

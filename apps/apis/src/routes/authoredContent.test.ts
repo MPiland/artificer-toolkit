@@ -170,6 +170,7 @@ describe('authored content draft helpers', () => {
       payload: {
         id: 'client-controlled-id',
         label: 'Client Controlled Label',
+        status: 'ACTIVE',
         userId: 'client-controlled-user',
         systemId: 'client-controlled-system'
       }
@@ -187,6 +188,7 @@ describe('authored content draft helpers', () => {
       payload: {
         id: 'spell-1',
         label: 'Client Draft',
+        status: 'DRAFT',
         userId: 'server-user',
         systemId: 'system-1'
       },
@@ -226,6 +228,7 @@ describe('authored content draft helpers', () => {
     expect(normalizeStoredDraftPayloadForActivation(draft, 'server-user')).toEqual({
       id: 'server-subject-id',
       label: 'Server Label',
+      status: 'DRAFT',
       userId: 'server-user',
       systemId: 'server-system'
     })

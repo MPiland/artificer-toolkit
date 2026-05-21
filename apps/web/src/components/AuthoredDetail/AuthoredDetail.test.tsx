@@ -81,6 +81,56 @@ describe('AuthoredDetail', () => {
     expect(onEdit).toHaveBeenCalledTimes(1)
   })
 
+  it('shows loading feedback for pending header actions', () => {
+    renderWithAppProviders(
+      <AuthoredDetailLayout
+        title='Dragonborn'
+        status={['SRD']}
+        facts={[]}
+        actions={[{ label: 'Duplicate', loading: true, onClick: vi.fn() }]}
+        sections={[]}
+      />
+    )
+
+    expect(screen.getByRole('button', { name: /duplicate/i })).toBeDisabled()
+  })
+
+  it('blocks detail actions while a detail operation is pending', () => {
+    const onDuplicate = vi.fn()
+    const onCreate = vi.fn()
+    const onNoticeAction = vi.fn()
+
+    renderWithAppProviders(
+      <AuthoredDetailLayout
+        actionsDisabled
+        pendingOperation={{
+          title: 'Creating draft...',
+          body: 'Creating an editable copy of this race.'
+        }}
+        title='Dragonborn'
+        status={['SRD']}
+        facts={[]}
+        actions={[
+          { label: 'Duplicate', loading: true, onClick: onDuplicate },
+          { label: 'Create New', onClick: onCreate }
+        ]}
+        notice={{
+          tone: 'draft',
+          title: 'Draft available',
+          body: 'A draft is available.',
+          action: { label: 'View Draft', onClick: onNoticeAction }
+        }}
+        sections={[]}
+      />
+    )
+
+    expect(screen.getByRole('dialog', { name: /creating draft/i })).toBeInTheDocument()
+    expect(screen.getByText('Creating an editable copy of this race.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /duplicate/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /create new/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /view draft/i })).toBeDisabled()
+  })
+
   it('uses empty blocks instead of blank repeated sections', () => {
     renderWithAppProviders(
       <AuthoredDetailItemList

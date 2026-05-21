@@ -120,11 +120,12 @@ describe('Feat authoring renderer', () => {
     await user.click(screen.getByRole('button', { name: /add feature/i }))
 
     const dialog = await screen.findByRole('dialog')
-    expect(within(dialog).getAllByRole('heading', { name: /^features$/i }).length).toBeGreaterThan(0)
+    expect(within(dialog).getByRole('heading', { name: /feats \/ battlefield reader \/ features \/ feature 1/i })).toBeInTheDocument()
+    expect(within(dialog).queryByRole('heading', { name: /^features$/i })).not.toBeInTheDocument()
     await user.type(within(dialog).getByRole('textbox', { name: /name/i }), 'Opening Read')
     expect(within(dialog).getByLabelText(/description/i)).toHaveAttribute('contenteditable', 'true')
     await user.click(within(dialog).getByRole('button', { name: /^save$/i }))
 
-    expect(screen.getByRole('button', { name: /edit features 1/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /edit opening read/i })).toBeInTheDocument()
   }, 10000)
 })

@@ -44,7 +44,10 @@ import { raceAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/race'
 import { spellAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/spell'
 import { vehicleAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/vehicle'
 import {
+  activeAuthoredSubjectExists,
+  assertDeletableActiveAuthoredSubject,
   assertWritableAuthoredSubject,
+  deleteActiveAuthoredSubject,
   discardAuthoredDraft,
   getAuthoredDraft,
   normalizeActivatedAuthoringInput,
@@ -55,6 +58,7 @@ import {
   normalizeStoredDraftPayloadForActivation,
   requireAuthoredDraft,
   saveAuthoredDraft,
+  AuthoredContentNotFoundError,
   type AuthoredListRow,
   type AuthoredRecord
 } from '../routes/authoredContent.js'
@@ -146,12 +150,50 @@ export function buildDraftRequest<TInput extends AuthoredContentInput>(
 }
 
 export function cloneAuthoredItem<TInput extends AuthoredContentInput>(input: TInput): TInput {
+  const idMap = collectAuthoredIds(input)
+  const cloned = cloneAuthoredValue(input, idMap) as TInput
+
   return {
-    ...input,
-    id: crypto.randomUUID(),
+    ...cloned,
     label: `${input.label} Copy`,
     ...('status' in input ? { status: 'DRAFT' } : {})
   }
+}
+
+function collectAuthoredIds(value: unknown, key?: string, ids = new Map<string, string>()): Map<string, string> {
+  if (key === 'id' && typeof value === 'string' && !ids.has(value)) {
+    ids.set(value, crypto.randomUUID())
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectAuthoredIds(item, key, ids))
+    return ids
+  }
+
+  if (!isPlainRecord(value)) return ids
+
+  Object.entries(value).forEach(([entryKey, entryValue]) => {
+    collectAuthoredIds(entryValue, entryKey, ids)
+  })
+
+  return ids
+}
+
+function cloneAuthoredValue(value: unknown, idMap: ReadonlyMap<string, string>, key?: string): unknown {
+  if (typeof value === 'string' && shouldRemapAuthoredId(key)) return idMap.get(value) ?? value
+  if (Array.isArray(value)) return value.map((item) => cloneAuthoredValue(item, idMap, key))
+  if (!isPlainRecord(value)) return value
+
+  return Object.fromEntries(
+    Object.entries(value).map(([entryKey, entryValue]) => [
+      entryKey,
+      cloneAuthoredValue(entryValue, idMap, entryKey)
+    ])
+  )
+}
+
+function shouldRemapAuthoredId(key: string | undefined): boolean {
+  return key === 'id' || key?.endsWith('Id') === true || key?.endsWith('Ids') === true
 }
 
 export function getDetailItem<TInput extends AuthoredContentInput>(detail: unknown): TInput | null {
@@ -330,7 +372,44 @@ export async function discardAuthoredDomainDraft(
   id: string,
   userId: string
 ) {
-  await discardAuthoredDraft(db, config.subjectKind, id, userId)
+  const subjectId = await resolveAuthoredRouteSubjectId(db, config.subjectKind, id)
+  if (!subjectId) {
+    throw new AuthoredContentNotFoundError(config.subjectKind, id)
+  }
+
+  const draft = await getAuthoredDraft(db, config.subjectKind, subjectId, userId)
+  if (draft && !await activeAuthoredSubjectExists(db, config.table, subjectId)) {
+    await createAuthoredRouteIdRepository(db).delete({
+      subjectKind: config.subjectKind,
+      subjectId
+    })
+  }
+
+  await discardAuthoredDraft(db, config.subjectKind, subjectId, userId)
+  return { ok: true as const }
+}
+
+export async function deleteAuthoredDomainActive(
+  db: DBLike,
+  config: AuthoredDomainRuntimeConfig,
+  id: string,
+  userId: string
+) {
+  const subjectId = await resolveAuthoredRouteSubjectId(db, config.subjectKind, id)
+  if (!subjectId) return { ok: true as const }
+
+  const draft = await getAuthoredDraft(db, config.subjectKind, subjectId, userId)
+  await assertDeletableActiveAuthoredSubject(db, config.table, config.subjectKind, subjectId, userId)
+
+  if (!draft) {
+    await createAuthoredRouteIdRepository(db).delete({
+      subjectKind: config.subjectKind,
+      subjectId
+    })
+  }
+
+  await deleteActiveAuthoredSubject(db, config.table, config.subjectKind, subjectId, userId)
+
   return { ok: true as const }
 }
 
@@ -380,6 +459,10 @@ function hasMetaKey(keys: Set<string>, key: string) {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return isRecord(value) && Object.getPrototypeOf(value) === Object.prototype
 }
 
 function readString(value: unknown): string | undefined {

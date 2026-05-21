@@ -2,6 +2,7 @@ import { notifications } from '@mantine/notifications'
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { AuthoredListPage } from '#components/AuthoredList'
+import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
 import { mapDraftSummariesToAuthoredItems } from '#app/data/authoredListDrafts'
 import {
   featListAttributeColumns,
@@ -48,35 +49,51 @@ function FeatsRoute() {
       })
     }
   })
+  const deleteAction = useAuthoredDeleteAction({
+    deleteActive: api.content.feats.deleteActive,
+    deleteDraft: api.content.feats.discardDraft,
+    detailSubjectQueryKey: queryKeys.content.feats.detailRoot,
+    domainLabel: 'Feat',
+    domainQueryKey: queryKeys.content.feats.all(),
+    draftQueryKey: queryKeys.content.feats.draft
+  })
 
   return (
-    <AuthoredListPage
-      title='Feats'
-      summary={summarizeFeatList(data)}
-      createLabel='Create Feat'
-      items={mapFeatListToAuthoredItems(data)}
-      draftItems={mapDraftSummariesToAuthoredItems(data.drafts)}
-      filters={buildFeatListFilters(data)}
-      attributeColumns={featListAttributeColumns}
-      sortOptions={featListSortOptions}
-      onCreate={() => navigate({ to: '/feats/new' })}
-      onView={(item) => navigate({
-        params: buildFeatRouteParams(item.publicId, item.name),
-        search: authoredDetailSearchFor(item.contentState === 'draft' ? 'draft' : 'active'),
-        to: '/feats/$featPublicId/$featSlug'
-      })}
-      onViewIntent={(item) => {
-        void queryClient.prefetchQuery(getFeat({
+    <>
+      <AuthoredListPage
+        title='Feats'
+        summary={summarizeFeatList(data)}
+        createLabel='Create Feat'
+        items={mapFeatListToAuthoredItems(data)}
+        draftItems={mapDraftSummariesToAuthoredItems(data.drafts)}
+        filters={buildFeatListFilters(data)}
+        attributeColumns={featListAttributeColumns}
+        sortOptions={featListSortOptions}
+        onCreate={() => navigate({ to: '/feats/new' })}
+        onView={(item) => navigate({
+          params: buildFeatRouteParams(item.publicId, item.name),
+          search: authoredDetailSearchFor(item.contentState === 'draft' ? 'draft' : 'active'),
+          to: '/feats/$featPublicId/$featSlug'
+        })}
+        onViewIntent={(item) => {
+          void queryClient.prefetchQuery(getFeat({
+            id: item.id,
+            includeDraft: true,
+            view: item.contentState === 'draft' ? 'draft' : 'active'
+          }))
+        }}
+        onEdit={(item) => navigate({
+          params: buildFeatRouteParams(item.publicId, item.name),
+          to: '/feats/$featPublicId/$featSlug/edit'
+        })}
+        onCopy={(item) => duplicateMutation.mutate(item.id)}
+        onDelete={(item) => deleteAction.requestDelete({
           id: item.id,
-          includeDraft: true,
-          view: item.contentState === 'draft' ? 'draft' : 'active'
-        }))
-      }}
-      onEdit={(item) => navigate({
-        params: buildFeatRouteParams(item.publicId, item.name),
-        to: '/feats/$featPublicId/$featSlug/edit'
-      })}
-      onCopy={(item) => duplicateMutation.mutate(item.id)}
-    />
+          kind: item.contentState === 'draft' ? 'draft' : 'active',
+          label: item.name
+        })}
+      />
+      {deleteAction.confirmation}
+    </>
   )
 }

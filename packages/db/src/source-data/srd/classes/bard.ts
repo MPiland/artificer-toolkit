@@ -2,16 +2,21 @@ import {
   ABILITY_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
+  CHARGE_RESET_KIND,
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
   GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
   PROFICIENCY_KIND,
   SCALING,
   SCALING_AMOUNT_KIND,
   SPELLCASTING_ATTRIBUTE,
+  VALUE_DOMAIN_CODE,
   type ClassAuthored
 } from '@artificer-toolkit/shared'
-import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
+import { CLASS_IDS } from '../ids.js'
+import { classSpellcastingDetails } from './spellcasting-details.js'
 import {
   SRD_CURRENCIES,
   SRD_SKILLS,
@@ -91,6 +96,15 @@ const bardSpellLimits = [
   { classLevel: 20, slots: [{ spellLevel: 1, slotCount: 4 }, { spellLevel: 2, slotCount: 3 }, { spellLevel: 3, slotCount: 3 }, { spellLevel: 4, slotCount: 3 }, { spellLevel: 5, slotCount: 3 }, { spellLevel: 6, slotCount: 2 }, { spellLevel: 7, slotCount: 2 }, { spellLevel: 8, slotCount: 1 }, { spellLevel: 9, slotCount: 1 }], learnedSpellsLimit: 22, cantripsLimit: 4 }
 ]
 
+const bardicInspirationCharge = {
+  id: classRowId(BD, 5, 2),
+  limitKind: 'ABILITY_MODIFIER' as const,
+  scalingKind: SCALING.NONE,
+  resetKind: CHARGE_RESET_KIND.LONG_REST,
+  ability: ABILITY_CODE.CHARISMA,
+  min: 1
+}
+
 export const bard: ClassAuthored = {
   id: CLASS_IDS.BARD,
   label: 'Bard',
@@ -142,10 +156,48 @@ export const bard: ClassAuthored = {
     sets: []
   },
 
+  resources: {
+    id: classRowId(BD, 5, 1),
+    label: 'Bardic Inspiration',
+    description: '<p>You can inspire others through stirring words or music. To do so, you use a bonus action on your turn to choose one creature other than yourself within 60 feet of you who can hear you. That creature gains one Bardic Inspiration die, a d6.</p><p>Once within the next 10 minutes, the creature can roll the die and add the number rolled to one ability check, attack roll, or saving throw it makes. The creature can wait until after it rolls the d20 before deciding to use the Bardic Inspiration die, but must decide before the GM says whether the roll succeeds or fails. Once the Bardic Inspiration die is rolled, it is lost. A creature can have only one Bardic Inspiration die at a time.</p><p>You can use this feature a number of times equal to your Charisma modifier (a minimum of once). You regain any expended uses when you finish a long rest.</p><p>Your Bardic Inspiration die changes when you reach certain levels in this class. The die becomes a d8 at 5th level, a d10 at 10th level, and a d12 at 15th level.</p>',
+    availableAtLevel: 1,
+    charges: bardicInspirationCharge
+  },
+
   spellcasting: {
     ability: ABILITY_CODE.CHARISMA,
     maxSpellLevel: 9,
     attributes: [SPELLCASTING_ATTRIBUTE.LIMIT_KNOWN_SPELL_AMOUNT],
+    details: classSpellcastingDetails(BD, [
+      {
+        label: 'Spellcasting',
+        description: '<p>You have learned to untangle and reshape the fabric of reality in harmony with your wishes and music. Your spells are part of your vast repertoire, magic that you can tune to different situations.</p>'
+      },
+      {
+        label: 'Cantrips',
+        description: '<p>You know two cantrips of your choice from the bard spell list. You learn additional bard cantrips of your choice at higher levels, as shown in the Cantrips Known column of the Bard table.</p>'
+      },
+      {
+        label: 'Spell Slots',
+        description: '<p>The Bard table shows how many spell slots you have to cast your spells of 1st level and higher. To cast one of these spells, you must expend a slot of the spell\'s level or higher. You regain all expended spell slots when you finish a long rest.</p><p>For example, if you know the 1st-level spell <em>cure wounds</em> and have a 1st-level and a 2nd-level spell slot available, you can cast <em>cure wounds</em> using either slot.</p>'
+      },
+      {
+        label: 'Spells Known of 1st Level and Higher',
+        description: '<p>You know four 1st-level spells of your choice from the bard spell list.</p><p>The Spells Known column of the Bard table shows when you learn more bard spells of your choice. Each of these spells must be of a level for which you have spell slots, as shown on the table. For instance, when you reach 3rd level in this class, you can learn one new spell of 1st or 2nd level.</p><p>Additionally, when you gain a level in this class, you can choose one of the bard spells you know and replace it with another spell from the bard spell list, which also must be of a level for which you have spell slots.</p>'
+      },
+      {
+        label: 'Spellcasting Ability',
+        description: '<p>Charisma is your spellcasting ability for your bard spells. Your magic comes from the heart and soul you pour into the performance of your music or oration. You use your Charisma whenever a spell refers to your spellcasting ability. In addition, you use your Charisma modifier when setting the saving throw DC for a bard spell you cast and when making an attack roll with one.</p><p><strong>Spell save DC</strong> = 8 + your proficiency bonus + your Charisma modifier</p><p><strong>Spell attack modifier</strong> = your proficiency bonus + your Charisma modifier</p>'
+      },
+      {
+        label: 'Ritual Casting',
+        description: '<p>You can cast any bard spell you know as a ritual if that spell has the ritual tag.</p>'
+      },
+      {
+        label: 'Spellcasting Focus',
+        description: '<p>You can use a musical instrument as a spellcasting focus for your bard spells.</p>'
+      }
+    ]),
     charges: bardSlotCharge,
     spellLimits: bardSpellLimits
   },
@@ -212,20 +264,6 @@ export const bard: ClassAuthored = {
   ],
 
   features: [
-    {
-      id: classRowId(BD, 3, 1),
-      label: 'Spellcasting',
-      description: 'You have learned to untangle and reshape the fabric of reality in harmony with your wishes and music.',
-      availableAtLevel: 1,
-      order: 0
-    },
-    {
-      id: classRowId(BD, 3, 2),
-      label: 'Bardic Inspiration',
-      description: 'You can inspire others through stirring words or music. To do so, you use a bonus action on your turn to choose one creature other than yourself within 60 feet of you who can hear you. That creature gains one Bardic Inspiration die, a d6.',
-      availableAtLevel: 1,
-      order: 1
-    },
     {
       id: classRowId(BD, 3, 3),
       label: 'Jack of All Trades',
@@ -301,7 +339,41 @@ export const bard: ClassAuthored = {
       label: 'Font of Inspiration',
       description: 'Beginning when you reach 5th level, you regain all of your expended uses of Bardic Inspiration when you finish a short or long rest.',
       availableAtLevel: 5,
-      order: 7
+      order: 7,
+      grants: {
+        modifiers: [
+          {
+            id: classRowId(BD, 3, 80),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.CHARGE_RESET,
+            domain: {},
+            modifierKind: MODIFIER_KIND.REPLACE_CHARGE_RESET_KIND,
+            scope: MODIFIER_SCOPE_KIND.SOURCE,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: { resetKind: CHARGE_RESET_KIND.SHORT_REST },
+            order: 0,
+            restrictions: {
+              id: classRowId(BD, 4, 1),
+              groups: [
+                {
+                  id: classRowId(BD, 4, 2),
+                  order: 0,
+                  contexts: [
+                    {
+                      id: classRowId(BD, 4, 3),
+                      order: 0,
+                      subject: 'RESOURCE',
+                      authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                      resourceIds: [classRowId(BD, 5, 1)],
+                      conditions: []
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
     },
     {
       id: classRowId(BD, 3, 9),

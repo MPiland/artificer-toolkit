@@ -15,9 +15,16 @@ describe('createEffectRepository', () => {
         triggerCode: 'SAVING_THROW',
         savingThrow: {
           id: 'saving-throw-1',
-          savingThrowKind: 'FIXED_VALUE',
+          dcMethod: 'FIXED_DC',
           ability: 'WISDOM',
-          dc: 15
+          baseDc: 15,
+          bonuses: [
+            {
+              id: 'saving-throw-static-bonus-1',
+              bonusKind: 'STATIC_BONUS',
+              amount: 1
+            }
+          ]
         },
         activation: {
           code: 'ACTION',
@@ -100,12 +107,19 @@ describe('createEffectRepository', () => {
       invocation: {
         kind: 'ACTION',
         triggerCode: 'SAVING_THROW',
-        savingThrow: {
-          id: 'saving-throw-1',
-          savingThrowKind: 'FIXED_VALUE',
-          ability: 'WISDOM',
-          dc: 15
-        },
+          savingThrow: {
+            id: 'saving-throw-1',
+            dcMethod: 'FIXED_DC',
+            ability: 'WISDOM',
+            baseDc: 15,
+            bonuses: [
+              {
+                id: 'saving-throw-static-bonus-1',
+                bonusKind: 'STATIC_BONUS',
+                amount: 1
+              }
+            ]
+          },
         activation: {
           code: 'ACTION',
           amount: 1
@@ -190,9 +204,9 @@ describe('createEffectRepository', () => {
         triggerCode: 'SAVING_THROW',
         savingThrow: {
           id: 'numeric-saving-throw',
-          savingThrowKind: 'FIXED_VALUE',
+          dcMethod: 'FIXED_DC',
           ability: 'DEXTERITY',
-          dc: 13
+          baseDc: 13
         },
         activation: {
           code: 'ACTION',
@@ -340,9 +354,9 @@ describe('createEffectRepository', () => {
         triggerCode: 'SAVING_THROW',
         savingThrow: {
           id: 'effect-passive-save-1-saving-throw',
-          savingThrowKind: 'FIXED_VALUE',
+          dcMethod: 'FIXED_DC',
           ability: 'WISDOM',
-          dc: 15
+          baseDc: 15
         },
         range: {
           id: 'effect-passive-save-1-range',
@@ -410,9 +424,9 @@ describe('createEffectRepository', () => {
         triggerCode: 'SAVING_THROW',
         savingThrow: {
           id: 'effect-passive-save-1-saving-throw',
-          savingThrowKind: 'FIXED_VALUE',
+          dcMethod: 'FIXED_DC',
           ability: 'WISDOM',
-          dc: 15
+          baseDc: 15
         },
         range: {
           id: 'effect-passive-save-1-range',
@@ -444,7 +458,7 @@ describe('createEffectRepository', () => {
         triggerCode: 'SAVING_THROW',
         savingThrow: {
           id: 'effect-source-save-1-saving-throw',
-          savingThrowKind: 'SOURCE_SAVE_DC',
+          dcMethod: 'SOURCE_SAVE_DC',
           ability: 'DEXTERITY'
         },
         activation: {
@@ -486,8 +500,93 @@ describe('createEffectRepository', () => {
         triggerCode: 'SAVING_THROW',
         savingThrow: {
           id: 'effect-source-save-1-saving-throw',
-          savingThrowKind: 'SOURCE_SAVE_DC',
+          dcMethod: 'SOURCE_SAVE_DC',
           ability: 'DEXTERITY'
+        }
+      }
+    })
+  })
+
+  it('round-trips a derived saving throw DC with ability and proficiency bonuses', async () => {
+    const db = new InMemoryDb()
+    const repository = createEffectRepository(db as never)
+
+    await repository.upsert({
+      id: 'effect-derived-save-1',
+      order: 1,
+      invocation: {
+        kind: 'ACTION',
+        triggerCode: 'SAVING_THROW',
+        savingThrow: {
+          id: 'effect-derived-save-1-saving-throw',
+          dcMethod: 'DERIVED_DC',
+          ability: 'DEXTERITY',
+          baseDc: 8,
+          bonuses: [
+            {
+              id: 'effect-derived-save-1-ability-bonus',
+              bonusKind: 'ABILITY_MODIFIER',
+              ability: 'CONSTITUTION'
+            },
+            {
+              id: 'effect-derived-save-1-proficiency-bonus',
+              bonusKind: 'PROFICIENCY_BONUS'
+            }
+          ]
+        },
+        activation: {
+          code: 'ACTION',
+          amount: 1
+        },
+        range: {
+          id: 'effect-derived-save-1-range',
+          rangeKind: 'SELF'
+        }
+      },
+      paths: [
+        {
+          id: 'effect-derived-save-1-fail',
+          order: 1,
+          pathCode: 'ON_SAVE_FAIL',
+          groupType: 'SINGLE',
+          selectionKind: 'FIXED',
+          resultBlock: {
+            id: 'effect-derived-save-1-fail__result',
+            resultKind: 'SINGLE',
+            outcomes: [
+              {
+                id: 'effect-derived-save-1-fail-entry',
+                effectKind: 'DAMAGE',
+                damageTypeId: 'fire',
+                valueKind: 'DICE',
+                scalingKind: 'NONE',
+                diceConfig: '2d6'
+              }
+            ]
+          }
+        }
+      ]
+    })
+
+    await expect(repository.findById('effect-derived-save-1')).resolves.toMatchObject({
+      invocation: {
+        triggerCode: 'SAVING_THROW',
+        savingThrow: {
+          id: 'effect-derived-save-1-saving-throw',
+          dcMethod: 'DERIVED_DC',
+          ability: 'DEXTERITY',
+          baseDc: 8,
+          bonuses: [
+            {
+              id: 'effect-derived-save-1-ability-bonus',
+              bonusKind: 'ABILITY_MODIFIER',
+              ability: 'CONSTITUTION'
+            },
+            {
+              id: 'effect-derived-save-1-proficiency-bonus',
+              bonusKind: 'PROFICIENCY_BONUS'
+            }
+          ]
         }
       }
     })

@@ -88,6 +88,10 @@ describe('AuthoredListPage', () => {
   })
 
   it('renders owned and locked master records with permission-aware actions', () => {
+    const onCopy = vi.fn()
+    const onDelete = vi.fn()
+    const onEdit = vi.fn()
+
     renderWithAppProviders(
       <AuthoredListPage
         title='Spells'
@@ -95,6 +99,9 @@ describe('AuthoredListPage', () => {
         createLabel='Create Spell'
         items={spellListItems}
         filters={spellListFilters}
+        onCopy={onCopy}
+        onDelete={onDelete}
+        onEdit={onEdit}
       />
     )
 
@@ -250,6 +257,10 @@ describe('AuthoredListPage', () => {
   })
 
   it('renders card view with the same permission-aware actions', () => {
+    const onCopy = vi.fn()
+    const onDelete = vi.fn()
+    const onEdit = vi.fn()
+
     renderWithAppProviders(
       <AuthoredListPage
         title='Spells'
@@ -258,6 +269,9 @@ describe('AuthoredListPage', () => {
         items={spellListItems}
         filters={spellListFilters}
         initialViewMode='cards'
+        onCopy={onCopy}
+        onDelete={onDelete}
+        onEdit={onEdit}
       />
     )
 
@@ -282,6 +296,7 @@ describe('AuthoredListPage', () => {
         filters={spellListFilters}
         attributeColumns={[{ key: 'level', label: 'Lvl', width: 76 }, { key: 'school', label: 'School' }]}
         initialViewMode='cards'
+        onCopy={vi.fn()}
       />
     )
 

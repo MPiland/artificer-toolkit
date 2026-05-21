@@ -1,6 +1,7 @@
 import type { DBLike } from '#types'
 import type { FeatAuthored } from '@artificer-toolkit/shared'
 import { upsertCharge } from '../../shared/upserts/index.js'
+import { upsertDetail } from '../../shared/upserts/detail.js'
 import { upsertFacet } from '../../shared/facets.js'
 import {
   upsertModifierGrant,
@@ -18,10 +19,15 @@ type FeatRow = {
   user_id: string
   label: string
   description: string
-  detail: string | null
   status: FeatAuthored['status']
   prerequisite_id: string | null
   charge_id: string | null
+}
+
+type FeatDetailRow = {
+  feat_id: string
+  detail_id: string
+  sort_order: number
 }
 
 type FeatProficiencyGrantRow = {
@@ -55,7 +61,6 @@ function mapFeatRow(json_data: FeatAuthored): FeatRow {
     user_id: json_data.userId,
     label: json_data.label,
     description: json_data.description,
-    detail: json_data.detail ?? null,
     status: normalizeSubjectStatus(json_data.status),
     prerequisite_id: json_data.prerequisites?.id ?? null,
     charge_id: json_data.charges?.id ?? null
@@ -67,6 +72,11 @@ export async function upsertFeat(
   json_data: FeatAuthored,
   _systemId: string
 ) {
+  const detailRows: FeatDetailRow[] = (json_data.details ?? []).map((detail) => ({
+    feat_id: json_data.id,
+    detail_id: detail.id,
+    sort_order: detail.order
+  }))
   const authoredEffects = json_data.effects ?? []
   const effectRows = authoredEffects.map((effect, index) => ({
     feat_id: json_data.id,
@@ -100,11 +110,15 @@ export async function upsertFeat(
         user_id: ref('excluded.user_id'),
         label: ref('excluded.label'),
         description: ref('excluded.description'),
-        detail: ref('excluded.detail'),
         status: ref('excluded.status'),
         prerequisite_id: ref('excluded.prerequisite_id'),
         charge_id: ref('excluded.charge_id')
       })))
+      .execute()
+
+    await trx
+      .deleteFrom('feat_details')
+      .where('feat_id', '=', json_data.id)
       .execute()
 
     await trx
@@ -147,6 +161,10 @@ export async function upsertFeat(
       await upsertEffect(trx, effect)
     }
 
+    for (const detail of json_data.details ?? []) {
+      await upsertDetail(trx, detail)
+    }
+
     if (json_data.features) {
       for (const feature of json_data.features) {
         await upsertFeature(trx, feature, json_data.systemId)
@@ -184,6 +202,13 @@ export async function upsertFeat(
         .onConflict((oc) => oc.columns(['feat_id', 'effect_id']).doUpdateSet(({ ref }) => ({
           sort_order: ref('excluded.sort_order')
         })))
+        .execute()
+    }
+
+    if (detailRows.length > 0) {
+      await trx
+        .insertInto('feat_details')
+        .values(detailRows)
         .execute()
     }
 

@@ -256,6 +256,7 @@ function normalizeAuthoredDetailInput(input: AuthoredDetailInput): AuthoredDetai
 interface AuthoredDomainTransport<TList, TResponse, TInput extends AuthoredContentInput> {
   activate: (input: TInput) => Promise<TResponse>
   activateDraft: (id: string) => Promise<TResponse>
+  deleteActive: (id: string) => Promise<unknown>
   discardDraft: (id: string) => Promise<unknown>
   duplicate: (id: string) => Promise<AuthoredDraftDto | null>
   get: (input: AuthoredDetailRequestDto) => Promise<TResponse>
@@ -268,6 +269,7 @@ interface AuthoredDomainTransport<TList, TResponse, TInput extends AuthoredConte
 interface AuthoredDomainProcedures<TList, TResponse, TInput extends AuthoredContentInput> {
   activate: MutationProcedure<TInput, TResponse>
   activateDraft: MutationProcedure<IdProcedureInput, TResponse>
+  deleteActive: MutationProcedure<IdProcedureInput, { ok: true }>
   discardDraft: MutationProcedure<IdProcedureInput, { ok: true }>
   duplicate: MutationProcedure<IdProcedureInput, AuthoredDraftDto | null>
   get: QueryProcedure<AuthoredDetailRequestDto, TResponse>
@@ -422,6 +424,9 @@ function buildApi(client: TrpcClient) {
     return {
       activate: (input: TInput) => request(`${path}.activate`, responseSchema, () => transport.activate(input)),
       activateDraft: (id: string) => request(`${path}.activateDraft`, responseSchema, () => transport.activateDraft(id)),
+      deleteActive: async (id: string) => {
+        await request(`${path}.deleteActive`, okResponseSchema, () => transport.deleteActive(id))
+      },
       discardDraft: async (id: string) => {
         await request(`${path}.discardDraft`, okResponseSchema, () => transport.discardDraft(id))
       },
@@ -456,6 +461,7 @@ function buildApi(client: TrpcClient) {
       backgrounds: contentDomain<BackgroundListResponseDto, BackgroundResponseDto, BackgroundAuthoringInputDto>('content.backgrounds', backgroundListResponseDtoSchema, backgroundResponseDtoSchema, {
         activate: (input) => client.content.backgrounds.activate.mutate(input),
         activateDraft: (id) => client.content.backgrounds.activateDraft.mutate({ id }),
+        deleteActive: (id) => client.content.backgrounds.deleteActive.mutate({ id }),
         discardDraft: (id) => client.content.backgrounds.discardDraft.mutate({ id }),
         duplicate: (id) => client.content.backgrounds.duplicate.mutate({ id }),
         get: (input) => client.content.backgrounds.get.query(input),
@@ -467,6 +473,7 @@ function buildApi(client: TrpcClient) {
       classes: contentDomain<ClassListResponseDto, ClassResponseDto, ClassAuthoringInputDto>('content.classes', classListResponseDtoSchema, classResponseDtoSchema, {
         activate: (input) => client.content.classes.activate.mutate(input),
         activateDraft: (id) => client.content.classes.activateDraft.mutate({ id }),
+        deleteActive: (id) => client.content.classes.deleteActive.mutate({ id }),
         discardDraft: (id) => client.content.classes.discardDraft.mutate({ id }),
         duplicate: (id) => client.content.classes.duplicate.mutate({ id }),
         get: (input) => client.content.classes.get.query(input),
@@ -478,6 +485,7 @@ function buildApi(client: TrpcClient) {
       equipment: contentDomain<EquipmentListResponseDto, EquipmentResponseDto, EquipmentAuthoringInputDto>('content.equipment', equipmentListResponseDtoSchema, equipmentResponseDtoSchema, {
         activate: (input) => client.content.equipment.activate.mutate(input),
         activateDraft: (id) => client.content.equipment.activateDraft.mutate({ id }),
+        deleteActive: (id) => client.content.equipment.deleteActive.mutate({ id }),
         discardDraft: (id) => client.content.equipment.discardDraft.mutate({ id }),
         duplicate: (id) => client.content.equipment.duplicate.mutate({ id }),
         get: (input) => client.content.equipment.get.query(input),
@@ -489,6 +497,7 @@ function buildApi(client: TrpcClient) {
       feats: contentDomain<FeatListResponseDto, FeatResponseDto, FeatAuthoringInputDto>('content.feats', featListResponseDtoSchema, featResponseDtoSchema, {
         activate: (input) => client.content.feats.activate.mutate(input),
         activateDraft: (id) => client.content.feats.activateDraft.mutate({ id }),
+        deleteActive: (id) => client.content.feats.deleteActive.mutate({ id }),
         discardDraft: (id) => client.content.feats.discardDraft.mutate({ id }),
         duplicate: (id) => client.content.feats.duplicate.mutate({ id }),
         get: (input) => client.content.feats.get.query(input),
@@ -500,6 +509,7 @@ function buildApi(client: TrpcClient) {
       races: contentDomain<RaceListResponseDto, RaceResponseDto, RaceAuthoringInputDto>('content.races', raceListResponseDtoSchema, raceResponseDtoSchema, {
         activate: (input) => client.content.races.activate.mutate(input),
         activateDraft: (id) => client.content.races.activateDraft.mutate({ id }),
+        deleteActive: (id) => client.content.races.deleteActive.mutate({ id }),
         discardDraft: (id) => client.content.races.discardDraft.mutate({ id }),
         duplicate: (id) => client.content.races.duplicate.mutate({ id }),
         get: (input) => client.content.races.get.query(input),
@@ -511,6 +521,7 @@ function buildApi(client: TrpcClient) {
       spells: contentDomain<SpellListResponseDto, SpellResponseDto, SpellAuthoringInputDto>('content.spells', spellListResponseDtoSchema, spellResponseDtoSchema, {
         activate: (input) => client.content.spells.activate.mutate(input),
         activateDraft: (id) => client.content.spells.activateDraft.mutate({ id }),
+        deleteActive: (id) => client.content.spells.deleteActive.mutate({ id }),
         discardDraft: (id) => client.content.spells.discardDraft.mutate({ id }),
         duplicate: (id) => client.content.spells.duplicate.mutate({ id }),
         get: (input) => client.content.spells.get.query(input),
@@ -522,6 +533,7 @@ function buildApi(client: TrpcClient) {
       creatures: contentDomain<CreatureListResponseDto, CreatureResponseDto, CreatureAuthoringInputDto>('content.creatures', creatureListResponseDtoSchema, creatureResponseDtoSchema, {
         activate: (input) => client.content.creatures.activate.mutate(input),
         activateDraft: (id) => client.content.creatures.activateDraft.mutate({ id }),
+        deleteActive: (id) => client.content.creatures.deleteActive.mutate({ id }),
         discardDraft: (id) => client.content.creatures.discardDraft.mutate({ id }),
         duplicate: (id) => client.content.creatures.duplicate.mutate({ id }),
         get: (input) => client.content.creatures.get.query(input),
@@ -533,6 +545,7 @@ function buildApi(client: TrpcClient) {
       vehicles: contentDomain<VehicleListResponseDto, VehicleResponseDto, VehicleAuthoringInputDto>('content.vehicles', vehicleListResponseDtoSchema, vehicleResponseDtoSchema, {
         activate: (input) => client.content.vehicles.activate.mutate(input),
         activateDraft: (id) => client.content.vehicles.activateDraft.mutate({ id }),
+        deleteActive: (id) => client.content.vehicles.deleteActive.mutate({ id }),
         discardDraft: (id) => client.content.vehicles.discardDraft.mutate({ id }),
         duplicate: (id) => client.content.vehicles.duplicate.mutate({ id }),
         get: (input) => client.content.vehicles.get.query(input),

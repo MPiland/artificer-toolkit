@@ -173,11 +173,8 @@ async function resolveNode(
   clearPaths: RuntimePath[]
 ): Promise<NodeRuntimeNodeDto> {
   const visible = evaluateConditionIf(node.showIf, scope)
-  const required = visible && (
-    node.kind === 'INPUT'
-      ? node.requiredIf === true || evaluateConditionIf(node.requiredIf, scope)
-      : false
-  )
+  const required = visible
+    && (node.requiredIf === true || (node.requiredIf !== undefined && evaluateConditionIf(node.requiredIf, scope)))
   const nodeClearPaths = visible || node.hiddenBehavior !== 'CLEAR' ? [] : [node.path]
   clearPaths.push(...nodeClearPaths)
 

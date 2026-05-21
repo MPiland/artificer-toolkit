@@ -256,6 +256,17 @@ export function createAuthoredRouteIdRepository(db: DBLike) {
       return result.rows[0]?.can_access ?? false
     },
 
+    async delete(params: {
+      subjectKind: AuthoredRouteSubjectKind
+      subjectId: string
+    }): Promise<void> {
+      await sql`
+        delete from authored_route_ids
+        where subject_kind = ${params.subjectKind}
+          and subject_id = ${params.subjectId}
+      `.execute(db)
+    },
+
     async seedSrdSubjects(
       subjects: readonly {
         subjectKind: Exclude<AuthoredRouteSubjectKind, 'CHARACTER'>

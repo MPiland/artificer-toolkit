@@ -24,7 +24,6 @@ CREATE TABLE IF NOT EXISTS public.features (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   label text NOT NULL,
   description text NOT NULL,
-  detail text,
   charge_id uuid REFERENCES public.charges (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   restriction_id uuid REFERENCES public.facets (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   sort_order integer NOT NULL,
@@ -67,6 +66,35 @@ BEGIN
       { "table": "public.charges", "columns": ["charge_id"] },
       { "table": "public.facets", "columns": ["restriction_id"] }
     ]');
+  END IF;
+END;
+$$;
+
+CREATE TABLE IF NOT EXISTS public.feature_details (
+  feature_id uuid NOT NULL REFERENCES public.features (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  detail_id uuid NOT NULL REFERENCES public.details (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  sort_order integer NOT NULL,
+  PRIMARY KEY (feature_id, detail_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_feature_details_feature ON public.feature_details (feature_id);
+
+ALTER TABLE public.feature_details ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_trigger
+    WHERE tgname = 'trg_cleanup_feature_details_owned'
+  ) THEN
+    CREATE TRIGGER trg_cleanup_feature_details_owned
+    AFTER DELETE ON public.feature_details
+    FOR EACH ROW
+    EXECUTE FUNCTION public.cleanup_owned_rows('[{
+      "table": "public.details",
+      "columns": ["detail_id"]
+    }]');
   END IF;
 END;
 $$;

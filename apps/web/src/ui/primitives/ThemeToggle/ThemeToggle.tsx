@@ -1,5 +1,6 @@
 import { useComputedColorScheme, useMantineColorScheme } from '@mantine/core'
 import clsx from 'clsx'
+import { useEffect, useState } from 'react'
 import IDarkMode from '#assets/icons/IDarkMode'
 import ILightMode from '#assets/icons/ILightMode'
 import {
@@ -16,11 +17,17 @@ export interface ThemeToggleProps {
 
 export function ThemeToggle({ className }: ThemeToggleProps) {
   const { setColorScheme } = useMantineColorScheme()
-  const activeColorScheme = useComputedColorScheme('dark')
+  const computedColorScheme = useComputedColorScheme('dark')
+  const [hasMounted, setHasMounted] = useState(false)
+  const activeColorScheme = hasMounted ? computedColorScheme : 'dark'
   const nextColorScheme = activeColorScheme === 'dark' ? 'light' : 'dark'
   const Icon = activeColorScheme === 'dark' ? IDarkMode : ILightMode
   const buttonLabel = `Switch to ${nextColorScheme} mode`
   const activeLabel = `${activeColorScheme === 'dark' ? 'Dark' : 'Light'} mode active`
+
+  useEffect(() => {
+    setHasMounted(true)
+  }, [])
 
   return (
     <div className={clsx(themeToggleRoot, className)}>

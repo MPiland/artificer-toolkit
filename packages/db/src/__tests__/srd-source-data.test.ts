@@ -417,6 +417,75 @@ function paragraphCount(value: string | null | undefined): number {
   return value.match(/<p\b/gi)?.length ?? (stripHtml(value) ? 1 : 0)
 }
 
+function getSrdEquipment(label: string) {
+  const equipment = srdBaselineContent.subjects.equipment.find((item) => item.label === label)
+
+  if (!equipment) {
+    throw new Error(`Expected SRD equipment "${label}" to exist.`)
+  }
+
+  return equipment
+}
+
+function getSrdClass(label: string) {
+  const classRecord = srdBaselineContent.subjects.classes.find((item) => item.label === label)
+
+  if (!classRecord) {
+    throw new Error(`Expected SRD class "${label}" to exist.`)
+  }
+
+  return classRecord
+}
+
+function getSrdDamageTypeId(code: string): string {
+  const damageType = srdBaselineContent.vocabulary.systems
+    .flatMap((system) => system.damageTypes)
+    .find((entry) => entry.code === code)
+
+  if (!damageType) {
+    throw new Error(`Expected SRD damage type "${code}" to exist.`)
+  }
+
+  return damageType.id
+}
+
+function hasDamageOutcome(value: unknown, damageTypeId: string, diceConfig: string): boolean {
+  if (Array.isArray(value)) return value.some((item) => hasDamageOutcome(item, damageTypeId, diceConfig))
+  if (!isRecord(value)) return false
+
+  if (
+    value.effectKind === 'DAMAGE'
+    && value.damageTypeId === damageTypeId
+    && value.diceConfig === diceConfig
+  ) {
+    return true
+  }
+
+  return Object.values(value).some((entry) => hasDamageOutcome(entry, damageTypeId, diceConfig))
+}
+
+function hasHealOutcome(value: unknown, diceConfig: string): boolean {
+  if (Array.isArray(value)) return value.some((item) => hasHealOutcome(item, diceConfig))
+  if (!isRecord(value)) return false
+
+  if (value.effectKind === 'HEAL' && value.diceConfig === diceConfig) {
+    return true
+  }
+
+  return Object.values(value).some((entry) => hasHealOutcome(entry, diceConfig))
+}
+
+function hasRuleOutcome(value: unknown): boolean {
+  if (Array.isArray(value)) return value.some(hasRuleOutcome)
+  if (!isRecord(value)) return false
+
+  if (value.effectKind === 'RULE') {
+    return true
+  }
+
+  return Object.values(value).some(hasRuleOutcome)
+}
+
 describe('SRD source data', () => {
   it('uses valid UUID strings for deterministic ID fields', () => {
     const invalidValues: string[] = []
@@ -568,7 +637,131 @@ describe('SRD source data', () => {
     expect(acolyte).toBeDefined()
     expect(paragraphCount(acolyte?.description)).toBe(2)
     expect(acolyte?.details).toHaveLength(26)
-    expect(acolyte?.features?.[0]?.detail).toContain('<p>')
+    expect(acolyte?.features?.[0]?.details?.[0]?.description).toContain('<p>')
+  })
+
+  it('keeps SRD spellcasting class prose and Bardic Inspiration resource data populated', () => {
+    const spellcastingClassLabels = ['Bard', 'Cleric', 'Druid', 'Paladin', 'Ranger', 'Sorcerer', 'Warlock', 'Wizard']
+    const classesMissingSpellcastingDetails = spellcastingClassLabels
+      .map((label) => getSrdClass(label))
+      .filter((classRecord) => !classRecord.spellcasting?.details?.length)
+      .map((classRecord) => classRecord.label)
+
+    const bard = getSrdClass('Bard')
+    const bardFeatureLabels = new Set((bard.features ?? []).map((feature) => feature.label))
+    const fontOfInspiration = bard.features?.find((feature) => feature.label === 'Font of Inspiration')
+
+    expect(classesMissingSpellcastingDetails).toEqual([])
+    expect(bard.spellcasting?.details?.map((detail) => detail.label)).toEqual([
+      'Spellcasting',
+      'Cantrips',
+      'Spell Slots',
+      'Spells Known of 1st Level and Higher',
+      'Spellcasting Ability',
+      'Ritual Casting',
+      'Spellcasting Focus'
+    ])
+    expect(bard.spellcasting?.details?.find((detail) => detail.label === 'Spellcasting Ability')?.description)
+      .toContain('Spell save DC')
+    expect(bard.resources).toMatchObject({
+      label: 'Bardic Inspiration',
+      availableAtLevel: 1,
+      charges: expect.objectContaining({
+        resetKind: 'LONG_REST',
+        limitKind: 'ABILITY_MODIFIER',
+        ability: 'CHARISMA',
+        min: 1
+      })
+    })
+    expect(bardFeatureLabels.has('Bardic Inspiration')).toBe(false)
+    expect(fontOfInspiration?.grants?.modifiers?.[0]).toMatchObject({
+      valueDomainCode: 'CHARGE_RESET',
+      modifierKind: 'REPLACE_CHARGE_RESET_KIND',
+      payload: { resetKind: 'SHORT_REST' }
+    })
+  })
+
+  it('keeps rules-heavy SRD equipment prose, properties, and mechanics populated', () => {
+    const acid = getSrdEquipment('Acid (vial)')
+    const alchemistsFire = getSrdEquipment("Alchemist's Fire (flask)")
+    const antitoxin = getSrdEquipment('Antitoxin (vial)')
+    const ballBearings = getSrdEquipment('Ball Bearings (bag of 1000)')
+    const caltrops = getSrdEquipment('Caltrops (bag of 20)')
+    const holyWater = getSrdEquipment('Holy Water (flask)')
+    const huntingTrap = getSrdEquipment('Hunting Trap')
+    const oil = getSrdEquipment('Oil (flask)')
+    const poison = getSrdEquipment('Poison, Basic (vial)')
+    const potion = getSrdEquipment('Potion of Healing')
+
+    expect(acid).toMatchObject({
+      description: expect.stringContaining('splash the contents of this vial'),
+      properties: expect.arrayContaining([EQUIPMENT_PROPERTY_CODE.VIAL])
+    })
+    expect(acid.properties).not.toContain('ACID')
+    expect(hasDamageOutcome(acid, getSrdDamageTypeId('ACID'), '2d6')).toBe(true)
+
+    expect(alchemistsFire).toMatchObject({
+      description: expect.stringContaining('This sticky, adhesive fluid ignites when exposed to air.'),
+      properties: expect.arrayContaining([EQUIPMENT_PROPERTY_CODE.FLASK])
+    })
+    expect(hasDamageOutcome(alchemistsFire, getSrdDamageTypeId('FIRE'), '1d4')).toBe(true)
+    expect(hasRuleOutcome(alchemistsFire)).toBe(true)
+
+    expect(antitoxin).toMatchObject({
+      description: expect.stringContaining('gains advantage on saving throws against poison for 1 hour'),
+      properties: expect.arrayContaining([EQUIPMENT_PROPERTY_CODE.VIAL, EQUIPMENT_PROPERTY_CODE.DRINK])
+    })
+    expect(hasRuleOutcome(antitoxin)).toBe(true)
+
+    expect(ballBearings.description).toContain('cover a level, square area that is 10 feet on a side')
+    expect(hasRuleOutcome(ballBearings)).toBe(true)
+
+    expect(caltrops.description).toContain('take 1 piercing damage')
+    expect(hasRuleOutcome(caltrops)).toBe(true)
+
+    expect(holyWater).toMatchObject({
+      description: expect.stringContaining('If the target is a fiend or undead, it takes 2d6 radiant damage.'),
+      properties: expect.arrayContaining([EQUIPMENT_PROPERTY_CODE.FLASK])
+    })
+    expect(hasDamageOutcome(holyWater, getSrdDamageTypeId('RADIANT'), '2d6')).toBe(true)
+
+    expect(huntingTrap.description).toContain('take 1d4 piercing damage and stop moving')
+    expect(hasRuleOutcome(huntingTrap)).toBe(true)
+
+    expect(oil).toMatchObject({
+      description: expect.stringContaining('If the target takes any fire damage before the oil dries after 1 minute'),
+      properties: expect.arrayContaining([EQUIPMENT_PROPERTY_CODE.FLASK])
+    })
+    expect(hasRuleOutcome(oil)).toBe(true)
+
+    expect(poison).toMatchObject({
+      description: expect.stringContaining('take 1d4 poison damage'),
+      properties: expect.arrayContaining([EQUIPMENT_PROPERTY_CODE.VIAL, EQUIPMENT_PROPERTY_CODE.POISON])
+    })
+    expect(hasRuleOutcome(poison)).toBe(true)
+
+    expect(potion).toMatchObject({
+      description: expect.stringContaining('regains 2d4 + 2 hit points'),
+      properties: expect.arrayContaining([EQUIPMENT_PROPERTY_CODE.POTION, EQUIPMENT_PROPERTY_CODE.VIAL])
+    })
+    expect(hasHealOutcome(potion, '2d4+2')).toBe(true)
+  })
+
+  it('uses SRD container properties for equipment labels that name their vessel', () => {
+    const missingContainerProperties = srdBaselineContent.subjects.equipment.flatMap((equipment) => {
+      const expectedProperties = [
+        ...(/\(vial\)$/i.test(equipment.label) || equipment.label === 'VIAL' ? [EQUIPMENT_PROPERTY_CODE.VIAL] : []),
+        ...(/\(flask\)$/i.test(equipment.label) || equipment.label === 'Flask or Tankard' ? [EQUIPMENT_PROPERTY_CODE.FLASK] : []),
+        ...(/^Potion\b/i.test(equipment.label) ? [EQUIPMENT_PROPERTY_CODE.POTION] : []),
+        ...(/^Poison,\s*Basic/i.test(equipment.label) ? [EQUIPMENT_PROPERTY_CODE.POISON] : [])
+      ]
+
+      return expectedProperties
+        .filter((property) => !equipment.properties?.includes(property))
+        .map((property) => `${equipment.label}: missing ${property}`)
+    })
+
+    expect(missingContainerProperties).toEqual([])
   })
 
   it('keeps SRD base race descriptions and details populated', () => {
@@ -642,6 +835,16 @@ describe('SRD source data', () => {
     const referencedConditionTypeIds = srdBaselineContent.subjects.creatures.flatMap((creature) => creature.conditionImmunities ?? [])
 
     expect([...new Set(referencedConditionTypeIds.filter((id) => !conditionTypeIds.has(id)))]).toEqual([])
+  })
+
+  it('keeps legendary action prose tied to named options', () => {
+    const missingLegendaryOptions = srdBaselineContent.subjects.creatures.flatMap((creature) => (creature.features ?? [])
+      .filter((feature) => feature.label === 'Legendary Actions')
+      .filter((feature) => /options?\s+(listed\s+)?below/i.test(stripHtml(feature.description)))
+      .filter((feature) => !feature.options?.length)
+      .map(() => creature.label))
+
+    expect(missingLegendaryOptions).toEqual([])
   })
 
   it('only references option records that exist in the SRD bundle', () => {

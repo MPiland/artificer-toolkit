@@ -215,7 +215,6 @@ describe('createVehicleRepository', () => {
           id: 'feature-1',
           label: 'Psionic Helm',
           description: 'Allows spelljamming travel.',
-          detail: null,
           charge_id: null,
           restriction_id: null,
           sort_order: 0,

@@ -7,6 +7,10 @@ export const foundationVars = createGlobalThemeContract({
       hover: null,
       soft: null,
       border: null,
+      tertiarySolid: null,
+      tertiaryHover: null,
+      tertiarySoft: null,
+      tertiaryBorder: null,
       emphasisBorder: null,
       focus: null,
       contrast: null
@@ -338,6 +342,10 @@ export const lightFoundationTokens = {
       hover: '#0ea5c5',
       soft: 'rgba(8, 145, 178, 0.16)',
       border: '#0891b2',
+      tertiarySolid: '#4f46e5',
+      tertiaryHover: '#6366f1',
+      tertiarySoft: 'rgba(79, 70, 229, 0.12)',
+      tertiaryBorder: '#4f46e5',
       emphasisBorder: '#0e7490',
       focus: 'rgba(8, 145, 178, 0.24)',
       contrast: '#ffffff'
@@ -476,6 +484,10 @@ export const darkFoundationTokens = {
       hover: '#38bdd6',
       soft: 'rgba(14, 165, 197, 0.2)',
       border: '#0b8aaa',
+      tertiarySolid: '#818cf8',
+      tertiaryHover: '#a5b4fc',
+      tertiarySoft: 'rgba(99, 102, 241, 0.22)',
+      tertiaryBorder: '#6366f1',
       emphasisBorder: '#0b8aaa',
       focus: 'rgba(14, 165, 197, 0.32)',
       contrast: '#0f1418'

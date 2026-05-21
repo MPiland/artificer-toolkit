@@ -1,6 +1,7 @@
-import { screen } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import type {
   AuthoredDraftDto,
+  ClassResponseDto,
   CreatureResponseDto,
   FeatResponseDto,
   RaceResponseDto,
@@ -12,7 +13,10 @@ import type {
   SpellReferenceData
 } from '#app/data/spells/referenceData'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
-import { ownedClassResponseFixture } from '#domains/classes/class.fixtures'
+import {
+  masterSubclassResponseFixture,
+  ownedClassResponseFixture
+} from '#domains/classes/class.fixtures'
 import { ClassDetailPage } from '#domains/classes/pages/ClassDetailPage'
 import { CreatureDetailPage } from '#domains/creatures/pages/CreatureDetailPage'
 import { masterEquipmentResponseFixture } from '#domains/equipment/equipment.fixtures'
@@ -123,7 +127,7 @@ const spellReferences = {
   classes: [{ value: '00000000-0000-0000-0010-000c00000000', label: 'Wizard' }],
   damageTypes: [{ value: 'damage-acid', label: 'Acid' }],
   conditionTypes: [],
-  skills: [],
+  skills: [{ value: 'performance', label: 'Performance' }],
   speeds: [],
   creatures: []
 } satisfies SpellReferenceData
@@ -146,12 +150,12 @@ const detailReferences = {
   languages: [],
   magicSchools: spellReferences.magicSchools,
   rarities: [{ value: 'common', label: 'Common' }],
-  skills: [],
+  skills: [{ value: 'performance', label: 'Performance' }],
   speeds: [],
   classes: [{ value: ownedClassResponseFixture.item.id, label: ownedClassResponseFixture.item.label }],
   creatures: [],
   equipment: [
-    { value: masterEquipmentResponseFixture.item.id, label: masterEquipmentResponseFixture.item.label },
+    { value: masterEquipmentResponseFixture.item!.id, label: masterEquipmentResponseFixture.item!.label },
     { value: 'torch', label: 'Torch' }
   ],
   races: []
@@ -207,6 +211,7 @@ const brassDragonResponse: NonNullable<CreatureResponseDto> = {
     label: 'Adult Brass Dragon',
     description: '<p>A brass dragon.</p>',
     status: 'ACTIVE',
+    recordKind: 'STAT_BLOCK',
     category: 'MONSTER',
     creatureTypeId: 'dragon',
     size: 'HUGE',
@@ -227,9 +232,92 @@ const brassDragonResponse: NonNullable<CreatureResponseDto> = {
     ],
     features: [
       {
+        id: 'legendary-resistance',
+        label: 'Legendary Resistance (3/Day)',
+        description: 'If the dragon fails a saving throw, it can choose to succeed instead.',
+        order: 1
+      },
+      {
+        id: 'multiattack',
+        label: 'Multiattack',
+        description: 'The dragon makes three attacks.',
+        order: 2
+      },
+      {
+        id: 'bite',
+        label: 'Bite',
+        description: 'Melee Weapon Attack: +11 to hit, reach 10 ft., one target. Hit: 17 piercing damage.',
+        effects: [
+          {
+            id: 'bite-effect',
+            order: 1,
+            invocation: {
+              triggerCode: 'MELEE_WEAPON_ATTACK',
+              activation: {
+                code: 'ACTION',
+                amount: 1
+              },
+              range: {
+                id: 'bite-range',
+                rangeKind: 'DISTANCE',
+                amount: 10,
+                unit: 'FEET'
+              },
+              targeting: {
+                selectionKind: 'SINGLE_TARGET'
+              }
+            },
+            paths: [
+              {
+                id: 'bite-path',
+                order: 1,
+                pathCode: 'ON_HIT',
+                groupType: 'SINGLE',
+                selectionKind: 'FIXED',
+                resultBlock: {
+                  id: 'bite-result',
+                  resultKind: 'SINGLE',
+                  outcomes: [
+                    {
+                      id: 'bite-damage',
+                      effectKind: 'DAMAGE',
+                      damageTypeId: 'piercing',
+                      valueKind: 'DICE',
+                      scalingKind: 'NONE',
+                      diceConfig: '2d10'
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        order: 3
+      },
+      {
         id: 'legendary-actions',
         label: 'Legendary Actions',
-        description: '<p>The dragon can take 3 legendary actions, choosing from the options below.</p><p><strong>Detect.</strong> The dragon makes a Wisdom (Perception) check.</p><p><strong>Tail Attack.</strong> The dragon makes a tail attack.</p><p><strong>Wing Attack (Costs 2 Actions).</strong> The dragon beats its wings.</p>',
+        description: '<p>The dragon can take 3 legendary actions, choosing from the options below.</p>',
+        options: [
+          {
+            id: 'detect',
+            label: 'Detect',
+            description: 'The dragon makes a Wisdom (Perception) check.',
+            order: 1
+          },
+          {
+            id: 'tail-attack',
+            label: 'Tail Attack',
+            description: 'The dragon makes a tail attack.',
+            order: 2
+          },
+          {
+            id: 'wing-attack',
+            label: 'Wing Attack (Costs 2 Actions)',
+            description: 'The dragon beats its wings.',
+            order: 3
+          }
+        ],
         order: 10
       }
     ],
@@ -333,7 +421,7 @@ describe('authored domain detail pages', () => {
         response={{
           ...spellResponse,
           item: {
-            ...spellResponse.item,
+            ...spellResponse.item!,
             description: '<p>The target takes acid damage.</p>'
           }
         }}
@@ -350,7 +438,7 @@ describe('authored domain detail pages', () => {
     renderWithAppProviders(
       <EquipmentDetailPage
         draft={null}
-        equipmentId={masterEquipmentResponseFixture.item.id}
+        equipmentId={masterEquipmentResponseFixture.item!.id}
         references={detailReferences}
         response={masterEquipmentResponseFixture}
         view='active'
@@ -360,6 +448,7 @@ describe('authored domain detail pages', () => {
     expect(screen.getByRole('heading', { name: /backpack/i })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^edit$/i })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /duplicate/i })).toBeInTheDocument()
+    expect(screen.queryByRole('navigation', { name: /detail sections/i })).not.toBeInTheDocument()
   })
 
   it('renders vehicle capacity and economy with resolved currency labels', () => {
@@ -384,6 +473,7 @@ describe('authored domain detail pages', () => {
     expect(screen.getByText('6')).toBeInTheDocument()
     expect(screen.getByText('5,000 Gold Piece')).toBeInTheDocument()
     expect(screen.queryByText(/currency/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('navigation', { name: /detail sections/i })).not.toBeInTheDocument()
   })
 
   it('renders creature stats as compact scores and shows legendary action options', () => {
@@ -410,9 +500,56 @@ describe('authored domain detail pages', () => {
     expect(screen.getByText('STR')).toBeInTheDocument()
     expect(screen.getByText('+6')).toBeInTheDocument()
     expect(screen.getByText('Flying Speed')).toBeInTheDocument()
-    expect(screen.getByText('Detect.')).toBeInTheDocument()
-    expect(screen.getByText('Tail Attack.')).toBeInTheDocument()
-    expect(screen.getByText('Wing Attack (Costs 2 Actions).')).toBeInTheDocument()
+    expect(screen.getByText('Legendary Resistance (3/Day)')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Details & Features' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('navigation', { name: /detail sections/i })).not.toBeInTheDocument()
+
+    const traitsSection = screen.getByRole('heading', { name: 'Traits' }).closest('section')
+    const actionsSection = screen.getByRole('heading', { name: 'Actions' }).closest('section')
+
+    const legendaryActionsSection = screen.getByRole('heading', { name: 'Legendary Actions' }).closest('section')
+
+    expect(traitsSection).not.toBeNull()
+    expect(actionsSection).not.toBeNull()
+    expect(legendaryActionsSection).not.toBeNull()
+    expect(within(traitsSection as HTMLElement).getByText('Legendary Resistance (3/Day)')).toBeInTheDocument()
+    expect(within(actionsSection as HTMLElement).getByText('Multiattack')).toBeInTheDocument()
+    expect(within(actionsSection as HTMLElement).getByText('Bite')).toBeInTheDocument()
+    expect(within(actionsSection as HTMLElement).queryByText('Legendary Resistance (3/Day)')).not.toBeInTheDocument()
+    expect(within(legendaryActionsSection as HTMLElement).getByText('Detect')).toBeInTheDocument()
+    expect(within(legendaryActionsSection as HTMLElement).getByText('Tail Attack')).toBeInTheDocument()
+    expect(within(legendaryActionsSection as HTMLElement).getByText('Wing Attack (Costs 2 Actions)')).toBeInTheDocument()
+    expect(within(legendaryActionsSection as HTMLElement).queryByText('Legendary Resistance (3/Day)')).not.toBeInTheDocument()
+  })
+
+  it('shows a visible creature legendary action option gap', () => {
+    const response = {
+      ...brassDragonResponse,
+      item: {
+        ...brassDragonResponse.item!,
+        features: brassDragonResponse.item!.features?.map((feature) => feature.label === 'Legendary Actions'
+          ? { ...feature, options: [] }
+          : feature)
+      }
+    } satisfies NonNullable<CreatureResponseDto>
+
+    renderWithAppProviders(
+      <CreatureDetailPage
+        creatureId='adult-brass-dragon'
+        draft={null}
+        references={{
+          challengeRatings: [],
+          conditionTypes: [],
+          creatureTypes: [{ value: 'dragon', label: 'Dragon' }],
+          damageTypes: [],
+          speeds: []
+        }}
+        response={response}
+        view='active'
+      />
+    )
+
+    expect(screen.getByText('No legendary action options have been added.')).toBeInTheDocument()
   })
 
   it('renders dragonborn ancestry options as a compact table without order labels', () => {
@@ -427,11 +564,14 @@ describe('authored domain detail pages', () => {
     )
 
     expect(screen.getByRole('heading', { name: /dragonborn/i })).toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: /detail sections/i })).toBeInTheDocument()
+    expect(screen.getByText('Playable')).toBeInTheDocument()
     expect(screen.getAllByText('Dragonborn bear draconic heritage.')).toHaveLength(1)
     expect(screen.getByRole('columnheader', { name: /dragon/i })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: /damage type/i })).toBeInTheDocument()
     expect(screen.getByText('Black')).toBeInTheDocument()
     expect(screen.getAllByText('5 by 30 ft. line (DEX save)').length).toBeGreaterThan(0)
+    expect(screen.queryByRole('heading', { name: /speeds/i })).not.toBeInTheDocument()
     expect(screen.queryByText(/option 0/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/level 1/i)).not.toBeInTheDocument()
   })
@@ -441,11 +581,14 @@ describe('authored domain detail pages', () => {
       ...dragonbornResponse,
       publicId: 'elf',
       item: {
-        ...dragonbornResponse.item,
+        ...dragonbornResponse.item!,
         id: 'elf',
         label: 'Elf',
         description: 'Elves carry ancient senses.',
+        category: 'BASE',
         selectionMode: 'REQUIRES_SUBRACE',
+        size: 'MEDIUM',
+        speeds: [{ speedId: 'walk', amount: 30, unit: 'FEET' }],
         ancestry: undefined,
         features: [
           {
@@ -492,11 +635,16 @@ describe('authored domain detail pages', () => {
     )
 
     expect(screen.getByRole('heading', { name: /wood elf/i })).toBeInTheDocument()
-    expect(screen.getAllByText('Elf').length).toBeGreaterThan(0)
+    expect(screen.getByText('Playable')).toBeInTheDocument()
     expect(screen.getByText('Elves carry ancient senses.')).toBeInTheDocument()
     expect(screen.getByText('Darkvision')).toBeInTheDocument()
     expect(screen.getByText('Wood elves move quietly through the wild.')).toBeInTheDocument()
     expect(screen.getByText('Fleet of Foot')).toBeInTheDocument()
+    expect(screen.queryByText('Category')).not.toBeInTheDocument()
+    expect(screen.queryByText('Base Race')).not.toBeInTheDocument()
+    expect(screen.queryByText('Builder')).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: /base race/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: /speeds/i })).not.toBeInTheDocument()
     expect(screen.queryByText(/parent race content is inherited/i)).not.toBeInTheDocument()
   })
 
@@ -513,6 +661,7 @@ describe('authored domain detail pages', () => {
     expect(screen.getByRole('heading', { name: /grappler/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /prerequisite/i })).toBeInTheDocument()
     expect(screen.getByText(/strength 13 or higher/i, { selector: 'li' })).toBeInTheDocument()
+    expect(screen.queryByRole('navigation', { name: /detail sections/i })).not.toBeInTheDocument()
     expect(screen.queryByText(/requirements are configured/i)).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: /mechanics/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: /grants/i })).not.toBeInTheDocument()
@@ -533,8 +682,181 @@ describe('authored domain detail pages', () => {
     )
 
     expect(screen.getByRole('heading', { name: /fighter draft/i })).toBeInTheDocument()
-    expect(screen.getByText('Draft Preview')).toBeInTheDocument()
+    expect(screen.getByText('Draft')).toBeInTheDocument()
+    expect(screen.queryByText('Draft Preview')).not.toBeInTheDocument()
+    expect(screen.queryByText('Draft Only')).not.toBeInTheDocument()
     expect(screen.getByText(/active class remains unchanged/i)).toBeInTheDocument()
+  })
+
+  it('shows the parent class tag for subclasses only', () => {
+    const subclassResponse = {
+      ...masterSubclassResponseFixture,
+      meta: {
+        classes: [
+          {
+            value: ownedClassResponseFixture.item.id,
+            label: ownedClassResponseFixture.item.label
+          }
+        ]
+      }
+    } satisfies NonNullable<ClassResponseDto>
+
+    renderWithAppProviders(
+      <ClassDetailPage
+        classId={masterSubclassResponseFixture.item.id}
+        draft={null}
+        references={detailReferences}
+        response={subclassResponse}
+        view='active'
+      />
+    )
+
+    expect(screen.getByRole('heading', { name: /champion/i })).toBeInTheDocument()
+    expect(screen.getByText('Fighter subclass')).toBeInTheDocument()
+  })
+
+  it('does not show a subclass parent tag for base classes', () => {
+    renderWithAppProviders(
+      <ClassDetailPage
+        classId={ownedClassResponseFixture.item.id}
+        draft={null}
+        references={detailReferences}
+        response={ownedClassResponseFixture}
+        view='active'
+      />
+    )
+
+    expect(screen.getByRole('heading', { name: /fighter/i })).toBeInTheDocument()
+    expect(screen.queryByText('Fighter subclass')).not.toBeInTheDocument()
+  })
+
+  it('renders class details in SRD reading order without spellcasting metadata rows', () => {
+    const bardResponse = {
+      ...ownedClassResponseFixture,
+      item: {
+        ...ownedClassResponseFixture.item,
+        label: 'Bard',
+        hitpoint: {
+          ability: 'CONSTITUTION',
+          dieConfig: 'd8'
+        },
+        spellcasting: {
+          spellLimits: [
+            {
+              classLevel: 1,
+              slots: [{ spellLevel: 1, slotCount: 2 }],
+              learnedSpellsLimit: 4,
+              cantripsLimit: 2
+            },
+            {
+              classLevel: 3,
+              slots: [
+                { spellLevel: 1, slotCount: 4 },
+                { spellLevel: 2, slotCount: 2 }
+              ],
+              learnedSpellsLimit: 6,
+              cantripsLimit: 2
+            }
+          ],
+          details: [
+            {
+              id: 'bard-spellcasting-detail',
+              label: 'Cantrips',
+              description: '<p>You know two cantrips of your choice from the bard spell list.</p>',
+              order: 1
+            }
+          ],
+          ability: 'CHARISMA',
+          maxSpellLevel: 9,
+          charges: {
+            id: 'bard-spellcasting-charge',
+            resetKind: 'LONG_REST',
+            limitKind: 'FIXED_AMOUNT',
+            scalingKind: 'NONE',
+            amount: 1
+          }
+        },
+        proficiencies: [
+          {
+            id: 'bard-skill-proficiency',
+            grantKind: 'PROFICIENCY_GRANT',
+            proficiencyKind: 'SKILL',
+            selectionKind: 'GRANTED',
+            level: 'FULL',
+            authoringModeKind: 'SELECTED',
+            skillIds: ['performance'],
+            order: 1
+          }
+        ],
+        resources: {
+          id: 'bardic-inspiration',
+          label: 'Bardic Inspiration',
+          description: '<p>You can inspire others through stirring words or music.</p>',
+          availableAtLevel: 1,
+          charges: {
+            id: 'bardic-inspiration-charge',
+            resetKind: 'LONG_REST',
+            limitKind: 'FIXED_AMOUNT',
+            scalingKind: 'NONE',
+            amount: 0,
+            bonuses: [
+              {
+                id: 'bardic-inspiration-charisma',
+                bonusKind: 'ABILITY_MODIFIER',
+                ability: 'CHARISMA',
+                min: 1,
+                order: 1
+              }
+            ]
+          }
+        },
+        features: [
+          {
+            id: 'spellcasting-feature',
+            label: 'Spellcasting',
+            description: 'Metadata duplicate.',
+            availableAtLevel: 1,
+            order: 1
+          },
+          {
+            id: 'font-of-inspiration',
+            label: 'Font of Inspiration',
+            description: 'You regain Bardic Inspiration on a short or long rest.',
+            availableAtLevel: 5,
+            order: 2
+          }
+        ]
+      }
+    } satisfies NonNullable<ClassResponseDto>
+
+    renderWithAppProviders(
+      <ClassDetailPage
+        classId={bardResponse.item!.id}
+        draft={null}
+        references={detailReferences}
+        response={bardResponse}
+        view='active'
+      />
+    )
+
+    const hitPoints = screen.getByRole('heading', { name: 'Hit Points' })
+    const proficiencies = screen.getByRole('heading', { name: 'Proficiencies' })
+
+    expect(hitPoints.compareDocumentPosition(proficiencies) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Progression' })).toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: /detail sections/i })).toBeInTheDocument()
+    const progressionTable = screen.getByRole('table')
+    expect(within(progressionTable).getByRole('columnheader', { name: 'Prof.' })).toBeInTheDocument()
+    expect(within(progressionTable).getByRole('columnheader', { name: 'Known' })).toBeInTheDocument()
+    expect(within(progressionTable).getByRole('columnheader', { name: 'Spell Slots per Spell Level' })).toBeInTheDocument()
+    expect(within(progressionTable).getByRole('columnheader', { name: '1st' })).toBeInTheDocument()
+    expect(within(progressionTable).getByRole('columnheader', { name: '2nd' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Spellcasting' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Resources' })).toBeInTheDocument()
+    expect(screen.getAllByText('Bardic Inspiration').length).toBeGreaterThan(0)
+    expect(screen.queryByText('Spell Limits')).not.toBeInTheDocument()
+    expect(screen.queryByText('Charges')).not.toBeInTheDocument()
+    expect(screen.queryByText('Metadata duplicate.')).not.toBeInTheDocument()
   })
 
   it('shows invalid draft-only recovery without rendering broken content', () => {
@@ -549,6 +871,6 @@ describe('authored domain detail pages', () => {
     )
 
     expect(screen.getByText(/draft cannot be previewed/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /discard draft/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^delete$/i })).toBeInTheDocument()
   })
 })

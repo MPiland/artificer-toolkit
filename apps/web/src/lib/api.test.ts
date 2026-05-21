@@ -144,6 +144,9 @@ describe('tRPC api adapter', () => {
     if (!response) {
       throw new Error('Expected activate draft response.')
     }
+    if (!response.item) {
+      throw new Error('Expected activated spell item.')
+    }
 
     expect(response.item.label).toBe('Magic Missile Copy')
   })

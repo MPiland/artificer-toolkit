@@ -8,27 +8,85 @@ function cloneRows(rows: Row[]): Row[] {
 }
 
 function matchesFilter(row: Row, filter: Filter): boolean {
+  const rowValue = readColumnValue(row, filter.column)
+
   if (filter.op === 'in') {
-    return Array.isArray(filter.value) && filter.value.includes(row[filter.column])
+    return Array.isArray(filter.value) && filter.value.includes(rowValue)
   }
 
-  return row[filter.column] === filter.value
+  if (filter.op === 'is not') {
+    return rowValue !== filter.value
+  }
+
+  return rowValue === filter.value
+}
+
+function readColumnValue(row: Row, column: string): unknown {
+  if (column in row) return row[column]
+
+  const unqualifiedColumn = column.split('.').pop()
+  return unqualifiedColumn ? row[unqualifiedColumn] : undefined
+}
+
+function withQualifiedColumns(table: string, row: Row): Row {
+  return Object.entries(row).reduce<Row>((next, [key, value]) => ({
+    ...next,
+    [key]: value,
+    [`${table}.${key}`]: value
+  }), {})
+}
+
+function projectSelectedColumns(row: Row, columns: string | string[]): Row {
+  const columnList = Array.isArray(columns) ? columns : [columns]
+
+  return columnList.reduce<Row>((next, columnExpression) => {
+    const [rawColumn, rawAlias] = columnExpression.split(/\s+as\s+/i)
+    const column = rawColumn?.trim() ?? ''
+    const alias = rawAlias?.trim() ?? column.split('.').pop() ?? column
+
+    return {
+      ...next,
+      [alias]: readColumnValue(row, column)
+    }
+  }, {})
 }
 
 class SelectBuilder {
   private readonly filters: Filter[] = []
+  private rows: Row[]
   private orderByColumn: string | null = null
+  private selectedColumns: string | string[] | null = null
 
   constructor(
     private readonly db: InMemoryDb,
     private readonly table: string
-  ) {}
+  ) {
+    this.rows = db.readTable(table).map((row) => withQualifiedColumns(table, row))
+  }
 
-  select(_columns: string | string[]) {
+  select(columns: string | string[]) {
+    this.selectedColumns = columns
     return this
   }
 
   selectAll() {
+    this.selectedColumns = null
+    return this
+  }
+
+  innerJoin(table: string, leftColumn: string, rightColumn: string) {
+    const joinedRows = this.db.readTable(table)
+
+    this.rows = this.rows.flatMap((leftRow) => {
+      return joinedRows.flatMap((rightRow) => {
+        const rightProjected = withQualifiedColumns(table, rightRow)
+        const candidate = { ...leftRow, ...rightProjected }
+        return readColumnValue(candidate, leftColumn) === readColumnValue(candidate, rightColumn)
+          ? [candidate]
+          : []
+      })
+    })
+
     return this
   }
 
@@ -47,7 +105,7 @@ class SelectBuilder {
   }
 
   async execute() {
-    let rows = cloneRows(this.db.readTable(this.table))
+    let rows = cloneRows(this.rows)
 
     for (const filter of this.filters) {
       rows = rows.filter((row) => matchesFilter(row, filter))
@@ -56,8 +114,8 @@ class SelectBuilder {
     if (this.orderByColumn) {
       const column = this.orderByColumn
       rows.sort((left, right) => {
-        const leftValue = left[column] as number | string | null | undefined
-        const rightValue = right[column] as number | string | null | undefined
+        const leftValue = readColumnValue(left, column) as number | string | null | undefined
+        const rightValue = readColumnValue(right, column) as number | string | null | undefined
         if (leftValue === rightValue) return 0
         if (leftValue == null) return -1
         if (rightValue == null) return 1
@@ -65,7 +123,7 @@ class SelectBuilder {
       })
     }
 
-    return rows
+    return this.selectedColumns ? rows.map((row) => projectSelectedColumns(row, this.selectedColumns!)) : rows
   }
 
   async executeTakeFirst() {
@@ -409,10 +467,15 @@ export class InMemoryDb {
       case 'class_spellcasting':
         this.deleteWhere('charges', 'id', row.charge_id)
         this.deleteWhere('class_spellcasting_attributes', 'spellcasting_id', row.id)
+        this.deleteWhere('class_spellcasting_details', 'spellcasting_id', row.id)
         this.deleteWhere('class_spellcasting_prepare_limit', 'spellcasting_id', row.id)
         this.deleteWhere('class_spellcasting_prepare_limit_methods', 'spellcasting_id', row.id)
         this.deleteWhere('class_spellcasting_prepare_limit_levels', 'spellcasting_id', row.id)
         this.deleteWhere('class_spell_limits', 'spellcasting_id', row.id)
+        break
+
+      case 'class_spellcasting_details':
+        this.deleteWhere('details', 'id', row.detail_id)
         break
 
       case 'class_spell_limits':
@@ -464,6 +527,7 @@ export class InMemoryDb {
           this.deleteWhere('facets', 'id', row.restriction_id)
         }
         this.deleteWhere('feature_attributes', 'feature_id', row.id)
+        this.deleteWhere('feature_details', 'feature_id', row.id)
         this.deleteWhere('feature_effects', 'feature_id', row.id)
         this.deleteWhere('feature_feat_grants', 'feature_id', row.id)
         this.deleteWhere('feature_modifier_grants', 'feature_id', row.id)
@@ -472,6 +536,10 @@ export class InMemoryDb {
         this.deleteWhere('feature_spell_grants', 'feature_id', row.id)
         this.deleteWhere('feature_options', 'feature_id', row.id)
         this.deleteWhere('feature_option_levels', 'feature_id', row.id)
+        break
+
+      case 'feature_details':
+        this.deleteWhere('details', 'id', row.detail_id)
         break
 
       case 'feature_feat_grants':
@@ -501,6 +569,10 @@ export class InMemoryDb {
       case 'effects':
         this.deleteWhere('effect_invocations', 'effect_id', row.id)
         this.deleteWhere('effect_paths', 'effect_id', row.id)
+        break
+
+      case 'saving_throws':
+        this.deleteWhere('saving_throw_dc_bonuses', 'saving_throw_id', row.id)
         break
 
       case 'effect_invocations':
@@ -595,6 +667,10 @@ export class InMemoryDb {
         this.deleteWhere('effects', 'id', row.effect_id)
         break
 
+      case 'feat_details':
+        this.deleteWhere('details', 'id', row.detail_id)
+        break
+
       case 'feat_features':
         this.deleteWhere('features', 'id', row.feature_id)
         break
@@ -607,6 +683,7 @@ export class InMemoryDb {
           this.deleteWhere('facets', 'id', row.prerequisite_id)
         }
         this.deleteWhere('feat_proficiency_grants', 'feat_id', row.id)
+        this.deleteWhere('feat_details', 'feat_id', row.id)
         this.deleteWhere('feat_sense_grants', 'feat_id', row.id)
         this.deleteWhere('feat_spell_grants', 'feat_id', row.id)
         this.deleteWhere('feat_modifier_grants', 'feat_id', row.id)
@@ -729,6 +806,7 @@ export class InMemoryDb {
           this.deleteWhere('facets', 'id', row.restriction_id)
         }
         this.deleteWhere('option_attributes', 'option_id', row.id)
+        this.deleteWhere('option_details', 'option_id', row.id)
         this.deleteWhere('option_effects', 'option_id', row.id)
         this.deleteWhere('option_feat_grants', 'option_id', row.id)
         this.deleteWhere('option_modifier_grants', 'option_id', row.id)
@@ -759,6 +837,10 @@ export class InMemoryDb {
 
       case 'option_effects':
         this.deleteWhere('effects', 'id', row.effect_id)
+        break
+
+      case 'option_details':
+        this.deleteWhere('details', 'id', row.detail_id)
         break
 
       case 'proficiency_grants':
